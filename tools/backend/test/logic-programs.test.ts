@@ -1,19 +1,24 @@
-import { expect, test } from 'vitest';
+import { expect, test, beforeAll } from 'vitest';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 
 const fileUrl = fileURLToPath(import.meta.url);
 const dirname = path.dirname(fileUrl);
 
-const app = createApp(
-  new MockAuthProvider(),
-  path.resolve(
-    dirname,
-    '../../data-handler/test/test-data/valid/decision-records',
-  ),
-);
+let app: ReturnType<typeof createApp>;
+
+beforeAll(async () => {
+  const commands = await CommandManager.getInstance(
+    path.resolve(
+      dirname,
+      '../../data-handler/test/test-data/valid/decision-records',
+    ),
+  );
+  app = createApp(new MockAuthProvider(), commands);
+});
 
 test('/api/logicPrograms returns logic program for a valid card', async () => {
   const response = await app.request(

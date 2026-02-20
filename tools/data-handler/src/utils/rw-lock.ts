@@ -12,6 +12,8 @@
 */
 
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { runWithDefaultCommitMessage } from './commit-context.js';
+import { getChildLogger } from './log-utils.js';
 
 interface LockContext {
   mode: 'read' | 'write';
@@ -35,6 +37,12 @@ export class RWLock {
   private writerQueue: (() => void)[] = [];
   private context = new AsyncLocalStorage<LockContext>();
   private afterWriteHooks: (() => Promise<void>)[] = [];
+  private writeErrorHooks: ((error: unknown) => Promise<void>)[] = [];
+  private readonly logger;
+
+  constructor(private readonly name: string = 'RWLock') {
+    this.logger = getChildLogger({ module: 'RWLock', name });
+  }
 
   /**
    * Register a callback that fires after the outermost write completes
@@ -42,6 +50,14 @@ export class RWLock {
    */
   onAfterWrite(hook: () => Promise<void>): void {
     this.afterWriteHooks.push(hook);
+  }
+
+  /**
+   * Register a callback that fires when the outermost write fails.
+   * Hooks run while still holding the write lock.
+   */
+  onWriteError(hook: (error: unknown) => Promise<void>): void {
+    this.writeErrorHooks.push(hook);
   }
 
   /**
@@ -83,9 +99,15 @@ export class RWLock {
       const result = await this.context.run(ctx, fn);
       // Fire after-write hooks while still holding the lock
       for (const hook of this.afterWriteHooks) {
-        await hook();
+        await this.context.run(ctx, hook);
       }
       return result;
+    } catch (error) {
+      // Run rollback hooks on error (outermost write only)
+      for (const hook of this.writeErrorHooks) {
+        await this.context.run(ctx, () => hook(error));
+      }
+      throw error;
     } finally {
       ctx.active = false;
       this.releaseWrite();
@@ -95,11 +117,29 @@ export class RWLock {
   private acquireRead(): Promise<void> {
     if (!this.writer && this.writerQueue.length === 0) {
       this.readers++;
+      this.logger.trace({ readers: this.readers }, 'read lock acquired');
       return Promise.resolve();
     }
+    this.logger.debug(
+      {
+        readers: this.readers,
+        writer: this.writer,
+        writerQueueDepth: this.writerQueue.length,
+        readerQueueDepth: this.readerQueue.length,
+      },
+      'read lock queued (writer active or pending)',
+    );
     return new Promise<void>((resolve) => {
       this.readerQueue.push(() => {
         this.readers++;
+        this.logger.debug(
+          {
+            readers: this.readers,
+            writerQueueDepth: this.writerQueue.length,
+            readerQueueDepth: this.readerQueue.length,
+          },
+          'read lock acquired after wait',
+        );
         resolve();
       });
     });
@@ -107,6 +147,14 @@ export class RWLock {
 
   private releaseRead(): void {
     this.readers--;
+    this.logger.trace(
+      {
+        readers: this.readers,
+        writerQueueDepth: this.writerQueue.length,
+        readerQueueDepth: this.readerQueue.length,
+      },
+      'read lock released',
+    );
     if (this.readers === 0 && this.writerQueue.length > 0) {
       const next = this.writerQueue.shift()!;
       next();
@@ -116,11 +164,36 @@ export class RWLock {
   private acquireWrite(): Promise<void> {
     if (!this.writer && this.readers === 0) {
       this.writer = true;
+      this.logger.trace(
+        {
+          readers: this.readers,
+          writerQueueDepth: this.writerQueue.length,
+          readerQueueDepth: this.readerQueue.length,
+        },
+        'write lock acquired',
+      );
       return Promise.resolve();
     }
+    this.logger.debug(
+      {
+        readers: this.readers,
+        writer: this.writer,
+        writerQueueDepth: this.writerQueue.length,
+        readerQueueDepth: this.readerQueue.length,
+      },
+      `write lock queued (readers: ${this.readers}, writer active: ${this.writer})`,
+    );
     return new Promise<void>((resolve) => {
       this.writerQueue.push(() => {
         this.writer = true;
+        this.logger.debug(
+          {
+            readers: this.readers,
+            writerQueueDepth: this.writerQueue.length,
+            readerQueueDepth: this.readerQueue.length,
+          },
+          'write lock acquired after wait',
+        );
         resolve();
       });
     });
@@ -128,6 +201,14 @@ export class RWLock {
 
   private releaseWrite(): void {
     this.writer = false;
+    this.logger.trace(
+      {
+        readers: this.readers,
+        writerQueueDepth: this.writerQueue.length,
+        readerQueueDepth: this.readerQueue.length,
+      },
+      'write lock released',
+    );
     if (this.writerQueue.length > 0) {
       const next = this.writerQueue.shift()!;
       next();
@@ -165,12 +246,34 @@ export function read<This extends object, Args extends unknown[], Return>(
 }
 
 /**
- * A Helper decorator built for commands that automatically handles using a write lock
+ * A Helper decorator built for commands that automatically handles using a write lock.
+ *
+ * Two forms:
+ * - `@write()`: just acquires the write lock, no commit message (for wrapper methods)
+ * - `@write((param) => \`Do ${param}\`)`: acquires the write lock and sets a default commit message
  */
-export function write<This extends object, Args extends unknown[], Return>(
+export function write<This extends object, Args extends unknown[], Return>(): (
   target: (this: This, ...args: Args) => Promise<Return>,
-): (this: This, ...args: Args) => Promise<Return> {
-  return function (this: This, ...args: Args): Promise<Return> {
-    return getLock(this).write(() => target.call(this, ...args));
+) => (this: This, ...args: Args) => Promise<Return>;
+
+export function write<This extends object, Args extends unknown[], Return>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  message: (...args: any[]) => string,
+): (
+  target: (this: This, ...args: Args) => Promise<Return>,
+) => (this: This, ...args: Args) => Promise<Return>;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function write(message?: (...args: any[]) => string): unknown {
+  return function (target: (...args: unknown[]) => Promise<unknown>) {
+    return function (this: object, ...args: unknown[]) {
+      if (!message) {
+        return getLock(this).write(() => target.call(this, ...args));
+      }
+      const label = message(...args);
+      return runWithDefaultCommitMessage(label, () =>
+        getLock(this).write(() => target.call(this, ...args)),
+      );
+    };
   };
 }

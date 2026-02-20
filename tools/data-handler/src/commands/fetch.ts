@@ -204,7 +204,7 @@ export class Fetch {
   /**
    * Ensures the module list is up to date by fetching if needed.
    */
-  @write
+  @write()
   public async ensureModuleListUpToDate() {
     await this.fetchHubs();
   }
@@ -213,7 +213,7 @@ export class Fetch {
    * Fetches modules from modules hub(s) and writes them to a file.
    * Only fetches if the remote version is newer than the local version.
    */
-  @write
+  @write(() => 'Fetch hubs')
   public async fetchHubs() {
     const needsFetch = await this.fetchModuleList();
     if (!needsFetch) {

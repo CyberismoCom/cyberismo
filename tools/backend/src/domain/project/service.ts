@@ -50,17 +50,19 @@ async function toModuleInfo(
 export async function getProject(
   commands: CommandManager,
 ): Promise<ProjectInfo> {
-  const project = await commands.showCmd.showProject();
-  const modules = await commands.showCmd.showModules();
-  const moduleDetails = await Promise.all(
-    modules.map((mod) => toModuleInfo(commands, mod)),
-  );
+  return commands.consistent(async () => {
+    const project = await commands.showCmd.showProject();
+    const modules = await commands.showCmd.showModules();
+    const moduleDetails = await Promise.all(
+      modules.map((mod) => toModuleInfo(commands, mod)),
+    );
 
-  return {
-    name: project.name,
-    cardKeyPrefix: project.prefix,
-    modules: moduleDetails,
-  };
+    return {
+      name: project.name,
+      cardKeyPrefix: project.prefix,
+      modules: moduleDetails,
+    };
+  });
 }
 
 export async function updateProject(
@@ -69,12 +71,14 @@ export async function updateProject(
 ): Promise<ProjectInfo> {
   const { name, cardKeyPrefix } = updates;
 
-  if (cardKeyPrefix) {
-    await commands.renameCmd.rename(cardKeyPrefix);
-  }
-  if (name) {
-    await commands.project.configuration.setProjectName(name);
-  }
+  await commands.atomic(async () => {
+    if (cardKeyPrefix) {
+      await commands.renameCmd.rename(cardKeyPrefix);
+    }
+    if (name) {
+      await commands.project.configuration.setProjectName(name);
+    }
+  }, 'Update project settings');
 
   return getProject(commands);
 }

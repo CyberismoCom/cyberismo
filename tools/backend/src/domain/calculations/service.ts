@@ -26,20 +26,22 @@ export async function createCalculation(
   commands: CommandManager,
   identifier: string,
 ) {
-  await commands.createCmd.createCalculation(identifier);
+  await commands.atomic(async () => {
+    await commands.createCmd.createCalculation(identifier);
 
-  // Set displayName to capitalized version of identifier
-  const project = await commands.showCmd.showProject();
-  await updateResourceWithOperation(
-    commands,
-    { prefix: project.prefix, type: 'calculations', identifier },
-    {
-      updateKey: { key: 'displayName' },
-      operation: {
-        name: 'change',
-        target: '',
-        to: capitalize(identifier),
+    // Set displayName to capitalized version of identifier
+    const project = await commands.showCmd.showProject();
+    await updateResourceWithOperation(
+      commands,
+      { prefix: project.prefix, type: 'calculations', identifier },
+      {
+        updateKey: { key: 'displayName' },
+        operation: {
+          name: 'change',
+          target: '',
+          to: capitalize(identifier),
+        },
       },
-    },
-  );
+    );
+  }, `Create calculation ${identifier}`);
 }

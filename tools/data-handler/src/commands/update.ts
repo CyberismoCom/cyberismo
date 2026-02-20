@@ -21,6 +21,7 @@ import type {
 } from '../resources/resource-object.js';
 import type { Project } from '../containers/project.js';
 import type { UpdateKey } from '../interfaces/resource-interfaces.js';
+import { runWithDefaultCommitMessage } from '../utils/commit-context.js';
 
 /**
  * Class that handles 'update' commands.
@@ -47,11 +48,13 @@ export class Update {
     T extends UpdateOperations,
     K extends string,
   >(name: string, updateKey: UpdateKey<K>, operation: OperationFor<Type, T>) {
-    return this.project.lock.write(async () => {
-      const type = this.project.resources.extractType(name);
-      const resource = this.project.resources.byType(name, type);
-      await resource?.update(updateKey, operation);
-    });
+    const run = () =>
+      this.project.lock.write(async () => {
+        const type = this.project.resources.extractType(name);
+        const resource = this.project.resources.byType(name, type);
+        await resource?.update(updateKey, operation);
+      });
+    return runWithDefaultCommitMessage('Apply resource operation', run);
   }
 
   /**

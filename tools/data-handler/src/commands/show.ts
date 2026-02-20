@@ -338,7 +338,7 @@ export class Show {
    *          with 'showAll' true, the list consists of all modules in the hubs, even if they have already been imported
    *          Note that the two boolean options can be combined.
    */
-  @write
+  @write()
   public async showImportableModules(
     showAll?: boolean,
     showDetails?: boolean,
@@ -423,7 +423,7 @@ export class Show {
    * Shows hubs of the project.
    * @returns list of hubs.
    */
-  @write
+  @write()
   public async showHubs(): Promise<HubSetting[]> {
     // Ensure module list is up to date before showing
     await this.fetchCmd.ensureModuleListUpToDate();

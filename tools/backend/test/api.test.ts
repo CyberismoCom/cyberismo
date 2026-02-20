@@ -1,6 +1,7 @@
 import { expect, test, beforeAll } from 'vitest';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { type QueryResult } from '@cyberismo/data-handler/types/queries';
@@ -15,21 +16,22 @@ import type { CardAttachment } from '@cyberismo/data-handler/interfaces/project-
 
 // Testing env attempts to open project in "../data-handler/test/test-data/valid/decision-records"
 
-// Fixes weird issue with asciidoctor
-beforeAll(() => {
-  process.argv = [];
-});
-
 const fileUrl = fileURLToPath(import.meta.url);
 const dirname = path.dirname(fileUrl);
 
-const app = createApp(
-  new MockAuthProvider(),
-  path.resolve(
-    dirname,
-    '../../data-handler/test/test-data/valid/decision-records',
-  ),
-);
+let app: ReturnType<typeof createApp>;
+
+beforeAll(async () => {
+  // Fixes weird issue with asciidoctor
+  process.argv = [];
+  const commands = await CommandManager.getInstance(
+    path.resolve(
+      dirname,
+      '../../data-handler/test/test-data/valid/decision-records',
+    ),
+  );
+  app = createApp(new MockAuthProvider(), commands);
+});
 
 type CardApiResponse = QueryResult<'card'> & {
   rawContent: string;

@@ -1,15 +1,8 @@
 import { expect } from 'chai';
 
 import { RWLock, read, write } from '../src/utils/rw-lock.js';
-
-// Helper to create a deferred promise latch
-function deferred(): { promise: Promise<void>; resolve: () => void } {
-  let res!: () => void;
-  const promise = new Promise<void>((resolve) => {
-    res = resolve;
-  });
-  return { promise, resolve: res };
-}
+import { getCommitContext } from '../src/utils/commit-context.js';
+import { deferred } from './test-utils.js';
 
 describe('RWLock', () => {
   describe('basic read/write', () => {
@@ -377,6 +370,200 @@ describe('RWLock', () => {
     });
   });
 
+  describe('write-error hooks', () => {
+    it('should fire onWriteError hook when write fn throws', async () => {
+      const lock = new RWLock();
+      let hookCalled = false;
+
+      lock.onWriteError(async () => {
+        hookCalled = true;
+      });
+
+      try {
+        await lock.write(async () => {
+          throw new Error('fail');
+        });
+      } catch {
+        // expected
+      }
+
+      expect(hookCalled).to.equal(true);
+    });
+
+    it('should NOT fire onWriteError hook on success', async () => {
+      const lock = new RWLock();
+      let hookCalled = false;
+
+      lock.onWriteError(async () => {
+        hookCalled = true;
+      });
+
+      await lock.write(async () => 'ok');
+
+      expect(hookCalled).to.equal(false);
+    });
+
+    it('should NOT fire onWriteError hook for nested writes', async () => {
+      const lock = new RWLock();
+      let hookCallCount = 0;
+
+      lock.onWriteError(async () => {
+        hookCallCount++;
+      });
+
+      try {
+        await lock.write(async () => {
+          await lock.write(async () => {
+            throw new Error('inner fail');
+          });
+        });
+      } catch {
+        // expected
+      }
+
+      // Should fire once (outermost only), not twice
+      expect(hookCallCount).to.equal(1);
+    });
+
+    it('should fire onWriteError when afterWrite hook throws', async () => {
+      const lock = new RWLock();
+      const log: string[] = [];
+
+      lock.onAfterWrite(async () => {
+        log.push('afterWrite');
+        throw new Error('commit failed');
+      });
+
+      lock.onWriteError(async () => {
+        log.push('errorHook');
+      });
+
+      try {
+        await lock.write(async () => {
+          log.push('write');
+        });
+      } catch {
+        // expected
+      }
+
+      expect(log).to.deep.equal(['write', 'afterWrite', 'errorHook']);
+    });
+
+    it('should pass the error object to onWriteError hooks', async () => {
+      const lock = new RWLock();
+      let receivedError: unknown;
+
+      lock.onWriteError(async (error) => {
+        receivedError = error;
+      });
+
+      try {
+        await lock.write(async () => {
+          throw new Error('specific error');
+        });
+      } catch {
+        // expected
+      }
+
+      expect(receivedError).to.be.instanceOf(Error);
+      expect((receivedError as Error).message).to.equal('specific error');
+    });
+
+    it('should run multiple onWriteError hooks in order', async () => {
+      const lock = new RWLock();
+      const log: string[] = [];
+
+      lock.onWriteError(async () => {
+        log.push('hook1');
+      });
+      lock.onWriteError(async () => {
+        log.push('hook2');
+      });
+
+      try {
+        await lock.write(async () => {
+          throw new Error('fail');
+        });
+      } catch {
+        // expected
+      }
+
+      expect(log).to.deep.equal(['hook1', 'hook2']);
+    });
+  });
+
+  describe('hook deadlock prevention', () => {
+    it('should not deadlock when onAfterWrite hook acquires write lock', async () => {
+      const lock = new RWLock();
+      const hookDone = deferred();
+
+      lock.onAfterWrite(async () => {
+        await lock.write(async () => {
+          hookDone.resolve();
+        });
+      });
+
+      await lock.write(async () => {});
+      await hookDone.promise;
+    });
+
+    it('should not deadlock when onAfterWrite hook acquires read lock', async () => {
+      const lock = new RWLock();
+      const hookDone = deferred();
+
+      lock.onAfterWrite(async () => {
+        await lock.read(async () => {
+          hookDone.resolve();
+        });
+      });
+
+      await lock.write(async () => {});
+      await hookDone.promise;
+    });
+
+    it('should not deadlock when onWriteError hook acquires write lock', async () => {
+      const lock = new RWLock();
+      const hookDone = deferred();
+
+      lock.onWriteError(async () => {
+        await lock.write(async () => {
+          hookDone.resolve();
+        });
+      });
+
+      try {
+        await lock.write(async () => {
+          throw new Error('fail');
+        });
+      } catch {
+        // expected
+      }
+
+      await hookDone.promise;
+    });
+
+    it('should not deadlock when onWriteError hook acquires read lock', async () => {
+      const lock = new RWLock();
+      const hookDone = deferred();
+
+      lock.onWriteError(async () => {
+        await lock.read(async () => {
+          hookDone.resolve();
+        });
+      });
+
+      try {
+        await lock.write(async () => {
+          throw new Error('fail');
+        });
+      } catch {
+        // expected
+      }
+
+      await hookDone.promise;
+    });
+  });
+
   describe('@read and @write decorators', () => {
     it('should wrap methods with read lock', async () => {
       const lock = new RWLock();
@@ -406,7 +593,7 @@ describe('RWLock', () => {
       class TestCmd {
         project = { lock };
 
-        @write
+        @write()
         async doWrite(): Promise<void> {
           log.push('write');
         }
@@ -415,6 +602,76 @@ describe('RWLock', () => {
       const cmd = new TestCmd();
       await cmd.doWrite();
       expect(log).to.deep.equal(['write', 'hook']);
+    });
+
+    it('should set commit message from factory', async () => {
+      const lock = new RWLock();
+      let capturedMessage: string | undefined;
+
+      lock.onAfterWrite(async () => {
+        capturedMessage = getCommitContext().message;
+      });
+
+      class TestCmd {
+        project = { lock };
+
+        @write((n: string) => `Create thing ${n}`)
+        async createThing(name: string): Promise<void> {
+          void name;
+        }
+      }
+
+      const cmd = new TestCmd();
+      await cmd.createThing('foo');
+      expect(capturedMessage).to.equal('Create thing foo');
+    });
+
+    it('should pass all args to the factory', async () => {
+      const lock = new RWLock();
+      let capturedMessage: string | undefined;
+
+      lock.onAfterWrite(async () => {
+        capturedMessage = getCommitContext().message;
+      });
+
+      class TestCmd {
+        project = { lock };
+
+        @write((src: string, dst: string) => `Move ${src} to ${dst}`)
+        async move(src: string, dst: string): Promise<void> {
+          void src;
+          void dst;
+        }
+      }
+
+      const cmd = new TestCmd();
+      await cmd.move('a', 'b');
+      expect(capturedMessage).to.equal('Move a to b');
+    });
+
+    it('should not override an already-set commit message', async () => {
+      const lock = new RWLock();
+      let capturedMessage: string | undefined;
+
+      lock.onAfterWrite(async () => {
+        capturedMessage = getCommitContext().message;
+      });
+
+      class TestCmd {
+        project = { lock };
+
+        @write(() => 'inner message')
+        async inner(): Promise<void> {}
+
+        @write(() => 'outer message')
+        async outer(): Promise<void> {
+          await this.inner();
+        }
+      }
+
+      const cmd = new TestCmd();
+      await cmd.outer();
+      expect(capturedMessage).to.equal('outer message');
     });
 
     it('should serialize decorated writes', async () => {
@@ -427,7 +684,7 @@ describe('RWLock', () => {
       class TestCmd {
         project = { lock };
 
-        @write
+        @write()
         async slowWrite(): Promise<void> {
           log.push('slow-start');
           entered.resolve();
@@ -435,7 +692,7 @@ describe('RWLock', () => {
           log.push('slow-end');
         }
 
-        @write
+        @write()
         async fastWrite(): Promise<void> {
           log.push('fast-start');
           log.push('fast-end');

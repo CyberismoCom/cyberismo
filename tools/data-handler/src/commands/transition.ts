@@ -41,7 +41,7 @@ export class Transition {
    * @param cardKey card key
    * @param transition which transition to do
    */
-  @write
+  @write((cardKey) => `Transition card ${cardKey}`)
   public async cardTransition(cardKey: string, transition: WorkflowState) {
     const card = this.project.findCard(cardKey);
 

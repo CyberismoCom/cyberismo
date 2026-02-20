@@ -15,7 +15,7 @@ import path from 'node:path';
 
 import fs, { readFile } from 'node:fs/promises';
 
-import { CommandManager } from '@cyberismo/data-handler';
+import type { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from './app.js';
 import { MockAuthProvider } from './auth/mock.js';
 import { cp, writeFile } from 'node:fs/promises';
@@ -42,16 +42,15 @@ export function reset() {
 /**
  * Get the card query result for a given card key. Should only be called during
  * static site generation
- * @param projectPath - Path to the project.
+ * @param commands - CommandManager instance for the project.
  * @param cardKey - Key of the card to get the query result for.
  * @returns The card query result for the given card key.
  */
 export async function getCardQueryResult(
-  projectPath: string,
+  commands: CommandManager,
   cardKey?: string,
 ): Promise<QueryResult<'card'>[]> {
   if (!_cardQueryPromise) {
-    const commands = await CommandManager.getInstance(projectPath);
     // fetch all cards
     _cardQueryPromise = commands.project.calculationEngine.runQuery(
       'card',
@@ -74,17 +73,17 @@ export async function getCardQueryResult(
 /**
  * Export the site to a given directory.
  * Note: Do not call this function in parallel.
- * @param projectPath - Path to the project.
+ * @param commands - CommandManager instance for the project.
+ * @param exportDir - Directory to export to.
  * @param options - Export options.
  * @param options.recursive - Whether to export cards recursively.
  * @param options.cardKey - Key of the card to export. If not provided, all cards will be exported.
- * @param exportDir - Directory to export to.
  * @param level - Log level for the operation.
  * @param onProgress - Optional progress callback function.
  * @returns An object containing any errors that occurred during export.
  */
 export async function exportSite(
-  projectPath: string,
+  commands: CommandManager,
   exportDir?: string,
   options?: TreeOptions,
   level?: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal',
@@ -97,7 +96,7 @@ export async function exportSite(
     ...options,
   };
 
-  const app = createApp(new MockAuthProvider(), projectPath, opts);
+  const app = createApp(new MockAuthProvider(), commands, opts);
 
   // copy whole frontend to the same directory
   await cp(staticFrontendDirRelative, exportDir, { recursive: true });
@@ -110,9 +109,9 @@ export async function exportSite(
     JSON.stringify(configJson),
   );
 
-  const commands = await CommandManager.getInstance(projectPath, {
-    logLevel: level,
-  });
+  if (level) {
+    commands.setLogger(level);
+  }
 
   reset();
   await commands.project.calculationEngine.generate();

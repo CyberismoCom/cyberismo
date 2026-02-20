@@ -31,6 +31,7 @@ import path from 'node:path';
 import resourcesRouter from './domain/resources/index.js';
 import logicProgramsRouter from './domain/logicPrograms/index.js';
 import { isSSGContext } from 'hono/ssg';
+import type { CommandManager } from '@cyberismo/data-handler';
 import type { AppVars, TreeOptions } from './types.js';
 import treeMiddleware from './middleware/tree.js';
 import projectRouter from './domain/project/index.js';
@@ -42,11 +43,11 @@ import type { AuthProvider } from './auth/types.js';
 /**
  * Create the Hono app for the backend
  * @param authProvider - Authentication provider
- * @param projectPath - Path to the project
+ * @param commands - CommandManager instance for the project
  */
 export function createApp(
   authProvider: AuthProvider,
-  projectPath?: string,
+  commands: CommandManager,
   opts?: TreeOptions,
 ) {
   const app = new Hono<{ Variables: AppVars }>();
@@ -60,6 +61,8 @@ export function createApp(
   app.use('/api/*', commandManagerMiddleware);
   app.use('/mcp', commandManagerMiddleware);
   app.use('/mcp/*', commandManagerMiddleware);
+  // Attach CommandManager to all API requests
+  app.use('/api/*', attachCommandManager(commands));
   // Wire up routes
   app.route('/api/auth', createAuthRouter());
 

@@ -16,6 +16,7 @@ import { Hono } from 'hono';
 import { serveStatic } from '@hono/node-server/serve-static';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
+import type { CommandManager } from '@cyberismo/data-handler';
 import { findFreePort } from './utils.js';
 import { createApp } from './app.js';
 import type { AuthProvider } from './auth/types.js';
@@ -52,12 +53,12 @@ export async function previewSite(dir: string, findPort: boolean = true) {
 /**
  * Start the server
  * @param authProvider - Authentication provider
- * @param projectPath - Path to the project
+ * @param commands - CommandManager instance for the project
  * @param findPort - If true, find a free port
  */
 export async function startServer(
   authProvider: AuthProvider,
-  projectPath?: string,
+  commands: CommandManager,
   findPort: boolean = true,
 ) {
   let port = parseInt(process.env.PORT || DEFAULT_PORT.toString(), 10);
@@ -65,7 +66,7 @@ export async function startServer(
   if (findPort) {
     port = await findFreePort(port, DEFAULT_MAX_PORT);
   }
-  const app = createApp(authProvider, projectPath);
+  const app = createApp(authProvider, commands);
   startApp(app, port);
 }
 

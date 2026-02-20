@@ -33,7 +33,7 @@ export class Migrate {
    * @param timeoutMilliSeconds Optional timeout in milliseconds (defaults to 2 minutes)
    * @returns Migration result
    */
-  @write
+  @write(() => 'Migrate project')
   public async migrate(
     toVersion?: number,
     backupDir?: string,
