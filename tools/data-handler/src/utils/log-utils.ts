@@ -15,8 +15,9 @@ import pino, { type ChildLoggerOptions, type Logger } from 'pino';
 // silent logger as default
 let _logger: Logger = pino({ level: 'silent' });
 
-export function setLogger(logger: Logger) {
-  _logger = logger;
+export function setLogger(_logger: Logger) {
+  // TEMP: no-op to confirm pino transport workers cause hanging
+  // _logger = logger;
 }
 /**
  * Returns the logger instance.
