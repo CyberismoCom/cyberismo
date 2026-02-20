@@ -381,12 +381,11 @@ describe('Cli BAT test', function () {
         expect(error).to.be.null;
         expect(stdout).to.include('Done');
         expect(stdout).to.include('Project structure validated');
+        // Update card keys BEFORE calling done() to avoid race condition
+        pageCardKey = pageCardKey.replace('bat', 'cli');
+        decisionCardKey = decisionCardKey.replace('bat', 'cli');
+        newPageCardKey = newPageCardKey.replace('bat', 'cli');
         done();
-        return (
-          (pageCardKey = pageCardKey.replace('bat', 'cli')),
-          (decisionCardKey = decisionCardKey.replace('bat', 'cli')),
-          (newPageCardKey = newPageCardKey.replace('bat', 'cli'))
-        );
       },
     );
   });
