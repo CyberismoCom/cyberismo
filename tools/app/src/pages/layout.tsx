@@ -42,7 +42,12 @@ import type { ResourceName } from '@/lib/constants';
 import { useCallback } from 'react';
 
 const Main = styled('main')(() => ({
-  height: 'calc(100vh - 44px)', // 44px is the height of the toolbar
+  // Use dvh (dynamic viewport height) for mobile Safari compatibility
+  // Falls back to vh for older browsers
+  height: 'calc(100vh - 44px)',
+  '@supports (height: 100dvh)': {
+    height: 'calc(100dvh - 44px)',
+  },
   flexGrow: 1,
 }));
 
