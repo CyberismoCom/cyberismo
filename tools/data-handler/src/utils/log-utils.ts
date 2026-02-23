@@ -9,15 +9,40 @@
     You should have received a copy of the GNU Affero General Public
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-import pino, { type ChildLoggerOptions, type Logger } from 'pino';
+import pino, { type Level, type ChildLoggerOptions, type Logger } from 'pino';
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 
 // This could be also a more generic interface, but since we use pino and this is an internal package, let's keep it simple
-// silent logger as default
-const _logger: Logger = pino({ level: 'silent' });
+// Silent logger as default. No worker threads; process exits cleanly.
+let _logger: Logger = pino({ level: 'silent' });
+let _initialized = false;
 
-// TEMP: no-op to confirm pino transport workers cause hanging
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function setLogger(_logger: Logger) {}
+/**
+ * Initialize the logger once at application startup.
+ * Uses pino.multistream (in-process, no worker threads).
+ * Idempotent — safe to call multiple times, only the first call has effect.
+ * @param level Log level for stdout output.
+ * @param logPath Optional file path for full trace logging.
+ */
+export function initLogger(level: Level, logPath?: string): void {
+  if (_initialized) return;
+  _initialized = true;
+
+  if (logPath) {
+    mkdirSync(dirname(logPath), { recursive: true });
+    _logger = pino(
+      { level: 'trace' },
+      pino.multistream([
+        { stream: pino.destination(logPath), level: 'trace' },
+        { stream: pino.destination(1), level },
+      ]),
+    );
+  } else {
+    _logger = pino({ level }, pino.destination(1));
+  }
+}
+
 /**
  * Returns the logger instance.
  */

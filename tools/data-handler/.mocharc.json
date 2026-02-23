@@ -3,5 +3,6 @@
   "extension": ["ts"],
   "require": "tsx",
   "spec": "test/**/*.test.ts",
-  "timeout": 5000
+  "timeout": 5000,
+  "exit": true
 }
