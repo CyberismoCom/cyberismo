@@ -131,14 +131,6 @@ export class CommandManager {
   }
 
   /**
-   * Sets the logger for the command manager.
-   * @param level Log level.
-   */
-  public setLogger(level: Level) {
-    initLogger(level);
-  }
-
-  /**
    * Either creates a new instance, or passes the current one.
    * New instance is created, if path differs, or there is no previous instance.
    * @param path Project path.
