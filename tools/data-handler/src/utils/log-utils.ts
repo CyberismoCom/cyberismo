@@ -14,21 +14,15 @@ import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
 // This could be also a more generic interface, but since we use pino and this is an internal package, let's keep it simple
-// Silent logger as default. No worker threads; process exits cleanly.
+// Silent logger as default.
 let _logger: Logger = pino({ level: 'silent' });
-let _initialized = false;
 
 /**
- * Initialize the logger once at application startup.
- * Uses pino.multistream (in-process, no worker threads).
- * Idempotent — safe to call multiple times, only the first call has effect.
+ * Initialize the logger
  * @param level Log level for stdout output.
  * @param logPath Optional file path for full trace logging.
  */
 export function initLogger(level: Level, logPath?: string): void {
-  if (_initialized) return;
-  _initialized = true;
-
   if (logPath) {
     mkdirSync(dirname(logPath), { recursive: true });
     _logger = pino(
