@@ -576,9 +576,6 @@ export class ModuleManager {
       await Promise.all(promises);
       await deleteDir(this.tempModulesDir);
       this.project.resources.changedModules();
-
-      // Replay migration log to apply transient side-effects after module update
-      await this.project.migrate();
     }
   }
 

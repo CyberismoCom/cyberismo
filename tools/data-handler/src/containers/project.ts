@@ -59,7 +59,6 @@ import { MigrationExecutor } from '../migrations/migration-executor.js';
 import { RWLock } from '../utils/rw-lock.js';
 import { GitManager } from '../utils/git-manager.js';
 import { getCommitContext } from '../utils/commit-context.js';
-import { MigrationPlayer } from '../utils/migration-player.js';
 
 import type { MigrationStepResult } from '@cyberismo/migrations';
 import type { Template } from './template.js';
@@ -1060,16 +1059,6 @@ export class Project extends CardContainer {
     }
 
     return result;
-  }
-
-  /**
-   * Replay the current version's migration log to apply transient side-effects.
-   * This is useful after module updates where the consumer project needs to
-   * apply transient effects from resource changes.
-   */
-  public async migrate(): Promise<void> {
-    const player = new MigrationPlayer(this);
-    await player.replayVersion(this.configuration.version);
   }
 
   /**
