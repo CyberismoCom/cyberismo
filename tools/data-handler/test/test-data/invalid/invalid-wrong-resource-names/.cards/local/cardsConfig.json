@@ -1,6 +1,9 @@
 {
+    "schemaVersion": 3,
+    "version": 0,
     "cardKeyPrefix": "decision",
     "name": "missing",
+    "description": "",
     "modules": [],
     "hubs": []
 }
