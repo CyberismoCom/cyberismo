@@ -31,6 +31,7 @@ export function IdentifierInput({
   onChange,
   onKeyDown,
   onBlur,
+  disabled,
 }: IdentifierInputProps) {
   const parts = value.split('/');
   const identifier = parts.length >= 3 ? parts[2] : value;
@@ -51,6 +52,7 @@ export function IdentifierInput({
         onChange={(e) => onChangeHandler(e.target.value)}
         onKeyDown={onKeyDown}
         onBlur={onBlur}
+        disabled={disabled}
         startDecorator={<Identifier prefix={prefix} type={type} />}
       />
     </FormControl>

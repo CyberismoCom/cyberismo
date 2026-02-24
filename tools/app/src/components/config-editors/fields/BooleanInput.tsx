@@ -25,6 +25,7 @@ export function BooleanInput({
   value,
   onChange,
   onBlur,
+  disabled,
 }: BooleanInputProps) {
   return (
     <FormControl orientation="horizontal" sx={{ alignItems: 'center' }}>
@@ -32,6 +33,7 @@ export function BooleanInput({
         checked={value}
         onChange={(e) => onChange(e.target.checked)}
         onBlur={onBlur}
+        disabled={disabled}
       />
       <FormLabel sx={{ ml: 1 }}>{label}</FormLabel>
     </FormControl>

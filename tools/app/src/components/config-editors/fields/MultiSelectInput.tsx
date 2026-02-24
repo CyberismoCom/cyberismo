@@ -27,6 +27,7 @@ export function MultiSelectInput({
   options,
   onChange,
   onBlur,
+  disabled,
 }: MultiSelectInputProps) {
   return (
     <FormControl>
@@ -36,6 +37,7 @@ export function MultiSelectInput({
         value={value}
         onChange={(_e, v) => onChange(v as string[])}
         onBlur={onBlur}
+        disabled={disabled}
       >
         {options.map((o) => (
           <Option key={o.id} value={o.id}>

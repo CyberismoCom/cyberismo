@@ -27,6 +27,7 @@ export function SelectInput({
   options,
   onChange,
   onBlur,
+  disabled,
 }: SelectInputProps) {
   return (
     <FormControl>
@@ -35,6 +36,7 @@ export function SelectInput({
         value={value}
         onChange={(_e, v) => onChange(v || '')}
         onBlur={onBlur}
+        disabled={disabled}
       >
         {options.map((o) => (
           <Option key={o.id} value={o.id}>

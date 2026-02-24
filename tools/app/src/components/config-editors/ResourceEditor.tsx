@@ -37,6 +37,7 @@ import type {
 import FieldRow from './fields/FieldRow';
 import { resourceFieldConfigs, type FieldConfig } from './resourceFieldConfigs';
 import { FORM_FIELD_MAX_WIDTH } from '@/lib/constants';
+import { config } from '@/lib/utils';
 
 export function ResourceEditor({ node }: { node: ResourceNode }) {
   const { t } = useTranslation();
@@ -53,8 +54,10 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
   const constrainedConfigs = fieldConfigs.filter((c) => !c.fullWidth);
   const fullWidthConfigs = fieldConfigs.filter((c) => c.fullWidth);
 
-  const renderField = (config: FieldConfig) => {
-    const { key, type, label, options, staticOptions } = config;
+  const isDisabled = Boolean(node.readOnly) || config.staticMode;
+
+  const renderField = (fieldConfig: FieldConfig) => {
+    const { key, type, label, options, staticOptions } = fieldConfig;
     const fieldOptions = options
       ? options(editor.resourceTree || [], node)
       : staticOptions || [];
@@ -75,6 +78,7 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
             type={node.type}
             value={String(editor.form[key] ?? '')}
             onChange={(v) => editor.onChange(key, v)}
+            disabled={isDisabled}
           />
         );
       case 'text':
@@ -83,6 +87,7 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
             label={labelText}
             value={String(editor.form[key] ?? '')}
             onChange={(v) => editor.onChange(key, v)}
+            disabled={isDisabled}
           />
         );
       case 'textarea':
@@ -91,6 +96,7 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
             label={labelText}
             value={String(editor.form[key] ?? '')}
             onChange={(v) => editor.onChange(key, v)}
+            disabled={isDisabled}
           />
         );
       case 'select':
@@ -100,6 +106,7 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
             value={String(editor.form[key] ?? '')}
             options={fieldOptions}
             onChange={(v) => editor.onChange(key, v)}
+            disabled={isDisabled}
           />
         );
       case 'multiselect':
@@ -109,6 +116,7 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
             value={(editor.form[key] as string[]) || []}
             options={fieldOptions}
             onChange={(v) => editor.onChange(key, v)}
+            disabled={isDisabled}
           />
         );
       case 'boolean':
@@ -117,6 +125,7 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
             label={labelText}
             value={Boolean(editor.form[key])}
             onChange={(v) => editor.onChange(key, v)}
+            disabled={isDisabled}
           />
         );
       case 'cardFields':
@@ -124,21 +133,21 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
           <CardTypeFieldsEditor
             cardType={node.data as never}
             resourceTree={editor.resourceTree || []}
-            readOnly={node.readOnly}
+            readOnly={isDisabled}
           />
         );
       case 'enumValues':
         return (
           <EnumValuesEditor
             fieldType={node.data as FieldType}
-            readOnly={node.readOnly}
+            readOnly={isDisabled}
           />
         );
       case 'workflowStates':
         return (
           <WorkflowStatesEditor
             workflow={node.data as Workflow}
-            readOnly={node.readOnly}
+            readOnly={isDisabled}
           />
         );
       default:
@@ -177,19 +186,19 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
         spacing={2}
         sx={{ maxWidth: FORM_FIELD_MAX_WIDTH }}
       >
-        {constrainedConfigs.map((config) =>
-          config.type === 'cardFields' ||
-          config.type === 'enumValues' ||
-          config.type === 'workflowStates' ? (
-            <div key={config.key}>{renderField(config)}</div>
+        {constrainedConfigs.map((fieldConfig) =>
+          fieldConfig.type === 'cardFields' ||
+          fieldConfig.type === 'enumValues' ||
+          fieldConfig.type === 'workflowStates' ? (
+            <div key={fieldConfig.key}>{renderField(fieldConfig)}</div>
           ) : (
             <FieldRow
-              key={config.key}
-              dirty={editor.isDirty(config.key)}
-              onSave={() => editor.saveField(config.key)}
-              onCancel={() => editor.cancelField(config.key)}
+              key={fieldConfig.key}
+              dirty={editor.isDirty(fieldConfig.key)}
+              onSave={() => editor.saveField(fieldConfig.key)}
+              onCancel={() => editor.cancelField(fieldConfig.key)}
             >
-              {renderField(config)}
+              {renderField(fieldConfig)}
             </FieldRow>
           ),
         )}
@@ -211,8 +220,8 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
       </Stack>
 
       {/* Full width fields (no maxWidth constraint) */}
-      {fullWidthConfigs.map((config) => (
-        <div key={config.key}>{renderField(config)}</div>
+      {fullWidthConfigs.map((fieldConfig) => (
+        <div key={fieldConfig.key}>{renderField(fieldConfig)}</div>
       ))}
     </BaseEditor>
   );

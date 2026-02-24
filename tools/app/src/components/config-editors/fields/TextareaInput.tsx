@@ -25,6 +25,7 @@ export function TextareaInput({
   value,
   onChange,
   onKeyDown,
+  disabled,
 }: TextareaInputProps) {
   return (
     <FormControl>
@@ -34,6 +35,7 @@ export function TextareaInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={onKeyDown}
+        disabled={disabled}
       />
     </FormControl>
   );
