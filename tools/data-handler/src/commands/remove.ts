@@ -74,14 +74,30 @@ export class Remove {
       await actionGuard.checkPermission('delete', cardKey);
     }
 
-    // If card is destination of a link, remove the link.
+    // Collect all card keys that will be deleted (the card itself and all descendants).
+    const cardsToDelete = new Set<string>();
+    const collectDescendants = (c: typeof card) => {
+      cardsToDelete.add(c.key);
+      for (const childKey of c.children) {
+        try {
+          const childCard = this.project.findCard(childKey);
+          collectDescendants(childCard);
+        } catch {
+          // Child not found, skip
+        }
+      }
+    };
+    collectDescendants(card);
+
+    // If any of the cards to be deleted is a destination of a link, remove the link.
     const allCards = this.project.cards(this.project.paths.cardRootFolder);
     const promiseContainer: Promise<void>[] = [];
 
     for (const item of allCards) {
+      if (cardsToDelete.has(item.key)) continue;
       const links = item.metadata?.links ?? [];
       for (const link of links) {
-        if (link.cardKey === cardKey) {
+        if (cardsToDelete.has(link.cardKey)) {
           promiseContainer.push(this.removeLink(item.key, link.cardKey));
         }
       }
