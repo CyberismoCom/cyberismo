@@ -26,10 +26,9 @@ import { Update } from './commands/update.js';
 import { Validate } from './commands/validate.js';
 import { Project } from './containers/project.js';
 import { runWithCommitContext } from './utils/commit-context.js';
-import { ProjectPaths } from './containers/project/project-paths.js';
-import pino, { type Level, type TransportTargetOptions } from 'pino';
-import { setLogger } from './utils/log-utils.js';
+import { type Level } from 'pino';
 import { join } from 'node:path';
+import { initLogger } from './utils/log-utils.js';
 
 export interface CommandManagerOptions {
   watchResourceChanges?: boolean;
@@ -58,8 +57,6 @@ export class CommandManager {
   public updateCmd: Update;
   public validateCmd: Validate;
 
-  private pathHandler: ProjectPaths;
-
   constructor(path: string, options?: CommandManagerOptions) {
     this.project = new Project(path, {
       autoSave: options?.autoSaveConfiguration,
@@ -81,7 +78,6 @@ export class CommandManager {
     this.renameCmd = new Rename(this.project);
     this.transitionCmd = new Transition(this.project);
     this.updateCmd = new Update(this.project);
-    this.pathHandler = new ProjectPaths(path);
   }
 
   /**
@@ -135,34 +131,6 @@ export class CommandManager {
   }
 
   /**
-   * Sets the logger for the command manager.
-   * @param level Log level.
-   */
-  public setLogger(level: Level) {
-    const all: TransportTargetOptions[] = [
-      {
-        target: 'pino/file',
-        level: 'trace',
-        options: { destination: this.pathHandler.logPath, mkdir: true },
-      },
-      {
-        target: 'pino/file',
-        level: level,
-        options: { destination: 1 }, // stdout
-      },
-    ];
-
-    setLogger(
-      pino({
-        level: 'trace',
-        transport: {
-          targets: all,
-        },
-      }),
-    );
-  }
-
-  /**
    * Either creates a new instance, or passes the current one.
    * New instance is created, if path differs, or there is no previous instance.
    * @param path Project path.
@@ -176,25 +144,7 @@ export class CommandManager {
     // Set up logger before constructing anything so eager child loggers work
     if (options?.logLevel) {
       const logPath = join(path, '.logs', 'cyberismo_data-handler.log');
-      setLogger(
-        pino({
-          level: 'trace',
-          transport: {
-            targets: [
-              {
-                target: 'pino/file',
-                level: 'trace',
-                options: { destination: logPath, mkdir: true },
-              },
-              {
-                target: 'pino/file',
-                level: options.logLevel,
-                options: { destination: 1 },
-              },
-            ],
-          },
-        }),
-      );
+      initLogger(options.logLevel, logPath);
     }
 
     if (

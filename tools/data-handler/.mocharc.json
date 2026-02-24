@@ -1,5 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/mocharc.json",
+  "exit": true,
   "extension": ["ts"],
   "require": "tsx",
   "spec": "test/**/*.test.ts",

@@ -819,7 +819,6 @@ exportCmd
               recursive: options.recursive,
               cardKey: cardKey,
             },
-            options.logLevel,
             (current?: number, total?: number) => {
               if (!progress.isActive && total !== undefined) {
                 progress.start(total, 0);

@@ -9,15 +9,44 @@
     You should have received a copy of the GNU Affero General Public
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-import pino, { type ChildLoggerOptions, type Logger } from 'pino';
+import pino, { type Level, type ChildLoggerOptions, type Logger } from 'pino';
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 
 // This could be also a more generic interface, but since we use pino and this is an internal package, let's keep it simple
-// silent logger as default
+// Silent logger as default.
 let _logger: Logger = pino({ level: 'silent' });
+let initialized = false;
 
-export function setLogger(logger: Logger) {
-  _logger = logger;
+/**
+ * Initialize the logger
+ * @param level Log level for stdout output.
+ * @param logPath Optional file path for full trace logging.
+ */
+export function initLogger(level: Level, logPath?: string): void {
+  if (initialized) return;
+  initialized = true;
+  if (logPath) {
+    try {
+      mkdirSync(dirname(logPath), { recursive: true });
+    } catch (error) {
+      throw new Error(
+        `Failed to create log directory '${dirname(logPath)}': ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error },
+      );
+    }
+    _logger = pino(
+      { level: 'trace' },
+      pino.multistream([
+        { stream: pino.destination(logPath), level: 'trace' },
+        { stream: pino.destination(1), level },
+      ]),
+    );
+  } else {
+    _logger = pino({ level }, pino.destination(1));
+  }
 }
+
 /**
  * Returns the logger instance.
  */

@@ -86,7 +86,6 @@ export async function exportSite(
   commands: CommandManager,
   exportDir?: string,
   options?: TreeOptions,
-  level?: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal',
   onProgress?: (current: number, total: number) => void,
 ): Promise<{ errors: string[] }> {
   exportDir = exportDir || 'static';
@@ -108,10 +107,6 @@ export async function exportSite(
     path.join(exportDir, 'config.json'),
     JSON.stringify(configJson),
   );
-
-  if (level) {
-    commands.setLogger(level);
-  }
 
   reset();
   await commands.project.calculationEngine.generate();
