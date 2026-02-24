@@ -16,6 +16,7 @@ import { dirname } from 'node:path';
 // This could be also a more generic interface, but since we use pino and this is an internal package, let's keep it simple
 // Silent logger as default.
 let _logger: Logger = pino({ level: 'silent' });
+let initialized = false;
 
 /**
  * Initialize the logger
@@ -23,8 +24,17 @@ let _logger: Logger = pino({ level: 'silent' });
  * @param logPath Optional file path for full trace logging.
  */
 export function initLogger(level: Level, logPath?: string): void {
+  if (initialized) return;
+  initialized = true;
   if (logPath) {
-    mkdirSync(dirname(logPath), { recursive: true });
+    try {
+      mkdirSync(dirname(logPath), { recursive: true });
+    } catch (error) {
+      throw new Error(
+        `Failed to create log directory '${dirname(logPath)}': ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error },
+      );
+    }
     _logger = pino(
       { level: 'trace' },
       pino.multistream([
