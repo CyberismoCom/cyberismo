@@ -64,7 +64,7 @@ const registerResourceType = (
   commands: CommandManager,
   config: ResourceTypeConfig,
 ) => {
-  server.resource(
+  server.registerResource(
     config.name,
     config.uri,
     { description: config.description, mimeType: 'application/json' },
@@ -96,7 +96,7 @@ export function registerResources(
   commands: CommandManager,
 ): void {
   // Project information
-  server.resource(
+  server.registerResource(
     'project',
     'cyberismo:///project',
     {
@@ -118,7 +118,7 @@ export function registerResources(
   );
 
   // Card tree
-  server.resource(
+  server.registerResource(
     'cards',
     'cyberismo:///cards',
     {
@@ -140,7 +140,7 @@ export function registerResources(
   );
 
   // Card types
-  server.resource(
+  server.registerResource(
     'card-types',
     'cyberismo:///card-types',
     {
@@ -162,7 +162,7 @@ export function registerResources(
   );
 
   // Workflows
-  server.resource(
+  server.registerResource(
     'workflows',
     'cyberismo:///workflows',
     {
@@ -184,7 +184,7 @@ export function registerResources(
   );
 
   // Templates
-  server.resource(
+  server.registerResource(
     'templates',
     'cyberismo:///templates',
     {
