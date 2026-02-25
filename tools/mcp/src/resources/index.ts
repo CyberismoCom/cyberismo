@@ -15,8 +15,78 @@
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CommandManager } from '@cyberismo/data-handler';
-import { registerResourceType } from '../lib/mcp-helpers.js';
+import type { ResourceTypeConfig } from '../lib/mcp-helpers.js';
+
 import { getCardTree } from '../lib/render.js';
+
+// Resource types that all follow the same showResources + showResource pattern
+const resourceTypeConfigs: ResourceTypeConfig[] = [
+  {
+    name: 'link-types',
+    uri: 'cyberismo:///link-types',
+    description: 'All link type definitions',
+    resourceType: 'linkTypes' as const,
+  },
+  {
+    name: 'field-types',
+    uri: 'cyberismo:///field-types',
+    description: 'All field type definitions',
+    resourceType: 'fieldTypes' as const,
+  },
+  {
+    name: 'calculations',
+    uri: 'cyberismo:///calculations',
+    description: 'All calculation definitions',
+    resourceType: 'calculations' as const,
+  },
+  {
+    name: 'reports',
+    uri: 'cyberismo:///reports',
+    description: 'All report definitions',
+    resourceType: 'reports' as const,
+  },
+  {
+    name: 'graph-models',
+    uri: 'cyberismo:///graph-models',
+    description: 'All graph model definitions',
+    resourceType: 'graphModels' as const,
+  },
+  {
+    name: 'graph-views',
+    uri: 'cyberismo:///graph-views',
+    description: 'All graph view definitions',
+    resourceType: 'graphViews' as const,
+  },
+] as const;
+
+const registerResourceType = (
+  server: McpServer,
+  commands: CommandManager,
+  config: ResourceTypeConfig,
+) => {
+  server.resource(
+    config.name,
+    config.uri,
+    { description: config.description, mimeType: 'application/json' },
+    async () => {
+      const names = await commands.showCmd.showResources(config.resourceType);
+      const details = await Promise.all(
+        names.map((name) =>
+          commands.showCmd.showResource(name, config.resourceType),
+        ),
+      );
+      return {
+        contents: [
+          {
+            uri: config.uri,
+            mimeType: 'application/json',
+            text: JSON.stringify(details, null, 2),
+          },
+        ],
+      };
+    },
+  );
+};
 
 /**
  * Register all MCP resources
@@ -135,47 +205,7 @@ export function registerResources(
     },
   );
 
-  // Resource types that all follow the same showResources + showResource pattern
-  const resourceTypes = [
-    {
-      name: 'link-types',
-      uri: 'cyberismo:///link-types',
-      description: 'All link type definitions',
-      resourceType: 'linkTypes' as const,
-    },
-    {
-      name: 'field-types',
-      uri: 'cyberismo:///field-types',
-      description: 'All field type definitions',
-      resourceType: 'fieldTypes' as const,
-    },
-    {
-      name: 'calculations',
-      uri: 'cyberismo:///calculations',
-      description: 'All calculation definitions',
-      resourceType: 'calculations' as const,
-    },
-    {
-      name: 'reports',
-      uri: 'cyberismo:///reports',
-      description: 'All report definitions',
-      resourceType: 'reports' as const,
-    },
-    {
-      name: 'graph-models',
-      uri: 'cyberismo:///graph-models',
-      description: 'All graph model definitions',
-      resourceType: 'graphModels' as const,
-    },
-    {
-      name: 'graph-views',
-      uri: 'cyberismo:///graph-views',
-      description: 'All graph view definitions',
-      resourceType: 'graphViews' as const,
-    },
-  ];
-
-  for (const config of resourceTypes) {
+  resourceTypeConfigs.forEach((config) => {
     registerResourceType(server, commands, config);
-  }
+  });
 }
