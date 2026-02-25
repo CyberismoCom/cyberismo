@@ -26,7 +26,7 @@ const BaseToolbar: React.FC<BaseToolbarProps> = ({
   actions,
 }) => {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', pr: 2, mt: 1 }}>
       <Box sx={{ flexGrow: 1 }}>{breadcrumbs}</Box>
 
       {contextMenu}
