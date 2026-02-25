@@ -226,6 +226,14 @@ npx @modelcontextprotocol/inspector cyberismo mcp --project-path=/path/to/projec
 
 ---
 
+## Developing
+
+When adding/editing tools, you need to rebuild the project with `pnpm build`, and then run the application to update your MCP server with the latest tools.
+
+VS code occasionally struggles to display the tools in the dropdown menu, but asking the agent to use a new tool seems to refresh the menu.
+
+Using the MCP inspector is a good way to quickly verify what tools your MCP server is currently exposing
+
 ## Troubleshooting
 
 ### HTTP endpoint not responding
