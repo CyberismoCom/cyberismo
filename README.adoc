@@ -22,3 +22,25 @@ Notice that while Cyberismo Ltd enforces the license of this software, the licen
 
 See separate file CONTRIBUTING.
 
+== Development
+
+=== Environment
+Copy *env.example* files to respective *.env* files
+
+=== Instal Dependencies
+[source, shell]
+----
+    pnpm install
+----
+
+CLI related dependencies: link:tools/cli/README.md[README.md]
+
+=== Run Project
+[source, shell]
+----
+    pnpm dev
+----
+Backend is accessible at http://localhost:3000
+
+Frontend is accessible at http://localhost:5173
+
