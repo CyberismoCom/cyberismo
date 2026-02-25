@@ -33,6 +33,8 @@ Copy *env.example* files to respective *.env* files
     pnpm install
 ----
 
+CLI related dependencies: link:tools/cli/README.md[README.md]
+
 === Run Project
 [source, shell]
 ----
