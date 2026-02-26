@@ -124,6 +124,7 @@ jobs:
             "@cyberismo/data-handler"
             "@cyberismo/assets"
             "@cyberismo/migrations"
+            "@cyberismo/mcp"
           )
           echo "Testing published packages at version ${VERSION}: ${PACKAGES[*]}"
 
