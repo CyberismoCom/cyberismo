@@ -13,8 +13,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { CommandManager, ResourceType } from '@cyberismo/data-handler';
+import type { ResourceType } from '@cyberismo/data-handler';
 
 /**
  * Create a successful MCP tool result with JSON content.
@@ -44,43 +43,9 @@ export function toolError(action: string, error: unknown) {
     isError: true as const,
   };
 }
-
-interface ResourceTypeConfig {
+export interface ResourceTypeConfig {
   name: string;
   uri: string;
   description: string;
   resourceType: ResourceType;
-}
-
-/**
- * Register a resource that lists all items of a given resource type
- * by calling showResources + showResource for each item.
- */
-export function registerResourceType(
-  server: McpServer,
-  commands: CommandManager,
-  config: ResourceTypeConfig,
-): void {
-  server.resource(
-    config.name,
-    config.uri,
-    { description: config.description, mimeType: 'application/json' },
-    async () => {
-      const names = await commands.showCmd.showResources(config.resourceType);
-      const details = await Promise.all(
-        names.map((name) =>
-          commands.showCmd.showResource(name, config.resourceType),
-        ),
-      );
-      return {
-        contents: [
-          {
-            uri: config.uri,
-            mimeType: 'application/json',
-            text: JSON.stringify(details, null, 2),
-          },
-        ],
-      };
-    },
-  );
 }

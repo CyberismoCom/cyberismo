@@ -19,9 +19,6 @@ import { z } from 'zod';
 import { toolResult, toolError } from '../lib/mcp-helpers.js';
 import { renderCard, getCardTree } from '../lib/render.js';
 
-// Maximum base64 content size: 10MB (which decodes to ~7.5MB actual file)
-const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
-
 /**
  * Register all MCP tools for Cyberismo operations
  */
@@ -29,17 +26,19 @@ export function registerTools(
   server: McpServer,
   commands: CommandManager,
 ): void {
-  server.tool(
+  server.registerTool(
     'create_card',
-    'Create a new card from a template',
     {
-      template: z
-        .string()
-        .describe('Template name to use (e.g., "base/templates/page")'),
-      parentKey: z
-        .string()
-        .optional()
-        .describe('Parent card key (omit for root level)'),
+      description: 'Create a new card from a template',
+      inputSchema: {
+        template: z
+          .string()
+          .describe('Template name to use (e.g., "base/templates/page")'),
+        parentKey: z
+          .string()
+          .optional()
+          .describe('Parent card key (omit for root level)'),
+      },
     },
     async ({ template, parentKey }) => {
       try {
@@ -56,12 +55,14 @@ export function registerTools(
     },
   );
 
-  server.tool(
+  server.registerTool(
     'edit_card_content',
-    'Update the AsciiDoc content of a card',
     {
-      cardKey: z.string().describe('Card key to edit'),
-      content: z.string().describe('New AsciiDoc content'),
+      description: 'Update the AsciiDoc content of a card',
+      inputSchema: {
+        cardKey: z.string().describe('Card key to edit'),
+        content: z.string().describe('New AsciiDoc content'),
+      },
     },
     async ({ cardKey, content }) => {
       try {
@@ -73,23 +74,25 @@ export function registerTools(
     },
   );
 
-  server.tool(
+  server.registerTool(
     'edit_card_metadata',
-    'Update a metadata field of a card',
     {
-      cardKey: z.string().describe('Card key to edit'),
-      field: z
-        .string()
-        .describe('Metadata field name (e.g., "title", "severity")'),
-      value: z
-        .union([
-          z.string(),
-          z.number(),
-          z.boolean(),
-          z.array(z.string()),
-          z.null(),
-        ])
-        .describe('New field value'),
+      description: 'Update a metadata field of a card',
+      inputSchema: {
+        cardKey: z.string().describe('Card key to edit'),
+        field: z
+          .string()
+          .describe('Metadata field name (e.g., "title", "severity")'),
+        value: z
+          .union([
+            z.string(),
+            z.number(),
+            z.boolean(),
+            z.array(z.string()),
+            z.null(),
+          ])
+          .describe('New field value'),
+      },
     },
     async ({ cardKey, field, value }) => {
       try {
@@ -101,14 +104,16 @@ export function registerTools(
     },
   );
 
-  server.tool(
+  server.registerTool(
     'transition_card',
-    'Transition a card to a new workflow state',
     {
-      cardKey: z.string().describe('Card key to transition'),
-      transition: z
-        .string()
-        .describe('Transition name (e.g., "Approve", "Reject")'),
+      description: 'Transition a card to a new workflow state',
+      inputSchema: {
+        cardKey: z.string().describe('Card key to transition'),
+        transition: z
+          .string()
+          .describe('Transition name (e.g., "Approve", "Reject")'),
+      },
     },
     async ({ cardKey, transition }) => {
       try {
@@ -122,14 +127,16 @@ export function registerTools(
     },
   );
 
-  server.tool(
+  server.registerTool(
     'move_card',
-    'Move a card to a new parent',
     {
-      cardKey: z.string().describe('Card key to move'),
-      destinationKey: z
-        .string()
-        .describe('Destination parent card key, or "root" for root level'),
+      description: 'Move a card to a new parent',
+      inputSchema: {
+        cardKey: z.string().describe('Card key to move'),
+        destinationKey: z
+          .string()
+          .describe('Destination parent card key, or "root" for root level'),
+      },
     },
     async ({ cardKey, destinationKey }) => {
       try {
@@ -140,18 +147,23 @@ export function registerTools(
       }
     },
   );
-
-  server.tool(
+  server.registerTool(
     'create_link',
-    'Create a link between two cards',
     {
-      sourceKey: z.string().describe('Source card key'),
-      destinationKey: z.string().describe('Destination card key'),
-      linkType: z
-        .string()
-        .describe('Link type name (e.g., "ismsa/linkTypes/mitigates")'),
-      description: z.string().optional().describe('Optional link description'),
+      description: 'Create a link between two cards',
+      inputSchema: {
+        sourceKey: z.string().describe('Source card key'),
+        destinationKey: z.string().describe('Destination card key'),
+        linkType: z
+          .string()
+          .describe('Link type name (e.g., "ismsa/linkTypes/mitigates")'),
+        description: z
+          .string()
+          .optional()
+          .describe('Optional link description'),
+      },
     },
+
     async ({ sourceKey, destinationKey, linkType, description }) => {
       try {
         await commands.createCmd.createLink(
@@ -167,13 +179,15 @@ export function registerTools(
     },
   );
 
-  server.tool(
+  server.registerTool(
     'remove_link',
-    'Remove a link between two cards',
     {
-      sourceKey: z.string().describe('Source card key'),
-      destinationKey: z.string().describe('Destination card key'),
-      linkType: z.string().describe('Link type name'),
+      description: 'Remove a link between two cards',
+      inputSchema: {
+        sourceKey: z.string().describe('Source card key'),
+        destinationKey: z.string().describe('Destination card key'),
+        linkType: z.string().describe('Link type name'),
+      },
     },
     async ({ sourceKey, destinationKey, linkType }) => {
       try {
@@ -190,19 +204,15 @@ export function registerTools(
     },
   );
 
-  server.tool(
+  server.registerTool(
     'create_attachment',
-    'Add an attachment to a card (max 10MB base64-encoded)',
     {
-      cardKey: z.string().describe('Card key'),
-      filename: z.string().describe('Attachment filename'),
-      content: z
-        .string()
-        .max(
-          MAX_ATTACHMENT_SIZE,
-          'Attachment too large. Maximum size is 10MB (base64-encoded)',
-        )
-        .describe('Base64-encoded file content (max 10MB)'),
+      description: 'Add an attachment to a card using base64 encoding',
+      inputSchema: {
+        cardKey: z.string().describe('Card key'),
+        filename: z.string().describe('Attachment filename'),
+        content: z.string().describe('Base64-encoded file content (max 10MB)'),
+      },
     },
     async ({ cardKey, filename, content }) => {
       try {
@@ -215,11 +225,13 @@ export function registerTools(
     },
   );
 
-  server.tool(
+  server.registerTool(
     'remove_card',
-    'Delete a card and its children',
     {
-      cardKey: z.string().describe('Card key to remove'),
+      description: 'Delete a card and its children',
+      inputSchema: {
+        cardKey: z.string().describe('Card key to remove'),
+      },
     },
     async ({ cardKey }) => {
       try {
@@ -231,12 +243,14 @@ export function registerTools(
     },
   );
 
-  server.tool(
+  server.registerTool(
     'create_label',
-    'Add a label to a card',
     {
-      cardKey: z.string().describe('Card key'),
-      label: z.string().describe('Label name'),
+      description: 'Add a label to a card',
+      inputSchema: {
+        cardKey: z.string().describe('Card key'),
+        label: z.string().describe('Label name'),
+      },
     },
     async ({ cardKey, label }) => {
       try {
@@ -248,12 +262,14 @@ export function registerTools(
     },
   );
 
-  server.tool(
+  server.registerTool(
     'remove_label',
-    'Remove a label from a card',
     {
-      cardKey: z.string().describe('Card key'),
-      label: z.string().describe('Label name'),
+      description: 'Remove a label from a card',
+      inputSchema: {
+        cardKey: z.string().describe('Card key'),
+        label: z.string().describe('Label name'),
+      },
     },
     async ({ cardKey, label }) => {
       try {
@@ -265,32 +281,34 @@ export function registerTools(
     },
   );
 
-  server.tool(
+  server.registerTool(
     'get_card',
-    `Get detailed information about a card including rendered content, available transitions, and field metadata.
 
-Returns:
-- key, title, cardType, cardTypeDisplayName
-- workflowState: Current workflow state name
-- availableTransitions: Array of {name, toState, toStateCategory} - valid transitions from current state
-- rawContent: Original AsciiDoc content
-- parsedContent: HTML-rendered content with macros evaluated
-- fields: Array of field metadata including:
-  - key, displayName, description, dataType, value
-  - isCalculated, isEditable, visibility
-  - enumValues: For enum/list fields, array of {value, displayValue, description}
-- labels, links, children, parent, attachments
-- deniedOperations: What operations are blocked (transitions, move, delete, editFields, editContent)
-- notifications: Warnings or alerts about the card
-- policyChecks: Policy check results with successes and failures`,
     {
-      cardKey: z.string().describe('Card key to retrieve'),
-      raw: z
-        .boolean()
-        .optional()
-        .describe(
-          'If true, skip macro evaluation and return basic card data without extended metadata',
-        ),
+      description: `Get detailed information about a card including rendered content, available transitions, and field metadata.
+        Returns:
+        - key, title, cardType, cardTypeDisplayName
+        - workflowState: Current workflow state name
+        - availableTransitions: Array of {name, toState, toStateCategory} - valid transitions from current state
+        - rawContent: Original AsciiDoc content
+        - parsedContent: HTML-rendered content with macros evaluated
+        - fields: Array of field metadata including:
+          - key, displayName, description, dataType, value
+          - isCalculated, isEditable, visibility
+          - enumValues: For enum/list fields, array of {value, displayValue, description}
+        - labels, links, children, parent, attachments
+        - deniedOperations: What operations are blocked (transitions, move, delete, editFields, editContent)
+        - notifications: Warnings or alerts about the card
+        - policyChecks: Policy check results with successes and failures`,
+      inputSchema: {
+        cardKey: z.string().describe('Card key to retrieve'),
+        raw: z
+          .boolean()
+          .optional()
+          .describe(
+            'If true, skip macro evaluation and return basic card data without extended metadata',
+          ),
+      },
     },
     async ({ cardKey, raw }) => {
       try {
@@ -307,10 +325,11 @@ Returns:
     },
   );
 
-  server.tool(
+  server.registerTool(
     'list_cards',
-    'List all cards in the project with their hierarchy',
-    {},
+    {
+      description: 'List all cards in the project with their hierarchy',
+    },
     async () => {
       try {
         const tree = await getCardTree(commands);
@@ -321,10 +340,11 @@ Returns:
     },
   );
 
-  server.tool(
+  server.registerTool(
     'list_templates',
-    'List all available templates for creating cards',
-    {},
+    {
+      description: 'List all available templates for creating cards',
+    },
     async () => {
       try {
         const templates = await commands.showCmd.showTemplatesWithDetails();
@@ -337,12 +357,14 @@ Returns:
 
   // --- Phase 1: Quick Wins ---
 
-  server.tool(
+  server.registerTool(
     'remove_attachment',
-    'Remove an attachment from a card',
     {
-      cardKey: z.string().describe('Card key'),
-      filename: z.string().describe('Attachment filename to remove'),
+      description: 'Remove an attachment from a card',
+      inputSchema: {
+        cardKey: z.string().describe('Card key'),
+        filename: z.string().describe('Attachment filename to remove'),
+      },
     },
     async ({ cardKey, filename }) => {
       try {
@@ -354,10 +376,11 @@ Returns:
     },
   );
 
-  server.tool(
+  server.registerTool(
     'list_labels',
-    'List all unique labels used across the project',
-    {},
+    {
+      description: 'List all unique labels used across the project',
+    },
     async () => {
       try {
         const labels = await commands.showCmd.showLabels();
@@ -368,11 +391,13 @@ Returns:
     },
   );
 
-  server.tool(
+  server.registerTool(
     'rank_card_first',
-    'Move a card to first position among its siblings',
     {
-      cardKey: z.string().describe('Card key to move to first position'),
+      description: 'Move a card to first position among its siblings',
+      inputSchema: {
+        cardKey: z.string().describe('Card key to move to first position'),
+      },
     },
     async ({ cardKey }) => {
       try {
@@ -384,12 +409,14 @@ Returns:
     },
   );
 
-  server.tool(
+  server.registerTool(
     'rank_card_after',
-    'Position a card after another sibling card',
     {
-      cardKey: z.string().describe('Card key to reposition'),
-      afterCardKey: z.string().describe('Card key to position after'),
+      description: 'Position a card after another sibling card',
+      inputSchema: {
+        cardKey: z.string().describe('Card key to reposition'),
+        afterCardKey: z.string().describe('Card key to position after'),
+      },
     },
     async ({ cardKey, afterCardKey }) => {
       try {
@@ -401,12 +428,14 @@ Returns:
     },
   );
 
-  server.tool(
+  server.registerTool(
     'rank_card_by_index',
-    'Position a card at a specific index among its siblings',
     {
-      cardKey: z.string().describe('Card key to reposition'),
-      index: z.number().int().min(0).describe('Zero-based position index'),
+      description: 'Position a card at a specific index among its siblings',
+      inputSchema: {
+        cardKey: z.string().describe('Card key to reposition'),
+        index: z.number().int().min(0).describe('Zero-based position index'),
+      },
     },
     async ({ cardKey, index }) => {
       try {
@@ -420,12 +449,14 @@ Returns:
 
   // --- Phase 2: Resource Creation ---
 
-  server.tool(
+  server.registerTool(
     'create_card_type',
-    'Create a new card type',
     {
-      name: z.string().describe('Card type identifier'),
-      workflowName: z.string().describe('Workflow to use for this card type'),
+      description: 'Create a new card type',
+      inputSchema: {
+        name: z.string().describe('Card type identifier'),
+        workflowName: z.string().describe('Workflow to use for this card type'),
+      },
     },
     async ({ name, workflowName }) => {
       try {
@@ -437,25 +468,27 @@ Returns:
     },
   );
 
-  server.tool(
+  server.registerTool(
     'create_field_type',
-    'Create a new field type',
     {
-      name: z.string().describe('Field type identifier'),
-      dataType: z
-        .enum([
-          'boolean',
-          'date',
-          'dateTime',
-          'enum',
-          'integer',
-          'list',
-          'longText',
-          'number',
-          'person',
-          'shortText',
-        ])
-        .describe('Data type for the field'),
+      description: 'Create a new field type',
+      inputSchema: {
+        name: z.string().describe('Field type identifier'),
+        dataType: z
+          .enum([
+            'boolean',
+            'date',
+            'dateTime',
+            'enum',
+            'integer',
+            'list',
+            'longText',
+            'number',
+            'person',
+            'shortText',
+          ])
+          .describe('Data type for the field'),
+      },
     },
     async ({ name, dataType }) => {
       try {
@@ -467,15 +500,17 @@ Returns:
     },
   );
 
-  server.tool(
+  server.registerTool(
     'create_workflow',
-    'Create a new workflow',
     {
-      name: z.string().describe('Workflow identifier'),
-      content: z
-        .string()
-        .optional()
-        .describe('JSON workflow definition (omit for default)'),
+      description: 'Create a new workflow',
+      inputSchema: {
+        name: z.string().describe('Workflow identifier'),
+        content: z
+          .string()
+          .optional()
+          .describe('JSON workflow definition (omit for default)'),
+      },
     },
     async ({ name, content }) => {
       try {
@@ -487,11 +522,13 @@ Returns:
     },
   );
 
-  server.tool(
+  server.registerTool(
     'create_link_type',
-    'Create a new link type',
     {
-      name: z.string().describe('Link type identifier'),
+      description: 'Create a new link type',
+      inputSchema: {
+        name: z.string().describe('Link type identifier'),
+      },
     },
     async ({ name }) => {
       try {
@@ -503,15 +540,17 @@ Returns:
     },
   );
 
-  server.tool(
+  server.registerTool(
     'create_template',
-    'Create a new template',
     {
-      name: z.string().describe('Template identifier'),
-      content: z
-        .string()
-        .optional()
-        .describe('JSON template definition (omit for default)'),
+      description: 'Create a new template',
+      inputSchema: {
+        name: z.string().describe('Template identifier'),
+        content: z
+          .string()
+          .optional()
+          .describe('JSON template definition (omit for default)'),
+      },
     },
     async ({ name, content }) => {
       try {
@@ -523,23 +562,25 @@ Returns:
     },
   );
 
-  server.tool(
+  server.registerTool(
     'add_template_cards',
-    'Add card(s) to a template',
     {
-      templateName: z.string().describe('Template to add cards to'),
-      cardTypeName: z.string().describe('Card type for the new cards'),
-      parentCard: z
-        .string()
-        .optional()
-        .describe('Parent card key within template (omit for root)'),
-      count: z
-        .number()
-        .int()
-        .min(1)
-        .default(1)
-        .optional()
-        .describe('Number of cards to add (default: 1)'),
+      description: 'Add card(s) to a template',
+      inputSchema: {
+        templateName: z.string().describe('Template to add cards to'),
+        cardTypeName: z.string().describe('Card type for the new cards'),
+        parentCard: z
+          .string()
+          .optional()
+          .describe('Parent card key within template (omit for root)'),
+        count: z
+          .number()
+          .int()
+          .min(1)
+          .default(1)
+          .optional()
+          .describe('Number of cards to add (default: 1)'),
+      },
     },
     async ({ templateName, cardTypeName, parentCard, count }) => {
       try {
@@ -570,14 +611,16 @@ Returns:
     'workflow',
   ]);
 
-  server.tool(
+  server.registerTool(
     'delete_resource',
-    'Delete a project resource by type and name',
     {
-      resourceType: removableResourceTypes.describe(
-        'Type of resource to delete',
-      ),
-      name: z.string().describe('Resource name'),
+      description: 'Delete a project resource by type and name',
+      inputSchema: {
+        resourceType: removableResourceTypes.describe(
+          'Type of resource to delete',
+        ),
+        name: z.string().describe('Resource name'),
+      },
     },
     async ({ resourceType, name }) => {
       try {
@@ -589,13 +632,15 @@ Returns:
     },
   );
 
-  server.tool(
+  server.registerTool(
     'validate_resource',
-    'Validate a resource definition and return any errors',
     {
-      name: z
-        .string()
-        .describe('Full resource name (e.g., "prefix/cardTypes/myType")'),
+      description: 'Validate a resource definition and return any errors',
+      inputSchema: {
+        name: z
+          .string()
+          .describe('Full resource name (e.g., "prefix/cardTypes/myType")'),
+      },
     },
     async ({ name }) => {
       try {
@@ -615,29 +660,35 @@ Returns:
     },
   );
 
-  server.tool(
+  server.registerTool(
     'update_resource',
-    'Update a resource property using an operation (add, change, rank, or remove)',
     {
-      name: z
-        .string()
-        .describe('Full resource name (e.g., "prefix/cardTypes/myType")'),
-      key: z.string().describe('Property key to update'),
-      subKey: z.string().optional().describe('Sub-key for content properties'),
-      operation: z
-        .object({
-          name: z.enum(['add', 'change', 'rank', 'remove']),
-          target: z.unknown().describe('Target value for the operation'),
-          to: z
-            .unknown()
-            .optional()
-            .describe('New value (for change operations)'),
-          newIndex: z
-            .number()
-            .optional()
-            .describe('New index (for rank operations)'),
-        })
-        .describe('Operation to apply'),
+      description:
+        'Update a resource property using an operation (add, change, rank, or remove)',
+      inputSchema: {
+        name: z
+          .string()
+          .describe('Full resource name (e.g., "prefix/cardTypes/myType")'),
+        key: z.string().describe('Property key to update'),
+        subKey: z
+          .string()
+          .optional()
+          .describe('Sub-key for content properties'),
+        operation: z
+          .object({
+            name: z.enum(['add', 'change', 'rank', 'remove']),
+            target: z.unknown().describe('Target value for the operation'),
+            to: z
+              .unknown()
+              .optional()
+              .describe('New value (for change operations)'),
+            newIndex: z
+              .number()
+              .optional()
+              .describe('New index (for rank operations)'),
+          })
+          .describe('Operation to apply'),
+      },
     },
     async ({ name, key, subKey, operation }) => {
       try {
@@ -678,11 +729,13 @@ Returns:
 
   // --- Phase 4: Calculations & Queries ---
 
-  server.tool(
+  server.registerTool(
     'create_calculation',
-    'Create a new calculation definition',
     {
-      name: z.string().describe('Calculation identifier'),
+      description: 'Create a new calculation definition',
+      inputSchema: {
+        name: z.string().describe('Calculation identifier'),
+      },
     },
     async ({ name }) => {
       try {
@@ -694,13 +747,15 @@ Returns:
     },
   );
 
-  server.tool(
+  server.registerTool(
     'run_query',
-    'Run a predefined query against the project',
     {
-      queryName: z
-        .enum(['card', 'onCreation', 'onTransition', 'tree'])
-        .describe('Query type to run'),
+      description: 'Run a predefined query against the project',
+      inputSchema: {
+        queryName: z
+          .enum(['card', 'onCreation', 'onTransition', 'tree'])
+          .describe('Query type to run'),
+      },
     },
     async ({ queryName }) => {
       try {
@@ -712,11 +767,14 @@ Returns:
     },
   );
 
-  server.tool(
+  server.registerTool(
     'run_logic_program',
-    'Execute a custom logic program (Clingo/ASP). AI can design and iterate on logic programs for calculations, validations, and derived fields.',
     {
-      query: z.string().describe('Clingo/ASP logic program source code'),
+      description:
+        'Execute a custom logic program (Clingo/ASP). AI can design and iterate on logic programs for calculations, validations, and derived fields.',
+      inputSchema: {
+        query: z.string().describe('Clingo/ASP logic program source code'),
+      },
     },
     async ({ query }) => {
       try {
@@ -728,11 +786,13 @@ Returns:
     },
   );
 
-  server.tool(
+  server.registerTool(
     'create_report',
-    'Create a new report definition',
     {
-      name: z.string().describe('Report identifier'),
+      description: 'Create a new report definition',
+      inputSchema: {
+        name: z.string().describe('Report identifier'),
+      },
     },
     async ({ name }) => {
       try {
@@ -744,17 +804,19 @@ Returns:
     },
   );
 
-  server.tool(
+  server.registerTool(
     'run_report',
-    'Execute a report and return results',
     {
-      reportName: z.string().describe('Report name to execute'),
-      cardKey: z.string().describe('Card key as report context'),
-      parameters: z
-        .record(z.string(), z.unknown())
-        .default({})
-        .optional()
-        .describe('Additional report parameters'),
+      description: 'Execute a report and return results',
+      inputSchema: {
+        reportName: z.string().describe('Report name to execute'),
+        cardKey: z.string().describe('Card key as report context'),
+        parameters: z
+          .record(z.string(), z.unknown())
+          .default({})
+          .optional()
+          .describe('Additional report parameters'),
+      },
     },
     async ({ reportName, cardKey, parameters }) => {
       try {
@@ -771,12 +833,14 @@ Returns:
     },
   );
 
-  server.tool(
+  server.registerTool(
     'run_graph',
-    'Generate a graph visualization',
     {
-      model: z.string().describe('Graph model name'),
-      view: z.string().describe('Graph view name'),
+      description: 'Generate a graph visualization',
+      inputSchema: {
+        model: z.string().describe('Graph model name'),
+        view: z.string().describe('Graph view name'),
+      },
     },
     async ({ model, view }) => {
       try {
