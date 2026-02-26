@@ -15,6 +15,7 @@ import { useRawCard } from '@/lib/api';
 import CardEditor from '../CardEditor';
 import type { AnyNode } from '@/lib/api/types';
 import { useTranslation } from 'react-i18next';
+import { config } from '@/lib/utils';
 
 export function ConfigCardEditor({ node }: { node: AnyNode }) {
   const card = useRawCard(node.id);
@@ -30,7 +31,7 @@ export function ConfigCardEditor({ node }: { node: AnyNode }) {
       cardKey={node.id}
       cardData={card}
       afterSave={() => {}}
-      readOnly={node?.readOnly}
+      readOnly={node?.readOnly || config.staticMode}
     />
   );
 }

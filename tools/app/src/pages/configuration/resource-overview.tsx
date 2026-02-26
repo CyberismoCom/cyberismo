@@ -27,6 +27,7 @@ import {
   ResourceModuleSection,
   ResourceOverviewCard,
 } from '@/components/resource-overview';
+import { config } from '@/lib/utils';
 
 function identifier(name: string) {
   const parts = name.split('/');
@@ -153,7 +154,7 @@ function ResourceOverviewContent({
                   gap: 2,
                 }}
               >
-                {isProject && (
+                {isProject && !config.staticMode && (
                   <CreateResourceCard
                     title={t('overview.createNew', {
                       resourceType: t(

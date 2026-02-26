@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next';
 import { CODE_MIRROR_CONFIG_PROPS, CODE_MIRROR_THEMES } from '@/lib/constants';
 import { useResource } from '@/lib/api';
 import { useIsDarkMode } from '@/lib/hooks';
+import { config } from '@/lib/utils';
 
 export function TextEditor({ node }: { node: FileNode }) {
   const dispatch = useAppDispatch();
@@ -88,7 +89,7 @@ export function TextEditor({ node }: { node: FileNode }) {
       <CodeMirror
         {...CODE_MIRROR_CONFIG_PROPS}
         theme={isDarkMode ? CODE_MIRROR_THEMES.dark : CODE_MIRROR_THEMES.light}
-        readOnly={node.readOnly}
+        readOnly={node.readOnly || config.staticMode}
         value={content}
         onChange={(value: string) => setContent(value)}
       />

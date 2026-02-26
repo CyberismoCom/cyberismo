@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import type { AnyNode } from '../../lib/api/types';
 import BaseToolbar from './BaseToolbar';
 import { ConfigContextMenu } from '../context-menus';
+import { config } from '@/lib/utils';
 
 interface ConfigToolbarProps {
   node: AnyNode;
@@ -89,7 +90,7 @@ export function ConfigToolbar({
           {t('cancel')}
         </Button>
       )}
-      {onUpdate && !node.readOnly && (
+      {onUpdate && !node.readOnly && !config.staticMode && (
         <Button
           variant="solid"
           size="sm"
@@ -114,7 +115,7 @@ export function ConfigToolbar({
           node={node}
           enabled={{
             ...enabled,
-            delete: enabled?.delete && !node.readOnly,
+            delete: enabled?.delete && !node.readOnly && !config.staticMode,
           }}
         />
       }

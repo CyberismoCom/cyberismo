@@ -15,6 +15,7 @@
 export interface BaseInputProps {
   onKeyDown?: (e: React.KeyboardEvent) => void;
   onBlur?: (e: React.FocusEvent) => void;
+  disabled?: boolean;
 }
 
 // Common option item interface for select components

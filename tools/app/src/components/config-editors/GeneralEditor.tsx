@@ -29,6 +29,7 @@ import { addNotification } from '@/lib/slices/notifications';
 import BaseEditor from './BaseEditor';
 import FieldRow from './fields/FieldRow';
 import TextInput from './fields/TextInput';
+import { config } from '@/lib/utils';
 
 type GeneralEditorProps = {
   node: GenericNode<'general'>;
@@ -53,10 +54,12 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
   } | null>(null);
   const dispatch = useAppDispatch();
 
+  const isDisabled = Boolean(node.readOnly) || config.staticMode;
+
   const nameField = useEditableField({
     initialValue: general?.name ?? node.data.name ?? '',
     actionKey: 'update-name',
-    readOnly: Boolean(node.readOnly),
+    readOnly: isDisabled,
     isLoading,
     isUpdating,
     saveValue: (value) => updateProject({ name: value }, 'update-name'),
@@ -65,7 +68,7 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
   const cardKeyPrefixField = useEditableField({
     initialValue: general?.cardKeyPrefix ?? node.data.cardKeyPrefix ?? '',
     actionKey: 'update-cardKeyPrefix',
-    readOnly: Boolean(node.readOnly),
+    readOnly: isDisabled,
     isLoading,
     isUpdating,
     saveValue: (value) =>
@@ -134,7 +137,7 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
                   }
                 }}
                 loading={isUpdating('update-all-modules')}
-                disabled={isUpdating() || node.readOnly}
+                disabled={isUpdating() || isDisabled}
               >
                 {t('general.updateAllModules')}
               </Button>
@@ -160,7 +163,7 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
                   disabled={
                     isUpdating(`update-${mod.cardKeyPrefix}`) ||
                     isUpdating() ||
-                    node.readOnly
+                    isDisabled
                   }
                   onClick={() => updateModule(mod.cardKeyPrefix)}
                 >
@@ -172,7 +175,7 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
                   color="danger"
                   loading={isUpdating(`delete-${mod.cardKeyPrefix}`)}
                   disabled={
-                    isUpdating(`delete-${mod.cardKeyPrefix}`) || node.readOnly
+                    isUpdating(`delete-${mod.cardKeyPrefix}`) || isDisabled
                   }
                   onClick={() => {
                     setModuleToDelete(mod);
