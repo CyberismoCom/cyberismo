@@ -21,6 +21,7 @@ import General from './pages/configuration/general';
 import ResourceOverviewPage from './pages/configuration/resource-overview';
 import Layout from './pages/layout';
 import ConfigLayout from './pages/configuration/layout';
+import NotFoundPage from './pages/not-found';
 
 // Export mode guard - unfortunately need to refetch config.json to check export mode since hooks
 function createEditLoader(cardKey: string) {
@@ -123,6 +124,10 @@ export const router = createBrowserRouter([
             Component: Resource,
           },
         ],
+      },
+      {
+        path: '*',
+        Component: NotFoundPage,
       },
     ],
   },
