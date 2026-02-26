@@ -67,3 +67,6 @@ tools/backend/static
 
 tools/data-handler/test/tmp**
 .grepai/
+
+
+**/.logs
