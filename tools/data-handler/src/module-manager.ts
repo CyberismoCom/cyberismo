@@ -13,7 +13,6 @@
 
 import { join } from 'node:path';
 import { mkdir, readdir, rm } from 'node:fs/promises';
-import { readdirSync } from 'node:fs';
 
 import { simpleGit, type SimpleGit } from 'simple-git';
 
@@ -668,33 +667,18 @@ export class ModuleManager {
       credentials,
     );
     const clonePath = join(this.tempModulesDir, clonedName);
-    const sourceConfig = await this.configuration(clonePath);
-    const modulePrefix = sourceConfig.cardKeyPrefix;
+    const sourceProject = new Project(clonePath);
+    await sourceProject.populateCaches();
+    const modulePrefix = sourceProject.projectPrefix;
     this.validatePrefix(modulePrefix, skipValidation);
 
-    const sourcePaths = new ProjectPaths(clonePath);
-    // Find the highest numbered version folder in the source project
-    const sourceLocalFolder = sourcePaths.localFolder;
-    let sourceVersion = sourceConfig.version ?? 1;
-    try {
-      const entries = readdirSync(sourceLocalFolder, { withFileTypes: true });
-      for (const entry of entries) {
-        if (entry.isDirectory()) {
-          const num = parseInt(entry.name, 10);
-          if (!isNaN(num) && num > sourceVersion) {
-            sourceVersion = num;
-          }
-        }
-      }
-    } catch {
-      // fallback to config version
-    }
-    const versionedPath =
-      sourcePaths.versionedResourcesFolderFor(sourceVersion);
+    const versionedPath = sourceProject.paths.versionedResourcesFolderFor(
+      sourceProject.configuration.latestVersion,
+    );
     // Fall back to the flat local folder for pre-v3 modules that lack numbered subfolders
     const sourcePath = pathExists(versionedPath)
       ? versionedPath
-      : sourceLocalFolder;
+      : sourceProject.paths.localFolder;
     const destinationPath = join(
       this.project.paths.modulesFolder,
       modulePrefix,
