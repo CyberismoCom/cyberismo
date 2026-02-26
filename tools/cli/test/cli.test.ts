@@ -357,6 +357,20 @@ describe('Cli BAT test', function () {
       },
     );
   });
+  it('Create a new version', function (done) {
+    exec(
+      `cd ../../.tmp/cyberismo-cli&&cyberismo create version&&cyberismo validate`,
+      (error, stdout, _stderr) => {
+        if (error != null) {
+          console.log(error);
+        }
+        expect(error).to.be.null;
+        expect(stdout).to.include('Version updated from');
+        expect(stdout).to.include('Project structure validated');
+        done();
+      },
+    );
+  });
   it('Remove the attachment', function (done) {
     exec(
       `cd ${cliPath}&&cyberismo remove attachment ${newPageCardKey} cyberismo.png&&cyberismo validate`,
