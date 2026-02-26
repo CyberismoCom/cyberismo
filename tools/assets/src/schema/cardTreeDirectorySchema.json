@@ -576,15 +576,6 @@
                                   "$ref": "#/$defs/workflowResourceSchema"
                                 }
                               }
-                            },
-                            "files": {
-                              "type": "object",
-                              "additionalProperties": false,
-                              "properties": {
-                                "migrationLog.jsonl": {
-                                  "type": "object"
-                                }
-                              }
                             }
                           }
                         }
