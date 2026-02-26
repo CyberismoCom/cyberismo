@@ -22,28 +22,16 @@ import { getCardTree } from '../lib/render.js';
 // Resource types that all follow the same showResources + showResource pattern
 const resourceTypeConfigs: ResourceTypeConfig[] = [
   {
-    name: 'link-types',
-    uri: 'cyberismo:///link-types',
-    description: 'All link type definitions',
-    resourceType: 'linkTypes' as const,
-  },
-  {
-    name: 'field-types',
-    uri: 'cyberismo:///field-types',
-    description: 'All field type definitions',
-    resourceType: 'fieldTypes' as const,
-  },
-  {
     name: 'calculations',
     uri: 'cyberismo:///calculations',
     description: 'All calculation definitions',
     resourceType: 'calculations' as const,
   },
   {
-    name: 'reports',
-    uri: 'cyberismo:///reports',
-    description: 'All report definitions',
-    resourceType: 'reports' as const,
+    name: 'field-types',
+    uri: 'cyberismo:///field-types',
+    description: 'All field type definitions',
+    resourceType: 'fieldTypes' as const,
   },
   {
     name: 'graph-models',
@@ -56,6 +44,18 @@ const resourceTypeConfigs: ResourceTypeConfig[] = [
     uri: 'cyberismo:///graph-views',
     description: 'All graph view definitions',
     resourceType: 'graphViews' as const,
+  },
+  {
+    name: 'link-types',
+    uri: 'cyberismo:///link-types',
+    description: 'All link type definitions',
+    resourceType: 'linkTypes' as const,
+  },
+  {
+    name: 'reports',
+    uri: 'cyberismo:///reports',
+    description: 'All report definitions',
+    resourceType: 'reports' as const,
   },
 ] as const;
 
