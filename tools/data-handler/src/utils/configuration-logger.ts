@@ -13,8 +13,6 @@
 */
 
 import { readFile } from 'node:fs/promises';
-import { randomUUID } from 'node:crypto';
-
 import { getChildLogger } from './log-utils.js';
 import { ProjectPaths } from '../containers/project/project-paths.js';
 import { writeFileSafe, pathExists } from './file-utils.js';
@@ -40,7 +38,6 @@ export enum ConfigurationOperation {
  * @param parameters Additional parameters specific to the operation
  */
 export interface ConfigurationLogEntry {
-  id: string;
   timestamp: string;
   operation: ConfigurationOperation;
   target: string;
@@ -136,39 +133,6 @@ export class ConfigurationLogger {
   }
 
   /**
-   * Returns the UUID of the last entry in the migration log for the given version.
-   * @param projectPath Path to the project root
-   * @param version Version number whose migration log to read
-   * @returns UUID of the last entry, or undefined if the log is empty
-   */
-  public static async latestEntryId(
-    projectPath: string,
-    version: number = 1,
-  ): Promise<string | undefined> {
-    const logFile = ConfigurationLogger.logFile(projectPath, version);
-    const logger = getChildLogger({ module: 'ConfigurationLogger' });
-
-    try {
-      const content = await readFile(logFile, 'utf-8');
-      const lines = content
-        .trim()
-        .split('\n')
-        .filter((line) => line.trim());
-
-      if (lines.length === 0) {
-        return undefined;
-      }
-
-      const lastLine = lines[lines.length - 1];
-      const entry = JSON.parse(lastLine) as ConfigurationLogEntry;
-      return entry.id;
-    } catch (error) {
-      logger.error({ error }, `Failed to read latest entry ID`);
-      return undefined;
-    }
-  }
-
-  /**
    * Log a configuration change operation.
    * @note This is designed to be called AFTER the operation succeeds.
    * @param projectPath Path to the project root
@@ -189,7 +153,6 @@ export class ConfigurationLogger {
 
     try {
       const entry: ConfigurationLogEntry = {
-        id: randomUUID(),
         timestamp: new Date().toISOString(),
         operation,
         target,
