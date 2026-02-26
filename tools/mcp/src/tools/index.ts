@@ -19,9 +19,6 @@ import { z } from 'zod';
 import { toolResult, toolError } from '../lib/mcp-helpers.js';
 import { renderCard, getCardTree } from '../lib/render.js';
 
-// Maximum base64 content size: 10MB (which decodes to ~7.5MB actual file)
-const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
-
 /**
  * Register all MCP tools for Cyberismo operations
  */
@@ -210,17 +207,11 @@ export function registerTools(
   server.registerTool(
     'create_attachment',
     {
-      description: 'Add an attachment to a card (max 10MB base64-encoded)',
+      description: 'Add an attachment to a card using base64 encoding',
       inputSchema: {
         cardKey: z.string().describe('Card key'),
         filename: z.string().describe('Attachment filename'),
-        content: z
-          .string()
-          .max(
-            MAX_ATTACHMENT_SIZE,
-            'Attachment too large. Maximum size is 10MB (base64-encoded)',
-          )
-          .describe('Base64-encoded file content (max 10MB)'),
+        content: z.string().describe('Base64-encoded file content (max 10MB)'),
       },
     },
     async ({ cardKey, filename, content }) => {
