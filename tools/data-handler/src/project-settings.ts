@@ -13,8 +13,9 @@
 
 import { writeJsonFile as atomicWrite } from 'write-json-file';
 import { readdirSync, writeFileSync } from 'node:fs';
+import { mkdir } from 'node:fs/promises';
 
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { URL } from 'node:url';
 
 import type {
@@ -22,6 +23,8 @@ import type {
   ModuleSetting,
   ProjectSettings,
 } from './interfaces/project-interfaces.js';
+import type { ProjectPaths } from './containers/project/project-paths.js';
+import { copyDir } from './utils/file-utils.js';
 import { formatJson } from './utils/json.js';
 import { getChildLogger } from './utils/log-utils.js';
 import { readJsonFileSync } from './utils/json.js';
@@ -43,9 +46,10 @@ export class ProjectConfiguration implements ProjectSettings {
   private logger = getChildLogger({ module: 'Project' });
   private settingPath: string;
   private autoSave: boolean = false;
+  private paths: ProjectPaths;
   private _cachedLatestVersion: number | null = null;
 
-  constructor(path: string, autoSave: boolean = true) {
+  constructor(path: string, autoSave: boolean, paths: ProjectPaths) {
     this.name = '';
     this.settingPath = path;
     this.cardKeyPrefix = '';
@@ -54,8 +58,13 @@ export class ProjectConfiguration implements ProjectSettings {
     this.modules = [];
     this.hubs = [];
     this.autoSave = autoSave;
+    this.paths = paths;
     this.readSettings();
     this.ensureSchemaVersionAndVersion();
+  }
+
+  private get localFolder(): string {
+    return this.paths.localFolder;
   }
 
   // Ensures that schemaVersion and version are set in the project configuration.
@@ -80,6 +89,7 @@ export class ProjectConfiguration implements ProjectSettings {
    * Reload settings from disk, discarding in-memory state.
    */
   public reload() {
+    this._cachedLatestVersion = null;
     this.readSettings();
   }
 
@@ -144,10 +154,8 @@ export class ProjectConfiguration implements ProjectSettings {
   public get latestVersion(): number {
     if (this._cachedLatestVersion !== null) return this._cachedLatestVersion;
 
-    // settingPath is e.g. /path/to/.cards/local/cardsConfig.json
-    const localFolder = resolve(this.settingPath, '..');
     try {
-      const entries = readdirSync(localFolder, { withFileTypes: true });
+      const entries = readdirSync(this.localFolder, { withFileTypes: true });
       let max = 0;
       for (const entry of entries) {
         if (entry.isDirectory()) {
@@ -165,11 +173,28 @@ export class ProjectConfiguration implements ProjectSettings {
   }
 
   /**
-   * Invalidate the cached latest version.
-   * Call this after creating or removing version folders.
+   * Publishes the current draft: sets version = latestVersion and saves.
    */
-  public invalidateVersionCache(): void {
-    this._cachedLatestVersion = null;
+  public async publish(): Promise<number> {
+    this.version = this.latestVersion;
+    await this.save();
+    return this.version;
+  }
+
+  /**
+   * Creates the next draft version folder by copying from the current latest.
+   */
+  public async createNextDraft(): Promise<number> {
+    const currentLatest = this.latestVersion;
+    const nextVersion = currentLatest + 1;
+    const sourceFolder = join(this.localFolder, currentLatest.toString());
+    const targetFolder = join(this.localFolder, nextVersion.toString());
+
+    await mkdir(targetFolder, { recursive: true });
+    await copyDir(sourceFolder, targetFolder);
+
+    this._cachedLatestVersion = nextVersion;
+    return nextVersion;
   }
 
   /**

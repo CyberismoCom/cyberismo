@@ -14,7 +14,6 @@
 // node
 import { join, resolve } from 'node:path';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { copyDir } from '../utils/file-utils.js';
 
 import { SCHEMA_VERSION } from '@cyberismo/assets';
 import { errorFunction } from '../utils/error-utils.js';
@@ -604,7 +603,7 @@ export class Create {
    * 6. Clears migration log in the new folder.
    * 7. Invalidates version cache.
    *
-   * @throws if there is nothing to release, no changes to publish, or validation fails
+   * @throws if there is nothing to release
    */
   public async createVersion() {
     const latestVersion = this.project.configuration.latestVersion;
@@ -617,62 +616,22 @@ export class Create {
       );
     }
 
-    // Check migration log has entries
-    const entries = await ConfigurationLogger.entries(
-      this.project.basePath,
-      latestVersion,
-    );
-    if (entries.length === 0) {
-      throw new Error(
-        'No changes to publish. Make changes to the project first.',
-      );
-    }
-
-    // Validate the project is in correct state
-    const validationErrors = await this.project.projectValidator.validate(
-      this.project.basePath,
-      () => this.project,
-    );
-
-    if (validationErrors.length > 0) {
-      throw new Error(
-        `Cannot create version. Project has validation errors:\n${validationErrors}`,
-      );
-    }
-
     this.logger.info(
       { publishedVersion, latestVersion },
       'Publishing draft as new version',
     );
 
-    // Publish: set cardsConfig.version = latestVersion
-    this.project.configuration.version = latestVersion;
-    await this.project.configuration.save();
-
-    // Create new draft folder (latestVersion + 1) by copying from latestVersion
-    const newDraftVersion = latestVersion + 1;
-    const latestFolder =
-      this.project.paths.versionedResourcesFolderFor(latestVersion);
-    const newDraftFolder =
-      this.project.paths.versionedResourcesFolderFor(newDraftVersion);
-
-    await mkdir(newDraftFolder, { recursive: true });
-    await copyDir(latestFolder, newDraftFolder);
-
-    // Create empty migration log for new draft (outside the version folder)
-    await ConfigurationLogger.clearLog(this.project.basePath, newDraftVersion);
-
-    // Invalidate version cache so latestVersion picks up the new folder
-    this.project.configuration.invalidateVersionCache();
-
-    // Refresh resource cache
+    // Publish and advance to next draft
+    await this.project.configuration.publish();
+    const newDraft = await this.project.configuration.createNextDraft();
+    await ConfigurationLogger.clearLog(this.project.basePath, newDraft);
     this.project.resources.changed();
 
     this.logger.info(
       {
         previousVersion: publishedVersion,
         newVersion: latestVersion,
-        newDraft: newDraftVersion,
+        newDraft,
       },
       'Version published successfully',
     );

@@ -17,6 +17,7 @@ import {
 } from '../src/utils/card-utils.js';
 import { Project } from '../src/containers/project.js';
 import { ProjectConfiguration } from '../src/project-settings.js';
+import { ProjectPaths } from '../src/containers/project/project-paths.js';
 import { getTestProject } from './helpers/test-utils.js';
 
 describe('project', () => {
@@ -769,7 +770,11 @@ describe('project', () => {
       'local',
       Project.projectConfigFileName,
     );
-    const projectSettings = new ProjectConfiguration(configFile, false);
+    const projectSettings = new ProjectConfiguration(
+      configFile,
+      false,
+      new ProjectPaths(decisionRecordsPath),
+    );
     expect(projectSettings).to.not.equal(undefined);
     expect(projectSettings.modules.length).to.equal(0);
 

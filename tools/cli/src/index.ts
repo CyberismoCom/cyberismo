@@ -724,10 +724,40 @@ createCmd
     'Publish the current draft as a new version and create a new draft',
   )
   .action(async (options: CommandOptions<'create'>) => {
+    const mergedOptions = Object.assign({}, options, program.opts());
+
+    // Validate project before creating version
+    const validationResult = await commandHandler.command(
+      Cmd.validate,
+      [],
+      mergedOptions,
+    );
+    if (
+      validationResult.message &&
+      validationResult.message !== 'Project structure validated'
+    ) {
+      truncateMessage(validationResult.message).forEach((item) =>
+        console.error(item),
+      );
+      console.error('\n');
+      const userConfirmation = await confirm(
+        {
+          message: 'There are validation errors. Do you want to continue?',
+        },
+        { signal: AbortSignal.timeout(10000), clearPromptOnDone: true },
+      ).catch((error) => {
+        return error.name === 'AbortPromptError';
+      });
+      if (!userConfirmation) {
+        handleResponse(validationResult);
+        return;
+      }
+    }
+
     const result = await commandHandler.command(
       Cmd.create,
       ['version'],
-      Object.assign({}, options, program.opts()),
+      mergedOptions,
     );
     handleResponse(result);
   });

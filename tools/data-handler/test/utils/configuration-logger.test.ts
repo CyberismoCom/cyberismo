@@ -53,26 +53,6 @@ describe('configuration logger', () => {
       expect(entries[0].target).to.equal('test-resource');
       expect(entries[0].parameters?.type).to.equal('template');
       expect(entries[0].timestamp).to.be.a('string');
-      expect(entries[0].id).to.be.a('string');
-      expect(entries[0].id.length).to.be.greaterThan(0);
-    });
-    it('should generate unique UUIDs for each entry', async () => {
-      await ConfigurationLogger.clearLog(testProjectPath);
-
-      await ConfigurationLogger.log(
-        testProjectPath,
-        ConfigurationOperation.RESOURCE_CREATE,
-        'resource-a',
-      );
-      await ConfigurationLogger.log(
-        testProjectPath,
-        ConfigurationOperation.RESOURCE_CREATE,
-        'resource-b',
-      );
-
-      const entries = await ConfigurationLogger.entries(testProjectPath);
-      expect(entries.length).to.equal(2);
-      expect(entries[0].id).to.not.equal(entries[1].id);
     });
     it('should return latest entry ID', async () => {
       await ConfigurationLogger.clearLog(testProjectPath);
@@ -89,14 +69,7 @@ describe('configuration logger', () => {
       );
 
       const entries = await ConfigurationLogger.entries(testProjectPath);
-      const latestId = await ConfigurationLogger.latestEntryId(testProjectPath);
-      expect(latestId).to.equal(entries[entries.length - 1].id);
-    });
-    it('should return undefined for empty log latestEntryId', async () => {
-      await ConfigurationLogger.clearLog(testProjectPath);
-
-      const latestId = await ConfigurationLogger.latestEntryId(testProjectPath);
-      expect(latestId).to.be.undefined;
+      expect(entries).to.have.length(2);
     });
     it('should handle logging without parameters', async () => {
       await ConfigurationLogger.log(

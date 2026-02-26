@@ -106,17 +106,19 @@ export class Project extends CardContainer {
       watchResourceChanges: false,
     },
   ) {
+    const projectPaths = new ProjectPaths(path);
     const settings = new ProjectConfiguration(
-      join(path, '.cards', 'local', Project.projectConfigFileName),
+      projectPaths.configurationFile,
       options.autoSave ?? true,
+      projectPaths,
     );
     super(path, settings.cardKeyPrefix);
+    this.projectPaths = projectPaths;
     this.settings = settings;
 
     this.logger.info({ path }, 'Initializing project');
 
     this.calculationEngine = new CalculationEngine(this);
-    this.projectPaths = new ProjectPaths(path);
     this.resourceHandler = new ResourceHandler(this);
     // todo: implement project validation
     this.validator = Validate.getInstance();
