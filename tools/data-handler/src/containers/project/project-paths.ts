@@ -17,8 +17,6 @@ import type { ResourceFolderType } from '../../interfaces/project-interfaces.js'
 
 /**
  * Handles paths for a project.
- * This is a stateless path mapper — it does not know about versioning policy.
- * Version-dependent paths are computed via methods that take a version parameter.
  */
 export class ProjectPaths {
   constructor(private path: string) {}
