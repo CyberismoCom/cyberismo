@@ -82,7 +82,8 @@ describe('MCP Tools via Client', () => {
     // Phase 3: Resource Management
     expect(toolNames).toContain('delete_resource');
     expect(toolNames).toContain('validate_resource');
-    expect(toolNames).toContain('update_resource');
+    expect(toolNames).toContain('update_folder_resource');
+    expect(toolNames).toContain('update_file_resource');
 
     // Phase 4: Calculations & Queries
     expect(toolNames).toContain('create_calculation');
