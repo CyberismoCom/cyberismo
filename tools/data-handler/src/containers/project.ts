@@ -803,7 +803,7 @@ export class Project extends CardContainer {
       return {
         name: moduleConfig.name,
         description: moduleConfig.description || '',
-        version: moduleConfig.version || 1,
+        version: moduleConfig.version ?? 1,
         modules: moduleConfig.modules,
         hubs: moduleConfig.hubs,
         path: modulePath,
