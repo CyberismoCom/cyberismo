@@ -19,8 +19,22 @@ import { z } from 'zod';
 import { toolResult, toolError } from '../lib/mcp-helpers.js';
 import { renderCard, getCardTree } from '../lib/render.js';
 
+const resourceNameRegex = (...types: string[]) =>
+  new RegExp(`^[^/]+/(${types.join('|')})/[^/]+$`);
+
 const baseKeys = ['name', 'displayName', 'description', 'category'] as const;
-const arrayUpdateOperations = ['add', 'change', 'rank', 'remove'] as const;
+const dataTypes = [
+  'boolean',
+  'date',
+  'dateTime',
+  'enum',
+  'integer',
+  'list',
+  'longText',
+  'number',
+  'person',
+  'shortText',
+] as const;
 const changeOperationSchema = z.object({
   name: z.literal('change'),
   target: z.unknown().describe('Target value for the operation'),
@@ -689,6 +703,138 @@ export function registerTools(
   );
 
   server.registerTool(
+    'update_file_resource',
+    {
+      description:
+        'Update a file based resource (card types, field types, workflows, link types)',
+      inputSchema: z.union([
+        z.object({
+          key: z
+            .enum([...baseKeys, 'workflow'])
+            .describe('Base metadata field to update'),
+          operation: changeOperationSchema,
+          resource: z
+            .string()
+            .regex(resourceNameRegex('cardTypes'))
+            .describe(
+              'Full resource name (e.g., "prefix/cardTypes/myResourceName")',
+            ),
+        }),
+        z.object({
+          key: z.enum([
+            'alwaysVisibleFields',
+            'optionallyVisibleFields',
+            'customFields',
+          ]),
+          operation: arrayUpdateOperationSchema,
+          resource: z
+            .string()
+            .regex(resourceNameRegex('cardTypes'))
+            .describe(
+              'Full resource name (e.g., "prefix/cardTypes/myResourceName")',
+            ),
+        }),
+        z.object({
+          key: z.enum(baseKeys).describe('Base metadata field to update'),
+          operation: changeOperationSchema,
+          resource: z
+            .string()
+            .regex(resourceNameRegex('fieldTypes'))
+            .describe(
+              'Full resource name (e.g., "prefix/fieldTypes/myResourceName")',
+            ),
+        }),
+        z.object({
+          key: z.literal('dataType'),
+          operation: changeOperationSchema.extend({
+            to: z.enum(dataTypes).describe('New data type for the field'),
+          }),
+          resource: z
+            .string()
+            .regex(resourceNameRegex('fieldTypes'))
+            .describe(
+              'Full resource name (e.g., "prefix/fieldTypes/myResourceName")',
+            ),
+        }),
+        z.object({
+          key: z.literal('enumValues'),
+          operation: arrayUpdateOperationSchema,
+          resource: z
+            .string()
+            .regex(resourceNameRegex('fieldTypes'))
+            .describe(
+              'Full resource name (e.g., "prefix/fieldTypes/myResourceName")',
+            ),
+        }),
+        z.object({
+          key: z
+            .enum([
+              ...baseKeys,
+              'enableLinkDescription',
+              'inboundDisplayName',
+              'outboundDisplayName',
+            ])
+            .describe('Base metadata field to update'),
+          operation: changeOperationSchema,
+          resource: z
+            .string()
+            .regex(resourceNameRegex('linkTypes'))
+            .describe(
+              'Full resource name (e.g., "prefix/linkTypes/myResourceName")',
+            ),
+        }),
+        z.object({
+          key: z.enum(['destinationCardTypes', 'sourceCardTypes']),
+          operation: arrayUpdateOperationSchema,
+          resource: z
+            .string()
+            .regex(resourceNameRegex('linkTypes'))
+            .describe(
+              'Full resource name (e.g., "prefix/linkTypes/myResourceName")',
+            ),
+        }),
+        z.object({
+          key: z.enum(baseKeys).describe('Base metadata field to update'),
+          operation: changeOperationSchema,
+          resource: z
+            .string()
+            .regex(resourceNameRegex('workflows'))
+            .describe(
+              'Full resource name (e.g., "prefix/workflows/myResourceName")',
+            ),
+        }),
+        z.object({
+          key: z.enum(['states', 'transitions']),
+          operation: arrayUpdateOperationSchema,
+          resource: z
+            .string()
+            .regex(resourceNameRegex('workflows'))
+            .describe(
+              'Full resource name (e.g., "prefix/workflows/myResourceName")',
+            ),
+        }),
+      ]),
+    },
+    async ({ resource, operation, key }) => {
+      try {
+        await commands.updateCmd.applyResourceOperation(
+          resource,
+          { key },
+          operation,
+        );
+        return toolResult({
+          resource,
+          key,
+          operation,
+          text: 'Successfully updated',
+        });
+      } catch (error) {
+        return toolError('updating resource', error);
+      }
+    },
+  );
+
+  server.registerTool(
     'update_folder_resource',
     {
       description:
@@ -708,8 +854,13 @@ export function registerTools(
         resource: z
           .string()
           .regex(
-            // eslint-disable-next-line no-useless-escape
-            /^[^\/]+\/(calculations|graphModels|graphViews|reports|templates)\/[^\/]+$/,
+            resourceNameRegex(
+              'calculations',
+              'graphModels',
+              'graphViews',
+              'reports',
+              'templates',
+            ),
           )
           .describe(
             'Full resource name (e.g., "prefix/{calculations|graphModels|graphViews|reports|templates}/myResourceName")',
