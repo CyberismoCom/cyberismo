@@ -19,6 +19,34 @@ import { z } from 'zod';
 import { toolResult, toolError } from '../lib/mcp-helpers.js';
 import { renderCard, getCardTree } from '../lib/render.js';
 
+const baseKeys = ['name', 'displayName', 'description', 'category'] as const;
+const arrayUpdateOperations = ['add', 'change', 'rank', 'remove'] as const;
+const changeOperationSchema = z.object({
+  name: z.literal('change'),
+  target: z.unknown().describe('Target value for the operation'),
+  to: z.unknown().describe('New value for the item being changed'),
+});
+const addOperationSchema = z.object({
+  name: z.literal('add'),
+  target: z.unknown().describe('Target value for the operation'),
+});
+const rankOperationSchema = z.object({
+  name: z.literal('rank'),
+  target: z.unknown().describe('Target value for the operation'),
+  newIndex: z.number().describe('New index for the item being ranked'),
+});
+const removeOperationSchema = z.object({
+  name: z.literal('remove'),
+  target: z.unknown().describe('Target value for the operation'),
+  replacementValue: z.unknown().optional(),
+});
+const arrayUpdateOperationSchema = z.union([
+  addOperationSchema,
+  changeOperationSchema,
+  rankOperationSchema,
+  removeOperationSchema,
+]);
+
 /**
  * Register all MCP tools for Cyberismo operations
  */
@@ -656,6 +684,58 @@ export function registerTools(
         });
       } catch (error) {
         return toolError('validating resource', error);
+      }
+    },
+  );
+
+  server.registerTool(
+    'update_folder_resource',
+    {
+      description:
+        'Update folder based resource (calculations, graphModels, graphViews, reports, templates)',
+      inputSchema: {
+        query: z.union([
+          z.object({
+            key: z.enum(baseKeys).describe('Base metadata field to update'),
+            operation: changeOperationSchema,
+          }),
+          z.object({
+            key: z.literal('content'),
+            subKey: z.string().describe('Content sub-key to update'),
+            operation: changeOperationSchema,
+          }),
+        ]),
+        resource: z
+          .string()
+          .regex(
+            // eslint-disable-next-line no-useless-escape
+            /^[^\/]+\/(calculations|graphModels|graphViews|reports|templates)\/[^\/]+$/,
+          )
+          .describe(
+            'Full resource name (e.g., "prefix/{calculations|graphModels|graphViews|reports|templates}/myResourceName")',
+          ),
+      },
+    },
+    async ({ resource, query }) => {
+      try {
+        const updateKey =
+          query.key === 'content'
+            ? { key: 'content', subKey: query.subKey }
+            : { key: query.key };
+        await commands.updateCmd.applyResourceOperation(
+          resource,
+          updateKey,
+          query.operation,
+        );
+        return toolResult({
+          resource,
+          key: query.key,
+          ...(query.key === 'content' ? { subKey: query.subKey } : {}),
+          operation: query.operation,
+          text: 'Successfully updated',
+        });
+      } catch (error) {
+        return toolError('updating resource', error);
       }
     },
   );
