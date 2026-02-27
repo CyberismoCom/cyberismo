@@ -19,51 +19,13 @@ import { z } from 'zod';
 import { toolResult, toolError } from '../lib/mcp-helpers.js';
 import { renderCard, getCardTree } from '../lib/render.js';
 
-const resourceNameRegex = (...types: string[]) =>
-  new RegExp(`^[^/]+/(${types.join('|')})/[^/]+$`);
-
-const baseKeys = ['name', 'displayName', 'description', 'category'] as const;
-const dataTypes = [
-  'boolean',
-  'date',
-  'dateTime',
-  'enum',
-  'integer',
-  'list',
-  'longText',
-  'number',
-  'person',
-  'shortText',
-] as const;
-const changeOperationSchema = z.object({
-  name: z
-    .literal('change')
-    .describe(
-      'Set or update a scalar property, or replace an item in an array',
-    ),
-  target: z.unknown().describe('Target value for the operation'),
-  to: z.unknown().describe('New value for the item being changed'),
-});
-const addOperationSchema = z.object({
-  name: z.literal('add').describe('Add a new item to an array'),
-  target: z.unknown().describe('Target value for the operation'),
-});
-const rankOperationSchema = z.object({
-  name: z.literal('rank').describe('Reorder an item within an array property'),
-  target: z.unknown().describe('Target value for the operation'),
-  newIndex: z.number().describe('New index for the item being ranked'),
-});
-const removeOperationSchema = z.object({
-  name: z.literal('remove').describe('Remove an item from an array property'),
-  target: z.unknown().describe('Target value for the operation'),
-  replacementValue: z.unknown().optional(),
-});
-const arrayUpdateOperationSchema = z.union([
-  addOperationSchema,
+import {
+  resourceNameRegex,
+  BASE_PROPERTY_KEYS,
+  DATA_TYPES,
   changeOperationSchema,
-  rankOperationSchema,
-  removeOperationSchema,
-]);
+  arrayUpdateOperationSchema,
+} from './sharedSchemas.js';
 
 /**
  * Register all MCP tools for Cyberismo operations
@@ -714,7 +676,7 @@ export function registerTools(
       inputSchema: z.union([
         z.object({
           key: z
-            .enum([...baseKeys, 'workflow'])
+            .enum([...BASE_PROPERTY_KEYS, 'workflow'])
             .describe('Available property keys to update'),
           operation: changeOperationSchema,
           resource: z
@@ -741,7 +703,9 @@ export function registerTools(
             ),
         }),
         z.object({
-          key: z.enum(baseKeys).describe('Available property keys to update'),
+          key: z
+            .enum(BASE_PROPERTY_KEYS)
+            .describe('Available property keys to update'),
           operation: changeOperationSchema,
           resource: z
             .string()
@@ -753,7 +717,7 @@ export function registerTools(
         z.object({
           key: z.literal('dataType'),
           operation: changeOperationSchema.extend({
-            to: z.enum(dataTypes).describe('New data type for the field'),
+            to: z.enum(DATA_TYPES).describe('New data type for the field'),
           }),
           resource: z
             .string()
@@ -775,7 +739,7 @@ export function registerTools(
         z.object({
           key: z
             .enum([
-              ...baseKeys,
+              ...BASE_PROPERTY_KEYS,
               'enableLinkDescription',
               'inboundDisplayName',
               'outboundDisplayName',
@@ -800,7 +764,9 @@ export function registerTools(
             ),
         }),
         z.object({
-          key: z.enum(baseKeys).describe('Available property keys to update'),
+          key: z
+            .enum(BASE_PROPERTY_KEYS)
+            .describe('Available property keys to update'),
           operation: changeOperationSchema,
           resource: z
             .string()
@@ -848,7 +814,9 @@ export function registerTools(
       inputSchema: {
         query: z.union([
           z.object({
-            key: z.enum(baseKeys).describe('Available property keys to update'),
+            key: z
+              .enum(BASE_PROPERTY_KEYS)
+              .describe('Available property keys to update'),
             operation: changeOperationSchema,
           }),
           z.object({
