@@ -158,11 +158,9 @@ export class ProjectConfiguration implements ProjectSettings {
       const entries = readdirSync(this.localFolder, { withFileTypes: true });
       let max = 0;
       for (const entry of entries) {
-        if (entry.isDirectory()) {
-          const num = parseInt(entry.name, 10);
-          if (!isNaN(num) && num > max) {
-            max = num;
-          }
+        const num = parseInt(entry.name, 10);
+        if (!isNaN(num) && num > max) {
+          max = num;
         }
       }
       this._cachedLatestVersion = max > 0 ? max : this.version;
