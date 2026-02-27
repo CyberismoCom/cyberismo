@@ -273,6 +273,15 @@ export class ResourceCache {
   // Collect resources of a specific type
   private collectResourcesOfType(
     type: ResourceFolderType,
+    source: 'local',
+  ): void;
+  private collectResourcesOfType(
+    type: ResourceFolderType,
+    source: 'module',
+    moduleName: string,
+  ): void;
+  private collectResourcesOfType(
+    type: ResourceFolderType,
     source: 'local' | 'module',
     moduleName?: string,
   ) {
