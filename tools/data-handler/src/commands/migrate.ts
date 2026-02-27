@@ -73,6 +73,6 @@ export class Migrate {
       }
     }
 
-    return await this.project.runMigrations(currentVersion, targetVersion);
+    return this.project.runMigrations(currentVersion, targetVersion);
   }
 }
