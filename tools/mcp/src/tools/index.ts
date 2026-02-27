@@ -36,21 +36,25 @@ const dataTypes = [
   'shortText',
 ] as const;
 const changeOperationSchema = z.object({
-  name: z.literal('change'),
+  name: z
+    .literal('change')
+    .describe(
+      'Set or update a scalar property, or replace an item in an array',
+    ),
   target: z.unknown().describe('Target value for the operation'),
   to: z.unknown().describe('New value for the item being changed'),
 });
 const addOperationSchema = z.object({
-  name: z.literal('add'),
+  name: z.literal('add').describe('Add a new item to an array'),
   target: z.unknown().describe('Target value for the operation'),
 });
 const rankOperationSchema = z.object({
-  name: z.literal('rank'),
+  name: z.literal('rank').describe('Reorder an item within an array property'),
   target: z.unknown().describe('Target value for the operation'),
   newIndex: z.number().describe('New index for the item being ranked'),
 });
 const removeOperationSchema = z.object({
-  name: z.literal('remove'),
+  name: z.literal('remove').describe('Remove an item from an array property'),
   target: z.unknown().describe('Target value for the operation'),
   replacementValue: z.unknown().optional(),
 });
@@ -711,7 +715,7 @@ export function registerTools(
         z.object({
           key: z
             .enum([...baseKeys, 'workflow'])
-            .describe('Base metadata field to update'),
+            .describe('Available property keys to update'),
           operation: changeOperationSchema,
           resource: z
             .string()
@@ -721,11 +725,13 @@ export function registerTools(
             ),
         }),
         z.object({
-          key: z.enum([
-            'alwaysVisibleFields',
-            'optionallyVisibleFields',
-            'customFields',
-          ]),
+          key: z
+            .enum([
+              'alwaysVisibleFields',
+              'optionallyVisibleFields',
+              'customFields',
+            ])
+            .describe('Available property keys to update'),
           operation: arrayUpdateOperationSchema,
           resource: z
             .string()
@@ -735,7 +741,7 @@ export function registerTools(
             ),
         }),
         z.object({
-          key: z.enum(baseKeys).describe('Base metadata field to update'),
+          key: z.enum(baseKeys).describe('Available property keys to update'),
           operation: changeOperationSchema,
           resource: z
             .string()
@@ -794,7 +800,7 @@ export function registerTools(
             ),
         }),
         z.object({
-          key: z.enum(baseKeys).describe('Base metadata field to update'),
+          key: z.enum(baseKeys).describe('Available property keys to update'),
           operation: changeOperationSchema,
           resource: z
             .string()
@@ -842,7 +848,7 @@ export function registerTools(
       inputSchema: {
         query: z.union([
           z.object({
-            key: z.enum(baseKeys).describe('Base metadata field to update'),
+            key: z.enum(baseKeys).describe('Available property keys to update'),
             operation: changeOperationSchema,
           }),
           z.object({
