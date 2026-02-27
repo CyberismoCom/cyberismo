@@ -25,6 +25,7 @@ import {
   DATA_TYPES,
   changeOperationSchema,
   arrayUpdateOperationSchema,
+  SUB_PROPERTY_KEYS,
 } from './sharedSchemas.js';
 
 /**
@@ -821,7 +822,9 @@ export function registerTools(
           }),
           z.object({
             key: z.literal('content'),
-            subKey: z.string().describe('Content sub-key to update'),
+            subKey: z
+              .enum(SUB_PROPERTY_KEYS)
+              .describe('Content sub-key to update'),
             operation: changeOperationSchema,
           }),
         ]),

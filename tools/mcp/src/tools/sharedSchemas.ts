@@ -10,6 +10,15 @@ export const BASE_PROPERTY_KEYS = [
   'category',
 ] as const;
 
+export const SUB_PROPERTY_KEYS = [
+  'calculation',
+  'contentTemplate',
+  'model',
+  'queryTemplate',
+  'viewTemplate',
+  'schema',
+] as const;
+
 export const DATA_TYPES = [
   'boolean',
   'date',
