@@ -16,6 +16,10 @@ import { copyDir, deleteDir, resolveTilde } from '../src/utils/file-utils.js';
 import { DefaultContent } from '../src/resources/create-defaults.js';
 import { FieldTypeResource } from '../src/resources/field-type-resource.js';
 import { getTestProject } from './helpers/test-utils.js';
+import {
+  ConfigurationLogger,
+  ConfigurationOperation,
+} from '../src/utils/configuration-logger.js';
 
 import type { CreateCommandOptions } from '../src/interfaces/command-options.js';
 import type {
@@ -519,37 +523,6 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(400);
   });
-  // link - three tests commented out for now (see INTDEV-512). When doing INTDEV-512, also add a test which makes sure createLink fails if source and destination cards are the same
-  // it('create link (success)', async () => {
-  //   const result = await commandHandler.command(
-  //     Cmd.create,
-  //     ['link', 'decision_5', 'decision_6', 'decision/linkTypes/test'],
-  //     options,
-  //   );
-  //   expect(result.statusCode).to.equal(200);
-  // });
-  // it('create link with different description(success)', async () => {
-  //   const result = await commandHandler.command(
-  //     Cmd.create,
-  //     [
-  //       'link',
-  //       'decision_5',
-  //       'decision_6',
-  //       'decision/linkTypes/test',
-  //       'description2',
-  //     ],
-  //     options,
-  //   );
-  //   expect(result.statusCode).to.equal(200);
-  // });
-  // it('try create link - link already exists', async () => {
-  //   const result = await commandHandler.command(
-  //     Cmd.create,
-  //     ['link', 'decision_5', 'decision_6', 'decision/linkTypes/test'],
-  //     options,
-  //   );
-  //   expect(result.statusCode).to.equal(400);
-  // });
 
   it('try create link - card does not exist', async () => {
     const result = await commandHandler.command(
@@ -1094,5 +1067,95 @@ describe('create command', () => {
     expect(defaultCard.rank).to.equal('0|b');
     expect(defaultCard.title).to.equal('Untitled');
     expect(defaultCard.workflowState).to.equal('');
+  });
+
+  describe('version', () => {
+    it('should create a new version', async () => {
+      // First verify the project is valid
+      const validateResult = await commandHandler.command(
+        Cmd.validate,
+        [],
+        options,
+      );
+      expect(validateResult.statusCode).to.equal(200);
+
+      // Get initial version
+      const projectBefore = await commandHandler.command(
+        Cmd.show,
+        ['project'],
+        options,
+      );
+      const initialVersion = Object(projectBefore.payload)['version'];
+
+      // Create new version
+      const result = await commandHandler.command(
+        Cmd.create,
+        ['version'],
+        options,
+      );
+      expect(result.statusCode).to.equal(200);
+      expect(result.message?.includes(`from ${initialVersion}`));
+      expect(result.message?.includes(`to ${initialVersion + 1}`));
+
+      // Verify the version was incremented in the project
+      const projectAfter = await commandHandler.command(
+        Cmd.show,
+        ['project'],
+        options,
+      );
+      expect(Object(projectAfter.payload)['version']).to.equal(
+        initialVersion + 1,
+      );
+    });
+
+    it('should have a new folder in migrations', async () => {
+      const project = getTestProject(decisionRecordsPath);
+      await project.populateCaches();
+
+      const initialLatestVersion = project.configuration.latestVersion;
+      // Add a migration log entry so createVersion() has changes to publish
+      await ConfigurationLogger.log(
+        decisionRecordsPath,
+        ConfigurationOperation.RESOURCE_CREATE,
+        'test-resource',
+        undefined,
+        initialLatestVersion,
+      );
+
+      const expectedVersionFolder = join(
+        decisionRecordsPath,
+        '.cards/local',
+        (initialLatestVersion + 1).toString(),
+      );
+
+      const result = await commandHandler.command(
+        Cmd.create,
+        ['version'],
+        options,
+      );
+      expect(result.statusCode).to.equal(200);
+
+      await expect(access(expectedVersionFolder, fsConstants.F_OK)).to.be
+        .fulfilled;
+
+      const versionedLogFile = join(
+        decisionRecordsPath,
+        '.cards/local/migrations',
+        `migrationLog-${initialLatestVersion + 1}.jsonl`,
+      );
+      await expect(access(versionedLogFile, fsConstants.F_OK)).to.be.fulfilled;
+    });
+
+    it('should handle error with invalid options', async () => {
+      const invalidOptions = {
+        projectPath: join(testDir, 'valid/no-such-project'),
+      };
+      const result = await commandHandler.command(
+        Cmd.create,
+        ['version'],
+        invalidOptions,
+      );
+      expect(result.statusCode).to.equal(400);
+    });
   });
 });

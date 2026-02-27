@@ -225,6 +225,10 @@ describe('shows command', () => {
       expect(result.statusCode).to.equal(200);
       if (result.payload) {
         expect(result.payload).to.not.equal(undefined);
+        expect(result.payload).to.haveOwnProperty('version');
+        const version = Object(result.payload)['version'];
+        expect(version).to.be.a('number');
+        expect(version).to.be.greaterThan(0);
       }
     });
     it('show reports - success()', async () => {
@@ -369,6 +373,9 @@ describe('shows command', () => {
       expect(module.templates).to.include('mini/templates/test-template');
       expect(module.workflows).to.include('mini/workflows/default');
       expect(module.workflows).to.include('mini/workflows/minimal');
+      expect(module).to.haveOwnProperty('version');
+      expect(module.version).to.be.a('number');
+      expect(module.version).to.be.greaterThan(0);
     });
     it('show particular card', async () => {
       // Since projects have been imported to each other, all cards can be found from each.

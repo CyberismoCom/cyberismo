@@ -28,6 +28,8 @@ import type { Project } from '../containers/project.js';
 import type { ReportContent } from '../interfaces/folder-content-interfaces.js';
 import type { ReportMetadata } from '../interfaces/resource-interfaces.js';
 import type { ResourceName } from '../utils/resource-utils.js';
+import type { UpdateKey } from '../interfaces/resource-interfaces.js';
+import type { Operation } from './resource-object.js';
 
 const PARAMETER_SCHEMA_ID = 'jsonSchema';
 
@@ -104,6 +106,22 @@ export class ReportResource extends FolderResource<
     )
       .filter((dirent) => dirent.isFile() && extname(dirent.name) === '.hbs')
       .map((item) => join(item.parentPath, item.name));
+  }
+
+  /**
+   * Apply transient changes for field type migrations.
+   */
+  public async migrate<Type, K extends string>(
+    updateKey: UpdateKey<K>,
+    op: Operation<Type>,
+  ): Promise<void> {
+    const { key } = updateKey;
+    await super.migrate(updateKey, op);
+    // TODO: move to base class
+    if (key === 'name') {
+      await this.onNameChange(this.content.name);
+    }
+    // TODO: Implement report-specific transient changes
   }
 
   /**

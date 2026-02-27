@@ -12,9 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { readFile, rename } from 'node:fs/promises';
-import { join } from 'node:path';
-
+import { readFile } from 'node:fs/promises';
 import { getChildLogger } from './log-utils.js';
 import { ProjectPaths } from '../containers/project/project-paths.js';
 import { writeFileSafe, pathExists } from './file-utils.js';
@@ -61,73 +59,40 @@ export class ConfigurationLogger {
   /**
    * Path to the configuration log file.
    * @param projectPath Path to the project root
+   * @param version Version number whose migration log to target
    * @returns Path to the log file
    */
-  public static logFile(projectPath: string): string {
-    const paths = new ProjectPaths(projectPath);
-    return paths.configurationChangesLog;
+  public static logFile(projectPath: string, version: number = 1): string {
+    return new ProjectPaths(projectPath).migrationLogFor(version);
   }
 
   /**
    * Clears all log entries.
    * @param projectPath Path to the project root
+   * @param version Version number whose migration log to clear
    * @note Use with caution.
    */
-  public static async clearLog(projectPath: string): Promise<void> {
-    const logFile = ConfigurationLogger.logFile(projectPath);
+  public static async clearLog(
+    projectPath: string,
+    version: number = 1,
+  ): Promise<void> {
+    const logFile = ConfigurationLogger.logFile(projectPath, version);
     await writeFileSafe(logFile, '', 'utf-8');
     const logger = getChildLogger({ module: 'ConfigurationLogger' });
     logger.info('Configuration log cleared');
   }
 
   /**
-   * Create a versioned snapshot of the current migration log.
-   * Renames current migrationLog.jsonl to migrationLog_<version>.jsonl
-   * @param projectPath Path to the project root
-   * @param version Version identifier (e.g., "1.0.0", "v2")
-   * @returns Path to the versioned log file
-   */
-  public static async createVersion(
-    projectPath: string,
-    version: string,
-  ): Promise<string> {
-    const paths = new ProjectPaths(projectPath);
-    const currentLogPath = paths.configurationChangesLog;
-    const versionedLogPath = join(
-      paths.migrationLogFolder,
-      `migrationLog_${version}.jsonl`,
-    );
-
-    // Only create version if current log exists and has content
-    if (!pathExists(currentLogPath)) {
-      throw new Error('No current migration log exists to version');
-    }
-
-    const content = await readFile(currentLogPath, 'utf-8');
-    if (!content.trim()) {
-      throw new Error('Current migration log is empty');
-    }
-
-    // Rename current to versioned
-    await rename(currentLogPath, versionedLogPath);
-
-    const logger = getChildLogger({ module: 'ConfigurationLogger' });
-    logger.info(
-      `Created migration to version: ${version} at ${versionedLogPath}`,
-    );
-
-    return versionedLogPath;
-  }
-
-  /**
    * Reads all configuration log entries using JSON Lines format.
    * @param projectPath Path to the project root
+   * @param version Version number whose migration log to read
    * @returns Array of log entries
    */
   public static async entries(
     projectPath: string,
+    version: number = 1,
   ): Promise<ConfigurationLogEntry[]> {
-    const logFile = ConfigurationLogger.logFile(projectPath);
+    const logFile = ConfigurationLogger.logFile(projectPath, version);
     const logger = getChildLogger({ module: 'ConfigurationLogger' });
 
     try {
@@ -159,10 +124,11 @@ export class ConfigurationLogger {
   /**
    * Check if a configuration log exists for the given project path.
    * @param projectPath Path to the project root
+   * @param version Version number to check
    * @returns True if log file exists
    */
-  public static hasLog(projectPath: string): boolean {
-    const logPath = new ProjectPaths(projectPath).configurationChangesLog;
+  public static hasLog(projectPath: string, version: number = 1): boolean {
+    const logPath = ConfigurationLogger.logFile(projectPath, version);
     return pathExists(logPath);
   }
 
@@ -173,14 +139,16 @@ export class ConfigurationLogger {
    * @param operation The type of operation
    * @param target The target of the operation
    * @param options Additional options for the log entry
+   * @param version Version number whose migration log to write to
    */
   public static async log(
     projectPath: string,
     operation: ConfigurationOperation,
     target: string,
     options?: ConfigurationLogOptions,
+    version: number = 1,
   ): Promise<void> {
-    const logFile = ConfigurationLogger.logFile(projectPath);
+    const logFile = ConfigurationLogger.logFile(projectPath, version);
     const logger = getChildLogger({ module: 'ConfigurationLogger' });
 
     try {

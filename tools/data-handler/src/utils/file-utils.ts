@@ -17,28 +17,12 @@ import {
   mkdir,
   readdir,
   rm,
-  stat,
-  statfs,
   unlink,
   writeFile,
 } from 'node:fs/promises';
 import { existsSync, readdirSync } from 'node:fs';
 import { dirname, join, sep } from 'node:path';
 import { homedir } from 'node:os';
-
-/**
- * Get available disk space for a given path.
- * @param path Path to check
- * @returns Available space in bytes
- */
-export async function availableSpace(path: string): Promise<number> {
-  try {
-    const stats = await statfs(path);
-    return stats.bavail * stats.bsize;
-  } catch (error) {
-    throw new Error(`Failed to check available disk space: ${error}`);
-  }
-}
 
 /**
  * Copies directory content (subdirectories and files) to destination.
@@ -85,34 +69,6 @@ export async function deleteFile(path: string): Promise<boolean> {
     return false;
   }
   return true;
-}
-
-/**
- * Calculate the total size of a directory recursively.
- * @param dirPath Path to directory
- * @returns Size in bytes
- */
-export async function folderSize(dirPath: string): Promise<number> {
-  let size = 0;
-
-  try {
-    const entries = await readdir(dirPath, { withFileTypes: true });
-
-    for (const entry of entries) {
-      const fullPath = join(dirPath, entry.name);
-
-      if (entry.isDirectory()) {
-        size += await folderSize(fullPath);
-      } else if (entry.isFile()) {
-        const stats = await stat(fullPath);
-        size += stats.size;
-      }
-    }
-  } catch {
-    // Ignore permission errors or missing directories
-  }
-
-  return size;
 }
 
 /**

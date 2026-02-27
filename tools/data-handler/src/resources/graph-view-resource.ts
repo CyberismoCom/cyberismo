@@ -27,6 +27,8 @@ import type { GraphViewContent } from '../interfaces/folder-content-interfaces.j
 import type { GraphViewMetadata } from '../interfaces/resource-interfaces.js';
 import type { Project } from '../containers/project.js';
 import type { ResourceName } from '../utils/resource-utils.js';
+import type { UpdateKey } from '../interfaces/resource-interfaces.js';
+import type { Operation } from './resource-object.js';
 
 /**
  * Graph view resource class.
@@ -99,6 +101,22 @@ export class GraphViewResource extends FolderResource<
       .filter((dirent) => dirent.isFile() && extname(dirent.name) === '.hbs')
       .map((item) => (nameOnly ? item.name : join(item.parentPath, item.name)))
       .at(0)!;
+  }
+
+  /**
+   * Apply transient changes for field type migrations.
+   */
+  public async migrate<Type, K extends string>(
+    updateKey: UpdateKey<K>,
+    op: Operation<Type>,
+  ): Promise<void> {
+    const { key } = updateKey;
+    await super.migrate(updateKey, op);
+    // TODO: move to base class
+    if (key === 'name') {
+      await this.onNameChange(this.content.name);
+    }
+    // TODO: Implement graph view-specific transient changes
   }
 
   /**

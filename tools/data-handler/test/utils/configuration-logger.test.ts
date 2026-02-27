@@ -24,10 +24,6 @@ describe('configuration logger', () => {
   before(async () => {
     await mkdir(testDir, { recursive: true });
     await mkdir(testProjectPath, { recursive: true });
-    // Create .cards/local directory structure for new migration log location
-    await mkdir(join(testProjectPath, '.cards', 'local', 'migrationLog'), {
-      recursive: true,
-    });
   });
 
   after(async () => {
@@ -57,6 +53,23 @@ describe('configuration logger', () => {
       expect(entries[0].target).to.equal('test-resource');
       expect(entries[0].parameters?.type).to.equal('template');
       expect(entries[0].timestamp).to.be.a('string');
+    });
+    it('should return latest entry ID', async () => {
+      await ConfigurationLogger.clearLog(testProjectPath);
+
+      await ConfigurationLogger.log(
+        testProjectPath,
+        ConfigurationOperation.RESOURCE_CREATE,
+        'first',
+      );
+      await ConfigurationLogger.log(
+        testProjectPath,
+        ConfigurationOperation.RESOURCE_UPDATE,
+        'second',
+      );
+
+      const entries = await ConfigurationLogger.entries(testProjectPath);
+      expect(entries).to.have.length(2);
     });
     it('should handle logging without parameters', async () => {
       await ConfigurationLogger.log(
@@ -184,9 +197,8 @@ describe('configuration logger', () => {
     it('should get configuration log path', () => {
       const logPath = ConfigurationLogger.logFile(testProjectPath);
       expect(logPath).to.include('.cards');
-      expect(logPath).to.include('migrationLog');
-      expect(logPath).to.include('current');
-      expect(logPath).to.include('migrationLog.jsonl');
+      expect(logPath).to.include(join('local', 'migrations'));
+      expect(logPath).to.include('migrationLog-1.jsonl');
     });
     it('should clear log entries', async () => {
       const beforeEntries = (await ConfigurationLogger.entries(testProjectPath))
@@ -221,9 +233,9 @@ describe('configuration logger', () => {
 
       // Write some valid and invalid JSON lines
       const testContent = [
-        '{"timestamp":"2025-01-01T12:00:00.000Z","operation":"resource_create","target":"valid"}',
+        '{"id":"aaaa","timestamp":"2025-01-01T12:00:00.000Z","operation":"resource_create","target":"valid"}',
         'invalid json line', // Will be skipped - invalid JSON
-        '{"timestamp":"2025-01-01T12:01:00.000Z","operation":"resource_delete","target":"valid2"}',
+        '{"id":"bbbb","timestamp":"2025-01-01T12:01:00.000Z","operation":"resource_delete","target":"valid2"}',
         '{"incomplete":true}', // Will be skipped - missing required fields
       ].join('\n');
 

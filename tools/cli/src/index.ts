@@ -12,8 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { constants, existsSync } from 'node:fs';
-import { access, lstat, readFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import { Argument, Command, Option } from 'commander';
@@ -717,6 +716,51 @@ createCmd
     },
   );
 
+// Create version subcommand
+createCmd
+  .command('version')
+  .description(
+    'Publish the current draft as a new version and create a new draft',
+  )
+  .action(async (options: CommandOptions<'create'>) => {
+    const mergedOptions = Object.assign({}, options, program.opts());
+
+    // Validate project before creating version
+    const validationResult = await commandHandler.command(
+      Cmd.validate,
+      [],
+      mergedOptions,
+    );
+    if (
+      validationResult.message &&
+      validationResult.message !== 'Project structure validated'
+    ) {
+      truncateMessage(validationResult.message).forEach((item) =>
+        console.error(item),
+      );
+      console.error('\n');
+      const userConfirmation = await confirm(
+        {
+          message: 'There are validation errors. Do you want to continue?',
+        },
+        { signal: AbortSignal.timeout(10000), clearPromptOnDone: true },
+      ).catch((error) => {
+        return error.name === 'AbortPromptError';
+      });
+      if (!userConfirmation) {
+        handleResponse(validationResult);
+        return;
+      }
+    }
+
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['version'],
+      mergedOptions,
+    );
+    handleResponse(result);
+  });
+
 // Create new resource subcommand
 createCmd
   .command('resource')
@@ -1002,23 +1046,16 @@ importCmd
   );
 
 // Migrate command
-program
+const migrateCmd = program
   .command('migrate')
-  .description('Migrate project schema to a newer version.')
+  .description('Migrate project schema or structure');
+
+migrateCmd
   .argument(
     '[version]',
     'Target schema version. If not provided, migrates to the latest version. Can only migrate one version at a time when specified.',
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .option(
-    '-b, --backup <directory>',
-    'Create a backup before migration in the specified directory. Directory must exist.',
-  )
-  .option(
-    '-t, --timeout <minutes>',
-    'Timeout for migration in minutes (default: 2 minutes)',
-    '2',
-  )
   .action(async (version: string, options: CommandOptions<'migrate'>) => {
     if (version) {
       const versionNumber = parseInt(version);
@@ -1032,37 +1069,6 @@ program
         );
         process.exit(1);
       }
-      if (options.backup) {
-        options.backup = resolve(options.backup.toString().trim());
-        if (!existsSync(options.backup)) {
-          console.error(
-            `Error: Backup directory does not exist: ${options.backup}`,
-          );
-          process.exit(1);
-        }
-        try {
-          await access(options.backup, constants.W_OK);
-        } catch {
-          console.error(
-            `Error: Cannot write to backup directory: ${options.backup}`,
-          );
-          process.exit(1);
-        }
-        if (!(await lstat(options.backup)).isDirectory()) {
-          console.error(`Error: Backup directory is a file: ${options.backup}`);
-          process.exit(1);
-        }
-      }
-    }
-
-    if (options.timeout !== undefined) {
-      const timeoutMinutes = Number(options.timeout);
-      if (isNaN(timeoutMinutes) || timeoutMinutes <= 0) {
-        console.error(`Error: Timeout must be a positive number`);
-        process.exit(1);
-      }
-      // Convert minutes to milliseconds
-      options.timeout = timeoutMinutes * 60 * 1000;
     }
 
     const result = await commandHandler.command(

@@ -38,7 +38,6 @@ import type {
   CalcCommandOptions,
   ExportCommandOptions,
   ImportCommandOptions,
-  MigrateCommandOptions,
   ReportCommandOptions,
   ShowCommandOptions,
   StartCommandOptions,
@@ -294,6 +293,8 @@ export class Commands {
         } else if (target === 'template') {
           const [name, content] = rest;
           await this.commands?.createCmd.createTemplate(name, content);
+        } else if (target === 'version') {
+          return await this.createVersion();
         } else if (target === 'workflow') {
           const [name, content] = rest;
           await this.commands?.createCmd.createWorkflow(name, content);
@@ -337,7 +338,6 @@ export class Commands {
         const [toVersion] = args;
         return await this.migrate(
           toVersion ? parseInt(toVersion, 10) : undefined,
-          options as MigrateCommandOptions,
         );
       } else if (command === Cmd.move) {
         const [source, destination] = args;
@@ -561,6 +561,15 @@ export class Commands {
       statusCode: 200,
       affectsCards: createdCards?.map((card) => card.key),
       message: `Created cards ${JSON.stringify(createdCards?.map((card) => card.key))}`,
+    };
+  }
+
+  // Creates a new version of the project.
+  private async createVersion(): Promise<requestStatus> {
+    const result = await this.commands?.createCmd.createVersion();
+    return {
+      statusCode: 200,
+      message: `Version updated from ${result?.previousVersion} to ${result?.newVersion}`,
     };
   }
 
@@ -857,21 +866,13 @@ export class Commands {
   }
 
   // Run migrations to bring project to target schema version
-  private async migrate(
-    toVersion?: number,
-    options?: { backup?: string; timeout?: number },
-  ): Promise<requestStatus> {
+  private async migrate(toVersion?: number): Promise<requestStatus> {
     if (!this.commands) {
       return { statusCode: 500, message: 'Commands not initialized' };
     }
 
-    const timeout = options?.timeout;
     try {
-      const result = await this.commands.migrateCmd.migrate(
-        toVersion,
-        options?.backup,
-        timeout,
-      );
+      const result = await this.commands.migrateCmd.migrate(toVersion);
       return {
         statusCode: 200,
         message: result.message || 'Migration completed successfully',
