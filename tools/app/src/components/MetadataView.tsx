@@ -155,7 +155,13 @@ function MetadataView({
       sx={{
         cursor: editMode ? 'default' : 'pointer',
       }}
-      onClick={onClick}
+      onClick={() => {
+        const selection = window.getSelection();
+        if (selection && selection.toString().length > 0) {
+          return;
+        }
+        onClick?.();
+      }}
     >
       <Stack flexGrow={1} spacing={1} paddingY={2}>
         <FieldItem
