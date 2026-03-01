@@ -21,7 +21,7 @@
     "eslint-plugin-promise": "^7.2.1",
     "mocha": "^11.7.5",
     "mocha-suppress-logs": "^0.6.0",
-    "prettier": "^3.6.2",
+    "prettier": "^3.8.1",
     "prettier-plugin-sort-json": "^4.1.1",
     "shx": "^0.4.0",
     "tsx": "^4.20.6",
