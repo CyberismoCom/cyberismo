@@ -20,7 +20,7 @@
   },
   "devDependencies": {
     "@asciidoctor/core": "^3.0.4",
-    "@codemirror/commands": "^6.10.1",
+    "@codemirror/commands": "^6.10.2",
     "@codemirror/language": "^6.12.1",
     "@codemirror/state": "^6.5.4",
     "@codemirror/view": "6.39.12",
