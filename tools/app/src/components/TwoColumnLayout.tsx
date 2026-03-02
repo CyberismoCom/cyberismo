@@ -18,17 +18,17 @@ import { Box } from '@mui/joy';
 interface TwoColumnLayoutProps {
   leftPanel: ReactNode;
   rightPanel: ReactNode;
-  leftPanelDefaultSize?: number;
-  leftPanelMinSize?: number;
-  leftPanelMaxSize?: number;
+  leftPanelDefaultSize?: string;
+  leftPanelMinSize?: string;
+  leftPanelMaxSize?: string;
 }
 
 export default function TwoColumnLayout({
   leftPanel,
   rightPanel,
-  leftPanelDefaultSize = 20,
-  leftPanelMinSize = 12,
-  leftPanelMaxSize = 40,
+  leftPanelDefaultSize = '20%',
+  leftPanelMinSize = '12%',
+  leftPanelMaxSize = '40%',
 }: TwoColumnLayoutProps) {
   return (
     <Box height="100%">
