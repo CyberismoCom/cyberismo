@@ -34,7 +34,7 @@
     "@testing-library/react": "^16.3.0",
     "@types/react": "^19.2.11",
     "@types/react-dom": "^19.2.3",
-    "@uiw/codemirror-theme-github": "^4.25.2",
+    "@uiw/codemirror-theme-github": "^4.25.5",
     "@uiw/codemirror-theme-vscode": "^4.25.4",
     "@uiw/react-codemirror": "^4.25.4",
     "@vitejs/plugin-react": "^5.1.2",
