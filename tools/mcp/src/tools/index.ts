@@ -19,6 +19,15 @@ import { z } from 'zod';
 import { toolResult, toolError } from '../lib/mcp-helpers.js';
 import { renderCard, getCardTree } from '../lib/render.js';
 
+import {
+  resourceNameRegex,
+  BASE_PROPERTY_KEYS,
+  DATA_TYPES,
+  changeOperationSchema,
+  arrayUpdateOperationSchema,
+  SUB_PROPERTY_KEYS,
+} from './sharedSchemas.js';
+
 /**
  * Register all MCP tools for Cyberismo operations
  */
@@ -661,66 +670,198 @@ export function registerTools(
   );
 
   server.registerTool(
-    'update_resource',
+    'update_file_resource',
     {
       description:
-        'Update a resource property using an operation (add, change, rank, or remove)',
+        'Update a file based resource (card types, field types, workflows, link types)',
+      inputSchema: z.union([
+        z.object({
+          key: z
+            .enum([...BASE_PROPERTY_KEYS, 'workflow'])
+            .describe('Available property keys to update'),
+          operation: changeOperationSchema,
+          resource: z
+            .string()
+            .regex(resourceNameRegex('cardTypes'))
+            .describe(
+              'Full resource name (e.g., "prefix/cardTypes/myResourceName")',
+            ),
+        }),
+        z.object({
+          key: z
+            .enum([
+              'alwaysVisibleFields',
+              'optionallyVisibleFields',
+              'customFields',
+            ])
+            .describe('Available property keys to update'),
+          operation: arrayUpdateOperationSchema,
+          resource: z
+            .string()
+            .regex(resourceNameRegex('cardTypes'))
+            .describe(
+              'Full resource name (e.g., "prefix/cardTypes/myResourceName")',
+            ),
+        }),
+        z.object({
+          key: z
+            .enum(BASE_PROPERTY_KEYS)
+            .describe('Available property keys to update'),
+          operation: changeOperationSchema,
+          resource: z
+            .string()
+            .regex(resourceNameRegex('fieldTypes'))
+            .describe(
+              'Full resource name (e.g., "prefix/fieldTypes/myResourceName")',
+            ),
+        }),
+        z.object({
+          key: z.literal('dataType'),
+          operation: changeOperationSchema.extend({
+            to: z.enum(DATA_TYPES).describe('New data type for the field'),
+          }),
+          resource: z
+            .string()
+            .regex(resourceNameRegex('fieldTypes'))
+            .describe(
+              'Full resource name (e.g., "prefix/fieldTypes/myResourceName")',
+            ),
+        }),
+        z.object({
+          key: z.literal('enumValues'),
+          operation: arrayUpdateOperationSchema,
+          resource: z
+            .string()
+            .regex(resourceNameRegex('fieldTypes'))
+            .describe(
+              'Full resource name (e.g., "prefix/fieldTypes/myResourceName")',
+            ),
+        }),
+        z.object({
+          key: z
+            .enum([
+              ...BASE_PROPERTY_KEYS,
+              'enableLinkDescription',
+              'inboundDisplayName',
+              'outboundDisplayName',
+            ])
+            .describe('Base metadata field to update'),
+          operation: changeOperationSchema,
+          resource: z
+            .string()
+            .regex(resourceNameRegex('linkTypes'))
+            .describe(
+              'Full resource name (e.g., "prefix/linkTypes/myResourceName")',
+            ),
+        }),
+        z.object({
+          key: z.enum(['destinationCardTypes', 'sourceCardTypes']),
+          operation: arrayUpdateOperationSchema,
+          resource: z
+            .string()
+            .regex(resourceNameRegex('linkTypes'))
+            .describe(
+              'Full resource name (e.g., "prefix/linkTypes/myResourceName")',
+            ),
+        }),
+        z.object({
+          key: z
+            .enum(BASE_PROPERTY_KEYS)
+            .describe('Available property keys to update'),
+          operation: changeOperationSchema,
+          resource: z
+            .string()
+            .regex(resourceNameRegex('workflows'))
+            .describe(
+              'Full resource name (e.g., "prefix/workflows/myResourceName")',
+            ),
+        }),
+        z.object({
+          key: z.enum(['states', 'transitions']),
+          operation: arrayUpdateOperationSchema,
+          resource: z
+            .string()
+            .regex(resourceNameRegex('workflows'))
+            .describe(
+              'Full resource name (e.g., "prefix/workflows/myResourceName")',
+            ),
+        }),
+      ]),
+    },
+    async ({ resource, operation, key }) => {
+      try {
+        await commands.updateCmd.applyResourceOperation(
+          resource,
+          { key },
+          operation,
+        );
+        return toolResult({
+          resource,
+          key,
+          operation,
+          text: 'Successfully updated',
+        });
+      } catch (error) {
+        return toolError('updating resource', error);
+      }
+    },
+  );
+
+  server.registerTool(
+    'update_folder_resource',
+    {
+      description:
+        'Update folder based resource (calculations, graphModels, graphViews, reports, templates)',
       inputSchema: {
-        name: z
+        query: z.union([
+          z.object({
+            key: z
+              .enum(BASE_PROPERTY_KEYS)
+              .describe('Available property keys to update'),
+            operation: changeOperationSchema,
+          }),
+          z.object({
+            key: z.literal('content'),
+            subKey: z
+              .enum(SUB_PROPERTY_KEYS)
+              .describe('Content sub-key to update'),
+            operation: changeOperationSchema,
+          }),
+        ]),
+        resource: z
           .string()
-          .describe('Full resource name (e.g., "prefix/cardTypes/myType")'),
-        key: z.string().describe('Property key to update'),
-        subKey: z
-          .string()
-          .optional()
-          .describe('Sub-key for content properties'),
-        operation: z
-          .object({
-            name: z.enum(['add', 'change', 'rank', 'remove']),
-            target: z.unknown().describe('Target value for the operation'),
-            to: z
-              .unknown()
-              .optional()
-              .describe('New value (for change operations)'),
-            newIndex: z
-              .number()
-              .optional()
-              .describe('New index (for rank operations)'),
-          })
-          .describe('Operation to apply'),
+          .regex(
+            resourceNameRegex(
+              'calculations',
+              'graphModels',
+              'graphViews',
+              'reports',
+              'templates',
+            ),
+          )
+          .describe(
+            'Full resource name (e.g., "prefix/{calculations|graphModels|graphViews|reports|templates}/myResourceName")',
+          ),
       },
     },
-    async ({ name, key, subKey, operation }) => {
+    async ({ resource, query }) => {
       try {
-        if (key.includes('/')) {
-          return toolError(
-            'updating resource',
-            `Invalid key "${key}": key must not contain '/'. Use the 'subKey' parameter for content sub-properties.`,
-          );
-        }
-        if (key === 'content' && !subKey) {
-          return toolError(
-            'updating resource',
-            `When key is 'content', a 'subKey' parameter is required to specify which content property to update.`,
-          );
-        }
-        if (key !== 'content' && subKey) {
-          return toolError(
-            'updating resource',
-            `The 'subKey' parameter is only valid when key is 'content'. Got key="${key}" with subKey="${subKey}".`,
-          );
-        }
-        const updateKey = subKey
-          ? { key: 'content' as const, subKey }
-          : { key };
+        const updateKey =
+          query.key === 'content'
+            ? { key: 'content', subKey: query.subKey }
+            : { key: query.key };
         await commands.updateCmd.applyResourceOperation(
-          name,
+          resource,
           updateKey,
-          operation as Parameters<
-            typeof commands.updateCmd.applyResourceOperation
-          >[2],
+          query.operation,
         );
-        return toolResult({ name, key });
+        return toolResult({
+          resource,
+          key: query.key,
+          ...(query.key === 'content' ? { subKey: query.subKey } : {}),
+          operation: query.operation,
+          text: 'Successfully updated',
+        });
       } catch (error) {
         return toolError('updating resource', error);
       }

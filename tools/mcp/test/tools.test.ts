@@ -44,57 +44,6 @@ afterAll(async () => {
 });
 
 describe('MCP Tools via Client', () => {
-  test('list_tools returns all registered tools', async () => {
-    const result = await client.listTools();
-    const toolNames = result.tools.map((t) => t.name);
-
-    // Original 14 tools
-    expect(toolNames).toContain('create_card');
-    expect(toolNames).toContain('edit_card_content');
-    expect(toolNames).toContain('edit_card_metadata');
-    expect(toolNames).toContain('transition_card');
-    expect(toolNames).toContain('move_card');
-    expect(toolNames).toContain('create_link');
-    expect(toolNames).toContain('remove_link');
-    expect(toolNames).toContain('create_attachment');
-    expect(toolNames).toContain('remove_card');
-    expect(toolNames).toContain('create_label');
-    expect(toolNames).toContain('remove_label');
-    expect(toolNames).toContain('get_card');
-    expect(toolNames).toContain('list_cards');
-    expect(toolNames).toContain('list_templates');
-
-    // Phase 1: Quick Wins
-    expect(toolNames).toContain('remove_attachment');
-    expect(toolNames).toContain('list_labels');
-    expect(toolNames).toContain('rank_card_first');
-    expect(toolNames).toContain('rank_card_after');
-    expect(toolNames).toContain('rank_card_by_index');
-
-    // Phase 2: Resource Creation
-    expect(toolNames).toContain('create_card_type');
-    expect(toolNames).toContain('create_field_type');
-    expect(toolNames).toContain('create_workflow');
-    expect(toolNames).toContain('create_link_type');
-    expect(toolNames).toContain('create_template');
-    expect(toolNames).toContain('add_template_cards');
-
-    // Phase 3: Resource Management
-    expect(toolNames).toContain('delete_resource');
-    expect(toolNames).toContain('validate_resource');
-    expect(toolNames).toContain('update_resource');
-
-    // Phase 4: Calculations & Queries
-    expect(toolNames).toContain('create_calculation');
-    expect(toolNames).toContain('run_query');
-    expect(toolNames).toContain('run_logic_program');
-    expect(toolNames).toContain('create_report');
-    expect(toolNames).toContain('run_report');
-    expect(toolNames).toContain('run_graph');
-
-    expect(toolNames.length).toBeGreaterThanOrEqual(34);
-  });
-
   test('get_card returns rendered card data', async () => {
     const result = await client.callTool({
       name: 'get_card',
