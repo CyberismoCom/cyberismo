@@ -35,7 +35,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "tsx": "^4.19.4",
+    "tsx": "^4.21.0",
     "vitest": "^4.0.15"
   },
   "types": "dist/index.d.ts",
