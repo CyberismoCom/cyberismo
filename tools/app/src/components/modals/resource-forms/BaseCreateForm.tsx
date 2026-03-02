@@ -24,8 +24,9 @@ import { Stack, Button } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import { type ResourceFormProps } from './BaseResourceModal';
 
-export interface BaseCreateFormProps<TFieldValues extends FieldValues>
-  extends ResourceFormProps<TFieldValues> {
+export interface BaseCreateFormProps<
+  TFieldValues extends FieldValues,
+> extends ResourceFormProps<TFieldValues> {
   defaultValues: DefaultValues<TFieldValues>;
   resourceTypeLabel: string;
   children: (ctx: {
