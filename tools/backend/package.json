@@ -27,7 +27,7 @@
     "@asciidoctor/core": "^3.0.4",
     "@cyberismo/data-handler": "workspace:*",
     "@cyberismo/mcp": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.12.0",
+    "@modelcontextprotocol/sdk": "^1.27.1",
     "@hono/node-server": "^1.19.2",
     "@hono/zod-validator": "^0.7.6",
     "@types/mime-types": "^3.0.1",

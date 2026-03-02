@@ -31,7 +31,7 @@
   "dependencies": {
     "@asciidoctor/core": "^3.0.4",
     "@cyberismo/data-handler": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.12.0",
+    "@modelcontextprotocol/sdk": "^1.27.1",
     "zod": "^4.3.6"
   },
   "devDependencies": {
