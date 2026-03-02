@@ -40,6 +40,11 @@ export const changeOperationSchema = z.object({
     ),
   target: z.unknown().describe('Target value for the operation'),
   to: z.unknown().describe('New value for the item being changed'),
+  mappingTable: z
+    .object({
+      stateMapping: z.record(z.string(), z.string()),
+    })
+    .optional(),
 });
 const addOperationSchema = z.object({
   name: z.literal('add').describe('Add a new item to an array'),
