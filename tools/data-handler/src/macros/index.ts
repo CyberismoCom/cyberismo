@@ -215,6 +215,15 @@ export function macroCount(input: string): number {
 }
 
 /**
+ * Registers comparison helpers (eq and ne) with a Handlebars instance
+ * @param instance handlebars instance
+ */
+export function registerComparisonHelpers(instance: typeof Handlebars) {
+  instance.registerHelper('eq', (a: unknown, b: unknown) => a === b);
+  instance.registerHelper('ne', (a: unknown, b: unknown) => a !== b);
+}
+
+/**
  * Registers macros as handlebars helpers, which just leaves the macros in the content
  * Can be used when your macro uses handlebars and handles content that might contain macros
  * The handleMacros function will handle recursive macros so do not execute them inside your macro

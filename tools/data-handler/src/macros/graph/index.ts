@@ -12,7 +12,11 @@
 */
 
 import BaseMacro from '../base-macro.js';
-import { createImage, validateMacroContent } from '../index.js';
+import {
+  createImage,
+  registerComparisonHelpers,
+  validateMacroContent,
+} from '../index.js';
 import Handlebars from 'handlebars';
 import macroMetadata from './metadata.js';
 import { ClingoError } from '@cyberismo/node-clingo';
@@ -54,6 +58,7 @@ class GraphMacro extends BaseMacro {
     };
 
     const handlebars = Handlebars.create();
+    registerComparisonHelpers(handlebars);
     const view = handlebars.compile(viewContent.viewTemplate)(
       handlebarsContext,
     );

@@ -11,7 +11,10 @@
 */
 import Handlebars from 'handlebars';
 import type { CalculationEngine } from '../containers/project/calculation-engine.js';
-import { registerEmptyMacros } from '../macros/index.js';
+import {
+  registerComparisonHelpers,
+  registerEmptyMacros,
+} from '../macros/index.js';
 import type { Context } from '../interfaces/project-interfaces.js';
 import { resourceName } from './resource-utils.js';
 import { escapeJsonString } from './json.js';
@@ -108,6 +111,7 @@ export async function generateReportContent(
   } = params;
 
   const handlebars = Handlebars.create();
+  registerComparisonHelpers(handlebars);
 
   // Compile and execute the query template
   const template = handlebars.compile(queryTemplate, {
