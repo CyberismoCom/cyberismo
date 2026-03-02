@@ -12,7 +12,7 @@
 */
 
 import type { ReactNode } from 'react';
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import { Group, Panel, Separator } from 'react-resizable-panels';
 import { Box } from '@mui/joy';
 
 interface TwoColumnLayoutProps {
@@ -32,7 +32,7 @@ export default function TwoColumnLayout({
 }: TwoColumnLayoutProps) {
   return (
     <Box height="100%">
-      <PanelGroup direction="horizontal">
+      <Group orientation="horizontal">
         <Panel
           defaultSize={leftPanelDefaultSize}
           minSize={leftPanelMinSize}
@@ -40,13 +40,13 @@ export default function TwoColumnLayout({
         >
           <Box height="100%">{leftPanel}</Box>
         </Panel>
-        <PanelResizeHandle className="resizeHandle" />
+        <Separator className="resizeHandle" />
         <Panel>
           <Box padding={2} flexGrow={1} height="100%" overflow="hidden">
             {rightPanel}
           </Box>
         </Panel>
-      </PanelGroup>
+      </Group>
     </Box>
   );
 }
