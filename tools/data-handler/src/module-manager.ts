@@ -351,7 +351,9 @@ export class ModuleManager {
         });
       }
     } catch (error) {
-      throw new Error(`Failed to prepare temporary directory: ${error}`, { cause: error });
+      throw new Error(`Failed to prepare temporary directory: ${error}`, {
+        cause: error,
+      });
     }
   }
 

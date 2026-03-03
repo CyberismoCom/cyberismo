@@ -160,7 +160,9 @@ describe('Clingo solver', () => {
         expect(clingoError.details.errors[0]).toContain('syntax error');
         expect(clingoError.details.errors[0]).toContain('unexpected');
       } else {
-        throw new Error('Error does not have expected structure', { cause: error });
+        throw new Error('Error does not have expected structure', {
+          cause: error,
+        });
       }
     }
   });

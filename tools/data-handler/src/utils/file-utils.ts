@@ -36,7 +36,9 @@ export async function availableSpace(path: string): Promise<number> {
     const stats = await statfs(path);
     return stats.bavail * stats.bsize;
   } catch (error) {
-    throw new Error(`Failed to check available disk space: ${error}`, { cause: error });
+    throw new Error(`Failed to check available disk space: ${error}`, {
+      cause: error,
+    });
   }
 }
 
