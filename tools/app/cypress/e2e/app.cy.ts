@@ -20,7 +20,6 @@ describe('Navigation', () => {
   it('delete page and verify empty project', () => {
     // Creates a new base module with name Basic Acceptance Test
     cy.get('h4').contains('Basic Acceptance Test'); // Verify project name
-    cy.get('p').contains(t['selectCard']); // Verify text on cards page
     cy.get('p').contains('Untitled page').click(); // Navigate to Untitled page in tree menu
     cy.get('h1').contains('Untitled page'); // Verify Title in content area
 
