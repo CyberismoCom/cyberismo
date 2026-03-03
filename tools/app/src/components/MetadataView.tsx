@@ -159,16 +159,6 @@ function MetadataView({
     >
       <Stack flexGrow={1} spacing={1} paddingY={2}>
         <FieldItem
-          name="__key__"
-          forceValue={card.key}
-          expanded={true}
-          editableFieldProps={{
-            label: t('cardKey'),
-            dataType: 'shortText',
-            edit: false,
-          }}
-        />
-        <FieldItem
           name="__cardtype__"
           forceValue={card.cardTypeDisplayName || card.cardType}
           expanded={true}
