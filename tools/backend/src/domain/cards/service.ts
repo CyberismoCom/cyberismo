@@ -144,7 +144,7 @@ export async function parseContent(
   content: string,
 ) {
   return commands.consistent(async () => {
-    let asciidocContent = '';
+    let asciidocContent: string;
     try {
       asciidocContent = await evaluateMacros(content, {
         context: 'localApp',

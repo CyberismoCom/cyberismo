@@ -117,6 +117,7 @@ export class UserPreferences {
         if (error.code !== 'EEXIST') {
           throw new Error(
             `Error creating preferences file '${this.prefsFilePath}': ${error}`,
+            { cause: error },
           );
         } else {
           this.logger.warn('Preferences file already exists');
@@ -124,6 +125,7 @@ export class UserPreferences {
       } else {
         throw new Error(
           `Error creating preferences file '${this.prefsFilePath}': ${error}`,
+          { cause: error },
         );
       }
     }
@@ -142,6 +144,7 @@ export class UserPreferences {
     } catch (error) {
       throw new Error(
         `Error reading preferences file '${this.prefsFilePath}': ${error}`,
+        { cause: error },
       );
     }
   }

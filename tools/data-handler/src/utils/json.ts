@@ -51,7 +51,9 @@ export function readJsonFileSync(file: string) {
     return returnValue;
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error(`Invalid JSON in file '${file}': ${error.message}`);
+      throw new Error(`Invalid JSON in file '${file}': ${error.message}`, {
+        cause: error,
+      });
     }
   }
 }
@@ -68,7 +70,9 @@ export async function readJsonFile(file: string) {
     return JSON.parse(raw);
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error(`Invalid JSON in file '${file}': ${error.message}`);
+      throw new Error(`Invalid JSON in file '${file}': ${error.message}`, {
+        cause: error,
+      });
     }
   }
 }

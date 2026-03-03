@@ -95,7 +95,7 @@ export const cardPathParts = (
   const cardKey = pathParts.at(pathParts.length - 1);
   const parents = [];
   let template = '';
-  let startIndex = -1;
+  let startIndex: number;
   let templatesNameIndex = -1;
 
   const cardRootIndex = pathParts.indexOf('cardRoot');

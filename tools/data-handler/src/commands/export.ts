@@ -371,7 +371,7 @@ export class Export {
       destination,
       Project.cardContentFile,
     );
-    let message = '';
+    let message: string;
     try {
       await truncate(resultDocumentPath, 0);
       message = `Using existing output file '${resultDocumentPath}'`;

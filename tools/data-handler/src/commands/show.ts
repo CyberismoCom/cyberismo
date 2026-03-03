@@ -510,6 +510,7 @@ export class Show {
         if (error instanceof Error) {
           throw new Error(
             `Failed to write report to ${outputPath}: ${error.message}`,
+            { cause: error },
           );
         }
       }

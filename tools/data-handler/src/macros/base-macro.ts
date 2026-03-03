@@ -134,7 +134,7 @@ abstract class BaseMacro {
       } catch (error) {
         if (error instanceof Error) {
           const errorMessage = `From card '${context.cardKey}' a macro validation error:\n\n${error.message}.\n\nCard content:\n ${input}`;
-          throw new Error(errorMessage);
+          throw new Error(errorMessage, { cause: error });
         }
         throw error;
       }

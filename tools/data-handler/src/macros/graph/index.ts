@@ -69,6 +69,7 @@ class GraphMacro extends BaseMacro {
       if (error instanceof ClingoError) {
         throw new Error(
           `Error running graph in view '${options.view}' in model '${options.model}': ${error.details.errors.join('\n')}`,
+          { cause: error },
         );
       }
       throw error;

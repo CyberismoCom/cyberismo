@@ -174,6 +174,7 @@ export class CardCache {
         if (error instanceof Error) {
           throw new Error(
             `Invalid JSON in file '${metadataPath}': ${error.message}`,
+            { cause: error },
           );
         }
         throw error;

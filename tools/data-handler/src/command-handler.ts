@@ -163,12 +163,10 @@ export class Commands {
     const path = options.projectPath || '';
     this.projectPath = resolveTilde(await this.setProjectPath(path));
     if (!Validate.validateFolder(this.projectPath)) {
-      let errorMessage = '';
-      if (path === '' || path === undefined) {
-        errorMessage = `No 'cardRoot' in the current folder`;
-      } else {
-        errorMessage = `Input validation error: folder name '${path}' is invalid`;
-      }
+      const errorMessage =
+        path === '' || path === undefined
+          ? `No 'cardRoot' in the current folder`
+          : `Input validation error: folder name '${path}' is invalid`;
       throw new Error(errorMessage);
     }
 
@@ -427,6 +425,7 @@ export class Commands {
           } catch (error) {
             throw new Error(
               `Failed to read mapping file: ${errorFunction(error)}`,
+              { cause: error },
             );
           }
         }
@@ -575,7 +574,7 @@ export class Commands {
       return { statusCode: 500 };
     }
     process.env.EXPORT_FORMAT = format;
-    let message = '';
+    let message: string;
     if (format === 'pdf') {
       const options = {
         title: pdfOptions?.title || 'Title',
@@ -718,7 +717,7 @@ export class Commands {
     }
 
     const { name, parameters } = parametersFile;
-    let result: string | undefined = '';
+    let result: string | undefined;
     try {
       result = await this.commands?.showCmd.showReportResults(
         name,

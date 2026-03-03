@@ -150,6 +150,7 @@ export class ProjectConfiguration implements ProjectSettings {
       if (error instanceof TypeError) {
         throw new Error(
           `Invalid hub URL '${trimmedHub}'. Please provide a valid HTTP or HTTPS URL.`,
+          { cause: error },
         );
       }
       throw error;

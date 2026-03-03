@@ -357,6 +357,7 @@ export abstract class ResourceObject<
       if (error instanceof Error) {
         throw new Error(
           `Cannot perform operation on '${arrayName}'. ${error.message}`,
+          { cause: error },
         );
       }
     }
@@ -507,6 +508,7 @@ export abstract class ResourceObject<
         const errorValue = typeof op === 'object' ? toValue(op) : op;
         throw new Error(
           `Cannot ${op.name} '${updateKey.key}' --> '${errorValue}: ${error.message}'`,
+          { cause: error },
         );
       }
     }

@@ -56,6 +56,7 @@ class ReportMacro extends BaseMacro {
       if (error instanceof ClingoError) {
         throw new Error(
           `Error running logic program in report '${options.name}':${error.details.errors.join('\n')}`,
+          { cause: error },
         );
       }
       throw error;
