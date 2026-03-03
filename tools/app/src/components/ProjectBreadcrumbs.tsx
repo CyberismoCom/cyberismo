@@ -51,7 +51,9 @@ export const ProjectBreadcrumbs: React.FC<ProjectBreadcrumbsProps> = ({
           }}
         >
           {index == 0 && <HomeIcon sx={{ mr: 0.7 }} fontSize="inherit" />}
-          {node.title ?? node.key}
+          {index === pathComponents.length - 1 && node.title
+            ? `${node.title} - ${node.key}`
+            : (node.title ?? node.key)}
         </Link>
       ))}
     </StyledBreadcrumbs>
