@@ -135,6 +135,7 @@
     "partialFailure": "{{count}} link failed to create",
     "partialFailure_plural": "{{count}} links failed to create"
   },
+  "createOnTopLevel": "Create on top level",
   "createUnder": "Create under \"{{parent}}\"",
   "customFieldAdded": "Custom field added",
   "customFieldDeleted": "Custom field deleted",

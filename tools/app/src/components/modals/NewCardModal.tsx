@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import React from 'react';
+import { useState } from 'react';
 import {
   Box,
   Modal,
@@ -36,6 +36,7 @@ import { useAppDispatch } from '@/lib/hooks';
 import { useAppRouter } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
 import type { TemplateConfiguration } from '@cyberismo/data-handler/interfaces/project-interfaces';
+import RadioGroup from '@mui/joy/RadioGroup';
 
 interface NewCardModalProps {
   open: boolean;
@@ -115,10 +116,9 @@ export function TemplateCard({
 
 export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
   const { t } = useTranslation();
-  const [chosenTemplate, setChosenTemplate] = React.useState<string | null>(
-    null,
-  );
-  const [filter, setFilter] = React.useState<string>('');
+  const [chosenTemplate, setChosenTemplate] = useState<string | null>(null);
+  const [filter, setFilter] = useState<string>('');
+  const [createAtRoot, setCreateAtRoot] = useState(false);
 
   const router = useAppRouter();
 
@@ -162,6 +162,7 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
   const handleClose = () => {
     setFilter('');
     setChosenTemplate(null);
+    setCreateAtRoot(false);
     onClose();
   };
 
@@ -255,7 +256,10 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
               onClick={async () => {
                 if (chosenTemplate) {
                   try {
-                    const cards = await createCard(chosenTemplate);
+                    const cards = await createCard(
+                      chosenTemplate,
+                      createAtRoot ? 'root' : undefined,
+                    );
                     dispatch(
                       addNotification({
                         message: t('createCard.success'),
@@ -266,7 +270,7 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
                     if (cards && cards.length > 0) {
                       router.push(`/cards/${cards[0].key}`);
                     }
-                    onClose();
+                    handleClose();
                   } catch (error) {
                     dispatch(
                       addNotification({
@@ -282,17 +286,30 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
               {t('create')}
             </Button>
             <Button
-              onClick={onClose}
+              onClick={handleClose}
               variant="plain"
               color="neutral"
               disabled={isUpdating()}
             >
               {t('cancel')}
             </Button>
-            <Box flexGrow={1} />
-            <Typography>
-              {t('createUnder', { parent: card?.title || 'root' })}
-            </Typography>
+            {cardKey && (
+              <>
+                <Box flexGrow={1} />
+                <RadioGroup
+                  value={createAtRoot ? 'root' : 'under'}
+                  onChange={(e) => setCreateAtRoot(e.target.value === 'root')}
+                >
+                  <Radio
+                    value="under"
+                    label={t('createUnder', {
+                      parent: card?.title || cardKey,
+                    })}
+                  />
+                  <Radio value="root" label={t('createOnTopLevel')} />
+                </RadioGroup>
+              </>
+            )}
           </DialogActions>
         </DialogContent>
       </ModalDialog>
