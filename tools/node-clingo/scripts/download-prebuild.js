@@ -1,4 +1,3 @@
-/* eslint-env node */
 /* globals console, process, fetch */
 
 /**
@@ -166,6 +165,6 @@ async function fetchUrl(url) {
     const response = await fetch(url);
     return response; // Return the full response object
   } catch (error) {
-    throw new Error(`Download failed: ${error.message}`);
+    throw new Error(`Download failed: ${error.message}`, { cause: error });
   }
 }

@@ -169,7 +169,7 @@ export class Create {
         buffer || attachment,
       );
     } catch (error) {
-      throw new Error(errorFunction(error));
+      throw new Error(errorFunction(error), { cause: error });
     }
   }
 

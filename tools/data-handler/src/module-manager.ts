@@ -157,6 +157,7 @@ export class ModuleManager {
       if (error instanceof Error)
         throw new Error(
           `Failed to clone module '${module.name}': ${error.message}`,
+          { cause: error },
         );
     }
 
@@ -245,7 +246,7 @@ export class ModuleManager {
     module: ModuleSetting,
     credentials?: Credentials,
   ) {
-    let moduleRoot = '';
+    let moduleRoot: string;
     if (this.isFileModule(module)) {
       const urlStart = FILE_PROTOCOL.length;
       // Remove 'file:' from location
@@ -350,7 +351,7 @@ export class ModuleManager {
         });
       }
     } catch (error) {
-      throw new Error(`Failed to prepare temporary directory: ${error}`);
+      throw new Error(`Failed to prepare temporary directory: ${error}`, { cause: error });
     }
   }
 

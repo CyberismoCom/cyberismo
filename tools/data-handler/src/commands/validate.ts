@@ -240,7 +240,7 @@ export class Validate {
       const result = await Promise.all(promises);
       message.push(...result.flat(1));
     } catch (error) {
-      throw new Error(errorFunction(error));
+      throw new Error(errorFunction(error), { cause: error });
     }
     return message;
   }

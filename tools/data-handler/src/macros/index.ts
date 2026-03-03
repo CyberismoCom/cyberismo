@@ -175,7 +175,7 @@ export function validateMacroContent<T>(
     if (error instanceof DHValidationError) {
       message = `${error.errors?.map((e) => e.message).join(', ')}`;
     }
-    throw new Error(`${macro.name} macro JSON validation error: ${message}`);
+    throw new Error(`${macro.name} macro JSON validation error: ${message}`, { cause: error });
   }
 }
 

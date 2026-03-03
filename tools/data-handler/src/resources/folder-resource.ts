@@ -154,7 +154,7 @@ export abstract class FolderResource<
       } catch (error) {
         const message =
           error instanceof Error ? error.message : 'Unknown error';
-        throw new Error(`Invalid JSON content for '${key}' update: ${message}`);
+        throw new Error(`Invalid JSON content for '${key}' update: ${message}`, { cause: error });
       }
     }
     const contentToWrite = isJson

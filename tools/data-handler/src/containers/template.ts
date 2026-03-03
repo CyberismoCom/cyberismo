@@ -399,7 +399,7 @@ export class Template extends CardContainer {
     const destinationCardPath = parentCard
       ? join(this.cardFolder(parentCard.key), 'c')
       : this.templateCardsPath;
-    let newCardKey = '';
+    let newCardKey: string;
 
     try {
       // todo: to use cache instead of file access
