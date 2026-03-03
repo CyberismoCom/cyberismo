@@ -28,6 +28,8 @@ import type {
   TemplateConfiguration,
   TemplateMetadata,
 } from '../interfaces/resource-interfaces.js';
+import type { UpdateKey } from '../interfaces/resource-interfaces.js';
+import type { Operation } from './resource-object.js';
 
 /**
  * Template resource class.
@@ -95,6 +97,23 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
     const templateName = resourceNameToString(this.resourceName);
     this.project.cardsCache.deleteCardsFromTemplate(templateName);
     return super.delete();
+  }
+
+  /**
+   * Apply transient changes for field type migrations.
+   */
+  public async migrate<Type, K extends string>(
+    updateKey: UpdateKey<K>,
+    op: Operation<Type>,
+  ): Promise<void> {
+    const { key } = updateKey;
+    await super.migrate(updateKey, op);
+    // TODO: move to base class
+    if (key === 'name') {
+      await this.onNameChange(this.content.name);
+    }
+    // TODO: Implement template-specific transient changes
+    // - Regenerate/update template cards when template structure changes
   }
 
   /**

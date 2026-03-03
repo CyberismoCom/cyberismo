@@ -19,22 +19,7 @@ import type { ResourceFolderType } from '../../interfaces/project-interfaces.js'
  * Handles paths for a project.
  */
 export class ProjectPaths {
-  private pathMap: Map<ResourceFolderType, string>;
-
-  constructor(private path: string) {
-    this.pathMap = new Map([
-      ['calculations', this.calculationProjectFolder],
-      ['cardTypes', this.cardTypesFolder],
-      ['fieldTypes', this.fieldTypesFolder],
-      ['graphModels', this.graphModelsFolder],
-      ['graphViews', this.graphViewsFolder],
-      ['linkTypes', this.linkTypesFolder],
-      ['modules', this.modulesFolder],
-      ['reports', this.reportsFolder],
-      ['templates', this.templatesFolder],
-      ['workflows', this.workflowsFolder],
-    ]);
-  }
+  constructor(private path: string) {}
 
   public get calculationCardsFolder(): string {
     return join(this.calculationFolder, 'cards');
@@ -42,10 +27,6 @@ export class ProjectPaths {
 
   public get calculationFolder(): string {
     return join(this.path, '.calc');
-  }
-
-  public get calculationProjectFolder(): string {
-    return join(this.resourcesFolder, 'calculations');
   }
 
   public get calculationResourcesFolder(): string {
@@ -56,44 +37,24 @@ export class ProjectPaths {
     return join(this.path, 'cardRoot');
   }
 
-  public get cardTypesFolder(): string {
-    return join(this.resourcesFolder, 'cardTypes');
-  }
-
   public get configurationFile(): string {
-    return join(this.resourcesFolder, 'cardsConfig.json');
-  }
-
-  public get configurationChangesLog(): string {
-    return join(this.migrationLogFolder, 'current', 'migrationLog.jsonl');
-  }
-
-  public get fieldTypesFolder(): string {
-    return join(this.resourcesFolder, 'fieldTypes');
-  }
-
-  public get graphModelsFolder(): string {
-    return join(this.resourcesFolder, 'graphModels');
-  }
-
-  public get graphViewsFolder(): string {
-    return join(this.resourcesFolder, 'graphViews');
+    return join(this.localFolder, 'cardsConfig.json');
   }
 
   public get internalRootFolder(): string {
     return join(this.path, '.cards');
   }
 
-  public get linkTypesFolder(): string {
-    return join(this.resourcesFolder, 'linkTypes');
-  }
-
   public get logPath(): string {
     return join(this.path, '.logs', 'cyberismo_data-handler.log');
   }
 
-  public get migrationLogFolder(): string {
-    return join(this.resourcesFolder, 'migrations');
+  public migrationLogFor(version: number): string {
+    return join(
+      this.localFolder,
+      'migrations',
+      `migrationLog-${version}.jsonl`,
+    );
   }
 
   public get modulesFolder(): string {
@@ -108,25 +69,25 @@ export class ProjectPaths {
     return join(moduleRoot, resourceType);
   }
 
-  public get resourcesFolder(): string {
+  public get localFolder(): string {
     return join(this.internalRootFolder, 'local');
   }
 
-  public get reportsFolder(): string {
-    return join(this.resourcesFolder, 'reports');
+  public versionedResourcesFolderFor(version: number): string {
+    return join(this.localFolder, version.toString());
   }
 
   /**
-   * Return path to a resource type folder.
+   * Return path to a resource type folder for a specific version.
+   * @param version Version number
    * @param resourceType Type of resource
-   * @returns path to a resources folder (e.g. '.cards/local/cardTypes')
+   * @returns path to a resources folder (e.g. '.cards/local/1/cardTypes')
    */
-  public resourcePath(resourceType: ResourceFolderType): string {
-    const resourcePath = this.pathMap.get(resourceType);
-    if (!resourcePath) {
-      throw new Error(`unknown resourceType: ${resourceType}`);
-    }
-    return resourcePath;
+  public resourceFolderFor(
+    version: number,
+    resourceType: ResourceFolderType,
+  ): string {
+    return join(this.versionedResourcesFolderFor(version), resourceType);
   }
 
   public get tempCardFolder(): string {
@@ -135,13 +96,5 @@ export class ProjectPaths {
 
   public get tempFolder(): string {
     return join(this.path, '.temp');
-  }
-
-  public get templatesFolder(): string {
-    return join(this.resourcesFolder, 'templates');
-  }
-
-  public get workflowsFolder(): string {
-    return join(this.resourcesFolder, 'workflows');
   }
 }

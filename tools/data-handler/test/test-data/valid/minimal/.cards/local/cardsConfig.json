@@ -1,6 +1,9 @@
 {
+    "schemaVersion": 3,
+    "version": 0,
     "cardKeyPrefix": "mini",
     "name": "minimal",
+    "description": "",
     "modules": [],
     "hubs": []
 }

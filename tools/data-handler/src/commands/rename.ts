@@ -272,7 +272,11 @@ export class Rename {
 
     await this.updateFiles(this.project.paths.cardRootFolder);
     console.info('Renamed all remaining references in cardRoot folder');
-    await this.updateFiles(this.project.paths.resourcesFolder);
+    await this.updateFiles(
+      this.project.paths.versionedResourcesFolderFor(
+        this.project.configuration.latestVersion,
+      ),
+    );
     console.info('Renamed all remaining references in .cards folder');
 
     // It is best that the resources are re-collected after all the renaming has occurred.
@@ -288,6 +292,7 @@ export class Rename {
       ConfigurationOperation.PROJECT_RENAME,
       this.to,
       {},
+      this.project.configuration.latestVersion,
     );
 
     return this.project.calculationEngine.generate();

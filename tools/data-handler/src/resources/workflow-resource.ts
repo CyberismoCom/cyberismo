@@ -260,6 +260,24 @@ export class WorkflowResource extends FileResource<Workflow> {
   }
 
   /**
+   * Apply transient changes for field type migrations.
+   */
+  public async migrate<Type, K extends string>(
+    updateKey: UpdateKey<K>,
+    op: Operation<Type>,
+  ): Promise<void> {
+    const { key } = updateKey;
+    await super.migrate(updateKey, op);
+
+    // TODO: move to base class
+    if (key === 'name') {
+      await this.onNameChange(this.content.name);
+    }
+    // TODO: Implement workflow-specific transient changes
+    // - Update cards using this workflow when states change
+  }
+
+  /**
    * Renames the object and the file.
    * @param newName New name for the resource.
    */

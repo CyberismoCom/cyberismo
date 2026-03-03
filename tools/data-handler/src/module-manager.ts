@@ -17,6 +17,7 @@ import { mkdir, readdir, rm } from 'node:fs/promises';
 import { simpleGit, type SimpleGit } from 'simple-git';
 
 import { copyDir, deleteDir, pathExists } from './utils/file-utils.js';
+import { copyFile } from 'node:fs/promises';
 import type {
   Credentials,
   ModuleSetting,
@@ -49,9 +50,37 @@ export class ModuleManager {
   }
 
   // Copies module files into project directories.
-  private async addFileContents(sourcePath: string, destinationPath: string) {
-    // Copy files.
+  private async addFileContents(
+    sourcePath: string,
+    destinationPath: string,
+    sourceProjectPath: string,
+  ) {
+    // Copy resource files (modules are imported flat)
     await copyDir(sourcePath, destinationPath);
+
+    // Copy cardsConfig.json from the source module
+    const sourceConfigPath = join(
+      sourceProjectPath,
+      '.cards',
+      'local',
+      'cardsConfig.json',
+    );
+    const destConfigPath = join(destinationPath, 'cardsConfig.json');
+    if (pathExists(sourceConfigPath)) {
+      await copyFile(sourceConfigPath, destConfigPath);
+    }
+
+    // Copy .schema from the source module
+    const sourceDotSchemaPath = join(
+      sourceProjectPath,
+      '.cards',
+      'local',
+      '.schema',
+    );
+    const destDotSchemaPath = join(destinationPath, '.schema');
+    await copyFile(sourceDotSchemaPath, destDotSchemaPath).catch((error) => {
+      if (error.code !== 'ENOENT') throw error;
+    });
 
     // Update the resources.
     this.project.resources.changedModules();
@@ -599,12 +628,18 @@ export class ModuleManager {
       this.project.paths.modulesFolder,
       modulePrefix,
     );
-    const sourcePath = sourceProject.paths.resourcesFolder;
+    const versionedPath = sourceProject.paths.versionedResourcesFolderFor(
+      sourceProject.configuration.latestVersion,
+    );
+    // Fall back to flat local folder for pre-v3 modules that lack numbered subfolders
+    const sourcePath = pathExists(versionedPath)
+      ? versionedPath
+      : sourceProject.paths.localFolder;
 
     this.validatePrefix(modulePrefix, skipValidation);
 
     // Copy files.
-    await this.addFileContents(sourcePath, destinationPath);
+    await this.addFileContents(sourcePath, destinationPath, source);
     return modulePrefix;
   }
 
@@ -632,15 +667,23 @@ export class ModuleManager {
       credentials,
     );
     const clonePath = join(this.tempModulesDir, clonedName);
-    const modulePrefix = (await this.configuration(clonePath)).cardKeyPrefix;
+    const sourceProject = new Project(clonePath);
+    await sourceProject.populateCaches();
+    const modulePrefix = sourceProject.projectPrefix;
     this.validatePrefix(modulePrefix, skipValidation);
 
-    const sourcePath = new ProjectPaths(clonePath).resourcesFolder;
+    const versionedPath = sourceProject.paths.versionedResourcesFolderFor(
+      sourceProject.configuration.latestVersion,
+    );
+    // Fall back to the flat local folder for pre-v3 modules that lack numbered subfolders
+    const sourcePath = pathExists(versionedPath)
+      ? versionedPath
+      : sourceProject.paths.localFolder;
     const destinationPath = join(
       this.project.paths.modulesFolder,
       modulePrefix,
     );
-    await this.addFileContents(sourcePath, destinationPath);
+    await this.addFileContents(sourcePath, destinationPath, clonePath);
     return modulePrefix;
   }
 

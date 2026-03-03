@@ -17,6 +17,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 
 import { SCHEMA_VERSION } from '@cyberismo/assets';
 import { errorFunction } from '../utils/error-utils.js';
+import { getChildLogger } from '../utils/log-utils.js';
 import { Project } from '../containers/project.js';
 import { Validate } from './validate.js';
 
@@ -28,6 +29,7 @@ import type { Card, ProjectFile } from '../interfaces/project-interfaces.js';
 import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 import { write } from '../utils/rw-lock.js';
 import { writeJsonFile } from '../utils/json.js';
+import { ConfigurationLogger } from '../utils/configuration-logger.js';
 
 // todo: Is there a easy to way to make JSON schema into a TypeScript interface/type?
 //       Check this out: https://www.npmjs.com/package/json-schema-to-ts
@@ -37,6 +39,12 @@ import { writeJsonFile } from '../utils/json.js';
  */
 export class Create {
   constructor(private project: Project) {}
+
+  private get logger() {
+    return getChildLogger({
+      module: 'create',
+    });
+  }
 
   static JSONFileContent: ProjectFile[] = [
     {
@@ -48,6 +56,7 @@ export class Create {
       path: '.cards/local',
       content: {
         schemaVersion: SCHEMA_VERSION,
+        version: 0,
         cardKeyPrefix: '$PROJECT-PREFIX',
         name: '$PROJECT-NAME',
         description: '',
@@ -419,7 +428,19 @@ export class Create {
       throw new Error('Cannot create project without a path');
     }
 
-    const projectFolders: string[] = ['.cards/local', 'cardRoot'];
+    // Create versioned structure: .cards/local/1/ is the initial draft (version 0 = nothing published yet)
+    const projectFolders: string[] = [
+      '.cards/local/1/calculations',
+      '.cards/local/1/cardTypes',
+      '.cards/local/1/fieldTypes',
+      '.cards/local/1/graphModels',
+      '.cards/local/1/graphViews',
+      '.cards/local/1/linkTypes',
+      '.cards/local/1/reports',
+      '.cards/local/1/templates',
+      '.cards/local/1/workflows',
+      'cardRoot',
+    ];
 
     if (!Validate.validateFolder(projectPath)) {
       throw new Error(
@@ -488,6 +509,58 @@ export class Create {
       }),
     );
 
+    // Create .schema files for each resource folder
+    const schemaFiles: Array<{ path: string; content: object[] }> = [
+      {
+        path: '.cards/local/1/calculations',
+        content: [{ id: 'calculationSchema', version: 1 }],
+      },
+      {
+        path: '.cards/local/1/cardTypes',
+        content: [{ id: 'cardTypeSchema', version: 1 }],
+      },
+      {
+        path: '.cards/local/1/fieldTypes',
+        content: [{ id: 'fieldTypeSchema', version: 1 }],
+      },
+      {
+        path: '.cards/local/1/graphModels',
+        content: [{ id: 'graphModelSchema', version: 1 }],
+      },
+      {
+        path: '.cards/local/1/graphViews',
+        content: [{ id: 'graphViewSchema', version: 1 }],
+      },
+      {
+        path: '.cards/local/1/linkTypes',
+        content: [{ id: 'linkTypeSchema', version: 1 }],
+      },
+      {
+        path: '.cards/local/1/reports',
+        content: [{ id: 'reportMetadataSchema', version: 1 }],
+      },
+      {
+        path: '.cards/local/1/templates',
+        content: [{ id: 'templateSchema', version: 1 }],
+      },
+      {
+        path: '.cards/local/1/workflows',
+        content: [{ id: 'workflowSchema', version: 1 }],
+      },
+    ];
+
+    await Promise.all(
+      schemaFiles.map(async (entry) => {
+        await writeJsonFile(
+          join(projectPath, entry.path, '.schema'),
+          entry.content,
+        );
+      }),
+    );
+
+    // Create empty migration log
+    await ConfigurationLogger.clearLog(projectPath, 1);
+
     try {
       await writeFile(
         join(projectPath, '.gitignore'),
@@ -517,6 +590,56 @@ export class Create {
     return this.project.resources
       .byType(templateName, 'templates')
       .create(templateContent ? JSON.parse(templateContent) : undefined);
+  }
+
+  /**
+   * Publishes the current draft as a new version and creates a new draft folder.
+   *
+   * 1. Checks that latestVersion > published version (something to release).
+   * 2. Checks that the migration log for latestVersion has entries.
+   * 3. Validates the project.
+   * 4. Sets cardsConfig.version = latestVersion (publishes draft).
+   * 5. Creates a new folder (latestVersion + 1) by copying from latestVersion.
+   * 6. Clears migration log in the new folder.
+   * 7. Invalidates version cache.
+   *
+   * @throws if there is nothing to release
+   */
+  public async createVersion() {
+    const latestVersion = this.project.configuration.latestVersion;
+    const publishedVersion = this.project.configuration.version;
+
+    // Nothing to release if latest folder is not ahead of published version
+    if (latestVersion <= publishedVersion) {
+      throw new Error(
+        'Nothing to release. The latest version is already published.',
+      );
+    }
+
+    this.logger.info(
+      { publishedVersion, latestVersion },
+      'Publishing draft as new version',
+    );
+
+    // Publish and advance to next draft
+    await this.project.configuration.publish();
+    const newDraft = await this.project.configuration.createNextDraft();
+    await ConfigurationLogger.clearLog(this.project.basePath, newDraft);
+    this.project.resources.changed();
+
+    this.logger.info(
+      {
+        previousVersion: publishedVersion,
+        newVersion: latestVersion,
+        newDraft,
+      },
+      'Version published successfully',
+    );
+
+    return {
+      previousVersion: publishedVersion,
+      newVersion: latestVersion,
+    };
   }
 
   /**

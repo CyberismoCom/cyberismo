@@ -12,9 +12,10 @@
 */
 
 import { writeJsonFile as atomicWrite } from 'write-json-file';
-import { writeFileSync } from 'node:fs';
+import { readdirSync, writeFileSync } from 'node:fs';
+import { mkdir } from 'node:fs/promises';
 
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { URL } from 'node:url';
 
 import type {
@@ -22,6 +23,8 @@ import type {
   ModuleSetting,
   ProjectSettings,
 } from './interfaces/project-interfaces.js';
+import type { ProjectPaths } from './containers/project/project-paths.js';
+import { copyDir } from './utils/file-utils.js';
 import { formatJson } from './utils/json.js';
 import { getChildLogger } from './utils/log-utils.js';
 import { readJsonFileSync } from './utils/json.js';
@@ -33,6 +36,7 @@ import { SCHEMA_VERSION } from '@cyberismo/assets';
  */
 export class ProjectConfiguration implements ProjectSettings {
   schemaVersion?: number;
+  version: number;
   name: string;
   cardKeyPrefix: string;
   category?: string;
@@ -42,29 +46,51 @@ export class ProjectConfiguration implements ProjectSettings {
   private logger = getChildLogger({ module: 'Project' });
   private settingPath: string;
   private autoSave: boolean = false;
+  private paths: ProjectPaths;
+  private _cachedLatestVersion: number | null = null;
 
-  constructor(path: string, autoSave: boolean = true) {
+  constructor(path: string, autoSave: boolean, paths: ProjectPaths) {
     this.name = '';
     this.settingPath = path;
     this.cardKeyPrefix = '';
     this.description = '';
+    this.version = 0;
     this.modules = [];
     this.hubs = [];
     this.autoSave = autoSave;
+    this.paths = paths;
     this.readSettings();
-    this.ensureSchemaVersionAndSave();
+    this.ensureSchemaVersionAndVersion();
   }
 
-  // Ensures that schemaVersion is set in the project configuration.
-  // If missing, sets it to the current SCHEMA_VERSION and marks for auto-save.
-  private ensureSchemaVersionAndSave() {
+  private get localFolder(): string {
+    return this.paths.localFolder;
+  }
+
+  // Ensures that schemaVersion and version are set in the project configuration.
+  // If missing, sets them to default values and marks for auto-save.
+  private ensureSchemaVersionAndVersion() {
+    let needsSave = false;
     if (this.schemaVersion === undefined) {
       this.schemaVersion = SCHEMA_VERSION;
-      // Auto-saves the configuration, if schema version was updated.
-      if (this.autoSave) {
-        this.saveSync();
-      }
+      needsSave = true;
     }
+    if (this.version === undefined) {
+      this.version = 0;
+      needsSave = true;
+    }
+    // Auto-saves the configuration, if schema version or version was updated.
+    if (needsSave && this.autoSave) {
+      this.saveSync();
+    }
+  }
+
+  /**
+   * Reload settings from disk, discarding in-memory state.
+   */
+  public reload() {
+    this._cachedLatestVersion = null;
+    this.readSettings();
   }
 
   // Sets configuration values from file.
@@ -80,6 +106,7 @@ export class ProjectConfiguration implements ProjectSettings {
 
     if (valid) {
       this.schemaVersion = settings.schemaVersion;
+      this.version = settings.version;
       this.cardKeyPrefix = settings.cardKeyPrefix;
       this.name = settings.name;
       this.category = settings.category;
@@ -109,6 +136,7 @@ export class ProjectConfiguration implements ProjectSettings {
   private toJSON(): ProjectSettings {
     return {
       schemaVersion: this.schemaVersion,
+      version: this.version,
       cardKeyPrefix: this.cardKeyPrefix,
       name: this.name,
       category: this.category,
@@ -116,6 +144,55 @@ export class ProjectConfiguration implements ProjectSettings {
       modules: this.modules,
       hubs: this.hubs,
     };
+  }
+
+  /**
+   * Returns the latest (highest numbered) version folder in .cards/local/.
+   * This is the operating version — all reads and writes go here.
+   * Falls back to this.version if no folders are found.
+   */
+  public get latestVersion(): number {
+    if (this._cachedLatestVersion !== null) return this._cachedLatestVersion;
+
+    try {
+      const entries = readdirSync(this.localFolder, { withFileTypes: true });
+      let max = 0;
+      for (const entry of entries) {
+        const num = parseInt(entry.name, 10);
+        if (!isNaN(num) && num > max) {
+          max = num;
+        }
+      }
+      this._cachedLatestVersion = max > 0 ? max : this.version;
+    } catch {
+      this._cachedLatestVersion = this.version;
+    }
+    return this._cachedLatestVersion;
+  }
+
+  /**
+   * Publishes the current draft: sets version = latestVersion and saves.
+   */
+  public async publish(): Promise<number> {
+    this.version = this.latestVersion;
+    await this.save();
+    return this.version;
+  }
+
+  /**
+   * Creates the next draft version folder by copying from the current latest.
+   */
+  public async createNextDraft(): Promise<number> {
+    const currentLatest = this.latestVersion;
+    const nextVersion = currentLatest + 1;
+    const sourceFolder = join(this.localFolder, currentLatest.toString());
+    const targetFolder = join(this.localFolder, nextVersion.toString());
+
+    await mkdir(targetFolder, { recursive: true });
+    await copyDir(sourceFolder, targetFolder);
+
+    this._cachedLatestVersion = nextVersion;
+    return nextVersion;
   }
 
   /**

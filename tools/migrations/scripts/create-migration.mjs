@@ -66,51 +66,12 @@ import type {
   MigrationContext,
   MigrationStepResult,
 } from '../migration-interfaces.js';
-import { createBackup, validateProjectStructure } from '../migration-interfaces.js';
 
 const migration: Migration = {
-  /**
-   * Pre-migration validation.
-   *
-   * Guidelines:
-   * - Validate that the project structure is correct
-   * - Check prerequisites specific to this migration
-   * - Verify that resources needed for migration are accessible
-   * - Return { success: false } with error message if migration cannot proceed
-   */
-  async before(context: MigrationContext): Promise<MigrationStepResult> {
-    console.log('Migration ${migrationNumber}: Running pre-migration checks...');
-
-    // Validate basic project structure
-    const structureCheck = validateProjectStructure(context);
-    if (!structureCheck.success) {
-      return structureCheck;
-    }
-
-    // TODO: Add your pre-migration validation logic here
-
-    return {
-      success: true,
-      message: 'Pre-migration checks completed successfully',
-    };
-  },
-
-  /**
-   * Create backup before migration.
-   *
-   * Guidelines:
-   * - Use the standard createBackup() helper
-   * - Or implement custom backup logic if needed
-   */
-  async backup(context: MigrationContext): Promise<MigrationStepResult> {
-    return createBackup(context);
-  },
-
   /**
    * Perform the actual migration.
    *
    * Guidelines:
-   * - This is the mandatory to implement!
    * - Access resources directly via filesystem (readdir, readFile, writeFile)
    * - cardTypes are in: context.cardsConfigPath/local/cardTypes/<name>.json
    * - workflows are in: context.cardsConfigPath/local/workflows/<name>.json
@@ -159,34 +120,6 @@ const migration: Migration = {
         error: error instanceof Error ? error : new Error(String(error)),
       };
     }
-  },
-
-  /**
-   * Post-migration verification and cleanup.
-   *
-   * Guidelines:
-   * - Verify that migration succeeded (check file changes, data integrity, etc.)
-   * - Clean up temporary files or data if needed
-   * - Run validation checks on migrated data
-   * - Return { success: false } if verification fails
-   */
-  async after(context: MigrationContext): Promise<MigrationStepResult> {
-    console.log(\`Migration ${migrationNumber}: Running post-migration checks...\`);
-
-    // First cleanup
-
-    // Then, validate that project is still in valid state
-    const structureCheck = validateProjectStructure(context);
-    if (!structureCheck.success) {
-      return structureCheck;
-    }
-
-    // TODO: Add your post-migration custom verification logic here
-
-    return {
-      success: true,
-      message: 'Post-migration checks completed successfully',
-    };
   },
 };
 

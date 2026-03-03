@@ -117,6 +117,10 @@ export abstract class AbstractResource<
   protected abstract calculate(): Promise<void>; // update resource specific calculations
   protected abstract create(content?: T): Promise<void>; // create a new with the content (memory)
   protected abstract delete(): Promise<void>; // delete from disk
+  protected abstract migrate<Type, K extends string>(
+    updateKey: UpdateKey<K>,
+    operation: Operation<Type>,
+  ): Promise<void>; // apply transient changes (idempotent)
   protected abstract read(): Promise<void>; // read content from disk (replaces existing content, if any)
   protected abstract rename(newName: ResourceName): Promise<void>; // change name of the resource and filename; same as update('name', ...)
   protected abstract show(): ShowReturnType<T, U>; // return the content as JSON
@@ -226,6 +230,18 @@ export abstract class ResourceObject<
   protected async calculate() {}
 
   /**
+   * Migrate; apply transient changes to this resource.
+   * Base implementation is empty - subclasses should override if they have transient changes.
+   * Migrations should be idempotent.
+   */
+  protected async migrate<Type, K extends string>(
+    _key: UpdateKey<K>,
+    _op: Operation<Type>,
+  ): Promise<void> {
+    // Base implementation: no transient changes
+  }
+
+  /**
    * Calculations that use this resource.
    * @throws if accessing calculations files failed
    */
@@ -283,7 +299,8 @@ export abstract class ResourceObject<
       this.resourceName = resourceName(
         `${this.project.projectPrefix}/${this.type}/${this.resourceName.identifier}`,
       );
-      this.resourceFolder = this.project.paths.resourcePath(
+      this.resourceFolder = this.project.paths.resourceFolderFor(
+        this.project.configuration.latestVersion,
         this.resourceName.type as ResourceFolderType,
       );
       this.fileName = join(
@@ -399,7 +416,10 @@ export abstract class ResourceObject<
             this.resourceName.prefix,
             this.resourceName.type,
           )
-        : this.project.paths.resourcePath(this.type);
+        : this.project.paths.resourceFolderFor(
+            this.project.configuration.latestVersion,
+            this.type,
+          );
       this.fileName = resourceNameToPath(this.project, this.resourceName);
     }
     // Only load content from disk if resource exists in the cache registry
@@ -467,6 +487,7 @@ export abstract class ResourceObject<
       {
         parameters,
       },
+      this.project.configuration.latestVersion,
     );
 
     this.logger.info(`Configuration: ${configOperation} - ${target}`);
@@ -554,7 +575,10 @@ export abstract class ResourceObject<
       this.project.projectPrefixes(),
     );
     const newFilename = join(
-      this.project.paths.resourcePath(newName.type as ResourceFolderType),
+      this.project.paths.resourceFolderFor(
+        this.project.configuration.latestVersion,
+        newName.type as ResourceFolderType,
+      ),
       newName.identifier + '.json',
     );
 
@@ -814,7 +838,8 @@ export abstract class ResourceObject<
    * Deletes the file and removes the resource from project.
    * @throws if resource is a module resource, or
    *         if resource does not exist, or
-   *         if resource is used by other resources.
+   *         if resource is used by other resources, or
+   *         if trying to modify an old version.
    */
   public async delete() {
     if (this.moduleResource) {
@@ -836,6 +861,7 @@ export abstract class ResourceObject<
         `Cannot delete resource ${resourceNameToString(this.resourceName)}. It is used by: ${usedIn.join(', ')}`,
       );
     }
+
     await deleteFile(this.fileName);
     this.project.resources.remove(resourceNameToString(this.resourceName));
     this.fileName = '';

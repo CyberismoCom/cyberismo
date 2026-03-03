@@ -1,4 +1,9 @@
 {
+    "schemaVersion": 3,
+    "version": 0,
     "cardKeyPrefix": "testmissing",
-    "name":"missing"
+    "name": "missing",
+    "description": "",
+    "modules": [],
+    "hubs": []
 }

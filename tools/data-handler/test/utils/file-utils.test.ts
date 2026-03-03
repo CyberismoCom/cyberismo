@@ -11,7 +11,6 @@ import {
   copyDir,
   deleteDir,
   deleteFile,
-  folderSize,
   getFilesSync,
   pathExists,
   resolveTilde,
@@ -144,76 +143,5 @@ describe('file utils', () => {
     for (const filename of filenamesWithoutExtensions) {
       expect(stripExtension(filename)).to.equal(filename);
     }
-  });
-
-  describe('folderSize', () => {
-    it('should calculate size of directory with files', async () => {
-      const tempDir = join(testDir, 'folder-size-test');
-      await mkdir(tempDir, { recursive: true });
-
-      // Create some test files
-      const file1Content = 'Hello World';
-      const file2Content = 'This is a test file with more content';
-      await writeFile(join(tempDir, 'file1.txt'), file1Content);
-      await writeFile(join(tempDir, 'file2.txt'), file2Content);
-
-      const size = await folderSize(tempDir);
-      const expectedSize = file1Content.length + file2Content.length;
-
-      expect(size).to.equal(expectedSize);
-    });
-
-    it('should calculate size including subdirectories', async () => {
-      const tempDir = join(testDir, 'folder-size-test-nested');
-      const subDir = join(tempDir, 'subdir');
-      await mkdir(subDir, { recursive: true });
-
-      // Create files in root and subdirectory
-      const rootFileContent = 'Root file';
-      const subFileContent = 'Subdirectory file';
-      await writeFile(join(tempDir, 'root.txt'), rootFileContent);
-      await writeFile(join(subDir, 'sub.txt'), subFileContent);
-
-      const size = await folderSize(tempDir);
-      const expectedSize = rootFileContent.length + subFileContent.length;
-
-      expect(size).to.equal(expectedSize);
-    });
-
-    it('should return 0 for non-existent directory', async () => {
-      const nonExistentDir = join(testDir, 'does-not-exist');
-      const size = await folderSize(nonExistentDir);
-      expect(size).to.equal(0);
-    });
-
-    it('should return 0 for empty directory', async () => {
-      const emptyDir = join(testDir, 'empty-dir');
-      await mkdir(emptyDir, { recursive: true });
-
-      const size = await folderSize(emptyDir);
-      expect(size).to.equal(0);
-    });
-
-    it('should handle deeply nested directory structure', async () => {
-      const baseFolder = join(testDir, 'deep-structure');
-      const deepPath = join(baseFolder, 'level1', 'level2', 'level3');
-      await mkdir(deepPath, { recursive: true });
-
-      // Create files at different levels
-      const content1 = 'Level 1';
-      const content2 = 'Level 2 content';
-      const content3 = 'Level 3 deep content';
-      await writeFile(join(baseFolder, 'level1', 'file1.txt'), content1);
-      await writeFile(
-        join(baseFolder, 'level1', 'level2', 'file2.txt'),
-        content2,
-      );
-      await writeFile(join(deepPath, 'file3.txt'), content3);
-
-      const size = await folderSize(baseFolder);
-      const expectedSize = content1.length + content2.length + content3.length;
-
-      expect(size).to.equal(expectedSize);
-    });
   });
 });

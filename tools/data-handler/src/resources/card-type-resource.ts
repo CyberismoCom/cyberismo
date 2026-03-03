@@ -428,6 +428,24 @@ export class CardTypeResource extends FileResource<CardType> {
   }
 
   /**
+   * Apply transient changes for card type migrations.
+   */
+  public async migrate<Type, K extends string>(
+    updateKey: UpdateKey<K>,
+    op: Operation<Type>,
+  ): Promise<void> {
+    const { key } = updateKey;
+    await super.migrate(updateKey, op);
+    // TODO: move to base class
+    if (key === 'name') {
+      await this.onNameChange(this.content.name);
+    }
+    // TODO: Implement card type-specific transient changes
+    // - Update cards when custom fields change
+    // - Update cards when workflow changes
+  }
+
+  /**
    * Renames resource metadata file and renames memory resident object 'name'.
    * @param newName New name for the resource.
    */

@@ -14,9 +14,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const tmpPath = resolve(__dirname, '../../../.tmp');
 const batPath = resolve(tmpPath, 'cyberismo-bat');
 
-const graphModelPath = `${batPath}/.cards/local/graphModels/test1/model.lp`;
-const graphViewPath = `${batPath}/.cards/local/graphViews/test1/view.lp.hbs`;
-const reportPath = `${batPath}/.cards/local/reports/test1/query.lp.hbs`;
+const graphModelPath = `${batPath}/.cards/local/1/graphModels/test1/model.lp`;
+const graphViewPath = `${batPath}/.cards/local/1/graphViews/test1/view.lp.hbs`;
+const reportPath = `${batPath}/.cards/local/1/reports/test1/query.lp.hbs`;
 
 const graphModelContent =
   'view(Child) :- view(Parent), parent(Child, Parent).node(Card) :- card(Card), view(Card).attr(node, Card, "label", Title) :- node(Card), field(Card, "title", Title).attr(node, Card, "shape", "Box") :- node(Card).edge((Parent, Child)) :- parent(Child, Parent), view(Child), view(Parent).';

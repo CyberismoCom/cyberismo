@@ -26,6 +26,8 @@ import type { GraphModelMetadata } from '../interfaces/resource-interfaces.js';
 import type { GraphModelContent } from '../interfaces/folder-content-interfaces.js';
 import type { Project } from '../containers/project.js';
 import type { ResourceName } from '../utils/resource-utils.js';
+import type { UpdateKey } from '../interfaces/resource-interfaces.js';
+import type { Operation } from './resource-object.js';
 
 /**
  * Graph model resource class.
@@ -87,6 +89,22 @@ export class GraphModelResource extends FolderResource<
     });
 
     await this.loadContentFiles();
+  }
+
+  /**
+   * Apply transient changes for field type migrations.
+   */
+  public async migrate<Type, K extends string>(
+    updateKey: UpdateKey<K>,
+    op: Operation<Type>,
+  ): Promise<void> {
+    const { key } = updateKey;
+    await super.migrate(updateKey, op);
+    // TODO: move to base class
+    if (key === 'name') {
+      await this.onNameChange(this.content.name);
+    }
+    // TODO: Implement graph mpdel type-specific transient changes
   }
 
   /**

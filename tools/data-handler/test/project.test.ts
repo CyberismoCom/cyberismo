@@ -17,6 +17,7 @@ import {
 } from '../src/utils/card-utils.js';
 import { Project } from '../src/containers/project.js';
 import { ProjectConfiguration } from '../src/project-settings.js';
+import { ProjectPaths } from '../src/containers/project/project-paths.js';
 import { getTestProject } from './helpers/test-utils.js';
 
 describe('project', () => {
@@ -39,15 +40,34 @@ describe('project', () => {
     await project.populateCaches();
     expect(project).to.not.equal(undefined);
 
-    const calculationFolder = project.paths.calculationProjectFolder;
+    const version = project.configuration.latestVersion;
+    const calculationFolder = project.paths.resourceFolderFor(
+      version,
+      'calculations',
+    );
     const tempCalculationFolder = project.paths.calculationFolder;
     const cardRootFolder = project.paths.cardRootFolder;
-    const cardTypesFolder = project.paths.cardTypesFolder;
-    const graphModelsFolder = project.paths.graphModelsFolder;
-    const graphViewsFolder = project.paths.graphViewsFolder;
-    const templatesFolder = project.paths.templatesFolder;
-    const workflowsFolder = project.paths.workflowsFolder;
-    const resourcesFolder = project.paths.resourcesFolder;
+    const cardTypesFolder = project.paths.resourceFolderFor(
+      version,
+      'cardTypes',
+    );
+    const graphModelsFolder = project.paths.resourceFolderFor(
+      version,
+      'graphModels',
+    );
+    const graphViewsFolder = project.paths.resourceFolderFor(
+      version,
+      'graphViews',
+    );
+    const templatesFolder = project.paths.resourceFolderFor(
+      version,
+      'templates',
+    );
+    const workflowsFolder = project.paths.resourceFolderFor(
+      version,
+      'workflows',
+    );
+    const resourcesFolder = project.paths.versionedResourcesFolderFor(version);
     const modulesFolder = project.paths.modulesFolder;
 
     expect(calculationFolder).to.include('calculations');
@@ -750,7 +770,11 @@ describe('project', () => {
       'local',
       Project.projectConfigFileName,
     );
-    const projectSettings = new ProjectConfiguration(configFile, false);
+    const projectSettings = new ProjectConfiguration(
+      configFile,
+      false,
+      new ProjectPaths(decisionRecordsPath),
+    );
     expect(projectSettings).to.not.equal(undefined);
     expect(projectSettings.modules.length).to.equal(0);
 
