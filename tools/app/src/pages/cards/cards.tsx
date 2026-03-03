@@ -12,7 +12,9 @@
 */
 
 import { Typography } from '@mui/joy';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router';
 import { useTree } from '../../lib/api';
 
 export const dynamic = 'force-dynamic';
@@ -20,9 +22,17 @@ export const dynamic = 'force-dynamic';
 export default function CardsPage() {
   const { t } = useTranslation();
   const { tree } = useTree();
-  return (
-    <Typography level="title-md">
-      {tree && tree.length > 0 ? t('selectCard') : t('emptyProject')}
-    </Typography>
-  );
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (tree && tree.length > 0) {
+      navigate(`/cards/${tree[0].key}`, { replace: true });
+    }
+  }, [tree, navigate]);
+
+  if (!tree || tree.length > 0) {
+    return null;
+  }
+
+  return <Typography level="title-md">{t('emptyProject')}</Typography>;
 }
