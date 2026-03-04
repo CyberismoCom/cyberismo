@@ -40,13 +40,8 @@ interface GenerateReportContentParams {
 export async function generateReportContent(
   params: GenerateReportContentParams,
 ): Promise<string> {
-  const {
-    calculate,
-    contentTemplate,
-    queryTemplate,
-    options,
-    context,
-  } = params;
+  const { calculate, contentTemplate, queryTemplate, options, context } =
+    params;
 
   const handlebars = Handlebars.create();
   registerComparisonHelpers(handlebars);
