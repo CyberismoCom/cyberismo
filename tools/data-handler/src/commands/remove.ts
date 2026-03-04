@@ -17,6 +17,7 @@ import { ModuleManager } from '../module-manager.js';
 import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
 import type { RemovableResourceTypes } from '../interfaces/project-interfaces.js';
+import type { ExternalLink } from '../interfaces/resource-interfaces.js';
 import { write } from '../utils/rw-lock.js';
 
 /**
@@ -117,35 +118,131 @@ export class Remove {
   }
 
   // Removes link from project.
+  // Detects if source or destination is external and routes accordingly.
   private async removeLink(
-    sourceCardKey: string,
-    destinationCardKey: string,
+    source: string,
+    destination: string,
     linkType?: string,
     linkDescription?: string,
   ) {
-    const sourceCard = this.project.findCard(sourceCardKey);
+    const isExternal = (value: string) =>
+      value.includes(':') && !/^[a-z]+_[0-9a-z]+$/.test(value);
+
+    const isExternalSource = isExternal(source);
+    const isExternalDestination = isExternal(destination);
+
+    if (isExternalSource && isExternalDestination) {
+      throw new Error(
+        'Cannot remove link between two external items. One must be a card.',
+      );
+    }
+
+    if (isExternalDestination) {
+      return this.removeExternalLink(
+        source,
+        destination,
+        'outbound',
+        linkType,
+        linkDescription,
+      );
+    }
+
+    if (isExternalSource) {
+      return this.removeExternalLink(
+        destination,
+        source,
+        'inbound',
+        linkType,
+        linkDescription,
+      );
+    }
+
+    return this.removeLocalLink(source, destination, linkType, linkDescription);
+  }
+
+  // Removes card-to-card link from project.
+  private async removeLocalLink(
+    source: string,
+    destination: string,
+    linkType?: string,
+    linkDescription?: string,
+  ) {
+    const sourceCard = this.project.findCard(source);
     const link = sourceCard.metadata?.links.find(
       (l) =>
-        l.cardKey === destinationCardKey &&
+        l.cardKey === destination &&
         (!linkType || l.linkType === linkType) &&
         (!linkDescription || l.linkDescription === linkDescription),
     );
     if (!link) {
       throw new Error(
         linkType
-          ? `Link from '${sourceCardKey}' to '${destinationCardKey}' with link type '${linkType}' not found`
-          : `Link from '${sourceCardKey}' to '${destinationCardKey}' not found`,
+          ? `Link from '${source}' to '${destination}' with link type '${linkType}' not found`
+          : `Link from '${source}' to '${destination}' not found`,
       );
     }
 
     const newLinks = sourceCard.metadata?.links.filter(
       (l) =>
-        l.cardKey !== destinationCardKey ||
+        l.cardKey !== destination ||
         (linkType && l.linkType !== linkType) ||
         (linkDescription && l.linkDescription !== linkDescription),
     );
 
-    await this.project.updateCardMetadataKey(sourceCardKey, 'links', newLinks);
+    await this.project.updateCardMetadataKey(source, 'links', newLinks);
+  }
+
+  // Removes external link from project.
+  private async removeExternalLink(
+    cardKey: string,
+    externalItem: string,
+    direction: 'outbound' | 'inbound',
+    linkType?: string,
+    linkDescription?: string,
+  ) {
+    // Parse connector:itemKey
+    const [connector, ...rest] = externalItem.split(':');
+    const externalItemKey = rest.join(':');
+
+    if (!connector || !externalItemKey) {
+      throw new Error(
+        `Invalid external item format: '${externalItem}'. Expected 'connector:itemKey'.`,
+      );
+    }
+
+    const card = this.project.findCard(cardKey);
+    const extLink = card.metadata?.externalLinks?.find(
+      (l) =>
+        l.connector === connector &&
+        l.externalItemKey === externalItemKey &&
+        l.direction === direction &&
+        (!linkType || l.linkType === linkType) &&
+        (!linkDescription || l.linkDescription === linkDescription),
+    );
+
+    if (!extLink) {
+      throw new Error(
+        linkType
+          ? `External link from '${cardKey}' to '${connector}:${externalItemKey}' with link type '${linkType}' not found`
+          : `External link from '${cardKey}' to '${connector}:${externalItemKey}' not found`,
+      );
+    }
+
+    const newExternalLinks: ExternalLink[] =
+      card.metadata?.externalLinks?.filter(
+        (l) =>
+          l.connector !== connector ||
+          l.externalItemKey !== externalItemKey ||
+          l.direction !== direction ||
+          (linkType && l.linkType !== linkType) ||
+          (linkDescription && l.linkDescription !== linkDescription),
+      ) ?? [];
+
+    await this.project.updateCardMetadataKey(
+      cardKey,
+      'externalLinks',
+      newExternalLinks,
+    );
   }
 
   // Remove a hub from project.

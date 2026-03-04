@@ -29,10 +29,13 @@ import type {
   LinkDirection,
 } from '@cyberismo/data-handler/types/queries';
 import { useCard } from '@/lib/api';
+import type { Connector } from '@/lib/api/types';
 
 interface LinkFormData {
   linkType: number;
+  itemSource: string;
   cardKey: string;
+  externalItemKey: string;
   linkDescription: string;
   linkTypeName: string;
   direction: LinkDirection;
@@ -46,6 +49,8 @@ interface EditLinkModalProps {
     cardKey: string;
     linkDescription: string;
     direction: LinkDirection;
+    itemSource: string;
+    externalItemKey?: string;
     previousLinkType?: string;
     previousCardKey?: string;
     previousLinkDescription?: string;
@@ -55,6 +60,7 @@ interface EditLinkModalProps {
   cards: QueryResult<'tree'>[];
   linkTypes: ExpandedLinkType[];
   cardKey: string;
+  connectors?: Connector[];
 }
 
 export function EditLinkModal({
@@ -65,6 +71,7 @@ export function EditLinkModal({
   cards,
   linkTypes,
   cardKey,
+  connectors,
 }: EditLinkModalProps) {
   const { t } = useTranslation();
   const formRef = useRef<HTMLFormElement>(null);
@@ -85,13 +92,19 @@ export function EditLinkModal({
           <LinkForm
             linkTypes={linkTypes}
             cards={cards}
+            connectors={connectors}
             currentCardLinks={card?.links ?? []}
             onSubmit={async (data) => {
               // When submitting, include the original link information as well
+              // For external links, construct previousCardKey as connector:itemKey
+              const previousCardKey =
+                editLinkData?.itemSource === 'card'
+                  ? editLinkData?.cardKey
+                  : `${editLinkData?.itemSource}:${editLinkData?.externalItemKey}`;
               const result = await onSubmit({
                 ...data,
                 previousLinkType: editLinkData?.linkTypeName,
-                previousCardKey: editLinkData?.cardKey,
+                previousCardKey,
                 previousLinkDescription: editLinkData?.linkDescription,
                 previousDirection: editLinkData?.direction,
               });

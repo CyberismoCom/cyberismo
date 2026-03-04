@@ -598,3 +598,22 @@ export async function withUpdating<T>(
     setIsUpdating(false);
   }
 }
+
+/**
+ * Parse external link from CalculationLink.
+ * Handles two formats:
+ * 1. Connector field format: link.connector is set, link.key is the item key
+ * 2. Tuple format: link.key contains "(connector,itemKey)" from clingo calculation results
+ */
+export function parseExternalLink(
+  link: CalculationLink,
+): { connector: string; itemKey: string } | null {
+  if (link.connector) {
+    return { connector: link.connector, itemKey: link.key };
+  }
+  const match = link.key.match(/^\(([^,]+),([^)]+)\)$/);
+  if (match) {
+    return { connector: match[1], itemKey: match[2] };
+  }
+  return null;
+}
