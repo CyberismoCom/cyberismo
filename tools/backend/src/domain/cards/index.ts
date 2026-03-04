@@ -517,7 +517,7 @@ router.post('/:key/parse', requireRole(UserRole.Reader), async (c) => {
 router.post('/:key/links', requireRole(UserRole.Editor), async (c) => {
   const commands = c.get('commands');
   const key = c.req.param('key');
-  const { toCard, linkType, description } = await c.req.json();
+  const { toCard, linkType, description, direction } = await c.req.json();
 
   if (!toCard || !linkType) {
     return c.json({ error: 'toCard and linkType are required' }, 400);
@@ -529,6 +529,7 @@ router.post('/:key/links', requireRole(UserRole.Editor), async (c) => {
       key,
       toCard,
       linkType,
+      direction || 'outbound',
       description,
     );
     return c.json(result);
@@ -576,7 +577,7 @@ router.post('/:key/links', requireRole(UserRole.Editor), async (c) => {
 router.delete('/:key/links', requireRole(UserRole.Editor), async (c) => {
   const commands = c.get('commands');
   const key = c.req.param('key');
-  const { toCard, linkType, description } = await c.req.json();
+  const { toCard, linkType, description, direction } = await c.req.json();
 
   if (!toCard || !linkType) {
     return c.json({ error: 'toCard and linkType are required' }, 400);
@@ -588,6 +589,7 @@ router.delete('/:key/links', requireRole(UserRole.Editor), async (c) => {
       key,
       toCard,
       linkType,
+      direction || 'outbound',
       description,
     );
     return c.json(result);

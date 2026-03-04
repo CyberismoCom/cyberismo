@@ -52,9 +52,21 @@ export type User = {
   role: string;
 };
 
+export type ExternalItem = {
+  key: string;
+  title: string;
+};
+
+export type Connector = {
+  name: string;
+  displayName: string;
+  items: ExternalItem[];
+};
+
 export type Resources = {
   project: Project;
   card: CardResponse;
+  connectors: Connector[];
   fieldTypes: FieldTypes;
   cardType: CardType;
   templates: TemplateConfiguration[];

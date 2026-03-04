@@ -43,6 +43,7 @@ export const VALID_FOLDER_RESOURCE_FILES = [
  */
 export const PREDEFINED_FIELDS = [
   'cardType',
+  'externalLinks',
   'labels',
   'lastUpdated',
   'lastTransitioned',

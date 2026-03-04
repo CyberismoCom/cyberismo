@@ -1,6 +1,4 @@
-import { expect, test, beforeAll } from 'vitest';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { expect, test, beforeAll, afterAll } from 'vitest';
 import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
@@ -13,24 +11,21 @@ import type {
   Workflow,
 } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import type { CardAttachment } from '@cyberismo/data-handler/interfaces/project-interfaces';
-
-// Testing env attempts to open project in "../data-handler/test/test-data/valid/decision-records"
-
-const fileUrl = fileURLToPath(import.meta.url);
-const dirname = path.dirname(fileUrl);
+import { createTempTestData, cleanupTempTestData } from './test-utils.js';
 
 let app: ReturnType<typeof createApp>;
+let tempTestDataPath: string;
 
 beforeAll(async () => {
   // Fixes weird issue with asciidoctor
   process.argv = [];
-  const commands = await CommandManager.getInstance(
-    path.resolve(
-      dirname,
-      '../../data-handler/test/test-data/valid/decision-records',
-    ),
-  );
+  tempTestDataPath = await createTempTestData('decision-records');
+  const commands = await CommandManager.getInstance(tempTestDataPath);
   app = createApp(new MockAuthProvider(), commands);
+});
+
+afterAll(async () => {
+  await cleanupTempTestData(tempTestDataPath);
 });
 
 type CardApiResponse = QueryResult<'card'> & {
@@ -179,4 +174,76 @@ test('labels endpoint returns the list of labels', async () => {
   expect(response.status).toBe(200);
   expect(Array.isArray(result)).toBe(true);
   expect(result).toContain('test');
+});
+
+test('connectors endpoint returns connectors data', async () => {
+  const response = await app.request('/api/connectors');
+  const result = (await response.json()) as {
+    name: string;
+    displayName: string;
+    items: { key: string; title: string }[];
+  }[];
+  expect(response.status).toBe(200);
+  expect(Array.isArray(result)).toBe(true);
+  expect(result).toHaveLength(0);
+});
+
+test('POST /api/cards/:key/links creates a link successfully', async () => {
+  const response = await app.request('/api/cards/decision_5/links', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      toCard: 'decision_6',
+      linkType: 'decision/linkTypes/test',
+      direction: 'outbound',
+    }),
+  });
+  const result = (await response.json()) as { message: string };
+  expect(response.status).toBe(200);
+  expect(result.message).toBe('Link created successfully');
+});
+
+test('DELETE /api/cards/:key/links removes a link successfully', async () => {
+  const response = await app.request('/api/cards/decision_5/links', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      toCard: 'decision_6',
+      linkType: 'decision/linkTypes/test',
+      direction: 'outbound',
+    }),
+  });
+  const result = (await response.json()) as { message: string };
+  expect(response.status).toBe(200);
+  expect(result.message).toBe('Link removed successfully');
+});
+
+test('POST /api/cards/:key/links creates external link successfully', async () => {
+  const response = await app.request('/api/cards/decision_5/links', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      toCard: 'jira:TEST-123',
+      linkType: 'decision/linkTypes/test',
+      direction: 'outbound',
+    }),
+  });
+  const result = (await response.json()) as { message: string };
+  expect(response.status).toBe(200);
+  expect(result.message).toBe('Link created successfully');
+});
+
+test('DELETE /api/cards/:key/links removes external link successfully', async () => {
+  const response = await app.request('/api/cards/decision_5/links', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      toCard: 'jira:TEST-123',
+      linkType: 'decision/linkTypes/test',
+      direction: 'outbound',
+    }),
+  });
+  const result = (await response.json()) as { message: string };
+  expect(response.status).toBe(200);
+  expect(result.message).toBe('Link removed successfully');
 });

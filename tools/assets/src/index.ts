@@ -8,6 +8,7 @@ import commonUtils from './calculations/common/utils.lp';
 import queriesCard from './calculations/queries/card.lp';
 import queriesOnCreation from './calculations/queries/onCreation.lp';
 import queriesOnTransition from './calculations/queries/onTransition.lp';
+import queriesConnectors from './calculations/queries/connectors.lp';
 import queriesTree from './calculations/queries/tree.lp';
 import testModel from './calculations/test/model.lp';
 
@@ -34,6 +35,7 @@ export const lpFiles = {
   },
   queries: {
     card: queriesCard,
+    connectors: queriesConnectors,
     onCreation: queriesOnCreation,
     onTransition: queriesOnTransition,
     tree: queriesTree,

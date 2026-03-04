@@ -161,6 +161,39 @@ describe('remove command', () => {
       expect(found?.length).to.equal(0);
     });
 
+    // External link removal tests
+    it('remove external link outbound (success)', async () => {
+      // First create an external link
+      await commandHandler.command(
+        Cmd.create,
+        ['link', 'decision_5', 'jira:EXT-123', 'decision/linkTypes/test'],
+        options,
+      );
+      // Then remove it
+      const result = await commandHandler.command(
+        Cmd.remove,
+        ['link', 'decision_5', 'jira:EXT-123', 'decision/linkTypes/test'],
+        options,
+      );
+      expect(result.statusCode).to.equal(200);
+    });
+
+    it('remove external link inbound (success)', async () => {
+      // First create an inbound external link (external first = inbound)
+      await commandHandler.command(
+        Cmd.create,
+        ['link', 'jira:EXT-456', 'decision_5', 'decision/linkTypes/test'],
+        options,
+      );
+      // Then remove it
+      const result = await commandHandler.command(
+        Cmd.remove,
+        ['link', 'jira:EXT-456', 'decision_5', 'decision/linkTypes/test'],
+        options,
+      );
+      expect(result.statusCode).to.equal(200);
+    });
+
     it('remove linkType', async () => {
       const name = 'testLinkTypeForRemoval';
       await createLinkType(commandHandler, name);
@@ -357,6 +390,24 @@ describe('remove command', () => {
         options,
       );
       expect(result.statusCode).to.equal(400);
+    });
+    it('try to remove external link - not found', async () => {
+      const result = await commandHandler.command(
+        Cmd.remove,
+        ['link', 'decision_5', 'jira:NOTFOUND-999', 'decision/linkTypes/test'],
+        options,
+      );
+      expect(result.statusCode).to.equal(400);
+      expect(result.message).to.contain('not found');
+    });
+    it('try to remove external link - both external', async () => {
+      const result = await commandHandler.command(
+        Cmd.remove,
+        ['link', 'jira:ABC-1', 'jira:DEF-2', 'decision/linkTypes/test'],
+        options,
+      );
+      expect(result.statusCode).to.equal(400);
+      expect(result.message).to.contain('One must be a card');
     });
     it('try to remove attachment - project missing', async () => {
       const cardId = 'decision_5';

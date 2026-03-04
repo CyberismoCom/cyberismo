@@ -17,6 +17,7 @@ export * from './projectSettings';
 export * from './project';
 export * from './card';
 export * from './calculation';
+export * from './connectors';
 export * from './templates';
 export * from './linkTypes';
 export * from './tree';

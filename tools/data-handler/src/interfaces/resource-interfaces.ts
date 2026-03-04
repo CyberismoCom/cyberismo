@@ -103,12 +103,23 @@ export interface Link {
   linkDescription?: string;
 }
 
+// External link content.
+// direction: 'outbound' = card links TO external, 'inbound' = external links TO card
+export interface ExternalLink {
+  linkType: string;
+  connector: string;
+  externalItemKey: string;
+  direction: 'outbound' | 'inbound';
+  linkDescription?: string;
+}
+
 // Link type resource.
 export interface LinkType extends ResourceBaseMetadata {
   outboundDisplayName: string;
   inboundDisplayName: string;
   sourceCardTypes: string[];
   destinationCardTypes: string[];
+  destinationConnectors?: string[];
   enableLinkDescription: boolean;
 }
 

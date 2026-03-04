@@ -3,9 +3,11 @@
     "title": "Decision Records",
     "workflowState": "Created",
     "rank": "0|a",
-    "lastUpdated": "2024-07-12T11:07:35.247Z",
+    "lastUpdated": "2026-03-17T11:11:39.624Z",
     "labels": [
         "test",
         "test-two"
-    ]
+    ],
+    "links": [],
+    "externalLinks": []
 }
