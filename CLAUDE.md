@@ -166,7 +166,11 @@ src/
     cards/
       index.ts        — Hono router with route handlers
       service.ts      — Business logic functions (call CommandManager)
-      schema.ts       — Zod validation schemas for request bodies
+      lib.ts          — Card-specific utilities (no schema.ts here)
+    labels/
+      index.ts        — Hono router with route handlers
+      service.ts      — Business logic functions (call CommandManager)
+    ...               — Other domains typically have: index.ts, service.ts, schema.ts
   middleware/
     auth.ts           — Auth middleware + requireRole() guard
     commandManager.ts — Injects CommandManager into Hono context
