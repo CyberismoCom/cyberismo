@@ -237,7 +237,8 @@ describe('shows command', () => {
       expect(result.statusCode).to.equal(200);
       expect(payloadAsArray.length).to.equal(3);
       expect(payloadAsArray[0]).to.equal('decision/reports/anotherReport');
-      expect(payloadAsArray[1]).to.equal('decision/reports/testReport');
+      expect(payloadAsArray[1]).to.equal('decision/reports/eqNeReport');
+      expect(payloadAsArray[2]).to.equal('decision/reports/testReport');
     });
     it('show templates - success()', async () => {
       const result = await commandHandler.command(
