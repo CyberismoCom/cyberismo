@@ -57,7 +57,7 @@ Every new `.ts` / `.tsx` file **must** begin with:
 | Package | Framework | Assertion style |
 |---|---|---|
 | data-handler, cli | Mocha + Chai | `expect(x).to.equal(y)` |
-| backend | Vitest | `expect(x).toBe(y)`, test via `app.request()` |
+| backend, mcp | Vitest | `expect(x).toBe(y)`, test via `app.request()` |
 | app | Vitest + Testing Library | `expect(x).toBe(y)` |
 
 ## Verify

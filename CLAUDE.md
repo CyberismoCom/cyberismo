@@ -17,6 +17,7 @@ Cyberismo helps organisations manage cybersecurity in software. AGPL-3.0 license
 | **backend**      | Hono REST API — thin layer over data-handler                  | Vitest               |
 | **app**          | React 19 + Vite + MUI Joy/Material + Redux Toolkit + SWR      | Vitest + Cypress e2e |
 | **cli**          | Commander CLI — wraps data-handler commands                   | Mocha + Chai         |
+| **mcp**          | MCP server for AI tool integration                            | Vitest               |
 | **assets**       | JSON schemas, schema version constant                         | —                    |
 | **migrations**   | Data migration scripts between schema versions                | —                    |
 | **node-clingo**  | Native N-API bindings for Clingo solver                       | Mocha + Chai         |
@@ -137,42 +138,46 @@ src/
   command-manager.ts  — CommandManager: singleton, owns Project + all command instances
   commands/           — One class per verb: Create, Show, Edit, Move, Transition, ...
   containers/         — Domain objects: Project (extends CardContainer), Template
-  interfaces/         — TypeScript interfaces (project-interfaces, resource-interfaces, command-options)
+  interfaces/         — TypeScript interfaces (project-interfaces, resource-interfaces, ...)
   types/              — Type definitions (queries, etc.)
-  utils/              — Pure utilities (file-utils, card-utils, error-utils, json, lexorank, ...)
+  utils/              — Pure utilities (file-utils, card-utils, error-utils, git-manager, rw-lock, ...)
   exceptions/         — DHValidationError, SchemaNotFound, MacroError
   resources/          — Resource reading/writing, resource objects
   macros/             — Macro system (runs inside card content)
-  index.ts            — Barrel: explicit named re-exports only
+  permissions/        — ActionGuard: RBAC permission checks
+  migrations/         — Schema migration executor and workers
+  index.ts            — Barrel re-exports
 ```
 
 Key patterns:
 
-- `Commands` class has a single public method `command(cmd, args, options)` returning `requestStatus`.
-- `CommandManager` is a **singleton per project path** — call `CommandManager.getInstance(path)`.
+- `Commands` class — primary public method is `command(cmd, args, options)` returning `requestStatus`.
+- `CommandManager` is a **singleton per project path** — `await CommandManager.getInstance(path)` (async).
 - Command classes receive `Project` via constructor injection.
-- The `@write` decorator on methods acquires a write lock via `RWLock`.
+- The `@write` and `@read` decorators on methods acquire locks via `RWLock`.
 
 ### backend — thin API layer
 
 ```
 src/
-  app.ts              — createApp(): builds the Hono instance, mounts all routers
-  main.ts             — Server startup with @hono/node-server
-  domain/             — One folder per entity: cards/, cardTypes/, workflows/, labels/, ...
+  app.ts              — createApp(authProvider, commands): builds the Hono instance
+  index.ts            — Barrel + createServer() for running the backend
+  domain/             — One folder per entity: cards/, cardTypes/, workflows/, resources/, ...
     cards/
       index.ts        — Hono router with route handlers
       service.ts      — Business logic functions (call CommandManager)
-      lib.ts          — Route-specific helpers
+      schema.ts       — Zod validation schemas for request bodies
   middleware/
     auth.ts           — Auth middleware + requireRole() guard
     commandManager.ts — Injects CommandManager into Hono context
     tree.ts           — Tree-related context
-  auth/               — AuthProvider implementations (mock, real)
+    zvalidator.ts     — Zod validator middleware
+  auth/               — AuthProvider implementations (MockAuthProvider, KeycloakAuthProvider)
 ```
 
 Key patterns:
 
+- `createApp(authProvider, commandManager)` — second arg is a `CommandManager` instance, not a path.
 - Every domain folder exports a `Hono` router as its default export.
 - Route handlers get `CommandManager` from `c.get('commands')`.
 - Role-based access via `requireRole(UserRole.Reader)` middleware.
@@ -284,6 +289,7 @@ pnpm test-backend
 pnpm test-app
 pnpm test-cli
 pnpm test-clingo
+pnpm test-mcp
 
 # Target one file — data-handler or cli (Mocha)
 pnpm --filter data-handler exec mocha --require mocha-suppress-logs \
@@ -352,22 +358,24 @@ describe('my feature', () => {
 #### backend (Vitest)
 
 ```typescript
-import { expect, test, beforeAll } from 'vitest';
+import { expect, test, beforeEach, afterEach } from 'vitest';
+import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
 
-let tempPath: string;
+let app: ReturnType<typeof createApp>;
+let tempTestDataPath: string;
 
-beforeAll(async () => {
-  tempPath = await createTempTestData('decision-records');
+beforeEach(async () => {
+  tempTestDataPath = await createTempTestData('decision-records');
+  const commands = await CommandManager.getInstance(tempTestDataPath);
+  app = createApp(new MockAuthProvider(), commands);
 });
 
-afterAll(async () => {
-  await cleanupTempTestData(tempPath);
+afterEach(async () => {
+  await cleanupTempTestData(tempTestDataPath);
 });
-
-const app = createApp(new MockAuthProvider(), tempPath);
 
 test('GET /api/cards returns project info', async () => {
   const response = await app.request('/api/cards');
@@ -379,10 +387,10 @@ test('GET /api/cards returns project info', async () => {
 ```
 
 - Test Hono **without starting a server** — use `app.request(path)`.
+- `createApp` takes `(AuthProvider, CommandManager)` — create a `CommandManager` instance first.
 - `createTempTestData('decision-records')` copies fixtures to a temp dir and returns the path.
 - `cleanupTempTestData(path)` removes the temp dir.
 - Use `MockAuthProvider` — tests run without real authentication.
-- Backend tests use **flat `test()` calls** (no `describe` nesting), matching the existing style.
 
 #### app (Vitest + Testing Library)
 
