@@ -235,7 +235,7 @@ describe('shows command', () => {
       );
       const payloadAsArray = Object.values(result.payload || []);
       expect(result.statusCode).to.equal(200);
-      expect(payloadAsArray.length).to.equal(2);
+      expect(payloadAsArray.length).to.equal(3);
       expect(payloadAsArray[0]).to.equal('decision/reports/anotherReport');
       expect(payloadAsArray[1]).to.equal('decision/reports/testReport');
     });
