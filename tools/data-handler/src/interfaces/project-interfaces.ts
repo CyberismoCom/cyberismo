@@ -12,7 +12,11 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Link, TemplateConfiguration } from './resource-interfaces.js';
+import type {
+  ExternalLink,
+  Link,
+  TemplateConfiguration,
+} from './resource-interfaces.js';
 
 // Single card; either in project or in template.
 export interface Card {
@@ -48,6 +52,7 @@ export interface CardListContainer {
 // Remember to add all these keys to utils/constants.ts
 export interface PredefinedCardMetadata {
   cardType: string;
+  externalLinks?: ExternalLink[];
   labels?: string[];
   lastTransitioned?: string;
   lastUpdated?: string;
@@ -142,6 +147,7 @@ export type MetadataContent =
   | string
   | string[]
   | Link[]
+  | ExternalLink[]
   | null
   | undefined;
 

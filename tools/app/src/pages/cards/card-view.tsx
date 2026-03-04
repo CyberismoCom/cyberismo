@@ -16,7 +16,7 @@ import { ContentArea } from '@/components/ContentArea';
 import CardToolbar from '@/components/toolbar/CardToolbar';
 import LoadingGate from '@/components/LoadingGate';
 import { cardViewed } from '@/lib/actions';
-import { useCard, useLinkTypes, useTree } from '@/lib/api';
+import { useCard, useConnectors, useLinkTypes, useTree } from '@/lib/api';
 import { CardMode } from '@/lib/definitions';
 import {
   useAppDispatch,
@@ -25,7 +25,7 @@ import {
   useKeyboardShortcut,
 } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
-import { expandLinkTypes } from '@/lib/utils';
+import { expandLinkTypes, parseExternalLink } from '@/lib/utils';
 import { Box, Stack, Typography } from '@mui/joy';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -44,6 +44,8 @@ export default function Page() {
   const listCard = useListCard(key);
 
   const { linkTypes } = useLinkTypes();
+
+  const { connectors } = useConnectors();
 
   const dispatch = useAppDispatch();
 
@@ -99,6 +101,7 @@ export default function Page() {
           <ContentArea
             cards={tree!}
             card={card!}
+            connectors={connectors ?? undefined}
             onMetadataClick={() =>
               router.push(`/cards/${key}/edit?expand=true`)
             }
@@ -112,6 +115,12 @@ export default function Page() {
                   throw new Error('Link type not found');
                 }
 
+                // Determine target: card key for local, connector:itemKey for external
+                const target =
+                  data.itemSource === 'card'
+                    ? data.cardKey
+                    : `${data.itemSource}:${data.externalItemKey}`;
+
                 // Handle both regular form and modal form submissions
                 if (
                   data.previousLinkDescription !== undefined &&
@@ -121,7 +130,7 @@ export default function Page() {
                 ) {
                   // This is coming from edit link modal
                   await editLink(
-                    data.cardKey,
+                    target,
                     data.direction,
                     data.linkType,
                     data.previousLinkType,
@@ -136,7 +145,7 @@ export default function Page() {
                 } else {
                   // This is a new link creation
                   await createLink(
-                    data.cardKey,
+                    target,
                     data.linkType,
                     linkType.enableLinkDescription
                       ? data.linkDescription
@@ -160,8 +169,12 @@ export default function Page() {
             onLinkFormChange={(state) => setLinkFormState(state)}
             onDeleteLink={async (data) => {
               try {
+                const externalLink = parseExternalLink(data);
+                const target = externalLink
+                  ? `${externalLink.connector}:${externalLink.itemKey}`
+                  : data.key;
                 await deleteLink(
-                  data.key,
+                  target,
                   data.direction,
                   data.linkType,
                   data.linkDescription,

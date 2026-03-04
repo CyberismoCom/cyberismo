@@ -23,6 +23,7 @@ import type {
 } from '../interfaces/project-interfaces.js';
 import type {
   CardType,
+  ExternalLink,
   FieldType,
   Link,
   LinkType,
@@ -231,6 +232,33 @@ export const createCardFacts = async (card: Card, project: Project) => {
               .addLiteralArguments(card.key, link.cardKey)
               .addArguments(link.linkType, link.linkDescription ?? null),
           );
+        }
+      } else if (field === 'externalLinks') {
+        for (const extLink of value as ExternalLink[]) {
+          // Generate: userLink(source, destination, LinkType, LinkDescription).
+          // For outbound: card -> external, for inbound: external -> card
+          if (extLink.direction === 'outbound') {
+            builder.addCustomFact(Facts.Card.LINK, (b) =>
+              b
+                .addLiteralArgument(card.key)
+                .addTupleArgument(extLink.connector, extLink.externalItemKey)
+                .addArguments(
+                  extLink.linkType,
+                  extLink.linkDescription ?? null,
+                ),
+            );
+          } else {
+            // inbound: external is source, card is destination
+            builder.addCustomFact(Facts.Card.LINK, (b) =>
+              b
+                .addTupleArgument(extLink.connector, extLink.externalItemKey)
+                .addLiteralArgument(card.key)
+                .addArguments(
+                  extLink.linkType,
+                  extLink.linkDescription ?? null,
+                ),
+            );
+          }
         }
       } else {
         // Do not write null values

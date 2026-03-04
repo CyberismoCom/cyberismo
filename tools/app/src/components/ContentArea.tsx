@@ -13,7 +13,13 @@
 */
 
 import type { ReactElement } from 'react';
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useState,
+  useRef,
+  useMemo,
+} from 'react';
 import type { ExpandedLinkType } from '../lib/definitions';
 
 import { parse } from 'node-html-parser';
@@ -78,8 +84,8 @@ import type {
   CalculationLink,
   LinkDirection,
 } from '@cyberismo/data-handler/types/queries';
-import { config } from '@/lib/utils';
-import type { CardResponse } from '../lib/api/types';
+import { config, parseExternalLink } from '@/lib/utils';
+import type { CardResponse, Connector } from '../lib/api/types';
 import { GenericConfirmModal } from './modals';
 import { useCard } from '../lib/api';
 import SvgViewerModal from './modals/svgViewerModal';
@@ -91,6 +97,7 @@ type ContentAreaProps = {
   cards: QueryResult<'tree'>[];
   card: CardResponse;
   linkTypes: ExpandedLinkType[];
+  connectors?: Connector[];
   onMetadataClick?: () => void;
   onLinkFormSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
   onDeleteLink?: (data: CalculationLink) => void | Promise<void>;
@@ -108,6 +115,10 @@ interface LinkFormSubmitData {
   cardKey: string;
   linkDescription: string;
   direction: LinkDirection;
+  // External link fields
+  itemSource: string;
+  externalItemKey?: string;
+  // Edit mode previous values
   previousLinkType?: string;
   previousCardKey?: string;
   previousLinkDescription?: string;
@@ -116,13 +127,16 @@ interface LinkFormSubmitData {
 
 interface LinkFormData {
   linkType: number;
+  itemSource: string;
   cardKey: string;
+  externalItemKey: string;
   linkDescription: string;
 }
 
 interface LinkFormProps {
   linkTypes: ExpandedLinkType[];
   cards: QueryResult<'tree'>[];
+  connectors?: Connector[];
   onSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
   onCancel?: () => void;
   cardKey: string;
@@ -139,13 +153,16 @@ const NO_LINK_TYPE = -1;
 
 const DEFAULT_LINK_FORM_DATA: LinkFormData = {
   linkType: NO_LINK_TYPE,
+  itemSource: 'card',
   cardKey: '',
+  externalItemKey: '',
   linkDescription: '',
 };
 
 export function LinkForm({
   cards,
   linkTypes,
+  connectors,
   onSubmit,
   cardKey,
   currentCardLinks,
@@ -165,6 +182,22 @@ export function LinkForm({
   });
   const { t } = useTranslation();
 
+  // Build item sources from connectors
+  const itemSources = useMemo(() => {
+    const sources: { value: string; label: string }[] = [
+      { value: 'card', label: t('linkForm.sourceCard') },
+    ];
+    if (connectors) {
+      for (const connector of connectors) {
+        sources.push({
+          value: connector.name,
+          label: connector.displayName,
+        });
+      }
+    }
+    return sources;
+  }, [connectors, t]);
+
   useEffect(() => {
     reset({
       ...DEFAULT_LINK_FORM_DATA,
@@ -178,9 +211,15 @@ export function LinkForm({
     control,
   });
 
+  // Watch item source
+  const itemSource = useWatch({
+    name: 'itemSource',
+    control,
+  });
+
   const selectedLinkType = linkTypes.find((t) => t.id === linkType);
 
-  const usableCards = flattenTree(cards).filter(
+  const baseUsableCards = flattenTree(cards).filter(
     createPredicate(
       canCreateLinkToCard,
       cardKey,
@@ -189,19 +228,53 @@ export function LinkForm({
     ),
   );
 
+  // In edit mode, include the currently linked card in options even if it's already linked
+  const dataCardKey = data?.cardKey;
+  const usableCards = useMemo(() => {
+    if (state === 'edit' && dataCardKey) {
+      const editedCard = findCard(cards, dataCardKey);
+      if (editedCard && !baseUsableCards.find((c) => c.key === dataCardKey)) {
+        return [editedCard, ...baseUsableCards];
+      }
+    }
+    return baseUsableCards;
+  }, [baseUsableCards, state, dataCardKey, cards]);
+
   // If card is not in usable cards, reset the form
+  // Skip reset in edit mode when the card matches the original linked card
   const formCardKey = useWatch({
     name: 'cardKey',
     control,
   });
   useEffect(() => {
+    // In edit mode, don't reset if the card is the original linked card
+    if (state === 'edit' && dataCardKey && formCardKey === dataCardKey) {
+      return;
+    }
     if (formCardKey && !usableCards.find((c) => c.key === formCardKey)) {
       reset({
         ...DEFAULT_LINK_FORM_DATA,
         linkType,
+        itemSource,
       });
     }
-  }, [formCardKey, usableCards, linkType, reset]);
+  }, [
+    formCardKey,
+    usableCards,
+    linkType,
+    itemSource,
+    reset,
+    state,
+    dataCardKey,
+  ]);
+
+  // Get external items for selected connector
+  const selectedConnector = useMemo(() => {
+    if (itemSource === 'card' || !connectors) return null;
+    return connectors.find((c) => c.name === itemSource) || null;
+  }, [itemSource, connectors]);
+
+  const externalItems = selectedConnector?.items || [];
 
   return (
     <form
@@ -212,9 +285,14 @@ export function LinkForm({
         if (!linkType) return;
         const success = await onSubmit?.({
           linkType: linkType.name,
-          cardKey: formData.cardKey,
+          cardKey: formData.itemSource === 'card' ? formData.cardKey : '',
           linkDescription: formData.linkDescription,
           direction: linkType.direction,
+          itemSource: formData.itemSource,
+          externalItemKey:
+            formData.itemSource !== 'card'
+              ? formData.externalItemKey
+              : undefined,
           previousLinkType:
             state === 'edit' && data ? linkType.name : undefined,
           previousCardKey: state === 'edit' && data ? data.cardKey : undefined,
@@ -228,61 +306,133 @@ export function LinkForm({
     >
       <Stack spacing={1}>
         <Stack direction="row" spacing={1}>
-          <Controller
-            name="linkType"
-            control={control}
-            render={({ field }) => (
-              <Select
-                {...field}
-                placeholder={t('linkForm.selectLinkType')}
-                color="primary"
-                onChange={(_, value) => field.onChange(value)}
-                sx={{
-                  width: 180,
-                }}
-                required={true}
-              >
-                {linkTypes.map((linkType) => (
-                  <Option key={linkType.id} value={linkType.id}>
-                    {linkType.direction === 'outbound'
-                      ? linkType.outboundDisplayName
-                      : linkType.inboundDisplayName}
-                  </Option>
-                ))}
-              </Select>
-            )}
-          />
-          <Controller
-            name="cardKey"
-            control={control}
-            render={({ field: { onChange, value } }) => (
-              <Autocomplete
-                color="primary"
-                required={true}
-                placeholder={t('linkForm.searchCard')}
-                options={usableCards.map((c) => ({
-                  label: `${c.title} (${c.key})`,
-                  value: c.key,
-                }))}
-                isOptionEqualToValue={(option, value) =>
-                  option.value === value.value
-                }
-                onChange={(_, value) => onChange(value?.value || '')}
-                value={
-                  value
-                    ? {
-                        label: `${findCard(cards, value)?.title}(${value})`,
-                        value,
-                      }
-                    : null
-                }
-                startDecorator={<Search />}
-                sx={{
-                  flexGrow: 1,
-                }}
+          <Box>
+            <Typography level="body-xs" sx={{ mb: 0.5 }}>
+              {t('linkForm.itemType')}
+              <Typography component="span" sx={{ color: 'danger.500' }}>
+                *
+              </Typography>
+            </Typography>
+            <Controller
+              name="linkType"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  {...field}
+                  placeholder={t('linkForm.selectLinkType')}
+                  color="primary"
+                  onChange={(_, value) => field.onChange(value)}
+                  sx={{ width: 180 }}
+                  required={true}
+                >
+                  {linkTypes.map((linkType) => (
+                    <Option key={linkType.id} value={linkType.id}>
+                      {linkType.direction === 'outbound'
+                        ? linkType.outboundDisplayName
+                        : linkType.inboundDisplayName}
+                    </Option>
+                  ))}
+                </Select>
+              )}
+            />
+          </Box>
+          <Box>
+            <Typography level="body-xs" sx={{ mb: 0.5 }}>
+              {t('linkForm.itemSource')}
+              <Typography component="span" sx={{ color: 'danger.500' }}>
+                *
+              </Typography>
+            </Typography>
+            <Controller
+              name="itemSource"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  {...field}
+                  placeholder={t('linkForm.selectSource')}
+                  color="primary"
+                  onChange={(_, value) => field.onChange(value)}
+                  sx={{ width: 180 }}
+                  required={true}
+                >
+                  {itemSources.map((source) => (
+                    <Option key={source.value} value={source.value}>
+                      {source.label}
+                    </Option>
+                  ))}
+                </Select>
+              )}
+            />
+          </Box>
+          <Box sx={{ flexGrow: 1 }}>
+            <Typography level="body-xs" sx={{ mb: 0.5 }}>
+              {t('linkForm.searchItem')}
+              <Typography component="span" sx={{ color: 'danger.500' }}>
+                *
+              </Typography>
+            </Typography>
+            {itemSource === 'card' ? (
+              <Controller
+                name="cardKey"
+                control={control}
+                render={({ field: { onChange, value } }) => (
+                  <Autocomplete
+                    color="primary"
+                    required={true}
+                    placeholder={t('linkForm.searchCard')}
+                    options={usableCards.map((c) => ({
+                      label: `${c.title} (${c.key})`,
+                      value: c.key,
+                    }))}
+                    isOptionEqualToValue={(option, value) =>
+                      option.value === value.value
+                    }
+                    onChange={(_, value) => onChange(value?.value || '')}
+                    value={
+                      value
+                        ? {
+                            label: `${findCard(cards, value)?.title}(${value})`,
+                            value,
+                          }
+                        : null
+                    }
+                    startDecorator={<Search />}
+                    sx={{ width: '100%' }}
+                  />
+                )}
+              />
+            ) : (
+              <Controller
+                name="externalItemKey"
+                control={control}
+                render={({ field: { onChange, value } }) => (
+                  <Autocomplete
+                    color="primary"
+                    required={true}
+                    placeholder={t('linkForm.searchExternalItem')}
+                    options={externalItems.map((item) => ({
+                      label: `${item.title} (${item.key})`,
+                      value: item.key,
+                    }))}
+                    isOptionEqualToValue={(option, value) =>
+                      option.value === value.value
+                    }
+                    onChange={(_, selected) => onChange(selected?.value || '')}
+                    value={
+                      value
+                        ? {
+                            label: `${externalItems.find((i) => i.key === value)?.title || value} (${value})`,
+                            value,
+                          }
+                        : null
+                    }
+                    startDecorator={<Search />}
+                    sx={{ width: '100%' }}
+                  />
+                )}
               />
             )}
-          />
+          </Box>
         </Stack>
 
         {selectedLinkType && selectedLinkType.enableLinkDescription && (
@@ -440,6 +590,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   card,
   cards,
   linkTypes,
+  connectors,
   onMetadataClick,
   onLinkFormSubmit,
   preview,
@@ -854,6 +1005,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                       <LinkForm
                         cards={cards}
                         linkTypes={linkTypes}
+                        connectors={connectors}
                         onSubmit={onLinkFormSubmit}
                         cardKey={card.key}
                         currentCardLinks={card.links}
@@ -897,17 +1049,32 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                             {link.displayName}
                           </Typography>
                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <RouterLink
-                              data-cy="cardLink"
-                              to={`/cards/${link.key}`}
-                            >
-                              <Link component="div">{link.key}</Link>
-                            </RouterLink>
+                            {parseExternalLink(link) ? (
+                              link.url ? (
+                                <Link
+                                  data-cy="cardLink"
+                                  href={link.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  {parseExternalLink(link)?.itemKey}
+                                </Link>
+                              ) : (
+                                <Typography data-cy="cardLink" level="body-sm">
+                                  {parseExternalLink(link)?.itemKey}
+                                </Typography>
+                              )
+                            ) : (
+                              <RouterLink
+                                data-cy="cardLink"
+                                to={`/cards/${link.key}`}
+                              >
+                                <Link component="div">{link.key}</Link>
+                              </RouterLink>
+                            )}
                             <Divider
                               orientation="vertical"
-                              sx={{
-                                marginX: '4px',
-                              }}
+                              sx={{ marginX: '4px' }}
                             />
                             <Typography
                               data-cy="cardLinkTitle"
@@ -937,9 +1104,16 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                                     t.name === link.linkType &&
                                     t.direction === link.direction,
                                 );
+                                const externalLink = parseExternalLink(link);
                                 setEditLinkData({
                                   linkType: linkType?.id ?? NO_LINK_TYPE,
-                                  cardKey: link.key,
+                                  itemSource: externalLink
+                                    ? externalLink.connector
+                                    : 'card',
+                                  cardKey: externalLink ? '' : link.key,
+                                  externalItemKey: externalLink
+                                    ? externalLink.itemKey
+                                    : '',
                                   linkDescription: link.linkDescription || '',
                                   linkTypeName: link.linkType,
                                   direction: link.direction,
@@ -1022,6 +1196,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
             cards={cards}
             linkTypes={linkTypes}
             cardKey={card.key}
+            connectors={connectors}
           />
           <GenericConfirmModal
             open={modalOpen.deleteLink}

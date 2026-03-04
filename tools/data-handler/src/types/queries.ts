@@ -28,10 +28,12 @@ export interface CalculationLink {
   displayName: string;
   key: string;
   linkType: string;
-  title: string; // title of the other card
+  title: string; // title of the other card or external item
   linkDescription?: string;
   direction: LinkDirection;
   linkSource: 'user' | 'calculated';
+  connector?: string; // connector name for external links
+  url?: string; // URL for external links
 }
 
 export interface Notification {

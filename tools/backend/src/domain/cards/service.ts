@@ -174,22 +174,43 @@ export async function parseContent(
 export async function createLink(
   commands: CommandManager,
   key: string,
-  toCard: string,
+  target: string,
   linkType: string,
+  direction: 'outbound' | 'inbound' = 'outbound',
   description?: string,
 ) {
-  await commands.createCmd.createLink(key, toCard, linkType, description);
+  // For outbound: key is source, target is destination
+  // For inbound: target is source, key is destination
+  const source = direction === 'outbound' ? key : target;
+  const destination = direction === 'outbound' ? target : key;
+  await commands.createCmd.createLink(
+    source,
+    destination,
+    linkType,
+    description,
+  );
   return { message: 'Link created successfully' };
 }
 
 export async function removeLink(
   commands: CommandManager,
   key: string,
-  toCard: string,
+  target: string,
   linkType: string,
+  direction: 'outbound' | 'inbound' = 'outbound',
   description?: string,
 ) {
-  await commands.removeCmd.remove('link', key, toCard, linkType, description);
+  // For outbound: key is source, target is destination
+  // For inbound: target is source, key is destination
+  const source = direction === 'outbound' ? key : target;
+  const destination = direction === 'outbound' ? target : key;
+  await commands.removeCmd.remove(
+    'link',
+    source,
+    destination,
+    linkType,
+    description,
+  );
   return { message: 'Link removed successfully' };
 }
 

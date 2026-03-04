@@ -10,24 +10,10 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { CardUpdate } from './types';
+import { useSWRHook } from './common';
+import { apiPaths } from '../swr';
 
-export * from './fieldTypes';
-export * from './projectSettings';
-export * from './project';
-export * from './card';
-export * from './calculation';
-export * from './connectors';
-export * from './templates';
-export * from './linkTypes';
-export * from './tree';
-export * from './resources';
-export * from './cardType';
-export * from './graphModel';
-export * from './graphView';
-export * from './templates';
-export * from './report';
-export * from './workflow';
-export * from './labels';
-export * from './user';
-export type { CardUpdate };
+import type { SWRConfiguration } from 'swr';
+
+export const useConnectors = (options?: SWRConfiguration) =>
+  useSWRHook<'connectors'>(apiPaths.connectors(), 'connectors', null, options);
