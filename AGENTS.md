@@ -1,6 +1,7 @@
 ## Package manager
 
 Use `pnpm`, never `npm` or `yarn`.
+
 ## Common commands
 
 - `pnpm install` — install deps
@@ -25,15 +26,16 @@ pnpm workspaces under `tools/`:
 Internal deps use `"workspace:*"` and are imported as `@cyberismo/<package>`.
 
 ## Code style
+
 - TypeScript strict mode, ES modules (`"type": "module"`)
 - File extensions required in imports (`.js` even for `.ts` files — NodeNext resolution)
 - **`.js` in every relative import** — even though source files are `.ts`:
-   ```typescript
-   // CORRECT
-   import { Project } from './containers/project.js';
-   // WRONG
-   import { Project } from './containers/project';
-   ```
+  ```typescript
+  // CORRECT
+  import { Project } from './containers/project.js';
+  // WRONG
+  import { Project } from './containers/project';
+  ```
 - Use `node:` prefix on Node built-ins: `import { join } from 'node:path'`
 
 ## Testing
@@ -52,4 +54,5 @@ Internal deps use `"workspace:*"` and are imported as `@cyberismo/<package>`.
 - File-based storage with Git integration (no database)
 
 ## Node version
+
 22 LTS
