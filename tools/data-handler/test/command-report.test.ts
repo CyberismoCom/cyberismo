@@ -99,6 +99,46 @@ describe('report command', () => {
       expect(data).to.include('decision_6'); //decision_6 is decision_5's child
     });
   });
+  it('eq helper matches equal values', async () => {
+    const parameters = {
+      name: 'decision/reports/eqNeReport',
+      parameters: {
+        cardKey: 'decision_5',
+      },
+    };
+    await writeFile(
+      join(testDir, 'report.json'),
+      JSON.stringify(parameters, null, 2),
+      { encoding: 'utf-8' },
+    );
+    const result = await commandHandler.command(
+      Cmd.report,
+      [join(testDir, 'report.json')],
+      optionsDecision,
+    );
+    expect(result.statusCode).to.equal(200);
+    expect(result.message).to.include('EQ_MATCH:decision_6');
+  });
+  it('ne helper does not match equal values', async () => {
+    const parameters = {
+      name: 'decision/reports/eqNeReport',
+      parameters: {
+        cardKey: 'decision_5',
+      },
+    };
+    await writeFile(
+      join(testDir, 'report.json'),
+      JSON.stringify(parameters, null, 2),
+      { encoding: 'utf-8' },
+    );
+    const result = await commandHandler.command(
+      Cmd.report,
+      [join(testDir, 'report.json')],
+      optionsDecision,
+    );
+    expect(result.statusCode).to.equal(200);
+    expect(result.message).to.not.include('NE_MATCH:decision_6');
+  });
   it('try to run test report that does not exist', async () => {
     const parameters = {
       name: 'decision/reports/i-do-not-exist',

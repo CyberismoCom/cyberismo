@@ -476,7 +476,6 @@ export class CalculationEngine {
         model: model,
         view: view,
       },
-      graph: true,
       context,
     });
     let graph = (await instance()).renderString(result, {

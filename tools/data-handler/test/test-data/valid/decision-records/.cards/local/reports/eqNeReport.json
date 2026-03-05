@@ -1,0 +1,5 @@
+{
+    "displayName": "Eq/Ne test report",
+    "description": "Tests eq and ne helpers",
+    "name": "decision/reports/eqNeReport"
+}

@@ -13,67 +13,10 @@ import Handlebars from 'handlebars';
 import type { CalculationEngine } from '../containers/project/calculation-engine.js';
 import { registerEmptyMacros } from '../macros/index.js';
 import type { Context } from '../interfaces/project-interfaces.js';
-import { resourceName } from './resource-utils.js';
-import { escapeJsonString } from './json.js';
-import { escapeCsvField } from './csv.js';
-
-/**
- * Formats a value from a logic program for use to graphviz
- * @param value - The value to format
- * @returns The formatted value
- */
-export function formatAttributeValue(value?: string) {
-  if (!value) {
-    return '';
-  }
-  // value is an html-like string
-  if (value.length > 1 && value.startsWith('<') && value.endsWith('>')) {
-    return value;
-  }
-  // value is a normal string and needs to be wrapped in quotes
-  return `"${value}"`;
-}
-
-/**
- * Checks if a field is a custom field
- * @param field - The field to check
- * @returns True if the field is a custom field, false otherwise
- */
-export function isCustomField(field: string) {
-  try {
-    const { type } = resourceName(field, true);
-    return type === 'fieldTypes';
-  } catch {
-    return false;
-  }
-}
-/**
- * Formats a value for display in a report
- * @param value - The value to format
- * @returns The formatted value
- */
-export function formatValue(value: unknown): string {
-  if (typeof value === 'object') {
-    if (Array.isArray(value)) {
-      return value.map((v) => formatValue(v)).join(', ');
-    }
-    if (
-      value != null &&
-      'displayValue' in value &&
-      typeof value.displayValue === 'string'
-    ) {
-      return value.displayValue;
-    }
-    if (value != null && 'value' in value && typeof value.value === 'string') {
-      return formatValue(value.value);
-    }
-    return JSON.stringify(value, null, 2);
-  }
-  if (typeof value === 'boolean') {
-    return value ? 'Yes' : 'No';
-  }
-  return value?.toString() ?? '';
-}
+import {
+  registerComparisonHelpers,
+  registerReportHelpers,
+} from './handlebars-helpers.js';
 
 /**
  * Parameters for the core generation function
@@ -83,7 +26,6 @@ interface GenerateReportContentParams {
   contentTemplate: string;
   queryTemplate: string;
   options: Record<string, string | undefined | boolean>;
-  graph?: boolean;
   context: Context;
 }
 
@@ -98,16 +40,11 @@ interface GenerateReportContentParams {
 export async function generateReportContent(
   params: GenerateReportContentParams,
 ): Promise<string> {
-  const {
-    calculate,
-    contentTemplate,
-    queryTemplate,
-    graph,
-    options, // Destructure options
-    context,
-  } = params;
+  const { calculate, contentTemplate, queryTemplate, options, context } =
+    params;
 
   const handlebars = Handlebars.create();
+  registerComparisonHelpers(handlebars);
 
   // Compile and execute the query template
   const template = handlebars.compile(queryTemplate, {
@@ -121,14 +58,7 @@ export async function generateReportContent(
   }
   // register empty macros so that other macros aren't touched yet
   registerEmptyMacros(handlebars);
-
-  if (graph) {
-    handlebars.registerHelper('formatAttributeValue', formatAttributeValue);
-  }
-  handlebars.registerHelper('isCustomField', isCustomField);
-  handlebars.registerHelper('formatValue', formatValue);
-  handlebars.registerHelper('jsonEscape', escapeJsonString);
-  handlebars.registerHelper('csvEscape', escapeCsvField);
+  registerReportHelpers(handlebars);
 
   return handlebars.compile(contentTemplate)({
     ...options,
