@@ -658,7 +658,8 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
           if (className.includes('fa-check-square-o')) {
             return (
               <CheckBox
-                sx={{ ...checkboxSx, color: 'primary.500' }}
+                color="primary"
+                sx={checkboxSx}
               />
             );
           }
