@@ -20,9 +20,7 @@ describe('Navigation', () => {
   it('delete page and verify empty project', () => {
     // Creates a new base module with name Basic Acceptance Test
     cy.get('h4').contains('Basic Acceptance Test'); // Verify project name
-    cy.get('p').contains(t['selectCard']); // Verify text on cards page
-    cy.get('p').contains('Untitled page').click(); // Navigate to Untitled page in tree menu
-    cy.get('h1').contains('Untitled page'); // Verify Title in content area
+    cy.get('h1').contains('Untitled page'); // Verify auto-redirected to first card
 
     cy.get('[data-cy="contextMenuButton"]').click(); // Click dropdown menu with multiple options
     cy.get('[data-cy="deleteCardButton"]').click(); // Select Delete card option
@@ -43,9 +41,12 @@ describe('Navigation', () => {
   });
 
   it('Create a page content as a child of the page', () => {
-    // Creates a child card under previously created page
+    // Creates a page content card at root level
     cy.get('[data-cy="createNewButton"]').click();
     cy.get('.templateCard').contains('Page content').click(); // Select Page content template
+    cy.get('[role="dialog"]')
+      .contains(t['createOnTopLevel'])
+      .click({ force: true }); // Create at root level
     cy.get('[data-cy="confirmCreateButton"]').click();
     cy.get('[role="presentation"]').contains(t.createCardModal['success']); // Verify text in popup infobox
 
@@ -79,7 +80,7 @@ describe('Navigation', () => {
     cy.get('[aria-level="2"]').should('not.exist');
     cy.get('[aria-level="1"][data-cy="ExpandMoreIcon"]').should('not.exist'); // Verifies expand more icon does not exist in tree menu
 
-    // moves child card under Decision Records card with move function
+    // moves child card under Untitled page card with move function
     cy.get('[data-cy="contextMenuButton"]').click();
     cy.get('[id="moveCardButton"]').click(); // Select Move option
 

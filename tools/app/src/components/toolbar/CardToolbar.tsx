@@ -121,7 +121,7 @@ export function CardToolbar({
           size="sm"
           startDecorator={<EditIcon />}
           style={{ marginLeft: 8, minWidth: 80 }}
-          onClick={() => router.push(`/cards/${card!.key}/edit`)}
+          onClick={() => router.push(`/cards/${cardKey}/edit`)}
           disabled={isUpdating()}
         >
           {t('edit')}

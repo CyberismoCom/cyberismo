@@ -88,8 +88,10 @@ export const useCardMutations = (key: string | null) => {
         return false;
       }
     },
-    createCard: async (template: string) => {
-      const result = await call(() => createCard(key ?? 'root', template));
+    createCard: async (template: string, parentKey?: string) => {
+      const result = await call(() =>
+        createCard(parentKey ?? key ?? 'root', template),
+      );
       dispatch(setRecentlyCreated(result.map((card) => card.key)));
       return result;
     },
