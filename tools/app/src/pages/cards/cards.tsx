@@ -21,14 +21,14 @@ export const dynamic = 'force-dynamic';
 
 export default function CardsPage() {
   const { t } = useTranslation();
-  const { tree } = useTree();
+  const { tree, isValidating } = useTree();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (tree && tree.length > 0) {
+    if (tree && tree.length > 0 && !isValidating) {
       navigate(`/cards/${tree[0].key}`, { replace: true });
     }
-  }, [tree, navigate]);
+  }, [tree, navigate, isValidating]);
 
   if (!tree || tree.length > 0) {
     return null;

@@ -53,6 +53,8 @@ export function BaseTreeComponent<T>({
   useEffect(() => {
     const tree = treeRef.current as unknown as TreeApi<T> | null;
     if (selectedId && tree && !tree.selectedIds.has(selectedId)) {
+      tree.openParents(selectedId);
+      tree.open(selectedId);
       tree.select(selectedId);
     }
   }, [selectedId, data]);
