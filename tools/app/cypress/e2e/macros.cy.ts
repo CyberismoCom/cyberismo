@@ -205,11 +205,9 @@ describe('Navigation', () => {
     cy.get('[data-cy="updateButton"]').click(); // Click update button
 
     let cardKey: string; // string for card key of the page
-    cy.get('[data-cy="metadataView"] .MuiTypography-body-sm')
-      .eq(0)
-      .then(($key) => {
-        cardKey = $key.text();
-      }); // Extract card key on the page
+    cy.url().then((url) => {
+      cardKey = url.split('/cards/')[1];
+    }); // Extract card key from URL
     cy.get('[class="doc"]')
       .get('[type="button"]')
       .contains('Create Test denied operations page')
@@ -236,11 +234,9 @@ describe('Navigation', () => {
     cy.get('h1').contains('Create cards page'); // Verify Title in content area
 
     let cardKey: string;
-    cy.get('[data-cy="metadataView"] .MuiTypography-body-sm')
-      .eq(0)
-      .then(($key) => {
-        cardKey = $key.text();
-      }); // Extract card key on the page
+    cy.url().then((url) => {
+      cardKey = url.split('/cards/')[1];
+    }); // Extract card key from URL
 
     cy.get('[class="doc"]')
       .get('[type="button"]')
@@ -448,11 +444,9 @@ describe('Navigation', () => {
     cy.get('h1').contains('Create cards page'); // Verify Title in content area
 
     let cardKey: string;
-    cy.get('[data-cy="metadataView"] .MuiTypography-body-sm')
-      .eq(0)
-      .then(($key) => {
-        cardKey = $key.text();
-      }); // Extract card key on the page
+    cy.url().then((url) => {
+      cardKey = url.split('/cards/')[1];
+    }); // Extract card key from URL
     cy.get('[class="doc"]')
       .get('[type="button"]')
       .contains('Create empty page')

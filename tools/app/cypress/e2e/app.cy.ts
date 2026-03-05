@@ -104,8 +104,7 @@ describe('Navigation', () => {
     cy.get('p').contains('Untitled page content').click(); // Navigate tree menu
     cy.get('h1').contains('Untitled page content');
 
-    // Verify meatdata
-    cy.get('[data-cy="metadataView"]').contains(t['cardKey']);
+    // Verify metadata
     cy.get('[data-cy="metadataView"]').contains(t['cardType']);
     cy.get('[data-cy="metadataView"]').contains(t['lastUpdated']);
 
