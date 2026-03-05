@@ -44,7 +44,9 @@ describe('Navigation', () => {
     // Creates a page content card at root level
     cy.get('[data-cy="createNewButton"]').click();
     cy.get('.templateCard').contains('Page content').click(); // Select Page content template
-    cy.get('[role="dialog"]').contains(t['createOnTopLevel']).click({ force: true }); // Create at root level
+    cy.get('[role="dialog"]')
+      .contains(t['createOnTopLevel'])
+      .click({ force: true }); // Create at root level
     cy.get('[data-cy="confirmCreateButton"]').click();
     cy.get('[role="presentation"]').contains(t.createCardModal['success']); // Verify text in popup infobox
 
