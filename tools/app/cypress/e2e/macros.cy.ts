@@ -185,6 +185,11 @@ describe('Navigation', () => {
     cy.get('[role="tree"]').contains('Create cards page').click(); // Navigate to Create cards page in tree menu
     cy.get('h1').contains('Create cards page'); // Verify Title in content area
 
+    let cardKey: string; // string for card key of the page
+    cy.url().then((url) => {
+      cardKey = url.split('/cards/')[1];
+    }); // Extract card key from URL
+
     cy.get('[data-cy="contextMenuButton"]').click(); // Click dropdown menu with multiple options
     cy.get('[data-cy="addAttachmentButton"]').click(); // Select add attachment option
     // Verify add attachment dialog contents
@@ -203,13 +208,6 @@ describe('Navigation', () => {
     cy.get('span').contains('cyberismo.png').trigger('mouseover');
     cy.get('[data-cy="insertToContentButton"]').click();
     cy.get('[data-cy="updateButton"]').click(); // Click update button
-
-    let cardKey: string; // string for card key of the page
-    cy.get('[data-cy="metadataView"] .MuiTypography-body-sm')
-      .eq(0)
-      .then(($key) => {
-        cardKey = $key.text();
-      }); // Extract card key on the page
     cy.get('[class="doc"]')
       .get('[type="button"]')
       .contains('Create Test denied operations page')
@@ -236,11 +234,9 @@ describe('Navigation', () => {
     cy.get('h1').contains('Create cards page'); // Verify Title in content area
 
     let cardKey: string;
-    cy.get('[data-cy="metadataView"] .MuiTypography-body-sm')
-      .eq(0)
-      .then(($key) => {
-        cardKey = $key.text();
-      }); // Extract card key on the page
+    cy.url().then((url) => {
+      cardKey = url.split('/cards/')[1];
+    }); // Extract card key from URL
 
     cy.get('[class="doc"]')
       .get('[type="button"]')
@@ -448,11 +444,9 @@ describe('Navigation', () => {
     cy.get('h1').contains('Create cards page'); // Verify Title in content area
 
     let cardKey: string;
-    cy.get('[data-cy="metadataView"] .MuiTypography-body-sm')
-      .eq(0)
-      .then(($key) => {
-        cardKey = $key.text();
-      }); // Extract card key on the page
+    cy.url().then((url) => {
+      cardKey = url.split('/cards/')[1];
+    }); // Extract card key from URL
     cy.get('[class="doc"]')
       .get('[type="button"]')
       .contains('Create empty page')
