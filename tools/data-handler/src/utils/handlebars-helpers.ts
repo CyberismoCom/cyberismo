@@ -9,7 +9,7 @@
     You should have received a copy of the GNU Affero General Public
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-import Handlebars from 'handlebars';
+import type Handlebars from 'handlebars';
 import { escapeJsonString } from './json.js';
 import { escapeCsvField } from './csv.js';
 import { resourceName } from './resource-utils.js';
