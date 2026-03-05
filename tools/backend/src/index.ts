@@ -20,6 +20,7 @@ import type { CommandManager } from '@cyberismo/data-handler';
 import { findFreePort } from './utils.js';
 import { createApp } from './app.js';
 import type { AuthProvider } from './auth/types.js';
+import { createExampleApp } from './mcpExample.js';
 export { MockAuthProvider } from './auth/mock.js';
 export type { MockUserConfig } from './auth/mock.js';
 export type { AuthProvider } from './auth/types.js';
@@ -66,7 +67,8 @@ export async function startServer(
   if (findPort) {
     port = await findFreePort(port, DEFAULT_MAX_PORT);
   }
-  const app = createApp(authProvider, commands);
+  // const app = createApp(authProvider, commands);
+  const app = createExampleApp();
   startApp(app, port);
 }
 
