@@ -56,6 +56,8 @@ import DownloadIcon from '@mui/icons-material/Download';
 import OpenInFullIcon from '@mui/icons-material/OpenInFull';
 import Search from '@mui/icons-material/Search';
 import Info from '@mui/icons-material/Info';
+import CheckBox from '@mui/icons-material/CheckBox';
+import CheckBoxOutlineBlank from '@mui/icons-material/CheckBoxOutlineBlank';
 
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import EditLinkModal from './modals/EditLinkModal';
@@ -647,6 +649,23 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   const parsedContent = parseReact(htmlContent, {
     replace: (node) => {
       if (node.type === 'tag') {
+        if (node.name === 'i') {
+          const checkboxSx = {
+            fontSize: '1.25rem',
+            verticalAlign: 'middle',
+          };
+          const className = node.attribs?.class ?? '';
+          if (className.includes('fa-check-square-o')) {
+            return <CheckBox color="primary" sx={checkboxSx} />;
+          }
+          if (className.includes('fa-square-o')) {
+            return (
+              <CheckBoxOutlineBlank
+                sx={{ ...checkboxSx, color: 'text.tertiary' }}
+              />
+            );
+          }
+        }
         const macro = combinedMacros.find((m) => m.tagName === node.name);
         if (macro) {
           const attributes = parseDataAttributes(node.attribs);

@@ -49,6 +49,15 @@ header:
     left:
       content: image:img/cyberismo-logo.png[pdfwidth=12%]
 
+ulist:
+  marker:
+    checked:
+      content: "\uf14a"
+      font-family: far
+    unchecked:
+      content: "\uf0c8"
+      font-family: far
+
 footer:
   columns: =100%
   recto: &shared_footer
