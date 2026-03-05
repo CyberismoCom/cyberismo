@@ -23,7 +23,6 @@ vendor/
 # misc
 .DS_Store
 *.pem
-.claude
 
 # Vendor binary location
 vendor
@@ -52,8 +51,8 @@ tools/*/.idea
 #vscode
 **/.vscode/
 
-# Claude Code local settings
-.claude/settings.local.json
+# Local settings
+*.local*
 
 
 **/.calc
