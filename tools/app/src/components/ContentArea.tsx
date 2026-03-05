@@ -656,12 +656,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
           };
           const className = node.attribs?.class ?? '';
           if (className.includes('fa-check-square-o')) {
-            return (
-              <CheckBox
-                color="primary"
-                sx={checkboxSx}
-              />
-            );
+            return <CheckBox color="primary" sx={checkboxSx} />;
           }
           if (className.includes('fa-square-o')) {
             return (
