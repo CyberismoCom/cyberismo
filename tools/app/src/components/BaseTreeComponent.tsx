@@ -72,7 +72,7 @@ export function BaseTreeComponent<T>({
   return (
     <Stack
       paddingTop={2}
-      paddingLeft={2}
+      paddingLeft={3}
       bgcolor="background.surface"
       height="100%"
       width="100%"

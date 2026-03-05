@@ -752,7 +752,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         padding={3}
         flexGrow={1}
         sx={{
-          overflowY: 'scroll',
+          overflowY: 'auto',
           scrollbarWidth: 'thin',
         }}
         onScroll={handleScroll}
@@ -962,7 +962,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
               </AccordionDetails>
             </Accordion>
           )}
-          <Box pl={4} pr={4} mt={0}>
+          <Box>
             <div className="doc" ref={setRef}>
               {parsedContent}
             </div>
@@ -971,10 +971,11 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
       </Box>
       <Stack
         m={2}
-        flexGrow={1}
         sx={{
           overflowY: 'auto',
           scrollbarWidth: 'thin',
+          width: 250,
+          minWidth: 250,
         }}
         data-cy="cardSidebar"
       >
