@@ -650,26 +650,22 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     replace: (node) => {
       if (node.type === 'tag') {
         if (node.name === 'i') {
+          const checkboxSx = {
+            fontSize: '1.25rem',
+            verticalAlign: 'middle',
+          };
           const className = node.attribs?.class ?? '';
           if (className.includes('fa-check-square-o')) {
             return (
               <CheckBox
-                sx={{
-                  fontSize: '1.25rem',
-                  color: 'primary.500',
-                  verticalAlign: 'middle',
-                }}
+                sx={{ ...checkboxSx, color: 'primary.500' }}
               />
             );
           }
           if (className.includes('fa-square-o')) {
             return (
               <CheckBoxOutlineBlank
-                sx={{
-                  fontSize: '1.25rem',
-                  color: 'text.tertiary',
-                  verticalAlign: 'middle',
-                }}
+                sx={{ ...checkboxSx, color: 'text.tertiary' }}
               />
             );
           }
