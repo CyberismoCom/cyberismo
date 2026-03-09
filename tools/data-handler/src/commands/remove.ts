@@ -13,6 +13,7 @@
 
 import { ActionGuard } from '../permissions/action-guard.js';
 import { isModuleCard } from '../utils/card-utils.js';
+import { getChildLogger } from '../utils/log-utils.js';
 import { ModuleManager } from '../module-manager.js';
 import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
@@ -24,6 +25,9 @@ import { write } from '../utils/rw-lock.js';
  */
 export class Remove {
   private moduleManager: ModuleManager;
+  private get logger() {
+    return getChildLogger({ module: 'remove' });
+  }
   /**
    * Creates a new instance of Remove command.
    * @param project Project instance to use
@@ -83,7 +87,7 @@ export class Remove {
           const childCard = this.project.findCard(childKey);
           collectDescendants(childCard);
         } catch {
-          // Child not found, skip
+          this.logger.debug({ childKey }, 'Child card not found, skipping');
         }
       }
     };
