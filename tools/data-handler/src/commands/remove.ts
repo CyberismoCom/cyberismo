@@ -13,6 +13,7 @@
 
 import { ActionGuard } from '../permissions/action-guard.js';
 import { isModuleCard } from '../utils/card-utils.js';
+import { getChildLogger } from '../utils/log-utils.js';
 import { ModuleManager } from '../module-manager.js';
 import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
@@ -24,6 +25,9 @@ import { write } from '../utils/rw-lock.js';
  */
 export class Remove {
   private moduleManager: ModuleManager;
+  private get logger() {
+    return getChildLogger({ module: 'remove' });
+  }
   /**
    * Creates a new instance of Remove command.
    * @param project Project instance to use
@@ -74,14 +78,30 @@ export class Remove {
       await actionGuard.checkPermission('delete', cardKey);
     }
 
-    // If card is destination of a link, remove the link.
+    // Collect all card keys that will be deleted (the card itself and all descendants).
+    const cardsToDelete = new Set<string>();
+    const collectDescendants = (c: typeof card) => {
+      cardsToDelete.add(c.key);
+      for (const childKey of c.children) {
+        try {
+          const childCard = this.project.findCard(childKey);
+          collectDescendants(childCard);
+        } catch {
+          this.logger.debug({ childKey }, 'Child card not found, skipping');
+        }
+      }
+    };
+    collectDescendants(card);
+
+    // If any of the cards to be deleted is a destination of a link, remove the link.
     const allCards = this.project.cards(this.project.paths.cardRootFolder);
     const promiseContainer: Promise<void>[] = [];
 
     for (const item of allCards) {
+      if (cardsToDelete.has(item.key)) continue;
       const links = item.metadata?.links ?? [];
       for (const link of links) {
-        if (link.cardKey === cardKey) {
+        if (cardsToDelete.has(link.cardKey)) {
           promiseContainer.push(this.removeLink(item.key, link.cardKey));
         }
       }

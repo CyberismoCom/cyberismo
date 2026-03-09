@@ -531,6 +531,43 @@ describe('remove card', () => {
     ensureModuleListStub.restore();
   });
 
+  it('should remove links to children when parent card is removed', async () => {
+    // Create a parent+child pair from the simplepage template
+    const simplePageTemplate = 'decision/templates/simplepage';
+    const createdCards =
+      await commands.createCmd.createCard(simplePageTemplate);
+    const parentCard = createdCards.find(
+      (card) => card.parent === 'root' && card.children.length > 0,
+    );
+    expect(parentCard).to.not.equal(undefined);
+    const childKey = parentCard!.children[0];
+
+    // Create another card and link it to the child
+    const decisionTemplate = 'decision/templates/decision';
+    const otherCards = await commands.createCmd.createCard(decisionTemplate);
+    const otherCardKey = otherCards[0].key;
+
+    const linkType = 'decision/linkTypes/test';
+    await commands.createCmd.createLink(otherCardKey, childKey, linkType);
+
+    // Verify the link exists
+    let otherCard = commands.project.findCard(otherCardKey);
+    const linksBefore = otherCard.metadata?.links?.filter(
+      (l) => l.cardKey === childKey,
+    );
+    expect(linksBefore?.length).to.equal(1);
+
+    // Remove the parent card (which also removes its children)
+    await commands.removeCmd.remove('card', parentCard!.key);
+
+    // The link from otherCard to the child should also be removed
+    otherCard = commands.project.findCard(otherCardKey);
+    const linksAfter = otherCard.metadata?.links?.filter(
+      (l) => l.cardKey === childKey,
+    );
+    expect(linksAfter?.length).to.equal(0);
+  });
+
   it('should remove card that has children', async () => {
     const cardId = 'decision_5';
     const fetchCmd = new Fetch(commands.project);
