@@ -69,7 +69,8 @@ import type { MacroMetadata } from '@cyberismo/data-handler/interfaces/macros';
 import { macroMetadata } from '@cyberismo/data-handler/macros/common';
 import type { UIMacroName } from './macros';
 import { macros as UImacros } from './macros';
-import parseReact from 'html-react-parser';
+import parseReact, { domToReact } from 'html-react-parser';
+import type { DOMNode } from 'html-react-parser';
 import type {
   PolicyCheckCollection,
   Notification,
@@ -649,6 +650,16 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   const parsedContent = parseReact(htmlContent, {
     replace: (node) => {
       if (node.type === 'tag') {
+        if (node.name === 'a') {
+          const href = node.attribs?.href;
+          if (href?.startsWith('/cards/')) {
+            return (
+              <RouterLink to={href}>
+                {domToReact(node.children as DOMNode[])}
+              </RouterLink>
+            );
+          }
+        }
         if (node.name === 'i') {
           const checkboxSx = {
             fontSize: '1.25rem',

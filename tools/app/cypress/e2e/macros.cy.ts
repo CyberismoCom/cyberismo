@@ -476,7 +476,7 @@ describe('Navigation', () => {
     verifyNotificationMessage('success'); // Verify text in popup infobox
     cy.then(() => {
       cy.get('[class="doc"]')
-        .get('[href="' + cardKey + '.html"]')
+        .get('[href="/cards/' + cardKey + '"]')
         .contains('Create cards page'); // Verify Xref macro
     });
   });

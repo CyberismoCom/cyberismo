@@ -46,7 +46,7 @@ export default class XrefMacro extends BaseMacro {
   handleInject = async (context: MacroGenerationContext, input: unknown) => {
     const options = this.validate(input);
     const card = this.getCard(options.cardKey, context);
-    return `xref:${options.cardKey}.adoc[${card?.metadata?.title}]`;
+    return `link:/cards/${options.cardKey}[${card?.metadata?.title}]`;
   };
 
   private getCard(cardKey: string, context: MacroGenerationContext) {

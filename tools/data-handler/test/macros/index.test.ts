@@ -917,7 +917,7 @@ Some content here`;
           const expected =
             mode === 'static'
               ? '<<xref-test-card>>'
-              : 'xref:xref-test-card.adoc[Test Card for Cross Reference]';
+              : 'link:/cards/xref-test-card[Test Card for Cross Reference]';
 
           expect(result).to.equal(expected);
           expect(cardDetailsByIdStub.calledWith('xref-test-card')).to.equal(
