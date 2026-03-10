@@ -179,6 +179,7 @@ export interface ProjectMetadata {
   prefix: string;
   category?: string;
   description?: string;
+  version?: string;
   modules: string[];
   hubs: HubSetting[];
   numberOfCards: number;

@@ -95,6 +95,11 @@ export interface StartCommandOptions extends BaseCommandOptions {
   autocommit?: boolean;
 }
 
+// Options for 'publish' command
+export interface PublishCommandOptions extends BaseCommandOptions {
+  push?: boolean;
+}
+
 // Options for 'transition' command
 export type TransitionCommandOptions = BaseCommandOptions;
 
@@ -120,6 +125,7 @@ export type AllCommandOptions =
   | ImportCommandOptions
   | MigrateCommandOptions
   | MoveCommandOptions
+  | PublishCommandOptions
   | RankCommandOptions
   | RemoveCommandOptions
   | RenameCommandOptions
@@ -142,6 +148,7 @@ export type CommandOptions<T extends CmdKey> = {
   import: ImportCommandOptions;
   migrate: MigrateCommandOptions;
   move: MoveCommandOptions;
+  publish: PublishCommandOptions;
   rank: RankCommandOptions;
   remove: RemoveCommandOptions;
   rename: RenameCommandOptions;
