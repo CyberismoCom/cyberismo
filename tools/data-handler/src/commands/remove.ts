@@ -100,10 +100,11 @@ export class Remove {
     for (const item of allCards) {
       if (cardsToDelete.has(item.key)) continue;
       const links = item.metadata?.links ?? [];
-      for (const link of links) {
-        if (cardsToDelete.has(link.cardKey)) {
-          promiseContainer.push(this.removeLink(item.key, link.cardKey));
-        }
+      const filtered = links.filter((l) => !cardsToDelete.has(l.cardKey));
+      if (filtered.length !== links.length) {
+        promiseContainer.push(
+          this.project.updateCardMetadataKey(item.key, 'links', filtered),
+        );
       }
     }
 
