@@ -970,7 +970,8 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         </Stack>
       </Box>
       <Stack
-        m={2}
+        my={2}
+        mr={3}
         sx={{
           overflowY: 'auto',
           scrollbarWidth: 'thin',
