@@ -85,7 +85,7 @@ export const SearchableTreeMenu = ({
   return (
     <Stack height="100%" width="100%" bgcolor="background.surface">
       {/* Search input */}
-      <Stack px={2} pt={2} pb={1}>
+      <Stack px={3} pt={3} pb={1}>
         <Input
           placeholder={t('searchCards')}
           value={searchQuery}

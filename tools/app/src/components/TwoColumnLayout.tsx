@@ -42,7 +42,7 @@ export default function TwoColumnLayout({
         </Panel>
         <Separator className="resizeHandle" />
         <Panel>
-          <Box padding={2} flexGrow={1} height="100%" overflow="hidden">
+          <Box flexGrow={1} height="100%" overflow="hidden">
             {rightPanel}
           </Box>
         </Panel>

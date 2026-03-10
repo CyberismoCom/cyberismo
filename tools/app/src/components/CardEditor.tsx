@@ -596,7 +596,7 @@ export default function CardEditor({
             linkButtonDisabled={true}
             readOnly={readOnly}
           />
-          <Stack flexGrow={1} minHeight={0} padding={3} paddingRight={0}>
+          <Stack flexGrow={1} minHeight={0} padding={3}>
             <Tabs
               value={tab}
               onChange={(_, newValue) =>
@@ -604,6 +604,7 @@ export default function CardEditor({
               }
               sx={{
                 height: '100%',
+                bgcolor: 'transparent',
               }}
             >
               <TabList
@@ -621,15 +622,15 @@ export default function CardEditor({
                   height: '100%',
                 }}
               >
-                <Stack direction="row" height="100%">
+                <Stack direction="row" height="100%" gap={3}>
                   <Box
                     height="100%"
                     sx={{
-                      overflowY: 'scroll',
+                      overflowY: 'auto',
                       scrollbarWidth: 'thin',
                     }}
                     width="70%"
-                    paddingRight={3}
+                    padding={2}
                     onScroll={handleScroll}
                   >
                     <Controller
@@ -638,8 +639,16 @@ export default function CardEditor({
                       render={({ field: { value, onChange } }) => (
                         <Textarea
                           {...TITLE_FIELD_PROPS}
+                          color="primary"
+                          variant="plain"
                           value={value as string}
                           onChange={onChange}
+                          sx={{
+                            ...TITLE_FIELD_PROPS.sx,
+                            bgcolor: 'background.surface',
+                            borderRadius: 16,
+                            marginBottom: 1.2,
+                          }}
                         />
                       )}
                     />
@@ -679,7 +688,7 @@ export default function CardEditor({
                     padding={2}
                     sx={{
                       scrollbarWidth: 'thin',
-                      overflowY: 'scroll',
+                      overflowY: 'auto',
                     }}
                     alignItems="flex-start"
                     width="30%"

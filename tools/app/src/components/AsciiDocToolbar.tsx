@@ -76,6 +76,8 @@ export function AsciiDocToolbar({
       position="sticky"
       justifyContent="flex-end"
       gap={1.5}
+      borderRadius={16}
+      padding={0.5}
     >
       <Tooltip title={t('asciiDocEditor.toolbar.undo')}>
         <IconButton onClick={() => asciiDocToolbarActions.undo(view, readOnly)}>
