@@ -12,7 +12,10 @@
 */
 
 import { simpleGit, type SimpleGit } from 'simple-git';
+import semver from 'semver';
 import { getChildLogger } from './log-utils.js';
+
+const TAG_PREFIX = 'v';
 
 export class GitManager {
   private git: SimpleGit;
@@ -83,5 +86,65 @@ export class GitManager {
     // Remove new untracked files created during the failed write
     await this.git.clean('f', ['-d', 'cardRoot', '.cards']);
     this.logger.info('Rollback completed');
+  }
+
+  /** List all version tags (v*) sorted by version descending. */
+  async listVersionTags(): Promise<string[]> {
+    const result = await this.git.tags(['--list', 'v*', '--sort=-v:refname']);
+    return result.all;
+  }
+
+  /**
+   * Get the current project version from the latest git tag.
+   * @returns semver string (e.g. "1.2.3") or null if no version tags exist.
+   */
+  async getVersion(): Promise<string | null> {
+    const tags = await this.listVersionTags();
+    for (const tag of tags) {
+      if (!tag.startsWith(TAG_PREFIX)) continue;
+      const version = tag.slice(TAG_PREFIX.length);
+      if (semver.valid(version) && !semver.prerelease(version)) return version;
+    }
+    return null;
+  }
+
+  /**
+   * Check if there are changes since a given version.
+   * @param version Clean semver string (e.g. "1.2.3")
+   * @returns true if HEAD differs from the tagged commit.
+   */
+  async hasChangesSinceVersion(version: string): Promise<boolean> {
+    const diff = await this.git.diff([
+      '--stat',
+      `${TAG_PREFIX}${version}..HEAD`,
+    ]);
+    return diff.trim().length > 0;
+  }
+
+  /**
+   * Create an annotated tag from a clean version string.
+   * @param version Clean semver string (e.g. "1.2.3")
+   * @param message Optional tag message (defaults to the tag name)
+   */
+  async tagVersion(version: string, message?: string): Promise<void> {
+    const tag = `${TAG_PREFIX}${version}`;
+    this.logger.info({ tag }, 'Creating tag');
+    await this.git.tag(['-a', tag, '-m', message ?? tag]);
+  }
+
+  /** Check if the working tree has uncommitted changes in project directories (staged or unstaged). */
+  async hasUncommittedChanges(): Promise<boolean> {
+    const status = await this.git.status(['--', 'cardRoot', '.cards']);
+    return !status.isClean();
+  }
+
+  /** Push current branch and optionally tags to remote. */
+  async push(options?: { tags?: boolean }): Promise<void> {
+    this.logger.info('Pushing to remote');
+    if (options?.tags) {
+      await this.git.push(['--follow-tags']);
+    } else {
+      await this.git.push();
+    }
   }
 }

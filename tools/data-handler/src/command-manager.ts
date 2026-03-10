@@ -18,6 +18,7 @@ import { Fetch } from './commands/fetch.js';
 import { Import } from './commands/import.js';
 import { Migrate } from './commands/migrate.js';
 import { Move } from './commands/move.js';
+import { Publish } from './commands/publish.js';
 import { Remove } from './commands/remove.js';
 import { Rename } from './commands/rename.js';
 import { Show } from './commands/show.js';
@@ -50,6 +51,7 @@ export class CommandManager {
   public importCmd: Import;
   public migrateCmd: Migrate;
   public moveCmd: Move;
+  public publishCmd: Publish;
   public removeCmd: Remove;
   public renameCmd: Rename;
   public showCmd: Show;
@@ -74,6 +76,7 @@ export class CommandManager {
     this.importCmd = new Import(this.project, this.createCmd, this.fetchCmd);
     this.migrateCmd = new Migrate(this.project);
     this.moveCmd = new Move(this.project);
+    this.publishCmd = new Publish(this.project);
     this.removeCmd = new Remove(this.project, this.fetchCmd);
     this.renameCmd = new Rename(this.project);
     this.transitionCmd = new Transition(this.project);
