@@ -83,6 +83,7 @@ import type { CardResponse } from '../lib/api/types';
 import { GenericConfirmModal } from './modals';
 import { useCard } from '../lib/api';
 import SvgViewerModal from './modals/svgViewerModal';
+import { SafeRouterLink } from './SafeRouterLink';
 
 export type LinkFormState = 'hidden' | 'add' | 'add-from-toolbar' | 'edit';
 
@@ -654,9 +655,9 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
           const href = node.attribs?.href;
           if (href?.startsWith('/cards/')) {
             return (
-              <RouterLink to={href}>
+              <SafeRouterLink to={href}>
                 {domToReact(node.children as DOMNode[])}
-              </RouterLink>
+              </SafeRouterLink>
             );
           }
         }
