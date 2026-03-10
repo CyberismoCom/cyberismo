@@ -190,6 +190,9 @@ export class Move {
         ? getRankAfter(lastChild.metadata.rank)
         : FIRST_RANK;
 
+    // Save old path before moving (needed to update descendant paths)
+    const oldPath = sourceCard.path;
+
     // First do the file operations, then update metadata
     await copyDir(sourceCard.path, destinationPath);
     await deleteDir(sourceCard.path);
@@ -201,8 +204,32 @@ export class Move {
       sourceCard.metadata.rank = rank;
     }
 
+    // Update attachment paths for the moved card
+    if (sourceCard.attachments && sourceCard.attachments.length > 0) {
+      for (const attachment of sourceCard.attachments) {
+        if (attachment.path.startsWith(oldPath)) {
+          attachment.path = attachment.path.replace(oldPath, destinationPath);
+        }
+      }
+    }
+
     // Handle cache update and persistence
     await this.project.updateCard(sourceCard);
+
+    // Update all descendant card paths in the cache to reflect the new filesystem location.
+    // This is critical: files have been moved on disk, but children's cached paths
+    // still point to the old location. Without this, operations on children
+    // (like edit or delete) would target non-existent paths, leaving orphaned files.
+    if (sourceCard.children && sourceCard.children.length > 0) {
+      for (const childKey of sourceCard.children) {
+        this.project.updateDescendantPathsAfterMove(
+          childKey,
+          oldPath,
+          destinationPath,
+        );
+      }
+    }
+
     const updatedCard: Card = {
       ...sourceCard,
       path: destinationPath,

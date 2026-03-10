@@ -1172,6 +1172,43 @@ export class Project extends CardContainer {
   }
 
   /**
+   * Updates descendant card paths in the cache after a parent card has been moved.
+   * This ensures cached paths reflect the actual filesystem locations.
+   * @param cardKey The card whose descendants need path updates
+   * @param oldBasePath The old base path before the move
+   * @param newBasePath The new base path after the move
+   */
+  public updateDescendantPathsAfterMove(
+    cardKey: string,
+    oldBasePath: string,
+    newBasePath: string,
+  ): void {
+    const card = this.cardCache.getCard(cardKey);
+    if (!card) return;
+
+    if (card.path.startsWith(oldBasePath)) {
+      card.path = card.path.replace(oldBasePath, newBasePath);
+
+      if (card.attachments && card.attachments.length > 0) {
+        for (const attachment of card.attachments) {
+          if (attachment.path.startsWith(oldBasePath)) {
+            attachment.path = attachment.path.replace(oldBasePath, newBasePath);
+          }
+        }
+      }
+
+      this.cardCache.updateCard(card.key, card);
+    }
+
+    // Recursively update children
+    if (card.children && card.children.length > 0) {
+      for (const childKey of card.children) {
+        this.updateDescendantPathsAfterMove(childKey, oldBasePath, newBasePath);
+      }
+    }
+  }
+
+  /**
    * Updates the entire card in the card cache and handles any path/parent changes.
    * Also persists changes to content and metadata files.
    * @param card The card with updated information (path, parent, metadata, etc.)
