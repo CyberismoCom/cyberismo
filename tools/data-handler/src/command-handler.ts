@@ -73,6 +73,7 @@ export const Cmd = {
   import: 'import',
   migrate: 'migrate',
   move: 'move',
+  publish: 'publish',
   rank: 'rank',
   remove: 'remove',
   rename: 'rename',
@@ -340,6 +341,8 @@ export class Commands {
       } else if (command === Cmd.move) {
         const [source, destination] = args;
         await this.commands?.moveCmd.moveCard(source, destination);
+      } else if (command === Cmd.publish) {
+        return await this.publish(args);
       } else if (command === Cmd.rank) {
         const target = args.splice(0, 1)[0];
         if (target === 'card') {
@@ -560,6 +563,46 @@ export class Commands {
       statusCode: 200,
       affectsCards: createdCards?.map((card) => card.key),
       message: `Created cards ${JSON.stringify(createdCards?.map((card) => card.key))}`,
+    };
+  }
+
+  // Publishes a new version with a git tag.
+  private async publish(args: string[]): Promise<requestStatus> {
+    if (!this.commands) {
+      return { statusCode: 500, message: 'Commands not initialized' };
+    }
+
+    const [bumpType, pushFlag] = args;
+    const validBumps = ['patch', 'minor', 'major'];
+    if (!validBumps.includes(bumpType)) {
+      return {
+        statusCode: 400,
+        message: `Invalid bump type '${bumpType}'. Must be one of: ${validBumps.join(', ')}`,
+      };
+    }
+
+    // Validate project before publishing
+    const validation = await this.validate();
+    if (validation.statusCode !== 200 || validation.message !== 'Project structure validated') {
+      return {
+        statusCode: 400,
+        message: `Cannot publish: project has validation errors.\n${validation.message}`,
+      };
+    }
+
+    const shouldPush = pushFlag === 'true';
+    const result = await this.commands.createCmd.publishVersion(
+      bumpType as 'patch' | 'minor' | 'major',
+      shouldPush,
+    );
+
+    const previousInfo = result.previousVersion
+      ? ` (was v${result.previousVersion})`
+      : '';
+    const pushInfo = shouldPush ? '' : ' (local only, not pushed)';
+    return {
+      statusCode: 200,
+      message: `Published v${result.newVersion}${previousInfo}${pushInfo}`,
     };
   }
 

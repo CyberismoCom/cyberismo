@@ -4,10 +4,14 @@ import { expect, use } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import { exec } from 'node:child_process';
 import { mkdirSync, rmSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
+const testDir = dirname(fileURLToPath(import.meta.url));
 const tmpPath = '../../.tmp';
 const moduleTestPath = '../../module-test';
 const cliPath = `${tmpPath}/cyberismo-cli`;
+const localCli = `node ${join(testDir, '..', 'bin', 'run')}`;
 
 let pageCardKey = '';
 let decisionCardKey = '';
@@ -483,6 +487,20 @@ describe('Cli BAT test', function () {
         expect(error).to.be.null;
         expect(stdout).to.include('Done');
         expect(stdout).to.include('Project structure validated');
+        done();
+      },
+    );
+  });
+  it('Publish a version', function (done) {
+    exec(
+      `cd ${cliPath}&&git init&&git add -A&&git -c user.name=Test -c user.email=test@test.com commit -m "init"&&${localCli} publish patch --no-push`,
+      (error, stdout, _stderr) => {
+        if (error != null) {
+          console.log(error);
+        }
+        expect(error).to.be.null;
+        expect(stdout).to.include('Published v1.0.0');
+        expect(stdout).to.include('local only, not pushed');
         done();
       },
     );

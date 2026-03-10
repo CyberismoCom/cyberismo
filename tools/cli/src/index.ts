@@ -1477,6 +1477,35 @@ appCmd.action(async (options: CommandOptions<'start'>) => {
   await startServer(new MockAuthProvider(gitUser), commands);
 });
 
+// Publish command - creates a git tag with semantic versioning
+const publishCmd = new CommandWithPath('publish')
+  .description(
+    'Publish a new version (creates git commit + annotated tag, pushes by default). The first publish always creates v1.0.0 regardless of bump type.',
+  )
+  .addArgument(
+    new Argument('<bump>', 'Version bump type').choices([
+      'patch',
+      'minor',
+      'major',
+    ]),
+  )
+  .option('--no-push', 'Skip pushing commit and tag to remote');
+program.addCommand(publishCmd);
+publishCmd.action(
+  async (bump: string, options: CommandOptions<'publish'>) => {
+    const mergedOptions = Object.assign({}, options, program.opts());
+    // Commander sets push=false when --no-push is used, undefined otherwise
+    const shouldPush = options.push !== false;
+    const args = [bump, shouldPush ? 'true' : 'false'];
+    const result = await commandHandler.command(
+      Cmd.publish,
+      args,
+      mergedOptions,
+    );
+    handleResponse(result);
+  },
+);
+
 // MCP Server command
 const mcpCmd = new CommandWithPath('mcp').description(
   'Starts the MCP (Model Context Protocol) server for AI assistant integration',

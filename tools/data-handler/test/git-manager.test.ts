@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-expressions */
+
 import { expect } from 'chai';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -137,6 +139,161 @@ describe('GitManager', () => {
       } catch (e) {
         expect((e as NodeJS.ErrnoException).code).to.equal('ENOENT');
       }
+    });
+  });
+
+  describe('tag()', () => {
+    it('should create an annotated tag', async () => {
+      const gm = new GitManager(dir);
+      await gm.initialize();
+
+      await gm.tag('v1.0.0', 'Release v1.0.0');
+
+      const git = simpleGit(dir);
+      const tags = await git.tags();
+      expect(tags.all).to.include('v1.0.0');
+    });
+  });
+
+  describe('listVersionTags()', () => {
+    it('should return empty array when no tags exist', async () => {
+      const gm = new GitManager(dir);
+      await gm.initialize();
+
+      const tags = await gm.listVersionTags();
+      expect(tags).to.deep.equal([]);
+    });
+
+    it('should list version tags sorted by version descending', async () => {
+      const gm = new GitManager(dir);
+      await gm.initialize();
+
+      // Create tags in non-sorted order
+      await gm.tag('v1.0.0', 'v1.0.0');
+      await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
+      await gm.commit('change 1');
+      await gm.tag('v2.0.0', 'v2.0.0');
+      await writeFile(join(dir, 'cardRoot', 'b.txt'), 'b');
+      await gm.commit('change 2');
+      await gm.tag('v1.1.0', 'v1.1.0');
+
+      const tags = await gm.listVersionTags();
+      expect(tags).to.deep.equal(['v2.0.0', 'v1.1.0', 'v1.0.0']);
+    });
+
+    it('should ignore non-version tags', async () => {
+      const gm = new GitManager(dir);
+      await gm.initialize();
+
+      const git = simpleGit(dir);
+      await git.tag(['-a', 'release-1', '-m', 'not a version tag']);
+      await gm.tag('v1.0.0', 'v1.0.0');
+
+      const tags = await gm.listVersionTags();
+      expect(tags).to.deep.equal(['v1.0.0']);
+    });
+  });
+
+  describe('getVersion()', () => {
+    it('should return null when no version tags exist', async () => {
+      const gm = new GitManager(dir);
+      await gm.initialize();
+
+      const version = await gm.getVersion();
+      expect(version).to.be.null;
+    });
+
+    it('should return the latest version', async () => {
+      const gm = new GitManager(dir);
+      await gm.initialize();
+
+      await gm.tag('v1.0.0', 'v1.0.0');
+      await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
+      await gm.commit('change');
+      await gm.tag('v1.1.0', 'v1.1.0');
+
+      const version = await gm.getVersion();
+      expect(version).to.equal('1.1.0');
+    });
+
+    it('should return highest version even if created out of order', async () => {
+      const gm = new GitManager(dir);
+      await gm.initialize();
+
+      await gm.tag('v2.0.0', 'v2.0.0');
+      await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
+      await gm.commit('change');
+      await gm.tag('v1.5.0', 'v1.5.0');
+
+      const version = await gm.getVersion();
+      expect(version).to.equal('2.0.0');
+    });
+  });
+
+  describe('hasChangesSinceTag()', () => {
+    it('should return false when no changes since tag', async () => {
+      const gm = new GitManager(dir);
+      await gm.initialize();
+
+      await gm.tag('v1.0.0', 'v1.0.0');
+
+      const hasChanges = await gm.hasChangesSinceTag('v1.0.0');
+      expect(hasChanges).to.equal(false);
+    });
+
+    it('should return true when there are committed changes since tag', async () => {
+      const gm = new GitManager(dir);
+      await gm.initialize();
+
+      await gm.tag('v1.0.0', 'v1.0.0');
+      await writeFile(join(dir, 'cardRoot', 'new.txt'), 'content');
+      await gm.commit('new change');
+
+      const hasChanges = await gm.hasChangesSinceTag('v1.0.0');
+      expect(hasChanges).to.equal(true);
+    });
+  });
+
+  describe('hasUncommittedChanges()', () => {
+    it('should return false on a clean working tree', async () => {
+      const gm = new GitManager(dir);
+      await gm.initialize();
+
+      const dirty = await gm.hasUncommittedChanges();
+      expect(dirty).to.equal(false);
+    });
+
+    it('should return true when there are unstaged changes', async () => {
+      const gm = new GitManager(dir);
+      await gm.initialize();
+
+      await writeFile(join(dir, 'cardRoot', 'dirty.txt'), 'uncommitted');
+
+      const dirty = await gm.hasUncommittedChanges();
+      expect(dirty).to.equal(true);
+    });
+
+    it('should return true when there are staged but uncommitted changes', async () => {
+      const gm = new GitManager(dir);
+      await gm.initialize();
+
+      await writeFile(join(dir, 'cardRoot', 'staged.txt'), 'staged');
+      const git = simpleGit(dir);
+      await git.add('cardRoot/staged.txt');
+
+      const dirty = await gm.hasUncommittedChanges();
+      expect(dirty).to.equal(true);
+    });
+
+    it('should ignore untracked files outside project directories', async () => {
+      const gm = new GitManager(dir);
+      await gm.initialize();
+
+      // Create a file outside cardRoot and .cards
+      await writeFile(join(dir, 'random-notes.txt'), 'not a project file');
+
+      const dirty = await gm.hasUncommittedChanges();
+      expect(dirty).to.equal(false);
     });
   });
 });

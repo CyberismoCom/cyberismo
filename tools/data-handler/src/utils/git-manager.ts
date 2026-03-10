@@ -13,6 +13,7 @@
 
 import { simpleGit, type SimpleGit } from 'simple-git';
 import { getChildLogger } from './log-utils.js';
+import { parseTag } from './semver.js';
 
 export class GitManager {
   private git: SimpleGit;
@@ -83,5 +84,60 @@ export class GitManager {
     // Remove new untracked files created during the failed write
     await this.git.clean('f', ['-d', 'cardRoot', '.cards']);
     this.logger.info('Rollback completed');
+  }
+
+  /** Create an annotated git tag. */
+  async tag(tagName: string, message?: string): Promise<void> {
+    this.logger.info({ tagName }, 'Creating tag');
+    await this.git.tag(['-a', tagName, '-m', message || tagName]);
+  }
+
+  /** List all version tags (v*) sorted by version descending. */
+  async listVersionTags(): Promise<string[]> {
+    const result = await this.git.tags(['--list', 'v*', '--sort=-v:refname']);
+    return result.all;
+  }
+
+  /**
+   * Get the current project version from the latest git tag.
+   * @returns semver string (e.g. "1.2.3") or null if no version tags exist.
+   */
+  async getVersion(): Promise<string | null> {
+    const tags = await this.listVersionTags();
+    // Tags are already sorted descending by git (--sort=-v:refname)
+    const versions = tags
+      .map((tag) => parseTag(tag))
+      .filter((v): v is string => v !== null);
+    if (versions.length === 0) return null;
+    return versions[0];
+  }
+
+  /**
+   * Check if there are changes since a given tag.
+   * @returns true if HEAD differs from the tagged commit.
+   */
+  async hasChangesSinceTag(tag: string): Promise<boolean> {
+    const diff = await this.git.diff(['--stat', `${tag}..HEAD`]);
+    return diff.trim().length > 0;
+  }
+
+  /** Check if the working tree has uncommitted changes in project directories (staged or unstaged). */
+  async hasUncommittedChanges(): Promise<boolean> {
+    const status = await this.git.status([
+      '--',
+      'cardRoot',
+      '.cards',
+    ]);
+    return !status.isClean();
+  }
+
+  /** Push current branch and optionally tags to remote. */
+  async push(options?: { tags?: boolean }): Promise<void> {
+    this.logger.info('Pushing to remote');
+    if (options?.tags) {
+      await this.git.push(['--follow-tags']);
+    } else {
+      await this.git.push();
+    }
   }
 }
