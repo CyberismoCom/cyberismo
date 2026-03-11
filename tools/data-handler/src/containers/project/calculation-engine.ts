@@ -281,7 +281,12 @@ export class CalculationEngine {
         const contextFacts = createContextFacts(context);
         setProgram('context', contextFacts, [ALL_CATEGORY]);
         // Then solve with the program - need to pass the program as parameter
-        return solve(query, basePrograms);
+        const result = await solve(query, basePrograms);
+        this.logger.trace(
+          { stats: result.stats, clingo: true },
+          'Solve completed',
+        );
+        return result;
       });
 
       if (res && res.answers && res.answers.length > 0) {
