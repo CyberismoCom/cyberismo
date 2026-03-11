@@ -20,108 +20,14 @@
 #include <clingo.hh>
 #include <napi.h>
 
-#include "clingo_solver.h"
+#include "napi_helpers.h"
 #include "program_store.h"
+#include "solve_async_worker.h"
 #include "xxhash.h"
 
 // unnamed namespace to avoid polluting the global namespace
 namespace
 {
-    struct NodeClingoLogs
-    {
-        Napi::Array errors;
-        Napi::Array warnings;
-
-        NodeClingoLogs(Napi::Env env)
-        {
-            errors = Napi::Array::New(env);
-            warnings = Napi::Array::New(env);
-        }
-    };
-
-    /**
-    * Helper function to parse the error messages from Clingo
-    * @param env The N-API environment.
-    * @return NodeClingoLogs containing separated errors and warnings arrays.
-    */
-    NodeClingoLogs parse_clingo_logs(
-        const Napi::Env& env,
-        const std::vector<node_clingo::ClingoLogMessage>& logMessages)
-    {
-        NodeClingoLogs logs(env);
-
-        size_t errorIndex = 0;
-        size_t warningIndex = 0;
-
-        for (const auto& msg : logMessages)
-        {
-            if (msg.isError)
-            {
-                logs.errors.Set(errorIndex++, Napi::String::New(env, msg.message));
-            }
-            else
-            {
-                logs.warnings.Set(warningIndex++, Napi::String::New(env, msg.message));
-            }
-        }
-
-        return logs;
-    }
-    /**
-    * Helper function to throw a Napi error from a failed SolveResult.
-    * @param env The N-API environment.
-    * @param logMessages The log messages from the solve attempt.
-    * @param errorMessage The error message string.
-    * @param programKey The string identifier of the program that caused the error.
-    */
-    void throw_solve_error(
-        const Napi::Env& env,
-        const std::vector<node_clingo::ClingoLogMessage>& logMessages,
-        const std::string& errorMessage,
-        const std::string& programKey = "")
-    {
-        Napi::Error error = Napi::Error::New(env, errorMessage);
-
-        Napi::Object errorObj = Napi::Object::New(env);
-
-        NodeClingoLogs logs = parse_clingo_logs(env, logMessages);
-
-        errorObj.Set("errors", logs.errors);
-        errorObj.Set("warnings", logs.warnings);
-        if (!programKey.empty())
-        {
-            errorObj.Set("program", Napi::String::New(env, programKey));
-        }
-
-        error.Set("details", errorObj);
-        throw error;
-    }
-
-    Napi::Object create_napi_object_from_solve_result(const Napi::Env& env, const node_clingo::SolveResult& result)
-    {
-        Napi::Object resultObj = Napi::Object::New(env);
-        Napi::Array answersArray = Napi::Array::New(env, result.answers.size());
-        for (size_t i = 0; i < result.answers.size(); ++i)
-        {
-            answersArray[i] = Napi::String::New(env, result.answers[i]);
-        }
-        resultObj.Set("answers", answersArray);
-        Napi::Object statsObj = Napi::Object::New(env);
-        statsObj.Set("glue", result.stats.glue.count());
-        statsObj.Set("add", result.stats.add.count());
-        statsObj.Set("ground", result.stats.ground.count());
-        statsObj.Set("solve", result.stats.solve.count());
-        statsObj.Set("cacheHit", result.stats.cacheHit);
-        resultObj.Set("stats", statsObj);
-
-        NodeClingoLogs logs = parse_clingo_logs(env, result.logs);
-        resultObj.Set("errors", logs.errors);
-        resultObj.Set("warnings", logs.warnings);
-
-        return resultObj;
-    }
-
-    node_clingo::ClingoSolver g_clingoSolver;
     node_clingo::ProgramStore g_programStore;
     node_clingo::SolveResultCache g_solveResultCache;
 
@@ -279,20 +185,15 @@ Napi::Value BuildProgram(const Napi::CallbackInfo& info)
 
 /**
  * N-API function exposed to JavaScript as `solve`.
- * Solves a given logic program, optionally combining it with stored base programs.
- * Handles grounding with external functions and collects answer sets.
+ * Solves a given logic program asynchronously using a worker thread.
+ * Returns a Promise that resolves with the solve result.
  * @param info N-API callback info containing arguments (program string, optional base program key(s) string or array).
- * @returns A Napi::Object containing:
- *   - `answers`: A Napi::Array of strings, each representing an answer set.
- *   - `stats`: A Napi::Object containing:
- *     - `glue`: A Napi::Number representing the glue time in microseconds.
- *     - `add`: A Napi::Number representing the add time in microseconds.
- *     - `ground`: A Napi::Number representing the ground time in microseconds.
- *     - `solve`: A Napi::Number representing the solve time in microseconds.
- *   - `errors`: A Napi::Array of strings, each representing an error message.
- *   - `warnings`: A Napi::Array of strings, each representing a warning message.
+ * @returns A Napi::Promise that resolves to an object containing:
+ *   - `answers`: An array of strings, each representing an answer set.
+ *   - `stats`: An object containing timing statistics.
+ *   - `errors`: An array of error message strings.
+ *   - `warnings`: An array of warning message strings.
  * @throws Napi::TypeError if arguments are invalid.
- * @throws Napi::Error on Clingo errors or other exceptions.
  */
 Napi::Value Solve(const Napi::CallbackInfo& info)
 {
@@ -321,29 +222,20 @@ Napi::Value Solve(const Napi::CallbackInfo& info)
         result.stats.ground = std::chrono::microseconds::zero();
         result.stats.solve = std::chrono::microseconds::zero();
         result.stats.cacheHit = true;
-        return create_napi_object_from_solve_result(env, result);
+
+        auto deferred = Napi::Promise::Deferred::New(env);
+        deferred.Resolve(node_clingo::create_napi_object_from_solve_result(env, result));
+        return deferred.Promise();
     }
 
     auto t2 = std::chrono::high_resolution_clock::now();
 
-    // recalculate the result and store it in the cache
-    try
-    {
-        result = g_clingoSolver.solve(query);
-    }
-    catch (const node_clingo::ClingoSolveException& e)
-    {
-        throw_solve_error(env, e.logs, e.what(), e.programKey);
-    }
-    catch (const std::exception& e)
-    {
-        throw Napi::Error::New(env, e.what());
-    }
-    result.stats.glue = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
-    Napi::Object resultObj = create_napi_object_from_solve_result(env, result);
-    g_solveResultCache.addResult(query.hash, std::move(result));
+    // Queue the expensive solve work on a worker thread
+    auto* worker = new node_clingo::SolveAsyncWorker(env, std::move(query), t1, t2, g_solveResultCache);
+    auto promise = worker->Deferred().Promise();
+    worker->Queue();
 
-    return resultObj;
+    return promise;
 }
 
 /**
