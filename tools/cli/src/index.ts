@@ -13,8 +13,11 @@
 */
 
 import { constants, existsSync } from 'node:fs';
-import { access, lstat, readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { access, lstat, readFile, writeFile, mkdtemp, rm } from 'node:fs/promises';
+import { resolve, join } from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { tmpdir } from 'node:os';
 
 import { Argument, Command, Option } from 'commander';
 import confirm from '@inquirer/confirm';
@@ -46,6 +49,10 @@ import {
 } from '@cyberismo/backend';
 import type { MockUserConfig } from '@cyberismo/backend';
 import { simpleGit } from 'simple-git';
+import { solve, clearCache } from '@cyberismo/node-clingo';
+import { lpFiles } from '@cyberismo/assets';
+
+const execFileAsync = promisify(execFile);
 
 // How many validation errors are shown when staring app, if any.
 const VALIDATION_ERROR_ROW_LIMIT = 10;
@@ -341,6 +348,244 @@ calculate
     );
     handleResponse(result);
   });
+
+calculate
+  .command('benchmark')
+  .description('Benchmark solve performance at varying project sizes')
+  .argument('<template>', 'Template name to use for scaling')
+  .argument('[query]', 'Query name to benchmark (card, tree, etc.)', 'tree')
+  .option(
+    '--scales <numbers>',
+    'Card count targets, comma-separated',
+    '1000,2000,3000,4000,5000',
+  )
+  .option('--runs <number>', 'Runs per scale point', '10')
+  .option('--output <file>', 'Output CSV file (default: stdout)')
+  .option(
+    '--binary',
+    'Also benchmark using Clingo binary for comparison',
+    false,
+  )
+  .action(
+    async (
+      template: string,
+      query: string,
+      options: {
+        scales: string;
+        runs: string;
+        output?: string;
+        binary: boolean;
+        projectPath?: string;
+      },
+    ) => {
+      try {
+        const scales = options.scales.split(',').map((s) => parseInt(s.trim(), 10));
+        const runs = parseInt(options.runs, 10);
+        const allOpts = Object.assign({}, options, program.opts());
+        const projectPath = await commandHandler.getProjectPath(
+          allOpts.projectPath,
+        );
+
+        const commands = await CommandManager.getInstance(projectPath, {
+          logLevel: allOpts.logLevel,
+        });
+
+        // Get query content
+        const queryName = query as keyof typeof lpFiles.queries;
+        if (!(queryName in lpFiles.queries)) {
+          program.error(
+            `Unknown query '${query}'. Available: ${Object.keys(lpFiles.queries).join(', ')}`,
+          );
+        }
+        const queryContent = lpFiles.queries[queryName];
+
+        // Count initial cards and determine cards per template instance
+        const initialCards = commands.project.cards();
+        const initialCount = initialCards.length;
+
+        // Create one template instance to determine how many cards it produces
+        const testCards = await commands.createCmd.createCard(template);
+        const cardsPerInstance = testCards.length;
+        if (cardsPerInstance === 0) {
+          program.error(
+            'Template produces 0 cards — cannot scale. Check template name.',
+          );
+        }
+        let currentCount = initialCount + cardsPerInstance;
+        console.error(
+          `Template '${template}' produces ${cardsPerInstance} card(s) per instance.`,
+        );
+        console.error(`Initial card count: ${initialCount}, after first instance: ${currentCount}`);
+
+        // CSV header
+        const csvLines: string[] = [
+          'method,project,template,query,cardCount,run,addUs,groundUs,solveUs,glueUs,totalUs,cacheHit',
+        ];
+        const projectName = commands.project.projectPrefix;
+
+        // Progress bar
+        const totalWork = scales.reduce((sum, scale) => {
+          const instancesNeeded = Math.max(
+            0,
+            Math.ceil((scale - currentCount) / cardsPerInstance),
+          );
+          // Rough: scaling + runs. Will be approximate since currentCount changes.
+          return sum + instancesNeeded + runs + (options.binary ? runs : 0);
+        }, 0);
+        const progress = new cliProgress.SingleBar(
+          {
+            format: '{bar} {percentage}% | {value}/{total} | {status}',
+            clearOnComplete: true,
+          },
+          cliProgress.Presets.shades_classic,
+        );
+        // Don't show progress bar if output goes to stdout (would corrupt CSV)
+        const useProgress = !!options.output;
+        if (useProgress) progress.start(totalWork, 0, { status: 'starting' });
+
+        for (const scale of scales) {
+          // Scale up: create cards until we reach the target
+          const instancesToCreate = Math.max(
+            0,
+            Math.ceil((scale - currentCount) / cardsPerInstance),
+          );
+          for (let i = 0; i < instancesToCreate; i++) {
+            await commands.createCmd.createCard(template);
+            currentCount += cardsPerInstance;
+            if (useProgress)
+              progress.increment(1, {
+                status: `scaling to ${scale} (${currentCount} cards)`,
+              });
+          }
+
+          // Regenerate logic program for new project size
+          if (useProgress)
+            progress.update({ status: `generating LP (${currentCount} cards)` });
+          await commands.calculateCmd.generate();
+
+          // Native addon benchmark
+          for (let run = 1; run <= runs; run++) {
+            clearCache();
+            const result = await solve(queryContent, ['all']);
+            const stats = result.stats;
+            const totalUs =
+              stats.glue + stats.add + stats.ground + stats.solve;
+            csvLines.push(
+              [
+                'native',
+                projectName,
+                template,
+                query,
+                currentCount,
+                run,
+                stats.add,
+                stats.ground,
+                stats.solve,
+                stats.glue,
+                totalUs,
+                stats.cacheHit,
+              ].join(','),
+            );
+            if (useProgress)
+              progress.increment(1, {
+                status: `native run ${run}/${runs} @ ${currentCount} cards`,
+              });
+          }
+
+          // Binary benchmark (if --binary)
+          if (options.binary) {
+            const tmpDir = await mkdtemp(join(tmpdir(), 'cyberismo-bench-'));
+            const lpFile = join(tmpDir, 'program.lp');
+            await commands.calculateCmd.exportLogicProgram(lpFile, ['all'], queryName);
+
+            for (let run = 1; run <= runs; run++) {
+              const startTime = performance.now();
+              try {
+                let stdout = '';
+                try {
+                  const result = await execFileAsync('clingo', [
+                    lpFile,
+                    '--stats',
+                  ]);
+                  stdout = result.stdout;
+                } catch (execError: unknown) {
+                  // Clingo exits with code 10/20/30 for SAT/UNSAT/UNKNOWN — still valid
+                  if (
+                    execError &&
+                    typeof execError === 'object' &&
+                    'stdout' in execError
+                  ) {
+                    stdout = (execError as { stdout: string }).stdout;
+                  } else {
+                    throw execError;
+                  }
+                }
+                const endTime = performance.now();
+                const totalMs = endTime - startTime;
+
+                // Parse Clingo stats from stdout
+                let clingoGroundMs = 0;
+                let clingoSolveMs = 0;
+                const groundMatch = stdout.match(
+                  /Grounding\s*:\s*([\d.]+)s/,
+                );
+                const solveMatch = stdout.match(
+                  /Solving\s*:\s*([\d.]+)s/,
+                );
+                if (groundMatch)
+                  clingoGroundMs = parseFloat(groundMatch[1]) * 1000;
+                if (solveMatch)
+                  clingoSolveMs = parseFloat(solveMatch[1]) * 1000;
+
+                csvLines.push(
+                  [
+                    'binary',
+                    projectName,
+                    template,
+                    query,
+                    currentCount,
+                    run,
+                    '', // addUs
+                    Math.round(clingoGroundMs * 1000), // groundUs (convert ms to μs)
+                    Math.round(clingoSolveMs * 1000), // solveUs
+                    '', // glueUs
+                    Math.round(totalMs * 1000), // totalUs
+                    false,
+                  ].join(','),
+                );
+              } catch (error) {
+                console.error(
+                  `Binary benchmark failed at scale ${scale}, run ${run}:`,
+                  error,
+                );
+              }
+              if (useProgress)
+                progress.increment(1, {
+                  status: `binary run ${run}/${runs} @ ${currentCount} cards`,
+                });
+            }
+
+            await rm(tmpDir, { recursive: true, force: true });
+          }
+        }
+
+        if (useProgress) progress.stop();
+
+        // Output CSV
+        const csvContent = csvLines.join('\n') + '\n';
+        if (options.output) {
+          await writeFile(options.output, csvContent);
+          console.error(`Results written to ${options.output}`);
+        } else {
+          process.stdout.write(csvContent);
+        }
+      } catch (error) {
+        program.error(
+          `Benchmark failed: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    },
+  );
 
 const createCmd = new CommandWithPath('create').description(
   'Create cards, resources and other project items',

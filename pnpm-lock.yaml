@@ -291,6 +291,9 @@ importers:
 
   tools/cli:
     dependencies:
+      '@cyberismo/assets':
+        specifier: workspace:*
+        version: link:../assets
       '@cyberismo/backend':
         specifier: workspace:*
         version: link:../backend
@@ -300,6 +303,9 @@ importers:
       '@cyberismo/mcp':
         specifier: workspace:*
         version: link:../mcp
+      '@cyberismo/node-clingo':
+        specifier: workspace:*
+        version: link:../node-clingo
       '@inquirer/confirm':
         specifier: ^6.0.4
         version: 6.0.4(@types/node@22.19.13)
@@ -343,9 +349,6 @@ importers:
       '@viz-js/viz':
         specifier: ^3.24.0
         version: 3.24.0
-      async-mutex:
-        specifier: ^0.5.0
-        version: 0.5.0
       csv-parse:
         specifier: ^6.1.0
         version: 6.1.0
@@ -2470,9 +2473,6 @@ packages:
   astral-regex@2.0.0:
     resolution: {integrity: sha512-Z7tMw1ytTXt5jqMcOP+OQteU1VuNK9Y02uuJtKQ1Sv69jXQKKg5cibLwGJow8yzZP+eAc18EmLGPal0bp36rvQ==}
     engines: {node: '>=8'}
-
-  async-mutex@0.5.0:
-    resolution: {integrity: sha512-1A94B18jkJ3DYq284ohPxoXbfTA5HsQ7/Mf4DEhcyLx3Bz27Rh59iScbB6EPiP+B+joue6YCxcMXSbFC1tZKwA==}
 
   asynckit@0.4.0:
     resolution: {integrity: sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q==}
@@ -7631,10 +7631,6 @@ snapshots:
   assertion-error@2.0.1: {}
 
   astral-regex@2.0.0: {}
-
-  async-mutex@0.5.0:
-    dependencies:
-      tslib: 2.8.1
 
   asynckit@0.4.0: {}
 
