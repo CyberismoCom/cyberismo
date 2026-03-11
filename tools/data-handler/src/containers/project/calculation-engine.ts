@@ -276,7 +276,12 @@ export class CalculationEngine {
         const contextFacts = createContextFacts(context);
         this.clingo.setProgram('context', contextFacts, [ALL_CATEGORY]);
         // Then solve with the program - need to pass the program as parameter
-        return this.clingo.solve(query, basePrograms);
+        const result = await this.clingo.solve(query, basePrograms);
+        this.logger.trace(
+          { stats: result.stats, clingo: true },
+          'Solve completed',
+        );
+        return result;
       });
 
       if (res && res.answers && res.answers.length > 0) {
