@@ -33,42 +33,12 @@
 namespace node_clingo
 {
 
-    std::string get_symbol_string(clingo_symbol_t symbol)
-    {
-        char* string = nullptr;
-        size_t n;
-        // determine size of the string representation of the next symbol in the model
-        if (!clingo_symbol_to_string_size(symbol, &n))
-        {
-            return "";
-        }
-
-        // allocate memory for the symbol's string
-        string = (char*)malloc(n);
-        if (!string)
-        {
-            return "";
-        }
-
-        // retrieve the symbol's string
-        if (!clingo_symbol_to_string(symbol, string, n))
-        {
-            free(string);
-            return "";
-        }
-        std::string result(string);
-        free(string);
-        return result;
-    }
-
     std::string html_escape(const std::string& input)
     {
         std::string result;
         result.reserve(input.size());
 
         static const std::string amp = "&amp;";
-        static const std::string quot = "&quot;";
-        static const std::string apos = "&apos;";
         static const std::string lt = "&lt;";
         static const std::string gt = "&gt;";
 
@@ -196,75 +166,64 @@ namespace node_clingo
         return std::chrono::system_clock::time_point{};
     }
 
-    bool return_string(const char* str, clingo_symbol_callback_t symbol_callback, void* symbol_callback_data)
+    void return_string(const char* str, Clingo::SymbolSpanCallback cb)
     {
-        clingo_symbol_t sym;
-        if (!clingo_symbol_create_string(str, &sym))
-        {
-            return false;
-        }
-        return symbol_callback(&sym, 1, symbol_callback_data);
+        auto sym = Clingo::String(str);
+        cb({&sym, 1});
     }
 
-    bool return_empty_string(clingo_symbol_callback_t symbol_callback, void* symbol_callback_data)
+    void return_empty_string(Clingo::SymbolSpanCallback cb)
     {
-        return return_string("", symbol_callback, symbol_callback_data);
+        return_string("", cb);
     }
 
-    bool extract_resource_part(
-        clingo_symbol_t const* arguments,
-        size_t arguments_size,
-        clingo_symbol_callback_t symbol_callback,
-        void* symbol_callback_data,
+    void extract_resource_part(
+        Clingo::SymbolSpan args,
+        Clingo::SymbolSpanCallback cb,
         ResourcePart part)
     {
-        if (arguments_size != 1)
+        if (args.size() != 1)
         {
-            return false;
+            throw std::runtime_error("extract_resource_part expects exactly 1 argument");
         }
 
-        clingo_symbol_type_t type = clingo_symbol_type(arguments[0]);
-        if (type != clingo_symbol_type_string)
+        auto type = args[0].type();
+        if (type != Clingo::SymbolType::String)
         {
-            // Return empty string for non-string input
-            return return_empty_string(symbol_callback, symbol_callback_data);
+            return_empty_string(cb);
+            return;
         }
 
-        const char* resource_name;
-        if (!clingo_symbol_string(arguments[0], &resource_name))
-        {
-            return false;
-        }
-
+        const char* resource_name = args[0].string();
         std::string resource_str(resource_name);
 
         if (resource_str.empty())
         {
-            return return_empty_string(symbol_callback, symbol_callback_data);
+            return_empty_string(cb);
+            return;
         }
 
         size_t first_slash = resource_str.find('/');
         if (first_slash == std::string::npos)
         {
-            // No slashes - invalid format
-            return return_empty_string(symbol_callback, symbol_callback_data);
+            return_empty_string(cb);
+            return;
         }
 
         size_t second_slash = resource_str.find('/', first_slash + 1);
         if (second_slash == std::string::npos)
         {
-            // Only 1 slash - invalid format
-            return return_empty_string(symbol_callback, symbol_callback_data);
+            return_empty_string(cb);
+            return;
         }
 
         size_t third_slash = resource_str.find('/', second_slash + 1);
         if (third_slash != std::string::npos)
         {
-            // More than 2 slashes - invalid format
-            return return_empty_string(symbol_callback, symbol_callback_data);
+            return_empty_string(cb);
+            return;
         }
 
-        // Extract the requested part
         std::string result;
         switch (part)
         {
@@ -279,7 +238,7 @@ namespace node_clingo
                 break;
         }
 
-        return return_string(result.c_str(), symbol_callback, symbol_callback_data);
+        return_string(result.c_str(), cb);
     }
 
     int64_t current_epoch_ms()

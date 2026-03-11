@@ -22,7 +22,6 @@ namespace node_clingo
     {
         // rough estimate
         std::size_t size = sizeof(SolveResult);
-        size += r.key.capacity();
         size += sizeof(std::string) * r.answers.capacity();
         for (const auto& s : r.answers)
             size += s.capacity();
@@ -102,5 +101,12 @@ namespace node_clingo
             return true;
         }
         return false;
+    }
+    void SolveResultCache::clear()
+    {
+        entries.clear();
+        lru.clear();
+        currentBytes = 0;
+        LOG("Cache cleared");
     }
 } // namespace node_clingo

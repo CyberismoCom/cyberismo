@@ -17,7 +17,7 @@
 #include <stdint.h>
 #include <string>
 
-#include <clingo.h>
+#include <clingo.hh>
 #include <napi.h>
 
 #include "clingo_solver.h"
@@ -68,38 +68,33 @@ namespace
         return logs;
     }
     /**
-    * Helper function to check for and handle Clingo errors.
-    * If a Clingo error has occurred (clingo_error_code() != 0),
-    * it throws a Napi::Error with the Clingo error message.
+    * Helper function to throw a Napi error from a failed SolveResult.
     * @param env The N-API environment.
-    * @param programKey The string identifier of the program that caused the error
+    * @param logMessages The log messages from the solve attempt.
+    * @param errorMessage The error message string.
+    * @param programKey The string identifier of the program that caused the error.
     */
-    void handle_clingo_error(
+    void throw_solve_error(
         const Napi::Env& env,
         const std::vector<node_clingo::ClingoLogMessage>& logMessages,
+        const std::string& errorMessage,
         const std::string& programKey = "")
     {
-        // If clingo returns an error, we throw an error to the javascript side
-        if (clingo_error_code() != 0)
+        Napi::Error error = Napi::Error::New(env, errorMessage);
+
+        Napi::Object errorObj = Napi::Object::New(env);
+
+        NodeClingoLogs logs = parse_clingo_logs(env, logMessages);
+
+        errorObj.Set("errors", logs.errors);
+        errorObj.Set("warnings", logs.warnings);
+        if (!programKey.empty())
         {
-            Napi::Error error = Napi::Error::New(env, clingo_error_message());
-
-            // Create an object to hold error details
-            Napi::Object errorObj = Napi::Object::New(env);
-
-            // Parse errors and warnings using the common routine
-            NodeClingoLogs logs = parse_clingo_logs(env, logMessages);
-
-            errorObj.Set("errors", logs.errors);
-            errorObj.Set("warnings", logs.warnings);
-            if (!programKey.empty())
-            {
-                errorObj.Set("program", Napi::String::New(env, programKey));
-            }
-
-            error.Set("details", errorObj);
-            throw error;
+            errorObj.Set("program", Napi::String::New(env, programKey));
         }
+
+        error.Set("details", errorObj);
+        throw error;
     }
 
     Napi::Object create_napi_object_from_solve_result(const Napi::Env& env, const node_clingo::SolveResult& result)
@@ -332,16 +327,36 @@ Napi::Value Solve(const Napi::CallbackInfo& info)
     auto t2 = std::chrono::high_resolution_clock::now();
 
     // recalculate the result and store it in the cache
-    result = g_clingoSolver.solve(query);
-    result.stats.glue = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
-    if (result.isError)
+    try
     {
-        handle_clingo_error(env, result.logs, result.key);
+        result = g_clingoSolver.solve(query);
     }
+    catch (const node_clingo::ClingoSolveException& e)
+    {
+        throw_solve_error(env, e.logs, e.what(), e.programKey);
+    }
+    catch (const std::exception& e)
+    {
+        throw Napi::Error::New(env, e.what());
+    }
+    result.stats.glue = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
     Napi::Object resultObj = create_napi_object_from_solve_result(env, result);
     g_solveResultCache.addResult(query.hash, std::move(result));
 
     return resultObj;
+}
+
+/**
+ * N-API function exposed to JavaScript as `clearCache`.
+ * Clears the solve result cache.
+ * @param info N-API callback info (no arguments expected).
+ * @returns undefined
+ */
+Napi::Value ClearCache(const Napi::CallbackInfo& info)
+{
+    Napi::Env env = info.Env();
+    g_solveResultCache.clear();
+    return env.Undefined();
 }
 
 /**
@@ -362,6 +377,8 @@ Napi::Object Init(Napi::Env env, Napi::Object exports)
     exports.Set(Napi::String::New(env, "removeAllPrograms"), Napi::Function::New(env, RemoveAllPrograms));
 
     exports.Set(Napi::String::New(env, "removeProgram"), Napi::Function::New(env, RemoveProgram));
+
+    exports.Set(Napi::String::New(env, "clearCache"), Napi::Function::New(env, ClearCache));
 
     return exports;
 }
