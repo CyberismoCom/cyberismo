@@ -8,6 +8,13 @@ import { simpleGit } from 'simple-git';
 
 import { GitManager } from '../src/utils/git-manager.js';
 
+/** Create a simpleGit instance with a test identity so tests work without global git config. */
+function testGit(dir: string) {
+  return simpleGit(dir, {
+    config: ['user.name=Test', 'user.email=test@test.com'],
+  });
+}
+
 describe('GitManager', () => {
   let dir: string;
 
@@ -31,7 +38,7 @@ describe('GitManager', () => {
       const gm = new GitManager(dir);
       await gm.initialize();
 
-      const git = simpleGit(dir);
+      const git = testGit(dir);
       const isRepo = await git.checkIsRepo();
       expect(isRepo).to.equal(true);
 
@@ -45,7 +52,7 @@ describe('GitManager', () => {
       await gm.initialize();
       await gm.initialize(); // second call
 
-      const git = simpleGit(dir);
+      const git = testGit(dir);
       const isRepo = await git.checkIsRepo();
       expect(isRepo).to.equal(true);
 
@@ -64,7 +71,7 @@ describe('GitManager', () => {
       await writeFile(join(dir, 'cardRoot', 'test.json'), '{"key": "value"}');
       await gm.commit('Test commit');
 
-      const git = simpleGit(dir);
+      const git = testGit(dir);
       const log = await git.log();
       expect(log.latest!.message).to.equal('Test commit');
     });
@@ -76,7 +83,7 @@ describe('GitManager', () => {
       // Commit the baseline files first
       await gm.commit('Baseline');
 
-      const git = simpleGit(dir);
+      const git = testGit(dir);
       const logBefore = await git.log();
       await gm.commit('Should not appear');
       const logAfter = await git.log();
@@ -92,7 +99,7 @@ describe('GitManager', () => {
       await writeFile(join(dir, 'cardRoot', 'file.txt'), 'content');
       await gm.commit('Authored commit', author);
 
-      const git = simpleGit(dir);
+      const git = testGit(dir);
       const log = await git.log();
       expect(log.latest!.author_name).to.equal('Test User');
       expect(log.latest!.author_email).to.equal('test@example.com');
@@ -149,7 +156,7 @@ describe('GitManager', () => {
 
       await gm.tag('v1.0.0', 'Release v1.0.0');
 
-      const git = simpleGit(dir);
+      const git = testGit(dir);
       const tags = await git.tags();
       expect(tags.all).to.include('v1.0.0');
     });
@@ -185,7 +192,7 @@ describe('GitManager', () => {
       const gm = new GitManager(dir);
       await gm.initialize();
 
-      const git = simpleGit(dir);
+      const git = testGit(dir);
       await git.tag(['-a', 'release-1', '-m', 'not a version tag']);
       await gm.tag('v1.0.0', 'v1.0.0');
 
@@ -278,7 +285,7 @@ describe('GitManager', () => {
       await gm.initialize();
 
       await writeFile(join(dir, 'cardRoot', 'staged.txt'), 'staged');
-      const git = simpleGit(dir);
+      const git = testGit(dir);
       await git.add('cardRoot/staged.txt');
 
       const dirty = await gm.hasUncommittedChanges();
