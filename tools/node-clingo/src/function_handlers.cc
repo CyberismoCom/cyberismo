@@ -17,7 +17,7 @@
 #include <cstring>
 #include <sstream>
 
-#if __GNUC__ < 13
+#if !defined(__GNUC__) || (__GNUC__ < 13)
 #define USE_FORMAT_FALLBACK 1
 #else
 #define USE_FORMAT_FALLBACK 0
