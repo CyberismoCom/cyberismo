@@ -17,11 +17,12 @@
 #include <atomic>
 #include <chrono>
 #include <list>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-#include <clingo.h>
+#include <clingo.hh>
 
 #include "helpers.h"
 #include "xxhash.h"
@@ -30,9 +31,20 @@ namespace node_clingo
 {
     struct ClingoLogMessage
     {
-        clingo_warning_t code;
+        Clingo::WarningCode code;
         bool isError;
         std::string message;
+    };
+
+    struct ClingoSolveException : std::runtime_error {
+        std::vector<ClingoLogMessage> logs;
+        std::string programKey;
+        ClingoSolveException(const std::string& what,
+                             std::vector<ClingoLogMessage> logs,
+                             std::string programKey = "")
+            : std::runtime_error(what),
+              logs(std::move(logs)),
+              programKey(std::move(programKey)) {}
     };
 
     struct Stats
@@ -46,11 +58,9 @@ namespace node_clingo
 
     struct SolveResult
     {
-        bool isError = false;
         std::vector<std::string> answers;
         std::vector<ClingoLogMessage> logs;
         Stats stats;
-        std::string key;
         int64_t valid_until = 0;
     };
 
@@ -90,6 +100,10 @@ namespace node_clingo
          * @returns true if the result was found, false otherwise
          */
         bool result(const Hash& hash, SolveResult& result);
+        /**
+         * Clears the entire cache
+         */
+        void clear();
     };
 } // namespace node_clingo
 
