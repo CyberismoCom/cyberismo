@@ -19,7 +19,7 @@ interface ClingoBinding {
   removeProgram(key: string): boolean;
   removeAllPrograms(): void;
   clearCache(): void;
-  solve(program: string, categories: string[]): ClingoResult;
+  solve(program: string, categories: string[]): Promise<ClingoResult>;
   buildProgram(program: string, categories: string[]): string;
 }
 
@@ -98,7 +98,8 @@ async function solve(
   }
 
   try {
-    return binding.solve(program, categories ?? []);
+    // eslint-disable-next-line @typescript-eslint/return-await
+    return await binding.solve(program, categories ?? []);
   } catch (error) {
     if (
       error instanceof Error &&

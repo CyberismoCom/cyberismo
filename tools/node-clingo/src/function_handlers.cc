@@ -101,8 +101,9 @@ namespace node_clingo
 
 #if USE_FORMAT_FALLBACK
         time_t now = time(nullptr);
+        std::tm tm_buf = localtime_safe(&now);
         std::stringstream ss;
-        ss << std::put_time(std::localtime(&now), "%Y-%m-%d");
+        ss << std::put_time(&tm_buf, "%Y-%m-%d");
         const auto today_str = ss.str();
 #else
         const auto now_point = std::chrono::system_clock::now();
