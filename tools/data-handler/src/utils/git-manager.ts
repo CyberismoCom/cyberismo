@@ -123,11 +123,7 @@ export class GitManager {
 
   /** Check if the working tree has uncommitted changes in project directories (staged or unstaged). */
   async hasUncommittedChanges(): Promise<boolean> {
-    const status = await this.git.status([
-      '--',
-      'cardRoot',
-      '.cards',
-    ]);
+    const status = await this.git.status(['--', 'cardRoot', '.cards']);
     return !status.isClean();
   }
 

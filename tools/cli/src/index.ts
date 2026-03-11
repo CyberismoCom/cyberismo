@@ -1491,20 +1491,14 @@ const publishCmd = new CommandWithPath('publish')
   )
   .option('--no-push', 'Skip pushing commit and tag to remote');
 program.addCommand(publishCmd);
-publishCmd.action(
-  async (bump: string, options: CommandOptions<'publish'>) => {
-    const mergedOptions = Object.assign({}, options, program.opts());
-    // Commander sets push=false when --no-push is used, undefined otherwise
-    const shouldPush = options.push !== false;
-    const args = [bump, shouldPush ? 'true' : 'false'];
-    const result = await commandHandler.command(
-      Cmd.publish,
-      args,
-      mergedOptions,
-    );
-    handleResponse(result);
-  },
-);
+publishCmd.action(async (bump: string, options: CommandOptions<'publish'>) => {
+  const mergedOptions = Object.assign({}, options, program.opts());
+  // Commander sets push=false when --no-push is used, undefined otherwise
+  const shouldPush = options.push !== false;
+  const args = [bump, shouldPush ? 'true' : 'false'];
+  const result = await commandHandler.command(Cmd.publish, args, mergedOptions);
+  handleResponse(result);
+});
 
 // MCP Server command
 const mcpCmd = new CommandWithPath('mcp').description(

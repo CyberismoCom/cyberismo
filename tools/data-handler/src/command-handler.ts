@@ -583,7 +583,10 @@ export class Commands {
 
     // Validate project before publishing
     const validation = await this.validate();
-    if (validation.statusCode !== 200 || validation.message !== 'Project structure validated') {
+    if (
+      validation.statusCode !== 200 ||
+      validation.message !== 'Project structure validated'
+    ) {
       return {
         statusCode: 400,
         message: `Cannot publish: project has validation errors.\n${validation.message}`,

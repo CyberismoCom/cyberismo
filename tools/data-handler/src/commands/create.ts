@@ -29,11 +29,7 @@ import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 import { write } from '../utils/rw-lock.js';
 import { writeJsonFile } from '../utils/json.js';
 import { ConfigurationLogger } from '../utils/configuration-logger.js';
-import {
-  type BumpType,
-  bumpSemver,
-  formatTag,
-} from '../utils/semver.js';
+import { type BumpType, bumpSemver, formatTag } from '../utils/semver.js';
 
 // todo: Is there a easy to way to make JSON schema into a TypeScript interface/type?
 //       Check this out: https://www.npmjs.com/package/json-schema-to-ts
