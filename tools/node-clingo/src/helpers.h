@@ -20,7 +20,7 @@
 #include <string>
 #include <vector>
 
-#include <clingo.h>
+#include <clingo.hh>
 
 #include "xxhash.h"
 
@@ -47,13 +47,6 @@ namespace node_clingo
         TYPE = 1,      // Resource type (e.g., "fieldTypes")
         IDENTIFIER = 2 // Resource identifier (e.g., "owner")
     };
-
-    /**
-     * Get the string representation of a clingo symbol.
-     * @param symbol The clingo symbol.
-     * @returns The string representation of the symbol.
-     */
-    std::string get_symbol_string(clingo_symbol_t symbol);
 
     /**
      * Escapes HTML special characters in a string.
@@ -83,35 +76,25 @@ namespace node_clingo
     /**
      * Helper function to return a string symbol via callback.
      * @param str The string to return.
-     * @param symbol_callback Callback function to return the result symbol.
-     * @param symbol_callback_data User data for the callback.
-     * @returns True on success, false on error.
+     * @param cb Callback function to return the result symbol.
      */
-    bool return_string(const char* str, clingo_symbol_callback_t symbol_callback, void* symbol_callback_data);
+    void return_string(const char* str, Clingo::SymbolSpanCallback cb);
 
     /**
      * Helper function to return an empty string symbol via callback.
-     * @param symbol_callback Callback function to return the result symbol.
-     * @param symbol_callback_data User data for the callback.
-     * @returns True on success, false on error.
+     * @param cb Callback function to return the result symbol.
      */
-    bool return_empty_string(clingo_symbol_callback_t symbol_callback, void* symbol_callback_data);
+    void return_empty_string(Clingo::SymbolSpanCallback cb);
 
     /**
      * Helper function to validate and extract part of resource name format.
-     * @param arguments Array of clingo symbols representing the arguments.
-     * @param arguments_size Number of arguments.
-     * @param symbol_callback Callback function to return the result symbol.
-     * @param symbol_callback_data User data for the callback.
+     * @param args Span of clingo symbols representing the arguments.
+     * @param cb Callback function to return the result symbol.
      * @param part Resource part to extract (PREFIX, TYPE, or IDENTIFIER)
-     * @returns True on success, false on error. Calls symbol_callback with
-     * result.
      */
-    bool extract_resource_part(
-        clingo_symbol_t const* arguments,
-        size_t arguments_size,
-        clingo_symbol_callback_t symbol_callback,
-        void* symbol_callback_data,
+    void extract_resource_part(
+        Clingo::SymbolSpan args,
+        Clingo::SymbolSpanCallback cb,
         ResourcePart part);
 
     /**
