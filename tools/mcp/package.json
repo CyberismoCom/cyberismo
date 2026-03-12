@@ -1,6 +1,6 @@
 {
   "name": "@cyberismo/mcp",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "description": "MCP server for Cyberismo content projects",
   "main": "dist/index.js",
   "bin": {
