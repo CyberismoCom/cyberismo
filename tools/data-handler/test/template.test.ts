@@ -1,6 +1,9 @@
 // testing
-import { expect } from 'chai';
+import { expect, use } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
 import { after, before, describe, it } from 'mocha';
+
+use(chaiAsPromised);
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';
@@ -55,21 +58,13 @@ describe('template', () => {
     expect(cards.length).to.equal(0);
   });
 
-  it('try to create all cards from an empty template', () => {
+  it('throws an error when creating cards from an empty template', async () => {
     const template = new Template(project, {
       name: 'decision/templates/empty',
       path: '',
     });
-    const cards = template.cards();
-    template
-      .createCards()
-      .then(() => {
-        expect(false);
-      })
-      .catch(() => {
-        const cardsAfter = template.cards();
-        expect(cardsAfter.length).to.equal(cards.length);
-      });
+    await expect(template.createCards()).to.be.rejectedWith(Error);
+    expect(template.cards().length).to.equal(0);
   });
   it('create template card under a specific card from a project', async () => {
     // Choose specific card so that it does not have currently child cards.
