@@ -67,12 +67,47 @@ namespace node_clingo
 
             std::vector<Clingo::Part> parts;
 
+            // Add pre-parsed programs via ProgramBuilder (replay AST nodes)
+            bool hasPreParsed = false;
             for (const auto& program : query.programs)
             {
-                currentKey = program->key;
-                ctl.add(program->key.c_str(), {}, program->content.c_str());
-                parts.emplace_back(program->key.c_str(), Clingo::SymbolSpan{});
+                if (!program->ast_nodes.empty())
+                {
+                    hasPreParsed = true;
+                    break;
+                }
             }
+
+            if (hasPreParsed)
+            {
+                Clingo::AST::with_builder(ctl, [&](Clingo::AST::ProgramBuilder& builder) {
+                    for (const auto& program : query.programs)
+                    {
+                        if (!program->ast_nodes.empty())
+                        {
+                            currentKey = program->key;
+                            for (const auto& node : program->ast_nodes)
+                            {
+                                builder.add(node);
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Fall back to text parsing for programs without AST (syntax errors, etc.)
+            for (const auto& program : query.programs)
+            {
+                if (program->ast_nodes.empty())
+                {
+                    currentKey = program->key;
+                    ctl.add(program->key.c_str(), {}, program->content.c_str());
+                    parts.emplace_back(program->key.c_str(), Clingo::SymbolSpan{});
+                }
+            }
+
+            // Pre-parsed programs land under "base"
+            parts.emplace_back("base", Clingo::SymbolSpan{});
 
             auto t2 = std::chrono::high_resolution_clock::now();
 
