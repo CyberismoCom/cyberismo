@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Box, Button, Typography } from '@mui/joy';
+import { Stack, Button, Typography } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
@@ -19,26 +19,25 @@ export default function NotFoundPage() {
   const { t } = useTranslation();
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flex: 1,
-        gap: 2,
-      }}
+    <Stack
+      direction="column"
+      alignItems="center"
+      justifyContent="center"
+      height="100%"
+      gap={4}
     >
-      <Typography level="h1" sx={{ color: 'neutral.400', fontSize: '6rem' }}>
-        404
-      </Typography>
-      <Typography level="h3">{t('notFound.title')}</Typography>
-      <Typography level="body-lg" sx={{ color: 'text.secondary' }}>
+      <Typography level="h1">{t('notFound.title')}</Typography>
+      <Typography level="title-lg" sx={{ textAlign: 'center' }}>
         {t('notFound.description')}
       </Typography>
-      <Button component={Link} to="/cards" sx={{ mt: 2 }}>
+      <Button size="sm" component={Link} to="/cards" sx={{ mt: 2 }}>
         {t('notFound.goHome')}
       </Button>
-    </Box>
+      <img
+        src="/images/broken_link.svg"
+        alt=""
+        style={{ maxWidth: '400px', width: '80%' }}
+      />
+    </Stack>
   );
 }
