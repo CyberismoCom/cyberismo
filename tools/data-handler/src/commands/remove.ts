@@ -98,12 +98,12 @@ export class Remove {
     const promiseContainer: Promise<void>[] = [];
 
     for (const item of allCards) {
-      if (cardsToDelete.has(item.key)) continue;
-      const links = item.metadata?.links ?? [];
-      const filtered = links.filter((l) => !cardsToDelete.has(l.cardKey));
-      if (filtered.length !== links.length) {
+      if (cardsToDelete.has(item.key) || !item.metadata) continue;
+      const links = item.metadata.links;
+      const preservedLinks = links.filter((l) => !cardsToDelete.has(l.cardKey));
+      if (preservedLinks.length !== links.length) {
         promiseContainer.push(
-          this.project.updateCardMetadataKey(item.key, 'links', filtered),
+          this.project.updateCardMetadataKey(item.key, 'links', preservedLinks),
         );
       }
     }
