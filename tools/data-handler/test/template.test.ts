@@ -88,12 +88,11 @@ describe('template', () => {
     const cardAfter = project.findCard('decision_6');
     expect(cardAfter?.children?.length).to.equal(2);
   });
-  it('try to create a specific card from an empty template', async () => {
+  it('throws an error when trying to create a specific card from an empty template', async () => {
     const template = new Template(project, {
       name: 'decision/templates/empty',
       path: '',
     });
-    const cards = template.cards();
     const nonExistingCard: Card = {
       key: '1111',
       path: '',
@@ -102,15 +101,10 @@ describe('template', () => {
       attachments: [],
     };
 
-    await template
-      .createCards(nonExistingCard)
-      .then(() => {
-        expect(false);
-      })
-      .catch(() => {
-        const cardsAfter = template.cards();
-        expect(cardsAfter.length).to.equal(cards.length);
-      });
+    await expect(template.createCards(nonExistingCard)).to.be.rejectedWith(
+      Error,
+    );
+    expect(template.cards().length).to.equal(0);
   });
   it('add new card to a template', async () => {
     const template = new Template(project, {
