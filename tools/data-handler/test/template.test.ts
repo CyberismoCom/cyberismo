@@ -81,7 +81,7 @@ describe('template', () => {
     const templateCards = template.cards();
 
     expect(
-      createdCards.map((item) => item.metadata?.templateCardKey),
+      createdCards.map((item) => item.metadata!.templateCardKey),
     ).to.have.same.members(templateCards.map((item) => item.key));
 
     // Two direct children should have been created
