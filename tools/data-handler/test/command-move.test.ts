@@ -300,6 +300,158 @@ describe('move command', () => {
       'Child should be found in project.cards() result after move',
     ).to.be.true;
   });
+
+  it('verify descendant card paths are updated in cache after moving parent', async () => {
+    // This test ensures that when a parent card with descendants is moved,
+    // all descendant card paths and attachment paths are updated in the cache.
+    // This prevents operations on descendants from targeting non-existent paths.
+
+    // Get the CommandManager instance to access its project
+    const commandManager = await CommandManager.getInstance(
+      options.projectPath!,
+    );
+    const project = commandManager.project;
+
+    const template = 'decision/templates/decision';
+
+    // Create a tree: grandparent -> parent -> child -> grandchild
+    let result = await commandHandler.command(
+      Cmd.create,
+      ['card', template, ''],
+      options,
+    );
+    const grandparentKey = result.affectsCards?.[0];
+    expect(grandparentKey).to.be.a('string');
+
+    result = await commandHandler.command(
+      Cmd.create,
+      ['card', template, grandparentKey!],
+      options,
+    );
+    const parentKey = result.affectsCards?.[0];
+    expect(parentKey).to.be.a('string');
+
+    result = await commandHandler.command(
+      Cmd.create,
+      ['card', template, parentKey!],
+      options,
+    );
+    const childKey = result.affectsCards?.[0];
+    expect(childKey).to.be.a('string');
+
+    result = await commandHandler.command(
+      Cmd.create,
+      ['card', template, childKey!],
+      options,
+    );
+    const grandchildKey = result.affectsCards?.[0];
+    expect(grandchildKey).to.be.a('string');
+
+    // Add an attachment to the child card
+    const attachmentName = 'test-attachment.txt';
+    const attachmentContent = Buffer.from('test attachment content');
+    await commandManager.createCmd.createAttachment(
+      childKey!,
+      attachmentName,
+      attachmentContent,
+    );
+
+    // Create a destination card at root level
+    result = await commandHandler.command(
+      Cmd.create,
+      ['card', template, ''],
+      options,
+    );
+    const destinationKey = result.affectsCards?.[0];
+    expect(destinationKey).to.be.a('string');
+
+    // Get paths before move
+    const grandparentBefore = project.findCard(grandparentKey!);
+    const parentBefore = project.findCard(parentKey!);
+    const childBefore = project.findCard(childKey!);
+    const grandchildBefore = project.findCard(grandchildKey!);
+
+    // Verify child has our attachment before move
+    const ourAttachmentBefore = childBefore.attachments.find(
+      (a) => a.fileName === attachmentName,
+    );
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    expect(ourAttachmentBefore, 'Our attachment should exist').to.not.be
+      .undefined;
+    const attachmentPathBefore = ourAttachmentBefore!.path;
+    expect(attachmentPathBefore).to.include(childKey!);
+
+    // Verify initial tree structure
+    expect(grandparentBefore.parent).to.equal('root');
+    expect(parentBefore.parent).to.equal(grandparentKey);
+    expect(childBefore.parent).to.equal(parentKey);
+    expect(grandchildBefore.parent).to.equal(childKey);
+
+    // Store old paths for comparison
+    const oldGrandparentPath = grandparentBefore.path;
+
+    // Move grandparent under destination
+    result = await commandHandler.command(
+      Cmd.move,
+      [grandparentKey!, destinationKey!],
+      options,
+    );
+    expect(result.statusCode).to.equal(200);
+
+    // Verify all descendant paths are updated in cache
+    const grandparentAfter = project.findCard(grandparentKey!);
+    const parentAfterMove = project.findCard(parentKey!);
+    const childAfterMove = project.findCard(childKey!);
+    const grandchildAfterMove = project.findCard(grandchildKey!);
+
+    // Grandparent should have new path under destination
+    expect(grandparentAfter.path).to.include(
+      `${destinationKey}${sep}c${sep}${grandparentKey}`,
+    );
+    expect(grandparentAfter.path).to.not.equal(oldGrandparentPath);
+
+    // Parent's path should be updated (under new grandparent path)
+    expect(parentAfterMove.path).to.include(
+      `${grandparentKey}${sep}c${sep}${parentKey}`,
+    );
+    expect(parentAfterMove.path).to.include(destinationKey!);
+
+    // Child's path should be updated
+    expect(childAfterMove.path).to.include(
+      `${parentKey}${sep}c${sep}${childKey}`,
+    );
+    expect(childAfterMove.path).to.include(destinationKey!);
+
+    // Grandchild's path should be updated
+    expect(grandchildAfterMove.path).to.include(
+      `${childKey}${sep}c${sep}${grandchildKey}`,
+    );
+    expect(grandchildAfterMove.path).to.include(destinationKey!);
+
+    // Verify attachment path is updated
+    const ourAttachmentAfter = childAfterMove.attachments.find(
+      (a) => a.fileName === attachmentName,
+    );
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    expect(ourAttachmentAfter, 'Our attachment should exist after move').to.not
+      .be.undefined;
+    const attachmentPathAfter = ourAttachmentAfter!.path;
+    expect(attachmentPathAfter).to.not.equal(attachmentPathBefore);
+    expect(attachmentPathAfter).to.include(destinationKey!);
+    expect(attachmentPathAfter).to.include(childKey!);
+
+    // Verify that paths start with project path (sanity check that paths are valid)
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    expect(grandparentAfter.path.startsWith(decisionRecordsPath)).to.be.true;
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    expect(parentAfterMove.path.startsWith(decisionRecordsPath)).to.be.true;
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    expect(childAfterMove.path.startsWith(decisionRecordsPath)).to.be.true;
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    expect(grandchildAfterMove.path.startsWith(decisionRecordsPath)).to.be.true;
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    expect(attachmentPathAfter.startsWith(decisionRecordsPath)).to.be.true;
+  });
 });
 
 // Separate test group for similar key tests to avoid interference
