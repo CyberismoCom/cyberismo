@@ -125,14 +125,11 @@ export const useCardMutations = (key: string | null) => {
       (key &&
         (await call(
           () =>
-            createLink(
-              direction === 'outbound' ? key : target,
-              direction === 'outbound' ? target : key,
-              type,
-              linkDescription,
-            ).then(() => {
-              mutate(apiPaths.card(key)); // raw cards do not have links, no need to mutate them
-            }),
+            createLink(key, target, type, linkDescription, direction).then(
+              () => {
+                mutate(apiPaths.card(key)); // raw cards do not have links, no need to mutate them
+              },
+            ),
           'createLink',
         ))) ||
       null,
@@ -145,14 +142,11 @@ export const useCardMutations = (key: string | null) => {
       (key &&
         (await call(
           () =>
-            removeLink(
-              direction === 'outbound' ? key : target,
-              direction === 'outbound' ? target : key,
-              linkType,
-              linkDescription,
-            ).then(() => {
-              mutate(apiPaths.card(key));
-            }),
+            removeLink(key, target, linkType, linkDescription, direction).then(
+              () => {
+                mutate(apiPaths.card(key));
+              },
+            ),
           'deleteLink',
         ))) ||
       null,
@@ -169,26 +163,17 @@ export const useCardMutations = (key: string | null) => {
       return (
         (key &&
           (await call(() => {
-            // Current link structure
-            const sourceKey = direction === 'outbound' ? key : target;
-            const destKey = direction === 'outbound' ? target : key;
-
-            // Original link structure
-            const oldDirection = previousDirection;
-            const oldSourceKey =
-              oldDirection === 'outbound' ? key : previousCardKey || target;
-            const oldDestKey =
-              oldDirection === 'outbound' ? previousCardKey || target : key;
             const oldLinkType = previousLinkType || linkType;
 
             return removeLink(
-              oldSourceKey,
-              oldDestKey,
+              key,
+              previousCardKey || target,
               oldLinkType,
               previousLinkDescription,
+              previousDirection,
             )
               .then(() =>
-                createLink(sourceKey, destKey, linkType, linkDescription),
+                createLink(key, target, linkType, linkDescription, direction),
               )
               .then(() => mutate(apiPaths.card(key)));
           }, 'editLink'))) ||

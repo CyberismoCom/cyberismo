@@ -24,6 +24,7 @@ import {
   canCreateLinkToCard,
   parseNestedDataAttributes,
   parseDataAttributes,
+  parseExternalLink,
 } from '@/lib/utils';
 
 test('flattenTree works with test data', async () => {
@@ -760,5 +761,64 @@ describe('parseNestedDataAttributes', () => {
       const result = parseDataAttributes(attribs);
       expect(result.key).toBe('test');
     });
+  });
+});
+
+describe('parseExternalLink', () => {
+  test('returns null for regular card link', () => {
+    const link: CalculationLink = {
+      key: 'csecdev_abc123',
+      title: 'Some Card',
+      displayName: 'blocks',
+      linkType: 'base/linkTypes/blocks',
+      direction: 'outbound',
+      linkSource: 'user',
+    };
+    const result = parseExternalLink(link);
+    expect(result).toBeNull();
+  });
+
+  test('parses link with connector field', () => {
+    const link: CalculationLink = {
+      key: 'CJIT-7',
+      title: 'External Issue',
+      displayName: 'blocks',
+      linkType: 'base/linkTypes/blocks',
+      direction: 'outbound',
+      linkSource: 'user',
+      connector: 'cyberismo-jira',
+    };
+    const result = parseExternalLink(link);
+    expect(result).not.toBeNull();
+    expect(result?.connector).toBe('cyberismo-jira');
+    expect(result?.itemKey).toBe('CJIT-7');
+  });
+
+  test('parses link with tuple format key (connector,itemKey)', () => {
+    const link: CalculationLink = {
+      key: '(cyberismo-jira,CJIT-3)',
+      title: 'External Issue',
+      displayName: 'blocks',
+      linkType: 'base/linkTypes/blocks',
+      direction: 'inbound',
+      linkSource: 'user',
+    };
+    const result = parseExternalLink(link);
+    expect(result).not.toBeNull();
+    expect(result?.connector).toBe('cyberismo-jira');
+    expect(result?.itemKey).toBe('CJIT-3');
+  });
+
+  test('returns null for card key that looks like card prefix format', () => {
+    const link: CalculationLink = {
+      key: 'proj_12345',
+      title: 'Some Card',
+      displayName: 'blocks',
+      linkType: 'base/linkTypes/blocks',
+      direction: 'outbound',
+      linkSource: 'user',
+    };
+    const result = parseExternalLink(link);
+    expect(result).toBeNull();
   });
 });

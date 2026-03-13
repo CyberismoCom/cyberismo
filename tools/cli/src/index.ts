@@ -167,8 +167,8 @@ const additionalHelpForRemove = `Sub-command help:
       [label] Label being removed
 
   remove link <source> <destination> <linkType>, where
-      <source> Source card key of the link
-      <destination> Destination card key of the link
+      <source> Source card key or external item (connector:itemKey)
+      <destination> Destination card key or external item (connector:itemKey)
       <linkType> Link type to remove
 
   remove module <name>, where
@@ -509,9 +509,16 @@ createCmd
 // Create link subcommand
 createCmd
   .command('link')
-  .description('Create a link between two cards')
-  .argument('<source>', 'Source card key')
-  .argument('<destination>', 'Destination card key')
+  .description(
+    'Create a link between two cards, or between a card and an external item. ' +
+      'Either source or destination can be external using format "connector:itemKey" (e.g., "jira:INTDEV-1032"). ' +
+      'The card always stores the link.',
+  )
+  .argument('<source>', 'Source card key or external item (connector:itemKey)')
+  .argument(
+    '<destination>',
+    'Destination card key or external item (connector:itemKey)',
+  )
   .argument('<linkType>', 'Link type to create')
   .argument('[description]', 'Optional link description')
   .action(

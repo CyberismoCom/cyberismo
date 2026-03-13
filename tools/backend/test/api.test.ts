@@ -180,3 +180,85 @@ test('labels endpoint returns the list of labels', async () => {
   expect(Array.isArray(result)).toBe(true);
   expect(result).toContain('test');
 });
+
+test('connectors endpoint returns connectors data', async () => {
+  const response = await app.request('/api/connectors');
+  expect(response).not.toBe(null);
+
+  const result = (await response.json()) as {
+    name: string;
+    displayName: string;
+    items: { key: string; title: string }[];
+  }[];
+  expect(response.status).toBe(200);
+  expect(Array.isArray(result)).toBe(true);
+  // If no connectors are configured, this should be an empty array
+});
+
+test('POST /api/cards/:key/links creates a link successfully', async () => {
+  const response = await app.request('/api/cards/decision_5/links', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      toCard: 'decision_6',
+      linkType: 'decision/linkTypes/test',
+      direction: 'outbound',
+    }),
+  });
+  expect(response).not.toBe(null);
+
+  const result = (await response.json()) as { message: string };
+  expect(response.status).toBe(200);
+  expect(result.message).toBe('Link created successfully');
+});
+
+test('DELETE /api/cards/:key/links removes a link successfully', async () => {
+  const response = await app.request('/api/cards/decision_5/links', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      toCard: 'decision_6',
+      linkType: 'decision/linkTypes/test',
+      direction: 'outbound',
+    }),
+  });
+  expect(response).not.toBe(null);
+
+  const result = (await response.json()) as { message: string };
+  expect(response.status).toBe(200);
+  expect(result.message).toBe('Link removed successfully');
+});
+
+test('POST /api/cards/:key/links creates external link successfully', async () => {
+  const response = await app.request('/api/cards/decision_5/links', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      toCard: 'jira:TEST-123',
+      linkType: 'decision/linkTypes/test',
+      direction: 'outbound',
+    }),
+  });
+  expect(response).not.toBe(null);
+
+  const result = (await response.json()) as { message: string };
+  expect(response.status).toBe(200);
+  expect(result.message).toBe('Link created successfully');
+});
+
+test('DELETE /api/cards/:key/links removes external link successfully', async () => {
+  const response = await app.request('/api/cards/decision_5/links', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      toCard: 'jira:TEST-123',
+      linkType: 'decision/linkTypes/test',
+      direction: 'outbound',
+    }),
+  });
+  expect(response).not.toBe(null);
+
+  const result = (await response.json()) as { message: string };
+  expect(response.status).toBe(200);
+  expect(result.message).toBe('Link removed successfully');
+});
