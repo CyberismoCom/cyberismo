@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Modal,
@@ -326,7 +327,11 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
           <Box
             ref={svgHolderRef}
             style={sizeStyle}
-            dangerouslySetInnerHTML={{ __html: svgMarkup }}
+            dangerouslySetInnerHTML={{
+              __html: DOMPurify.sanitize(svgMarkup, {
+                USE_PROFILES: { svg: true },
+              }),
+            }}
           />
         </Box>
       </Box>

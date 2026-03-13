@@ -19,6 +19,7 @@ import type { PercentageOptions } from './types.js';
 import BaseMacro from '../base-macro.js';
 import type TaskQueue from '../task-queue.js';
 import { percentage } from '../../svg/index.js';
+import { sanitizeSvgBase64 } from '../../utils/sanitize-svg.js';
 
 class PercentageMacro extends BaseMacro {
   constructor(tasksQueue: TaskQueue) {
@@ -31,7 +32,7 @@ class PercentageMacro extends BaseMacro {
   handleStatic = async (_: MacroGenerationContext, input: unknown) => {
     const options = this.validate(input);
     return createImage(
-      Buffer.from(percentage(options)).toString('base64'),
+      sanitizeSvgBase64(percentage(options), { removeSize: false }),
       false,
     );
   };
