@@ -27,13 +27,21 @@ const removeSvgWidthAndHeight = (node: Element) => {
 /**
  * Sanitize an SVG string and return a base64-encoded string
  * @param svg - SVG content as a string
+ * @param options - Options for sanitization
+ * @param options.removeSize - Whether to remove width/height from the SVG element (default: true)
  * @returns base64-encoded sanitized SVG string
  */
-export function sanitizeSvgBase64(svg: string): string {
+export function sanitizeSvgBase64(
+  svg: string,
+  options?: { removeSize?: boolean },
+): string {
+  const { removeSize = true } = options ?? {};
   const DOMPurify = createDOMPurify(window as unknown as WindowLike);
 
   DOMPurify.setConfig({ USE_PROFILES: { svg: true } });
-  DOMPurify.addHook('afterSanitizeAttributes', removeSvgWidthAndHeight);
+  if (removeSize) {
+    DOMPurify.addHook('afterSanitizeAttributes', removeSvgWidthAndHeight);
+  }
 
   const cleaned = DOMPurify.sanitize(svg);
 
