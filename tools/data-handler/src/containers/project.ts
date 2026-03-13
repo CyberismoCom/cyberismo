@@ -90,7 +90,7 @@ export interface ProjectOptions {
 export class Project extends CardContainer {
   public readonly lock = new RWLock();
   public calculationEngine: CalculationEngine;
-  private gitManager?: GitManager;
+  private gitManager: GitManager;
   private logger = getChildLogger({ module: 'Project' });
   private projectPaths: ProjectPaths;
   private resourceHandler: ResourceHandler;
@@ -147,13 +147,13 @@ export class Project extends CardContainer {
       );
     }
 
-    if (this.options.autocommit) {
-      this.gitManager = new GitManager(path);
+    this.gitManager = new GitManager(path);
 
+    if (this.options.autocommit) {
       // Commit after successful writes
       this.lock.onAfterWrite(async () => {
         const context = getCommitContext();
-        await this.gitManager!.commit(
+        await this.gitManager.commit(
           context.message ?? 'Autocommit',
           context.author,
         );
@@ -161,7 +161,7 @@ export class Project extends CardContainer {
 
       // Rollback on failed writes
       this.lock.onWriteError(async () => {
-        await this.gitManager!.rollback();
+        await this.gitManager.rollback();
         // Invalidate caches after rollback since filesystem state changed
         this.cardCache.clear();
         await this.populateCardsCache();
@@ -897,10 +897,17 @@ export class Project extends CardContainer {
   }
 
   /**
+   * Returns the project's GitManager instance.
+   */
+  public get git(): GitManager {
+    return this.gitManager;
+  }
+
+  /**
    * Initialize git repo for autocommit mode. No-op if autocommit is disabled.
    */
   public async initializeGit(): Promise<void> {
-    if (this.gitManager) {
+    if (this.options.autocommit) {
       await this.gitManager.initialize(getCommitContext().author);
     }
   }
@@ -1075,12 +1082,20 @@ export class Project extends CardContainer {
    * @returns details of a project.
    */
   public async show(): Promise<ProjectMetadata> {
+    let version: string | undefined;
+    try {
+      version = (await this.gitManager.getVersion()) ?? undefined;
+    } catch {
+      // Not a git repo or no tags — leave version undefined
+    }
+
     return {
       name: this.settings.name,
       path: this.basePath,
       prefix: this.projectPrefix,
       category: this.configuration.category,
       description: this.configuration.description,
+      version,
       hubs: this.configuration.hubs,
       modules: this.resources.moduleNames(),
       numberOfCards: (await this.listCards(CardLocation.projectOnly))[0].cards

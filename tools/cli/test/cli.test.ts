@@ -487,6 +487,20 @@ describe('Cli BAT test', function () {
       },
     );
   });
+  it('Publish a version', function (done) {
+    exec(
+      `cd ${cliPath}&&git init&&git add -A&&git -c user.name=Test -c user.email=test@test.com commit -m "init"&&cyberismo publish patch --no-push`,
+      (error, stdout, _stderr) => {
+        if (error != null) {
+          console.log(error);
+        }
+        expect(error).to.be.null;
+        expect(stdout).to.include('Published v1.0.0');
+        expect(stdout).to.include('local only, not pushed');
+        done();
+      },
+    );
+  });
   it('Add default hub and check hub version', function (done) {
     exec(
       `cd ${cliPath}&&cyberismo add hub default&&cyberismo fetch hubs&&cyberismo validate`,
