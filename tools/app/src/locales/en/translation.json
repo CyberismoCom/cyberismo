@@ -303,6 +303,11 @@
   "noEnumValues": "No enum values yet",
   "noModules": "Project does not contain any modules.",
   "none": "None",
+  "notFound": {
+    "title": "Page not found",
+    "description": "The page you are looking for does not exist or you do not have permission to view it.",
+    "goHome": "Browse cards"
+  },
   "notVisible": "Not visible",
   "notifications": "Notifications",
   "openInEditor": "Open in editor",
