@@ -19,6 +19,7 @@ import macroMetadata from './metadata.js';
 import BaseMacro from '../base-macro.js';
 import type TaskQueue from '../task-queue.js';
 import { scoreCard } from '../../svg/index.js';
+import { sanitizeSvgBase64 } from '../../utils/sanitize-svg.js';
 import type { ScoreCardOptions } from './types.js';
 
 class ScoreCardMacro extends BaseMacro {
@@ -32,7 +33,7 @@ class ScoreCardMacro extends BaseMacro {
   handleStatic = async (_: MacroGenerationContext, input: unknown) => {
     const options = this.validate(input);
     return createImage(
-      Buffer.from(scoreCard(options)).toString('base64'),
+      sanitizeSvgBase64(scoreCard(options), { removeSize: false }),
       false,
     );
   };
