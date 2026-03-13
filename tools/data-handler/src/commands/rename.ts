@@ -290,6 +290,5 @@ export class Rename {
       {},
     );
 
-    return this.project.calculationEngine.generate();
   }
 }

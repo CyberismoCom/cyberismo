@@ -18,7 +18,8 @@ interface ClingoBinding {
   setProgram(key: string, program: string, categories?: string[]): void;
   removeProgram(key: string): boolean;
   removeAllPrograms(): void;
-  solve(program: string, categories: string[]): ClingoResult;
+  clearCache(): void;
+  solve(program: string, categories: string[]): Promise<ClingoResult>;
   buildProgram(program: string, categories: string[]): string;
 }
 
@@ -97,7 +98,8 @@ async function solve(
   }
 
   try {
-    return binding.solve(program, categories ?? []);
+    // eslint-disable-next-line @typescript-eslint/return-await
+    return await binding.solve(program, categories ?? []);
   } catch (error) {
     if (
       error instanceof Error &&
@@ -130,6 +132,13 @@ function removeAllPrograms() {
 }
 
 /**
+ * Clears the solve result cache
+ */
+function clearCache() {
+  binding.clearCache();
+}
+
+/**
  * Gets the complete assembled logic program as a string
  * @param program The main logic program as a string
  * @param categories Optional array of program keys or categories to include
@@ -144,6 +153,7 @@ export {
   setProgram,
   removeProgram,
   removeAllPrograms,
+  clearCache,
   buildProgram,
   ClingoResult,
 };
@@ -152,5 +162,6 @@ export default {
   setProgram,
   removeProgram,
   removeAllPrograms,
+  clearCache,
   buildProgram,
 };

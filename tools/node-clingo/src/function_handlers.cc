@@ -17,7 +17,7 @@
 #include <cstring>
 #include <sstream>
 
-#if __GNUC__ < 13
+#if !defined(__GNUC__) || (__GNUC__ < 13)
 #define USE_FORMAT_FALLBACK 1
 #else
 #define USE_FORMAT_FALLBACK 0
@@ -34,112 +34,76 @@
 namespace node_clingo
 {
 
-    bool handle_concatenate(
-        clingo_symbol_t const* arguments,
-        size_t arguments_size,
-        clingo_symbol_callback_t symbol_callback,
-        void* symbol_callback_data)
+    void handle_concatenate(Clingo::SymbolSpan arguments, Clingo::SymbolSpanCallback cb)
     {
         std::string result;
 
-        for (size_t i = 0; i < arguments_size; ++i)
+        for (size_t i = 0; i < arguments.size(); ++i)
         {
-            clingo_symbol_type_t type = clingo_symbol_type(arguments[i]);
+            auto type = arguments[i].type();
 
-            if (type == clingo_symbol_type_string)
+            if (type == Clingo::SymbolType::String)
             {
-                const char* str;
-                if (!clingo_symbol_string(arguments[i], &str))
-                {
-                    return false;
-                }
-                result += str;
+                result += arguments[i].string();
             }
-            else if (type == clingo_symbol_type_number)
+            else if (type == Clingo::SymbolType::Number)
             {
-                int number;
-                if (!clingo_symbol_number(arguments[i], &number))
-                {
-                    return false;
-                }
-                result += std::to_string(number);
+                result += std::to_string(arguments[i].number());
             }
-            else if (type == clingo_symbol_type_function)
+            else if (type == Clingo::SymbolType::Function)
             {
-                result += get_symbol_string(arguments[i]);
+                result += arguments[i].to_string();
             }
         }
 
-        return return_string(result.c_str(), symbol_callback, symbol_callback_data);
+        return_string(result.c_str(), cb);
     }
 
-    bool handle_days_since(
-        clingo_symbol_t const* arguments,
-        size_t arguments_size,
-        clingo_symbol_callback_t symbol_callback,
-        void* symbol_callback_data)
+    void handle_days_since(Clingo::SymbolSpan arguments, Clingo::SymbolSpanCallback cb)
     {
-        if (arguments_size != 1)
+        if (arguments.size() != 1)
         {
-            return false;
+            throw std::runtime_error("daysSince expects exactly 1 argument");
         }
 
-        // get type
-        clingo_symbol_type_t type = clingo_symbol_type(arguments[0]);
-        if (type != clingo_symbol_type_string)
+        auto type = arguments[0].type();
+        if (type != Clingo::SymbolType::String)
         {
-            clingo_symbol_t sym;
-            clingo_symbol_create_number(0, &sym);
-            return symbol_callback(&sym, 1, symbol_callback_data);
+            auto sym = Clingo::Number(0);
+            cb({&sym, 1});
+            return;
         }
 
-        const char* date_str;
-        if (!clingo_symbol_string(arguments[0], &date_str))
-        {
-            return false;
-        }
-
+        const char* date_str = arguments[0].string();
         std::chrono::system_clock::time_point date_point = parse_iso_date(date_str);
 
-        // Check if parsing failed (returned epoch)
         if (date_point == std::chrono::system_clock::time_point{})
         {
-            // Return 0 on failure
-            clingo_symbol_t sym;
-            clingo_symbol_create_number(0, &sym);
-            return symbol_callback(&sym, 1, symbol_callback_data);
+            auto sym = Clingo::Number(0);
+            cb({&sym, 1});
+            return;
         }
 
         auto now_point = std::chrono::system_clock::now();
-
-        // Calculate difference and cast to days
         auto duration = now_point - date_point;
-
         int days = std::chrono::duration_cast<std::chrono::duration<int, std::ratio<86400>>>(duration).count();
 
-        clingo_symbol_t sym;
-        clingo_symbol_create_number(days, &sym);
-
-        return symbol_callback(&sym, 1, symbol_callback_data);
+        auto sym = Clingo::Number(days);
+        cb({&sym, 1});
     }
 
-    bool handle_today(
-        clingo_symbol_t const* arguments,
-        size_t arguments_size,
-        clingo_symbol_callback_t symbol_callback,
-        void* symbol_callback_data)
+    void handle_today(Clingo::SymbolSpan arguments, Clingo::SymbolSpanCallback cb)
     {
-        if (arguments_size != 0)
+        if (arguments.size() != 0)
         {
-            return false;
+            throw std::runtime_error("today expects 0 arguments");
         }
 
-// clang used on mac does not support
-// current_zone and zoned_time
 #if USE_FORMAT_FALLBACK
         time_t now = time(nullptr);
+        std::tm tm_buf = localtime_safe(&now);
         std::stringstream ss;
-        ss << std::put_time(std::localtime(&now), "%Y-%m-%d");
+        ss << std::put_time(&tm_buf, "%Y-%m-%d");
         const auto today_str = ss.str();
 #else
         const auto now_point = std::chrono::system_clock::now();
@@ -148,40 +112,30 @@ namespace node_clingo
         const auto today_str = std::format("{:%Y-%m-%d}", zt);
 #endif
 
-        return return_string(today_str.c_str(), symbol_callback, symbol_callback_data);
+        return_string(today_str.c_str(), cb);
     }
 
-    bool handle_wrap(
-        clingo_symbol_t const* arguments,
-        size_t arguments_size,
-        clingo_symbol_callback_t symbol_callback,
-        void* symbol_callback_data)
+    void handle_wrap(Clingo::SymbolSpan arguments, Clingo::SymbolSpanCallback cb)
     {
-        if (arguments_size != 1)
+        if (arguments.size() != 1)
         {
-            return false;
+            throw std::runtime_error("wrap expects exactly 1 argument");
         }
 
-        clingo_symbol_type_t arg_type = clingo_symbol_type(arguments[0]);
+        auto arg_type = arguments[0].type();
         std::string text_to_wrap;
 
-        if (arg_type == clingo_symbol_type_string || arg_type == clingo_symbol_type_function)
+        if (arg_type == Clingo::SymbolType::String || arg_type == Clingo::SymbolType::Function)
         {
-            const char* text;
-            if (!clingo_symbol_string(arguments[0], &text))
-            {
-                return false;
-            }
-            text_to_wrap = text;
+            text_to_wrap = arguments[0].string();
         }
-        else if (arg_type == clingo_symbol_type_number)
+        else if (arg_type == Clingo::SymbolType::Number)
         {
             // skip
         }
         else
         {
-            // Unsupported type
-            return false;
+            throw std::runtime_error("wrap: unsupported argument type");
         }
 
         // Wrap text with line width of 27 (as specified in the original implementation)
@@ -201,37 +155,7 @@ namespace node_clingo
             }
         }
 
-        return return_string(result.c_str(), symbol_callback, symbol_callback_data);
-    }
-
-    bool handle_resource_prefix(
-        clingo_symbol_t const* arguments,
-        size_t arguments_size,
-        clingo_symbol_callback_t symbol_callback,
-        void* symbol_callback_data)
-    {
-        return extract_resource_part(
-            arguments, arguments_size, symbol_callback, symbol_callback_data, ResourcePart::PREFIX);
-    }
-
-    bool handle_resource_type(
-        clingo_symbol_t const* arguments,
-        size_t arguments_size,
-        clingo_symbol_callback_t symbol_callback,
-        void* symbol_callback_data)
-    {
-        return extract_resource_part(
-            arguments, arguments_size, symbol_callback, symbol_callback_data, ResourcePart::TYPE);
-    }
-
-    bool handle_resource_identifier(
-        clingo_symbol_t const* arguments,
-        size_t arguments_size,
-        clingo_symbol_callback_t symbol_callback,
-        void* symbol_callback_data)
-    {
-        return extract_resource_part(
-            arguments, arguments_size, symbol_callback, symbol_callback_data, ResourcePart::IDENTIFIER);
+        return_string(result.c_str(), cb);
     }
 
     const std::unordered_map<std::string, FunctionHandler>& get_function_handlers()
@@ -241,9 +165,9 @@ namespace node_clingo
             {"daysSince", handle_days_since},
             {"today", handle_today},
             {"wrap", handle_wrap},
-            {"resourcePrefix", handle_resource_prefix},
-            {"resourceType", handle_resource_type},
-            {"resourceIdentifier", handle_resource_identifier}};
+            {"resourcePrefix", [](auto args, auto cb) { extract_resource_part(args, cb, ResourcePart::PREFIX); }},
+            {"resourceType", [](auto args, auto cb) { extract_resource_part(args, cb, ResourcePart::TYPE); }},
+            {"resourceIdentifier", [](auto args, auto cb) { extract_resource_part(args, cb, ResourcePart::IDENTIFIER); }}};
         return handlers;
     }
 

@@ -147,6 +147,17 @@ export class Project extends CardContainer {
       );
     }
 
+    // Re-generate calculation engine state after every successful write
+    this.lock.onAfterWrite(async () => {
+      await this.calculationEngine.generate();
+    });
+
+    // Re-generate calculation engine state after write errors too,
+    // since incremental Clingo state may be stale after rollback
+    this.lock.onWriteError(async () => {
+      await this.calculationEngine.generate();
+    });
+
     if (this.options.autocommit) {
       this.gitManager = new GitManager(path);
 

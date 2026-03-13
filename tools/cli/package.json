@@ -28,9 +28,11 @@
   },
   "bugs": "https://github.com/CyberismoCom/cyberismo/issues",
   "dependencies": {
+    "@cyberismo/assets": "workspace:*",
     "@cyberismo/backend": "workspace:*",
     "@cyberismo/data-handler": "workspace:*",
     "@cyberismo/mcp": "workspace:*",
+    "@cyberismo/node-clingo": "workspace:*",
     "@inquirer/confirm": "^6.0.4",
     "@inquirer/prompts": "^7.9.0",
     "cli-progress": "^3.12.0",

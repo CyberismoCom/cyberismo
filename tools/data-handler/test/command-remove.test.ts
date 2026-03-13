@@ -523,7 +523,6 @@ describe('remove card', () => {
       autoSaveConfiguration: false,
     });
     await commands.initialize();
-    await commands.project.calculationEngine.generate();
   });
 
   after(() => {

@@ -298,8 +298,6 @@ export class Export {
       recursive: options.recursive ?? false,
     };
 
-    await this.project.calculationEngine.generate();
-
     const result = await generateReportContent({
       calculate: this.project.calculationEngine,
       contentTemplate: pdfReport.content,
@@ -343,7 +341,6 @@ export class Export {
       });
     }
 
-    await this.project.calculationEngine.generate();
     const tree = await this.project.calculationEngine.runQuery(
       'tree',
       'exportedDocument',
