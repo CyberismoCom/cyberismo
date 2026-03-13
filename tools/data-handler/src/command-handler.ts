@@ -594,7 +594,7 @@ export class Commands {
     }
 
     const shouldPush = pushFlag === 'true';
-    const result = await this.commands.createCmd.publishVersion(
+    const result = await this.commands.publishCmd.publishVersion(
       bumpType as 'patch' | 'minor' | 'major',
       shouldPush,
     );

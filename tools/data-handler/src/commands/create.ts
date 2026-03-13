@@ -28,8 +28,6 @@ import type { Card, ProjectFile } from '../interfaces/project-interfaces.js';
 import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 import { write } from '../utils/rw-lock.js';
 import { writeJsonFile } from '../utils/json.js';
-import { ConfigurationLogger } from '../utils/configuration-logger.js';
-import { type BumpType, bumpSemver, formatTag } from '../utils/semver.js';
 
 // todo: Is there a easy to way to make JSON schema into a TypeScript interface/type?
 //       Check this out: https://www.npmjs.com/package/json-schema-to-ts
@@ -531,74 +529,5 @@ export class Create {
     return this.project.resources
       .byType(workflowName, 'workflows')
       .create(workflowContent ? JSON.parse(workflowContent) : undefined);
-  }
-
-  /**
-   * Publishes a new version of the project.
-   * Creates a git commit and an annotated tag with the bumped semantic version.
-   *
-   * @param bumpType Which semver component to bump: 'patch', 'minor', or 'major'
-   * @param push If true, pushes the commit and tag to the remote
-   * @returns The previous and new version strings
-   */
-  @write((bumpType) => `Publish ${bumpType} version`)
-  public async publishVersion(
-    bumpType: BumpType,
-    push?: boolean,
-  ): Promise<{ previousVersion: string | null; newVersion: string }> {
-    const { git } = this.project;
-
-    // Guard: refuse to publish with uncommitted changes
-    if (await git.hasUncommittedChanges()) {
-      throw new Error(
-        'Cannot publish: there are uncommitted changes. Please commit or stash them first.',
-      );
-    }
-
-    const currentVersion = await git.getVersion();
-    const tagName = currentVersion ? formatTag(currentVersion) : null;
-
-    // Guard: nothing to publish if no changes since last tag
-    if (tagName && !(await git.hasChangesSinceTag(tagName))) {
-      throw new Error(
-        'Nothing to publish. No changes since the last version tag.',
-      );
-    }
-
-    const newVersion = currentVersion
-      ? bumpSemver(currentVersion, bumpType)
-      : '1.0.0';
-    const newTag = formatTag(newVersion);
-    const commitMessage = `Release ${newTag}`;
-
-    // Snapshot the current migration log with the new version
-    if (ConfigurationLogger.hasLog(this.project.basePath)) {
-      try {
-        await ConfigurationLogger.createVersion(
-          this.project.basePath,
-          newVersion,
-        );
-      } catch (error) {
-        // Empty migration log is expected and safe to ignore
-        if (
-          error instanceof Error &&
-          error.message.includes('migration log is empty')
-        ) {
-          // no-op: nothing to version
-        } else {
-          throw error;
-        }
-      }
-    }
-
-    // Commit all project changes and tag
-    await git.commit(commitMessage);
-    await git.tag(newTag, commitMessage);
-
-    if (push) {
-      await git.push({ tags: true });
-    }
-
-    return { previousVersion: currentVersion, newVersion };
   }
 }

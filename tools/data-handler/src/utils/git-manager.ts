@@ -12,8 +12,10 @@
 */
 
 import { simpleGit, type SimpleGit } from 'simple-git';
+import semver from 'semver';
 import { getChildLogger } from './log-utils.js';
-import { parseTag } from './semver.js';
+
+const TAG_PREFIX = 'v';
 
 export class GitManager {
   private git: SimpleGit;
@@ -86,12 +88,6 @@ export class GitManager {
     this.logger.info('Rollback completed');
   }
 
-  /** Create an annotated git tag. */
-  async tag(tagName: string, message?: string): Promise<void> {
-    this.logger.info({ tagName }, 'Creating tag');
-    await this.git.tag(['-a', tagName, '-m', message || tagName]);
-  }
-
   /** List all version tags (v*) sorted by version descending. */
   async listVersionTags(): Promise<string[]> {
     const result = await this.git.tags(['--list', 'v*', '--sort=-v:refname']);
@@ -104,21 +100,36 @@ export class GitManager {
    */
   async getVersion(): Promise<string | null> {
     const tags = await this.listVersionTags();
-    // Tags are already sorted descending by git (--sort=-v:refname)
-    const versions = tags
-      .map((tag) => parseTag(tag))
-      .filter((v): v is string => v !== null);
-    if (versions.length === 0) return null;
-    return versions[0];
+    for (const tag of tags) {
+      if (!tag.startsWith(TAG_PREFIX)) continue;
+      const version = tag.slice(TAG_PREFIX.length);
+      if (semver.valid(version) && !semver.prerelease(version)) return version;
+    }
+    return null;
   }
 
   /**
-   * Check if there are changes since a given tag.
+   * Check if there are changes since a given version.
+   * @param version Clean semver string (e.g. "1.2.3")
    * @returns true if HEAD differs from the tagged commit.
    */
-  async hasChangesSinceTag(tag: string): Promise<boolean> {
-    const diff = await this.git.diff(['--stat', `${tag}..HEAD`]);
+  async hasChangesSinceVersion(version: string): Promise<boolean> {
+    const diff = await this.git.diff([
+      '--stat',
+      `${TAG_PREFIX}${version}..HEAD`,
+    ]);
     return diff.trim().length > 0;
+  }
+
+  /**
+   * Create an annotated tag from a clean version string.
+   * @param version Clean semver string (e.g. "1.2.3")
+   * @param message Optional tag message (defaults to the tag name)
+   */
+  async tagVersion(version: string, message?: string): Promise<void> {
+    const tag = `${TAG_PREFIX}${version}`;
+    this.logger.info({ tag }, 'Creating tag');
+    await this.git.tag(['-a', tag, '-m', message ?? tag]);
   }
 
   /** Check if the working tree has uncommitted changes in project directories (staged or unstaged). */

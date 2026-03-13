@@ -149,16 +149,27 @@ describe('GitManager', () => {
     });
   });
 
-  describe('tag()', () => {
-    it('should create an annotated tag', async () => {
+  describe('tagVersion()', () => {
+    it('should create an annotated tag with v prefix', async () => {
       const gm = new GitManager(dir);
       await gm.initialize();
 
-      await gm.tag('v1.0.0', 'Release v1.0.0');
+      await gm.tagVersion('1.0.0', 'Release v1.0.0');
 
       const git = testGit(dir);
       const tags = await git.tags();
       expect(tags.all).to.include('v1.0.0');
+    });
+
+    it('should use tag name as default message', async () => {
+      const gm = new GitManager(dir);
+      await gm.initialize();
+
+      await gm.tagVersion('2.0.0');
+
+      const git = testGit(dir);
+      const tags = await git.tags();
+      expect(tags.all).to.include('v2.0.0');
     });
   });
 
@@ -176,13 +187,13 @@ describe('GitManager', () => {
       await gm.initialize();
 
       // Create tags in non-sorted order
-      await gm.tag('v1.0.0', 'v1.0.0');
+      await gm.tagVersion('1.0.0');
       await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
       await gm.commit('change 1');
-      await gm.tag('v2.0.0', 'v2.0.0');
+      await gm.tagVersion('2.0.0');
       await writeFile(join(dir, 'cardRoot', 'b.txt'), 'b');
       await gm.commit('change 2');
-      await gm.tag('v1.1.0', 'v1.1.0');
+      await gm.tagVersion('1.1.0');
 
       const tags = await gm.listVersionTags();
       expect(tags).to.deep.equal(['v2.0.0', 'v1.1.0', 'v1.0.0']);
@@ -194,7 +205,7 @@ describe('GitManager', () => {
 
       const git = testGit(dir);
       await git.tag(['-a', 'release-1', '-m', 'not a version tag']);
-      await gm.tag('v1.0.0', 'v1.0.0');
+      await gm.tagVersion('1.0.0');
 
       const tags = await gm.listVersionTags();
       expect(tags).to.deep.equal(['v1.0.0']);
@@ -214,10 +225,10 @@ describe('GitManager', () => {
       const gm = new GitManager(dir);
       await gm.initialize();
 
-      await gm.tag('v1.0.0', 'v1.0.0');
+      await gm.tagVersion('1.0.0');
       await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
       await gm.commit('change');
-      await gm.tag('v1.1.0', 'v1.1.0');
+      await gm.tagVersion('1.1.0');
 
       const version = await gm.getVersion();
       expect(version).to.equal('1.1.0');
@@ -227,36 +238,36 @@ describe('GitManager', () => {
       const gm = new GitManager(dir);
       await gm.initialize();
 
-      await gm.tag('v2.0.0', 'v2.0.0');
+      await gm.tagVersion('2.0.0');
       await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
       await gm.commit('change');
-      await gm.tag('v1.5.0', 'v1.5.0');
+      await gm.tagVersion('1.5.0');
 
       const version = await gm.getVersion();
       expect(version).to.equal('2.0.0');
     });
   });
 
-  describe('hasChangesSinceTag()', () => {
-    it('should return false when no changes since tag', async () => {
+  describe('hasChangesSinceVersion()', () => {
+    it('should return false when no changes since version', async () => {
       const gm = new GitManager(dir);
       await gm.initialize();
 
-      await gm.tag('v1.0.0', 'v1.0.0');
+      await gm.tagVersion('1.0.0');
 
-      const hasChanges = await gm.hasChangesSinceTag('v1.0.0');
+      const hasChanges = await gm.hasChangesSinceVersion('1.0.0');
       expect(hasChanges).to.equal(false);
     });
 
-    it('should return true when there are committed changes since tag', async () => {
+    it('should return true when there are committed changes since version', async () => {
       const gm = new GitManager(dir);
       await gm.initialize();
 
-      await gm.tag('v1.0.0', 'v1.0.0');
+      await gm.tagVersion('1.0.0');
       await writeFile(join(dir, 'cardRoot', 'new.txt'), 'content');
       await gm.commit('new change');
 
-      const hasChanges = await gm.hasChangesSinceTag('v1.0.0');
+      const hasChanges = await gm.hasChangesSinceVersion('1.0.0');
       expect(hasChanges).to.equal(true);
     });
   });
