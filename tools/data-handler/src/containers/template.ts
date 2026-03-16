@@ -211,16 +211,16 @@ export class Template extends CardContainer {
     if (parentCard) {
       if (!originalParentKey || originalParentKey === ROOT) {
         card.parent = parentCard.key;
-      } else {
-        card.parent = templateIDMap.get(originalParentKey) || parentCard.key;
+        return;
       }
-    } else {
-      if (!originalParentKey || originalParentKey === ROOT) {
-        card.parent = ROOT;
-      } else {
-        card.parent = templateIDMap.get(originalParentKey) || ROOT;
-      }
+      card.parent = templateIDMap.get(originalParentKey) || parentCard.key;
+      return;
     }
+    if (!originalParentKey || originalParentKey === ROOT) {
+      card.parent = ROOT;
+      return;
+    }
+    card.parent = templateIDMap.get(originalParentKey) || ROOT;
   }
 
   private async processAttachments(card: Card): Promise<Card> {
