@@ -83,51 +83,6 @@ export class Template extends CardContainer {
     cards: Card[],
     parentCard?: Card,
   ): Promise<Card[]> {
-    // Process metadata
-    const processMetadata = async (card: Card, parentCards: Card[]) => {
-      if (!card.metadata) return card;
-      const cardType = this.project.resources
-        .byType(card.metadata?.cardType, 'cardTypes')
-        .show();
-
-      const workflow = this.project.resources
-        .byType(cardType.workflow, 'workflows')
-        .show();
-
-      const initialWorkflowState = workflow.transitions.find(
-        (item) => item.fromState.includes('') || item.fromState.length === 0,
-      );
-      if (!initialWorkflowState) {
-        throw new Error(
-          `Workflow '${cardType.workflow}' initial state cannot be found`,
-        );
-      }
-
-      const cardWithRank = parentCards.find((c) => c.key === card.key);
-      const customFields = cardType.customFields
-        .filter((item) => !item.isCalculated)
-        .reduce(
-          (acc, field) => ({
-            ...acc,
-            [field.name]: card.metadata?.[field.name] || null,
-          }),
-          {},
-        );
-
-      const newMetadata = {
-        ...card.metadata,
-        ...customFields,
-        templateCardKey: [...templateIDMap]
-          .find(([, value]) => value === card.key)!
-          .at(0),
-        workflowState: initialWorkflowState.toState,
-        cardType: cardType.name,
-        rank: cardWithRank?.metadata?.rank || card.metadata.rank || EMPTY_RANK,
-      };
-
-      return { ...card, metadata: newMetadata };
-    };
-
     let templateIDMap: Map<string, string> = new Map();
     try {
       templateIDMap = await this.buildTemplateIdMap(cards);
@@ -144,7 +99,7 @@ export class Template extends CardContainer {
 
           // Process metadata and attachments in parallel
           const [processedCard, processedAttachments] = await Promise.all([
-            processMetadata(card, parentCards),
+            this.processMetadata(card, parentCards, templateIDMap),
             this.processAttachments(card),
           ]);
 
@@ -289,6 +244,55 @@ export class Template extends CardContainer {
       }),
     );
     return { ...card, content };
+  }
+
+  private async processMetadata(
+    card: Card,
+    parentCards: Card[],
+    templateIDMap: Map<string, string>,
+  ): Promise<Card> {
+    if (!card.metadata) return card;
+
+    const cardType = this.project.resources
+      .byType(card.metadata?.cardType, 'cardTypes')
+      .show();
+
+    const workflow = this.project.resources
+      .byType(cardType.workflow, 'workflows')
+      .show();
+
+    const initialWorkflowState = workflow.transitions.find(
+      (item) => item.fromState.includes('') || item.fromState.length === 0,
+    );
+    if (!initialWorkflowState) {
+      throw new Error(
+        `Workflow '${cardType.workflow}' initial state cannot be found`,
+      );
+    }
+
+    const cardWithRank = parentCards.find((c) => c.key === card.key);
+    const customFields = cardType.customFields
+      .filter((item) => !item.isCalculated)
+      .reduce(
+        (acc, field) => ({
+          ...acc,
+          [field.name]: card.metadata?.[field.name] || null,
+        }),
+        {},
+      );
+
+    const newMetadata = {
+      ...card.metadata,
+      ...customFields,
+      templateCardKey: [...templateIDMap]
+        .find(([, value]) => value === card.key)!
+        .at(0),
+      workflowState: initialWorkflowState.toState,
+      cardType: cardType.name,
+      rank: cardWithRank?.metadata?.rank || card.metadata.rank || EMPTY_RANK,
+    };
+
+    return { ...card, metadata: newMetadata };
   }
 
   // Helper method to find a card.
