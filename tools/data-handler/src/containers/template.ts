@@ -78,61 +78,6 @@ export class Template extends CardContainer {
     this.templateCardsPath = join(this.templatePath, 'c');
   }
 
-  // Creates card(s) as project cards from template.
-  private async doCreateCards(
-    cards: Card[],
-    parentCard?: Card,
-  ): Promise<Card[]> {
-    try {
-      if (parentCard) {
-        this.project.findCard(parentCard.key);
-      }
-    } catch (error) {
-      this.logger.error({ error }, 'Failed to create cards');
-      throw error;
-    }
-    let cardKeyMap: Map<string, string> = new Map();
-    try {
-      cardKeyMap = await this.buildCardKeyMap(cards);
-      const parentCards = this.assignRanksToParentCards(cards, parentCard);
-      const templatesFolder = this.templateFolder();
-
-      // Process all cards in parallel
-      // Create deep copies to avoid mutating the cached template cards
-      const processedCards = await Promise.all(
-        cards.map(async (originalCard) => {
-          const card: Card = structuredClone(originalCard);
-          // Update paths and keys
-          this.updateCardPaths(card, cardKeyMap, templatesFolder, parentCard);
-
-          // Process metadata and attachments in parallel
-          const [processedCard, processedAttachments] = await Promise.all([
-            this.processMetadata(card, parentCards, cardKeyMap),
-            this.processAttachments(card),
-          ]);
-
-          // Create directory and write files
-          await mkdir(processedCard.path, { recursive: true });
-
-          await Promise.all([
-            this.saveCardMetadata(processedCard),
-            writeFile(
-              join(processedCard.path, Project.cardContentFile),
-              processedAttachments.content || '',
-            ),
-          ]);
-          return processedCard;
-        }),
-      );
-      await this.project.handleNewCards(processedCards);
-      return processedCards;
-    } catch (error) {
-      await this.removeCards(cardKeyMap);
-      this.logger.error({ error }, 'Failed to create cards');
-      throw error;
-    }
-  }
-
   private async buildCardKeyMap(cards: Card[]): Promise<Map<string, string>> {
     const cardIds = await this.project.listCardIds();
     const newCardIds = this.project.newCardKeys(cards.length, cardIds);
@@ -346,7 +291,9 @@ export class Template extends CardContainer {
   private async removeCards(cardMap: Map<string, string>) {
     const cards: Card[] = [];
     // Find all cards that need to be removed.
+    console.log('CARDMAP', cardMap);
     cardMap.forEach((createdCard) => {
+      console.log('REMOVE?');
       const card = this.project.findCard(createdCard);
       cards.push(card);
     });
@@ -504,14 +451,66 @@ export class Template extends CardContainer {
    * @param parentCard parent card
    * @returns array of created card keys
    */
+
+  // Creates card(s) as project cards from template.
   public async createCards(parentCard?: Card): Promise<Card[]> {
     const cards = this.cards();
-    if (cards.length === 0) {
-      throw new Error(
-        `No cards in template '${this.templateName}'. Please add template cards with 'add' command first.`,
-      );
+    try {
+      if (cards.length === 0) {
+        throw new Error(
+          `No cards in template '${this.templateName}'. Please add template cards with 'add' command first.`,
+        );
+      }
+      if (parentCard) {
+        this.project.findCard(parentCard.key);
+      }
+    } catch (error) {
+      this.logger.error({ error }, 'Failed to create cards');
+      throw error;
     }
-    return this.doCreateCards(cards, parentCard);
+
+    let cardKeyMap: Map<string, string> = new Map();
+    try {
+      cardKeyMap = await this.buildCardKeyMap(cards);
+      const parentCards = this.assignRanksToParentCards(cards, parentCard);
+      const templatesFolder = this.templateFolder();
+
+      // Process all cards in parallel
+      // Create deep copies to avoid mutating the cached template cards
+      const processedCards = await Promise.all(
+        cards.map(async (originalCard) => {
+          const card: Card = structuredClone(originalCard);
+          // Update paths and keys
+          this.updateCardPaths(card, cardKeyMap, templatesFolder, parentCard);
+
+          // Process metadata and attachments in parallel
+          const [processedCard, processedAttachments] = await Promise.all([
+            this.processMetadata(card, parentCards, cardKeyMap),
+            this.processAttachments(card),
+          ]);
+
+          // Create directory and write files
+          console.log(processedCard.path);
+          await mkdir(processedCard.path, { recursive: true });
+
+          await Promise.all([
+            this.saveCardMetadata(processedCard),
+            writeFile(
+              join(processedCard.path, Project.cardContentFile),
+              processedAttachments.content || '',
+            ),
+          ]);
+          return processedCard;
+        }),
+      );
+      await this.project.handleNewCards(processedCards);
+      return processedCards;
+    } catch (error) {
+      console.log('ERROR', error);
+      await this.removeCards(cardKeyMap);
+      this.logger.error({ error }, 'Failed to create cards');
+      throw error;
+    }
   }
 
   /**
