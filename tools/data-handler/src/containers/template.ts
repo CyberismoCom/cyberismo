@@ -83,61 +83,6 @@ export class Template extends CardContainer {
     cards: Card[],
     parentCard?: Card,
   ): Promise<Card[]> {
-    // Update paths and keys
-    const updateCardPaths = (
-      card: Card,
-      templateIDMap: Map<string, string>,
-      templatesFolder: string,
-    ) => {
-      const updatePathPart = (part: string) =>
-        CardNameRegEx.test(part)
-          ? `${sep}${templateIDMap.get(part) || part}`
-          : `${sep}${part}`;
-
-      card.path = card.path
-        .split(sep)
-        .map(updatePathPart)
-        .join('')
-        .substring(1);
-
-      if (card.path.includes(`${sep}c${sep}`) && !parentCard) {
-        card.path = card.path.replace(
-          `${templatesFolder}${sep}c`,
-          this.project.paths.cardRootFolder,
-        );
-      } else {
-        card.path = card.path.replace(
-          templatesFolder,
-          parentCard ? parentCard.path : this.project.paths.cardRootFolder,
-        );
-      }
-
-      card.key = templateIDMap.get(card.key) || card.key;
-
-      // Remap children keys from template keys to new project card keys
-      card.children = card.children.map(
-        (childKey) => templateIDMap.get(childKey) || childKey,
-      );
-
-      // Set parent field based on template hierarchy and creation location
-      // Store the original template parent before key remapping
-      const originalParentKey = card.parent;
-
-      if (parentCard) {
-        if (!originalParentKey || originalParentKey === ROOT) {
-          card.parent = parentCard.key;
-        } else {
-          card.parent = templateIDMap.get(originalParentKey) || parentCard.key;
-        }
-      } else {
-        if (!originalParentKey || originalParentKey === ROOT) {
-          card.parent = ROOT;
-        } else {
-          card.parent = templateIDMap.get(originalParentKey) || ROOT;
-        }
-      }
-    };
-
     // Process attachments
     const processAttachments = async (card: Card) => {
       if (!card.attachments.length) return card;
@@ -227,7 +172,7 @@ export class Template extends CardContainer {
         cards.map(async (originalCard) => {
           const card: Card = structuredClone(originalCard);
           // Update paths and keys
-          updateCardPaths(card, templateIDMap, templatesFolder);
+          this.updateCardPaths(card, templateIDMap, templatesFolder, parentCard);
 
           // Process metadata and attachments in parallel
           const [processedCard, processedAttachments] = await Promise.all([
@@ -294,6 +239,58 @@ export class Template extends CardContainer {
     });
 
     return parentCards;
+  }
+
+  private updateCardPaths(
+    card: Card,
+    templateIDMap: Map<string, string>,
+    templatesFolder: string,
+    parentCard?: Card,
+  ): void {
+    const updatePathPart = (part: string) =>
+      CardNameRegEx.test(part)
+        ? `${sep}${templateIDMap.get(part) || part}`
+        : `${sep}${part}`;
+
+    card.path = card.path
+      .split(sep)
+      .map(updatePathPart)
+      .join('')
+      .substring(1);
+
+    if (card.path.includes(`${sep}c${sep}`) && !parentCard) {
+      card.path = card.path.replace(
+        `${templatesFolder}${sep}c`,
+        this.project.paths.cardRootFolder,
+      );
+    } else {
+      card.path = card.path.replace(
+        templatesFolder,
+        parentCard ? parentCard.path : this.project.paths.cardRootFolder,
+      );
+    }
+
+    card.key = templateIDMap.get(card.key) || card.key;
+
+    card.children = card.children.map(
+      (childKey) => templateIDMap.get(childKey) || childKey,
+    );
+
+    const originalParentKey = card.parent;
+
+    if (parentCard) {
+      if (!originalParentKey || originalParentKey === ROOT) {
+        card.parent = parentCard.key;
+      } else {
+        card.parent = templateIDMap.get(originalParentKey) || parentCard.key;
+      }
+    } else {
+      if (!originalParentKey || originalParentKey === ROOT) {
+        card.parent = ROOT;
+      } else {
+        card.parent = templateIDMap.get(originalParentKey) || ROOT;
+      }
+    }
   }
 
   // Helper method to find a card.
