@@ -83,38 +83,6 @@ export class Template extends CardContainer {
     cards: Card[],
     parentCard?: Card,
   ): Promise<Card[]> {
-    // Process attachments
-    const processAttachments = async (card: Card) => {
-      if (!card.attachments.length) return card;
-
-      const attachmentsFolder = join(card.path, 'a');
-      await mkdir(attachmentsFolder, { recursive: true });
-
-      let content = card.content;
-      await Promise.all(
-        card.attachments.map(async (attachment) => {
-          const attachmentUniqueName = `${card.key}-${attachment.fileName}`;
-          content = content?.replace(
-            new RegExp(
-              `(\\{\\{#image\\}\\}[^}]*)"fileName": "${attachment.fileName}"([^}]*\\{\\{\\/image\\}\\})`,
-              'g',
-            ),
-            `$1"fileName": "${attachmentUniqueName}"$2`,
-          );
-          // keep fallback
-          content = content?.replace(
-            new RegExp(`image::${attachment.fileName}`, 'g'),
-            `image::${attachmentUniqueName}`,
-          );
-          await copyFile(
-            join(attachment.path, attachment.fileName),
-            join(card.path, 'a', attachmentUniqueName),
-          );
-        }),
-      );
-      return { ...card, content };
-    };
-
     // Process metadata
     const processMetadata = async (card: Card, parentCards: Card[]) => {
       if (!card.metadata) return card;
@@ -177,7 +145,7 @@ export class Template extends CardContainer {
           // Process metadata and attachments in parallel
           const [processedCard, processedAttachments] = await Promise.all([
             processMetadata(card, parentCards),
-            processAttachments(card),
+            this.processAttachments(card),
           ]);
 
           // Create directory and write files
@@ -291,6 +259,36 @@ export class Template extends CardContainer {
         card.parent = templateIDMap.get(originalParentKey) || ROOT;
       }
     }
+  }
+
+  private async processAttachments(card: Card): Promise<Card> {
+    if (!card.attachments.length) return card;
+
+    const attachmentsFolder = join(card.path, 'a');
+    await mkdir(attachmentsFolder, { recursive: true });
+
+    let content = card.content;
+    await Promise.all(
+      card.attachments.map(async (attachment) => {
+        const attachmentUniqueName = `${card.key}-${attachment.fileName}`;
+        content = content?.replace(
+          new RegExp(
+            `(\\{\\{#image\\}\\}[^}]*)"fileName": "${attachment.fileName}"([^}]*\\{\\{\\/image\\}\\})`,
+            'g',
+          ),
+          `$1"fileName": "${attachmentUniqueName}"$2`,
+        );
+        content = content?.replace(
+          new RegExp(`image::${attachment.fileName}`, 'g'),
+          `image::${attachmentUniqueName}`,
+        );
+        await copyFile(
+          join(attachment.path, attachment.fileName),
+          join(card.path, 'a', attachmentUniqueName),
+        );
+      }),
+    );
+    return { ...card, content };
   }
 
   // Helper method to find a card.
