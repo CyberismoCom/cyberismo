@@ -106,6 +106,28 @@ describe('template', () => {
     );
     expect(template.cards().length).to.equal(0);
   });
+
+  it('creates no cards when the template is not empty and parent is non-existent', async () => {
+    const template = new Template(project, {
+      name: 'decision/templates/simplepage',
+      path: '',
+    });
+    const nonExistingCard: Card = {
+      key: '1111',
+      path: '',
+      content: '',
+      children: [],
+      attachments: [],
+    };
+
+    const cardCountBefore = project.cards(project.paths.cardRootFolder).length;
+
+    await expect(template.createCards(nonExistingCard)).to.be.rejectedWith(Error);
+
+    const cardCountAfter = project.cards(project.paths.cardRootFolder).length;
+    expect(cardCountAfter).to.equal(cardCountBefore);
+  });
+
   it('add new card to a template', async () => {
     const template = new Template(project, {
       name: 'decision/templates/decision',

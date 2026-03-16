@@ -83,6 +83,14 @@ export class Template extends CardContainer {
     cards: Card[],
     parentCard?: Card,
   ): Promise<Card[]> {
+    try {
+      if (parentCard) {
+        this.project.findCard(parentCard.key);
+      }
+    } catch (error) {
+      this.logger.error({ error }, 'Failed to create cards');
+      throw error;
+    }
     let cardKeyMap: Map<string, string> = new Map();
     try {
       cardKeyMap = await this.buildCardKeyMap(cards);
