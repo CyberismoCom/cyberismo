@@ -199,6 +199,8 @@ export class Template extends CardContainer {
       (childKey) => templateIDMap.get(childKey) || childKey,
     );
 
+    // Set parent field based on template hierarchy and creation location
+    // Store the original template parent before key remapping
     const originalParentKey = card.parent;
 
     if (parentCard) {
@@ -233,6 +235,7 @@ export class Template extends CardContainer {
           ),
           `$1"fileName": "${attachmentUniqueName}"$2`,
         );
+        // keep fallback
         content = content?.replace(
           new RegExp(`image::${attachment.fileName}`, 'g'),
           `image::${attachmentUniqueName}`,
