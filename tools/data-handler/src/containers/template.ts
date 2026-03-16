@@ -83,44 +83,6 @@ export class Template extends CardContainer {
     cards: Card[],
     parentCard?: Card,
   ): Promise<Card[]> {
-    const templateIDMap = new Map<string, string>();
-    // Create ID mapping and update ranks
-    const createMappingAndRanks = async () => {
-      const cardIds = await this.project.listCardIds();
-      const newCardIds = this.project.newCardKeys(cards.length, cardIds);
-
-      // Create mapping table
-      cards.forEach((card, index) => {
-        templateIDMap.set(card.key, newCardIds.at(index) || '');
-      });
-
-      // Handle ranking for parent cards
-      const parentCards = sortItems(
-        cards.filter((c) => c.parent === ROOT),
-        (c) => c?.metadata?.rank || '',
-      );
-
-      const futureSiblings = parentCard
-        ? this.project.cardKeysToCards(parentCard.children)
-        : this.rootLevelProjectCards();
-
-      let latestRank =
-        sortItems(
-          futureSiblings.filter((c) => c.metadata?.rank !== undefined),
-          (c) => c.metadata?.rank || '',
-        ).pop()?.metadata?.rank || FIRST_RANK;
-
-      // Update ranks
-      parentCards.forEach((card) => {
-        latestRank = getRankAfter(latestRank);
-        if (card.metadata) {
-          card.metadata.rank = latestRank;
-        }
-      });
-
-      return parentCards;
-    };
-
     // Update paths and keys
     const updateCardPaths = (
       card: Card,
@@ -253,9 +215,10 @@ export class Template extends CardContainer {
       return { ...card, metadata: newMetadata };
     };
 
+    let templateIDMap: Map<string, string> = new Map();
     try {
-      // Create mapping and handle ranks
-      const parentCards = await createMappingAndRanks();
+      templateIDMap = await this.buildTemplateIdMap(cards);
+      const parentCards = this.assignRanksToParentCards(cards, parentCard);
       const templatesFolder = this.templateFolder();
 
       // Process all cards in parallel
@@ -292,6 +255,45 @@ export class Template extends CardContainer {
       this.logger.error({ error }, 'Failed to create cards');
       throw error;
     }
+  }
+
+  private async buildTemplateIdMap(cards: Card[]): Promise<Map<string, string>> {
+    const cardIds = await this.project.listCardIds();
+    const newCardIds = this.project.newCardKeys(cards.length, cardIds);
+    const map = new Map<string, string>();
+    cards.forEach((card, index) => {
+      map.set(card.key, newCardIds.at(index) || '');
+    });
+    return map;
+  }
+
+  private assignRanksToParentCards(
+    cards: Card[],
+    parentCard: Card | undefined,
+  ): Card[] {
+    const parentCards = sortItems(
+      cards.filter((c) => c.parent === ROOT),
+      (c) => c?.metadata?.rank || '',
+    );
+
+    const futureSiblings = parentCard
+      ? this.project.cardKeysToCards(parentCard.children)
+      : this.rootLevelProjectCards();
+
+    let latestRank =
+      sortItems(
+        futureSiblings.filter((c) => c.metadata?.rank !== undefined),
+        (c) => c.metadata?.rank || '',
+      ).pop()?.metadata?.rank || FIRST_RANK;
+
+    parentCards.forEach((card) => {
+      latestRank = getRankAfter(latestRank);
+      if (card.metadata) {
+        card.metadata.rank = latestRank;
+      }
+    });
+
+    return parentCards;
   }
 
   // Helper method to find a card.
