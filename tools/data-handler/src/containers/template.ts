@@ -83,9 +83,9 @@ export class Template extends CardContainer {
     cards: Card[],
     parentCard?: Card,
   ): Promise<Card[]> {
-    let templateIDMap: Map<string, string> = new Map();
+    let cardKeyMap: Map<string, string> = new Map();
     try {
-      templateIDMap = await this.buildTemplateIdMap(cards);
+      cardKeyMap = await this.buildCardKeyMap(cards);
       const parentCards = this.assignRanksToParentCards(cards, parentCard);
       const templatesFolder = this.templateFolder();
 
@@ -95,11 +95,11 @@ export class Template extends CardContainer {
         cards.map(async (originalCard) => {
           const card: Card = structuredClone(originalCard);
           // Update paths and keys
-          this.updateCardPaths(card, templateIDMap, templatesFolder, parentCard);
+          this.updateCardPaths(card, cardKeyMap, templatesFolder, parentCard);
 
           // Process metadata and attachments in parallel
           const [processedCard, processedAttachments] = await Promise.all([
-            this.processMetadata(card, parentCards, templateIDMap),
+            this.processMetadata(card, parentCards, cardKeyMap),
             this.processAttachments(card),
           ]);
 
@@ -119,29 +119,30 @@ export class Template extends CardContainer {
       await this.project.handleNewCards(processedCards);
       return processedCards;
     } catch (error) {
-      await this.removeCards(templateIDMap);
+      await this.removeCards(cardKeyMap);
       this.logger.error({ error }, 'Failed to create cards');
       throw error;
     }
   }
 
-  private async buildTemplateIdMap(cards: Card[]): Promise<Map<string, string>> {
+  private async buildCardKeyMap(cards: Card[]): Promise<Map<string, string>> {
     const cardIds = await this.project.listCardIds();
     const newCardIds = this.project.newCardKeys(cards.length, cardIds);
-    const map = new Map<string, string>();
+    const cardsByKey = new Map<string, string>();
     cards.forEach((card, index) => {
-      map.set(card.key, newCardIds.at(index) || '');
+      cardsByKey.set(card.key, newCardIds.at(index) || '');
     });
-    return map;
+    return cardsByKey;
   }
 
   private assignRanksToParentCards(
     cards: Card[],
     parentCard: Card | undefined,
   ): Card[] {
+    const getRank = (card: Card) => card?.metadata?.rank || '';
     const parentCards = sortItems(
       cards.filter((c) => c.parent === ROOT),
-      (c) => c?.metadata?.rank || '',
+      getRank,
     );
 
     const futureSiblings = parentCard
@@ -151,7 +152,7 @@ export class Template extends CardContainer {
     let latestRank =
       sortItems(
         futureSiblings.filter((c) => c.metadata?.rank !== undefined),
-        (c) => c.metadata?.rank || '',
+        getRank,
       ).pop()?.metadata?.rank || FIRST_RANK;
 
     parentCards.forEach((card) => {
@@ -175,11 +176,7 @@ export class Template extends CardContainer {
         ? `${sep}${templateIDMap.get(part) || part}`
         : `${sep}${part}`;
 
-    card.path = card.path
-      .split(sep)
-      .map(updatePathPart)
-      .join('')
-      .substring(1);
+    card.path = card.path.split(sep).map(updatePathPart).join('').substring(1);
 
     if (card.path.includes(`${sep}c${sep}`) && !parentCard) {
       card.path = card.path.replace(
@@ -274,15 +271,13 @@ export class Template extends CardContainer {
     }
 
     const cardWithRank = parentCards.find((c) => c.key === card.key);
-    const customFields = cardType.customFields
-      .filter((item) => !item.isCalculated)
-      .reduce(
-        (acc, field) => ({
-          ...acc,
-          [field.name]: card.metadata?.[field.name] || null,
-        }),
-        {},
-      );
+    const customFields = cardType.customFields.reduce((acc, curr) => {
+      if (curr.isCalculated) return acc;
+      return {
+        ...acc,
+        [curr.name]: card.metadata?.[curr.name] || null,
+      };
+    }, {});
 
     const newMetadata = {
       ...card.metadata,
