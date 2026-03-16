@@ -19,6 +19,7 @@ import {
 } from './helpers/test-utils.js';
 import type { ModuleContent } from '../src/interfaces/project-interfaces.js';
 import type { ShowCommandOptions } from '../src/interfaces/command-options.js';
+import { CardNotFoundError } from '../src/exceptions/index.js';
 
 // validation tests do not modify the content - so they can use the original files
 const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
@@ -78,7 +79,7 @@ describe('shows command', () => {
       const showCommand = new Show(project, fetch);
       await expect(
         showCommand.showAttachment('invalid_key', 'does-not-exist.png'),
-      ).to.be.rejectedWith(`Card 'invalid_key' does not exist in the project`);
+      ).to.be.rejectedWith(CardNotFoundError);
     });
     it('show attachment file, file not found', async () => {
       // No commandHandler command for getting attachment files, so using Show directly
@@ -700,7 +701,7 @@ describe('show', () => {
   it('showCardDetails - card not in project', async () => {
     const cardId = 'decision_999';
     await expect(showCmd.showCardDetails(cardId)).to.be.rejectedWith(
-      `Card 'decision_999' does not exist in the project`,
+      CardNotFoundError,
     );
   });
   it('showCardDetails - empty attachment folder', async () => {

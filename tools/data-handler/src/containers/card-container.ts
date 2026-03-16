@@ -17,6 +17,7 @@ import { join } from 'node:path';
 import { writeFile } from 'node:fs/promises';
 
 import { CardCache } from './project/card-cache.js';
+import { CardNotFoundError } from '../exceptions/index.js';
 import { cardPathParts } from '../utils/card-utils.js';
 import { deleteDir } from '../utils/file-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
@@ -176,7 +177,7 @@ export class CardContainer {
       }
       return this.filterCardDetails(cachedCard, details);
     }
-    throw new Error(`Card '${cardKey}' does not exist in the project`);
+    throw new CardNotFoundError(cardKey);
   }
 
   /**

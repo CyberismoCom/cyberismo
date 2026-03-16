@@ -16,6 +16,7 @@ import type { Project } from '../src/containers/project.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 import { Template } from '../src/containers/template.js';
 import { TemplateResource } from '../src/resources/template-resource.js';
+import { CardNotFoundError } from '../src/exceptions/index.js';
 
 // Create test artifacts in a temp directory.
 const baseDir = import.meta.dirname;
@@ -318,7 +319,7 @@ describe('template', () => {
     expect(attachmentFolder1).to.equal(attachmentFolder2);
 
     expect(() => template.cardAttachmentFolder('decision_999')).to.throw(
-      `Card 'decision_999' does not exist in the project`,
+      CardNotFoundError,
     );
 
     const templateAttachments = template.attachments();

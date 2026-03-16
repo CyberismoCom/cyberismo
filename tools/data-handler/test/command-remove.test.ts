@@ -18,6 +18,7 @@ import {
 
 import type { Card } from '../src/interfaces/project-interfaces.js';
 import type { requestStatus } from '../src/interfaces/request-status-interfaces.js';
+import { CardNotFoundError } from '../src/exceptions/index.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
@@ -574,13 +575,9 @@ describe('remove card', () => {
     const removeCmd = new Remove(commands.project, fetchCmd);
     await removeCmd.remove('card', cardId);
 
-    expect(() => commands.project.findCard(cardId)).to.throw(
-      `Card 'decision_5' does not exist in the project`,
-    );
+    expect(() => commands.project.findCard(cardId)).to.throw(CardNotFoundError);
     // Since decision_6 is decision_5's child, it should have been removed as well.
-    expect(() => commands.project.findCard('decision_6')).to.throw(
-      `Card 'decision_6' does not exist in the project`,
-    );
+    expect(() => commands.project.findCard('decision_6')).to.throw(CardNotFoundError);
   });
 
   it('should not delete template cards when removing project cards', async () => {
@@ -623,14 +620,10 @@ describe('remove card', () => {
       await commands.removeCmd.remove('card', parentCardKey!);
 
       // Verify project card and its children are deleted
-      expect(() => commands.project.findCard(parentCardKey)).to.throw(
-        `Card '${parentCardKey}' does not exist in the project`,
-      );
+      expect(() => commands.project.findCard(parentCardKey)).to.throw(CardNotFoundError);
 
       for (const childKey of parentCard.children) {
-        expect(() => commands.project.findCard(childKey)).to.throw(
-          `Card '${childKey}' does not exist in the project`,
-        );
+        expect(() => commands.project.findCard(childKey)).to.throw(CardNotFoundError);
       }
     }
 

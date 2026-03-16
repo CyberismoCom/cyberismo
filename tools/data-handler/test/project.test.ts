@@ -18,6 +18,7 @@ import {
 import { Project } from '../src/containers/project.js';
 import { ProjectConfiguration } from '../src/project-settings.js';
 import { getTestProject } from './helpers/test-utils.js';
+import { CardNotFoundError } from '../src/exceptions/index.js';
 
 describe('project', () => {
   // Create test artifacts in a temp folder.
@@ -194,7 +195,7 @@ describe('project', () => {
     expect(project).to.not.equal(undefined);
     expect(() => {
       project.findCard('');
-    }).to.throw("Card '' does not exist in the project");
+    }).to.throw(CardNotFoundError);
   });
   it('try to access card details with invalid card id', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
@@ -203,7 +204,7 @@ describe('project', () => {
     expect(project).to.not.equal(undefined);
     expect(() => {
       project.findCard('decision_999');
-    }).to.throw(`Card 'decision_999' does not exist in the project`);
+    }).to.throw(CardNotFoundError);
   });
   it('access card type details (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
@@ -545,7 +546,7 @@ describe('project', () => {
 
     expect(() => {
       project.findCard('idontexist');
-    }).to.throw(`Card 'idontexist' does not exist in the project`);
+    }).to.throw(CardNotFoundError);
 
     const existingCard = project.findCard('decision_5', {
       content: true,
