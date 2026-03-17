@@ -13,12 +13,7 @@
 */
 
 import type { ReactElement } from 'react';
-import React, {
-  useCallback,
-  useEffect,
-  useState,
-  useRef,
-} from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import type { ExpandedLinkType } from '../lib/definitions';
 
 import { parse } from 'node-html-parser';
@@ -215,24 +210,20 @@ export function LinkForm({
 
   const selectedLinkType = linkTypes.find((t) => t.id === linkType);
 
-  const baseUsableCards = flattenTree(cards).filter(
+  // In edit mode, exclude the link being edited so it doesn't count as "already linked"
+  const linksForFilter =
+    state === 'edit' && data?.cardKey
+      ? currentCardLinks.filter((l) => l.key !== data.cardKey)
+      : currentCardLinks;
+
+  const usableCards = flattenTree(cards).filter(
     createPredicate(
       canCreateLinkToCard,
       cardKey,
       selectedLinkType,
-      currentCardLinks,
+      linksForFilter,
     ),
   );
-
-  // In edit mode, include the currently linked card in options even if it's already linked
-  const dataCardKey = data?.cardKey;
-  let usableCards = baseUsableCards;
-  if (state === 'edit' && dataCardKey) {
-    const editedCard = findCard(cards, dataCardKey);
-    if (editedCard && !baseUsableCards.find((c) => c.key === dataCardKey)) {
-      usableCards = [editedCard, ...baseUsableCards];
-    }
-  }
 
   // If card is not in usable cards, reset the form
   // Skip reset in edit mode when the card matches the original linked card
@@ -242,7 +233,7 @@ export function LinkForm({
   });
   useEffect(() => {
     // In edit mode, don't reset if the card is the original linked card
-    if (state === 'edit' && dataCardKey && formCardKey === dataCardKey) {
+    if (state === 'edit' && data?.cardKey && formCardKey === data.cardKey) {
       return;
     }
     if (formCardKey && !usableCards.find((c) => c.key === formCardKey)) {
@@ -252,15 +243,7 @@ export function LinkForm({
         connector,
       });
     }
-  }, [
-    formCardKey,
-    usableCards,
-    linkType,
-    connector,
-    reset,
-    state,
-    dataCardKey,
-  ]);
+  }, [formCardKey, usableCards, linkType, connector, reset, state, data]);
 
   // Get external items for selected connector
   const selectedConnector =
@@ -274,7 +257,6 @@ export function LinkForm({
     <form
       ref={formRef}
       onSubmit={handleSubmit(async (formData) => {
-        const oldLinkType = linkTypes.find((t) => t.id === data?.linkType);
         const linkType = linkTypes.find((t) => t.id === formData.linkType);
         if (!linkType) return;
         const success = await onSubmit?.({
@@ -287,13 +269,6 @@ export function LinkForm({
             formData.connector !== 'card'
               ? formData.externalItemKey
               : undefined,
-          previousLinkType:
-            state === 'edit' && data ? linkType.name : undefined,
-          previousCardKey: state === 'edit' && data ? data.cardKey : undefined,
-          previousLinkDescription:
-            state === 'edit' && data ? data.linkDescription : undefined,
-          previousDirection:
-            state === 'edit' && oldLinkType ? oldLinkType.direction : undefined,
         });
         if (success) reset();
       })}
