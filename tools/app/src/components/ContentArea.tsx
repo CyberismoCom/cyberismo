@@ -18,7 +18,6 @@ import React, {
   useEffect,
   useState,
   useRef,
-  useMemo,
 } from 'react';
 import type { ExpandedLinkType } from '../lib/definitions';
 
@@ -84,7 +83,7 @@ import type {
   CalculationLink,
   LinkDirection,
 } from '@cyberismo/data-handler/types/queries';
-import { config, parseExternalLink } from '@/lib/utils';
+import { config } from '@/lib/utils';
 import type { CardResponse, Connector } from '../lib/api/types';
 import { GenericConfirmModal } from './modals';
 import { useCard } from '../lib/api';
@@ -183,20 +182,17 @@ export function LinkForm({
   const { t } = useTranslation();
 
   // Build item sources from connectors
-  const itemSources = useMemo(() => {
-    const sources: { value: string; label: string }[] = [
-      { value: 'card', label: t('linkForm.sourceCard') },
-    ];
-    if (connectors) {
-      for (const connector of connectors) {
-        sources.push({
-          value: connector.name,
-          label: connector.displayName,
-        });
-      }
+  const itemSources: { value: string; label: string }[] = [
+    { value: 'card', label: t('linkForm.sourceCard') },
+  ];
+  if (connectors) {
+    for (const connector of connectors) {
+      itemSources.push({
+        value: connector.name,
+        label: connector.displayName,
+      });
     }
-    return sources;
-  }, [connectors, t]);
+  }
 
   useEffect(() => {
     reset({
@@ -230,15 +226,13 @@ export function LinkForm({
 
   // In edit mode, include the currently linked card in options even if it's already linked
   const dataCardKey = data?.cardKey;
-  const usableCards = useMemo(() => {
-    if (state === 'edit' && dataCardKey) {
-      const editedCard = findCard(cards, dataCardKey);
-      if (editedCard && !baseUsableCards.find((c) => c.key === dataCardKey)) {
-        return [editedCard, ...baseUsableCards];
-      }
+  let usableCards = baseUsableCards;
+  if (state === 'edit' && dataCardKey) {
+    const editedCard = findCard(cards, dataCardKey);
+    if (editedCard && !baseUsableCards.find((c) => c.key === dataCardKey)) {
+      usableCards = [editedCard, ...baseUsableCards];
     }
-    return baseUsableCards;
-  }, [baseUsableCards, state, dataCardKey, cards]);
+  }
 
   // If card is not in usable cards, reset the form
   // Skip reset in edit mode when the card matches the original linked card
@@ -269,10 +263,10 @@ export function LinkForm({
   ]);
 
   // Get external items for selected connector
-  const selectedConnector = useMemo(() => {
-    if (connector === 'card' || !connectors) return null;
-    return connectors.find((c) => c.name === connector) || null;
-  }, [connector, connectors]);
+  const selectedConnector =
+    connector === 'card' || !connectors
+      ? null
+      : connectors.find((c) => c.name === connector) || null;
 
   const externalItems = selectedConnector?.items || [];
 
@@ -1049,7 +1043,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                             {link.displayName}
                           </Typography>
                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            {parseExternalLink(link) ? (
+                            {link.connector ? (
                               link.url ? (
                                 <Link
                                   data-cy="cardLink"
@@ -1057,11 +1051,11 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                                   target="_blank"
                                   rel="noopener noreferrer"
                                 >
-                                  {parseExternalLink(link)?.itemKey}
+                                  {link.key}
                                 </Link>
                               ) : (
                                 <Typography data-cy="cardLink" level="body-sm">
-                                  {parseExternalLink(link)?.itemKey}
+                                  {link.key}
                                 </Typography>
                               )
                             ) : (
@@ -1104,12 +1098,13 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                                     t.name === link.linkType &&
                                     t.direction === link.direction,
                                 );
-                                const externalLink = parseExternalLink(link);
                                 setEditLinkData({
                                   linkType: linkType?.id ?? NO_LINK_TYPE,
-                                  connector: externalLink?.connector ?? 'card',
-                                  cardKey: externalLink ? '' : link.key,
-                                  externalItemKey: externalLink?.itemKey ?? '',
+                                  connector: link.connector ?? 'card',
+                                  cardKey: link.connector ? '' : link.key,
+                                  externalItemKey: link.connector
+                                    ? link.key
+                                    : '',
                                   linkDescription: link.linkDescription || '',
                                   linkTypeName: link.linkType,
                                   direction: link.direction,

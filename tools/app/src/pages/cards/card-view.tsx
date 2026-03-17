@@ -25,7 +25,7 @@ import {
   useKeyboardShortcut,
 } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
-import { expandLinkTypes, parseExternalLink } from '@/lib/utils';
+import { expandLinkTypes } from '@/lib/utils';
 import { Box, Stack, Typography } from '@mui/joy';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -169,9 +169,8 @@ export default function Page() {
             onLinkFormChange={(state) => setLinkFormState(state)}
             onDeleteLink={async (data) => {
               try {
-                const externalLink = parseExternalLink(data);
-                const target = externalLink
-                  ? `${externalLink.connector}:${externalLink.itemKey}`
+                const target = data.connector
+                  ? `${data.connector}:${data.key}`
                   : data.key;
                 await deleteLink(
                   target,

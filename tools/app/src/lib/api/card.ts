@@ -167,7 +167,7 @@ export const useCardMutations = (key: string | null) => {
 
             return removeLink(
               key,
-              previousCardKey || target,
+              previousCardKey,
               oldLinkType,
               previousLinkDescription,
               previousDirection,

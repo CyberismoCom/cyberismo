@@ -598,16 +598,3 @@ export async function withUpdating<T>(
     setIsUpdating(false);
   }
 }
-
-/**
- * Parse external link from CalculationLink.
- * Returns connector and itemKey if this is an external link, null otherwise.
- */
-export function parseExternalLink(
-  link: CalculationLink,
-): { connector: string; itemKey: string } | null {
-  if (link.connector) {
-    return { connector: link.connector, itemKey: link.key };
-  }
-  return null;
-}
