@@ -97,7 +97,9 @@ describe('edit card', () => {
     const cards = commands.project.cards();
     const firstCard = cards.at(0);
     if (firstCard) {
-      expect(() => editCmd.editCard(firstCard.key + 1)).throws(CardNotFoundError);
+      expect(() => editCmd.editCard(firstCard.key + 1)).throws(
+        CardNotFoundError,
+      );
     }
   });
   // @todo: Make sinon fake/mock for user preferences

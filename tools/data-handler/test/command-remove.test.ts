@@ -577,7 +577,9 @@ describe('remove card', () => {
 
     expect(() => commands.project.findCard(cardId)).to.throw(CardNotFoundError);
     // Since decision_6 is decision_5's child, it should have been removed as well.
-    expect(() => commands.project.findCard('decision_6')).to.throw(CardNotFoundError);
+    expect(() => commands.project.findCard('decision_6')).to.throw(
+      CardNotFoundError,
+    );
   });
 
   it('should not delete template cards when removing project cards', async () => {
@@ -620,10 +622,14 @@ describe('remove card', () => {
       await commands.removeCmd.remove('card', parentCardKey!);
 
       // Verify project card and its children are deleted
-      expect(() => commands.project.findCard(parentCardKey)).to.throw(CardNotFoundError);
+      expect(() => commands.project.findCard(parentCardKey)).to.throw(
+        CardNotFoundError,
+      );
 
       for (const childKey of parentCard.children) {
-        expect(() => commands.project.findCard(childKey)).to.throw(CardNotFoundError);
+        expect(() => commands.project.findCard(childKey)).to.throw(
+          CardNotFoundError,
+        );
       }
     }
 
