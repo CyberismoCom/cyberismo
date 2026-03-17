@@ -32,6 +32,26 @@ import type { AnyNode } from './api/types';
 import type { CardResponse } from './api/types';
 import type { AppConfig } from './definitions';
 
+const defined = '[A-Za-z0-9._-]+';
+
+const VALID_REDIRECT_PATTERNS = [
+  new RegExp(`^cards$`),
+  new RegExp(`^cards\\.html$`),
+  new RegExp(`^cards/${defined}$`),
+  new RegExp(`^cards/${defined}\\.html$`),
+  new RegExp(`^cards/${defined}/edit$`),
+  new RegExp(`^cards/${defined}/edit\\.html$`),
+  new RegExp(`^configuration/?$`),
+  new RegExp(`^configuration/general$`),
+  new RegExp(`^configuration/${defined}$`),
+  new RegExp(`^configuration/${defined}/${defined}/${defined}$`),
+  new RegExp(`^configuration/${defined}/${defined}/${defined}/${defined}$`),
+];
+
+export function isSafeRedirectPath(path: string): boolean {
+  return VALID_REDIRECT_PATTERNS.some((pattern) => pattern.test(path));
+}
+
 // Gets type of a child of an array
 type ItemType<T> = T extends (infer U)[] ? U : never;
 

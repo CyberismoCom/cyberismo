@@ -22,6 +22,7 @@ import ResourceOverviewPage from './pages/configuration/resource-overview';
 import Layout from './pages/layout';
 import ConfigLayout from './pages/configuration/layout';
 import NotFoundPage from './pages/not-found';
+import { isSafeRedirectPath } from './lib/utils.js';
 
 // Export mode guard - unfortunately need to refetch config.json to check export mode since hooks
 function createEditLoader(cardKey: string) {
@@ -56,7 +57,7 @@ export const router = createBrowserRouter([
     loader: () => {
       if (window.location.search) {
         const newPath = window.location.search.slice(2).split('&')[0];
-        if (newPath) {
+        if (newPath && isSafeRedirectPath(newPath)) {
           return redirect(newPath);
         }
       }
