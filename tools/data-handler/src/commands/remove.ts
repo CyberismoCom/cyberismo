@@ -158,21 +158,14 @@ export class Remove {
       );
     }
 
-    if (isExternalDestination) {
+    if (isExternalDestination || isExternalSource) {
+      const cardKey = isExternalDestination ? source : destination;
+      const externalItem = isExternalDestination ? destination : source;
+      const direction = isExternalDestination ? 'outbound' : 'inbound';
       return this.removeExternalLink(
-        source,
-        destination,
-        'outbound',
-        linkType,
-        linkDescription,
-      );
-    }
-
-    if (isExternalSource) {
-      return this.removeExternalLink(
-        destination,
-        source,
-        'inbound',
+        cardKey,
+        externalItem,
+        direction,
         linkType,
         linkDescription,
       );

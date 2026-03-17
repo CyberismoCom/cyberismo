@@ -226,7 +226,6 @@ export function LinkForm({
   );
 
   // If card is not in usable cards, reset the form
-  // Skip reset in edit mode when the card matches the original linked card
   const formCardKey = useWatch({
     name: 'cardKey',
     control,

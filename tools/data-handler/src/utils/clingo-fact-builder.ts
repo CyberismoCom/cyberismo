@@ -116,8 +116,9 @@ export class ClingoFactBuilder {
    * @param args Arguments to include in the tuple
    * @returns 'this' for chaining
    */
-  addTupleArgument(...args: string[]): ClingoFactBuilder {
-    const tupleBuilder = new TupleBuilder(args);
+  addTupleArgument(...args: ClingoArgument[]): ClingoFactBuilder {
+    const tupleBuilder = new ClingoFactBuilder('', '');
+    tupleBuilder.addArguments(...args);
     this.arguments.push(tupleBuilder);
     return this;
   }
@@ -191,25 +192,5 @@ export class ClingoFactBuilder {
 class LiteralBuilder extends ClingoFactBuilder {
   build() {
     return this.predicate;
-  }
-}
-
-/**
- * Builder for creating tuple arguments like (arg1, arg2)
- * Used for external item identifiers (connector, itemKey)
- */
-class TupleBuilder extends ClingoFactBuilder {
-  private tupleArgs: string[];
-
-  constructor(args: string[]) {
-    super('', '');
-    this.tupleArgs = args;
-  }
-
-  build(): string {
-    const encodedArgs = this.tupleArgs
-      .map((arg) => `"${encodeClingoValue(arg)}"`)
-      .join(', ');
-    return `(${encodedArgs})`;
   }
 }
