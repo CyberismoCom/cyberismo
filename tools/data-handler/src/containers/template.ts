@@ -297,9 +297,7 @@ export class Template extends CardContainer {
   private async removeCards(cardMap: Map<string, string>) {
     const cards: Card[] = [];
     // Find all cards that need to be removed.
-    console.log('CARDMAP', cardMap);
     cardMap.forEach((createdCard) => {
-      console.log('REMOVE?');
       const card = this.project.findCard(createdCard);
       cards.push(card);
     });
@@ -496,7 +494,6 @@ export class Template extends CardContainer {
           ]);
 
           // Create directory and write files
-          console.log(processedCard.path);
           await mkdir(processedCard.path, { recursive: true });
 
           await Promise.all([
@@ -512,7 +509,6 @@ export class Template extends CardContainer {
       await this.project.handleNewCards(processedCards);
       return processedCards;
     } catch (error) {
-      console.log('ERROR', error);
       await this.removeCards(cardKeyMap);
       this.logger.error({ error }, 'Failed to create cards');
       throw error;
