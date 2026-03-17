@@ -124,11 +124,12 @@ export class Template extends CardContainer {
     templatesFolder: string,
     parentCard?: Card,
   ): void {
-    const updatePathPart = (part: string) =>
-      CardNameRegEx.test(part)
-        ? `${sep}${templateIDMap.get(part) || part}`
-        : `${sep}${part}`;
-
+    const updatePathPart = (part: string) => {
+      const templatePart = templateIDMap.get(part);
+      return (
+        sep + (CardNameRegEx.test(part) && templatePart ? templatePart : part)
+      );
+    };
     card.path = card.path.split(sep).map(updatePathPart).join('').substring(1);
 
     if (card.path.includes(`${sep}c${sep}`) && !parentCard) {
