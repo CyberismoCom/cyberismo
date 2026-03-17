@@ -905,7 +905,20 @@ Some content here`;
         cardDetailsByIdStub.restore();
       });
 
-      ['static', 'inject', 'staticSite'].forEach((mode) => {
+      [
+        {
+          mode: 'static',
+          expected: '<<xref-test-card>>',
+        },
+        {
+          mode: 'inject',
+          expected: 'link:/cards/xref-test-card[Test Card for Cross Reference]',
+        },
+        {
+          mode: 'staticSite',
+          expected: 'link:/cards/xref-test-card[Test Card for Cross Reference]',
+        },
+      ].forEach(({ mode, expected }) => {
         it(`xrefMacro ${mode} (success)`, async () => {
           const macro = `{{#xref}}"cardKey": "xref-test-card"{{/xref}}`;
           const result = await evaluateMacros(macro, {
@@ -914,10 +927,6 @@ Some content here`;
             cardKey: '',
             context: 'localApp',
           });
-          const expected =
-            mode === 'static'
-              ? '<<xref-test-card>>'
-              : 'xref:xref-test-card.adoc[Test Card for Cross Reference]';
 
           expect(result).to.equal(expected);
           expect(cardDetailsByIdStub.calledWith('xref-test-card')).to.equal(
