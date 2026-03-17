@@ -700,12 +700,7 @@ describe('create command', () => {
     // decision_6 has cardType "decision/cardTypes/decision" which is NOT allowed as destination
     const result = await commandHandler.command(
       Cmd.create,
-      [
-        'link',
-        'jira:INBOUND-123',
-        'decision_6',
-        'decision/linkTypes/testTypes',
-      ],
+      ['link', 'jira:INBOUND-123', 'decision_6', 'decision/linkTypes/testTypes'],
       options,
     );
     expect(result.statusCode).to.equal(400);

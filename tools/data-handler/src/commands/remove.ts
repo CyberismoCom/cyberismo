@@ -145,6 +145,7 @@ export class Remove {
     destination: string,
     linkType?: string,
     linkDescription?: string,
+    direction?: 'outbound' | 'inbound',
   ) {
     const isExternal = (value: string) =>
       value.includes(':') && !/^[a-z]+_[0-9a-z]+$/.test(value);
@@ -161,11 +162,13 @@ export class Remove {
     if (isExternalDestination || isExternalSource) {
       const cardKey = isExternalDestination ? source : destination;
       const externalItem = isExternalDestination ? destination : source;
-      const direction = isExternalDestination ? 'outbound' : 'inbound';
+      // Use provided direction, or auto-detect from argument order
+      const effectiveDirection =
+        direction ?? (isExternalDestination ? 'outbound' : 'inbound');
       return this.removeExternalLink(
         cardKey,
         externalItem,
-        direction,
+        effectiveDirection,
         linkType,
         linkDescription,
       );
@@ -314,7 +317,13 @@ export class Remove {
       else if (type === 'hub') return this.removeHubLocation(targetName);
       else if (type === 'label') return this.removeLabel(targetName, rest[0]);
       else if (type === 'link')
-        return this.removeLink(targetName, rest[0], rest[1], rest.at(2));
+        return this.removeLink(
+          targetName,
+          rest[0],
+          rest[1],
+          rest.at(2),
+          rest.at(3),
+        );
       else if (type === 'module')
         return this.moduleManager.removeModule(targetName);
     }

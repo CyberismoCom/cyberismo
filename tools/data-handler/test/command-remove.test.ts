@@ -179,7 +179,7 @@ describe('remove command', () => {
     });
 
     it('remove external link inbound (success)', async () => {
-      // First create an inbound external link
+      // First create an inbound external link (external first = inbound)
       await commandHandler.command(
         Cmd.create,
         ['link', 'jira:EXT-456', 'decision_5', 'decision/linkTypes/test'],

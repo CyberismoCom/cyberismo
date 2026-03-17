@@ -265,12 +265,12 @@ export class Commands {
           const [cardKey, label] = rest;
           await this.commands?.createCmd.createLabel(cardKey, label);
         } else if (target === 'link') {
-          const [cardKey, destinationCardKey, linkType, linkDescription] = rest;
+          const [source, destination, linkType, linkDescription] = rest;
           await this.commands?.createCmd.createLink(
-            cardKey,
-            destinationCardKey,
+            source,
+            destination,
             linkType,
-            linkDescription,
+            linkDescription || undefined,
           );
         } else if (target === 'linkType') {
           const [name] = rest;

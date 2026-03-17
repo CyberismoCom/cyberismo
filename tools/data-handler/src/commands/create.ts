@@ -324,17 +324,17 @@ export class Create {
    * @param direction Direction of the link: 'outbound' (card→target) or 'inbound' (target→card), defaults to 'outbound'
    */
   @write(
-    (cardKey, targetKey, linkType) =>
-      `Create ${linkType} link from ${cardKey} to ${targetKey}`,
+    (source, destination, linkType) =>
+      `Create ${linkType} link from ${source} to ${destination}`,
   )
   public async createLink(
-    cardKey: string,
-    targetKey: string,
+    source: string,
+    destination: string,
     linkType: string,
     linkDescription?: string,
-    direction: 'outbound' | 'inbound' = 'outbound',
+    direction?: 'outbound' | 'inbound',
   ) {
-    if (cardKey === targetKey) {
+    if (source === destination) {
       throw new Error('Cannot link card to itself');
     }
 
@@ -343,22 +343,31 @@ export class Create {
     const isExternal = (value: string) =>
       value.includes(':') && !/^[a-z]+_[0-9a-z]+$/.test(value);
 
-    const isExternalTarget = isExternal(targetKey);
+    const isExternalSource = isExternal(source);
+    const isExternalDestination = isExternal(destination);
 
-    if (isExternalTarget) {
+    if (isExternalSource && isExternalDestination) {
+      throw new Error(
+        'Cannot create link between two external items. One must be a card.',
+      );
+    }
+
+    if (isExternalSource || isExternalDestination) {
+      const cardKey = isExternalDestination ? source : destination;
+      const externalItem = isExternalDestination ? destination : source;
+      // Use provided direction, or auto-detect from argument order
+      const effectiveDirection =
+        direction ?? (isExternalDestination ? 'outbound' : 'inbound');
       return this.createExternalLink(
         cardKey,
-        targetKey,
+        externalItem,
         linkType,
-        direction,
+        effectiveDirection,
         linkDescription,
       );
     }
 
-    // For local card-to-card links, determine source/destination based on direction
-    const source = direction === 'outbound' ? cardKey : targetKey;
-    const destination = direction === 'outbound' ? targetKey : cardKey;
-
+    // For local card-to-card links, source links to destination
     return this.createLocalLink(source, destination, linkType, linkDescription);
   }
 
