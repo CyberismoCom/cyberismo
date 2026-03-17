@@ -232,12 +232,17 @@ export class Template extends CardContainer {
       };
     }, {});
 
+    let templateCardKey;
+    for (const [key, value] of templateIDMap) {
+      if (value === card.key) {
+        templateCardKey = key;
+        break;
+      }
+    }
     const newMetadata = {
       ...card.metadata,
       ...customFields,
-      templateCardKey: [...templateIDMap]
-        .find(([, value]) => value === card.key)!
-        .at(0),
+      templateCardKey,
       workflowState: initialWorkflowState.toState,
       cardType: cardType.name,
       rank: cardWithRank?.metadata?.rank || card.metadata.rank || EMPTY_RANK,
