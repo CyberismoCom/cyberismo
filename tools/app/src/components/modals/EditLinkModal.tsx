@@ -33,7 +33,7 @@ import type { Connector } from '@/lib/api/types';
 
 interface LinkFormData {
   linkType: number;
-  itemSource: string;
+  connector: string;
   cardKey: string;
   externalItemKey: string;
   linkDescription: string;
@@ -49,7 +49,7 @@ interface EditLinkModalProps {
     cardKey: string;
     linkDescription: string;
     direction: LinkDirection;
-    itemSource: string;
+    connector: string;
     externalItemKey?: string;
     previousLinkType?: string;
     previousCardKey?: string;
@@ -95,12 +95,12 @@ export function EditLinkModal({
             connectors={connectors}
             currentCardLinks={card?.links ?? []}
             onSubmit={async (data) => {
-              // When submitting, include the original link information as well
-              // For external links, construct previousCardKey as connector:itemKey
+              // When submitting, include the original link information
+              // For external links: connector:itemKey, for cards: cardKey
               const previousCardKey =
-                editLinkData?.itemSource === 'card'
-                  ? editLinkData?.cardKey
-                  : `${editLinkData?.itemSource}:${editLinkData?.externalItemKey}`;
+                editLinkData?.connector !== 'card'
+                  ? `${editLinkData?.connector}:${editLinkData?.externalItemKey}`
+                  : editLinkData?.cardKey;
               const result = await onSubmit({
                 ...data,
                 previousLinkType: editLinkData?.linkTypeName,

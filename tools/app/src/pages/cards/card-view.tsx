@@ -117,9 +117,9 @@ export default function Page() {
 
                 // Determine target: card key for local, connector:itemKey for external
                 const target =
-                  data.itemSource === 'card'
-                    ? data.cardKey
-                    : `${data.itemSource}:${data.externalItemKey}`;
+                  data.connector !== 'card'
+                    ? `${data.connector}:${data.externalItemKey}`
+                    : data.cardKey;
 
                 // Handle both regular form and modal form submissions
                 if (

@@ -115,8 +115,8 @@ interface LinkFormSubmitData {
   cardKey: string;
   linkDescription: string;
   direction: LinkDirection;
-  // External link fields
-  itemSource: string;
+  // External link: connector name, empty string for card links
+  connector: string;
   externalItemKey?: string;
   // Edit mode previous values
   previousLinkType?: string;
@@ -127,7 +127,7 @@ interface LinkFormSubmitData {
 
 interface LinkFormData {
   linkType: number;
-  itemSource: string;
+  connector: string;
   cardKey: string;
   externalItemKey: string;
   linkDescription: string;
@@ -153,7 +153,7 @@ const NO_LINK_TYPE = -1;
 
 const DEFAULT_LINK_FORM_DATA: LinkFormData = {
   linkType: NO_LINK_TYPE,
-  itemSource: 'card',
+  connector: 'card',
   cardKey: '',
   externalItemKey: '',
   linkDescription: '',
@@ -211,9 +211,9 @@ export function LinkForm({
     control,
   });
 
-  // Watch item source
-  const itemSource = useWatch({
-    name: 'itemSource',
+  // Watch connector selection
+  const connector = useWatch({
+    name: 'connector',
     control,
   });
 
@@ -255,14 +255,14 @@ export function LinkForm({
       reset({
         ...DEFAULT_LINK_FORM_DATA,
         linkType,
-        itemSource,
+        connector,
       });
     }
   }, [
     formCardKey,
     usableCards,
     linkType,
-    itemSource,
+    connector,
     reset,
     state,
     dataCardKey,
@@ -270,9 +270,9 @@ export function LinkForm({
 
   // Get external items for selected connector
   const selectedConnector = useMemo(() => {
-    if (itemSource === 'card' || !connectors) return null;
-    return connectors.find((c) => c.name === itemSource) || null;
-  }, [itemSource, connectors]);
+    if (connector === 'card' || !connectors) return null;
+    return connectors.find((c) => c.name === connector) || null;
+  }, [connector, connectors]);
 
   const externalItems = selectedConnector?.items || [];
 
@@ -285,12 +285,12 @@ export function LinkForm({
         if (!linkType) return;
         const success = await onSubmit?.({
           linkType: linkType.name,
-          cardKey: formData.itemSource === 'card' ? formData.cardKey : '',
+          cardKey: formData.connector === 'card' ? formData.cardKey : '',
           linkDescription: formData.linkDescription,
           direction: linkType.direction,
-          itemSource: formData.itemSource,
+          connector: formData.connector,
           externalItemKey:
-            formData.itemSource !== 'card'
+            formData.connector !== 'card'
               ? formData.externalItemKey
               : undefined,
           previousLinkType:
@@ -344,7 +344,7 @@ export function LinkForm({
               </Typography>
             </Typography>
             <Controller
-              name="itemSource"
+              name="connector"
               control={control}
               render={({ field }) => (
                 <Select
@@ -371,7 +371,7 @@ export function LinkForm({
                 *
               </Typography>
             </Typography>
-            {itemSource === 'card' ? (
+            {connector === 'card' ? (
               <Controller
                 name="cardKey"
                 control={control}
@@ -1107,13 +1107,9 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                                 const externalLink = parseExternalLink(link);
                                 setEditLinkData({
                                   linkType: linkType?.id ?? NO_LINK_TYPE,
-                                  itemSource: externalLink
-                                    ? externalLink.connector
-                                    : 'card',
+                                  connector: externalLink?.connector ?? 'card',
                                   cardKey: externalLink ? '' : link.key,
-                                  externalItemKey: externalLink
-                                    ? externalLink.itemKey
-                                    : '',
+                                  externalItemKey: externalLink?.itemKey ?? '',
                                   linkDescription: link.linkDescription || '',
                                   linkTypeName: link.linkType,
                                   direction: link.direction,

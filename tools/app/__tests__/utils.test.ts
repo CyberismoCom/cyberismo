@@ -794,22 +794,7 @@ describe('parseExternalLink', () => {
     expect(result?.itemKey).toBe('CJIT-7');
   });
 
-  test('parses link with tuple format key (connector,itemKey)', () => {
-    const link: CalculationLink = {
-      key: '(cyberismo-jira,CJIT-3)',
-      title: 'External Issue',
-      displayName: 'blocks',
-      linkType: 'base/linkTypes/blocks',
-      direction: 'inbound',
-      linkSource: 'user',
-    };
-    const result = parseExternalLink(link);
-    expect(result).not.toBeNull();
-    expect(result?.connector).toBe('cyberismo-jira');
-    expect(result?.itemKey).toBe('CJIT-3');
-  });
-
-  test('returns null for card key that looks like card prefix format', () => {
+  test('returns null for card key without connector field', () => {
     const link: CalculationLink = {
       key: 'proj_12345',
       title: 'Some Card',
