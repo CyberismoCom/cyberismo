@@ -179,15 +179,12 @@ export async function createLink(
   direction: 'outbound' | 'inbound' = 'outbound',
   description?: string,
 ) {
-  // For outbound: key is source, target is destination
-  // For inbound: target is source, key is destination
-  const source = direction === 'outbound' ? key : target;
-  const destination = direction === 'outbound' ? target : key;
   await commands.createCmd.createLink(
-    source,
-    destination,
+    key,
+    target,
     linkType,
     description,
+    direction,
   );
   return { message: 'Link created successfully' };
 }

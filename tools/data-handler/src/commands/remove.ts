@@ -243,9 +243,7 @@ export class Remove {
 
     if (!extLink) {
       throw new Error(
-        linkType
-          ? `External link from '${cardKey}' to '${connector}:${externalItemKey}' with link type '${linkType}' not found`
-          : `External link from '${cardKey}' to '${connector}:${externalItemKey}' not found`,
+        `External link from '${cardKey}' to '${connector}:${externalItemKey}' ${linkType ? `with link type '${linkType}' ` : ''}not found`,
       );
     }
 

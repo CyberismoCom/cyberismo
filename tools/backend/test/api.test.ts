@@ -183,8 +183,6 @@ test('labels endpoint returns the list of labels', async () => {
 
 test('connectors endpoint returns connectors data', async () => {
   const response = await app.request('/api/connectors');
-  expect(response).not.toBe(null);
-
   const result = (await response.json()) as {
     name: string;
     displayName: string;
@@ -192,7 +190,7 @@ test('connectors endpoint returns connectors data', async () => {
   }[];
   expect(response.status).toBe(200);
   expect(Array.isArray(result)).toBe(true);
-  // If no connectors are configured, this should be an empty array
+  expect(result).toHaveLength(0);
 });
 
 test('POST /api/cards/:key/links creates a link successfully', async () => {
@@ -205,8 +203,6 @@ test('POST /api/cards/:key/links creates a link successfully', async () => {
       direction: 'outbound',
     }),
   });
-  expect(response).not.toBe(null);
-
   const result = (await response.json()) as { message: string };
   expect(response.status).toBe(200);
   expect(result.message).toBe('Link created successfully');
@@ -222,8 +218,6 @@ test('DELETE /api/cards/:key/links removes a link successfully', async () => {
       direction: 'outbound',
     }),
   });
-  expect(response).not.toBe(null);
-
   const result = (await response.json()) as { message: string };
   expect(response.status).toBe(200);
   expect(result.message).toBe('Link removed successfully');
@@ -239,8 +233,6 @@ test('POST /api/cards/:key/links creates external link successfully', async () =
       direction: 'outbound',
     }),
   });
-  expect(response).not.toBe(null);
-
   const result = (await response.json()) as { message: string };
   expect(response.status).toBe(200);
   expect(result.message).toBe('Link created successfully');
@@ -256,8 +248,6 @@ test('DELETE /api/cards/:key/links removes external link successfully', async ()
       direction: 'outbound',
     }),
   });
-  expect(response).not.toBe(null);
-
   const result = (await response.json()) as { message: string };
   expect(response.status).toBe(200);
   expect(result.message).toBe('Link removed successfully');

@@ -316,24 +316,25 @@ export class Create {
 
   /**
    * Creates a link between two cards, or between a card and an external item.
-   * Either source or destination can be external using format "connector:itemKey" (e.g., "jira:PROJECT-1032").
-   * The card always stores the link.
-   * @param source The source card key or external item (connector:itemKey)
-   * @param destination The destination card key or external item (connector:itemKey)
+   * Target can be external using format "connector:itemKey" (e.g., "jira:PROJECT-1032").
+   * @param cardKey The card key making the request
+   * @param targetKey The target card key or external item (connector:itemKey)
    * @param linkType The type of link to add
    * @param linkDescription Optional description of the link
+   * @param direction Direction of the link: 'outbound' (card→target) or 'inbound' (target→card), defaults to 'outbound'
    */
   @write(
-    (source, destination, linkType) =>
-      `Create ${linkType} link from ${source} to ${destination}`,
+    (cardKey, targetKey, linkType) =>
+      `Create ${linkType} link from ${cardKey} to ${targetKey}`,
   )
   public async createLink(
-    source: string,
-    destination: string,
+    cardKey: string,
+    targetKey: string,
     linkType: string,
     linkDescription?: string,
+    direction: 'outbound' | 'inbound' = 'outbound',
   ) {
-    if (source === destination) {
+    if (cardKey === targetKey) {
       throw new Error('Cannot link card to itself');
     }
 
@@ -342,34 +343,21 @@ export class Create {
     const isExternal = (value: string) =>
       value.includes(':') && !/^[a-z]+_[0-9a-z]+$/.test(value);
 
-    const isExternalSource = isExternal(source);
-    const isExternalDestination = isExternal(destination);
+    const isExternalTarget = isExternal(targetKey);
 
-    if (isExternalSource && isExternalDestination) {
-      throw new Error(
-        'Cannot create link between two external items. One must be a card.',
-      );
-    }
-
-    if (isExternalDestination) {
+    if (isExternalTarget) {
       return this.createExternalLink(
-        source,
-        destination,
+        cardKey,
+        targetKey,
         linkType,
-        'outbound',
+        direction,
         linkDescription,
       );
     }
 
-    if (isExternalSource) {
-      return this.createExternalLink(
-        destination,
-        source,
-        linkType,
-        'inbound',
-        linkDescription,
-      );
-    }
+    // For local card-to-card links, determine source/destination based on direction
+    const source = direction === 'outbound' ? cardKey : targetKey;
+    const destination = direction === 'outbound' ? targetKey : cardKey;
 
     return this.createLocalLink(source, destination, linkType, linkDescription);
   }
