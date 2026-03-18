@@ -65,6 +65,8 @@ describe('XSS Prevention', () => {
 
   beforeEach(() => {
     cy.visit('');
+    // This is a bit anti-pattern, but the tests are attempting to throw an alert by modifying content
+    // If they are able to, error is thrown and the tests fail. This means they are vulnerable to XSS
     cy.on('window:alert', () => {
       throw new Error('XSS: window.alert was called');
     });
