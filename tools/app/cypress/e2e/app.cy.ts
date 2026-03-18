@@ -9,10 +9,6 @@ const t = require('../../src/locales/en/translation.json');
 describe('Navigation', () => {
   Cypress.config('defaultCommandTimeout', 20000);
 
-  before(() => {
-    cy.task('createTestProject'); // Creates a new cyberismo-bat project based on module-base
-  });
-
   beforeEach(() => {
     cy.visit('');
   });
