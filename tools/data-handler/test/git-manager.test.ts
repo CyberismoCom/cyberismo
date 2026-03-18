@@ -199,6 +199,33 @@ describe('GitManager', () => {
       expect(tags).to.deep.equal(['v2.0.0', 'v1.1.0', 'v1.0.0']);
     });
 
+    it('should only return tags reachable from HEAD', async () => {
+      const gm = new GitManager(dir);
+      await gm.initialize();
+      const git = testGit(dir);
+
+      // Create v1.0.0 and v1.1.0 on main
+      await gm.tagVersion('1.0.0');
+      await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
+      await gm.commit('change 1');
+      await gm.tagVersion('1.1.0');
+
+      // Branch off at v1.1.0
+      await git.checkoutLocalBranch('maintenance');
+
+      // Go back to main and create v2.0.0
+      await git.checkout('master');
+      await writeFile(join(dir, 'cardRoot', 'b.txt'), 'b');
+      await gm.commit('change 2');
+      await gm.tagVersion('2.0.0');
+
+      // Switch to maintenance branch — v2.0.0 is NOT reachable
+      await git.checkout('maintenance');
+
+      const tags = await gm.listVersionTags();
+      expect(tags).to.deep.equal(['v1.1.0', 'v1.0.0']);
+    });
+
     it('should ignore non-version tags', async () => {
       const gm = new GitManager(dir);
       await gm.initialize();
@@ -229,6 +256,32 @@ describe('GitManager', () => {
       await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
       await gm.commit('change');
       await gm.tagVersion('1.1.0');
+
+      const version = await gm.getVersion();
+      expect(version).to.equal('1.1.0');
+    });
+
+    it('should return latest version reachable from current branch', async () => {
+      const gm = new GitManager(dir);
+      await gm.initialize();
+      const git = testGit(dir);
+
+      await gm.tagVersion('1.0.0');
+      await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
+      await gm.commit('change 1');
+      await gm.tagVersion('1.1.0');
+
+      // Branch off
+      await git.checkoutLocalBranch('maintenance');
+
+      // Advance main with v2.0.0
+      await git.checkout('master');
+      await writeFile(join(dir, 'cardRoot', 'b.txt'), 'b');
+      await gm.commit('change 2');
+      await gm.tagVersion('2.0.0');
+
+      // On maintenance branch, should see 1.1.0 not 2.0.0
+      await git.checkout('maintenance');
 
       const version = await gm.getVersion();
       expect(version).to.equal('1.1.0');
