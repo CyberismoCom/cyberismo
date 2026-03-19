@@ -11,6 +11,7 @@ import { expect, test, describe } from 'vitest';
 import {
   countChildren,
   deepCopy,
+  isSafeRedirectPath,
   findCard,
   findParentCard,
   findPathTo,
@@ -760,5 +761,36 @@ describe('parseNestedDataAttributes', () => {
       const result = parseDataAttributes(attribs);
       expect(result.key).toBe('test');
     });
+  });
+});
+
+describe('isSafeRedirectPath', () => {
+  test.each([
+    'cards',
+    'cards.html',
+    'cards/usdl_43',
+    'cards/usdl_43.html',
+    'cards/usdl_43/edit',
+    'cards/usdl_43/edit.html',
+    'configuration/',
+    'configuration/general',
+    'configuration/fieldTypes',
+    'configuration/decision/cardTypes/myCard',
+    'configuration/decision/cardTypes/myCard/schema.json',
+  ])('allows %s', (path) => {
+    expect(isSafeRedirectPath(path)).toBe(true);
+  });
+
+  test.each([
+    '//evil.com',
+    'https://evil.com',
+    'javascript:alert(1)',
+    'evil.com',
+    '',
+    '/',
+    'other/path',
+    'cards/../../etc/passwd',
+  ])('blocks %s', (path) => {
+    expect(isSafeRedirectPath(path)).toBe(false);
   });
 });
