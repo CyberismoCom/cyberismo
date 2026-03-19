@@ -21,6 +21,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include <clingo.hh>
+
 #include "helpers.h"
 #include "xxhash.h"
 
@@ -33,10 +35,20 @@ namespace node_clingo
     {
         std::string key;
         std::string content;
+        std::vector<Clingo::AST::Node> ast_nodes; // Pre-parsed AST; empty = text fallback
         std::vector<KeyHash> categories;
         Hash hash;
-        Program(std::string key_, std::string content_, std::vector<KeyHash> categories_, Hash hash_)
-            : key(std::move(key_)), content(std::move(content_)), categories(std::move(categories_)), hash(hash_)
+        Program(
+            std::string key_,
+            std::string content_,
+            std::vector<Clingo::AST::Node> ast_nodes_,
+            std::vector<KeyHash> categories_,
+            Hash hash_)
+            : key(std::move(key_)),
+              content(std::move(content_)),
+              ast_nodes(std::move(ast_nodes_)),
+              categories(std::move(categories_)),
+              hash(hash_)
         {
         }
     };
