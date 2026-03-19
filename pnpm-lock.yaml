@@ -289,6 +289,25 @@ importers:
         specifier: workspace:*
         version: link:../app
 
+  tools/benchmarks:
+    dependencies:
+      '@cyberismo/assets':
+        specifier: workspace:*
+        version: link:../assets
+      '@cyberismo/data-handler':
+        specifier: workspace:*
+        version: link:../data-handler
+      '@cyberismo/node-clingo':
+        specifier: workspace:*
+        version: link:../node-clingo
+    devDependencies:
+      tsx:
+        specifier: ^4.19.0
+        version: 4.21.0
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
   tools/cli:
     dependencies:
       '@cyberismo/backend':
