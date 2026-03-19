@@ -17,7 +17,8 @@
   "dependencies": {
     "@cyberismo/data-handler": "workspace:*",
     "@cyberismo/node-clingo": "workspace:*",
-    "@cyberismo/assets": "workspace:*"
+    "@cyberismo/assets": "workspace:*",
+    "handlebars": "^4.7.8"
   },
   "devDependencies": {
     "tsx": "^4.19.0",

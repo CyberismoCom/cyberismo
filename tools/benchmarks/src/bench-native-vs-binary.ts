@@ -7,6 +7,7 @@ import {
   setCacheEnabled,
 } from '@cyberismo/node-clingo';
 import { lpFiles } from '@cyberismo/assets';
+import Handlebars from 'handlebars';
 import { solveBinary } from './binary-baseline.js';
 import { writeResults, machineName } from './utils.js';
 import type { BenchmarkRun, BenchmarkResult } from './types.js';
@@ -30,8 +31,8 @@ async function main() {
   // Generate logic program
   await engine.generate();
 
-  // Get the query program and build the full program
-  const queryContent = lpFiles.queries.tree;
+  // Compile the Handlebars query template (no options = full tree query)
+  const queryContent = Handlebars.compile(lpFiles.queries.tree)({});
   const fullProgram = buildProgram(queryContent, ['all']);
   const cardCount = commands.project.cards().length;
   const benchRuns: BenchmarkRun[] = [];
