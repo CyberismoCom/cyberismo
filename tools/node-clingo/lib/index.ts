@@ -20,6 +20,8 @@ interface ClingoBinding {
   removeAllPrograms(): void;
   clearCache(): void;
   setCacheEnabled(enabled: boolean): void;
+  setAsyncSolve(enabled: boolean): void;
+  setPreParsing(enabled: boolean): void;
   solve(program: string, categories: string[]): Promise<ClingoResult>;
   buildProgram(program: string, categories: string[]): string;
 }
@@ -148,6 +150,24 @@ function setCacheEnabled(enabled: boolean) {
 }
 
 /**
+ * Enables or disables async worker thread solving.
+ * When disabled, solve() blocks the event loop — intended for benchmarking only.
+ * @param enabled Whether async solving should be enabled (default: true)
+ */
+function setAsyncSolve(enabled: boolean) {
+  binding.setAsyncSolve(enabled);
+}
+
+/**
+ * Enables or disables AST pre-parsing of LP text at setProgram time.
+ * When disabled, programs store raw text and parsing happens at solve time.
+ * @param enabled Whether pre-parsing should be enabled (default: true)
+ */
+function setPreParsing(enabled: boolean) {
+  binding.setPreParsing(enabled);
+}
+
+/**
  * Gets the complete assembled logic program as a string
  * @param program The main logic program as a string
  * @param categories Optional array of program keys or categories to include
@@ -164,6 +184,8 @@ export {
   removeAllPrograms,
   clearCache,
   setCacheEnabled,
+  setAsyncSolve,
+  setPreParsing,
   buildProgram,
   ClingoResult,
 };
@@ -174,5 +196,7 @@ export default {
   removeAllPrograms,
   clearCache,
   setCacheEnabled,
+  setAsyncSolve,
+  setPreParsing,
   buildProgram,
 };

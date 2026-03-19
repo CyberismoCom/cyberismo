@@ -205,6 +205,44 @@ Napi::Value SetCacheEnabled(const Napi::CallbackInfo& info)
 }
 
 /**
+ * N-API function exposed to JavaScript as `setAsyncSolve`.
+ * Enables or disables async worker thread solving.
+ * When disabled, solve() blocks the event loop — intended for benchmarking only.
+ * @param info N-API callback info containing arguments (enabled boolean).
+ * @returns undefined
+ * @throws Napi::TypeError if the argument is invalid.
+ */
+Napi::Value SetAsyncSolve(const Napi::CallbackInfo& info)
+{
+    Napi::Env env = info.Env();
+    if (info.Length() < 1 || !info[0].IsBoolean())
+    {
+        throw Napi::TypeError::New(env, "Expected argument: enabled (boolean)");
+    }
+    g_asyncSolve = info[0].As<Napi::Boolean>().Value();
+    return env.Undefined();
+}
+
+/**
+ * N-API function exposed to JavaScript as `setPreParsing`.
+ * Enables or disables AST pre-parsing of LP text at setProgram time.
+ * When disabled, programs store raw text and parsing happens at solve time.
+ * @param info N-API callback info containing arguments (enabled boolean).
+ * @returns undefined
+ * @throws Napi::TypeError if the argument is invalid.
+ */
+Napi::Value SetPreParsing(const Napi::CallbackInfo& info)
+{
+    Napi::Env env = info.Env();
+    if (info.Length() < 1 || !info[0].IsBoolean())
+    {
+        throw Napi::TypeError::New(env, "Expected argument: enabled (boolean)");
+    }
+    g_programStore.preParsing = info[0].As<Napi::Boolean>().Value();
+    return env.Undefined();
+}
+
+/**
  * N-API function exposed to JavaScript as `solve`.
  * Solves a given logic program asynchronously using a worker thread.
  * Returns a Promise that resolves with the solve result.
@@ -294,6 +332,10 @@ Napi::Object Init(Napi::Env env, Napi::Object exports)
     exports.Set(Napi::String::New(env, "clearCache"), Napi::Function::New(env, ClearCache));
 
     exports.Set(Napi::String::New(env, "setCacheEnabled"), Napi::Function::New(env, SetCacheEnabled));
+
+    exports.Set(Napi::String::New(env, "setAsyncSolve"), Napi::Function::New(env, SetAsyncSolve));
+
+    exports.Set(Napi::String::New(env, "setPreParsing"), Napi::Function::New(env, SetPreParsing));
 
     return exports;
 }

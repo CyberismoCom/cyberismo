@@ -73,6 +73,7 @@ namespace node_clingo
         bool removeProgram(KeyHash keyHash);
 
       public:
+        bool preParsing = true; // When false, skip AST pre-parsing
         ProgramStore() = default;
         ~ProgramStore() = default;
         /**

@@ -70,7 +70,7 @@ namespace node_clingo
                 return getOrCreateHash(category);
             });
 
-        auto ast = tryParseToAst(content);
+        auto ast = preParsing ? tryParseToAst(content) : std::vector<Clingo::AST::Node>{};
         auto shared_program =
             std::make_shared<const Program>(key, content, std::move(ast), categories_hashed, content_hash);
         programs[hash] = shared_program;
@@ -152,7 +152,7 @@ namespace node_clingo
         auto programs = programByReferences(categories);
 
         // add the main program
-        auto ast = tryParseToAst(query);
+        auto ast = preParsing ? tryParseToAst(query) : std::vector<Clingo::AST::Node>{};
         programs.push_back(
             std::make_shared<const Program>("__program__", query, std::move(ast), std::vector<KeyHash>(), 0));
 
