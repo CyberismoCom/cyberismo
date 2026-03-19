@@ -26,6 +26,8 @@ import {
   Box,
   Button,
   Divider,
+  FormControl,
+  FormLabel,
   IconButton,
   Input,
   Link,
@@ -91,7 +93,7 @@ type ContentAreaProps = {
   cards: QueryResult<'tree'>[];
   card: CardResponse;
   linkTypes: ExpandedLinkType[];
-  connectors?: Connector[];
+  connectors: Connector[];
   onMetadataClick?: () => void;
   onLinkFormSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
   onDeleteLink?: (data: CalculationLink) => void | Promise<void>;
@@ -274,13 +276,8 @@ export function LinkForm({
     >
       <Stack spacing={1}>
         <Stack direction="row" spacing={1}>
-          <Box>
-            <Typography level="body-xs" sx={{ mb: 0.5 }}>
-              {t('linkForm.itemType')}
-              <Typography component="span" sx={{ color: 'danger.500' }}>
-                *
-              </Typography>
-            </Typography>
+          <FormControl required>
+            <FormLabel>{t('linkForm.itemType')}</FormLabel>
             <Controller
               name="linkType"
               control={control}
@@ -303,14 +300,9 @@ export function LinkForm({
                 </Select>
               )}
             />
-          </Box>
-          <Box>
-            <Typography level="body-xs" sx={{ mb: 0.5 }}>
-              {t('linkForm.itemSource')}
-              <Typography component="span" sx={{ color: 'danger.500' }}>
-                *
-              </Typography>
-            </Typography>
+          </FormControl>
+          <FormControl required>
+            <FormLabel>{t('linkForm.itemSource')}</FormLabel>
             <Controller
               name="connector"
               control={control}
@@ -331,14 +323,9 @@ export function LinkForm({
                 </Select>
               )}
             />
-          </Box>
-          <Box sx={{ flexGrow: 1 }}>
-            <Typography level="body-xs" sx={{ mb: 0.5 }}>
-              {t('linkForm.searchItem')}
-              <Typography component="span" sx={{ color: 'danger.500' }}>
-                *
-              </Typography>
-            </Typography>
+          </FormControl>
+          <FormControl required sx={{ flexGrow: 1 }}>
+            <FormLabel>{t('linkForm.searchItem')}</FormLabel>
             {connector === 'card' ? (
               <Controller
                 name="cardKey"
@@ -400,7 +387,7 @@ export function LinkForm({
                 )}
               />
             )}
-          </Box>
+          </FormControl>
         </Stack>
 
         {selectedLinkType && selectedLinkType.enableLinkDescription && (

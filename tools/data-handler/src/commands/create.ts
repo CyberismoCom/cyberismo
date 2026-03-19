@@ -22,7 +22,7 @@ import { Validate } from './validate.js';
 
 import { EMPTY_RANK, sortItems } from '../utils/lexorank.js';
 import { ROOT } from '../utils/constants.js';
-import { isModulePath } from '../utils/card-utils.js';
+import { isModulePath, isExternalItemKey } from '../utils/card-utils.js';
 import type {
   DataType,
   ExternalLink,
@@ -338,13 +338,8 @@ export class Create {
       throw new Error('Cannot link card to itself');
     }
 
-    // Helper to detect external format (connector:itemKey)
-    // Card keys match pattern: prefix_id (e.g., test_abc123)
-    const isExternal = (value: string) =>
-      value.includes(':') && !/^[a-z]+_[0-9a-z]+$/.test(value);
-
-    const isExternalSource = isExternal(source);
-    const isExternalDestination = isExternal(destination);
+    const isExternalSource = isExternalItemKey(source);
+    const isExternalDestination = isExternalItemKey(destination);
 
     if (isExternalSource && isExternalDestination) {
       throw new Error(

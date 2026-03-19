@@ -12,6 +12,7 @@
 */
 
 import type { CommandManager } from '@cyberismo/data-handler';
+import { z } from 'zod';
 
 export interface ExternalItem {
   key: string;
@@ -23,6 +24,21 @@ export interface Connector {
   displayName: string;
   items: ExternalItem[];
 }
+
+const ConnectorResult = z.object({
+  type: z.literal('connector'),
+  key: z.string(),
+  displayName: z.string(),
+});
+
+const ItemResult = z.object({
+  type: z.literal('item'),
+  connector: z.string(),
+  itemKey: z.string(),
+  title: z.string(),
+});
+
+const QueryResult = z.discriminatedUnion('type', [ConnectorResult, ItemResult]);
 
 // Query to get connectors, their display names, and external items
 const CONNECTORS_QUERY = `
@@ -41,7 +57,12 @@ resultField((Connector, Key), "title", Value, "shortText") :- externalItem((Conn
 
 export async function getConnectors(
   commands: CommandManager,
+  isSsg: boolean,
 ): Promise<Connector[]> {
+  if (isSsg) {
+    return [];
+  }
+
   try {
     const result = await commands.calculateCmd.runLogicProgram(
       CONNECTORS_QUERY,
@@ -49,8 +70,7 @@ export async function getConnectors(
     );
 
     if (result.error) {
-      console.error('Error querying connectors:', result.error);
-      return [];
+      throw new Error(`Error querying connectors: ${result.error}`);
     }
 
     // Separate connectors from items based on type field
@@ -58,19 +78,18 @@ export async function getConnectors(
     const items: { connector: string; key: string; title: string }[] = [];
 
     for (const r of result.results) {
-      if (r.type === 'connector') {
-        connectorsMap.set(r.key, {
-          name: r.key,
-          displayName:
-            typeof r.displayName === 'string' ? r.displayName : r.key,
+      const parsed = QueryResult.parse(r);
+      if (parsed.type === 'connector') {
+        connectorsMap.set(parsed.key, {
+          name: parsed.key,
+          displayName: parsed.displayName,
           items: [],
         });
-      } else if (r.type === 'item') {
-        const itemKey = typeof r.itemKey === 'string' ? r.itemKey : '';
+      } else {
         items.push({
-          connector: typeof r.connector === 'string' ? r.connector : '',
-          key: itemKey,
-          title: typeof r.title === 'string' ? r.title : itemKey,
+          connector: parsed.connector,
+          key: parsed.itemKey,
+          title: parsed.title,
         });
       }
     }
@@ -88,7 +107,8 @@ export async function getConnectors(
 
     return Array.from(connectorsMap.values());
   } catch (error) {
-    console.error('Error getting connectors:', error);
-    return [];
+    throw error instanceof Error
+      ? error
+      : new Error(`Error getting connectors: ${error}`);
   }
 }

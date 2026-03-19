@@ -270,7 +270,7 @@ export class Commands {
             source,
             destination,
             linkType,
-            linkDescription || undefined,
+            linkDescription,
           );
         } else if (target === 'linkType') {
           const [name] = rest;

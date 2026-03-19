@@ -101,7 +101,7 @@ export default function Page() {
           <ContentArea
             cards={tree!}
             card={card!}
-            connectors={connectors ?? undefined}
+            connectors={connectors ?? []}
             onMetadataClick={() =>
               router.push(`/cards/${key}/edit?expand=true`)
             }

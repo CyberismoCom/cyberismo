@@ -12,7 +12,7 @@
 */
 
 import { ActionGuard } from '../permissions/action-guard.js';
-import { isModuleCard } from '../utils/card-utils.js';
+import { isModuleCard, isExternalItemKey } from '../utils/card-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { ModuleManager } from '../module-manager.js';
 import type { Fetch } from './fetch.js';
@@ -147,11 +147,8 @@ export class Remove {
     linkDescription?: string,
     direction?: 'outbound' | 'inbound',
   ) {
-    const isExternal = (value: string) =>
-      value.includes(':') && !/^[a-z]+_[0-9a-z]+$/.test(value);
-
-    const isExternalSource = isExternal(source);
-    const isExternalDestination = isExternal(destination);
+    const isExternalSource = isExternalItemKey(source);
+    const isExternalDestination = isExternalItemKey(destination);
 
     if (isExternalSource && isExternalDestination) {
       throw new Error(
