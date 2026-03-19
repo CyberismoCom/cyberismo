@@ -61,6 +61,7 @@ namespace
 } // namespace
 
 bool g_cacheEnabled = true;
+bool g_asyncSolve = true;
 
 /**
  * N-API function exposed to JavaScript as `setProgram`.
@@ -205,6 +206,25 @@ Napi::Value SetCacheEnabled(const Napi::CallbackInfo& info)
 }
 
 /**
+ * N-API function exposed to JavaScript as `setAsyncSolve`.
+ * Enables or disables async worker thread solving.
+ * When disabled, solve() blocks the event loop — intended for benchmarking only.
+ * @param info N-API callback info containing arguments (enabled boolean).
+ * @returns undefined
+ * @throws Napi::TypeError if the argument is invalid.
+ */
+Napi::Value SetAsyncSolve(const Napi::CallbackInfo& info)
+{
+    Napi::Env env = info.Env();
+    if (info.Length() < 1 || !info[0].IsBoolean())
+    {
+        throw Napi::TypeError::New(env, "Expected argument: enabled (boolean)");
+    }
+    g_asyncSolve = info[0].As<Napi::Boolean>().Value();
+    return env.Undefined();
+}
+
+/**
  * N-API function exposed to JavaScript as `solve`.
  * Solves a given logic program asynchronously using a worker thread.
  * Returns a Promise that resolves with the solve result.
@@ -251,6 +271,44 @@ Napi::Value Solve(const Napi::CallbackInfo& info)
 
     auto t2 = std::chrono::high_resolution_clock::now();
 
+    // Synchronous solve path (blocks event loop — for benchmarking only)
+    if (!g_asyncSolve)
+    {
+        auto deferred = Napi::Promise::Deferred::New(env);
+        try
+        {
+            node_clingo::ClingoSolver solver;
+            auto solveResult = solver.solve(query);
+            solveResult.stats.glue = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
+
+            auto resultObj = node_clingo::create_napi_object_from_solve_result(env, solveResult);
+            if (g_cacheEnabled)
+            {
+                g_solveResultCache.addResult(query.hash, std::move(solveResult));
+            }
+            deferred.Resolve(resultObj);
+        }
+        catch (const node_clingo::ClingoSolveException& e)
+        {
+            Napi::Error error = Napi::Error::New(env, e.what());
+            Napi::Object errorObj = Napi::Object::New(env);
+            node_clingo::NodeClingoLogs logs = node_clingo::parse_clingo_logs(env, e.logs);
+            errorObj.Set("errors", logs.errors);
+            errorObj.Set("warnings", logs.warnings);
+            if (!e.programKey.empty())
+            {
+                errorObj.Set("program", Napi::String::New(env, e.programKey));
+            }
+            error.Set("details", errorObj);
+            deferred.Reject(error.Value());
+        }
+        catch (const std::exception& e)
+        {
+            deferred.Reject(Napi::Error::New(env, e.what()).Value());
+        }
+        return deferred.Promise();
+    }
+
     // Queue the expensive solve work on a worker thread
     auto* worker = new node_clingo::SolveAsyncWorker(env, std::move(query), t1, t2, g_solveResultCache);
     auto promise = worker->Deferred().Promise();
@@ -294,6 +352,8 @@ Napi::Object Init(Napi::Env env, Napi::Object exports)
     exports.Set(Napi::String::New(env, "clearCache"), Napi::Function::New(env, ClearCache));
 
     exports.Set(Napi::String::New(env, "setCacheEnabled"), Napi::Function::New(env, SetCacheEnabled));
+
+    exports.Set(Napi::String::New(env, "setAsyncSolve"), Napi::Function::New(env, SetAsyncSolve));
 
     return exports;
 }

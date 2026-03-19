@@ -7,6 +7,7 @@ import {
   buildProgram,
   clearCache,
   setCacheEnabled,
+  setAsyncSolve,
 } from '../lib/index.js';
 
 describe('Clingo solver', () => {
@@ -646,6 +647,38 @@ describe('Clingo solver', () => {
       expect(() => buildProgram('test', ['valid', 123, 'also_valid'])).toThrow(
         'All refs must be strings',
       );
+    });
+  });
+
+  describe('Async solve flag', () => {
+    afterEach(() => {
+      setAsyncSolve(true);
+    });
+
+    it('should produce correct results in sync mode', async () => {
+      setAsyncSolve(false);
+      const program = 'a. b. c(1). c(6).';
+      const result = await solve(program);
+      expect(result.answers).toBeInstanceOf(Array);
+      expect(result.answers.length).toBeGreaterThan(0);
+      expect(result.answers[0]).toContain('a');
+      expect(result.stats.add).toBeGreaterThanOrEqual(0);
+      expect(result.stats.ground).toBeGreaterThanOrEqual(0);
+      expect(result.stats.solve).toBeGreaterThanOrEqual(0);
+      setAsyncSolve(true);
+    });
+
+    it('should toggle between sync and async modes', async () => {
+      const program = 'a. b. c(1). c(7).';
+      setAsyncSolve(true);
+      const asyncResult = await solve(program);
+      expect(asyncResult.answers[0]).toContain('a');
+      clearCache();
+      setAsyncSolve(false);
+      const syncResult = await solve(program);
+      expect(syncResult.answers[0]).toContain('a');
+      expect(syncResult.answers).toEqual(asyncResult.answers);
+      setAsyncSolve(true);
     });
   });
 });

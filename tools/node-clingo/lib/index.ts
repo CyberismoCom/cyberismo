@@ -20,6 +20,7 @@ interface ClingoBinding {
   removeAllPrograms(): void;
   clearCache(): void;
   setCacheEnabled(enabled: boolean): void;
+  setAsyncSolve(enabled: boolean): void;
   solve(program: string, categories: string[]): Promise<ClingoResult>;
   buildProgram(program: string, categories: string[]): string;
 }
@@ -148,6 +149,15 @@ function setCacheEnabled(enabled: boolean) {
 }
 
 /**
+ * Enables or disables async worker thread solving.
+ * When disabled, solve() blocks the event loop — intended for benchmarking only.
+ * @param enabled Whether async solving should be enabled (default: true)
+ */
+function setAsyncSolve(enabled: boolean) {
+  binding.setAsyncSolve(enabled);
+}
+
+/**
  * Gets the complete assembled logic program as a string
  * @param program The main logic program as a string
  * @param categories Optional array of program keys or categories to include
@@ -164,6 +174,7 @@ export {
   removeAllPrograms,
   clearCache,
   setCacheEnabled,
+  setAsyncSolve,
   buildProgram,
   ClingoResult,
 };
@@ -174,5 +185,6 @@ export default {
   removeAllPrograms,
   clearCache,
   setCacheEnabled,
+  setAsyncSolve,
   buildProgram,
 };
