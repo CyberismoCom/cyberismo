@@ -31,20 +31,18 @@ export async function getCardDetails(
   raw: boolean,
 ): Promise<result> {
   return commands.consistent(async () => {
+    const t0 = performance.now();
+
     let cardDetailsResponse: Card;
     try {
       cardDetailsResponse = await commands.showCmd.showCardDetails(key);
     } catch {
       return { status: 400, message: `Card ${key} not found from project` };
     }
+    const tShowCard = performance.now();
 
     if (!cardDetailsResponse) {
       return { status: 400, message: `Card ${key} not found from project` };
-    }
-
-    // always parse for now if not in export mode
-    if (!staticMode && !raw) {
-      await commands.calculateCmd.generate();
     }
 
     let asciidocContent = '';
@@ -61,6 +59,7 @@ export async function getCardDetails(
     } catch (error) {
       asciidocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${asciidocContent}`;
     }
+    const tMacros = performance.now();
 
     const htmlContent = Processor()
       .convert(asciidocContent, {
@@ -71,6 +70,7 @@ export async function getCardDetails(
         },
       })
       .toString();
+    const tHtml = performance.now();
 
     if (raw) {
       if (!cardDetailsResponse.metadata) {
@@ -137,9 +137,16 @@ export async function getCardDetails(
       : await commands.calculateCmd.runQuery('card', 'localApp', {
           cardKey: key,
         });
+    const tClingo = performance.now();
+
     if (card.length !== 1) {
       throw new Error('Query failed. Check card-query syntax');
     }
+
+    const tTotal = performance.now();
+    console.log(
+      `[card timing] key=${key} showCard=${(tShowCard - t0).toFixed(0)}ms macros=${(tMacros - tShowCard).toFixed(0)}ms html=${(tHtml - tMacros).toFixed(0)}ms clingo=${(tClingo - tHtml).toFixed(0)}ms total=${(tTotal - t0).toFixed(0)}ms`,
+    );
 
     return {
       status: 200,
