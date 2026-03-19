@@ -22,6 +22,8 @@
 #include "napi_helpers.h"
 #include "solve_result_cache.h"
 
+extern bool g_cacheEnabled;
+
 namespace node_clingo
 {
 
@@ -89,7 +91,10 @@ namespace node_clingo
             m_result->stats.glue = std::chrono::duration_cast<std::chrono::microseconds>(m_t2 - m_t1);
 
             Napi::Object resultObj = create_napi_object_from_solve_result(Env(), *m_result);
-            m_cache.addResult(m_query.hash, std::move(*m_result));
+            if (g_cacheEnabled)
+            {
+                m_cache.addResult(m_query.hash, std::move(*m_result));
+            }
 
             m_deferred.Resolve(resultObj);
         }

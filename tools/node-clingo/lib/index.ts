@@ -19,6 +19,7 @@ interface ClingoBinding {
   removeProgram(key: string): boolean;
   removeAllPrograms(): void;
   clearCache(): void;
+  setCacheEnabled(enabled: boolean): void;
   solve(program: string, categories: string[]): Promise<ClingoResult>;
   buildProgram(program: string, categories: string[]): string;
 }
@@ -139,6 +140,14 @@ function clearCache() {
 }
 
 /**
+ * Enables or disables the solve result cache
+ * @param enabled Whether caching should be enabled (default: true)
+ */
+function setCacheEnabled(enabled: boolean) {
+  binding.setCacheEnabled(enabled);
+}
+
+/**
  * Gets the complete assembled logic program as a string
  * @param program The main logic program as a string
  * @param categories Optional array of program keys or categories to include
@@ -154,6 +163,7 @@ export {
   removeProgram,
   removeAllPrograms,
   clearCache,
+  setCacheEnabled,
   buildProgram,
   ClingoResult,
 };
@@ -163,5 +173,6 @@ export default {
   removeProgram,
   removeAllPrograms,
   clearCache,
+  setCacheEnabled,
   buildProgram,
 };

@@ -6,6 +6,7 @@ import {
   removeProgram,
   buildProgram,
   clearCache,
+  setCacheEnabled,
 } from '../lib/index.js';
 
 describe('Clingo solver', () => {
@@ -473,6 +474,41 @@ describe('Clingo solver', () => {
       removeAllPrograms();
       removeAllPrograms();
       removeAllPrograms();
+    });
+  });
+
+  describe('Cache bypass flag', () => {
+    afterEach(() => {
+      setCacheEnabled(true);
+    });
+
+    it('should skip cache when caching is disabled', async () => {
+      const program = 'a. b. c(1). c(5).';
+
+      setCacheEnabled(true);
+      const result1 = await solve(program);
+      expect(result1.stats.cacheHit).toBe(false);
+
+      const result2 = await solve(program);
+      expect(result2.stats.cacheHit).toBe(true);
+
+      setCacheEnabled(false);
+
+      const result3 = await solve(program);
+      expect(result3.stats.cacheHit).toBe(false);
+      expect(result3.stats.add).toBeGreaterThan(0);
+      expect(result3.stats.ground).toBeGreaterThan(0);
+
+      const result4 = await solve(program);
+      expect(result4.stats.cacheHit).toBe(false);
+
+      setCacheEnabled(true);
+      clearCache();
+
+      const result5 = await solve(program);
+      expect(result5.stats.cacheHit).toBe(false);
+      const result6 = await solve(program);
+      expect(result6.stats.cacheHit).toBe(true);
     });
   });
 

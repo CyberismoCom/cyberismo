@@ -59,6 +59,9 @@ namespace
     }
 
 } // namespace
+
+bool g_cacheEnabled = true;
+
 /**
  * N-API function exposed to JavaScript as `setProgram`.
  * Stores or updates a program with optional categories.
@@ -184,6 +187,24 @@ Napi::Value BuildProgram(const Napi::CallbackInfo& info)
 }
 
 /**
+ * N-API function exposed to JavaScript as `setCacheEnabled`.
+ * Enables or disables the solve result cache.
+ * @param info N-API callback info containing arguments (enabled boolean).
+ * @returns undefined
+ * @throws Napi::TypeError if the argument is invalid.
+ */
+Napi::Value SetCacheEnabled(const Napi::CallbackInfo& info)
+{
+    Napi::Env env = info.Env();
+    if (info.Length() < 1 || !info[0].IsBoolean())
+    {
+        throw Napi::TypeError::New(env, "Expected argument: enabled (boolean)");
+    }
+    g_cacheEnabled = info[0].As<Napi::Boolean>().Value();
+    return env.Undefined();
+}
+
+/**
  * N-API function exposed to JavaScript as `solve`.
  * Solves a given logic program asynchronously using a worker thread.
  * Returns a Promise that resolves with the solve result.
@@ -214,7 +235,7 @@ Napi::Value Solve(const Napi::CallbackInfo& info)
 
     // try to get the result from the cache
     node_clingo::SolveResult result;
-    if (g_solveResultCache.result(query.hash, result))
+    if (g_cacheEnabled && g_solveResultCache.result(query.hash, result))
     {
         auto t2 = std::chrono::high_resolution_clock::now();
         result.stats.glue = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
@@ -271,6 +292,8 @@ Napi::Object Init(Napi::Env env, Napi::Object exports)
     exports.Set(Napi::String::New(env, "removeProgram"), Napi::Function::New(env, RemoveProgram));
 
     exports.Set(Napi::String::New(env, "clearCache"), Napi::Function::New(env, ClearCache));
+
+    exports.Set(Napi::String::New(env, "setCacheEnabled"), Napi::Function::New(env, SetCacheEnabled));
 
     return exports;
 }
