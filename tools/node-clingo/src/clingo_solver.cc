@@ -67,12 +67,27 @@ namespace node_clingo
 
             std::vector<Clingo::Part> parts;
 
-            for (const auto& program : query.programs)
-            {
-                currentKey = program->key;
-                ctl.add(program->key.c_str(), {}, program->content.c_str());
-                parts.emplace_back(program->key.c_str(), Clingo::SymbolSpan{});
-            }
+            Clingo::AST::with_builder(ctl, [&](Clingo::AST::ProgramBuilder& builder) {
+                for (const auto& program : query.programs)
+                {
+                    currentKey = program->key;
+                    if (!program->ast_nodes.empty())
+                    {
+                        for (const auto& node : program->ast_nodes)
+                        {
+                            builder.add(node);
+                        }
+                    }
+                    else
+                    {
+                        Clingo::AST::parse_string(program->content.c_str(),
+                            [&builder](Clingo::AST::Node node) {
+                                builder.add(node);
+                            });
+                    }
+                }
+            });
+            parts.emplace_back("base", Clingo::SymbolSpan{});
 
             auto t2 = std::chrono::high_resolution_clock::now();
 
