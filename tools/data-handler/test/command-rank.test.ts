@@ -43,7 +43,7 @@ describe('rank command', () => {
       options,
     );
 
-    // To avoid logged errors from clingo queries during tests, generate calculations.
+    // Populate caches and generate calculations for test queries.
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     await project.calculationEngine.generate();
