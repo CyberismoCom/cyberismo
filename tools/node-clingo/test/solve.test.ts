@@ -8,6 +8,7 @@ import {
   clearCache,
   setCacheEnabled,
   setAsyncSolve,
+  setPreParsing,
 } from '../lib/index.js';
 
 describe('Clingo solver', () => {
@@ -679,6 +680,46 @@ describe('Clingo solver', () => {
       expect(syncResult.answers[0]).toContain('a');
       expect(syncResult.answers).toEqual(asyncResult.answers);
       setAsyncSolve(true);
+    });
+  });
+
+  describe('Pre-parsing flag', () => {
+    afterEach(() => {
+      setPreParsing(true);
+    });
+
+    it('should produce correct results without pre-parsing', async () => {
+      setPreParsing(false);
+      removeAllPrograms();
+
+      setProgram('base', 'fact(value).');
+      const result = await solve('test :- fact(value).', ['base']);
+
+      expect(result.answers[0]).toContain('test');
+      expect(result.answers[0]).toContain('fact(value)');
+
+      setPreParsing(true);
+    });
+
+    it('should produce identical results with and without pre-parsing', async () => {
+      const baseContent = 'color(red). color(blue). shape(circle).';
+      const query = 'valid :- color(X), shape(Y).';
+
+      setPreParsing(true);
+      removeAllPrograms();
+      clearCache();
+      setProgram('base', baseContent);
+      const withPreParse = await solve(query, ['base']);
+
+      setPreParsing(false);
+      removeAllPrograms();
+      clearCache();
+      setProgram('base', baseContent);
+      const withoutPreParse = await solve(query, ['base']);
+
+      expect(withoutPreParse.answers).toEqual(withPreParse.answers);
+
+      setPreParsing(true);
     });
   });
 });
