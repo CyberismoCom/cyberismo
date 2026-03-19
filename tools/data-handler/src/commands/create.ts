@@ -228,10 +228,10 @@ export class Create {
           childCards.push(card);
         }
       }
-      return [
-        ...sortItems(rootCards, (item) => item.metadata?.rank || EMPTY_RANK),
-        ...childCards,
-      ];
+      return sortItems(
+        rootCards,
+        (item) => item.metadata?.rank || EMPTY_RANK,
+      ).concat(childCards);
     }
     return [];
   }

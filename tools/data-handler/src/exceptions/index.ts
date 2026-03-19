@@ -27,6 +27,12 @@ export class SchemaNotFound extends Error {
     this.name = 'SchemaNotFound';
   }
 }
+
+export class CardNotFoundError extends Error {
+  constructor(cardKey: string) {
+    super(`Card '${cardKey}' does not exist in the project`);
+  }
+}
 /**
  * Stores the context of a macro error that originated from another macro
  */

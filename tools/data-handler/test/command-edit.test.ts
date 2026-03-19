@@ -5,6 +5,7 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { copyDir } from '../src/utils/file-utils.js';
 import { CommandManager } from '../src/command-manager.js';
 import { type Edit } from '../src/commands/index.js';
+import { CardNotFoundError } from '../src/exceptions/index.js';
 
 describe('edit card', () => {
   const baseDir = import.meta.dirname;
@@ -97,7 +98,7 @@ describe('edit card', () => {
     const firstCard = cards.at(0);
     if (firstCard) {
       expect(() => editCmd.editCard(firstCard.key + 1)).throws(
-        "Card 'decision_51' does not exist in the project",
+        CardNotFoundError,
       );
     }
   });

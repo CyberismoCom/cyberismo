@@ -1,6 +1,9 @@
 // testing
-import { expect } from 'chai';
+import { expect, use } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
 import { after, before, describe, it } from 'mocha';
+
+use(chaiAsPromised);
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';
@@ -13,6 +16,7 @@ import type { Project } from '../src/containers/project.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 import { Template } from '../src/containers/template.js';
 import { TemplateResource } from '../src/resources/template-resource.js';
+import { CardNotFoundError } from '../src/exceptions/index.js';
 
 // Create test artifacts in a temp directory.
 const baseDir = import.meta.dirname;
@@ -55,21 +59,13 @@ describe('template', () => {
     expect(cards.length).to.equal(0);
   });
 
-  it('try to create all cards from an empty template', () => {
+  it('throws an error when creating cards from an empty template', async () => {
     const template = new Template(project, {
       name: 'decision/templates/empty',
       path: '',
     });
-    const cards = template.cards();
-    template
-      .createCards()
-      .then(() => {
-        expect(false);
-      })
-      .catch(() => {
-        const cardsAfter = template.cards();
-        expect(cardsAfter.length).to.equal(cards.length);
-      });
+    await expect(template.createCards()).to.be.rejectedWith(Error);
+    expect(template.cards().length).to.equal(0);
   });
   it('create template card under a specific card from a project', async () => {
     // Choose specific card so that it does not have currently child cards.
@@ -86,19 +82,18 @@ describe('template', () => {
     const templateCards = template.cards();
 
     expect(
-      createdCards.map((item) => item.metadata?.templateCardKey),
+      createdCards.map((item) => item.metadata!.templateCardKey),
     ).to.have.same.members(templateCards.map((item) => item.key));
 
     // Two direct children should have been created
     const cardAfter = project.findCard('decision_6');
     expect(cardAfter?.children?.length).to.equal(2);
   });
-  it('try to create a specific card from an empty template', async () => {
+  it('throws an error when trying to create a specific card from an empty template', async () => {
     const template = new Template(project, {
       name: 'decision/templates/empty',
       path: '',
     });
-    const cards = template.cards();
     const nonExistingCard: Card = {
       key: '1111',
       path: '',
@@ -107,16 +102,35 @@ describe('template', () => {
       attachments: [],
     };
 
-    await template
-      .createCards(nonExistingCard)
-      .then(() => {
-        expect(false);
-      })
-      .catch(() => {
-        const cardsAfter = template.cards();
-        expect(cardsAfter.length).to.equal(cards.length);
-      });
+    await expect(template.createCards(nonExistingCard)).to.be.rejectedWith(
+      Error,
+    );
+    expect(template.cards().length).to.equal(0);
   });
+
+  it('creates no cards when the template is not empty and parent is non-existent', async () => {
+    const template = new Template(project, {
+      name: 'decision/templates/simplepage',
+      path: '',
+    });
+    const nonExistingCard: Card = {
+      key: '1111',
+      path: '',
+      content: '',
+      children: [],
+      attachments: [],
+    };
+
+    const cardCountBefore = project.cards(project.paths.cardRootFolder).length;
+
+    await expect(template.createCards(nonExistingCard)).to.be.rejectedWith(
+      Error,
+    );
+
+    const cardCountAfter = project.cards(project.paths.cardRootFolder).length;
+    expect(cardCountAfter).to.equal(cardCountBefore);
+  });
+
   it('add new card to a template', async () => {
     const template = new Template(project, {
       name: 'decision/templates/decision',
@@ -307,7 +321,7 @@ describe('template', () => {
     expect(attachmentFolder1).to.equal(attachmentFolder2);
 
     expect(() => template.cardAttachmentFolder('decision_999')).to.throw(
-      `Card 'decision_999' does not exist in the project`,
+      CardNotFoundError,
     );
 
     const templateAttachments = template.attachments();

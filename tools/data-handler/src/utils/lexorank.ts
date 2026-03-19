@@ -165,8 +165,7 @@ export function rebalanceRanks(rankAmount: number): string[] {
  * @returns sorted items
  */
 export function sortItems<T>(items: T[], rankGetter: (item: T) => string): T[] {
-  if (items.length === 0) return items;
-  return items.sort((a, b) => compare(rankGetter(a), rankGetter(b)));
+  return items.toSorted((a, b) => compare(rankGetter(a), rankGetter(b)));
 }
 
 /**

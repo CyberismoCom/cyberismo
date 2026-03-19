@@ -25,6 +25,7 @@ import { MAX_LEVEL_OFFSET } from '../../src/utils/constants.js';
 
 import type { Card } from '../../src/interfaces/project-interfaces.js';
 import type { MacroGenerationContext } from '../../src/interfaces/macros.js';
+import { CardNotFoundError } from '../../src/exceptions/index.js';
 import type { Mode } from '../../src/interfaces/macros.js';
 
 import chaiAsPromised from 'chai-as-promised';
@@ -415,9 +416,7 @@ Some content here`;
 
         cardDetailsByIdStub
           .withArgs('non-existent-card')
-          .throws(
-            new Error("Card 'non-existent-card' does not exist in the project"),
-          );
+          .throws(new CardNotFoundError('non-existent-card'));
         cardDetailsByIdStub.withArgs('test-card').returns(testCard);
 
         const testCardNested = structuredClone(baseCard);
