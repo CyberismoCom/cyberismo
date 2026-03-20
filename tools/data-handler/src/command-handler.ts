@@ -613,10 +613,13 @@ export class Commands {
       return { statusCode: 500, message: 'Commands not initialized' };
     }
 
-    const [dryRunFlag] = args;
+    const [dryRunFlag, remote] = args;
     const dryRun = dryRunFlag === 'true';
 
-    const result = await this.commands.publishCmd.publishVersion(dryRun);
+    const result = await this.commands.publishCmd.publishVersion(
+      dryRun,
+      remote || undefined,
+    );
 
     if (result.dryRun) {
       return {

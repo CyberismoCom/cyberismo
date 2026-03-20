@@ -30,6 +30,7 @@ export class Publish {
   @write(() => 'Publish version')
   public async publishVersion(
     dryRun?: boolean,
+    remote?: string,
   ): Promise<{ version: string; dryRun?: boolean }> {
     const { git } = this.project;
     const version = this.project.configuration.version;
@@ -62,7 +63,7 @@ export class Publish {
     // Create annotated tag and push
     const tagMessage = `Release v${version}`;
     await git.tagVersion(version, tagMessage);
-    await git.push({ tags: true });
+    await git.push({ tags: true, remote });
 
     return { version };
   }

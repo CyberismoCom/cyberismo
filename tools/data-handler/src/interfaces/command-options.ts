@@ -96,6 +96,7 @@ export interface StartCommandOptions extends BaseCommandOptions {
 // Options for 'publish' command
 export interface PublishCommandOptions extends BaseCommandOptions {
   dryRun?: boolean;
+  remote?: string;
 }
 
 // Options for 'version' command

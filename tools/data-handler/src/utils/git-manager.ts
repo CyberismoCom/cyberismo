@@ -115,10 +115,11 @@ export class GitManager {
   }
 
   /** Push current branch and optionally tags to remote. */
-  async push(options?: { tags?: boolean }): Promise<void> {
-    this.logger.info('Pushing to remote');
+  async push(options?: { tags?: boolean; remote?: string }): Promise<void> {
+    const remote = options?.remote ?? 'origin';
+    this.logger.info({ remote }, 'Pushing to remote');
     const branch = (await this.git.branch()).current;
-    const args = ['-u', 'origin', branch];
+    const args = ['-u', remote, branch];
     if (options?.tags) {
       args.push('--follow-tags');
     }
