@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { expect, it, describe } from 'vitest';
 import { createContextFacts } from '../../src/utils/clingo-facts.js';
 
 const testCases = [
@@ -12,12 +12,12 @@ const testCases = [
     expectedFact: 'exportedDocument().\n',
   },
 ];
-
-describe('createContextFacts', () => {
-  for (const { context, expectedFact } of testCases) {
-    it(`should create context fact for ${context}`, () => {
+describe('clingo-facts', () => {
+  it.each(testCases)(
+    'should create context facts for %s',
+    ({ context, expectedFact }) => {
       const contextFacts = createContextFacts(context);
       expect(contextFacts).to.equal(expectedFact);
-    });
-  }
+    },
+  );
 });
