@@ -778,6 +778,7 @@ export default function CardEditor({
                       linkTypes={expandedLinkTypes}
                       preview={true}
                       cards={tree}
+                      connectors={[]}
                       linkFormState="hidden"
                     />
                   </LoadingGate>

@@ -43,6 +43,13 @@
         "type": "string"
       }
     },
+    "destinationConnectors": {
+      "type": "array",
+      "description": "The connectors that can be the target of this link type for external links.",
+      "items": {
+        "type": "string"
+      }
+    },
     "enableLinkDescription": {
       "type": "boolean",
       "description": "If true, the user can add a description to the link."

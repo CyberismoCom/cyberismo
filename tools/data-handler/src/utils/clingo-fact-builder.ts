@@ -112,6 +112,18 @@ export class ClingoFactBuilder {
   }
 
   /**
+   * Adds a tuple argument like (arg1, arg2) - used for external item identifiers
+   * @param args Arguments to include in the tuple
+   * @returns 'this' for chaining
+   */
+  addTupleArgument(...args: ClingoArgument[]): ClingoFactBuilder {
+    const tupleBuilder = new ClingoFactBuilder('', '');
+    tupleBuilder.addArguments(...args);
+    this.arguments.push(tupleBuilder);
+    return this;
+  }
+
+  /**
    * Builds the clingo fact
    * @returns The clingo fact as a string
    */

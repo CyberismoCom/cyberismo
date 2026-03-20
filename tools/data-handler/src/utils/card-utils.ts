@@ -280,3 +280,9 @@ export const sortCards = (a: string, b: string) => {
   if (aParts[1] < bParts[1]) return -1;
   return 0;
 };
+
+/**
+ * Checks whether a value is an external item key (connector:itemKey format)
+ * rather than a card key (prefix_id format). Card keys never contain colons.
+ */
+export const isExternalItemKey = (value: string) => value.includes(':');

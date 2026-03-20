@@ -12,12 +12,13 @@
 */
 
 import { ActionGuard } from '../permissions/action-guard.js';
-import { isModuleCard } from '../utils/card-utils.js';
+import { isModuleCard, isExternalItemKey } from '../utils/card-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { ModuleManager } from '../module-manager.js';
 import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
 import type { RemovableResourceTypes } from '../interfaces/project-interfaces.js';
+import type { ExternalLink } from '../interfaces/resource-interfaces.js';
 import { write } from '../utils/rw-lock.js';
 
 /**
@@ -138,35 +139,122 @@ export class Remove {
   }
 
   // Removes link from project.
+  // Detects if source or destination is external and routes accordingly.
   private async removeLink(
-    sourceCardKey: string,
-    destinationCardKey: string,
+    source: string,
+    destination: string,
+    linkType?: string,
+    linkDescription?: string,
+    direction?: 'outbound' | 'inbound',
+  ) {
+    const isExternalSource = isExternalItemKey(source);
+    const isExternalDestination = isExternalItemKey(destination);
+
+    if (isExternalSource && isExternalDestination) {
+      throw new Error(
+        'Cannot remove link between two external items. One must be a card.',
+      );
+    }
+
+    if (isExternalDestination || isExternalSource) {
+      const cardKey = isExternalDestination ? source : destination;
+      const externalItem = isExternalDestination ? destination : source;
+      // Use provided direction, or auto-detect from argument order
+      const effectiveDirection =
+        direction ?? (isExternalDestination ? 'outbound' : 'inbound');
+      return this.removeExternalLink(
+        cardKey,
+        externalItem,
+        effectiveDirection,
+        linkType,
+        linkDescription,
+      );
+    }
+
+    return this.removeLocalLink(source, destination, linkType, linkDescription);
+  }
+
+  // Removes card-to-card link from project.
+  private async removeLocalLink(
+    source: string,
+    destination: string,
     linkType?: string,
     linkDescription?: string,
   ) {
-    const sourceCard = this.project.findCard(sourceCardKey);
+    const sourceCard = this.project.findCard(source);
     const link = sourceCard.metadata?.links.find(
       (l) =>
-        l.cardKey === destinationCardKey &&
+        l.cardKey === destination &&
         (!linkType || l.linkType === linkType) &&
         (!linkDescription || l.linkDescription === linkDescription),
     );
     if (!link) {
       throw new Error(
         linkType
-          ? `Link from '${sourceCardKey}' to '${destinationCardKey}' with link type '${linkType}' not found`
-          : `Link from '${sourceCardKey}' to '${destinationCardKey}' not found`,
+          ? `Link from '${source}' to '${destination}' with link type '${linkType}' not found`
+          : `Link from '${source}' to '${destination}' not found`,
       );
     }
 
     const newLinks = sourceCard.metadata?.links.filter(
       (l) =>
-        l.cardKey !== destinationCardKey ||
+        l.cardKey !== destination ||
         (linkType && l.linkType !== linkType) ||
         (linkDescription && l.linkDescription !== linkDescription),
     );
 
-    await this.project.updateCardMetadataKey(sourceCardKey, 'links', newLinks);
+    await this.project.updateCardMetadataKey(source, 'links', newLinks);
+  }
+
+  // Removes external link from project.
+  private async removeExternalLink(
+    cardKey: string,
+    externalItem: string,
+    direction: 'outbound' | 'inbound',
+    linkType?: string,
+    linkDescription?: string,
+  ) {
+    // Parse connector:itemKey
+    const [connector, ...rest] = externalItem.split(':');
+    const externalItemKey = rest.join(':');
+
+    if (!connector || !externalItemKey) {
+      throw new Error(
+        `Invalid external item format: '${externalItem}'. Expected 'connector:itemKey'.`,
+      );
+    }
+
+    const card = this.project.findCard(cardKey);
+    const extLink = card.metadata?.externalLinks?.find(
+      (l) =>
+        l.connector === connector &&
+        l.externalItemKey === externalItemKey &&
+        l.direction === direction &&
+        (!linkType || l.linkType === linkType) &&
+        (!linkDescription || l.linkDescription === linkDescription),
+    );
+
+    if (!extLink) {
+      throw new Error(
+        `External link from '${cardKey}' to '${connector}:${externalItemKey}' ${linkType ? `with link type '${linkType}' ` : ''}not found`,
+      );
+    }
+
+    const newExternalLinks: ExternalLink[] =
+      card.metadata?.externalLinks?.filter(
+        (l) =>
+          l.connector !== connector ||
+          l.externalItemKey !== externalItemKey ||
+          l.direction !== direction ||
+          (linkType && l.linkType !== linkType) ||
+          (linkDescription && l.linkDescription !== linkDescription),
+      ) ?? [];
+
+    await this.project.updateCardMetadataKey(
+      cardKey,
+      'externalLinks',
+      newExternalLinks,
+    );
   }
 
   // Remove a hub from project.
@@ -226,7 +314,13 @@ export class Remove {
       else if (type === 'hub') return this.removeHubLocation(targetName);
       else if (type === 'label') return this.removeLabel(targetName, rest[0]);
       else if (type === 'link')
-        return this.removeLink(targetName, rest[0], rest[1], rest.at(2));
+        return this.removeLink(
+          targetName,
+          rest[0],
+          rest[1],
+          rest.at(2),
+          rest.at(3),
+        );
       else if (type === 'module')
         return this.moduleManager.removeModule(targetName);
     }
