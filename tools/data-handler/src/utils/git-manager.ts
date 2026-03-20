@@ -12,7 +12,6 @@
 */
 
 import { simpleGit, type SimpleGit } from 'simple-git';
-import semver from 'semver';
 import { getChildLogger } from './log-utils.js';
 
 const TAG_PREFIX = 'v';
@@ -98,34 +97,6 @@ export class GitManager {
       'HEAD',
     ]);
     return result.all;
-  }
-
-  /**
-   * Get the current project version from the latest git tag.
-   * @returns semver string (e.g. "1.2.3") or undefined if no version tags exist.
-   */
-  async getVersion(): Promise<string | undefined> {
-    if (!(await this.git.checkIsRepo())) return undefined;
-    const tags = await this.listVersionTags();
-    for (const tag of tags) {
-      if (!tag.startsWith(TAG_PREFIX)) continue;
-      const version = tag.slice(TAG_PREFIX.length);
-      if (semver.valid(version) && !semver.prerelease(version)) return version;
-    }
-    // version is not defined
-  }
-
-  /**
-   * Check if there are changes since a given version.
-   * @param version Clean semver string (e.g. "1.2.3")
-   * @returns true if HEAD differs from the tagged commit.
-   */
-  async hasChangesSinceVersion(version: string): Promise<boolean> {
-    const diff = await this.git.diff([
-      '--stat',
-      `${TAG_PREFIX}${version}..HEAD`,
-    ]);
-    return diff.trim().length > 0;
   }
 
   /**

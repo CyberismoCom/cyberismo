@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-expressions */
-
 import { expect } from 'chai';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -236,92 +234,6 @@ describe('GitManager', () => {
 
       const tags = await gm.listVersionTags();
       expect(tags).to.deep.equal(['v1.0.0']);
-    });
-  });
-
-  describe('getVersion()', () => {
-    it('should return null when no version tags exist', async () => {
-      const gm = new GitManager(dir);
-      await gm.initialize();
-
-      const version = await gm.getVersion();
-      expect(version).to.be.undefined;
-    });
-
-    it('should return the latest version', async () => {
-      const gm = new GitManager(dir);
-      await gm.initialize();
-
-      await gm.tagVersion('1.0.0');
-      await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
-      await gm.commit('change');
-      await gm.tagVersion('1.1.0');
-
-      const version = await gm.getVersion();
-      expect(version).to.equal('1.1.0');
-    });
-
-    it('should return latest version reachable from current branch', async () => {
-      const gm = new GitManager(dir);
-      await gm.initialize();
-      const git = testGit(dir);
-
-      await gm.tagVersion('1.0.0');
-      await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
-      await gm.commit('change 1');
-      await gm.tagVersion('1.1.0');
-
-      // Branch off
-      await git.checkoutLocalBranch('maintenance');
-
-      // Advance main with v2.0.0
-      await git.checkout('master');
-      await writeFile(join(dir, 'cardRoot', 'b.txt'), 'b');
-      await gm.commit('change 2');
-      await gm.tagVersion('2.0.0');
-
-      // On maintenance branch, should see 1.1.0 not 2.0.0
-      await git.checkout('maintenance');
-
-      const version = await gm.getVersion();
-      expect(version).to.equal('1.1.0');
-    });
-
-    it('should return highest version even if created out of order', async () => {
-      const gm = new GitManager(dir);
-      await gm.initialize();
-
-      await gm.tagVersion('2.0.0');
-      await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
-      await gm.commit('change');
-      await gm.tagVersion('1.5.0');
-
-      const version = await gm.getVersion();
-      expect(version).to.equal('2.0.0');
-    });
-  });
-
-  describe('hasChangesSinceVersion()', () => {
-    it('should return false when no changes since version', async () => {
-      const gm = new GitManager(dir);
-      await gm.initialize();
-
-      await gm.tagVersion('1.0.0');
-
-      const hasChanges = await gm.hasChangesSinceVersion('1.0.0');
-      expect(hasChanges).to.equal(false);
-    });
-
-    it('should return true when there are committed changes since version', async () => {
-      const gm = new GitManager(dir);
-      await gm.initialize();
-
-      await gm.tagVersion('1.0.0');
-      await writeFile(join(dir, 'cardRoot', 'new.txt'), 'content');
-      await gm.commit('new change');
-
-      const hasChanges = await gm.hasChangesSinceVersion('1.0.0');
-      expect(hasChanges).to.equal(true);
     });
   });
 
