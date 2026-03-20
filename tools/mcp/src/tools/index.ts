@@ -946,6 +946,42 @@ export function registerTools(
   );
 
   server.registerTool(
+    'create_graph_model',
+    {
+      description: 'Create a new graph model definition',
+      inputSchema: {
+        name: z.string().describe('Graph model identifier'),
+      },
+    },
+    async ({ name }) => {
+      try {
+        await commands.createCmd.createGraphModel(name);
+        return toolResult({ name });
+      } catch (error) {
+        return toolError('creating graph model', error);
+      }
+    },
+  );
+
+  server.registerTool(
+    'create_graph_view',
+    {
+      description: 'Create a new graph view definition',
+      inputSchema: {
+        name: z.string().describe('Graph view identifier'),
+      },
+    },
+    async ({ name }) => {
+      try {
+        await commands.createCmd.createGraphView(name);
+        return toolResult({ name });
+      } catch (error) {
+        return toolError('creating graph view', error);
+      }
+    },
+  );
+
+  server.registerTool(
     'run_report',
     {
       description: 'Execute a report and return results',
