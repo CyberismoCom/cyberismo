@@ -1,4 +1,4 @@
-import { expect, it, describe, beforeAll } from 'vitest';
+import { expect, it, describe } from 'vitest';
 
 import { join, sep } from 'node:path';
 
@@ -10,7 +10,6 @@ import {
   resourceNameToString,
   resourceFilePath,
 } from '../../src/utils/resource-utils.js';
-import type { Project } from '../../src/containers/project.js';
 import { getTestProject } from '../helpers/test-utils.js';
 
 describe('resource utils', () => {
