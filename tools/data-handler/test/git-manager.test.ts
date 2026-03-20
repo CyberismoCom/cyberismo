@@ -191,7 +191,7 @@ describe('GitManager', () => {
       expect(tags).toEqual(['v2.0.0', 'v1.1.0', 'v1.0.0']);
     });
 
-    it('should only return tags reachable from HEAD', async () => {
+    it('should return all version tags regardless of branch', async () => {
       const gm = new GitManager(dir);
       await gm.initialize();
       const git = testGit(dir);
@@ -211,11 +211,11 @@ describe('GitManager', () => {
       await gm.commit('change 2');
       await gm.tagVersion('2.0.0');
 
-      // Switch to maintenance branch — v2.0.0 is NOT reachable
+      // Switch to maintenance branch — all tags are still visible
       await git.checkout('maintenance');
 
       const tags = await gm.listVersionTags();
-      expect(tags).toEqual(['v1.1.0', 'v1.0.0']);
+      expect(tags).toEqual(['v2.0.0', 'v1.1.0', 'v1.0.0']);
     });
 
     it('should ignore non-version tags', async () => {

@@ -93,8 +93,6 @@ export class GitManager {
       '--list',
       'v*',
       '--sort=-v:refname',
-      '--merged',
-      'HEAD',
     ]);
     return result.all;
   }
