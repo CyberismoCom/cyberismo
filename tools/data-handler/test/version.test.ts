@@ -11,10 +11,7 @@ import sinon from 'sinon';
 import { GitManager } from '../src/utils/git-manager.js';
 import { RWLock } from '../src/utils/rw-lock.js';
 import { Version } from '../src/commands/version.js';
-import {
-  ConfigurationLogger,
-  ConfigurationOperation,
-} from '../src/utils/configuration-logger.js';
+import { ConfigurationLogger } from '../src/utils/configuration-logger.js';
 import type { Project } from '../src/containers/project.js';
 
 function makeConfiguration(configPath: string, initialVersion?: string) {
@@ -36,6 +33,7 @@ describe('Version', () => {
   let versionCmd: Version;
   let configPath: string;
   let configuration: ReturnType<typeof makeConfiguration>;
+  let hasLogStub: sinon.SinonStub;
 
   beforeEach(async () => {
     dir = await mkdtemp(join(tmpdir(), 'version-test-'));
@@ -55,7 +53,7 @@ describe('Version', () => {
     await git.initialize();
 
     // Bypass migration log snapshot handling — these tests focus on version bumping
-    sinon.stub(ConfigurationLogger, 'hasLog').returns(false);
+    hasLogStub = sinon.stub(ConfigurationLogger, 'hasLog').returns(false);
 
     configuration = makeConfiguration(configPath);
 
@@ -160,13 +158,7 @@ describe('Version', () => {
       await configuration.setVersion('1.0.0');
       await git.commit('set version');
 
-      sinon.stub(ConfigurationLogger, 'entries').resolves([
-        {
-          timestamp: new Date().toISOString(),
-          operation: ConfigurationOperation.RESOURCE_DELETE,
-          target: 'some-resource',
-        },
-      ]);
+      hasLogStub.returns(true);
 
       await expect(versionCmd.bumpVersion('patch')).to.be.rejectedWith(
         'breaking configuration changes',
@@ -178,13 +170,7 @@ describe('Version', () => {
       await configuration.setVersion('1.0.0');
       await git.commit('set version');
 
-      sinon.stub(ConfigurationLogger, 'entries').resolves([
-        {
-          timestamp: new Date().toISOString(),
-          operation: ConfigurationOperation.MODULE_REMOVE,
-          target: 'some-module',
-        },
-      ]);
+      hasLogStub.returns(true);
 
       await expect(versionCmd.bumpVersion('minor')).to.be.rejectedWith(
         'breaking configuration changes',
@@ -196,13 +182,8 @@ describe('Version', () => {
       await configuration.setVersion('1.0.0');
       await git.commit('set version');
 
-      sinon.stub(ConfigurationLogger, 'entries').resolves([
-        {
-          timestamp: new Date().toISOString(),
-          operation: ConfigurationOperation.RESOURCE_DELETE,
-          target: 'some-resource',
-        },
-      ]);
+      hasLogStub.returns(true);
+      sinon.stub(ConfigurationLogger, 'createVersion').resolves('dummy');
 
       const result = await versionCmd.bumpVersion('major');
       expect(result.newVersion).to.equal('2.0.0');
@@ -211,14 +192,6 @@ describe('Version', () => {
     it('should not apply breaking change gate for first version', async () => {
       await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
       await git.commit('first change');
-
-      sinon.stub(ConfigurationLogger, 'entries').resolves([
-        {
-          timestamp: new Date().toISOString(),
-          operation: ConfigurationOperation.RESOURCE_DELETE,
-          target: 'some-resource',
-        },
-      ]);
 
       const result = await versionCmd.bumpVersion('patch');
       expect(result.previousVersion).to.be.undefined;
@@ -238,8 +211,7 @@ describe('Version', () => {
 
   describe('migration log snapshotting', () => {
     it('should snapshot migration log when log exists', async () => {
-      sinon.restore(); // Remove the hasLog stub from beforeEach
-      sinon.stub(ConfigurationLogger, 'hasLog').returns(true);
+      hasLogStub.returns(true);
       const createVersionStub = sinon
         .stub(ConfigurationLogger, 'createVersion')
         .resolves();

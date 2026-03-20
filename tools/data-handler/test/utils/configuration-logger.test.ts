@@ -1,5 +1,7 @@
 // testing
-import { expect } from 'chai';
+import { expect, use } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
+use(chaiAsPromised);
 import { after, before, describe, it } from 'mocha';
 
 // node
@@ -190,6 +192,8 @@ describe('configuration logger', () => {
     it('should return empty array when log file does not exist', async () => {
       await ConfigurationLogger.clearLog(testProjectPath);
 
+      const logPath = ConfigurationLogger.logFile(testProjectPath);
+      expect(pathExists(logPath)).to.be.false;
       const entries = await ConfigurationLogger.entries(testProjectPath);
       expect(entries.length).to.equal(0);
     });
@@ -210,6 +214,13 @@ describe('configuration logger', () => {
       expect(entries.length).to.equal(2);
       expect(entries[0].target).to.equal('valid');
       expect(entries[1].target).to.equal('valid2');
+    });
+    it('should throw when creating version from non-existent log', async () => {
+      await ConfigurationLogger.clearLog(testProjectPath);
+
+      await expect(
+        ConfigurationLogger.createVersion(testProjectPath, '1.0.0'),
+      ).to.be.rejectedWith('No current migration log exists to version');
     });
     it('should check log existence via static method', async () => {
       const testProjectPath2 = join(testDir, 'test-project-static');

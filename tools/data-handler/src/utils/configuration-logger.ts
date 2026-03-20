@@ -12,7 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { readFile, rename } from 'node:fs/promises';
+import { readFile, rename, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { getChildLogger } from './log-utils.js';
@@ -73,7 +73,11 @@ export class ConfigurationLogger {
    */
   public static async clearLog(projectPath: string): Promise<void> {
     const logFile = ConfigurationLogger.logFile(projectPath);
-    await writeFileSafe(logFile, '', 'utf-8');
+    try {
+      await unlink(logFile);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+    }
     const logger = getChildLogger({ module: 'ConfigurationLogger' });
     logger.info('Configuration log cleared');
   }
@@ -96,14 +100,8 @@ export class ConfigurationLogger {
       `migrationLog_${version}.jsonl`,
     );
 
-    // Only create version if current log exists and has content
     if (!pathExists(currentLogPath)) {
       throw new Error('No current migration log exists to version');
-    }
-
-    const content = await readFile(currentLogPath, 'utf-8');
-    if (!content.trim()) {
-      throw new Error('Current migration log is empty');
     }
 
     // Rename current to versioned
