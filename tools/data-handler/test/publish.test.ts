@@ -73,9 +73,7 @@ describe('Publish', () => {
       expect(tags.all).to.include('v1.0.0');
 
       expect(pushStub.calledOnce).to.be.true;
-      expect(
-        pushStub.calledWith({ tags: true, remote: undefined }),
-      ).to.be.true;
+      expect(pushStub.calledWith({ tags: true, remote: undefined })).to.be.true;
     });
 
     it('should create tag with correct annotation message', async () => {
@@ -131,7 +129,9 @@ describe('Publish', () => {
 
       sinon.stub(git, 'push').rejects(new Error('network error'));
 
-      await expect(publish.publishVersion()).to.be.rejectedWith('network error');
+      await expect(publish.publishVersion()).to.be.rejectedWith(
+        'network error',
+      );
 
       // Tag should have been cleaned up so retry works
       const tags = await testGit(dir).tags();
