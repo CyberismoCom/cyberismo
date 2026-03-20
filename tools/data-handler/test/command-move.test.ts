@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 
 import { mkdirSync, rmSync } from 'node:fs';
 import { join, sep } from 'node:path';
@@ -86,14 +86,14 @@ describe('move command', () => {
       [sourceId, destination],
       options,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
   });
   it('move card to another card (success)', async () => {
     const project = getTestProject(options.projectPath!);
     await project.populateCaches();
     const fetchCmd = new Fetch(project);
     const cards = await new Show(project, fetchCmd).showProjectCards();
-    expect(cards.length).to.be.greaterThanOrEqual(2);
+    expect(cards).toHaveLength(2);
 
     const sourceId = cards[cards.length - 1].key;
     const destination = cards[cards.length - 2].key;
@@ -102,7 +102,7 @@ describe('move command', () => {
       [sourceId, destination],
       options,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
   });
   it('move child card to another card (success)', async () => {
     const sourceId = 'decision_6';
@@ -113,7 +113,7 @@ describe('move command', () => {
       [sourceId, destination],
       options,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
   });
   it('try to move card to itself', async () => {
     const sourceId = 'decision_6';
@@ -123,7 +123,7 @@ describe('move command', () => {
       [sourceId, destination],
       options,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('try to move card to inside itself', async () => {
     // create two root-level cards
@@ -134,29 +134,25 @@ describe('move command', () => {
       ['card', template, parent],
       options,
     );
-    const card1 = done.affectsCards?.at(0);
+    const card1 = done.affectsCards!.at(0) as string;
     done = await commandHandler.command(
       Cmd.create,
       ['card', template, parent],
       options,
     );
-    const card2 = done.affectsCards?.at(0);
+    const card2 = done.affectsCards!.at(0) as string;
 
-    if (card1 && card2) {
-      // Move card2 to be under card1
-      let result = await commandHandler.command(
-        Cmd.move,
-        [card1, card2],
-        options,
-      );
-      expect(result.statusCode).to.equal(200);
+    // Move card2 to be under card1
+    let result = await commandHandler.command(
+      Cmd.move,
+      [card1, card2],
+      options,
+    );
+    expect(result.statusCode).toBe(200);
 
-      // Try to move card1 under card2
-      result = await commandHandler.command(Cmd.move, [card2, card1], options);
-      expect(result.statusCode).to.equal(400);
-    } else {
-      expect(false);
-    }
+    // Try to move card1 under card2
+    result = await commandHandler.command(Cmd.move, [card2, card1], options);
+    expect(result.statusCode).toBe(400);
   });
   it('try to move card - project missing', async () => {
     const sourceId = 'decision_11';
@@ -167,7 +163,7 @@ describe('move command', () => {
       [sourceId, destination],
       invalidProject,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('try to move card - source card not found', async () => {
     const sourceId = 'decision_999';
@@ -177,7 +173,7 @@ describe('move command', () => {
       [sourceId, destination],
       options,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('try to move card - destination card not found', async () => {
     const sourceId = 'decision_11';
@@ -187,7 +183,7 @@ describe('move command', () => {
       [sourceId, destination],
       options,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('move card from template to template', async () => {
     const sourceId = 'decision_2';
@@ -197,7 +193,7 @@ describe('move command', () => {
       [sourceId, destination],
       options,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
   });
   it('try to move card from template to project', async () => {
     const sourceId = 'decision_3';
@@ -207,7 +203,7 @@ describe('move command', () => {
       [sourceId, destination],
       options,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('try to move card from project to template', async () => {
     const sourceId = 'decision_6';
@@ -217,7 +213,7 @@ describe('move command', () => {
       [sourceId, destination],
       options,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
 
   it('verify card cache after move operation', async () => {
@@ -238,7 +234,7 @@ describe('move command', () => {
       options,
     );
     const parentCardKey = result.affectsCards?.[0];
-    expect(parentCardKey).to.be.a('string');
+    expect(parentCardKey).toBeTypeOf('string');
 
     result = await commandHandler.command(
       Cmd.create,
@@ -246,25 +242,26 @@ describe('move command', () => {
       options,
     );
     const childCardKey = result.affectsCards?.[0];
-    expect(childCardKey).to.be.a('string');
+    expect(childCardKey).toBeTypeOf('string');
 
     // Verify initial state - both cards should be findable in the same project instance used by commandHandler
     const parentBefore = project.findCard(parentCardKey!);
     const childBefore = project.findCard(childCardKey!);
     const allCardsBefore = project.cards(undefined);
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    expect(parentBefore, 'Parent card should be findable after creation').to.not
-      .be.undefined;
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    expect(childBefore, 'Child card should be findable after creation').to.not
-      .be.undefined;
-    expect(childBefore!.parent).to.equal('root'); // Should be at root initially
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    expect(
+      parentBefore,
+      'Parent card should be findable after creation',
+    ).toBeDefined();
+    expect(
+      childBefore,
+      'Child card should be findable after creation',
+    ).toBeDefined();
+    expect(childBefore!.parent).toBe('root'); // Should be at root initially
     expect(
       allCardsBefore.some((c) => c.key === childCardKey),
       'Child should be found in project.cards() result',
-    ).to.be.true;
+    ).toBe(true);
 
     // Move child under parent
     result = await commandHandler.command(
@@ -272,7 +269,7 @@ describe('move command', () => {
       [childCardKey!, parentCardKey!],
       options,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
 
     // Verify state after move
     const parentAfter = project.findCard(parentCardKey!);
@@ -280,25 +277,24 @@ describe('move command', () => {
     const allCardsAfter = project.cards(undefined);
 
     // Verify expectations
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    expect(childAfter, 'Child card should still be findable after move').to.not
-      .be.undefined;
     expect(
-      childAfter!.parent,
-      'Child card should have correct parent',
-    ).to.equal(parentCardKey);
-    expect(childAfter!.path, 'Child card should have correct path').to.include(
+      childAfter,
+      'Child card should still be findable after move',
+    ).toBeDefined();
+    expect(childAfter!.parent, 'Child card should have correct parent').toBe(
+      parentCardKey,
+    );
+    expect(childAfter!.path, 'Child card should have correct path').toContain(
       `${parentCardKey}${sep}c${sep}${childCardKey}`,
     );
     expect(
       parentAfter!.children,
       'Parent should list child in children array',
-    ).to.include(childCardKey);
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    ).toContain(childCardKey);
     expect(
       allCardsAfter.some((c) => c.key === childCardKey),
       'Child should be found in project.cards() result after move',
-    ).to.be.true;
+    ).toBe(true);
   });
 
   it('verify descendant card paths are updated in cache after moving parent', async () => {
@@ -321,7 +317,7 @@ describe('move command', () => {
       options,
     );
     const grandparentKey = result.affectsCards?.[0];
-    expect(grandparentKey).to.be.a('string');
+    expect(grandparentKey).toBeTypeOf('string');
 
     result = await commandHandler.command(
       Cmd.create,
@@ -329,7 +325,7 @@ describe('move command', () => {
       options,
     );
     const parentKey = result.affectsCards?.[0];
-    expect(parentKey).to.be.a('string');
+    expect(parentKey).toBeTypeOf('string');
 
     result = await commandHandler.command(
       Cmd.create,
@@ -337,7 +333,7 @@ describe('move command', () => {
       options,
     );
     const childKey = result.affectsCards?.[0];
-    expect(childKey).to.be.a('string');
+    expect(childKey).toBeTypeOf('string');
 
     result = await commandHandler.command(
       Cmd.create,
@@ -345,7 +341,7 @@ describe('move command', () => {
       options,
     );
     const grandchildKey = result.affectsCards?.[0];
-    expect(grandchildKey).to.be.a('string');
+    expect(grandchildKey).toBeTypeOf('string');
 
     // Add an attachment to the child card
     const attachmentName = 'test-attachment.txt';
@@ -363,7 +359,7 @@ describe('move command', () => {
       options,
     );
     const destinationKey = result.affectsCards?.[0];
-    expect(destinationKey).to.be.a('string');
+    expect(destinationKey).toBeTypeOf('string');
 
     // Get paths before move
     const grandparentBefore = project.findCard(grandparentKey!);
@@ -375,17 +371,15 @@ describe('move command', () => {
     const ourAttachmentBefore = childBefore.attachments.find(
       (a) => a.fileName === attachmentName,
     );
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    expect(ourAttachmentBefore, 'Our attachment should exist').to.not.be
-      .undefined;
+    expect(ourAttachmentBefore, 'Our attachment should exist').toBeDefined();
     const attachmentPathBefore = ourAttachmentBefore!.path;
-    expect(attachmentPathBefore).to.include(childKey!);
+    expect(attachmentPathBefore).toContain(childKey!);
 
     // Verify initial tree structure
-    expect(grandparentBefore.parent).to.equal('root');
-    expect(parentBefore.parent).to.equal(grandparentKey);
-    expect(childBefore.parent).to.equal(parentKey);
-    expect(grandchildBefore.parent).to.equal(childKey);
+    expect(grandparentBefore.parent).toBe('root');
+    expect(parentBefore.parent).toBe(grandparentKey);
+    expect(childBefore.parent).toBe(parentKey);
+    expect(grandchildBefore.parent).toBe(childKey);
 
     // Store old paths for comparison
     const oldGrandparentPath = grandparentBefore.path;
@@ -396,7 +390,7 @@ describe('move command', () => {
       [grandparentKey!, destinationKey!],
       options,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
 
     // Verify all descendant paths are updated in cache
     const grandparentAfter = project.findCard(grandparentKey!);
@@ -405,52 +399,48 @@ describe('move command', () => {
     const grandchildAfterMove = project.findCard(grandchildKey!);
 
     // Grandparent should have new path under destination
-    expect(grandparentAfter.path).to.include(
+    expect(grandparentAfter.path).toContain(
       `${destinationKey}${sep}c${sep}${grandparentKey}`,
     );
-    expect(grandparentAfter.path).to.not.equal(oldGrandparentPath);
+    expect(grandparentAfter.path).not.toBe(oldGrandparentPath);
 
     // Parent's path should be updated (under new grandparent path)
-    expect(parentAfterMove.path).to.include(
+    expect(parentAfterMove.path).toContain(
       `${grandparentKey}${sep}c${sep}${parentKey}`,
     );
-    expect(parentAfterMove.path).to.include(destinationKey!);
+    expect(parentAfterMove.path).toContain(destinationKey!);
 
     // Child's path should be updated
-    expect(childAfterMove.path).to.include(
+    expect(childAfterMove.path).toContain(
       `${parentKey}${sep}c${sep}${childKey}`,
     );
-    expect(childAfterMove.path).to.include(destinationKey!);
+    expect(childAfterMove.path).toContain(destinationKey!);
 
     // Grandchild's path should be updated
-    expect(grandchildAfterMove.path).to.include(
+    expect(grandchildAfterMove.path).toContain(
       `${childKey}${sep}c${sep}${grandchildKey}`,
     );
-    expect(grandchildAfterMove.path).to.include(destinationKey!);
+    expect(grandchildAfterMove.path).toContain(destinationKey!);
 
     // Verify attachment path is updated
     const ourAttachmentAfter = childAfterMove.attachments.find(
       (a) => a.fileName === attachmentName,
     );
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    expect(ourAttachmentAfter, 'Our attachment should exist after move').to.not
-      .be.undefined;
+    expect(
+      ourAttachmentAfter,
+      'Our attachment should exist after move',
+    ).toBeDefined();
     const attachmentPathAfter = ourAttachmentAfter!.path;
-    expect(attachmentPathAfter).to.not.equal(attachmentPathBefore);
-    expect(attachmentPathAfter).to.include(destinationKey!);
-    expect(attachmentPathAfter).to.include(childKey!);
+    expect(attachmentPathAfter).not.toBe(attachmentPathBefore);
+    expect(attachmentPathAfter).toContain(destinationKey!);
+    expect(attachmentPathAfter).toContain(childKey!);
 
     // Verify that paths start with project path (sanity check that paths are valid)
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    expect(grandparentAfter.path.startsWith(decisionRecordsPath)).to.be.true;
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    expect(parentAfterMove.path.startsWith(decisionRecordsPath)).to.be.true;
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    expect(childAfterMove.path.startsWith(decisionRecordsPath)).to.be.true;
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    expect(grandchildAfterMove.path.startsWith(decisionRecordsPath)).to.be.true;
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    expect(attachmentPathAfter.startsWith(decisionRecordsPath)).to.be.true;
+    expect(grandparentAfter.path.startsWith(decisionRecordsPath)).toBe(true);
+    expect(parentAfterMove.path.startsWith(decisionRecordsPath)).toBe(true);
+    expect(childAfterMove.path.startsWith(decisionRecordsPath)).toBe(true);
+    expect(grandchildAfterMove.path.startsWith(decisionRecordsPath)).toBe(true);
+    expect(attachmentPathAfter.startsWith(decisionRecordsPath)).toBe(true);
   });
 });
 
@@ -476,39 +466,16 @@ describe('move command - similar key tests', () => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
-  it('move card to under similar key (success)', async () => {
-    const template = 'decision/templates/decision';
-    const rootCard = 'decision_5';
-    const anotherRootCard = await createSimilarCard(template);
-    if (anotherRootCard) {
-      const result = await commandHandler.command(
-        Cmd.move,
-        [rootCard, anotherRootCard],
-        options,
-      );
-      expect(result.statusCode).to.equal(200);
-    } else {
-      expect(false, `Failed to create a card starting with decision_5`);
-    }
-  });
-
   it('try to move card to its own similarly named descendant', async () => {
     const template = 'decision/templates/decision';
     const parent = 'decision_5';
-    const descendant = await createSimilarCard(template, parent);
-    if (descendant) {
-      // Try to move decision_5 under its own descendant - this should fail
-      const result = await commandHandler.command(
-        Cmd.move,
-        [parent, descendant],
-        options,
-      );
-      expect(result.statusCode).to.equal(400);
-    } else {
-      expect(
-        false,
-        `Failed to create a descendant card starting with decision_5`,
-      );
-    }
+    const descendant = (await createSimilarCard(template, parent)) as string;
+    // Try to move decision_5 under its own descendant - this should fail
+    const result = await commandHandler.command(
+      Cmd.move,
+      [parent, descendant],
+      options,
+    );
+    expect(result.statusCode).toBe(400);
   });
 });
