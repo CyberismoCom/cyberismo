@@ -16,7 +16,8 @@ import type { Project } from '../containers/project.js';
 import { ConfigurationLogger } from '../utils/configuration-logger.js';
 import { write } from '../utils/rw-lock.js';
 
-export type BumpType = 'patch' | 'minor' | 'major';
+export const validBumps = ['patch', 'minor', 'major'] as const;
+export type BumpType = (typeof validBumps)[number];
 
 /**
  * Handles version publishing commands.
@@ -36,7 +37,7 @@ export class Publish {
   public async publishVersion(
     bumpType: BumpType,
     push?: boolean,
-  ): Promise<{ previousVersion: string | null; newVersion: string }> {
+  ): Promise<{ previousVersion: string | undefined; newVersion: string }> {
     const { git } = this.project;
 
     // Guard: refuse to publish with uncommitted changes

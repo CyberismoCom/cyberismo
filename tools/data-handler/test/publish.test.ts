@@ -62,7 +62,7 @@ describe('Publish', () => {
 
       const result = await publish.publishVersion('patch');
 
-      expect(result.previousVersion).to.be.null;
+      expect(result.previousVersion).to.be.undefined;
       expect(result.newVersion).to.equal('1.0.0');
 
       const tags = await testGit(dir).tags();
@@ -75,7 +75,7 @@ describe('Publish', () => {
 
       const result = await publish.publishVersion('major');
 
-      expect(result.previousVersion).to.be.null;
+      expect(result.previousVersion).to.be.undefined;
       expect(result.newVersion).to.equal('1.0.0');
     });
 
@@ -126,7 +126,7 @@ describe('Publish', () => {
       await git.commit('first change');
 
       const first = await publish.publishVersion('patch');
-      expect(first.previousVersion).to.be.null;
+      expect(first.previousVersion).to.be.undefined;
       expect(first.newVersion).to.equal('1.0.0');
 
       await writeFile(join(dir, 'cardRoot', 'b.txt'), 'b');

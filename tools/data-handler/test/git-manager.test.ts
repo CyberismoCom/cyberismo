@@ -215,7 +215,7 @@ describe('GitManager', () => {
       await git.checkout('maintenance');
 
       const tags = await gm.listVersionTags();
-      expect(tags).to.deep.equal(['v1.1.0', 'v1.0.0']);
+      expect(tags).toEqual(['v1.1.0', 'v1.0.0']);
     });
 
     it('should ignore non-version tags', async () => {
@@ -237,7 +237,7 @@ describe('GitManager', () => {
       await gm.initialize();
 
       const version = await gm.getVersion();
-      expect(version).toBeNull();
+      expect(version).toBeUndefined();
     });
 
     it('should return the latest version', async () => {
@@ -276,7 +276,7 @@ describe('GitManager', () => {
       await git.checkout('maintenance');
 
       const version = await gm.getVersion();
-      expect(version).to.equal('1.1.0');
+      expect(version).toBe('1.1.0');
     });
 
     it('should return highest version even if created out of order', async () => {

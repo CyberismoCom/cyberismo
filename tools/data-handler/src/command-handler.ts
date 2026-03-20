@@ -61,6 +61,7 @@ import { resourceName } from './utils/resource-utils.js';
 import { type Level } from 'pino';
 import { type Context } from './interfaces/project-interfaces.js';
 import { type QueryName } from './types/queries.js';
+import { validBumps } from './commands/publish.js';
 
 // Commands that this class supports.
 export const Cmd = {
@@ -342,7 +343,7 @@ export class Commands {
         const [source, destination] = args;
         await this.commands?.moveCmd.moveCard(source, destination);
       } else if (command === Cmd.publish) {
-        return await this.publish(args);
+        return this.publish(args);
       } else if (command === Cmd.rank) {
         const target = args.splice(0, 1)[0];
         if (target === 'card') {
@@ -573,8 +574,7 @@ export class Commands {
     }
 
     const [bumpType, pushFlag] = args;
-    const validBumps = ['patch', 'minor', 'major'];
-    if (!validBumps.includes(bumpType)) {
+    if (!(validBumps as readonly string[]).includes(bumpType)) {
       return {
         statusCode: 400,
         message: `Invalid bump type '${bumpType}'. Must be one of: ${validBumps.join(', ')}`,
