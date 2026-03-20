@@ -186,6 +186,7 @@ export interface ProjectSettings {
   name: string;
   category?: string;
   description: string;
+  version?: string;
   modules: ModuleSetting[];
   hubs: HubSetting[];
 }
