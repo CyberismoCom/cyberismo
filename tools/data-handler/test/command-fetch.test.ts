@@ -1,6 +1,14 @@
 // testing
-import { expect } from 'chai';
-import * as sinon from 'sinon';
+import {
+  expect,
+  it,
+  describe,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  afterEach,
+  vi,
+} from 'vitest';
 
 import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
@@ -17,18 +25,18 @@ const commandHandler: Commands = new Commands();
 const options = { projectPath: decisionRecordsPath };
 
 describe('fetch command', () => {
-  before(async () => {
+  beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data', testDir);
   });
 
-  after(() => {
+  afterAll(() => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
   it('fetch hubs (success)', async () => {
     const result = await commandHandler.command(Cmd.fetch, ['hubs'], options);
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
   });
   it('try to fetch incorrect type', async () => {
     const result = await commandHandler.command(
@@ -36,27 +44,24 @@ describe('fetch command', () => {
       ['unknown'],
       options,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
 
   describe('hub versions', () => {
-    let fetchStub: sinon.SinonStub;
+    let fetchStub: ReturnType<typeof vi.spyOn>;
     let project: Project;
     let fetchCmd: Fetch;
-    let fetchModuleListStub: sinon.SinonStub;
+    let fetchModuleListStub: ReturnType<typeof vi.spyOn>;
 
     beforeEach(async () => {
       project = new Project(decisionRecordsPath);
       await project.populateCaches();
       fetchCmd = new Fetch(project);
-      fetchStub = sinon.stub(global, 'fetch');
+      fetchStub = vi.spyOn(global, 'fetch');
     });
 
     afterEach(() => {
-      fetchStub.restore();
-      if (fetchModuleListStub) {
-        fetchModuleListStub.restore();
-      }
+      vi.restoreAllMocks();
     });
 
     it('should fetch when remote version is newer than local version', async () => {
@@ -64,13 +69,13 @@ describe('fetch command', () => {
       project.configuration.hubs = [{ location: 'https://test.com/hub1' }];
 
       // return true; indicating fetch is needed
-      fetchModuleListStub = sinon
+      fetchModuleListStub = vi
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .stub(fetchCmd as any, 'fetchModuleList')
-        .resolves(true);
+        .spyOn(fetchCmd as any, 'fetchModuleList')
+        .mockResolvedValue(true);
 
       // Remote hub returns module list with version 2 (schema-compliant)
-      fetchStub.resolves({
+      fetchStub.mockResolvedValue({
         ok: true,
         json: async () => ({
           description: 'Test hub',
@@ -92,34 +97,34 @@ describe('fetch command', () => {
 
       await fetchCmd.fetchHubs();
 
-      expect(fetchModuleListStub.calledOnce).to.equal(true);
-      expect(fetchStub.callCount).to.equal(1);
+      expect(fetchModuleListStub).toHaveBeenCalledTimes(1);
+      expect(fetchStub).toHaveBeenCalledTimes(1);
       project.configuration.hubs = originalHubs;
     });
     it('should skip fetch when local version matches remote version', async () => {
       // no fetch needed
-      fetchModuleListStub = sinon
+      fetchModuleListStub = vi
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .stub(fetchCmd as any, 'fetchModuleList')
-        .resolves(false);
+        .spyOn(fetchCmd as any, 'fetchModuleList')
+        .mockResolvedValue(false);
 
       await fetchCmd.fetchHubs();
 
-      expect(fetchModuleListStub.calledOnce).to.equal(true);
-      expect(fetchStub.called).to.equal(false);
+      expect(fetchModuleListStub).toHaveBeenCalledTimes(1);
+      expect(fetchStub).not.toHaveBeenCalled();
     });
     it('should fetch when local file does not exist', async () => {
       const originalHubs = project.configuration.hubs;
       project.configuration.hubs = [{ location: 'https://test.com/hub1' }];
 
       // file doesn't exist locally
-      fetchModuleListStub = sinon
+      fetchModuleListStub = vi
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .stub(fetchCmd as any, 'fetchModuleList')
-        .resolves(true);
+        .spyOn(fetchCmd as any, 'fetchModuleList')
+        .mockResolvedValue(true);
 
       // Remote hub response
-      fetchStub.resolves({
+      fetchStub.mockResolvedValue({
         ok: true,
         json: async () => ({
           description: 'Test hub',
@@ -137,20 +142,20 @@ describe('fetch command', () => {
 
       await fetchCmd.fetchHubs();
 
-      expect(fetchModuleListStub.calledOnce).to.equal(true);
-      expect(fetchStub.called).to.equal(true);
+      expect(fetchModuleListStub).toHaveBeenCalledTimes(1);
+      expect(fetchStub).toHaveBeenCalledTimes(1);
       project.configuration.hubs = originalHubs;
     });
 
     it('should fetch when any hub has a newer version (multiple hubs)', async () => {
       // one hub has newer version
-      fetchModuleListStub = sinon
+      fetchModuleListStub = vi
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .stub(fetchCmd as any, 'fetchModuleList')
-        .resolves(true);
+        .spyOn(fetchCmd as any, 'fetchModuleList')
+        .mockResolvedValue(true);
 
       // Actual fetches for both hubs
-      fetchStub.onCall(0).resolves({
+      fetchStub.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           description: 'Test hub 1',
@@ -159,9 +164,9 @@ describe('fetch command', () => {
           modules: [{ name: 'module1', location: 'https://git.com/m1.git' }],
         }),
         headers: new Headers({ 'content-type': 'application/json' }),
-      });
+      } as Response);
 
-      fetchStub.onCall(1).resolves({
+      fetchStub.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           description: 'Test hub 2',
@@ -170,7 +175,7 @@ describe('fetch command', () => {
           modules: [{ name: 'module2', location: 'https://git.com/m2.git' }],
         }),
         headers: new Headers({ 'content-type': 'application/json' }),
-      });
+      } as Response);
 
       // Project with two hubs
       const originalHubs = project.configuration.hubs;
@@ -181,8 +186,8 @@ describe('fetch command', () => {
 
       await fetchCmd.fetchHubs();
 
-      void expect(fetchModuleListStub.calledOnce).to.equal(true);
-      void expect(fetchStub.callCount).to.equal(2);
+      expect(fetchModuleListStub).toHaveBeenCalledTimes(1);
+      expect(fetchStub).toHaveBeenCalledTimes(2);
 
       project.configuration.hubs = originalHubs;
     });
