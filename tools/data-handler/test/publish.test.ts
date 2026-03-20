@@ -73,7 +73,9 @@ describe('Publish', () => {
       expect(tags.all).to.include('v1.0.0');
 
       expect(pushStub.calledOnce).to.be.true;
-      expect(pushStub.calledWith({ tags: true })).to.be.true;
+      expect(
+        pushStub.calledWith({ tags: true, remote: undefined }),
+      ).to.be.true;
     });
 
     it('should create tag with correct annotation message', async () => {

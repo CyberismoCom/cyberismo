@@ -1508,11 +1508,12 @@ const publishCmd = new CommandWithPath('publish')
   .description(
     'Publish the current version (creates annotated git tag, pushes to remote). Run "cyberismo version" first to set the version.',
   )
-  .option('--dry-run', 'Show what would happen without doing it');
+  .option('--dry-run', 'Show what would happen without doing it')
+  .option('--remote <name>', 'Git remote to push to (default: origin)');
 program.addCommand(publishCmd);
 publishCmd.action(async (options: CommandOptions<'publish'>) => {
   const mergedOptions = Object.assign({}, options, program.opts());
-  const args = [options.dryRun ? 'true' : 'false'];
+  const args = [options.dryRun ? 'true' : 'false', options.remote ?? ''];
   const result = await commandHandler.command(Cmd.publish, args, mergedOptions);
   handleResponse(result);
 });
