@@ -56,8 +56,14 @@ export class Version {
     }
 
     const newVersion = currentVersion
-      ? semver.inc(currentVersion, bumpType)!
+      ? semver.inc(currentVersion, bumpType)
       : '1.0.0';
+
+    if (!newVersion) {
+      throw new Error(
+        `Invalid current version '${currentVersion}': cannot compute ${bumpType} bump`,
+      );
+    }
 
     // Snapshot the current migration log with the new version
     if (ConfigurationLogger.hasLog(this.project.basePath)) {
