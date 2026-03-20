@@ -56,9 +56,7 @@ export interface ExportCommandOptions extends BaseCommandOptions {
 export type FetchCommandOptions = BaseCommandOptions;
 
 // Options for 'import' command
-export interface ImportCommandOptions extends BaseCommandOptions {
-  skipMigrationLog?: boolean;
-}
+export type ImportCommandOptions = BaseCommandOptions;
 
 // Options for 'migrate' command
 export interface MigrateCommandOptions extends BaseCommandOptions {
@@ -95,6 +93,15 @@ export interface StartCommandOptions extends BaseCommandOptions {
   autocommit?: boolean;
 }
 
+// Options for 'publish' command
+export interface PublishCommandOptions extends BaseCommandOptions {
+  dryRun?: boolean;
+  remote?: string;
+}
+
+// Options for 'version' command
+export type VersionCommandOptions = BaseCommandOptions;
+
 // Options for 'transition' command
 export type TransitionCommandOptions = BaseCommandOptions;
 
@@ -120,6 +127,7 @@ export type AllCommandOptions =
   | ImportCommandOptions
   | MigrateCommandOptions
   | MoveCommandOptions
+  | PublishCommandOptions
   | RankCommandOptions
   | RemoveCommandOptions
   | RenameCommandOptions
@@ -129,7 +137,8 @@ export type AllCommandOptions =
   | TransitionCommandOptions
   | UpdateCommandOptions
   | UpdateModulesCommandOptions
-  | ValidateCommandOptions;
+  | ValidateCommandOptions
+  | VersionCommandOptions;
 
 // Map command keys to their option types
 export type CommandOptions<T extends CmdKey> = {
@@ -142,6 +151,7 @@ export type CommandOptions<T extends CmdKey> = {
   import: ImportCommandOptions;
   migrate: MigrateCommandOptions;
   move: MoveCommandOptions;
+  publish: PublishCommandOptions;
   rank: RankCommandOptions;
   remove: RemoveCommandOptions;
   rename: RenameCommandOptions;
@@ -152,4 +162,5 @@ export type CommandOptions<T extends CmdKey> = {
   update: UpdateCommandOptions;
   updateModules: UpdateModulesCommandOptions;
   validate: ValidateCommandOptions;
+  version: VersionCommandOptions;
 }[T];
