@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { expect, describe, it } from 'vitest';
 
 import { sep } from 'node:path';
 
@@ -53,97 +53,130 @@ describe('card utils', () => {
 
   const testCards = [projectCard, projectChildCard, projectGrandChildCard];
 
-  it('buildCardHierarchy', () => {
+  it(' can build a card hierarchy with buildCardHierarchy', () => {
     const hierarchical = buildCardHierarchy(testCards);
-    expect(hierarchical.length).to.equal(1);
+    expect(hierarchical).toHaveLength(1);
     const root = hierarchical.at(0)!;
-    expect(root.key).to.equal('test_1');
-    expect(root.children).to.include('test_2');
-    expect(root.childrenCards.length).to.equal(1);
+    expect(root.key).toBe('test_1');
+    expect(root.children).toContain('test_2');
+    expect(root.childrenCards).toHaveLength(1);
 
     const child = root.childrenCards.at(0)!;
-    expect(child.key).to.equal('test_2');
-    expect(child.children).to.include('test_3');
-    expect(child.childrenCards.length).to.equal(1);
+    expect(child.key).toBe('test_2');
+    expect(child.children).toContain('test_3');
+    expect(child.childrenCards).toHaveLength(1);
 
     const grandchild = child.childrenCards.at(0)!;
-    expect(grandchild.key).to.equal('test_3');
-    expect(grandchild.children.length).to.equal(0);
-    expect(grandchild.childrenCards.length).to.equal(0);
+    expect(grandchild.key).toBe('test_3');
+    expect(grandchild.children).toHaveLength(0);
+    expect(grandchild.childrenCards).toHaveLength(0);
   });
 
-  it('cardPathParts', () => {
-    const m = cardPathParts('mod', moduleCard.path);
-    expect(m.cardKey).to.equal(moduleCard.key);
-    expect(m.parents.length).to.equal(0);
-    expect(m.prefix).to.equal('mod');
-    expect(m.template).to.equal('mod/templates/templateName');
-    const t = cardPathParts('test', templateCard.path);
-    expect(t.cardKey).to.equal(templateCard.key);
-    expect(t.parents.length).to.equal(0);
-    expect(t.prefix).to.equal('test');
-    expect(t.template).to.equal('test/templates/templateName');
-    const p = cardPathParts('test', projectCard.path);
-    expect(p.cardKey).to.equal(projectCard.key);
-    expect(p.parents.length).to.equal(0);
-    expect(p.prefix).to.equal('test');
-    expect(p.template).to.equal('');
-    const pc = cardPathParts('test', projectChildCard.path);
-    expect(pc.cardKey).to.equal(projectChildCard.key);
-    expect(pc.parents.length).to.equal(1);
-    expect(pc.parents).to.include('test_1');
-    expect(pc.prefix).to.equal('test');
-    expect(pc.template).to.equal('');
-    const gpc = cardPathParts('test', projectGrandChildCard.path);
-    expect(gpc.cardKey).to.equal(projectGrandChildCard.key);
-    expect(gpc.parents.length).to.equal(2);
-    expect(gpc.parents).to.include('test_1');
-    expect(gpc.parents).to.include('test_2');
-    expect(gpc.prefix).to.equal('test');
-    expect(gpc.template).to.equal('');
+  describe('cardPathParts', () => {
+    it('retrieves path parts for module cards', () => {
+      const actual = cardPathParts('mod', moduleCard.path);
+      expect(actual.cardKey).toBe(moduleCard.key);
+      expect(actual.parents).toHaveLength(0);
+      expect(actual.prefix).toBe('mod');
+      expect(actual.template).toBe('mod/templates/templateName');
+    });
+
+    it('retrieves path parts for template cards', () => {
+      const actual = cardPathParts('test', templateCard.path);
+      expect(actual.cardKey).toBe(templateCard.key);
+      expect(actual.parents).toHaveLength(0);
+      expect(actual.prefix).toBe('test');
+      expect(actual.template).toBe('test/templates/templateName');
+    });
+
+    it('retrieves path parts for project cards', () => {
+      const actual = cardPathParts('test', projectCard.path);
+      expect(actual.cardKey).toBe(projectCard.key);
+      expect(actual.parents).toHaveLength(0);
+      expect(actual.prefix).toBe('test');
+      expect(actual.template).toBe('');
+    });
+
+    it('retrieves path parts for project child cards', () => {
+      const actual = cardPathParts('test', projectChildCard.path);
+      expect(actual.cardKey).toBe(projectChildCard.key);
+      expect(actual.parents).toHaveLength(1);
+      expect(actual.parents).toContain('test_1');
+      expect(actual.prefix).toBe('test');
+      expect(actual.template).toBe('');
+    });
+
+    it('retrieves path parts for project grandchild cards', () => {
+      const actual = cardPathParts('test', projectGrandChildCard.path);
+      expect(actual.cardKey).toBe(projectGrandChildCard.key);
+      expect(actual.parents).toHaveLength(2);
+      expect(actual.parents).toContain('test_1');
+      expect(actual.parents).toContain('test_2');
+      expect(actual.prefix).toBe('test');
+      expect(actual.template).toBe('');
+    });
   });
 
-  it('findParentPath', () => {
-    const parent = findParentPath(projectChildCard.path);
-    expect(parent).to.equal(projectCard.path);
-    const noParents = findParentPath(projectCard.path);
-    expect(noParents).to.equal(null);
+  describe('findParentPath', () => {
+    it('finds parent path for child card', () => {
+      const parentPath = findParentPath(projectChildCard.path);
+      expect(parentPath).toBe(projectCard.path);
+    });
+
+    it('returns null if no parent path is found', () => {
+      const parentPath = findParentPath(projectCard.path);
+      expect(parentPath).toBeNull();
+    });
   });
 
-  it('isModuleCard', () => {
-    expect(isModuleCard(projectCard)).to.equal(false);
-    expect(isModuleCard(projectChildCard)).to.equal(false);
-    expect(isModuleCard(templateCard)).to.equal(false);
-    expect(isModuleCard(moduleCard)).to.equal(true);
-  });
-  it('isTemplateCard', () => {
-    expect(isTemplateCard(projectCard)).to.equal(false);
-    expect(isTemplateCard(projectChildCard)).to.equal(false);
-    expect(isTemplateCard(templateCard)).to.equal(true);
-    expect(isTemplateCard(moduleCard)).to.equal(true);
+  it.each([
+    [projectCard, false],
+    [projectChildCard, false],
+    [templateCard, false],
+    [moduleCard, true],
+  ])('isModuleCard validates module cards correctly', (card, expected) => {
+    expect(isModuleCard(card)).toBe(expected);
   });
 
-  it('moduleNameFromCardKey', () => {
-    expect(moduleNameFromCardKey(projectCard.key)).to.equal('test');
-    expect(moduleNameFromCardKey(projectChildCard.key)).to.equal('test');
-    expect(moduleNameFromCardKey(templateCard.key)).to.equal('test');
-    expect(moduleNameFromCardKey(moduleCard.key)).to.equal('mod');
+  it.each([
+    [projectCard, false],
+    [projectChildCard, false],
+    [templateCard, true],
+    [moduleCard, true],
+  ])('isTemplateCard validates template cards correctly', (card, expected) => {
+    expect(isTemplateCard(card)).toBe(expected);
   });
 
-  it('parentCard', () => {
-    expect(parentCard(projectCard.path)).to.equal('root');
-    expect(parentCard(projectChildCard.path)).to.equal('test_1');
-    expect(parentCard(templateCard.path)).to.equal('root');
-    expect(parentCard(moduleCard.path)).to.equal('root');
+  it.each([
+    [projectCard, 'test'],
+    [projectChildCard, 'test'],
+    [templateCard, 'test'],
+    [moduleCard, 'mod'],
+  ])(
+    'moduleNameFromCardKey extracts module name correctly',
+    (card, expected) => {
+      expect(moduleNameFromCardKey(card.key)).toBe(expected);
+    },
+  );
+
+  it.each([
+    [projectCard, 'root'],
+    [projectChildCard, 'test_1'],
+    [templateCard, 'root'],
+    [moduleCard, 'root'],
+  ])('parentCard extracts parent card key correctly', (card, expected) => {
+    expect(parentCard(card.path)).toBe(expected);
   });
 
-  it('sort cards', () => {
-    const cards = ['aaa_999', 'aaa_111', 'zzz_111', 'zzz_999', 'aaa_999'];
-    cards.sort(sortCards);
-    expect(cards.at(0)).to.equal('aaa_111');
-    expect(cards.at(1)).to.equal('aaa_999');
-    expect(cards.at(2)).to.equal('aaa_999');
-    expect(cards.at(3)).to.equal('zzz_111');
-    expect(cards.at(4)).to.equal('zzz_999');
+  describe('sortCards', () => {
+    it('sorts cards by key parts', () => {
+      const cards = ['aaa_999', 'aaa_111', 'zzz_111', 'zzz_999', 'aaa_999'];
+      cards.sort(sortCards);
+      expect(cards.at(0)).toBe('aaa_111');
+      expect(cards.at(1)).toBe('aaa_999');
+      expect(cards.at(2)).toBe('aaa_999');
+      expect(cards.at(3)).toBe('zzz_111');
+      expect(cards.at(4)).toBe('zzz_999');
+    });
   });
 });
