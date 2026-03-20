@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { expect, describe, it } from 'vitest';
 import {
   ClingoFactBuilder,
   encodeClingoValue,
@@ -9,52 +9,52 @@ describe('ClingoFactBuilder', () => {
   it('should generate fact with addArgument', () => {
     const builder = new ClingoFactBuilder('test');
     builder.addArgument('test2');
-    expect(builder.build()).to.equal('test("test2").');
+    expect(builder.build()).toBe('test("test2").');
   });
 
   it('should generate fact with addArguments', () => {
     const builder = new ClingoFactBuilder('test');
     builder.addArguments('test2', 'test3');
-    expect(builder.build()).to.equal('test("test2", "test3").');
+    expect(builder.build()).toBe('test("test2", "test3").');
   });
 
   it('should add a literal argument without quotes', () => {
     const builder = new ClingoFactBuilder('test');
     builder.addLiteralArgument('literal');
-    expect(builder.build()).to.equal('test(literal).');
+    expect(builder.build()).toBe('test(literal).');
   });
 
   it('should add multiple literal arguments without quotes', () => {
     const builder = new ClingoFactBuilder('test');
     builder.addLiteralArguments('literal1', 'literal2');
-    expect(builder.build()).to.equal('test(literal1, literal2).');
+    expect(builder.build()).toBe('test(literal1, literal2).');
   });
 
   it('should handle boolean arguments correctly', () => {
     const builder = new ClingoFactBuilder('test');
     builder.addArguments(true, false);
-    expect(builder.build()).to.equal('test(true, false).');
+    expect(builder.build()).toBe('test(true, false).');
   });
 
   it('should handle number arguments correctly without quotes', () => {
     const builder = new ClingoFactBuilder('test');
     builder.addArgument(42);
-    expect(builder.build()).to.equal('test(42).');
+    expect(builder.build()).toBe('test(42).');
   });
   it('should floor decimal numbers', () => {
     const builder = new ClingoFactBuilder('test');
     builder.addArgument(42.3);
-    expect(builder.build()).to.equal('test(42).');
+    expect(builder.build()).toBe('test(42).');
   });
   it('should set numbers that are over int32_max to int32_max', () => {
     const builder = new ClingoFactBuilder('test');
     builder.addArgument(INT32_MAX + 1);
-    expect(builder.build()).to.equal(`test(${INT32_MAX}).`);
+    expect(builder.build()).toBe(`test(${INT32_MAX}).`);
   });
   it('should set numbers that are less than -int32_max to -int32_max', () => {
     const builder = new ClingoFactBuilder('test');
     builder.addArgument(-INT32_MAX - 1);
-    expect(builder.build()).to.equal(`test(${-INT32_MAX}).`);
+    expect(builder.build()).toBe(`test(${-INT32_MAX}).`);
   });
   it('should handle nested ClingoFactBuilder instances as arguments', () => {
     const nestedBuilder = new ClingoFactBuilder('nested', '').addArgument(
@@ -62,23 +62,23 @@ describe('ClingoFactBuilder', () => {
     );
     const builder = new ClingoFactBuilder('test');
     builder.addArgument(nestedBuilder);
-    expect(builder.build()).to.equal('test(nested("inner")).');
+    expect(builder.build()).toBe('test(nested("inner")).');
   });
 
   it('should handle mixed argument types', () => {
     const builder = new ClingoFactBuilder('test');
     builder.addArguments('string', 42, true, false);
-    expect(builder.build()).to.equal('test("string", 42, true, false).');
+    expect(builder.build()).toBe('test("string", 42, true, false).');
   });
 
   it('should encode special characters in string arguments', () => {
     const builder = new ClingoFactBuilder('test');
     builder.addArgument('line\nbreak');
-    expect(builder.build()).to.equal('test("line\\nbreak").');
+    expect(builder.build()).toBe('test("line\\nbreak").');
   });
 
   it('should use encodeClingoValue to escape characters', () => {
-    expect(encodeClingoValue('line\nbreak\\quote"')).to.equal(
+    expect(encodeClingoValue('line\nbreak\\quote"')).toBe(
       'line\\nbreak\\\\quote\\"',
     );
   });
@@ -86,35 +86,35 @@ describe('ClingoFactBuilder', () => {
   it('should handle array arguments correctly', () => {
     const builder = new ClingoFactBuilder('test');
     builder.addArgument(['item1', 'item2']);
-    expect(builder.build()).to.equal('test("item1,item2").');
+    expect(builder.build()).toBe('test("item1,item2").');
   });
 
   it('should handle a mix of arrays and single arguments', () => {
     const builder = new ClingoFactBuilder('test');
     builder.addArguments(['item1', 'item2'], 'single');
-    expect(builder.build()).to.equal('test("item1,item2", "single").');
+    expect(builder.build()).toBe('test("item1,item2", "single").');
   });
 
   it('should correctly handle an empty predicate', () => {
     const builder = new ClingoFactBuilder('');
     builder.addArgument('test2');
-    expect(builder.build()).to.equal('("test2").');
+    expect(builder.build()).toBe('("test2").');
   });
 
   it('should correctly handle an empty end character', () => {
     const builder = new ClingoFactBuilder('test', '');
     builder.addArgument('test2');
-    expect(builder.build()).to.equal('test("test2")');
+    expect(builder.build()).toBe('test("test2")');
   });
 
   it('should correctly handle no arguments', () => {
     const builder = new ClingoFactBuilder('noArgs');
-    expect(builder.build()).to.equal('noArgs().');
+    expect(builder.build()).toBe('noArgs().');
   });
 
   it('should correctly add null arguments', () => {
     const builder = new ClingoFactBuilder('test');
     builder.addArguments(null, 'valid');
-    expect(builder.build()).to.equal('test("valid").');
+    expect(builder.build()).toBe('test("valid").');
   });
 });
