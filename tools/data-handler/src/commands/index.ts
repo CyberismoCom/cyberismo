@@ -25,6 +25,7 @@ import { Show } from './show.js';
 import { Transition } from './transition.js';
 import { Update } from './update.js';
 import { Validate } from './validate.js';
+import { Version } from './version.js';
 
 export {
   Calculate,
@@ -41,4 +42,5 @@ export {
   Transition,
   Update,
   Validate,
+  Version,
 };
