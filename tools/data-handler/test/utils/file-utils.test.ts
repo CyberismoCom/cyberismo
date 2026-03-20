@@ -1,8 +1,5 @@
-// testing
-import { expect } from 'chai';
-import { after, describe, it } from 'mocha';
+import { expect, afterAll, describe, it, beforeAll } from 'vitest';
 
-// node
 import { rmSync } from 'node:fs';
 import { access, mkdir, writeFile } from 'node:fs/promises';
 import { join, sep } from 'node:path';
@@ -18,97 +15,96 @@ import {
   stripExtension,
 } from '../../src/utils/file-utils.js';
 
-const baseDir = import.meta.dirname;
-const testDir = join(baseDir, 'tmp-file-utils-tests');
-
-before(async () => {
-  await mkdir(testDir, { recursive: true });
-  await copyDir('test/test-data/', testDir);
-});
-
-after(async () => {
-  await deleteDir(testDir);
-});
-
 describe('file utils', () => {
+  const baseDir = import.meta.dirname;
+  const testDir = join(baseDir, 'tmp-file-utils-tests');
+
+  beforeAll(async () => {
+    await mkdir(testDir, { recursive: true });
+    await copyDir('test/test-data/', testDir);
+  });
+
+  afterAll(async () => {
+    await deleteDir(testDir);
+  });
   it('copyDir (success)', async () => {
     const destination = join(testDir, 'this-temp');
-    after(() => {
+    afterAll(() => {
       rmSync(destination, { recursive: true, force: true });
     });
     await mkdir(destination, { recursive: true });
     await copyDir('test/test-data/valid/minimal', destination);
-    await expect(access(destination)).to.be.fulfilled;
+    await expect(access(destination)).resolves.toBeUndefined();
   });
   it('copyDir with hierarchy (success)', async () => {
     const destination = join(testDir, 'some/hierarchy/that/is/rather/deep');
-    after(() => {
+    afterAll(() => {
       rmSync(destination, { recursive: true, force: true });
     });
     await copyDir('test/test-data/valid/minimal/', destination);
-    await expect(access(destination)).to.be.fulfilled;
+    await expect(access(destination)).resolves.toBeUndefined();
   });
   it('deleteDir (success)', async () => {
     const targetDir = join(testDir, 'this-temp');
     await mkdir(targetDir, { recursive: true });
     await deleteDir(targetDir);
-    await expect(access(targetDir)).to.be.rejectedWith(
+    await expect(access(targetDir)).rejects.toThrow(
       `ENOENT: no such file or directory,`,
     );
   });
   it('deleteFile (success)', async () => {
     const target = 'testfile.txt';
 
-    before(() => {
+    beforeAll(() => {
       rmSync(target);
     });
 
     await writeFile(target, 'data');
     const success = await deleteFile(target);
-    expect(success).to.equal(true);
-    await expect(access(target)).to.be.rejected;
+    expect(success).toBe(true);
+    await expect(access(target)).rejects.toThrow();
   });
   it('deleteFile - file missing', async () => {
     const target = '';
     const success = await deleteFile(target);
-    expect(success).to.equal(false);
+    expect(success).toBe(false);
   });
   it('getFilesSync (success)', () => {
     const files = getFilesSync('test/test-data/valid/minimal');
-    expect(files.length).to.be.greaterThan(0);
+    expect(files.length).toBeGreaterThan(0);
   });
   it('getFilesSync - wrong path', () => {
     const files = getFilesSync('test/test-data/valid/non-existing');
-    expect(files.length).to.equal(0);
+    expect(files.length).toBe(0);
   });
   it('pathExists (success)', () => {
     const path = '/';
-    expect(pathExists(path)).to.equal(true);
+    expect(pathExists(path)).toBe(true);
   });
   it('pathExists - not found', () => {
     const path = '/i-do-not-exist';
     const retVal = pathExists(path);
-    expect(retVal).to.equal(false);
+    expect(retVal).toBe(false);
   });
   it('resolveTilde - no tilde in path', () => {
     const path = '/tmp/test';
     const retVal = resolveTilde(path);
-    expect(retVal).to.equal(path);
+    expect(retVal).toBe(path);
   });
   it('resolveTilde - tilde in filename', () => {
     const path = '~tmp/test';
     const retVal = resolveTilde(path);
-    expect(retVal).to.equal(path);
+    expect(retVal).toBe(path);
   });
   it('resolveTilde - tilde in path', () => {
     const path = '~/tmp/test';
     const retVal = resolveTilde(path);
-    expect(retVal).to.not.equal(path);
+    expect(retVal).not.toBe(path);
   });
   it('resolveTilde - only tilde', () => {
     const path = '~';
     const retVal = resolveTilde(path);
-    expect(retVal).to.not.equal(path);
+    expect(retVal).not.toBe(path);
   });
   it('stripExtension, - various filenames', () => {
     const filenamesWithExtensions: Map<string, string> = new Map([
@@ -139,10 +135,10 @@ describe('file utils', () => {
       `..${sep}..`,
     ];
     for (const filename of filenamesWithExtensions) {
-      expect(stripExtension(filename[0])).to.equal(filename[1]);
+      expect(stripExtension(filename[0])).toBe(filename[1]);
     }
     for (const filename of filenamesWithoutExtensions) {
-      expect(stripExtension(filename)).to.equal(filename);
+      expect(stripExtension(filename)).toBe(filename);
     }
   });
 
@@ -160,7 +156,7 @@ describe('file utils', () => {
       const size = await folderSize(tempDir);
       const expectedSize = file1Content.length + file2Content.length;
 
-      expect(size).to.equal(expectedSize);
+      expect(size).toBe(expectedSize);
     });
 
     it('should calculate size including subdirectories', async () => {
@@ -177,13 +173,13 @@ describe('file utils', () => {
       const size = await folderSize(tempDir);
       const expectedSize = rootFileContent.length + subFileContent.length;
 
-      expect(size).to.equal(expectedSize);
+      expect(size).toBe(expectedSize);
     });
 
     it('should return 0 for non-existent directory', async () => {
       const nonExistentDir = join(testDir, 'does-not-exist');
       const size = await folderSize(nonExistentDir);
-      expect(size).to.equal(0);
+      expect(size).toBe(0);
     });
 
     it('should return 0 for empty directory', async () => {
@@ -191,7 +187,7 @@ describe('file utils', () => {
       await mkdir(emptyDir, { recursive: true });
 
       const size = await folderSize(emptyDir);
-      expect(size).to.equal(0);
+      expect(size).toBe(0);
     });
 
     it('should handle deeply nested directory structure', async () => {
@@ -213,7 +209,7 @@ describe('file utils', () => {
       const size = await folderSize(baseFolder);
       const expectedSize = content1.length + content2.length + content3.length;
 
-      expect(size).to.equal(expectedSize);
+      expect(size).toBe(expectedSize);
     });
   });
 });
