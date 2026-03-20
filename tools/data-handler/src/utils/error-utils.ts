@@ -19,31 +19,12 @@
 export function errorFunction(error: unknown): string {
   if (error instanceof Error) {
     const err: Error = error;
-    return errorMessage(`${err.message}`);
+    return `${err.message}`;
   } else if (typeof error === 'string') {
-    return errorMessage(`${error}`);
+    return `${error}`;
   } else {
     return `errorFunction called without an error object. Actual object is ${JSON.stringify(error)}`;
   }
-}
-
-/**
- * Same as 'errorFunction' but can do automatic replacement of the error message string.
- * @param message Error message
- * @param toReplace replacement substring
- * @param replaceWith string that 'toReplace' is replaced with.
- * @returns Modified error message.
- */
-export function errorMessage(
-  message: string,
-  toReplace?: string,
-  replaceWith?: string,
-): string {
-  let errorMessage = message;
-  if (toReplace && replaceWith) {
-    errorMessage = message.replace(toReplace, replaceWith);
-  }
-  return `${errorMessage}`;
 }
 
 /**
