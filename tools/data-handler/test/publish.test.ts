@@ -197,7 +197,7 @@ describe('Publish', () => {
       expect(pushStub.calledWith({ tags: true })).to.be.true;
     });
 
-    it('should not push when push is false or omitted', async () => {
+    it('should not push when push is omitted', async () => {
       await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
       await git.commit('change');
 
@@ -206,10 +206,13 @@ describe('Publish', () => {
       await publish.publishVersion('patch');
 
       expect(pushSpy.called).to.be.false;
+    });
 
-      // Also test with explicit false
-      await writeFile(join(dir, 'cardRoot', 'b.txt'), 'b');
-      await git.commit('another change');
+    it('should not push when push is false', async () => {
+      await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
+      await git.commit('change');
+
+      const pushSpy = sinon.spy(git, 'push');
 
       await publish.publishVersion('patch', false);
 
