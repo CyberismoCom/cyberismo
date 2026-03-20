@@ -108,6 +108,13 @@ export class GitManager {
     await this.git.tag(['-a', tag, '-m', message ?? tag]);
   }
 
+  /** Delete a local version tag. */
+  async deleteTag(version: string): Promise<void> {
+    const tag = `${TAG_PREFIX}${version}`;
+    this.logger.info({ tag }, 'Deleting tag');
+    await this.git.tag(['-d', tag]);
+  }
+
   /** Check if the working tree has uncommitted changes in project directories (staged or unstaged). */
   async hasUncommittedChanges(): Promise<boolean> {
     const status = await this.git.status(['--', 'cardRoot', '.cards']);
