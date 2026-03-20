@@ -32,6 +32,7 @@ export type {
   RemoveOperation,
 } from './resources/resource-object.js';
 import { evaluateMacros } from './macros/index.js';
+import { validBumps } from './commands/version.js';
 import {
   isResourceFolderType,
   resourceName,
@@ -54,6 +55,7 @@ export {
   UpdateOperations,
   Validate,
   evaluateMacros,
+  validBumps,
 };
 
 // Export command-specific option interfaces
