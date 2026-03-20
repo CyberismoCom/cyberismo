@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 
-import { expect } from 'chai';
+import { expect, use } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
+use(chaiAsPromised);
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -139,12 +141,9 @@ describe('Publish', () => {
     it('should throw on uncommitted changes', async () => {
       await writeFile(join(dir, 'cardRoot', 'dirty.txt'), 'uncommitted');
 
-      try {
-        await publish.publishVersion('patch');
-        expect.fail('Should have thrown');
-      } catch (e) {
-        expect((e as Error).message).to.include('uncommitted changes');
-      }
+      await expect(publish.publishVersion('patch')).to.be.rejectedWith(
+        'uncommitted changes',
+      );
     });
 
     it('should throw when nothing to publish', async () => {
@@ -153,12 +152,9 @@ describe('Publish', () => {
       await git.tagVersion('1.0.0', 'Release v1.0.0');
 
       // No new changes since the tag
-      try {
-        await publish.publishVersion('patch');
-        expect.fail('Should have thrown');
-      } catch (e) {
-        expect((e as Error).message).to.include('Nothing to publish');
-      }
+      await expect(publish.publishVersion('patch')).to.be.rejectedWith(
+        'Nothing to publish',
+      );
     });
   });
 
