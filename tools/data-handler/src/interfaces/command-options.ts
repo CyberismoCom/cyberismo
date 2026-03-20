@@ -95,8 +95,11 @@ export interface StartCommandOptions extends BaseCommandOptions {
 
 // Options for 'publish' command
 export interface PublishCommandOptions extends BaseCommandOptions {
-  push?: boolean;
+  dryRun?: boolean;
 }
+
+// Options for 'version' command
+export type VersionCommandOptions = BaseCommandOptions;
 
 // Options for 'transition' command
 export type TransitionCommandOptions = BaseCommandOptions;
@@ -133,7 +136,8 @@ export type AllCommandOptions =
   | TransitionCommandOptions
   | UpdateCommandOptions
   | UpdateModulesCommandOptions
-  | ValidateCommandOptions;
+  | ValidateCommandOptions
+  | VersionCommandOptions;
 
 // Map command keys to their option types
 export type CommandOptions<T extends CmdKey> = {
@@ -157,4 +161,5 @@ export type CommandOptions<T extends CmdKey> = {
   update: UpdateCommandOptions;
   updateModules: UpdateModulesCommandOptions;
   validate: ValidateCommandOptions;
+  version: VersionCommandOptions;
 }[T];

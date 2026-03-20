@@ -79,4 +79,5 @@ export type {
   UpdateCommandOptions,
   UpdateModulesCommandOptions,
   ValidateCommandOptions,
+  VersionCommandOptions,
 } from './interfaces/command-options.js';

@@ -60,7 +60,7 @@ import { resourceName } from './utils/resource-utils.js';
 import { type Level } from 'pino';
 import { type Context } from './interfaces/project-interfaces.js';
 import { type QueryName } from './types/queries.js';
-import { validBumps } from './commands/publish.js';
+import { validBumps } from './commands/version.js';
 
 // Commands that this class supports.
 export const Cmd = {
@@ -75,6 +75,7 @@ export const Cmd = {
   move: 'move',
   publish: 'publish',
   rank: 'rank',
+  version: 'version',
   remove: 'remove',
   rename: 'rename',
   report: 'report',
@@ -342,6 +343,8 @@ export class Commands {
         await this.commands?.moveCmd.moveCard(source, destination);
       } else if (command === Cmd.publish) {
         return this.publish(args);
+      } else if (command === Cmd.version) {
+        return this.version(args);
       } else if (command === Cmd.rank) {
         const target = args.splice(0, 1)[0];
         if (target === 'card') {
@@ -565,13 +568,13 @@ export class Commands {
     };
   }
 
-  // Publishes a new version with a git tag.
-  private async publish(args: string[]): Promise<requestStatus> {
+  // Bumps project version in cardsConfig.json.
+  private async version(args: string[]): Promise<requestStatus> {
     if (!this.commands) {
       return { statusCode: 500, message: 'Commands not initialized' };
     }
 
-    const [bumpType, pushFlag] = args;
+    const [bumpType] = args;
     if (!(validBumps as readonly string[]).includes(bumpType)) {
       return {
         statusCode: 400,
@@ -579,7 +582,7 @@ export class Commands {
       };
     }
 
-    // Validate project before publishing
+    // Validate project before versioning
     const validation = await this.validate();
     if (
       validation.statusCode !== 200 ||
@@ -587,23 +590,44 @@ export class Commands {
     ) {
       return {
         statusCode: 400,
-        message: `Cannot publish: project has validation errors.\n${validation.message}`,
+        message: `Cannot version: project has validation errors.\n${validation.message}`,
       };
     }
 
-    const shouldPush = pushFlag === 'true';
-    const result = await this.commands.publishCmd.publishVersion(
+    const result = await this.commands.versionCmd.bumpVersion(
       bumpType as 'patch' | 'minor' | 'major',
-      shouldPush,
     );
 
     const previousInfo = result.previousVersion
       ? ` (was v${result.previousVersion})`
       : '';
-    const pushInfo = shouldPush ? '' : ' (local only, not pushed)';
     return {
       statusCode: 200,
-      message: `Published v${result.newVersion}${previousInfo}${pushInfo}`,
+      message: `Bumped to v${result.newVersion}${previousInfo}`,
+    };
+  }
+
+  // Publishes the current version by creating a git tag and pushing.
+  private async publish(args: string[]): Promise<requestStatus> {
+    if (!this.commands) {
+      return { statusCode: 500, message: 'Commands not initialized' };
+    }
+
+    const [dryRunFlag] = args;
+    const dryRun = dryRunFlag === 'true';
+
+    const result = await this.commands.publishCmd.publishVersion(dryRun);
+
+    if (result.dryRun) {
+      return {
+        statusCode: 200,
+        message: `Would publish v${result.version} (create tag and push to remote)`,
+      };
+    }
+
+    return {
+      statusCode: 200,
+      message: `Published v${result.version}`,
     };
   }
 

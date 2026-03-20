@@ -1058,7 +1058,7 @@ export class Project extends CardContainer {
       prefix: this.projectPrefix,
       category: this.configuration.category,
       description: this.configuration.description,
-      version: await this.gitManager.getVersion(),
+      version: this.configuration.version,
       hubs: this.configuration.hubs,
       modules: this.resources.moduleNames(),
       numberOfCards: (await this.listCards(CardLocation.projectOnly))[0].cards

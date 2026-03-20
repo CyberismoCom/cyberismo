@@ -11,34 +11,41 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import semver from 'semver';
 import type { Project } from '../containers/project.js';
-import { ConfigurationLogger } from '../utils/configuration-logger.js';
 import { write } from '../utils/rw-lock.js';
-
-export const validBumps = ['patch', 'minor', 'major'] as const;
-export type BumpType = (typeof validBumps)[number];
 
 /**
  * Handles version publishing commands.
+ * Creates a git tag from the version in cardsConfig and pushes to remote.
  */
 export class Publish {
   constructor(private project: Project) {}
 
   /**
-   * Publishes a new version of the project.
-   * Creates a git commit and an annotated tag with the bumped semantic version.
+   * Publishes the current project version by creating a git tag and pushing.
    *
-   * @param bumpType Which semver component to bump: 'patch', 'minor', or 'major'
-   * @param push If true, pushes the commit and tag to the remote
-   * @returns The previous and new version strings
+   * @param dryRun If true, returns what would happen without doing it
+   * @returns The published version string
    */
-  @write((bumpType) => `Publish ${bumpType} version`)
+  @write(() => 'Publish version')
   public async publishVersion(
-    bumpType: BumpType,
-    push?: boolean,
-  ): Promise<{ previousVersion: string | undefined; newVersion: string }> {
+    dryRun?: boolean,
+  ): Promise<{ version: string; dryRun?: boolean }> {
     const { git } = this.project;
+    const version = this.project.configuration.version;
+
+    // Guard: no version set
+    if (!version) {
+      throw new Error("No version set. Run 'cyberismo version <bump>' first.");
+    }
+
+    // Guard: version already tagged
+    const tags = await git.listVersionTags();
+    if (tags.includes(`v${version}`)) {
+      throw new Error(
+        `Version v${version} is already published. Bump the version first.`,
+      );
+    }
 
     // Guard: refuse to publish with uncommitted changes
     if (await git.hasUncommittedChanges()) {
@@ -47,58 +54,16 @@ export class Publish {
       );
     }
 
-    const currentVersion = await git.getVersion();
-
-    // Guard: nothing to publish if no changes since last tag
-    if (currentVersion && !(await git.hasChangesSinceVersion(currentVersion))) {
-      throw new Error(
-        'Nothing to publish. No changes since the last version tag.',
-      );
+    // Dry run: return info without doing anything
+    if (dryRun) {
+      return { version, dryRun: true };
     }
 
-    // Guard: breaking changes require a major bump
-    if (currentVersion && bumpType !== 'major') {
-      const entries = await ConfigurationLogger.entries(this.project.basePath);
-      if (entries.length > 0) {
-        throw new Error(
-          'Cannot publish a patch or minor version: breaking configuration changes detected. Use a major version bump.',
-        );
-      }
-    }
+    // Create annotated tag and push
+    const tagMessage = `Release v${version}`;
+    await git.tagVersion(version, tagMessage);
+    await git.push({ tags: true });
 
-    const newVersion = currentVersion
-      ? semver.inc(currentVersion, bumpType)!
-      : '1.0.0';
-    const commitMessage = `Release v${newVersion}`;
-
-    // Snapshot the current migration log with the new version
-    if (ConfigurationLogger.hasLog(this.project.basePath)) {
-      try {
-        await ConfigurationLogger.createVersion(
-          this.project.basePath,
-          newVersion,
-        );
-      } catch (error) {
-        // Empty migration log is expected and safe to ignore
-        if (
-          !(
-            error instanceof Error &&
-            error.message.includes('migration log is empty')
-          )
-        ) {
-          throw error;
-        }
-      }
-    }
-
-    // Commit all project changes and tag
-    await git.commit(commitMessage);
-    await git.tagVersion(newVersion, commitMessage);
-
-    if (push) {
-      await git.push({ tags: true });
-    }
-
-    return { previousVersion: currentVersion, newVersion };
+    return { version };
   }
 }

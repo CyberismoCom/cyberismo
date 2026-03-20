@@ -20,6 +20,7 @@ import { Migrate } from './commands/migrate.js';
 import { Move } from './commands/move.js';
 import { Publish } from './commands/publish.js';
 import { Remove } from './commands/remove.js';
+import { Version } from './commands/version.js';
 import { Rename } from './commands/rename.js';
 import { Show } from './commands/show.js';
 import { Transition } from './commands/transition.js';
@@ -58,6 +59,7 @@ export class CommandManager {
   public transitionCmd: Transition;
   public updateCmd: Update;
   public validateCmd: Validate;
+  public versionCmd: Version;
 
   constructor(path: string, options?: CommandManagerOptions) {
     this.project = new Project(path, {
@@ -81,6 +83,7 @@ export class CommandManager {
     this.renameCmd = new Rename(this.project);
     this.transitionCmd = new Transition(this.project);
     this.updateCmd = new Update(this.project);
+    this.versionCmd = new Version(this.project);
   }
 
   /**

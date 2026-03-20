@@ -1484,10 +1484,10 @@ appCmd.action(async (options: CommandOptions<'start'>) => {
   await startServer(new MockAuthProvider(gitUser), commands);
 });
 
-// Publish command - creates a git tag with semantic versioning
-const publishCmd = new CommandWithPath('publish')
+// Version command - bumps version in cardsConfig.json
+const versionCmd = new CommandWithPath('version')
   .description(
-    'Publish a new version (creates git commit + annotated tag, pushes by default). The first publish always creates v1.0.0 regardless of bump type.',
+    'Bump the project version in cardsConfig.json, snapshot migration log, and commit. The first version is always 1.0.0 regardless of bump type.',
   )
   .addArgument(
     new Argument('<bump>', 'Version bump type').choices([
@@ -1495,14 +1495,27 @@ const publishCmd = new CommandWithPath('publish')
       'minor',
       'major',
     ]),
+  );
+program.addCommand(versionCmd);
+versionCmd.action(async (bump: string, options: CommandOptions<'version'>) => {
+  const result = await commandHandler.command(
+    Cmd.version,
+    [bump],
+    Object.assign({}, options, program.opts()),
+  );
+  handleResponse(result);
+});
+
+// Publish command - creates a git tag from cardsConfig version and pushes
+const publishCmd = new CommandWithPath('publish')
+  .description(
+    'Publish the current version (creates annotated git tag, pushes to remote). Run "cyberismo version" first to set the version.',
   )
-  .option('--no-push', 'Skip pushing commit and tag to remote');
+  .option('--dry-run', 'Show what would happen without doing it');
 program.addCommand(publishCmd);
-publishCmd.action(async (bump: string, options: CommandOptions<'publish'>) => {
+publishCmd.action(async (options: CommandOptions<'publish'>) => {
   const mergedOptions = Object.assign({}, options, program.opts());
-  // Commander sets push=false when --no-push is used, undefined otherwise
-  const shouldPush = options.push !== false;
-  const args = [bump, shouldPush ? 'true' : 'false'];
+  const args = [options.dryRun ? 'true' : 'false'];
   const result = await commandHandler.command(Cmd.publish, args, mergedOptions);
   handleResponse(result);
 });
