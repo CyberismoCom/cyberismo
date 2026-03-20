@@ -12,7 +12,10 @@ import { simpleGit } from 'simple-git';
 import { GitManager } from '../src/utils/git-manager.js';
 import { RWLock } from '../src/utils/rw-lock.js';
 import { Publish } from '../src/commands/publish.js';
-import { ConfigurationLogger } from '../src/utils/configuration-logger.js';
+import {
+  ConfigurationLogger,
+  ConfigurationOperation,
+} from '../src/utils/configuration-logger.js';
 import type { Project } from '../src/containers/project.js';
 
 /** Create a simpleGit instance with a test identity so tests work without global git config. */
@@ -39,7 +42,7 @@ describe('Publish', () => {
     git = new GitManager(dir);
     await git.initialize();
 
-    // Bypass migration log handling — these tests focus on version bumping
+    // Bypass migration log snapshot handling — these tests focus on version bumping
     sinon.stub(ConfigurationLogger, 'hasLog').returns(false);
 
     const project = {
@@ -134,6 +137,113 @@ describe('Publish', () => {
       const second = await publish.publishVersion('patch');
       expect(second.previousVersion).to.equal('1.0.0');
       expect(second.newVersion).to.equal('1.0.1');
+    });
+  });
+
+  describe('breaking change gate', () => {
+    it('should throw when patch bump attempted with breaking changes in log', async () => {
+      await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
+      await git.commit('change');
+      await git.tagVersion('1.0.0', 'Release v1.0.0');
+
+      await writeFile(join(dir, 'cardRoot', 'b.txt'), 'b');
+      await git.commit('another change');
+
+      // Stub entries to return breaking changes
+      sinon.stub(ConfigurationLogger, 'entries').resolves([
+        {
+          timestamp: new Date().toISOString(),
+          operation: ConfigurationOperation.RESOURCE_DELETE,
+          target: 'some-resource',
+        },
+      ]);
+
+      try {
+        await publish.publishVersion('patch');
+        expect.fail('Should have thrown');
+      } catch (e) {
+        expect((e as Error).message).to.include(
+          'breaking configuration changes',
+        );
+      }
+    });
+
+    it('should throw when minor bump attempted with breaking changes in log', async () => {
+      await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
+      await git.commit('change');
+      await git.tagVersion('1.0.0', 'Release v1.0.0');
+
+      await writeFile(join(dir, 'cardRoot', 'b.txt'), 'b');
+      await git.commit('another change');
+
+      sinon.stub(ConfigurationLogger, 'entries').resolves([
+        {
+          timestamp: new Date().toISOString(),
+          operation: ConfigurationOperation.MODULE_REMOVE,
+          target: 'some-module',
+        },
+      ]);
+
+      try {
+        await publish.publishVersion('minor');
+        expect.fail('Should have thrown');
+      } catch (e) {
+        expect((e as Error).message).to.include(
+          'breaking configuration changes',
+        );
+      }
+    });
+
+    it('should allow major bump when breaking changes exist', async () => {
+      await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
+      await git.commit('change');
+      await git.tagVersion('1.0.0', 'Release v1.0.0');
+
+      await writeFile(join(dir, 'cardRoot', 'b.txt'), 'b');
+      await git.commit('another change');
+
+      sinon.stub(ConfigurationLogger, 'entries').resolves([
+        {
+          timestamp: new Date().toISOString(),
+          operation: ConfigurationOperation.RESOURCE_DELETE,
+          target: 'some-resource',
+        },
+      ]);
+
+      const result = await publish.publishVersion('major');
+      expect(result.newVersion).to.equal('2.0.0');
+    });
+
+    it('should allow minor/patch bump when no breaking changes in log', async () => {
+      await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
+      await git.commit('change');
+      await git.tagVersion('1.0.0', 'Release v1.0.0');
+
+      await writeFile(join(dir, 'cardRoot', 'b.txt'), 'b');
+      await git.commit('another change');
+
+      sinon.stub(ConfigurationLogger, 'entries').resolves([]);
+
+      const result = await publish.publishVersion('patch');
+      expect(result.newVersion).to.equal('1.0.1');
+    });
+
+    it('should not apply breaking change gate for first publish', async () => {
+      await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
+      await git.commit('first change');
+
+      // Even with breaking changes, first publish should always produce 1.0.0
+      sinon.stub(ConfigurationLogger, 'entries').resolves([
+        {
+          timestamp: new Date().toISOString(),
+          operation: ConfigurationOperation.RESOURCE_DELETE,
+          target: 'some-resource',
+        },
+      ]);
+
+      const result = await publish.publishVersion('patch');
+      expect(result.previousVersion).to.be.undefined;
+      expect(result.newVersion).to.equal('1.0.0');
     });
   });
 

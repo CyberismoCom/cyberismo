@@ -418,7 +418,61 @@ export abstract class ResourceObject<
   }
 
   /**
-   * Log to migration log resource change
+   * Keys where ALL operations (including remove) are non-breaking — UI visibility only.
+   */
+  private static readonly NON_BREAKING_KEYS = new Set([
+    'alwaysVisibleFields',
+    'optionallyVisibleFields',
+  ]);
+
+  /**
+   * Keys where only 'change' is non-breaking — display-only scalars.
+   * Unknown keys default to breaking (allowlist approach).
+   */
+  private static readonly NON_BREAKING_CHANGE_KEYS = new Set([
+    'displayName',
+    'description',
+    'category',
+    'outboundDisplayName',
+    'inboundDisplayName',
+  ]);
+
+  /**
+   * For array-of-objects keys: which properties are "identity" (breaking if changed).
+   * If a 'change' op only modifies non-identity properties, it's non-breaking.
+   * Keys not listed here → all changes are breaking by default.
+   */
+  private static readonly IDENTITY_PROPERTIES: Record<string, string[]> = {
+    enumValues: ['enumValue'],
+    states: ['name'],
+    customFields: ['name', 'isCalculated'],
+    // transitions not listed — all properties are structural → always breaking
+  };
+
+  /**
+   * Checks if a 'change' operation on an array-of-objects key is non-breaking.
+   * Compares identity properties between old and new elements.
+   */
+  private static isNonBreakingArrayChange<Type>(
+    key: string,
+    op: Operation<Type>,
+  ): boolean {
+    const identityProps = ResourceObject.IDENTITY_PROPERTIES[key];
+    if (!identityProps) return false; // Key not in map → breaking by default
+    const changeOp = op as ChangeOperation<Type>;
+    const target = changeOp.target as Record<string, unknown>;
+    const to = changeOp.to as Record<string, unknown>;
+    // If any identity property changed, it's breaking
+    for (const prop of identityProps) {
+      if (JSON.stringify(target[prop]) !== JSON.stringify(to[prop])) {
+        return false;
+      }
+    }
+    return true; // Only non-identity (display) properties changed
+  }
+
+  /**
+   * Log to migration log resource change. Only breaking changes are logged.
    * @param operationType Operation type
    * @param op Details of operation
    * @param key Which property has been changed
@@ -435,15 +489,42 @@ export abstract class ResourceObject<
 
     switch (operationType) {
       case 'create':
-        configOperation = ConfigurationOperation.RESOURCE_CREATE;
-        break;
+        // Additive, non-breaking — don't log
+        return;
       case 'delete':
         configOperation = ConfigurationOperation.RESOURCE_DELETE;
         break;
       case 'update':
+        // 'add' and 'rank' are non-breaking (additive / reorder)
+        if (op?.name === 'add' || op?.name === 'rank') return;
+        // All operations on these keys are non-breaking (UI visibility only)
+        if (key && ResourceObject.NON_BREAKING_KEYS.has(key)) return;
+        if (op?.name === 'change') {
+          // Display-only scalars are non-breaking when changed
+          if (key && ResourceObject.NON_BREAKING_CHANGE_KEYS.has(key)) return;
+          // Element-level check for array-of-objects keys
+          if (key && op && ResourceObject.isNonBreakingArrayChange(key, op))
+            return;
+        }
+        // Everything else is breaking
         configOperation = ConfigurationOperation.RESOURCE_UPDATE;
         if (op) {
           parameters.operation = op.name;
+          if (op.name === 'change') {
+            const changeOp = op as ChangeOperation<Type>;
+            parameters.from = changeOp.target;
+            parameters.to = changeOp.to;
+            if (changeOp.mappingTable) {
+              parameters.mappingTable = changeOp.mappingTable;
+            }
+          }
+          if (op.name === 'remove') {
+            const removeOp = op as RemoveOperation<Type>;
+            parameters.removedValue = removeOp.target;
+            if (removeOp.replacementValue !== undefined) {
+              parameters.replacementValue = removeOp.replacementValue;
+            }
+          }
         }
         if (key) {
           parameters.key = key;

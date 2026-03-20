@@ -23,10 +23,8 @@ import { writeFileSafe, pathExists } from './file-utils.js';
  * Enum for configuration change operation types.
  */
 export enum ConfigurationOperation {
-  MODULE_ADD = 'module_add',
   MODULE_REMOVE = 'module_remove',
   PROJECT_RENAME = 'project_rename',
-  RESOURCE_CREATE = 'resource_create',
   RESOURCE_DELETE = 'resource_delete',
   RESOURCE_RENAME = 'resource_rename',
   RESOURCE_UPDATE = 'resource_update',

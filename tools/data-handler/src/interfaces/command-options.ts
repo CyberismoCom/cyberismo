@@ -56,9 +56,7 @@ export interface ExportCommandOptions extends BaseCommandOptions {
 export type FetchCommandOptions = BaseCommandOptions;
 
 // Options for 'import' command
-export interface ImportCommandOptions extends BaseCommandOptions {
-  skipMigrationLog?: boolean;
-}
+export type ImportCommandOptions = BaseCommandOptions;
 
 // Options for 'migrate' command
 export interface MigrateCommandOptions extends BaseCommandOptions {
