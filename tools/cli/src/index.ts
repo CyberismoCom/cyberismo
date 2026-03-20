@@ -34,6 +34,7 @@ import {
   CommandManager,
   Commands,
   ExportFormats,
+  validBumps,
   validContexts,
 } from '@cyberismo/data-handler';
 import { ResourceTypeParser as Parser } from './resource-type-parser.js';
@@ -1483,11 +1484,7 @@ const versionCmd = new CommandWithPath('version')
     'Bump the project version in cardsConfig.json, snapshot migration log, and commit. The first version is always 1.0.0 regardless of bump type.',
   )
   .addArgument(
-    new Argument('<bump>', 'Version bump type').choices([
-      'patch',
-      'minor',
-      'major',
-    ]),
+    new Argument('<bump>', 'Version bump type').choices([...validBumps]),
   );
 program.addCommand(versionCmd);
 versionCmd.action(async (bump: string, options: CommandOptions<'version'>) => {
