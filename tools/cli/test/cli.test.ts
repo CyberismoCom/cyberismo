@@ -487,16 +487,18 @@ describe('Cli BAT test', function () {
       },
     );
   });
-  it('Publish a version', function (done) {
+  it('Version and publish', function (done) {
     exec(
-      `cd ${cliPath}&&git init&&git add -A&&git -c user.name=Test -c user.email=test@test.com commit -m "init"&&cyberismo publish patch --no-push`,
+      `cd ${cliPath}&&git init&&git add -A&&git -c user.name=Test -c user.email=test@test.com commit -m "init"&&cyberismo version patch&&cyberismo publish --dry-run`,
       (error, stdout, _stderr) => {
         if (error != null) {
           console.log(error);
         }
         expect(error).to.be.null;
-        expect(stdout).to.include('Published v1.0.0');
-        expect(stdout).to.include('local only, not pushed');
+        expect(stdout).to.include('Bumped to v1.0.0');
+        expect(stdout).to.include(
+          'Would publish v1.0.0 (create tag and push to remote)',
+        );
         done();
       },
     );
