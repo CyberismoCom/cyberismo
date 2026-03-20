@@ -273,14 +273,16 @@ describe('Cli BAT test', function () {
     expect(stdout).toContain('Done');
     expect(stdout).toContain('Project structure validated');
   });
-  it('Publish a version', async () => {
+  it('Version and publish', async () => {
     await new Promise<void>((resolve) => {
       exec(
-        `cd ${cliPath}&&git init&&git add -A&&git -c user.name=Test -c user.email=test@test.com commit -m "init"&&cyberismo publish patch --no-push`,
+        `cd ${cliPath}&&git init&&git add -A&&git -c user.name=Test -c user.email=test@test.com commit -m "init"&&cyberismo version patch&&cyberismo publish --dry-run`,
         (error, stdout, _stderr) => {
           expect(error).toBeNull();
-          expect(stdout).toContain('Published v1.0.0');
-          expect(stdout).toContain('local only, not pushed');
+          expect(stdout).toContain('Bumped to v1.0.0');
+          expect(stdout).toContain(
+            'Would publish v1.0.0 (create tag and push to remote)',
+          );
           resolve();
         },
       );
