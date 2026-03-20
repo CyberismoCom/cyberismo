@@ -46,7 +46,8 @@ export class Version {
 
     const currentVersion = this.project.configuration.version;
 
-    // Guard: breaking changes require a major bump
+    // Guard: breaking changes require a major bump.
+    // Skipped for the first version — there is no predecessor to break against.
     if (currentVersion && bumpType !== 'major') {
       if (ConfigurationLogger.hasLog(this.project.basePath)) {
         throw new Error(
