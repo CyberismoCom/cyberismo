@@ -123,6 +123,20 @@ describe('Publish', () => {
         'uncommitted changes',
       );
     });
+
+    it('should clean up local tag when push fails', async () => {
+      configuration.version = '1.0.0';
+      await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
+      await git.commit('change');
+
+      sinon.stub(git, 'push').rejects(new Error('network error'));
+
+      await expect(publish.publishVersion()).to.be.rejectedWith('network error');
+
+      // Tag should have been cleaned up so retry works
+      const tags = await testGit(dir).tags();
+      expect(tags.all).to.not.include('v1.0.0');
+    });
   });
 
   describe('dry run', () => {

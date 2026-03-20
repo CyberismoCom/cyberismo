@@ -60,10 +60,16 @@ export class Publish {
       return { version, dryRun: true };
     }
 
-    // Create annotated tag and push
+    // Create annotated tag and push. If push fails, clean up the local tag
+    // so a retry doesn't hit the "already published" guard.
     const tagMessage = `Release v${version}`;
     await git.tagVersion(version, tagMessage);
-    await git.push({ tags: true, remote });
+    try {
+      await git.push({ tags: true, remote });
+    } catch (error) {
+      await git.deleteTag(version);
+      throw error;
+    }
 
     return { version };
   }
