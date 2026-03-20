@@ -38,11 +38,10 @@ describe('configuration logger', () => {
     after(async () => {
       await ConfigurationLogger.clearLog(testProjectPath);
     });
-
-    it('should log resource creation', async () => {
+    it('should log resource deletion', async () => {
       await ConfigurationLogger.log(
         testProjectPath,
-        ConfigurationOperation.RESOURCE_CREATE,
+        ConfigurationOperation.RESOURCE_DELETE,
         'test-resource',
         {
           parameters: { type: 'template' },
@@ -52,7 +51,7 @@ describe('configuration logger', () => {
       const entries = await ConfigurationLogger.entries(testProjectPath);
       expect(entries.length).to.equal(1);
       expect(entries[0].operation).to.equal(
-        ConfigurationOperation.RESOURCE_CREATE,
+        ConfigurationOperation.RESOURCE_DELETE,
       );
       expect(entries[0].target).to.equal('test-resource');
       expect(entries[0].parameters?.type).to.equal('template');
@@ -61,29 +60,29 @@ describe('configuration logger', () => {
     it('should handle logging without parameters', async () => {
       await ConfigurationLogger.log(
         testProjectPath,
-        ConfigurationOperation.RESOURCE_DELETE,
-        'deleted-resource',
+        ConfigurationOperation.RESOURCE_RENAME,
+        'renamed-resource',
       );
 
       const entries = await ConfigurationLogger.entries(testProjectPath);
-      const deleteEntry = entries.find(
-        (e) => e.operation === ConfigurationOperation.RESOURCE_DELETE,
+      const renameEntry = entries.find(
+        (e) => e.operation === ConfigurationOperation.RESOURCE_RENAME,
       );
-      expect(deleteEntry).to.exist;
-      expect(deleteEntry!.target).to.equal('deleted-resource');
-      expect(deleteEntry!.parameters).to.be.undefined;
+      expect(renameEntry).to.exist;
+      expect(renameEntry!.target).to.equal('renamed-resource');
+      expect(renameEntry!.parameters).to.be.undefined;
     });
     it('should append entries in JSON Lines format', async () => {
       await ConfigurationLogger.clearLog(testProjectPath);
 
       await ConfigurationLogger.log(
         testProjectPath,
-        ConfigurationOperation.RESOURCE_CREATE,
+        ConfigurationOperation.RESOURCE_DELETE,
         'resource1',
       );
       await ConfigurationLogger.log(
         testProjectPath,
-        ConfigurationOperation.RESOURCE_DELETE,
+        ConfigurationOperation.RESOURCE_RENAME,
         'resource2',
       );
 
@@ -96,18 +95,18 @@ describe('configuration logger', () => {
       const entry1 = JSON.parse(lines[0]) as ConfigurationLogEntry;
       const entry2 = JSON.parse(lines[1]) as ConfigurationLogEntry;
 
-      expect(entry1.operation).to.equal(ConfigurationOperation.RESOURCE_CREATE);
+      expect(entry1.operation).to.equal(ConfigurationOperation.RESOURCE_DELETE);
       expect(entry1.target).to.equal('resource1');
-      expect(entry2.operation).to.equal(ConfigurationOperation.RESOURCE_DELETE);
+      expect(entry2.operation).to.equal(ConfigurationOperation.RESOURCE_RENAME);
       expect(entry2.target).to.equal('resource2');
     });
     it('should preserve entry order', async () => {
       await ConfigurationLogger.clearLog(testProjectPath);
 
       const operations = [
-        { op: ConfigurationOperation.RESOURCE_CREATE, target: 'first' },
+        { op: ConfigurationOperation.RESOURCE_DELETE, target: 'first' },
         { op: ConfigurationOperation.RESOURCE_UPDATE, target: 'second' },
-        { op: ConfigurationOperation.RESOURCE_DELETE, target: 'third' },
+        { op: ConfigurationOperation.MODULE_REMOVE, target: 'third' },
       ];
 
       for (const { op, target } of operations) {
@@ -126,7 +125,7 @@ describe('configuration logger', () => {
       await expect(
         ConfigurationLogger.log(
           invalidPath,
-          ConfigurationOperation.RESOURCE_CREATE,
+          ConfigurationOperation.RESOURCE_DELETE,
           'test',
         ),
       ).to.not.be.rejected;
@@ -137,31 +136,9 @@ describe('configuration logger', () => {
       const entries = await ConfigurationLogger.entries(nonExistentPath);
       expect(entries.length).to.equal(0);
     });
-    it('should log module addition', async () => {
+    it('should log module removal', async () => {
       await ConfigurationLogger.clearLog(testProjectPath);
 
-      await ConfigurationLogger.log(
-        testProjectPath,
-        ConfigurationOperation.MODULE_ADD,
-        'test-module',
-        {
-          parameters: {
-            location: 'file:/path/to/module',
-            branch: 'main',
-            private: false,
-          },
-        },
-      );
-
-      const entries = await ConfigurationLogger.entries(testProjectPath);
-      expect(entries.length).to.equal(1);
-      expect(entries[0].operation).to.equal(ConfigurationOperation.MODULE_ADD);
-      expect(entries[0].target).to.equal('test-module');
-      expect(entries[0].parameters?.location).to.equal('file:/path/to/module');
-      expect(entries[0].parameters?.branch).to.equal('main');
-      expect(entries[0].parameters?.private).to.equal(false);
-    });
-    it('should log module removal', async () => {
       await ConfigurationLogger.log(
         testProjectPath,
         ConfigurationOperation.MODULE_REMOVE,
@@ -193,12 +170,12 @@ describe('configuration logger', () => {
         .length;
       await ConfigurationLogger.log(
         testProjectPath,
-        ConfigurationOperation.RESOURCE_CREATE,
+        ConfigurationOperation.RESOURCE_DELETE,
         'test1',
       );
       await ConfigurationLogger.log(
         testProjectPath,
-        ConfigurationOperation.RESOURCE_CREATE,
+        ConfigurationOperation.RESOURCE_DELETE,
         'test2',
       );
 
@@ -221,9 +198,9 @@ describe('configuration logger', () => {
 
       // Write some valid and invalid JSON lines
       const testContent = [
-        '{"timestamp":"2025-01-01T12:00:00.000Z","operation":"resource_create","target":"valid"}',
+        '{"timestamp":"2025-01-01T12:00:00.000Z","operation":"resource_delete","target":"valid"}',
         'invalid json line', // Will be skipped - invalid JSON
-        '{"timestamp":"2025-01-01T12:01:00.000Z","operation":"resource_delete","target":"valid2"}',
+        '{"timestamp":"2025-01-01T12:01:00.000Z","operation":"resource_rename","target":"valid2"}',
         '{"incomplete":true}', // Will be skipped - missing required fields
       ].join('\n');
 
@@ -239,7 +216,7 @@ describe('configuration logger', () => {
       // Create a log entry
       await ConfigurationLogger.log(
         testProjectPath2,
-        ConfigurationOperation.RESOURCE_CREATE,
+        ConfigurationOperation.RESOURCE_DELETE,
         'test',
       );
 

@@ -56,6 +56,16 @@ export class Publish {
       );
     }
 
+    // Guard: breaking changes require a major bump
+    if (currentVersion && bumpType !== 'major') {
+      const entries = await ConfigurationLogger.entries(this.project.basePath);
+      if (entries.length > 0) {
+        throw new Error(
+          'Cannot publish a patch or minor version: breaking configuration changes detected. Use a major version bump.',
+        );
+      }
+    }
+
     const newVersion = currentVersion
       ? semver.inc(currentVersion, bumpType)!
       : '1.0.0';

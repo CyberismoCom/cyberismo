@@ -625,7 +625,7 @@ createCmd
                 module.branch ?? '',
                 module.private ? 'true' : 'false',
               ],
-              { ...commandOptions, skipMigrationLog: true },
+              commandOptions,
             );
             if (importResult.statusCode !== 200) {
               console.warn(

@@ -683,30 +683,14 @@ export class Project extends CardContainer {
   /**
    * Adds a module from project.
    * @param module Module to add
-   * @param skipMigrationLog If true, skip logging to migration log. Used during project creation.
    */
-  public async importModule(module: ModuleSetting, skipMigrationLog = false) {
+  public async importModule(module: ModuleSetting) {
     // Add module as a dependency.
     await this.configuration.addModule(module);
     this.resources.changedModules();
     this.refreshAllModulePrefixes();
     await this.populateTemplateCards();
 
-    // Log configuration change
-    if (!skipMigrationLog) {
-      await ConfigurationLogger.log(
-        this.basePath,
-        ConfigurationOperation.MODULE_ADD,
-        module.name,
-        {
-          parameters: {
-            location: module.location,
-            branch: module.branch,
-            private: module.private,
-          },
-        },
-      );
-    }
     this.logger.info(`Imported module '${module.name}'`);
   }
 
