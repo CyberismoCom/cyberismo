@@ -1,0 +1,27 @@
+{
+  "name": "@cyberismo/benchmarks",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "bench:native-vs-binary": "tsx src/bench-native-vs-binary.ts",
+    "bench:resultfield": "tsx src/bench-resultfield.ts",
+    "bench:caching": "tsx src/bench-caching.ts",
+    "bench:threading": "tsx src/bench-threading.ts",
+    "bench:pregrounding": "tsx src/bench-pregrounding.ts",
+    "bench:aspif": "tsx src/bench-aspif.ts",
+    "bench:scaling": "tsx src/bench-scaling.ts",
+    "bench:solver-stats": "tsx src/bench-solver-stats.ts"
+  },
+  "dependencies": {
+    "@cyberismo/data-handler": "workspace:*",
+    "@cyberismo/node-clingo": "workspace:*",
+    "@cyberismo/assets": "workspace:*",
+    "handlebars": "^4.7.8"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0"
+  }
+}

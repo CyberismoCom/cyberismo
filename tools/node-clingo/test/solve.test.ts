@@ -5,6 +5,10 @@ import {
   removeAllPrograms,
   removeProgram,
   buildProgram,
+  clearCache,
+  setCacheEnabled,
+  setAsyncSolve,
+  setPreParsing,
 } from '../lib/index.js';
 
 describe('Clingo solver', () => {
@@ -44,6 +48,25 @@ describe('Clingo solver', () => {
     expect(result2.stats.add).toBe(0);
     expect(result2.stats.ground).toBe(0);
     expect(result2.stats.solve).toBe(0);
+  });
+
+  it('should clear cache and force re-solve', async () => {
+    const program = 'a. b. c(1). c(4).';
+    const result1 = await solve(program);
+    expect(result1.stats.cacheHit).toBe(false);
+
+    // Second solve should hit cache
+    const result2 = await solve(program);
+    expect(result2.stats.cacheHit).toBe(true);
+
+    // Clear cache
+    clearCache();
+
+    // Third solve should miss cache after clear
+    const result3 = await solve(program);
+    expect(result3.stats.cacheHit).toBe(false);
+    expect(result3.stats.add).toBeGreaterThan(0);
+    expect(result3.stats.ground).toBeGreaterThan(0);
   });
 
   it('should reuse default base program across multiple solves', async () => {
@@ -456,6 +479,41 @@ describe('Clingo solver', () => {
     });
   });
 
+  describe('Cache bypass flag', () => {
+    afterEach(() => {
+      setCacheEnabled(true);
+    });
+
+    it('should skip cache when caching is disabled', async () => {
+      const program = 'a. b. c(1). c(5).';
+
+      setCacheEnabled(true);
+      const result1 = await solve(program);
+      expect(result1.stats.cacheHit).toBe(false);
+
+      const result2 = await solve(program);
+      expect(result2.stats.cacheHit).toBe(true);
+
+      setCacheEnabled(false);
+
+      const result3 = await solve(program);
+      expect(result3.stats.cacheHit).toBe(false);
+      expect(result3.stats.add).toBeGreaterThan(0);
+      expect(result3.stats.ground).toBeGreaterThan(0);
+
+      const result4 = await solve(program);
+      expect(result4.stats.cacheHit).toBe(false);
+
+      setCacheEnabled(true);
+      clearCache();
+
+      const result5 = await solve(program);
+      expect(result5.stats.cacheHit).toBe(false);
+      const result6 = await solve(program);
+      expect(result6.stats.cacheHit).toBe(true);
+    });
+  });
+
   describe('buildProgram function', () => {
     it('should return just the main program when no base programs are specified', () => {
       const mainProgram = 'a. b. c(1).';
@@ -590,6 +648,78 @@ describe('Clingo solver', () => {
       expect(() => buildProgram('test', ['valid', 123, 'also_valid'])).toThrow(
         'All refs must be strings',
       );
+    });
+  });
+
+  describe('Async solve flag', () => {
+    afterEach(() => {
+      setAsyncSolve(true);
+    });
+
+    it('should produce correct results in sync mode', async () => {
+      setAsyncSolve(false);
+      const program = 'a. b. c(1). c(6).';
+      const result = await solve(program);
+      expect(result.answers).toBeInstanceOf(Array);
+      expect(result.answers.length).toBeGreaterThan(0);
+      expect(result.answers[0]).toContain('a');
+      expect(result.stats.add).toBeGreaterThanOrEqual(0);
+      expect(result.stats.ground).toBeGreaterThanOrEqual(0);
+      expect(result.stats.solve).toBeGreaterThanOrEqual(0);
+      setAsyncSolve(true);
+    });
+
+    it('should toggle between sync and async modes', async () => {
+      const program = 'a. b. c(1). c(7).';
+      setAsyncSolve(true);
+      const asyncResult = await solve(program);
+      expect(asyncResult.answers[0]).toContain('a');
+      clearCache();
+      setAsyncSolve(false);
+      const syncResult = await solve(program);
+      expect(syncResult.answers[0]).toContain('a');
+      expect(syncResult.answers).toEqual(asyncResult.answers);
+      setAsyncSolve(true);
+    });
+  });
+
+  describe('Pre-parsing flag', () => {
+    afterEach(() => {
+      setPreParsing(true);
+    });
+
+    it('should produce correct results without pre-parsing', async () => {
+      setPreParsing(false);
+      removeAllPrograms();
+
+      setProgram('base', 'fact(value).');
+      const result = await solve('test :- fact(value).', ['base']);
+
+      expect(result.answers[0]).toContain('test');
+      expect(result.answers[0]).toContain('fact(value)');
+
+      setPreParsing(true);
+    });
+
+    it('should produce identical results with and without pre-parsing', async () => {
+      const baseContent = 'color(red). color(blue). shape(circle).';
+      const query = 'valid :- color(X), shape(Y).';
+
+      setPreParsing(true);
+      removeAllPrograms();
+      clearCache();
+      setProgram('base', baseContent);
+      const withPreParse = await solve(query, ['base']);
+
+      setPreParsing(false);
+      removeAllPrograms();
+      clearCache();
+      setProgram('base', baseContent);
+      const withoutPreParse = await solve(query, ['base']);
+
+      expect(withoutPreParse.answers).toEqual(withPreParse.answers);
+
+      setPreParsing(true);
     });
   });
 });

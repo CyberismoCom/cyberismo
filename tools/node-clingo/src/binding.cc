@@ -17,116 +17,17 @@
 #include <stdint.h>
 #include <string>
 
-#include <clingo.h>
+#include <clingo.hh>
 #include <napi.h>
 
-#include "clingo_solver.h"
+#include "napi_helpers.h"
 #include "program_store.h"
+#include "solve_async_worker.h"
 #include "xxhash.h"
 
 // unnamed namespace to avoid polluting the global namespace
 namespace
 {
-    struct NodeClingoLogs
-    {
-        Napi::Array errors;
-        Napi::Array warnings;
-
-        NodeClingoLogs(Napi::Env env)
-        {
-            errors = Napi::Array::New(env);
-            warnings = Napi::Array::New(env);
-        }
-    };
-
-    /**
-    * Helper function to parse the error messages from Clingo
-    * @param env The N-API environment.
-    * @return NodeClingoLogs containing separated errors and warnings arrays.
-    */
-    NodeClingoLogs parse_clingo_logs(
-        const Napi::Env& env,
-        const std::vector<node_clingo::ClingoLogMessage>& logMessages)
-    {
-        NodeClingoLogs logs(env);
-
-        size_t errorIndex = 0;
-        size_t warningIndex = 0;
-
-        for (const auto& msg : logMessages)
-        {
-            if (msg.isError)
-            {
-                logs.errors.Set(errorIndex++, Napi::String::New(env, msg.message));
-            }
-            else
-            {
-                logs.warnings.Set(warningIndex++, Napi::String::New(env, msg.message));
-            }
-        }
-
-        return logs;
-    }
-    /**
-    * Helper function to check for and handle Clingo errors.
-    * If a Clingo error has occurred (clingo_error_code() != 0),
-    * it throws a Napi::Error with the Clingo error message.
-    * @param env The N-API environment.
-    * @param programKey The string identifier of the program that caused the error
-    */
-    void handle_clingo_error(
-        const Napi::Env& env,
-        const std::vector<node_clingo::ClingoLogMessage>& logMessages,
-        const std::string& programKey = "")
-    {
-        // If clingo returns an error, we throw an error to the javascript side
-        if (clingo_error_code() != 0)
-        {
-            Napi::Error error = Napi::Error::New(env, clingo_error_message());
-
-            // Create an object to hold error details
-            Napi::Object errorObj = Napi::Object::New(env);
-
-            // Parse errors and warnings using the common routine
-            NodeClingoLogs logs = parse_clingo_logs(env, logMessages);
-
-            errorObj.Set("errors", logs.errors);
-            errorObj.Set("warnings", logs.warnings);
-            if (!programKey.empty())
-            {
-                errorObj.Set("program", Napi::String::New(env, programKey));
-            }
-
-            error.Set("details", errorObj);
-            throw error;
-        }
-    }
-
-    Napi::Object create_napi_object_from_solve_result(const Napi::Env& env, const node_clingo::SolveResult& result)
-    {
-        Napi::Object resultObj = Napi::Object::New(env);
-        Napi::Array answersArray = Napi::Array::New(env, result.answers.size());
-        for (size_t i = 0; i < result.answers.size(); ++i)
-        {
-            answersArray[i] = Napi::String::New(env, result.answers[i]);
-        }
-        resultObj.Set("answers", answersArray);
-        Napi::Object statsObj = Napi::Object::New(env);
-        statsObj.Set("glue", result.stats.glue.count());
-        statsObj.Set("add", result.stats.add.count());
-        statsObj.Set("ground", result.stats.ground.count());
-        statsObj.Set("solve", result.stats.solve.count());
-        statsObj.Set("cacheHit", result.stats.cacheHit);
-        resultObj.Set("stats", statsObj);
-
-        NodeClingoLogs logs = parse_clingo_logs(env, result.logs);
-        resultObj.Set("errors", logs.errors);
-        resultObj.Set("warnings", logs.warnings);
-
-        return resultObj;
-    }
-
-    node_clingo::ClingoSolver g_clingoSolver;
     node_clingo::ProgramStore g_programStore;
     node_clingo::SolveResultCache g_solveResultCache;
 
@@ -158,6 +59,10 @@ namespace
     }
 
 } // namespace
+
+bool g_cacheEnabled = true;
+bool g_asyncSolve = true;
+
 /**
  * N-API function exposed to JavaScript as `setProgram`.
  * Stores or updates a program with optional categories.
@@ -283,21 +188,72 @@ Napi::Value BuildProgram(const Napi::CallbackInfo& info)
 }
 
 /**
+ * N-API function exposed to JavaScript as `setCacheEnabled`.
+ * Enables or disables the solve result cache.
+ * @param info N-API callback info containing arguments (enabled boolean).
+ * @returns undefined
+ * @throws Napi::TypeError if the argument is invalid.
+ */
+Napi::Value SetCacheEnabled(const Napi::CallbackInfo& info)
+{
+    Napi::Env env = info.Env();
+    if (info.Length() < 1 || !info[0].IsBoolean())
+    {
+        throw Napi::TypeError::New(env, "Expected argument: enabled (boolean)");
+    }
+    g_cacheEnabled = info[0].As<Napi::Boolean>().Value();
+    return env.Undefined();
+}
+
+/**
+ * N-API function exposed to JavaScript as `setAsyncSolve`.
+ * Enables or disables async worker thread solving.
+ * When disabled, solve() blocks the event loop — intended for benchmarking only.
+ * @param info N-API callback info containing arguments (enabled boolean).
+ * @returns undefined
+ * @throws Napi::TypeError if the argument is invalid.
+ */
+Napi::Value SetAsyncSolve(const Napi::CallbackInfo& info)
+{
+    Napi::Env env = info.Env();
+    if (info.Length() < 1 || !info[0].IsBoolean())
+    {
+        throw Napi::TypeError::New(env, "Expected argument: enabled (boolean)");
+    }
+    g_asyncSolve = info[0].As<Napi::Boolean>().Value();
+    return env.Undefined();
+}
+
+/**
+ * N-API function exposed to JavaScript as `setPreParsing`.
+ * Enables or disables AST pre-parsing of LP text at setProgram time.
+ * When disabled, programs store raw text and parsing happens at solve time.
+ * @param info N-API callback info containing arguments (enabled boolean).
+ * @returns undefined
+ * @throws Napi::TypeError if the argument is invalid.
+ */
+Napi::Value SetPreParsing(const Napi::CallbackInfo& info)
+{
+    Napi::Env env = info.Env();
+    if (info.Length() < 1 || !info[0].IsBoolean())
+    {
+        throw Napi::TypeError::New(env, "Expected argument: enabled (boolean)");
+    }
+    g_programStore.preParsing = info[0].As<Napi::Boolean>().Value();
+    return env.Undefined();
+}
+
+/**
  * N-API function exposed to JavaScript as `solve`.
- * Solves a given logic program, optionally combining it with stored base programs.
- * Handles grounding with external functions and collects answer sets.
+ * Solves a given logic program asynchronously using a worker thread.
+ * Returns a Promise that resolves with the solve result.
  * @param info N-API callback info containing arguments (program string, optional base program key(s) string or array).
- * @returns A Napi::Object containing:
- *   - `answers`: A Napi::Array of strings, each representing an answer set.
- *   - `stats`: A Napi::Object containing:
- *     - `glue`: A Napi::Number representing the glue time in microseconds.
- *     - `add`: A Napi::Number representing the add time in microseconds.
- *     - `ground`: A Napi::Number representing the ground time in microseconds.
- *     - `solve`: A Napi::Number representing the solve time in microseconds.
- *   - `errors`: A Napi::Array of strings, each representing an error message.
- *   - `warnings`: A Napi::Array of strings, each representing a warning message.
+ * @returns A Napi::Promise that resolves to an object containing:
+ *   - `answers`: An array of strings, each representing an answer set.
+ *   - `stats`: An object containing timing statistics.
+ *   - `errors`: An array of error message strings.
+ *   - `warnings`: An array of warning message strings.
  * @throws Napi::TypeError if arguments are invalid.
- * @throws Napi::Error on Clingo errors or other exceptions.
  */
 Napi::Value Solve(const Napi::CallbackInfo& info)
 {
@@ -318,7 +274,7 @@ Napi::Value Solve(const Napi::CallbackInfo& info)
 
     // try to get the result from the cache
     node_clingo::SolveResult result;
-    if (g_solveResultCache.result(query.hash, result))
+    if (g_cacheEnabled && g_solveResultCache.result(query.hash, result))
     {
         auto t2 = std::chrono::high_resolution_clock::now();
         result.stats.glue = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
@@ -326,22 +282,71 @@ Napi::Value Solve(const Napi::CallbackInfo& info)
         result.stats.ground = std::chrono::microseconds::zero();
         result.stats.solve = std::chrono::microseconds::zero();
         result.stats.cacheHit = true;
-        return create_napi_object_from_solve_result(env, result);
+
+        auto deferred = Napi::Promise::Deferred::New(env);
+        deferred.Resolve(node_clingo::create_napi_object_from_solve_result(env, result));
+        return deferred.Promise();
     }
 
     auto t2 = std::chrono::high_resolution_clock::now();
 
-    // recalculate the result and store it in the cache
-    result = g_clingoSolver.solve(query);
-    result.stats.glue = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
-    if (result.isError)
+    // Synchronous solve path (blocks event loop — for benchmarking only)
+    if (!g_asyncSolve)
     {
-        handle_clingo_error(env, result.logs, result.key);
-    }
-    Napi::Object resultObj = create_napi_object_from_solve_result(env, result);
-    g_solveResultCache.addResult(query.hash, std::move(result));
+        auto deferred = Napi::Promise::Deferred::New(env);
+        try
+        {
+            node_clingo::ClingoSolver solver;
+            auto solveResult = solver.solve(query);
+            solveResult.stats.glue = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
 
-    return resultObj;
+            auto resultObj = node_clingo::create_napi_object_from_solve_result(env, solveResult);
+            if (g_cacheEnabled)
+            {
+                g_solveResultCache.addResult(query.hash, std::move(solveResult));
+            }
+            deferred.Resolve(resultObj);
+        }
+        catch (const node_clingo::ClingoSolveException& e)
+        {
+            Napi::Error error = Napi::Error::New(env, e.what());
+            Napi::Object errorObj = Napi::Object::New(env);
+            node_clingo::NodeClingoLogs logs = node_clingo::parse_clingo_logs(env, e.logs);
+            errorObj.Set("errors", logs.errors);
+            errorObj.Set("warnings", logs.warnings);
+            if (!e.programKey.empty())
+            {
+                errorObj.Set("program", Napi::String::New(env, e.programKey));
+            }
+            error.Set("details", errorObj);
+            deferred.Reject(error.Value());
+        }
+        catch (const std::exception& e)
+        {
+            deferred.Reject(Napi::Error::New(env, e.what()).Value());
+        }
+        return deferred.Promise();
+    }
+
+    // Queue the expensive solve work on a worker thread
+    auto* worker = new node_clingo::SolveAsyncWorker(env, std::move(query), t1, t2, g_solveResultCache);
+    auto promise = worker->Deferred().Promise();
+    worker->Queue();
+
+    return promise;
+}
+
+/**
+ * N-API function exposed to JavaScript as `clearCache`.
+ * Clears the solve result cache.
+ * @param info N-API callback info (no arguments expected).
+ * @returns undefined
+ */
+Napi::Value ClearCache(const Napi::CallbackInfo& info)
+{
+    Napi::Env env = info.Env();
+    g_solveResultCache.clear();
+    return env.Undefined();
 }
 
 /**
@@ -362,6 +367,14 @@ Napi::Object Init(Napi::Env env, Napi::Object exports)
     exports.Set(Napi::String::New(env, "removeAllPrograms"), Napi::Function::New(env, RemoveAllPrograms));
 
     exports.Set(Napi::String::New(env, "removeProgram"), Napi::Function::New(env, RemoveProgram));
+
+    exports.Set(Napi::String::New(env, "clearCache"), Napi::Function::New(env, ClearCache));
+
+    exports.Set(Napi::String::New(env, "setCacheEnabled"), Napi::Function::New(env, SetCacheEnabled));
+
+    exports.Set(Napi::String::New(env, "setAsyncSolve"), Napi::Function::New(env, SetAsyncSolve));
+
+    exports.Set(Napi::String::New(env, "setPreParsing"), Napi::Function::New(env, SetPreParsing));
 
     return exports;
 }
