@@ -1,11 +1,10 @@
-import { expect } from 'chai';
-
 import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { Cmd, Commands } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import type { ExportCommandOptions } from '../src/interfaces/command-options.js';
+import { beforeAll, expect, afterAll, it, describe, beforeEach } from 'vitest';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-export-tests');
@@ -18,13 +17,13 @@ const optionsMini: ExportCommandOptions = { projectPath: minimalPath };
 describe('export command', () => {
   const commandHandler = new Commands();
 
-  before(async () => {
+  beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
     optionsMini.projectPath = minimalPath;
   });
 
-  after(() => {
+  afterAll(() => {
     rmSync(testDir, { recursive: true, force: true });
     rmSync(testDirForExport, { recursive: true, force: true });
   });
@@ -55,7 +54,7 @@ describe('export command', () => {
       ['adoc', output],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('missing parent card (adoc export)', async () => {
     const output = join(testDirForExport, 'test/output/');
@@ -65,7 +64,7 @@ describe('export command', () => {
       ['adoc', output, card],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('inaccessible destination (adoc export)', async () => {
     const output = join(testDirForExport, '/i-do-not-exist/output');
@@ -75,6 +74,6 @@ describe('export command', () => {
       ['adoc', output, card],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
 });
