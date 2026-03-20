@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { expect, it, describe, beforeAll, afterAll } from 'vitest';
 import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 
@@ -6,6 +6,7 @@ import { copyDir } from '../src/utils/file-utils.js';
 import { CommandManager } from '../src/command-manager.js';
 import { type Edit } from '../src/commands/index.js';
 import { CardNotFoundError } from '../src/exceptions/index.js';
+import type { Card } from '../src/index.js';
 
 describe('edit card', () => {
   const baseDir = import.meta.dirname;
@@ -14,7 +15,7 @@ describe('edit card', () => {
   let commands: CommandManager;
   let editCmd: Edit;
 
-  before(async () => {
+  beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
     commands = new CommandManager(decisionRecordsPath, {
@@ -24,183 +25,106 @@ describe('edit card', () => {
     editCmd = commands.editCmd;
   });
 
-  after(() => {
+  afterAll(() => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
   it('edit card content (success)', async () => {
     const cards = commands.project.cards();
-    const firstCard = cards.at(0);
+    const firstCard = cards.at(0) as Card;
 
     // Modify content
-    if (firstCard) {
-      await editCmd.editCardContent(firstCard.key, 'whoopie');
+    await editCmd.editCardContent(firstCard.key, 'whoopie');
 
-      // Fetch the changed card again
-      const changedCard = commands.project.findCard(firstCard.key);
-      if (changedCard) {
-        expect(changedCard.content).to.equal('whoopie');
-        expect(changedCard.metadata?.lastUpdated).to.not.equal(
-          firstCard.metadata?.lastUpdated,
-        );
-      } else {
-        expect(false);
-      }
-    } else {
-      expect(false);
-    }
+    // Fetch the changed card again
+    const changedCard = commands.project.findCard(firstCard.key);
+    expect(changedCard.content).toBe('whoopie');
+    expect(changedCard.metadata!.lastUpdated).not.toBe(
+      firstCard.metadata!.lastUpdated,
+    );
   });
   it('edit card content - template card', async () => {
     const templateCards = commands.project.templateCards(
       'decision/templates/decision',
     );
-    const firstCard = templateCards.at(0);
-    if (!firstCard) {
-      throw new Error('No template cards found');
-    }
+    const firstCard = templateCards.at(0) as Card;
+
     await editCmd.editCardContent(firstCard.key, 'whoopie');
     const changedCard = commands.project.findCard(firstCard.key);
-    if (changedCard) {
-      expect(changedCard.content).to.equal('whoopie');
-    } else {
-      expect(false);
-    }
+    expect(changedCard.content).toBe('whoopie');
   });
 
   it('edit card content - no content', async () => {
     const cards = commands.project.cards();
-    const firstCard = cards.at(0);
-    if (firstCard) {
-      await editCmd
-        .editCardContent(firstCard.key, '')
-        .then(() => {
-          expect(true);
-        })
-        .catch(() => {
-          expect(false);
-        });
-    }
+    const firstCard = cards.at(0) as Card;
+    await expect(
+      editCmd.editCardContent(firstCard.key, ''),
+    ).resolves.not.toThrow();
   });
 
   it('try to edit card content - card is not in project', async () => {
-    await editCmd
-      .editCardContent('card-key-does-not-exist', 'whoopie')
-      .then(() => {
-        expect(false);
-      })
-      .catch(() => {
-        expect(true);
-      });
+    await expect(
+      editCmd.editCardContent('card-key-does-not-exist', 'whoopie'),
+    ).rejects.toThrow();
   });
 
   it('try to edit card from CLI - no project', async () => {
     const cards = commands.project.cards();
-    const firstCard = cards.at(0);
-    if (firstCard) {
-      expect(() => editCmd.editCard(firstCard.key + 1)).throws(
-        CardNotFoundError,
-      );
-    }
+    const firstCard = cards.at(0) as Card;
+    expect(() => editCmd.editCard(firstCard.key + 1)).throws(CardNotFoundError);
   });
-  // @todo: Make sinon fake/mock for user preferences
-  // it('try to edit card from CLI (success)', async () => {
-  //     const decisionRecordsPath = join(testDir, 'valid/decision-records');
-  //     const project = new Project(decisionRecordsPath);
-  //     const cards = project.cards();
-  //     const firstCard = cards.at(0);
-  //     if (firstCard) {
-  //         const EditCmd = new Edit();
-  //         const result = await EditCmd.editCard(project.basePath, firstCard.key);
-  //         expect(result.statusCode).to.equal(400);
-  //     }
-  // });
-
   it('edit card metadata (success)', async () => {
     const cards = commands.project.cards();
-    const firstCard = cards.at(0);
+    const firstCard = cards.at(0) as Card;
 
     // Modify metadata - title
-    if (firstCard) {
-      await editCmd
-        .editCardMetadata(firstCard.key, 'title', 'new name')
-        .then(() => {
-          expect(true);
-        })
-        .catch(() => {
-          expect(false);
-        });
+    await expect(
+      editCmd.editCardMetadata(firstCard.key, 'title', 'new name'),
+    ).resolves.not.toThrow();
 
-      // Fetch the changed card again
-      const changedCard = commands.project.findCard(firstCard.key);
-      expect(changedCard.metadata?.title).to.equal('new name');
-    } else {
-      expect(false);
-    }
+    // Fetch the changed card again
+    const changedCard = commands.project.findCard(firstCard.key);
+    expect(changedCard.metadata!.title).to.equal('new name');
   });
   it('edit card metadata - template card', async () => {
     // Create a fresh CommandManager instance to avoid test isolation issues
     const freshTestDir = join(baseDir, 'tmp-edit-template-test');
     mkdirSync(freshTestDir, { recursive: true });
-    try {
-      await copyDir('test/test-data/', freshTestDir);
-      const freshDecisionRecordsPath = join(
-        freshTestDir,
-        'valid/decision-records',
-      );
-      const freshCommands = new CommandManager(freshDecisionRecordsPath, {
-        autoSaveConfiguration: false,
-      });
-      await freshCommands.initialize();
-      const freshEditCmd = freshCommands.editCmd;
+    await copyDir('test/test-data/', freshTestDir);
+    const freshDecisionRecordsPath = join(
+      freshTestDir,
+      'valid/decision-records',
+    );
+    const freshCommands = new CommandManager(freshDecisionRecordsPath, {
+      autoSaveConfiguration: false,
+    });
+    await freshCommands.initialize();
+    const freshEditCmd = freshCommands.editCmd;
 
-      const templateCards = freshCommands.project.templateCards(
-        'decision/templates/decision',
-      );
-      const firstCard = templateCards.at(0);
-      if (!firstCard) {
-        throw new Error('No template cards found');
-      }
-      await freshEditCmd.editCardMetadata(firstCard.key, 'title', 'new name');
-      if (!firstCard) {
-        expect(false);
-      }
-      const changedCard = freshCommands.project.findCard(firstCard.key);
-      if (changedCard) {
-        expect(changedCard.metadata?.title).to.equal('new name');
-      } else {
-        expect(false);
-      }
-    } finally {
-      rmSync(freshTestDir, { recursive: true, force: true });
-    }
+    const templateCards = freshCommands.project.templateCards(
+      'decision/templates/decision',
+    );
+    const firstCard = templateCards.at(0) as Card;
+
+    await freshEditCmd.editCardMetadata(firstCard.key, 'title', 'new name');
+
+    const changedCard = freshCommands.project.findCard(firstCard.key);
+    expect(changedCard.metadata?.title).to.equal('new name');
+
+    rmSync(freshTestDir, { recursive: true, force: true });
   });
   it('try to edit card metadata - incorrect field name', async () => {
     const cards = commands.project.cards();
-    const firstCard = cards.at(0);
-    if (firstCard) {
-      await editCmd
-        .editCardMetadata(firstCard.key, '', '')
-        .then(() => {
-          expect(false);
-        })
-        .catch(() => {
-          expect(true);
-        });
-    }
+    const firstCard = cards.at(0) as Card;
+    await expect(
+      editCmd.editCardMetadata(firstCard.key, '', ''),
+    ).rejects.toThrow();
   });
 
   it('try to edit card metadata - card is not in project', async () => {
     const EditCmd = commands.editCmd;
-    await EditCmd.editCardMetadata(
-      'card-key-does-not-exist',
-      'whoopie',
-      'whoopie',
-    )
-      .then(() => {
-        expect(false);
-      })
-      .catch(() => {
-        expect(true);
-      });
+    await expect(
+      EditCmd.editCardMetadata('card-key-does-not-exist', 'whoopie', 'whoopie'),
+    ).rejects.toThrow();
   });
 });
