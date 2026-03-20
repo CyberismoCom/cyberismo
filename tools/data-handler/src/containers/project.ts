@@ -1082,20 +1082,13 @@ export class Project extends CardContainer {
    * @returns details of a project.
    */
   public async show(): Promise<ProjectMetadata> {
-    let version: string | undefined;
-    try {
-      version = (await this.gitManager.getVersion()) ?? undefined;
-    } catch {
-      // Not a git repo or no tags — leave version undefined
-    }
-
     return {
       name: this.settings.name,
       path: this.basePath,
       prefix: this.projectPrefix,
       category: this.configuration.category,
       description: this.configuration.description,
-      version,
+      version: await this.gitManager.getVersion(),
       hubs: this.configuration.hubs,
       modules: this.resources.moduleNames(),
       numberOfCards: (await this.listCards(CardLocation.projectOnly))[0].cards

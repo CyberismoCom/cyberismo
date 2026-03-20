@@ -102,16 +102,17 @@ export class GitManager {
 
   /**
    * Get the current project version from the latest git tag.
-   * @returns semver string (e.g. "1.2.3") or null if no version tags exist.
+   * @returns semver string (e.g. "1.2.3") or undefined if no version tags exist.
    */
-  async getVersion(): Promise<string | null> {
+  async getVersion(): Promise<string | undefined> {
+    if (!(await this.git.checkIsRepo())) return undefined;
     const tags = await this.listVersionTags();
     for (const tag of tags) {
       if (!tag.startsWith(TAG_PREFIX)) continue;
       const version = tag.slice(TAG_PREFIX.length);
       if (semver.valid(version) && !semver.prerelease(version)) return version;
     }
-    return null;
+    // version is not defined
   }
 
   /**

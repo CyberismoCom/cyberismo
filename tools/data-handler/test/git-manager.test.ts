@@ -245,7 +245,7 @@ describe('GitManager', () => {
       await gm.initialize();
 
       const version = await gm.getVersion();
-      expect(version).to.be.null;
+      expect(version).to.be.undefined;
     });
 
     it('should return the latest version', async () => {
