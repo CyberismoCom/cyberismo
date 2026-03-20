@@ -11,6 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { encodeXML } from 'entities';
+
 interface PercentageOptions {
   title: string;
   value: number;
@@ -75,11 +77,11 @@ export function percentage(options: PercentageOptions): string {
     .percentage-text { fill: var(--joy-palette-text-primary, #333); }
     .percentage-legend { fill: var(--joy-palette-text-secondary, #666); }
   </style>
-  <title>${title}</title>
+  <title>${encodeXML(title)}</title>
 
   <!-- Visible Title (wrapped) -->
   <text class="percentage-text" x="${SVG_WIDTH / 2}" y="${TITLE_Y}" text-anchor="middle" font-size="${TITLE_FONT_SIZE}" font-weight="bold">
-    ${titleLines.map((line, i) => `<tspan x='${SVG_WIDTH / 2}' dy='${i === 0 ? 0 : LINE_SPACING}em'>${line}</tspan>`).join('')}
+    ${titleLines.map((line, i) => `<tspan x='${SVG_WIDTH / 2}' dy='${i === 0 ? 0 : LINE_SPACING}em'>${encodeXML(line)}</tspan>`).join('')}
   </text>
 
   <!-- Background track -->
@@ -95,7 +97,7 @@ export function percentage(options: PercentageOptions): string {
 
   <!-- Numbers -->
   <text class="percentage-text" x="${SVG_WIDTH / 2}" y="${donutCenterY - 8}" text-anchor="middle" font-size="${VALUE_FONT_SIZE}" font-weight="bold">${value}%</text>
-  <text class="percentage-legend" x="${SVG_WIDTH / 2}" y="${donutCenterY + 20}" text-anchor="middle" font-size="${LEGEND_FONT_SIZE}">${legend}</text>
+  <text class="percentage-legend" x="${SVG_WIDTH / 2}" y="${donutCenterY + 20}" text-anchor="middle" font-size="${LEGEND_FONT_SIZE}">${encodeXML(legend)}</text>
 </svg>
 `;
 }

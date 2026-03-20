@@ -24,18 +24,28 @@ const removeSvgWidthAndHeight = (node: Element) => {
   }
 };
 
+// Prevents use of global hooks
+const purifyRemoveSize = createDOMPurify(window as unknown as WindowLike);
+purifyRemoveSize.setConfig({ USE_PROFILES: { svg: true } });
+purifyRemoveSize.addHook('afterSanitizeAttributes', removeSvgWidthAndHeight);
+
+const purifyKeepSize = createDOMPurify(window as unknown as WindowLike);
+purifyKeepSize.setConfig({ USE_PROFILES: { svg: true } });
+
 /**
  * Sanitize an SVG string and return a base64-encoded string
  * @param svg - SVG content as a string
+ * @param options - Options for sanitization
+ * @param options.removeSize - Whether to remove width/height from the SVG element (default: true)
  * @returns base64-encoded sanitized SVG string
  */
-export function sanitizeSvgBase64(svg: string): string {
-  const DOMPurify = createDOMPurify(window as unknown as WindowLike);
-
-  DOMPurify.setConfig({ USE_PROFILES: { svg: true } });
-  DOMPurify.addHook('afterSanitizeAttributes', removeSvgWidthAndHeight);
-
-  const cleaned = DOMPurify.sanitize(svg);
-
+export function sanitizeSvgBase64(
+  svg: string,
+  options?: { removeSize?: boolean },
+): string {
+  const { removeSize = true } = options ?? {};
+  const cleaned = (removeSize ? purifyRemoveSize : purifyKeepSize).sanitize(
+    svg,
+  );
   return Buffer.from(cleaned, 'utf-8').toString('base64');
 }
