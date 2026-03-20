@@ -1,5 +1,12 @@
-import { expect } from 'chai';
-
+import {
+  expect,
+  it,
+  describe,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  afterEach,
+} from 'vitest';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, sep } from 'node:path';
 
@@ -107,7 +114,7 @@ describe('Card cache', () => {
   const prefix = 'test';
 
   describe('operating card cache', () => {
-    before(async () => {
+    beforeAll(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
       mkdirSync(testCardsPath, { recursive: true });
@@ -115,49 +122,49 @@ describe('Card cache', () => {
 
       createTestData(testCardsPath, testTemplatesPath);
     });
-    after(() => {
+    afterAll(() => {
       rmSync(testDir, { recursive: true, force: true });
     });
 
     it('should create CardCache instance with correct prefix', () => {
       const cache = new CardCache(prefix);
-      expect(cache).to.be.instanceOf(CardCache);
-      expect(cache.isPopulated).to.equal(false);
+      expect(cache).toBeInstanceOf(CardCache);
+      expect(cache.isPopulated).toBe(false);
     });
     it('should populate cache from filesystem path', async () => {
       const cache = new CardCache(prefix);
-      expect(cache.isPopulated).to.equal(false);
+      expect(cache.isPopulated).toBe(false);
       await cache.populateFromPath(testProjectPath);
 
-      expect(cache.isPopulated).to.equal(true);
+      expect(cache.isPopulated).toBe(true);
       const cards = cache.getCards();
-      expect(cards.length).to.be.greaterThan(0);
+      expect(cards.length).toBeGreaterThan(0);
     });
 
     it('should handle invalid path gracefully', async () => {
       const cache = new CardCache(prefix);
       await cache.populateFromPath('/invalid/path/that/does/not/exist');
 
-      expect(cache.isPopulated).to.equal(true);
+      expect(cache.isPopulated).toBe(true);
       const cards = cache.getCards();
-      expect(cards.length).to.equal(0);
+      expect(cards).toHaveLength(0);
     });
     it('should clear the cache and reset populated state', async () => {
       const cache = new CardCache(prefix);
       await cache.populateFromPath(testProjectPath);
 
-      expect(cache.isPopulated).to.equal(true);
-      expect(cache.getCards().length).to.be.greaterThan(0);
+      expect(cache.isPopulated).toBe(true);
+      expect(cache.getCards().length).toBeGreaterThan(0);
 
       cache.clear();
-      expect(cache.isPopulated).to.equal(false);
+      expect(cache.isPopulated).toBe(false);
     });
   });
 
   describe('accessing a card', () => {
     let cache: CardCache;
 
-    before(async () => {
+    beforeAll(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
       mkdirSync(testCardsPath, { recursive: true });
@@ -168,32 +175,31 @@ describe('Card cache', () => {
       cache = new CardCache(prefix);
       await cache.populateFromPath(testProjectPath);
     });
-    after(() => {
+    afterAll(() => {
       rmSync(testDir, { recursive: true, force: true });
     });
 
     it('should retrieve existing card', () => {
       const card = cache.getCard('test_1');
-      expect(card).to.not.equal(undefined);
-      expect(card?.key).to.equal('test_1');
-      expect(card?.metadata?.title).to.equal('Root Card');
+      expect(card!.key).toBe('test_1');
+      expect(card!.metadata!.title).toBe('Root Card');
     });
 
     it('should return undefined for non-existing card', () => {
       const card = cache.getCard('non_existing_card');
-      expect(card).to.equal(undefined);
+      expect(card).toBeUndefined();
     });
 
     it('should check if card exists', () => {
-      expect(cache.hasCard('test_1')).to.equal(true);
-      expect(cache.hasCard('non_existing_card')).to.equal(false);
+      expect(cache.hasCard('test_1')).toBe(true);
+      expect(cache.hasCard('non_existing_card')).toBe(false);
     });
   });
 
   describe('accessing cards', () => {
     let cache: CardCache;
 
-    before(async () => {
+    beforeAll(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
       mkdirSync(testCardsPath, { recursive: true });
@@ -204,29 +210,31 @@ describe('Card cache', () => {
       cache = new CardCache(prefix);
       await cache.populateFromPath(testProjectPath);
     });
-    after(() => {
+    afterAll(() => {
       rmSync(testDir, { recursive: true, force: true });
     });
 
     it('should return all cards', () => {
       const cards = cache.getCards();
-      expect(cards).to.be.an('array');
-      expect(cards.length).to.be.greaterThan(0);
 
-      // Check that we have our test cards
-      const cardKeys = cards.map((c) => c.key);
-      expect(cardKeys).to.include('test_1');
-      expect(cardKeys).to.include('test_2');
-      expect(cardKeys).to.include('test_3');
+      expect(cards).toBeInstanceOf(Array);
+      expect(cards.length).toBeGreaterThan(0);
+      expect(cards).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ key: 'test_1' }),
+          expect.objectContaining({ key: 'test_2' }),
+          expect.objectContaining({ key: 'test_3' }),
+        ]),
+      );
     });
 
     it('should return only template cards', () => {
       const templateCards = cache.getAllTemplateCards();
-      expect(templateCards).to.be.an('array');
+      expect(templateCards).toBeInstanceOf(Array);
 
       // Check that all returned cards are template cards (location !== 'project')
       templateCards.forEach((card) => {
-        expect(card.location).to.not.equal('project');
+        expect(card.location).not.toBe('project');
       });
     });
   });
@@ -234,7 +242,7 @@ describe('Card cache', () => {
   describe('cache updates', () => {
     let cache: CardCache;
 
-    before(async () => {
+    beforeAll(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
       mkdirSync(testCardsPath, { recursive: true });
@@ -245,14 +253,14 @@ describe('Card cache', () => {
       cache = new CardCache(prefix);
       await cache.populateFromPath(testProjectPath);
     });
-    after(() => {
+    afterAll(() => {
       rmSync(testDir, { recursive: true, force: true });
     });
 
     it('should update existing card', () => {
       const cardKey = 'test_1';
       const originalCard = cache.getCard(cardKey);
-      expect(originalCard).to.not.equal(undefined);
+      expect(originalCard).toBeDefined();
 
       const updatedCardData: Card = {
         key: cardKey,
@@ -271,14 +279,14 @@ describe('Card cache', () => {
       cache.updateCard(cardKey, updatedCardData);
 
       const updatedCard = cache.getCard(cardKey);
-      expect(updatedCard?.metadata?.title).to.equal('Updated Title');
+      expect(updatedCard!.metadata!.title).toBe('Updated Title');
     });
 
     it('should add new card if it does not exist', () => {
       const newCardKey = 'test_new';
       const newCardPath = join(testCardsPath, newCardKey);
 
-      expect(cache.hasCard(newCardKey)).to.equal(false);
+      expect(cache.hasCard(newCardKey)).toBe(false);
 
       const newCardData: Card = {
         key: newCardKey,
@@ -296,9 +304,9 @@ describe('Card cache', () => {
 
       cache.updateCard(newCardKey, newCardData);
 
-      expect(cache.hasCard(newCardKey)).to.equal(true);
+      expect(cache.hasCard(newCardKey)).toBe(true);
       const addedCard = cache.getCard(newCardKey);
-      expect(addedCard?.metadata?.title).to.equal('New Card');
+      expect(addedCard!.metadata!.title).toBe('New Card');
     });
 
     it('should update card content for existing card', () => {
@@ -307,9 +315,9 @@ describe('Card cache', () => {
 
       const success = cache.updateCardContent(cardKey, newContent);
 
-      expect(success).to.equal(true);
+      expect(success).toBe(true);
       const updatedCard = cache.getCard(cardKey);
-      expect(updatedCard?.content).to.equal(newContent);
+      expect(updatedCard!.content).toBe(newContent);
     });
 
     it('should return false for non-existing card', () => {
@@ -317,7 +325,7 @@ describe('Card cache', () => {
         'non_existing_card',
         'some content',
       );
-      expect(success).to.equal(false);
+      expect(success).toBe(false);
     });
 
     it('should update card metadata for existing card', () => {
@@ -332,10 +340,10 @@ describe('Card cache', () => {
 
       const success = cache.updateCardMetadata(cardKey, newMetadata);
 
-      expect(success).to.equal(true);
+      expect(success).toBe(true);
       const updatedCard = cache.getCard(cardKey);
-      expect(updatedCard?.metadata?.title).to.equal('Updated Metadata Title');
-      expect(updatedCard?.metadata?.workflowState).to.equal('Published');
+      expect(updatedCard!.metadata!.title).toBe('Updated Metadata Title');
+      expect(updatedCard!.metadata!.workflowState).toBe('Published');
     });
 
     it('should return false for non-existing card', () => {
@@ -348,14 +356,14 @@ describe('Card cache', () => {
       };
 
       const success = cache.updateCardMetadata('non_existing_card', metadata);
-      expect(success).to.equal(false);
+      expect(success).toBe(false);
     });
   });
 
   describe('Removing data from card cache', () => {
     let cache: CardCache;
 
-    before(async () => {
+    beforeAll(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
       mkdirSync(testCardsPath, { recursive: true });
@@ -366,31 +374,31 @@ describe('Card cache', () => {
       cache = new CardCache(prefix);
       await cache.populateFromPath(testProjectPath);
     });
-    after(() => {
+    afterAll(() => {
       rmSync(testDir, { recursive: true, force: true });
     });
 
     it('should delete existing card', () => {
       const cardKey = 'test_2';
 
-      expect(cache.hasCard(cardKey)).to.equal(true);
+      expect(cache.hasCard(cardKey)).toBe(true);
 
       const success = cache.deleteCard(cardKey);
 
-      expect(success).to.equal(true);
-      expect(cache.hasCard(cardKey)).to.equal(false);
+      expect(success).toBe(true);
+      expect(cache.hasCard(cardKey)).toBe(false);
     });
 
     it('should return false for non-existing card', () => {
       const success = cache.deleteCard('non_existing_card');
-      expect(success).to.equal(false);
+      expect(success).toBe(false);
     });
   });
 
   describe('Card cache attachment methods', () => {
     let cache: CardCache;
 
-    before(async () => {
+    beforeAll(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
       mkdirSync(testCardsPath, { recursive: true });
@@ -401,19 +409,19 @@ describe('Card cache', () => {
       cache = new CardCache(prefix);
       await cache.populateFromPath(testProjectPath);
     });
-    after(() => {
+    afterAll(() => {
       rmSync(testDir, { recursive: true, force: true });
     });
 
     it('should return attachments for existing card', () => {
       const attachments = cache.getCardAttachments('test_1');
-      expect(attachments).to.not.equal(undefined);
-      expect(attachments).to.be.an('array');
+      expect(attachments).toBeDefined();
+      expect(attachments).toBeInstanceOf(Array);
     });
 
     it('should return undefined for non-existing card', () => {
       const attachments = cache.getCardAttachments('non_existing_card');
-      expect(attachments).to.equal(undefined);
+      expect(attachments).toBeUndefined();
     });
 
     it('should add attachment to existing card', () => {
@@ -422,9 +430,9 @@ describe('Card cache', () => {
 
       const success = cache.addAttachment(cardKey, fileName);
 
-      expect(success).to.equal(true);
+      expect(success).toBe(true);
       const attachments = cache.getCardAttachments(cardKey);
-      expect(attachments?.some((a) => a.fileName === fileName)).to.equal(true);
+      expect(attachments!.some((a) => a.fileName === fileName)).toBe(true);
     });
 
     it('should not add duplicate attachment', () => {
@@ -433,23 +441,23 @@ describe('Card cache', () => {
 
       // Add first time
       let success = cache.addAttachment(cardKey, fileName);
-      expect(success).to.equal(true);
+      expect(success).toBe(true);
 
       // Try to add again
       success = cache.addAttachment(cardKey, fileName);
-      expect(success).to.equal(false);
+      expect(success).toBe(false);
 
       // Verify only one instance exists
       const attachments = cache.getCardAttachments(cardKey);
       const duplicateCount = attachments?.filter(
         (a) => a.fileName === fileName,
       ).length;
-      expect(duplicateCount).to.equal(1);
+      expect(duplicateCount).toBe(1);
     });
 
     it('should return false for non-existing card', () => {
       const success = cache.addAttachment('non_existing_card', 'file.txt');
-      expect(success).to.equal(false);
+      expect(success).toBe(false);
     });
 
     it('should remove attachment from existing card', () => {
@@ -458,13 +466,13 @@ describe('Card cache', () => {
 
       // First add an attachment
       cache.addAttachment(cardKey, fileName);
-      expect(cache.hasCardAttachment(cardKey, fileName)).to.equal(true);
+      expect(cache.hasCardAttachment(cardKey, fileName)).toBe(true);
 
       // Then delete it
       const success = cache.deleteAttachment(cardKey, fileName);
 
-      expect(success).to.equal(true);
-      expect(cache.hasCardAttachment(cardKey, fileName)).to.equal(false);
+      expect(success).toBe(true);
+      expect(cache.hasCardAttachment(cardKey, fileName)).toBe(false);
     });
 
     it('should return false when trying to delete non-existing attachment', () => {
@@ -472,25 +480,25 @@ describe('Card cache', () => {
         'test_1',
         'non_existing_attachment.txt',
       );
-      expect(success).to.equal(false);
+      expect(success).toBe(false);
     });
 
     it('should return false for non-existing card', () => {
       const success = cache.deleteAttachment('non_existing_card', 'file.txt');
-      expect(success).to.equal(false);
+      expect(success).toBe(false);
     });
 
     it('should check if card has specific attachment', () => {
       const cardKey = 'test_1';
       const fileName = 'check-attachment.txt';
-      expect(cache.hasCardAttachment(cardKey, fileName)).to.equal(false);
+      expect(cache.hasCardAttachment(cardKey, fileName)).toBe(false);
       cache.addAttachment(cardKey, fileName);
-      expect(cache.hasCardAttachment(cardKey, fileName)).to.equal(true);
+      expect(cache.hasCardAttachment(cardKey, fileName)).toBe(true);
     });
 
     it('should return false for non-existing card', () => {
       const result = cache.hasCardAttachment('non_existing_card', 'file.txt');
-      expect(result).to.equal(false);
+      expect(result).toBe(false);
     });
 
     it('should replace all attachments for existing card', () => {
@@ -512,27 +520,27 @@ describe('Card cache', () => {
 
       const success = cache.updateCardAttachments(cardKey, newAttachments);
 
-      expect(success).to.equal(true);
+      expect(success).toBe(true);
       const attachments = cache.getCardAttachments(cardKey);
-      expect(attachments?.length).to.equal(2);
-      expect(
-        attachments?.some((a) => a.fileName === 'attachment1.txt'),
-      ).to.equal(true);
-      expect(
-        attachments?.some((a) => a.fileName === 'attachment2.pdf'),
-      ).to.equal(true);
+      expect(attachments!.length).toBe(2);
+      expect(attachments!.some((a) => a.fileName === 'attachment1.txt')).toBe(
+        true,
+      );
+      expect(attachments!.some((a) => a.fileName === 'attachment2.pdf')).toBe(
+        true,
+      );
     });
 
     it('should return false for non-existing card', () => {
       const success = cache.updateCardAttachments('non_existing_card', []);
-      expect(success).to.equal(false);
+      expect(success).toBe(false);
     });
   });
 
   describe('Card cache population tests', () => {
     let cache: CardCache;
 
-    before(async () => {
+    beforeAll(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
       mkdirSync(testCardsPath, { recursive: true });
@@ -542,7 +550,7 @@ describe('Card cache', () => {
       cache = new CardCache(prefix);
       await cache.populateFromPath(testProjectPath);
     });
-    after(() => {
+    afterAll(() => {
       rmSync(testDir, { recursive: true, force: true });
     });
 
@@ -559,52 +567,42 @@ describe('Card cache', () => {
       writeFileSync(join(invalidCardPath, 'index.adoc'), 'Content');
 
       const newCache = new CardCache(prefix);
-      try {
-        await newCache.populateFromPath(testProjectPath);
-        expect.fail('Should have thrown an error for invalid JSON');
-      } catch (error) {
-        expect(error).to.be.instanceOf(Error);
-        if (error instanceof Error) {
-          expect(error.message).to.include('Invalid JSON in file');
-          expect(error.message).to.include(join(invalidCardPath, 'index.json'));
-        }
-      } finally {
-        // Clean up the invalid card
-        rmSync(invalidCardPath, { recursive: true, force: true });
-      }
+      await expect(newCache.populateFromPath(testProjectPath)).rejects.toThrow(
+        `Invalid JSON in file '${join(invalidCardPath, 'index.json')}'`,
+      );
+
+      rmSync(invalidCardPath, { recursive: true, force: true });
     });
 
     it('should rebuild parent-child relationships', () => {
       const parentCard = cache.getCard('test_1');
-      expect(parentCard).to.not.equal(undefined);
-      expect(parentCard?.children).to.be.an('array');
-      const originalChildrenCount = parentCard?.children.length || 0;
+      expect(parentCard).toBeDefined();
+      expect(parentCard!.children).toBeInstanceOf(Array);
+      const originalChildrenCount = parentCard!.children.length;
 
       if (parentCard) {
         parentCard.children = [];
       }
-      expect(parentCard?.children.length).to.equal(0);
+      expect(parentCard!.children.length).toBe(0);
 
       cache.populateChildrenRelationships();
 
       const updatedParentCard = cache.getCard('test_1');
-      expect(updatedParentCard?.children.length).to.equal(
-        originalChildrenCount,
-      );
-      expect(updatedParentCard?.children).to.include('test_2');
-      expect(updatedParentCard?.children).to.include('test_3');
+      expect(updatedParentCard!.children.length).toBe(originalChildrenCount);
+      expect(updatedParentCard!.children).toContain('test_2');
+      expect(updatedParentCard!.children).toContain('test_3');
     });
 
     it('should return correct population status', async () => {
       const cache = new CardCache(prefix);
 
-      expect(cache.isPopulated).to.equal(false);
+      expect(cache.isPopulated).toBe(false);
 
       await cache.populateFromPath(testProjectPath);
-      expect(cache.isPopulated).to.equal(true);
+      expect(cache.isPopulated).toBe(true);
 
       cache.clear();
-      expect(cache.isPopulated).to.equal(false);
+      expect(cache.isPopulated).toBe(false);
     });
   });
 
@@ -644,14 +642,14 @@ describe('Card cache', () => {
 
       // Verify cards from template are in cache
       const templateCards = template.cards();
-      expect(templateCards.length).to.equal(2);
+      expect(templateCards.length).toBe(2);
 
       // Check that template cards exist in project cache
       for (const templateCard of templateCards) {
-        expect(commands.project.hasCard(templateCard.key)).to.equal(true);
+        expect(commands.project.hasCard(templateCard.key)).toBe(true);
         const cachedCard = commands.project.findCard(templateCard.key);
-        expect(cachedCard).to.not.equal(undefined);
-        expect(cachedCard?.key).to.equal(templateCard.key);
+        expect(cachedCard).toBeDefined();
+        expect(cachedCard!.key).toBe(templateCard.key);
       }
     });
 
@@ -672,14 +670,14 @@ describe('Card cache', () => {
       const templateCards = template.cards();
       const templateCardKeys = templateCards.map((card) => card.key);
       for (const cardKey of templateCardKeys) {
-        expect(commands.project.hasCard(cardKey)).to.equal(true);
+        expect(commands.project.hasCard(cardKey)).toBe(true);
       }
 
       // Remove template
       const removeCmd = commands.removeCmd;
       await removeCmd.remove('template', name);
       for (const cardKey of templateCardKeys) {
-        expect(commands.project.hasCard(cardKey)).to.equal(false);
+        expect(commands.project.hasCard(cardKey)).toBe(false);
       }
     });
 
@@ -695,14 +693,14 @@ describe('Card cache', () => {
         card.path.includes(`base${sep}templates`),
       );
 
-      expect(baseTemplateCards.length).to.be.greaterThan(0);
+      expect(baseTemplateCards.length).toBeGreaterThan(0);
       for (const templateCard of baseTemplateCards) {
-        expect(commands.project.hasCard(templateCard.key)).to.equal(true);
+        expect(commands.project.hasCard(templateCard.key)).toBe(true);
         const cachedCard = commands.project.findCard(templateCard.key);
-        expect(cachedCard).to.not.equal(undefined);
-        expect(cachedCard?.key).to.equal(templateCard.key);
+        expect(cachedCard).toBeDefined();
+        expect(cachedCard!.key).toBe(templateCard.key);
       }
-    }).timeout(10000);
+    }, 10000);
 
     it('should remove base module and verify template cards are gone from the cache', async () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
@@ -718,19 +716,19 @@ describe('Card cache', () => {
       );
 
       // Verify that module template cards are in cache
-      expect(baseTemplateCards.length).to.be.greaterThan(0);
+      expect(baseTemplateCards.length).toBeGreaterThan(0);
       for (const templateCard of baseTemplateCards) {
-        expect(commands.project.hasCard(templateCard.key)).to.equal(true);
+        expect(commands.project.hasCard(templateCard.key)).toBe(true);
         const cachedCard = commands.project.findCard(templateCard.key);
-        expect(cachedCard).to.not.equal(undefined);
-        expect(cachedCard?.key).to.equal(templateCard.key);
+        expect(cachedCard).toBeDefined();
+        expect(cachedCard!.key).toBe(templateCard.key);
       }
 
       // Get the imported module name
       const moduleEntry = commands.project.configuration.modules.find(
         (m) => m.location && m.location.includes('module-base'),
       );
-      expect(moduleEntry).to.not.equal(undefined);
+      expect(moduleEntry).toBeDefined();
 
       // Remove module
       await commands.removeCmd.remove('module', moduleEntry!.name);
@@ -740,10 +738,10 @@ describe('Card cache', () => {
         .allTemplateCards()
         .filter((card: Card) => card.path.includes(`base${sep}templates`));
 
-      expect(remainingTemplateCards.length).to.equal(0);
+      expect(remainingTemplateCards.length).toBe(0);
       for (const card of baseTemplateCards) {
-        expect(commands.project.hasCard(card.key)).to.equal(false);
+        expect(commands.project.hasCard(card.key)).toBe(false);
       }
-    }).timeout(10000);
+    }, 10000);
   });
 });
