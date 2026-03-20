@@ -1,5 +1,4 @@
-import { expect } from 'chai';
-import { describe, it } from 'mocha';
+import { expect, describe, it } from 'vitest';
 
 import { UserPreferences } from '../../src/utils/user-preferences.js';
 import { platform, tmpdir } from 'os';
@@ -20,14 +19,12 @@ describe('UserPreferences', () => {
   });
 
   it('gets preferences', () => {
-    expect(userPrefs.getPreferences()).to.be.an('object');
+    expect(userPrefs.getPreferences()).toBeTypeOf('object');
   });
 
   it('gets edit command preferences', () => {
-    expect(userPrefs.getPreferences().editCommand).to.be.an('object');
-    expect(userPrefs.getPreferences().editCommand.darwin.command).to.equal(
-      'code',
-    );
+    expect(userPrefs.getPreferences().editCommand).toBeTypeOf('object');
+    expect(userPrefs.getPreferences().editCommand.darwin.command).toBe('code');
   });
 
   it('reports errors correctly', () => {
@@ -37,7 +34,7 @@ describe('UserPreferences', () => {
 
     expect(() => {
       new UserPreferences(TMP_PREFS_PATH).getPreferences();
-    }).to.throw();
+    }).toThrow();
   });
 
   it('reports if the preferences directory is non-writable', () => {
@@ -47,10 +44,8 @@ describe('UserPreferences', () => {
         ? 'U:/this/path/does/not/exist'
         : '/this/path/does/not/exist';
 
-    if (nonWritablePath) {
-      expect(() => {
-        new UserPreferences(nonWritablePath).getPreferences();
-      }).to.throw();
-    }
+    expect(() => {
+      new UserPreferences(nonWritablePath).getPreferences();
+    }).toThrow();
   });
 });
