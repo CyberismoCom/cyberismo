@@ -48,8 +48,7 @@ export class Version {
 
     // Guard: breaking changes require a major bump
     if (currentVersion && bumpType !== 'major') {
-      const entries = await ConfigurationLogger.entries(this.project.basePath);
-      if (entries.length > 0) {
+      if (ConfigurationLogger.hasLog(this.project.basePath)) {
         throw new Error(
           'Cannot publish a patch or minor version: breaking configuration changes detected. Use a major version bump.',
         );
@@ -62,22 +61,10 @@ export class Version {
 
     // Snapshot the current migration log with the new version
     if (ConfigurationLogger.hasLog(this.project.basePath)) {
-      try {
-        await ConfigurationLogger.createVersion(
-          this.project.basePath,
-          newVersion,
-        );
-      } catch (error) {
-        // Empty migration log is expected and safe to ignore
-        if (
-          !(
-            error instanceof Error &&
-            error.message.includes('migration log is empty')
-          )
-        ) {
-          throw error;
-        }
-      }
+      await ConfigurationLogger.createVersion(
+        this.project.basePath,
+        newVersion,
+      );
     }
 
     // Write new version to cardsConfig
