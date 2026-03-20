@@ -1,12 +1,8 @@
-// node
 import { readdir } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
 
-// testing
-import { expect } from 'chai';
-import { describe, it } from 'mocha';
+import { expect, describe, it, beforeAll } from 'vitest';
 
-// data-handler
 import { readJsonFile } from '../src/utils/json.js';
 import { Validate } from '../src/commands/index.js';
 import type { Project } from '../src/containers/project.js';
@@ -24,7 +20,7 @@ describe('validate cmd tests', () => {
   const validateCmd = Validate.getInstance();
   let validProject: Project;
 
-  before(async () => {
+  beforeAll(async () => {
     validProject = getTestProject('test/test-data/valid/decision-records');
     await validProject.populateCaches();
   });
@@ -32,93 +28,93 @@ describe('validate cmd tests', () => {
   it('validate() - decision-records (success)', async () => {
     const path = join(testDir, 'valid/decision-records');
     const valid = await validateCmd.validate(path, () => getTestProject(path));
-    expect(valid).to.equal('');
-    expect(valid.length).to.equal(0);
+    expect(valid).toBe('');
+    expect(valid.length).toBe(0);
   });
   it('validate() - minimal (success)', async () => {
     const path = join(testDir, 'valid/minimal');
     const valid = await validateCmd.validate(path, () => getTestProject(path));
-    expect(valid.length).to.equal(0);
+    expect(valid.length).toBe(0);
   });
   it('try to validate() - invalid-cardsConfig.json', async () => {
     const path = join(testDir, 'invalid/invalid-cardsConfig.json');
     const valid = await validateCmd.validate(path, () => getTestProject(path));
-    expect(valid.length).to.be.greaterThan(0);
+    expect(valid.length).toBeGreaterThan(0);
   });
   it('try to validate() - missing-.cards-subfolders', async () => {
     const path = join(testDir, 'invalid/missing-.cards-subfolders');
     const valid = await validateCmd.validate(path, () => getTestProject(path));
-    expect(valid.length).to.be.greaterThan(0);
+    expect(valid.length).toBeGreaterThan(0);
   });
   it('try to validate() - missing-cardsConfig.json', async () => {
     const path = 'test/test-data/invalid/missing-cardsConfig.json';
     const valid = await validateCmd.validate(path, () => getTestProject(path));
-    expect(valid.length).to.be.greaterThan(0);
+    expect(valid.length).toBeGreaterThan(0);
   });
   it('try to validate() - missing-cardTypes-subfolder', async () => {
     const path = 'test/test-data/invalid/missing-cardTypes-subfolder';
     const valid = await validateCmd.validate(path, () => getTestProject(path));
-    expect(valid.length).to.be.greaterThan(0);
+    expect(valid.length).toBeGreaterThan(0);
   });
   it('try to validate() - invalid-duplicate-card-key', async () => {
     const path = 'test/test-data/invalid/invalid-duplicate-card-key';
     const valid = await validateCmd.validate(path, () => getTestProject(path));
-    expect(valid.length).to.be.greaterThan(0);
+    expect(valid.length).toBeGreaterThan(0);
   });
   it('try to validate() - missing-templates-subfolder', async () => {
     const path = 'test/test-data/invalid/missing-templates-subfolder';
     const valid = await validateCmd.validate(path, () => getTestProject(path));
-    expect(valid.length).to.be.greaterThan(0);
+    expect(valid.length).toBeGreaterThan(0);
   });
   it('try to validate() - missing-workflows-subfolder', async () => {
     const path = 'test/test-data/invalid/missing-workflows-subfolder';
     const valid = await validateCmd.validate(path, () => getTestProject(path));
-    expect(valid.length).to.be.greaterThan(0);
+    expect(valid.length).toBeGreaterThan(0);
   });
   it('try to validate() - no-.schema-in.cards', async () => {
     const path = 'test/test-data/invalid/no-.schema-in.cards';
     const valid = await validateCmd.validate(path, () => getTestProject(path));
-    expect(valid.length).to.be.greaterThan(0);
+    expect(valid.length).toBeGreaterThan(0);
   });
   it('try to validate() - no-.schema-in.cards-cardTypes', async () => {
     const path = 'test/test-data/invalid/no-.schema-in.cards-cardTypes';
     const valid = await validateCmd.validate(path, () => getTestProject(path));
-    expect(valid.length).to.be.greaterThan(0);
+    expect(valid.length).toBeGreaterThan(0);
   });
   it('try to validate() - no-.schema-in.cards-templates', async () => {
     const path = 'test/test-data/invalid/no-.schema-in.cards-templates';
     const valid = await validateCmd.validate(path, () => getTestProject(path));
-    expect(valid.length).to.be.greaterThan(0);
+    expect(valid.length).toBeGreaterThan(0);
   });
   it('try to validate() - no-.schema-in.cards-workflows', async () => {
     const path = 'test/test-data/invalid/no-.schema-in.cards-workflows';
     const valid = await validateCmd.validate(path, () => getTestProject(path));
-    expect(valid.length).to.be.greaterThan(0);
+    expect(valid.length).toBeGreaterThan(0);
   });
   it('try to validate() - no-.schema-in-cardRoot', async () => {
     const path = 'test/test-data/invalid/o-.schema-in-cardRoot';
     const valid = await validateCmd.validate(path, () => getTestProject(path));
-    expect(valid.length).to.be.greaterThan(0);
+    expect(valid.length).toBeGreaterThan(0);
   });
   it('try to validate() - invalid-empty', async () => {
     const path = 'test/test-data/invalid/invalid-empty';
     const valid = await validateCmd.validate(path, () => getTestProject(path));
-    expect(valid.length).to.be.greaterThan(0);
+    expect(valid.length).toBeGreaterThan(0);
   });
   it('try to validate() - missing-cardRoot', async () => {
     const path = 'test/test-data/invalid/missing-cardRoot';
     const valid = await validateCmd.validate(path, () => getTestProject(path));
-    expect(valid.length).to.be.greaterThan(0);
+    expect(valid.length).toBeGreaterThan(0);
   });
   it('try to validate() - missing-.cards', async () => {
     const path = 'test/test-data/invalid/missing-.cards';
     const valid = await validateCmd.validate(path, () => getTestProject(path));
-    expect(valid.length).to.be.greaterThan(0);
+    expect(valid.length).toBeGreaterThan(0);
   });
   it('try to validate() - path does not exist', async () => {
     const path = 'i-do-not-exist';
     const valid = await validateCmd.validate(path, () => getTestProject(path));
-    expect(valid.length).to.be.greaterThan(0);
+    expect(valid.length).toBeGreaterThan(0);
   });
   it('validateJson() - cardsConfig', async () => {
     const path =
@@ -126,7 +122,7 @@ describe('validate cmd tests', () => {
     const schemaId = 'cardsConfigSchema';
     const jsonSchema = (await readJsonFile(path)) as object;
     const valid = validateCmd.validateJson(jsonSchema, schemaId);
-    expect(valid.length).to.equal(0);
+    expect(valid.length).toBe(0);
   });
   it('validateJson() - card type', async () => {
     const path =
@@ -134,7 +130,7 @@ describe('validate cmd tests', () => {
     const schemaId = 'cardTypeSchema';
     const jsonSchema = (await readJsonFile(path)) as object;
     const valid = validateCmd.validateJson(jsonSchema, schemaId);
-    expect(valid.length).to.equal(0);
+    expect(valid.length).toBe(0);
   });
   it('validateJson() - template', async () => {
     const path =
@@ -142,7 +138,7 @@ describe('validate cmd tests', () => {
     const schemaId = 'templateSchema';
     const jsonSchema = (await readJsonFile(path)) as object;
     const valid = validateCmd.validateJson(jsonSchema, schemaId);
-    expect(valid.length).to.equal(0);
+    expect(valid.length).toBe(0);
   });
   it('validateJson() - workflow', async () => {
     const path =
@@ -150,12 +146,12 @@ describe('validate cmd tests', () => {
     const schemaId = 'workflowSchema';
     const jsonSchema = (await readJsonFile(path)) as object;
     const valid = validateCmd.validateJson(jsonSchema, schemaId);
-    expect(valid.length).to.equal(0);
+    expect(valid.length).toBe(0);
   });
   it('try to validateJson() - invalid JSON', () => {
     const schemaId = 'workflowSchema';
     const valid = validateCmd.validateJson({}, schemaId);
-    expect(valid.length).to.be.greaterThan(0);
+    expect(valid.length).toBeGreaterThan(0);
   });
   it('try to validateJson() - invalid schemaId', async () => {
     const path =
@@ -163,13 +159,13 @@ describe('validate cmd tests', () => {
     const schemaId = 'i-do-not-exists';
     const jsonSchema = (await readJsonFile(path)) as object;
     const valid = validateCmd.validateJson(jsonSchema, schemaId);
-    expect(valid.length).to.be.greaterThan(0);
+    expect(valid.length).toBeGreaterThan(0);
   });
 
   it('validateWorkflowState (success)', async () => {
     const card = validProject.findCard('decision_5');
     const valid = await validateCmd.validateWorkflowState(validProject, card);
-    expect(valid.length).to.equal(0);
+    expect(valid.length).toBe(0);
   });
   it('try to validateWorkflowState - invalid state', async () => {
     const project = getTestProject(
@@ -178,7 +174,7 @@ describe('validate cmd tests', () => {
     await project.populateCaches();
     const card = project.findCard('decision_6');
     const valid = await validateCmd.validateWorkflowState(project, card);
-    expect(valid.length).to.be.greaterThan(0);
+    expect(valid.length).toBeGreaterThan(0);
   });
   it('try to validateWorkflowState - card type not found', async () => {
     const project = getTestProject(
@@ -187,7 +183,7 @@ describe('validate cmd tests', () => {
     await project.populateCaches();
     const card = project.findCard('decision_5');
     const valid = await validateCmd.validateWorkflowState(project, card);
-    expect(valid.length).to.be.greaterThan(0);
+    expect(valid.length).toBeGreaterThan(0);
   });
   it('try to validateWorkflowState - workflow not found from project', async () => {
     const project = getTestProject(
@@ -196,7 +192,7 @@ describe('validate cmd tests', () => {
     await project.populateCaches();
     const card = project.findCard('decision_7');
     const valid = await validateCmd.validateWorkflowState(project, card);
-    expect(valid.length).to.be.greaterThan(0);
+    expect(valid.length).toBeGreaterThan(0);
   });
   it('try to validateWorkflowState - workflow not found from card', async () => {
     const project = getTestProject(
@@ -206,7 +202,7 @@ describe('validate cmd tests', () => {
     const card = project.findCard('decision_8');
     if (card) {
       const valid = await validateCmd.validateWorkflowState(project, card);
-      expect(valid.length).to.be.greaterThan(0);
+      expect(valid.length).toBeGreaterThan(0);
     }
   });
   it('validate card custom fields data (success)', async () => {
@@ -219,7 +215,7 @@ describe('validate cmd tests', () => {
         card,
         allPrefixes,
       );
-      expect(valid.length).to.equal(0);
+      expect(valid.length).toBe(0);
     }
   });
   it('try to validate card custom fields - card type not found', async () => {
@@ -235,7 +231,7 @@ describe('validate cmd tests', () => {
         card,
         allPrefixes,
       );
-      expect(valid.length).to.be.greaterThan(0);
+      expect(valid.length).toBeGreaterThan(0);
     }
   });
   it('try to validate card custom fields - no metadata for the card', async () => {
@@ -245,7 +241,7 @@ describe('validate cmd tests', () => {
       await validateCmd
         .validateCustomFields(validProject, card, allPrefixes)
         .catch((error) =>
-          expect(errorFunction(error)).to.equal(
+          expect(errorFunction(error)).toBe(
             "Card 'decision_5' has no metadata. Card object needs to be instantiated with '{metadata: true}'",
           ),
         );
@@ -277,7 +273,7 @@ describe('validate cmd tests', () => {
       allPrefixes,
     );
 
-    expect(valid.length).to.be.greaterThan(0);
+    expect(valid.length).toBeGreaterThan(0);
     expect(valid).to.include('invalid metadata key');
     expect(valid).to.include(
       '(docs_r0brt7n1,base/fieldTypes/informationClassification)',
@@ -286,7 +282,7 @@ describe('validate cmd tests', () => {
   it('try to validate card custom fields - fieldType not defined in the project', async () => {
     const path = 'test/test-data/invalid/invalid-card-missing-fieldtype';
     const valid = await validateCmd.validate(path, () => getTestProject(path));
-    expect(valid.length).to.be.greaterThan(0);
+    expect(valid.length).toBeGreaterThan(0);
     expect(valid).to.include(
       "Card 'decision_5' has field 'decision/fieldTypes/nonExistentField' that does not exist in the project",
     );
@@ -318,10 +314,10 @@ describe('validate cmd tests', () => {
       "Wrong prefix in resource 'wrong/cardTypesWrong/decisionWrong'. Project prefixes are '[decision]'";
     const expectWrongName = `Resource 'name' wrong/cardTypesWrong/decisionWrong mismatch with file path 'test${sep}test-data${sep}invalid${sep}invalid-wrong-resource-names${sep}.cards${sep}local${sep}cardTypes${sep}decision.json'`;
     const expectWrongType = `Wrong type name in resource 'wrong/cardTypesWrong/decisionWrong'. Should match filename path: 'test${sep}test-data${sep}invalid${sep}invalid-wrong-resource-names${sep}.cards${sep}local${sep}cardTypes${sep}decision.json'`;
-    expect(separatedErrors[0]).to.equal(expectWrongPrefix1);
-    expect(separatedErrors[1]).to.equal(expectWrongPrefix2);
-    expect(separatedErrors[2]).to.equal(expectWrongName);
-    expect(separatedErrors[3]).to.equal(expectWrongType);
+    expect(separatedErrors[0]).toBe(expectWrongPrefix1);
+    expect(separatedErrors[1]).toBe(expectWrongPrefix2);
+    expect(separatedErrors[2]).toBe(expectWrongName);
+    expect(separatedErrors[3]).toBe(expectWrongType);
   });
 
   it('validate that identifier follows naming rules', () => {
@@ -352,11 +348,11 @@ describe('validate cmd tests', () => {
     ];
     for (const name of validNames) {
       const valid = Validate.isValidIdentifierName(name);
-      expect(valid).to.equal(true);
+      expect(valid).toBe(true);
     }
     for (const name of invalidNames) {
       const invalid = Validate.isValidIdentifierName(name);
-      expect(invalid).to.equal(false);
+      expect(invalid).toBe(false);
     }
   });
   it('validate that folder name follows naming rules', () => {
@@ -374,11 +370,11 @@ describe('validate cmd tests', () => {
     const invalidNames: string[] = ['', '.', '..', 'prn', 'aux'];
     for (const name of validNames) {
       const valid = Validate.validateFolder(name);
-      expect(valid).to.equal(true);
+      expect(valid).toBe(true);
     }
     for (const name of invalidNames) {
       const invalid = Validate.validateFolder(name);
-      expect(invalid).to.equal(false);
+      expect(invalid).toBe(false);
     }
   });
   it('validate project names', () => {
@@ -408,11 +404,11 @@ describe('validate cmd tests', () => {
     ];
     for (const name of validNames) {
       const valid = Validate.isValidProjectName(name);
-      expect(valid).to.equal(true);
+      expect(valid).toBe(true);
     }
     for (const name of invalidNames) {
       const invalid = Validate.isValidProjectName(name);
-      expect(invalid).to.equal(false);
+      expect(invalid).toBe(false);
     }
   });
   it('validate label names', () => {
@@ -433,11 +429,11 @@ describe('validate cmd tests', () => {
     const invalidNames: string[] = ['', ' test2', '(test)', '2'.repeat(500)];
     for (const name of validNames) {
       const valid = Validate.isValidLabelName(name);
-      expect(valid).to.equal(true);
+      expect(valid).toBe(true);
     }
     for (const name of invalidNames) {
       const invalid = Validate.isValidLabelName(name);
-      expect(invalid).to.equal(false);
+      expect(invalid).toBe(false);
     }
   });
   it('validate resource names', () => {
@@ -483,56 +479,56 @@ describe('validate cmd tests', () => {
   it('validateResource() - valid fieldType (success)', async () => {
     const resource = resourceName('decision/fieldTypes/admins');
     const result = await validateCmd.validateResource(resource, validProject);
-    expect(result).to.equal('');
-    expect(result.length).to.equal(0);
+    expect(result).toBe('');
+    expect(result.length).toBe(0);
   });
 
   it('validateResource() - valid cardType (success)', async () => {
     const resource = resourceName('decision/cardTypes/decision');
     const result = await validateCmd.validateResource(resource, validProject);
-    expect(result).to.equal('');
-    expect(result.length).to.equal(0);
+    expect(result).toBe('');
+    expect(result.length).toBe(0);
   });
 
   it('validateResource() - valid workflow (success)', async () => {
     const resource = resourceName('decision/workflows/decision');
     const result = await validateCmd.validateResource(resource, validProject);
-    expect(result).to.equal('');
-    expect(result.length).to.equal(0);
+    expect(result).toBe('');
+    expect(result.length).toBe(0);
   });
 
   it('validateResource() - valid template (success)', async () => {
     const resource = resourceName('decision/templates/decision');
     const result = await validateCmd.validateResource(resource, validProject);
-    expect(result).to.equal('');
-    expect(result.length).to.equal(0);
+    expect(result).toBe('');
+    expect(result.length).toBe(0);
   });
 
   it('validateResource() - valid linkType (success)', async () => {
     const resource = resourceName('decision/linkTypes/test');
     const result = await validateCmd.validateResource(resource, validProject);
-    expect(result).to.equal('');
-    expect(result.length).to.equal(0);
+    expect(result).toBe('');
+    expect(result.length).toBe(0);
   });
 
   it('validateResource() - valid report (success)', async () => {
     const resource = resourceName('decision/reports/testReport');
     const result = await validateCmd.validateResource(resource, validProject);
-    expect(result).to.equal('');
-    expect(result.length).to.equal(0);
+    expect(result).toBe('');
+    expect(result.length).toBe(0);
   });
 
   it('validateResource() - valid graphModel (success)', async () => {
     const resource = resourceName('decision/graphModels/test');
     const result = await validateCmd.validateResource(resource, validProject);
-    expect(result).to.equal('');
-    expect(result.length).to.equal(0);
+    expect(result).toBe('');
+    expect(result.length).toBe(0);
   });
 
   it('validateResource() - valid graphView (success)', async () => {
     const resource = resourceName('decision/graphViews/test');
     const result = await validateCmd.validateResource(resource, validProject);
-    expect(result).to.equal('');
-    expect(result.length).to.equal(0);
+    expect(result).toBe('');
+    expect(result.length).toBe(0);
   });
 });
