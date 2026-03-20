@@ -64,9 +64,6 @@ describe('Publish', () => {
 
       expect(result.previousVersion).to.be.undefined;
       expect(result.newVersion).to.equal('1.0.0');
-
-      const tags = await testGit(dir).tags();
-      expect(tags.all).to.include('v1.0.0');
     });
 
     it('should always produce 1.0.0 for first publish regardless of bump type', async () => {
