@@ -89,11 +89,7 @@ export class GitManager {
 
   /** List all version tags (v*) sorted by version descending. */
   async listVersionTags(): Promise<string[]> {
-    const result = await this.git.tags([
-      '--list',
-      'v*',
-      '--sort=-v:refname',
-    ]);
+    const result = await this.git.tags(['--list', 'v*', '--sort=-v:refname']);
     return result.all;
   }
 
