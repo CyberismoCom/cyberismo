@@ -318,7 +318,6 @@ async function main() {
 
     // rendering for c-api
     {
-      swapToOldQL(bf);
       const cardsWithContent = commands.project.cards(undefined, { metadata: true, content: true });
       const riskCardContent = cardsWithContent.find(
         (c) => c.metadata?.cardType === CARD_TYPES.riskTask,
@@ -351,7 +350,6 @@ async function main() {
           wallClockMs,
         });
       }
-      restoreCurrentQL();
       console.error(`    rendering: ${RUNS_PER_POINT} runs done`);
     }
 
