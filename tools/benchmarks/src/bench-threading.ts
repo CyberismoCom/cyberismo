@@ -31,7 +31,6 @@ async function main() {
   const commands = await CommandManager.getInstance(tmpDir);
   setPreParsing(true);
   await commands.calculateCmd.generate();
-  setPreParsing(false);
 
   const treeQuery = Handlebars.compile(lpFiles.queries.tree)({});
   const projectId = commands.project.projectPrefix;
@@ -154,7 +153,6 @@ async function main() {
   // Restore defaults
   setAsyncSolve(true);
   setCacheEnabled(true);
-  setPreParsing(false);
   await cleanupScaledProject(tmpDir);
 
   const benchResult: BenchmarkResult = {
