@@ -1,0 +1,9 @@
+[submodule "masters-thesis"]
+	path = masters-thesis
+	url = git@github.com:samutoljamo/masters-thesis.git
+[submodule "module-eu-cra"]
+	path = module-eu-cra
+	url = git@github.com:CyberismoCom/module-eu-cra.git
+[submodule "clingo"]
+	path = tools/node-clingo/external/clingo
+	url = git@github.com:potassco/clingo.git
