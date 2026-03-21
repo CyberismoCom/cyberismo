@@ -35,10 +35,10 @@ export async function writeResults(
 
 export function toCsv(runs: BenchmarkRun[]): string {
   const header =
-    'method,feature,variant,project,cardCount,run,glueUs,addUs,groundUs,solveUs,totalUs,cacheHit,wallClockMs';
+    'method,feature,variant,query,project,cardCount,run,glueUs,addUs,groundUs,solveUs,totalUs,cacheHit,wallClockMs';
   const rows = runs.map(
     (r) =>
-      `${r.method},${r.feature},${r.variant},${r.project},${r.cardCount},${r.run},${r.glueUs},${r.addUs},${r.groundUs},${r.solveUs},${r.totalUs},${r.cacheHit},${r.wallClockMs ?? ''}`,
+      `${r.method},${r.feature},${r.variant},${r.query ?? ''},${r.project},${r.cardCount},${r.run},${r.glueUs},${r.addUs},${r.groundUs},${r.solveUs},${r.totalUs},${r.cacheHit},${r.wallClockMs ?? ''}`,
   );
   return [header, ...rows].join('\n') + '\n';
 }
