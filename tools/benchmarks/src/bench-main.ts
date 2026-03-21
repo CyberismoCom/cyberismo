@@ -376,6 +376,10 @@ async function main() {
       console.error(`    ${queryName}: ${RUNS_PER_POINT} runs done`);
     }
 
+    // Note: no rendering query for c-api+resultfield — rendering (evaluateMacros)
+    // is only measured for c-api and c-api+aspif (per spec). baseline+resultfield
+    // provides a wall-clock reference via solveBinary.
+
     // ── VARIANT: c-api+aspif (native + current QL + pre-parsing) ──────────
     console.error('  variant: c-api+aspif');
     setCacheEnabled(true);
