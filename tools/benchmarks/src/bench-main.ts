@@ -175,6 +175,7 @@ async function main() {
   const treeQuery = compileTreeQuery();
 
   setCacheEnabled(false);
+  setPreParsing(true); // warm up with default pre-parsing state
   for (let i = 0; i < WARMUP_RUNS; i++) {
     await solve(treeQuery, ['all']);
     console.error(`  warmup ${i + 1}/${WARMUP_RUNS}`);
@@ -439,8 +440,12 @@ async function main() {
     console.error('  variant: incremental');
     removeProgram('queryLanguage');
     removeProgram('utils');
-    const baseProgram = buildProgram('', ['all']);
-    restoreCurrentQL(); // restore immediately after buildProgram
+    let baseProgram: string;
+    try {
+      baseProgram = buildProgram('', ['all']);
+    } finally {
+      restoreCurrentQL(); // always restore, even if buildProgram throws
+    }
 
     for (const [queryName, cardKey] of [
       ['tree', ''] as const,
