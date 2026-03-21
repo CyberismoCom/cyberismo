@@ -22,7 +22,7 @@ const RUNS = 10;           // number of Promise.all batches
 const WARMUP_RUNS = 3;     // individual warm-up solves
 const CONCURRENCY = 8;     // simultaneous solves per batch
 const SCALE = 25000;       // fixed card count
-const TEMPLATE = 'project';
+const TEMPLATE = 'eucra/templates/project';
 
 async function main() {
   console.error(`Scaling project to ${SCALE} cards...`);
