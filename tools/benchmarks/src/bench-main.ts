@@ -332,7 +332,14 @@ async function main() {
       for (let run = 1; run <= RUNS_PER_POINT; run++) {
         clearCache();
         const start = performance.now();
-        await evaluateMacros(riskCardContent?.content ?? '', ctx);
+        // Strip {{#graph}} blocks — graphviz rendering is not Clingo work and
+        // its WASM can abort the process. The rendering benchmark measures
+        // evaluateMacros pipeline cost (createCards + report macros), not SVG rendering.
+        const contentNoGraph = (riskCardContent?.content ?? '').replace(
+          /\{\{#graph\}\}[\s\S]*?\{\{\/graph\}\}/g,
+          '',
+        );
+        await evaluateMacros(contentNoGraph, ctx);
         const wallClockMs = performance.now() - start;
         allRuns.push({
           method: 'native',
@@ -417,7 +424,11 @@ async function main() {
       for (let run = 1; run <= RUNS_PER_POINT; run++) {
         clearCache();
         const start = performance.now();
-        await evaluateMacros(riskCardContent?.content ?? '', ctx);
+        const contentNoGraph = (riskCardContent?.content ?? '').replace(
+          /\{\{#graph\}\}[\s\S]*?\{\{\/graph\}\}/g,
+          '',
+        );
+        await evaluateMacros(contentNoGraph, ctx);
         const wallClockMs = performance.now() - start;
         allRuns.push({
           method: 'native',
