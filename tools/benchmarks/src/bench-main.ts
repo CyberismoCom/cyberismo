@@ -34,13 +34,13 @@ const WARMUP_RUNS = 3;
 const SCALE_MIN = 1000;
 const SCALE_MAX = 50000;
 const SCALE_STEP = 1000;
-const TEMPLATE = 'eucra/templates/project';
+const TEMPLATE = 'secdeva/templates/project';
 
 const CARD_TYPES = {
   leafTask: 'base/cardTypes/annualTask',
-  phase: 'eucra/cardTypes/phase',
+  phase: 'secdeva/cardTypes/page',
   riskTask: 'base/cardTypes/quarterlyTask',
-  projectRoot: 'eucra/cardTypes/project',
+  projectRoot: 'secdeva/cardTypes/project',
 } as const;
 
 // ── Baseline LP files ────────────────────────────────────────────────────────

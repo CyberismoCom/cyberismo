@@ -23,7 +23,7 @@ const WARMUP_RUNS = 3;
 const SCALE_MIN = 1000;
 const SCALE_MAX = 50000;
 const SCALE_STEP = 1000;
-const TEMPLATE = 'eucra/templates/project';
+const TEMPLATE = 'secdeva/templates/project';
 
 async function main() {
   const allRuns: BenchmarkRun[] = [];
