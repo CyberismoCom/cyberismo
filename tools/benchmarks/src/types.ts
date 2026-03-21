@@ -1,7 +1,8 @@
 export interface BenchmarkRun {
   method: string;
   feature: string;
-  variant: string; // 'baseline' or 'treatment'
+  variant: string;
+  query?: string; // query target name (e.g. 'tree', 'card-leaf-task', 'rendering')
   project: string;
   cardCount: number;
   run: number;
