@@ -83,7 +83,8 @@ namespace node_clingo
                         Clingo::AST::parse_string(program->content.c_str(),
                             [&builder](Clingo::AST::Node node) {
                                 builder.add(node);
-                            });
+                            },
+                            logger);
                     }
                 }
             });

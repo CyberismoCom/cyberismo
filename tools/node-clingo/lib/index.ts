@@ -118,7 +118,7 @@ async function solve(
         program?: string;
       };
 
-      if (error.message === 'parsing failed' && program) {
+      if ((error.message === 'parsing failed' || error.message === 'syntax error') && program) {
         throw new ClingoError(
           `Parsing failed when processing program '${program === '__program__' ? 'main program' : program}' with errors: ${errors.join(', ')}`,
           { errors, warnings, program },
