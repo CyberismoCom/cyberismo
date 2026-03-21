@@ -7,7 +7,12 @@ let outputPath = 'results-combined.csv';
 const rawArgs = process.argv.slice(2);
 const outputIdx = rawArgs.indexOf('--output');
 if (outputIdx !== -1) {
-  outputPath = rawArgs[outputIdx + 1];
+  const outputArg = rawArgs[outputIdx + 1];
+  if (!outputArg || outputArg.startsWith('-')) {
+    console.error('--output requires a path argument');
+    process.exit(1);
+  }
+  outputPath = outputArg;
   rawArgs.splice(outputIdx, 2);
 }
 const inputPaths = rawArgs;
