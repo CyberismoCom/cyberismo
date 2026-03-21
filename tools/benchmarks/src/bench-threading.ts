@@ -3,6 +3,7 @@ import {
   solve,
   setCacheEnabled,
   setAsyncSolve,
+  setPreParsing,
 } from '@cyberismo/node-clingo';
 import { lpFiles } from '@cyberismo/assets';
 import Handlebars from 'handlebars';
@@ -20,15 +21,17 @@ if (!projectPath) {
 
 const RUNS = 10;           // number of Promise.all batches
 const WARMUP_RUNS = 3;     // individual warm-up solves
-const CONCURRENCY = 8;     // simultaneous solves per batch
-const SCALE = 25000;       // fixed card count
+const CONCURRENCY = 64;     // simultaneous solves per batch
+const SCALE = 2000;       // fixed card count
 const TEMPLATE = 'secdeva/templates/project';
 
 async function main() {
   console.error(`Scaling project to ${SCALE} cards...`);
   const tmpDir = await scaleProject(projectPath, SCALE, TEMPLATE);
   const commands = await CommandManager.getInstance(tmpDir);
+  setPreParsing(true);
   await commands.calculateCmd.generate();
+  setPreParsing(false);
 
   const treeQuery = Handlebars.compile(lpFiles.queries.tree)({});
   const projectId = commands.project.projectPrefix;
@@ -151,6 +154,7 @@ async function main() {
   // Restore defaults
   setAsyncSolve(true);
   setCacheEnabled(true);
+  setPreParsing(false);
   await cleanupScaledProject(tmpDir);
 
   const benchResult: BenchmarkResult = {
