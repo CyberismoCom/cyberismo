@@ -12,8 +12,16 @@
 */
 #include "clingo_solver.h"
 
+#include <mutex>
+
 namespace node_clingo
 {
+
+    // Clingo's AST builder and symbol table use non-thread-safe global state.
+    // Concurrent calls to with_builder/parse_string from worker threads cause
+    // data races and eventual SIGSEGV. Serialize only the AST-loading phase;
+    // the expensive ground() and solve() steps still run concurrently.
+    static std::mutex g_ast_mutex;
 
     bool ClingoSolver::on_model(Clingo::Model& model)
     {
@@ -67,27 +75,30 @@ namespace node_clingo
 
             std::vector<Clingo::Part> parts;
 
-            Clingo::AST::with_builder(ctl, [&](Clingo::AST::ProgramBuilder& builder) {
-                for (const auto& program : query.programs)
-                {
-                    currentKey = program->key;
-                    if (!program->ast_nodes.empty())
+            {
+                std::lock_guard<std::mutex> lock(g_ast_mutex);
+                Clingo::AST::with_builder(ctl, [&](Clingo::AST::ProgramBuilder& builder) {
+                    for (const auto& program : query.programs)
                     {
-                        for (const auto& node : program->ast_nodes)
+                        currentKey = program->key;
+                        if (!program->ast_nodes.empty())
                         {
-                            builder.add(node);
+                            for (const auto& node : program->ast_nodes)
+                            {
+                                builder.add(node);
+                            }
+                        }
+                        else
+                        {
+                            Clingo::AST::parse_string(program->content.c_str(),
+                                [&builder](Clingo::AST::Node node) {
+                                    builder.add(node);
+                                },
+                                logger);
                         }
                     }
-                    else
-                    {
-                        Clingo::AST::parse_string(program->content.c_str(),
-                            [&builder](Clingo::AST::Node node) {
-                                builder.add(node);
-                            },
-                            logger);
-                    }
-                }
-            });
+                });
+            }
             parts.emplace_back("base", Clingo::SymbolSpan{});
 
             auto t2 = std::chrono::high_resolution_clock::now();

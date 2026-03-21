@@ -1,5 +1,6 @@
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import { writeFile, mkdtemp, rm } from 'node:fs/promises';
+import { createWriteStream } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { promisify } from 'node:util';
@@ -89,14 +90,22 @@ export async function solveWithPregrounding(
   await writeFile(baseFile, baseProgram);
   await writeFile(queryFile, queryProgram);
 
-  // Step 1: Preground base with gringo
+  // Step 1: Preground base with gringo — pipe stdout directly to file to avoid maxBuffer overflow
   const gringoStart = performance.now();
   try {
-    const gringoResult = await execFileAsync('gringo', [
-      baseFile,
-      '--output=smodels',
-    ]);
-    await writeFile(aspifFile, gringoResult.stdout);
+    await new Promise<void>((resolve, reject) => {
+      const outStream = createWriteStream(aspifFile);
+      const proc = spawn('gringo', [baseFile, '--output=smodels']);
+      proc.stdout.pipe(outStream);
+      let stderr = '';
+      proc.stderr.on('data', (chunk: Buffer) => (stderr += chunk.toString()));
+      proc.on('error', reject);
+      proc.on('close', (code) => {
+        outStream.close();
+        if (code === 0) resolve();
+        else reject(new Error(`gringo exited ${code}: ${stderr}`));
+      });
+    });
   } catch (error: unknown) {
     await rm(tmpDir, { recursive: true, force: true });
     throw new Error(
