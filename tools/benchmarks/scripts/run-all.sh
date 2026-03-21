@@ -26,7 +26,7 @@ echo "--- bench-caching (miss overhead + hit savings) ---"
 
 echo ""
 echo "--- bench-threading (async vs sync at ~25k cards) ---"
-UV_THREADPOOL_SIZE=16 "$TSX" "$BENCH_DIR/src/bench-threading.ts" "$PROJECT_PATH" "$OUTPUT_DIR/threading.json"
+UV_THREADPOOL_SIZE=$(nproc) "$TSX" "$BENCH_DIR/src/bench-threading.ts" "$PROJECT_PATH" "$OUTPUT_DIR/threading.json"
 
 echo ""
 echo "--- aggregate (JSON → combined CSV) ---"
