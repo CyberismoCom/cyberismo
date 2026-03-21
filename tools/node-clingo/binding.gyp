@@ -89,7 +89,14 @@
         }],
         ["OS!='win' and OS!='mac'", {
           "libraries": [
-            "-lclingo"
+            "<(module_root_dir)/external/clingo/install/lib64/libclingo.a",
+            "<(module_root_dir)/external/clingo/install/lib64/libgringo.a",
+            "<(module_root_dir)/external/clingo/install/lib64/libreify.a",
+            "<(module_root_dir)/external/clingo/install/lib64/libclasp.a",
+            "<(module_root_dir)/external/clingo/install/lib64/libpotassco.a"
+          ],
+          "include_dirs": [
+            "<(module_root_dir)/external/clingo/install/include"
           ]
         }]
       ]
