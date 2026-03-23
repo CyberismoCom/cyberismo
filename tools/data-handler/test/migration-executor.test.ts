@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 
 import { join } from 'node:path';
 import { mkdirSync, rmSync, readdirSync, existsSync } from 'node:fs';
@@ -44,15 +44,6 @@ class TestMigrationExecutor extends MigrationExecutor {
 
   // Override to load from test migrations directory
   protected loadMigration(version: number): Migration | undefined {
-    const migrationPath = join(
-      this.testMigrationsPath,
-      version.toString(),
-      'index.js',
-    );
-    if (!existsSync(migrationPath)) {
-      return undefined;
-    }
-
     return {
       migrate: async () => ({ success: true }),
       before:
@@ -134,25 +125,23 @@ describe('MigrationExecutor', () => {
   it('should discover available migrations', () => {
     const executor = new TestMigrationExecutor(project, testMigrationsPath);
     const migrations = executor.discoverMigrationsPublic(1, 4);
-    expect(migrations).to.deep.equal([2, 3, 4]);
+    expect(migrations).toEqual([2, 3, 4]);
   });
 
   it('should discover migrations in correct range', () => {
     const executor = new TestMigrationExecutor(project, testMigrationsPath);
     const migrations = executor.discoverMigrationsPublic(2, 3);
-    expect(migrations).to.deep.equal([3]);
+    expect(migrations).toEqual([3]);
   });
 
   it('should load migration module', async () => {
     const executor = new TestMigrationExecutor(project, testMigrationsPath);
     const migration = await executor.loadMigrationPublic(2);
-    expect(migration).to.not.equal(undefined);
-    if (migration) {
-      expect(migration.migrate).to.be.a('function');
-      expect(migration.before).to.be.a('function');
-      expect(migration.backup).to.be.a('function');
-      expect(migration.after).to.be.a('function');
-    }
+
+    expect(typeof migration!.migrate).toBe('function');
+    expect(typeof migration!.before).toBe('function');
+    expect(typeof migration!.backup).toBe('function');
+    expect(typeof migration!.after).toBe('function');
   });
 
   it('should execute successful migration', async () => {
@@ -163,16 +152,16 @@ describe('MigrationExecutor', () => {
     };
     const result = await executor.migrate(1, 2, updateCallback);
 
-    expect(result.success).to.equal(true);
-    expect(updatedVersion).to.equal(2);
-    expect(result.stepsExecuted).to.include('pre-validation');
-    expect(result.stepsExecuted).to.include('disk-space-check');
-    expect(result.stepsExecuted).to.include('migration-versions');
-    expect(result.stepsExecuted).to.include('v2:before');
-    expect(result.stepsExecuted).to.include('v2:migrate');
-    expect(result.stepsExecuted).to.include('v2:after');
-    expect(result.stepsExecuted).to.include('v2:update-version');
-    expect(result.stepsExecuted).to.include('v2:validate');
+    expect(result.success).toBe(true);
+    expect(updatedVersion).toBe(2);
+    expect(result.stepsExecuted).toContain('pre-validation');
+    expect(result.stepsExecuted).toContain('disk-space-check');
+    expect(result.stepsExecuted).toContain('migration-versions');
+    expect(result.stepsExecuted).toContain('v2:before');
+    expect(result.stepsExecuted).toContain('v2:migrate');
+    expect(result.stepsExecuted).toContain('v2:after');
+    expect(result.stepsExecuted).toContain('v2:update-version');
+    expect(result.stepsExecuted).toContain('v2:validate');
   });
 
   it('should execute migration without optional steps', async () => {
@@ -182,19 +171,19 @@ describe('MigrationExecutor', () => {
       updatedVersion = version;
     };
     const result = await executor.migrate(3, 4, updateCallback);
-    expect(result.success).to.equal(true);
-    expect(updatedVersion).to.equal(4);
-    expect(result.stepsExecuted).to.include('v4:migrate');
-    expect(result.stepsExecuted).to.not.include('v4:before');
-    expect(result.stepsExecuted).to.not.include('v4:after');
+    expect(result.success).toBe(true);
+    expect(updatedVersion).toBe(4);
+    expect(result.stepsExecuted).toContain('v4:migrate');
+    expect(result.stepsExecuted).not.toContain('v4:before');
+    expect(result.stepsExecuted).not.toContain('v4:after');
   });
 
   it('should skip backup if backupDir not provided', async () => {
     const executor = new TestMigrationExecutor(project, testMigrationsPath);
     const result = await executor.migrate(1, 2, defaultCallback);
 
-    expect(result.success).to.equal(true);
-    expect(result.stepsExecuted).to.not.include('v2:backup');
+    expect(result.success).toBe(true);
+    expect(result.stepsExecuted).not.toContain('v2:backup');
   });
 
   it('should include backup when backupDir provided', async () => {
@@ -206,25 +195,25 @@ describe('MigrationExecutor', () => {
       backupDir,
     );
     const result = await executor.migrate(1, 2, defaultCallback);
-    expect(result.success).to.equal(true);
-    expect(result.stepsExecuted).to.include('v2:backup');
+    expect(result.success).toBe(true);
+    expect(result.stepsExecuted).toContain('v2:backup');
   });
 
   it('should fail when migration before() fails', async () => {
     const executor = new TestMigrationExecutor(project, testMigrationsPath);
     const result = await executor.migrate(2, 3, defaultCallback);
-    expect(result.success).to.equal(false);
-    expect(result.message).to.include('Before step failed intentionally');
-    expect(result.stepsExecuted).to.include('pre-validation');
-    expect(result.stepsExecuted).to.include('disk-space-check');
-    expect(result.stepsExecuted).to.include('migration-versions');
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('Before step failed intentionally');
+    expect(result.stepsExecuted).toContain('pre-validation');
+    expect(result.stepsExecuted).toContain('disk-space-check');
+    expect(result.stepsExecuted).toContain('migration-versions');
   });
 
   it('should reject when fromVersion >= toVersion', async () => {
     const executor = new TestMigrationExecutor(project, testMigrationsPath);
     const result = await executor.migrate(2, 2, defaultCallback);
-    expect(result.success).to.equal(false);
-    expect(result.message).to.include('not lower than target version');
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('not lower than target version');
   });
 
   it('should execute multiple migrations sequentially', async () => {
@@ -235,9 +224,9 @@ describe('MigrationExecutor', () => {
     };
 
     const result = await executor.migrate(1, 2, updateCallback);
-    expect(result.success).to.equal(true);
-    expect(versions).to.deep.equal([2]);
-    expect(result.stepsExecuted).to.include('v2:migrate');
+    expect(result.success).toBe(true);
+    expect(versions).toEqual([2]);
+    expect(result.stepsExecuted).toContain('v2:migrate');
   });
 
   it('should abort migration if insufficient disk space is detected', async () => {
@@ -272,26 +261,26 @@ describe('MigrationExecutor', () => {
     );
     const result = await executor.migrate(1, 2, defaultCallback);
 
-    expect(result.success).to.equal(false);
-    expect(result.message).to.include('Insufficient disk space');
-    expect(result.message).to.include('Required:');
-    expect(result.message).to.include('Available:');
-    expect(result.stepsExecuted).to.include('pre-validation');
-    expect(result.stepsExecuted).to.not.include('disk-space-check');
-    expect(result.stepsExecuted).to.not.include('migration-versions');
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('Insufficient disk space');
+    expect(result.message).toContain('Required:');
+    expect(result.message).toContain('Available:');
+    expect(result.stepsExecuted).toContain('pre-validation');
+    expect(result.stepsExecuted).not.toContain('disk-space-check');
+    expect(result.stepsExecuted).not.toContain('migration-versions');
   });
 
   it('should fail to load a migration module without valid Migration object', async () => {
     const executor = new TestMigrationExecutor(project, testMigrationsPath);
     // Try to load a non-existent migration (version 999)
     const migration = await executor.loadMigrationPublic(999);
-    expect(migration).to.equal(undefined);
+    expect(migration).toBeUndefined();
   });
 
   it('should fail to load a migration module missing "migrate()" method', async () => {
     const executor = new TestMigrationExecutor(project, testMigrationsPath);
     // Version 5 is a migration module that exists but doesn't have migrate()
     const migration = await executor.loadMigrationPublic(5);
-    expect(migration).to.equal(undefined);
+    expect(migration).toBeUndefined();
   });
 });
