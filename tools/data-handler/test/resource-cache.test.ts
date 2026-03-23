@@ -6,12 +6,10 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { CommandManager } from '../src/command-manager.js';
 import { copyDir, pathExists } from '../src/utils/file-utils.js';
 import type { Project } from '../src/containers/project.js';
-import {
-  ResourceCache,
-  ResourcesFrom,
-} from '../src/containers/project/resource-cache.js';
+import { ResourceCache } from '../src/containers/project/resource-cache.js';
 import { getTestProject } from './helpers/test-utils.js';
 import { WorkflowCategory } from '../src/interfaces/resource-interfaces.js';
+import { ResourcesFrom } from '../src/containers/project/resources-from.js';
 
 describe('Resource cache', () => {
   const baseDir = import.meta.dirname;

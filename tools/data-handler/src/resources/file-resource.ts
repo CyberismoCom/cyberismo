@@ -13,7 +13,7 @@
 
 import { resourceName } from '../utils/resource-utils.js';
 import { ResourceObject } from './resource-object.js';
-import { ResourcesFrom } from '../containers/project.js';
+import { ResourcesFrom } from '../containers/project/resources-from.js';
 
 import type {
   Card,

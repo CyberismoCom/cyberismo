@@ -68,13 +68,6 @@ export type SafeExtract<T extends string> =
     ? ExtractResourceType<T>
     : never;
 
-// Defines where resources are collected from.
-export enum ResourcesFrom {
-  all = 'all',
-  importedOnly = 'imported',
-  localOnly = 'local',
-}
-
 // Resource as stored in the instance cache.
 interface ResourceMetadata {
   name: string;

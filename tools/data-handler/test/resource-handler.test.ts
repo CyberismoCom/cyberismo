@@ -7,7 +7,7 @@ import { copyDir } from '../src/utils/file-utils.js';
 import { getTestProject } from './helpers/test-utils.js';
 import type { Project } from '../src/containers/project.js';
 import { ResourceHandler } from '../src/containers/project/resource-handler.js';
-import { ResourcesFrom } from '../src/containers/project/resource-cache.js';
+import { ResourcesFrom } from '../src/containers/project/resources-from.js';
 
 describe('ResourceHandler', () => {
   const baseDir = import.meta.dirname;

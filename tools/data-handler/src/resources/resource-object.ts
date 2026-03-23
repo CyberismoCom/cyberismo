@@ -30,7 +30,7 @@ import {
   resourceNameToString,
   type ResourceName,
 } from '../utils/resource-utils.js';
-import { ResourcesFrom } from '../containers/project.js';
+import { ResourcesFrom } from '../containers/project/resources-from.js';
 
 import type {
   Card,

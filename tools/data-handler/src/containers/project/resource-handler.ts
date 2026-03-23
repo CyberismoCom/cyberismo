@@ -12,15 +12,12 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  ResourceCache,
-  ResourcesFrom,
-  type ResourceMap,
-} from './resource-cache.js';
+import { ResourceCache, type ResourceMap } from './resource-cache.js';
 import { resourceName } from '../../utils/resource-utils.js';
 import type { Project } from '../project.js';
 import type { ResourceFolderType } from '../../interfaces/project-interfaces.js';
 import type { ResourceName } from '../../utils/resource-utils.js';
+import { ResourcesFrom } from './resources-from.js';
 
 // Convert singular forms to plural. Uses real type, so cannot be general.
 export const singularToPluralResourceType: Record<string, keyof ResourceMap> = {

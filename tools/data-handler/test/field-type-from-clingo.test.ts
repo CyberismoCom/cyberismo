@@ -14,93 +14,88 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { expect } from 'chai';
+import { expect, it, describe } from 'vitest';
 
-import { deepCompare } from '../src/utils/common-utils.js';
 import { FieldTypeResource as FT } from '../src/resources/field-type-resource.js';
 
 describe('clingo results to fieldType dataType', () => {
   it('convert to boolean', () => {
-    expect(FT.fromClingoResult('true', 'boolean')).to.equal(true);
-    expect(FT.fromClingoResult('false', 'boolean')).to.equal(false);
-    expect(FT.fromClingoResult('other', 'boolean')).to.equal(false);
-    expect(FT.fromClingoResult('null', 'boolean')).to.equal(null);
-    expect(FT.fromClingoResult('', 'boolean')).to.equal('');
+    expect(FT.fromClingoResult('true', 'boolean')).toBe(true);
+    expect(FT.fromClingoResult('false', 'boolean')).toBe(false);
+    expect(FT.fromClingoResult('other', 'boolean')).toBe(false);
+    expect(FT.fromClingoResult('null', 'boolean')).toBe(null);
+    expect(FT.fromClingoResult('', 'boolean')).toBe('');
   });
   it('convert to number', () => {
-    expect(FT.fromClingoResult('1', 'number')).to.equal(1);
-    expect(FT.fromClingoResult('-1', 'number')).to.equal(-1);
-    expect(FT.fromClingoResult('1.4', 'number')).to.equal(1.4);
-    expect(FT.fromClingoResult('-1.4000001', 'number')).to.equal(-1.4000001);
-    expect(FT.fromClingoResult('null', 'number')).to.equal(null);
-    expect(FT.fromClingoResult('', 'number')).to.equal('');
+    expect(FT.fromClingoResult('1', 'number')).toBe(1);
+    expect(FT.fromClingoResult('-1', 'number')).toBe(-1);
+    expect(FT.fromClingoResult('1.4', 'number')).toBe(1.4);
+    expect(FT.fromClingoResult('-1.4000001', 'number')).toBe(-1.4000001);
+    expect(FT.fromClingoResult('null', 'number')).toBe(null);
+    expect(FT.fromClingoResult('', 'number')).toBe('');
   });
   it('convert to integer', () => {
-    expect(FT.fromClingoResult('1', 'integer')).to.equal(1);
-    expect(FT.fromClingoResult('-1', 'integer')).to.equal(-1);
-    expect(FT.fromClingoResult('1.4', 'integer')).to.equal(1);
-    expect(FT.fromClingoResult('-1.4000001', 'integer')).to.equal(-1);
-    expect(FT.fromClingoResult('null', 'integer')).to.equal(null);
-    expect(FT.fromClingoResult('', 'integer')).to.equal('');
+    expect(FT.fromClingoResult('1', 'integer')).toBe(1);
+    expect(FT.fromClingoResult('-1', 'integer')).toBe(-1);
+    expect(FT.fromClingoResult('1.4', 'integer')).toBe(1);
+    expect(FT.fromClingoResult('-1.4000001', 'integer')).toBe(-1);
+    expect(FT.fromClingoResult('null', 'integer')).toBe(null);
+    expect(FT.fromClingoResult('', 'integer')).toBe('');
   });
   it('convert to shortText', () => {
-    expect(FT.fromClingoResult('abc', 'shortText')).to.equal('abc');
-    expect(FT.fromClingoResult('abc abc', 'shortText')).to.equal('abc abc');
-    expect(FT.fromClingoResult('ß', 'shortText')).to.equal('ß');
-    expect(FT.fromClingoResult('null', 'shortText')).to.equal(null);
-    expect(FT.fromClingoResult('', 'shortText')).to.equal('');
+    expect(FT.fromClingoResult('abc', 'shortText')).toBe('abc');
+    expect(FT.fromClingoResult('abc abc', 'shortText')).toBe('abc abc');
+    expect(FT.fromClingoResult('ß', 'shortText')).toBe('ß');
+    expect(FT.fromClingoResult('null', 'shortText')).toBe(null);
+    expect(FT.fromClingoResult('', 'shortText')).toBe('');
   });
   it('convert to longText', () => {
     const veryLongText =
       '0123456789_0123456789_0123456789_0123456789_0123456789_0123456789_0123456789_0123456789_0123456789_0123456789_0123456789_0123456789_0123456789_0123456789_0123456789_0123456789_0123456789_0123456789_0123456789_0123456789_0123456789_0123456789_';
-    expect(FT.fromClingoResult('abc', 'longText')).to.equal('abc');
-    expect(FT.fromClingoResult('abc abc', 'longText')).to.equal('abc abc');
-    expect(FT.fromClingoResult(veryLongText, 'longText')).to.equal(
-      veryLongText,
-    );
-    expect(FT.fromClingoResult('ß', 'longText')).to.equal('ß');
-    expect(FT.fromClingoResult('null', 'longText')).to.equal(null);
-    expect(FT.fromClingoResult('', 'longText')).to.equal('');
+    expect(FT.fromClingoResult('abc', 'longText')).toBe('abc');
+    expect(FT.fromClingoResult('abc abc', 'longText')).toBe('abc abc');
+    expect(FT.fromClingoResult(veryLongText, 'longText')).toBe(veryLongText);
+    expect(FT.fromClingoResult('ß', 'longText')).toBe('ß');
+    expect(FT.fromClingoResult('null', 'longText')).toBe(null);
+    expect(FT.fromClingoResult('', 'longText')).toBe('');
   });
   it('convert enum', () => {
-    expect(FT.fromClingoResult('option1', 'enum')).to.equal('option1');
-    expect(FT.fromClingoResult('null', 'enum')).to.equal(null);
-    expect(FT.fromClingoResult('', 'enum')).to.equal('');
+    expect(FT.fromClingoResult('option1', 'enum')).toBe('option1');
+    expect(FT.fromClingoResult('null', 'enum')).toBe(null);
+    expect(FT.fromClingoResult('', 'enum')).toBe('');
   });
   it('convert list', () => {
-    expect(
-      deepCompare(FT.fromClingoResult('(option1, option2)', 'list'), [
-        'option1',
-        'option2',
-      ]),
-    ).to.equal(true);
-    expect(deepCompare(FT.fromClingoResult('()', 'list'), [])).to.equal(true);
-    expect(FT.fromClingoResult('null', 'list')).to.equal(null);
-    expect(FT.fromClingoResult('', 'list')).to.equal('');
+    expect(FT.fromClingoResult('(option1, option2)', 'list')).toEqual([
+      'option1',
+      'option2',
+    ]);
+    expect(FT.fromClingoResult('()', 'list')).toEqual([]);
+    expect(FT.fromClingoResult('null', 'list')).toBe(null);
+    expect(FT.fromClingoResult('', 'list')).toBe('');
   });
   it('convert date', () => {
     const epoch = new Date('1973-01-01').toISOString();
-    expect(FT.fromClingoResult(epoch, 'date')).to.equal('1973-01-01');
-    expect(FT.fromClingoResult('1972', 'date')).to.equal('1972-01-01');
-    expect(FT.fromClingoResult('null', 'date')).to.equal(null);
-    expect(FT.fromClingoResult('', 'date')).to.equal('');
+    expect(FT.fromClingoResult(epoch, 'date')).toBe('1973-01-01');
+    expect(FT.fromClingoResult('1972', 'date')).toBe('1972-01-01');
+    expect(FT.fromClingoResult('null', 'date')).toBe(null);
+    expect(FT.fromClingoResult('', 'date')).toBe('');
   });
   it('convert dateTime', () => {
     const epoch = new Date('1973-01-01').toISOString();
-    expect(FT.fromClingoResult(epoch, 'dateTime')).to.equal(
+    expect(FT.fromClingoResult(epoch, 'dateTime')).toBe(
       '1973-01-01T00:00:00.000Z',
     );
-    expect(FT.fromClingoResult('null', 'dateTime')).to.equal(null);
-    expect(FT.fromClingoResult('', 'dateTime')).to.equal('');
+    expect(FT.fromClingoResult('null', 'dateTime')).toBe(null);
+    expect(FT.fromClingoResult('', 'dateTime')).toBe('');
   });
   it('convert person', () => {
     const person = 'person@null.local';
     const noDomain = 'person';
     const onlyDomain = '@null.local';
-    expect(FT.fromClingoResult(person, 'person')).to.equal(person);
-    expect(FT.fromClingoResult(noDomain, 'person')).to.equal(null);
-    expect(FT.fromClingoResult(onlyDomain, 'person')).to.equal(null);
-    expect(FT.fromClingoResult('null', 'person')).to.equal(null);
-    expect(FT.fromClingoResult('', 'person')).to.equal('');
+    expect(FT.fromClingoResult(person, 'person')).toBe(person);
+    expect(FT.fromClingoResult(noDomain, 'person')).toBe(null);
+    expect(FT.fromClingoResult(onlyDomain, 'person')).toBe(null);
+    expect(FT.fromClingoResult('null', 'person')).toBe(null);
+    expect(FT.fromClingoResult('', 'person')).toBe('');
   });
 });

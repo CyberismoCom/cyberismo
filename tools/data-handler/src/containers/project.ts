@@ -50,7 +50,6 @@ import {
 import { ProjectConfiguration } from '../project-settings.js';
 import { ProjectPaths } from './project/project-paths.js';
 import { readJsonFile } from '../utils/json.js';
-import { ResourcesFrom } from './project/resource-cache.js';
 import { ResourceHandler } from './project/resource-handler.js';
 import { Validate } from '../commands/validate.js';
 import { ContentWatcher } from './project/project-content-watcher.js';
@@ -69,9 +68,6 @@ import {
   ConfigurationLogger,
   ConfigurationOperation,
 } from '../utils/configuration-logger.js';
-
-// Re-export this, so that classes that use Project do not need to have separate import.
-export { ResourcesFrom };
 
 /**
  * Options for Project initialization.
