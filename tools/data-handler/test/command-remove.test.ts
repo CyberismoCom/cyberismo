@@ -1,6 +1,4 @@
-// testing
-import { expect } from 'chai';
-import type * as sinon from 'sinon';
+import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';
@@ -10,11 +8,7 @@ import { join, sep } from 'node:path';
 import { Cmd, Commands, CommandManager } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Fetch, Remove } from '../src/commands/index.js';
-import {
-  getTestBaseDir,
-  getTestProject,
-  mockEnsureModuleListUpToDate,
-} from './helpers/test-utils.js';
+import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
 
 import type { Card } from '../src/interfaces/project-interfaces.js';
 import type { requestStatus } from '../src/interfaces/request-status-interfaces.js';
@@ -72,7 +66,7 @@ describe('remove command', () => {
         ['card', cardId],
         options,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
     });
     it('remove label (success)', async () => {
       const result = await commandHandler.command(
@@ -80,37 +74,15 @@ describe('remove command', () => {
         ['label', 'decision_5', 'test'],
         options,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       // should have 1 label now, so we can delete with
       const result2 = await commandHandler.command(
         Cmd.remove,
         ['label', 'decision_5'],
         options,
       );
-      expect(result2.statusCode).to.equal(200);
+      expect(result2.statusCode).toBe(200);
     });
-    /*
-    it('remove link (success)', async () => {
-      const linkName = 'testLinkName';
-      const linkFullName = 'decision/linkTypes/' + linkName;
-      const success = await createLinkType(commandHandler, linkName);
-      expect(success.statusCode).equals(200);
-      const card = await createCard(commandHandler);
-      const cardId = card.affectsCards![0];
-      await commandHandler.command(
-        Cmd.create,
-        ['link', 'decision_5', cardId, resourceName],
-        options,
-      );
-
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['link', 'decision_5', cardId, resourceName],
-        options,
-      );
-      expect(result.statusCode).to.equal(200);
-    });
-    */
 
     // Create two cards, link them together. Remove the other card.
     // Check that link has disappeared from the first card as well.
@@ -126,13 +98,13 @@ describe('remove command', () => {
         ['link', cardId2, cardId, resourceName],
         options,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       result = await commandHandler.command(
         Cmd.show,
         ['card', cardId2],
         options,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
 
       // Link should exist between cardId and cardId2
       let shownCard = result.payload as Card;
@@ -147,7 +119,7 @@ describe('remove command', () => {
         ['card', cardId],
         options,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
 
       // cardId2 should no longer have link to the other card
       result = await commandHandler.command(
@@ -159,7 +131,7 @@ describe('remove command', () => {
       found = shownCard.metadata?.links.filter(
         (item) => item.cardKey === cardId,
       );
-      expect(found?.length).to.equal(0);
+      expect(found?.length).toBe(0);
     });
 
     it('remove linkType', async () => {
@@ -171,7 +143,7 @@ describe('remove command', () => {
         ['linkType', fullName],
         options,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
     });
     it('remove attachment (success)', async () => {
       const attachment = 'the-needle.heic';
@@ -196,7 +168,7 @@ describe('remove command', () => {
         ['attachment', cardId, attachmentNameWithCardId],
         options,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
     });
     it('remove cardType (success)', async () => {
       // First create a cardType, then remove it
@@ -213,7 +185,7 @@ describe('remove command', () => {
         ['cardType', cardTypeName],
         options,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
     });
     it('remove cardType with name only', async () => {
       // First create a cardType, then remove it
@@ -230,7 +202,7 @@ describe('remove command', () => {
         [cardTypeName],
         options,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
     });
     it('remove fieldType (success)', async () => {
       // First create a fieldType, then remove it
@@ -247,7 +219,7 @@ describe('remove command', () => {
         ['fieldType', fieldTypeName],
         options,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
     });
     it('remove report (success)', async () => {
       // First create a report, then remove it
@@ -259,7 +231,7 @@ describe('remove command', () => {
         ['report', report],
         options,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
     });
     it('remove template (success)', async () => {
       const templateName = 'decision/templates/decision';
@@ -268,7 +240,7 @@ describe('remove command', () => {
         ['template', templateName],
         options,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
     });
     it('remove workflow (success)', async () => {
       // First create a workflow, then remove it
@@ -280,7 +252,7 @@ describe('remove command', () => {
         ['workflow', workflowName],
         options,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
     });
     it('remove hub', async () => {
       const hub =
@@ -294,7 +266,7 @@ describe('remove command', () => {
         ['hub', hub],
         options,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
     });
   });
 
@@ -315,7 +287,7 @@ describe('remove command', () => {
         ['card', cardId],
         invalidProject,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
     it('try to remove card - card not found', async () => {
       const cardId = 'decision_999';
@@ -324,7 +296,7 @@ describe('remove command', () => {
         ['card', cardId],
         options,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
     it('try to remove label - does not exist', async () => {
       const result = await commandHandler.command(
@@ -332,7 +304,7 @@ describe('remove command', () => {
         ['label', 'decision_6'],
         options,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
     it('try to remove label - card does not exist', async () => {
       const result = await commandHandler.command(
@@ -340,7 +312,7 @@ describe('remove command', () => {
         ['label', 'decision_8', 'test'],
         options,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
     it('try to remove linkType - linkType missing', async () => {
       const linkType = 'mini/linkTypes/lt_name';
@@ -349,7 +321,7 @@ describe('remove command', () => {
         ['linkType', linkType],
         optionsMini,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
     it('try to remove link - link not found', async () => {
       const result = await commandHandler.command(
@@ -357,7 +329,7 @@ describe('remove command', () => {
         ['link', 'decision_5', 'decision_6', 'does-not-exist'],
         options,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
     it('try to remove attachment - project missing', async () => {
       const cardId = 'decision_5';
@@ -368,7 +340,7 @@ describe('remove command', () => {
         ['attachment', cardId, attachment],
         invalidProject,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
     it('try to remove attachment - attachment not found', async () => {
       const cardId = 'decision_5';
@@ -378,7 +350,7 @@ describe('remove command', () => {
         ['attachment', cardId, attachment],
         options,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
     it('try to remove cardType - card type missing', async () => {
       const cardTypeName = 'decision/cardTypes/i-do-not-exist';
@@ -387,7 +359,7 @@ describe('remove command', () => {
         ['cardType', cardTypeName],
         options,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
     it('try to remove fieldType - field type missing', async () => {
       const fieldTypeName = 'decision/fieldTypes/i-do-not-exist';
@@ -396,7 +368,7 @@ describe('remove command', () => {
         ['fieldType', fieldTypeName],
         options,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
     it('try to remove report - report missing', async () => {
       const reportName = 'decision/reports/i-do-not-exist';
@@ -405,7 +377,7 @@ describe('remove command', () => {
         ['report', reportName],
         options,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
     it('try to remove template - template missing', async () => {
       const templateName = 'decision/templates/i-do-not-exist';
@@ -414,7 +386,7 @@ describe('remove command', () => {
         ['template', templateName],
         options,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
     it('try to remove template - project missing', async () => {
       const templateName = 'decision/templates/simplepage';
@@ -424,7 +396,7 @@ describe('remove command', () => {
         ['template', templateName],
         invalidProject,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
     it('try to remove workflow - workflow missing', async () => {
       const workflowName = 'decision/workflows/i-do-not-exist';
@@ -433,7 +405,7 @@ describe('remove command', () => {
         ['workflow', workflowName],
         options,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
     it('try to remove unknown type', async () => {
       const cardId = 'decision_5';
@@ -442,7 +414,7 @@ describe('remove command', () => {
         ['i-dont-exist', cardId],
         options,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
     it('try to remove non-existing attachment', async () => {
       const cardId = 'decision_5';
@@ -450,14 +422,10 @@ describe('remove command', () => {
       await project.populateCaches();
       const fetchCmd = new Fetch(project);
       const removeCmd = new Remove(project, fetchCmd);
-      await removeCmd
-        .remove('attachment', cardId, '')
-        .then(() => {
-          expect(false);
-        })
-        .catch(() => {
-          expect(true);
-        });
+
+      await expect(
+        removeCmd.remove('attachment', cardId, ''),
+      ).rejects.toThrow();
     });
     it('try to remove attachment from non-existing card', async () => {
       const cardId = 'decision_999';
@@ -465,28 +433,20 @@ describe('remove command', () => {
       await project.populateCaches();
       const fetchCmd = new Fetch(project);
       const removeCmd = new Remove(project, fetchCmd);
-      await removeCmd
-        .remove('attachment', cardId, 'the-needle.heic')
-        .then(() => {
-          expect(false);
-        })
-        .catch(() => {
-          expect(true);
-        });
+
+      await expect(
+        removeCmd.remove('attachment', cardId, 'the-needle.heic'),
+      ).rejects.toThrow();
     });
     it('try to remove non-existing module', async () => {
       const project = getTestProject(decisionRecordsPath);
       await project.populateCaches();
       const fetchCmd = new Fetch(project);
       const removeCmd = new Remove(project, fetchCmd);
-      await removeCmd
-        .remove('module', 'i-dont-exist')
-        .then(() => {
-          expect(false);
-        })
-        .catch(() => {
-          expect(true);
-        });
+
+      await expect(
+        removeCmd.remove('module', 'i-dont-exist'),
+      ).rejects.toThrow();
     });
     it('try to remove workflow that this is still used', async () => {
       const workflowName = `decision/workflows/decision`;
@@ -495,7 +455,7 @@ describe('remove command', () => {
         ['workflow', workflowName],
         options,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
     it('try to remove hub - not existing in the project', async () => {
       const hub = `https://example.com/nonExisting`;
@@ -504,7 +464,7 @@ describe('remove command', () => {
         ['hub', hub],
         options,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
   });
 });
@@ -514,12 +474,10 @@ describe('remove card', () => {
   const testDir = join(baseDir, 'tmp-remove-tests');
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
   let commands: CommandManager;
-  let ensureModuleListStub: sinon.SinonStub;
 
-  before(async () => {
+  beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    ensureModuleListStub = mockEnsureModuleListUpToDate();
     commands = new CommandManager(decisionRecordsPath, {
       autoSaveConfiguration: false,
     });
@@ -527,9 +485,8 @@ describe('remove card', () => {
     await commands.project.calculationEngine.generate();
   });
 
-  after(() => {
+  afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
-    ensureModuleListStub.restore();
   });
 
   it('should remove links to children when parent card is removed', async () => {
@@ -540,7 +497,7 @@ describe('remove card', () => {
     const parentCard = createdCards.find(
       (card) => card.parent === 'root' && card.children.length > 0,
     );
-    expect(parentCard).to.not.equal(undefined);
+    expect(parentCard).not.toBeUndefined();
     const childKey = parentCard!.children[0];
 
     // Create another card and link it to the child
@@ -556,7 +513,7 @@ describe('remove card', () => {
     const linksBefore = otherCard.metadata?.links?.filter(
       (l) => l.cardKey === childKey,
     );
-    expect(linksBefore?.length).to.equal(1);
+    expect(linksBefore).toHaveLength(1);
 
     // Remove the parent card (which also removes its children)
     await commands.removeCmd.remove('card', parentCard!.key);
@@ -566,7 +523,7 @@ describe('remove card', () => {
     const linksAfter = otherCard.metadata?.links?.filter(
       (l) => l.cardKey === childKey,
     );
-    expect(linksAfter?.length).to.equal(0);
+    expect(linksAfter).toHaveLength(0);
   });
 
   it('should remove card that has children', async () => {
@@ -575,9 +532,9 @@ describe('remove card', () => {
     const removeCmd = new Remove(commands.project, fetchCmd);
     await removeCmd.remove('card', cardId);
 
-    expect(() => commands.project.findCard(cardId)).to.throw(CardNotFoundError);
+    expect(() => commands.project.findCard(cardId)).toThrow(CardNotFoundError);
     // Since decision_6 is decision_5's child, it should have been removed as well.
-    expect(() => commands.project.findCard('decision_6')).to.throw(
+    expect(() => commands.project.findCard('decision_6')).toThrow(
       CardNotFoundError,
     );
   });
@@ -592,57 +549,51 @@ describe('remove card', () => {
     );
 
     const template = templateResource.templateObject();
-    if (!template) {
-      expect(false, 'No template cards');
-      return;
-    }
 
     // Get template cards
     const templateCardsBefore = template.cards();
-    expect(templateCardsBefore.length).to.be.greaterThan(0);
+    expect(templateCardsBefore.length).toBeGreaterThan(0);
 
     // Verify at least one template card has children
     const templateCardsWithChildren = templateCardsBefore.filter(
       (c) => c.children && c.children.length > 0,
     );
-    expect(templateCardsWithChildren.length).to.be.greaterThan(0);
+    expect(templateCardsWithChildren.length).toBeGreaterThan(0);
 
     // Create cards from template
     const createdCards = await commands.createCmd.createCard(templateName);
-    expect(createdCards.length).to.be.greaterThan(0);
+    expect(createdCards.length).toBeGreaterThan(0);
 
     const parentCardKey = createdCards.find(
       (card) => card.parent === 'root' && card.children.length > 0,
-    )?.key;
-    if (parentCardKey) {
-      const parentCard = commands.project.findCard(parentCardKey);
-      expect(parentCard.children.length).to.be.greaterThan(0);
+    )!.key;
+    const parentCard = commands.project.findCard(parentCardKey);
+    expect(parentCard.children.length).toBeGreaterThan(0);
 
-      // Delete the created project cards
-      await commands.removeCmd.remove('card', parentCardKey!);
+    // Delete the created project cards
+    await commands.removeCmd.remove('card', parentCardKey!);
 
-      // Verify project card and its children are deleted
-      expect(() => commands.project.findCard(parentCardKey)).to.throw(
+    // Verify project card and its children are deleted
+    expect(() => commands.project.findCard(parentCardKey)).toThrow(
+      CardNotFoundError,
+    );
+
+    for (const childKey of parentCard.children) {
+      expect(() => commands.project.findCard(childKey)).toThrow(
         CardNotFoundError,
       );
-
-      for (const childKey of parentCard.children) {
-        expect(() => commands.project.findCard(childKey)).to.throw(
-          CardNotFoundError,
-        );
-      }
     }
 
     // Verify template cards still exist and were not deleted
     const templateCardsAfter = template.cards();
-    expect(templateCardsAfter.length).to.equal(templateCardsBefore.length);
+    expect(templateCardsAfter.length).toBe(templateCardsBefore.length);
 
     // Verify each template card still exists
     for (const templateCard of templateCardsBefore) {
       const foundCard = templateCardsAfter.find(
         (c) => c.key === templateCard.key,
       );
-      expect(foundCard).to.not.equal(undefined);
+      expect(foundCard).not.toBeUndefined();
     }
   });
 });
