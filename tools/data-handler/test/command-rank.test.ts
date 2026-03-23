@@ -1,11 +1,8 @@
-// testing
-import { expect } from 'chai';
+import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 
-// node
 import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
-// cyberismo
 import { copyDir } from '../src/utils/file-utils.js';
 import { Cmd, Commands } from '../src/command-handler.js';
 import { Fetch, Show } from '../src/commands/index.js';
@@ -73,7 +70,7 @@ describe('rank command', () => {
         options,
       );
 
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
 
       const project = getTestProject(options.projectPath!);
       await project.populateCaches();
@@ -81,7 +78,7 @@ describe('rank command', () => {
       const details = await new Show(project, fetchCmd).showCardDetails(
         rankBefore,
       );
-      expect(details.metadata?.rank).to.equal('0|c');
+      expect(details.metadata?.rank).toBe('0|c');
     });
     it('rank card in root (success)', async () => {
       const rankBefore = 'decision_5';
@@ -93,7 +90,7 @@ describe('rank command', () => {
         options,
       );
 
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
 
       const project = getTestProject(options.projectPath!);
       await project.populateCaches();
@@ -102,7 +99,7 @@ describe('rank command', () => {
         rankBefore,
       );
       // Just verify that a rank was assigned (the exact value can vary based on existing cards)
-      expect(details.metadata?.rank).to.match(/^0\|[a-z0-9]+$/);
+      expect(details.metadata!.rank).toMatch(/^0\|[a-z0-9]+$/);
     });
     it('rank card first (success)', async () => {
       const key = 'decision_5';
@@ -111,14 +108,14 @@ describe('rank command', () => {
         ['card', key, 'first'],
         options,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
 
       const project = getTestProject(options.projectPath!);
       await project.populateCaches();
       const fetchCmd = new Fetch(project);
       const details = await new Show(project, fetchCmd).showCardDetails(key);
 
-      expect(details.metadata?.rank).to.equal('0|a');
+      expect(details.metadata!.rank).toBe('0|a');
     });
     it('rank template card in root (success)', async () => {
       const rankBefore = 'decision_2';
@@ -130,7 +127,7 @@ describe('rank command', () => {
         options,
       );
 
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
 
       // Use command handler to get card details for consistent project instance
       const detailsResult = await commandHandler.command(
@@ -138,11 +135,11 @@ describe('rank command', () => {
         ['card', rankBefore],
         { ...options, details: true },
       );
-      expect(detailsResult.statusCode).to.equal(200);
+      expect(detailsResult.statusCode).toBe(200);
       const cardDetails = detailsResult.payload as {
         metadata?: { rank?: string };
       };
-      expect(cardDetails.metadata?.rank).to.equal('0|c');
+      expect(cardDetails.metadata?.rank).toBe('0|c');
     });
     it('rank template card first (success)', async () => {
       const key = 'decision_2';
@@ -151,12 +148,12 @@ describe('rank command', () => {
         ['card', key, 'first'],
         options,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       const project = getTestProject(options.projectPath!);
       await project.populateCaches();
       const fetchCmd = new Fetch(project);
       const details = await new Show(project, fetchCmd).showCardDetails(key);
-      expect(details.metadata?.rank).to.equal('0|a');
+      expect(details.metadata!.rank).toBe('0|a');
     });
   });
 
@@ -169,7 +166,7 @@ describe('rank command', () => {
         ['card', rankBefore, childCardKey],
         invalidProject,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
     it('try rank card - card not found', async () => {
       const rankBefore = 'decision_999';
@@ -178,7 +175,7 @@ describe('rank command', () => {
         ['card', rankBefore, childCardKey],
         options,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
 
     it('try rank card - before itself', async () => {
@@ -188,7 +185,7 @@ describe('rank command', () => {
         ['card', rankBefore, rankBefore],
         options,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
     it('try rank card - before card at different level', async () => {
       const rankBefore = 'decision_6';
@@ -197,7 +194,7 @@ describe('rank command', () => {
         ['card', rankBefore, 'decision_5'],
         options,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
   });
 
@@ -209,7 +206,7 @@ describe('rank command', () => {
         ['rebalance'],
         options,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
     });
     it('rebalance root (success)', async () => {
       const result = await commandHandler.command(
@@ -217,7 +214,7 @@ describe('rank command', () => {
         ['rebalance', ''],
         options,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
     });
     it('rebalance card (success)', async () => {
       const result = await commandHandler.command(
@@ -225,7 +222,7 @@ describe('rank command', () => {
         ['rebalance', 'decision_5'],
         options,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
     });
     it('rebalance template card (success)', async () => {
       const result = await commandHandler.command(
@@ -233,7 +230,7 @@ describe('rank command', () => {
         ['rebalance', 'decision_1'],
         options,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
     });
   });
 });
