@@ -43,7 +43,7 @@ import type {
   TemplateConfiguration,
   Workflow,
 } from '../interfaces/resource-interfaces.js';
-import type { Project, ResourcesFrom } from '../containers/project.js';
+import type { Project } from '../containers/project.js';
 import type { ResourceName } from '../utils/resource-utils.js';
 import type { ResourceMap } from '../containers/project/resource-cache.js';
 
@@ -55,6 +55,7 @@ import { evaluateMacros } from '../macros/index.js';
 import { readJsonFile } from '../utils/json.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { buildCardHierarchy, flattenCardArray } from '../utils/card-utils.js';
+import type { ResourcesFrom } from '../containers/project/resources-from.js';
 
 /**
  * Show command.

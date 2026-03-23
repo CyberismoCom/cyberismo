@@ -22,7 +22,8 @@ import {
   ConfigurationOperation,
 } from '../utils/configuration-logger.js';
 import { isTemplateCard } from '../utils/card-utils.js';
-import { type Project, ResourcesFrom } from '../containers/project.js';
+import { type Project } from '../containers/project.js';
+import { ResourcesFrom } from '../containers/project/resources-from.js';
 import { resourceName } from '../utils/resource-utils.js';
 import { write } from '../utils/rw-lock.js';
 
