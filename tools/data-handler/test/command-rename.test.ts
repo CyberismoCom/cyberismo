@@ -1,5 +1,5 @@
 // testing
-import { expect } from 'chai';
+import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';
@@ -27,23 +27,15 @@ describe('rename command', () => {
   });
 
   afterEach(() => {
-    try {
-      rmSync(testDir, { force: true, recursive: true });
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error(
-          `There was an issue cleaning up after "rename" tests: ${error.message}`,
-        );
-      }
-    }
+    rmSync(testDir, { force: true, recursive: true });
   });
 
   it('rename project (success)', async () => {
     const newName = 'decrec';
     let result = await commandHandler.command(Cmd.rename, [newName], options);
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
     result = await commandHandler.command(Cmd.validate, [], options);
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
   });
   it('rename project - no cards at all (success)', async () => {
     const newName = 'empty';
@@ -52,12 +44,12 @@ describe('rename command', () => {
       [newName],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
   });
   it('try to rename project - invalid "to" ', async () => {
     const newName = 'decrec_2';
     const result = await commandHandler.command(Cmd.rename, [newName], options);
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
 });
 
@@ -70,14 +62,14 @@ describe('rename attempts - test data is not cleaned', () => {
       [newName],
       invalidProject,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('try to rename project - "to" missing', async () => {
     const newName = '';
     await commandHandler
       .command(Cmd.rename, [newName], options)
       .catch((error) =>
-        expect(errorFunction(error)).to.equal(
+        expect(errorFunction(error)).toBe(
           "Input validation error: empty 'to' is not allowed",
         ),
       );
