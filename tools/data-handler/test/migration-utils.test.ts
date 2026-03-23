@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -40,8 +40,8 @@ describe('Migration Utilities', () => {
       };
 
       const result = validateProjectStructure(context);
-      expect(result.success).to.equal(true);
-      expect(result.message).to.equal('Project structure validation passed');
+      expect(result.success).toBe(true);
+      expect(result.message).toBe('Project structure validation passed');
     });
 
     it('should return failure for non-existent cardRoot path', () => {
@@ -59,11 +59,11 @@ describe('Migration Utilities', () => {
       };
 
       const result = validateProjectStructure(context);
-      expect(result.success).to.equal(false);
-      expect(result.message).to.include('Card root path does not exist');
-      expect(result.message).to.include(cardRootPath);
-      expect(result.error).to.be.an('error');
-      expect(result.error?.message).to.equal('Missing cardRoot directory');
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('Card root path does not exist');
+      expect(result.message).toContain(cardRootPath);
+      expect(result.error).toBeInstanceOf(Error);
+      expect(result.error?.message).toBe('Missing cardRoot directory');
     });
 
     it('should return failure for non-existent cardsConfig path', () => {
@@ -81,11 +81,11 @@ describe('Migration Utilities', () => {
       };
 
       const result = validateProjectStructure(context);
-      expect(result.success).to.equal(false);
-      expect(result.message).to.include('Cards config path does not exist');
-      expect(result.message).to.include(cardsConfigPath);
-      expect(result.error).to.be.an('error');
-      expect(result.error?.message).to.equal('Missing .cards directory');
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('Cards config path does not exist');
+      expect(result.message).toContain(cardsConfigPath);
+      expect(result.error).toBeInstanceOf(Error);
+      expect(result.error?.message).toBe('Missing .cards directory');
     });
 
     it('should return failure when both paths do not exist', () => {
@@ -100,8 +100,8 @@ describe('Migration Utilities', () => {
       };
 
       const result = validateProjectStructure(context);
-      expect(result.success).to.equal(false);
-      expect(result.message).to.include('Card root path does not exist');
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('Card root path does not exist');
     });
   });
 
@@ -123,12 +123,12 @@ describe('Migration Utilities', () => {
 
       const result = await createBackup(context);
 
-      expect(result.success).to.equal(false);
-      expect(result.message).to.equal(
+      expect(result.success).toBe(false);
+      expect(result.message).toBe(
         'Backup directory not specified in migration context',
       );
-      expect(result.error).to.be.an('error');
-      expect(result.error?.message).to.equal('Missing backupDir in context');
+      expect(result.error).toBeInstanceOf(Error);
+      expect(result.error?.message).toBe('Missing backupDir in context');
     });
 
     it('should create backup successfully when backupDir is provided', async () => {
@@ -150,13 +150,13 @@ describe('Migration Utilities', () => {
       };
 
       const result = await createBackup(context);
-      expect(result.success).to.equal(true);
-      expect(result.message).to.equal('Backup created successfully');
+      expect(result.success).toBe(true);
+      expect(result.message).toBe('Backup created successfully');
 
       // Verify backup directory was created
       // The backup should be named backup-v1-<timestamp>
       const backupContents = existsSync(backupDir);
-      expect(backupContents).to.equal(true);
+      expect(backupContents).toBe(true);
     });
 
     it('should handle backup creation failure gracefully', async () => {
@@ -177,9 +177,9 @@ describe('Migration Utilities', () => {
       };
 
       const result = await createBackup(context);
-      expect(result.success).to.equal(false);
-      expect(result.message).to.include('Failed to create backup');
-      expect(result.error).to.be.an('error');
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('Failed to create backup');
+      expect(result.error).toBeInstanceOf(Error);
     });
   });
 });
