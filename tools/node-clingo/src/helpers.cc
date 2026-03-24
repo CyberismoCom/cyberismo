@@ -242,7 +242,7 @@ namespace node_clingo
     int64_t next_local_midnight_epoch_ms()
     {
         time_t now = time(nullptr);
-        std::tm local_tm = *std::localtime(&now);
+        std::tm local_tm = localtime_safe(&now);
         local_tm.tm_isdst = -1; // let the system determine DST
         local_tm.tm_hour = 0;
         local_tm.tm_min = 0;

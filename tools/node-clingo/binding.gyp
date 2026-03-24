@@ -18,6 +18,7 @@
       "include_dirs": [
         "<!@(node -p \"require('node-addon-api').include\")",
         "external/xxhash",
+        "external/BS_thread_pool/include",
         "external/clingo/libclingo"
       ],
       "dependencies": [

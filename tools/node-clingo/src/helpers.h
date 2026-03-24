@@ -33,6 +33,21 @@
     {                                                                                                                  \
     } while (0)
 #endif
+/**
+ * Thread-safe, cross-platform localtime.
+ * Uses localtime_s on Windows, localtime_r on POSIX.
+ */
+inline std::tm localtime_safe(const std::time_t* time)
+{
+    std::tm result{};
+#ifdef _WIN32
+    localtime_s(&result, time);
+#else
+    localtime_r(time, &result);
+#endif
+    return result;
+}
+
 namespace node_clingo
 {
 

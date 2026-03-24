@@ -1,3 +1,6 @@
 [submodule "clingo"]
 	path = tools/node-clingo/external/clingo
 	url = https://github.com/potassco/clingo.git
+[submodule "tools/node-clingo/external/BS_thread_pool"]
+	path = tools/node-clingo/external/BS_thread_pool
+	url = https://github.com/bshoshany/thread-pool
