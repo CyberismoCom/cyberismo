@@ -14,6 +14,21 @@
 
 namespace node_clingo
 {
+    static std::vector<Clingo::AST::Node> tryParseToAst(const std::string& content)
+    {
+        std::vector<Clingo::AST::Node> nodes;
+        try
+        {
+            Clingo::AST::parse_string(
+                content.c_str(), [&nodes](Clingo::AST::Node node) { nodes.push_back(node.deep_copy()); });
+        }
+        catch (...)
+        {
+            return {};
+        }
+        return nodes;
+    }
+
     bool ProgramStore::removeProgram(KeyHash keyHash)
     {
         auto it = programs.find(keyHash);
@@ -54,7 +69,9 @@ namespace node_clingo
                 return getOrCreateHash(category);
             });
 
-        auto shared_program = std::make_shared<const Program>(key, content, categories_hashed, content_hash);
+        auto ast = preParsing ? tryParseToAst(content) : std::vector<Clingo::AST::Node>{};
+        auto shared_program =
+            std::make_shared<const Program>(key, content, std::move(ast), categories_hashed, content_hash);
         programs[hash] = shared_program;
 
         // Update key mapping
@@ -134,7 +151,9 @@ namespace node_clingo
         auto programs = programByReferences(categories);
 
         // add the main program
-        programs.push_back(std::make_shared<const Program>("__program__", query, std::vector<KeyHash>(), 0));
+        auto ast = preParsing ? tryParseToAst(query) : std::vector<Clingo::AST::Node>{};
+        programs.push_back(
+            std::make_shared<const Program>("__program__", query, std::move(ast), std::vector<KeyHash>(), 0));
 
         for (const auto& program : programs)
         {

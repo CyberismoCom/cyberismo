@@ -50,13 +50,7 @@ import type {
   TemplateMetadata,
   Workflow,
 } from '../../interfaces/resource-interfaces.js';
-import {
-  removeAllPrograms,
-  solve,
-  setProgram,
-  removeProgram,
-  buildProgram,
-} from '@cyberismo/node-clingo';
+import { ClingoContext } from '@cyberismo/node-clingo';
 import { generateReportContent } from '../../utils/report.js';
 import { lpFiles, graphvizReport } from '@cyberismo/assets';
 import {
@@ -71,6 +65,7 @@ export class CalculationEngine {
   constructor(private project: Project) {}
 
   private static mutex = new Mutex();
+  private clingo = new ClingoContext();
 
   private get logger() {
     return getChildLogger({
@@ -116,7 +111,7 @@ export class CalculationEngine {
     query?: QueryName,
   ) {
     let logicProgram = query ? this.queryContent(query) : '';
-    logicProgram += buildProgram('', programs);
+    logicProgram += this.clingo.buildProgram('', programs);
     await writeFile(destination, logicProgram);
   }
 
@@ -138,7 +133,7 @@ export class CalculationEngine {
 
   private async setCardContent(card: Card) {
     const cardContent = await createCardFacts(card, this.project);
-    setProgram(card.key, cardContent, [ALL_CATEGORY]);
+    this.clingo.setProgram(card.key, cardContent, [ALL_CATEGORY]);
   }
 
   // Generates logic programs related to modules (and project itself).
@@ -163,7 +158,7 @@ export class CalculationEngine {
     for (const cardType of cardTypes) {
       const ct = cardType.show();
       const cardTypeContent = createCardTypeFacts(ct);
-      setProgram(ct.name, cardTypeContent, [ALL_CATEGORY]);
+      this.clingo.setProgram(ct.name, cardTypeContent, [ALL_CATEGORY]);
     }
   }
 
@@ -173,7 +168,7 @@ export class CalculationEngine {
     for (const fieldType of fieldTypes) {
       const ft = fieldType.show();
       const fieldTypeContent = createFieldTypeFacts(ft);
-      setProgram(ft.name, fieldTypeContent, [ALL_CATEGORY]);
+      this.clingo.setProgram(ft.name, fieldTypeContent, [ALL_CATEGORY]);
     }
   }
 
@@ -183,7 +178,7 @@ export class CalculationEngine {
     for (const linkType of linkTypes) {
       const lt = linkType.show();
       const linkTypeContent = createLinkTypeFacts(lt);
-      setProgram(lt.name, linkTypeContent, [ALL_CATEGORY]);
+      this.clingo.setProgram(lt.name, linkTypeContent, [ALL_CATEGORY]);
     }
   }
 
@@ -193,7 +188,7 @@ export class CalculationEngine {
     for (const workflow of workflows) {
       const wf = workflow.show();
       const workflowContent = createWorkflowFacts(wf);
-      setProgram(wf.name, workflowContent, [ALL_CATEGORY]);
+      this.clingo.setProgram(wf.name, workflowContent, [ALL_CATEGORY]);
     }
   }
 
@@ -203,7 +198,7 @@ export class CalculationEngine {
     for (const report of reports) {
       const rep = report.show();
       const reportContent = createReportFacts(rep);
-      setProgram(rep.name, reportContent, [ALL_CATEGORY]);
+      this.clingo.setProgram(rep.name, reportContent, [ALL_CATEGORY]);
     }
   }
 
@@ -216,9 +211,9 @@ export class CalculationEngine {
       const cards = this.getCards(tem.name);
       for (const card of cards) {
         const cardContent = await createCardFacts(card, this.project);
-        setProgram(card.key, cardContent, [ALL_CATEGORY]);
+        this.clingo.setProgram(card.key, cardContent, [ALL_CATEGORY]);
       }
-      setProgram(tem.name, templateContent, [ALL_CATEGORY]);
+      this.clingo.setProgram(tem.name, templateContent, [ALL_CATEGORY]);
     }
   }
 
@@ -229,7 +224,7 @@ export class CalculationEngine {
       try {
         const content = calculation.contentData();
         const calc = calculation.show();
-        setProgram(calc.name, content.calculation, [ALL_CATEGORY]);
+        this.clingo.setProgram(calc.name, content.calculation, [ALL_CATEGORY]);
       } catch (error) {
         this.logger.warn(
           error,
@@ -279,9 +274,9 @@ export class CalculationEngine {
         );
 
         const contextFacts = createContextFacts(context);
-        setProgram('context', contextFacts, [ALL_CATEGORY]);
+        this.clingo.setProgram('context', contextFacts, [ALL_CATEGORY]);
         // Then solve with the program - need to pass the program as parameter
-        return solve(query, basePrograms);
+        return this.clingo.solve(query, basePrograms);
       });
 
       if (res && res.answers && res.answers.length > 0) {
@@ -311,17 +306,19 @@ export class CalculationEngine {
         },
         'Generating logic program',
       );
-      removeAllPrograms();
+      this.clingo.removeAllPrograms();
 
       if (!this.modulesInitialized) {
         await this.initializeModules();
       }
 
       // Set base common programs with main category
-      setProgram('base', lpFiles.common.base, [ALL_CATEGORY]);
-      setProgram('queryLanguage', lpFiles.common.queryLanguage, [ALL_CATEGORY]);
-      setProgram('utils', lpFiles.common.utils, [ALL_CATEGORY]);
-      setProgram('modules', this.modules, [ALL_CATEGORY]);
+      this.clingo.setProgram('base', lpFiles.common.base, [ALL_CATEGORY]);
+      this.clingo.setProgram('queryLanguage', lpFiles.common.queryLanguage, [
+        ALL_CATEGORY,
+      ]);
+      this.clingo.setProgram('utils', lpFiles.common.utils, [ALL_CATEGORY]);
+      this.clingo.setProgram('modules', this.modules, [ALL_CATEGORY]);
 
       // Set individual resource type programs
       await this.setCardTreeContent();
@@ -374,7 +371,7 @@ export class CalculationEngine {
     }
     try {
       await CalculationEngine.mutex.runExclusive(async () => {
-        if (!removeProgram(deletedCard.key)) {
+        if (!this.clingo.removeProgram(deletedCard.key)) {
           this.logger.warn(
             {
               cardKey: deletedCard.key,

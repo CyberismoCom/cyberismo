@@ -12,25 +12,40 @@
 import build from 'node-gyp-build';
 import { resolve } from 'node:path';
 
-// Interface for clingo bindings.
-// Should match the functions in this file.
-interface ClingoBinding {
-  setProgram(key: string, program: string, categories?: string[]): void;
+interface RawClingoResult {
+  answers: string[];
+  stats: {
+    glue: number;
+    add: number;
+    ground: number;
+    solve: number;
+    cacheHit: boolean;
+  };
+}
+
+interface NativeClingoContext {
+  setProgram(key: string, program: string, categories: string[]): void;
   removeProgram(key: string): boolean;
   removeAllPrograms(): void;
-  clearCache(): void;
-  solve(program: string, categories: string[]): ClingoResult;
+  solve(program: string, categories: string[]): Promise<RawClingoResult>;
   buildProgram(program: string, categories: string[]): string;
 }
 
-let binding: ClingoBinding;
+interface NativeBinding {
+  ClingoContext: new (options?: {
+    preParsing?: boolean;
+  }) => NativeClingoContext;
+  clearCache(): void;
+}
+
+let nativeBinding: NativeBinding;
 // Use import.meta.dirname when available, fallback to __dirname for compatibility
 const currentDirname = import.meta.dirname || __dirname;
 try {
-  binding = build(resolve(currentDirname, '..')) as ClingoBinding;
+  nativeBinding = build(resolve(currentDirname, '..')) as NativeBinding;
 } catch (error) {
   console.error('Error building clingo:', error);
-  binding = build(currentDirname) as ClingoBinding;
+  nativeBinding = build(currentDirname) as NativeBinding;
 }
 
 /**
@@ -39,7 +54,7 @@ try {
  * @param details The error details
  * @param details.errors The errors
  * @param details.warnings The warnings
- * @param details.program The program that caused the error if available(Only syntax errors support this)
+ * @param details.program The program that caused the error if available (only syntax errors support this)
  */
 export class ClingoError extends Error {
   constructor(
@@ -53,7 +68,7 @@ export class ClingoError extends Error {
 /**
  * Interface for Clingo solver result
  */
-interface ClingoResult {
+export interface ClingoResult {
   answers: string[];
   stats: {
     glue: number;
@@ -65,102 +80,114 @@ interface ClingoResult {
 }
 
 /**
- * Sets a program with optional categories
- * @param key Name to identify this program
- * @param program The program content
- * @param categories Optional array of category names
+ * Options for creating a ClingoContext
  */
-function setProgram(key: string, program: string, categories?: string[]) {
-  binding.setProgram(key, program, categories);
+export interface ClingoOptions {
+  /**
+   * When false, programs store raw text and AST parsing happens at solve time.
+   * Default: true
+   */
+  preParsing?: boolean;
 }
 
 /**
- * Removes a stored program
- * @param key Name of the program to remove
- * @returns true if the program was found and removed, false if it didn't exist
+ * A Clingo solver instance with its own isolated program store.
+ * The solve result cache is shared globally across all instances.
  */
-function removeProgram(key: string): boolean {
-  return binding.removeProgram(key);
-}
+export class ClingoContext {
+  private _ctx: NativeClingoContext;
 
-/**
- * Solves a logic program
- * @param program The logic program as a string
- * @param categories Optional array of program keys or categories to include
- * @returns Promise resolving to an object containing answers and execution time
- */
-async function solve(
-  program: string,
-  categories?: string[],
-): Promise<ClingoResult> {
-  if (!program) {
-    throw new Error('No program provided');
+  constructor(options?: ClingoOptions) {
+    this._ctx = new nativeBinding.ClingoContext(options);
   }
 
-  try {
-    return binding.solve(program, categories ?? []);
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      'details' in error &&
-      typeof error.details === 'object' &&
-      error.details !== null &&
-      'errors' in error.details &&
-      'warnings' in error.details
-    ) {
-      const { errors, warnings, program } = error.details as {
-        errors: string[];
-        warnings: string[];
-        program?: string;
-      };
+  /**
+   * Stores or updates a named program with optional categories.
+   */
+  setProgram(key: string, program: string, categories?: string[]): void {
+    this._ctx.setProgram(key, program, categories ?? []);
+  }
 
-      if (error.message === 'parsing failed' && program) {
-        throw new ClingoError(
-          `Parsing failed when processing program '${program === '__program__' ? 'main program' : program}' with errors: ${errors.join(', ')}`,
-          { errors, warnings, program },
-        );
-      }
-      throw new ClingoError(error.message, { errors, warnings, program });
+  /**
+   * Removes a stored program by key.
+   * @returns true if the program was found and removed, false if it didn't exist
+   */
+  removeProgram(key: string): boolean {
+    return this._ctx.removeProgram(key);
+  }
+
+  /**
+   * Removes all stored programs.
+   */
+  removeAllPrograms(): void {
+    this._ctx.removeAllPrograms();
+  }
+
+  /**
+   * Gets the complete assembled logic program as a string without solving.
+   */
+  buildProgram(program: string, categories?: string[]): string {
+    return this._ctx.buildProgram(program, categories ?? []);
+  }
+
+  /**
+   * Solves a logic program.
+   * @param program The logic program as a string
+   * @param categories Optional array of program keys or categories to include
+   * @returns Promise resolving to answers and execution stats
+   */
+  async solve(program: string, categories?: string[]): Promise<ClingoResult> {
+    if (!program) {
+      throw new Error('No program provided');
     }
-    throw error;
+
+    try {
+      return await this._ctx.solve(program, categories ?? []);
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        'details' in error &&
+        typeof error.details === 'object' &&
+        error.details !== null &&
+        'errors' in error.details &&
+        'warnings' in error.details
+      ) {
+        const {
+          errors,
+          warnings,
+          program: prog,
+        } = error.details as {
+          errors: string[];
+          warnings: string[];
+          program?: string;
+        };
+
+        if (
+          (error.message === 'parsing failed' ||
+            error.message === 'syntax error') &&
+          prog
+        ) {
+          throw new ClingoError(
+            `Parsing failed when processing program '${prog === '__program__' ? 'main program' : prog}' with errors: ${errors.join(', ')}`,
+            { errors, warnings, program: prog },
+          );
+        }
+        throw new ClingoError(error.message, {
+          errors,
+          warnings,
+          program: prog,
+        });
+      }
+      throw error;
+    }
   }
 }
 
-function removeAllPrograms() {
-  binding.removeAllPrograms();
-}
-
 /**
- * Clears the solve result cache
+ * Clears the shared solve result cache.
  */
-function clearCache() {
-  binding.clearCache();
+export function clearCache(): void {
+  nativeBinding.clearCache();
 }
 
-/**
- * Gets the complete assembled logic program as a string
- * @param program The main logic program as a string
- * @param categories Optional array of program keys or categories to include
- * @returns The complete assembled program as a string
- */
-function buildProgram(program: string, categories?: string[]): string {
-  return binding.buildProgram(program, categories ?? []);
-}
-
-export {
-  solve,
-  setProgram,
-  removeProgram,
-  removeAllPrograms,
-  clearCache,
-  buildProgram,
-  ClingoResult,
-};
-export default {
-  solve,
-  setProgram,
-  removeProgram,
-  removeAllPrograms,
-  clearCache,
-  buildProgram,
-};
+export default ClingoContext;
