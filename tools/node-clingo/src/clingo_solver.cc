@@ -17,12 +17,6 @@
 namespace node_clingo
 {
 
-    // Clingo's AST builder and symbol table use non-thread-safe global state.
-    // Concurrent calls to with_builder/parse_string from worker threads cause
-    // data races and eventual SIGSEGV. Serialize only the AST-loading phase;
-    // the expensive ground() step still runs concurrently.
-    static std::mutex g_ast_mutex;
-
     struct ModelCollector : Clingo::SolveEventHandler
     {
         std::vector<std::string>& answers;
@@ -79,7 +73,6 @@ namespace node_clingo
             std::vector<Clingo::Part> parts;
 
             {
-                std::lock_guard<std::mutex> lock(g_ast_mutex);
                 Clingo::AST::with_builder(control, [&](Clingo::AST::ProgramBuilder& builder) {
                     for (const auto& program : query.programs)
                     {
