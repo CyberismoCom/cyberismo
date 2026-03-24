@@ -11,124 +11,29 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 #include <chrono>
-#include <cstring>
-#include <ctime>
 #include <sstream>
-#include <stdint.h>
 #include <string>
 
 #include <clingo.hh>
 #include <napi.h>
 
-#include "clingo_solver.h"
+#include "napi_helpers.h"
 #include "program_store.h"
+#include "solve_task.h"
 #include "xxhash.h"
 
-// unnamed namespace to avoid polluting the global namespace
+// Shared solve result cache — content-addressed, safe to share across all instances.
+static node_clingo::SolveResultCache g_cache;
+
+// Dedicated thread pool for Clingo solves — thread count defaults to hardware concurrency.
+static BS::thread_pool<> g_thread_pool;
+
 namespace
 {
-    struct NodeClingoLogs
-    {
-        Napi::Array errors;
-        Napi::Array warnings;
-
-        NodeClingoLogs(Napi::Env env)
-        {
-            errors = Napi::Array::New(env);
-            warnings = Napi::Array::New(env);
-        }
-    };
-
     /**
-    * Helper function to parse the error messages from Clingo
-    * @param env The N-API environment.
-    * @return NodeClingoLogs containing separated errors and warnings arrays.
-    */
-    NodeClingoLogs parse_clingo_logs(
-        const Napi::Env& env,
-        const std::vector<node_clingo::ClingoLogMessage>& logMessages)
-    {
-        NodeClingoLogs logs(env);
-
-        size_t errorIndex = 0;
-        size_t warningIndex = 0;
-
-        for (const auto& msg : logMessages)
-        {
-            if (msg.isError)
-            {
-                logs.errors.Set(errorIndex++, Napi::String::New(env, msg.message));
-            }
-            else
-            {
-                logs.warnings.Set(warningIndex++, Napi::String::New(env, msg.message));
-            }
-        }
-
-        return logs;
-    }
-    /**
-    * Helper function to throw a Napi error from a failed SolveResult.
-    * @param env The N-API environment.
-    * @param logMessages The log messages from the solve attempt.
-    * @param errorMessage The error message string.
-    * @param programKey The string identifier of the program that caused the error.
-    */
-    void throw_solve_error(
-        const Napi::Env& env,
-        const std::vector<node_clingo::ClingoLogMessage>& logMessages,
-        const std::string& errorMessage,
-        const std::string& programKey = "")
-    {
-        Napi::Error error = Napi::Error::New(env, errorMessage);
-
-        Napi::Object errorObj = Napi::Object::New(env);
-
-        NodeClingoLogs logs = parse_clingo_logs(env, logMessages);
-
-        errorObj.Set("errors", logs.errors);
-        errorObj.Set("warnings", logs.warnings);
-        if (!programKey.empty())
-        {
-            errorObj.Set("program", Napi::String::New(env, programKey));
-        }
-
-        error.Set("details", errorObj);
-        throw error;
-    }
-
-    Napi::Object create_napi_object_from_solve_result(const Napi::Env& env, const node_clingo::SolveResult& result)
-    {
-        Napi::Object resultObj = Napi::Object::New(env);
-        Napi::Array answersArray = Napi::Array::New(env, result.answers.size());
-        for (size_t i = 0; i < result.answers.size(); ++i)
-        {
-            answersArray[i] = Napi::String::New(env, result.answers[i]);
-        }
-        resultObj.Set("answers", answersArray);
-        Napi::Object statsObj = Napi::Object::New(env);
-        statsObj.Set("glue", result.stats.glue.count());
-        statsObj.Set("add", result.stats.add.count());
-        statsObj.Set("ground", result.stats.ground.count());
-        statsObj.Set("solve", result.stats.solve.count());
-        statsObj.Set("cacheHit", result.stats.cacheHit);
-        resultObj.Set("stats", statsObj);
-
-        NodeClingoLogs logs = parse_clingo_logs(env, result.logs);
-        resultObj.Set("errors", logs.errors);
-        resultObj.Set("warnings", logs.warnings);
-
-        return resultObj;
-    }
-
-    node_clingo::ClingoSolver g_clingoSolver;
-    node_clingo::ProgramStore g_programStore;
-    node_clingo::SolveResultCache g_solveResultCache;
-
-    /**
-    * Parse refs array argument from N-API info at given index.
-    * Throws TypeError if not an array of strings. Returns a vector of refs.
-    */
+     * Parse refs array argument from N-API info at given index.
+     * Throws TypeError if not an array of strings. Returns a vector of refs.
+     */
     std::vector<std::string> parse_refs_or_throw(const Napi::CallbackInfo& info, size_t index = 1)
     {
         Napi::Env env = info.Env();
@@ -146,240 +51,199 @@ namespace
             {
                 throw Napi::TypeError::New(env, "All refs must be strings");
             }
-            std::string ref = val.As<Napi::String>().Utf8Value();
-            refs.push_back(ref);
+            refs.push_back(val.As<Napi::String>().Utf8Value());
         }
         return refs;
     }
 
 } // namespace
-/**
- * N-API function exposed to JavaScript as `setProgram`.
- * Stores or updates a program with optional categories.
- * @param info N-API callback info containing arguments (key string, program string, optional categories array).
- * @returns undefined
- * @throws Napi::TypeError if arguments are invalid.
- */
-Napi::Value SetProgram(const Napi::CallbackInfo& info)
-{
-    Napi::Env env = info.Env();
 
-    // Check arguments
-    if (info.Length() < 2 || !info[0].IsString() || !info[1].IsString())
+/**
+ * Per-instance Clingo context.
+ * Owns a ProgramStore and sets applies options for solves
+ */
+class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
+  public:
+    static Napi::Object Init(Napi::Env env, Napi::Object exports)
     {
-        throw Napi::TypeError::New(
+        Napi::Function ctor = DefineClass(
             env,
-            "Expected arguments: key (string), program "
-            "(string), optional categories (string[])");
+            "ClingoContext",
+            {
+                InstanceMethod("setProgram", &ClingoContext::SetProgram),
+                InstanceMethod("removeProgram", &ClingoContext::RemoveProgram),
+                InstanceMethod("removeAllPrograms", &ClingoContext::RemoveAllPrograms),
+                InstanceMethod("solve", &ClingoContext::Solve),
+                InstanceMethod("buildProgram", &ClingoContext::BuildProgram),
+            });
+        exports.Set(Napi::String::New(env, "ClingoContext"), ctor);
+        return exports;
     }
 
-    std::string key = info[0].As<Napi::String>().Utf8Value();
-    std::string content = info[1].As<Napi::String>().Utf8Value();
-
-    std::vector<std::string> categories;
-
-    // Add categories if provided
-    if (info.Length() >= 3 && info[2].IsArray())
+    /**
+     * Constructor. Accepts an optional options object:
+     *   { preParsing?: boolean }
+     */
+    ClingoContext(const Napi::CallbackInfo& info) : Napi::ObjectWrap<ClingoContext>(info)
     {
-        Napi::Array categoriesArray = info[2].As<Napi::Array>();
-        for (uint32_t i = 0; i < categoriesArray.Length(); ++i)
+        if (info.Length() > 0 && info[0].IsObject())
         {
-            Napi::Value val = categoriesArray[i];
-            if (val.IsString())
+            Napi::Object opts = info[0].As<Napi::Object>();
+            if (opts.Has("preParsing") && opts.Get("preParsing").IsBoolean())
             {
-                categories.push_back(val.As<Napi::String>().Utf8Value());
+                m_store.preParsing = opts.Get("preParsing").As<Napi::Boolean>().Value();
             }
         }
     }
 
-    // Store the program
-    g_programStore.addProgram(key, content, categories);
-    return env.Undefined();
-}
+    node_clingo::ProgramStore m_store;
 
-/**
- * N-API function exposed to JavaScript as `removeProgram`.
- * Removes a stored program.
- * @param info N-API callback info containing arguments (key string).
- * @returns Napi::Boolean indicating whether the program was found and removed.
- * @throws Napi::TypeError if the argument is invalid.
- */
-Napi::Value RemoveProgram(const Napi::CallbackInfo& info)
-{
-    Napi::Env env = info.Env();
-    // Check arguments
-    if (info.Length() < 1 || !info[0].IsString())
+  private:
+    /**
+     * setProgram(key, program, categories?)
+     */
+    Napi::Value SetProgram(const Napi::CallbackInfo& info)
     {
-        throw Napi::TypeError::New(env, "Expected argument: key (string)");
-    }
-
-    std::string key = info[0].As<Napi::String>().Utf8Value();
-    bool removed = g_programStore.removeProgramByKey(key);
-
-    return Napi::Boolean::New(env, removed);
-}
-
-/**
- * N-API function exposed to JavaScript as `clearAllBasePrograms`.
- * Removes all stored base programs.
- * @param info N-API callback info (no arguments expected).
- * @returns Napi::Boolean(true) on success.
- * @throws Napi::Error on errors.
- */
-Napi::Value RemoveAllPrograms(const Napi::CallbackInfo& info)
-{
-    Napi::Env env = info.Env();
-    g_programStore.removeAllPrograms();
-    return env.Undefined();
-}
-
-/**
- * N-API function exposed to JavaScript as `buildProgram`.
- * Assembles a complete logic program by combining the main program with stored base programs.
- * This function provides the same program assembly logic as `solve` but returns the complete
- * program text instead of executing it.
- * @param info N-API callback info containing arguments (program string, optional base program key(s) string or array).
- * @returns A Napi::String containing the complete assembled logic program.
- * @throws Napi::TypeError if arguments are invalid.
- */
-Napi::Value BuildProgram(const Napi::CallbackInfo& info)
-{
-    Napi::Env env = info.Env();
-
-    // Check arguments
-    if (info.Length() < 1 || !info[0].IsString())
-    {
-        throw Napi::TypeError::New(env, "String argument expected for program");
-    }
-
-    // Get the main program string
-    std::string mainProgram = info[0].As<Napi::String>().Utf8Value();
-
-    // Build the complete program string
-    std::ostringstream completeProgram;
-    std::vector<std::string> refs = parse_refs_or_throw(info);
-
-    node_clingo::Query query = g_programStore.prepareQuery(mainProgram, refs);
-
-    for (const auto& program : query.programs)
-    {
-        if (program->key == "__program__")
+        Napi::Env env = info.Env();
+        if (info.Length() < 2 || !info[0].IsString() || !info[1].IsString())
         {
-            completeProgram << "% Main program\n";
+            throw Napi::TypeError::New(
+                env, "Expected arguments: key (string), program (string), optional categories (string[])");
         }
-        else
+
+        std::string key = info[0].As<Napi::String>().Utf8Value();
+        std::string content = info[1].As<Napi::String>().Utf8Value();
+        std::vector<std::string> categories;
+
+        if (info.Length() >= 3 && info[2].IsArray())
         {
-            completeProgram << "% Program: " << program->key << "\n";
+            Napi::Array arr = info[2].As<Napi::Array>();
+            for (uint32_t i = 0; i < arr.Length(); ++i)
+            {
+                Napi::Value val = arr[i];
+                if (val.IsString())
+                {
+                    categories.push_back(val.As<Napi::String>().Utf8Value());
+                }
+            }
         }
-        completeProgram << program->content << "\n\n";
+
+        m_store.addProgram(key, content, categories);
+        return env.Undefined();
     }
 
-    return Napi::String::New(env, completeProgram.str());
-}
+    /**
+     * removeProgram(key) → boolean
+     */
+    Napi::Value RemoveProgram(const Napi::CallbackInfo& info)
+    {
+        Napi::Env env = info.Env();
+        if (info.Length() < 1 || !info[0].IsString())
+        {
+            throw Napi::TypeError::New(env, "Expected argument: key (string)");
+        }
+        return Napi::Boolean::New(env, m_store.removeProgramByKey(info[0].As<Napi::String>().Utf8Value()));
+    }
+
+    /**
+     * removeAllPrograms()
+     */
+    Napi::Value RemoveAllPrograms(const Napi::CallbackInfo& info)
+    {
+        m_store.removeAllPrograms();
+        return info.Env().Undefined();
+    }
+
+    /**
+     * buildProgram(program, refs) → string
+     */
+    Napi::Value BuildProgram(const Napi::CallbackInfo& info)
+    {
+        Napi::Env env = info.Env();
+        if (info.Length() < 1 || !info[0].IsString())
+        {
+            throw Napi::TypeError::New(env, "String argument expected for program");
+        }
+
+        std::string mainProgram = info[0].As<Napi::String>().Utf8Value();
+        std::vector<std::string> refs = parse_refs_or_throw(info);
+        node_clingo::Query query = m_store.prepareQuery(mainProgram, refs);
+
+        std::ostringstream out;
+        for (const auto& program : query.programs)
+        {
+            if (program->key == "__program__")
+            {
+                out << "% Main program\n";
+            }
+            else
+            {
+                out << "% Program: " << program->key << "\n";
+            }
+            out << program->content << "\n\n";
+        }
+        return Napi::String::New(env, out.str());
+    }
+
+    /**
+     * solve(program, refs) → Promise<SolveResult>
+     */
+    Napi::Value Solve(const Napi::CallbackInfo& info)
+    {
+        auto startTime = std::chrono::high_resolution_clock::now();
+        Napi::Env env = info.Env();
+
+        if (info.Length() < 1 || !info[0].IsString())
+        {
+            throw Napi::TypeError::New(env, "String argument expected for program");
+        }
+
+        std::string program = info[0].As<Napi::String>().Utf8Value();
+        std::vector<std::string> refs = parse_refs_or_throw(info);
+        node_clingo::Query query = m_store.prepareQuery(program, refs);
+
+        // Cache hit — resolve immediately on the main thread.
+        node_clingo::SolveResult result;
+        if (g_cache.result(query.hash, result))
+        {
+            auto cacheHitTime = std::chrono::high_resolution_clock::now();
+            result.stats.glue = std::chrono::duration_cast<std::chrono::microseconds>(cacheHitTime - startTime);
+            result.stats.add = std::chrono::microseconds::zero();
+            result.stats.ground = std::chrono::microseconds::zero();
+            result.stats.solve = std::chrono::microseconds::zero();
+            result.stats.cacheHit = true;
+
+            auto deferred = Napi::Promise::Deferred::New(env);
+            deferred.Resolve(node_clingo::create_napi_object_from_solve_result(env, result));
+            return deferred.Promise();
+        }
+
+        auto afterCacheCheckTime = std::chrono::high_resolution_clock::now();
+
+        auto deferred = Napi::Promise::Deferred::New(env);
+        auto promise = deferred.Promise();
+        node_clingo::spawnSolveTask(
+            g_thread_pool, g_cache, std::move(query), startTime, afterCacheCheckTime, std::move(deferred), env);
+        return promise;
+    }
+};
 
 /**
- * N-API function exposed to JavaScript as `solve`.
- * Solves a given logic program, optionally combining it with stored base programs.
- * Handles grounding with external functions and collects answer sets.
- * @param info N-API callback info containing arguments (program string, optional base program key(s) string or array).
- * @returns A Napi::Object containing:
- *   - `answers`: A Napi::Array of strings, each representing an answer set.
- *   - `stats`: A Napi::Object containing:
- *     - `glue`: A Napi::Number representing the glue time in microseconds.
- *     - `add`: A Napi::Number representing the add time in microseconds.
- *     - `ground`: A Napi::Number representing the ground time in microseconds.
- *     - `solve`: A Napi::Number representing the solve time in microseconds.
- *   - `errors`: A Napi::Array of strings, each representing an error message.
- *   - `warnings`: A Napi::Array of strings, each representing a warning message.
- * @throws Napi::TypeError if arguments are invalid.
- * @throws Napi::Error on Clingo errors or other exceptions.
- */
-Napi::Value Solve(const Napi::CallbackInfo& info)
-{
-    auto startTime = std::chrono::high_resolution_clock::now();
-    Napi::Env env = info.Env();
-
-    // Check arguments
-    if (info.Length() < 1 || !info[0].IsString())
-    {
-        throw Napi::TypeError::New(env, "String argument expected for program");
-    }
-    // Create the program string once
-    std::string program = info[0].As<Napi::String>().Utf8Value();
-    // stores reference strings
-    std::vector<std::string> refs = parse_refs_or_throw(info);
-
-    node_clingo::Query query = g_programStore.prepareQuery(program, refs);
-
-    // try to get the result from the cache
-    node_clingo::SolveResult result;
-    if (g_solveResultCache.result(query.hash, result))
-    {
-        auto cacheHitTime = std::chrono::high_resolution_clock::now();
-        result.stats.glue = std::chrono::duration_cast<std::chrono::microseconds>(cacheHitTime - startTime);
-        result.stats.add = std::chrono::microseconds::zero();
-        result.stats.ground = std::chrono::microseconds::zero();
-        result.stats.solve = std::chrono::microseconds::zero();
-        result.stats.cacheHit = true;
-        return create_napi_object_from_solve_result(env, result);
-    }
-
-    auto afterCacheCheckTime = std::chrono::high_resolution_clock::now();
-
-    // recalculate the result and store it in the cache
-    try
-    {
-        result = g_clingoSolver.solve(query);
-    }
-    catch (const node_clingo::ClingoSolveException& e)
-    {
-        throw_solve_error(env, e.logs, e.what(), e.programKey);
-    }
-    catch (const std::exception& e)
-    {
-        throw Napi::Error::New(env, e.what());
-    }
-    result.stats.glue = std::chrono::duration_cast<std::chrono::microseconds>(afterCacheCheckTime - startTime);
-    Napi::Object resultObj = create_napi_object_from_solve_result(env, result);
-    g_solveResultCache.addResult(query.hash, std::move(result));
-
-    return resultObj;
-}
-
-/**
- * N-API function exposed to JavaScript as `clearCache`.
- * Clears the solve result cache.
- * @param info N-API callback info (no arguments expected).
- * @returns undefined
+ * clearCache() — clears the shared solve result cache.
  */
 Napi::Value ClearCache(const Napi::CallbackInfo& info)
 {
-    Napi::Env env = info.Env();
-    g_solveResultCache.clear();
-    return env.Undefined();
+    g_cache.clear();
+    return info.Env().Undefined();
 }
 
 /**
- * N-API module initialization function.
- * Exports certain functions to JavaScript.
- * @param env The N-API environment.
- * @param exports The N-API exports object.
- * @returns The populated exports object.
+ * Module initialization.
  */
 Napi::Object Init(Napi::Env env, Napi::Object exports)
 {
-    exports.Set(Napi::String::New(env, "solve"), Napi::Function::New(env, Solve));
-
-    exports.Set(Napi::String::New(env, "buildProgram"), Napi::Function::New(env, BuildProgram));
-
-    exports.Set(Napi::String::New(env, "setProgram"), Napi::Function::New(env, SetProgram));
-
-    exports.Set(Napi::String::New(env, "removeAllPrograms"), Napi::Function::New(env, RemoveAllPrograms));
-
-    exports.Set(Napi::String::New(env, "removeProgram"), Napi::Function::New(env, RemoveProgram));
-
+    ClingoContext::Init(env, exports);
     exports.Set(Napi::String::New(env, "clearCache"), Napi::Function::New(env, ClearCache));
-
     return exports;
 }
 
