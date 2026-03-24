@@ -47,7 +47,7 @@
     "globals": "^17.4.0",
     "html-react-parser": "^5.2.17",
     "i18next": "^25.8.13",
-    "jsdom": "^27.0.0",
+    "jsdom": "^29.0.1",
     "node-html-parser": "^7.0.2",
     "react": "^19.2.4",
     "react-arborist": "^3.4.3",
