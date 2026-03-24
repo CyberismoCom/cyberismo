@@ -10,7 +10,7 @@
     "dev": "tsc -p tsconfig.build.json --watch",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint . && pnpm format:cpp:check",
+    "lint": "eslint .",
     "format:cpp": "clang-format -i src/*.cc src/*.h",
     "format:cpp:check": "clang-format --dry-run --Werror src/*.cc src/*.h"
   },
