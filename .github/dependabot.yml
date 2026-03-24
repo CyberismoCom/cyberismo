@@ -18,12 +18,6 @@ updates:
           - "react-dom"
           - "@types/react"
           - "@types/react-dom"
-      chai-dependencies: # Update all Chai dependencies in one PR
-        patterns:
-          - "@types/chai"
-          - "@types/chai-as-promised"
-          - "chai"
-          - "chai-as-promised"
       eslint-dependencies: # Update all ESLint dependencies in one PR
         patterns:
           - "eslint"
@@ -34,11 +28,6 @@ updates:
           - "@typescript-eslint/parser"
           - "eslint-plugin-react-hooks"
           - "eslint-plugin-react-refresh"
-      mocha-dependencies: # Update all Mocha dependencies in one PR
-        patterns:
-          - "@types/mocha"
-          - "mocha"
-          - "mocha-suppress-logs"
       mime-types-dependency:
         patterns:
           - "mime-types"
