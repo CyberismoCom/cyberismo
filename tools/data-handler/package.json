@@ -16,7 +16,6 @@
     "clean": "rm -rf node_modules",
     "lint": "eslint .",
     "pretest": "pnpm build",
-    "posttest": "pnpm lint",
     "test": "vitest",
     "test-coverage": "c8 pnpm test",
     "dev": "tsc --watch -p tsconfig.build.json",
