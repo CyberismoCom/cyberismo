@@ -4,7 +4,7 @@ FROM node:22-alpine AS builder
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Install OS build dependencies for native module compilation
-RUN apk add --no-cache clingo-dev g++ python3 make
+RUN apk add --no-cache g++ python3 make cmake
 
 WORKDIR /app
 
@@ -42,10 +42,9 @@ COPY --from=builder /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
 RUN mkdir -p ./tools/app
 COPY --from=builder /app/tools/app/package.json ./tools/app/package.json
 
-# install clingo-libs(contains only libclingo.so) and tools needed for PDF export
+# install tools needed for PDF export
 # - ruby & rubygems for installing asciidoctor/asciidoctor-pdf
-# - build-base & ruby-dev to satisfy potential native gem extensions
-RUN apk add --no-cache clingo-libs git ruby-full \
+RUN apk add --no-cache git ruby-full \
   && gem install --no-document asciidoctor-pdf rouge
 
 # node-clingo

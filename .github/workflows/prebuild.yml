@@ -85,40 +85,18 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ vars.NODE_VERSION }}
 
-      - name: Setup Miniconda
-        if: runner.os == 'Windows'
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          python-version: 3.12
-          auto-update-conda: true
-          activate-environment: cyberismo
-          environment-file: environment.yml
-
-      - name: Install clingo
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gringo
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 9
-      
-      - name: Install homebrew
-        if: runner.os == 'macOS'
-        run: |
-          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-      - name: Install clingo
-        if: runner.os == 'macOS'
-        run: |
-          brew install clingo --ignore-dependencies
 
       - name: Use Node.js ${{ vars.NODE_VERSION }}
         uses: actions/setup-node@v4

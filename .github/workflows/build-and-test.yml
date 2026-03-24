@@ -27,10 +27,8 @@ jobs:
         shell: bash -el {0}
     steps:
     - uses: actions/checkout@v4
-    - name: Install clingo
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y gringo
+      with:
+        submodules: recursive
     - name: Install pnpm
       uses: pnpm/action-setup@v4
       with:

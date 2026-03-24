@@ -4,7 +4,7 @@ FROM node:22-alpine
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Install OS build dependencies for native module compilation
-RUN apk add --no-cache clingo-dev g++ python3 make
+RUN apk add --no-cache g++ python3 make cmake
 
 WORKDIR /app
 
