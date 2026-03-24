@@ -1,12 +1,18 @@
-import { expect } from 'chai';
+import {
+  expect,
+  it,
+  describe,
+  beforeAll,
+  beforeEach,
+  afterEach,
+  afterAll,
+} from 'vitest';
 import { stub } from 'sinon';
-
 import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 
 import { Validator } from 'jsonschema';
 import Handlebars from 'handlebars';
-
 import BaseMacro from '../../src/macros/base-macro.js';
 import { copyDir } from '../../src/utils/file-utils.js';
 import { getTestProject } from '../helpers/test-utils.js';
@@ -27,10 +33,6 @@ import type { Card } from '../../src/interfaces/project-interfaces.js';
 import type { MacroGenerationContext } from '../../src/interfaces/macros.js';
 import { CardNotFoundError } from '../../src/exceptions/index.js';
 import type { Mode } from '../../src/interfaces/macros.js';
-
-import chaiAsPromised from 'chai-as-promised';
-import { use } from 'chai';
-use(chaiAsPromised);
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-calculate-tests');
@@ -98,36 +100,36 @@ describe('macros', () => {
     it('validateMacroContent (success)', () => {
       const data = { test: 'test' };
       const result = validateMacroContent(macro.metadata, data, testSchema);
-      expect(result).to.deep.equal({ test: 'test' });
+      expect(result).toEqual({ test: 'test' });
     });
     it('try validateMacroContent using wrong value', () => {
       const data = '{"test": 1}';
       expect(() =>
         validateMacroContent(macro.metadata, data, testSchema),
-      ).to.throw();
+      ).toThrow();
     });
     it('try validateMacroContent using wrong schema', () => {
       const data = '{"test": "test"}';
       expect(() =>
         validateMacroContent(macroMissingSchema.metadata, data, testSchema),
-      ).to.throw();
+      ).toThrow();
     });
     it('try validateMacroContent using wrong data', () => {
       const data = '{"test": "test"';
       expect(() =>
         validateMacroContent(macro.metadata, data, testSchema),
-      ).to.throw();
+      ).toThrow();
     });
     it('try validateMacroContent using wrong key', () => {
       const data = '{"test2": "test"}';
       expect(() =>
         validateMacroContent(macro.metadata, data, testSchema),
-      ).to.throw();
+      ).toThrow();
     });
   });
 
   describe('handleMacros', () => {
-    before(async () => {
+    beforeAll(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
       project = getTestProject(decisionRecordsPath);
@@ -135,7 +137,7 @@ describe('macros', () => {
       await project.calculationEngine.generate();
     });
 
-    after(() => {
+    afterAll(() => {
       setTimeout(() => {
         rmSync(testDir, { recursive: true, force: true });
       }, 5000);
@@ -148,7 +150,7 @@ describe('macros', () => {
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).to.contain('<create-cards');
+        expect(result).toContain('<create-cards');
       });
       it('createCards static (success)', async () => {
         const result = await evaluateMacros(validAdoc, {
@@ -157,7 +159,7 @@ describe('macros', () => {
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).to.not.contain('<create-cards>');
+        expect(result).not.toContain('<create-cards>');
       });
       it('createCards exportSite (success)', async () => {
         const result = await evaluateMacros(validAdoc, {
@@ -166,7 +168,7 @@ describe('macros', () => {
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).to.not.contain('<create-cards');
+        expect(result).not.toContain('<create-cards');
       });
     });
     describe('raw', () => {
@@ -179,7 +181,7 @@ describe('macros', () => {
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).to.equal(
+        expect(result).toEqual(
           '{{#scoreCard}}"title": "Open issues", "value": 0 {{/scoreCard}}',
         );
       });
@@ -195,7 +197,7 @@ describe('macros', () => {
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).to.equal(handlebarsContent);
+        expect(result).toEqual(handlebarsContent);
       });
       it('raw macro with mixed content (success)', async () => {
         const mixedContent = `{{#each results}}
@@ -214,7 +216,7 @@ describe('macros', () => {
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).to.equal(mixedContent);
+        expect(result).toEqual(mixedContent);
       });
       it('content should be able to contain multiple raw blocks', async () => {
         const nestedContent = `{{#raw}}RawContent1{{/raw}}
@@ -229,7 +231,7 @@ RawContent3`;
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).to.equal(expectedResult);
+        expect(result).toEqual(expectedResult);
       });
       it('nested raw macros should return error with line numbers', async () => {
         const nestedContent = `{{#raw}}
@@ -245,7 +247,7 @@ More outer content
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).to.contain(
+        expect(result).toContain(
           'Nested {{#raw}} blocks are not supported. Found nested raw block inside another raw block on line 3 (original raw block started on line 1).',
         );
       });
@@ -259,7 +261,7 @@ Some content here`;
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).to.contain(
+        expect(result).toContain(
           'Unclosed {{#raw}} block found on line 1. Every {{#raw}} must have a matching {{/raw}}.',
         );
       });
@@ -273,7 +275,7 @@ Some content here`;
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).to.contain('<svg');
+        expect(result).toContain('<svg');
       });
       it('scoreCard static (success)', async () => {
         const macro = `{{#scoreCard}}"title": "Open issues", "value": 0 {{/scoreCard}}`;
@@ -283,7 +285,7 @@ Some content here`;
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).to.contain('<svg');
+        expect(result).toContain('<svg');
       });
       it('scoreCard exportSite (success)', async () => {
         const macro = `{{#scoreCard}}"title": "Scorecard", "value": 99, "unit": "%", "legend": "complete"{{/scoreCard}}`;
@@ -293,7 +295,7 @@ Some content here`;
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).to.contain('<svg');
+        expect(result).toContain('<svg');
       });
     });
     describe('percentage', () => {
@@ -305,9 +307,9 @@ Some content here`;
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).to.contain('<svg');
-        expect(result).to.contain('Test Percentage');
-        expect(result).to.contain('85%');
+        expect(result).toContain('<svg');
+        expect(result).toContain('Test Percentage');
+        expect(result).toContain('85%');
       });
       it('percentage static (success)', async () => {
         const macro = `{{#percentage}}"title": "Static Percentage", "value": 42, "legend": "done", "colour": "green"{{/percentage}}`;
@@ -317,9 +319,9 @@ Some content here`;
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).to.contain('<svg');
-        expect(result).to.contain('Static Percentage');
-        expect(result).to.contain('42%');
+        expect(result).toContain('<svg');
+        expect(result).toContain('Static Percentage');
+        expect(result).toContain('42%');
       });
       it('percentage exportSite (success)', async () => {
         const macro = `{{#percentage}}"title": "Test Percentage", "value": 85, "legend": "of Assets", "colour": "red"{{/percentage}}`;
@@ -329,9 +331,9 @@ Some content here`;
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).to.contain('<svg');
-        expect(result).to.contain('Test Percentage');
-        expect(result).to.contain('85%');
+        expect(result).toContain('<svg');
+        expect(result).toContain('Test Percentage');
+        expect(result).toContain('85%');
       });
       it('percentage missing title (failure)', async () => {
         const macro = `{{#percentage}}"value": 50, "legend": "missing title"{{/percentage}}`;
@@ -341,8 +343,8 @@ Some content here`;
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).to.contain('Macro Error');
-        expect(result).to.contain('title');
+        expect(result).toContain('Macro Error');
+        expect(result).toContain('title');
       });
       it('percentage missing value (failure)', async () => {
         const macro = `{{#percentage}}"title": "No Value", "legend": "No Value"{{/percentage}}`;
@@ -352,8 +354,8 @@ Some content here`;
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).to.contain('Macro Error');
-        expect(result).to.contain('value');
+        expect(result).toContain('Macro Error');
+        expect(result).toContain('value');
       });
       it('percentage missing legend (failure)', async () => {
         const macro = `{{#percentage}}"title": "No Legend", "value": 10{{/percentage}}`;
@@ -363,8 +365,8 @@ Some content here`;
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).to.contain('Macro Error');
-        expect(result).to.contain('legend');
+        expect(result).toContain('Macro Error');
+        expect(result).toContain('legend');
       });
       it('percentage value as string (failure)', async () => {
         const macro = `{{#percentage}}"title": "String Value", "value": "not a number", "legend": "fail"{{/percentage}}`;
@@ -374,8 +376,8 @@ Some content here`;
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).to.contain('Macro Error');
-        expect(result).to.contain('is not of a type');
+        expect(result).toContain('Macro Error');
+        expect(result).toContain('is not of a type');
       });
       it('percentage malformed JSON (failure)', async () => {
         const macro = `{{#percentage}}"title": "Malformed", "value": 10, "legend": "fail"`;
@@ -385,7 +387,7 @@ Some content here`;
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).to.contain('Macro Error');
+        expect(result).toContain('Macro Error');
       });
     });
     describe('includeMacro', () => {
@@ -450,12 +452,12 @@ Some content here`;
               context: 'localApp',
             });
 
-            expect(result).to.contain('= Test Card Title');
-            expect(result).to.contain(
+            expect(result).toContain('= Test Card Title');
+            expect(result).toContain(
               'This is test content for the included card.',
             );
-            expect(result).to.contain('== Test subtitle');
-            expect(cardDetailsByIdStub.calledWith('test-card')).to.equal(true);
+            expect(result).toContain('== Test subtitle');
+            expect(cardDetailsByIdStub.calledWith('test-card')).toEqual(true);
           } finally {
             cardDetailsByIdStub.restore();
           }
@@ -469,8 +471,8 @@ Some content here`;
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).to.contain('== Test Card Title');
-        expect(result).to.contain('=== Test subtitle');
+        expect(result).toContain('== Test Card Title');
+        expect(result).toContain('=== Test subtitle');
       });
       it('includeMacro with negative level offset (success)', async () => {
         const macro = `{{#include}}"cardKey": "test-card", "levelOffset": "-10"{{/include}}`;
@@ -482,8 +484,8 @@ Some content here`;
         });
 
         // cannot go below level 1
-        expect(result).to.contain('= Test Card Title');
-        expect(result).to.contain('= Test subtitle');
+        expect(result).toContain('= Test Card Title');
+        expect(result).toContain('= Test subtitle');
       });
       it('includeMacro with non-existent card should return warning message', async () => {
         const macro = `{{#include}}"cardKey": "non-existent-card"{{/include}}`;
@@ -493,13 +495,13 @@ Some content here`;
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).to.contain('.Macro Error');
-        expect(result).to.contain(
+        expect(result).toContain('.Macro Error');
+        expect(result).toContain(
           "Card 'non-existent-card' does not exist in the project",
         );
 
         // Should have attempted to fetch the non-existent card
-        expect(cardDetailsByIdStub.calledWith('non-existent-card')).to.equal(
+        expect(cardDetailsByIdStub.calledWith('non-existent-card')).toEqual(
           true,
         );
       });
@@ -512,8 +514,8 @@ Some content here`;
           context: 'localApp',
         });
 
-        expect(result).to.contain('.Macro Error');
-        expect(result).to.contain('Invalid level offset: test');
+        expect(result).toContain('.Macro Error');
+        expect(result).toContain('Invalid level offset: test');
       });
       it('includeMacro with wrong schema should return warning message', async () => {
         const macro = `{{#include}}"cardKey": "test-card", "levelOffset": 1{{/include}}`;
@@ -523,7 +525,7 @@ Some content here`;
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).to.contain('.Macro Error');
+        expect(result).toContain('.Macro Error');
       });
       it('includeMacro with level offset outside of range (success)', async () => {
         const macro = `{{#include}}"cardKey": "test-card", "levelOffset": "+10"{{/include}}`;
@@ -534,10 +536,10 @@ Some content here`;
           context: 'localApp',
         });
         // cannot go above level MAX LEVEL OFFSET
-        expect(result).to.contain(
+        expect(result).toContain(
           `${'='.repeat(MAX_LEVEL_OFFSET + 1)} Test Card Title`,
         );
-        expect(result).to.contain(
+        expect(result).toContain(
           `\n${'='.repeat(MAX_LEVEL_OFFSET + 1)} Test subtitle`,
         );
       });
@@ -551,17 +553,15 @@ Some content here`;
         });
 
         // Should contain content from both cards
-        expect(result).to.contain('= Parent Card with Include');
-        expect(result).to.contain('This is the parent card.');
-        expect(result).to.contain('= Test Card Title');
-        expect(result).to.contain(
-          'This is test content for the included card.',
-        );
-        expect(result).to.contain('End of parent card.');
+        expect(result).toContain('= Parent Card with Include');
+        expect(result).toContain('This is the parent card.');
+        expect(result).toContain('= Test Card Title');
+        expect(result).toContain('This is test content for the included card.');
+        expect(result).toContain('End of parent card.');
 
         // Verify both cards were fetched
-        expect(cardDetailsByIdStub.calledWith('testCardNested')).to.equal(true);
-        expect(cardDetailsByIdStub.calledWith('test-card')).to.equal(true);
+        expect(cardDetailsByIdStub.calledWith('testCardNested')).toEqual(true);
+        expect(cardDetailsByIdStub.calledWith('test-card')).toEqual(true);
       });
       it('includeMacro with level offset inside includeMacro (success)', async () => {
         const macro = `{{#include}}"cardKey": "testCardNestedWithOffset"{{/include}}`;
@@ -571,12 +571,12 @@ Some content here`;
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).to.contain('== Test Card Title');
-        expect(result).to.contain('=== Test subtitle');
+        expect(result).toContain('== Test Card Title');
+        expect(result).toContain('=== Test subtitle');
         expect(
           cardDetailsByIdStub.calledWith('testCardNestedWithOffset'),
-        ).to.equal(true);
-        expect(cardDetailsByIdStub.calledWith('test-card')).to.equal(true);
+        ).toEqual(true);
+        expect(cardDetailsByIdStub.calledWith('test-card')).toEqual(true);
       });
       it('includeMacro with nested level offset (success)', async () => {
         const macro = `{{#include}}"cardKey": "testCardNestedWithOffset", "levelOffset": "+1"{{/include}}`;
@@ -586,12 +586,12 @@ Some content here`;
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).to.contain('=== Test Card Title');
-        expect(result).to.contain('==== Test subtitle');
+        expect(result).toContain('=== Test Card Title');
+        expect(result).toContain('==== Test subtitle');
         expect(
           cardDetailsByIdStub.calledWith('testCardNestedWithOffset'),
-        ).to.equal(true);
-        expect(cardDetailsByIdStub.calledWith('test-card')).to.equal(true);
+        ).toEqual(true);
+        expect(cardDetailsByIdStub.calledWith('test-card')).toEqual(true);
       });
 
       it('includeMacro passes correct context with updated cardKey', async () => {
@@ -602,7 +602,7 @@ Some content here`;
           cardKey: 'original-card-key',
           context: 'localApp',
         });
-        expect(result).to.contain('Card key: test-card');
+        expect(result).toContain('Card key: test-card');
       });
 
       it('includeMacro preserves raw blocks (success)', async () => {
@@ -635,15 +635,15 @@ Some content here`;
         });
 
         // The raw block content should be preserved as-is, not evaluated as a macro
-        expect(result).to.contain(
+        expect(result).toContain(
           '{{#scoreCard}}"title": "Should not be evaluated", "value": 42{{/scoreCard}}',
         );
-        expect(result).to.contain('Content before raw block.');
-        expect(result).to.contain('Content after raw block.');
-        expect(result).to.contain('= Card with Raw Block');
+        expect(result).toContain('Content before raw block.');
+        expect(result).toContain('Content after raw block.');
+        expect(result).toContain('= Card with Raw Block');
 
         // Verify the card was fetched
-        expect(cardDetailsByIdStub.calledWith('test-card-with-raw')).to.equal(
+        expect(cardDetailsByIdStub.calledWith('test-card-with-raw')).toEqual(
           true,
         );
       });
@@ -661,8 +661,8 @@ Some content here`;
 
             // Default behavior: content should start with newlines
             expect(result).to.match(/^\n\n/);
-            expect(result).to.contain('= Test Card Title');
-            expect(result).to.contain(
+            expect(result).toContain('= Test Card Title');
+            expect(result).toContain(
               'This is test content for the included card.',
             );
           });
@@ -679,8 +679,8 @@ Some content here`;
             // Trimmed: content should NOT start with whitespace
             expect(result).to.not.match(/^\s/);
             expect(result).to.match(/^\[\[test-card\]\]/);
-            expect(result).to.contain('= Test Card Title');
-            expect(result).to.contain(
+            expect(result).toContain('= Test Card Title');
+            expect(result).toContain(
               'This is test content for the included card.',
             );
           });
@@ -726,8 +726,8 @@ Some content here`;
           });
 
           // Content should be trimmed and not have leading/trailing whitespace
-          expect(result).to.equal('{"key": "value", "number": 42}');
-          expect(cardDetailsByIdStub.calledWith('json-content-card')).to.equal(
+          expect(result).toEqual('{"key": "value", "number": 42}');
+          expect(cardDetailsByIdStub.calledWith('json-content-card')).toEqual(
             true,
           );
         });
@@ -743,8 +743,8 @@ Some content here`;
 
           // Should only contain title, trimmed
           expect(result).to.match(/^\[\[test-card\]\]/);
-          expect(result).to.contain('= Test Card Title');
-          expect(result).to.not.contain(
+          expect(result).toContain('= Test Card Title');
+          expect(result).not.toContain(
             'This is test content for the included card.',
           );
         });
@@ -777,7 +777,7 @@ Some content here`;
             });
 
             // JSON escaping: quotes become \", backslash becomes \\, newline becomes \n
-            expect(result).to.equal(
+            expect(result).toEqual(
               'Content with \\"quotes\\" and \\\\ backslash\\nand newline',
             );
           });
@@ -808,7 +808,7 @@ Some content here`;
             });
 
             // CSV escaping: quotes become doubled
-            expect(result).to.equal('Content with ""quotes"" inside');
+            expect(result).toEqual('Content with ""quotes"" inside');
           });
 
           it(`includeMacro with escape="csv" should handle multiple quotes [${mode}]`, async () => {
@@ -839,7 +839,7 @@ Some content here`;
             });
 
             // Each quote should be doubled
-            expect(result).to.equal('""""""triple quotes""""""');
+            expect(result).toEqual('""""""triple quotes""""""');
           });
         });
 
@@ -869,7 +869,7 @@ Some content here`;
           });
 
           // No escaping should occur
-          expect(result).to.equal('Content with "quotes" and newline\nhere');
+          expect(result).toEqual('Content with "quotes" and newline\nhere');
         });
       });
     });
@@ -927,8 +927,8 @@ Some content here`;
             context: 'localApp',
           });
 
-          expect(result).to.equal(expected);
-          expect(cardDetailsByIdStub.calledWith('xref-test-card')).to.equal(
+          expect(result).toEqual(expected);
+          expect(cardDetailsByIdStub.calledWith('xref-test-card')).toEqual(
             true,
           );
         });
@@ -943,11 +943,11 @@ Some content here`;
           context: 'localApp',
         });
 
-        expect(result).to.contain('.Macro Error');
-        expect(result).to.contain('Card key non-existent-card not found');
+        expect(result).toContain('.Macro Error');
+        expect(result).toContain('Card key non-existent-card not found');
 
         // Should have attempted to fetch the non-existent card
-        expect(cardDetailsByIdStub.calledWith('non-existent-card')).to.equal(
+        expect(cardDetailsByIdStub.calledWith('non-existent-card')).toEqual(
           true,
         );
       });
@@ -961,7 +961,7 @@ Some content here`;
           context: 'localApp',
         });
 
-        expect(result).to.contain('.Macro Error');
+        expect(result).toContain('.Macro Error');
       });
 
       it('xrefMacro with missing cardKey should return warning message', async () => {
@@ -973,7 +973,7 @@ Some content here`;
           context: 'localApp',
         });
 
-        expect(result).to.contain('.Macro Error');
+        expect(result).toContain('.Macro Error');
       });
     });
     describe('imageMacro', () => {
@@ -998,7 +998,7 @@ Some content here`;
           context: 'localApp',
         });
 
-        expect(result).to.equal(
+        expect(result).toEqual(
           'image::/api/cards/decision_1/a/the-needle.heic[]',
         );
       });
@@ -1012,7 +1012,7 @@ Some content here`;
           context: 'localApp',
         });
 
-        expect(result).to.equal(
+        expect(result).toEqual(
           'image::/api/cards/decision_1/a/the-needle.heic[]',
         );
       });
@@ -1026,7 +1026,7 @@ Some content here`;
           context: 'localApp',
         });
 
-        expect(result).to.equal(
+        expect(result).toEqual(
           'image::/api/cards/decision_1/a/the-needle.heic[]',
         );
       });
@@ -1040,7 +1040,7 @@ Some content here`;
           context: 'localApp',
         });
 
-        expect(result).to.equal(
+        expect(result).toEqual(
           'image::/api/cards/decision_1/a/the-needle.heic[alt="Test image",title="A test needle image"]',
         );
       });
@@ -1055,9 +1055,9 @@ Some content here`;
             context: 'localApp',
           });
 
-          expect(result).to.contain('.Macro Error');
-          expect(result).to.contain(missingFile);
-          expect(result.toLowerCase()).to.contain('not found in card');
+          expect(result).toContain('.Macro Error');
+          expect(result).toContain(missingFile);
+          expect(result.toLowerCase()).toContain('not found in card');
         });
       }
       it('imageMacro inject mode with non-existent card should return warning message', async () => {
@@ -1068,8 +1068,8 @@ Some content here`;
           cardKey: 'decision_1',
           context: 'localApp',
         });
-        expect(result).to.contain('.Macro Error');
-        expect(result).to.contain(
+        expect(result).toContain('.Macro Error');
+        expect(result).toContain(
           "Card 'non-existent-card' does not exist in the project",
         );
       });
@@ -1083,8 +1083,8 @@ Some content here`;
           context: 'localApp',
         });
 
-        expect(result).to.contain('.Macro Error');
-        expect(result).to.contain(
+        expect(result).toContain('.Macro Error');
+        expect(result).toContain(
           "Card 'non-existent-card' does not exist in the project",
         );
       });
@@ -1098,8 +1098,8 @@ Some content here`;
           context: 'localApp',
         });
 
-        expect(result).to.contain('.Macro Error');
-        expect(result).to.contain(
+        expect(result).toContain('.Macro Error');
+        expect(result).toContain(
           "Attachment file 'non-existent-image.png' not found in card 'decision_5'",
         );
       });
@@ -1113,7 +1113,7 @@ Some content here`;
           context: 'localApp',
         });
 
-        expect(result).to.contain('.Macro Error');
+        expect(result).toContain('.Macro Error');
       });
 
       it('imageMacro with missing fileName should return warning message', async () => {
@@ -1125,12 +1125,12 @@ Some content here`;
           context: 'localApp',
         });
 
-        expect(result).to.contain('.Macro Error');
+        expect(result).toContain('.Macro Error');
       });
     });
   });
   describe('validate macros', () => {
-    before(async () => {
+    beforeAll(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
       project = getTestProject(decisionRecordsPath);
@@ -1138,7 +1138,7 @@ Some content here`;
       await project.calculationEngine.generate();
     });
 
-    after(() => {
+    afterAll(() => {
       setTimeout(() => {
         rmSync(testDir, { recursive: true, force: true });
       }, 5000);
@@ -1161,7 +1161,7 @@ Some content here`;
           cardKey: '',
           context: 'localApp',
         }),
-      ).to.be.rejected;
+      ).rejects.toThrow();
     });
   });
   describe('registerMacros', () => {
@@ -1189,28 +1189,28 @@ Some content here`;
       };
 
       const result = createHtmlPlaceholder(macro.metadata, options);
-      expect(result).to.contain('test-tag-name');
-      expect(result).to.contain('key="macro-');
-      expect(result).to.contain('options="');
+      expect(result).toContain('test-tag-name');
+      expect(result).toContain('key="macro-');
+      expect(result).toContain('options="');
 
       const optionsBase64 = Buffer.from(
         JSON.stringify(options),
         'utf-8',
       ).toString('base64');
 
-      expect(result).to.contain(optionsBase64);
+      expect(result).toContain(optionsBase64);
     });
     it('createHtmlPlaceholder (success) without data', () => {
       // note: depends on the order of execution
       const result = createHtmlPlaceholder(macro.metadata, {});
-      expect(result).to.contain('test-tag-name');
-      expect(result).to.contain('key="macro-');
-      expect(result).to.contain('options="');
+      expect(result).toContain('test-tag-name');
+      expect(result).toContain('key="macro-');
+      expect(result).toContain('options="');
 
       const optionsBase64 = Buffer.from(JSON.stringify({}), 'utf-8').toString(
         'base64',
       );
-      expect(result).to.contain(optionsBase64);
+      expect(result).toContain(optionsBase64);
     });
     it('createHtmlPlaceholder with nested objects (dot notation)', () => {
       const options = {
@@ -1229,11 +1229,11 @@ Some content here`;
         JSON.stringify(options),
         'utf-8',
       ).toString('base64');
-      expect(result).to.contain(optionsBase64);
+      expect(result).toContain(optionsBase64);
     });
     it('createAdmonition (success)', () => {
       const result = createAdmonition('WARNING', 'test-title', 'test-content');
-      expect(result).to.equal(
+      expect(result).toEqual(
         '[WARNING]\n.test-title\n====\ntest-content\n====\n\n',
       );
     });
@@ -1243,14 +1243,14 @@ Some content here`;
 describe('createMacro', () => {
   it('should create a macro with empty options', () => {
     const result = createMacro('scoreCard', {});
-    expect(result).to.equal('{{#scoreCard}}{{/scoreCard}}');
+    expect(result).toEqual('{{#scoreCard}}{{/scoreCard}}');
   });
   it('should create a macro with non-empty options', () => {
     const result = createMacro('scoreCard', { foo: 'bar', num: 42 });
-    expect(result).to.equal('{{#scoreCard}}"foo":"bar","num":42{{/scoreCard}}');
+    expect(result).toEqual('{{#scoreCard}}"foo":"bar","num":42{{/scoreCard}}');
   });
   it('should handle options with nested objects', () => {
     const result = createMacro('scoreCard', { a: { b: 1 } });
-    expect(result).to.equal('{{#scoreCard}}"a":{"b":1}{{/scoreCard}}');
+    expect(result).toEqual('{{#scoreCard}}"a":{"b":1}{{/scoreCard}}');
   });
 });
