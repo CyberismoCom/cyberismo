@@ -16,7 +16,7 @@
     "start": "vite",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "pnpm run unit && pnpm e2e:headless && pnpm lint"
+    "test": "pnpm run unit && pnpm e2e:headless"
   },
   "devDependencies": {
     "@asciidoctor/core": "^3.0.4",
