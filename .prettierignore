@@ -15,3 +15,4 @@ examples/
 tools/assets/src/static/ui-bundle
 pnpm-lock.yaml
 module-test/
+tools/node-clingo/external
