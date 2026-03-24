@@ -28,15 +28,19 @@
           'defines': [ 'ENABLE_CPP_LOGS' ]
         }],
         ["OS=='win'", {
+          "defines": [ "CLINGO_NO_VISIBILITY" ],
           "libraries": [
-            "<(module_root_dir)/external/clingo/build/lib/clingo.lib",
-            "<(module_root_dir)/external/clingo/build/lib/gringo.lib",
-            "<(module_root_dir)/external/clingo/build/lib/reify.lib",
-            "<(module_root_dir)/external/clingo/build/lib/clasp.lib",
-            "<(module_root_dir)/external/clingo/build/lib/potassco.lib"
+            "<(module_root_dir)/external/clingo/build/lib/Release/clingo.lib",
+            "<(module_root_dir)/external/clingo/build/lib/Release/gringo.lib",
+            "<(module_root_dir)/external/clingo/build/lib/Release/reify.lib",
+            "<(module_root_dir)/external/clingo/build/lib/Release/clasp.lib",
+            "<(module_root_dir)/external/clingo/build/lib/Release/potassco.lib"
           ],
           "msvs_settings": {
-            "VCCLCompilerTool": { "AdditionalOptions": [ "/std:c++20" ] }
+            "VCCLCompilerTool": {
+              "AdditionalOptions": [ "/std:c++20" ],
+              "RuntimeLibrary": "0"
+            }
           }
         }],
         ["OS!='win'", {
