@@ -1,3 +1,4 @@
+import { beforeEach, describe, it } from 'vitest';
 import { TreeMenu } from '../src/components/TreeMenu';
 import { SearchableTreeMenu } from '../src/components/SearchableTreeMenu';
 import { LabelEditorField } from '@/components/LabelEditor';
