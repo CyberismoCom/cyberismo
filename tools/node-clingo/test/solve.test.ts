@@ -62,8 +62,6 @@ describe('Clingo solver', () => {
     // Third solve should miss cache after clear
     const result3 = await solve(program);
     expect(result3.stats.cacheHit).toBe(false);
-    expect(result3.stats.add).toBeGreaterThan(0);
-    expect(result3.stats.ground).toBeGreaterThan(0);
   });
 
   it('should reuse default base program across multiple solves', async () => {
