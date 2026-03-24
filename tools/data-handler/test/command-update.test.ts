@@ -1,5 +1,4 @@
-import { expect } from 'chai';
-import type * as sinon from 'sinon';
+import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 
 import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
@@ -8,29 +7,22 @@ import type { CardType } from '../src/interfaces/resource-interfaces.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import type { Project } from '../src/containers/project.js';
 import { Fetch, Show, Update } from '../src/commands/index.js';
-import {
-  getTestProject,
-  mockEnsureModuleListUpToDate,
-} from './helpers/test-utils.js';
+import { getTestProject } from './helpers/test-utils.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-update-tests');
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
 let project: Project;
 let update: Update;
-let ensureModuleListStub: sinon.SinonStub;
 
 describe('update command', () => {
   afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
-    ensureModuleListStub.restore();
   });
 
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data', testDir);
-    ensureModuleListStub = mockEnsureModuleListUpToDate();
-
     project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     update = new Update(project);
@@ -40,19 +32,14 @@ describe('update command', () => {
     const name = `${project.projectPrefix}/workflows/decision`;
     const exists = project.resources.exists(name);
     const newName = `${project.projectPrefix}/workflows/newName`;
-    expect(exists).to.equal(true);
+    expect(exists).toBe(true);
 
     await update.updateValue(name, 'change', 'name', newName);
     const workflows = project.resources.workflows();
-    let found = false;
-    for (const wf of workflows) {
-      if (wf.data?.name === newName) {
-        found = true;
-      }
-    }
-    expect(found).to.equal(true);
-  });
 
+    expect(workflows.at(0)!.data!.name).not.toBe(newName);
+    expect(workflows.at(1)!.data!.name).toBe(newName);
+  });
   it('update resource - rank item using string value (name)', async () => {
     const fetch = new Fetch(project);
     const show = new Show(project, fetch);
@@ -60,15 +47,11 @@ describe('update command', () => {
     const fileName = `${name}.json`;
     const moveToIndex = 0;
 
-    let indexBefore = -1;
-    let indexAfter = -1;
     const before = await show.showResource(name);
-    let found = (before as CardType).customFields.find((item) => {
+    const foundBefore = (before as CardType).customFields.find((item) => {
       return item.name === 'decision/fieldTypes/finished';
     });
-    if (found) {
-      indexBefore = (before as CardType).customFields.indexOf(found);
-    }
+    const indexBefore = (before as CardType).customFields.indexOf(foundBefore!);
 
     await update.updateValue(
       fileName,
@@ -79,14 +62,13 @@ describe('update command', () => {
     );
 
     const after = await show.showResource(name);
-    found = (after as CardType).customFields.find((item) => {
+    const foundAfter = (after as CardType).customFields.find((item) => {
       return item.name === 'decision/fieldTypes/finished';
     });
-    if (found) {
-      indexAfter = (after as CardType).customFields.indexOf(found);
-    }
-    expect(indexBefore).not.to.equal(indexAfter);
-    expect(indexAfter).to.equal(moveToIndex);
+    const indexAfter = (after as CardType).customFields.indexOf(foundAfter!);
+
+    expect(indexBefore).not.toBe(indexAfter);
+    expect(indexAfter).toBe(moveToIndex);
   });
   it('update resource - rank item using partial object value', async () => {
     const fetch = new Fetch(project);
@@ -95,15 +77,11 @@ describe('update command', () => {
     const fileName = `${name}.json`;
     const moveToIndex = 4;
 
-    let indexBefore = -1;
-    let indexAfter = -1;
     const before = (await show.showResource(name)) as CardType;
-    let found = before.customFields.find((item) => {
+    const foundBefore = before.customFields.find((item) => {
       return item.name === 'decision/fieldTypes/finished';
-    });
-    if (found) {
-      indexBefore = before.customFields.indexOf(found);
-    }
+    })!;
+    const indexBefore = before.customFields.indexOf(foundBefore);
 
     await update.updateValue(
       fileName,
@@ -114,14 +92,12 @@ describe('update command', () => {
     );
 
     const after = (await show.showResource(name)) as CardType;
-    found = after.customFields.find((item) => {
+    const foundAfter = after.customFields.find((item) => {
       return item.name === 'decision/fieldTypes/finished';
-    });
-    if (found) {
-      indexAfter = after.customFields.indexOf(found);
-    }
-    expect(indexBefore).not.to.equal(indexAfter);
-    expect(indexAfter).to.equal(moveToIndex);
+    })!;
+    const indexAfter = after.customFields.indexOf(foundAfter);
+    expect(indexBefore).not.toBe(indexAfter);
+    expect(indexAfter).toBe(moveToIndex);
   });
 
   it('try to update file resource with invalid data', async () => {
@@ -132,7 +108,7 @@ describe('update command', () => {
 
     await expect(
       update.updateValue(name, 'change', 'name', invalidName),
-    ).to.be.rejectedWith(
+    ).rejects.toThrow(
       "Resource identifier must follow naming rules. Identifier 'newName-ÄÄÄ' is invalid",
     );
   });
@@ -163,8 +139,8 @@ describe('update command', () => {
       stateMap,
     );
 
-    const cardType = await project.resources.byType(name, 'cardTypes').show();
-    expect(cardType?.workflow).to.equal(newWorkflow);
+    const cardType = project.resources.byType(name, 'cardTypes').show();
+    expect(cardType!.workflow).toBe(newWorkflow);
   });
 
   it('try to update card type workflow with incomplete state mapping (failure)', async () => {
@@ -188,7 +164,7 @@ describe('update command', () => {
         newWorkflow,
         incompleteMapping,
       ),
-    ).to.be.rejectedWith('State mapping validation failed');
+    ).rejects.toThrow('State mapping validation failed');
   });
 
   it('try to update card type workflow with invalid target states (failure)', async () => {
@@ -214,12 +190,12 @@ describe('update command', () => {
         newWorkflow,
         invalidTargetMapping,
       ),
-    ).to.be.rejectedWith('State mapping validation failed');
+    ).rejects.toThrow('State mapping validation failed');
   });
   it('update content - graphview viewTemplate', async () => {
     const name = `${project.projectPrefix}/graphViews/test`;
     const exists = project.resources.exists(name);
-    expect(exists).to.equal(true);
+    expect(exists).toBe(true);
 
     await update.updateValue(
       name,
@@ -229,24 +205,24 @@ describe('update command', () => {
     );
 
     const graphView = await project.resources.byType(name, 'graphViews').show();
-    expect(graphView.content.viewTemplate).to.equal('something here');
+    expect(graphView.content.viewTemplate).toBe('something here');
   });
   it('update content - graphModel model', async () => {
     const name = `${project.projectPrefix}/graphModels/test`;
     const exists = project.resources.exists(name);
-    expect(exists).to.equal(true);
+    expect(exists).toBe(true);
 
     await update.updateValue(name, 'change', 'content/model', 'something here');
 
     const graphModel = await project.resources
       .byType(name, 'graphModels')
       .show();
-    expect(graphModel.content.model).to.equal('something here');
+    expect(graphModel.content.model).toBe('something here');
   });
   it('update content - report contentTemplate', async () => {
     const name = `${project.projectPrefix}/reports/testReport`;
     const exists = project.resources.exists(name);
-    expect(exists).to.equal(true);
+    expect(exists).toBe(true);
 
     await update.updateValue(
       name,
@@ -256,12 +232,12 @@ describe('update command', () => {
     );
 
     const report = await project.resources.byType(name, 'reports').show();
-    expect(report.content.contentTemplate).to.equal('new template content');
+    expect(report.content.contentTemplate).toBe('new template content');
   });
   it('update content - report schema', async () => {
     const name = `${project.projectPrefix}/reports/testReport`;
     const exists = project.resources.exists(name);
-    expect(exists).to.equal(true);
+    expect(exists).toBe(true);
 
     const newSchema = {
       type: 'object',
@@ -274,13 +250,13 @@ describe('update command', () => {
 
     await update.updateValue(name, 'change', 'content/schema', newSchema);
 
-    const report = await project.resources.byType(name, 'reports').show();
-    expect(report.content.schema).to.deep.equal(newSchema);
+    const report = project.resources.byType(name, 'reports').show();
+    expect(report.content.schema).toEqual(newSchema);
   });
   it('update content - report queryTemplate', async () => {
     const name = `${project.projectPrefix}/reports/testReport`;
     const exists = project.resources.exists(name);
-    expect(exists).to.equal(true);
+    expect(exists).toBe(true);
 
     await update.updateValue(
       name,
@@ -290,6 +266,6 @@ describe('update command', () => {
     );
 
     const report = await project.resources.byType(name, 'reports').show();
-    expect(report.content.queryTemplate).to.equal('new query content');
+    expect(report.content.queryTemplate).toBe('new query content');
   });
 });

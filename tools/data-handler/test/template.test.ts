@@ -1,9 +1,5 @@
 // testing
-import { expect, use } from 'chai';
-import chaiAsPromised from 'chai-as-promised';
-import { after, before, describe, it } from 'mocha';
-
-use(chaiAsPromised);
+import { expect, describe, it, afterAll, beforeAll } from 'vitest';
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';
@@ -24,7 +20,7 @@ const testDir = join(baseDir, 'tmp-template-tests');
 let project: Project;
 let decisionRecordsPath: string;
 
-before(async () => {
+beforeAll(async () => {
   mkdirSync(testDir);
   await copyDir('test/test-data/', testDir);
   decisionRecordsPath = join(testDir, 'valid/decision-records');
@@ -32,13 +28,13 @@ before(async () => {
   await project.populateCaches();
 });
 
-after(() => {
+afterAll(() => {
   rmSync(testDir, { recursive: true, force: true });
 });
 
 describe('template', () => {
   it('try to create template with no name', () => {
-    expect(() => new Template(project, { name: '', path: '' })).to.throw(
+    expect(() => new Template(project, { name: '', path: '' })).toThrow(
       `Must define resource name to query its details`,
     );
   });
@@ -48,7 +44,7 @@ describe('template', () => {
       path: '',
     });
     const cards = template.cards();
-    expect(cards.length).to.equal(3);
+    expect(cards.length).toBe(3);
   });
   it('show template cards from empty template', () => {
     const template = new Template(project, {
@@ -56,7 +52,7 @@ describe('template', () => {
       path: '',
     });
     const cards = template.cards();
-    expect(cards.length).to.equal(0);
+    expect(cards.length).toBe(0);
   });
 
   it('throws an error when creating cards from an empty template', async () => {
@@ -64,13 +60,13 @@ describe('template', () => {
       name: 'decision/templates/empty',
       path: '',
     });
-    await expect(template.createCards()).to.be.rejectedWith(Error);
-    expect(template.cards().length).to.equal(0);
+    await expect(template.createCards()).rejects.toThrow(Error);
+    expect(template.cards().length).toBe(0);
   });
   it('create template card under a specific card from a project', async () => {
     // Choose specific card so that it does not have currently child cards.
     const cardBefore = project.findCard('decision_6');
-    expect(cardBefore?.children?.length).to.equal(0);
+    expect(cardBefore?.children?.length).toBe(0);
 
     const template = new Template(project, {
       name: 'decision/templates/simplepage',
@@ -87,7 +83,7 @@ describe('template', () => {
 
     // Two direct children should have been created
     const cardAfter = project.findCard('decision_6');
-    expect(cardAfter?.children?.length).to.equal(2);
+    expect(cardAfter?.children?.length).toBe(2);
   });
   it('throws an error when trying to create a specific card from an empty template', async () => {
     const template = new Template(project, {
@@ -102,10 +98,8 @@ describe('template', () => {
       attachments: [],
     };
 
-    await expect(template.createCards(nonExistingCard)).to.be.rejectedWith(
-      Error,
-    );
-    expect(template.cards().length).to.equal(0);
+    await expect(template.createCards(nonExistingCard)).rejects.toThrow(Error);
+    expect(template.cards().length).toBe(0);
   });
 
   it('creates no cards when the template is not empty and parent is non-existent', async () => {
@@ -123,12 +117,10 @@ describe('template', () => {
 
     const cardCountBefore = project.cards(project.paths.cardRootFolder).length;
 
-    await expect(template.createCards(nonExistingCard)).to.be.rejectedWith(
-      Error,
-    );
+    await expect(template.createCards(nonExistingCard)).rejects.toThrow(Error);
 
     const cardCountAfter = project.cards(project.paths.cardRootFolder).length;
-    expect(cardCountAfter).to.equal(cardCountBefore);
+    expect(cardCountAfter).toBe(cardCountBefore);
   });
 
   it('add new card to a template', async () => {
@@ -137,15 +129,9 @@ describe('template', () => {
       path: '',
     });
     const cardsBefore = template.cards();
-    await template
-      .addCard('decision/cardTypes/decision')
-      .then(() => {
-        const cardsAfter = template.cards();
-        expect(cardsBefore.length + 1).to.equal(cardsAfter.length);
-      })
-      .catch(() => {
-        expect(false);
-      });
+    await template.addCard('decision/cardTypes/decision');
+    const cardsAfter = template.cards();
+    expect(cardsBefore.length + 1).toBe(cardsAfter.length);
   });
   it('list attachments from a template (no attachments in template)', () => {
     const template = new Template(project, {
@@ -153,7 +139,7 @@ describe('template', () => {
       path: '',
     });
     const attachments = template.attachments();
-    expect(attachments.length).to.equal(0);
+    expect(attachments.length).toBe(0);
   });
   it('list attachments from a template', () => {
     const template = new Template(project, {
@@ -161,7 +147,7 @@ describe('template', () => {
       path: '',
     });
     const attachments = template.attachments();
-    expect(attachments.length).to.equal(1);
+    expect(attachments.length).toBe(1);
   });
   it('list attachments from an empty template', () => {
     const template = new Template(project, {
@@ -169,7 +155,7 @@ describe('template', () => {
       path: '',
     });
     const attachments = template.attachments();
-    expect(attachments.length).to.equal(0);
+    expect(attachments.length).toBe(0);
   });
   it('check that template does not exist, then create it', async () => {
     const templateName = 'decision/templates/idontexistyet';
@@ -178,21 +164,15 @@ describe('template', () => {
       path: '',
     });
 
-    expect(template.isCreated()).to.equal(false);
+    expect(template.isCreated()).toBe(false);
 
     const templateResource = project.resources.byType(
       'decision/templates/idontexistyet',
       'templates',
     );
-    await templateResource
-      .create()
-      .then(() => {
-        expect(true);
-      })
-      .catch(() => {
-        expect(false);
-      });
-    expect(template.isCreated()).to.equal(true);
+    await templateResource.create();
+
+    expect(template.isCreated()).toBe(true);
   });
   it('check template paths', async () => {
     const template = new Template(project, {
@@ -202,10 +182,10 @@ describe('template', () => {
     const templateMain = template.templateFolder();
     const templateCards = template.templateCardsFolder();
     const specificCardPath = template.cardFolder('decision_1');
-    expect(templateMain).to.contain('.cards');
-    expect(join(templateMain, 'c')).to.equal(templateCards);
-    expect(templateCards).to.contain(`decision${sep}c`);
-    expect(specificCardPath).to.contain(`decision${sep}c${sep}decision_1`);
+    expect(templateMain).toContain('.cards');
+    expect(join(templateMain, 'c')).toBe(templateCards);
+    expect(templateCards).toContain(`decision${sep}c`);
+    expect(specificCardPath).toContain(`decision${sep}c${sep}decision_1`);
   });
   it('add card to a template', async () => {
     const template = new Template(project, {
@@ -218,14 +198,9 @@ describe('template', () => {
       children: [],
       attachments: [],
     };
-    await template
-      .addCard('decision/cardTypes/decision', parentCard)
-      .then(() => {
-        expect(true);
-      })
-      .catch(() => {
-        expect(false);
-      });
+    await expect(
+      template.addCard('decision/cardTypes/decision', parentCard),
+    ).resolves.not.toThrow();
   });
   it('access card details by id', () => {
     const template = new Template(project, {
@@ -234,27 +209,23 @@ describe('template', () => {
     });
     const cardToOperateOn = 'decision_1';
     const cardExists = template.hasTemplateCard(cardToOperateOn);
-    expect(cardExists).to.equal(true);
+    expect(cardExists).toBe(true);
 
     const card = template.findCard(cardToOperateOn);
-    expect(card).to.not.equal(undefined);
-    if (card) {
-      expect(card.metadata?.title).to.equal('Untitled');
-      expect(card.metadata?.cardType).to.equal('decision/cardTypes/decision');
-      expect(card.metadata?.workflowState).to.equal('Draft');
-    }
+    expect(card).not.toBeUndefined();
+    expect(card.metadata!.title).toBe('Untitled');
+    expect(card.metadata!.cardType).toBe('decision/cardTypes/decision');
+    expect(card.metadata!.workflowState).toBe('Draft');
     const additionalCardDetails = template.findCard(cardToOperateOn);
-    expect(additionalCardDetails).to.not.equal(undefined);
-    if (additionalCardDetails) {
-      expect(additionalCardDetails.metadata?.title).to.equal('Untitled');
-      expect(additionalCardDetails.metadata?.cardType).to.equal(
-        'decision/cardTypes/decision',
-      );
-      expect(additionalCardDetails.metadata?.workflowState).to.equal('Draft');
-      expect(additionalCardDetails.children!.length > 0);
-      expect(additionalCardDetails.parent).to.equal('root');
-      expect(additionalCardDetails.content).to.not.equal(undefined);
-    }
+    expect(additionalCardDetails).not.toBeUndefined();
+    expect(additionalCardDetails.metadata!.title).toBe('Untitled');
+    expect(additionalCardDetails.metadata!.cardType).toBe(
+      'decision/cardTypes/decision',
+    );
+    expect(additionalCardDetails.metadata!.workflowState).toBe('Draft');
+    expect(additionalCardDetails.children!.length > 0);
+    expect(additionalCardDetails.parent).toBe('root');
+    expect(additionalCardDetails.content).not.toBeUndefined();
   });
   it('try to add card to a template that does not exist on disk', async () => {
     const template = new Template(project, {
@@ -262,14 +233,9 @@ describe('template', () => {
       path: '',
     });
 
-    await template
-      .addCard('decision/cardTypes/decision')
-      .then(() => {
-        expect(false);
-      })
-      .catch(() => {
-        expect(true);
-      });
+    await expect(
+      template.addCard('decision/cardTypes/decision'),
+    ).rejects.toThrow();
   });
   it('try to add card to a template from card type that does not exist', async () => {
     const template = new Template(project, {
@@ -277,14 +243,7 @@ describe('template', () => {
       path: '',
     });
 
-    await template
-      .addCard('i-dont-exist')
-      .then(() => {
-        expect(false);
-      })
-      .catch(() => {
-        expect(true);
-      });
+    await expect(template.addCard('i-dont-exist')).rejects.toThrow();
   });
   it('try to add card to a template to a parent card that does not exist', async () => {
     const template = new Template(project, {
@@ -298,14 +257,9 @@ describe('template', () => {
       attachments: [],
     };
 
-    await template
-      .addCard('decision/cardTypes/decision', parentCard)
-      .then(() => {
-        expect(false);
-      })
-      .catch(() => {
-        expect(true);
-      });
+    await expect(
+      template.addCard('decision/cardTypes/decision', parentCard),
+    ).rejects.toThrow();
   });
   it('check all the attachments', () => {
     const template = new Template(project, {
@@ -316,28 +270,22 @@ describe('template', () => {
     // Project can fetch the template's attachment's folder.
     const attachmentFolder1 = project.cardAttachmentFolder('decision_1');
     const attachmentFolder2 = template.cardAttachmentFolder('decision_1');
-    expect(attachmentFolder1).to.include('decision_1');
-    expect(attachmentFolder1).to.include(sep + 'a');
-    expect(attachmentFolder1).to.equal(attachmentFolder2);
+    expect(attachmentFolder1).toContain('decision_1');
+    expect(attachmentFolder1).toContain(sep + 'a');
+    expect(attachmentFolder1).toBe(attachmentFolder2);
 
-    expect(() => template.cardAttachmentFolder('decision_999')).to.throw(
+    expect(() => template.cardAttachmentFolder('decision_999')).toThrow(
       CardNotFoundError,
     );
 
     const templateAttachments = template.attachments();
-    expect(templateAttachments.length).to.equal(1);
+    expect(templateAttachments.length).toBe(1);
     const templateCard = template.findCard('decision_1');
-    if (templateCard) {
-      const cardAttachments = templateCard.attachments;
-      if (cardAttachments.length > 0) {
-        expect(cardAttachments.at(0)?.card).to.equal('decision_1');
-        expect(cardAttachments.at(0)?.fileName).to.equal('the-needle.heic');
-        expect(cardAttachments.at(0)?.path).to.include('decision_1');
-        expect(cardAttachments.at(0)?.path).to.include(sep + 'a');
-      } else {
-        expect(false);
-      }
-    }
+    const cardAttachments = templateCard.attachments;
+    expect(cardAttachments.at(0)!.card).toBe('decision_1');
+    expect(cardAttachments.at(0)!.fileName).toBe('the-needle.heic');
+    expect(cardAttachments.at(0)!.path).toContain('decision_1');
+    expect(cardAttachments.at(0)!.path).toContain(sep + 'a');
   });
   it('check if template is created', () => {
     const template = new Template(project, {
@@ -349,8 +297,8 @@ describe('template', () => {
       path: '',
     });
 
-    expect(template.isCreated()).to.equal(true);
-    expect(nonExistingTemplate.isCreated()).to.equal(false);
+    expect(template.isCreated()).toBe(true);
+    expect(nonExistingTemplate.isCreated()).toBe(false);
   });
   it('find certain card from template', () => {
     const template = new Template(project, {
@@ -360,10 +308,10 @@ describe('template', () => {
 
     expect(() => {
       template.findCard('idontexist');
-    }).to.throw(`Card 'idontexist' is not part of template`);
+    }).toThrow(`Card 'idontexist' is not part of template`);
 
     const existingCard = template.findCard('decision_1');
-    expect(existingCard).to.not.equal(undefined);
+    expect(existingCard).not.toBeUndefined();
   });
   it('show template details', async () => {
     const template = new TemplateResource(
@@ -371,13 +319,13 @@ describe('template', () => {
       resourceName('decision/templates/decision'),
     );
 
-    const templateDetails = await template.show();
-    expect(templateDetails.name).to.equal('decision/templates/decision');
-    expect(templateDetails.path).includes('.cards');
-    expect(templateDetails.path).includes('decision');
-    expect(templateDetails.description).to.equal('description');
-    expect(templateDetails.category).to.equal('category');
-    expect(templateDetails.displayName).to.equal('Decision');
+    const templateDetails = template.show();
+    expect(templateDetails.name).toBe('decision/templates/decision');
+    expect(templateDetails.path).toContain('.cards');
+    expect(templateDetails.path).toContain('decision');
+    expect(templateDetails.description).toBe('description');
+    expect(templateDetails.category).toBe('category');
+    expect(templateDetails.displayName).toBe('Decision');
   });
   it('list template cards with card keys', async () => {
     const template = new Template(project, {
@@ -385,6 +333,6 @@ describe('template', () => {
       path: '',
     });
     const templateCards = template.listCards();
-    expect(templateCards.length).to.be.greaterThan(0);
+    expect(templateCards.length).toBeGreaterThan(0);
   });
 });

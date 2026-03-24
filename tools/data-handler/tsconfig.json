@@ -10,7 +10,7 @@
     "esModuleInterop": true,
     "target": "es2023",
     "lib": ["es2023"],
-    "types": ["node", "mocha"],
+    "types": ["node"],
     "outDir": "/dist"
   },
   "include": ["src/**/*", "test/**/*.ts"]

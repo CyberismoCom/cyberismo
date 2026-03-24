@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -31,11 +31,11 @@ describe('GitManager', () => {
 
       const git = simpleGit(dir);
       const isRepo = await git.checkIsRepo();
-      expect(isRepo).to.equal(true);
+      expect(isRepo).toBe(true);
 
       // Should have at least one commit (the initial commit)
       const log = await git.log();
-      expect(log.total).to.be.greaterThanOrEqual(1);
+      expect(log.total).toBe(1);
     });
 
     it('should be idempotent on an existing repo', async () => {
@@ -45,11 +45,11 @@ describe('GitManager', () => {
 
       const git = simpleGit(dir);
       const isRepo = await git.checkIsRepo();
-      expect(isRepo).to.equal(true);
+      expect(isRepo).toBe(true);
 
       // Should still have only the initial commit
       const log = await git.log();
-      expect(log.total).to.equal(1);
+      expect(log.total).toBe(1);
     });
   });
 
@@ -64,7 +64,7 @@ describe('GitManager', () => {
 
       const git = simpleGit(dir);
       const log = await git.log();
-      expect(log.latest!.message).to.equal('Test commit');
+      expect(log.latest!.message).toBe('Test commit');
     });
 
     it('should be a no-op when nothing changed', async () => {
@@ -79,7 +79,7 @@ describe('GitManager', () => {
       await gm.commit('Should not appear');
       const logAfter = await git.log();
 
-      expect(logAfter.total).to.equal(logBefore.total);
+      expect(logAfter.total).toBe(logBefore.total);
     });
 
     it('should use per-commit author when provided', async () => {
@@ -92,8 +92,8 @@ describe('GitManager', () => {
 
       const git = simpleGit(dir);
       const log = await git.log();
-      expect(log.latest!.author_name).to.equal('Test User');
-      expect(log.latest!.author_email).to.equal('test@example.com');
+      expect(log.latest!.author_name).toBe('Test User');
+      expect(log.latest!.author_email).toBe('test@example.com');
     });
   });
 
@@ -110,13 +110,13 @@ describe('GitManager', () => {
       // Modify the file
       await writeFile(filePath, 'modified');
       const contentBefore = await readFile(filePath, 'utf-8');
-      expect(contentBefore).to.equal('modified');
+      expect(contentBefore).toBe('modified');
 
       // Rollback
       await gm.rollback();
 
       const contentAfter = await readFile(filePath, 'utf-8');
-      expect(contentAfter).to.equal('original');
+      expect(contentAfter).toBe('original');
     });
 
     it('should remove new untracked files', async () => {
@@ -130,13 +130,7 @@ describe('GitManager', () => {
       // Rollback
       await gm.rollback();
 
-      // File should be gone
-      try {
-        await readFile(newFile, 'utf-8');
-        expect.fail('File should have been removed');
-      } catch (e) {
-        expect((e as NodeJS.ErrnoException).code).to.equal('ENOENT');
-      }
+      await expect(readFile(newFile, 'utf-8')).rejects.toThrow('ENOENT');
     });
   });
 });

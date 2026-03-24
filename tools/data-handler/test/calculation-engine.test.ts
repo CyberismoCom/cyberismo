@@ -1,5 +1,4 @@
-import { expect, use } from 'chai';
-import chaiAsPromised from 'chai-as-promised';
+import { expect, it, describe, beforeAll, afterAll } from 'vitest';
 
 import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
@@ -8,8 +7,6 @@ import type { Project } from '../src/containers/project.js';
 import type { QueryResult } from '../src/types/queries.js';
 import { lpFiles } from '@cyberismo/assets';
 import { getTestProject } from './helpers/test-utils.js';
-
-use(chaiAsPromised);
 
 const expectedTree: QueryResult<'tree'>[] = [
   {
@@ -34,7 +31,7 @@ describe('calculate', () => {
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
   let project: Project;
 
-  before(async () => {
+  beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
     project = getTestProject(decisionRecordsPath);
@@ -42,10 +39,8 @@ describe('calculate', () => {
     await project.calculationEngine.generate();
   });
 
-  after(() => {
-    setTimeout(() => {
-      rmSync(testDir, { recursive: true, force: true });
-    }, 5000);
+  afterAll(() => {
+    rmSync(testDir, { recursive: true, force: true });
   });
   it('run named queries successfully', async () => {
     const query = 'tree';
@@ -57,7 +52,7 @@ describe('calculate', () => {
     delete res[0].children?.[0].workflowState;
     delete res[0].lastUpdated;
     delete res[0].children?.[0].lastUpdated;
-    expect(res).to.deep.equal(expectedTree);
+    expect(res).toEqual(expectedTree);
   });
   it('run clingraph successfully', async () => {
     const res = await project.calculationEngine.runGraph(
@@ -66,32 +61,33 @@ describe('calculate', () => {
       'localApp',
     );
 
-    expect(res).to.not.equal('');
-  }).timeout(20000);
+    expect(res).not.toBe('');
+  }, 20000);
+
   describe('python functions', () => {
     it('concatenate a string, a number and a constant', async () => {
       const res = await project.calculationEngine.runLogicProgram(
         'result(@concatenate("string", 1234, constant)).',
       );
-      expect(res.results[0].key).to.equal('string1234constant');
+      expect(res.results[0].key).toBe('string1234constant');
     });
     it('concatenate without parameters', async () => {
       const res = await project.calculationEngine.runLogicProgram(
         'result(@concatenate()).',
       );
-      expect(res.results[0].key).to.equal('');
+      expect(res.results[0].key).toBe('');
     });
     it('concatenate with 1 parameter', async () => {
       const res = await project.calculationEngine.runLogicProgram(
         'result(@concatenate("parameter")).',
       );
-      expect(res.results[0].key).to.equal('parameter');
+      expect(res.results[0].key).toBe('parameter');
     });
     it('concatenate with 2 parameters', async () => {
       const res = await project.calculationEngine.runLogicProgram(
         'result(@concatenate("one", "two")).',
       );
-      expect(res.results[0].key).to.equal('onetwo');
+      expect(res.results[0].key).toBe('onetwo');
     });
     it('calculate daysSince 2024-01-01', async () => {
       const res = await project.calculationEngine.runLogicProgram(
@@ -109,60 +105,60 @@ describe('calculate', () => {
       const res = await project.calculationEngine.runLogicProgram(
         'result(@daysSince("23232323")).',
       );
-      expect(Number(res.results[0].key)).to.equal(0);
+      expect(Number(res.results[0].key)).toBe(0);
     });
     it('daysSince of a number date should be zero', async () => {
       const res = await project.calculationEngine.runLogicProgram(
         'result(@daysSince(1)).',
       );
-      expect(Number(res.results[0].key)).to.equal(0);
+      expect(Number(res.results[0].key)).toBe(0);
     });
     it('the length of today() should be 10', async () => {
       const res =
         await project.calculationEngine.runLogicProgram('result(@today()).');
-      expect(res.results[0].key.length).to.equal(10);
+      expect(res.results[0].key.length).toBe(10);
     });
     it('wrapping a short string should yield the string itself', async () => {
       const res = await project.calculationEngine.runLogicProgram(
         'result(@wrap("A short string")).',
       );
-      expect(res.results[0].key).to.equal('A short string');
+      expect(res.results[0].key).toBe('A short string');
     });
     it('wrapping a long string', async () => {
       const res = await project.calculationEngine.runLogicProgram(
         'result(@wrap("This is a long string that would be too long as a title of a node in a graph")).',
       );
-      expect(res.results[0].key).to.equal(
+      expect(res.results[0].key).toBe(
         'This is a long string that<br/>would be too long as a<br/>title of a node in a graph',
       );
     });
     it('wrapping an empty string', async () => {
       const res =
         await project.calculationEngine.runLogicProgram('result(@wrap("")).');
-      expect(res.results[0].key).to.equal('');
+      expect(res.results[0].key).toBe('');
     });
     it('wrapping an integer', async () => {
       const res =
         await project.calculationEngine.runLogicProgram('result(@wrap(5)).');
-      expect(res.results[0].key).to.equal('');
+      expect(res.results[0].key).toBe('');
     });
     it('wrapping a string with &', async () => {
       const res = await project.calculationEngine.runLogicProgram(
         'result(@wrap("this & that")).',
       );
-      expect(res.results[0].key).to.equal('this &amp; that');
+      expect(res.results[0].key).toBe('this &amp; that');
     });
     it('wrapping a string with <', async () => {
       const res = await project.calculationEngine.runLogicProgram(
         'result(@wrap("this < that")).',
       );
-      expect(res.results[0].key).to.equal('this &lt; that');
+      expect(res.results[0].key).toBe('this &lt; that');
     });
     it('wrapping a string with >', async () => {
       const res = await project.calculationEngine.runLogicProgram(
         'result(@wrap("this > that")).',
       );
-      expect(res.results[0].key).to.equal('this &gt; that');
+      expect(res.results[0].key).toBe('this &gt; that');
     });
   });
 
@@ -188,8 +184,8 @@ describe('calculate', () => {
           contextAwareProgram,
           testCase.context,
         );
-        expect(result.results).to.have.length(1);
-        expect(result.results[0].key).to.equal(testCase.expectedResult);
+        expect(result.results).toHaveLength(1);
+        expect(result.results[0].key).toBe(testCase.expectedResult);
       }
     });
   });

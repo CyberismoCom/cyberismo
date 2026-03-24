@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { expect, describe, it, beforeAll, afterAll } from 'vitest';
 
 import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
@@ -7,7 +7,7 @@ import { copyDir } from '../src/utils/file-utils.js';
 import { getTestProject } from './helpers/test-utils.js';
 import type { Project } from '../src/containers/project.js';
 import { ResourceHandler } from '../src/containers/project/resource-handler.js';
-import { ResourcesFrom } from '../src/containers/project/resource-cache.js';
+import { ResourcesFrom } from '../src/containers/project/resources-from.js';
 
 describe('ResourceHandler', () => {
   const baseDir = import.meta.dirname;
@@ -18,7 +18,7 @@ describe('ResourceHandler', () => {
     let project: Project;
     let resourceHandler: ResourceHandler;
 
-    before(async () => {
+    beforeAll(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
       project = getTestProject(testProjectPath);
@@ -26,30 +26,27 @@ describe('ResourceHandler', () => {
       resourceHandler = project.resources;
     });
 
-    after(() => {
+    afterAll(() => {
       rmSync(testDir, { recursive: true, force: true });
     });
 
     it('should successfully utilize ResourceCache.create to obtain an initialized cache', () => {
-      const resourceHandler = new ResourceHandler(project);
-      expect(resourceHandler).to.be.instanceOf(ResourceHandler);
-
       const workflows = resourceHandler.workflows(ResourcesFrom.localOnly);
-      expect(workflows.length).to.be.greaterThan(0);
+      expect(workflows.length).toBeGreaterThan(0);
 
       const workflow = resourceHandler.byType('decision', 'workflows');
-      expect(workflow).to.not.equal(undefined);
-      expect(workflow.data).to.not.equal(undefined);
+      expect(workflow).not.toBeUndefined();
+      expect(workflow.data).not.toBeUndefined();
     });
 
     it('should return ResourceHandler instance from project', () => {
-      expect(resourceHandler).to.be.instanceOf(ResourceHandler);
+      expect(resourceHandler).toBeInstanceOf(ResourceHandler);
     });
 
     it('should get resources of specific type', () => {
       const workflows = resourceHandler.workflows(ResourcesFrom.localOnly);
-      expect(workflows).to.be.an('array');
-      expect(workflows.length).to.be.greaterThan(0);
+      expect(workflows).toBeInstanceOf(Array);
+      expect(workflows.length).toBeGreaterThan(0);
     });
 
     it('should get all resource types', () => {
@@ -58,48 +55,48 @@ describe('ResourceHandler', () => {
       const workflows = resourceHandler.workflows(ResourcesFrom.localOnly);
       const templates = resourceHandler.templates(ResourcesFrom.localOnly);
 
-      expect(cardTypes.length).to.be.greaterThan(0);
-      expect(fieldTypes.length).to.be.greaterThan(0);
-      expect(workflows.length).to.be.greaterThan(0);
-      expect(templates.length).to.be.greaterThan(0);
+      expect(cardTypes.length).toBeGreaterThan(0);
+      expect(fieldTypes.length).toBeGreaterThan(0);
+      expect(workflows.length).toBeGreaterThan(0);
+      expect(templates.length).toBeGreaterThan(0);
     });
 
     it('should check if resource exists', () => {
       const exists = resourceHandler.exists('decision/workflows/decision');
-      expect(exists).to.equal(true);
+      expect(exists).toBe(true);
     });
     it('should return false for non-existing resource', () => {
       const exists = resourceHandler.exists('decision/workflows/non_existing');
-      expect(exists).to.equal(false);
+      expect(exists).toBe(false);
     });
     it('should get resource by type and name', () => {
       const workflow = resourceHandler.byType('decision', 'workflows');
-      expect(workflow).to.not.equal(undefined);
-      expect(workflow.data).to.not.equal(undefined);
+      expect(workflow).not.toBeUndefined();
+      expect(workflow.data).not.toBeUndefined();
     });
     it('should extract resource type from name', () => {
       const type = resourceHandler.extractType('decision/workflows/decision');
-      expect(type).to.equal('workflows');
+      expect(type).toBe('workflows');
     });
     it('should handle invalid resource names gracefully', () => {
-      expect(() => resourceHandler.extractType('invalid-name')).to.throw();
+      expect(() => resourceHandler.extractType('invalid-name')).toThrow();
     });
     it('should get module names', () => {
       const moduleNames = resourceHandler.moduleNames();
-      expect(moduleNames).to.be.an('array');
+      expect(moduleNames).toBeInstanceOf(Array);
     });
     it('should filter resources by source (local only)', () => {
       const localWorkflows = resourceHandler.workflows(ResourcesFrom.localOnly);
       const allWorkflows = resourceHandler.workflows();
 
-      expect(localWorkflows.length).to.be.greaterThan(0);
-      expect(allWorkflows.length).to.be.greaterThan(0);
+      expect(localWorkflows.length).toBeGreaterThan(0);
+      expect(allWorkflows.length).toBeGreaterThan(0);
 
       localWorkflows.forEach((localRes) => {
         const found = allWorkflows.some(
           (res) => res.data?.name === localRes.data?.name,
         );
-        expect(found).to.equal(true);
+        expect(found).toBe(true);
       });
     });
     it('should cache resource instances', () => {
@@ -112,7 +109,7 @@ describe('ResourceHandler', () => {
         'workflows',
       );
 
-      expect(workflowFirstInstance).to.equal(workflowSecondInstance);
+      expect(workflowFirstInstance).toBe(workflowSecondInstance);
     });
     it('should keep data unchanged between collecting if no changes', () => {
       const beforeRefresh = resourceHandler.workflows(
@@ -122,7 +119,7 @@ describe('ResourceHandler', () => {
       const afterRefresh = resourceHandler.workflows(
         ResourcesFrom.localOnly,
       ).length;
-      expect(afterRefresh).to.equal(beforeRefresh);
+      expect(afterRefresh).toBe(beforeRefresh);
     });
   });
 });

@@ -1,8 +1,5 @@
-// testing
-import { expect } from 'chai';
-
+import { expect, describe, it } from 'vitest';
 import { ArrayHandler } from '../../src/resources/array-handler.js';
-
 const testObject1 = {
   first: 'value1',
   second: 'value1',
@@ -27,14 +24,14 @@ describe('array handler', () => {
         { name: 'add', target: 'three' },
         testStringArray,
       );
-      expect(changedArray.at(2)).to.equal('three');
+      expect(changedArray.at(2)).toBe('three');
     });
     it('number array', () => {
       const changedArray = numberArrayHandler.handleArray(
         { name: 'add', target: 3 },
         testNumberArray,
       );
-      expect(changedArray.at(2)).to.equal(3);
+      expect(changedArray.at(2)).toBe(3);
     });
     it('object array', () => {
       const changedArray = objectArrayHandler.handleArray(
@@ -45,8 +42,8 @@ describe('array handler', () => {
         testObjectArray,
       );
       const newElement = changedArray.at(2);
-      expect(newElement?.first).to.equal('value3');
-      expect(newElement?.second).to.equal('value3');
+      expect(newElement!.first).toBe('value3');
+      expect(newElement!.second).toBe('value3');
     });
     it('try to add duplicate string', () => {
       expect(() =>
@@ -54,7 +51,7 @@ describe('array handler', () => {
           { name: 'add', target: 'second' },
           testStringArray,
         ),
-      ).to.throw(`Item '"second"' already exists`);
+      ).toThrow(`Item '"second"' already exists`);
     });
     it('try to add duplicate object', () => {
       expect(() =>
@@ -62,7 +59,7 @@ describe('array handler', () => {
           { name: 'add', target: testObject2 },
           testObjectArray,
         ),
-      ).to.throw(`Item '{"first":"value2","second":"value2"}' already exists`);
+      ).toThrow(`Item '{"first":"value2","second":"value2"}' already exists`);
     });
     it('try to add duplicate number', () => {
       expect(() =>
@@ -70,7 +67,7 @@ describe('array handler', () => {
           { name: 'add', target: 1 },
           testNumberArray,
         ),
-      ).to.throw(`Item '1' already exists`);
+      ).toThrow(`Item '1' already exists`);
     });
   });
 
@@ -80,14 +77,14 @@ describe('array handler', () => {
         { name: 'change', target: 'second', to: 'newSecond' },
         testStringArray,
       );
-      expect(changedArray.at(1)).to.equal('newSecond');
+      expect(changedArray.at(1)).toBe('newSecond');
     });
     it('number array', () => {
       const changedArray = numberArrayHandler.handleArray(
         { name: 'change', target: 0, to: 99 },
         testNumberArray,
       );
-      expect(changedArray.at(0)).to.equal(99);
+      expect(changedArray.at(0)).toBe(99);
     });
     it('object array', () => {
       const changedArray = objectArrayHandler.handleArray(
@@ -95,8 +92,8 @@ describe('array handler', () => {
         testObjectArray,
       );
       const changedElement = changedArray.at(0);
-      expect(changedElement?.first).to.equal('');
-      expect(changedElement?.second).to.equal('');
+      expect(changedElement?.first).toBe('');
+      expect(changedElement?.second).toBe('');
     });
     it('object element not in array', () => {
       expect(() =>
@@ -108,7 +105,7 @@ describe('array handler', () => {
           },
           testObjectArray,
         ),
-      ).to.throw(`Item '{"first":"","second":""}' not found`);
+      ).toThrow(`Item '{"first":"","second":""}' not found`);
     });
   });
 
@@ -118,21 +115,21 @@ describe('array handler', () => {
         { name: 'remove', target: 'second' },
         testStringArray,
       );
-      expect(changedArray.length).to.equal(1);
+      expect(changedArray.length).toBe(1);
     });
     it('number array', () => {
       const changedArray = numberArrayHandler.handleArray(
         { name: 'remove', target: 1 },
         testNumberArray,
       );
-      expect(changedArray.length).to.equal(1);
+      expect(changedArray.length).toBe(1);
     });
     it('object array', () => {
       const changedArray = objectArrayHandler.handleArray(
         { name: 'remove', target: testObject2 },
         testObjectArray,
       );
-      expect(changedArray.length).to.equal(1);
+      expect(changedArray.length).toBe(1);
     });
     it('string element not in array', () => {
       expect(() =>
@@ -140,7 +137,7 @@ describe('array handler', () => {
           { name: 'remove', target: 'wrongOne' },
           testStringArray,
         ),
-      ).to.throw(`Item '"wrongOne"' not found`);
+      ).toThrow(`Item '"wrongOne"' not found`);
     });
     it('object element not in array', () => {
       expect(() =>
@@ -148,7 +145,7 @@ describe('array handler', () => {
           { name: 'remove', target: { first: 'wrong', second: 'wrong' } },
           testObjectArray,
         ),
-      ).to.throw(`Item '{"first":"wrong","second":"wrong"}' not found`);
+      ).toThrow(`Item '{"first":"wrong","second":"wrong"}' not found`);
     });
     it('number element not in array', () => {
       expect(() =>
@@ -156,7 +153,7 @@ describe('array handler', () => {
           { name: 'remove', target: 99 },
           testNumberArray,
         ),
-      ).to.throw(`Item '99' not found`);
+      ).toThrow(`Item '99' not found`);
     });
   });
 
@@ -166,18 +163,18 @@ describe('array handler', () => {
         { name: 'rank', target: 'second', newIndex: 0 },
         testStringArray,
       );
-      expect(changedArray).to.not.be.equal(testStringArray);
-      expect(changedArray.at(0)).to.equal('second');
-      expect(changedArray.at(1)).to.equal('first');
+      expect(changedArray).not.toEqual(testStringArray);
+      expect(changedArray.at(0)).toBe('second');
+      expect(changedArray.at(1)).toBe('first');
     });
     it('number array', () => {
       const changedArray = numberArrayHandler.handleArray(
         { name: 'rank', target: 1, newIndex: 0 },
         testNumberArray,
       );
-      expect(changedArray).to.not.be.equal(testNumberArray);
-      expect(changedArray.at(0)).to.equal(1);
-      expect(changedArray.at(1)).to.equal(0);
+      expect(changedArray).not.toEqual(testNumberArray);
+      expect(changedArray.at(0)).toBe(1);
+      expect(changedArray.at(1)).toBe(0);
     });
     it('object array', () => {
       const changedArray = objectArrayHandler.handleArray(
@@ -188,9 +185,9 @@ describe('array handler', () => {
         },
         testObjectArray,
       );
-      expect(changedArray).to.not.be.equal(testNumberArray);
-      expect(changedArray.at(0)).to.equal(testObject2);
-      expect(changedArray.at(1)).to.equal(testObject1);
+      expect(changedArray).not.toEqual(testObjectArray);
+      expect(changedArray.at(0)).toBe(testObject2);
+      expect(changedArray.at(1)).toBe(testObject1);
     });
     it('element not in string array', () => {
       expect(() =>
@@ -198,7 +195,7 @@ describe('array handler', () => {
           { name: 'rank', target: 'three', newIndex: 0 },
           testStringArray,
         ),
-      ).to.throw(`Item '"three"' not found`);
+      ).toThrow(`Item '"three"' not found`);
     });
     it('element not in number array', () => {
       expect(() =>
@@ -206,7 +203,7 @@ describe('array handler', () => {
           { name: 'rank', target: 3, newIndex: 0 },
           testNumberArray,
         ),
-      ).to.throw(`Item '3' not found`);
+      ).toThrow(`Item '3' not found`);
     });
     it('element not in object array', () => {
       expect(() =>
@@ -221,7 +218,7 @@ describe('array handler', () => {
           },
           testObjectArray,
         ),
-      ).to.throw(`Item '{"first":"value3","second":"value3"}' not found`);
+      ).toThrow(`Item '{"first":"value3","second":"value3"}' not found`);
     });
     it('incorrect new index', () => {
       expect(() =>
@@ -233,7 +230,7 @@ describe('array handler', () => {
           },
           testObjectArray,
         ),
-      ).to.throw('Invalid target index: 99');
+      ).toThrow('Invalid target index: 99');
     });
   });
 });

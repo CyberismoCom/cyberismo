@@ -1,5 +1,4 @@
-import { expect } from 'chai';
-import { describe, it } from 'mocha';
+import { expect, describe, it } from 'vitest';
 
 import {
   allowed,
@@ -70,9 +69,9 @@ describe('data type conversions', () => {
         const types = allowedConversions.get(typeFrom);
         const result = allowed(typeFrom, typeTo);
         if (result === true) {
-          expect(types).to.include(typeTo);
+          expect(types).toContain(typeTo);
         } else {
-          expect(types).to.not.include(typeTo);
+          expect(types).not.toContain(typeTo);
         }
       }
     }
@@ -82,13 +81,13 @@ describe('data type conversions', () => {
     for (const type of dataTypes) {
       const result = fromDate(value, type);
       if (type === 'date' || type === 'longText' || type === 'shortText') {
-        expect(result).to.not.equal(null);
-        expect(result).to.equal('1970-01-01');
+        expect(result).not.toBeNull();
+        expect(result).toBe('1970-01-01');
       } else if (type === 'dateTime') {
-        expect(result).to.not.equal(null);
-        expect(result).to.equal('1970-01-01T00:00:00.000Z');
+        expect(result).not.toBeNull();
+        expect(result).toBe('1970-01-01T00:00:00.000Z');
       } else {
-        expect(result).to.equal(null);
+        expect(result).toBeNull();
       }
     }
   });
@@ -97,13 +96,13 @@ describe('data type conversions', () => {
     for (const type of dataTypes) {
       const result = fromNumber(value, type);
       if (type === 'longText' || type === 'shortText') {
-        expect(result).to.not.equal(null);
-        expect(result).to.equal('555');
+        expect(result).not.toBeNull();
+        expect(result).toBe('555');
       } else if (type === 'integer' || type === 'number') {
-        expect(result).to.not.equal(null);
-        expect(result).to.equal(555);
+        expect(result).not.toBeNull();
+        expect(result).toBe(555);
       } else {
-        expect(result).to.equal(null);
+        expect(result).toBeNull();
       }
     }
   });
@@ -112,16 +111,16 @@ describe('data type conversions', () => {
     for (const type of dataTypes) {
       const result = fromNumber(value, type);
       if (type === 'longText' || type === 'shortText') {
-        expect(result).to.not.equal(null);
-        expect(result).to.equal('555.555');
+        expect(result).not.toBeNull();
+        expect(result).toBe('555.555');
       } else if (type === 'integer') {
-        expect(result).to.not.equal(null);
-        expect(result).to.equal(555);
+        expect(result).not.toBeNull();
+        expect(result).toBe(555);
       } else if (type === 'number') {
-        expect(result).to.not.equal(null);
-        expect(result).to.equal(555.555);
+        expect(result).not.toBeNull();
+        expect(result).toBe(555.555);
       } else {
-        expect(result).to.equal(null);
+        expect(result).toBeNull();
       }
     }
   });
@@ -130,70 +129,70 @@ describe('data type conversions', () => {
     for (const type of dataTypes) {
       const result = fromString(value, type);
       if (type === 'longText' || type === 'shortText') {
-        expect(result).to.not.equal(null);
-        expect(result).to.equal('hello there');
+        expect(result).not.toBeNull();
+        expect(result).toBe('hello there');
       } else if (type === 'list') {
-        expect(result).to.not.equal(null);
-        expect((result as string[]).length).to.equal(1);
-        expect((result as string[]).at(0)).to.equal('hello there');
+        expect(result).not.toBeNull();
+        expect(result as string[]).toHaveLength(1);
+        expect((result as string[]).at(0)).toBe('hello there');
       } else {
-        expect(result).to.equal(null);
+        expect(result).toBeNull();
       }
     }
   });
   it('convert from string to "person"', () => {
     const value = 'test.person@example.com';
     const result = fromString(value, 'person');
-    expect(result).to.equal('test.person@example.com');
+    expect(result).toBe('test.person@example.com');
   });
   it('convert from string to "integer"', () => {
     const value = '5';
     let result = fromString(value, 'integer');
-    expect(result).to.equal(5);
+    expect(result).toBe(5);
     const invalidValue = 'a';
     result = fromString(invalidValue, 'integer');
-    expect(result).to.equal(null);
+    expect(result).toBeNull();
   });
   it('convert from string to "number"', () => {
     const value = '5.5';
     let result = fromString(value, 'number');
-    expect(result).to.equal(5.5);
+    expect(result).toBe(5.5);
     const invalidValue = 'a';
     result = fromString(invalidValue, 'number');
-    expect(result).to.equal(null);
+    expect(result).toBeNull();
   });
   it('convert from string to "date"', () => {
     const value = '1970-01-01';
     let result = fromString(value, 'date');
-    expect(result).to.equal('1970-01-01');
+    expect(result).toBe('1970-01-01');
     const invalidValue = 'a';
     result = fromString(invalidValue, 'date');
-    expect(result).to.equal(null);
+    expect(result).toBeNull();
   });
   it('convert from string to "dateTime"', () => {
     const value = '1970-01-01';
     let result = fromString(value, 'dateTime');
-    expect(result).to.equal('1970-01-01T00:00:00.000Z');
+    expect(result).toBe('1970-01-01T00:00:00.000Z');
     const invalidValue = 'a';
     result = fromString(invalidValue, 'dateTime');
-    expect(result).to.equal(null);
+    expect(result).toBeNull();
   });
   it('convert from string to "boolean"', () => {
     const valueTrue = 'true';
     const valueFalse = 'false';
     let result = fromString(valueTrue, 'boolean');
-    expect(result).to.equal(true);
+    expect(result).toBe(true);
     result = fromString(valueFalse, 'boolean');
-    expect(result).to.equal(false);
+    expect(result).toBe(false);
     const invalidValue = 'a';
     result = fromString(invalidValue, 'boolean');
-    expect(result).to.equal(null);
+    expect(result).toBeNull();
   });
   it('convert from string to "list"', () => {
     const value = 'option1,option2';
     const result = fromString(value, 'list');
-    expect((result as string[]).length).to.equal(2);
-    expect((result as string[]).at(0)).to.equal('option1');
-    expect((result as string[]).at(1)).to.equal('option2');
+    expect(result as string[]).toHaveLength(2);
+    expect((result as string[]).at(0)).toBe('option1');
+    expect((result as string[]).at(1)).toBe('option2');
   });
 });

@@ -37,6 +37,7 @@ import { WorkflowResource } from '../../resources/workflow-resource.js';
 import type { Project } from '../project.js';
 import type { ResourceFolderType } from '../../interfaces/project-interfaces.js';
 import type { ResourceName } from '../../utils/resource-utils.js';
+import { ResourcesFrom } from './resources-from.js';
 
 // Project resource, such as workflow, template or card type as file system object.
 // @todo: Once template constructor has been fixed, no need to export this.
@@ -67,13 +68,6 @@ export type SafeExtract<T extends string> =
   ExtractResourceType<T> extends keyof ResourceMap
     ? ExtractResourceType<T>
     : never;
-
-// Defines where resources are collected from.
-export enum ResourcesFrom {
-  all = 'all',
-  importedOnly = 'imported',
-  localOnly = 'local',
-}
 
 // Resource as stored in the instance cache.
 interface ResourceMetadata {

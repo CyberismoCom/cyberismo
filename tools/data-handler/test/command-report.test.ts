@@ -1,5 +1,5 @@
 // testing
-import { expect } from 'chai';
+import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';
@@ -23,13 +23,13 @@ const optionsDecision = {
 };
 
 describe('report command', () => {
-  before(async () => {
+  beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data', testDir);
     await commandHandler.command(Cmd.calc, ['generate'], optionsDecision);
   });
 
-  after(() => {
+  afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
@@ -50,9 +50,9 @@ describe('report command', () => {
       [join(testDir, 'report.json')],
       optionsDecision,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
     // decision_1 card does not have children.
-    expect(result.message).to.include('No report result');
+    expect(result.message).toMatch('No report result');
   });
   it('run test report that returns results', async () => {
     const parameters = {
@@ -71,9 +71,9 @@ describe('report command', () => {
       [join(testDir, 'report.json')],
       optionsDecision,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
     // decision_1 card does not have children.
-    expect(result.message).to.include('xref');
+    expect(result.message).toMatch('xref');
   });
   it('run test report and put the results to an output file', async () => {
     const parameters = {
@@ -93,10 +93,10 @@ describe('report command', () => {
       [join(testDir, 'report.json'), outputFile],
       optionsDecision,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
     await readFile(outputFile, { encoding: 'utf-8' }).then((data) => {
-      expect(data).to.include('xref');
-      expect(data).to.include('decision_6'); //decision_6 is decision_5's child
+      expect(data).toMatch('xref');
+      expect(data).toMatch('decision_6'); //decision_6 is decision_5's child
     });
   });
   it('eq helper matches equal values', async () => {
@@ -116,8 +116,8 @@ describe('report command', () => {
       [join(testDir, 'report.json')],
       optionsDecision,
     );
-    expect(result.statusCode).to.equal(200);
-    expect(result.message).to.include('EQ_MATCH:decision_6');
+    expect(result.statusCode).toBe(200);
+    expect(result.message).toMatch('EQ_MATCH:decision_6');
   });
   it('ne helper does not match equal values', async () => {
     const parameters = {
@@ -136,8 +136,8 @@ describe('report command', () => {
       [join(testDir, 'report.json')],
       optionsDecision,
     );
-    expect(result.statusCode).to.equal(200);
-    expect(result.message).to.not.include('NE_MATCH:decision_6');
+    expect(result.statusCode).toBe(200);
+    expect(result.message).not.toMatch('NE_MATCH:decision_6');
   });
   it('try to run test report that does not exist', async () => {
     const parameters = {
@@ -156,7 +156,7 @@ describe('report command', () => {
       [join(testDir, 'report.json')],
       optionsDecision,
     );
-    expect(result.statusCode).to.equal(500);
+    expect(result.statusCode).toBe(500);
   });
   it('try to run test report with incorrect parameters', async () => {
     const parameters = {
@@ -175,6 +175,6 @@ describe('report command', () => {
       [join(testDir, 'report.json')],
       optionsDecision,
     );
-    expect(result.statusCode).to.equal(500);
+    expect(result.statusCode).toBe(500);
   });
 });

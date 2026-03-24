@@ -1,19 +1,21 @@
-// testing
-import { expect } from 'chai';
-import * as sinon from 'sinon';
+import {
+  expect,
+  it,
+  describe,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  afterEach,
+  vi,
+} from 'vitest';
 
-// node
 import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
-// cyberismo
 import { copyDir } from '../src/utils/file-utils.js';
 import { Cmd, Commands } from '../src/command-handler.js';
 import { Fetch, Show } from '../src/commands/index.js';
-import {
-  getTestProject,
-  mockEnsureModuleListUpToDate,
-} from './helpers/test-utils.js';
+import { getTestProject } from './helpers/test-utils.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
@@ -27,12 +29,12 @@ const optionsMini = { projectPath: minimalPath };
 const options = { projectPath: decisionRecordsPath };
 
 describe('import csv command', () => {
-  before(async () => {
+  beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data', testDir);
   });
 
-  after(() => {
+  afterAll(() => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
@@ -42,7 +44,7 @@ describe('import csv command', () => {
       ['csv', join(testDir, 'valid-real.csv')],
       options,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
 
     const [key1, key2] = result.payload as string[];
 
@@ -52,23 +54,23 @@ describe('import csv command', () => {
     const show = new Show(project, fetchCmd);
     const card1 = await show.showCardDetails(key1);
     const card2 = await show.showCardDetails(key2);
-    expect(card1.metadata?.title).to.equal('Title1');
-    expect(card1.content).to.equal('content1');
-    expect(card1.metadata?.labels).to.deep.equal([
+    expect(card1.metadata!.title).toBe('Title1');
+    expect(card1.content).toBe('content1');
+    expect(card1.metadata!.labels).toEqual([
       'template-test-label',
       'label-first',
       'label-second',
     ]);
-    expect(card1.metadata?.['decision/fieldTypes/responsible']).to.equal(
+    expect(card1.metadata!['decision/fieldTypes/responsible']).toBe(
       'responsible@email.com',
     );
-    expect(card1.metadata?.doesnotexist).to.equal(undefined);
-    expect(card2.metadata?.title).to.equal('Title2');
-    expect(card2.content).to.equal('content2');
+    expect(card1.metadata!.doesnotexist).toBeUndefined();
+    expect(card2.metadata!.title).toBe('Title2');
+    expect(card2.content).toBe('content2');
     // no labels specified, takes them from the template
-    expect(card2.metadata?.labels).to.deep.equal(['template-test-label']);
-    expect(card2.metadata?.['decision/fieldTypes/responsible']).to.equal('');
-    expect(card2.metadata?.doesnotexist).to.equal(undefined);
+    expect(card2.metadata!.labels).toEqual(['template-test-label']);
+    expect(card2.metadata!['decision/fieldTypes/responsible']).toBe('');
+    expect(card2.metadata!.doesnotexist).toBeUndefined();
   });
   it('import csv file with parent (success)', async () => {
     const parent = 'decision_6';
@@ -77,7 +79,7 @@ describe('import csv command', () => {
       ['csv', join(testDir, 'valid-real.csv'), parent],
       options,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
 
     const createdKeys = result.payload as string[];
     // Use command handler to get card details for consistent project instance
@@ -86,13 +88,13 @@ describe('import csv command', () => {
       ['card', parent],
       { ...options, details: true },
     );
-    expect(parentCardResult.statusCode).to.equal(200);
+    expect(parentCardResult.statusCode).toBe(200);
     type ParentCard = { children?: string[] };
     const parentCard = parentCardResult.payload as ParentCard;
 
-    expect(createdKeys.length).to.equal(2);
-    expect(parentCard.children?.includes(createdKeys[0]));
-    expect(parentCard.children?.includes(createdKeys[1]));
+    expect(createdKeys).toHaveLength(2);
+    expect(parentCard.children).toContain(createdKeys[0]);
+    expect(parentCard.children).toContain(createdKeys[1]);
   });
   it('try to import csv file without all required columns', async () => {
     const result = await commandHandler.command(
@@ -100,8 +102,8 @@ describe('import csv command', () => {
       ['csv', join(testDir, 'invalid-missing-columns-real.csv')],
       options,
     );
-    expect(result.statusCode).to.equal(400);
-    expect(result.message).to.contain('requires property "template"');
+    expect(result.statusCode).toBe(400);
+    expect(result.message).toContain('requires property "template"');
   });
   it('try to import csv file with invalid path', async () => {
     const result = await commandHandler.command(
@@ -109,23 +111,20 @@ describe('import csv command', () => {
       ['csv', 'i-dont-exist.csv'],
       options,
     );
-    expect(result.statusCode).to.equal(400);
-    expect(result.message).to.contain('ENOENT');
+    expect(result.statusCode).toBe(400);
+    expect(result.message).toContain('ENOENT');
   });
 });
 
 describe('import module', () => {
-  let ensureModuleListStub: sinon.SinonStub;
-
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data', testDir);
-    ensureModuleListStub = mockEnsureModuleListUpToDate();
   });
 
   afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
-    ensureModuleListStub.restore();
+    vi.restoreAllMocks();
   });
 
   describe('import module command', () => {
@@ -135,7 +134,7 @@ describe('import module', () => {
         ['module', decisionRecordsPath],
         optionsMini,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
 
       // Verify that module content can be used to create data.
       result = await commandHandler.command(
@@ -143,11 +142,11 @@ describe('import module', () => {
         ['cardType', 'newCardType', 'decision/workflows/decision'],
         optionsMini,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
 
       // Ensure that module can be updated.
       result = await commandHandler.command(Cmd.updateModules, [], optionsMini);
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
 
       // Remove the module so that it won't affect other tests
       await commandHandler.command(
@@ -166,46 +165,46 @@ describe('import module', () => {
         ['project', name, prefix],
         testOptions,
       );
-      expect(data.statusCode).to.equal(200);
+      expect(data.statusCode).toBe(200);
       let result = await commandHandler.command(
         Cmd.import,
         ['module', decisionRecordsPath],
         testOptions,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       result = await commandHandler.command(
         Cmd.import,
         ['module', minimalPath],
         testOptions,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       result = await commandHandler.command(Cmd.updateModules, [], testOptions);
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       result = await commandHandler.command(Cmd.show, ['modules'], testOptions);
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       if (result.payload) {
         const modules = Object.values(result.payload);
-        expect(modules.length).to.equal(2);
-        expect(modules).to.contain('mini');
-        expect(modules).to.contain('decision');
+        expect(modules.length).toBe(2);
+        expect(modules).toContain('mini');
+        expect(modules).toContain('decision');
       }
-    }).timeout(10000);
+    }, 10000);
     it('try to import module - no source', async () => {
-      const stubProjectPath = sinon
-        .stub(commandHandler, 'setProjectPath')
-        .resolves('path');
+      const stubProjectPath = vi
+        .spyOn(commandHandler, 'setProjectPath')
+        .mockResolvedValue('path');
       const result = await commandHandler.command(
         Cmd.import,
         ['module', ''],
         optionsMini,
       );
-      expect(result.statusCode).to.equal(400);
-      stubProjectPath.restore();
+      expect(result.statusCode).toBe(400);
+      stubProjectPath.mockRestore();
     });
     it('try to import module - no destination', async () => {
-      const stubProjectPath = sinon
-        .stub(commandHandler, 'setProjectPath')
-        .resolves('path');
+      const stubProjectPath = vi
+        .spyOn(commandHandler, 'setProjectPath')
+        .mockResolvedValue('path');
       const invalidOptions = { projectPath: '' };
       await expect(
         commandHandler.command(
@@ -213,11 +212,11 @@ describe('import module', () => {
           ['module', decisionRecordsPath],
           invalidOptions,
         ),
-      ).to.eventually.deep.equal({
+      ).resolves.toEqual({
         statusCode: 400,
         message: "Input validation error: cannot find project ''",
       });
-      stubProjectPath.restore();
+      stubProjectPath.mockRestore();
     });
     it('try to import module - twice the same module', async () => {
       const result1 = await commandHandler.command(
@@ -225,13 +224,13 @@ describe('import module', () => {
         ['module', decisionRecordsPath],
         optionsMini,
       );
-      expect(result1.statusCode).to.equal(200);
+      expect(result1.statusCode).toBe(200);
       const result2 = await commandHandler.command(
         Cmd.import,
         ['module', decisionRecordsPath],
         optionsMini,
       );
-      expect(result2.statusCode).to.equal(400);
+      expect(result2.statusCode).toBe(400);
     });
     it('try to import module - that has the same prefix', async () => {
       const result = await commandHandler.command(
@@ -239,15 +238,12 @@ describe('import module', () => {
         ['module', minimalPath],
         optionsMini,
       );
-      expect(result.statusCode).to.equal(400);
-    });
-    it('remove imported module', async () => {
-      // todo: to implement
+      expect(result.statusCode).toBe(400);
     });
   });
 
   describe('modifying imported module content is forbidden', () => {
-    before(async () => {
+    beforeAll(async () => {
       await commandHandler.command(
         Cmd.import,
         ['module', minimalPath],
@@ -268,7 +264,7 @@ describe('import module', () => {
         ['card', templateName, cardType, cardKey],
         options,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
     it('try to add child card to a module card', async () => {
       const templateName = 'decision/templates/decision';
@@ -280,7 +276,7 @@ describe('import module', () => {
         ['card', templateName, cardType, cardKey],
         optionsMini,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
     it('try to create attachment to a module card', async () => {
       const attachmentPath = join(testDir, 'attachments/the-needle.heic');
@@ -290,7 +286,7 @@ describe('import module', () => {
         ['attachment', cardKey, attachmentPath],
         optionsMini,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
 
     it('try to move a module card to another template', async () => {
@@ -301,7 +297,7 @@ describe('import module', () => {
         [templateCardKey, moduleCardKey, 'root'],
         optionsMini,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
     it('try to remove card from a module template', async () => {
       const cardKey = 'decision_2';
@@ -310,7 +306,7 @@ describe('import module', () => {
         ['card', cardKey],
         optionsMini,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
     it('try to remove cardType from a module', async () => {
       const cardType = 'decision/cardTypes/decision';
@@ -319,7 +315,7 @@ describe('import module', () => {
         ['cardType', cardType],
         optionsMini,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
     it('try to remove fieldType from a module', async () => {
       const fieldType = 'decision/fieldTypes/finished';
@@ -328,7 +324,7 @@ describe('import module', () => {
         ['fieldType', fieldType],
         optionsMini,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
     it('try to remove report from a module', async () => {
       const report = 'decision/reports/testReport';
@@ -337,7 +333,7 @@ describe('import module', () => {
         ['report', report],
         optionsMini,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
     it('try to remove template from a module', async () => {
       const template = 'decision/templates/decision';
@@ -346,7 +342,7 @@ describe('import module', () => {
         ['template', template],
         optionsMini,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
     it('try to remove workflow from a module', async () => {
       const workflow = 'decision/workflows/decision';
@@ -355,7 +351,7 @@ describe('import module', () => {
         ['workflow', workflow],
         optionsMini,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
     it('try to remove attachment from a module card', async () => {
       const cardKey = 'decision_1';
@@ -365,7 +361,7 @@ describe('import module', () => {
         ['attachment', cardKey, attachment],
         optionsMini,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).toBe(400);
     });
   });
 });

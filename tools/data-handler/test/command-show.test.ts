@@ -1,6 +1,5 @@
 // testing
-import { expect } from 'chai';
-import type * as sinon from 'sinon';
+import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';
@@ -9,14 +8,9 @@ import { readFile } from 'node:fs/promises';
 
 import { Cmd, Commands, CommandManager } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
-import { errorFunction } from '../src/utils/error-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 import { Fetch, Show } from '../src/commands/index.js';
-import {
-  getTestBaseDir,
-  getTestProject,
-  mockEnsureModuleListUpToDate,
-} from './helpers/test-utils.js';
+import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
 import type { ModuleContent } from '../src/interfaces/project-interfaces.js';
 import type { ShowCommandOptions } from '../src/interfaces/command-options.js';
 import { CardNotFoundError } from '../src/exceptions/index.js';
@@ -35,17 +29,13 @@ const optionsDecision: ShowCommandOptions = {
 const optionsMini: ShowCommandOptions = { projectPath: minimalPath };
 
 describe('shows command', () => {
-  let ensureModuleListStub: sinon.SinonStub;
-
-  before(async () => {
+  beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data', testDir);
-    ensureModuleListStub = mockEnsureModuleListUpToDate();
   });
 
-  after(() => {
+  afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
-    ensureModuleListStub.restore();
   });
 
   describe('show command', () => {
@@ -55,7 +45,7 @@ describe('shows command', () => {
         ['attachments'],
         optionsDecision,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
     });
     it('show attachment file', async () => {
       // No commandHandler command for getting attachment files, so using Show directly
@@ -67,9 +57,9 @@ describe('shows command', () => {
         'decision_1',
         'the-needle.heic',
       );
-      expect(result).to.not.equal(null);
-      expect(result.fileBuffer).to.not.equal(null);
-      expect(result.mimeType).to.equal('image/heic');
+      expect(result).not.toBe(null);
+      expect(result.fileBuffer).not.toBe(null);
+      expect(result.mimeType).toBe('image/heic');
     });
     it('show attachment file, card not found', async () => {
       // No commandHandler command for getting attachment files, so using Show directly
@@ -79,7 +69,7 @@ describe('shows command', () => {
       const showCommand = new Show(project, fetch);
       await expect(
         showCommand.showAttachment('invalid_key', 'does-not-exist.png'),
-      ).to.be.rejectedWith(CardNotFoundError);
+      ).rejects.toThrow(CardNotFoundError);
     });
     it('show attachment file, file not found', async () => {
       // No commandHandler command for getting attachment files, so using Show directly
@@ -89,7 +79,7 @@ describe('shows command', () => {
       const showCommand = new Show(project, fetchCmd);
       await expect(
         showCommand.showAttachment('decision_1', 'does-not-exist.png'),
-      ).to.be.rejectedWith(
+      ).rejects.toThrow(
         `Attachment 'does-not-exist.png' not found for card decision_1`,
       );
     });
@@ -99,12 +89,12 @@ describe('shows command', () => {
         ['cards'],
         optionsDecision,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       if (result.payload) {
         const payloadAsArray = Object.values(result.payload);
-        expect(payloadAsArray.length).to.be.greaterThan(1); //project + templates
+        expect(payloadAsArray.length).toBeGreaterThan(1); //project + templates
         const cards = payloadAsArray.map((item) => item.cards);
-        expect(cards.length).to.be.greaterThan(1);
+        expect(cards.length).toBeGreaterThan(1);
         expect(cards.at(0)).to.include('decision_5');
       }
     });
@@ -114,9 +104,9 @@ describe('shows command', () => {
         ['card', 'decision_5'],
         optionsDecision,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       if (result.payload) {
-        expect(result.payload).to.not.equal(undefined);
+        expect(result.payload).not.toBeUndefined();
       }
     });
     it('show particular card additional details - success()', async () => {
@@ -126,11 +116,11 @@ describe('shows command', () => {
         ['card', 'decision_5'],
         optionsDecision,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       if (result.payload) {
-        expect(result.payload).to.not.equal(undefined);
+        expect(result.payload).not.toBeUndefined();
         const children = Object(result.payload)['children'];
-        expect(children.length).to.equal(1);
+        expect(children.length).toBe(1);
       }
     });
     it('show cardTypes - success()', async () => {
@@ -139,12 +129,12 @@ describe('shows command', () => {
         ['cardTypes'],
         optionsDecision,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       if (result.payload) {
         const payloadAsArray = Object.values(result.payload);
-        expect(payloadAsArray.length).to.equal(2);
-        expect(payloadAsArray.at(0)).to.equal('decision/cardTypes/decision');
-        expect(payloadAsArray.at(1)).to.equal('decision/cardTypes/simplepage');
+        expect(payloadAsArray.length).toBe(2);
+        expect(payloadAsArray.at(0)).toBe('decision/cardTypes/decision');
+        expect(payloadAsArray.at(1)).toBe('decision/cardTypes/simplepage');
       }
     });
     it('show particular card type - success()', async () => {
@@ -153,9 +143,9 @@ describe('shows command', () => {
         ['cardTypes', 'decision/cardTypes/decision'],
         optionsDecision,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       if (result.payload) {
-        expect(result.payload).to.not.equal(undefined);
+        expect(result.payload).not.toBeUndefined();
       }
     });
     it('show particular card type with name only', async () => {
@@ -164,9 +154,9 @@ describe('shows command', () => {
         ['decision/cardTypes/decision'],
         optionsDecision,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       if (result.payload) {
-        expect(result.payload).to.not.equal(undefined);
+        expect(result.payload).not.toBeUndefined();
       }
     });
     it('show particular card type with usage', async () => {
@@ -176,12 +166,12 @@ describe('shows command', () => {
         ['decision/cardTypes/decision'],
         optionsDecision,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       if (result.payload) {
-        expect(result.payload).to.not.equal(undefined);
+        expect(result.payload).not.toBeUndefined();
         expect(result.payload).to.haveOwnProperty('usedIn');
       } else {
-        expect(false).to.equal(true);
+        expect(false).toBe(true);
       }
     });
     it('show hubs - success()', async () => {
@@ -190,7 +180,7 @@ describe('shows command', () => {
         ['hubs'],
         optionsDecision,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
     });
     it('shows labels - success()', async () => {
       const result = await commandHandler.command(
@@ -210,11 +200,11 @@ describe('shows command', () => {
         ['modules'],
         optionsDecision,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       if (result.payload) {
-        expect(result.payload).to.not.equal(undefined);
+        expect(result.payload).not.toBeUndefined();
         const modules = Object.values(result.payload);
-        expect(modules.length).to.equal(0);
+        expect(modules.length).toBe(0);
       }
     });
     it('show project - success()', async () => {
@@ -223,9 +213,9 @@ describe('shows command', () => {
         ['project'],
         optionsDecision,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       if (result.payload) {
-        expect(result.payload).to.not.equal(undefined);
+        expect(result.payload).not.toBeUndefined();
       }
     });
     it('show reports - success()', async () => {
@@ -235,11 +225,11 @@ describe('shows command', () => {
         optionsDecision,
       );
       const payloadAsArray = Object.values(result.payload || []);
-      expect(result.statusCode).to.equal(200);
-      expect(payloadAsArray.length).to.equal(3);
-      expect(payloadAsArray[0]).to.equal('decision/reports/anotherReport');
-      expect(payloadAsArray[1]).to.equal('decision/reports/eqNeReport');
-      expect(payloadAsArray[2]).to.equal('decision/reports/testReport');
+      expect(result.statusCode).toBe(200);
+      expect(payloadAsArray.length).toBe(3);
+      expect(payloadAsArray[0]).toBe('decision/reports/anotherReport');
+      expect(payloadAsArray[1]).toBe('decision/reports/eqNeReport');
+      expect(payloadAsArray[2]).toBe('decision/reports/testReport');
     });
     it('show templates - success()', async () => {
       const result = await commandHandler.command(
@@ -247,13 +237,13 @@ describe('shows command', () => {
         ['templates'],
         optionsDecision,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       if (result.payload) {
         const payloadAsArray = Object.values(result.payload);
-        expect(payloadAsArray.length).to.equal(3);
-        expect(payloadAsArray.at(0)).to.equal('decision/templates/decision');
-        expect(payloadAsArray.at(1)).to.equal('decision/templates/empty');
-        expect(payloadAsArray.at(2)).to.equal('decision/templates/simplepage');
+        expect(payloadAsArray.length).toBe(3);
+        expect(payloadAsArray.at(0)).toBe('decision/templates/decision');
+        expect(payloadAsArray.at(1)).toBe('decision/templates/empty');
+        expect(payloadAsArray.at(2)).toBe('decision/templates/simplepage');
       }
     });
     it('show particular template - success()', async () => {
@@ -262,9 +252,9 @@ describe('shows command', () => {
         ['template', 'decision/templates/decision'],
         optionsDecision,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       if (result.payload) {
-        expect(result.payload).to.not.equal(undefined);
+        expect(result.payload).not.toBeUndefined();
       }
     });
     it('show template cards - success()', async () => {
@@ -273,10 +263,10 @@ describe('shows command', () => {
         ['cards'],
         optionsDecision,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       if (result.payload) {
         const payloadAsArray = Object.values(result.payload);
-        expect(payloadAsArray.length).to.equal(3); // project + templates with cards (empty template excluded)
+        expect(payloadAsArray.length).toBe(3); // project + templates with cards (empty template excluded)
         const cards = payloadAsArray.map((item) => item.cards);
         expect(cards.at(0)).to.include('decision_5');
       }
@@ -287,12 +277,12 @@ describe('shows command', () => {
         ['workflows'],
         optionsDecision,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       if (result.payload) {
         const payloadAsArray = Object.values(result.payload);
-        expect(payloadAsArray.length).to.equal(2);
-        expect(payloadAsArray.at(0)).to.equal('decision/workflows/decision');
-        expect(payloadAsArray.at(1)).to.equal('decision/workflows/simple');
+        expect(payloadAsArray.length).toBe(2);
+        expect(payloadAsArray.at(0)).toBe('decision/workflows/decision');
+        expect(payloadAsArray.at(1)).toBe('decision/workflows/simple');
       }
     });
     it('show particular workflow - success()', async () => {
@@ -301,9 +291,9 @@ describe('shows command', () => {
         ['workflow', 'decision/workflows/decision'],
         optionsDecision,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       if (result.payload) {
-        expect(result.payload).to.not.equal(undefined);
+        expect(result.payload).not.toBeUndefined();
       }
     });
     // @todo add test cases for error situations
@@ -344,14 +334,14 @@ describe('shows command', () => {
         ['modules'],
         optionsDecision,
       );
-      expect(result.statusCode).to.equal(200);
-      expect(result.payload!).to.not.equal(undefined);
+      expect(result.statusCode).toBe(200);
+      expect(result.payload!).not.toBeUndefined();
       let modules = Object.values(result.payload!);
-      expect(modules.at(0)).to.equal('mini');
+      expect(modules.at(0)).toBe('mini');
       result = await commandHandler.command(Cmd.show, ['modules'], optionsMini);
-      expect(result.payload).to.not.equal(undefined);
+      expect(result.payload).not.toBeUndefined();
       modules = Object.values(result.payload!);
-      expect(modules.at(0)).to.equal('decision');
+      expect(modules.at(0)).toBe('decision');
     });
     it('show particular module - success()', async () => {
       const result = await commandHandler.command(
@@ -359,12 +349,12 @@ describe('shows command', () => {
         ['module', 'mini'],
         optionsDecision,
       );
-      expect(result.statusCode).to.equal(200);
-      expect(result.payload).to.not.equal(undefined);
+      expect(result.statusCode).toBe(200);
+      expect(result.payload).not.toBeUndefined();
       const module = result.payload as ModuleContent;
-      expect(module.cardKeyPrefix).to.equal('mini');
-      expect(module.name).to.equal('minimal');
-      expect(module.path).to.equal(
+      expect(module.cardKeyPrefix).toBe('mini');
+      expect(module.name).toBe('minimal');
+      expect(module.path).toBe(
         join(decisionRecordsPath, '.cards', 'modules', 'mini'),
       );
       expect(module.cardTypes).to.include('mini/cardTypes/myCardtype');
@@ -384,10 +374,10 @@ describe('shows command', () => {
         ['card', 'decision_1'],
         optionsMini,
       );
-      expect(result.statusCode).to.equal(200);
-      expect(result.payload).to.not.equal(undefined);
-      expect(resultFromModule.statusCode).to.equal(200);
-      expect(resultFromModule.payload).to.not.equal(undefined);
+      expect(result.statusCode).toBe(200);
+      expect(result.payload).not.toBeUndefined();
+      expect(resultFromModule.statusCode).toBe(200);
+      expect(resultFromModule.payload).not.toBeUndefined();
     });
     it('show cards', async () => {
       const result = await commandHandler.command(
@@ -400,17 +390,17 @@ describe('shows command', () => {
         ['cards'],
         optionsMini,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       let payloadAsArray = Object.values(result.payload!);
-      expect(payloadAsArray.length).to.be.greaterThan(1); //project + templates
+      expect(payloadAsArray.length).toBeGreaterThan(1); //project + templates
       let cards = payloadAsArray.map((item) => item.cards);
-      expect(cards.length).to.be.greaterThan(1);
+      expect(cards.length).toBeGreaterThan(1);
       expect(cards.at(0)).to.include('decision_5');
-      expect(resultFromModule.statusCode).to.equal(200);
+      expect(resultFromModule.statusCode).toBe(200);
       payloadAsArray = Object.values(resultFromModule.payload!);
-      expect(payloadAsArray.length).to.be.greaterThan(1); //project + templates
+      expect(payloadAsArray.length).toBeGreaterThan(1); //project + templates
       cards = payloadAsArray.map((item) => item.cards);
-      expect(cards.length).to.be.greaterThan(1);
+      expect(cards.length).toBeGreaterThan(1);
       expect(cards.at(cards.length - 1)).to.include('decision_2');
     });
     it('show cardTypes', async () => {
@@ -419,23 +409,23 @@ describe('shows command', () => {
         ['cardTypes'],
         optionsDecision,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       let payloadAsArray = Object.values(result.payload!);
-      expect(payloadAsArray.length).to.equal(3);
-      expect(payloadAsArray.at(0)).to.equal('decision/cardTypes/decision');
-      expect(payloadAsArray.at(1)).to.equal('decision/cardTypes/simplepage');
-      expect(payloadAsArray.at(2)).to.equal('mini/cardTypes/myCardtype');
+      expect(payloadAsArray.length).toBe(3);
+      expect(payloadAsArray.at(0)).toBe('decision/cardTypes/decision');
+      expect(payloadAsArray.at(1)).toBe('decision/cardTypes/simplepage');
+      expect(payloadAsArray.at(2)).toBe('mini/cardTypes/myCardtype');
       const resultFromModule = await commandHandler.command(
         Cmd.show,
         ['cardTypes'],
         optionsMini,
       );
-      expect(resultFromModule.statusCode).to.equal(200);
+      expect(resultFromModule.statusCode).toBe(200);
       payloadAsArray = Object.values(resultFromModule.payload!);
-      expect(payloadAsArray.length).to.equal(3);
-      expect(payloadAsArray.at(0)).to.equal('decision/cardTypes/decision');
-      expect(payloadAsArray.at(1)).to.equal('decision/cardTypes/simplepage');
-      expect(payloadAsArray.at(2)).to.equal('mini/cardTypes/myCardtype');
+      expect(payloadAsArray.length).toBe(3);
+      expect(payloadAsArray.at(0)).toBe('decision/cardTypes/decision');
+      expect(payloadAsArray.at(1)).toBe('decision/cardTypes/simplepage');
+      expect(payloadAsArray.at(2)).toBe('mini/cardTypes/myCardtype');
     });
     it('show templates', async () => {
       const result = await commandHandler.command(
@@ -443,25 +433,25 @@ describe('shows command', () => {
         ['templates'],
         optionsDecision,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       let payloadAsArray = Object.values(result.payload!);
-      expect(payloadAsArray.length).to.equal(4);
-      expect(payloadAsArray.at(0)).to.equal('decision/templates/decision');
-      expect(payloadAsArray.at(1)).to.equal('decision/templates/empty');
-      expect(payloadAsArray.at(2)).to.equal('decision/templates/simplepage');
-      expect(payloadAsArray.at(3)).to.equal('mini/templates/test-template');
+      expect(payloadAsArray.length).toBe(4);
+      expect(payloadAsArray.at(0)).toBe('decision/templates/decision');
+      expect(payloadAsArray.at(1)).toBe('decision/templates/empty');
+      expect(payloadAsArray.at(2)).toBe('decision/templates/simplepage');
+      expect(payloadAsArray.at(3)).toBe('mini/templates/test-template');
       const resultFromModule = await commandHandler.command(
         Cmd.show,
         ['templates'],
         optionsMini,
       );
-      expect(resultFromModule.statusCode).to.equal(200);
+      expect(resultFromModule.statusCode).toBe(200);
       payloadAsArray = Object.values(resultFromModule.payload!);
-      expect(payloadAsArray.length).to.equal(4);
-      expect(payloadAsArray.at(0)).to.equal('decision/templates/decision');
-      expect(payloadAsArray.at(1)).to.equal('decision/templates/empty');
-      expect(payloadAsArray.at(2)).to.equal('decision/templates/simplepage');
-      expect(payloadAsArray.at(3)).to.equal('mini/templates/test-template');
+      expect(payloadAsArray.length).toBe(4);
+      expect(payloadAsArray.at(0)).toBe('decision/templates/decision');
+      expect(payloadAsArray.at(1)).toBe('decision/templates/empty');
+      expect(payloadAsArray.at(2)).toBe('decision/templates/simplepage');
+      expect(payloadAsArray.at(3)).toBe('mini/templates/test-template');
     });
     it('show workflows', async () => {
       const result = await commandHandler.command(
@@ -469,25 +459,25 @@ describe('shows command', () => {
         ['workflows'],
         optionsDecision,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       let payloadAsArray = Object.values(result.payload!);
-      expect(payloadAsArray.length).to.equal(4);
-      expect(payloadAsArray.at(0)).to.equal('decision/workflows/decision');
-      expect(payloadAsArray.at(1)).to.equal('decision/workflows/simple');
-      expect(payloadAsArray.at(2)).to.equal('mini/workflows/default');
-      expect(payloadAsArray.at(3)).to.equal('mini/workflows/minimal');
+      expect(payloadAsArray.length).toBe(4);
+      expect(payloadAsArray.at(0)).toBe('decision/workflows/decision');
+      expect(payloadAsArray.at(1)).toBe('decision/workflows/simple');
+      expect(payloadAsArray.at(2)).toBe('mini/workflows/default');
+      expect(payloadAsArray.at(3)).toBe('mini/workflows/minimal');
       const resultFromModule = await commandHandler.command(
         Cmd.show,
         ['workflows'],
         optionsMini,
       );
-      expect(resultFromModule.statusCode).to.equal(200);
+      expect(resultFromModule.statusCode).toBe(200);
       payloadAsArray = Object.values(resultFromModule.payload!);
-      expect(payloadAsArray.length).to.equal(4);
-      expect(payloadAsArray.at(0)).to.equal('decision/workflows/decision');
-      expect(payloadAsArray.at(1)).to.equal('decision/workflows/simple');
-      expect(payloadAsArray.at(2)).to.equal('mini/workflows/default');
-      expect(payloadAsArray.at(3)).to.equal('mini/workflows/minimal');
+      expect(payloadAsArray.length).toBe(4);
+      expect(payloadAsArray.at(0)).toBe('decision/workflows/decision');
+      expect(payloadAsArray.at(1)).toBe('decision/workflows/simple');
+      expect(payloadAsArray.at(2)).toBe('mini/workflows/default');
+      expect(payloadAsArray.at(3)).toBe('mini/workflows/minimal');
     });
     it('show attachments', async () => {
       const result = await commandHandler.command(
@@ -495,21 +485,21 @@ describe('shows command', () => {
         ['attachments'],
         optionsDecision,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       let payloadAsArray = Object.values(result.payload!);
-      expect(payloadAsArray.length).to.equal(2);
-      expect(payloadAsArray.at(0).card).to.equal('decision_5');
-      expect(payloadAsArray.at(0).fileName).to.equal('games.jpg');
+      expect(payloadAsArray.length).toBe(2);
+      expect(payloadAsArray.at(0).card).toBe('decision_5');
+      expect(payloadAsArray.at(0).fileName).toBe('games.jpg');
       const resultFromModule = await commandHandler.command(
         Cmd.show,
         ['attachments'],
         optionsMini,
       );
-      expect(resultFromModule.statusCode).to.equal(200);
+      expect(resultFromModule.statusCode).toBe(200);
       payloadAsArray = Object.values(resultFromModule.payload!);
-      expect(payloadAsArray.length).to.equal(1);
-      expect(payloadAsArray.at(0).card).to.equal('decision_1');
-      expect(payloadAsArray.at(0).fileName).to.equal('the-needle.heic');
+      expect(payloadAsArray.length).toBe(1);
+      expect(payloadAsArray.at(0).card).toBe('decision_1');
+      expect(payloadAsArray.at(0).fileName).toBe('the-needle.heic');
     });
   });
   describe('show importable modules', () => {
@@ -528,7 +518,7 @@ describe('shows command', () => {
         ['hubs'],
         optionsDecision,
       );
-      expect(fetchResult.statusCode, 'BeforeEach fetch failed').to.equal(200);
+      expect(fetchResult.statusCode, 'BeforeEach fetch failed').toBe(200);
       const result = await commandHandler.command(
         Cmd.show,
         ['importableModules'],
@@ -559,13 +549,13 @@ describe('shows command', () => {
         ['importableModules'],
         optionsDecision,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       const payloadAsArray = Object.values(result.payload!);
-      expect(payloadAsArray.length).to.equal(4);
-      expect(payloadAsArray.at(0)).to.equal('base');
-      expect(payloadAsArray.at(1)).to.equal('eucra');
-      expect(payloadAsArray.at(2)).to.equal('ismsa');
-      expect(payloadAsArray.at(3)).to.equal('secdeva');
+      expect(payloadAsArray.length).toBe(4);
+      expect(payloadAsArray.at(0)).toBe('base');
+      expect(payloadAsArray.at(1)).toBe('eucra');
+      expect(payloadAsArray.at(2)).toBe('ismsa');
+      expect(payloadAsArray.at(3)).toBe('secdeva');
     });
 
     it('show importable modules details - success()', async () => {
@@ -575,17 +565,17 @@ describe('shows command', () => {
         ['importableModules'],
         optionsDecision,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       const payloadAsArray = Object.values(result.payload!);
-      expect(payloadAsArray.length).to.equal(4);
-      expect(payloadAsArray.at(0).name).to.equal('base');
-      expect(payloadAsArray.at(1).name).to.equal('eucra');
-      expect(payloadAsArray.at(2).name).to.equal('ismsa');
-      expect(payloadAsArray.at(3).name).to.equal('secdeva');
-      expect(payloadAsArray.at(0).category).to.equal('essentials');
-      expect(payloadAsArray.at(1).category).to.equal('essentials');
-      expect(payloadAsArray.at(2).category).to.equal('essentials');
-      expect(payloadAsArray.at(3).category).to.equal('essentials');
+      expect(payloadAsArray.length).toBe(4);
+      expect(payloadAsArray.at(0).name).toBe('base');
+      expect(payloadAsArray.at(1).name).toBe('eucra');
+      expect(payloadAsArray.at(2).name).toBe('ismsa');
+      expect(payloadAsArray.at(3).name).toBe('secdeva');
+      expect(payloadAsArray.at(0).category).toBe('essentials');
+      expect(payloadAsArray.at(1).category).toBe('essentials');
+      expect(payloadAsArray.at(2).category).toBe('essentials');
+      expect(payloadAsArray.at(3).category).toBe('essentials');
     });
 
     it('show importableModule all - success()', async () => {
@@ -595,10 +585,10 @@ describe('shows command', () => {
         ['importableModules'],
         optionsDecision,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       let payloadAsArray = Object.values(result.payload!);
       // initially, all modules from hub are importable
-      expect(payloadAsArray.length).to.equal(4);
+      expect(payloadAsArray.length).toBe(4);
 
       // Convert SSH URL to HTTPS URL for CI compatibility
       let baseModuleLocation = payloadAsArray.at(0).location;
@@ -616,27 +606,27 @@ describe('shows command', () => {
         optionsDecision,
       );
 
-      expect(res.statusCode, 'Importing "base" failed').to.equal(200);
+      expect(res.statusCode, 'Importing "base" failed').toBe(200);
       result = await commandHandler.command(
         Cmd.show,
         ['importableModules'],
         optionsDecision,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       payloadAsArray = Object.values(result.payload!);
       // then, importable module count goes down by one
-      expect(payloadAsArray.length).to.equal(3);
+      expect(payloadAsArray.length).toBe(3);
       optionsDecision.showAll = true;
       result = await commandHandler.command(
         Cmd.show,
         ['importableModules'],
         optionsDecision,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
       payloadAsArray = Object.values(result.payload!);
       // all modules are still contain 'base'
-      expect(payloadAsArray.length).to.equal(4);
-    }).timeout(30000);
+      expect(payloadAsArray.length).toBe(4);
+    }, 30000);
   });
 });
 
@@ -647,7 +637,7 @@ describe('show', () => {
   let commands: CommandManager;
   let showCmd: Show;
 
-  before(async () => {
+  beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
     commands = new CommandManager(decisionRecordsPath, {
@@ -657,50 +647,50 @@ describe('show', () => {
     showCmd = commands.showCmd;
   });
 
-  after(() => {
+  afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
   it('showAttachments (success)', async () => {
     const results = await showCmd.showAttachments();
-    expect(results).to.not.equal(undefined);
+    expect(results).not.toBeUndefined();
   });
   it('showAttachment (success)', async () => {
     const cardId = 'decision_1';
     const attachmentName = 'the-needle.heic';
     const results = await showCmd.showAttachment(cardId, attachmentName);
-    expect(results).to.not.equal(undefined);
+    expect(results).not.toBeUndefined();
   });
   it('showAttachment - empty card key', async () => {
     const cardId = '';
     const attachmentName = 'the-needle.heic';
     await expect(
       showCmd.showAttachment(cardId, attachmentName),
-    ).to.be.rejectedWith(`Mandatory parameter 'cardKey' missing`);
+    ).rejects.toThrow(`Mandatory parameter 'cardKey' missing`);
   });
   it('showAttachment - card does not have particular attachment', async () => {
     const cardId = 'decision_1';
     const attachmentName = 'i-dont-exist';
     await expect(
       showCmd.showAttachment(cardId, attachmentName),
-    ).to.be.rejectedWith(
+    ).rejects.toThrow(
       `Attachment 'i-dont-exist' not found for card decision_1`,
     );
   });
   it('showCardDetails (success)', async () => {
     const cardId = 'decision_1';
     const result = await showCmd.showCardDetails(cardId);
-    expect(result.key).to.equal('decision_1');
+    expect(result.key).toBe('decision_1');
   });
   it('showCardDetails - empty card key', async () => {
     const cardId = '';
-    await expect(showCmd.showCardDetails(cardId)).to.be.rejectedWith(
+    await expect(showCmd.showCardDetails(cardId)).rejects.toThrow(
       `Mandatory parameter 'cardKey' missing`,
     );
   });
   it('showCardDetails - card not in project', async () => {
     const cardId = 'decision_999';
-    await expect(showCmd.showCardDetails(cardId)).to.be.rejectedWith(
+    await expect(showCmd.showCardDetails(cardId)).rejects.toThrow(
       CardNotFoundError,
     );
   });
@@ -715,99 +705,84 @@ describe('show', () => {
     const noAttachmentResult = await showCmd.showCardDetails(
       cardWithNoAttachments,
     );
-    expect(noAttachmentResult.attachments.length).equals(0);
+    expect(noAttachmentResult.attachments.length).toBe(0);
 
     // Test card with attachments
     const withAttachmentResult =
       await showCmd.showCardDetails(cardWithAttachments);
-    expect(withAttachmentResult.attachments.length).to.be.greaterThan(0);
+    expect(withAttachmentResult.attachments.length).toBeGreaterThan(0);
     const firstAttachment = withAttachmentResult.attachments.at(0);
-    expect(firstAttachment?.card).equals(cardWithAttachments);
+    expect(firstAttachment!.card).toBe(cardWithAttachments);
   });
   it('showCards (success)', async () => {
     const results = await showCmd.showCards();
-    expect(results).to.not.equal(undefined);
+    expect(results).not.toBeUndefined();
   });
   it('showProjectCards (success)', async () => {
     const results = await showCmd.showProjectCards();
-    expect(results).to.not.equal(undefined);
+    expect(results).not.toBeUndefined();
   });
   it('showResource - card type (success)', async () => {
     const cardType = 'decision/cardTypes/decision';
     const results = await showCmd.showResource(cardType);
-    expect(results).to.not.equal(undefined);
+    expect(results).not.toBeUndefined();
   });
   it('showResource - empty cardType', async () => {
     const cardType = '';
-    await showCmd
-      .showResource(cardType)
-      .catch((error) =>
-        expect(errorFunction(error)).to.equal(
-          `Must define resource name to query its details`,
-        ),
-      );
+
+    await expect(showCmd.showResource(cardType)).rejects.toThrow(
+      `Must define resource name to query its details`,
+    );
   });
   it('showResource - card type does not exist in project', async () => {
     const cardType = 'decision/cardTypes/my-card-type';
-    await showCmd
-      .showResource(cardType)
-      .catch((error) =>
-        expect(errorFunction(error)).to.equal(
-          `CardType '${cardType}' does not exist in the project`,
-        ),
-      );
+
+    await expect(showCmd.showResource(cardType)).rejects.toThrow(
+      `CardType '${cardType}' does not exist in the project`,
+    );
   });
   it('showCardTypesWithDetails (success)', async () => {
     const results = await showCmd.showCardTypesWithDetails();
-    expect(results).to.not.equal(undefined);
+    expect(results).not.toBeUndefined();
   });
   it('showResource - field type (success)', async () => {
     const fieldTypeName = 'decision/fieldTypes/obsoletedBy';
     const results = await showCmd.showResource(fieldTypeName);
-    expect(results).to.not.equal(undefined);
+    expect(results).not.toBeUndefined();
   });
   it('showResource - field type does not exist', async () => {
     const fieldTypeName = 'decision/fieldTypes/i-do-not-exist';
-    await showCmd
-      .showResource(fieldTypeName)
-      .catch((error) =>
-        expect(errorFunction(error)).to.equal(
-          `FieldType '${fieldTypeName}' does not exist in the project`,
-        ),
-      );
+
+    await expect(showCmd.showResource(fieldTypeName)).rejects.toThrow(
+      `FieldType '${fieldTypeName}' does not exist in the project`,
+    );
   });
   it('showResource - link type (success)', async () => {
     const fieldTypeName = 'decision/linkTypes/test';
     const results = await showCmd.showResource(fieldTypeName);
-    expect(results).to.not.equal(undefined);
+    expect(results).not.toBeUndefined();
   });
   it('try showResource - link type does not exist', async () => {
     const linkTypeName = 'decision/linkTypes/i-do-not-exist';
-    await showCmd
-      .showResource(linkTypeName)
-      .catch((error) =>
-        expect(errorFunction(error)).to.equal(
-          `LinkType '${linkTypeName}' does not exist in the project`,
-        ),
-      );
+
+    await expect(showCmd.showResource(linkTypeName)).rejects.toThrow(
+      `LinkType '${linkTypeName}' does not exist in the project`,
+    );
   });
   it('showModule - no module name defined', async () => {
     const moduleName = '';
-    await showCmd
-      .showModule(moduleName)
-      .catch((error) =>
-        expect(errorFunction(error)).to.equal(
-          `Module '' does not exist in the project`,
-        ),
-      );
+
+    await expect(showCmd.showModule(moduleName)).rejects.toThrow(
+      `Module '' does not exist in the project`,
+    );
   });
   it('showModules (success)', async () => {
     const results = await showCmd.showModules();
-    expect(results).to.not.equal(undefined);
+    expect(results).not.toBeUndefined();
   });
   it('showProject (success)', async () => {
     const results = await showCmd.showProject();
-    expect(results).to.not.equal(undefined);
+    expect(results).not.toBeUndefined();
     expect(results).to.have.property('name');
     expect(results).to.have.property('path');
     expect(results).to.have.property('prefix');
@@ -820,27 +795,20 @@ describe('show', () => {
   it('showResource - template (success)', async () => {
     const templateName = 'decision/templates/decision';
     const results = await showCmd.showResource(templateName);
-    expect(results).to.not.equal(undefined);
+    expect(results).not.toBeUndefined();
   });
   it('showResource - template with no name', async () => {
     const templateName = '';
-    await showCmd
-      .showResource(templateName)
-      .catch((error) =>
-        expect(errorFunction(error)).to.equal(
-          `Must define resource name to query its details`,
-        ),
-      );
+
+    await expect(showCmd.showResource(templateName)).rejects.toThrow(
+      `Must define resource name to query its details`,
+    );
   });
   it('showResource - template does not exist in project', async () => {
     const templateName = 'decision/templates/i-do-not-exist';
-    await showCmd
-      .showResource(templateName)
-      .catch((error) =>
-        expect(errorFunction(error)).to.equal(
-          `Template '${templateName}' does not exist in the project`,
-        ),
-      );
+    await expect(showCmd.showResource(templateName)).rejects.toThrow(
+      `Template '${templateName}' does not exist in the project`,
+    );
   });
   it('showResources - valid types', async () => {
     const validResourceTypes = [
@@ -855,91 +823,81 @@ describe('show', () => {
     ];
     for (const type of validResourceTypes) {
       const results = await showCmd.showResources(type);
-      expect(results).to.not.equal(undefined);
+      expect(results).not.toBeUndefined();
     }
   });
   it('showResources - invalid type', async () => {
     const validResourceTypes = ['unknown'];
     for (const type of validResourceTypes) {
       const results = await showCmd.showResources(type);
-      expect(results.length).to.equal(0);
+      expect(results.length).toBe(0);
     }
   });
   it('showTemplatesWithDetails (success)', async () => {
     const results = await showCmd.showTemplatesWithDetails();
-    expect(results).to.not.equal(undefined);
+    expect(results).not.toBeUndefined();
   });
   it('showResource - workflow (success)', async () => {
     const workflowName = 'decision/workflows/decision';
     const results = await showCmd.showResource(workflowName);
-    expect(results).to.not.equal(undefined);
+    expect(results).not.toBeUndefined();
   });
   it('showResource - workflow expect type(success)', async () => {
     const workflowName = 'decision/workflows/decision';
     const results = await showCmd.showResource(workflowName, 'workflows');
-    expect(results).to.not.equal(undefined);
+    expect(results).not.toBeUndefined();
   });
   it('showResource - reject non-expected resource types', async () => {
     const workflowName = 'decision/workflows/decision';
-    await showCmd
-      .showResource(workflowName, 'cardTypes')
-      .catch((error) =>
-        expect(errorFunction(error)).to.equal(
-          `While fetching 'decision/workflows/decision': Expected type 'cardTypes', but got 'workflows' instead`,
-        ),
-      );
+    await expect(
+      showCmd.showResource(workflowName, 'cardTypes'),
+    ).rejects.toThrow(
+      `While fetching 'decision/workflows/decision': Expected type 'cardTypes', but got 'workflows' instead`,
+    );
   });
   it('showResource - empty workflow name', async () => {
     const workflowName = '';
-    await showCmd
-      .showResource(workflowName)
-      .catch((error) =>
-        expect(errorFunction(error)).to.equal(
-          `Must define resource name to query its details`,
-        ),
-      );
+    await expect(showCmd.showResource(workflowName)).rejects.toThrow(
+      `Must define resource name to query its details`,
+    );
   });
   it('showResource - workflow does not exist in project', async () => {
     const workflowName = 'decision/workflows/i-do-not-exist';
-    await showCmd
-      .showResource(workflowName)
-      .catch((error) =>
-        expect(errorFunction(error)).to.equal(
-          `Workflow '${workflowName}' does not exist in the project`,
-        ),
-      );
+    await expect(showCmd.showResource(workflowName)).rejects.toThrow(
+      `Workflow '${workflowName}' does not exist in the project`,
+    );
   });
   it('should show existing resources without category', async () => {
     const cardType = 'decision/cardTypes/decision';
     const ctResults = await showCmd.showResource(cardType);
-    expect(ctResults).to.not.equal(undefined);
-    expect(ctResults.category).to.equal(undefined);
+    expect(ctResults).not.toBeUndefined();
+    expect(ctResults.category).toBe(undefined);
 
     const fieldTypeName = 'decision/fieldTypes/obsoletedBy';
     const ftResults = await showCmd.showResource(fieldTypeName);
-    expect(ftResults).to.not.equal(undefined);
-    expect(ftResults.category).to.equal(undefined);
+    expect(ftResults).not.toBeUndefined();
+    expect(ftResults.category).toBe(undefined);
 
     const linkTypeName = 'decision/linkTypes/test';
     const ltResults = await showCmd.showResource(linkTypeName);
-    expect(ltResults).to.not.equal(undefined);
-    expect(ltResults.category).to.equal(undefined);
+    expect(ltResults).not.toBeUndefined();
+    expect(ltResults.category).toBe(undefined);
 
     // Test data for template has category... skipped!
 
     const workflowName = 'decision/workflows/decision';
     const wfResults = await showCmd.showResource(workflowName);
-    expect(wfResults).to.not.equal(undefined);
-    expect(wfResults.category).to.equal(undefined);
+    expect(wfResults).not.toBeUndefined();
+    expect(wfResults.category).toBe(undefined);
 
     const reportName = 'decision/reports/testReport';
     const reportResults = await showCmd.showResource(reportName);
-    expect(reportResults).to.not.equal(undefined);
-    expect(reportResults.category).to.equal(undefined);
+    expect(reportResults).not.toBeUndefined();
+    expect(reportResults.category).toBe(undefined);
   });
   it('showWorkflowsWithDetails (success)', async () => {
     const results = await showCmd.showWorkflowsWithDetails();
-    expect(results).to.not.equal(undefined);
+    expect(results).not.toBeUndefined();
   });
   it('show report results', async () => {
     const parameters = {
@@ -955,7 +913,7 @@ describe('show', () => {
       parameters,
       'localApp',
     );
-    expect(results).to.not.equal(undefined);
+    expect(results).not.toBeUndefined();
     expect(results).to.include('xref');
   });
   it('show report results - results to a file', async () => {
@@ -1011,9 +969,7 @@ describe('show', () => {
         parameters,
         'localApp',
       ),
-    ).to.be.rejectedWith(
-      `Report 'decision/reports/wrongReport' does not exist`,
-    );
+    ).rejects.toThrow(`Report 'decision/reports/wrongReport' does not exist`);
   });
 
   it('show content template (success)', async () => {
@@ -1022,29 +978,26 @@ describe('show', () => {
     const result = await commands.project.resources
       .byType(name, 'reports')
       .show();
-    expect(result).to.not.equal(undefined);
+    expect(result).not.toBeUndefined();
     const content = result.content.contentTemplate;
-    expect(content).to.not.equal(undefined);
+    expect(content).not.toBeUndefined();
     expect(content).to.be.a('string');
-    expect(content.length).to.be.greaterThan(0);
+    expect(content.length).toBeGreaterThan(0);
   });
 
   it('showCardLogicProgram (success)', async () => {
     const cardKey = 'decision_1';
     const result = await showCmd.showCardLogicProgram(cardKey);
-    expect(result).to.not.equal(undefined);
+    expect(result).not.toBeUndefined();
     expect(result).to.be.a('string');
   });
 
   it('showCardLogicProgram - card does not exist', async () => {
     const cardKey = 'nonexistent_card';
-    await showCmd
-      .showCardLogicProgram(cardKey)
-      .catch((error) =>
-        expect(errorFunction(error)).to.equal(
-          `Card 'nonexistent_card' does not exist in the project`,
-        ),
-      );
+
+    await expect(showCmd.showCardLogicProgram(cardKey)).rejects.toThrow(
+      `Card 'nonexistent_card' does not exist in the project`,
+    );
   });
 
   it('showLogicProgram (success)', async () => {
@@ -1052,25 +1005,24 @@ describe('show', () => {
     const result = await showCmd.showLogicProgram(
       resourceName(resourceNameStr),
     );
-    expect(result).to.not.equal(undefined);
+    expect(result).not.toBeUndefined();
     expect(result).to.be.a('string');
   });
 
   it('showLogicProgram - resource does not exist', async () => {
     const resourceNameStr = 'decision/cardTypes/nonexistent';
-    await showCmd
-      .showLogicProgram(resourceName(resourceNameStr))
-      .catch((error) =>
-        expect(errorFunction(error)).to.equal(
-          `Resource 'decision/cardTypes/nonexistent' does not exist in the project`,
-        ),
-      );
+
+    await expect(
+      showCmd.showLogicProgram(resourceName(resourceNameStr)),
+    ).rejects.toThrow(
+      `Resource 'decision/cardTypes/nonexistent' does not exist in the project`,
+    );
   });
 
   it('showAllTemplateCards shall provide a hierarchical array', async () => {
     const results = await showCmd.showAllTemplateCards();
-    expect(results).to.not.equal(undefined);
-    expect(results.length).to.be.greaterThan(0);
+    expect(results).not.toBeUndefined();
+    expect(results.length).toBeGreaterThan(0);
 
     const templateWithCards = results.find((t) => t.cards.length > 0);
     if (templateWithCards && templateWithCards.cards.length > 0) {
@@ -1080,7 +1032,7 @@ describe('show', () => {
       ) => {
         expect(card).to.have.property('key');
         expect(card).to.have.property('childrenCards');
-        expect(Array.isArray(card.childrenCards)).to.equal(true);
+        expect(Array.isArray(card.childrenCards)).toBe(true);
 
         if (card.childrenCards && card.childrenCards.length > 0) {
           card.childrenCards.forEach((child) => {

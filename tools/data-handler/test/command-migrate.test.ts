@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { expect, it, describe } from 'vitest';
 
 import { Migrate } from '../src/commands/migrate.js';
 import { SCHEMA_VERSION } from '@cyberismo/assets';
@@ -34,7 +34,7 @@ describe('Migrate command', () => {
   it('should reject when project has no schema version', async () => {
     mockProject.configuration.schemaVersion = undefined as unknown as number;
     const migrateCmd = new Migrate(mockProject as unknown as Project);
-    await expect(migrateCmd.migrate()).to.be.rejectedWith('no schema version');
+    await expect(migrateCmd.migrate()).rejects.toThrow('no schema version');
   });
 
   it('should report project already at target version', async () => {
@@ -42,9 +42,9 @@ describe('Migrate command', () => {
     mockProject.configuration.schemaVersion = version;
     const migrateCmd = new Migrate(mockProject as unknown as Project);
     const result = await migrateCmd.migrate(version);
-    expect(result.success).to.equal(true);
-    expect(result.message).to.include('already at version');
-    expect(mockProject.configuration.schemaVersion).to.equal(version);
+    expect(result.success).toBe(true);
+    expect(result.message).toContain('already at version');
+    expect(mockProject.configuration.schemaVersion).toBe(version);
   });
 
   it('should reject downgrading', async () => {
@@ -52,34 +52,31 @@ describe('Migrate command', () => {
     const targetVersion = 2;
     mockProject.configuration.schemaVersion = currentVersion;
     const migrateCmd = new Migrate(mockProject as unknown as Project);
-    await expect(migrateCmd.migrate(targetVersion)).to.be.rejectedWith(
+    await expect(migrateCmd.migrate(targetVersion)).rejects.toThrow(
       'Cannot downgrade',
     );
-    expect(mockProject.configuration.schemaVersion).to.equal(currentVersion);
+    expect(mockProject.configuration.schemaVersion).toBe(currentVersion);
   });
 
-  it('should reject skipping versions when specific version provided', async function () {
+  it('should reject skipping versions when specific version provided', async () => {
     const currentVersion = SCHEMA_VERSION;
     const targetVersion = SCHEMA_VERSION + 2;
     mockProject.configuration.schemaVersion = currentVersion;
     const migrateCmd = new Migrate(mockProject as unknown as Project);
-    await expect(migrateCmd.migrate(targetVersion)).to.be.rejectedWith(
+    await expect(migrateCmd.migrate(targetVersion)).rejects.toThrow(
       `Cannot migrate to version ${targetVersion}. Current application supports up to version ${SCHEMA_VERSION}.`,
     );
-    expect(mockProject.configuration.schemaVersion).to.equal(currentVersion);
+    expect(mockProject.configuration.schemaVersion).toBe(currentVersion);
   });
 
-  it('should allow migrating to next sequential version', async function () {
-    if (SCHEMA_VERSION <= 1) {
-      this.skip();
-    }
+  it('should allow migrating to next sequential version', async () => {
     const currentVersion = SCHEMA_VERSION - 1;
     const targetVersion = SCHEMA_VERSION;
     mockProject.configuration.schemaVersion = currentVersion;
     const migrateCmd = new Migrate(mockProject as unknown as Project);
     const result = await migrateCmd.migrate(targetVersion);
-    expect(result.success).to.equal(true);
-    expect(mockProject.configuration.schemaVersion).to.equal(targetVersion);
+    expect(result.success).toBe(true);
+    expect(mockProject.configuration.schemaVersion).toBe(targetVersion);
   });
 
   it('should allow migrating to latest without version check', async () => {
@@ -97,16 +94,13 @@ describe('Migrate command', () => {
 
     // No target version specified - should migrate to latest without skip check
     const result = await migrateCmd.migrate();
-    expect(result.success).to.equal(true);
-    expect(mockProject.configuration.schemaVersion).to.equal(SCHEMA_VERSION);
+    expect(result.success).toBe(true);
+    expect(mockProject.configuration.schemaVersion).toBe(SCHEMA_VERSION);
   });
 
-  it('should pass backup directory to runMigrations', async function () {
+  it('should pass backup directory to runMigrations', async () => {
     // Test migration to current SCHEMA_VERSION
-    if (SCHEMA_VERSION <= 1) {
-      this.skip();
-      return;
-    }
+
     const currentVersion = SCHEMA_VERSION - 1;
     const targetVersion = SCHEMA_VERSION;
     mockProject.configuration.schemaVersion = currentVersion;
@@ -125,14 +119,11 @@ describe('Migrate command', () => {
     };
     const migrateCmd = new Migrate(mockProject as unknown as Project);
     await migrateCmd.migrate(targetVersion, '/custom/backup');
-    expect(capturedBackupDir).to.equal('/custom/backup');
-    expect(mockProject.configuration.schemaVersion).to.equal(targetVersion);
+    expect(capturedBackupDir).toBe('/custom/backup');
+    expect(mockProject.configuration.schemaVersion).toBe(targetVersion);
   });
 
-  it('should handle migration failure', async function () {
-    if (SCHEMA_VERSION <= 1) {
-      this.skip();
-    }
+  it('should handle migration failure', async () => {
     const currentVersion = SCHEMA_VERSION - 1;
     const targetVersion = SCHEMA_VERSION;
     mockProject.configuration.schemaVersion = currentVersion;
@@ -146,15 +137,12 @@ describe('Migrate command', () => {
     };
     const migrateCmd = new Migrate(mockProject as unknown as Project);
     const result = await migrateCmd.migrate(targetVersion);
-    expect(result.success).to.equal(false);
-    expect(result.message).to.include('Migration validation failed');
-    expect(mockProject.configuration.schemaVersion).to.equal(currentVersion);
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('Migration validation failed');
+    expect(mockProject.configuration.schemaVersion).toBe(currentVersion);
   });
 
-  it('should pass timeout to runMigrations', async function () {
-    if (SCHEMA_VERSION <= 1) {
-      this.skip();
-    }
+  it('should pass timeout to runMigrations', async () => {
     const currentVersion = SCHEMA_VERSION - 1;
     const targetVersion = SCHEMA_VERSION;
     mockProject.configuration.schemaVersion = currentVersion;
@@ -175,7 +163,7 @@ describe('Migrate command', () => {
     const migrateCmd = new Migrate(mockProject as unknown as Project);
     const customTimeout = 5 * 60 * 1000; // 5 minutes in milliseconds
     await migrateCmd.migrate(targetVersion, undefined, customTimeout);
-    expect(capturedTimeout).to.equal(customTimeout);
-    expect(mockProject.configuration.schemaVersion).to.equal(targetVersion);
+    expect(capturedTimeout).toBe(customTimeout);
+    expect(mockProject.configuration.schemaVersion).toBe(targetVersion);
   });
 });

@@ -1,11 +1,8 @@
-// testing
-import { expect } from 'chai';
+import { expect, it, describe, afterAll, beforeAll } from 'vitest';
 
-// node
 import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
-// cyberismo
 import { Cmd, Commands } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import type { AddCommandOptions } from '../src/interfaces/command-options.js';
@@ -20,12 +17,12 @@ const commandHandler: Commands = new Commands();
 const options: AddCommandOptions = { projectPath: decisionRecordsPath };
 
 describe('add command', () => {
-  before(async () => {
+  beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data', testDir);
   });
 
-  after(() => {
+  afterAll(() => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
@@ -35,22 +32,18 @@ describe('add command', () => {
       ['card', 'decision/templates/decision', 'decision/cardTypes/decision'],
       options,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
 
     // Check that the added card received a rank.
-    if (result.affectsCards?.at(0)) {
-      const addedCard = result.affectsCards?.at(0) || '';
-      const showResult = await commandHandler.command(
-        Cmd.show,
-        ['card', addedCard],
-        options,
-      );
-      if (showResult.statusCode === 200) {
-        const newRank = Object(showResult.payload)['metadata']['rank'];
-        expect(newRank).not.to.equal('');
-        expect(newRank).not.to.equal(undefined);
-      }
-    }
+    const addedCard = result.affectsCards!.at(0) as string;
+    const showResult = await commandHandler.command(
+      Cmd.show,
+      ['card', addedCard],
+      options,
+    );
+    const newRank = Object(showResult.payload)['metadata']['rank'];
+    expect(newRank).not.toBe('');
+    expect(newRank).not.toBeUndefined();
   });
   it('add template card to under a parent (success)', async () => {
     const result = await commandHandler.command(
@@ -63,7 +56,7 @@ describe('add command', () => {
       ],
       options,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
   });
   it('add template cards with repeat (success)', async () => {
     const result = await commandHandler.command(
@@ -71,8 +64,8 @@ describe('add command', () => {
       ['card', 'decision/templates/decision', 'decision/cardTypes/decision'],
       { projectPath: options.projectPath, repeat: 10 },
     );
-    expect(result.statusCode).to.equal(200);
-    expect(result.affectsCards?.length).to.equal(10);
+    expect(result.statusCode).toBe(200);
+    expect(result.affectsCards?.length).toBe(10);
   });
   it('try to add template card to non-existent template', async () => {
     const result = await commandHandler.command(
@@ -80,7 +73,7 @@ describe('add command', () => {
       ['card', 'decision/templates/idontexists', 'decision/cardTypes/decision'],
       options,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('try to add template card to non-existent template parent card', async () => {
     const result = await commandHandler.command(
@@ -93,7 +86,7 @@ describe('add command', () => {
       ],
       options,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('try to add template card with invalid path', async () => {
     const result = await commandHandler.command(
@@ -101,7 +94,7 @@ describe('add command', () => {
       ['card', 'decision/templates/decision', 'decision/cardTypes/decision'],
       { projectPath: 'random-path' },
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('try to add card with invalid "repeat" value', async () => {
     options.repeat = -1;
@@ -110,7 +103,7 @@ describe('add command', () => {
       ['card', 'decision/templates/decision', 'decision/cardTypes/decision'],
       options,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
 
   it('add hub to the project (success)', async () => {
@@ -119,7 +112,7 @@ describe('add command', () => {
       ['hub', 'https://example.com/'],
       options,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
   });
   it('try to add invalid hub URL to the project', async () => {
     const result = await commandHandler.command(
@@ -127,7 +120,7 @@ describe('add command', () => {
       ['hub', 'invalid'],
       options,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('try to add duplicate hub to the project', async () => {
     await commandHandler.command(
@@ -140,10 +133,10 @@ describe('add command', () => {
       ['hub', 'https://example.com/'],
       options,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('try to add hub without URL to the project', async () => {
     const result = await commandHandler.command(Cmd.add, ['hub'], options);
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
 });

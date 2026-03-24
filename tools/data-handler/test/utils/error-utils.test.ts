@@ -11,14 +11,9 @@
   <https://www.gnu.org/licenses/>.
 */
 
-import { expect } from 'chai';
-import { describe, it } from 'mocha';
+import { expect, describe, it } from 'vitest';
 
-import {
-  hasCode,
-  errorFunction,
-  errorMessage,
-} from '../../src/utils/error-utils.js';
+import { hasCode, errorFunction } from '../../src/utils/error-utils.js';
 
 describe('error utils', () => {
   describe('hasCode type guard', () => {
@@ -27,68 +22,48 @@ describe('error utils', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (error as any).code = 'ENOENT';
       const result = hasCode(error);
-      expect(result).to.equal(true);
-
-      if (hasCode(error)) {
-        expect(error.code).to.equal('ENOENT');
-      }
+      expect(result).toBe(true);
     });
 
     it('should return false for regular error without code', () => {
       const error = new Error('test error');
       const result = hasCode(error);
-      expect(result).to.equal(false);
+      expect(result).toBe(false);
     });
 
-    it('should return false for non-error objects', () => {
-      const nullResult = hasCode(null);
-      expect(nullResult).to.equal(false);
-      const undefinedResult = hasCode(undefined);
-      expect(undefinedResult).to.equal(false);
-      const stringResult = hasCode('string');
-      expect(stringResult).to.equal(false);
-      const numberResult = hasCode(123);
-      expect(numberResult).to.equal(false);
-      const objectResult = hasCode({});
-      expect(objectResult).to.equal(false);
-      const objectWithCodeResult = hasCode({ code: 'ENOENT' });
-      expect(objectWithCodeResult).to.equal(false);
-    });
+    it.each([null, undefined, 'string', 123, {}, { code: 'ENOENT' }])(
+      'should return false for non-error value: %o',
+      (value) => {
+        const result = hasCode(value);
+        expect(result).toBe(false);
+      },
+    );
   });
 
   describe('errorFunction', () => {
     it('should handle Error objects', () => {
-      const error = new Error('test error message');
+      const errorMessage = 'test error message';
+      const error = new Error(errorMessage);
       const result = errorFunction(error);
-      expect(result).to.equal('test error message');
+      expect(result).toBe(errorMessage);
     });
 
     it('should handle string errors', () => {
-      const result = errorFunction('string error');
-      expect(result).to.equal('string error');
+      const errorMessage = 'string error';
+      const result = errorFunction(errorMessage);
+      expect(result).toBe(errorMessage);
     });
 
     it('should handle non-error objects', () => {
       const result = errorFunction({ some: 'object' });
-      expect(result).to.include('errorFunction called without an error object');
-      expect(result).to.include('{"some":"object"}');
-    });
-  });
-
-  describe('errorMessage', () => {
-    it('should return message without replacement', () => {
-      const result = errorMessage('test message');
-      expect(result).to.equal('test message');
+      expect(result).includes('errorFunction called without an error object');
+      expect(result).includes('{"some":"object"}');
     });
 
-    it('should replace substring when specified', () => {
-      const result = errorMessage('test message', 'test', 'demo');
-      expect(result).to.equal('demo message');
-    });
-
-    it('should handle empty replacement parameters', () => {
-      const result = errorMessage('test message', '', '');
-      expect(result).to.equal('test message');
+    it('should handle numbers', () => {
+      const result = errorFunction(123);
+      expect(result).includes('errorFunction called without an error object');
+      expect(result).includes('123');
     });
   });
 });

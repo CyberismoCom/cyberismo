@@ -4,7 +4,7 @@
 
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import * as sinon from 'sinon';
+import { vi } from 'vitest';
 import { Project } from '../../src/containers/project.js';
 import { Fetch } from '../../src/commands/index.js';
 import { SCHEMA_VERSION } from '@cyberismo/assets';
@@ -37,15 +37,10 @@ export function getTestProject(path: string): InstanceType<typeof Project> {
 
 /**
  * Mocks the ensureModuleListUpToDate method to avoid network calls during tests.
- * Returns a sinon stub that can be restored after tests.
+ * Returns a vi spy that can be restored via vi.restoreAllMocks() after tests.
  */
-export function mockEnsureModuleListUpToDate(): sinon.SinonStub {
-  const stub = sinon
-    .stub(Fetch.prototype, 'ensureModuleListUpToDate')
-    .resolves();
-  stub.callsFake(async function (this: typeof Fetch.prototype) {
-    return Promise.resolve();
-  });
-
-  return stub;
+export function mockEnsureModuleListUpToDate(): ReturnType<typeof vi.spyOn> {
+  return vi
+    .spyOn(Fetch.prototype, 'ensureModuleListUpToDate')
+    .mockResolvedValue(undefined);
 }

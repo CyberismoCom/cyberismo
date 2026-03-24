@@ -17,7 +17,7 @@
     "lint": "eslint .",
     "pretest": "pnpm build",
     "posttest": "pnpm lint",
-    "test": "mocha --require mocha-suppress-logs --disable-warning=ExperimentalWarning --forbid-only \"./test/**/*.test.ts\"",
+    "test": "vitest",
     "test-coverage": "c8 pnpm test",
     "dev": "tsc --watch -p tsconfig.build.json",
     "watch": "pnpm dev"

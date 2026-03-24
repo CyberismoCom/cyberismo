@@ -1,8 +1,5 @@
-// testing
-import { expect } from 'chai';
-import { after, before, describe, it } from 'mocha';
+import { expect, describe, it, beforeAll, afterAll } from 'vitest';
 
-// node
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -21,7 +18,7 @@ const testDir = join(baseDir, 'tmp-configuration-logger-tests');
 const testProjectPath = join(testDir, 'test-project');
 
 describe('configuration logger', () => {
-  before(async () => {
+  beforeAll(async () => {
     await mkdir(testDir, { recursive: true });
     await mkdir(testProjectPath, { recursive: true });
     // Create .cards/local directory structure for new migration log location
@@ -30,12 +27,12 @@ describe('configuration logger', () => {
     });
   });
 
-  after(async () => {
+  afterAll(async () => {
     await deleteDir(testDir);
   });
 
   describe('basic logging operations', () => {
-    after(async () => {
+    afterAll(async () => {
       await ConfigurationLogger.clearLog(testProjectPath);
     });
 
@@ -50,12 +47,10 @@ describe('configuration logger', () => {
       );
 
       const entries = await ConfigurationLogger.entries(testProjectPath);
-      expect(entries.length).to.equal(1);
-      expect(entries[0].operation).to.equal(
-        ConfigurationOperation.RESOURCE_CREATE,
-      );
-      expect(entries[0].target).to.equal('test-resource');
-      expect(entries[0].parameters?.type).to.equal('template');
+      expect(entries).toHaveLength(1);
+      expect(entries[0].operation).toBe(ConfigurationOperation.RESOURCE_CREATE);
+      expect(entries[0].target).toBe('test-resource');
+      expect(entries[0].parameters?.type).toBe('template');
       expect(entries[0].timestamp).to.be.a('string');
     });
     it('should handle logging without parameters', async () => {
@@ -70,7 +65,7 @@ describe('configuration logger', () => {
         (e) => e.operation === ConfigurationOperation.RESOURCE_DELETE,
       );
       expect(deleteEntry).to.exist;
-      expect(deleteEntry!.target).to.equal('deleted-resource');
+      expect(deleteEntry!.target).toBe('deleted-resource');
       expect(deleteEntry!.parameters).to.be.undefined;
     });
     it('should append entries in JSON Lines format', async () => {
@@ -91,15 +86,15 @@ describe('configuration logger', () => {
       const logContent = await readFile(logPath, 'utf-8');
       const lines = logContent.trim().split('\n');
 
-      expect(lines.length).to.equal(2);
+      expect(lines).toHaveLength(2);
 
       const entry1 = JSON.parse(lines[0]) as ConfigurationLogEntry;
       const entry2 = JSON.parse(lines[1]) as ConfigurationLogEntry;
 
-      expect(entry1.operation).to.equal(ConfigurationOperation.RESOURCE_CREATE);
-      expect(entry1.target).to.equal('resource1');
-      expect(entry2.operation).to.equal(ConfigurationOperation.RESOURCE_DELETE);
-      expect(entry2.target).to.equal('resource2');
+      expect(entry1.operation).toBe(ConfigurationOperation.RESOURCE_CREATE);
+      expect(entry1.target).toBe('resource1');
+      expect(entry2.operation).toBe(ConfigurationOperation.RESOURCE_DELETE);
+      expect(entry2.target).toBe('resource2');
     });
     it('should preserve entry order', async () => {
       await ConfigurationLogger.clearLog(testProjectPath);
@@ -115,10 +110,10 @@ describe('configuration logger', () => {
       }
 
       const entries = await ConfigurationLogger.entries(testProjectPath);
-      expect(entries.length).to.equal(3);
-      expect(entries[0].target).to.equal('first');
-      expect(entries[1].target).to.equal('second');
-      expect(entries[2].target).to.equal('third');
+      expect(entries).toHaveLength(3);
+      expect(entries[0].target).toBe('first');
+      expect(entries[1].target).toBe('second');
+      expect(entries[2].target).toBe('third');
     });
     it('should handle logging errors gracefully', async () => {
       const invalidPath = '/invalid/path/that/does/not/exist';
@@ -129,13 +124,13 @@ describe('configuration logger', () => {
           ConfigurationOperation.RESOURCE_CREATE,
           'test',
         ),
-      ).to.not.be.rejected;
+      ).resolves.not.toThrow();
     });
     it('should handle reading non-existent log file', async () => {
       const nonExistentPath = join(testDir, 'non-existent');
 
       const entries = await ConfigurationLogger.entries(nonExistentPath);
-      expect(entries.length).to.equal(0);
+      expect(entries).toHaveLength(0);
     });
     it('should log module addition', async () => {
       await ConfigurationLogger.clearLog(testProjectPath);
@@ -154,12 +149,12 @@ describe('configuration logger', () => {
       );
 
       const entries = await ConfigurationLogger.entries(testProjectPath);
-      expect(entries.length).to.equal(1);
-      expect(entries[0].operation).to.equal(ConfigurationOperation.MODULE_ADD);
-      expect(entries[0].target).to.equal('test-module');
-      expect(entries[0].parameters?.location).to.equal('file:/path/to/module');
-      expect(entries[0].parameters?.branch).to.equal('main');
-      expect(entries[0].parameters?.private).to.equal(false);
+      expect(entries).toHaveLength(1);
+      expect(entries[0].operation).toBe(ConfigurationOperation.MODULE_ADD);
+      expect(entries[0].target).toBe('test-module');
+      expect(entries[0].parameters?.location).toBe('file:/path/to/module');
+      expect(entries[0].parameters?.branch).toBe('main');
+      expect(entries[0].parameters?.private).toBe(false);
     });
     it('should log module removal', async () => {
       await ConfigurationLogger.log(
@@ -178,8 +173,8 @@ describe('configuration logger', () => {
         (e) => e.operation === ConfigurationOperation.MODULE_REMOVE,
       );
       expect(removeEntry).to.exist;
-      expect(removeEntry!.target).to.equal('test-module');
-      expect(removeEntry!.parameters?.location).to.equal('/path/to/module');
+      expect(removeEntry!.target).toBe('test-module');
+      expect(removeEntry!.parameters?.location).toBe('/path/to/module');
     });
     it('should get configuration log path', () => {
       const logPath = ConfigurationLogger.logFile(testProjectPath);
@@ -203,18 +198,18 @@ describe('configuration logger', () => {
       );
 
       let entries = await ConfigurationLogger.entries(testProjectPath);
-      expect(entries.length).to.equal(beforeEntries + 2);
+      expect(entries).toHaveLength(beforeEntries + 2);
 
       await ConfigurationLogger.clearLog(testProjectPath);
 
       entries = await ConfigurationLogger.entries(testProjectPath);
-      expect(entries.length).to.equal(0);
+      expect(entries).toHaveLength(0);
     });
     it('should return empty array when log file does not exist', async () => {
       await ConfigurationLogger.clearLog(testProjectPath);
 
       const entries = await ConfigurationLogger.entries(testProjectPath);
-      expect(entries.length).to.equal(0);
+      expect(entries).toHaveLength(0);
     });
     it('should handle corrupted log entries gracefully', async () => {
       const logPath = ConfigurationLogger.logFile(testProjectPath);
@@ -230,9 +225,9 @@ describe('configuration logger', () => {
       await writeFile(logPath, testContent + '\n');
 
       const entries = await ConfigurationLogger.entries(testProjectPath);
-      expect(entries.length).to.equal(2);
-      expect(entries[0].target).to.equal('valid');
-      expect(entries[1].target).to.equal('valid2');
+      expect(entries).toHaveLength(2);
+      expect(entries[0].target).toBe('valid');
+      expect(entries[1].target).toBe('valid2');
     });
     it('should check log existence via static method', async () => {
       const testProjectPath2 = join(testDir, 'test-project-static');
@@ -245,8 +240,8 @@ describe('configuration logger', () => {
 
       // Check if log path exists for the project that has entries
       const logPath = ConfigurationLogger.logFile(testProjectPath2);
-      expect(pathExists(logPath)).to.equal(true);
-      expect(ConfigurationLogger.hasLog(testProjectPath2)).to.equal(true);
+      expect(pathExists(logPath)).toBe(true);
+      expect(ConfigurationLogger.hasLog(testProjectPath2)).toBe(true);
     });
   });
 });

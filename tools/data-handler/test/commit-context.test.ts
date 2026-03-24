@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { expect, it, describe } from 'vitest';
 import {
   runWithCommitContext,
   getCommitContext,
@@ -9,21 +9,21 @@ describe('commit-context', () => {
   describe('runWithCommitContext + getCommitContext', () => {
     it('should return empty context outside runWithCommitContext', () => {
       const result = getCommitContext();
-      expect(result).to.deep.equal({});
+      expect(result).toEqual({});
     });
 
     it('should return the author inside context', async () => {
       const author = { name: 'Alice', email: 'alice@example.com' };
       await runWithCommitContext({ author }, async () => {
         const result = getCommitContext();
-        expect(result.author).to.deep.equal(author);
+        expect(result.author).toEqual(author);
       });
     });
 
     it('should return the message inside context', async () => {
       await runWithCommitContext({ message: 'Test commit' }, async () => {
         const result = getCommitContext();
-        expect(result.message).to.equal('Test commit');
+        expect(result.message).toBe('Test commit');
       });
     });
 
@@ -32,8 +32,8 @@ describe('commit-context', () => {
       await runWithCommitContext({ author }, async () => {
         await runWithCommitContext({ message: 'Inner message' }, async () => {
           const result = getCommitContext();
-          expect(result.author).to.deep.equal(author);
-          expect(result.message).to.equal('Inner message');
+          expect(result.author).toEqual(author);
+          expect(result.message).toBe('Inner message');
         });
       });
     });
@@ -43,7 +43,7 @@ describe('commit-context', () => {
         { message: 'msg' },
         async () => 42,
       );
-      expect(result).to.equal(42);
+      expect(result).toBe(42);
     });
 
     it('should isolate concurrent calls', async () => {
@@ -75,10 +75,10 @@ describe('commit-context', () => {
 
       await Promise.all([aliceRun, bobRun]);
 
-      expect(aliceCtx!.author).to.deep.equal(alice);
-      expect(aliceCtx!.message).to.equal('Alice msg');
-      expect(bobCtx!.author).to.deep.equal(bob);
-      expect(bobCtx!.message).to.equal('Bob msg');
+      expect(aliceCtx!.author).toEqual(alice);
+      expect(aliceCtx!.message).toBe('Alice msg');
+      expect(bobCtx!.author).toEqual(bob);
+      expect(bobCtx!.message).toBe('Bob msg');
     });
   });
 });

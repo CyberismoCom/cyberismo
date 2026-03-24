@@ -15,7 +15,7 @@
 import { DefaultContent } from './create-defaults.js';
 import { FileResource } from './file-resource.js';
 import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
-import { ResourcesFrom } from '../containers/project.js';
+import { ResourcesFrom } from '../containers/project/resources-from.js';
 import { sortCards } from '../utils/card-utils.js';
 import { removeValue } from '../utils/common-utils.js';
 import { Validate } from '../commands/validate.js';

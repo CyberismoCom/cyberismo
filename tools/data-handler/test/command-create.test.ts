@@ -1,5 +1,5 @@
 // testing
-import { expect } from 'chai';
+import { expect, it, describe, beforeAll, afterAll } from 'vitest';
 
 // node
 import { access } from 'node:fs/promises';
@@ -67,12 +67,12 @@ async function countOfResources(
 }
 
 describe('create command', () => {
-  before(async () => {
+  beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data', testDir);
   });
 
-  after(() => {
+  afterAll(() => {
     rmSync(testDir, { recursive: true, force: true });
     rmSync(resolveTilde('~/project-name-unique/'), {
       recursive: true,
@@ -89,9 +89,9 @@ describe('create command', () => {
       ['attachment', cardId, attachmentPath],
       options,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
     const attachmentCountAfter = await countOfResources(['attachments']);
-    expect(attachmentCountBefore + 1).to.equal(attachmentCountAfter);
+    expect(attachmentCountBefore + 1).toBe(attachmentCountAfter);
   });
   it('attachment to template card (success)', async () => {
     const attachmentCountBefore = await countOfResources(['attachments']);
@@ -102,9 +102,9 @@ describe('create command', () => {
       ['attachment', cardId, attachmentPath],
       options,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
     const attachmentCountAfter = await countOfResources(['attachments']);
-    expect(attachmentCountBefore + 1).to.equal(attachmentCountAfter);
+    expect(attachmentCountBefore + 1).toBe(attachmentCountAfter);
   });
   it('attachment to child card (success)', async () => {
     const attachmentCountBefore = await countOfResources(['attachments']);
@@ -115,9 +115,9 @@ describe('create command', () => {
       ['attachment', cardId, attachmentPath],
       options,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
     const attachmentCountAfter = await countOfResources(['attachments']);
-    expect(attachmentCountBefore + 1).to.equal(attachmentCountAfter);
+    expect(attachmentCountBefore + 1).toBe(attachmentCountAfter);
   });
   it('attachment missing project', async () => {
     const projectPath = join(testDir, 'invalid/i-dont-exist');
@@ -129,7 +129,7 @@ describe('create command', () => {
       ['attachment', cardId, attachmentPath],
       invalidOptions,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('attachment missing card', async () => {
     const attachmentPath = join(testDir, 'attachments/the-needle.heic');
@@ -139,7 +139,7 @@ describe('create command', () => {
       ['attachment', cardId, attachmentPath],
       options,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('attachment missing attachment', async () => {
     const attachmentPath = join(testDir, 'attachments/i-dont-exist.txt');
@@ -149,7 +149,7 @@ describe('create command', () => {
       ['attachment', cardId, attachmentPath],
       options,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('attachment exists already', async () => {
     const attachmentPath = join(testDir, 'attachments/the-needle.heic');
@@ -164,7 +164,7 @@ describe('create command', () => {
       ['attachment', cardId, attachmentPath],
       options,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
 
   // card
@@ -175,10 +175,10 @@ describe('create command', () => {
       ['card', 'decision/templates/simplepage'],
       options,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
     const cardsCountAfter = await countOfResources(['cards']);
     // There are three cards in the template
-    expect(cardsCountBefore + 3).to.equal(cardsCountAfter);
+    expect(cardsCountBefore + 3).toBe(cardsCountAfter);
   });
   it('card and validate (success)', async () => {
     const cardsCountBefore = await countOfResources(['cards']);
@@ -187,12 +187,12 @@ describe('create command', () => {
       ['card', 'decision/templates/simplepage'],
       options,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
     const cardsCountAfter = await countOfResources(['cards']);
     result = await commandHandler.command(Cmd.validate, [], options);
-    expect(result.message).to.equal('Project structure validated');
+    expect(result.message).toBe('Project structure validated');
     // There are three cards in the template
-    expect(cardsCountBefore + 3).to.equal(cardsCountAfter);
+    expect(cardsCountBefore + 3).toBe(cardsCountAfter);
   });
   it('card with parent (success)', async () => {
     const templateName = 'decision/templates/decision';
@@ -202,7 +202,7 @@ describe('create command', () => {
       ['card', templateName, parentCard],
       options,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
 
     // Check that created card contains custom fields, but not calculated fields
     const createdCard = result.affectsCards?.at(0) || '';
@@ -230,11 +230,11 @@ describe('create command', () => {
       parentCard,
     );
     // simplepage template has 2 root cards + 1 child = 3 cards total
-    expect(createdCards.length).to.equal(3);
+    expect(createdCards.length).toBe(3);
 
     // First two cards should be the root-level template cards (parented under decision_5)
-    expect(createdCards[0].parent).to.equal(parentCard);
-    expect(createdCards[1].parent).to.equal(parentCard);
+    expect(createdCards[0].parent).toBe(parentCard);
+    expect(createdCards[1].parent).toBe(parentCard);
 
     // Root cards should be sorted by rank
     const rank0 = createdCards[0].metadata?.rank;
@@ -243,7 +243,7 @@ describe('create command', () => {
     expect(rank0).to.not.equal('');
     expect(rank1).to.not.equal(undefined);
     expect(rank1).to.not.equal('');
-    expect(rank0! < rank1!).to.equal(true);
+    expect(rank0! < rank1!).toBe(true);
 
     // Third card should be the child card (not parented under decision_5)
     expect(createdCards[2].parent).to.not.equal(parentCard);
@@ -256,7 +256,7 @@ describe('create command', () => {
       ['card', templateName],
       options,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('card missing project', async () => {
     const templateName = 'decision/templates/simplepage';
@@ -268,7 +268,7 @@ describe('create command', () => {
       ['card', templateName],
       invalidOptions,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('card incorrect or missing cardsConfig.json', async () => {
     const invalidOptions = {
@@ -280,7 +280,7 @@ describe('create command', () => {
       ['card', templateName],
       invalidOptions,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('card invalid cardsConfig.json', async () => {
     const invalidOptions = {
@@ -292,7 +292,7 @@ describe('create command', () => {
       ['card', templateName],
       invalidOptions,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('card parent card missing', async () => {
     const parentCard = 'i-dont-exist';
@@ -302,7 +302,7 @@ describe('create command', () => {
       ['card', templateName, parentCard],
       options,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   // todo: add more child card creation tests
 
@@ -319,7 +319,7 @@ describe('create command', () => {
       ['cardType', cardType, workflow],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
     const cardTypesCountAfter = await countOfResources(
       ['cardTypes'],
       optionsMini,
@@ -338,7 +338,7 @@ describe('create command', () => {
       [cardType, workflow],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
     const cardTypesCountAfter = await countOfResources(
       ['cardTypes'],
       optionsMini,
@@ -356,7 +356,7 @@ describe('create command', () => {
       ['cardType', cardType, workflow],
       invalidOptions,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('cardType create existing card type', async () => {
     const cardType = 'test';
@@ -371,7 +371,7 @@ describe('create command', () => {
       ['cardType', cardType, workflow],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('cardType create no workflow', async () => {
     const cardType = 'test';
@@ -381,7 +381,7 @@ describe('create command', () => {
       ['cardType', cardType, workflow],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
 
   // field type
@@ -398,7 +398,7 @@ describe('create command', () => {
         ['fieldType', name, fieldType],
         optionsMini,
       );
-      expect(result.statusCode).to.equal(200);
+      expect(result.statusCode).toBe(200);
     }
     const fieldTypesCountAfter = await countOfResources(
       ['fieldTypes'],
@@ -419,7 +419,7 @@ describe('create command', () => {
       ['fieldType', name, dataType],
       invalidOptions,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('fieldType name already exists', async () => {
     const name = `name`;
@@ -435,8 +435,8 @@ describe('create command', () => {
       ['fieldType', name, dataType2],
       optionsMini,
     );
-    expect(result1.statusCode).to.equal(200);
-    expect(result2.statusCode).to.equal(400);
+    expect(result1.statusCode).toBe(200);
+    expect(result2.statusCode).toBe(400);
   });
   it('fieldType with invalid name', async () => {
     const name = `nameÄ`;
@@ -446,7 +446,7 @@ describe('create command', () => {
       ['fieldType', name, dataType],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('fieldType with invalid type', async () => {
     const name = `name1`;
@@ -456,7 +456,7 @@ describe('create command', () => {
       ['fieldType', name, dataType],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('create a label (success)', async () => {
     const result = await commandHandler.command(
@@ -464,7 +464,7 @@ describe('create command', () => {
       ['label', 'decision_6', 'test'],
       options,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
   });
   it('create a label in a template (success)', async () => {
     const result = await commandHandler.command(
@@ -472,7 +472,7 @@ describe('create command', () => {
       ['label', 'decision_1', 'test'],
       options,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
   });
 
   it('try create a label - label exists', async () => {
@@ -481,7 +481,7 @@ describe('create command', () => {
       ['label', 'decision_5', 'test'],
       options,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
 
   it('try create a label - invalid character in name', async () => {
@@ -490,7 +490,7 @@ describe('create command', () => {
       ['label', 'decision_6', 'testö'],
       options,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
 
   it('try create a label - whitespace character in the beginning of a name', async () => {
@@ -499,7 +499,7 @@ describe('create command', () => {
       ['label', 'decision_6', ' test'],
       options,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
 
   it('try create a label - empty name', async () => {
@@ -508,7 +508,7 @@ describe('create command', () => {
       ['label', 'decision_6', ''],
       options,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
 
   it('try create a label - too long label', async () => {
@@ -517,39 +517,8 @@ describe('create command', () => {
       ['label', 'decision_6', 'a'.repeat(500)],
       options,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
-  // link - three tests commented out for now (see INTDEV-512). When doing INTDEV-512, also add a test which makes sure createLink fails if source and destination cards are the same
-  // it('create link (success)', async () => {
-  //   const result = await commandHandler.command(
-  //     Cmd.create,
-  //     ['link', 'decision_5', 'decision_6', 'decision/linkTypes/test'],
-  //     options,
-  //   );
-  //   expect(result.statusCode).to.equal(200);
-  // });
-  // it('create link with different description(success)', async () => {
-  //   const result = await commandHandler.command(
-  //     Cmd.create,
-  //     [
-  //       'link',
-  //       'decision_5',
-  //       'decision_6',
-  //       'decision/linkTypes/test',
-  //       'description2',
-  //     ],
-  //     options,
-  //   );
-  //   expect(result.statusCode).to.equal(200);
-  // });
-  // it('try create link - link already exists', async () => {
-  //   const result = await commandHandler.command(
-  //     Cmd.create,
-  //     ['link', 'decision_5', 'decision_6', 'decision/linkTypes/test'],
-  //     options,
-  //   );
-  //   expect(result.statusCode).to.equal(400);
-  // });
 
   it('try create link - card does not exist', async () => {
     const result = await commandHandler.command(
@@ -563,7 +532,7 @@ describe('create command', () => {
       options,
     );
 
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
 
   it('try create link - card type not valid', async () => {
@@ -603,7 +572,7 @@ describe('create command', () => {
       ['linkType', name],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
     const linkTypeCountAfter = await countOfResources(
       ['linkTypes'],
       optionsMini,
@@ -621,7 +590,7 @@ describe('create command', () => {
       ['linkType', name],
       invalidOptions,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
 
   it('linkType name already exists', async () => {
@@ -636,8 +605,8 @@ describe('create command', () => {
       ['linkType', name],
       optionsMini,
     );
-    expect(result1.statusCode).to.equal(200);
-    expect(result2.statusCode).to.equal(400);
+    expect(result1.statusCode).toBe(200);
+    expect(result2.statusCode).toBe(400);
   });
 
   it('linkType with invalid name', async () => {
@@ -647,7 +616,7 @@ describe('create command', () => {
       ['linkType', name],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
 
   // project
@@ -661,8 +630,8 @@ describe('create command', () => {
       ['project', name, prefix],
       testOptions,
     );
-    await expect(access(projectDir, fsConstants.F_OK)).to.be.fulfilled;
-    expect(result.statusCode).to.equal(200);
+    await expect(access(projectDir, fsConstants.F_OK)).resolves.not.toThrow();
+    expect(result.statusCode).toBe(200);
   });
   it('project with user home path (success)', async () => {
     const path = '~/project-name-unique';
@@ -675,8 +644,10 @@ describe('create command', () => {
       ['project', name, prefix],
       testOptions,
     );
-    await expect(access(resolveTilde(path), fsConstants.F_OK)).to.be.fulfilled;
-    expect(result.statusCode).to.equal(200);
+    await expect(
+      access(resolveTilde(path), fsConstants.F_OK),
+    ).resolves.not.toThrow();
+    expect(result.statusCode).toBe(200);
   });
   it('project creation without options (success)', async () => {
     const prefix = 'demo';
@@ -687,7 +658,7 @@ describe('create command', () => {
       ['project', name, prefix],
       testOptions,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
     await deleteDir(name);
   });
   it('project missing target', async () => {
@@ -697,7 +668,7 @@ describe('create command', () => {
       ['project', '', ''],
       testOptions,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('project invalid path', async () => {
     const testOptions = { projectPath: 'lpt1' };
@@ -706,7 +677,7 @@ describe('create command', () => {
       ['project', '', ''],
       testOptions,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('project with uppercase prefix', async () => {
     const prefix = 'Test';
@@ -718,7 +689,7 @@ describe('create command', () => {
       ['project', name, prefix],
       testOptions,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
     expect(result.message).to.include('invalid prefix');
   });
   it('project with forbidden folder name', async () => {
@@ -731,7 +702,7 @@ describe('create command', () => {
       ['project', name, prefix],
       testOptions,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
     expect(result.message).to.include('invalid');
   });
   it('project path already exists', async () => {
@@ -741,7 +712,7 @@ describe('create command', () => {
       ['project', '', ''],
       testOptions,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('should create project with optional values', async () => {
     const prefix = 'cdes';
@@ -755,13 +726,13 @@ describe('create command', () => {
       ['project', name, prefix, projectDir, category, description],
       testOptions,
     );
-    await expect(access(projectDir, fsConstants.F_OK)).to.be.fulfilled;
-    expect(result.statusCode).to.equal(200);
+    await expect(access(projectDir, fsConstants.F_OK)).resolves.not.toThrow();
+    expect(result.statusCode).toBe(200);
 
     const configPath = join(projectDir, '.cards', 'local', 'cardsConfig.json');
     const config = JSON.parse(readFileSync(configPath, 'utf-8'));
-    expect(config.category).to.equal(category);
-    expect(config.description).to.equal(description);
+    expect(config.category).toBe(category);
+    expect(config.description).toBe(description);
     const validator = new Validate();
     const validationResult = await validator.validate(
       projectDir,
@@ -779,7 +750,7 @@ describe('create command', () => {
       ['report', reportName],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
     const reportsCountAfter = await countOfResources(['reports'], optionsMini);
     expect(reportsCountBefore + 1).equals(reportsCountAfter);
   });
@@ -790,9 +761,9 @@ describe('create command', () => {
       ['report', reportName],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
     result = await commandHandler.command(Cmd.validate, [], optionsMini);
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
   });
   it('try to create report with same name', async () => {
     const reportName = 'report-name';
@@ -806,7 +777,7 @@ describe('create command', () => {
       ['report', reportName],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   // template
   it('template (success)', async () => {
@@ -821,7 +792,7 @@ describe('create command', () => {
       ['template', templateName, templateContent],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
     const templatesCountAfter = await countOfResources(
       ['templates'],
       optionsMini,
@@ -837,7 +808,7 @@ describe('create command', () => {
       ['template', templateName, templateContent],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('template with default parameters (success)', async () => {
     const templateName = 'validName';
@@ -847,7 +818,7 @@ describe('create command', () => {
       ['template', templateName, templateContent],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
   });
   it('template with no content (success)', async () => {
     const templateName = 'anotherValidName';
@@ -856,7 +827,7 @@ describe('create command', () => {
       ['template', templateName],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
   });
   it('template and validate (success)', async () => {
     const templateName = 'validatedTemplate';
@@ -865,9 +836,9 @@ describe('create command', () => {
       ['template', templateName],
       options,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
     result = await commandHandler.command(Cmd.validate, [], options);
-    expect(result.message).to.equal('Project structure validated');
+    expect(result.message).toBe('Project structure validated');
   });
   it('template with "loc"', async () => {
     const templateName = 'loc/templates/template-name_second';
@@ -877,7 +848,7 @@ describe('create command', () => {
       ['template', templateName, templateContent],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('template with "123"', async () => {
     const templateName = 'loc/123';
@@ -887,7 +858,7 @@ describe('create command', () => {
       ['template', templateName, templateContent],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('template invalid project', async () => {
     const templateName = 'validName';
@@ -898,7 +869,7 @@ describe('create command', () => {
       ['template', templateName, templateContent],
       invalidOptions,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('template invalid template name', async () => {
     const templateName = 'aux';
@@ -908,7 +879,7 @@ describe('create command', () => {
       ['template', templateName, templateContent],
       options,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('template already exists', async () => {
     const templateName = 'decision/templates/decision';
@@ -918,7 +889,7 @@ describe('create command', () => {
       ['template', templateName, templateContent],
       options,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   // workflow
   it('workflow (success)', async () => {
@@ -960,7 +931,7 @@ describe('create command', () => {
       ['workflow', workflowName, content],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
   });
   it('workflow with default content (success)', async () => {
     const workflowName = 'anotherUniqueWorkflowName';
@@ -969,7 +940,7 @@ describe('create command', () => {
       ['workflow', workflowName, ''],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
   });
   it('workflow invalid workflow schema', async () => {
     const workflowName = 'default';
@@ -984,7 +955,7 @@ describe('create command', () => {
       ['workflow', workflowName, content],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('workflow invalid project', async () => {
     const workflowName = 'default';
@@ -1028,7 +999,7 @@ describe('create command', () => {
       ['workflow', workflowName, content],
       invalidOptions,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('workflow with existing name', async () => {
     const workflowName = 'default';
@@ -1037,12 +1008,12 @@ describe('create command', () => {
       ['workflow', workflowName, ''],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(400);
+    expect(result.statusCode).toBe(400);
   });
   it('access default parameters for template (success)', () => {
     const defaultContent = DefaultContent.template('testName');
-    expect(defaultContent.displayName).to.equal('');
-    expect(defaultContent.category).to.equal(undefined);
+    expect(defaultContent.displayName).toBe('');
+    expect(defaultContent.category).toBe(undefined);
   });
   it('should create workflow without category', async () => {
     const workflowName = 'workflowWithoutCategory';
@@ -1051,7 +1022,7 @@ describe('create command', () => {
       ['workflow', workflowName, ''],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
 
     const project = getTestProject(minimalPath);
     await project.populateCaches();
@@ -1059,21 +1030,21 @@ describe('create command', () => {
       `mini/workflows/${workflowName}`,
       'workflows',
     );
-    expect(workflow.data?.category).to.equal(undefined);
+    expect(workflow.data?.category).toBe(undefined);
   });
   it('access default parameters for workflow (success)', () => {
     const defaultContent = DefaultContent.workflow('test');
-    expect(defaultContent.name).to.equal('test');
-    expect(defaultContent.states.length).to.equal(3);
-    expect(defaultContent.transitions.length).to.equal(3);
+    expect(defaultContent.name).toBe('test');
+    expect(defaultContent.states.length).toBe(3);
+    expect(defaultContent.transitions.length).toBe(3);
   });
   it('access default values for card (success)', () => {
     const defaultCardType = DefaultContent.cardType('test', 'testWorkflow');
     const defaultCard = DefaultContent.card(defaultCardType);
-    expect(defaultCard.cardType).to.equal('test');
-    expect(defaultCard.rank).to.equal('');
-    expect(defaultCard.title).to.equal('Untitled');
-    expect(defaultCard.workflowState).to.equal('');
+    expect(defaultCard.cardType).toBe('test');
+    expect(defaultCard.rank).toBe('');
+    expect(defaultCard.title).toBe('Untitled');
+    expect(defaultCard.workflowState).toBe('');
   });
   it('access default values for card using real card type and template cards (success)', async () => {
     const project = getTestProject(decisionRecordsPath);
@@ -1090,9 +1061,9 @@ describe('create command', () => {
       'decision/workflows/decision',
     );
     const defaultCard = DefaultContent.card(cardType, templateCards);
-    expect(defaultCard.cardType).to.equal('decision/cardTypes/decision');
-    expect(defaultCard.rank).to.equal('0|b');
-    expect(defaultCard.title).to.equal('Untitled');
-    expect(defaultCard.workflowState).to.equal('');
+    expect(defaultCard.cardType).toBe('decision/cardTypes/decision');
+    expect(defaultCard.rank).toBe('0|b');
+    expect(defaultCard.title).toBe('Untitled');
+    expect(defaultCard.workflowState).toBe('');
   });
 });

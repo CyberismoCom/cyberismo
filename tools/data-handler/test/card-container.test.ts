@@ -1,8 +1,5 @@
-// testing
-import { expect } from 'chai';
-import { after, before, describe, it } from 'mocha';
+import { expect, afterAll, beforeAll, describe, it } from 'vitest';
 
-// node
 import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -26,12 +23,12 @@ describe('project', () => {
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
   const container = new TestContainer(decisionRecordsPath, 'decision');
 
-  before(async () => {
+  beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
   });
 
-  after(() => {
+  afterAll(() => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
@@ -40,10 +37,10 @@ describe('project', () => {
     const hasProjectCard = container.hasProjectCard('decision_5');
     const nonExistingCard = container.hasProjectCard('decision_99');
     const hasTemplateCard = container.hasTemplateCard('decision_2');
-    const nonExistingTemplateCard = container.hasProjectCard('decision_98');
-    expect(hasProjectCard).to.equal(true);
-    expect(hasTemplateCard).to.equal(true);
-    expect(nonExistingCard).to.equal(false);
-    expect(nonExistingTemplateCard).to.equal(false);
+    const nonExistingTemplateCard = container.hasTemplateCard('decision_98');
+    expect(hasProjectCard).toBe(true);
+    expect(hasTemplateCard).toBe(true);
+    expect(nonExistingCard).toBe(false);
+    expect(nonExistingTemplateCard).toBe(false);
   });
 });

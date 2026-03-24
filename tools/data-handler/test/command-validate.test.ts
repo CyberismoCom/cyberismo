@@ -1,6 +1,5 @@
 // testing
-import { expect } from 'chai';
-import * as sinon from 'sinon';
+import { expect, it, describe, vi } from 'vitest';
 
 // node
 import { join } from 'node:path';
@@ -16,21 +15,19 @@ const testDir = join(baseDir, 'test/test-data');
 
 describe('command-handler: validate command', () => {
   it('missing path', async () => {
-    const stubProjectPath = sinon
-      .stub(commandHandler, 'setProjectPath')
-      .resolves('path');
-    await expect(
-      commandHandler.command(Cmd.validate, [], {}),
-    ).to.eventually.deep.equal({
-      message: "Input validation error: cannot find project ''",
-      statusCode: 400,
-    });
-    stubProjectPath.restore();
+    vi.spyOn(commandHandler, 'setProjectPath').mockResolvedValueOnce('path');
+
+    await expect(commandHandler.command(Cmd.validate, [], {})).resolves.toEqual(
+      {
+        message: "Input validation error: cannot find project ''",
+        statusCode: 400,
+      },
+    );
   });
   it('valid schema', async () => {
     const result = await commandHandler.command(Cmd.validate, [], {
       projectPath: join(testDir, 'valid/decision-records'),
     });
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).toBe(200);
   });
 });

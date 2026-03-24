@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { expect, describe, it, beforeEach, afterEach } from 'vitest';
 
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, sep } from 'node:path';
@@ -43,11 +43,11 @@ describe('project settings', () => {
     return configPath;
   }
 
-  before(() => {
+  beforeEach(() => {
     mkdirSync(testDir, { recursive: true });
   });
 
-  after(() => {
+  afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
@@ -55,14 +55,14 @@ describe('project settings', () => {
     const configPath = createTestConfig('test-config-load.json');
     const projectSettings = new ProjectConfiguration(configPath, false);
 
-    expect(projectSettings).to.not.equal(undefined);
-    expect(projectSettings.cardKeyPrefix).to.equal('test');
-    expect(projectSettings.name).to.equal('Test Project');
-    expect(projectSettings.schemaVersion).to.equal(SCHEMA_VERSION);
+    expect(projectSettings).not.toBeUndefined();
+    expect(projectSettings.cardKeyPrefix).toBe('test');
+    expect(projectSettings.name).toBe('Test Project');
+    expect(projectSettings.schemaVersion).toBe(SCHEMA_VERSION);
     expect(projectSettings.modules).to.deep.equal([]);
     expect(projectSettings.hubs).to.deep.equal([]);
-    expect(projectSettings.category).to.equal(undefined);
-    expect(projectSettings.description).to.equal('');
+    expect(projectSettings.category).toBe(undefined);
+    expect(projectSettings.description).toBe('');
   });
 
   it('should load configuration with category and description', () => {
@@ -72,8 +72,8 @@ describe('project settings', () => {
     });
     const projectSettings = new ProjectConfiguration(configPath, false);
 
-    expect(projectSettings.category).to.equal('Development');
-    expect(projectSettings.description).to.equal(
+    expect(projectSettings.category).toBe('Development');
+    expect(projectSettings.description).toBe(
       'A test project with category and description',
     );
   });
@@ -88,8 +88,8 @@ describe('project settings', () => {
     );
     const projectSettings = new ProjectConfiguration(configPath, false);
 
-    expect(projectSettings.category).to.equal('');
-    expect(projectSettings.description).to.equal('');
+    expect(projectSettings.category).toBe('');
+    expect(projectSettings.description).toBe('');
   });
 
   // Test disabled for now to avoid getting the schemaVersion to test files.
@@ -99,9 +99,9 @@ describe('project settings', () => {
     });
 
     const config = new ProjectConfiguration(configPath, true);
-    expect(config.schemaVersion).to.equal(SCHEMA_VERSION);
+    expect(config.schemaVersion).toBe(SCHEMA_VERSION);
     const savedConfig = readJsonFileSync(configPath);
-    expect(savedConfig.schemaVersion).to.equal(SCHEMA_VERSION);
+    expect(savedConfig.schemaVersion).toBe(SCHEMA_VERSION);
   });
 
   it('should not modify file when schema version already exists', () => {
@@ -120,10 +120,10 @@ describe('project settings', () => {
       location: 'https://example.com/module',
     });
 
-    expect(projectSettings.modules.length).to.equal(1);
-    expect(projectSettings.modules[0].name).to.equal('test-module');
+    expect(projectSettings.modules.length).toBe(1);
+    expect(projectSettings.modules[0].name).toBe('test-module');
     const savedConfig = readJsonFileSync(configPath);
-    expect(savedConfig.modules.length).to.equal(1);
+    expect(savedConfig.modules.length).toBe(1);
   });
 
   it('should normalize file paths when adding modules', async () => {
@@ -151,7 +151,7 @@ describe('project settings', () => {
         name: 'existing-module',
         location: 'https://example.com',
       }),
-    ).to.be.rejectedWith("Module 'existing-module' already imported");
+    ).rejects.toThrow("Module 'existing-module' already imported");
   });
 
   it('should remove a module successfully', async () => {
@@ -159,29 +159,29 @@ describe('project settings', () => {
       modules: [{ name: 'test-module', location: 'https://example.com' }],
     });
     const projectSettings = new ProjectConfiguration(configPath, false);
-    expect(projectSettings.modules.length).to.equal(1);
+    expect(projectSettings.modules.length).toBe(1);
 
     await projectSettings.removeModule('test-module');
-    expect(projectSettings.modules.length).to.equal(0);
+    expect(projectSettings.modules.length).toBe(0);
 
     const savedConfig = readJsonFileSync(configPath);
-    expect(savedConfig.modules.length).to.equal(0);
+    expect(savedConfig.modules.length).toBe(0);
   });
 
   it('should reject removing non-existent module', async () => {
     const configPath = createTestConfig('test-config-remove-missing.json');
     const projectSettings = new ProjectConfiguration(configPath, false);
 
-    await expect(
-      projectSettings.removeModule('non-existent'),
-    ).to.be.rejectedWith("Module 'non-existent' is not imported");
+    await expect(projectSettings.removeModule('non-existent')).rejects.toThrow(
+      "Module 'non-existent' is not imported",
+    );
   });
 
   it('should reject removing module with empty name', async () => {
     const configPath = createTestConfig('test-config-remove-empty.json');
     const projectSettings = new ProjectConfiguration(configPath, false);
 
-    await expect(projectSettings.removeModule('')).to.be.rejectedWith(
+    await expect(projectSettings.removeModule('')).rejects.toThrow(
       'Name must be provided to remove module',
     );
   });
@@ -191,13 +191,11 @@ describe('project settings', () => {
     const projectSettings = new ProjectConfiguration(configPath, false);
     await projectSettings.addHub('https://example.com/hub');
 
-    expect(projectSettings.hubs.length).to.equal(1);
-    expect(projectSettings.hubs[0].location).to.equal(
-      'https://example.com/hub',
-    );
+    expect(projectSettings.hubs.length).toBe(1);
+    expect(projectSettings.hubs[0].location).toBe('https://example.com/hub');
 
     const savedConfig = readJsonFileSync(configPath);
-    expect(savedConfig.hubs.length).to.equal(1);
+    expect(savedConfig.hubs.length).toBe(1);
   });
 
   it('should trim whitespace from hub URL', async () => {
@@ -205,19 +203,17 @@ describe('project settings', () => {
     const projectSettings = new ProjectConfiguration(configPath, false);
     await projectSettings.addHub('  https://example.com/hub  ');
 
-    expect(projectSettings.hubs[0].location).to.equal(
-      'https://example.com/hub',
-    );
+    expect(projectSettings.hubs[0].location).toBe('https://example.com/hub');
   });
 
   it('should reject empty hub URL', async () => {
     const configPath = createTestConfig('test-config-hub-empty.json');
     const projectSettings = new ProjectConfiguration(configPath, false);
 
-    await expect(projectSettings.addHub('')).to.be.rejectedWith(
+    await expect(projectSettings.addHub('')).rejects.toThrow(
       'Cannot add empty hub to the project',
     );
-    await expect(projectSettings.addHub('   ')).to.be.rejectedWith(
+    await expect(projectSettings.addHub('   ')).rejects.toThrow(
       'Cannot add empty hub to the project',
     );
   });
@@ -230,7 +226,7 @@ describe('project settings', () => {
 
     await expect(
       projectSettings.addHub('https://example.com/hub'),
-    ).to.be.rejectedWith(
+    ).rejects.toThrow(
       "Hub 'https://example.com/hub' already exists as a hub for the project",
     );
   });
@@ -239,7 +235,7 @@ describe('project settings', () => {
     const configPath = createTestConfig('test-config-hub-invalid.json');
     const projectSettings = new ProjectConfiguration(configPath, false);
 
-    await expect(projectSettings.addHub('not-a-valid-url')).to.be.rejectedWith(
+    await expect(projectSettings.addHub('not-a-valid-url')).rejects.toThrow(
       'Invalid hub URL',
     );
   });
@@ -250,7 +246,7 @@ describe('project settings', () => {
 
     await expect(
       projectSettings.addHub('ftp://example.com/hub'),
-    ).to.be.rejectedWith('Invalid URL protocol');
+    ).rejects.toThrow('Invalid URL protocol');
   });
 
   it('should remove a hub successfully', async () => {
@@ -258,13 +254,13 @@ describe('project settings', () => {
       hubs: [{ location: 'https://example.com/hub' }],
     });
     const projectSettings = new ProjectConfiguration(configPath, false);
-    expect(projectSettings.hubs.length).to.equal(1);
+    expect(projectSettings.hubs.length).toBe(1);
 
     await projectSettings.removeHub('https://example.com/hub');
-    expect(projectSettings.hubs.length).to.equal(0);
+    expect(projectSettings.hubs.length).toBe(0);
 
     const savedConfig = readJsonFileSync(configPath);
-    expect(savedConfig.hubs.length).to.equal(0);
+    expect(savedConfig.hubs.length).toBe(0);
   });
 
   it('should reject removing non-existent hub', async () => {
@@ -273,9 +269,7 @@ describe('project settings', () => {
 
     await expect(
       projectSettings.removeHub('https://example.com/hub'),
-    ).to.be.rejectedWith(
-      "Hub 'https://example.com/hub' not part of the project",
-    );
+    ).rejects.toThrow("Hub 'https://example.com/hub' not part of the project");
   });
 
   it('should set valid card prefix', async () => {
@@ -284,10 +278,10 @@ describe('project settings', () => {
     });
     const projectSettings = new ProjectConfiguration(configPath, false);
     await projectSettings.setCardPrefix('newprefix');
-    expect(projectSettings.cardKeyPrefix).to.equal('newprefix');
+    expect(projectSettings.cardKeyPrefix).toBe('newprefix');
 
     const savedConfig = readJsonFileSync(configPath);
-    expect(savedConfig.cardKeyPrefix).to.equal('newprefix');
+    expect(savedConfig.cardKeyPrefix).toBe('newprefix');
   });
 
   it('should reject invalid card prefix', async () => {
@@ -295,23 +289,23 @@ describe('project settings', () => {
       cardKeyPrefix: 'valid',
     });
     const projectSettings = new ProjectConfiguration(configPath, false);
-    await expect(projectSettings.setCardPrefix('UPPERCASE')).to.be.rejectedWith(
+    await expect(projectSettings.setCardPrefix('UPPERCASE')).rejects.toThrow(
+      'is not valid prefix',
+    );
+    await expect(projectSettings.setCardPrefix('has-hyphen')).rejects.toThrow(
       'is not valid prefix',
     );
     await expect(
-      projectSettings.setCardPrefix('has-hyphen'),
-    ).to.be.rejectedWith('is not valid prefix');
-    await expect(
       projectSettings.setCardPrefix('toolongprefix'),
-    ).to.be.rejectedWith('is not valid prefix');
+    ).rejects.toThrow('is not valid prefix');
   });
 
   it('should report compatible when schema versions match', () => {
     const configPath = createTestConfig('test-config-schema-match.json');
     const projectSettings = new ProjectConfiguration(configPath, false);
     const result = projectSettings.checkSchemaVersion();
-    expect(result.isCompatible).to.equal(true);
-    expect(result.message).to.equal('');
+    expect(result.isCompatible).toBe(true);
+    expect(result.message).toBe('');
   });
 
   it('should report compatible when schema version is undefined', () => {
@@ -320,7 +314,7 @@ describe('project settings', () => {
     });
     const projectSettings = new ProjectConfiguration(configPath, false);
     const result = projectSettings.checkSchemaVersion();
-    expect(result.isCompatible).to.equal(true);
+    expect(result.isCompatible).toBe(true);
   });
 
   it('should report incompatible when project schema is older', () => {
@@ -329,7 +323,7 @@ describe('project settings', () => {
     });
     const projectSettings = new ProjectConfiguration(configPath, false);
     const result = projectSettings.checkSchemaVersion();
-    expect(result.isCompatible).to.equal(false);
+    expect(result.isCompatible).toBe(false);
     expect(result.message).to.include('older');
     expect(result.message).to.include('migration');
   });
@@ -340,7 +334,7 @@ describe('project settings', () => {
     });
     const projectSettings = new ProjectConfiguration(configPath, false);
     const result = projectSettings.checkSchemaVersion();
-    expect(result.isCompatible).to.equal(false);
+    expect(result.isCompatible).toBe(false);
     expect(result.message).to.include('newer');
     expect(result.message).to.include('update the application');
   });
@@ -351,9 +345,7 @@ describe('project settings', () => {
     });
     const projectSettings = new ProjectConfiguration(configPath, false);
     projectSettings.cardKeyPrefix = '';
-    await expect(projectSettings.save()).to.be.rejectedWith(
-      'wrong configuration',
-    );
+    await expect(projectSettings.save()).rejects.toThrow('wrong configuration');
   });
 
   it('should persist all configuration changes', async () => {
@@ -368,12 +360,10 @@ describe('project settings', () => {
     projectSettings.description = 'Infrastructure management project';
     await projectSettings.save();
     const savedConfig = readJsonFileSync(configPath);
-    expect(savedConfig.modules.length).to.equal(1);
-    expect(savedConfig.hubs.length).to.equal(1);
-    expect(savedConfig.schemaVersion).to.equal(SCHEMA_VERSION);
-    expect(savedConfig.category).to.equal('Infrastructure');
-    expect(savedConfig.description).to.equal(
-      'Infrastructure management project',
-    );
+    expect(savedConfig.modules.length).toBe(1);
+    expect(savedConfig.hubs.length).toBe(1);
+    expect(savedConfig.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(savedConfig.category).toBe('Infrastructure');
+    expect(savedConfig.description).toBe('Infrastructure management project');
   });
 });

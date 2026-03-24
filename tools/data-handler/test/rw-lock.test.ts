@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { expect, describe, it } from 'vitest';
 
 import { RWLock, read, write } from '../src/utils/rw-lock.js';
 import { getCommitContext } from '../src/utils/commit-context.js';
@@ -9,43 +9,40 @@ describe('RWLock', () => {
     it('should allow a single read', async () => {
       const lock = new RWLock();
       const result = await lock.read(async () => 42);
-      expect(result).to.equal(42);
+      expect(result).toBe(42);
     });
 
     it('should allow a single write', async () => {
       const lock = new RWLock();
       const result = await lock.write(async () => 'done');
-      expect(result).to.equal('done');
+      expect(result).toBe('done');
     });
 
     it('should propagate errors from read and release the lock', async () => {
       const lock = new RWLock();
-      try {
-        await lock.read(async () => {
+
+      await expect(
+        lock.read(async () => {
           throw new Error('read error');
-        });
-        expect.fail('should have thrown');
-      } catch (e) {
-        expect((e as Error).message).to.equal('read error');
-      }
+        }),
+      ).rejects.toThrow('read error');
       // Lock should be released — a subsequent write should work
       const result = await lock.write(async () => 'ok');
-      expect(result).to.equal('ok');
+      expect(result).toBe('ok');
     });
 
     it('should propagate errors from write and release the lock', async () => {
       const lock = new RWLock();
-      try {
-        await lock.write(async () => {
+
+      await expect(
+        lock.write(async () => {
           throw new Error('write error');
-        });
-        expect.fail('should have thrown');
-      } catch (e) {
-        expect((e as Error).message).to.equal('write error');
-      }
+        }),
+      ).rejects.toThrow('write error');
+
       // Lock should be released — a subsequent read should work
       const result = await lock.read(async () => 'ok');
-      expect(result).to.equal('ok');
+      expect(result).toBe('ok');
     });
   });
 
@@ -74,12 +71,12 @@ describe('RWLock', () => {
       await Promise.all([r1, r2]);
 
       // Both reads should start before either ends
-      expect(log.indexOf('r1-start')).to.be.lessThan(log.indexOf('r1-end'));
-      expect(log.indexOf('r2-start')).to.be.lessThan(log.indexOf('r2-end'));
+      expect(log.indexOf('r1-start')).toBeLessThan(log.indexOf('r1-end'));
+      expect(log.indexOf('r2-start')).toBeLessThan(log.indexOf('r2-end'));
       // Both should have started before both ended
       const starts = [log.indexOf('r1-start'), log.indexOf('r2-start')];
       const ends = [log.indexOf('r1-end'), log.indexOf('r2-end')];
-      expect(Math.max(...starts)).to.be.lessThan(Math.min(...ends));
+      expect(Math.max(...starts)).toBeLessThan(Math.min(...ends));
     });
   });
 
@@ -110,7 +107,7 @@ describe('RWLock', () => {
       await Promise.all([w1, r1]);
 
       // Read should start only after write ends
-      expect(log.indexOf('w1-end')).to.be.lessThan(log.indexOf('r1-start'));
+      expect(log.indexOf('w1-end')).toBeLessThan(log.indexOf('r1-start'));
     });
 
     it('should block other writes while writing', async () => {
@@ -139,7 +136,7 @@ describe('RWLock', () => {
       await Promise.all([w1, w2]);
 
       // Second write should start only after first write ends
-      expect(log.indexOf('w1-end')).to.be.lessThan(log.indexOf('w2-start'));
+      expect(log.indexOf('w1-end')).toBeLessThan(log.indexOf('w2-start'));
     });
 
     it('should block writes while reading', async () => {
@@ -168,7 +165,7 @@ describe('RWLock', () => {
       await Promise.all([r1, w1]);
 
       // Write should start only after read ends
-      expect(log.indexOf('r1-end')).to.be.lessThan(log.indexOf('w1-start'));
+      expect(log.indexOf('r1-end')).toBeLessThan(log.indexOf('w1-start'));
     });
   });
 
@@ -207,7 +204,7 @@ describe('RWLock', () => {
       await Promise.all([r1, w1, r2]);
 
       // Writer should run before the second reader
-      expect(log.indexOf('w1-start')).to.be.lessThan(log.indexOf('r2-start'));
+      expect(log.indexOf('w1-start')).toBeLessThan(log.indexOf('r2-start'));
     });
   });
 
@@ -217,7 +214,7 @@ describe('RWLock', () => {
       const result = await lock.read(async () => {
         return lock.read(async () => 'nested');
       });
-      expect(result).to.equal('nested');
+      expect(result).toBe('nested');
     });
 
     it('should allow nested write-in-write', async () => {
@@ -225,7 +222,7 @@ describe('RWLock', () => {
       const result = await lock.write(async () => {
         return lock.write(async () => 'nested');
       });
-      expect(result).to.equal('nested');
+      expect(result).toBe('nested');
     });
 
     it('should allow nested read-in-write', async () => {
@@ -233,21 +230,17 @@ describe('RWLock', () => {
       const result = await lock.write(async () => {
         return lock.read(async () => 'nested');
       });
-      expect(result).to.equal('nested');
+      expect(result).toBe('nested');
     });
 
     it('should reject nested write-in-read', async () => {
       const lock = new RWLock();
-      try {
-        await lock.read(async () => {
+
+      await expect(
+        lock.read(async () => {
           await lock.write(async () => 'should not reach');
-        });
-        expect.fail('should have thrown');
-      } catch (e) {
-        expect((e as Error).message).to.equal(
-          'Cannot acquire write lock while holding read lock',
-        );
-      }
+        }),
+      ).rejects.toThrow('Cannot acquire write lock while holding read lock');
     });
 
     it('should not treat leaked async continuations as reentrant', async () => {
@@ -289,7 +282,7 @@ describe('RWLock', () => {
 
       await Promise.all([w2, leakedPromise]);
 
-      expect(log).to.deep.equal([
+      expect(log).toEqual([
         'w1',
         'w2-start',
         'w2-end',
@@ -312,7 +305,7 @@ describe('RWLock', () => {
         log.push('write');
       });
 
-      expect(log).to.deep.equal(['write', 'hook']);
+      expect(log).toEqual(['write', 'hook']);
     });
 
     it('should not fire hooks on inner (reentrant) writes', async () => {
@@ -329,7 +322,7 @@ describe('RWLock', () => {
         });
       });
 
-      expect(hookCallCount).to.equal(1);
+      expect(hookCallCount).toBe(1);
     });
 
     it('should not fire hooks when write throws', async () => {
@@ -340,15 +333,13 @@ describe('RWLock', () => {
         hookCalled = true;
       });
 
-      try {
-        await lock.write(async () => {
+      await expect(
+        lock.write(async () => {
           throw new Error('fail');
-        });
-      } catch {
-        // expected
-      }
+        }),
+      ).rejects.toThrow();
 
-      expect(hookCalled).to.equal(false);
+      expect(hookCalled).toBe(false);
     });
 
     it('should fire multiple hooks in order', async () => {
@@ -366,7 +357,7 @@ describe('RWLock', () => {
         log.push('write');
       });
 
-      expect(log).to.deep.equal(['write', 'hook1', 'hook2']);
+      expect(log).toEqual(['write', 'hook1', 'hook2']);
     });
   });
 
@@ -379,15 +370,13 @@ describe('RWLock', () => {
         hookCalled = true;
       });
 
-      try {
-        await lock.write(async () => {
+      await expect(
+        lock.write(async () => {
           throw new Error('fail');
-        });
-      } catch {
-        // expected
-      }
+        }),
+      ).rejects.toThrow();
 
-      expect(hookCalled).to.equal(true);
+      expect(hookCalled).toBe(true);
     });
 
     it('should NOT fire onWriteError hook on success', async () => {
@@ -400,7 +389,7 @@ describe('RWLock', () => {
 
       await lock.write(async () => 'ok');
 
-      expect(hookCalled).to.equal(false);
+      expect(hookCalled).toBe(false);
     });
 
     it('should NOT fire onWriteError hook for nested writes', async () => {
@@ -411,18 +400,15 @@ describe('RWLock', () => {
         hookCallCount++;
       });
 
-      try {
-        await lock.write(async () => {
+      await expect(
+        lock.write(async () => {
           await lock.write(async () => {
             throw new Error('inner fail');
           });
-        });
-      } catch {
-        // expected
-      }
-
+        }),
+      ).rejects.toThrow();
       // Should fire once (outermost only), not twice
-      expect(hookCallCount).to.equal(1);
+      expect(hookCallCount).toBe(1);
     });
 
     it('should fire onWriteError when afterWrite hook throws', async () => {
@@ -438,15 +424,13 @@ describe('RWLock', () => {
         log.push('errorHook');
       });
 
-      try {
-        await lock.write(async () => {
+      await expect(
+        lock.write(async () => {
           log.push('write');
-        });
-      } catch {
-        // expected
-      }
+        }),
+      ).rejects.toThrow();
 
-      expect(log).to.deep.equal(['write', 'afterWrite', 'errorHook']);
+      expect(log).toEqual(['write', 'afterWrite', 'errorHook']);
     });
 
     it('should pass the error object to onWriteError hooks', async () => {
@@ -457,16 +441,14 @@ describe('RWLock', () => {
         receivedError = error;
       });
 
-      try {
-        await lock.write(async () => {
+      await expect(
+        lock.write(async () => {
           throw new Error('specific error');
-        });
-      } catch {
-        // expected
-      }
+        }),
+      ).rejects.toThrow();
 
-      expect(receivedError).to.be.instanceOf(Error);
-      expect((receivedError as Error).message).to.equal('specific error');
+      expect(receivedError).toBeInstanceOf(Error);
+      expect((receivedError as Error).message).toBe('specific error');
     });
 
     it('should run multiple onWriteError hooks in order', async () => {
@@ -480,15 +462,13 @@ describe('RWLock', () => {
         log.push('hook2');
       });
 
-      try {
-        await lock.write(async () => {
+      await expect(
+        lock.write(async () => {
           throw new Error('fail');
-        });
-      } catch {
-        // expected
-      }
+        }),
+      ).rejects.toThrow();
 
-      expect(log).to.deep.equal(['hook1', 'hook2']);
+      expect(log).toEqual(['hook1', 'hook2']);
     });
   });
 
@@ -531,14 +511,11 @@ describe('RWLock', () => {
         });
       });
 
-      try {
-        await lock.write(async () => {
+      await expect(
+        lock.write(async () => {
           throw new Error('fail');
-        });
-      } catch {
-        // expected
-      }
-
+        }),
+      ).rejects.toThrow();
       await hookDone.promise;
     });
 
@@ -552,13 +529,11 @@ describe('RWLock', () => {
         });
       });
 
-      try {
-        await lock.write(async () => {
+      await expect(
+        lock.write(async () => {
           throw new Error('fail');
-        });
-      } catch {
-        // expected
-      }
+        }),
+      ).rejects.toThrow();
 
       await hookDone.promise;
     });
@@ -579,7 +554,7 @@ describe('RWLock', () => {
 
       const cmd = new TestCmd();
       const result = await cmd.doRead();
-      expect(result).to.equal('read-result');
+      expect(result).toBe('read-result');
     });
 
     it('should wrap methods with write lock', async () => {
@@ -601,7 +576,7 @@ describe('RWLock', () => {
 
       const cmd = new TestCmd();
       await cmd.doWrite();
-      expect(log).to.deep.equal(['write', 'hook']);
+      expect(log).toEqual(['write', 'hook']);
     });
 
     it('should set commit message from factory', async () => {
@@ -623,7 +598,7 @@ describe('RWLock', () => {
 
       const cmd = new TestCmd();
       await cmd.createThing('foo');
-      expect(capturedMessage).to.equal('Create thing foo');
+      expect(capturedMessage).toBe('Create thing foo');
     });
 
     it('should pass all args to the factory', async () => {
@@ -646,7 +621,7 @@ describe('RWLock', () => {
 
       const cmd = new TestCmd();
       await cmd.move('a', 'b');
-      expect(capturedMessage).to.equal('Move a to b');
+      expect(capturedMessage).toBe('Move a to b');
     });
 
     it('should not override an already-set commit message', async () => {
@@ -671,7 +646,7 @@ describe('RWLock', () => {
 
       const cmd = new TestCmd();
       await cmd.outer();
-      expect(capturedMessage).to.equal('outer message');
+      expect(capturedMessage).toBe('outer message');
     });
 
     it('should serialize decorated writes', async () => {
@@ -708,7 +683,7 @@ describe('RWLock', () => {
       proceed.resolve();
       await Promise.all([p1, p2]);
 
-      expect(log.indexOf('slow-end')).to.be.lessThan(log.indexOf('fast-start'));
+      expect(log.indexOf('slow-end')).toBeLessThan(log.indexOf('fast-start'));
     });
   });
 });
