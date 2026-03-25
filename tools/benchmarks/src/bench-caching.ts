@@ -1,9 +1,5 @@
 import { CommandManager } from '@cyberismo/data-handler';
-import {
-  solve,
-  clearCache,
-  setCacheEnabled,
-} from '@cyberismo/node-clingo';
+import { clearCache } from '@cyberismo/node-clingo';
 import { lpFiles } from '@cyberismo/assets';
 import Handlebars from 'handlebars';
 import { scaleProject, cleanupScaledProject } from './card-scaler.js';
@@ -34,11 +30,11 @@ async function main() {
   const warmupTmpDir = await scaleProject(projectPath, SCALE_MIN, TEMPLATE);
   const warmupCmds = await CommandManager.getInstance(warmupTmpDir);
   await warmupCmds.calculateCmd.generate();
-  setCacheEnabled(false);
+  const clingo = warmupCmds.project.calculationEngine.context;
   for (let i = 0; i < WARMUP_RUNS; i++) {
-    await solve(treeQuery, ['all']);
+    clearCache();
+    await clingo.solve(treeQuery, ['all']);
   }
-  setCacheEnabled(true);
 
   for (let scale = SCALE_MIN; scale <= SCALE_MAX; scale += SCALE_STEP) {
     console.error(`\nScale: ${scale} cards`);
@@ -47,21 +43,22 @@ async function main() {
       scale === SCALE_MIN
         ? warmupTmpDir
         : await scaleProject(projectPath, scale, TEMPLATE);
-    const commands =
-      scale === SCALE_MIN
-        ? warmupCmds
-        : await CommandManager.getInstance(tmpDir);
-    if (scale > SCALE_MIN) await commands.calculateCmd.generate();
+    let commands: Awaited<ReturnType<typeof CommandManager.getInstance>>;
+    if (scale === SCALE_MIN) {
+      commands = warmupCmds;
+    } else {
+      commands = await CommandManager.getInstance(tmpDir);
+      await commands.calculateCmd.generate();
+    }
+    const ctx = commands.project.calculationEngine.context;
 
     const projectId = commands.project.projectPrefix;
     const cardCount = commands.project.cards().length;
 
-    // ── Measurement 1: miss overhead (cache-enabled vs cache-disabled) ──────
-    // cache-enabled, cold (always misses — clearCache before each)
-    setCacheEnabled(true);
+    // ── Measurement 1: cold cache (clearCache before each solve) ────────────
     for (let run = 1; run <= RUNS_PER_POINT; run++) {
       clearCache();
-      const r = await solve(treeQuery, ['all']);
+      const r = await ctx.solve(treeQuery, ['all']);
       const s = r.stats;
       allRuns.push({
         method: 'native',
@@ -79,34 +76,12 @@ async function main() {
       });
     }
 
-    // cache-disabled (no lookup overhead at all)
-    setCacheEnabled(false);
-    for (let run = 1; run <= RUNS_PER_POINT; run++) {
-      const r = await solve(treeQuery, ['all']);
-      const s = r.stats;
-      allRuns.push({
-        method: 'native',
-        feature: 'caching',
-        variant: 'cache-disabled',
-        project: projectId,
-        cardCount,
-        run,
-        glueUs: s.glue,
-        addUs: s.add,
-        groundUs: s.ground,
-        solveUs: s.solve,
-        totalUs: s.glue + s.add + s.ground + s.solve,
-        cacheHit: s.cacheHit,
-      });
-    }
-    setCacheEnabled(true);
-
     // ── Measurement 2: hit savings (miss then hit) ──────────────────────────
     // run = miss, run+1 = hit (back-to-back, no clearCache between them)
     for (let pair = 1; pair <= RUNS_PER_POINT; pair++) {
       // Miss run
       clearCache();
-      const miss = await solve(treeQuery, ['all']);
+      const miss = await ctx.solve(treeQuery, ['all']);
       const ms = miss.stats;
       allRuns.push({
         method: 'native',
@@ -124,7 +99,7 @@ async function main() {
       });
 
       // Hit run (same query, no clearCache)
-      const hit = await solve(treeQuery, ['all']);
+      const hit = await ctx.solve(treeQuery, ['all']);
       const hs = hit.stats;
       allRuns.push({
         method: 'native',

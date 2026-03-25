@@ -66,6 +66,11 @@ export class CalculationEngine {
 
   private clingo = new ClingoContext();
 
+  /** Exposes the underlying ClingoContext for direct access (e.g. benchmarks). */
+  get context(): ClingoContext {
+    return this.clingo;
+  }
+
   private get logger() {
     return getChildLogger({
       module: 'calculate',

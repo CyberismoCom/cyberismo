@@ -1,11 +1,6 @@
 // tools/benchmarks/src/bench-native-vs-binary.ts
 import { CommandManager } from '@cyberismo/data-handler';
-import {
-  solve,
-  buildProgram,
-  clearCache,
-  setCacheEnabled,
-} from '@cyberismo/node-clingo';
+import { clearCache } from '@cyberismo/node-clingo';
 import { lpFiles } from '@cyberismo/assets';
 import Handlebars from 'handlebars';
 import { solveBinary } from './binary-baseline.js';
@@ -30,23 +25,24 @@ async function main() {
 
   // Generate logic program
   await engine.generate();
+  const clingo = commands.project.calculationEngine.context;
 
   // Compile the Handlebars query template (no options = full tree query)
   const queryContent = Handlebars.compile(lpFiles.queries.tree)({});
-  const fullProgram = buildProgram(queryContent, ['all']);
+  const fullProgram = clingo.buildProgram(queryContent, ['all']);
   const cardCount = commands.project.cards().length;
   const benchRuns: BenchmarkRun[] = [];
 
   // Warm-up native addon
-  setCacheEnabled(false);
   for (let i = 0; i < warmupRuns; i++) {
-    await solve(queryContent, ['all']);
+    clearCache();
+    await clingo.solve(queryContent, ['all']);
   }
 
   // Native addon benchmark
   for (let i = 1; i <= runs; i++) {
     clearCache();
-    const result = await solve(queryContent, ['all']);
+    const result = await clingo.solve(queryContent, ['all']);
     const s = result.stats;
     benchRuns.push({
       method: 'native',
@@ -85,8 +81,6 @@ async function main() {
     });
     console.error(`  binary run ${i}/${runs}`);
   }
-
-  setCacheEnabled(true);
 
   const benchResult: BenchmarkResult = {
     feature: 'native-vs-binary',

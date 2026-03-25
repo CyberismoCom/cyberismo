@@ -1,14 +1,7 @@
 import { CommandManager, evaluateMacros } from '@cyberismo/data-handler';
 import type { MacroGenerationContext } from '@cyberismo/data-handler';
-import {
-  solve,
-  buildProgram,
-  clearCache,
-  setCacheEnabled,
-  setPreParsing,
-  setProgram,
-  removeProgram,
-} from '@cyberismo/node-clingo';
+import { clearCache } from '@cyberismo/node-clingo';
+import type { ClingoContext } from '@cyberismo/node-clingo';
 import { lpFiles } from '@cyberismo/assets';
 import { readFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
@@ -64,14 +57,14 @@ async function loadBaselineFiles(): Promise<BaselineFiles> {
 }
 
 // ── Program swap helpers ──────────────────────────────────────────────────────
-function swapToOldQL(bf: BaselineFiles) {
-  setProgram('queryLanguage', bf.queryLanguage, ['all']);
-  setProgram('utils', bf.utils, ['all']);
+function swapToOldQL(clingo: ClingoContext, bf: BaselineFiles) {
+  clingo.setProgram('queryLanguage', bf.queryLanguage, ['all']);
+  clingo.setProgram('utils', bf.utils, ['all']);
 }
 
-function restoreCurrentQL() {
-  setProgram('queryLanguage', lpFiles.common.queryLanguage, ['all']);
-  setProgram('utils', lpFiles.common.utils, ['all']);
+function restoreCurrentQL(clingo: ClingoContext) {
+  clingo.setProgram('queryLanguage', lpFiles.common.queryLanguage, ['all']);
+  clingo.setProgram('utils', lpFiles.common.utils, ['all']);
 }
 
 // ── Query compilation ────────────────────────────────────────────────────────
@@ -91,7 +84,7 @@ function makeNativeRun(
   cardCount: number,
   run: number,
   project: string,
-  result: Awaited<ReturnType<typeof solve>>,
+  result: Awaited<ReturnType<ClingoContext['solve']>>,
 ): BenchmarkRun {
   const s = result.stats;
   return {
@@ -172,15 +165,14 @@ async function main() {
   const warmupTmpDir = await scaleProject(projectPath, SCALE_MIN, TEMPLATE);
   const warmupCmds = await CommandManager.getInstance(warmupTmpDir);
   await warmupCmds.calculateCmd.generate();
+  const clingo = warmupCmds.project.calculationEngine.context;
   const treeQuery = compileTreeQuery();
 
-  setCacheEnabled(false);
-  setPreParsing(true); // warm up with default pre-parsing state
   for (let i = 0; i < WARMUP_RUNS; i++) {
-    await solve(treeQuery, ['all']);
+    clearCache();
+    await clingo.solve(treeQuery, ['all']);
     console.error(`  warmup ${i + 1}/${WARMUP_RUNS}`);
   }
-  setCacheEnabled(true);
 
   // ── Measurement loop ─────────────────────────────────────────────────────
   for (let scale = SCALE_MIN; scale <= SCALE_MAX; scale += SCALE_STEP) {
@@ -191,14 +183,14 @@ async function main() {
         ? warmupTmpDir
         : await scaleProject(projectPath, scale, TEMPLATE);
 
-    const commands =
-      scale === SCALE_MIN
-        ? warmupCmds
-        : await CommandManager.getInstance(tmpDir);
-
-    if (scale > SCALE_MIN) {
+    let commands: Awaited<ReturnType<typeof CommandManager.getInstance>>;
+    if (scale === SCALE_MIN) {
+      commands = warmupCmds;
+    } else {
+      commands = await CommandManager.getInstance(tmpDir);
       await commands.calculateCmd.generate();
     }
+    const ctx = commands.project.calculationEngine.context;
 
     const projectId = commands.project.projectPrefix;
 
@@ -240,7 +232,7 @@ async function main() {
 
     // ── VARIANT: baseline (binary + old QL) ────────────────────────────────
     console.error('  variant: baseline');
-    swapToOldQL(bf);
+    swapToOldQL(ctx, bf);
     for (const [queryName, cardKey] of [
       ['tree', ''] as const,
       ...(['card-leaf-task', 'card-phase', 'card-risk', 'card-root'] as const).map(
@@ -251,14 +243,14 @@ async function main() {
         queryName === 'tree'
           ? treeQuery
           : compileCardQuery(cardKey, false, bf);
-      const fullProgram = buildProgram(query, ['all']);
+      const fullProgram = ctx.buildProgram(query, ['all']);
       for (let run = 1; run <= RUNS_PER_POINT; run++) {
         const r = await solveBinary(fullProgram);
         allRuns.push(makeBinaryRun('baseline', queryName, scale, run, projectId, r));
       }
       console.error(`    ${queryName}: ${RUNS_PER_POINT} runs done`);
     }
-    restoreCurrentQL();
+    restoreCurrentQL(ctx);
 
     // ── VARIANT: baseline+resultfield (binary + current QL) ───────────────
     console.error('  variant: baseline+resultfield');
@@ -272,7 +264,7 @@ async function main() {
         queryName === 'tree'
           ? treeQuery
           : Handlebars.compile(lpFiles.queries.card)({ cardKey });
-      const fullProgram = buildProgram(query, ['all']);
+      const fullProgram = ctx.buildProgram(query, ['all']);
       for (let run = 1; run <= RUNS_PER_POINT; run++) {
         const r = await solveBinary(fullProgram);
         allRuns.push(makeBinaryRun('baseline+resultfield', queryName, scale, run, projectId, r));
@@ -285,7 +277,7 @@ async function main() {
       const renderQuery = Handlebars.compile(lpFiles.queries.card)({
         cardKey: riskCard?.key ?? '',
       });
-      const fullProgram = buildProgram(renderQuery, ['all']);
+      const fullProgram = ctx.buildProgram(renderQuery, ['all']);
       for (let run = 1; run <= RUNS_PER_POINT; run++) {
         const r = await solveBinary(fullProgram);
         allRuns.push(makeBinaryRun('baseline+resultfield', 'rendering', scale, run, projectId, r));
@@ -295,9 +287,7 @@ async function main() {
 
     // ── VARIANT: c-api (native + old QL) ──────────────────────────────────
     console.error('  variant: c-api');
-    setCacheEnabled(true);
-    setPreParsing(false);
-    swapToOldQL(bf);
+    swapToOldQL(ctx, bf);
     for (const [queryName, cardKey] of [
       ['tree', ''] as const,
       ...(['card-leaf-task', 'card-phase', 'card-risk', 'card-root'] as const).map(
@@ -310,12 +300,12 @@ async function main() {
           : compileCardQuery(cardKey, false, bf);
       for (let run = 1; run <= RUNS_PER_POINT; run++) {
         clearCache();
-        const r = await solve(query, ['all']);
+        const r = await ctx.solve(query, ['all']);
         allRuns.push(makeNativeRun('c-api', queryName, scale, run, projectId, r));
       }
       console.error(`    ${queryName}: ${RUNS_PER_POINT} runs done`);
     }
-    restoreCurrentQL();
+    restoreCurrentQL(ctx);
 
     // rendering for c-api
     {
@@ -363,8 +353,6 @@ async function main() {
 
     // ── VARIANT: c-api+resultfield (native + current QL) ──────────────────
     console.error('  variant: c-api+resultfield');
-    setCacheEnabled(true);
-    setPreParsing(false);
     for (const [queryName, cardKey] of [
       ['tree', ''] as const,
       ...(['card-leaf-task', 'card-phase', 'card-risk', 'card-root'] as const).map(
@@ -377,7 +365,7 @@ async function main() {
           : Handlebars.compile(lpFiles.queries.card)({ cardKey });
       for (let run = 1; run <= RUNS_PER_POINT; run++) {
         clearCache();
-        const r = await solve(query, ['all']);
+        const r = await ctx.solve(query, ['all']);
         allRuns.push(makeNativeRun('c-api+resultfield', queryName, scale, run, projectId, r));
       }
       console.error(`    ${queryName}: ${RUNS_PER_POINT} runs done`);
@@ -389,8 +377,6 @@ async function main() {
 
     // ── VARIANT: c-api+aspif (native + current QL + pre-parsing) ──────────
     console.error('  variant: c-api+aspif');
-    setCacheEnabled(true);
-    setPreParsing(true); // restore default — pre-parsing ON
     for (const [queryName, cardKey] of [
       ['tree', ''] as const,
       ...(['card-leaf-task', 'card-phase', 'card-risk', 'card-root'] as const).map(
@@ -403,7 +389,7 @@ async function main() {
           : Handlebars.compile(lpFiles.queries.card)({ cardKey });
       for (let run = 1; run <= RUNS_PER_POINT; run++) {
         clearCache();
-        const r = await solve(query, ['all']);
+        const r = await ctx.solve(query, ['all']);
         allRuns.push(makeNativeRun('c-api+aspif', queryName, scale, run, projectId, r));
       }
       console.error(`    ${queryName}: ${RUNS_PER_POINT} runs done`);
@@ -453,13 +439,13 @@ async function main() {
     // ── VARIANT: incremental (gringo→ASPIF→clingo) ─────────────────────────
     // Build base without queryLanguage/utils (they stay in the query step)
     console.error('  variant: incremental');
-    removeProgram('queryLanguage');
-    removeProgram('utils');
+    ctx.removeProgram('queryLanguage');
+    ctx.removeProgram('utils');
     let baseProgram: string;
     try {
-      baseProgram = buildProgram('', ['all']);
+      baseProgram = ctx.buildProgram('', ['all']);
     } finally {
-      restoreCurrentQL(); // always restore, even if buildProgram throws
+      restoreCurrentQL(ctx); // always restore, even if buildProgram throws
     }
 
     for (const [queryName, cardKey] of [
