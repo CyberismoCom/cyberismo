@@ -25,7 +25,7 @@ import type {
 } from '../../types/queries.js';
 import type { Card, Context } from '../../interfaces/project-interfaces.js';
 import ClingoParser from '../../utils/clingo-parser.js';
-import { Mutex } from 'async-mutex';
+
 import Handlebars from 'handlebars';
 import type { Project } from '../../containers/project.js';
 import { getChildLogger } from '../../utils/log-utils.js';
@@ -64,7 +64,6 @@ const ALL_CATEGORY = 'all';
 export class CalculationEngine {
   constructor(private project: Project) {}
 
-  private static mutex = new Mutex();
   private clingo = new ClingoContext();
 
   private get logger() {
@@ -262,25 +261,30 @@ export class CalculationEngine {
   //
   private async run(query: string, context: Context): Promise<string[]> {
     try {
-      const res = await CalculationEngine.mutex.runExclusive(async () => {
-        // Use the main category to include all programs
-        const basePrograms = [ALL_CATEGORY];
+      // Use the main category to include all programs
+      const basePrograms = [ALL_CATEGORY];
 
-        this.logger.trace(
-          {
-            clingo: true,
-          },
-          'Solving',
-        );
+      this.logger.trace(
+        {
+          clingo: true,
+        },
+        'Solving',
+      );
 
-        const contextFacts = createContextFacts(context);
-        this.clingo.setProgram('context', contextFacts, [ALL_CATEGORY]);
-        // Then solve with the program - need to pass the program as parameter
-        return this.clingo.solve(query, basePrograms);
-      });
+      // Inline context facts into the query string to avoid race conditions
+      // (concurrent reads could overwrite each other's 'context' program key)
+      const contextFacts = createContextFacts(context);
+      const result = await this.clingo.solve(
+        contextFacts + '\n' + query,
+        basePrograms,
+      );
+      this.logger.trace(
+        { stats: result.stats, clingo: true },
+        'Solve completed',
+      );
 
-      if (res && res.answers && res.answers.length > 0) {
-        return res.answers;
+      if (result && result.answers && result.answers.length > 0) {
+        return result.answers;
       }
       throw new Error('Failed to run Clingo solve. No answers returned.');
     } catch (error) {
@@ -299,44 +303,42 @@ export class CalculationEngine {
    * Generates a logic program.
    */
   public async generate() {
-    await CalculationEngine.mutex.runExclusive(async () => {
-      this.logger.trace(
-        {
-          clingo: true,
-        },
-        'Generating logic program',
-      );
-      this.clingo.removeAllPrograms();
+    this.logger.trace(
+      {
+        clingo: true,
+      },
+      'Generating logic program',
+    );
+    this.clingo.removeAllPrograms();
 
-      if (!this.modulesInitialized) {
-        await this.initializeModules();
-      }
+    if (!this.modulesInitialized) {
+      await this.initializeModules();
+    }
 
-      // Set base common programs with main category
-      this.clingo.setProgram('base', lpFiles.common.base, [ALL_CATEGORY]);
-      this.clingo.setProgram('queryLanguage', lpFiles.common.queryLanguage, [
-        ALL_CATEGORY,
-      ]);
-      this.clingo.setProgram('utils', lpFiles.common.utils, [ALL_CATEGORY]);
-      this.clingo.setProgram('modules', this.modules, [ALL_CATEGORY]);
+    // Set base common programs with main category
+    this.clingo.setProgram('base', lpFiles.common.base, [ALL_CATEGORY]);
+    this.clingo.setProgram('queryLanguage', lpFiles.common.queryLanguage, [
+      ALL_CATEGORY,
+    ]);
+    this.clingo.setProgram('utils', lpFiles.common.utils, [ALL_CATEGORY]);
+    this.clingo.setProgram('modules', this.modules, [ALL_CATEGORY]);
 
-      // Set individual resource type programs
-      await this.setCardTreeContent();
-      await this.setCardTypesPrograms();
-      await this.setFieldTypesPrograms();
-      await this.setLinkTypesPrograms();
-      await this.setWorkflowsPrograms();
-      await this.setReportsPrograms();
-      await this.setTemplatesPrograms();
-      await this.setCalculationsPrograms();
+    // Set individual resource type programs
+    await this.setCardTreeContent();
+    await this.setCardTypesPrograms();
+    await this.setFieldTypesPrograms();
+    await this.setLinkTypesPrograms();
+    await this.setWorkflowsPrograms();
+    await this.setReportsPrograms();
+    await this.setTemplatesPrograms();
+    await this.setCalculationsPrograms();
 
-      this.logger.trace(
-        {
-          clingo: true,
-        },
-        'Logic program set',
-      );
-    });
+    this.logger.trace(
+      {
+        clingo: true,
+      },
+      'Logic program set',
+    );
   }
 
   /**
@@ -344,9 +346,7 @@ export class CalculationEngine {
    * @param changedCard Card that was changed.
    */
   public async handleCardChanged(changedCard: Card) {
-    await CalculationEngine.mutex.runExclusive(async () => {
-      await this.setCardContent(changedCard);
-    });
+    await this.setCardContent(changedCard);
   }
 
   /**
@@ -355,10 +355,8 @@ export class CalculationEngine {
    * the complete card tree facts to ensure consistency.
    */
   public async handleCardMoved() {
-    await CalculationEngine.mutex.runExclusive(async () => {
-      // Rebuild entire tree structure from scratch to ensure all relationships are correct
-      await this.setCardTreeContent();
-    });
+    // Rebuild entire tree structure from scratch to ensure all relationships are correct
+    await this.setCardTreeContent();
   }
 
   /**
@@ -370,16 +368,14 @@ export class CalculationEngine {
       return;
     }
     try {
-      await CalculationEngine.mutex.runExclusive(async () => {
-        if (!this.clingo.removeProgram(deletedCard.key)) {
-          this.logger.warn(
-            {
-              cardKey: deletedCard.key,
-            },
-            'Tried to remove card program that does not exist',
-          );
-        }
-      });
+      if (!this.clingo.removeProgram(deletedCard.key)) {
+        this.logger.warn(
+          {
+            cardKey: deletedCard.key,
+          },
+          'Tried to remove card program that does not exist',
+        );
+      }
     } catch {
       this.logger.warn('Removing program failed');
     }
@@ -393,11 +389,9 @@ export class CalculationEngine {
     if (!cards) {
       return;
     }
-    await CalculationEngine.mutex.runExclusive(async () => {
-      for (const card of cards) {
-        await this.setCardContent(card);
-      }
-    });
+    for (const card of cards) {
+      await this.setCardContent(card);
+    }
     const cardKeys = cards.map((item) => item.key);
     const queryResult = await this.creationQuery(cardKeys, 'localApp');
     if (
