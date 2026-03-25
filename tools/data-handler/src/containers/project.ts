@@ -143,6 +143,12 @@ export class Project extends CardContainer {
       );
     }
 
+    // Regenerate Clingo facts after every write transaction so that
+    // metadata-only edits (e.g. title changes) are immediately visible.
+    this.lock.onAfterWrite(async () => {
+      await this.calculationEngine.generate();
+    });
+
     if (this.options.autocommit) {
       this.gitManager = new GitManager(path);
 

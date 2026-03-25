@@ -290,7 +290,5 @@ export class Rename {
       this.to,
       {},
     );
-
-    return this.project.calculationEngine.generate();
   }
 }

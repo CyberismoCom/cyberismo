@@ -27,10 +27,13 @@ export async function getCardTree(
   cardKey?: string,
   recursive?: boolean,
 ): ReturnType<typeof commands.calculateCmd.runQuery> {
-  await commands.calculateCmd.generate();
-  return commands.calculateCmd.runQuery(
+  const t0 = performance.now();
+  const result = await commands.calculateCmd.runQuery(
     'tree',
     isSsg ? 'exportedSite' : 'localApp',
     { cardKey, recursive },
   );
+  const elapsed = performance.now() - t0;
+  console.log(`[tree timing] clingo=${elapsed.toFixed(0)}ms`);
+  return result;
 }
