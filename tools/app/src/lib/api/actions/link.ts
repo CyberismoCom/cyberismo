@@ -17,11 +17,13 @@ export async function createLink(
   toCard: string,
   linkType: string,
   linkDescription?: string,
+  direction: 'outbound' | 'inbound' = 'outbound',
 ) {
   return callApi(`/api/cards/${fromCard}/links`, 'POST', {
     toCard,
     linkType,
     description: linkDescription,
+    direction,
   });
 }
 
@@ -30,10 +32,12 @@ export async function removeLink(
   toCard: string,
   linkType: string,
   linkDescription?: string,
+  direction: 'outbound' | 'inbound' = 'outbound',
 ) {
   return callApi(`/api/cards/${fromCard}/links`, 'DELETE', {
     toCard,
     linkType,
     description: linkDescription,
+    direction,
   });
 }

@@ -6,6 +6,7 @@ import {
   buildCardHierarchy,
   cardPathParts,
   findParentPath,
+  isExternalItemKey,
   isModuleCard,
   isTemplateCard,
   moduleNameFromCardKey,
@@ -178,5 +179,14 @@ describe('card utils', () => {
       expect(cards.at(3)).toBe('zzz_111');
       expect(cards.at(4)).toBe('zzz_999');
     });
+  });
+
+  it('isExternalItemKey', () => {
+    expect(isExternalItemKey('jira:PROJ-123')).to.equal(true);
+    expect(isExternalItemKey('connector:key')).to.equal(true);
+    expect(isExternalItemKey('jira:PROJ:123')).to.equal(true);
+    expect(isExternalItemKey('test_1')).to.equal(false);
+    expect(isExternalItemKey('prefix_abc123')).to.equal(false);
+    expect(isExternalItemKey('')).to.equal(false);
   });
 });

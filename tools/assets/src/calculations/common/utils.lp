@@ -101,22 +101,73 @@ resultField((Source, Destination, LinkType, LinkDescription, Direction), "linkSo
     childResult(_, (Source, Destination, LinkType, LinkDescription, Direction), "links"),
     calculatedLink(Source, Destination, LinkType, LinkDescription).
 
-% links: title
+% links: title - for card destinations
 resultField((Card, Destination, LinkType, LinkDescription, Direction), "title", Title, "shortText") :-
     childResult(Card, (Card, Destination, LinkType, LinkDescription, Direction), "links"),
-    field(Destination, "title", Title).
+    field(Destination, "title", Title),
+    card(Destination).
 
+% links: title - for external item destinations (from externalItem facts)
+resultField((Card, (Connector, ItemKey), LinkType, LinkDescription, Direction), "title", Title, "shortText") :-
+    childResult(Card, (Card, (Connector, ItemKey), LinkType, LinkDescription, Direction), "links"),
+    field((Connector, ItemKey), "title", Title).
+
+% links: title - for external item destinations (fallback to key if no title fact)
+resultField((Card, (Connector, ItemKey), LinkType, LinkDescription, Direction), "title", ItemKey, "shortText") :-
+    childResult(Card, (Card, (Connector, ItemKey), LinkType, LinkDescription, Direction), "links"),
+    not field((Connector, ItemKey), "title", _).
+
+% links: title - for card sources (inbound)
 resultField((Source, Card, LinkType, LinkDescription, Direction), "title", Title, "shortText") :-
     childResult(Card, (Source, Card, LinkType, LinkDescription, Direction), "links"),
-    field(Source, "title", Title).
+    field(Source, "title", Title),
+    card(Source).
 
-% links: key
+% links: title - for external item sources (inbound, from externalItem facts)
+resultField(((Connector, ItemKey), Card, LinkType, LinkDescription, Direction), "title", Title, "shortText") :-
+    childResult(Card, ((Connector, ItemKey), Card, LinkType, LinkDescription, Direction), "links"),
+    field((Connector, ItemKey), "title", Title).
+
+% links: title - for external item sources (inbound, fallback to key if no title fact)
+resultField(((Connector, ItemKey), Card, LinkType, LinkDescription, Direction), "title", ItemKey, "shortText") :-
+    childResult(Card, ((Connector, ItemKey), Card, LinkType, LinkDescription, Direction), "links"),
+    not field((Connector, ItemKey), "title", _).
+
+% links: key - for card destinations
 resultField((Card, Destination, LinkType, LinkDescription, Direction), "key", Destination, "shortText") :-
-    childResult(Card, (Card, Destination, LinkType, LinkDescription, Direction), "links").
+    childResult(Card, (Card, Destination, LinkType, LinkDescription, Direction), "links"),
+    card(Destination).
 
+% links: key - for external item destinations
+resultField((Card, (Connector, ItemKey), LinkType, LinkDescription, Direction), "key", ItemKey, "shortText") :-
+    childResult(Card, (Card, (Connector, ItemKey), LinkType, LinkDescription, Direction), "links").
+
+% links: key - for card sources (inbound)
 resultField((Source, Card, LinkType, LinkDescription, Direction), "key", Source, "shortText") :-
     childResult(Card, (Source, Card, LinkType, LinkDescription, Direction), "links"),
-    field(Source, "title", Title).
+    card(Source).
+
+% links: key - for external item sources (inbound)
+resultField(((Connector, ItemKey), Card, LinkType, LinkDescription, Direction), "key", ItemKey, "shortText") :-
+    childResult(Card, ((Connector, ItemKey), Card, LinkType, LinkDescription, Direction), "links").
+
+% links: connector - for external item destinations
+resultField((Card, (Connector, ItemKey), LinkType, LinkDescription, Direction), "connector", Connector, "shortText") :-
+    childResult(Card, (Card, (Connector, ItemKey), LinkType, LinkDescription, Direction), "links").
+
+% links: connector - for external item sources (inbound)
+resultField(((Connector, ItemKey), Card, LinkType, LinkDescription, Direction), "connector", Connector, "shortText") :-
+    childResult(Card, ((Connector, ItemKey), Card, LinkType, LinkDescription, Direction), "links").
+
+% links: url - for external item destinations (only if url fact exists)
+resultField((Card, (Connector, ItemKey), LinkType, LinkDescription, Direction), "url", Url, "shortText") :-
+    childResult(Card, (Card, (Connector, ItemKey), LinkType, LinkDescription, Direction), "links"),
+    field((Connector, ItemKey), "url", Url).
+
+% links: url - for external item sources (inbound, only if url fact exists)
+resultField(((Connector, ItemKey), Card, LinkType, LinkDescription, Direction), "url", Url, "shortText") :-
+    childResult(Card, ((Connector, ItemKey), Card, LinkType, LinkDescription, Direction), "links"),
+    field((Connector, ItemKey), "url", Url).
 
 
 % notifications

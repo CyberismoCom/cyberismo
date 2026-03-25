@@ -28,10 +28,12 @@ export interface CalculationLink {
   displayName: string;
   key: string;
   linkType: string;
-  title: string; // title of the other card
+  title: string;
   linkDescription?: string;
   direction: LinkDirection;
   linkSource: 'user' | 'calculated';
+  connector?: string; // connector name for external links
+  url?: string; // URL for external links
 }
 
 export interface Notification {
@@ -72,12 +74,19 @@ export interface ParseResult<T extends BaseResult> {
  * Generic types for named queries
  */
 
-export const queries = ['card', 'onCreation', 'onTransition', 'tree'] as const;
+export const queries = [
+  'card',
+  'connectors',
+  'onCreation',
+  'onTransition',
+  'tree',
+] as const;
 
 export type QueryName = (typeof queries)[number];
 
 export type QueryMap = {
   card: CardQueryResult;
+  connectors: ConnectorQueryResult;
   onCreation: FieldsToUpdateQueryResult;
   onTransition: FieldsToUpdateQueryResult;
   tree: TreeQueryResult;
@@ -101,6 +110,13 @@ interface CardQueryResult extends BaseResult {
   notifications: Notification[];
   policyChecks: PolicyCheckCollection;
   deniedOperations: DeniedOperationCollection;
+}
+interface ConnectorQueryResult extends BaseResult {
+  type: 'connector' | 'item';
+  displayName?: string;
+  connector?: string;
+  itemKey?: string;
+  title?: string;
 }
 interface FieldsToUpdateQueryResult extends BaseResult {
   updateFields: UpdateField[];

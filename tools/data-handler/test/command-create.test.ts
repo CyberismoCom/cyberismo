@@ -542,7 +542,7 @@ describe('create command', () => {
       options,
     );
 
-    expect(result.message).to.contain('cannot be linked');
+    expect(result.message).to.contain('cannot be used as');
   });
 
   it('try create link - link description provided but not allowed', async () => {
@@ -558,6 +558,145 @@ describe('create command', () => {
       options,
     );
     expect(result.message).to.contain('does not allow');
+  });
+
+  // external links
+  it('create external link outbound (success)', async () => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['link', 'decision_5', 'jira:PROJECT-123', 'decision/linkTypes/test'],
+      options,
+    );
+    expect(result.statusCode).to.equal(200);
+  });
+
+  it('create external link outbound with description (success)', async () => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      [
+        'link',
+        'decision_5',
+        'jira:PROJECT-456',
+        'decision/linkTypes/test',
+        'linked from Jira',
+      ],
+      options,
+    );
+    expect(result.statusCode).to.equal(200);
+  });
+
+  it('create external link inbound (success)', async () => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['link', 'jira:PROJECT-789', 'decision_5', 'decision/linkTypes/test'],
+      options,
+    );
+    expect(result.statusCode).to.equal(200);
+  });
+
+  it('try create external link - both external', async () => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['link', 'jira:ABC-1', 'jira:DEF-2', 'decision/linkTypes/test'],
+      options,
+    );
+    expect(result.statusCode).to.equal(400);
+    expect(result.message).to.contain('One must be a card');
+  });
+
+  it('try create external link - invalid format', async () => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['link', 'decision_5', 'invalid:', 'decision/linkTypes/test'],
+      options,
+    );
+    expect(result.statusCode).to.equal(400);
+    expect(result.message).to.contain('Invalid external item format');
+  });
+
+  it('try create external link - duplicate', async () => {
+    // First create should succeed
+    await commandHandler.command(
+      Cmd.create,
+      ['link', 'decision_6', 'jira:DUP-123', 'decision/linkTypes/test'],
+      options,
+    );
+    // Second create should fail
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['link', 'decision_6', 'jira:DUP-123', 'decision/linkTypes/test'],
+      options,
+    );
+    expect(result.statusCode).to.equal(400);
+    expect(result.message).to.contain('already exists');
+  });
+
+  it('create external link with allowed connector (success)', async () => {
+    // decision_6 has cardType decision/cardTypes/decision which is allowed as source for testTypes
+    // testTypes has destinationConnectors: ["jira", "github"]
+    const result = await commandHandler.command(
+      Cmd.create,
+      [
+        'link',
+        'decision_6',
+        'jira:ALLOWED-123',
+        'decision/linkTypes/testTypes',
+      ],
+      options,
+    );
+    expect(result.statusCode).to.equal(200);
+  });
+
+  it('try create external link - connector not allowed', async () => {
+    // testTypes only allows jira and github connectors
+    const result = await commandHandler.command(
+      Cmd.create,
+      [
+        'link',
+        'decision_6',
+        'slack:NOTALLOWED-123',
+        'decision/linkTypes/testTypes',
+      ],
+      options,
+    );
+    expect(result.statusCode).to.equal(400);
+    expect(result.message).to.contain('does not support links to connector');
+  });
+
+  it('try create external link inbound - card type not valid as destination', async () => {
+    // For inbound links, the card must be valid as destination
+    // testTypes requires destinationCardTypes: ["decision/cardTypes/simplepage"]
+    // decision_6 has cardType "decision/cardTypes/decision" which is NOT allowed as destination
+    const result = await commandHandler.command(
+      Cmd.create,
+      [
+        'link',
+        'jira:INBOUND-123',
+        'decision_6',
+        'decision/linkTypes/testTypes',
+      ],
+      options,
+    );
+    expect(result.statusCode).to.equal(400);
+    expect(result.message).to.contain('cannot be used as destination');
+  });
+
+  it('try create external link outbound - card type not valid as source', async () => {
+    // For outbound links, the card must be valid as source
+    // testTypes requires sourceCardTypes: ["decision/cardTypes/decision"]
+    // decision_5 has cardType "decision/cardTypes/simplepage" which is NOT allowed as source
+    const result = await commandHandler.command(
+      Cmd.create,
+      [
+        'link',
+        'decision_5',
+        'jira:OUTBOUND-123',
+        'decision/linkTypes/testTypes',
+      ],
+      options,
+    );
+    expect(result.statusCode).to.equal(400);
+    expect(result.message).to.contain('cannot be used as source');
   });
 
   // link type
