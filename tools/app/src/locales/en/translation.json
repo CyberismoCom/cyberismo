@@ -9,6 +9,15 @@
     "success": "Attachment(s) added successfully",
     "acceptedFormats": "Accepted file types: ..."
   },
+  "addModuleModal": {
+    "title": "Add module",
+    "subtitle": "Register management",
+    "moduleUrl": "Module url",
+    "moduleUrlPlaceholder": "https://github.com/your-org/your-module.git",
+    "addModule": "Add module",
+    "close": "Close",
+    "success": "Module added successfully"
+  },
   "all": "All",
   "alwaysVisibleFields": "Always visible fields",
   "appName": "Cards",
@@ -212,7 +221,8 @@
     "readOnly": "This module is read-only. Update it in the source module.",
     "modulesSection": "Modules",
     "updateAllModules": "Update all modules",
-    "updateAllModulesSuccess": "All modules updated successfully"
+    "updateAllModulesSuccess": "All modules updated successfully",
+    "addModule": "Add module"
   },
   "goToField": "Go to field",
   "identifier": "Identifier",

@@ -24,7 +24,7 @@ import type { GenericNode } from '@/lib/api/types';
 import { useProjectSettings, useProjectSettingsMutations } from '@/lib/api';
 import { useEditableField, useAppDispatch } from '@/lib/hooks';
 import { useModals } from '@/lib/utils';
-import { ModuleDeleteModal } from '@/components/modals';
+import { ModuleDeleteModal, AddModuleModal } from '@/components/modals';
 import { addNotification } from '@/lib/slices/notifications';
 import BaseEditor from './BaseEditor';
 import FieldRow from './fields/FieldRow';
@@ -42,11 +42,13 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
     updateModule,
     deleteModule,
     updateAllModules,
+    addModule,
     isUpdating,
     updateProject,
   } = useProjectSettingsMutations();
   const { modalOpen, openModal, closeModal } = useModals({
     deleteModule: false,
+    addModule: false,
   });
   const [moduleToDelete, setModuleToDelete] = useState<{
     name: string;
@@ -108,6 +110,14 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
             <Typography level="title-lg">
               {t('general.modulesSection')}
             </Typography>
+            <Button
+              size="sm"
+              variant="solid"
+              onClick={openModal('addModule')}
+              disabled={isUpdating() || isDisabled}
+            >
+              {t('general.addModule')}
+            </Button>
             {general?.modules.length ? (
               <Button
                 size="sm"
@@ -227,6 +237,19 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
           isDeleting={isUpdating(`delete-${moduleToDelete.cardKeyPrefix}`)}
         />
       )}
+      <AddModuleModal
+        open={modalOpen.addModule}
+        onClose={closeModal('addModule')}
+        onAdd={async (source) => {
+          await addModule(source);
+          dispatch(
+            addNotification({
+              message: t('addModuleModal.success'),
+              type: 'success',
+            }),
+          );
+        }}
+      />
     </BaseEditor>
   );
 }
