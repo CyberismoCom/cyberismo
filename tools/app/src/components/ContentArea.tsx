@@ -67,6 +67,7 @@ import EditLinkModal from './modals/EditLinkModal';
 import { useAppDispatch, useAppSelector } from '../lib/hooks';
 import { viewChanged } from '../lib/slices/pageState';
 
+import createDOMPurify from 'dompurify';
 import type { MacroMetadata } from '@cyberismo/data-handler/interfaces/macros';
 import { macroMetadata } from '@cyberismo/data-handler/macros/common';
 import type { UIMacroName } from './macros';
@@ -144,6 +145,18 @@ interface LinkFormProps {
   isLoading?: boolean;
   isUpdating?: boolean;
 }
+
+// Derive allowed macro tags from the frontend macro definitions so they survive sanitization
+const MACRO_TAGS = Object.values(macroMetadata)
+  .map((meta) => meta.tagName.toUpperCase())
+  .filter(Boolean) as string[];
+
+const contentPurify = createDOMPurify(window);
+contentPurify.addHook('afterSanitizeAttributes', (node) => {
+  if (node.tagName === 'IFRAME') {
+    node.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+  }
+});
 
 const NO_LINK_TYPE = -1;
 
@@ -741,6 +754,19 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 
   const htmlContent = card.parsedContent || '';
 
+  const sanitizedHtml = contentPurify.sanitize(htmlContent, {
+    USE_PROFILES: { html: true, svg: true },
+    ADD_TAGS: [...MACRO_TAGS, 'iframe'],
+    ADD_ATTR: [
+      'options',
+      'key',
+      'sandbox',
+      'allow',
+      'allowfullscreen',
+      'frameborder',
+    ],
+  });
+
   const combinedMacros = Object.entries(macroMetadata).reduce<
     // We simply trust that the macro has been validated
     // If a validation error occurs, it should also not try to render
@@ -756,7 +782,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 
   // NOTE: Parser is case-insensitive and lower cases all tags and attributes
   // htmlparser2 options cannot be used on the browser
-  const parsedContent = parseReact(htmlContent, {
+  const parsedContent = parseReact(sanitizedHtml, {
     replace: (node) => {
       if (node.type === 'tag') {
         if (node.name === 'a') {
@@ -1123,7 +1149,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         <Box sx={{ marginBottom: 1 }}>
           {renderTableOfContents(
             t('tableOfContents'),
-            htmlContent,
+            sanitizedHtml,
             visibleHeaderIds,
           )}
         </Box>

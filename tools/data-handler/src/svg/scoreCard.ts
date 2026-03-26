@@ -12,6 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import { measureTextWidth } from './lib.js';
+import { encodeXML } from 'entities';
 
 // Padding on y-axis
 const PADDING = 24;
@@ -84,9 +85,9 @@ export function scoreCard(options: ScoreCardOptions): string {
     </style>
     <rect class="scorecard-bg" rx="8" ry="8" stroke-width="3" width="${width}" height="${height}"/>
     <g text-anchor="middle">
-      <text class="scorecard-title" x="${width / 2}" y="${TITLE_SIZE / 2 + PADDING}" font-size="${TITLE_SIZE}" font-weight="400" dominant-baseline="middle">${title}</text>
-      <text class="scorecard-value" x="${width / 2}" y="${titleHeight + VALUE_SIZE / 2 + PADDING}" font-size="${VALUE_SIZE}" font-weight="700" dominant-baseline="middle">${value}<tspan class="unit" font-size="${UNIT_SIZE}" font-weight="400" dx="${UNIT_OFFSET}">${unit}</tspan></text>
-      <text class="scorecard-caption" x="${width / 2}" y="${titleHeight + valueHeight + LINE_GAP_CAPTION + CAPTION_SIZE / 2 + PADDING}" font-size="${CAPTION_SIZE}" font-weight="400" dominant-baseline="middle">${legend}</text>
+      <text class="scorecard-title" x="${width / 2}" y="${TITLE_SIZE / 2 + PADDING}" font-size="${TITLE_SIZE}" font-weight="400" dominant-baseline="middle">${encodeXML(title)}</text>
+      <text class="scorecard-value" x="${width / 2}" y="${titleHeight + VALUE_SIZE / 2 + PADDING}" font-size="${VALUE_SIZE}" font-weight="700" dominant-baseline="middle">${value}<tspan class="unit" font-size="${UNIT_SIZE}" font-weight="400" dx="${UNIT_OFFSET}">${encodeXML(unit)}</tspan></text>
+      <text class="scorecard-caption" x="${width / 2}" y="${titleHeight + valueHeight + LINE_GAP_CAPTION + CAPTION_SIZE / 2 + PADDING}" font-size="${CAPTION_SIZE}" font-weight="400" dominant-baseline="middle">${encodeXML(legend)}</text>
     </g>
   </svg>`;
 
