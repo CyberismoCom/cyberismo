@@ -20,12 +20,8 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  Card,
-  Stack,
   Radio,
   ModalClose,
-  CardOverflow,
-  Grid,
   Input,
   IconButton,
 } from '@mui/joy';
@@ -37,81 +33,12 @@ import { useAppRouter } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
 import type { TemplateConfiguration } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import RadioGroup from '@mui/joy/RadioGroup';
+import { CategoryOption } from './OptionCards';
 
 interface NewCardModalProps {
   open: boolean;
   onClose: () => void;
   cardKey: string | null;
-}
-
-export function TemplateCard({
-  name,
-  description,
-  onClick,
-  isChosen,
-}: {
-  name: string;
-  description: string;
-  isChosen: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <Card
-      className="templateCard"
-      variant="outlined"
-      sx={{
-        height: '200px',
-        width: '200px',
-        boxShadow: '0px 2px 2px 0px rgba(0, 0, 0, 0.5)',
-        cursor: 'pointer',
-        padding: 0,
-        overflow: 'hidden',
-        gap: 0,
-        borderRadius: 16,
-      }}
-      onClick={onClick}
-    >
-      <Stack
-        direction="row"
-        padding={0}
-        height="50%"
-        sx={{
-          justifyContent: 'space-between',
-        }}
-      >
-        <Typography
-          level="title-sm"
-          paddingLeft={2}
-          fontWeight="bold"
-          textOverflow="clip"
-          marginTop="auto"
-          marginBottom={1}
-        >
-          {name}
-        </Typography>
-        <Box padding={1} height="100%">
-          <Radio checked={isChosen} variant="soft" />
-        </Box>
-      </Stack>
-      <CardOverflow
-        sx={{
-          height: '50%',
-        }}
-      >
-        <Box bgcolor="neutral.softBg" height="100%">
-          <Typography
-            level="body-xs"
-            fontWeight="bold"
-            paddingLeft={2}
-            height="100%"
-            paddingTop={1}
-          >
-            {description}
-          </Typography>
-        </Box>
-      </CardOverflow>
-    </Card>
-  );
 }
 
 export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
@@ -214,32 +141,17 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
               Object.entries(categories).map(
                 ([category, templates]) =>
                   templates.length > 0 && (
-                    <Stack key={category}>
-                      <Typography level="title-sm" color="neutral">
-                        {category}
-                      </Typography>
-                      <Grid
-                        container
-                        spacing={2}
-                        columnGap={2}
-                        rowGap={2}
-                        justifyContent="flex-start"
-                        marginTop={2}
-                        marginBottom={4}
-                        marginLeft={0}
-                        paddingRight={1}
-                      >
-                        {templates.map((template) => (
-                          <TemplateCard
-                            key={template.name}
-                            isChosen={chosenTemplate === template.name}
-                            onClick={() => setChosenTemplate(template.name)}
-                            name={template.displayName ?? template.name}
-                            description={template.description ?? ''}
-                          />
-                        ))}
-                      </Grid>
-                    </Stack>
+                    <CategoryOption
+                      key={category}
+                      category={category}
+                      options={templates.map((template) => ({
+                        name: template.name,
+                        displayName: template.displayName,
+                        description: template.description ?? '',
+                        isChosen: chosenTemplate === template.name,
+                      }))}
+                      onOptionSelect={setChosenTemplate}
+                    />
                   ),
               )
             )}

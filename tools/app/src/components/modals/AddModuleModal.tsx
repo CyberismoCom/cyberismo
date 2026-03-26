@@ -25,15 +25,13 @@ import {
   Input,
   FormLabel,
   FormControl,
-  Grid,
-  Card,
-  CardContent,
   Stack,
   Divider,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import { apiPaths } from '@/lib/swr';
 import type { ModuleSettingFromHub } from '@cyberismo/data-handler';
+import { CategoryOption } from './OptionCards';
 
 interface AddModuleModalProps {
   open: boolean;
@@ -53,9 +51,16 @@ export function AddModuleModal({ open, onClose, onAdd }: AddModuleModalProps) {
     apiPaths.projectModulesImportable(),
   );
 
-  const handleSelectModule = (mod: ModuleSettingFromHub) => {
+  const handleSelectModule = (moduleName: string) => {
     setUrlInput('');
-    setSelectedModule((prev) => (prev?.name === mod.name ? null : mod));
+    if (moduleName === selectedModule?.name) {
+      setSelectedModule(null);
+      return;
+    }
+    const module = hubModules?.find((mod) => mod.name === moduleName);
+    if (module) {
+      setSelectedModule(module);
+    }
   };
 
   const handleUrlChange = (value: string) => {
@@ -108,32 +113,16 @@ export function AddModuleModal({ open, onClose, onAdd }: AddModuleModalProps) {
         <Divider />
         <DialogContent>
           <Stack spacing={2}>
-            {hubModules && hubModules.length > 0 && (
-              <Grid container spacing={1}>
-                {/* styling is poor */}
-                {hubModules.map((mod) => (
-                  <Grid key={mod.name} xs={4}>
-                    <Card
-                      variant={
-                        selectedModule?.name === mod.name ? 'solid' : 'outlined'
-                      }
-                      color={
-                        selectedModule?.name === mod.name
-                          ? 'primary'
-                          : 'neutral'
-                      }
-                      onClick={() => handleSelectModule(mod)}
-                      sx={{ cursor: 'pointer', height: '100%' }}
-                    >
-                      <CardContent>
-                        <Typography level="title-sm">
-                          {mod.displayName ?? mod.name}
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
+            {hubModules && (
+              <CategoryOption
+                onOptionSelect={handleSelectModule}
+                options={hubModules.map((module) => ({
+                  name: module.name,
+                  displayName: module.displayName,
+                  description: module.location,
+                  isChosen: selectedModule?.name === module.name,
+                }))}
+              />
             )}
             <FormControl error={Boolean(error)}>
               <FormLabel>{t('addModuleModal.moduleUrl')} *</FormLabel>
