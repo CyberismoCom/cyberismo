@@ -166,71 +166,42 @@ namespace node_clingo
         return std::chrono::system_clock::time_point{};
     }
 
-    void extract_resource_part(Clingo::SymbolSpan args, Clingo::SymbolSpanCallback symbolCallback, ResourcePart part)
+    std::string extract_resource_part(const std::string& resource, ResourcePart part)
     {
-        if (args.size() != 1)
+        if (resource.empty())
         {
-            throw std::invalid_argument("extract_resource_part expects exactly 1 argument");
+            return "";
         }
 
-        auto type = args[0].type();
-        if (type != Clingo::SymbolType::String)
-        {
-            auto symbol = Clingo::String("");
-            symbolCallback({&symbol, 1});
-            return;
-        }
-
-        const char* resource_name = args[0].string();
-        std::string resource_str(resource_name);
-
-        if (resource_str.empty())
-        {
-            auto symbol = Clingo::String("");
-            symbolCallback({&symbol, 1});
-            return;
-        }
-
-        size_t first_slash = resource_str.find('/');
+        size_t first_slash = resource.find('/');
         if (first_slash == std::string::npos)
         {
-            auto symbol = Clingo::String("");
-            symbolCallback({&symbol, 1});
-            return;
+            return "";
         }
 
-        size_t second_slash = resource_str.find('/', first_slash + 1);
+        size_t second_slash = resource.find('/', first_slash + 1);
         if (second_slash == std::string::npos)
         {
-            auto symbol = Clingo::String("");
-            symbolCallback({&symbol, 1});
-            return;
+            return "";
         }
 
-        size_t third_slash = resource_str.find('/', second_slash + 1);
+        size_t third_slash = resource.find('/', second_slash + 1);
         if (third_slash != std::string::npos)
         {
-            auto symbol = Clingo::String("");
-            symbolCallback({&symbol, 1});
-            return;
+            return "";
         }
 
-        std::string result;
         switch (part)
         {
             case ResourcePart::PREFIX:
-                result = resource_str.substr(0, first_slash);
-                break;
+                return resource.substr(0, first_slash);
             case ResourcePart::TYPE:
-                result = resource_str.substr(first_slash + 1, second_slash - first_slash - 1);
-                break;
+                return resource.substr(first_slash + 1, second_slash - first_slash - 1);
             case ResourcePart::IDENTIFIER:
-                result = resource_str.substr(second_slash + 1);
-                break;
+                return resource.substr(second_slash + 1);
         }
 
-        auto symbol = Clingo::String(result.c_str());
-        symbolCallback({&symbol, 1});
+        return "";
     }
 
     int64_t current_epoch_ms()

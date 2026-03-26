@@ -160,6 +160,26 @@ namespace node_clingo
         symbolCallback({&symbol, 1});
     }
 
+    void handle_resource_part(
+        Clingo::SymbolSpan arguments,
+        Clingo::SymbolSpanCallback symbolCallback,
+        ResourcePart part)
+    {
+        if (arguments.size() != 1)
+        {
+            throw std::invalid_argument("resource part handler expects exactly 1 argument");
+        }
+
+        std::string result;
+        if (arguments[0].type() == Clingo::SymbolType::String)
+        {
+            result = extract_resource_part(arguments[0].string(), part);
+        }
+
+        auto symbol = Clingo::String(result.c_str());
+        symbolCallback({&symbol, 1});
+    }
+
     const std::unordered_map<std::string, FunctionHandler>& get_function_handlers()
     {
         static const std::unordered_map<std::string, FunctionHandler> handlers = {
@@ -168,11 +188,11 @@ namespace node_clingo
             {"today", handle_today},
             {"wrap", handle_wrap},
             {"resourcePrefix",
-             [](auto args, auto symbolCallback) { extract_resource_part(args, symbolCallback, ResourcePart::PREFIX); }},
+             [](auto args, auto symbolCallback) { handle_resource_part(args, symbolCallback, ResourcePart::PREFIX); }},
             {"resourceType",
-             [](auto args, auto symbolCallback) { extract_resource_part(args, symbolCallback, ResourcePart::TYPE); }},
+             [](auto args, auto symbolCallback) { handle_resource_part(args, symbolCallback, ResourcePart::TYPE); }},
             {"resourceIdentifier", [](auto args, auto symbolCallback) {
-                 extract_resource_part(args, symbolCallback, ResourcePart::IDENTIFIER);
+                 handle_resource_part(args, symbolCallback, ResourcePart::IDENTIFIER);
              }}};
         return handlers;
     }

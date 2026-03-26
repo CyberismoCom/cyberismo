@@ -20,8 +20,6 @@
 #include <string>
 #include <vector>
 
-#include <clingo.hh>
-
 #include "xxhash.h"
 
 #ifdef ENABLE_CPP_LOGS
@@ -74,12 +72,12 @@ namespace node_clingo
     std::chrono::system_clock::time_point parse_iso_date(const std::string& iso_date);
 
     /**
-     * Helper function to validate and extract part of resource name format.
-     * @param args Span of clingo symbols representing the arguments.
-     * @param symbolCallback Callback function to return the result symbol.
+     * Extracts a part of a resource name in the format "prefix/type/identifier".
+     * @param resource The resource name string.
      * @param part Resource part to extract (PREFIX, TYPE, or IDENTIFIER)
+     * @returns The extracted part, or empty string if the format is invalid.
      */
-    void extract_resource_part(Clingo::SymbolSpan args, Clingo::SymbolSpanCallback symbolCallback, ResourcePart part);
+    std::string extract_resource_part(const std::string& resource, ResourcePart part);
 
     /**
      * Returns current epoch milliseconds.
