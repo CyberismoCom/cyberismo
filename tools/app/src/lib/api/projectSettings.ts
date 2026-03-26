@@ -53,6 +53,7 @@ export const addModule = async (source: string) => {
   mutate(apiPaths.project());
   mutate(apiPaths.resourceTree());
   mutate(apiPaths.templates());
+  mutate(apiPaths.projectModulesImportable());
 };
 
 export const useProjectSettingsMutations = () => {
