@@ -13,7 +13,11 @@
 
 import { Hono } from 'hono';
 import { zValidator } from '../../middleware/zvalidator.js';
-import { moduleParamSchema, updateProjectSchema } from './schema.js';
+import {
+  importModuleSchema,
+  moduleParamSchema,
+  updateProjectSchema,
+} from './schema.js';
 import * as projectService from './service.js';
 import { UserRole } from '../../types.js';
 import { requireRole } from '../../middleware/auth.js';
@@ -55,6 +59,28 @@ router.post(
     const { module } = c.req.valid('param');
     await projectService.updateModule(commands, module);
     return c.json({ message: 'Module updated' });
+  },
+);
+
+router.get(
+  '/modules/importable',
+  requireRole(UserRole.Reader),
+  async (c) => {
+    const commands = c.get('commands');
+    const modules = await projectService.getImportableModules(commands);
+    return c.json(modules);
+  },
+);
+
+router.post(
+  '/modules',
+  requireRole(UserRole.Admin),
+  zValidator('json', importModuleSchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const { source } = c.req.valid('json');
+    await projectService.importModule(commands, source);
+    return c.json({ message: 'Module imported successfully' });
   },
 );
 
