@@ -1,20 +1,18 @@
 {
   "name": "@cyberismo/node-clingo",
-  "version": "1.3.4",
+  "version": "1.4.4",
   "description": "Node.js bindings for Clingo answer set solver",
   "scripts": {
-    "install": "node scripts/download-prebuild.js || node-gyp-build",
-    "build": "pnpm format:cpp:check:optional && tsc -p tsconfig.build.json",
-    "build-prebuildify": "pnpm format:cpp:optional && shx rm -rf prebuilds && prebuildify --napi",
+    "install": "node scripts/download-prebuild.js || (cmake -P scripts/build-clingo.cmake && node-gyp-build)",
+    "build": "tsc -p tsconfig.build.json",
+    "build-prebuildify": "cmake -P scripts/build-clingo.cmake && shx rm -rf prebuilds && prebuildify --napi",
     "build-debug": "cross-env GYP_DEFINES=\"enable_cpp_logs=1\" pnpm build-prebuildify",
     "dev": "tsc -p tsconfig.build.json --watch",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
     "format:cpp": "clang-format -i src/*.cc src/*.h",
-    "format:cpp:check": "clang-format --dry-run --Werror src/*.cc src/*.h",
-    "format:cpp:optional": "command -v clang-format >/dev/null 2>&1 && pnpm format:cpp || echo 'clang-format not available, skipping C++ formatting'",
-    "format:cpp:check:optional": "command -v clang-format >/dev/null 2>&1 && pnpm format:cpp:check || echo 'clang-format not available, skipping C++ format check'"
+    "format:cpp:check": "clang-format --dry-run --Werror src/*.cc src/*.h"
   },
   "keywords": [],
   "author": "sami.merila@cyberismo.com",

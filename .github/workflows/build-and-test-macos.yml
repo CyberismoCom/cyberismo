@@ -27,16 +27,8 @@ jobs:
         shell: bash -el {0}
     steps:
     - uses: actions/checkout@v4
-    - name: Install homebrew
-      if: runner.os == 'macOS'
-      run: |
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-    - name: Install clingo
-      if: runner.os == 'macOS'
-      run: |
-        brew install clingo --ignore-dependencies
-
+      with:
+        submodules: recursive
     - name: Install pnpm
       uses: pnpm/action-setup@v4
       with:

@@ -5,6 +5,7 @@ import {
   removeAllPrograms,
   removeProgram,
   buildProgram,
+  clearCache,
 } from '../lib/index.js';
 
 describe('Clingo solver', () => {
@@ -44,6 +45,23 @@ describe('Clingo solver', () => {
     expect(result2.stats.add).toBe(0);
     expect(result2.stats.ground).toBe(0);
     expect(result2.stats.solve).toBe(0);
+  });
+
+  it('should clear cache and force re-solve', async () => {
+    const program = 'a. b. c(1). c(4).';
+    const result1 = await solve(program);
+    expect(result1.stats.cacheHit).toBe(false);
+
+    // Second solve should hit cache
+    const result2 = await solve(program);
+    expect(result2.stats.cacheHit).toBe(true);
+
+    // Clear cache
+    clearCache();
+
+    // Third solve should miss cache after clear
+    const result3 = await solve(program);
+    expect(result3.stats.cacheHit).toBe(false);
   });
 
   it('should reuse default base program across multiple solves', async () => {

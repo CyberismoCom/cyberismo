@@ -165,7 +165,10 @@ export class Rename {
         const target = join(item.parentPath, item.name);
         let fileContent = await readFile(target, { encoding: 'utf-8' });
         for (const [key, value] of conversionMap) {
-          const re = new RegExp(key, 'g');
+          // Negative lookbehind prevents matching inside a longer prefix
+          // (e.g. renaming "test" to "projtest" must not re-match the
+          // "test/" substring inside the already-renamed "projtest/").
+          const re = new RegExp(`(?<![a-z])${key}`, 'g');
           fileContent = fileContent.replace(re, value);
         }
         await writeFile(target, fileContent);

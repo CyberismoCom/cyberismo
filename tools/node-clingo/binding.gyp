@@ -1,14 +1,12 @@
 {
   "variables": {
-      "openssl_fips": "",
-      "conda_prefix": "<!(echo %CONDA_PREFIX%)",
       "enable_cpp_logs%": "0"
   },
   "targets": [
     {
       "target_name": "node-clingo",
       "cflags_cc": [ "-std=c++20" ],
-      "sources": [ 
+      "sources": [
         "src/binding.cc",
         "src/helpers.cc",
         "src/function_handlers.cc",
@@ -19,8 +17,8 @@
       ],
       "include_dirs": [
         "<!@(node -p \"require('node-addon-api').include\")",
-        "<(conda_prefix)/Library/include",
-        "external/xxhash"
+        "external/xxhash",
+        "external/clingo/libclingo"
       ],
       "dependencies": [
         "<!(node -p \"require('node-addon-api').targets\"):node_addon_api_except_all"
@@ -30,69 +28,37 @@
           'defines': [ 'ENABLE_CPP_LOGS' ]
         }],
         ["OS=='win'", {
+          "defines": [ "CLINGO_NO_VISIBILITY" ],
           "libraries": [
-            "<(conda_prefix)/Library/lib/import_clingo.lib"
+            "<(module_root_dir)/external/clingo/build/lib/Release/clingo.lib",
+            "<(module_root_dir)/external/clingo/build/lib/Release/gringo.lib",
+            "<(module_root_dir)/external/clingo/build/lib/Release/reify.lib",
+            "<(module_root_dir)/external/clingo/build/lib/Release/clasp.lib",
+            "<(module_root_dir)/external/clingo/build/lib/Release/potassco.lib"
           ],
-          "copies": [
-            {
-              "destination": "<(PRODUCT_DIR)",
-              "files": [
-                "<(conda_prefix)/Library/bin/clingo.dll"
-              ]
+          "msvs_settings": {
+            "VCCLCompilerTool": {
+              "AdditionalOptions": [ "/std:c++20" ],
+              "RuntimeLibrary": "0"
             }
+          }
+        }],
+        ["OS!='win'", {
+          "libraries": [
+            "<(module_root_dir)/external/clingo/build/lib/libclingo.a",
+            "<(module_root_dir)/external/clingo/build/lib/libgringo.a",
+            "<(module_root_dir)/external/clingo/build/lib/libreify.a",
+            "<(module_root_dir)/external/clingo/build/lib/libclasp.a",
+            "<(module_root_dir)/external/clingo/build/lib/libpotassco.a"
           ]
         }],
         ["OS=='mac'", {
-          "conditions": [
-            ["target_arch=='arm64'", {
-              "libraries": [
-                "-L/opt/homebrew/lib",
-                "-lclingo"
-              ],
-              "include_dirs": [
-                "/opt/homebrew/include"
-              ],
-              "copies": [
-                {
-                  "destination": "<(PRODUCT_DIR)",
-                  "files": [
-                    "/opt/homebrew/lib/libclingo.dylib"
-                  ]
-                }
-              ]
-            }],
-            ["target_arch!='arm64'", {
-              "libraries": [
-                "-L/usr/local/lib",
-                "-lclingo"
-              ],
-              "include_dirs": [
-                "/usr/local/include"
-              ],
-              "copies": [
-                {
-                  "destination": "<(PRODUCT_DIR)",
-                  "files": [
-                    "/usr/local/lib/libclingo.dylib"
-                  ]
-                }
-              ]
-            }]
-          ],
           "xcode_settings": {
             "CLANG_CXX_LANGUAGE_STANDARD": "c++20",
-            "MACOSX_DEPLOYMENT_TARGET": "10.13",
-            "OTHER_LDFLAGS": [
-              "-Wl,-rpath,@loader_path"
-            ]
+            "MACOSX_DEPLOYMENT_TARGET": "10.13"
           }
-        }],
-        ["OS!='win' and OS!='mac'", {
-          "libraries": [
-            "-lclingo"
-          ]
         }]
       ]
     }
   ]
-} 
+}

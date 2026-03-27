@@ -9,7 +9,7 @@ Node.js native bindings for the [Clingo](https://potassco.org/clingo/) answer se
 To install, run `pnpm install`:
 
 - On install, a script attempts to download the correct prebuilt binary for your platform from GitHub Releases.
-- If no prebuild is available, it will attempt a local build (requires Clingo and build tools).
+- If no prebuild is available, it will attempt a local build (requires CMake and C++ build tools — Clingo is built from source).
 
 ---
 
@@ -131,7 +131,7 @@ Prebuilt binaries are provided for:
 - **macOS arm64**
 - **Windows x64**
 
-Prebuilds are downloaded automatically on install. If a prebuild is not available, a local build is attempted (requires Clingo and build tools).
+Prebuilds are downloaded automatically on install. If a prebuild is not available, a local build is attempted (requires CMake and C++ build tools — Clingo is built from source via the git submodule).
 
 ### Prebuild details
 
@@ -148,27 +148,32 @@ If you need to build from source (e.g., for unsupported platforms):
 ### Prerequisites
 
 - Node.js 22
-- Clingo (must be installed and available in your system path)
-- C++20 compiler (GCC 14+ recommended), should also support older versions
+- CMake 3.x
+- C++20 compiler (GCC 14+ recommended)
 - Python 3, make, and build tools
+
+Clingo is compiled from the git submodule — no system Clingo installation required.
+
+After cloning, initialize the submodule:
+
+```sh
+git submodule update --init --recursive
+```
 
 ### Tips for building
 
 **Windows**:
-Make sure you installed the build tools when you installed nodeJS.
-Install clingo using conda with the environment.yml available at the root of this repo
+Make sure you installed the build tools when you installed Node.js (includes MSVC and CMake).
 
-```
-conda env create -f environment.yml
-
-```
-
-**MacOS**:
-XCode tools should contain all requirements. Install clingo using homebrew:
-`brew install clingo`
+**macOS**:
+Xcode Command Line Tools include the compiler; CMake can be installed via Homebrew:
+`brew install cmake`
 
 **Linux**:
-sudo apt install build-essentials make python3 gringo
+
+```sh
+sudo apt install build-essential make python3 cmake
+```
 
 ### Build steps
 
@@ -179,6 +184,6 @@ pnpm run build-prebuildify
 
 #### Alpine/musl builds
 
-See `alpine.Dockerfile` for the musl/Alpine build process (used in CI for static builds).
+See `alpine.Dockerfile` for the musl/Alpine build process (used in CI).
 
 ---

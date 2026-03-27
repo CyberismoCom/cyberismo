@@ -18,17 +18,16 @@ namespace node_clingo
 
     SolveResultCache::~SolveResultCache() {}
 
-    std::size_t SolveResultCache::estimateSizeBytes(const SolveResult& r)
+    std::size_t SolveResultCache::estimateSizeBytes(const SolveResult& result)
     {
         // rough estimate
         std::size_t size = sizeof(SolveResult);
-        size += r.key.capacity();
-        size += sizeof(std::string) * r.answers.capacity();
-        for (const auto& s : r.answers)
-            size += s.capacity();
-        size += sizeof(ClingoLogMessage) * r.logs.capacity();
-        for (const auto& m : r.logs)
-            size += m.message.capacity();
+        size += sizeof(std::string) * result.answers.capacity();
+        for (const auto& answer : result.answers)
+            size += answer.capacity();
+        size += sizeof(ClingoLogMessage) * result.logs.capacity();
+        for (const auto& logMessage : result.logs)
+            size += logMessage.message.capacity();
         size += VECTOR_OVERHEAD_BYTES * 2;
         return size;
     }
@@ -56,12 +55,13 @@ namespace node_clingo
         {
             Hash evictHash = lru.back();
             lru.pop_back();
-            auto ev = entries.find(evictHash);
-            if (ev != entries.end())
+            auto evictionEntry = entries.find(evictHash);
+            if (evictionEntry != entries.end())
             {
-                LOG("Evicting cached result: " << evictHash << " of size " << ev->second.sizeBytes << " bytes");
-                currentBytes -= ev->second.sizeBytes;
-                entries.erase(ev);
+                LOG("Evicting cached result: " << evictHash << " of size " << evictionEntry->second.sizeBytes
+                                               << " bytes");
+                currentBytes -= evictionEntry->second.sizeBytes;
+                entries.erase(evictionEntry);
             }
         }
 
@@ -102,5 +102,12 @@ namespace node_clingo
             return true;
         }
         return false;
+    }
+    void SolveResultCache::clear()
+    {
+        entries.clear();
+        lru.clear();
+        currentBytes = 0;
+        LOG("Cache cleared");
     }
 } // namespace node_clingo
