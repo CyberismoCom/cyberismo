@@ -101,6 +101,7 @@ namespace node_clingo
         }
 
 #if USE_FORMAT_FALLBACK
+        time_t now = time(nullptr);
         std::tm time_buffer = localtime_safe(&now);
         std::stringstream dateStream;
         dateStream << std::put_time(&time_buffer, "%Y-%m-%d");
