@@ -77,6 +77,42 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
       updateProject({ cardKeyPrefix: value }, 'update-cardKeyPrefix'),
   });
 
+  const handleModuleDelete = async (moduleToDelete: {
+    name: string;
+    cardKeyPrefix: string;
+  }) => {
+    try {
+      await deleteModule(moduleToDelete.cardKeyPrefix);
+      dispatch(
+        addNotification({
+          message: t('deleteModuleModal.success', {
+            moduleName: moduleToDelete.name,
+          }),
+          type: 'success',
+        }),
+      );
+      setModuleToDelete(null);
+      closeModal('deleteModule')();
+    } catch (error) {
+      dispatch(
+        addNotification({
+          message: error instanceof Error ? error.message : t('failedToLoad'),
+          type: 'error',
+        }),
+      );
+    }
+  };
+
+  const handleAddModule = async (source: string) => {
+    await addModule(source);
+    dispatch(
+      addNotification({
+        message: t('addModuleModal.success'),
+        type: 'success',
+      }),
+    );
+  };
+
   return (
     <BaseEditor node={node}>
       <Stack spacing={2}>
@@ -208,47 +244,14 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
           }}
           moduleName={moduleToDelete.name}
           cardKeyPrefix={moduleToDelete.cardKeyPrefix}
-          onDelete={async () => {
-            try {
-              if (!moduleToDelete) {
-                return;
-              }
-              await deleteModule(moduleToDelete.cardKeyPrefix);
-              dispatch(
-                addNotification({
-                  message: t('deleteModuleModal.success', {
-                    moduleName: moduleToDelete.name,
-                  }),
-                  type: 'success',
-                }),
-              );
-              setModuleToDelete(null);
-              closeModal('deleteModule')();
-            } catch (error) {
-              dispatch(
-                addNotification({
-                  message:
-                    error instanceof Error ? error.message : t('failedToLoad'),
-                  type: 'error',
-                }),
-              );
-            }
-          }}
+          onDelete={() => handleModuleDelete(moduleToDelete)}
           isDeleting={isUpdating(`delete-${moduleToDelete.cardKeyPrefix}`)}
         />
       )}
       <AddModuleModal
         open={modalOpen.addModule}
         onClose={closeModal('addModule')}
-        onAdd={async (source) => {
-          await addModule(source);
-          dispatch(
-            addNotification({
-              message: t('addModuleModal.success'),
-              type: 'success',
-            }),
-          );
-        }}
+        onAdd={handleAddModule}
       />
     </BaseEditor>
   );
