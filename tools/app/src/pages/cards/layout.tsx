@@ -12,9 +12,15 @@
 */
 import { SearchableTreeMenu } from '../../components/SearchableTreeMenu';
 import TwoColumnLayout from '../../components/TwoColumnLayout';
-import { Outlet } from 'react-router';
+import { Outlet, useNavigate } from 'react-router';
 
-import { Box, CircularProgress, Typography, Container } from '@mui/joy';
+import {
+  Box,
+  CircularProgress,
+  Typography,
+  Container,
+  IconButton,
+} from '@mui/joy';
 import { useProject } from '../../lib/api';
 import {
   useAppRouter,
@@ -25,6 +31,7 @@ import {
 import { findParentCard } from '../../lib/utils';
 import { useTree } from '../../lib/api/tree';
 import { useCard } from '../../lib/api/card';
+import { Settings } from '@mui/icons-material';
 
 export default function AppLayout() {
   // Last URL parameter after /cards base is the card key
@@ -34,6 +41,7 @@ export default function AppLayout() {
   const { card } = useCard(key);
 
   const router = useAppRouter();
+  const navigate = useNavigate();
 
   // Set document title based on current card and project
   const title =
@@ -78,6 +86,16 @@ export default function AppLayout() {
       leftPanel={
         <SearchableTreeMenu
           title={project.name}
+          titleRightSlot={
+            <IconButton
+              variant="plain"
+              color="neutral"
+              size="sm"
+              onClick={() => navigate('/configuration')}
+            >
+              <Settings />
+            </IconButton>
+          }
           tree={tree}
           selectedCardKey={key ?? null}
           onMove={async (cardKey: string, newParent: string, index: number) => {

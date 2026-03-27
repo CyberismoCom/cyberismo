@@ -22,6 +22,8 @@ import { useTranslation } from 'react-i18next';
 
 type SearchableTreeMenuProps = {
   title?: string;
+  titleRightSlot?: React.ReactNode;
+
   selectedCardKey: string | null;
   onCardSelect?: (node: NodeApi<QueryResult<'tree'>>) => void;
   onMove?: (card: string, newParent: string, index: number) => void;
@@ -57,6 +59,7 @@ const filterTree = (
 
 export const SearchableTreeMenu = ({
   selectedCardKey,
+  titleRightSlot,
   title,
   onMove,
   onCardSelect,
@@ -116,6 +119,7 @@ export const SearchableTreeMenu = ({
       <Stack flexGrow={1} minHeight={0}>
         <TreeMenu
           title={title}
+          titleRightSlot={titleRightSlot}
           selectedCardKey={selectedCardKey}
           onCardSelect={onCardSelect}
           onMove={onMove}
