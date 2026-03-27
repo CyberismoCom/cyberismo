@@ -238,30 +238,28 @@ function MetadataView({
           ),
         )}
       </Stack>
-      {card.fields &&
-        card.fields.filter((field) => field.visibility === 'always').length !==
-          card.fields.length &&
-        card.fields.length !== 0 && (
-          <Box alignContent="flex-end" flexShrink={0} paddingLeft={1}>
-            <Link
-              variant="soft"
-              color="primary"
-              underline="none"
-              onClick={(e) => {
-                e.stopPropagation();
-                setExpanded(!expanded);
-              }}
-              bgcolor="inherit"
-              sx={{
-                '&:hover': {
-                  bgcolor: 'inherit',
-                },
-              }}
-            >
-              {expanded ? t('showLess') : t('showMore')}
-            </Link>
-          </Box>
-        )}
+      {card.fields.filter((field) => field.visibility === 'always').length !==
+        card.fields.length && (
+        <Box alignContent="flex-end" flexShrink={0} paddingLeft={1}>
+          <Link
+            variant="soft"
+            color="primary"
+            underline="none"
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpanded(!expanded);
+            }}
+            bgcolor="inherit"
+            sx={{
+              '&:hover': {
+                bgcolor: 'inherit',
+              },
+            }}
+          >
+            {expanded ? t('showLess') : t('showMore')}
+          </Link>
+        </Box>
+      )}
     </Box>
   );
 }
