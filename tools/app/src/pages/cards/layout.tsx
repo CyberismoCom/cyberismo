@@ -14,13 +14,7 @@ import { SearchableTreeMenu } from '../../components/SearchableTreeMenu';
 import TwoColumnLayout from '../../components/TwoColumnLayout';
 import { Outlet } from 'react-router';
 
-import {
-  Box,
-  CircularProgress,
-  Typography,
-  Container,
-  IconButton,
-} from '@mui/joy';
+import { Box, CircularProgress, Typography, Container } from '@mui/joy';
 import { useProject } from '../../lib/api';
 import {
   useAppRouter,
@@ -31,7 +25,7 @@ import {
 import { findParentCard } from '../../lib/utils';
 import { useTree } from '../../lib/api/tree';
 import { useCard } from '../../lib/api/card';
-import { Settings } from '@mui/icons-material';
+import { CardTreeMenu } from '@/components/CardTreeMenu';
 
 export default function AppLayout() {
   // Last URL parameter after /cards base is the card key
@@ -85,16 +79,7 @@ export default function AppLayout() {
       leftPanel={
         <SearchableTreeMenu
           title={project.name}
-          titleRightSlot={
-            <IconButton
-              variant="plain"
-              color="neutral"
-              size="sm"
-              onClick={() => router.safePush('/configuration')}
-            >
-              <Settings />
-            </IconButton>
-          }
+          titleRightSlot={<CardTreeMenu />}
           tree={tree}
           selectedCardKey={key ?? null}
           onMove={async (cardKey: string, newParent: string, index: number) => {
