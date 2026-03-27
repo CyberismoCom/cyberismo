@@ -635,20 +635,10 @@ export class Project extends CardContainer {
    * @param newParentCard New parent for the 'movedCard'
    * @param oldParentCard Previous parent of the 'movedCard'
    */
-  public async handleCardMoved(
-    movedCard: Card,
-    newParentCard?: Card,
-    oldParentCard?: Card,
-  ) {
-    if (newParentCard) {
-      this.cardCache.updateCard(newParentCard.key, newParentCard);
-    }
-    if (oldParentCard) {
-      this.cardCache.updateCard(oldParentCard.key, oldParentCard);
-    }
+  public async handleCardMoved(movedCard: Card) {
     this.cardCache.updateCard(movedCard.key, movedCard);
 
-    // todo: it would be enough to just update parent, previous parent and changed card
+    // Rebuild all parent-child relationships from the parent fields
     this.cardCache.populateChildrenRelationships();
     await this.handleCardChanged(movedCard);
     await this.calculationEngine.handleCardMoved();
