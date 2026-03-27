@@ -54,4 +54,29 @@ describe('Project endpoints', () => {
     expect(result.name).toBe('Updated Project Name');
     expect(result.cardKeyPrefix).toBe('projtest');
   });
+
+  test('GET /api/project/modules/importable returns the importable modules', async () => {
+    const response = await app.request('/api/project/modules/importable');
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    expect(result).toHaveLength(4);
+  });
+
+  test('POST /api/project/modules returns 400 for missing source', async () => {
+    const response = await app.request('/api/project/modules', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    expect(response.status).toBe(400);
+  });
+
+  test('POST /api/project/modules returns 400 for non-git source', async () => {
+    const response = await app.request('/api/project/modules', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source: 'not-a-git-url' }),
+    });
+    expect(response.status).toBe(400);
+  });
 });

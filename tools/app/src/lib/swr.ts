@@ -138,4 +138,5 @@ export const apiPaths = {
     `/api/project/modules/${encodeURIComponent(module)}/update`,
   projectModuleDelete: (module: string) =>
     `/api/project/modules/${encodeURIComponent(module)}`,
+  projectModulesImportable: () => '/api/project/modules/importable',
 };

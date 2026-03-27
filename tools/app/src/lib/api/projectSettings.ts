@@ -39,12 +39,21 @@ export const deleteProjectModule = async (moduleName: string) => {
   await callApi(apiPaths.projectModuleDelete(moduleName), 'DELETE');
   mutate(apiPaths.project());
   mutate(apiPaths.resourceTree());
+  mutate(apiPaths.templates());
 };
 
 export const updateAllProjectModules = async () => {
   await callApi(apiPaths.projectModulesUpdate(), 'POST');
   mutate(apiPaths.project());
   mutate(apiPaths.resourceTree());
+};
+
+export const addModule = async (source: string) => {
+  await callApi('/api/project/modules', 'POST', { source });
+  mutate(apiPaths.project());
+  mutate(apiPaths.resourceTree());
+  mutate(apiPaths.templates());
+  mutate(apiPaths.projectModulesImportable());
 };
 
 export const useProjectSettingsMutations = () => {
@@ -61,6 +70,7 @@ export const useProjectSettingsMutations = () => {
       call(() => deleteProjectModule(moduleName), `delete-${moduleName}`),
     updateAllModules: () =>
       call(() => updateAllProjectModules(), 'update-all-modules'),
+    addModule: (source: string) => call(() => addModule(source), 'add-module'),
   };
   return mutations;
 };

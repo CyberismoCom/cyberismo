@@ -21,3 +21,12 @@ export const updateProjectSchema = z.object({
   name: z.string().optional(),
   cardKeyPrefix: z.string().optional(),
 });
+
+export const importModuleSchema = z.object({
+  source: z
+    .string()
+    .min(1)
+    .refine((s) => s.startsWith('https') || s.startsWith('git@'), {
+      message: 'Source must be a git URL (https:// or git@)',
+    }),
+});

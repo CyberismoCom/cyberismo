@@ -11,7 +11,10 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { type CommandManager } from '@cyberismo/data-handler';
+import {
+  type CommandManager,
+  type ModuleSettingFromHub,
+} from '@cyberismo/data-handler';
 
 export interface ProjectModule {
   name: string;
@@ -93,4 +96,17 @@ export async function updateAllModules(commands: CommandManager) {
 
 export async function deleteModule(commands: CommandManager, module: string) {
   await commands.removeCmd.remove('module', module);
+}
+
+export async function getImportableModules(
+  commands: CommandManager,
+): Promise<ModuleSettingFromHub[]> {
+  return commands.showCmd.showImportableModules(false, true);
+}
+
+export async function importModule(
+  commands: CommandManager,
+  source: string,
+): Promise<void> {
+  await commands.importCmd.importModule(source);
 }

@@ -24,7 +24,7 @@ import type { GenericNode } from '@/lib/api/types';
 import { useProjectSettings, useProjectSettingsMutations } from '@/lib/api';
 import { useEditableField, useAppDispatch } from '@/lib/hooks';
 import { useModals } from '@/lib/utils';
-import { ModuleDeleteModal } from '@/components/modals';
+import { ModuleDeleteModal, AddModuleModal } from '@/components/modals';
 import { addNotification } from '@/lib/slices/notifications';
 import BaseEditor from './BaseEditor';
 import FieldRow from './fields/FieldRow';
@@ -42,11 +42,13 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
     updateModule,
     deleteModule,
     updateAllModules,
+    addModule,
     isUpdating,
     updateProject,
   } = useProjectSettingsMutations();
   const { modalOpen, openModal, closeModal } = useModals({
     deleteModule: false,
+    addModule: false,
   });
   const [moduleToDelete, setModuleToDelete] = useState<{
     name: string;
@@ -74,6 +76,32 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
     saveValue: (value) =>
       updateProject({ cardKeyPrefix: value }, 'update-cardKeyPrefix'),
   });
+
+  const handleModuleDelete = async (moduleToDelete: {
+    name: string;
+    cardKeyPrefix: string;
+  }) => {
+    try {
+      await deleteModule(moduleToDelete.cardKeyPrefix);
+      dispatch(
+        addNotification({
+          message: t('deleteModuleModal.success', {
+            moduleName: moduleToDelete.name,
+          }),
+          type: 'success',
+        }),
+      );
+      setModuleToDelete(null);
+      closeModal('deleteModule')();
+    } catch (error) {
+      dispatch(
+        addNotification({
+          message: error instanceof Error ? error.message : t('failedToLoad'),
+          type: 'error',
+        }),
+      );
+    }
+  };
 
   return (
     <BaseEditor node={node}>
@@ -108,6 +136,14 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
             <Typography level="title-lg">
               {t('general.modulesSection')}
             </Typography>
+            <Button
+              size="sm"
+              variant="solid"
+              onClick={openModal('addModule')}
+              disabled={isUpdating() || isDisabled}
+            >
+              {t('general.addModule')}
+            </Button>
             {general?.modules.length ? (
               <Button
                 size="sm"
@@ -198,35 +234,15 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
           }}
           moduleName={moduleToDelete.name}
           cardKeyPrefix={moduleToDelete.cardKeyPrefix}
-          onDelete={async () => {
-            try {
-              if (!moduleToDelete) {
-                return;
-              }
-              await deleteModule(moduleToDelete.cardKeyPrefix);
-              dispatch(
-                addNotification({
-                  message: t('deleteModuleModal.success', {
-                    moduleName: moduleToDelete.name,
-                  }),
-                  type: 'success',
-                }),
-              );
-              setModuleToDelete(null);
-              closeModal('deleteModule')();
-            } catch (error) {
-              dispatch(
-                addNotification({
-                  message:
-                    error instanceof Error ? error.message : t('failedToLoad'),
-                  type: 'error',
-                }),
-              );
-            }
-          }}
+          onDelete={() => handleModuleDelete(moduleToDelete)}
           isDeleting={isUpdating(`delete-${moduleToDelete.cardKeyPrefix}`)}
         />
       )}
+      <AddModuleModal
+        open={modalOpen.addModule}
+        onClose={closeModal('addModule')}
+        onAdd={addModule}
+      />
     </BaseEditor>
   );
 }
