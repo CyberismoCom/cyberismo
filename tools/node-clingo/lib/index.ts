@@ -164,17 +164,12 @@ export class ClingoContext {
           program?: string;
         };
 
-        if (
-          (error.message === 'parsing failed' ||
-            error.message === 'syntax error') &&
-          prog
-        ) {
-          throw new ClingoError(
-            `Parsing failed when processing program '${prog === '__program__' ? 'main program' : prog}' with errors: ${errors.join(', ')}`,
-            { errors, warnings, program: prog },
-          );
-        }
-        throw new ClingoError(error.message, {
+        const errorMessage =
+          error.message === 'parsing failed' || error.message === 'syntax error'
+            ? `Parsing failed when processing program '${prog === '__program__' ? 'main program' : prog}' with errors: ${errors.join(', ')}`
+            : error.message;
+
+        throw new ClingoError(errorMessage, {
           errors,
           warnings,
           program: prog,
