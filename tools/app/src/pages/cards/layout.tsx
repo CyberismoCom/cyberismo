@@ -12,7 +12,7 @@
 */
 import { SearchableTreeMenu } from '../../components/SearchableTreeMenu';
 import TwoColumnLayout from '../../components/TwoColumnLayout';
-import { Outlet, useNavigate } from 'react-router';
+import { Outlet } from 'react-router';
 
 import {
   Box,
@@ -41,7 +41,6 @@ export default function AppLayout() {
   const { card } = useCard(key);
 
   const router = useAppRouter();
-  const navigate = useNavigate();
 
   // Set document title based on current card and project
   const title =
@@ -91,7 +90,7 @@ export default function AppLayout() {
               variant="plain"
               color="neutral"
               size="sm"
-              onClick={() => navigate('/configuration')}
+              onClick={() => router.safePush('/configuration')}
             >
               <Settings />
             </IconButton>
