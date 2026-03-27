@@ -27,6 +27,7 @@ interface CategoryOptionProps {
   options: {
     name: string;
     displayName?: string;
+    disabled?: boolean;
     description: string;
     isChosen: boolean;
   }[];
@@ -62,13 +63,18 @@ export const CategoryOption = ({
             height: '200px',
             width: '200px',
             boxShadow: '0px 2px 2px 0px rgba(0, 0, 0, 0.5)',
-            cursor: 'pointer',
+            cursor: option.disabled ? 'not-allowed' : 'pointer',
             padding: 0,
             overflow: 'hidden',
             gap: 0,
             borderRadius: 16,
           }}
-          onClick={() => onOptionSelect(option.name)}
+          onClick={() => {
+            if (option.disabled) {
+              return;
+            }
+            onOptionSelect(option.name);
+          }}
         >
           <Stack
             direction="row"

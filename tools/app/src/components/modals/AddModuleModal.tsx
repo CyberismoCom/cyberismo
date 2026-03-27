@@ -121,6 +121,7 @@ export function AddModuleModal({ open, onClose, onAdd }: AddModuleModalProps) {
                   displayName: module.displayName,
                   description: module.location,
                   isChosen: selectedModule?.name === module.name,
+                  disabled: isImporting,
                 }))}
               />
             )}
