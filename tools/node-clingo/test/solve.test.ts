@@ -1,22 +1,16 @@
 import { describe, it, expect, afterEach, beforeEach } from 'vitest';
-import {
-  solve,
-  setProgram,
-  removeAllPrograms,
-  removeProgram,
-  buildProgram,
-  clearCache,
-} from '../lib/index.js';
+import { ClingoContext, clearCache } from '../lib/index.js';
 
 describe('Clingo solver', () => {
+  const ctx = new ClingoContext();
+
   afterEach(() => {
-    // Reset all base programs after each test
-    removeAllPrograms();
+    ctx.removeAllPrograms();
   });
 
   it('should solve a simple logic program', async () => {
     const program = 'a. b. c(1). c(2).';
-    const result = await solve(program);
+    const result = await ctx.solve(program);
 
     expect(result).toBeDefined();
     expect(result.answers).toBeInstanceOf(Array);
@@ -26,8 +20,8 @@ describe('Clingo solver', () => {
   // TODO: could consider c++ tests so that we can test the cache directly
   it('should return stats object', async () => {
     const program = 'a. b. c(1). c(3).';
-    const result = await solve(program);
-    const result2 = await solve(program);
+    const result = await ctx.solve(program);
+    const result2 = await ctx.solve(program);
 
     expect(result.stats).toBeDefined();
     expect(result.stats.glue).toBeGreaterThanOrEqual(0);
@@ -49,84 +43,86 @@ describe('Clingo solver', () => {
 
   it('should clear cache and force re-solve', async () => {
     const program = 'a. b. c(1). c(4).';
-    const result1 = await solve(program);
+    const result1 = await ctx.solve(program);
     expect(result1.stats.cacheHit).toBe(false);
 
     // Second solve should hit cache
-    const result2 = await solve(program);
+    const result2 = await ctx.solve(program);
     expect(result2.stats.cacheHit).toBe(true);
 
     // Clear cache
     clearCache();
 
     // Third solve should miss cache after clear
-    const result3 = await solve(program);
+    const result3 = await ctx.solve(program);
     expect(result3.stats.cacheHit).toBe(false);
   });
 
   it('should reuse default base program across multiple solves', async () => {
     // Set base program once
     const baseProgram = 'common(value).';
-    setProgram('base', baseProgram);
+    ctx.setProgram('base', baseProgram);
 
     // First solve
-    const result1 = await solve('a.', ['base']);
+    const result1 = await ctx.solve('a.', ['base']);
     expect(result1.answers[0]).toContain('common(value)');
     expect(result1.answers[0]).toContain('a');
 
     // Second solve with different program
-    const result2 = await solve('b.', ['base']);
+    const result2 = await ctx.solve('b.', ['base']);
     expect(result2.answers[0]).toContain('common(value)');
     expect(result2.answers[0]).toContain('b');
 
     // Third solve with different program
-    const result3 = await solve('c.', ['base']);
+    const result3 = await ctx.solve('c.', ['base']);
     expect(result3.answers[0]).toContain('common(value)');
     expect(result3.answers[0]).toContain('c');
   });
 
   describe('Named base programs', () => {
     it('should use a specified named base program', async () => {
-      setProgram('query', 'type(query).');
-      setProgram('graph', 'type(graph).');
+      ctx.setProgram('query', 'type(query).');
+      ctx.setProgram('graph', 'type(graph).');
 
       // Use query base program
-      const result1 = await solve('valid :- type(query).', ['query']);
+      const result1 = await ctx.solve('valid :- type(query).', ['query']);
       expect(result1.answers[0]).toContain('valid');
       expect(result1.answers[0]).toContain('type(query)');
       expect(result1.answers[0]).not.toContain('type(graph)');
 
       // Use graph base program
-      const result2 = await solve('valid :- type(graph).', ['graph']);
+      const result2 = await ctx.solve('valid :- type(graph).', ['graph']);
       expect(result2.answers[0]).toContain('valid');
       expect(result2.answers[0]).toContain('type(graph)');
       expect(result2.answers[0]).not.toContain('type(query)');
     });
 
     it('should work with category ids', async () => {
-      setProgram('query', 'type(query).', ['ref']);
-      const result1 = await solve('valid :- type(query).', ['ref']);
+      ctx.setProgram('query', 'type(query).', ['ref']);
+      const result1 = await ctx.solve('valid :- type(query).', ['ref']);
       expect(result1.answers[0]).toContain('valid');
       expect(result1.answers[0]).toContain('type(query)');
     });
 
     it('should work with multiple refs', async () => {
-      setProgram('query', 'type(query).', ['ref']);
-      setProgram('graph', 'type(graph).', ['ref']);
-      setProgram('base', 'base(base).', ['ref']);
-      const result1 = await solve('valid :- type(query), base(base).', ['ref']);
+      ctx.setProgram('query', 'type(query).', ['ref']);
+      ctx.setProgram('graph', 'type(graph).', ['ref']);
+      ctx.setProgram('base', 'base(base).', ['ref']);
+      const result1 = await ctx.solve('valid :- type(query), base(base).', [
+        'ref',
+      ]);
       expect(result1.answers[0]).toContain('valid');
       expect(result1.answers[0]).toContain('type(query)');
       expect(result1.answers[0]).toContain('base(base)');
     });
 
     it('should combine multiple base programs', async () => {
-      setProgram('colors', 'color(red).');
-      setProgram('shapes', 'shape(circle).');
-      setProgram('sizes', 'size(large).');
+      ctx.setProgram('colors', 'color(red).');
+      ctx.setProgram('shapes', 'shape(circle).');
+      ctx.setProgram('sizes', 'size(large).');
 
       // Combine multiple base programs
-      const result = await solve('valid :- color(X), shape(Y), size(Z).', [
+      const result = await ctx.solve('valid :- color(X), shape(Y), size(Z).', [
         'colors',
         'shapes',
         'sizes',
@@ -140,18 +136,20 @@ describe('Clingo solver', () => {
 
     it('should handle non-existent base program gracefully', async () => {
       // Solve with non-existent base program
-      const result = await solve('a.', ['non_existent']);
+      const result = await ctx.solve('a.', ['non_existent']);
 
       // Should still solve normally
       expect(result.answers[0]).toBe('a');
     });
   });
   it('should handle errors', async () => {
-    await expect(solve('not a program', ['non_existent'])).rejects.toThrow();
+    await expect(
+      ctx.solve('not a program', ['non_existent']),
+    ).rejects.toThrow();
   });
   it('should include errors and warnings in the result', async () => {
     try {
-      await solve('causes syn t4x error,');
+      await ctx.solve('causes syn t4x error,');
       expect.fail('Expected solve to throw an error');
     } catch (error: unknown) {
       expect(error).toBeDefined();
@@ -194,7 +192,7 @@ describe('Clingo solver', () => {
         #show result2/1.
         #show result3/1.
       `;
-      setProgram('show_results', showResultsProgram);
+      ctx.setProgram('show_results', showResultsProgram);
     });
     it('should extract prefix from valid resource names', async () => {
       const program = `
@@ -202,7 +200,7 @@ describe('Clingo solver', () => {
         result2(@resourcePrefix("local/cardTypes/task")).
         result3(@resourcePrefix("system/workflows/review")).
       `;
-      const result = await solve(program, ['show_results']);
+      const result = await ctx.solve(program, ['show_results']);
 
       expect(result.answers[0]).toContain('result("base")');
       expect(result.answers[0]).toContain('result2("local")');
@@ -215,7 +213,7 @@ describe('Clingo solver', () => {
         result2(@resourceType("local/cardTypes/task")).
         result3(@resourceType("system/workflows/review")).
       `;
-      const result = await solve(program, ['show_results']);
+      const result = await ctx.solve(program, ['show_results']);
 
       expect(result.answers[0]).toContain('result("fieldTypes")');
       expect(result.answers[0]).toContain('result2("cardTypes")');
@@ -228,7 +226,7 @@ describe('Clingo solver', () => {
         result2(@resourceIdentifier("local/cardTypes/task")).
         result3(@resourceIdentifier("system/workflows/review")).
       `;
-      const result = await solve(program, ['show_results']);
+      const result = await ctx.solve(program, ['show_results']);
 
       expect(result.answers[0]).toContain('result("owner")');
       expect(result.answers[0]).toContain('result2("task")');
@@ -241,7 +239,7 @@ describe('Clingo solver', () => {
         result2(@resourceType("invalidname")).
         result3(@resourceIdentifier("invalidname")).
       `;
-      const result = await solve(program, ['show_results']);
+      const result = await ctx.solve(program, ['show_results']);
 
       expect(result.answers[0]).toContain('result1("")');
       expect(result.answers[0]).toContain('result2("")');
@@ -254,7 +252,7 @@ describe('Clingo solver', () => {
         result2(@resourceType("base/owner")).
         result3(@resourceIdentifier("base/owner")).
       `;
-      const result = await solve(program, ['show_results']);
+      const result = await ctx.solve(program, ['show_results']);
 
       expect(result.answers[0]).toContain('result1("")');
       expect(result.answers[0]).toContain('result2("")');
@@ -267,7 +265,7 @@ describe('Clingo solver', () => {
         result2(@resourceType("base/fieldTypes/owner/extra")).
         result3(@resourceIdentifier("base/fieldTypes/owner/extra")).
       `;
-      const result = await solve(program, ['show_results']);
+      const result = await ctx.solve(program, ['show_results']);
 
       expect(result.answers[0]).toContain('result1("")');
       expect(result.answers[0]).toContain('result2("")');
@@ -280,7 +278,7 @@ describe('Clingo solver', () => {
         result2(@resourceType("")).
         result3(@resourceIdentifier("")).
       `;
-      const result = await solve(program, ['show_results']);
+      const result = await ctx.solve(program, ['show_results']);
 
       expect(result.answers[0]).toContain('result1("")');
       expect(result.answers[0]).toContain('result2("")');
@@ -293,7 +291,7 @@ describe('Clingo solver', () => {
         result2(@resourceType(456)).
         result3(@resourceIdentifier(789)).
       `;
-      const result = await solve(program, ['show_results']);
+      const result = await ctx.solve(program, ['show_results']);
 
       expect(result.answers[0]).toContain('result1("")');
       expect(result.answers[0]).toContain('result2("")');
@@ -306,7 +304,7 @@ describe('Clingo solver', () => {
         result2(@resourceType("base-123/field_types/owner-name")).
         result3(@resourceIdentifier("base-123/field_types/owner-name")).
       `;
-      const result = await solve(program, ['show_results']);
+      const result = await ctx.solve(program, ['show_results']);
 
       expect(result.answers[0]).toContain('result1("base-123")');
       expect(result.answers[0]).toContain('result2("field_types")');
@@ -319,7 +317,7 @@ describe('Clingo solver', () => {
         result1(@resourcePrefix(R)) :- resource(R).
         result2(@concatenate(@resourcePrefix("base/fieldTypes/owner"), "/", @resourceType("base/fieldTypes/owner"))).
       `;
-      const result = await solve(program, ['show_results']);
+      const result = await ctx.solve(program, ['show_results']);
 
       expect(result.answers[0]).toContain('result1("base")');
       expect(result.answers[0]).toContain('result2("base/fieldTypes")');
@@ -329,61 +327,61 @@ describe('Clingo solver', () => {
   describe('Single program removal', () => {
     it('should remove a specific program by key', async () => {
       // Set up programs
-      setProgram('remove_me', 'fact(remove).', ['test']);
-      setProgram('keep_me', 'fact(keep).', ['test']);
+      ctx.setProgram('remove_me', 'fact(remove).', ['test']);
+      ctx.setProgram('keep_me', 'fact(keep).', ['test']);
 
       // Verify both programs work initially
-      const initialResult = await solve('test :- fact(remove), fact(keep).', [
-        'remove_me',
-        'keep_me',
-      ]);
+      const initialResult = await ctx.solve(
+        'test :- fact(remove), fact(keep).',
+        ['remove_me', 'keep_me'],
+      );
       expect(initialResult.answers[0]).toContain('test');
 
       // Remove one program
-      const removed = removeProgram('remove_me');
+      const removed = ctx.removeProgram('remove_me');
       expect(removed).toBe(true);
 
       // Verify the kept program still works
-      const afterRemoval = await solve('test :- fact(keep).', ['keep_me']);
+      const afterRemoval = await ctx.solve('test :- fact(keep).', ['keep_me']);
       expect(afterRemoval.answers[0]).toContain('test');
       expect(afterRemoval.answers[0]).toContain('fact(keep)');
 
       // Verify the removed program is no longer available
-      const withoutRemoved = await solve('a.', ['remove_me']);
+      const withoutRemoved = await ctx.solve('a.', ['remove_me']);
       expect(withoutRemoved.answers[0]).toBe('a'); // Only main program result
     });
 
     it('should handle removing non-existent program gracefully', async () => {
       // Set up one program
-      setProgram('exists', 'fact(exists).', []);
+      ctx.setProgram('exists', 'fact(exists).', []);
 
       // Try to remove non-existent program (should not throw)
-      const removed = removeProgram('does_not_exist');
+      const removed = ctx.removeProgram('does_not_exist');
       expect(removed).toBe(false);
 
       // Existing program should still be there
-      const result = await solve('test :- fact(exists).', ['exists']);
+      const result = await ctx.solve('test :- fact(exists).', ['exists']);
       expect(result.answers[0]).toContain('test');
     });
 
     it('should handle removing from empty program store', () => {
       // No programs set up, try to remove something
-      const removed = removeProgram('anything');
+      const removed = ctx.removeProgram('anything');
       expect(removed).toBe(false);
     });
 
     it('should remove program with specific key while keeping others with same categories', async () => {
       // Set up programs with same categories but different keys
-      setProgram('base1', 'type(base1).', ['common']);
-      setProgram('base2', 'type(base2).', ['common']);
-      setProgram('base3', 'type(base3).', ['common']);
+      ctx.setProgram('base1', 'type(base1).', ['common']);
+      ctx.setProgram('base2', 'type(base2).', ['common']);
+      ctx.setProgram('base3', 'type(base3).', ['common']);
 
       // Remove specific program
-      const removed = removeProgram('base2');
+      const removed = ctx.removeProgram('base2');
       expect(removed).toBe(true);
 
       // Other programs with same category should still work
-      const result = await solve('test :- type(base1), type(base3).', [
+      const result = await ctx.solve('test :- type(base1), type(base3).', [
         'common',
       ]);
       expect(result.answers[0]).toContain('test');
@@ -393,37 +391,37 @@ describe('Clingo solver', () => {
     });
 
     it('should work with programs that have no categories', async () => {
-      setProgram('no_categories', 'fact(no_categories).', []);
-      setProgram('with_categories', 'fact(with_categories).', ['category']);
+      ctx.setProgram('no_categories', 'fact(no_categories).', []);
+      ctx.setProgram('with_categories', 'fact(with_categories).', ['category']);
 
       // Remove the program without categories
-      const removed = removeProgram('no_categories');
+      const removed = ctx.removeProgram('no_categories');
       expect(removed).toBe(true);
 
       // Program with categories should still work
-      const result = await solve('test :- fact(with_categories).', [
+      const result = await ctx.solve('test :- fact(with_categories).', [
         'with_categories',
       ]);
       expect(result.answers[0]).toContain('test');
 
       // Program without categories should be gone
-      const result2 = await solve('a.', ['no_categories']);
+      const result2 = await ctx.solve('a.', ['no_categories']);
       expect(result2.answers[0]).toBe('a');
     });
 
     it('should return correct boolean values for removal attempts', () => {
-      setProgram('exists', 'fact(exists).', []);
+      ctx.setProgram('exists', 'fact(exists).', []);
 
       // First removal should return true
-      const firstRemove = removeProgram('exists');
+      const firstRemove = ctx.removeProgram('exists');
       expect(firstRemove).toBe(true);
 
       // Second removal of same program should return false
-      const secondRemove = removeProgram('exists');
+      const secondRemove = ctx.removeProgram('exists');
       expect(secondRemove).toBe(false);
 
       // Removing non-existent program should return false
-      const nonExistentRemove = removeProgram('never_existed');
+      const nonExistentRemove = ctx.removeProgram('never_existed');
       expect(nonExistentRemove).toBe(false);
     });
   });
@@ -431,53 +429,53 @@ describe('Clingo solver', () => {
   describe('Remove all programs', () => {
     it('should remove all stored programs', async () => {
       // Set up multiple programs with different configurations
-      setProgram('program1', 'fact(1).', ['flag1']);
-      setProgram('program2', 'fact(2).', ['flag2', 'flag3']);
-      setProgram('program3', 'fact(3).', []);
-      setProgram('program4', 'fact(4).', ['flag1', 'flag4']);
+      ctx.setProgram('program1', 'fact(1).', ['flag1']);
+      ctx.setProgram('program2', 'fact(2).', ['flag2', 'flag3']);
+      ctx.setProgram('program3', 'fact(3).', []);
+      ctx.setProgram('program4', 'fact(4).', ['flag1', 'flag4']);
 
       // Verify programs work initially
-      const initialResult = await solve('test :- fact(1).', ['program1']);
+      const initialResult = await ctx.solve('test :- fact(1).', ['program1']);
       expect(initialResult.answers[0]).toContain('test');
 
       // Remove all programs
-      removeAllPrograms();
+      ctx.removeAllPrograms();
 
       // All programs should be gone - solve should work with empty refs
-      const afterClear1 = await solve('a.', ['program1']);
+      const afterClear1 = await ctx.solve('a.', ['program1']);
       expect(afterClear1.answers[0]).toBe('a');
 
-      const afterClear2 = await solve('b.', ['flag1']);
+      const afterClear2 = await ctx.solve('b.', ['flag1']);
       expect(afterClear2.answers[0]).toBe('b');
 
-      const afterClear3 = await solve('c.', ['program3']);
+      const afterClear3 = await ctx.solve('c.', ['program3']);
       expect(afterClear3.answers[0]).toBe('c');
     });
 
     it('should work when no programs are stored', () => {
       // Call removeAllPrograms when no programs exist
-      removeAllPrograms();
+      ctx.removeAllPrograms();
     });
 
     it('should return true indicating successful operation', () => {
-      setProgram('test', 'fact(test).', []);
-      removeAllPrograms();
+      ctx.setProgram('test', 'fact(test).', []);
+      ctx.removeAllPrograms();
     });
 
     it('should be safe to call multiple times', () => {
-      setProgram('test', 'fact(test).', []);
+      ctx.setProgram('test', 'fact(test).', []);
 
       // Call multiple times
-      removeAllPrograms();
-      removeAllPrograms();
-      removeAllPrograms();
+      ctx.removeAllPrograms();
+      ctx.removeAllPrograms();
+      ctx.removeAllPrograms();
     });
   });
 
   describe('buildProgram function', () => {
     it('should return just the main program when no base programs are specified', () => {
       const mainProgram = 'a. b. c(1).';
-      const result = buildProgram(mainProgram);
+      const result = ctx.buildProgram(mainProgram);
 
       expect(result).toContain('% Main program');
       expect(result).toContain(mainProgram);
@@ -485,10 +483,10 @@ describe('Clingo solver', () => {
     });
 
     it('should combine main program with a single base program', () => {
-      setProgram('base', 'base_fact(value).');
+      ctx.setProgram('base', 'base_fact(value).');
 
       const mainProgram = 'main_fact.';
-      const result = buildProgram(mainProgram, ['base']);
+      const result = ctx.buildProgram(mainProgram, ['base']);
 
       expect(result).toContain('% Program: base');
       expect(result).toContain('base_fact(value).');
@@ -502,12 +500,16 @@ describe('Clingo solver', () => {
     });
 
     it('should combine main program with multiple base programs', () => {
-      setProgram('colors', 'color(red). color(blue).');
-      setProgram('shapes', 'shape(circle). shape(square).');
-      setProgram('sizes', 'size(small). size(large).');
+      ctx.setProgram('colors', 'color(red). color(blue).');
+      ctx.setProgram('shapes', 'shape(circle). shape(square).');
+      ctx.setProgram('sizes', 'size(small). size(large).');
 
       const mainProgram = 'valid :- color(X), shape(Y), size(Z).';
-      const result = buildProgram(mainProgram, ['colors', 'shapes', 'sizes']);
+      const result = ctx.buildProgram(mainProgram, [
+        'colors',
+        'shapes',
+        'sizes',
+      ]);
 
       expect(result).toContain('% Program: colors');
       expect(result).toContain('color(red). color(blue).');
@@ -520,12 +522,12 @@ describe('Clingo solver', () => {
     });
 
     it('should work with category-based program inclusion', () => {
-      setProgram('query_rules', 'type(query).', ['query']);
-      setProgram('graph_rules', 'type(graph).', ['query']);
-      setProgram('base_rules', 'base(fact).', ['base']);
+      ctx.setProgram('query_rules', 'type(query).', ['query']);
+      ctx.setProgram('graph_rules', 'type(graph).', ['query']);
+      ctx.setProgram('base_rules', 'base(fact).', ['base']);
 
       const mainProgram = 'valid :- type(X), base(Y).';
-      const result = buildProgram(mainProgram, ['query']);
+      const result = ctx.buildProgram(mainProgram, ['query']);
 
       expect(result).toContain('% Program: query_rules');
       expect(result).toContain('type(query).');
@@ -537,11 +539,11 @@ describe('Clingo solver', () => {
     });
 
     it('should prevent duplicate programs when using mixed refs and categories', () => {
-      setProgram('common', 'common(value).', ['shared']);
-      setProgram('specific', 'specific(value).', ['shared']);
+      ctx.setProgram('common', 'common(value).', ['shared']);
+      ctx.setProgram('specific', 'specific(value).', ['shared']);
 
       const mainProgram = 'test.';
-      const result = buildProgram(mainProgram, ['common', 'shared']);
+      const result = ctx.buildProgram(mainProgram, ['common', 'shared']);
 
       // 'common' should appear only once, even though it matches both direct ref and category
       const commonMatches = (result.match(/common\(value\)/g) || []).length;
@@ -552,10 +554,10 @@ describe('Clingo solver', () => {
     });
 
     it('should handle non-existent program references gracefully', () => {
-      setProgram('exists', 'exists(fact).');
+      ctx.setProgram('exists', 'exists(fact).');
 
       const mainProgram = 'main.';
-      const result = buildProgram(mainProgram, [
+      const result = ctx.buildProgram(mainProgram, [
         'exists',
         'non_existent',
         'also_missing',
@@ -571,10 +573,10 @@ describe('Clingo solver', () => {
     });
 
     it('should handle empty categories array', () => {
-      setProgram('unused', 'unused(fact).');
+      ctx.setProgram('unused', 'unused(fact).');
 
       const mainProgram = 'only_main.';
-      const result = buildProgram(mainProgram, []);
+      const result = ctx.buildProgram(mainProgram, []);
 
       expect(result).toContain('% Main program');
       expect(result).toContain('only_main.');
@@ -582,13 +584,13 @@ describe('Clingo solver', () => {
     });
 
     it('should handle programs with categories that have multiple programs', () => {
-      setProgram('rule1', 'type(a).', ['group']);
-      setProgram('rule2', 'type(b).', ['group']);
-      setProgram('rule3', 'type(c).', ['group']);
-      setProgram('other', 'other(fact).', ['different']);
+      ctx.setProgram('rule1', 'type(a).', ['group']);
+      ctx.setProgram('rule2', 'type(b).', ['group']);
+      ctx.setProgram('rule3', 'type(c).', ['group']);
+      ctx.setProgram('other', 'other(fact).', ['different']);
 
       const mainProgram = 'collect :- type(X).';
-      const result = buildProgram(mainProgram, ['group']);
+      const result = ctx.buildProgram(mainProgram, ['group']);
 
       expect(result).toContain('% Program: rule1');
       expect(result).toContain('type(a).');
@@ -601,13 +603,42 @@ describe('Clingo solver', () => {
 
     it('should throw TypeError for invalid arguments', () => {
       // @ts-expect-error Testing invalid argument type
-      expect(() => buildProgram('test', 'not_an_array')).toThrow(
+      expect(() => ctx.buildProgram('test', 'not_an_array')).toThrow(
         'Second argument must be an array of strings (refs)',
       );
-      // @ts-expect-error Testing invalid argument type
-      expect(() => buildProgram('test', ['valid', 123, 'also_valid'])).toThrow(
-        'All refs must be strings',
-      );
+      expect(() =>
+        // @ts-expect-error Testing invalid argument type
+        ctx.buildProgram('test', ['valid', 123, 'also_valid']),
+      ).toThrow('All refs must be strings');
+    });
+  });
+
+  describe('Pre-parsing option', () => {
+    it('should produce correct results without pre-parsing', async () => {
+      const ctxNoParse = new ClingoContext({ preParsing: false });
+
+      ctxNoParse.setProgram('base', 'fact(value).');
+      const result = await ctxNoParse.solve('test :- fact(value).', ['base']);
+
+      expect(result.answers[0]).toContain('test');
+      expect(result.answers[0]).toContain('fact(value)');
+    });
+
+    it('should produce identical results with and without pre-parsing', async () => {
+      const baseContent = 'color(red). color(blue). shape(circle).';
+      const query = 'valid :- color(X), shape(Y).';
+
+      const ctxWithParse = new ClingoContext({ preParsing: true });
+      ctxWithParse.setProgram('base', baseContent);
+      clearCache();
+      const withPreParse = await ctxWithParse.solve(query, ['base']);
+
+      const ctxNoParse = new ClingoContext({ preParsing: false });
+      ctxNoParse.setProgram('base', baseContent);
+      clearCache();
+      const withoutPreParse = await ctxNoParse.solve(query, ['base']);
+
+      expect(withoutPreParse.answers).toEqual(withPreParse.answers);
     });
   });
 });
