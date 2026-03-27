@@ -62,15 +62,11 @@ router.post(
   },
 );
 
-router.get(
-  '/modules/importable',
-  requireRole(UserRole.Reader),
-  async (c) => {
-    const commands = c.get('commands');
-    const modules = await projectService.getImportableModules(commands);
-    return c.json(modules);
-  },
-);
+router.get('/modules/importable', requireRole(UserRole.Reader), async (c) => {
+  const commands = c.get('commands');
+  const modules = await projectService.getImportableModules(commands);
+  return c.json(modules);
+});
 
 router.post(
   '/modules',

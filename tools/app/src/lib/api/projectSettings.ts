@@ -70,8 +70,7 @@ export const useProjectSettingsMutations = () => {
       call(() => deleteProjectModule(moduleName), `delete-${moduleName}`),
     updateAllModules: () =>
       call(() => updateAllProjectModules(), 'update-all-modules'),
-    addModule: (source: string) =>
-      call(() => addModule(source), 'add-module'),
+    addModule: (source: string) => call(() => addModule(source), 'add-module'),
   };
   return mutations;
 };
