@@ -31,10 +31,12 @@ interface NativeClingoContext {
   buildProgram(program: string, categories: string[]): string;
 }
 
+export interface ClingoOptions {
+  preParsing?: boolean;
+}
+
 interface NativeBinding {
-  ClingoContext: new (options?: {
-    preParsing?: boolean;
-  }) => NativeClingoContext;
+  ClingoContext: new (options?: ClingoOptions) => NativeClingoContext;
   clearCache(): void;
 }
 
