@@ -19,6 +19,7 @@ import { CardTreeNode } from './tree-nodes';
 
 type TreeMenuProps = {
   title?: string;
+  titleRightSlot?: React.ReactNode;
   selectedCardKey: string | null;
   onCardSelect?: (node: NodeApi<QueryResult<'tree'>>) => void;
   onMove?: (card: string, newParent: string, index: number) => void;
@@ -33,6 +34,7 @@ export const TreeMenu = ({
   onCardSelect,
   tree,
   openByDefault = false,
+  titleRightSlot,
 }: TreeMenuProps) => {
   const handleMove = (
     dragIds: string[],
@@ -48,6 +50,7 @@ export const TreeMenu = ({
     <Stack height="100%" width="100%" bgcolor="background.surface">
       <BaseTreeComponent
         title={title}
+        titleRightSlot={titleRightSlot}
         linkTo={title ? '/cards' : ''}
         data={tree}
         selectedId={selectedCardKey}

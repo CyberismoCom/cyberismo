@@ -25,6 +25,7 @@ import {
 import { findParentCard } from '../../lib/utils';
 import { useTree } from '../../lib/api/tree';
 import { useCard } from '../../lib/api/card';
+import { CardTreeMenu } from '@/components/CardTreeMenu';
 
 export default function AppLayout() {
   // Last URL parameter after /cards base is the card key
@@ -78,6 +79,7 @@ export default function AppLayout() {
       leftPanel={
         <SearchableTreeMenu
           title={project.name}
+          titleRightSlot={<CardTreeMenu />}
           tree={tree}
           selectedCardKey={key ?? null}
           onMove={async (cardKey: string, newParent: string, index: number) => {

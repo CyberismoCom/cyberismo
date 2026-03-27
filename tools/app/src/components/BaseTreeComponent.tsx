@@ -21,6 +21,7 @@ import { config } from '@/lib/utils';
 
 export interface BaseTreeProps<T> {
   title?: string;
+  titleRightSlot?: React.ReactNode;
   linkTo?: string;
   data: T[] | null;
   selectedId?: string | null;
@@ -36,6 +37,7 @@ export interface BaseTreeProps<T> {
 
 export function BaseTreeComponent<T>({
   title,
+  titleRightSlot,
   linkTo,
   data,
   selectedId,
@@ -79,15 +81,23 @@ export function BaseTreeComponent<T>({
       ref={ref}
     >
       {title && (
-        <Link
-          to={linkTo || ''}
-          style={{ textDecoration: 'none' }}
-          ref={titleRef}
+        <Stack
+          flexWrap="nowrap"
+          flexDirection="row"
+          justifyContent="space-between"
+          alignItems="flex-start"
         >
-          <Typography level="h4" marginBottom={2}>
-            {title}
-          </Typography>
-        </Link>
+          <Link
+            to={linkTo || ''}
+            style={{ textDecoration: 'none' }}
+            ref={titleRef}
+          >
+            <Typography level="h4" marginBottom={2}>
+              {title}
+            </Typography>
+          </Link>
+          {titleRightSlot}
+        </Stack>
       )}
       <Tree
         ref={treeRef}
