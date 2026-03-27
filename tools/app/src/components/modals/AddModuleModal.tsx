@@ -32,6 +32,8 @@ import { useTranslation } from 'react-i18next';
 import { apiPaths } from '@/lib/swr';
 import type { ModuleSettingFromHub } from '@cyberismo/data-handler';
 import { CategoryOption } from './OptionCards';
+import { addNotification } from '@/lib/slices/notifications';
+import { useAppDispatch } from '@/lib/hooks';
 
 interface AddModuleModalProps {
   open: boolean;
@@ -41,11 +43,11 @@ interface AddModuleModalProps {
 
 export function AddModuleModal({ open, onClose, onAdd }: AddModuleModalProps) {
   const { t } = useTranslation();
+  const dispatch = useAppDispatch();
   const [selectedModule, setSelectedModule] =
     useState<ModuleSettingFromHub | null>(null);
   const [urlInput, setUrlInput] = useState('');
   const [isImporting, setIsImporting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const { data: hubModules } = useSWR<ModuleSettingFromHub[]>(
     apiPaths.projectModulesImportable(),
@@ -71,7 +73,6 @@ export function AddModuleModal({ open, onClose, onAdd }: AddModuleModalProps) {
   const handleClose = () => {
     setSelectedModule(null);
     setUrlInput('');
-    setError(null);
     onClose();
   };
 
@@ -79,15 +80,24 @@ export function AddModuleModal({ open, onClose, onAdd }: AddModuleModalProps) {
     const source = selectedModule?.location ?? urlInput.trim();
     if (!source) return;
     setIsImporting(true);
-    setError(null);
     try {
       await onAdd(source);
-      setIsImporting(false);
       handleClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('failedToLoad'));
-      setIsImporting(false);
+      dispatch(
+        addNotification({
+          message: t('addModuleModal.success'),
+          type: 'success',
+        }),
+      );
+    } catch (error) {
+      dispatch(
+        addNotification({
+          message: error instanceof Error ? error.message : t('failedToLoad'),
+          type: 'error',
+        }),
+      );
     }
+    setIsImporting(false);
   };
 
   const canSubmit = Boolean(selectedModule || urlInput.trim());
@@ -125,7 +135,7 @@ export function AddModuleModal({ open, onClose, onAdd }: AddModuleModalProps) {
                 }))}
               />
             )}
-            <FormControl error={Boolean(error)}>
+            <FormControl>
               <FormLabel>{t('addModuleModal.moduleUrl')} *</FormLabel>
               <Input
                 placeholder={t('addModuleModal.moduleUrlPlaceholder')}
@@ -133,11 +143,6 @@ export function AddModuleModal({ open, onClose, onAdd }: AddModuleModalProps) {
                 onChange={(e) => handleUrlChange(e.target.value)}
                 disabled={isImporting}
               />
-              {error && (
-                <Typography level="body-sm" color="danger">
-                  {error}
-                </Typography>
-              )}
             </FormControl>
           </Stack>
         </DialogContent>

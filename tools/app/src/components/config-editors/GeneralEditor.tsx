@@ -103,16 +103,6 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
     }
   };
 
-  const handleAddModule = async (source: string) => {
-    await addModule(source);
-    dispatch(
-      addNotification({
-        message: t('addModuleModal.success'),
-        type: 'success',
-      }),
-    );
-  };
-
   return (
     <BaseEditor node={node}>
       <Stack spacing={2}>
@@ -251,7 +241,7 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
       <AddModuleModal
         open={modalOpen.addModule}
         onClose={closeModal('addModule')}
-        onAdd={handleAddModule}
+        onAdd={addModule}
       />
     </BaseEditor>
   );
