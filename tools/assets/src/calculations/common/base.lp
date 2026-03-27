@@ -22,6 +22,9 @@ dataType(Card, "lastUpdated", "dateTime") :-
 dataType(Connector, "lastSynchronised", "dateTime") :-
     field(Connector, "lastSynchronised", _).
 
+dataType(Card, "progress", "integer") :-
+    field(Card, "progress", _).
+
 % add workflow state category as a calculated field for Cards
 field(Card, "workflowStateCategory", Category) :-
     card(Card),
