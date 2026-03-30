@@ -6,6 +6,7 @@
     "cyberismo": "tools/cli/bin/run"
   },
   "devDependencies": {
+    "@cyberismo/cli": "link:",
     "@eslint/js": "^10.0.1",
     "@types/node": "^22.19.13",
     "@typescript-eslint/parser": "^8.56.1",
@@ -29,6 +30,7 @@
   },
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.8.0",
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "pnpm -r run build",
