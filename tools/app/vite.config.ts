@@ -23,6 +23,7 @@ export default defineConfig({
     },
   },
   server: {
+    host: process.env.VITE_HOST === 'true' ? true : undefined,
     proxy:
       process.env.VITE_CYBERISMO_EXPORT === 'true'
         ? undefined
