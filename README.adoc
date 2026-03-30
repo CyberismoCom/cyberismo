@@ -24,13 +24,88 @@ See separate file CONTRIBUTING.
 
 == Development
 
-=== Environment
-Copy *env.example* files to respective *.env* files
+=== Dev Container (Recommended)
 
-=== Instal Dependencies
+The easiest way to set up a development environment is using a https://containers.dev[Dev Container].
+It installs all system dependencies automatically.
+
+==== Prerequisites
+
+* https://www.docker.com[Docker] or https://podman.io[Podman]
+* One of:
+** VS Code with the https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers[Dev Containers] extension
+** JetBrains IDE with https://www.jetbrains.com/help/idea/connect-to-devcontainer.html[Dev Containers support]
+** https://github.com/devcontainers/cli[devcontainer CLI] (`npm install -g @devcontainers/cli`)
+
+==== Getting Started
+
+1. Clone the repository
+2. Open the folder in VS Code
+3. When prompted, click **Reopen in Container** (or run *Dev Containers: Reopen in Container* from the command palette)
+4. Wait for the container to build and the post-create script to finish
+5. Run `pnpm dev` to start the development servers
+
+The dev container automatically installs all system dependencies (Clingo, Ruby, C++ build tools), Node.js 22, pnpm, and project dependencies.
+
+=== Manual Setup
+
+If you prefer not to use a Dev Container, install the following system dependencies first.
+
+==== System Dependencies
+
+**Linux (Ubuntu/Debian)**
 [source, shell]
 ----
-    pnpm install
+sudo apt-get update
+sudo apt-get install -y ruby-full build-essential g++-14 python3 make
+sudo gem install --no-document asciidoctor-pdf rouge
+----
+
+**Linux (Fedora)**
+[source, shell]
+----
+sudo dnf install ruby rubygems gcc-c++ python3 make
+sudo gem install --no-document asciidoctor-pdf rouge
+----
+
+**macOS**
+[source, shell]
+----
+brew install clingo ruby
+gem install --no-document asciidoctor-pdf rouge
+----
+Xcode Command Line Tools are also required (`xcode-select --install`).
+
+**Windows**
+
+Install https://nodejs.org[Node.js] with the "Tools for Native Modules" option.
+Install Clingo via conda using the `environment.yml` at the repo root:
+[source, shell]
+----
+conda env create -f environment.yml
+conda activate cyberismo
+----
+
+==== Node.js and pnpm
+
+Install https://nodejs.org[Node.js] 22 LTS, then enable pnpm via corepack:
+[source, shell]
+----
+corepack enable
+----
+
+==== Install Dependencies and Build
+
+[source, shell]
+----
+pnpm install
+pnpm build
+----
+
+Copy *env.example* files to respective *.env* files:
+[source, shell]
+----
+cp tools/backend/env.example tools/backend/.env
 ----
 
 CLI related dependencies: link:tools/cli/README.md[README.md]
@@ -38,7 +113,7 @@ CLI related dependencies: link:tools/cli/README.md[README.md]
 === Run Project
 [source, shell]
 ----
-    pnpm dev
+pnpm dev
 ----
 Backend is accessible at http://localhost:3000
 
