@@ -38,7 +38,7 @@ toc::[]
 [cols="1,4",frame=none,grid=none]
 |===
 {{#each this.links}}
-| {{displayName}} | xref:{{this.key}}[{{this.title}}]{{#if this.linkDescription}} - {{this.linkDescription}}{{/if}}
+| {{displayName}} | {{#if this.url}}{{this.url}}[{{this.title}}]{{else}}xref:{{this.key}}[{{this.title}}]{{/if}}{{#if this.linkDescription}} - {{this.linkDescription}}{{/if}}
 {{/each}}
 |===
 {empty} +
