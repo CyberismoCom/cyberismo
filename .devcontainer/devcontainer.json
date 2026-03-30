@@ -14,15 +14,21 @@
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
       "version": "22"
-    }
+    },
+    "ghcr.io/devcontainers/features/desktop-lite:1": {}
   },
-  "forwardPorts": [3000, 5173],
-  "remoteEnv": {
-    "VITE_HOST": "true"
-  },
+  "forwardPorts": [3000, 5173, 6080, 5901],
   "mounts": [
     "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached"
   ],
   "name": "Cyberismo Dev",
-  "postCreateCommand": "bash .devcontainer/post-create.sh"
+  "portsAttributes": {
+    "6080": {
+      "label": "desktop"
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "remoteEnv": {
+    "VITE_HOST": "true"
+  }
 }
