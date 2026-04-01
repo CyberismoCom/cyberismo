@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-expressions */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { expect, it, describe, beforeAll, afterAll } from 'vitest';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -156,17 +154,13 @@ describe('Cli BAT test', function () {
     expect(stdout).toContain('Done');
     expect(stdout).toContain('Project structure validated');
   });
-  it(
-    'Change the rank of a card',
-    async () => {
-      const { stdout } = await execAsync(
-        `cd ${cliPath}&&cyberismo rank card ${pageCardKey} ${newPageCardKey}&&cyberismo validate`,
-      );
-      expect(stdout).toContain('Done');
-      expect(stdout).toContain('Project structure validated');
-    },
-    TEST_TIMEOUT,
-  );
+  it('Change the rank of a card', async () => {
+    const { stdout } = await execAsync(
+      `cd ${cliPath}&&cyberismo rank card ${pageCardKey} ${newPageCardKey}&&cyberismo validate`,
+    );
+    expect(stdout).toContain('Done');
+    expect(stdout).toContain('Project structure validated');
+  });
   it('Export the static documentation site', async () => {
     const { stdout } = await execAsync(
       `cd ${cliPath}&&cyberismo export adoc ${newPageCardKey}&&cyberismo validate`,
@@ -279,4 +273,4 @@ describe('Cli BAT test', function () {
     expect(stdout).toContain('Done');
     expect(stdout).toContain('Project structure validated');
   });
-});
+}, 100000);
