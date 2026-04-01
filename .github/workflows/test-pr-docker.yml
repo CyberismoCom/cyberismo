@@ -71,6 +71,6 @@ jobs:
       - name: Run CLI tests
         run: |
           cd tools/cli
-          pnpm test
+          PATH="$(cd ../.. && pwd)/scripts:$PATH" pnpm test
 
 
