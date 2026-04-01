@@ -32,6 +32,7 @@
       "italic": "Italic",
       "highlight": "Highlight",
       "insertTable": "Insert table",
+      "mermaidDiagram": "Insert Mermaid diagram",
       "macros": {
         "include": "Include a card",
         "xref": "Cross reference",

@@ -70,5 +70,8 @@
     "vega-lite": "^6.4.2",
     "vite": "^8.0.8",
     "zod": "^4.3.6"
+  },
+  "dependencies": {
+    "mermaid": "^11.14.0"
   }
 }

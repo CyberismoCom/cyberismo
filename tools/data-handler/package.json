@@ -24,7 +24,8 @@
     ".": "./dist/index.js",
     "./interfaces/*": "./dist/interfaces/*.js",
     "./types/*": "./dist/types/*.js",
-    "./macros/*": "./dist/macros/*.js"
+    "./macros/*": "./dist/macros/*.js",
+    "./utils/*": "./dist/utils/*.js"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
@@ -52,6 +53,7 @@
     "jsdom": "^29.0.1",
     "json-schema": "^0.4.0",
     "jsonschema": "^1.5.0",
+    "mermaid": "^11.14.0",
     "mime-types": "^3.0.2",
     "pino": "^10.3.1",
     "semver": "^7.7.0",
