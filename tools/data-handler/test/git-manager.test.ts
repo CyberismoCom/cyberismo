@@ -238,19 +238,19 @@ describe('GitManager', () => {
       await gm.tagVersion('1.0.0');
 
       const before = await gm.listVersionTags();
-      expect(before).to.include('v1.0.0');
+      expect(before).toContain('v1.0.0');
 
       await gm.deleteTag('1.0.0');
 
       const after = await gm.listVersionTags();
-      expect(after).to.not.include('v1.0.0');
+      expect(after).not.toContain('v1.0.0');
     });
 
     it('should throw when tag does not exist', async () => {
       const gm = new GitManager(dir);
       await gm.initialize();
 
-      await expect(gm.deleteTag('9.9.9')).to.be.rejected;
+      await expect(gm.deleteTag('9.9.9')).rejects.toThrow();
     });
   });
 
