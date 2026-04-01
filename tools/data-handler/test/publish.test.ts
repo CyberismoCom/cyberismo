@@ -1,8 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-expressions */
-
-import { expect, use } from 'chai';
-import chaiAsPromised from 'chai-as-promised';
-use(chaiAsPromised);
+import { expect, describe, it, beforeEach, afterEach } from 'vitest';
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -66,14 +62,14 @@ describe('Publish', () => {
 
       const result = await publish.publishVersion();
 
-      expect(result.version).to.equal('1.0.0');
-      expect(result.dryRun).to.be.undefined;
+      expect(result.version).toBe('1.0.0');
+      expect(result.dryRun).toBeUndefined();
 
       const tags = await testGit(dir).tags();
-      expect(tags.all).to.include('v1.0.0');
+      expect(tags.all).toContain('v1.0.0');
 
-      expect(pushStub.calledOnce).to.be.true;
-      expect(pushStub.calledWith({ tags: true, remote: undefined })).to.be.true;
+      expect(pushStub.calledOnce).toBe(true);
+      expect(pushStub.calledWith({ tags: true, remote: undefined })).toBe(true);
     });
 
     it('should create tag with correct annotation message', async () => {
@@ -91,13 +87,13 @@ describe('Publish', () => {
         '--format=%(contents:subject)',
         'v2.1.0',
       ]);
-      expect(tagInfo.trim()).to.equal('Release v2.1.0');
+      expect(tagInfo.trim()).toBe('Release v2.1.0');
     });
   });
 
   describe('error conditions', () => {
     it('should throw if no version set', async () => {
-      await expect(publish.publishVersion()).to.be.rejectedWith(
+      await expect(publish.publishVersion()).rejects.toThrow(
         'No version set',
       );
     });
@@ -108,7 +104,7 @@ describe('Publish', () => {
       await git.commit('change');
       await git.tagVersion('1.0.0', 'Release v1.0.0');
 
-      await expect(publish.publishVersion()).to.be.rejectedWith(
+      await expect(publish.publishVersion()).rejects.toThrow(
         'already published',
       );
     });
@@ -117,7 +113,7 @@ describe('Publish', () => {
       configuration.version = '1.0.0';
       await writeFile(join(dir, 'cardRoot', 'dirty.txt'), 'uncommitted');
 
-      await expect(publish.publishVersion()).to.be.rejectedWith(
+      await expect(publish.publishVersion()).rejects.toThrow(
         'uncommitted changes',
       );
     });
@@ -129,13 +125,13 @@ describe('Publish', () => {
 
       sinon.stub(git, 'push').rejects(new Error('network error'));
 
-      await expect(publish.publishVersion()).to.be.rejectedWith(
+      await expect(publish.publishVersion()).rejects.toThrow(
         'network error',
       );
 
       // Tag should have been cleaned up so retry works
       const tags = await testGit(dir).tags();
-      expect(tags.all).to.not.include('v1.0.0');
+      expect(tags.all).not.toContain('v1.0.0');
     });
   });
 
@@ -149,13 +145,13 @@ describe('Publish', () => {
 
       const result = await publish.publishVersion(true);
 
-      expect(result.version).to.equal('1.0.0');
-      expect(result.dryRun).to.be.true;
+      expect(result.version).toBe('1.0.0');
+      expect(result.dryRun).toBe(true);
 
       const tags = await testGit(dir).tags();
-      expect(tags.all).to.not.include('v1.0.0');
+      expect(tags.all).not.toContain('v1.0.0');
 
-      expect(pushSpy.called).to.be.false;
+      expect(pushSpy.called).toBe(false);
     });
   });
 });

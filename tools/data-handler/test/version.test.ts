@@ -1,8 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-expressions */
-
-import { expect, use } from 'chai';
-import chaiAsPromised from 'chai-as-promised';
-use(chaiAsPromised);
+import { expect, describe, it, beforeEach, afterEach } from 'vitest';
 import { mkdtemp, mkdir, writeFile, rm, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -79,8 +75,8 @@ describe('Version', () => {
 
       const result = await versionCmd.bumpVersion('patch');
 
-      expect(result.previousVersion).to.be.undefined;
-      expect(result.newVersion).to.equal('1.0.0');
+      expect(result.previousVersion).toBeUndefined();
+      expect(result.newVersion).toBe('1.0.0');
     });
 
     it('should produce 1.0.0 for first major bump too', async () => {
@@ -89,8 +85,8 @@ describe('Version', () => {
 
       const result = await versionCmd.bumpVersion('major');
 
-      expect(result.previousVersion).to.be.undefined;
-      expect(result.newVersion).to.equal('1.0.0');
+      expect(result.previousVersion).toBeUndefined();
+      expect(result.newVersion).toBe('1.0.0');
     });
 
     it('should bump patch version', async () => {
@@ -100,8 +96,8 @@ describe('Version', () => {
 
       const result = await versionCmd.bumpVersion('patch');
 
-      expect(result.previousVersion).to.equal('1.0.0');
-      expect(result.newVersion).to.equal('1.0.1');
+      expect(result.previousVersion).toBe('1.0.0');
+      expect(result.newVersion).toBe('1.0.1');
     });
 
     it('should bump minor version', async () => {
@@ -111,8 +107,8 @@ describe('Version', () => {
 
       const result = await versionCmd.bumpVersion('minor');
 
-      expect(result.previousVersion).to.equal('1.0.0');
-      expect(result.newVersion).to.equal('1.1.0');
+      expect(result.previousVersion).toBe('1.0.0');
+      expect(result.newVersion).toBe('1.1.0');
     });
 
     it('should bump major version', async () => {
@@ -122,8 +118,8 @@ describe('Version', () => {
 
       const result = await versionCmd.bumpVersion('major');
 
-      expect(result.previousVersion).to.equal('1.0.0');
-      expect(result.newVersion).to.equal('2.0.0');
+      expect(result.previousVersion).toBe('1.0.0');
+      expect(result.newVersion).toBe('2.0.0');
     });
 
     it('should handle sequential bumps', async () => {
@@ -131,12 +127,12 @@ describe('Version', () => {
       await git.commit('first change');
 
       const first = await versionCmd.bumpVersion('patch');
-      expect(first.previousVersion).to.be.undefined;
-      expect(first.newVersion).to.equal('1.0.0');
+      expect(first.previousVersion).toBeUndefined();
+      expect(first.newVersion).toBe('1.0.0');
 
       const second = await versionCmd.bumpVersion('patch');
-      expect(second.previousVersion).to.equal('1.0.0');
-      expect(second.newVersion).to.equal('1.0.1');
+      expect(second.previousVersion).toBe('1.0.0');
+      expect(second.newVersion).toBe('1.0.1');
     });
   });
 
@@ -148,7 +144,7 @@ describe('Version', () => {
       await versionCmd.bumpVersion('patch');
 
       const configContent = JSON.parse(await readFile(configPath, 'utf-8'));
-      expect(configContent.version).to.equal('1.0.0');
+      expect(configContent.version).toBe('1.0.0');
     });
   });
 
@@ -160,7 +156,7 @@ describe('Version', () => {
 
       hasLogStub.returns(true);
 
-      await expect(versionCmd.bumpVersion('patch')).to.be.rejectedWith(
+      await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
         'breaking configuration changes',
       );
     });
@@ -172,7 +168,7 @@ describe('Version', () => {
 
       hasLogStub.returns(true);
 
-      await expect(versionCmd.bumpVersion('minor')).to.be.rejectedWith(
+      await expect(versionCmd.bumpVersion('minor')).rejects.toThrow(
         'breaking configuration changes',
       );
     });
@@ -186,7 +182,7 @@ describe('Version', () => {
       sinon.stub(ConfigurationLogger, 'createVersion').resolves('dummy');
 
       const result = await versionCmd.bumpVersion('major');
-      expect(result.newVersion).to.equal('2.0.0');
+      expect(result.newVersion).toBe('2.0.0');
     });
 
     it('should not apply breaking change gate for first version', async () => {
@@ -194,8 +190,8 @@ describe('Version', () => {
       await git.commit('first change');
 
       const result = await versionCmd.bumpVersion('patch');
-      expect(result.previousVersion).to.be.undefined;
-      expect(result.newVersion).to.equal('1.0.0');
+      expect(result.previousVersion).toBeUndefined();
+      expect(result.newVersion).toBe('1.0.0');
     });
   });
 
@@ -203,7 +199,7 @@ describe('Version', () => {
     it('should throw on uncommitted changes', async () => {
       await writeFile(join(dir, 'cardRoot', 'dirty.txt'), 'uncommitted');
 
-      await expect(versionCmd.bumpVersion('patch')).to.be.rejectedWith(
+      await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
         'uncommitted changes',
       );
     });
@@ -221,8 +217,8 @@ describe('Version', () => {
 
       await versionCmd.bumpVersion('patch');
 
-      expect(createVersionStub.calledOnce).to.be.true;
-      expect(createVersionStub.calledWith(dir, '1.0.0')).to.be.true;
+      expect(createVersionStub.calledOnce).toBe(true);
+      expect(createVersionStub.calledWith(dir, '1.0.0')).toBe(true);
     });
   });
 });

@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-expressions */
-
-import { expect } from 'chai';
+import { expect, describe, it, beforeEach, afterEach } from 'vitest';
 import sinon from 'sinon';
 
 import {
@@ -105,17 +103,17 @@ describe('breaking change classification', () => {
   describe('operation types', () => {
     it('create is non-breaking (never logs)', async () => {
       await resource.testLogResourceOperation('create');
-      expect(logStub.notCalled).to.be.true;
+      expect(logStub.notCalled).toBe(true);
     });
 
     it('delete is breaking (logs RESOURCE_DELETE)', async () => {
       await resource.testLogResourceOperation('delete');
-      expect(logStub.calledOnce).to.be.true;
-      expect(logStub.firstCall.args[1]).to.equal(
+      expect(logStub.calledOnce).toBe(true);
+      expect(logStub.firstCall.args[1]).toBe(
         ConfigurationOperation.RESOURCE_DELETE,
       );
-      expect(logStub.firstCall.args[2]).to.equal(target);
-      expect(logStub.firstCall.args[3].parameters.type).to.equal('cardTypes');
+      expect(logStub.firstCall.args[2]).toBe(target);
+      expect(logStub.firstCall.args[3].parameters.type).toBe('cardTypes');
     });
 
     it('rename is breaking (logs RESOURCE_RENAME)', async () => {
@@ -125,12 +123,12 @@ describe('breaking change classification', () => {
         to: 'newName',
       };
       await resource.testLogResourceOperation('rename', op);
-      expect(logStub.calledOnce).to.be.true;
-      expect(logStub.firstCall.args[1]).to.equal(
+      expect(logStub.calledOnce).toBe(true);
+      expect(logStub.firstCall.args[1]).toBe(
         ConfigurationOperation.RESOURCE_RENAME,
       );
-      expect(logStub.firstCall.args[3].parameters.oldName).to.equal('oldName');
-      expect(logStub.firstCall.args[3].parameters.newName).to.equal('newName');
+      expect(logStub.firstCall.args[3].parameters.oldName).toBe('oldName');
+      expect(logStub.firstCall.args[3].parameters.newName).toBe('newName');
     });
   });
 
@@ -140,7 +138,7 @@ describe('breaking change classification', () => {
     it('add on any key is non-breaking', async () => {
       const op: Operation<string> = { name: 'add', target: 'value' };
       await resource.testLogResourceOperation('update', op, 'states');
-      expect(logStub.notCalled).to.be.true;
+      expect(logStub.notCalled).toBe(true);
     });
 
     it('rank on any key is non-breaking', async () => {
@@ -150,7 +148,7 @@ describe('breaking change classification', () => {
         newIndex: 2,
       };
       await resource.testLogResourceOperation('update', op, 'states');
-      expect(logStub.notCalled).to.be.true;
+      expect(logStub.notCalled).toBe(true);
     });
   });
 
@@ -165,13 +163,13 @@ describe('breaking change classification', () => {
           to: 'new',
         };
         await resource.testLogResourceOperation('update', op, key);
-        expect(logStub.notCalled).to.be.true;
+        expect(logStub.notCalled).toBe(true);
       });
 
       it(`remove on '${key}' is non-breaking`, async () => {
         const op: Operation<string> = { name: 'remove', target: 'value' };
         await resource.testLogResourceOperation('update', op, key);
-        expect(logStub.notCalled).to.be.true;
+        expect(logStub.notCalled).toBe(true);
       });
     }
   });
@@ -193,15 +191,15 @@ describe('breaking change classification', () => {
           to: 'new',
         };
         await resource.testLogResourceOperation('update', op, key);
-        expect(logStub.notCalled).to.be.true;
+        expect(logStub.notCalled).toBe(true);
       });
     }
 
     it("remove on 'displayName' is breaking", async () => {
       const op: Operation<string> = { name: 'remove', target: 'value' };
       await resource.testLogResourceOperation('update', op, 'displayName');
-      expect(logStub.calledOnce).to.be.true;
-      expect(logStub.firstCall.args[1]).to.equal(
+      expect(logStub.calledOnce).toBe(true);
+      expect(logStub.firstCall.args[1]).toBe(
         ConfigurationOperation.RESOURCE_UPDATE,
       );
     });
@@ -218,7 +216,7 @@ describe('breaking change classification', () => {
           to: { enumValue: 'val1', enumDisplayValue: 'New Label' },
         };
         await resource.testLogResourceOperation('update', op, 'enumValues');
-        expect(logStub.notCalled).to.be.true;
+        expect(logStub.notCalled).toBe(true);
       });
 
       it('change enumValue itself is breaking', async () => {
@@ -228,7 +226,7 @@ describe('breaking change classification', () => {
           to: { enumValue: 'val2', enumDisplayValue: 'Label' },
         };
         await resource.testLogResourceOperation('update', op, 'enumValues');
-        expect(logStub.calledOnce).to.be.true;
+        expect(logStub.calledOnce).toBe(true);
       });
     });
 
@@ -240,7 +238,7 @@ describe('breaking change classification', () => {
           to: { name: 'open', category: 'closed' },
         };
         await resource.testLogResourceOperation('update', op, 'states');
-        expect(logStub.notCalled).to.be.true;
+        expect(logStub.notCalled).toBe(true);
       });
 
       it('change name is breaking', async () => {
@@ -250,7 +248,7 @@ describe('breaking change classification', () => {
           to: { name: 'closed', category: 'active' },
         };
         await resource.testLogResourceOperation('update', op, 'states');
-        expect(logStub.calledOnce).to.be.true;
+        expect(logStub.calledOnce).toBe(true);
       });
     });
 
@@ -266,7 +264,7 @@ describe('breaking change classification', () => {
           to: { name: 'f1', isCalculated: false, displayName: 'New' },
         };
         await resource.testLogResourceOperation('update', op, 'customFields');
-        expect(logStub.notCalled).to.be.true;
+        expect(logStub.notCalled).toBe(true);
       });
 
       it('change name is breaking', async () => {
@@ -280,7 +278,7 @@ describe('breaking change classification', () => {
           to: { name: 'f2', isCalculated: false, displayName: 'Label' },
         };
         await resource.testLogResourceOperation('update', op, 'customFields');
-        expect(logStub.calledOnce).to.be.true;
+        expect(logStub.calledOnce).toBe(true);
       });
 
       it('change isCalculated is breaking', async () => {
@@ -294,7 +292,7 @@ describe('breaking change classification', () => {
           to: { name: 'f1', isCalculated: true, displayName: 'Label' },
         };
         await resource.testLogResourceOperation('update', op, 'customFields');
-        expect(logStub.calledOnce).to.be.true;
+        expect(logStub.calledOnce).toBe(true);
       });
     });
 
@@ -306,7 +304,7 @@ describe('breaking change classification', () => {
           to: { name: 't1', fromState: ['closed'] },
         };
         await resource.testLogResourceOperation('update', op, 'transitions');
-        expect(logStub.calledOnce).to.be.true;
+        expect(logStub.calledOnce).toBe(true);
       });
     });
   });
@@ -324,8 +322,8 @@ describe('breaking change classification', () => {
       it(`remove on '${key}' is breaking`, async () => {
         const op: Operation<string> = { name: 'remove', target: 'value' };
         await resource.testLogResourceOperation('update', op, key);
-        expect(logStub.calledOnce).to.be.true;
-        expect(logStub.firstCall.args[1]).to.equal(
+        expect(logStub.calledOnce).toBe(true);
+        expect(logStub.firstCall.args[1]).toBe(
           ConfigurationOperation.RESOURCE_UPDATE,
         );
       });
@@ -349,8 +347,8 @@ describe('breaking change classification', () => {
           to: 'new',
         };
         await resource.testLogResourceOperation('update', op, key);
-        expect(logStub.calledOnce).to.be.true;
-        expect(logStub.firstCall.args[1]).to.equal(
+        expect(logStub.calledOnce).toBe(true);
+        expect(logStub.firstCall.args[1]).toBe(
           ConfigurationOperation.RESOURCE_UPDATE,
         );
       });
@@ -363,17 +361,17 @@ describe('breaking change classification', () => {
     it('breaking update includes operation and key in parameters', async () => {
       const op: Operation<string> = { name: 'remove', target: 'value' };
       await resource.testLogResourceOperation('update', op, 'workflow');
-      expect(logStub.calledOnce).to.be.true;
+      expect(logStub.calledOnce).toBe(true);
       const params = logStub.firstCall.args[3].parameters;
-      expect(params.operation).to.equal('remove');
-      expect(params.key).to.equal('workflow');
-      expect(params.type).to.equal('cardTypes');
-      expect(params.removedValue).to.equal('value');
+      expect(params.operation).toBe('remove');
+      expect(params.key).toBe('workflow');
+      expect(params.type).toBe('cardTypes');
+      expect(params.removedValue).toBe('value');
     });
 
     it('target equals resourceNameToString(resourceName)', async () => {
       await resource.testLogResourceOperation('delete');
-      expect(logStub.firstCall.args[2]).to.equal(target);
+      expect(logStub.firstCall.args[2]).toBe(target);
     });
 
     it('rename includes oldName and newName in parameters', async () => {
@@ -384,13 +382,13 @@ describe('breaking change classification', () => {
       };
       await resource.testLogResourceOperation('rename', op);
       const params = logStub.firstCall.args[3].parameters;
-      expect(params.oldName).to.equal('alpha');
-      expect(params.newName).to.equal('beta');
+      expect(params.oldName).toBe('alpha');
+      expect(params.newName).toBe('beta');
     });
 
     it('parameters.type equals the resource type', async () => {
       await resource.testLogResourceOperation('delete');
-      expect(logStub.firstCall.args[3].parameters.type).to.equal('cardTypes');
+      expect(logStub.firstCall.args[3].parameters.type).toBe('cardTypes');
     });
 
     it('breaking change with mappingTable includes it in parameters', async () => {
@@ -401,13 +399,13 @@ describe('breaking change classification', () => {
         mappingTable: { stateMapping: { open: 'active', closed: 'done' } },
       };
       await resource.testLogResourceOperation('update', op, 'workflow');
-      expect(logStub.calledOnce).to.be.true;
+      expect(logStub.calledOnce).toBe(true);
       const params = logStub.firstCall.args[3].parameters;
-      expect(params.mappingTable).to.deep.equal({
+      expect(params.mappingTable).toEqual({
         stateMapping: { open: 'active', closed: 'done' },
       });
-      expect(params.from).to.equal('oldWorkflow');
-      expect(params.to).to.equal('newWorkflow');
+      expect(params.from).toBe('oldWorkflow');
+      expect(params.to).toBe('newWorkflow');
     });
 
     it('breaking change without mappingTable does not include it', async () => {
@@ -418,9 +416,9 @@ describe('breaking change classification', () => {
       };
       await resource.testLogResourceOperation('update', op, 'workflow');
       const params = logStub.firstCall.args[3].parameters;
-      expect(params.mappingTable).to.be.undefined;
-      expect(params.from).to.equal('old');
-      expect(params.to).to.equal('new');
+      expect(params.mappingTable).toBeUndefined();
+      expect(params.from).toBe('old');
+      expect(params.to).toBe('new');
     });
 
     it('breaking remove with replacementValue includes it in parameters', async () => {
@@ -430,10 +428,10 @@ describe('breaking change classification', () => {
         replacementValue: 'newState',
       };
       await resource.testLogResourceOperation('update', op, 'states');
-      expect(logStub.calledOnce).to.be.true;
+      expect(logStub.calledOnce).toBe(true);
       const params = logStub.firstCall.args[3].parameters;
-      expect(params.replacementValue).to.equal('newState');
-      expect(params.removedValue).to.equal('oldState');
+      expect(params.replacementValue).toBe('newState');
+      expect(params.removedValue).toBe('oldState');
     });
 
     it('breaking remove without replacementValue does not include it', async () => {
@@ -443,8 +441,8 @@ describe('breaking change classification', () => {
       };
       await resource.testLogResourceOperation('update', op, 'states');
       const params = logStub.firstCall.args[3].parameters;
-      expect(params.replacementValue).to.be.undefined;
-      expect(params.removedValue).to.equal('oldState');
+      expect(params.replacementValue).toBeUndefined();
+      expect(params.removedValue).toBe('oldState');
     });
   });
 });
