@@ -778,7 +778,9 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
       const encoded = block.getAttribute('data-mermaid-code') || '';
       let code: string;
       try {
-        code = atob(encoded);
+        code = new TextDecoder().decode(
+          Uint8Array.from(atob(encoded), (c) => c.charCodeAt(0)),
+        );
       } catch {
         return;
       }
