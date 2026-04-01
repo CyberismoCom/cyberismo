@@ -71,6 +71,6 @@ jobs:
       - name: Run CLI tests
         run: |
           cd tools/cli
-          PATH="$(cd ../.. && pwd)/scripts:$PATH" pnpm test
+          CLI_COMMAND=cyberismo pnpm test
 
 

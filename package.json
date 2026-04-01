@@ -6,7 +6,6 @@
     "cyberismo": "tools/cli/bin/run"
   },
   "devDependencies": {
-    "@cyberismo/cli": "link:",
     "@eslint/js": "^10.0.1",
     "@types/node": "^22.19.13",
     "@typescript-eslint/parser": "^8.56.1",
@@ -46,6 +45,7 @@
     "test-mcp": "pnpm --filter mcp test",
     "prettier-check": "prettier --check .",
     "prettier-fix": "prettier --write .",
+    "cyberismo": "node tools/cli/bin/run",
     "dev": "pnpm -r --parallel dev",
     "prepare-export": "pnpm --filter backend export && shx cp -r tools/backend/static/api tools/app/public",
     "dev-export": "pnpm prepare-export && cross-env VITE_CYBERISMO_EXPORT=true pnpm --filter app dev",
