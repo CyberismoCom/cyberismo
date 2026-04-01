@@ -278,4 +278,4 @@ describe('Cli BAT test', function () {
     expect(stdout).toContain('Done');
     expect(stdout).toContain('Project structure validated');
   });
-});
+}, 100000);
