@@ -1,5 +1,5 @@
 import DOMPurify from 'dompurify';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import {
   Modal,
   Box,
@@ -29,6 +29,52 @@ const CONTROL_BAR_HEIGHT = 44;
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 8;
 const ZOOM_STEP = 1.25;
+
+/**
+ * Parse intrinsic dimensions from an SVG string.
+ * Tries viewBox first, then explicit width/height attributes.
+ */
+function parseNaturalSize(markup: string): Size | null {
+  const vbMatch = markup.match(/viewBox\s*=\s*"([^"]+)"/i);
+  if (vbMatch) {
+    const parts = vbMatch[1].split(/[\s,]+/).map(Number);
+    if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
+      return { width: parts[2], height: parts[3] };
+    }
+  }
+  const wMatch = markup.match(
+    /<svg[^>]*\bwidth\s*=\s*"(\d+(?:\.\d+)?)(?:px)?"/i,
+  );
+  const hMatch = markup.match(
+    /<svg[^>]*\bheight\s*=\s*"(\d+(?:\.\d+)?)(?:px)?"/i,
+  );
+  if (wMatch && hMatch) {
+    return { width: parseFloat(wMatch[1]), height: parseFloat(hMatch[1]) };
+  }
+  return null;
+}
+
+/**
+ * Strip constraining dimension attributes / styles from the root <svg> so it
+ * fills its container.  Preserves viewBox for correct aspect-ratio scaling.
+ */
+function normalizeSvgMarkup(markup: string): string {
+  return markup.replace(/<svg\b([^>]*)>/i, (_match, attrs: string) => {
+    let cleaned = attrs
+      .replace(/\s+width\s*=\s*"[^"]*"/gi, '')
+      .replace(/\s+height\s*=\s*"[^"]*"/gi, '');
+    cleaned = cleaned.replace(
+      /style\s*=\s*"([^"]*)"/i,
+      (_: string, style: string) => {
+        const newStyle = style
+          .replace(/max-width:\s*[^;]+;?\s*/gi, '')
+          .trim();
+        return newStyle ? `style="${newStyle}"` : '';
+      },
+    );
+    return `<svg width="100%" height="100%"${cleaned}>`;
+  });
+}
 
 // To allow backbutton to close the modal, not to change the page
 function useBackButtonModal(open: boolean, onClose: () => void) {
@@ -63,49 +109,57 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
   const { t } = useTranslation();
 
   const [zoom, setZoom] = useState(1);
-  const [naturalSize, setNaturalSize] = useState<Size | null>(null);
+  const zoomRef = useRef(1);
 
-  const svgHolderRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollTargetRef = useRef<{ left: number; top: number } | null>(null);
+
+  // Derive intrinsic size and normalized SVG from the markup string
+  const naturalSize = useMemo(() => parseNaturalSize(svgMarkup), [svgMarkup]);
+  const normalizedSvg = useMemo(
+    () => normalizeSvgMarkup(svgMarkup),
+    [svgMarkup],
+  );
+
+  // Apply queued scroll position synchronously after React commits the DOM
+  useLayoutEffect(() => {
+    const target = scrollTargetRef.current;
+    const scroll = scrollRef.current;
+    if (target && scroll) {
+      scroll.scrollLeft = target.left;
+      scroll.scrollTop = target.top;
+      scrollTargetRef.current = null;
+    }
+  }, [zoom]);
 
   /* ---------- fit & center on open ---------- */
   useEffect(() => {
-    if (!open) return;
+    if (!open || !naturalSize) return;
 
-    const id = requestAnimationFrame(() => {
-      const svg = svgHolderRef.current?.querySelector('svg');
-      if (!svg) return;
+    const viewW = window.innerWidth - padding * 2;
+    const viewH = window.innerHeight - CONTROL_BAR_HEIGHT - padding * 2;
+    const fit = Math.min(
+      viewW / naturalSize.width,
+      viewH / naturalSize.height,
+      1,
+    );
+    zoomRef.current = fit;
+    setZoom(fit);
 
-      let width =
-        (svg as SVGSVGElement).width?.baseVal?.value || svg.getBBox().width;
-      let height =
-        (svg as SVGSVGElement).height?.baseVal?.value || svg.getBBox().height;
-      if (!width || !height) {
-        const rect = svg.getBoundingClientRect();
-        width = rect.width;
-        height = rect.height;
-      }
-      const intrinsic = { width, height };
-      setNaturalSize(intrinsic);
-
-      const viewW = window.innerWidth - padding * 2;
-      const viewH = window.innerHeight - CONTROL_BAR_HEIGHT - padding * 2;
-      const fit = Math.min(viewW / width, viewH / height, 1);
-      setZoom(fit);
-
-      requestAnimationFrame(() => {
-        const scroll = scrollRef.current;
-        if (!scroll) return;
-        scroll.scrollLeft = Math.max(0, (width * fit - scroll.clientWidth) / 2);
-        scroll.scrollTop = Math.max(
-          0,
-          (height * fit - scroll.clientHeight) / 2,
-        );
-      });
+    // Center after initial layout
+    requestAnimationFrame(() => {
+      const scroll = scrollRef.current;
+      if (!scroll) return;
+      scroll.scrollLeft = Math.max(
+        0,
+        (naturalSize.width * fit - scroll.clientWidth) / 2,
+      );
+      scroll.scrollTop = Math.max(
+        0,
+        (naturalSize.height * fit - scroll.clientHeight) / 2,
+      );
     });
-
-    return () => cancelAnimationFrame(id);
-  }, [open, padding]);
+  }, [open, padding, naturalSize]);
 
   /* ---------- zoom helpers ---------- */
   const applyZoom = (factor: number, localX?: number, localY?: number) => {
@@ -113,7 +167,7 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
     const scroll = scrollRef.current;
     if (!scroll) return;
 
-    const oldZoom = zoom;
+    const oldZoom = zoomRef.current;
     const newZoom = Math.min(Math.max(oldZoom * factor, MIN_ZOOM), MAX_ZOOM);
     if (newZoom === oldZoom) return;
 
@@ -123,17 +177,22 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
     const contentX = (scroll.scrollLeft + cx) / oldZoom;
     const contentY = (scroll.scrollTop + cy) / oldZoom;
 
-    setZoom(newZoom);
+    // Queue scroll position for useLayoutEffect (fires after DOM commit)
+    scrollTargetRef.current = {
+      left: contentX * newZoom - cx,
+      top: contentY * newZoom - cy,
+    };
 
-    requestAnimationFrame(() => {
-      scroll.scrollLeft = contentX * newZoom - cx;
-      scroll.scrollTop = contentY * newZoom - cy;
-    });
+    zoomRef.current = newZoom;
+    setZoom(newZoom);
   };
 
   const zoomIn = () => applyZoom(ZOOM_STEP);
   const zoomOut = () => applyZoom(1 / ZOOM_STEP);
-  const resetZoom = () => setZoom(1);
+  const resetZoom = () => {
+    zoomRef.current = 1;
+    setZoom(1);
+  };
 
   /* ---------- wheel zoom (always) ---------- */
   /* ---------- wheel / pinch zoom ---------- */
@@ -325,11 +384,14 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
           onWheel={handleWheel}
         >
           <Box
-            ref={svgHolderRef}
             style={sizeStyle}
             dangerouslySetInnerHTML={{
-              __html: DOMPurify.sanitize(svgMarkup, {
+              __html: DOMPurify.sanitize(normalizedSvg, {
                 USE_PROFILES: { svg: true },
+                // Mermaid renders text inside <foreignObject> with HTML elements.
+                // Allow only the specific tags/attributes Mermaid uses.
+                ADD_TAGS: ['foreignObject', 'div', 'span', 'p', 'br', 'i', 'b', 'em', 'strong', 'pre', 'code'],
+                ADD_ATTR: ['class', 'style', 'xmlns', 'requiredExtensions'],
               }),
             }}
           />

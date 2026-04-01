@@ -704,60 +704,86 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     URL.revokeObjectURL(url);
   };
 
+  /**
+   * Adds fullscreen/download controls to an SVG wrapper element.
+   * Returns a cleanup function to remove event listeners and controls.
+   */
+  const addSvgControls = (wrapper: HTMLElement) => {
+    if (wrapper.querySelector('[data-cy="svg-controls"]')) return;
+
+    if (wrapper.style.paddingTop === '') wrapper.style.paddingTop = '48px';
+    if (wrapper.style.position === '') wrapper.style.position = 'relative';
+
+    const controls = document.createElement('div');
+    controls.setAttribute('data-cy', 'svg-controls');
+    Object.assign(controls.style, {
+      position: 'absolute',
+      top: '8px',
+      right: '8px',
+      display: 'flex',
+      gap: '6px',
+      zIndex: 10,
+    } as unknown as CSSStyleDeclaration);
+
+    const fullScreenBtn = makeIconButton(fullScreenIcon, 'fullscreen');
+    const downloadBtn = makeIconButton(downloadIcon, 'download');
+
+    const handleFullScreenClick = () => handleFullScreen(wrapper);
+    const handleDownloadClick = () => handleDownload(wrapper);
+
+    fullScreenBtn.addEventListener('click', handleFullScreenClick);
+    downloadBtn.addEventListener('click', handleDownloadClick);
+
+    controls.appendChild(fullScreenBtn);
+    controls.appendChild(downloadBtn);
+    wrapper.appendChild(controls);
+
+    const cleanup = () => {
+      fullScreenBtn.removeEventListener('click', handleFullScreenClick);
+      downloadBtn.removeEventListener('click', handleDownloadClick);
+      wrapper.querySelector('[data-cy="svg-controls"]')?.remove();
+    };
+    (wrapper as HTMLElementWithCleanup).__cleanupSvgControls = cleanup;
+  };
+
   useEffect(() => {
     if (!contentRef) return;
 
-    const wrappers: NodeListOf<HTMLElement> =
-      contentRef.querySelectorAll<HTMLElement>(
-        '[data-type="cyberismo-svg-wrapper"]',
-      );
+    // Process any wrappers already in the DOM
+    const processExisting = () => {
+      contentRef
+        .querySelectorAll<HTMLElement>('[data-type="cyberismo-svg-wrapper"]')
+        .forEach((wrapper) => addSvgControls(wrapper));
+    };
+    processExisting();
 
-    wrappers.forEach((wrapper) => {
-      if (wrapper.querySelector('[data-cy="svg-controls"]')) return;
-
-      if (wrapper.style.paddingTop === '') wrapper.style.paddingTop = '48px';
-      if (wrapper.style.position === '') wrapper.style.position = 'relative';
-
-      const controls = document.createElement('div');
-      controls.setAttribute('data-cy', 'svg-controls');
-      Object.assign(controls.style, {
-        position: 'absolute',
-        top: '8px',
-        right: '8px',
-        display: 'flex',
-        gap: '6px',
-        zIndex: 10,
-      } as unknown as CSSStyleDeclaration);
-
-      /* ---------- Buttons ---------- */
-      const fullScreenBtn = makeIconButton(fullScreenIcon, 'fullscreen');
-      const downloadBtn = makeIconButton(downloadIcon, 'download');
-
-      const handleFullScreenClick = () => handleFullScreen(wrapper);
-      const handleDownloadClick = () => handleDownload(wrapper);
-
-      fullScreenBtn.addEventListener('click', handleFullScreenClick);
-      downloadBtn.addEventListener('click', handleDownloadClick);
-
-      controls.appendChild(fullScreenBtn);
-      controls.appendChild(downloadBtn);
-      wrapper.appendChild(controls);
-
-      /* ---------- Cleanup for this wrapper ---------- */
-      const cleanup = () => {
-        fullScreenBtn.removeEventListener('click', handleFullScreenClick);
-        downloadBtn.removeEventListener('click', handleDownloadClick);
-        wrapper.querySelector('[data-cy="svg-controls"]')?.remove();
-      };
-      (wrapper as HTMLElementWithCleanup).__cleanupSvgControls = cleanup;
+    // Watch for wrappers added later (e.g. async mermaid rendering in macro components)
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (!(node instanceof HTMLElement)) continue;
+          if (node.getAttribute('data-type') === 'cyberismo-svg-wrapper') {
+            addSvgControls(node);
+          }
+          node
+            .querySelectorAll?.<HTMLElement>(
+              '[data-type="cyberismo-svg-wrapper"]',
+            )
+            .forEach((wrapper) => addSvgControls(wrapper));
+        }
+      }
     });
+    observer.observe(contentRef, { childList: true, subtree: true });
 
     /* ---------- Global cleanup on effect teardown ---------- */
     return () => {
-      wrappers.forEach((wrapper) => {
-        (wrapper as HTMLElementWithCleanup).__cleanupSvgControls?.();
-        delete (wrapper as HTMLElementWithCleanup).__cleanupSvgControls;
-      });
+      observer.disconnect();
+      contentRef
+        .querySelectorAll<HTMLElement>('[data-type="cyberismo-svg-wrapper"]')
+        .forEach((wrapper) => {
+          (wrapper as HTMLElementWithCleanup).__cleanupSvgControls?.();
+          delete (wrapper as HTMLElementWithCleanup).__cleanupSvgControls;
+        });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contentRef, useLocation().key]);
@@ -792,7 +818,12 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
       mermaid
         .render(id, code)
         .then(({ svg }) => {
-          block.innerHTML = svg;
+          const wrapper = document.createElement('div');
+          wrapper.setAttribute('data-type', 'cyberismo-svg-wrapper');
+          wrapper.innerHTML = svg;
+          block.innerHTML = '';
+          block.appendChild(wrapper);
+          addSvgControls(wrapper);
         })
         .catch(() => {
           block.textContent = `Mermaid diagram error`;

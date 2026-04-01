@@ -51,7 +51,13 @@ function Mermaid({ code }: MermaidProps) {
       .render(id, code)
       .then(({ svg }) => {
         if (containerRef.current) {
-          containerRef.current.innerHTML = svg;
+          // Wrap in cyberismo-svg-wrapper so ContentArea's observer
+          // adds the standard fullscreen/download controls automatically
+          const wrapper = document.createElement('div');
+          wrapper.setAttribute('data-type', 'cyberismo-svg-wrapper');
+          wrapper.innerHTML = svg;
+          containerRef.current.innerHTML = '';
+          containerRef.current.appendChild(wrapper);
         }
       })
       .catch((err) => {
