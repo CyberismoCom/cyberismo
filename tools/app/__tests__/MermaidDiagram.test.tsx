@@ -32,6 +32,18 @@ describe('Mermaid component', () => {
     });
   });
 
+  it('wraps SVG in a cyberismo-svg-wrapper', async () => {
+    const { container } = render(
+      <Mermaid code="graph TD\n    A-->B" macroKey="test-4" preview={false} />,
+    );
+
+    await waitFor(() => {
+      expect(
+        container.querySelector('[data-type="cyberismo-svg-wrapper"]'),
+      ).not.toBeNull();
+    });
+  });
+
   it('shows an error when no code is provided', () => {
     render(<Mermaid code="" macroKey="test-2" preview={false} />);
 
