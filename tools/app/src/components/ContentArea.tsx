@@ -68,6 +68,7 @@ import { useAppDispatch, useAppSelector } from '../lib/hooks';
 import { viewChanged } from '../lib/slices/pageState';
 
 import createDOMPurify from 'dompurify';
+import mermaid from 'mermaid';
 import type { MacroMetadata } from '@cyberismo/data-handler/interfaces/macros';
 import { macroMetadata } from '@cyberismo/data-handler/macros/common';
 import type { UIMacroName } from './macros';
@@ -150,6 +151,19 @@ interface LinkFormProps {
 const MACRO_TAGS = Object.values(macroMetadata)
   .map((meta) => meta.tagName.toUpperCase())
   .filter(Boolean) as string[];
+
+// Initialize mermaid for AsciiDoc listing block rendering
+let mermaidInitialized = false;
+function ensureMermaidInit() {
+  if (mermaidInitialized) return;
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'default',
+    securityLevel: 'strict',
+  });
+  mermaidInitialized = true;
+}
+let mermaidRenderCounter = 0;
 
 const contentPurify = createDOMPurify(window);
 contentPurify.addHook('afterSanitizeAttributes', (node) => {
@@ -748,6 +762,43 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contentRef, useLocation().key]);
 
+  // Render [mermaid] AsciiDoc blocks into diagrams
+  // The backend pre-processes mermaid blocks into <div class="mermaid-block" data-mermaid-code="base64">
+  useEffect(() => {
+    if (!contentRef) return;
+
+    ensureMermaidInit();
+
+    const mermaidBlocks =
+      contentRef.querySelectorAll<HTMLElement>('.mermaid-block[data-mermaid-code]');
+
+    mermaidBlocks.forEach((block) => {
+      if (block.hasAttribute('data-mermaid-rendered')) return;
+
+      const encoded = block.getAttribute('data-mermaid-code') || '';
+      let code: string;
+      try {
+        code = atob(encoded);
+      } catch {
+        return;
+      }
+      if (!code) return;
+
+      const id = `mermaid-block-${mermaidRenderCounter++}`;
+      block.setAttribute('data-mermaid-rendered', 'true');
+
+      mermaid
+        .render(id, code)
+        .then(({ svg }) => {
+          block.innerHTML = svg;
+        })
+        .catch(() => {
+          block.textContent = `Mermaid diagram error`;
+        });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contentRef, useLocation().key]);
+
   const setRef = useCallback((node: HTMLDivElement | null) => {
     setContentRef(node);
   }, []);
@@ -764,6 +815,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
       'allow',
       'allowfullscreen',
       'frameborder',
+      'data-mermaid-code',
     ],
   });
 

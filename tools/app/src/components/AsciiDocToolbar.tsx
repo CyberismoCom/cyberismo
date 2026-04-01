@@ -34,6 +34,7 @@ import {
   FormatListNumbered,
   Highlight,
   Redo,
+  Schema,
   Undo,
   ViewList,
 } from '@mui/icons-material';
@@ -167,6 +168,13 @@ export function AsciiDocToolbar({
           onClick={() => asciiDocToolbarActions.table(view, readOnly)}
         >
           <ViewList color="action" />
+        </IconButton>
+      </Tooltip>
+      <Tooltip title={t('asciiDocEditor.toolbar.mermaidDiagram')}>
+        <IconButton
+          onClick={() => asciiDocToolbarActions.mermaidDiagram(view, readOnly)}
+        >
+          <Schema color="action" />
         </IconButton>
       </Tooltip>
       <Divider

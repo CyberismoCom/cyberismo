@@ -68,5 +68,8 @@
     "vite": "^7.2.6",
     "vite-plugin-top-level-await": "^1.6.0",
     "zod": "^4.3.6"
+  },
+  "dependencies": {
+    "mermaid": "^11.14.0"
   }
 }

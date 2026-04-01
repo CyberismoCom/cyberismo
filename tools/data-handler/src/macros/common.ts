@@ -20,6 +20,7 @@ import report from './report/metadata.js';
 import scoreCard from './scoreCard/metadata.js';
 import xref from './xref/metadata.js';
 import percentage from './percentage/metadata.js';
+import mermaid from './mermaid/metadata.js';
 import vega from './vega/metadata.js';
 import vegaLite from './vegalite/metadata.js';
 
@@ -28,6 +29,7 @@ export const macroMetadata = {
   graph,
   image,
   include,
+  mermaid,
   report,
   scoreCard,
   xref,

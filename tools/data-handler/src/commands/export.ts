@@ -28,6 +28,7 @@ import type { CardType } from '../interfaces/resource-interfaces.js';
 import { evaluateMacros } from '../macros/index.js';
 import type { ExportPdfOptions } from '../interfaces/project-interfaces.js';
 import { generateReportContent } from '../utils/report.js';
+import { preprocessMermaidBlocksForPdf } from '../utils/mermaid-renderer.js';
 import { getStaticDirectoryPath, pdfReport } from '@cyberismo/assets';
 import { Project } from '../containers/project.js';
 import type { QueryResult } from '../types/queries.js';
@@ -314,7 +315,8 @@ export class Export {
       project: this.project,
       cardKey: '', // top level report does not contain any macros that use cardKey
     });
-    const pdf = await this.runAsciidoctorPdf(evaluated);
+    const withMermaid = await preprocessMermaidBlocksForPdf(evaluated);
+    const pdf = await this.runAsciidoctorPdf(withMermaid);
     await writeFile(destination, pdf);
     return `Content exported as PDF to ${destination}`;
   }

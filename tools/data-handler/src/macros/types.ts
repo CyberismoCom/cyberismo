@@ -18,6 +18,7 @@ import { IncludeMacroOptions } from './include/types.js';
 import { PercentageOptions } from './percentage/types.js';
 import { ReportOptions } from './report/types.js';
 import { ScoreCardOptions } from './scoreCard/types.js';
+import { MermaidMacroInput } from './mermaid/types.js';
 import { VegaMacroInput } from './vega/types.js';
 import { VegaLiteMacroInput } from './vegalite/types.js';
 import { XrefMacroOptions } from './xref/types.js';
@@ -27,6 +28,7 @@ export type AnyMacroOption =
   | GraphOptions
   | ImageMacroOptions
   | IncludeMacroOptions
+  | MermaidMacroInput
   | PercentageOptions
   | ReportOptions
   | ScoreCardOptions
@@ -39,6 +41,7 @@ export {
   GraphOptions,
   ImageMacroOptions,
   IncludeMacroOptions,
+  MermaidMacroInput,
   PercentageOptions,
   ReportOptions,
   ScoreCardOptions,
