@@ -403,6 +403,8 @@
     "importModules": "Import Modules"
   },
   "true": "True",
+  "sessionExpired": "Your session has expired.",
+  "sessionExpiredLogIn": "Log in",
   "unknownError": "An unknown error occurred",
   "update": "Update",
   "validationError": "Validation error",
