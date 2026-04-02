@@ -39,7 +39,7 @@
     "@uiw/react-codemirror": "^4.25.4",
     "@vitejs/plugin-react": "^5.1.4",
     "codemirror-asciidoc": "^2.0.1",
-    "cypress": "^15.7.0",
+    "cypress": "^15.13.0",
     "date-fns": "^4.1.0",
     "dompurify": "^3.3.3",
     "eslint-plugin-react-hooks": "^7.0.1",
