@@ -27,12 +27,12 @@ import storage from 'redux-persist/lib/storage';
 const persistConfig = {
   key: 'root',
   storage,
-  blacklist: ['notifications', 'swr', 'page', 'card'],
+  blacklist: ['notifications', 'swr', 'page', 'card', 'session'],
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
 
-export const makeStore = () => {
+function createStore() {
   const store = configureStore({
     reducer: persistedReducer,
     devTools: process.env.NODE_ENV !== 'production',
@@ -44,8 +44,12 @@ export const makeStore = () => {
       }),
   });
   return { store, persistor: persistStore(store) };
-};
+}
 
-export type AppStore = ReturnType<typeof makeStore>['store'];
+const { store, persistor } = createStore();
+
+export { store, persistor };
+
+export type AppStore = typeof store;
 export type RootState = ReturnType<AppStore['getState']>;
 export type AppDispatch = AppStore['dispatch'];

@@ -12,6 +12,8 @@
 
 import type { SWRConfiguration } from 'swr';
 import { getConfig } from './utils';
+import { store } from './store';
+import { setSessionExpired } from './slices/session';
 
 export class ApiCallError extends Error {
   public reason: string;
@@ -42,6 +44,12 @@ export async function createApiCallError(
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
+    if (response.status === 401) {
+      store.dispatch(setSessionExpired());
+      // Block further processing so components stay in loading state
+      // instead of showing error screens
+      return new Promise<T>(() => {});
+    }
     throw await createApiCallError(response);
   }
   if (response.status === 204) return null as unknown as T; // no content, return null
