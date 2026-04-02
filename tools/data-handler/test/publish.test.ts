@@ -93,9 +93,7 @@ describe('Publish', () => {
 
   describe('error conditions', () => {
     it('should throw if no version set', async () => {
-      await expect(publish.publishVersion()).rejects.toThrow(
-        'No version set',
-      );
+      await expect(publish.publishVersion()).rejects.toThrow('No version set');
     });
 
     it('should throw if version already tagged', async () => {
@@ -125,9 +123,7 @@ describe('Publish', () => {
 
       sinon.stub(git, 'push').rejects(new Error('network error'));
 
-      await expect(publish.publishVersion()).rejects.toThrow(
-        'network error',
-      );
+      await expect(publish.publishVersion()).rejects.toThrow('network error');
 
       // Tag should have been cleaned up so retry works
       const tags = await testGit(dir).tags();
