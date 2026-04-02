@@ -64,7 +64,7 @@ import CheckBoxOutlineBlank from '@mui/icons-material/CheckBoxOutlineBlank';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import EditLinkModal from './modals/EditLinkModal';
 
-import { useAppDispatch, useAppSelector } from '../lib/hooks';
+import { useAppDispatch, useAppSelector, useIsDarkMode } from '../lib/hooks';
 import { viewChanged } from '../lib/slices/pageState';
 
 import createDOMPurify from 'dompurify';
@@ -152,17 +152,6 @@ const MACRO_TAGS = Object.values(macroMetadata)
   .map((meta) => meta.tagName.toUpperCase())
   .filter(Boolean) as string[];
 
-// Initialize mermaid for AsciiDoc listing block rendering
-let mermaidInitialized = false;
-function ensureMermaidInit() {
-  if (mermaidInitialized) return;
-  mermaid.initialize({
-    startOnLoad: false,
-    theme: 'default',
-    securityLevel: 'strict',
-  });
-  mermaidInitialized = true;
-}
 let mermaidRenderCounter = 0;
 
 const contentPurify = createDOMPurify(window);
@@ -602,6 +591,8 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 
   const [contentRef, setContentRef] = useState<HTMLDivElement | null>(null);
 
+  const isDarkMode = useIsDarkMode();
+
   const dispatch = useAppDispatch();
 
   const { t } = useTranslation();
@@ -793,13 +784,17 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   useEffect(() => {
     if (!contentRef) return;
 
-    ensureMermaidInit();
+    // Re-initialize mermaid with the current theme so diagrams match light/dark mode
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: isDarkMode ? 'dark' : 'default',
+      securityLevel: 'strict',
+    });
 
     const mermaidBlocks =
       contentRef.querySelectorAll<HTMLElement>('.mermaid-block[data-mermaid-code]');
 
     mermaidBlocks.forEach((block) => {
-      if (block.hasAttribute('data-mermaid-rendered')) return;
 
       const encoded = block.getAttribute('data-mermaid-code') || '';
       let code: string;
@@ -830,7 +825,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contentRef, useLocation().key]);
+  }, [contentRef, isDarkMode, useLocation().key]);
 
   const setRef = useCallback((node: HTMLDivElement | null) => {
     setContentRef(node);
