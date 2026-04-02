@@ -420,22 +420,22 @@ export abstract class ResourceObject<
   /**
    * Keys where ALL operations (including remove) are non-breaking — UI visibility only.
    */
-  private static readonly NON_BREAKING_KEYS = new Set([
+  private static readonly NON_BREAKING_KEYS = [
     'alwaysVisibleFields',
     'optionallyVisibleFields',
-  ]);
+  ];
 
   /**
    * Keys where only 'change' is non-breaking — display-only scalars.
    * Unknown keys default to breaking (allowlist approach).
    */
-  private static readonly NON_BREAKING_CHANGE_KEYS = new Set([
+  private static readonly NON_BREAKING_CHANGE_KEYS = [
     'displayName',
     'description',
     'category',
     'outboundDisplayName',
     'inboundDisplayName',
-  ]);
+  ];
 
   /**
    * For array-of-objects keys: which properties are "identity" (breaking if changed).
@@ -498,10 +498,10 @@ export abstract class ResourceObject<
         // 'add' and 'rank' are non-breaking (additive / reorder)
         if (op?.name === 'add' || op?.name === 'rank') return;
         // All operations on these keys are non-breaking (UI visibility only)
-        if (key && ResourceObject.NON_BREAKING_KEYS.has(key)) return;
+        if (key && ResourceObject.NON_BREAKING_KEYS.includes(key)) return;
         if (op?.name === 'change') {
           // Display-only scalars are non-breaking when changed
-          if (key && ResourceObject.NON_BREAKING_CHANGE_KEYS.has(key)) return;
+          if (key && ResourceObject.NON_BREAKING_CHANGE_KEYS.includes(key)) return;
           // Element-level check for array-of-objects keys
           if (key && op && ResourceObject.isNonBreakingArrayChange(key, op))
             return;
