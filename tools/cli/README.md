@@ -15,6 +15,10 @@ The Cyberismo CLI is an open-source command-line tool that enables Security-as-C
   - **Windows**: See https://www.ruby-lang.org/en/documentation/installation/ and run `gem install --no-document asciidoctor-pdf rouge`
   - **Verify**: `asciidoctor-pdf -v`
 
+- **Mermaid CLI (optional, for mermaid diagrams in PDF export)**
+  - **All platforms**: `npm install -g @mermaid-js/mermaid-cli`
+  - **Verify**: `mmdc --version`
+
 ### Getting started
 
 1. **Install Cyberismo CLI**
