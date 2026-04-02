@@ -52,7 +52,6 @@ jobs:
     - run: pnpm install
     - run: pnpm --filter=app exec cypress install
     - run: pnpm build
-    - run: pnpm link --global
     - run: pnpm test
       env:
         CYBERISMO_GIT_USER: ${{ secrets.CYBERISMO_GIT_USER }}
