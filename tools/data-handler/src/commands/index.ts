@@ -18,12 +18,14 @@ import { Export } from './export.js';
 import { Fetch } from './fetch.js';
 import { Import } from './import.js';
 import { Move } from './move.js';
+import { Publish } from './publish.js';
 import { Remove } from './remove.js';
 import { Rename } from './rename.js';
 import { Show } from './show.js';
 import { Transition } from './transition.js';
 import { Update } from './update.js';
 import { Validate } from './validate.js';
+import { Version } from './version.js';
 
 export {
   Calculate,
@@ -33,10 +35,12 @@ export {
   Fetch,
   Import,
   Move,
+  Publish,
   Remove,
   Rename,
   Show,
   Transition,
   Update,
   Validate,
+  Version,
 };

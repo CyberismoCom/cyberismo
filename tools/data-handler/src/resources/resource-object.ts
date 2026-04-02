@@ -44,10 +44,7 @@ import type {
 } from '../interfaces/resource-interfaces.js';
 import type { Validate } from '../commands/validate.js';
 
-import {
-  ConfigurationLogger,
-  ConfigurationOperation,
-} from '../utils/configuration-logger.js';
+import { ConfigurationLogger } from '../utils/configuration-logger.js';
 
 // Possible operations to perform when doing "update"
 export type UpdateOperations = 'add' | 'change' | 'rank' | 'remove';
@@ -192,12 +189,10 @@ export abstract class ResourceObject<
 
   // Gets handlebar files.
   private async reportHandlerBarFiles(from: ResourcesFrom = ResourcesFrom.all) {
-    const reports = this.project.resources.reports(from);
-    const handleBarFiles: string[] = [];
-    for (const report of reports) {
-      handleBarFiles.push(...(await report.handleBarFiles()));
-    }
-    return handleBarFiles;
+    const files = await Promise.all(
+      this.project.resources.reports(from).map((r) => r.handleBarFiles()),
+    );
+    return files.flat();
   }
 
   // Type of resource.
@@ -230,15 +225,11 @@ export abstract class ResourceObject<
    * @throws if accessing calculations files failed
    */
   protected async calculations(): Promise<string[]> {
-    const references: string[] = [];
-    const resourceName = resourceNameToString(this.resourceName);
-    for (const calculation of this.project.resources.calculations()) {
-      const content = calculation.contentData();
-      if (content.calculation && content.calculation.includes(resourceName)) {
-        references.push(calculation.data!.name);
-      }
-    }
-    return references;
+    const name = resourceNameToString(this.resourceName);
+    return this.project.resources
+      .calculations()
+      .filter((c) => c.contentData().calculation?.includes(name))
+      .map((c) => c.data!.name);
   }
 
   /**
@@ -417,60 +408,19 @@ export abstract class ResourceObject<
     }
   }
 
-  /**
-   * Log to migration log resource change
-   * @param operationType Operation type
-   * @param op Details of operation
-   * @param key Which property has been changed
-   * @throws when operation type is unknown
-   */
   protected async logResourceOperation<Type>(
     operationType: 'create' | 'delete' | 'update' | 'rename',
     op?: Operation<Type>,
     key?: string,
   ): Promise<void> {
-    let configOperation: ConfigurationOperation;
-    const target = resourceNameToString(this.resourceName);
-    const parameters: Record<string, unknown> = { type: this.type };
-
-    switch (operationType) {
-      case 'create':
-        configOperation = ConfigurationOperation.RESOURCE_CREATE;
-        break;
-      case 'delete':
-        configOperation = ConfigurationOperation.RESOURCE_DELETE;
-        break;
-      case 'update':
-        configOperation = ConfigurationOperation.RESOURCE_UPDATE;
-        if (op) {
-          parameters.operation = op.name;
-        }
-        if (key) {
-          parameters.key = key;
-        }
-        break;
-      case 'rename':
-        configOperation = ConfigurationOperation.RESOURCE_RENAME;
-        if (op && op.name === 'change') {
-          const changeOp = op as ChangeOperation<string>;
-          parameters.oldName = changeOp.target;
-          parameters.newName = changeOp.to;
-        }
-        break;
-      default:
-        throw new Error(`Unknown operation type: ${operationType}`);
-    }
-
-    await ConfigurationLogger.log(
+    await ConfigurationLogger.logResourceOperation(
       this.project.basePath,
-      configOperation,
-      target,
-      {
-        parameters,
-      },
+      resourceNameToString(this.resourceName),
+      this.type,
+      operationType,
+      op,
+      key,
     );
-
-    this.logger.info(`Configuration: ${configOperation} - ${target}`);
   }
 
   /**

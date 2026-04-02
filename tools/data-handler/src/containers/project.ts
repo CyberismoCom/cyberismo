@@ -86,7 +86,7 @@ export interface ProjectOptions {
 export class Project extends CardContainer {
   public readonly lock = new RWLock();
   public calculationEngine: CalculationEngine;
-  private gitManager?: GitManager;
+  private gitManager: GitManager;
   private logger = getChildLogger({ module: 'Project' });
   private projectPaths: ProjectPaths;
   private resourceHandler: ResourceHandler;
@@ -143,13 +143,13 @@ export class Project extends CardContainer {
       );
     }
 
-    if (this.options.autocommit) {
-      this.gitManager = new GitManager(path);
+    this.gitManager = new GitManager(path);
 
+    if (this.options.autocommit) {
       // Commit after successful writes
       this.lock.onAfterWrite(async () => {
         const context = getCommitContext();
-        await this.gitManager!.commit(
+        await this.gitManager.commit(
           context.message ?? 'Autocommit',
           context.author,
         );
@@ -157,7 +157,7 @@ export class Project extends CardContainer {
 
       // Rollback on failed writes
       this.lock.onWriteError(async () => {
-        await this.gitManager!.rollback();
+        await this.gitManager.rollback();
         // Invalidate caches after rollback since filesystem state changed
         this.cardCache.clear();
         await this.populateCardsCache();
@@ -669,30 +669,14 @@ export class Project extends CardContainer {
   /**
    * Adds a module from project.
    * @param module Module to add
-   * @param skipMigrationLog If true, skip logging to migration log. Used during project creation.
    */
-  public async importModule(module: ModuleSetting, skipMigrationLog = false) {
+  public async importModule(module: ModuleSetting) {
     // Add module as a dependency.
     await this.configuration.addModule(module);
     this.resources.changedModules();
     this.refreshAllModulePrefixes();
     await this.populateTemplateCards();
 
-    // Log configuration change
-    if (!skipMigrationLog) {
-      await ConfigurationLogger.log(
-        this.basePath,
-        ConfigurationOperation.MODULE_ADD,
-        module.name,
-        {
-          parameters: {
-            location: module.location,
-            branch: module.branch,
-            private: module.private,
-          },
-        },
-      );
-    }
     this.logger.info(`Imported module '${module.name}'`);
   }
 
@@ -883,10 +867,17 @@ export class Project extends CardContainer {
   }
 
   /**
+   * Returns the project's GitManager instance.
+   */
+  public get git(): GitManager {
+    return this.gitManager;
+  }
+
+  /**
    * Initialize git repo for autocommit mode. No-op if autocommit is disabled.
    */
   public async initializeGit(): Promise<void> {
-    if (this.gitManager) {
+    if (this.options.autocommit) {
       await this.gitManager.initialize(getCommitContext().author);
     }
   }
@@ -1067,6 +1058,7 @@ export class Project extends CardContainer {
       prefix: this.projectPrefix,
       category: this.configuration.category,
       description: this.configuration.description,
+      version: this.configuration.version,
       hubs: this.configuration.hubs,
       modules: this.resources.moduleNames(),
       numberOfCards: (await this.listCards(CardLocation.projectOnly))[0].cards

@@ -37,6 +37,7 @@ export class ProjectConfiguration implements ProjectSettings {
   cardKeyPrefix: string;
   category?: string;
   description: string;
+  version?: string;
   modules: ModuleSetting[];
   hubs: HubSetting[];
   private logger = getChildLogger({ module: 'Project' });
@@ -84,6 +85,7 @@ export class ProjectConfiguration implements ProjectSettings {
       this.name = settings.name;
       this.category = settings.category;
       this.description = settings.description || '';
+      this.version = settings.version;
       this.modules = settings.modules || [];
       this.hubs = settings.hubs || [];
     } else {
@@ -113,6 +115,7 @@ export class ProjectConfiguration implements ProjectSettings {
       name: this.name,
       category: this.category,
       description: this.description,
+      version: this.version,
       modules: this.modules,
       hubs: this.hubs,
     };
@@ -272,6 +275,15 @@ export class ProjectConfiguration implements ProjectSettings {
     throw new Error(
       `Prefix '${newPrefix}' is not valid prefix. Prefix should be in lowercase and contain letters from a to z (max length 10).`,
     );
+  }
+
+  /**
+   * Sets the project version.
+   * @param newVersion Semver version string (e.g. "1.0.0")
+   */
+  public async setVersion(newVersion: string) {
+    this.version = newVersion;
+    return this.save();
   }
 
   /**

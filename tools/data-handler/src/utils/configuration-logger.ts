@@ -12,21 +12,25 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { readFile, rename } from 'node:fs/promises';
+import { readFile, rename, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { getChildLogger } from './log-utils.js';
 import { ProjectPaths } from '../containers/project/project-paths.js';
 import { writeFileSafe, pathExists } from './file-utils.js';
+import type {
+  Operation,
+  ChangeOperation,
+  RemoveOperation,
+} from '../resources/resource-object.js';
+import type { ResourceFolderType } from '../interfaces/project-interfaces.js';
 
 /**
  * Enum for configuration change operation types.
  */
 export enum ConfigurationOperation {
-  MODULE_ADD = 'module_add',
   MODULE_REMOVE = 'module_remove',
   PROJECT_RENAME = 'project_rename',
-  RESOURCE_CREATE = 'resource_create',
   RESOURCE_DELETE = 'resource_delete',
   RESOURCE_RENAME = 'resource_rename',
   RESOURCE_UPDATE = 'resource_update',
@@ -75,7 +79,11 @@ export class ConfigurationLogger {
    */
   public static async clearLog(projectPath: string): Promise<void> {
     const logFile = ConfigurationLogger.logFile(projectPath);
-    await writeFileSafe(logFile, '', 'utf-8');
+    try {
+      await unlink(logFile);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+    }
     const logger = getChildLogger({ module: 'ConfigurationLogger' });
     logger.info('Configuration log cleared');
   }
@@ -98,14 +106,8 @@ export class ConfigurationLogger {
       `migrationLog_${version}.jsonl`,
     );
 
-    // Only create version if current log exists and has content
     if (!pathExists(currentLogPath)) {
       throw new Error('No current migration log exists to version');
-    }
-
-    const content = await readFile(currentLogPath, 'utf-8');
-    if (!content.trim()) {
-      throw new Error('Current migration log is empty');
     }
 
     // Rename current to versioned
@@ -161,7 +163,7 @@ export class ConfigurationLogger {
    * @param projectPath Path to the project root
    * @returns True if log file exists
    */
-  public static hasLog(projectPath: string): boolean {
+  public static hasBreakingChanges(projectPath: string): boolean {
     const logPath = new ProjectPaths(projectPath).configurationChangesLog;
     return pathExists(logPath);
   }
@@ -202,5 +204,120 @@ export class ConfigurationLogger {
         `Configuration logging failed`,
       );
     }
+  }
+
+  /** Keys where ALL operations (including remove) are non-breaking — UI visibility only. */
+  private static readonly NON_BREAKING_KEYS = [
+    'alwaysVisibleFields',
+    'optionallyVisibleFields',
+  ];
+
+  /** Keys where only 'change' is non-breaking — display-only scalars. */
+  private static readonly NON_BREAKING_CHANGE_KEYS = [
+    'displayName',
+    'description',
+    'category',
+    'outboundDisplayName',
+    'inboundDisplayName',
+  ];
+
+  /**
+   * For array-of-objects keys: which properties are "identity" (breaking if changed).
+   * If a 'change' op only modifies non-identity properties, it's non-breaking.
+   * Keys not listed here → all changes are breaking by default.
+   */
+  private static readonly IDENTITY_PROPERTIES: Record<string, string[]> = {
+    enumValues: ['enumValue'],
+    states: ['name'],
+    customFields: ['name', 'isCalculated'],
+    // transitions not listed — all properties are structural → always breaking
+  };
+
+  private static isNonBreakingArrayChange<Type>(
+    key: string,
+    op: Operation<Type>,
+  ): boolean {
+    const identityProps = ConfigurationLogger.IDENTITY_PROPERTIES[key];
+    if (!identityProps) return false;
+    const changeOp = op as ChangeOperation<Type>;
+    const target = changeOp.target as Record<string, unknown>;
+    const to = changeOp.to as Record<string, unknown>;
+    return !identityProps.some(
+      (prop) => JSON.stringify(target[prop]) !== JSON.stringify(to[prop]),
+    );
+  }
+
+  /**
+   * Log a resource operation if it represents a breaking change.
+   * Non-breaking operations (create, additive updates, display-only changes) are skipped.
+   */
+  public static async logResourceOperation<Type>(
+    projectPath: string,
+    target: string,
+    resourceType: ResourceFolderType,
+    operationType: 'create' | 'delete' | 'update' | 'rename',
+    op?: Operation<Type>,
+    key?: string,
+  ): Promise<void> {
+    let configOperation: ConfigurationOperation;
+    const parameters: Record<string, unknown> = { type: resourceType };
+
+    switch (operationType) {
+      case 'create':
+        return;
+      case 'delete':
+        configOperation = ConfigurationOperation.RESOURCE_DELETE;
+        break;
+      case 'update':
+        if (op?.name === 'add' || op?.name === 'rank') return;
+        if (key && ConfigurationLogger.NON_BREAKING_KEYS.includes(key)) return;
+        if (op?.name === 'change') {
+          if (key && ConfigurationLogger.NON_BREAKING_CHANGE_KEYS.includes(key))
+            return;
+          if (
+            key &&
+            op &&
+            ConfigurationLogger.isNonBreakingArrayChange(key, op)
+          )
+            return;
+        }
+        configOperation = ConfigurationOperation.RESOURCE_UPDATE;
+        if (op) {
+          parameters.operation = op.name;
+          if (op.name === 'change') {
+            const changeOp = op as ChangeOperation<Type>;
+            parameters.from = changeOp.target;
+            parameters.to = changeOp.to;
+            if (changeOp.mappingTable) {
+              parameters.mappingTable = changeOp.mappingTable;
+            }
+          }
+          if (op.name === 'remove') {
+            const removeOp = op as RemoveOperation<Type>;
+            parameters.removedValue = removeOp.target;
+            if (removeOp.replacementValue !== undefined) {
+              parameters.replacementValue = removeOp.replacementValue;
+            }
+          }
+        }
+        if (key) {
+          parameters.key = key;
+        }
+        break;
+      case 'rename':
+        configOperation = ConfigurationOperation.RESOURCE_RENAME;
+        if (op && op.name === 'change') {
+          const changeOp = op as ChangeOperation<string>;
+          parameters.oldName = changeOp.target;
+          parameters.newName = changeOp.to;
+        }
+        break;
+      default:
+        throw new Error(`Unknown operation type: ${operationType}`);
+    }
+
+    await ConfigurationLogger.log(projectPath, configOperation, target, {
+      parameters,
+    });
   }
 }
