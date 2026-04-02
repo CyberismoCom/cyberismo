@@ -11,6 +11,7 @@
 */
 
 import type { SWRConfiguration } from 'swr';
+import i18n from 'i18next';
 import { config } from './utils';
 
 export class ApiCallError extends Error {
@@ -40,8 +41,33 @@ export async function createApiCallError(
   }
 }
 
+// Guard against multiple simultaneous reloads when session expires
+let isReloading = false;
+
+function showSessionExpiredBanner() {
+  const banner = document.createElement('div');
+  banner.className = 'session-expired-banner';
+  const text = document.createElement('span');
+  text.textContent = i18n.t('sessionExpired');
+  const btn = document.createElement('button');
+  btn.textContent = i18n.t('sessionExpiredLogIn');
+  btn.addEventListener('click', () => window.location.reload());
+  banner.appendChild(text);
+  banner.appendChild(btn);
+  document.body.appendChild(banner);
+}
+
 async function handleResponse<T>(response: Response): Promise<T> {
+  // Once session expired banner is shown, block all API processing silently
+  if (isReloading) {
+    return new Promise<T>(() => {});
+  }
   if (!response.ok) {
+    if (response.status === 401) {
+      isReloading = true;
+      showSessionExpiredBanner();
+      return new Promise<T>(() => {});
+    }
     throw await createApiCallError(response);
   }
   if (response.status === 204) return null as unknown as T; // no content, return null
