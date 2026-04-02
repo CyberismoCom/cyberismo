@@ -78,6 +78,7 @@ function startApp<E extends Env, S extends Schema, P extends string>(
     {
       fetch: app.fetch,
       port: port,
+      hostname: process.env.HOST || '127.0.0.1',
     },
     (info) => {
       console.log(`Running Cyberismo app on http://localhost:${info.port}`);

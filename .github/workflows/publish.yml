@@ -154,4 +154,4 @@ jobs:
           cyberismo --version | grep "cyberismo version: ${VERSION}"
 
           pnpm install
-          pnpm --filter cli test
+          CYBERISMO_GLOBAL_CLI=true pnpm --filter cli test

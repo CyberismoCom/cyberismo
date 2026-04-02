@@ -1,6 +1,6 @@
 {
   "name": "@cyberismo/node-clingo",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "Node.js bindings for Clingo answer set solver",
   "scripts": {
     "install": "node scripts/download-prebuild.js || (cmake -P scripts/build-clingo.cmake && node-gyp-build)",
@@ -18,7 +18,6 @@
   "author": "sami.merila@cyberismo.com",
   "license": "AGPL-3.0",
   "homepage": "https://github.com/CyberismoCom/cyberismo",
-  "packageManager": "pnpm@10.8.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/CyberismoCom/cyberismo.git"

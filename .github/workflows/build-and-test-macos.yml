@@ -31,8 +31,6 @@ jobs:
         submodules: recursive
     - name: Install pnpm
       uses: pnpm/action-setup@v4
-      with:
-        version: 9
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
@@ -57,5 +55,4 @@ jobs:
     - run: pnpm --filter=app exec cypress install
     - run: pnpm prettier-check
     - run: pnpm build
-    - run: pnpm link --global
     - run: pnpm test

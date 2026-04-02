@@ -71,6 +71,7 @@ environment.yml
 
 # Ignore top-level dot files
 .*
+!.devcontainer
 
 # Ignore docker files
 Dockerfile

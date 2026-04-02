@@ -25,8 +25,13 @@
 // Shared solve result cache — content-addressed, safe to share across all instances.
 static node_clingo::SolveResultCache g_cache;
 
-// Dedicated thread pool for Clingo solves — thread count defaults to hardware concurrency.
-static BS::thread_pool<> g_thread_pool;
+// Lazy-initialized thread pool for Clingo solves.
+// Must be lazy-initialized as otherwise there could be a deadlock on environments using musl
+static BS::thread_pool<>& get_thread_pool()
+{
+    static BS::thread_pool<> pool;
+    return pool;
+}
 
 namespace
 {
@@ -224,7 +229,7 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
         auto deferred = Napi::Promise::Deferred::New(env);
         auto promise = deferred.Promise();
         node_clingo::spawnSolveTask(
-            g_thread_pool, g_cache, std::move(query), startTime, afterCacheCheckTime, std::move(deferred), env);
+            get_thread_pool(), g_cache, std::move(query), startTime, afterCacheCheckTime, std::move(deferred), env);
         return promise;
     }
 };

@@ -7,12 +7,11 @@
 
 import { execSync } from 'node:child_process';
 import { existsSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const tmpPath = resolve(__dirname, '../../../.tmp');
-const batPath = resolve(tmpPath, 'cyberismo-bat');
+const tmpPath = join(import.meta.dirname, '..', '..', '..', '.tmp');
+const batPath = join(tmpPath, 'cyberismo-bat');
+const cli = `node ${join(import.meta.dirname, '..', '..', 'cli', 'bin', 'run')}`;
 
 const graphModelPath = `${batPath}/.cards/local/graphModels/test1/model.lp`;
 const graphViewPath = `${batPath}/.cards/local/graphViews/test1/view.lp.hbs`;
@@ -40,13 +39,13 @@ if (!existsSync(tmpPath)) {
 execSync(
   [
     `cd ${tmpPath}`,
-    'cyberismo create project "Basic Acceptance Test" bat cyberismo-bat --skipModuleImport',
+    `${cli} create project "Basic Acceptance Test" bat cyberismo-bat --skipModuleImport`,
     'cd cyberismo-bat',
-    'cyberismo import module ../../module-test',
-    'cyberismo create card test/templates/pageContent',
-    'cyberismo create graphModel test1',
-    'cyberismo create graphView test1',
-    'cyberismo create report test1',
+    `${cli} import module ../../module-test`,
+    `${cli} create card test/templates/pageContent`,
+    `${cli} create graphModel test1`,
+    `${cli} create graphView test1`,
+    `${cli} create report test1`,
   ].join(' && '),
   { stdio: 'inherit' },
 );

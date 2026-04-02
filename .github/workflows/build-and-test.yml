@@ -31,8 +31,6 @@ jobs:
         submodules: recursive
     - name: Install pnpm
       uses: pnpm/action-setup@v4
-      with:
-        version: 9
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
@@ -59,7 +57,6 @@ jobs:
     - run: pnpm lint
     - run: pnpm --filter node-clingo format:cpp:check
     - run: pnpm build
-    - run: pnpm link --global
     - run: pnpm test
       env:
         CYBERISMO_GIT_USER: ${{ secrets.CYBERISMO_GIT_USER }}
