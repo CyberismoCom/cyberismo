@@ -78,7 +78,7 @@ jobs:
 
     - name: Install pnpm
       if: matrix.language == 'c-cpp'
-      uses: pnpm/action-setup@v4
+      uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda 
 
     - name: Install dependencies (skip prebuilt download)
       if: matrix.language == 'c-cpp'
