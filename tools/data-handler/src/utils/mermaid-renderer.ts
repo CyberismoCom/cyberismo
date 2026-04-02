@@ -41,7 +41,10 @@ async function renderWithMmdc(
   const outputPath = join(tempDir, `output.${format}`);
 
   try {
-    await writeFile(inputPath, code, 'utf-8');
+    // Unescape literal \n sequences that may come from upstream
+    // processing (e.g., Handlebars/JSON serialization of report data).
+    const unescaped = code.replace(/\\n/g, '\n');
+    await writeFile(inputPath, unescaped, 'utf-8');
 
     await new Promise<void>((resolve, reject) => {
       const proc = spawn(
