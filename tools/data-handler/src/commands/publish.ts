@@ -48,13 +48,6 @@ export class Publish {
       );
     }
 
-    // Guard: refuse to publish with uncommitted changes
-    if (await git.hasUncommittedChanges()) {
-      throw new Error(
-        'Cannot publish: there are uncommitted changes. Please commit or stash them first.',
-      );
-    }
-
     // Dry run: return info without doing anything
     if (dryRun) {
       return { version, dryRun: true };
