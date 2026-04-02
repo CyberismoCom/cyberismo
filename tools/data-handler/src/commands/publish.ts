@@ -48,22 +48,19 @@ export class Publish {
       );
     }
 
-    // Dry run: return info without doing anything
-    if (dryRun) {
-      return { version, dryRun: true };
+    if (!dryRun) {
+      // Create annotated tag and push. If push fails, clean up the local tag
+      // so a retry doesn't hit the "already published" guard.
+      const tagMessage = `Release v${version}`;
+      await git.tagVersion(version, tagMessage);
+      try {
+        await git.push({ tags: true, remote });
+      } catch (error) {
+        await git.deleteTag(version);
+        throw error;
+      }
     }
 
-    // Create annotated tag and push. If push fails, clean up the local tag
-    // so a retry doesn't hit the "already published" guard.
-    const tagMessage = `Release v${version}`;
-    await git.tagVersion(version, tagMessage);
-    try {
-      await git.push({ tags: true, remote });
-    } catch (error) {
-      await git.deleteTag(version);
-      throw error;
-    }
-
-    return { version };
+    return { version, dryRun };
   }
 }
