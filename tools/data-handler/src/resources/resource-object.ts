@@ -44,10 +44,7 @@ import type {
 } from '../interfaces/resource-interfaces.js';
 import type { Validate } from '../commands/validate.js';
 
-import {
-  ConfigurationLogger,
-  ConfigurationOperation,
-} from '../utils/configuration-logger.js';
+import { ConfigurationLogger } from '../utils/configuration-logger.js';
 
 // Possible operations to perform when doing "update"
 export type UpdateOperations = 'add' | 'change' | 'rank' | 'remove';
@@ -411,138 +408,19 @@ export abstract class ResourceObject<
     }
   }
 
-  /**
-   * Keys where ALL operations (including remove) are non-breaking — UI visibility only.
-   */
-  private static readonly NON_BREAKING_KEYS = [
-    'alwaysVisibleFields',
-    'optionallyVisibleFields',
-  ];
-
-  /**
-   * Keys where only 'change' is non-breaking — display-only scalars.
-   * Unknown keys default to breaking (allowlist approach).
-   */
-  private static readonly NON_BREAKING_CHANGE_KEYS = [
-    'displayName',
-    'description',
-    'category',
-    'outboundDisplayName',
-    'inboundDisplayName',
-  ];
-
-  /**
-   * For array-of-objects keys: which properties are "identity" (breaking if changed).
-   * If a 'change' op only modifies non-identity properties, it's non-breaking.
-   * Keys not listed here → all changes are breaking by default.
-   */
-  private static readonly IDENTITY_PROPERTIES: Record<string, string[]> = {
-    enumValues: ['enumValue'],
-    states: ['name'],
-    customFields: ['name', 'isCalculated'],
-    // transitions not listed — all properties are structural → always breaking
-  };
-
-  /**
-   * Checks if a 'change' operation on an array-of-objects key is non-breaking.
-   * Compares identity properties between old and new elements.
-   */
-  private static isNonBreakingArrayChange<Type>(
-    key: string,
-    op: Operation<Type>,
-  ): boolean {
-    const identityProps = ResourceObject.IDENTITY_PROPERTIES[key];
-    if (!identityProps) return false; // Key not in map → breaking by default
-    const changeOp = op as ChangeOperation<Type>;
-    const target = changeOp.target as Record<string, unknown>;
-    const to = changeOp.to as Record<string, unknown>;
-    // If any identity property changed, it's breaking
-    return !identityProps.some(
-      (prop) => JSON.stringify(target[prop]) !== JSON.stringify(to[prop]),
-    );
-  }
-
-  /**
-   * Log to migration log resource change. Only breaking changes are logged.
-   * @param operationType Operation type
-   * @param op Details of operation
-   * @param key Which property has been changed
-   * @throws when operation type is unknown
-   */
   protected async logResourceOperation<Type>(
     operationType: 'create' | 'delete' | 'update' | 'rename',
     op?: Operation<Type>,
     key?: string,
   ): Promise<void> {
-    let configOperation: ConfigurationOperation;
-    const target = resourceNameToString(this.resourceName);
-    const parameters: Record<string, unknown> = { type: this.type };
-
-    switch (operationType) {
-      case 'create':
-        // Additive, non-breaking — don't log
-        return;
-      case 'delete':
-        configOperation = ConfigurationOperation.RESOURCE_DELETE;
-        break;
-      case 'update':
-        // 'add' and 'rank' are non-breaking (additive / reorder)
-        if (op?.name === 'add' || op?.name === 'rank') return;
-        // All operations on these keys are non-breaking (UI visibility only)
-        if (key && ResourceObject.NON_BREAKING_KEYS.includes(key)) return;
-        if (op?.name === 'change') {
-          // Display-only scalars are non-breaking when changed
-          if (key && ResourceObject.NON_BREAKING_CHANGE_KEYS.includes(key)) return;
-          // Element-level check for array-of-objects keys
-          if (key && op && ResourceObject.isNonBreakingArrayChange(key, op))
-            return;
-        }
-        // Everything else is breaking
-        configOperation = ConfigurationOperation.RESOURCE_UPDATE;
-        if (op) {
-          parameters.operation = op.name;
-          if (op.name === 'change') {
-            const changeOp = op as ChangeOperation<Type>;
-            parameters.from = changeOp.target;
-            parameters.to = changeOp.to;
-            if (changeOp.mappingTable) {
-              parameters.mappingTable = changeOp.mappingTable;
-            }
-          }
-          if (op.name === 'remove') {
-            const removeOp = op as RemoveOperation<Type>;
-            parameters.removedValue = removeOp.target;
-            if (removeOp.replacementValue !== undefined) {
-              parameters.replacementValue = removeOp.replacementValue;
-            }
-          }
-        }
-        if (key) {
-          parameters.key = key;
-        }
-        break;
-      case 'rename':
-        configOperation = ConfigurationOperation.RESOURCE_RENAME;
-        if (op && op.name === 'change') {
-          const changeOp = op as ChangeOperation<string>;
-          parameters.oldName = changeOp.target;
-          parameters.newName = changeOp.to;
-        }
-        break;
-      default:
-        throw new Error(`Unknown operation type: ${operationType}`);
-    }
-
-    await ConfigurationLogger.log(
+    await ConfigurationLogger.logResourceOperation(
       this.project.basePath,
-      configOperation,
-      target,
-      {
-        parameters,
-      },
+      resourceNameToString(this.resourceName),
+      this.type,
+      operationType,
+      op,
+      key,
     );
-
-    this.logger.info(`Configuration: ${configOperation} - ${target}`);
   }
 
   /**
