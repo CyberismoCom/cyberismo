@@ -71,6 +71,6 @@ jobs:
       - name: Run CLI tests
         run: |
           cd tools/cli
-          CLI_COMMAND=cyberismo pnpm test
+          CYBERISMO_GLOBAL_CLI=true pnpm test
 
 

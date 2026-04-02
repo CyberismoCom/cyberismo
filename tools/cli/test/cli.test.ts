@@ -7,8 +7,8 @@ import { mkdirSync, rmSync } from 'node:fs';
 const execAsync = promisify(exec);
 
 // CLI command to use. Defaults to running bin/run directly (no global install needed).
-// Override with CLI_COMMAND=cyberismo for Docker CI (scripts/cyberismo wrapper).
-const cli = process.env.CLI_COMMAND || `node ${resolve('bin/run')}`;
+// Set CYBERISMO_GLOBAL_CLI=true for CI environments where `cyberismo` is on PATH.
+const cli = process.env.CYBERISMO_GLOBAL_CLI ? 'cyberismo' : `node ${resolve('bin/run')}`;
 
 const tmpPath = '../../.tmp';
 const moduleTestPath = '../../module-test';
