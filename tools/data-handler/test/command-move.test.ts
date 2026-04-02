@@ -9,7 +9,7 @@ import { Fetch, Show } from '../src/commands/index.js';
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
 
 // Create test artifacts in a temp folder.
-const commandHandler: Commands = new Commands();
+let commandHandler: Commands;
 let options: { projectPath: string };
 
 // Creates similarly named card. For example if the tested card has key 'decision_5,
@@ -51,6 +51,8 @@ describe('move command', () => {
 
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data', testDir);
+
+    commandHandler = new Commands();
 
     // Create few more cards to play with (moved from first test)
     const template = 'decision/templates/decision';

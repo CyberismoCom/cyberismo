@@ -230,36 +230,8 @@ export class Move {
       }
     }
 
-    const updatedCard: Card = {
-      ...sourceCard,
-      path: destinationPath,
-      parent: movingToRoot ? ROOT : destination,
-      metadata: sourceCard.metadata
-        ? {
-            ...sourceCard.metadata,
-            rank: rank,
-          }
-        : undefined,
-    };
-
-    // Fetch old parent
-    const oldParent = sourceCard.parent;
-    let oldParentCard: Card | undefined;
-    if (oldParent && oldParent !== ROOT) {
-      oldParentCard = this.project.findCard(oldParent);
-    }
-
-    let newParentCard: Card | undefined;
-    if (!movingToRoot) {
-      newParentCard = this.project.findCard(destination);
-    }
-
-    // Finally, update the project
-    await this.project.handleCardMoved(
-      updatedCard,
-      newParentCard,
-      oldParentCard,
-    );
+    // Notify the project about the move (cache and CE tree rebuild)
+    await this.project.handleCardMoved(sourceCard);
   }
 
   /**
