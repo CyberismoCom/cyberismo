@@ -157,7 +157,7 @@ export class ConfigurationLogger {
    * @param projectPath Path to the project root
    * @returns True if log file exists
    */
-  public static hasLog(projectPath: string): boolean {
+  public static hasBreakingChanges(projectPath: string): boolean {
     const logPath = new ProjectPaths(projectPath).configurationChangesLog;
     return pathExists(logPath);
   }

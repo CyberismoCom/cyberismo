@@ -227,7 +227,7 @@ describe('configuration logger', () => {
       // Check if log path exists for the project that has entries
       const logPath = ConfigurationLogger.logFile(testProjectPath2);
       expect(pathExists(logPath)).toBe(true);
-      expect(ConfigurationLogger.hasLog(testProjectPath2)).toBe(true);
+      expect(ConfigurationLogger.hasBreakingChanges(testProjectPath2)).toBe(true);
     });
   });
 });

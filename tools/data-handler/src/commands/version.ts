@@ -49,7 +49,7 @@ export class Version {
     // Guard: breaking changes require a major bump.
     // Skipped for the first version — there is no predecessor to break against.
     if (currentVersion && bumpType !== 'major') {
-      if (ConfigurationLogger.hasLog(this.project.basePath)) {
+      if (ConfigurationLogger.hasBreakingChanges(this.project.basePath)) {
         throw new Error(
           'Cannot publish a patch or minor version: breaking configuration changes detected. Use a major version bump.',
         );
@@ -67,7 +67,7 @@ export class Version {
     }
 
     // Snapshot the current migration log with the new version
-    if (ConfigurationLogger.hasLog(this.project.basePath)) {
+    if (ConfigurationLogger.hasBreakingChanges(this.project.basePath)) {
       await ConfigurationLogger.createVersion(
         this.project.basePath,
         newVersion,
