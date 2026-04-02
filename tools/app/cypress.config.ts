@@ -1,6 +1,11 @@
 import { defineConfig } from 'cypress';
 import { execSync } from 'node:child_process';
 import { existsSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const cli = `node ${resolve(__dirname, '../cli/bin/run')}`;
 
 // Path for test project that is created and modified during tests
 const batPath = '../../.tmp/cyberismo-bat';
@@ -12,15 +17,13 @@ const reportPath = `${batPath}/.cards/local/reports/test1/query.lp.hbs`;
 
 // commands used to create test project
 const cd = `cd ${tmpPath}`;
-const createProject =
-  'cyberismo create project "Basic Acceptance Test" bat cyberismo-bat --skipModuleImport';
+const createProject = `${cli} create project "Basic Acceptance Test" bat cyberismo-bat --skipModuleImport`;
 const cdProject = 'cd cyberismo-bat';
-const importModule = 'cyberismo import module ../../module-test';
-const createCardPageContent =
-  'cyberismo create card test/templates/pageContent';
-const createGraphModel = 'cyberismo create graphModel test1';
-const createGraphView = 'cyberismo create graphView test1';
-const createReport = 'cyberismo create report test1';
+const importModule = `${cli} import module ../../module-test`;
+const createCardPageContent = `${cli} create card test/templates/pageContent`;
+const createGraphModel = `${cli} create graphModel test1`;
+const createGraphView = `${cli} create graphView test1`;
+const createReport = `${cli} create report test1`;
 // content for files used in macros
 const graphModelContent =
   'view(Child) :- view(Parent), parent(Child, Parent).node(Card) :- card(Card), view(Card).attr(node, Card, "label", Title) :- node(Card), field(Card, "title", Title).attr(node, Card, "shape", "Box") :- node(Card).edge((Parent, Child)) :- parent(Child, Parent), view(Child), view(Parent).';
