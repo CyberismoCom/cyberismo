@@ -192,12 +192,10 @@ export abstract class ResourceObject<
 
   // Gets handlebar files.
   private async reportHandlerBarFiles(from: ResourcesFrom = ResourcesFrom.all) {
-    const reports = this.project.resources.reports(from);
-    const handleBarFiles: string[] = [];
-    for (const report of reports) {
-      handleBarFiles.push(...(await report.handleBarFiles()));
-    }
-    return handleBarFiles;
+    const files = await Promise.all(
+      this.project.resources.reports(from).map((r) => r.handleBarFiles()),
+    );
+    return files.flat();
   }
 
   // Type of resource.
@@ -230,15 +228,11 @@ export abstract class ResourceObject<
    * @throws if accessing calculations files failed
    */
   protected async calculations(): Promise<string[]> {
-    const references: string[] = [];
-    const resourceName = resourceNameToString(this.resourceName);
-    for (const calculation of this.project.resources.calculations()) {
-      const content = calculation.contentData();
-      if (content.calculation && content.calculation.includes(resourceName)) {
-        references.push(calculation.data!.name);
-      }
-    }
-    return references;
+    const name = resourceNameToString(this.resourceName);
+    return this.project.resources
+      .calculations()
+      .filter((c) => c.contentData().calculation?.includes(name))
+      .map((c) => c.data!.name);
   }
 
   /**
@@ -463,12 +457,9 @@ export abstract class ResourceObject<
     const target = changeOp.target as Record<string, unknown>;
     const to = changeOp.to as Record<string, unknown>;
     // If any identity property changed, it's breaking
-    for (const prop of identityProps) {
-      if (JSON.stringify(target[prop]) !== JSON.stringify(to[prop])) {
-        return false;
-      }
-    }
-    return true; // Only non-identity (display) properties changed
+    return !identityProps.some(
+      (prop) => JSON.stringify(target[prop]) !== JSON.stringify(to[prop]),
+    );
   }
 
   /**
