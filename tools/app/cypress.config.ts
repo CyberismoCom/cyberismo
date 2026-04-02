@@ -1,11 +1,9 @@
 import { defineConfig } from 'cypress';
 import { execSync } from 'node:child_process';
 import { existsSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const cli = `node ${resolve(__dirname, '../cli/bin/run')}`;
+const cli = `node ${join(import.meta.dirname, '..', 'cli', 'bin', 'run')}`;
 
 // Path for test project that is created and modified during tests
 const batPath = '../../.tmp/cyberismo-bat';

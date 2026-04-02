@@ -1,7 +1,7 @@
 import { expect, it, describe, beforeAll, afterAll } from 'vitest';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
-import { resolve } from 'node:path';
+import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 
 const execAsync = promisify(exec);
@@ -10,7 +10,7 @@ const execAsync = promisify(exec);
 // Set CYBERISMO_GLOBAL_CLI=true for CI environments where `cyberismo` is on PATH.
 const cli = process.env.CYBERISMO_GLOBAL_CLI
   ? 'cyberismo'
-  : `node ${resolve('bin/run')}`;
+  : `node ${join(import.meta.dirname, '..', 'bin', 'run')}`;
 
 const tmpPath = '../../.tmp';
 const moduleTestPath = '../../module-test';

@@ -7,13 +7,11 @@
 
 import { execSync } from 'node:child_process';
 import { existsSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const tmpPath = resolve(__dirname, '../../../.tmp');
-const batPath = resolve(tmpPath, 'cyberismo-bat');
-const cli = `node ${resolve(__dirname, '../../cli/bin/run')}`;
+const tmpPath = join(import.meta.dirname, '..', '..', '..', '.tmp');
+const batPath = join(tmpPath, 'cyberismo-bat');
+const cli = `node ${join(import.meta.dirname, '..', '..', 'cli', 'bin', 'run')}`;
 
 const graphModelPath = `${batPath}/.cards/local/graphModels/test1/model.lp`;
 const graphViewPath = `${batPath}/.cards/local/graphViews/test1/view.lp.hbs`;
