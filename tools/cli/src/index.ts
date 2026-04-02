@@ -245,7 +245,8 @@ program
     new Option('-L, --log-level <level>', 'Set the log level')
       .choices(['trace', 'debug', 'info', 'warn', 'error', 'fatal'])
       .default('fatal'),
-  );
+  )
+  .option('--autocommit', 'Enable git-backed transactional writes');
 
 const addCmd = new CommandWithPath('add').description(
   'Add items to the project',

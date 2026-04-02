@@ -19,6 +19,7 @@ import type { CmdKey } from '../command-handler.js';
 export interface BaseCommandOptions {
   projectPath?: string;
   logLevel?: Level;
+  autocommit?: boolean;
 }
 
 // Options for commands that need context
@@ -90,7 +91,6 @@ export interface ShowCommandOptions extends BaseCommandOptions {
 export interface StartCommandOptions extends BaseCommandOptions {
   forceStart?: boolean;
   watchResourceChanges?: boolean;
-  autocommit?: boolean;
 }
 
 // Options for 'publish' command

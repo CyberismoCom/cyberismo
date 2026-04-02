@@ -77,10 +77,6 @@ export class Version {
     // Write new version to cardsConfig
     await this.project.configuration.setVersion(newVersion);
 
-    // Commit the version bump
-    const commitMessage = `Release v${newVersion}`;
-    await git.commit(commitMessage);
-
     return { previousVersion: currentVersion, newVersion };
   }
 }

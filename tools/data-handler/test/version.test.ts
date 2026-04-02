@@ -8,6 +8,7 @@ import { GitManager } from '../src/utils/git-manager.js';
 import { RWLock } from '../src/utils/rw-lock.js';
 import { Version } from '../src/commands/version.js';
 import { ConfigurationLogger } from '../src/utils/configuration-logger.js';
+import { getCommitContext } from '../src/utils/commit-context.js';
 import type { Project } from '../src/containers/project.js';
 
 function makeConfiguration(configPath: string, initialVersion?: string) {
@@ -53,10 +54,16 @@ describe('Version', () => {
 
     configuration = makeConfiguration(configPath);
 
+    const lock = new RWLock();
+    lock.onAfterWrite(async () => {
+      const context = getCommitContext();
+      await git.commit(context.message ?? 'Autocommit');
+    });
+
     const project = {
       basePath: dir,
       git,
-      lock: new RWLock(),
+      lock,
       configuration,
     } as unknown as Project;
 
