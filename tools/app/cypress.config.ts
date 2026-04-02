@@ -3,7 +3,8 @@ import { execSync } from 'node:child_process';
 import { existsSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const cli = `node ${join(import.meta.dirname, '..', 'cli', 'bin', 'run')}`;
+// Cypress runs this config as CJS, so __dirname is available (not import.meta.dirname).
+const cli = `node ${join(__dirname, '..', 'cli', 'bin', 'run')}`;
 
 // Path for test project that is created and modified during tests
 const batPath = '../../.tmp/cyberismo-bat';
