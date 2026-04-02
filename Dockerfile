@@ -44,8 +44,14 @@ COPY --from=builder /app/tools/app/package.json ./tools/app/package.json
 
 # install tools needed for PDF export
 # - ruby & rubygems for installing asciidoctor/asciidoctor-pdf
-RUN apk add --no-cache git ruby-full \
-  && gem install --no-document asciidoctor-pdf rouge
+# - chromium for mermaid CLI (mmdc) diagram rendering
+RUN apk add --no-cache git ruby-full chromium \
+  && gem install --no-document asciidoctor-pdf rouge \
+  && npm install -g @mermaid-js/mermaid-cli
+
+# Configure Puppeteer to use system chromium instead of downloading its own
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 
 # node-clingo
 RUN mkdir -p ./tools/node-clingo
