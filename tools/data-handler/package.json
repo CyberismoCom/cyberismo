@@ -49,7 +49,7 @@
     "dompurify": "^3.3.3",
     "email-validator": "^2.0.4",
     "entities": "^7.0.1",
-    "handlebars": "^4.7.8",
+    "handlebars": "^4.7.9",
     "jsdom": "^29.0.1",
     "json-schema": "^0.4.0",
     "jsonschema": "^1.5.0",
