@@ -8,7 +8,9 @@ const execAsync = promisify(exec);
 
 // CLI command to use. Defaults to running bin/run directly (no global install needed).
 // Set CYBERISMO_GLOBAL_CLI=true for CI environments where `cyberismo` is on PATH.
-const cli = process.env.CYBERISMO_GLOBAL_CLI ? 'cyberismo' : `node ${resolve('bin/run')}`;
+const cli = process.env.CYBERISMO_GLOBAL_CLI
+  ? 'cyberismo'
+  : `node ${resolve('bin/run')}`;
 
 const tmpPath = '../../.tmp';
 const moduleTestPath = '../../module-test';
