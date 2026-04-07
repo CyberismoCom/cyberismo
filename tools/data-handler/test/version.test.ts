@@ -88,7 +88,7 @@ describe('Version', () => {
       expect(result.newVersion).toBe('1.0.0');
     });
 
-    it('should produce 1.0.0 for first major bump too', async () => {
+    it('should produce 1.0.0 for first major bump', async () => {
       await writeFile(join(dir, 'cardRoot', 'card.json'), '{}');
       await git.commit('Add card');
 
