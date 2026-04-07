@@ -39,7 +39,9 @@ export class Publish {
 
     // Guard: no version set
     if (!version) {
-      throw new Error("No version set. Run 'cyberismo create version <bump>' first.");
+      throw new Error(
+        "No version set. Run 'cyberismo create version <bump>' first.",
+      );
     }
 
     // Guard: version already tagged
