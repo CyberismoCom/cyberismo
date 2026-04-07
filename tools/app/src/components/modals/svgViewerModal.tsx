@@ -1,5 +1,11 @@
 import DOMPurify from 'dompurify';
-import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from 'react';
 import {
   Modal,
   Box,
@@ -66,9 +72,7 @@ function normalizeSvgMarkup(markup: string): string {
     cleaned = cleaned.replace(
       /style\s*=\s*"([^"]*)"/i,
       (_: string, style: string) => {
-        const newStyle = style
-          .replace(/max-width:\s*[^;]+;?\s*/gi, '')
-          .trim();
+        const newStyle = style.replace(/max-width:\s*[^;]+;?\s*/gi, '').trim();
         return newStyle ? `style="${newStyle}"` : '';
       },
     );
@@ -390,7 +394,19 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
                 USE_PROFILES: { svg: true },
                 // Mermaid renders text inside <foreignObject> with HTML elements.
                 // Allow only the specific tags/attributes Mermaid uses.
-                ADD_TAGS: ['foreignObject', 'div', 'span', 'p', 'br', 'i', 'b', 'em', 'strong', 'pre', 'code'],
+                ADD_TAGS: [
+                  'foreignObject',
+                  'div',
+                  'span',
+                  'p',
+                  'br',
+                  'i',
+                  'b',
+                  'em',
+                  'strong',
+                  'pre',
+                  'code',
+                ],
                 ADD_ATTR: ['class', 'style', 'xmlns', 'requiredExtensions'],
               }),
             }}

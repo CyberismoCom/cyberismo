@@ -47,9 +47,7 @@ describe('Mermaid component', () => {
   it('shows an error when no code is provided', () => {
     render(<Mermaid code="" macroKey="test-2" preview={false} />);
 
-    expect(
-      screen.getByText(/No Mermaid diagram code provided/),
-    ).toBeDefined();
+    expect(screen.getByText(/No Mermaid diagram code provided/)).toBeDefined();
   });
 
   it('shows an error message when mermaid rendering fails', async () => {

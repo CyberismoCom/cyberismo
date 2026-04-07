@@ -791,11 +791,11 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
       securityLevel: 'strict',
     });
 
-    const mermaidBlocks =
-      contentRef.querySelectorAll<HTMLElement>('.mermaid-block[data-mermaid-code]');
+    const mermaidBlocks = contentRef.querySelectorAll<HTMLElement>(
+      '.mermaid-block[data-mermaid-code]',
+    );
 
     mermaidBlocks.forEach((block) => {
-
       const encoded = block.getAttribute('data-mermaid-code') || '';
       let code: string;
       try {
