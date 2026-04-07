@@ -55,6 +55,7 @@ export interface PredefinedCardMetadata {
   externalLinks?: ExternalLink[];
   labels?: string[];
   lastTransitioned?: string;
+  createdAt?: string;
   lastUpdated?: string;
   links: Link[];
   rank: string;

@@ -19,6 +19,9 @@ templateCard(C) :- card(C), field(C, "container", "template").
 dataType(Card, "lastUpdated", "dateTime") :-
     field(Card, "lastUpdated", _).
 
+dataType(Card, "createdAt", "dateTime") :-
+    field(Card, "createdAt", _).
+
 dataType(Connector, "lastSynchronised", "dateTime") :-
     field(Connector, "lastSynchronised", _).
 

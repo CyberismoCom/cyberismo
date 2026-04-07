@@ -201,6 +201,18 @@ function MetadataView({
             edit: editMode ?? false,
           }}
         />
+        <FieldItem
+          name="__createdAt__"
+          forceValue={
+            card.createdAt ? format(new Date(card.createdAt), 'PPp') : ''
+          }
+          expanded={expanded}
+          editableFieldProps={{
+            label: t('createdAt'),
+            dataType: 'dateTime',
+            edit: false,
+          }}
+        />
         {(card.fields ?? []).map(
           ({
             key,

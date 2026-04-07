@@ -104,6 +104,7 @@ interface CardQueryResult extends BaseResult {
   cardTypeDisplayName: string;
   workflowState: string;
   lastUpdated?: string;
+  createdAt?: string;
   fields: CardQueryField[];
   labels: string[];
   links: CalculationLink[];

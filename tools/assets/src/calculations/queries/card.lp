@@ -96,6 +96,7 @@ select(1, "results", "cardTypeDisplayName").
 select(1, "results", "title").
 select(1, "results", "key").
 select(1, "results", "lastUpdated").
+select(1, "results", "createdAt").
 select(1, "results", "workflowState").
 select(1, "results", "policyChecks").
 select(1, "results", "links").

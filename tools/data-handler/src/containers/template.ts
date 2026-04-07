@@ -246,6 +246,7 @@ export class Template extends CardContainer {
       templateCardKey,
       workflowState: initialWorkflowState.toState,
       cardType: cardType.name,
+      createdAt: new Date().toISOString(),
       rank: cardWithRank?.metadata?.rank || card.metadata.rank || EMPTY_RANK,
     };
 
