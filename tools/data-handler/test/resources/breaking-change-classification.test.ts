@@ -140,7 +140,9 @@ describe('breaking change classification', () => {
       expect(logStub.firstCall.args[1].operation).toBe(
         ConfigurationOperation.RESOURCE_RENAME,
       );
-      expect(logStub.firstCall.args[1].parameters.operation.target).toBe('oldName');
+      expect(logStub.firstCall.args[1].parameters.operation.target).toBe(
+        'oldName',
+      );
       expect(logStub.firstCall.args[1].parameters.operation.to).toBe('newName');
     });
   });

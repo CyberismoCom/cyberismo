@@ -50,7 +50,9 @@ describe('Version', () => {
     await git.initialize();
 
     // Bypass migration log snapshot handling — these tests focus on version bumping
-    hasBreakingChangesStub = sinon.stub(ConfigurationLogger, 'hasBreakingChanges').returns(false);
+    hasBreakingChangesStub = sinon
+      .stub(ConfigurationLogger, 'hasBreakingChanges')
+      .returns(false);
 
     configuration = makeConfiguration(configPath);
 
