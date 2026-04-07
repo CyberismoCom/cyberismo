@@ -29,9 +29,9 @@ export class Publish {
    */
   @write(() => 'Publish version')
   public async publishVersion(
-    dryRun?: boolean,
+    dryRun: boolean,
     remote?: string,
-  ): Promise<{ version: string; dryRun?: boolean }> {
+  ): Promise<{ version: string; dryRun: boolean }> {
     const { git } = this.project;
     const version = this.project.configuration.version;
 

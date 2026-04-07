@@ -60,10 +60,10 @@ describe('Publish', () => {
 
       const pushStub = sinon.stub(git, 'push').resolves();
 
-      const result = await publish.publishVersion();
+      const result = await publish.publishVersion(false);
 
       expect(result.version).toBe('1.0.0');
-      expect(result.dryRun).toBeUndefined();
+      expect(result.dryRun).toBe(false);
 
       const tags = await testGit(dir).tags();
       expect(tags.all).toContain('v1.0.0');
@@ -79,7 +79,7 @@ describe('Publish', () => {
 
       sinon.stub(git, 'push').resolves();
 
-      await publish.publishVersion();
+      await publish.publishVersion(false);
 
       const tagInfo = await testGit(dir).raw([
         'tag',
@@ -93,7 +93,7 @@ describe('Publish', () => {
 
   describe('error conditions', () => {
     it('should throw if no version set', async () => {
-      await expect(publish.publishVersion()).rejects.toThrow('No version set');
+      await expect(publish.publishVersion(false)).rejects.toThrow('No version set');
     });
 
     it('should throw if version already tagged', async () => {
@@ -102,7 +102,7 @@ describe('Publish', () => {
       await git.commit('change');
       await git.tagVersion('1.0.0', 'Release v1.0.0');
 
-      await expect(publish.publishVersion()).rejects.toThrow(
+      await expect(publish.publishVersion(false)).rejects.toThrow(
         'already published',
       );
     });
@@ -111,7 +111,7 @@ describe('Publish', () => {
       configuration.version = '1.0.0';
       await writeFile(join(dir, 'cardRoot', 'dirty.txt'), 'uncommitted');
 
-      await expect(publish.publishVersion()).rejects.toThrow(
+      await expect(publish.publishVersion(false)).rejects.toThrow(
         'uncommitted changes',
       );
     });
@@ -123,7 +123,7 @@ describe('Publish', () => {
 
       sinon.stub(git, 'push').rejects(new Error('network error'));
 
-      await expect(publish.publishVersion()).rejects.toThrow('network error');
+      await expect(publish.publishVersion(false)).rejects.toThrow('network error');
 
       // Tag should have been cleaned up so retry works
       const tags = await testGit(dir).tags();
