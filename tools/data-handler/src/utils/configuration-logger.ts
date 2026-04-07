@@ -206,10 +206,11 @@ export class ConfigurationLogger {
     }
   }
 
-  /** Keys where ALL operations (including remove) are non-breaking — UI visibility only. */
+  /** Keys where ALL operations (including remove) are non-breaking. */
   private static readonly NON_BREAKING_KEYS = [
     'alwaysVisibleFields',
     'optionallyVisibleFields',
+    'transitions',
   ];
 
   /** Keys where only 'change' is non-breaking — display-only scalars. */
@@ -230,7 +231,6 @@ export class ConfigurationLogger {
     enumValues: ['enumValue'],
     states: ['name'],
     customFields: ['name', 'isCalculated'],
-    // transitions not listed — all properties are structural → always breaking
   };
 
   private static isNonBreakingArrayChange<Type>(

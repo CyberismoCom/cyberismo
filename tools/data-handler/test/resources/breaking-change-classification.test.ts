@@ -296,15 +296,21 @@ describe('breaking change classification', () => {
       });
     });
 
-    describe('transitions (not in IDENTITY_PROPERTIES — always breaking)', () => {
-      it('any change is breaking', async () => {
+    describe('transitions (non-breaking — no card data references them)', () => {
+      it('any change is non-breaking', async () => {
         const op: Operation<{ name: string; fromState: string[] }> = {
           name: 'change',
           target: { name: 't1', fromState: ['open'] },
           to: { name: 't1', fromState: ['closed'] },
         };
         await resource.testLogResourceOperation('update', op, 'transitions');
-        expect(logStub.calledOnce).toBe(true);
+        expect(logStub.calledOnce).toBe(false);
+      });
+
+      it('remove is non-breaking', async () => {
+        const op: Operation<string> = { name: 'remove', target: 't1' };
+        await resource.testLogResourceOperation('update', op, 'transitions');
+        expect(logStub.calledOnce).toBe(false);
       });
     });
   });
@@ -316,7 +322,6 @@ describe('breaking change classification', () => {
       'states',
       'enumValues',
       'customFields',
-      'transitions',
       'sourceCardTypes',
     ]) {
       it(`remove on '${key}' is breaking`, async () => {
