@@ -39,9 +39,7 @@ const migration: Migration = {
       `Migrating from schema version ${context.fromVersion} to ${context.toVersion}`,
     );
     console.log('Schema changes:');
-    console.log(
-      '  - Removed stale migration logs from pre-versioning era',
-    );
+    console.log('  - Removed stale migration logs from pre-versioning era');
 
     const migrationsDir = join(context.cardsConfigPath, 'local', 'migrations');
 
