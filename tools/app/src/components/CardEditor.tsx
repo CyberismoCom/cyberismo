@@ -293,6 +293,7 @@ export default function CardEditor({
     return {
       __title__: card?.title,
       __labels__: card?.labels,
+      __createdAt__: card?.createdAt,
       ...card?.fields?.reduce(
         (acc, field) => {
           acc[field.key] = getDefaultValue(field.value);
@@ -328,7 +329,7 @@ export default function CardEditor({
     onCancel?.();
   };
 
-  const { __title__, __labels__, ...metadata } = preview;
+  const { __title__, __labels__, __createdAt__, ...metadata } = preview;
 
   // Here we assume that metadata contains valid metadata values
 
@@ -376,6 +377,7 @@ export default function CardEditor({
           ...card,
           title: (__title__ as string) ?? card.title,
           labels: (__labels__ as string[]) ?? card.labels,
+          createdAt: (__createdAt__ as string) ?? card.createdAt,
           rawContent: contentRef.current ?? card.rawContent,
           parsedContent: parsed,
           fields: deepCopy(card.fields) ?? [],
@@ -488,7 +490,7 @@ export default function CardEditor({
     data: Record<string, MetadataValue | undefined>,
   ) => {
     try {
-      const { __title__, __labels__, ...metadata } = data;
+      const { __title__, __labels__, __createdAt__, ...metadata } = data;
       const update: {
         content?: string;
         metadata: Record<string, MetadataValue>;
@@ -520,6 +522,9 @@ export default function CardEditor({
         __labels__ !== undefined
       ) {
         update.metadata.labels = __labels__;
+      }
+      if (!card.createdAt && __createdAt__) {
+        update.metadata.createdAt = __createdAt__;
       }
 
       await updateCard(update);

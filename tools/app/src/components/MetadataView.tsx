@@ -92,7 +92,7 @@ function FieldItem({
 
 export interface MetadataViewProps {
   initialExpanded?: boolean;
-  editMode?: boolean;
+  editMode: boolean;
   card: CardResponse;
   onClick?: () => void;
   focusField?: string;
@@ -188,14 +188,14 @@ function MetadataView({
         />
         <FieldItem
           name="__createdAt__"
-          forceValue={
-            card.createdAt ? format(new Date(card.createdAt), 'PPp') : ''
-          }
+          forceValue={card.createdAt && format(new Date(card.createdAt), 'PPp')}
+          context={context}
+          handleChange={handleChange}
           expanded={expanded}
           editableFieldProps={{
             label: t('createdAt'),
             dataType: 'dateTime',
-            edit: false,
+            edit: card.createdAt ? false : editMode,
           }}
         />
         <FieldItem
