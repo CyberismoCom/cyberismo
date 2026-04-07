@@ -984,12 +984,10 @@ export class Project extends CardContainer {
     this.refreshAllModulePrefixes();
 
     // Log configuration change
-    await ConfigurationLogger.log(
-      this.basePath,
-      ConfigurationOperation.MODULE_REMOVE,
-      moduleName,
-      {},
-    );
+    await ConfigurationLogger.log(this.basePath, {
+      operation: ConfigurationOperation.MODULE_REMOVE,
+      target: moduleName,
+    });
 
     this.logger.info(`Removed module '${moduleName}'`);
   }

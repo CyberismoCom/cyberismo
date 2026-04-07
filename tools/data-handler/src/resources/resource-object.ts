@@ -304,9 +304,6 @@ export abstract class ResourceObject<
 
     const resourceString = resourceNameToString(this.resourceName);
     this.project.resources.add(resourceString, this);
-
-    // Log resource creation to migration log
-    await this.logResourceOperation('create');
   }
 
   /**
@@ -408,19 +405,12 @@ export abstract class ResourceObject<
     }
   }
 
-  protected async logResourceOperation<Type>(
-    operationType: 'create' | 'delete' | 'update' | 'rename',
-    op?: Operation<Type>,
-    key?: string,
-  ): Promise<void> {
-    await ConfigurationLogger.logResourceOperation(
+  protected logTarget(): [string, string, ResourceFolderType] {
+    return [
       this.project.basePath,
       resourceNameToString(this.resourceName),
       this.type,
-      operationType,
-      op,
-      key,
-    );
+    ];
   }
 
   /**
@@ -466,8 +456,11 @@ export abstract class ResourceObject<
     this.content = content;
     await this.write();
 
-    // Log resource update to migration log
-    await this.logResourceOperation('update', op, updateKey.key);
+    await ConfigurationLogger.logResourceUpdate(
+      ...this.logTarget(),
+      op,
+      updateKey.key,
+    );
   }
 
   /**
@@ -520,12 +513,11 @@ export abstract class ResourceObject<
 
     this.project.resources.rename(oldName, newNameString);
 
-    // Log resource rename to migration log
-    await this.logResourceOperation('rename', {
+    await ConfigurationLogger.logResourceRename(...this.logTarget(), {
       name: 'change',
       target: oldName,
       to: newNameString,
-    } as ChangeOperation<string>);
+    });
   }
 
   /**
@@ -792,8 +784,7 @@ export abstract class ResourceObject<
     this.project.resources.remove(resourceNameToString(this.resourceName));
     this.fileName = '';
 
-    // Log resource deletion to migration log
-    await this.logResourceOperation('delete');
+    await ConfigurationLogger.logResourceDelete(...this.logTarget());
   }
 
   /**

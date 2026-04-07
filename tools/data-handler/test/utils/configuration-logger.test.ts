@@ -36,14 +36,11 @@ describe('configuration logger', () => {
       await ConfigurationLogger.clearLog(testProjectPath);
     });
     it('should log resource deletion', async () => {
-      await ConfigurationLogger.log(
-        testProjectPath,
-        ConfigurationOperation.RESOURCE_DELETE,
-        'test-resource',
-        {
-          parameters: { type: 'template' },
-        },
-      );
+      await ConfigurationLogger.log(testProjectPath, {
+        operation: ConfigurationOperation.RESOURCE_DELETE,
+        target: 'test-resource',
+        parameters: { type: 'template' },
+      });
 
       const entries = await ConfigurationLogger.entries(testProjectPath);
       expect(entries).toHaveLength(1);
@@ -53,11 +50,10 @@ describe('configuration logger', () => {
       expect(entries[0].timestamp).toBeTypeOf('string');
     });
     it('should handle logging without parameters', async () => {
-      await ConfigurationLogger.log(
-        testProjectPath,
-        ConfigurationOperation.RESOURCE_RENAME,
-        'renamed-resource',
-      );
+      await ConfigurationLogger.log(testProjectPath, {
+        operation: ConfigurationOperation.RESOURCE_RENAME,
+        target: 'renamed-resource',
+      });
 
       const entries = await ConfigurationLogger.entries(testProjectPath);
       const renameEntry = entries.find(
@@ -70,16 +66,14 @@ describe('configuration logger', () => {
     it('should append entries in JSON Lines format', async () => {
       await ConfigurationLogger.clearLog(testProjectPath);
 
-      await ConfigurationLogger.log(
-        testProjectPath,
-        ConfigurationOperation.RESOURCE_DELETE,
-        'resource1',
-      );
-      await ConfigurationLogger.log(
-        testProjectPath,
-        ConfigurationOperation.RESOURCE_RENAME,
-        'resource2',
-      );
+      await ConfigurationLogger.log(testProjectPath, {
+        operation: ConfigurationOperation.RESOURCE_DELETE,
+        target: 'resource1',
+      });
+      await ConfigurationLogger.log(testProjectPath, {
+        operation: ConfigurationOperation.RESOURCE_RENAME,
+        target: 'resource2',
+      });
 
       const logPath = ConfigurationLogger.logFile(testProjectPath);
       const logContent = await readFile(logPath, 'utf-8');
@@ -98,31 +92,30 @@ describe('configuration logger', () => {
     it('should preserve entry order', async () => {
       await ConfigurationLogger.clearLog(testProjectPath);
 
-      const operations = [
-        { op: ConfigurationOperation.RESOURCE_DELETE, target: 'first' },
-        { op: ConfigurationOperation.RESOURCE_UPDATE, target: 'second' },
-        { op: ConfigurationOperation.MODULE_REMOVE, target: 'third' },
+      const entries = [
+        { operation: ConfigurationOperation.RESOURCE_DELETE, target: 'first' },
+        { operation: ConfigurationOperation.RESOURCE_UPDATE, target: 'second' },
+        { operation: ConfigurationOperation.MODULE_REMOVE, target: 'third' },
       ];
 
-      for (const { op, target } of operations) {
-        await ConfigurationLogger.log(testProjectPath, op, target);
+      for (const entry of entries) {
+        await ConfigurationLogger.log(testProjectPath, entry);
       }
 
-      const entries = await ConfigurationLogger.entries(testProjectPath);
-      expect(entries).toHaveLength(3);
-      expect(entries[0].target).toBe('first');
-      expect(entries[1].target).toBe('second');
-      expect(entries[2].target).toBe('third');
+      const result = await ConfigurationLogger.entries(testProjectPath);
+      expect(result).toHaveLength(3);
+      expect(result[0].target).toBe('first');
+      expect(result[1].target).toBe('second');
+      expect(result[2].target).toBe('third');
     });
     it('should handle logging errors gracefully', async () => {
       const invalidPath = '/invalid/path/that/does/not/exist';
 
       await expect(
-        ConfigurationLogger.log(
-          invalidPath,
-          ConfigurationOperation.RESOURCE_DELETE,
-          'test',
-        ),
+        ConfigurationLogger.log(invalidPath, {
+          operation: ConfigurationOperation.RESOURCE_DELETE,
+          target: 'test',
+        }),
       ).resolves.not.toThrow();
     });
     it('should handle reading non-existent log file', async () => {
@@ -134,16 +127,11 @@ describe('configuration logger', () => {
     it('should log module removal', async () => {
       await ConfigurationLogger.clearLog(testProjectPath);
 
-      await ConfigurationLogger.log(
-        testProjectPath,
-        ConfigurationOperation.MODULE_REMOVE,
-        'test-module',
-        {
-          parameters: {
-            location: '/path/to/module',
-          },
-        },
-      );
+      await ConfigurationLogger.log(testProjectPath, {
+        operation: ConfigurationOperation.MODULE_REMOVE,
+        target: 'test-module',
+        parameters: { location: '/path/to/module' },
+      });
 
       const entries = await ConfigurationLogger.entries(testProjectPath);
       const removeEntry = entries.find(
@@ -163,16 +151,14 @@ describe('configuration logger', () => {
     it('should clear log entries', async () => {
       const beforeEntries = (await ConfigurationLogger.entries(testProjectPath))
         .length;
-      await ConfigurationLogger.log(
-        testProjectPath,
-        ConfigurationOperation.RESOURCE_DELETE,
-        'test1',
-      );
-      await ConfigurationLogger.log(
-        testProjectPath,
-        ConfigurationOperation.RESOURCE_DELETE,
-        'test2',
-      );
+      await ConfigurationLogger.log(testProjectPath, {
+        operation: ConfigurationOperation.RESOURCE_DELETE,
+        target: 'test1',
+      });
+      await ConfigurationLogger.log(testProjectPath, {
+        operation: ConfigurationOperation.RESOURCE_DELETE,
+        target: 'test2',
+      });
 
       let entries = await ConfigurationLogger.entries(testProjectPath);
       expect(entries).toHaveLength(beforeEntries + 2);
@@ -217,17 +203,16 @@ describe('configuration logger', () => {
     });
     it('should check log existence via static method', async () => {
       const testProjectPath2 = join(testDir, 'test-project-static');
-      // Create a log entry
-      await ConfigurationLogger.log(
-        testProjectPath2,
-        ConfigurationOperation.RESOURCE_DELETE,
-        'test',
-      );
+      await ConfigurationLogger.log(testProjectPath2, {
+        operation: ConfigurationOperation.RESOURCE_DELETE,
+        target: 'test',
+      });
 
-      // Check if log path exists for the project that has entries
       const logPath = ConfigurationLogger.logFile(testProjectPath2);
       expect(pathExists(logPath)).toBe(true);
-      expect(ConfigurationLogger.hasBreakingChanges(testProjectPath2)).toBe(true);
+      expect(ConfigurationLogger.hasBreakingChanges(testProjectPath2)).toBe(
+        true,
+      );
     });
   });
 });

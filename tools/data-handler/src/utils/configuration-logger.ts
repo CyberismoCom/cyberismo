@@ -50,14 +50,6 @@ export interface ConfigurationLogEntry {
 }
 
 /**
- * Options for logging configuration changes.
- * @param parameters  Additional parameters to store with the operation
- */
-export interface ConfigurationLogOptions {
-  parameters?: Record<string, unknown>;
-}
-
-/**
  * Logger for tracking configuration changes that affect project structure.
  */
 export class ConfigurationLogger {
@@ -170,38 +162,29 @@ export class ConfigurationLogger {
   /**
    * Log a configuration change operation.
    * @note This is designed to be called AFTER the operation succeeds.
-   * @param projectPath Path to the project root
-   * @param operation The type of operation
-   * @param target The target of the operation
-   * @param options Additional options for the log entry
    */
   public static async log(
     projectPath: string,
-    operation: ConfigurationOperation,
-    target: string,
-    options?: ConfigurationLogOptions,
+    entry: Omit<ConfigurationLogEntry, 'timestamp'>,
   ): Promise<void> {
     const logFile = ConfigurationLogger.logFile(projectPath);
     const logger = getChildLogger({ module: 'ConfigurationLogger' });
 
     try {
-      const entry: ConfigurationLogEntry = {
+      const full: ConfigurationLogEntry = {
         timestamp: new Date().toISOString(),
-        operation,
-        target,
-        parameters: options?.parameters,
+        ...entry,
       };
 
-      await writeFileSafe(logFile, JSON.stringify(entry) + '\n', {
+      await writeFileSafe(logFile, JSON.stringify(full) + '\n', {
         flag: 'a',
       });
 
-      logger.debug(`Logged ${operation} operation for target: ${target}`);
-    } catch (error) {
-      logger.error(
-        { error, operation, target },
-        `Configuration logging failed`,
+      logger.debug(
+        `Logged ${entry.operation} operation for target: ${entry.target}`,
       );
+    } catch (error) {
+      logger.error({ error, ...entry }, `Configuration logging failed`);
     }
   }
 
@@ -232,67 +215,61 @@ export class ConfigurationLogger {
     customFields: ['name', 'isCalculated'],
   };
 
-  private static isNonBreakingArrayChange(
+  private static isNonBreakingArrayChange<T>(
     key: string,
-    op: ChangeOperation<Record<string, unknown>>,
+    op: ChangeOperation<T>,
   ): boolean {
     const identityProps = ConfigurationLogger.IDENTITY_PROPERTIES[key];
     if (!identityProps) return false;
+    const target = op.target as Record<string, unknown>;
+    const to = op.to as Record<string, unknown>;
     return !identityProps.some(
-      (prop) => JSON.stringify(op.target[prop]) !== JSON.stringify(op.to[prop]),
+      (prop) => JSON.stringify(target[prop]) !== JSON.stringify(to[prop]),
     );
   }
 
-  /**
-   * Log a resource operation if it represents a breaking change.
-   * Non-breaking operations (create, additive updates, display-only changes) are skipped.
-   */
-  public static async logResourceOperation<Type>(
+  public static async logResourceDelete(
     projectPath: string,
     target: string,
     resourceType: ResourceFolderType,
-    operationType: 'create' | 'delete' | 'update' | 'rename',
-    op?: Operation<Type>,
-    key?: string,
   ): Promise<void> {
-    let configOperation: ConfigurationOperation;
-    const parameters: Record<string, unknown> = { type: resourceType };
+    await ConfigurationLogger.log(projectPath, {
+      operation: ConfigurationOperation.RESOURCE_DELETE,
+      target,
+      parameters: { type: resourceType },
+    });
+  }
 
-    switch (operationType) {
-      case 'create':
-        return;
-      case 'delete':
-        configOperation = ConfigurationOperation.RESOURCE_DELETE;
-        break;
-      case 'update':
-        if (op?.name === 'add' || op?.name === 'rank') return;
-        if (key && ConfigurationLogger.NON_BREAKING_KEYS.includes(key)) return;
-        if (op?.name === 'change') {
-          if (key && ConfigurationLogger.NON_BREAKING_CHANGE_KEYS.includes(key))
-            return;
-          if (
-            key &&
-            ConfigurationLogger.isNonBreakingArrayChange(
-              key,
-              op as ChangeOperation<Record<string, unknown>>,
-            )
-          )
-            return;
-        }
-        configOperation = ConfigurationOperation.RESOURCE_UPDATE;
-        if (op) parameters.operation = op;
-        if (key) parameters.key = key;
-        break;
-      case 'rename':
-        configOperation = ConfigurationOperation.RESOURCE_RENAME;
-        if (op) parameters.operation = op;
-        break;
-      default:
-        throw new Error(`Unknown operation type: ${operationType}`);
+  public static async logResourceRename(
+    projectPath: string,
+    target: string,
+    resourceType: ResourceFolderType,
+    op: ChangeOperation<string>,
+  ): Promise<void> {
+    await ConfigurationLogger.log(projectPath, {
+      operation: ConfigurationOperation.RESOURCE_RENAME,
+      target,
+      parameters: { type: resourceType, operation: op },
+    });
+  }
+
+  public static async logResourceUpdate<T>(
+    projectPath: string,
+    target: string,
+    resourceType: ResourceFolderType,
+    op: Operation<T>,
+    key: string,
+  ): Promise<void> {
+    if (op.name === 'add' || op.name === 'rank') return;
+    if (ConfigurationLogger.NON_BREAKING_KEYS.includes(key)) return;
+    if (op.name === 'change') {
+      if (ConfigurationLogger.NON_BREAKING_CHANGE_KEYS.includes(key)) return;
+      if (ConfigurationLogger.isNonBreakingArrayChange(key, op)) return;
     }
-
-    await ConfigurationLogger.log(projectPath, configOperation, target, {
-      parameters,
+    await ConfigurationLogger.log(projectPath, {
+      operation: ConfigurationOperation.RESOURCE_UPDATE,
+      target,
+      parameters: { type: resourceType, operation: op, key },
     });
   }
 }
