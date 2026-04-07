@@ -60,7 +60,7 @@ import { resourceName } from './utils/resource-utils.js';
 import { type Level } from 'pino';
 import { type Context } from './interfaces/project-interfaces.js';
 import { type QueryName } from './types/queries.js';
-import { validBumps } from './commands/version.js';
+import { validBumps, type BumpType } from './commands/version.js';
 
 // Commands that this class supports.
 export const Cmd = {
@@ -595,7 +595,7 @@ export class Commands {
     }
 
     const result = await this.commands.versionCmd.bumpVersion(
-      bumpType as 'patch' | 'minor' | 'major',
+      bumpType as BumpType,
     );
 
     const previousInfo = result.previousVersion
