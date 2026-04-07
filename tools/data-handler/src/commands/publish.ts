@@ -12,6 +12,7 @@
 */
 
 import type { Project } from '../containers/project.js';
+import { GitManager } from '../utils/git-manager.js';
 import { write } from '../utils/rw-lock.js';
 
 /**
@@ -31,9 +32,10 @@ export class Publish {
   public async publishVersion(
     dryRun: boolean,
     remote?: string,
-  ): Promise<{ version: string; dryRun: boolean }> {
+  ): Promise<{ version: string; remote: string; dryRun: boolean }> {
     const { git } = this.project;
     const version = this.project.configuration.version;
+    const resolvedRemote = remote || GitManager.DEFAULT_REMOTE;
 
     // Guard: no version set
     if (!version) {
@@ -54,13 +56,13 @@ export class Publish {
       const tagMessage = `Release v${version}`;
       await git.tagVersion(version, tagMessage);
       try {
-        await git.push({ tags: true, remote });
+        await git.push({ tags: true, remote: resolvedRemote });
       } catch (error) {
         await git.deleteTag(version);
         throw error;
       }
     }
 
-    return { version, dryRun };
+    return { version, remote: resolvedRemote, dryRun };
   }
 }

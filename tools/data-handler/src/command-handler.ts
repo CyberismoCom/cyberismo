@@ -624,7 +624,7 @@ export class Commands {
     if (result.dryRun) {
       return {
         statusCode: 200,
-        message: `Would publish v${result.version} (create tag and push to remote)`,
+        message: `Would publish v${result.version} (create tag and push to remote '${result.remote}')`,
       };
     }
 

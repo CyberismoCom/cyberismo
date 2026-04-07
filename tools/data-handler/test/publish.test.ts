@@ -63,13 +63,14 @@ describe('Publish', () => {
       const result = await publish.publishVersion(false);
 
       expect(result.version).toBe('1.0.0');
+      expect(result.remote).toBe('origin');
       expect(result.dryRun).toBe(false);
 
       const tags = await testGit(dir).tags();
       expect(tags.all).toContain('v1.0.0');
 
       expect(pushStub.calledOnce).toBe(true);
-      expect(pushStub.calledWith({ tags: true, remote: undefined })).toBe(true);
+      expect(pushStub.calledWith({ tags: true, remote: 'origin' })).toBe(true);
     });
 
     it('should create tag with correct annotation message', async () => {

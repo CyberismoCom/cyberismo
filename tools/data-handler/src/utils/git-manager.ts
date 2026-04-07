@@ -117,9 +117,11 @@ export class GitManager {
     return !status.isClean();
   }
 
+  static readonly DEFAULT_REMOTE = 'origin';
+
   /** Push current branch and optionally tags to remote. */
-  async push(options?: { tags?: boolean; remote?: string }): Promise<void> {
-    const remote = options?.remote || 'origin';
+  async push(options: { tags?: boolean; remote: string }): Promise<void> {
+    const { remote } = options;
     this.logger.info({ remote }, 'Pushing to remote');
     const branch = (await this.git.branch()).current;
     const args = ['-u', remote, branch];
