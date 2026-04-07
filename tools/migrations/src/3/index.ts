@@ -35,9 +35,18 @@ import type {
  */
 const migration: Migration = {
   async migrate(context: MigrationContext): Promise<MigrationResult> {
+    console.log(
+      `Migrating from schema version ${context.fromVersion} to ${context.toVersion}`,
+    );
+    console.log('Schema changes:');
+    console.log(
+      '  - Removed stale migration logs from pre-versioning era',
+    );
+
     const migrationsDir = join(context.cardsConfigPath, 'local', 'migrations');
 
     if (!existsSync(migrationsDir)) {
+      console.log('No migration log directory found, nothing to clean up.');
       return {
         success: true,
         message: 'No migration log directory found, nothing to clean up',
@@ -46,6 +55,7 @@ const migration: Migration = {
     }
 
     await rm(migrationsDir, { recursive: true, force: true });
+    console.log('Removed .cards/local/migrations/ directory.');
 
     return {
       success: true,
