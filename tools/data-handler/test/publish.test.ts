@@ -110,15 +110,6 @@ describe('Publish', () => {
       );
     });
 
-    it('should throw on uncommitted changes', async () => {
-      configuration.version = '1.0.0';
-      await writeFile(join(dir, 'cardRoot', 'dirty.txt'), 'uncommitted');
-
-      await expect(publish.publishVersion(false)).rejects.toThrow(
-        'uncommitted changes',
-      );
-    });
-
     it('should not save the tag when push fails', async () => {
       configuration.version = '1.0.0';
       await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');

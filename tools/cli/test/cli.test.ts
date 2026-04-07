@@ -279,7 +279,7 @@ describe('Cli BAT test', function () {
     );
     expect(stdout).toContain('Bumped to v1.0.0');
     expect(stdout).toContain(
-      'Would publish v1.0.0 (create tag and push to remote)',
+      "Would publish v1.0.0 (create tag and push to remote 'origin')",
     );
   });
   it('Add default hub and check hub version', async () => {
