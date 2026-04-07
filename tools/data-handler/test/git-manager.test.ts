@@ -132,6 +132,8 @@ describe('GitManager', () => {
       const git = testGit(dir);
       const tags = await git.tags();
       expect(tags.all).toContain('v1.0.0');
+      const message = await git.raw(['tag', '-l', '-n1', 'v1.0.0']);
+      expect(message).toContain('Release v1.0.0');
     });
 
     it('should use tag name as default message', async () => {
@@ -140,6 +142,8 @@ describe('GitManager', () => {
       const git = testGit(dir);
       const tags = await git.tags();
       expect(tags.all).toContain('v2.0.0');
+      const message = await git.raw(['tag', '-l', '-n1', 'v2.0.0']);
+      expect(message).toContain('v2.0.0');
     });
   });
 

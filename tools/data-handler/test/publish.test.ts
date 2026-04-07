@@ -93,7 +93,9 @@ describe('Publish', () => {
 
   describe('error conditions', () => {
     it('should throw if no version set', async () => {
-      await expect(publish.publishVersion(false)).rejects.toThrow('No version set');
+      await expect(publish.publishVersion(false)).rejects.toThrow(
+        'No version set',
+      );
     });
 
     it('should throw if version already tagged', async () => {
@@ -116,14 +118,16 @@ describe('Publish', () => {
       );
     });
 
-    it('should clean up local tag when push fails', async () => {
+    it('should not save the tag when push fails', async () => {
       configuration.version = '1.0.0';
       await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
       await git.commit('change');
 
       sinon.stub(git, 'push').rejects(new Error('network error'));
 
-      await expect(publish.publishVersion(false)).rejects.toThrow('network error');
+      await expect(publish.publishVersion(false)).rejects.toThrow(
+        'network error',
+      );
 
       // Tag should have been cleaned up so retry works
       const tags = await testGit(dir).tags();
