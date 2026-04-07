@@ -4,6 +4,8 @@ import sinon from 'sinon';
 import {
   ConfigurationLogger,
   ConfigurationOperation,
+  NON_BREAKING_KEYS,
+  NON_BREAKING_CHANGE_KEYS,
 } from '../../src/utils/configuration-logger.js';
 import {
   ResourceObject,
@@ -170,7 +172,7 @@ describe('breaking change classification', () => {
   // ── 3. Update: NON_BREAKING_KEYS (all ops non-breaking) ──
 
   describe('update: NON_BREAKING_KEYS', () => {
-    for (const key of ['alwaysVisibleFields', 'optionallyVisibleFields']) {
+    for (const key of NON_BREAKING_KEYS) {
       it(`change on '${key}' is non-breaking`, async () => {
         const op: Operation<string> = {
           name: 'change',
@@ -192,13 +194,7 @@ describe('breaking change classification', () => {
   // ── 4. Update: NON_BREAKING_CHANGE_KEYS ──
 
   describe('update: NON_BREAKING_CHANGE_KEYS', () => {
-    for (const key of [
-      'displayName',
-      'description',
-      'category',
-      'outboundDisplayName',
-      'inboundDisplayName',
-    ]) {
+    for (const key of NON_BREAKING_CHANGE_KEYS) {
       it(`change on '${key}' is non-breaking`, async () => {
         const op: Operation<string> = {
           name: 'change',

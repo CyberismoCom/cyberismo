@@ -49,6 +49,22 @@ export interface ConfigurationLogEntry {
   parameters?: Record<string, unknown>;
 }
 
+/** Keys where ALL operations (including remove) are non-breaking. */
+export const NON_BREAKING_KEYS = [
+  'alwaysVisibleFields',
+  'optionallyVisibleFields',
+  'transitions',
+];
+
+/** Keys where only 'change' is non-breaking — display-only scalars. */
+export const NON_BREAKING_CHANGE_KEYS = [
+  'displayName',
+  'description',
+  'category',
+  'outboundDisplayName',
+  'inboundDisplayName',
+];
+
 /**
  * Logger for tracking configuration changes that affect project structure.
  */
@@ -188,22 +204,6 @@ export class ConfigurationLogger {
     }
   }
 
-  /** Keys where ALL operations (including remove) are non-breaking. */
-  private static readonly NON_BREAKING_KEYS = [
-    'alwaysVisibleFields',
-    'optionallyVisibleFields',
-    'transitions',
-  ];
-
-  /** Keys where only 'change' is non-breaking — display-only scalars. */
-  private static readonly NON_BREAKING_CHANGE_KEYS = [
-    'displayName',
-    'description',
-    'category',
-    'outboundDisplayName',
-    'inboundDisplayName',
-  ];
-
   /**
    * For array-of-objects keys: which properties are "identity" (breaking if changed).
    * If a 'change' op only modifies non-identity properties, it's non-breaking.
@@ -261,9 +261,9 @@ export class ConfigurationLogger {
     key: string,
   ): Promise<void> {
     if (op.name === 'add' || op.name === 'rank') return;
-    if (ConfigurationLogger.NON_BREAKING_KEYS.includes(key)) return;
+    if (NON_BREAKING_KEYS.includes(key)) return;
     if (op.name === 'change') {
-      if (ConfigurationLogger.NON_BREAKING_CHANGE_KEYS.includes(key)) return;
+      if (NON_BREAKING_CHANGE_KEYS.includes(key)) return;
       if (ConfigurationLogger.isNonBreakingArrayChange(key, op)) return;
     }
     await ConfigurationLogger.log(projectPath, {
