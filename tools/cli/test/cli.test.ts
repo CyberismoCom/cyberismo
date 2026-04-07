@@ -275,7 +275,7 @@ describe('Cli BAT test', function () {
   });
   it('Version and publish', async () => {
     const { stdout } = await execAsync(
-      `cd ${cliPath} && git init && git add -A && git -c user.name=Test -c user.email=test@test.com commit -m "init" && ${cli} --autocommit version patch && ${cli} publish --dry-run`,
+      `cd ${cliPath} && git init && git add -A && git -c user.name=Test -c user.email=test@test.com commit -m "init" && ${cli} --autocommit create version patch && ${cli} publish --dry-run`,
     );
     expect(stdout).toContain('Bumped to v1.0.0');
     expect(stdout).toContain(

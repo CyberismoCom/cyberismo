@@ -753,6 +753,24 @@ createCmd
     },
   );
 
+// Create version subcommand
+createCmd
+  .command('version')
+  .description(
+    'Bump the project version in cardsConfig.json and snapshot migration log. The first version is always 1.0.0 regardless of bump type.',
+  )
+  .addArgument(
+    new Argument('<bump>', 'Version bump type').choices([...validBumps]),
+  )
+  .action(async (bump: string, options: CommandOptions<'version'>) => {
+    const result = await commandHandler.command(
+      Cmd.version,
+      [bump],
+      Object.assign({}, options, program.opts()),
+    );
+    handleResponse(result);
+  });
+
 // Edit command
 const editCmd = new CommandWithPath('edit')
   .description('Edit a card')
@@ -1486,28 +1504,10 @@ appCmd.action(async (options: CommandOptions<'start'>) => {
   await startServer(new MockAuthProvider(gitUser), commands);
 });
 
-// Version command - bumps version in cardsConfig.json
-const versionCmd = new CommandWithPath('version')
-  .description(
-    'Bump the project version in cardsConfig.json, snapshot migration log, and commit. The first version is always 1.0.0 regardless of bump type.',
-  )
-  .addArgument(
-    new Argument('<bump>', 'Version bump type').choices([...validBumps]),
-  );
-program.addCommand(versionCmd);
-versionCmd.action(async (bump: string, options: CommandOptions<'version'>) => {
-  const result = await commandHandler.command(
-    Cmd.version,
-    [bump],
-    Object.assign({}, options, program.opts()),
-  );
-  handleResponse(result);
-});
-
 // Publish command - creates a git tag from cardsConfig version and pushes
 const publishCmd = new CommandWithPath('publish')
   .description(
-    'Publish the current version (creates annotated git tag, pushes to remote). Run "cyberismo version" first to set the version.',
+    'Publish the current version (creates annotated git tag, pushes to remote). Run "cyberismo create version" first to set the version.',
   )
   .option('--dry-run', 'Show what would happen without doing it')
   .option('--remote <name>', 'Git remote to push to (default: origin)');
