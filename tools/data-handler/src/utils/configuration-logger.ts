@@ -21,7 +21,6 @@ import { writeFileSafe, pathExists } from './file-utils.js';
 import type {
   Operation,
   ChangeOperation,
-  RemoveOperation,
 } from '../resources/resource-object.js';
 import type { ResourceFolderType } from '../interfaces/project-interfaces.js';
 
@@ -233,17 +232,14 @@ export class ConfigurationLogger {
     customFields: ['name', 'isCalculated'],
   };
 
-  private static isNonBreakingArrayChange<Type>(
+  private static isNonBreakingArrayChange(
     key: string,
-    op: Operation<Type>,
+    op: ChangeOperation<Record<string, unknown>>,
   ): boolean {
     const identityProps = ConfigurationLogger.IDENTITY_PROPERTIES[key];
     if (!identityProps) return false;
-    const changeOp = op as ChangeOperation<Type>;
-    const target = changeOp.target as Record<string, unknown>;
-    const to = changeOp.to as Record<string, unknown>;
     return !identityProps.some(
-      (prop) => JSON.stringify(target[prop]) !== JSON.stringify(to[prop]),
+      (prop) => JSON.stringify(op.target[prop]) !== JSON.stringify(op.to[prop]),
     );
   }
 
@@ -276,41 +272,20 @@ export class ConfigurationLogger {
             return;
           if (
             key &&
-            op &&
-            ConfigurationLogger.isNonBreakingArrayChange(key, op)
+            ConfigurationLogger.isNonBreakingArrayChange(
+              key,
+              op as ChangeOperation<Record<string, unknown>>,
+            )
           )
             return;
         }
         configOperation = ConfigurationOperation.RESOURCE_UPDATE;
-        if (op) {
-          parameters.operation = op.name;
-          if (op.name === 'change') {
-            const changeOp = op as ChangeOperation<Type>;
-            parameters.from = changeOp.target;
-            parameters.to = changeOp.to;
-            if (changeOp.mappingTable) {
-              parameters.mappingTable = changeOp.mappingTable;
-            }
-          }
-          if (op.name === 'remove') {
-            const removeOp = op as RemoveOperation<Type>;
-            parameters.removedValue = removeOp.target;
-            if (removeOp.replacementValue !== undefined) {
-              parameters.replacementValue = removeOp.replacementValue;
-            }
-          }
-        }
-        if (key) {
-          parameters.key = key;
-        }
+        if (op) parameters.operation = op;
+        if (key) parameters.key = key;
         break;
       case 'rename':
         configOperation = ConfigurationOperation.RESOURCE_RENAME;
-        if (op && op.name === 'change') {
-          const changeOp = op as ChangeOperation<string>;
-          parameters.oldName = changeOp.target;
-          parameters.newName = changeOp.to;
-        }
+        if (op) parameters.operation = op;
         break;
       default:
         throw new Error(`Unknown operation type: ${operationType}`);
