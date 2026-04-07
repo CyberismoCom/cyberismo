@@ -148,10 +148,10 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
       1,
     );
     zoomRef.current = fit;
-    setZoom(fit);
 
-    // Center after initial layout
+    // Center after initial layout and update zoom state
     requestAnimationFrame(() => {
+      setZoom(fit);
       const scroll = scrollRef.current;
       if (!scroll) return;
       scroll.scrollLeft = Math.max(
