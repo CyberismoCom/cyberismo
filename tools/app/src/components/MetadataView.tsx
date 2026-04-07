@@ -187,6 +187,18 @@ function MetadataView({
           }}
         />
         <FieldItem
+          name="__createdAt__"
+          forceValue={
+            card.createdAt ? format(new Date(card.createdAt), 'PPp') : ''
+          }
+          expanded={expanded}
+          editableFieldProps={{
+            label: t('createdAt'),
+            dataType: 'dateTime',
+            edit: false,
+          }}
+        />
+        <FieldItem
           name="__labels__"
           description={t('labelEditor.splitterHint', {
             splitter: LABEL_SPLITTER,
@@ -201,18 +213,7 @@ function MetadataView({
             edit: editMode ?? false,
           }}
         />
-        <FieldItem
-          name="__createdAt__"
-          forceValue={
-            card.createdAt ? format(new Date(card.createdAt), 'PPp') : ''
-          }
-          expanded={expanded}
-          editableFieldProps={{
-            label: t('createdAt'),
-            dataType: 'dateTime',
-            edit: false,
-          }}
-        />
+
         {(card.fields ?? []).map(
           ({
             key,
