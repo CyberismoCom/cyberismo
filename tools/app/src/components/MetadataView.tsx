@@ -186,18 +186,7 @@ function MetadataView({
             edit: false,
           }}
         />
-        <FieldItem
-          name="__createdAt__"
-          forceValue={card.createdAt && format(new Date(card.createdAt), 'PPp')}
-          context={context}
-          handleChange={handleChange}
-          expanded={expanded}
-          editableFieldProps={{
-            label: t('createdAt'),
-            dataType: 'dateTime',
-            edit: card.createdAt ? false : editMode,
-          }}
-        />
+
         <FieldItem
           name="__labels__"
           description={t('labelEditor.splitterHint', {
@@ -250,6 +239,18 @@ function MetadataView({
             />
           ),
         )}
+        <FieldItem
+          name="__createdAt__"
+          forceValue={card.createdAt && format(new Date(card.createdAt), 'PPp')}
+          context={context}
+          handleChange={handleChange}
+          expanded={expanded}
+          editableFieldProps={{
+            label: t('createdAt'),
+            dataType: 'dateTime',
+            edit: card.createdAt ? false : editMode,
+          }}
+        />
       </Stack>
 
       <Box alignContent="flex-end" flexShrink={0} paddingLeft={1}>
