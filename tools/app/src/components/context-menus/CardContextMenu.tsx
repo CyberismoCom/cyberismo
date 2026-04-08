@@ -92,11 +92,12 @@ export function CardContextMenu({ cardKey }: CardContextMenuProps) {
             <Typography>{t('addAttachment')}</Typography>
           </MenuItem>
           <Divider />
-          <MenuItem data-cy="deleteCardButton" onClick={handleDeleteClick}>
-            <Typography color="danger">{t('deleteCard')}</Typography>
-          </MenuItem>
           <MenuItem onClick={openModal('logicProgram')}>
             <Typography>{t('viewLogicProgram')}</Typography>
+          </MenuItem>
+          <Divider />
+          <MenuItem data-cy="deleteCardButton" onClick={handleDeleteClick}>
+            <Typography color="danger">{t('deleteCard')}</Typography>
           </MenuItem>
         </Menu>
       </Dropdown>
