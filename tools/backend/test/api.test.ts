@@ -203,6 +203,37 @@ test('POST /api/cards/:key/links creates a link successfully', async () => {
   expect(result.message).toBe('Link created successfully');
 });
 
+test('POST /api/cards/:key/links creates an inbound link successfully', async () => {
+  // direction='inbound' means decision_6 links TO decision_5 (key is the destination)
+  const response = await app.request('/api/cards/decision_5/links', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      toCard: 'decision_6',
+      linkType: 'decision/linkTypes/test',
+      direction: 'inbound',
+    }),
+  });
+  const result = (await response.json()) as { message: string };
+  expect(response.status).toBe(200);
+  expect(result.message).toBe('Link created successfully');
+});
+
+test('DELETE /api/cards/:key/links removes an inbound link successfully', async () => {
+  const response = await app.request('/api/cards/decision_5/links', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      toCard: 'decision_6',
+      linkType: 'decision/linkTypes/test',
+      direction: 'inbound',
+    }),
+  });
+  const result = (await response.json()) as { message: string };
+  expect(response.status).toBe(200);
+  expect(result.message).toBe('Link removed successfully');
+});
+
 test('DELETE /api/cards/:key/links removes a link successfully', async () => {
   const response = await app.request('/api/cards/decision_5/links', {
     method: 'DELETE',
@@ -246,4 +277,140 @@ test('DELETE /api/cards/:key/links removes external link successfully', async ()
   const result = (await response.json()) as { message: string };
   expect(response.status).toBe(200);
   expect(result.message).toBe('Link removed successfully');
+});
+
+test('PATCH /api/cards/:key/links changes link type', async () => {
+  // testTypes requires source=decision cardType, destination=simplepage cardType
+  // decision_6 is 'decision' cardType, decision_5 is 'simplepage' cardType
+  await app.request('/api/cards/decision_6/links', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      toCard: 'decision_5',
+      linkType: 'decision/linkTypes/test',
+      direction: 'outbound',
+    }),
+  });
+
+  const response = await app.request('/api/cards/decision_6/links', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      toCard: 'decision_5',
+      linkType: 'decision/linkTypes/testTypes',
+      direction: 'outbound',
+      previousToCard: 'decision_5',
+      previousLinkType: 'decision/linkTypes/test',
+      previousDirection: 'outbound',
+    }),
+  });
+  const result = (await response.json()) as { message: string };
+  expect(response.status).toBe(200);
+  expect(result.message).toBe('Link updated successfully');
+
+  // Cleanup
+  await app.request('/api/cards/decision_6/links', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      toCard: 'decision_5',
+      linkType: 'decision/linkTypes/testTypes',
+      direction: 'outbound',
+    }),
+  });
+});
+
+test('PATCH /api/cards/:key/links changes link direction', async () => {
+  // Create initial outbound link
+  await app.request('/api/cards/decision_5/links', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      toCard: 'decision_6',
+      linkType: 'decision/linkTypes/test',
+      direction: 'outbound',
+    }),
+  });
+
+  const response = await app.request('/api/cards/decision_5/links', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      toCard: 'decision_6',
+      linkType: 'decision/linkTypes/test',
+      direction: 'inbound',
+      previousToCard: 'decision_6',
+      previousLinkType: 'decision/linkTypes/test',
+      previousDirection: 'outbound',
+    }),
+  });
+  const result = (await response.json()) as { message: string };
+  expect(response.status).toBe(200);
+  expect(result.message).toBe('Link updated successfully');
+
+  // Cleanup
+  await app.request('/api/cards/decision_5/links', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      toCard: 'decision_6',
+      linkType: 'decision/linkTypes/test',
+      direction: 'inbound',
+    }),
+  });
+});
+
+test('PATCH /api/cards/:key/links changes link description', async () => {
+  // Create initial link without description
+  await app.request('/api/cards/decision_5/links', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      toCard: 'decision_6',
+      linkType: 'decision/linkTypes/test',
+      direction: 'outbound',
+    }),
+  });
+
+  const response = await app.request('/api/cards/decision_5/links', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      toCard: 'decision_6',
+      linkType: 'decision/linkTypes/test',
+      direction: 'outbound',
+      description: 'new description',
+      previousToCard: 'decision_6',
+      previousLinkType: 'decision/linkTypes/test',
+      previousDirection: 'outbound',
+    }),
+  });
+  const result = (await response.json()) as { message: string };
+  expect(response.status).toBe(200);
+  expect(result.message).toBe('Link updated successfully');
+
+  // Cleanup
+  await app.request('/api/cards/decision_5/links', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      toCard: 'decision_6',
+      linkType: 'decision/linkTypes/test',
+      direction: 'outbound',
+      description: 'new description',
+    }),
+  });
+});
+
+test('PATCH /api/cards/:key/links returns 400 when required fields are missing', async () => {
+  const response = await app.request('/api/cards/decision_5/links', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      toCard: 'decision_6',
+      linkType: 'decision/linkTypes/test',
+      // missing direction, previousToCard, previousLinkType, previousDirection
+    }),
+  });
+  expect(response.status).toBe(400);
 });

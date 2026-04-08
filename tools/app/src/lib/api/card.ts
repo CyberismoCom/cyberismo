@@ -19,7 +19,7 @@ import type { CardUpdate } from './types';
 import type { CardDetails } from '../definitions';
 import { useAppDispatch, useUpdating } from '../hooks';
 import { cardDeleted } from '../actions';
-import { createLink, removeLink } from './actions';
+import { createLink, removeLink, updateLink } from './actions';
 import type { LinkDirection } from '@cyberismo/data-handler/types/queries';
 import type { CardAction } from './action-types';
 import { setRecentlyCreated } from '../slices/card';
@@ -163,19 +163,17 @@ export const useCardMutations = (key: string | null) => {
       return (
         (key &&
           (await call(() => {
-            const oldLinkType = previousLinkType || linkType;
-
-            return removeLink(
+            return updateLink(
               key,
+              target,
+              linkType,
+              direction,
               previousCardKey,
-              oldLinkType,
-              previousLinkDescription,
+              previousLinkType || linkType,
               previousDirection,
-            )
-              .then(() =>
-                createLink(key, target, linkType, linkDescription, direction),
-              )
-              .then(() => mutate(apiPaths.card(key)));
+              linkDescription,
+              previousLinkDescription,
+            ).then(() => mutate(apiPaths.card(key)));
           }, 'editLink'))) ||
         null
       );

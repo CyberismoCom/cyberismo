@@ -41,3 +41,26 @@ export async function removeLink(
     direction,
   });
 }
+
+export async function updateLink(
+  fromCard: string,
+  toCard: string,
+  linkType: string,
+  direction: 'outbound' | 'inbound' = 'outbound',
+  previousToCard: string,
+  previousLinkType: string,
+  previousDirection: 'outbound' | 'inbound' = 'outbound',
+  linkDescription?: string,
+  previousLinkDescription?: string,
+) {
+  return callApi(`/api/cards/${fromCard}/links`, 'PATCH', {
+    toCard,
+    linkType,
+    description: linkDescription,
+    direction,
+    previousToCard,
+    previousLinkType,
+    previousDirection,
+    previousDescription: previousLinkDescription,
+  });
+}

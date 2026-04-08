@@ -605,6 +605,102 @@ router.delete('/:key/links', requireRole(UserRole.Editor), async (c) => {
 
 /**
  * @swagger
+ * /api/cards/{key}/links:
+ *   patch:
+ *     summary: Update a link between cards
+ *     parameters:
+ *       - name: key
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               toCard:
+ *                 type: string
+ *               linkType:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               direction:
+ *                 type: string
+ *               previousToCard:
+ *                 type: string
+ *               previousLinkType:
+ *                 type: string
+ *               previousDirection:
+ *                 type: string
+ *               previousDescription:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Link updated successfully
+ *       400:
+ *         description: Invalid request
+ *       500:
+ *         description: Server error
+ */
+router.patch('/:key/links', requireRole(UserRole.Editor), async (c) => {
+  const commands = c.get('commands');
+  const key = c.req.param('key');
+  const {
+    toCard,
+    linkType,
+    description,
+    direction,
+    previousToCard,
+    previousLinkType,
+    previousDirection,
+    previousDescription,
+  } = await c.req.json();
+
+  if (
+    !toCard ||
+    !linkType ||
+    !direction ||
+    !previousToCard ||
+    !previousLinkType ||
+    !previousDirection
+  ) {
+    return c.json(
+      {
+        error:
+          'toCard, linkType, direction, previousToCard, previousLinkType and previousDirection are required',
+      },
+      400,
+    );
+  }
+
+  try {
+    const result = await cardService.updateLink(
+      commands,
+      key,
+      toCard,
+      linkType,
+      direction,
+      previousToCard,
+      previousLinkType,
+      previousDirection,
+      description,
+      previousDescription,
+    );
+    return c.json(result);
+  } catch (error) {
+    return c.json(
+      {
+        error: error instanceof Error ? error.message : 'Failed to update link',
+      },
+      500,
+    );
+  }
+});
+
+/**
+ * @swagger
  * /api/cards/{key}/a/{attachment}:
  *   get:
  *     summary: Returns an attachment file for a specific card.
