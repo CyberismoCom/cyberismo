@@ -30,4 +30,5 @@ export * from './report';
 export * from './workflow';
 export * from './labels';
 export * from './user';
+export * from './presence';
 export type { CardUpdate };

@@ -22,12 +22,19 @@ import StatusSelector from '../StateSelector';
 import { findWorkflowForCardType } from '../../lib/utils';
 import { useAppRouter, useAppSelector } from '../../lib/hooks';
 import { useTranslation } from 'react-i18next';
-import { useCard, useProject, useTree } from '../../lib/api';
+import {
+  useCard,
+  usePresence,
+  useProject,
+  useTree,
+  useUser,
+} from '../../lib/api';
 import { useAppDispatch } from '../../lib/hooks';
 import { addNotification } from '../../lib/slices/notifications';
 import { getConfig } from '@/lib/utils';
 import BaseToolbar from './BaseToolbar';
 import { CardContextMenu } from '@/components/context-menus';
+import PresenceIndicator from '@/components/PresenceIndicator';
 
 interface CardToolbarProps {
   cardKey: string;
@@ -55,6 +62,9 @@ export function CardToolbar({
   const { tree } = useTree();
   const isEdited = useAppSelector((state) => state.page.isEdited);
   const { card, updateWorkFlowState, isUpdating } = useCard(cardKey);
+  const { user } = useUser();
+  const presenceMode = mode === CardMode.EDIT ? 'editing' : 'viewing';
+  const presence = usePresence(cardKey, presenceMode);
 
   const dispatch = useAppDispatch();
 
@@ -166,7 +176,12 @@ export function CardToolbar({
     <BaseToolbar
       breadcrumbs={breadcrumbs}
       contextMenu={
-        !getConfig().staticMode && <CardContextMenu cardKey={cardKey} />
+        !getConfig().staticMode && (
+          <>
+            <PresenceIndicator presence={presence} currentUserId={user?.id} />
+            <CardContextMenu cardKey={cardKey} />
+          </>
+        )
       }
       actions={actions}
     />

@@ -139,4 +139,6 @@ export const apiPaths = {
   projectModuleDelete: (module: string) =>
     `/api/project/modules/${encodeURIComponent(module)}`,
   projectModulesImportable: () => '/api/project/modules/importable',
+  presence: (cardKey: string, mode: string) =>
+    `/api/cards/${encodeURIComponent(cardKey)}/presence?mode=${mode}`,
 };
