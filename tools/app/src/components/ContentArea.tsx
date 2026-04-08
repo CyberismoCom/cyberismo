@@ -1072,48 +1072,53 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                             )}
                           </Box>
                         </Stack>
-                        {link.linkSource === 'user' && !preview && (
-                          <Box
-                            gap={1}
-                            fontSize={24}
-                            alignItems="center"
-                            marginRight={2}
-                          >
-                            <IconButton
-                              className="actionButton"
-                              onClick={() => {
-                                const linkType = linkTypes.find(
-                                  (t) =>
-                                    t.name === link.linkType &&
-                                    t.direction === link.direction,
-                                );
-                                setEditLinkData({
-                                  linkType: linkType?.id ?? NO_LINK_TYPE,
-                                  connector: link.connector ?? 'card',
-                                  cardKey: link.connector ? '' : link.key,
-                                  externalItemKey: link.connector
-                                    ? link.key
-                                    : '',
-                                  linkDescription: link.linkDescription || '',
-                                  linkTypeName: link.linkType,
-                                  direction: link.direction,
-                                });
-                                openModal('editLink')();
-                              }}
+                        {link.linkSource === 'user' &&
+                          !preview &&
+                          !getConfig().staticMode && (
+                            <Box
+                              gap={1}
+                              fontSize={24}
+                              alignItems="center"
+                              marginRight={2}
                             >
-                              <Edit fontSize="inherit" />
-                            </IconButton>
-                            <IconButton
-                              className="actionButton"
-                              onClick={() => {
-                                setDeleteLinkData(link);
-                                openModal('deleteLink')();
-                              }}
-                            >
-                              <Delete fontSize="inherit" data-cy="DeleteIcon" />
-                            </IconButton>
-                          </Box>
-                        )}
+                              <IconButton
+                                className="actionButton"
+                                onClick={() => {
+                                  const linkType = linkTypes.find(
+                                    (t) =>
+                                      t.name === link.linkType &&
+                                      t.direction === link.direction,
+                                  );
+                                  setEditLinkData({
+                                    linkType: linkType?.id ?? NO_LINK_TYPE,
+                                    connector: link.connector ?? 'card',
+                                    cardKey: link.connector ? '' : link.key,
+                                    externalItemKey: link.connector
+                                      ? link.key
+                                      : '',
+                                    linkDescription: link.linkDescription || '',
+                                    linkTypeName: link.linkType,
+                                    direction: link.direction,
+                                  });
+                                  openModal('editLink')();
+                                }}
+                              >
+                                <Edit fontSize="inherit" />
+                              </IconButton>
+                              <IconButton
+                                className="actionButton"
+                                onClick={() => {
+                                  setDeleteLinkData(link);
+                                  openModal('deleteLink')();
+                                }}
+                              >
+                                <Delete
+                                  fontSize="inherit"
+                                  data-cy="DeleteIcon"
+                                />
+                              </IconButton>
+                            </Box>
+                          )}
                         {link.linkSource === 'calculated' && (
                           <IconButton color="primary">
                             <Tooltip title={t('linkForm.calculatedLink')}>

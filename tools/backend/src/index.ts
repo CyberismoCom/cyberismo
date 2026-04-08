@@ -36,11 +36,14 @@ const DEFAULT_MAX_PORT = DEFAULT_PORT + 100;
 export async function previewSite(dir: string, findPort: boolean = true) {
   const app = new Hono();
   app.use(serveStatic({ root: dir }));
-  app.get('*', (c) =>
-    c.html(
+  app.get('*', (c) => {
+    if (c.req.path.startsWith('/api/')) {
+      return c.json({ error: 'Resource not found' }, 404);
+    }
+    return c.html(
       readFile(path.join(dir, 'index.html')).then((file) => file.toString()),
-    ),
-  );
+    );
+  });
 
   let port = parseInt(process.env.PORT || DEFAULT_PORT.toString(), 10);
 
