@@ -31,6 +31,7 @@ import {
 } from '@/components/modals';
 import { useAppSelector } from '@/lib/hooks';
 import { useCard, useProject } from '@/lib/api';
+import { ExportCardModal } from '../modals/ExportCardModal';
 
 interface CardContextMenuProps {
   cardKey: string;
@@ -47,6 +48,7 @@ export function CardContextMenu({
     metadata: false,
     addAttachment: false,
     logicProgram: false,
+    exportCard: false,
   });
 
   const { project } = useProject();
@@ -93,6 +95,10 @@ export function CardContextMenu({
             <Typography>{t('viewLogicProgram')}</Typography>
           </MenuItem>
           <Divider />
+          <MenuItem onClick={openModal('exportCard')}>
+            <Typography>{t('exportCard')}</Typography>
+          </MenuItem>
+          <Divider />
           <MenuItem data-cy="deleteCardButton" onClick={handleDeleteClick}>
             <Typography color="danger">{t('deleteCard')}</Typography>
           </MenuItem>
@@ -120,6 +126,11 @@ export function CardContextMenu({
         onClose={closeModal('logicProgram')}
         title={t('logicProgram')}
         resourceName={`${project?.prefix}/cards/${cardKey}`}
+      />
+      <ExportCardModal
+        open={modalOpen.exportCard}
+        onClose={closeModal('exportCard')}
+        cardKey={cardKey}
       />
     </>
   );

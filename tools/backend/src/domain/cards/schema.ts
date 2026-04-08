@@ -39,3 +39,10 @@ export const updateLinkSchema = z.object({
   previousDirection: linkDirection,
   previousDescription: z.string().optional(),
 });
+export const exportCardPdfSchema = z.object({
+  title: z.string().min(1),
+  name: z.string().min(1),
+  exportChildCards: z.boolean(),
+});
+
+export type ExportCardPdfRequestBody = z.infer<typeof exportCardPdfSchema>;

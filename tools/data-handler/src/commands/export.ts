@@ -209,6 +209,31 @@ export class Export {
     }
   }
 
+  private async evaluateExportContent(
+    options: ExportPdfOptions,
+  ): Promise<string> {
+    await this.project.calculationEngine.generate();
+
+    const result = await generateReportContent({
+      calculate: this.project.calculationEngine,
+      contentTemplate: pdfReport.content,
+      queryTemplate: pdfReport.query,
+      context: 'exportedDocument',
+      options: {
+        ...options,
+        date: options.date?.toISOString().split('T')[0],
+        recursive: options.recursive ?? false,
+      },
+    });
+    const evaluated = await evaluateMacros(result, {
+      context: 'exportedDocument',
+      mode: 'static',
+      project: this.project,
+      cardKey: '', // top level report does not contain any macros that use cardKey
+    });
+    return evaluated;
+  }
+
   /**
    * Recursively searches for a card with the specified key in the tree hierarchy.
    * @param treeItems Array of tree query results to search through
@@ -293,30 +318,22 @@ export class Export {
     destination: string,
     options: ExportPdfOptions,
   ): Promise<string> {
-    const opts = {
-      ...options,
-      date: options.date?.toISOString().split('T')[0],
-      recursive: options.recursive ?? false,
-    };
-
-    const result = await generateReportContent({
-      calculate: this.project.calculationEngine,
-      contentTemplate: pdfReport.content,
-      queryTemplate: pdfReport.query,
-      context: 'exportedDocument',
-      options: opts,
-    });
-
-    const evaluated = await evaluateMacros(result, {
-      context: 'exportedDocument',
-      mode: 'static',
-      project: this.project,
-      cardKey: '', // top level report does not contain any macros that use cardKey
-    });
+    const evaluated = await this.evaluateExportContent(options);
     const withMermaid = await preprocessMermaidBlocksForPdf(evaluated);
     const pdf = await this.runAsciidoctorPdf(withMermaid);
     await writeFile(destination, pdf);
     return `Content exported as PDF to ${destination}`;
+  }
+
+  /**
+   * Exports the card(s) as a pdf buffer.
+   * @param options Export options.
+   * @returns buffer
+   */
+  @read
+  public async exportPdfBuffer(options: ExportPdfOptions): Promise<Buffer> {
+    const evaluated = await this.evaluateExportContent(options);
+    return this.runAsciidoctorPdf(evaluated);
   }
 
   /**
