@@ -45,6 +45,7 @@ export const PREDEFINED_FIELDS = [
   'cardType',
   'externalLinks',
   'labels',
+  'createdAt',
   'lastUpdated',
   'lastTransitioned',
   'links',

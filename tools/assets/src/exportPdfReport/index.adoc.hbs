@@ -23,6 +23,9 @@ toc::[]
 | Card key | {{this.key}}
 | Card type | {{#if this.cardTypeDisplayName}}{{this.cardTypeDisplayName}}{{else}}{{this.cardType}}{{/if}}
 | Last modified | {{this.lastUpdated}}
+{{#if this.createdAt}}
+| Created at | {{this.createdAt}}
+{{/if}}
 {{#if this.labels}}
 | Labels | {{#each this.labels}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
 {{/if}}

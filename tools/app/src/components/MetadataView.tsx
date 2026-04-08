@@ -92,7 +92,7 @@ function FieldItem({
 
 export interface MetadataViewProps {
   initialExpanded?: boolean;
-  editMode?: boolean;
+  editMode: boolean;
   card: CardResponse;
   onClick?: () => void;
   focusField?: string;
@@ -186,6 +186,7 @@ function MetadataView({
             edit: false,
           }}
         />
+
         <FieldItem
           name="__labels__"
           description={t('labelEditor.splitterHint', {
@@ -201,6 +202,7 @@ function MetadataView({
             edit: editMode ?? false,
           }}
         />
+
         {(card.fields ?? []).map(
           ({
             key,
@@ -237,31 +239,39 @@ function MetadataView({
             />
           ),
         )}
+        <FieldItem
+          name="__createdAt__"
+          forceValue={card.createdAt && format(new Date(card.createdAt), 'PPp')}
+          context={context}
+          handleChange={handleChange}
+          expanded={expanded}
+          editableFieldProps={{
+            label: t('createdAt'),
+            dataType: 'dateTime',
+            edit: card.createdAt ? false : editMode,
+          }}
+        />
       </Stack>
-      {card.fields &&
-        card.fields.filter((field) => field.visibility === 'always').length !==
-          card.fields.length &&
-        card.fields.length !== 0 && (
-          <Box alignContent="flex-end" flexShrink={0} paddingLeft={1}>
-            <Link
-              variant="soft"
-              color="primary"
-              underline="none"
-              onClick={(e) => {
-                e.stopPropagation();
-                setExpanded(!expanded);
-              }}
-              bgcolor="inherit"
-              sx={{
-                '&:hover': {
-                  bgcolor: 'inherit',
-                },
-              }}
-            >
-              {expanded ? t('showLess') : t('showMore')}
-            </Link>
-          </Box>
-        )}
+
+      <Box alignContent="flex-end" flexShrink={0} paddingLeft={1}>
+        <Link
+          variant="soft"
+          color="primary"
+          underline="none"
+          onClick={(e) => {
+            e.stopPropagation();
+            setExpanded(!expanded);
+          }}
+          bgcolor="inherit"
+          sx={{
+            '&:hover': {
+              bgcolor: 'inherit',
+            },
+          }}
+        >
+          {expanded ? t('showLess') : t('showMore')}
+        </Link>
+      </Box>
     </Box>
   );
 }

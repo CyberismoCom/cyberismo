@@ -32,6 +32,11 @@
       "format": "date-time",
       "description": "The date and time of the last update of the card"
     },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The date and time when the card was created"
+    },
     "labels": {
       "type": "array",
       "description": "Labels or tags that can be used for organising cards",

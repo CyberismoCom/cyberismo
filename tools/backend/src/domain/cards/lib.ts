@@ -110,6 +110,7 @@ export async function getCardDetails(
           cardTypeDisplayName: cardDetailsResponse.metadata.cardType,
           workflowState: '',
           lastUpdated: cardDetailsResponse.metadata.lastUpdated,
+          createdAt: cardDetailsResponse.metadata.createdAt,
           fields,
           labels: cardDetailsResponse.metadata?.labels || [],
           links: [],

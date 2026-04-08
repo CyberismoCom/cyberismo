@@ -146,6 +146,7 @@
   },
   "createOnTopLevel": "Create on top level",
   "createUnder": "Create under \"{{parent}}\"",
+  "createdAt": "Created at",
   "customFieldAdded": "Custom field added",
   "customFieldDeleted": "Custom field deleted",
   "customFieldUpdated": "Custom field updated",

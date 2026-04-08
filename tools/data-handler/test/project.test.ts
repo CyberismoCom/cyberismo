@@ -238,6 +238,7 @@ describe('project', () => {
     expect(previousTitle).not.toBe(updatedCard.metadata!.title);
     expect(previouslyUpdated).not.toBe(updatedCard.metadata!.lastUpdated);
     expect(updatedCard.metadata!.title).toBe(newTitle);
+    expect(updatedCard.metadata!.createdAt).toBe(card.metadata!.createdAt);
     // Change the title back
     await project.updateCardMetadataKey(card?.key, 'title', previousTitle);
   });

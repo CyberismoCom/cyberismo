@@ -175,10 +175,19 @@ describe('create command', () => {
       ['card', 'decision/templates/simplepage'],
       options,
     );
-    expect(result.statusCode).toBe(200);
     const cardsCountAfter = await countOfResources(['cards']);
+    const createdCard = await commandHandler.command(
+      Cmd.show,
+      ['card', result.affectsCards![0]],
+      {
+        ...options,
+        showAll: true,
+      },
+    );
+    expect(result.statusCode).toBe(200);
     // There are three cards in the template
     expect(cardsCountBefore + 3).toBe(cardsCountAfter);
+    expect((createdCard.payload as Card).metadata!.createdAt).toBeTruthy();
   });
   it('card and validate (success)', async () => {
     const cardsCountBefore = await countOfResources(['cards']);
