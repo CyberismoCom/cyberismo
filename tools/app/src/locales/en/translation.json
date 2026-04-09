@@ -215,6 +215,7 @@
   "exportCardNameDescription": "Name of the exported pdf file (without extension)",
   "exportCardTitleDescription": "Title of the exported pdf",
   "exportChildCards": "Export child cards",
+  "exportProject": "Export Project",
   "failedPolicyChecks": "Failed policy checks",
   "failedToLoad": "Failed to load",
   "false": "False",

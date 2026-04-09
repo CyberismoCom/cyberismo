@@ -62,6 +62,73 @@ router.get('/', requireRole(UserRole.Reader), async (c) => {
 
 /**
  * @swagger
+ * /api/cards/export-pdf:
+ *   post:
+ *     summary: Export a card as a PDF
+ *     description: Exports the specified card as a PDF
+ *     parameters:
+ *       - name: key
+ *         in: path
+ *         required: true
+ *         description: Card key (string)
+ *    requestBody:
+ *      content:
+ *       application/json:
+ *        schema:
+ *        type: object
+ *       properties:
+ *        title:
+ *         type: string
+ *       description: Title of the exported PDF
+ *       name:
+ *         type: string
+ *       description: Name of the exported PDF
+ *       exportChildCards:
+ *         type: boolean
+ *       description: Whether to export child cards
+ *     responses:
+ *       200:
+ *         description: Card exported successfully
+ *       400:
+ *         description: Missing or invalid parameters.
+ *       500:
+ *         description: project_path not set
+ */
+router.post(
+  '/export-pdf',
+  requireRole(UserRole.Reader),
+  zValidator('json', exportCardPdfSchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const body = (await c.req.json()) as ExportCardPdfRequestBody;
+    try {
+      const result = await cardService.exportCard(commands, {
+        cardKey: body.cardKey,
+        title: body.title,
+        name: body.name,
+        recursive: body.exportChildCards,
+      });
+      return new Response(result, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Cache-Control': 'no-store',
+        },
+      });
+    } catch (error) {
+      return c.json(
+        {
+          error:
+            error instanceof Error ? error.message : 'Failed to export card',
+        },
+        500,
+      );
+    }
+  },
+);
+
+/**
+ * @swagger
  * /api/cards/{key}:
  *   get:
  *     summary: Returns the full content of a specific card including calculations.
@@ -342,73 +409,6 @@ router.post('/:key/attachments', requireRole(UserRole.Editor), async (c) => {
     );
   }
 });
-/**
- * @swagger
- * /api/cards/{key}/export-pdf:
- *   post:
- *     summary: Export a card as a PDF
- *     description: Exports the specified card as a PDF
- *     parameters:
- *       - name: key
- *         in: path
- *         required: true
- *         description: Card key (string)
- *    requestBody:
- *      content:
- *       application/json:
- *        schema:
- *        type: object
- *       properties:
- *        title:
- *         type: string
- *       description: Title of the exported PDF
- *       name:
- *         type: string
- *       description: Name of the exported PDF
- *       exportChildCards:
- *         type: boolean
- *       description: Whether to export child cards
- *     responses:
- *       200:
- *         description: Card exported successfully
- *       400:
- *         description: Missing or invalid parameters.
- *       500:
- *         description: project_path not set
- */
-router.post(
-  '/:key/export-pdf',
-  requireRole(UserRole.Reader),
-  zValidator('json', exportCardPdfSchema),
-  async (c) => {
-    const commands = c.get('commands');
-    const key = c.req.param('key');
-    const body = (await c.req.json()) as ExportCardPdfRequestBody;
-    try {
-      const result = await cardService.exportCard(commands, {
-        cardKey: key,
-        title: body.title,
-        name: body.name,
-        recursive: body.exportChildCards,
-      });
-      return new Response(result, {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/pdf',
-          'Cache-Control': 'no-store',
-        },
-      });
-    } catch (error) {
-      return c.json(
-        {
-          error:
-            error instanceof Error ? error.message : 'Failed to export card',
-        },
-        500,
-      );
-    }
-  },
-);
 
 /**
  * @swagger

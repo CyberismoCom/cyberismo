@@ -42,6 +42,7 @@ export const updateLinkSchema = z.object({
 export const exportCardPdfSchema = z.object({
   title: z.string().min(1),
   name: z.string().min(1),
+  cardKey: z.string(),
   exportChildCards: z.boolean(),
 });
 

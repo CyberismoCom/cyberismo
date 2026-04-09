@@ -111,7 +111,7 @@ export const apiPaths = {
   cards: () => '/api/cards',
   card: (key: string) => `/api/cards/${key}`,
   rawCard: (key: string) => `/api/cards/${key}?raw=true`,
-  exportCard: (key: string) => `/api/cards/${key}/export-pdf`,
+  exportCard: () => `/api/cards/export-pdf`,
   calculations: () => '/api/calculations',
   calculation: (name: string) => `/api/calculations/${name}`,
   cardTypes: () => '/api/cardTypes',

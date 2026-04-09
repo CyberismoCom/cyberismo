@@ -25,38 +25,53 @@ import {
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import { useCard } from '@/lib/api/card';
+import { useProject } from '@/lib/api/project';
 
-interface ExportCardModalProps {
+interface ModalProps {
   open: boolean;
+  heading: string;
   onClose: () => void;
   cardKey: string;
+  defaultFileName: string;
+  defaultTitle?: string;
+  forceChildExport?: boolean;
 }
-const DEFAULT_FILE_NAME = 'card-export';
-export const ExportCardModal = ({
+
+type ExportModalProps = Omit<
+  ModalProps,
+  'heading' | 'defaultFileName' | 'forceChildExport'
+>;
+
+const ExportModal = ({
   open,
   onClose,
   cardKey,
-}: ExportCardModalProps) => {
+  defaultFileName,
+  defaultTitle = '',
+  forceChildExport = false,
+  heading,
+}: ModalProps) => {
   const { t } = useTranslation();
-  const [exportChildCards, setExportChildCards] = React.useState(false);
+  const [exportChildCards, setExportChildCards] =
+    React.useState(forceChildExport);
   const { card, exportCard } = useCard(cardKey);
-  const [title, setTitle] = React.useState('');
-  const [name, setName] = React.useState(DEFAULT_FILE_NAME);
+  const [title, setTitle] = React.useState(defaultTitle);
+  const [name, setName] = React.useState(defaultFileName);
   React.useEffect(() => {
     if (card) {
       setTitle(card.title);
     }
   }, [card]);
   const handleClose = () => {
-    setExportChildCards(false);
-    setTitle(card?.title ?? '');
-    setName(DEFAULT_FILE_NAME);
+    setExportChildCards(forceChildExport);
+    setTitle(card?.title ?? defaultTitle);
+    setName(defaultFileName);
     onClose();
   };
   return (
     <Modal open={open} onClose={handleClose} disableEscapeKeyDown>
       <ModalDialog size="md" sx={{ minWidth: 480 }}>
-        <DialogTitle>{t('exportCard')}</DialogTitle>
+        <DialogTitle>{heading}</DialogTitle>
         <DialogContent sx={{ overflow: 'hidden' }}>
           <label htmlFor="title">
             <Typography>{t('title')}</Typography>
@@ -88,6 +103,7 @@ export const ExportCardModal = ({
             checked={exportChildCards}
             onChange={(e) => setExportChildCards(e.target.checked)}
             label={t('exportChildCards')}
+            disabled={forceChildExport}
           />
         </DialogContent>
         <DialogActions>
@@ -108,5 +124,39 @@ export const ExportCardModal = ({
         </DialogActions>
       </ModalDialog>
     </Modal>
+  );
+};
+
+export const ExportCardModal = (
+  props: Omit<
+    ExportModalProps,
+    'title' | 'forceChildExport' | 'defaultFileName'
+  >,
+) => {
+  const { t } = useTranslation();
+  return (
+    <ExportModal
+      {...props}
+      heading={t('exportCard')}
+      defaultFileName="card-export"
+    />
+  );
+};
+
+export const ExportProjectModal = (
+  props: Omit<ExportModalProps, 'cardKey'>,
+) => {
+  const { t } = useTranslation();
+  const { project } = useProject();
+  const defaultTitle = project ? project.name : 'project-export';
+  return (
+    <ExportModal
+      {...props}
+      cardKey=""
+      heading={t('exportProject')}
+      defaultTitle={defaultTitle}
+      defaultFileName="project-export"
+      forceChildExport
+    />
   );
 };
