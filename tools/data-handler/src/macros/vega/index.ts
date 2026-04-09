@@ -33,11 +33,11 @@ class VegaMacro extends BaseMacro {
     this.validate(input);
   };
 
-  handleStatic = async (_: MacroGenerationContext, input: unknown) => {
+  handleStatic = async (context: MacroGenerationContext, input: unknown) => {
     const options = this.validate(input) as VegaMacroInput;
     const view = new vega.View(vega.parse(options.spec), { renderer: 'none' });
     const svg = await view.toSVG();
-    return createImage(sanitizeSvgBase64(svg), false);
+    return createImage(sanitizeSvgBase64(svg), context.mode, false);
   };
 
   handleInject = async (_: MacroGenerationContext, input: unknown) => {

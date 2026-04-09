@@ -29,10 +29,11 @@ class PercentageMacro extends BaseMacro {
     this.validate(data);
   };
 
-  handleStatic = async (_: MacroGenerationContext, input: unknown) => {
+  handleStatic = async (context: MacroGenerationContext, input: unknown) => {
     const options = this.validate(input);
     return createImage(
       sanitizeSvgBase64(percentage(options), { removeSize: false }),
+      context.mode,
       false,
     );
   };

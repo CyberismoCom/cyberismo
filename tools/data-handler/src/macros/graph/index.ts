@@ -82,7 +82,7 @@ class GraphMacro extends BaseMacro {
         'Graph macro expected a string from clingo, but received an object',
       );
     }
-    return createImage(result);
+    return createImage(result, context.mode);
   };
 
   private parseOptions(
