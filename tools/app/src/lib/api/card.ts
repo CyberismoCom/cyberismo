@@ -268,7 +268,7 @@ async function exportCard(
     URL.revokeObjectURL(url);
     dispatch(
       addNotification({
-        message: 'Card exported',
+        message: `Successfully exported card to PDF (${name}.pdf)`,
         type: 'success',
       }),
     );
