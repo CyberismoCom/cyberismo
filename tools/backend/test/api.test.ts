@@ -92,12 +92,13 @@ test('/api/cards/decision_1/a/the-needle.heic returns an attachment file', async
   expect(response.body).not.toBe(null);
 });
 
-test('/api/cards/decision_5/export-pdf returns a PDF buffer', async () => {
-  const response = await app.request('/api/cards/decision_5/export-pdf', {
+test('/api/cards/export-pdf returns a PDF buffer', async () => {
+  const response = await app.request('/api/cards/export-pdf', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       title: 'Exported file',
+      cardKey: 'decision_5',
       name: 'exported-file',
       exportChildCards: false,
     }),
@@ -110,8 +111,8 @@ test('/api/cards/decision_5/export-pdf returns a PDF buffer', async () => {
   expect(magicBytes).toBe('%PDF');
 });
 
-test('/api/cards/decision_5/export-pdf returns a 400 error on a bad request', async () => {
-  const response = await app.request('/api/cards/decision_5/export-pdf', {
+test('/api/cards/export-pdf returns a 400 error on a bad request', async () => {
+  const response = await app.request('/api/cards/export-pdf', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name: 'test' }),

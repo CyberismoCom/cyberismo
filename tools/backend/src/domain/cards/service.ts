@@ -12,16 +12,12 @@
 */
 
 import Processor from '@asciidoctor/core';
-import {
+import type {
   ExportPdfOptions,
-  type MetadataContent,
+  MetadataContent,
 } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import type { attachmentPayload } from '@cyberismo/data-handler/interfaces/request-status-interfaces';
-import {
-  type CommandManager,
-  evaluateMacros,
-  ExportCommandOptions,
-} from '@cyberismo/data-handler';
+import { type CommandManager, evaluateMacros } from '@cyberismo/data-handler';
 import { allCards } from './lib.js';
 import type { TreeOptions } from '../../types.js';
 

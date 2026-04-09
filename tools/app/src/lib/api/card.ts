@@ -247,10 +247,11 @@ async function exportCard(
   dispatch: ReturnType<typeof useAppDispatch>,
 ) {
   try {
-    const swrKey = apiPaths.exportCard(cardKey);
+    const swrKey = apiPaths.exportCard();
     const result = await fetch(swrKey, {
       method: 'POST',
       body: JSON.stringify({
+        cardKey,
         title,
         exportChildCards,
         name,
@@ -259,6 +260,9 @@ async function exportCard(
         'Content-Type': 'application/json',
       },
     });
+    if (result.status !== 200) {
+      throw new Error(`Unable to export ${name}`);
+    }
     const blob = await result.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
