@@ -32,6 +32,7 @@ import type {
   MacroGenerationContext,
   MacroMetadata,
   MacroName,
+  Mode,
 } from '../interfaces/macros.js';
 import type BaseMacro from './base-macro.js';
 import TaskQueue from './task-queue.js';
@@ -411,11 +412,16 @@ export function createCodeBlock(content: string) {
 /**
  * Helper function for including base64 encoded images
  * @param image base64 encoded image
+ * @param mode The mode in which the image is being rendered
  * @param controls Add controls
  * @returns valid asciidoc with the image
  */
-export function createImage(image: string, controls: boolean = true) {
-  if (process.env.EXPORT_FORMAT) {
+export function createImage(
+  image: string,
+  mode: Mode,
+  controls: boolean = true,
+) {
+  if (mode === 'static') {
     return `image::data:image/svg+xml;base64,${image}[]\n`;
   } else {
     const svg = Buffer.from(image, 'base64').toString('utf-8');
