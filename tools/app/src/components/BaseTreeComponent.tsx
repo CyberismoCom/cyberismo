@@ -17,7 +17,7 @@ import type { NodeRendererProps, NodeApi, TreeApi } from 'react-arborist';
 import { Tree } from 'react-arborist';
 import { Link } from 'react-router';
 import { useResizeObserver } from '../lib/hooks';
-import { config } from '@/lib/utils';
+import { getConfig } from '@/lib/utils';
 
 export interface BaseTreeProps<T> {
   title?: string;
@@ -103,7 +103,7 @@ export function BaseTreeComponent<T>({
         ref={treeRef}
         data={data || []}
         openByDefault={openByDefault}
-        disableDrag={config.staticMode}
+        disableDrag={getConfig().staticMode}
         idAccessor={idAccessor}
         childrenAccessor={childrenAccessor}
         indent={16}

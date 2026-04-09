@@ -26,7 +26,7 @@ import {
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import { getStateColor } from '../lib/utils';
-import { config } from '@/lib/utils';
+import { getConfig } from '@/lib/utils';
 import { ANY_STATE } from '@/lib/constants';
 
 interface StateSelectorProps {
@@ -81,7 +81,9 @@ const StateSelector: React.FC<StateSelectorProps> = ({
       <MenuButton
         size="sm"
         disabled={
-          availableTransitions.length === 0 || disabled || config.staticMode
+          availableTransitions.length === 0 ||
+          disabled ||
+          getConfig().staticMode
         }
         variant="soft"
         color="neutral"

@@ -26,7 +26,7 @@ import {
   MenuItem,
   Tooltip,
 } from '@mui/joy';
-import { config } from '@/lib/utils';
+import { getConfig } from '@/lib/utils';
 import {
   useIsInCards,
   useKeyboardShortcut,
@@ -121,7 +121,7 @@ export default function AppToolbar({ onCreate }: AppToolbarProps) {
       key: 'c',
     },
     () => {
-      if (!config.staticMode) {
+      if (!getConfig().staticMode) {
         onCreate();
       }
     },
@@ -149,7 +149,7 @@ export default function AppToolbar({ onCreate }: AppToolbarProps) {
       </Box>
       <Box sx={{ flexGrow: 1 }} />
       <ThemeModeToggle />
-      {!config.staticMode && (
+      {!getConfig().staticMode && (
         <CreateButton type={inCards ? 'Card' : 'Resource'} onClick={onCreate} />
       )}
       <UserMenu />
