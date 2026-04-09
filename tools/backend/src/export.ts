@@ -109,7 +109,6 @@ export async function exportSite(
   );
 
   reset();
-  await commands.project.calculationEngine.generate();
 
   // estimate total based on the number of cards to export
   const cards = await findAllCards(commands, opts);

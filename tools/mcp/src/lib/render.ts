@@ -157,9 +157,6 @@ export async function renderCard(
     let cardQueryResult: QueryResult<'card'> | null = null;
 
     if (!options.raw) {
-      // Generate logic program for calculations
-      await commands.calculateCmd.generate();
-
       // Evaluate macros (Clingo, graphs, reports)
       try {
         const asciidocContent = await evaluateMacros(rawContent, {
@@ -405,7 +402,6 @@ function transformNotifications(
  */
 export async function getCardTree(commands: CommandManager): Promise<unknown> {
   return commands.consistent(async () => {
-    await commands.calculateCmd.generate();
     const result = await commands.calculateCmd.runQuery('tree', 'localApp', {});
     return result;
   });

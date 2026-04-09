@@ -42,11 +42,6 @@ export async function getCardDetails(
       return { status: 400, message: `Card ${key} not found from project` };
     }
 
-    // always parse for now if not in export mode
-    if (!staticMode && !raw) {
-      await commands.calculateCmd.generate();
-    }
-
     let asciidocContent = '';
     try {
       asciidocContent = await evaluateMacros(
@@ -138,6 +133,7 @@ export async function getCardDetails(
       : await commands.calculateCmd.runQuery('card', 'localApp', {
           cardKey: key,
         });
+
     if (card.length !== 1) {
       throw new Error('Query failed. Check card-query syntax');
     }
