@@ -220,6 +220,16 @@ test('POST /api/cards/:key/links creates an inbound link successfully', async ()
 });
 
 test('DELETE /api/cards/:key/links removes an inbound link successfully', async () => {
+  await app.request('/api/cards/decision_5/links', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      toCard: 'decision_6',
+      linkType: 'decision/linkTypes/test',
+      direction: 'inbound',
+    }),
+  });
+
   const response = await app.request('/api/cards/decision_5/links', {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },

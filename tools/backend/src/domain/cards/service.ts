@@ -230,20 +230,28 @@ export async function updateLink(
   previousLinkDescription?: string,
 ) {
   // For simplicity create the new link first so that duplicate-link validation runs before
-  // the old link is removed. This also also handles direction changes.
+  // the old link is removed. This also handles direction changes.
+  return commands.atomic(async () => {
+    await createLink(
+      commands,
+      key,
+      toCard,
+      linkType,
+      direction,
+      linkDescription,
+    );
 
-  await createLink(commands, key, toCard, linkType, direction, linkDescription);
+    await removeLink(
+      commands,
+      key,
+      previousToCard,
+      previousLinkType,
+      previousDirection,
+      previousLinkDescription,
+    );
 
-  await removeLink(
-    commands,
-    key,
-    previousToCard,
-    previousLinkType,
-    previousDirection,
-    previousLinkDescription,
-  );
-
-  return { message: 'Link updated successfully' };
+    return { message: 'Link updated successfully' };
+  }, `Update link on ${key} to ${toCard}`);
 }
 
 export async function getAttachment(
