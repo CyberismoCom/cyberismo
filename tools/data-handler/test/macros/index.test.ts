@@ -285,7 +285,7 @@ Some content here`;
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).toContain('<svg');
+        expect(result).toContain('image::');
       });
       it('scoreCard exportSite (success)', async () => {
         const macro = `{{#scoreCard}}"title": "Scorecard", "value": 99, "unit": "%", "legend": "complete"{{/scoreCard}}`;
@@ -319,9 +319,7 @@ Some content here`;
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).toContain('<svg');
-        expect(result).toContain('Static Percentage');
-        expect(result).toContain('42%');
+        expect(result).toContain('image::');
       });
       it('percentage exportSite (success)', async () => {
         const macro = `{{#percentage}}"title": "Test Percentage", "value": 85, "legend": "of Assets", "colour": "red"{{/percentage}}`;
