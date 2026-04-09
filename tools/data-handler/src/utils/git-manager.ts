@@ -14,6 +14,8 @@
 import { simpleGit, type SimpleGit } from 'simple-git';
 import { getChildLogger } from './log-utils.js';
 
+const TAG_PREFIX = 'v';
+
 export class GitManager {
   private git: SimpleGit;
   private logger = getChildLogger({ module: 'GitManager' });
@@ -83,5 +85,49 @@ export class GitManager {
     // Remove new untracked files created during the failed write
     await this.git.clean('f', ['-d', 'cardRoot', '.cards']);
     this.logger.info('Rollback completed');
+  }
+
+  /** List all version tags (v*) sorted by version descending. */
+  async listVersionTags(): Promise<string[]> {
+    const result = await this.git.tags(['--list', 'v*', '--sort=-v:refname']);
+    return result.all;
+  }
+
+  /**
+   * Create an annotated tag from a clean version string.
+   * @param version Clean semver string (e.g. "1.2.3")
+   * @param message Optional tag message (defaults to the tag name)
+   */
+  async tagVersion(version: string, message?: string): Promise<void> {
+    const tag = `${TAG_PREFIX}${version}`;
+    this.logger.info({ tag }, 'Creating tag');
+    await this.git.tag(['-a', tag, '-m', message ?? tag]);
+  }
+
+  /** Delete a local version tag. */
+  async deleteTag(version: string): Promise<void> {
+    const tag = `${TAG_PREFIX}${version}`;
+    this.logger.info({ tag }, 'Deleting tag');
+    await this.git.tag(['-d', tag]);
+  }
+
+  /** Check if the working tree has uncommitted changes in project directories (staged or unstaged). */
+  async hasUncommittedChanges(): Promise<boolean> {
+    const status = await this.git.status(['--', 'cardRoot', '.cards']);
+    return !status.isClean();
+  }
+
+  static readonly DEFAULT_REMOTE = 'origin';
+
+  /** Push current branch and optionally tags to remote. */
+  async push(options: { tags?: boolean; remote: string }): Promise<void> {
+    const { remote } = options;
+    this.logger.info({ remote }, 'Pushing to remote');
+    const branch = (await this.git.branch()).current;
+    const args = ['-u', remote, branch];
+    if (options?.tags) {
+      args.push('--follow-tags');
+    }
+    await this.git.push(args);
   }
 }

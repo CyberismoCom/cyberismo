@@ -37,7 +37,6 @@ import type {
   AllCommandOptions,
   CalcCommandOptions,
   ExportCommandOptions,
-  ImportCommandOptions,
   MigrateCommandOptions,
   ReportCommandOptions,
   ShowCommandOptions,
@@ -61,6 +60,7 @@ import { resourceName } from './utils/resource-utils.js';
 import { type Level } from 'pino';
 import { type Context } from './interfaces/project-interfaces.js';
 import { type QueryName } from './types/queries.js';
+import { validBumps, type BumpType } from './commands/version.js';
 
 // Commands that this class supports.
 export const Cmd = {
@@ -73,7 +73,9 @@ export const Cmd = {
   import: 'import',
   migrate: 'migrate',
   move: 'move',
+  publish: 'publish',
   rank: 'rank',
+  version: 'version',
   remove: 'remove',
   rename: 'rename',
   report: 'report',
@@ -178,7 +180,7 @@ export class Commands {
       logLevel: options.logLevel,
       watchResourceChanges: (options as StartCommandOptions)
         .watchResourceChanges,
-      autocommit: (options as StartCommandOptions).autocommit,
+      autocommit: options.autocommit,
     });
     if (!this.commands) {
       throw new Error('Cannot get instance of CommandManager');
@@ -324,7 +326,6 @@ export class Commands {
             branch,
             useCredentials && useCredentials === 'true' ? true : false,
             credentials,
-            (options as ImportCommandOptions).skipMigrationLog,
           );
         }
         if (target === 'csv') {
@@ -340,6 +341,10 @@ export class Commands {
       } else if (command === Cmd.move) {
         const [source, destination] = args;
         await this.commands?.moveCmd.moveCard(source, destination);
+      } else if (command === Cmd.publish) {
+        return this.publish(args);
+      } else if (command === Cmd.version) {
+        return this.version(args);
       } else if (command === Cmd.rank) {
         const target = args.splice(0, 1)[0];
         if (target === 'card') {
@@ -563,6 +568,72 @@ export class Commands {
     };
   }
 
+  // Bumps project version in cardsConfig.json.
+  private async version(args: string[]): Promise<requestStatus> {
+    if (!this.commands) {
+      return { statusCode: 500, message: 'Commands not initialized' };
+    }
+
+    const [bumpType] = args;
+    if (!(validBumps as readonly string[]).includes(bumpType)) {
+      return {
+        statusCode: 400,
+        message: `Invalid bump type '${bumpType}'. Must be one of: ${validBumps.join(', ')}`,
+      };
+    }
+
+    // Validate project before versioning
+    const validation = await this.validate();
+    if (
+      validation.statusCode !== 200 ||
+      validation.message !== 'Project structure validated'
+    ) {
+      return {
+        statusCode: 400,
+        message: `Cannot version: project has validation errors.\n${validation.message}`,
+      };
+    }
+
+    const result = await this.commands.versionCmd.bumpVersion(
+      bumpType as BumpType,
+    );
+
+    const previousInfo = result.previousVersion
+      ? ` (was v${result.previousVersion})`
+      : '';
+    return {
+      statusCode: 200,
+      message: `Bumped to v${result.newVersion}${previousInfo}`,
+    };
+  }
+
+  // Publishes the current version by creating a git tag and pushing.
+  private async publish(args: string[]): Promise<requestStatus> {
+    if (!this.commands) {
+      return { statusCode: 500, message: 'Commands not initialized' };
+    }
+
+    const [dryRunFlag, remote] = args;
+    const dryRun = dryRunFlag === 'true';
+
+    const result = await this.commands.publishCmd.publishVersion(
+      dryRun,
+      remote || undefined,
+    );
+
+    if (result.dryRun) {
+      return {
+        statusCode: 200,
+        message: `Would publish v${result.version} (create tag and push to remote '${result.remote}')`,
+      };
+    }
+
+    return {
+      statusCode: 200,
+      message: `Published v${result.version}`,
+    };
+  }
+
   // Exports whole or partial card tree to a given format.
   private async export(
     destination: string = 'output',
@@ -627,18 +698,12 @@ export class Commands {
     branch?: string,
     useCredentials?: boolean,
     credentials?: Credentials,
-    skipMigrationLog = false,
   ) {
-    return this.commands?.importCmd.importModule(
-      source,
-      this.projectPath,
-      {
-        branch: branch,
-        private: useCredentials,
-        credentials,
-      },
-      skipMigrationLog,
-    );
+    return this.commands?.importCmd.importModule(source, this.projectPath, {
+      branch: branch,
+      private: useCredentials,
+      credentials,
+    });
   }
 
   // Imports cards from a CSV file to a project.

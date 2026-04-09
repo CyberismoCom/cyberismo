@@ -34,6 +34,7 @@ import {
   CommandManager,
   Commands,
   ExportFormats,
+  validBumps,
   validContexts,
 } from '@cyberismo/data-handler';
 import { ResourceTypeParser as Parser } from './resource-type-parser.js';
@@ -244,7 +245,8 @@ program
     new Option('-L, --log-level <level>', 'Set the log level')
       .choices(['trace', 'debug', 'info', 'warn', 'error', 'fatal'])
       .default('fatal'),
-  );
+  )
+  .option('--autocommit', 'Enable git-backed transactional writes');
 
 const addCmd = new CommandWithPath('add').description(
   'Add items to the project',
@@ -632,7 +634,7 @@ createCmd
                 module.branch ?? '',
                 module.private ? 'true' : 'false',
               ],
-              { ...commandOptions, skipMigrationLog: true },
+              commandOptions,
             );
             if (importResult.statusCode !== 200) {
               console.warn(
@@ -750,6 +752,24 @@ createCmd
       handleResponse(result);
     },
   );
+
+// Create version subcommand
+createCmd
+  .command('version')
+  .description(
+    'Bump the project version in cardsConfig.json and snapshot migration log. The first version is always 1.0.0 regardless of bump type.',
+  )
+  .addArgument(
+    new Argument('<bump>', 'Version bump type').choices([...validBumps]),
+  )
+  .action(async (bump: string, options: CommandOptions<'version'>) => {
+    const result = await commandHandler.command(
+      Cmd.version,
+      [bump],
+      Object.assign({}, options, program.opts()),
+    );
+    handleResponse(result);
+  });
 
 // Edit command
 const editCmd = new CommandWithPath('edit')
@@ -1482,6 +1502,21 @@ appCmd.action(async (options: CommandOptions<'start'>) => {
     watchResourceChanges: options.watchResourceChanges,
   });
   await startServer(new MockAuthProvider(gitUser), commands);
+});
+
+// Publish command - creates a git tag from cardsConfig version and pushes
+const publishCmd = new CommandWithPath('publish')
+  .description(
+    'Publish the current version (creates annotated git tag, pushes to remote). Run "cyberismo create version" first to set the version.',
+  )
+  .option('--dry-run', 'Show what would happen without doing it')
+  .option('--remote <name>', 'Git remote to push to (default: origin)');
+program.addCommand(publishCmd);
+publishCmd.action(async (options: CommandOptions<'publish'>) => {
+  const mergedOptions = Object.assign({}, options, program.opts());
+  const args = [options.dryRun ? 'true' : 'false', options.remote ?? ''];
+  const result = await commandHandler.command(Cmd.publish, args, mergedOptions);
+  handleResponse(result);
 });
 
 // MCP Server command

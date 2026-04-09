@@ -43,7 +43,7 @@ jobs:
         - language: javascript-typescript
           build-mode: none
         - language: c-cpp
-          build-mode: none
+          build-mode: manual
         # CodeQL supports the following values keywords for 'language': 'actions', 'c-cpp', 'csharp', 'go', 'java-kotlin', 'javascript-typescript', 'python', 'ruby', 'swift'
         # Use `c-cpp` to analyze code written in C, C++ or both
         # Use 'java-kotlin' to analyze code written in Java, Kotlin or both
@@ -55,6 +55,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        submodules: ${{ matrix.language == 'c-cpp' && 'recursive' || 'false' }}
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v4
@@ -67,6 +69,27 @@ jobs:
         # Prefix the list here with "+" to use these queries and those in the config file.
 
         # For more details on CodeQL's query packs, refer to: https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
+
+    - name: Set up Node.js
+      if: matrix.language == 'c-cpp'
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ vars.NODE_VERSION }}
+
+    - name: Install pnpm
+      if: matrix.language == 'c-cpp'
+      uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda 
+
+    - name: Install dependencies (skip prebuilt download)
+      if: matrix.language == 'c-cpp'
+      run: pnpm install --filter @cyberismo/node-clingo --ignore-scripts
+
+    - name: Build C++ from source (manual mode)
+      if: matrix.language == 'c-cpp'
+      run: |
+        cd tools/node-clingo
+        cmake -P scripts/build-clingo.cmake
+        npx node-gyp rebuild
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4

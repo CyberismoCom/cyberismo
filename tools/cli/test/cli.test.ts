@@ -273,6 +273,15 @@ describe('Cli BAT test', function () {
     expect(stdout).toContain('Done');
     expect(stdout).toContain('Project structure validated');
   });
+  it('Version and publish', async () => {
+    const { stdout } = await execAsync(
+      `cd ${cliPath} && git init && git add -A && git -c user.name=Test -c user.email=test@test.com commit -m "init" && ${cli} --autocommit create version patch && ${cli} publish --dry-run`,
+    );
+    expect(stdout).toContain('Bumped to v1.0.0');
+    expect(stdout).toContain(
+      "Would publish v1.0.0 (create tag and push to remote 'origin')",
+    );
+  });
   it('Add default hub and check hub version', async () => {
     const { stdout } = await execAsync(
       `cd ${cliPath} && ${cli} add hub default && ${cli} fetch hubs && ${cli} validate`,

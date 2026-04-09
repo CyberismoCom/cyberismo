@@ -54,15 +54,6 @@ const passthroughContent = (html: string) => `++++\n${html}\n++++`;
 describe('XSS Prevention', () => {
   Cypress.config('defaultCommandTimeout', 20000);
 
-  before(() => {
-    cy.task('createTestProject');
-  });
-
-  after(() => {
-    cy.wait(1000);
-    cy.task('deleteTestProject');
-  });
-
   beforeEach(() => {
     cy.visit('');
     // This is a bit anti-pattern, but the tests are attempting to throw an alert by modifying content

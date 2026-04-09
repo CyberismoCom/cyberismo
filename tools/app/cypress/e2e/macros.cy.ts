@@ -25,15 +25,6 @@ const vegaLiteMacro =
 describe('Navigation', () => {
   Cypress.config('defaultCommandTimeout', 20000);
 
-  before(() => {
-    cy.task('createTestProject'); // Creates a new cyberismo-bat project based on module-base
-  });
-
-  after(() => {
-    cy.wait(1000);
-    cy.task('deleteTestProject'); // Deletes cyberismo-bat project
-  });
-
   beforeEach(() => {
     cy.visit('');
   });

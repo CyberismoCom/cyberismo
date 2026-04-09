@@ -287,12 +287,10 @@ export class Rename {
     this.project.cardsCache.clear();
     await this.project.populateCaches();
 
-    await ConfigurationLogger.log(
-      this.project.basePath,
-      ConfigurationOperation.PROJECT_RENAME,
-      this.to,
-      {},
-    );
+    await ConfigurationLogger.log(this.project.basePath, {
+      operation: ConfigurationOperation.PROJECT_RENAME,
+      target: this.to,
+    });
 
     return this.project.calculationEngine.generate();
   }
