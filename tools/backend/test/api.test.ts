@@ -289,7 +289,7 @@ test('DELETE /api/cards/:key/links removes external link successfully', async ()
   expect(result.message).toBe('Link removed successfully');
 });
 
-test('PATCH /api/cards/:key/links changes link type', async () => {
+test('PUT /api/cards/:key/links changes link type', async () => {
   // testTypes requires source=decision cardType, destination=simplepage cardType
   // decision_6 is 'decision' cardType, decision_5 is 'simplepage' cardType
   await app.request('/api/cards/decision_6/links', {
@@ -303,7 +303,7 @@ test('PATCH /api/cards/:key/links changes link type', async () => {
   });
 
   const response = await app.request('/api/cards/decision_6/links', {
-    method: 'PATCH',
+    method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       toCard: 'decision_5',
@@ -330,7 +330,7 @@ test('PATCH /api/cards/:key/links changes link type', async () => {
   });
 });
 
-test('PATCH /api/cards/:key/links changes link direction', async () => {
+test('PUT /api/cards/:key/links changes link direction', async () => {
   // Create initial outbound link
   await app.request('/api/cards/decision_5/links', {
     method: 'POST',
@@ -343,7 +343,7 @@ test('PATCH /api/cards/:key/links changes link direction', async () => {
   });
 
   const response = await app.request('/api/cards/decision_5/links', {
-    method: 'PATCH',
+    method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       toCard: 'decision_6',
@@ -370,7 +370,7 @@ test('PATCH /api/cards/:key/links changes link direction', async () => {
   });
 });
 
-test('PATCH /api/cards/:key/links changes link description', async () => {
+test('PUT /api/cards/:key/links changes link description', async () => {
   // Create initial link without description
   await app.request('/api/cards/decision_5/links', {
     method: 'POST',
@@ -383,7 +383,7 @@ test('PATCH /api/cards/:key/links changes link description', async () => {
   });
 
   const response = await app.request('/api/cards/decision_5/links', {
-    method: 'PATCH',
+    method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       toCard: 'decision_6',
@@ -412,9 +412,9 @@ test('PATCH /api/cards/:key/links changes link description', async () => {
   });
 });
 
-test('PATCH /api/cards/:key/links returns 400 when required fields are missing', async () => {
+test('PUT /api/cards/:key/links returns 400 when required fields are missing', async () => {
   const response = await app.request('/api/cards/decision_5/links', {
-    method: 'PATCH',
+    method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       toCard: 'decision_6',

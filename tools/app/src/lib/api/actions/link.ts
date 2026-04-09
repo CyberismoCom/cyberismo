@@ -53,7 +53,7 @@ export async function updateLink(
   linkDescription?: string,
   previousLinkDescription?: string,
 ) {
-  return callApi(`/api/cards/${fromCard}/links`, 'PATCH', {
+  return callApi(`/api/cards/${fromCard}/links`, 'PUT', {
     toCard,
     linkType,
     description: linkDescription,

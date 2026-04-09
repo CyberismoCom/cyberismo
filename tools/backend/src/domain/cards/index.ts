@@ -19,6 +19,12 @@ import { isSSGContext, ssgParams } from 'hono/ssg';
 import type { AppContext } from '../../types.js';
 import { UserRole } from '../../types.js';
 import { requireRole } from '../../middleware/auth.js';
+import { zValidator } from '../../middleware/zvalidator.js';
+import {
+  createLinkSchema,
+  removeLinkSchema,
+  updateLinkSchema,
+} from './schema.js';
 
 const router = new Hono();
 
@@ -514,14 +520,10 @@ router.post('/:key/parse', requireRole(UserRole.Reader), async (c) => {
  *       500:
  *         description: Server error
  */
-router.post('/:key/links', requireRole(UserRole.Editor), async (c) => {
+router.post('/:key/links', requireRole(UserRole.Editor), zValidator('json', createLinkSchema), async (c) => {
   const commands = c.get('commands');
   const key = c.req.param('key');
-  const { toCard, linkType, description, direction } = await c.req.json();
-
-  if (!toCard || !linkType) {
-    return c.json({ error: 'toCard and linkType are required' }, 400);
-  }
+  const { toCard, linkType, description, direction } = c.req.valid('json');
 
   try {
     const result = await cardService.createLink(
@@ -529,7 +531,7 @@ router.post('/:key/links', requireRole(UserRole.Editor), async (c) => {
       key,
       toCard,
       linkType,
-      direction || 'outbound',
+      direction,
       description,
     );
     return c.json(result);
@@ -574,14 +576,10 @@ router.post('/:key/links', requireRole(UserRole.Editor), async (c) => {
  *       500:
  *         description: Server error
  */
-router.delete('/:key/links', requireRole(UserRole.Editor), async (c) => {
+router.delete('/:key/links', requireRole(UserRole.Editor), zValidator('json', removeLinkSchema), async (c) => {
   const commands = c.get('commands');
   const key = c.req.param('key');
-  const { toCard, linkType, description, direction } = await c.req.json();
-
-  if (!toCard || !linkType) {
-    return c.json({ error: 'toCard and linkType are required' }, 400);
-  }
+  const { toCard, linkType, description, direction } = c.req.valid('json');
 
   try {
     const result = await cardService.removeLink(
@@ -589,7 +587,7 @@ router.delete('/:key/links', requireRole(UserRole.Editor), async (c) => {
       key,
       toCard,
       linkType,
-      direction || 'outbound',
+      direction,
       description,
     );
     return c.json(result);
@@ -606,7 +604,7 @@ router.delete('/:key/links', requireRole(UserRole.Editor), async (c) => {
 /**
  * @swagger
  * /api/cards/{key}/links:
- *   patch:
+ *   put:
  *     summary: Update a link between cards
  *     parameters:
  *       - name: key
@@ -644,9 +642,10 @@ router.delete('/:key/links', requireRole(UserRole.Editor), async (c) => {
  *       500:
  *         description: Server error
  */
-router.patch('/:key/links', requireRole(UserRole.Editor), async (c) => {
+router.put('/:key/links', requireRole(UserRole.Editor), zValidator('json', updateLinkSchema), async (c) => {
   const commands = c.get('commands');
   const key = c.req.param('key');
+
   const {
     toCard,
     linkType,
@@ -656,24 +655,7 @@ router.patch('/:key/links', requireRole(UserRole.Editor), async (c) => {
     previousLinkType,
     previousDirection,
     previousDescription,
-  } = await c.req.json();
-
-  if (
-    !toCard ||
-    !linkType ||
-    !direction ||
-    !previousToCard ||
-    !previousLinkType ||
-    !previousDirection
-  ) {
-    return c.json(
-      {
-        error:
-          'toCard, linkType, direction, previousToCard, previousLinkType and previousDirection are required',
-      },
-      400,
-    );
-  }
+  } = c.req.valid('json');
 
   try {
     const result = await cardService.updateLink(
