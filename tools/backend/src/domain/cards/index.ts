@@ -520,30 +520,36 @@ router.post('/:key/parse', requireRole(UserRole.Reader), async (c) => {
  *       500:
  *         description: Server error
  */
-router.post('/:key/links', requireRole(UserRole.Editor), zValidator('json', createLinkSchema), async (c) => {
-  const commands = c.get('commands');
-  const key = c.req.param('key');
-  const { toCard, linkType, description, direction } = c.req.valid('json');
+router.post(
+  '/:key/links',
+  requireRole(UserRole.Editor),
+  zValidator('json', createLinkSchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const key = c.req.param('key');
+    const { toCard, linkType, description, direction } = c.req.valid('json');
 
-  try {
-    const result = await cardService.createLink(
-      commands,
-      key,
-      toCard,
-      linkType,
-      direction,
-      description,
-    );
-    return c.json(result);
-  } catch (error) {
-    return c.json(
-      {
-        error: error instanceof Error ? error.message : 'Failed to create link',
-      },
-      500,
-    );
-  }
-});
+    try {
+      const result = await cardService.createLink(
+        commands,
+        key,
+        toCard,
+        linkType,
+        direction,
+        description,
+      );
+      return c.json(result);
+    } catch (error) {
+      return c.json(
+        {
+          error:
+            error instanceof Error ? error.message : 'Failed to create link',
+        },
+        500,
+      );
+    }
+  },
+);
 
 /**
  * @swagger
@@ -576,30 +582,36 @@ router.post('/:key/links', requireRole(UserRole.Editor), zValidator('json', crea
  *       500:
  *         description: Server error
  */
-router.delete('/:key/links', requireRole(UserRole.Editor), zValidator('json', removeLinkSchema), async (c) => {
-  const commands = c.get('commands');
-  const key = c.req.param('key');
-  const { toCard, linkType, description, direction } = c.req.valid('json');
+router.delete(
+  '/:key/links',
+  requireRole(UserRole.Editor),
+  zValidator('json', removeLinkSchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const key = c.req.param('key');
+    const { toCard, linkType, description, direction } = c.req.valid('json');
 
-  try {
-    const result = await cardService.removeLink(
-      commands,
-      key,
-      toCard,
-      linkType,
-      direction,
-      description,
-    );
-    return c.json(result);
-  } catch (error) {
-    return c.json(
-      {
-        error: error instanceof Error ? error.message : 'Failed to remove link',
-      },
-      500,
-    );
-  }
-});
+    try {
+      const result = await cardService.removeLink(
+        commands,
+        key,
+        toCard,
+        linkType,
+        direction,
+        description,
+      );
+      return c.json(result);
+    } catch (error) {
+      return c.json(
+        {
+          error:
+            error instanceof Error ? error.message : 'Failed to remove link',
+        },
+        500,
+      );
+    }
+  },
+);
 
 /**
  * @swagger
@@ -642,44 +654,50 @@ router.delete('/:key/links', requireRole(UserRole.Editor), zValidator('json', re
  *       500:
  *         description: Server error
  */
-router.put('/:key/links', requireRole(UserRole.Editor), zValidator('json', updateLinkSchema), async (c) => {
-  const commands = c.get('commands');
-  const key = c.req.param('key');
+router.put(
+  '/:key/links',
+  requireRole(UserRole.Editor),
+  zValidator('json', updateLinkSchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const key = c.req.param('key');
 
-  const {
-    toCard,
-    linkType,
-    description,
-    direction,
-    previousToCard,
-    previousLinkType,
-    previousDirection,
-    previousDescription,
-  } = c.req.valid('json');
-
-  try {
-    const result = await cardService.updateLink(
-      commands,
-      key,
+    const {
       toCard,
       linkType,
+      description,
       direction,
       previousToCard,
       previousLinkType,
       previousDirection,
-      description,
       previousDescription,
-    );
-    return c.json(result);
-  } catch (error) {
-    return c.json(
-      {
-        error: error instanceof Error ? error.message : 'Failed to update link',
-      },
-      500,
-    );
-  }
-});
+    } = c.req.valid('json');
+
+    try {
+      const result = await cardService.updateLink(
+        commands,
+        key,
+        toCard,
+        linkType,
+        direction,
+        previousToCard,
+        previousLinkType,
+        previousDirection,
+        description,
+        previousDescription,
+      );
+      return c.json(result);
+    } catch (error) {
+      return c.json(
+        {
+          error:
+            error instanceof Error ? error.message : 'Failed to update link',
+        },
+        500,
+      );
+    }
+  },
+);
 
 /**
  * @swagger
