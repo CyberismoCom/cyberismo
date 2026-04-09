@@ -31,7 +31,7 @@ interface ExportCardModalProps {
   onClose: () => void;
   cardKey: string;
 }
-
+const DEFAULT_FILE_NAME = 'card-export';
 export const ExportCardModal = ({
   open,
   onClose,
@@ -39,8 +39,9 @@ export const ExportCardModal = ({
 }: ExportCardModalProps) => {
   const { t } = useTranslation();
   const [exportChildCards, setExportChildCards] = React.useState(false);
-  const { card } = useCard(cardKey);
+  const { card, exportCard } = useCard(cardKey);
   const [title, setTitle] = React.useState('');
+  const [name, setName] = React.useState(DEFAULT_FILE_NAME);
   React.useEffect(() => {
     if (card) {
       setTitle(card.title);
@@ -49,6 +50,7 @@ export const ExportCardModal = ({
   const handleClose = () => {
     setExportChildCards(false);
     setTitle(card?.title ?? '');
+    setName(DEFAULT_FILE_NAME);
     onClose();
   };
   return (
@@ -65,6 +67,22 @@ export const ExportCardModal = ({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
+          <Typography level="body-sm">
+            {t('exportCardTitleDescription')}
+          </Typography>
+
+          <label htmlFor="name">
+            <Typography>{t('name')}</Typography>
+          </label>
+          <Input
+            fullWidth
+            id="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <Typography level="body-sm">
+            {t('exportCardNameDescription')}
+          </Typography>
 
           <Checkbox
             checked={exportChildCards}
@@ -73,7 +91,19 @@ export const ExportCardModal = ({
           />
         </DialogContent>
         <DialogActions>
-          <Button>{t('export')}</Button>
+          <Button
+            onClick={() => {
+              exportCard({
+                cardKey,
+                title,
+                name,
+                exportChildCards,
+              });
+              handleClose();
+            }}
+          >
+            {t('export')}
+          </Button>
           <Button onClick={handleClose}>{t('close')}</Button>
         </DialogActions>
       </ModalDialog>

@@ -178,6 +178,17 @@ export const useCardMutations = (key: string | null) => {
         null
       );
     },
+    exportCard: async ({
+      cardKey,
+      title,
+      name,
+      exportChildCards,
+    }: ExportCardParams) => {
+      return call(
+        () => exportCard({ cardKey, title, exportChildCards, name }, dispatch),
+        'exportCard',
+      );
+    },
   };
 };
 
@@ -223,4 +234,52 @@ export async function createCard(
   mutate(apiPaths.tree());
 
   return result;
+}
+
+type ExportCardParams = {
+  cardKey: string;
+  title: string;
+  name: string;
+  exportChildCards: boolean;
+};
+async function exportCard(
+  { cardKey, title, exportChildCards, name }: ExportCardParams,
+  dispatch: ReturnType<typeof useAppDispatch>,
+) {
+  try {
+    const swrKey = apiPaths.exportCard(cardKey);
+    const result = await fetch(swrKey, {
+      method: 'POST',
+      body: JSON.stringify({
+        title,
+        exportChildCards,
+        name,
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    const blob = await result.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${name}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+    dispatch(
+      addNotification({
+        message: 'Card exported',
+        type: 'success',
+      }),
+    );
+    return true;
+  } catch (error) {
+    dispatch(
+      addNotification({
+        message: error instanceof Error ? error.message : '',
+        type: 'error',
+      }),
+    );
+    return false;
+  }
 }
