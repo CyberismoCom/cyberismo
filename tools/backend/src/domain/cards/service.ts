@@ -179,13 +179,19 @@ export async function createLink(
   direction: 'outbound' | 'inbound' = 'outbound',
   description?: string,
 ) {
+  // For outbound: key is source, target is destination
+  // For inbound: target is source, key is destination
+  const source = direction === 'outbound' ? key : target;
+  const destination = direction === 'outbound' ? target : key;
+
   await commands.createCmd.createLink(
-    key,
-    target,
+    source,
+    destination,
     linkType,
     description,
     direction,
   );
+
   return { message: 'Link created successfully' };
 }
 
@@ -209,6 +215,43 @@ export async function removeLink(
     description,
   );
   return { message: 'Link removed successfully' };
+}
+
+export async function updateLink(
+  commands: CommandManager,
+  key: string,
+  toCard: string,
+  linkType: string,
+  direction: 'outbound' | 'inbound',
+  previousToCard: string,
+  previousLinkType: string,
+  previousDirection: 'outbound' | 'inbound',
+  linkDescription?: string,
+  previousLinkDescription?: string,
+) {
+  // For simplicity create the new link first so that duplicate-link validation runs before
+  // the old link is removed. This also handles direction changes.
+  return commands.atomic(async () => {
+    await createLink(
+      commands,
+      key,
+      toCard,
+      linkType,
+      direction,
+      linkDescription,
+    );
+
+    await removeLink(
+      commands,
+      key,
+      previousToCard,
+      previousLinkType,
+      previousDirection,
+      previousLinkDescription,
+    );
+
+    return { message: 'Link updated successfully' };
+  }, `Update link on ${key} to ${toCard}`);
 }
 
 export async function getAttachment(

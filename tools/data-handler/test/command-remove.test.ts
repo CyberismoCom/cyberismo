@@ -134,6 +134,100 @@ describe('remove command', () => {
       expect(found?.length).toBe(0);
     });
 
+    // Create two links of the same type between the same cards, one with and one without
+    // a description. Removing the link without description must not remove the one with
+    // a description.
+    it('removing link without description does not remove same-type link with description', async () => {
+      const resourceName = 'decision/linkTypes/test';
+      const card = await createCard(commandHandler);
+      const card2 = await createCard(commandHandler);
+      const cardId = card.affectsCards![0];
+      const cardId2 = card2.affectsCards![0];
+
+      // Create link without description
+      let result = await commandHandler.command(
+        Cmd.create,
+        ['link', cardId, cardId2, resourceName],
+        options,
+      );
+      expect(result.statusCode).toBe(200);
+
+      // Create link with description
+      result = await commandHandler.command(
+        Cmd.create,
+        ['link', cardId, cardId2, resourceName, 'my description'],
+        options,
+      );
+      expect(result.statusCode).toBe(200);
+
+      // Remove only the link without description
+      result = await commandHandler.command(
+        Cmd.remove,
+        ['link', cardId, cardId2, resourceName],
+        options,
+      );
+      expect(result.statusCode).toBe(200);
+
+      // The link with description should still exist
+      result = await commandHandler.command(
+        Cmd.show,
+        ['card', cardId],
+        options,
+      );
+      const shownCard = result.payload as Card;
+      const remaining = shownCard.metadata?.links.filter(
+        (l) => l.cardKey === cardId2 && l.linkType === resourceName,
+      );
+      expect(remaining).toHaveLength(1);
+      expect(remaining![0].linkDescription).toBe('my description');
+    });
+
+    // Create two links of the same type with different descriptions.
+    // Removing one by description must leave the other intact.
+    it('removing link by description does not remove same-type link with different description', async () => {
+      const resourceName = 'decision/linkTypes/test';
+      const card = await createCard(commandHandler);
+      const card2 = await createCard(commandHandler);
+      const cardId = card.affectsCards![0];
+      const cardId2 = card2.affectsCards![0];
+
+      // Create two links with different descriptions
+      let result = await commandHandler.command(
+        Cmd.create,
+        ['link', cardId, cardId2, resourceName, 'desc A'],
+        options,
+      );
+      expect(result.statusCode).toBe(200);
+
+      result = await commandHandler.command(
+        Cmd.create,
+        ['link', cardId, cardId2, resourceName, 'desc B'],
+        options,
+      );
+      expect(result.statusCode).toBe(200);
+
+      // Remove only the link with 'desc A'
+      result = await commandHandler.command(
+        Cmd.remove,
+        ['link', cardId, cardId2, resourceName, 'desc A'],
+        options,
+      );
+      expect(result.statusCode).toBe(200);
+
+      // Only link with 'desc B' should remain
+      result = await commandHandler.command(
+        Cmd.show,
+        ['card', cardId],
+        options,
+      );
+      const shownCard = result.payload as Card;
+      const remaining = shownCard.metadata?.links.filter(
+        (l) => l.cardKey === cardId2 && l.linkType === resourceName,
+      );
+      expect(remaining).toHaveLength(1);
+      expect(remaining![0].linkDescription).toBe('desc B');
+    });
+
     // External link removal tests
     it('remove external link outbound (success)', async () => {
       // First create an external link

@@ -185,8 +185,8 @@ export class Remove {
     const link = sourceCard.metadata?.links.find(
       (l) =>
         l.cardKey === destination &&
-        (!linkType || l.linkType === linkType) &&
-        (!linkDescription || l.linkDescription === linkDescription),
+        l.linkType === (linkType ?? '') &&
+        (l.linkDescription ?? '') === (linkDescription ?? ''),
     );
     if (!link) {
       throw new Error(
@@ -199,8 +199,8 @@ export class Remove {
     const newLinks = sourceCard.metadata?.links.filter(
       (l) =>
         l.cardKey !== destination ||
-        (linkType && l.linkType !== linkType) ||
-        (linkDescription && l.linkDescription !== linkDescription),
+        l.linkType !== (linkType ?? '') ||
+        (l.linkDescription ?? '') !== (linkDescription ?? ''),
     );
 
     await this.project.updateCardMetadataKey(source, 'links', newLinks);
