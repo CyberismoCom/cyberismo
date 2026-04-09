@@ -77,15 +77,26 @@ export function canCreateLinkToCard(
     return false;
   return true;
 }
+let _config: AppConfig = { staticMode: false };
+
 /**
- * Loads the config.json file and returns the config.
- * @returns the config.json file.
+ * Fetches config.json. Must be called once before the app renders.
  */
-export const config: AppConfig = await fetch('/config.json')
-  .then((res) => res.json())
-  .catch(() => {
-    return { staticMode: false };
-  });
+export async function initConfig(): Promise<void> {
+  try {
+    const res = await fetch('/config.json');
+    _config = await res.json();
+  } catch {
+    _config = { staticMode: false };
+  }
+}
+
+/**
+ * Returns the cached app config. Call {@link initConfig} first.
+ */
+export function getConfig(): AppConfig {
+  return _config;
+}
 
 /**
  * Counts the number of children of a card, including the card itself and children of children

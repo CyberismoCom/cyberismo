@@ -37,7 +37,7 @@ import type {
 import FieldRow from './fields/FieldRow';
 import { resourceFieldConfigs, type FieldConfig } from './resourceFieldConfigs';
 import { FORM_FIELD_MAX_WIDTH } from '@/lib/constants';
-import { config } from '@/lib/utils';
+import { getConfig } from '@/lib/utils';
 
 export function ResourceEditor({ node }: { node: ResourceNode }) {
   const { t } = useTranslation();
@@ -54,7 +54,7 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
   const constrainedConfigs = fieldConfigs.filter((c) => !c.fullWidth);
   const fullWidthConfigs = fieldConfigs.filter((c) => c.fullWidth);
 
-  const isDisabled = Boolean(node.readOnly) || config.staticMode;
+  const isDisabled = Boolean(node.readOnly) || getConfig().staticMode;
 
   const renderField = (fieldConfig: FieldConfig) => {
     const { key, type, label, options, staticOptions } = fieldConfig;

@@ -69,7 +69,6 @@
     "vega": "^6.2.0",
     "vega-lite": "^6.4.2",
     "vite": "^8.0.8",
-    "vite-plugin-top-level-await": "^1.6.0",
     "zod": "^4.3.6"
   }
 }

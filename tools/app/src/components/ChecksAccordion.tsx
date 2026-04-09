@@ -24,7 +24,7 @@ import {
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import ExpandMore from '@mui/icons-material/ExpandMore';
-import { config } from '@/lib/utils';
+import { getConfig } from '@/lib/utils';
 import { useAppRouter } from '../lib/hooks';
 
 // Generic types for check items
@@ -207,7 +207,7 @@ export function ChecksAccordion({
                         {failure.errorMessage}
                       </Typography>
                       {showGoToField &&
-                        !config.staticMode &&
+                        !getConfig().staticMode &&
                         failure.fieldName && (
                           <Link
                             level="body-sm"

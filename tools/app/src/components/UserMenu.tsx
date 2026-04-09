@@ -23,7 +23,7 @@ import {
 } from '@mui/joy';
 import LogoutOutlined from '@mui/icons-material/LogoutOutlined';
 import { useUser } from '@/lib/api';
-import { config } from '@/lib/utils';
+import { getConfig } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 
 function getInitials(name: string): string {
@@ -73,14 +73,14 @@ export default function UserMenu() {
           </Box>
         </Menu>
       </Dropdown>
-      {config.logoutUrl && (
+      {getConfig().logoutUrl && (
         <Tooltip title={t('logOut')}>
           <IconButton
             size="sm"
             variant="plain"
             sx={{ color: 'white' }}
             onClick={() => {
-              window.location.href = config.logoutUrl!;
+              window.location.href = getConfig().logoutUrl!;
             }}
           >
             <LogoutOutlined />

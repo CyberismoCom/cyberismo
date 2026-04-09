@@ -25,7 +25,7 @@ import { useTranslation } from 'react-i18next';
 import { useCard, useProject, useTree } from '../../lib/api';
 import { useAppDispatch } from '../../lib/hooks';
 import { addNotification } from '../../lib/slices/notifications';
-import { config } from '@/lib/utils';
+import { getConfig } from '@/lib/utils';
 import BaseToolbar from './BaseToolbar';
 import { CardContextMenu } from '@/components/context-menus';
 
@@ -83,7 +83,7 @@ export function CardToolbar({
 
   const actions = (
     <>
-      {!config.staticMode && mode === CardMode.VIEW && (
+      {!getConfig().staticMode && mode === CardMode.VIEW && (
         <Tooltip title={t('linkTooltip')} placement="top">
           <IconButton
             onClick={onInsertLink}
@@ -113,7 +113,7 @@ export function CardToolbar({
         disabled={isUpdating() && !isUpdating('updateState')}
       />
 
-      {!config.staticMode && mode === CardMode.VIEW && (
+      {!getConfig().staticMode && mode === CardMode.VIEW && (
         <Button
           variant="solid"
           aria-label="edit"
@@ -165,7 +165,7 @@ export function CardToolbar({
   return (
     <BaseToolbar
       breadcrumbs={breadcrumbs}
-      contextMenu={!config.staticMode && <CardContextMenu cardKey={cardKey} />}
+      contextMenu={!getConfig().staticMode && <CardContextMenu cardKey={cardKey} />}
       actions={actions}
     />
   );

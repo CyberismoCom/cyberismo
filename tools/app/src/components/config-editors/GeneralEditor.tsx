@@ -29,7 +29,7 @@ import { addNotification } from '@/lib/slices/notifications';
 import BaseEditor from './BaseEditor';
 import FieldRow from './fields/FieldRow';
 import TextInput from './fields/TextInput';
-import { config } from '@/lib/utils';
+import { getConfig } from '@/lib/utils';
 
 type GeneralEditorProps = {
   node: GenericNode<'general'>;
@@ -56,7 +56,7 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
   } | null>(null);
   const dispatch = useAppDispatch();
 
-  const isDisabled = Boolean(node.readOnly) || config.staticMode;
+  const isDisabled = Boolean(node.readOnly) || getConfig().staticMode;
 
   const nameField = useEditableField({
     initialValue: general?.name ?? node.data.name ?? '',

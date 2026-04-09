@@ -81,7 +81,7 @@ import type {
   CalculationLink,
   LinkDirection,
 } from '@cyberismo/data-handler/types/queries';
-import { config } from '@/lib/utils';
+import { getConfig } from '@/lib/utils';
 import type { CardResponse, Connector } from '../lib/api/types';
 import { GenericConfirmModal } from './modals';
 import { useCard } from '../lib/api';
@@ -964,7 +964,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                 </AccordionSummary>
                 {!preview &&
                   linkFormState === 'hidden' &&
-                  !config.staticMode && (
+                  !getConfig().staticMode && (
                     <IconButton
                       sx={{
                         height: 36,
