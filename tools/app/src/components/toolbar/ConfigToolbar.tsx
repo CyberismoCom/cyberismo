@@ -115,7 +115,8 @@ export function ConfigToolbar({
           node={node}
           enabled={{
             ...enabled,
-            delete: enabled?.delete && !node.readOnly && !getConfig().staticMode,
+            delete:
+              enabled?.delete && !node.readOnly && !getConfig().staticMode,
           }}
         />
       }

@@ -165,7 +165,9 @@ export function CardToolbar({
   return (
     <BaseToolbar
       breadcrumbs={breadcrumbs}
-      contextMenu={!getConfig().staticMode && <CardContextMenu cardKey={cardKey} />}
+      contextMenu={
+        !getConfig().staticMode && <CardContextMenu cardKey={cardKey} />
+      }
       actions={actions}
     />
   );
