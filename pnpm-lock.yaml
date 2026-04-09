@@ -396,8 +396,8 @@ importers:
         specifier: ^7.7.0
         version: 7.7.1
       '@types/sinon':
-        specifier: ^21.0.0
-        version: 21.0.0
+        specifier: ^21.0.1
+        version: 21.0.1
       c8:
         specifier: ^11.0.0
         version: 11.0.0
@@ -405,8 +405,8 @@ importers:
         specifier: ^13.1.3
         version: 13.1.3
       sinon:
-        specifier: ^21.0.1
-        version: 21.0.1
+        specifier: ^21.0.3
+        version: 21.0.3
 
   tools/mcp:
     dependencies:
@@ -1250,24 +1250,24 @@ packages:
     resolution: {integrity: sha512-YF+fE6LV4v5MGWRGj7G404/OZzGNepVF8fxk7jqmqo3lrza7a0uUcDnROGRBG1WFC1omYUS/Wp1f42i0M+3Q3A==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
 
-  '@eslint/config-array@0.23.3':
-    resolution: {integrity: sha512-j+eEWmB6YYLwcNOdlwQ6L2OsptI/LO6lNBuLIqe5R7RetD658HLoF+Mn7LzYmAWWNNzdC6cqP+L6r8ujeYXWLw==}
+  '@eslint/config-array@0.23.5':
+    resolution: {integrity: sha512-Y3kKLvC1dvTOT+oGlqNQ1XLqK6D1HU2YXPc52NmAlJZbMMWDzGYXMiPRJ8TYD39muD/OTjlZmNJ4ib7dvSrMBA==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
 
   '@eslint/config-helpers@0.5.2':
     resolution: {integrity: sha512-a5MxrdDXEvqnIq+LisyCX6tQMPF/dSJpCfBgBauY+pNZ28yCtSsTvyTYrMhaI+LK26bVyCJfJkT0u8KIj2i1dQ==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
 
-  '@eslint/config-helpers@0.5.3':
-    resolution: {integrity: sha512-lzGN0onllOZCGroKJmRwY6QcEHxbjBw1gwB8SgRSqK8YbbtEXMvKynsXc3553ckIEBxsbMBU7oOZXKIPGZNeZw==}
+  '@eslint/config-helpers@0.5.5':
+    resolution: {integrity: sha512-eIJYKTCECbP/nsKaaruF6LW967mtbQbsw4JTtSVkUQc9MneSkbrgPJAbKl9nWr0ZeowV8BfsarBmPpBzGelA2w==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
 
   '@eslint/core@1.1.0':
     resolution: {integrity: sha512-/nr9K9wkr3P1EzFTdFdMoLuo1PmIxjmwvPozwoSodjNBdefGujXQUF93u1DDZpEaTuDvMsIQddsd35BwtrW9Xw==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
 
-  '@eslint/core@1.1.1':
-    resolution: {integrity: sha512-QUPblTtE51/7/Zhfv8BDwO0qkkzQL7P/aWWbqcf4xWLEYn1oKjdO0gglQBB4GAsu7u6wjijbCmzsUTy6mnk6oQ==}
+  '@eslint/core@1.2.1':
+    resolution: {integrity: sha512-MwcE1P+AZ4C6DWlpin/OmOA54mmIZ/+xZuJiQd4SyB29oAJjN30UW9wkKNptW2ctp4cEsvhlLY/CsQ1uoHDloQ==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
 
   '@eslint/js@10.0.1':
@@ -1283,8 +1283,8 @@ packages:
     resolution: {integrity: sha512-HOy56KJt48Bx8KmJ+XGQNSUMT/6dZee/M54XyUyuvTvPXJmsERRvBchsUVx1UMe1WwIH49XLAczNC7V2INsuUw==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
 
-  '@eslint/object-schema@3.0.3':
-    resolution: {integrity: sha512-iM869Pugn9Nsxbh/YHRqYiqd23AmIbxJOcpUMOuWCVNdoQJ5ZtwL6h3t0bcZzJUlC3Dq9jCFCESBZnX0GTv7iQ==}
+  '@eslint/object-schema@3.0.5':
+    resolution: {integrity: sha512-vqTaUEgxzm+YDSdElad6PiRoX4t8VGDjCtt05zn4nU810UIx/uNEV7/lZJ6KwFThKZOzOxzXy48da+No7HZaMw==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
 
   '@eslint/plugin-kit@0.6.0':
@@ -1958,11 +1958,11 @@ packages:
   '@sinonjs/commons@3.0.1':
     resolution: {integrity: sha512-K3mCHKQ9sVh8o1C9cxkwxaOmXoAMlDxC1mYyHrjqOWEcBjYr76t96zL2zlj5dUGZ3HSw240X1qgH3Mjf1yJWpQ==}
 
-  '@sinonjs/fake-timers@15.1.0':
-    resolution: {integrity: sha512-cqfapCxwTGsrR80FEgOoPsTonoefMBY7dnUEbQ+GRcved0jvkJLzvX6F4WtN+HBqbPX/SiFsIRUp+IrCW/2I2w==}
+  '@sinonjs/fake-timers@15.3.0':
+    resolution: {integrity: sha512-m2xozxSfCIxjDdvbhIWazlP2i2aha/iUmbl94alpsIbd3iLTfeXgfBVbwyWogB6l++istyGZqamgA/EcqYf+Bg==}
 
-  '@sinonjs/samsam@8.0.3':
-    resolution: {integrity: sha512-hw6HbX+GyVZzmaYNh82Ecj1vdGZrqVIn/keDTg63IgAwiQPO+xCz99uG6Woqgb4tM0mUiFENKZ4cqd7IX94AXQ==}
+  '@sinonjs/samsam@9.0.3':
+    resolution: {integrity: sha512-ZgYY7Dc2RW+OUdnZ1DEHg00lhRt+9BjymPKHog4PRFzr1U3MbK57+djmscWyKxzO1qfunHqs4N45WWyKIFKpiQ==}
 
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
@@ -2150,8 +2150,8 @@ packages:
   '@types/semver@7.7.1':
     resolution: {integrity: sha512-FmgJfu+MOcQ370SD0ev7EI8TlCAfKYU+B4m5T3yXc1CiRN94g/SZPtsCkk506aUDtlMnFZvasDwHHUcZUEaYuA==}
 
-  '@types/sinon@21.0.0':
-    resolution: {integrity: sha512-+oHKZ0lTI+WVLxx1IbJDNmReQaIsQJjN2e7UUrJHEeByG7bFeKJYsv1E75JxTQ9QKJDp21bAa/0W2Xo4srsDnw==}
+  '@types/sinon@21.0.1':
+    resolution: {integrity: sha512-5yoJSqLbjH8T9V2bksgRayuhpZy+723/z6wBOR+Soe4ZlXC0eW8Na71TeaZPUWDQvM7LYKa9UGFc6LRqxiR5fQ==}
 
   '@types/sinonjs__fake-timers@15.0.1':
     resolution: {integrity: sha512-Ko2tjWJq8oozHzHV+reuvS5KYIRAokHnGbDwGh/J64LntgpbuylF74ipEL24HCyRjf9FOlBiBHWBR1RlVKsI1w==}
@@ -2999,8 +2999,8 @@ packages:
     resolution: {integrity: sha512-Mc7QhQ8s+cLrnUfU/Ji94vG/r8M26m8f++vyres4ZoojaRDpZ1eSIh/EpzLNwlWuvzSZ3UbDFspjFvTDXe6e/g==}
     engines: {node: '>=12.20'}
 
-  diff@8.0.3:
-    resolution: {integrity: sha512-qejHi7bcSD4hQAZE0tNAawRK1ZtafHDmMTMkrrIGgSLl7hTnQHmKCeB45xAcbfTqK2zowkM3j3bHt/4b/ARbYQ==}
+  diff@8.0.4:
+    resolution: {integrity: sha512-DPi0FmjiSU5EvQV0++GFDOJ9ASQUVFh5kD+OzOnYdi7n3Wpm9hWWGfB/O2blfHcMVTL5WkQXSnRiK9makhrcnw==}
     engines: {node: '>=0.3.1'}
 
   directory-schema-validator@1.0.17:
@@ -4759,8 +4759,8 @@ packages:
   simple-git@3.32.3:
     resolution: {integrity: sha512-56a5oxFdWlsGygOXHWrG+xjj5w9ZIt2uQbzqiIGdR/6i5iococ7WQ/bNPzWxCJdEUGUCmyMH0t9zMpRJTaKxmw==}
 
-  sinon@21.0.1:
-    resolution: {integrity: sha512-Z0NVCW45W8Mg5oC/27/+fCqIHFnW8kpkFOq0j9XJIev4Ld0mKmERaZv5DMLAb9fGCevjKwaEeIQz5+MBXfZcDw==}
+  sinon@21.0.3:
+    resolution: {integrity: sha512-0x8TQFr8EjADhSME01u1ZK31yv2+bd6Z5NrBCHVM+n4qL1wFqbxftmeyi3bwlr49FbbzRfrqSFOpyHCOh/YmYA==}
 
   slice-ansi@3.0.0:
     resolution: {integrity: sha512-pSyv7bSTC7ig9Dcgbw9AuRNUb5k5V6oDudjZoMBSr13qpLBG7tB+zgCkARjq7xIUgdz5P1Qe8u+rSGdouOOIyQ==}
@@ -6282,9 +6282,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@eslint/config-array@0.23.3':
+  '@eslint/config-array@0.23.5':
     dependencies:
-      '@eslint/object-schema': 3.0.3
+      '@eslint/object-schema': 3.0.5
       debug: 4.4.3(supports-color@8.1.1)
       minimatch: 10.2.5
     transitivePeerDependencies:
@@ -6294,15 +6294,15 @@ snapshots:
     dependencies:
       '@eslint/core': 1.1.0
 
-  '@eslint/config-helpers@0.5.3':
+  '@eslint/config-helpers@0.5.5':
     dependencies:
-      '@eslint/core': 1.1.1
+      '@eslint/core': 1.2.1
 
   '@eslint/core@1.1.0':
     dependencies:
       '@types/json-schema': 7.0.15
 
-  '@eslint/core@1.1.1':
+  '@eslint/core@1.2.1':
     dependencies:
       '@types/json-schema': 7.0.15
 
@@ -6312,7 +6312,7 @@ snapshots:
 
   '@eslint/object-schema@3.0.2': {}
 
-  '@eslint/object-schema@3.0.3': {}
+  '@eslint/object-schema@3.0.5': {}
 
   '@eslint/plugin-kit@0.6.0':
     dependencies:
@@ -6321,7 +6321,7 @@ snapshots:
 
   '@eslint/plugin-kit@0.6.1':
     dependencies:
-      '@eslint/core': 1.1.1
+      '@eslint/core': 1.2.1
       levn: 0.4.1
 
   '@exodus/bytes@1.15.0': {}
@@ -6911,11 +6911,11 @@ snapshots:
     dependencies:
       type-detect: 4.0.8
 
-  '@sinonjs/fake-timers@15.1.0':
+  '@sinonjs/fake-timers@15.3.0':
     dependencies:
       '@sinonjs/commons': 3.0.1
 
-  '@sinonjs/samsam@8.0.3':
+  '@sinonjs/samsam@9.0.3':
     dependencies:
       '@sinonjs/commons': 3.0.1
       type-detect: 4.1.0
@@ -7091,7 +7091,7 @@ snapshots:
 
   '@types/semver@7.7.1': {}
 
-  '@types/sinon@21.0.0':
+  '@types/sinon@21.0.1':
     dependencies:
       '@types/sinonjs__fake-timers': 15.0.1
 
@@ -8005,7 +8005,7 @@ snapshots:
 
   detect-indent@7.0.1: {}
 
-  diff@8.0.3: {}
+  diff@8.0.4: {}
 
   directory-schema-validator@1.0.17:
     dependencies:
@@ -8318,9 +8318,9 @@ snapshots:
     dependencies:
       '@eslint-community/eslint-utils': 4.9.1(eslint@10.1.0)
       '@eslint-community/regexpp': 4.12.2
-      '@eslint/config-array': 0.23.3
-      '@eslint/config-helpers': 0.5.3
-      '@eslint/core': 1.1.1
+      '@eslint/config-array': 0.23.5
+      '@eslint/config-helpers': 0.5.5
+      '@eslint/core': 1.2.1
       '@eslint/plugin-kit': 0.6.1
       '@humanfs/node': 0.16.7
       '@humanwhocodes/module-importer': 1.0.1
@@ -9901,12 +9901,12 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  sinon@21.0.1:
+  sinon@21.0.3:
     dependencies:
       '@sinonjs/commons': 3.0.1
-      '@sinonjs/fake-timers': 15.1.0
-      '@sinonjs/samsam': 8.0.3
-      diff: 8.0.3
+      '@sinonjs/fake-timers': 15.3.0
+      '@sinonjs/samsam': 9.0.3
+      diff: 8.0.4
       supports-color: 7.2.0
 
   slice-ansi@3.0.0:
