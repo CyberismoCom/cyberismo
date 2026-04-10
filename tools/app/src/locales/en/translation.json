@@ -196,9 +196,6 @@
   "destinationCardTypes": "Destination card types",
   "displayName": "Display name",
   "edit": "Edit",
-  "editLinkModal": {
-    "title": "Edit link"
-  },
   "emptyProject": "Project is empty",
   "enableLinkDescription": "Enable link description",
   "enumDescriptionPlaceholder": "Optional description for this value",
@@ -248,6 +245,7 @@
     "searchExternalItem": "Search item",
     "enterExternalKey": "Enter item key",
     "writeDescription": "Write a link description",
+    "description": "Description",
     "button": "Add link",
     "buttonEdit": "Update",
     "calculatedLink": "This is an automatic link that cannot be deleted",
@@ -255,6 +253,7 @@
   },
   "linkTooltip": "Link to another card",
   "linkedCards": "Linked items",
+  "noLinkedCards": "No linked items",
   "loading": "Loading...",
   "logOut": "Log out",
   "logicProgram": "Logic program",
@@ -381,6 +380,7 @@
     "templates": "Templates",
     "workflows": "Workflows"
   },
+  "save": "Save",
   "saveCard": {
     "success": "Card saved successfully"
   },
