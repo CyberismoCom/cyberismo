@@ -35,7 +35,7 @@
   },
   "devDependencies": {
     "tsx": "^4.21.0",
-    "vitest": "^4.0.15"
+    "vitest": "^4.1.4"
   },
   "types": "dist/index.d.ts",
   "exports": {
