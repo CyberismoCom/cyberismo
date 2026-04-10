@@ -14,7 +14,7 @@
 
 import type { ReactElement } from 'react';
 import React, { useCallback, useEffect, useState, useRef } from 'react';
-import type { ExpandedLinkType } from '../lib/definitions';
+import type { ExpandedLinkType, MetadataValue } from '../lib/definitions';
 
 import { parse } from 'node-html-parser';
 import {
@@ -22,47 +22,21 @@ import {
   AccordionDetails,
   AccordionSummary,
   Alert,
-  Autocomplete,
   Box,
-  Button,
-  Divider,
-  FormControl,
-  FormLabel,
-  IconButton,
-  Input,
-  Link,
-  Option,
-  Select,
   Stack,
   Typography,
-  Tooltip,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import { renderToStaticMarkup } from 'react-dom/server';
-import MetadataView from './MetadataView';
+import MetadataView from './MetadataSection/MetadataSection';
 import { ChecksAccordion, type CheckCollection } from './ChecksAccordion';
-import {
-  canCreateLinkToCard,
-  createPredicate,
-  findCard,
-  flattenTree,
-  useModals,
-  parseDataAttributes,
-} from '../lib/utils';
-import { Link as RouterLink, useLocation } from 'react-router';
-import Add from '@mui/icons-material/Add';
-import Delete from '@mui/icons-material/Delete';
-import Edit from '@mui/icons-material/Edit';
+import { parseDataAttributes } from '../lib/utils';
+import { useLocation } from 'react-router';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import DownloadIcon from '@mui/icons-material/Download';
 import OpenInFullIcon from '@mui/icons-material/OpenInFull';
-import Search from '@mui/icons-material/Search';
-import Info from '@mui/icons-material/Info';
 import CheckBox from '@mui/icons-material/CheckBox';
 import CheckBoxOutlineBlank from '@mui/icons-material/CheckBoxOutlineBlank';
-
-import { Controller, useForm, useWatch } from 'react-hook-form';
-import EditLinkModal from './modals/EditLinkModal';
 
 import { useAppDispatch, useAppSelector } from '../lib/hooks';
 import { viewChanged } from '../lib/slices/pageState';
@@ -79,23 +53,23 @@ import type {
   Notification,
   QueryResult,
   CalculationLink,
-  LinkDirection,
 } from '@cyberismo/data-handler/types/queries';
-import { getConfig } from '@/lib/utils';
 import type { CardResponse, Connector } from '../lib/api/types';
-import { GenericConfirmModal } from './modals';
-import { useCard } from '../lib/api';
 import SvgViewerModal from './modals/svgViewerModal';
 import { SafeRouterLink } from './SafeRouterLink';
-
-export type LinkFormState = 'hidden' | 'add' | 'add-from-toolbar' | 'edit';
+import LinkedCardsSection, {
+  type LinkFormState,
+  type LinkFormSubmitData,
+} from './LinkedCardsSection/LinkedCardsSection';
 
 type ContentAreaProps = {
   cards: QueryResult<'tree'>[];
   card: CardResponse;
   linkTypes: ExpandedLinkType[];
   connectors?: Connector[];
-  onMetadataClick?: () => void;
+  onMetadataUpdate?: (update: {
+    metadata: Record<string, MetadataValue>;
+  }) => Promise<void>;
   onLinkFormSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
   onDeleteLink?: (data: CalculationLink) => void | Promise<void>;
   preview?: boolean;
@@ -105,45 +79,6 @@ type ContentAreaProps = {
 
 interface HTMLElementWithCleanup extends HTMLElement {
   __cleanupSvgControls?: () => void;
-}
-
-interface LinkFormSubmitData {
-  linkType: string;
-  cardKey: string;
-  linkDescription: string;
-  direction: LinkDirection;
-  // External link: connector name, empty string for card links
-  connector: string;
-  externalItemKey?: string;
-  // Edit mode previous values
-  previousLinkType?: string;
-  previousCardKey?: string;
-  previousLinkDescription?: string;
-  previousDirection?: LinkDirection;
-}
-
-interface LinkFormData {
-  linkType: number;
-  connector: string;
-  cardKey: string;
-  externalItemKey: string;
-  linkDescription: string;
-}
-
-interface LinkFormProps {
-  linkTypes: ExpandedLinkType[];
-  cards: QueryResult<'tree'>[];
-  connectors?: Connector[];
-  onSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
-  onCancel?: () => void;
-  cardKey: string;
-  currentCardLinks: CalculationLink[];
-  state: LinkFormState;
-  data?: LinkFormData;
-  inModal?: boolean;
-  formRef?: React.RefObject<HTMLFormElement | null>;
-  isLoading?: boolean;
-  isUpdating?: boolean;
 }
 
 // Derive allowed macro tags from the frontend macro definitions so they survive sanitization
@@ -157,298 +92,6 @@ contentPurify.addHook('afterSanitizeAttributes', (node) => {
     node.setAttribute('sandbox', 'allow-scripts allow-same-origin');
   }
 });
-
-const NO_LINK_TYPE = -1;
-
-const DEFAULT_LINK_FORM_DATA: LinkFormData = {
-  linkType: NO_LINK_TYPE,
-  connector: 'card',
-  cardKey: '',
-  externalItemKey: '',
-  linkDescription: '',
-};
-
-export function LinkForm({
-  cards,
-  linkTypes,
-  connectors,
-  onSubmit,
-  cardKey,
-  currentCardLinks,
-  data,
-  state,
-  inModal = false,
-  formRef,
-  onCancel,
-  isLoading,
-  isUpdating,
-}: LinkFormProps) {
-  const { control, handleSubmit, reset } = useForm<LinkFormData>({
-    defaultValues: {
-      ...DEFAULT_LINK_FORM_DATA,
-      ...(data || {}),
-    },
-  });
-  const { t } = useTranslation();
-
-  // Build item sources from connectors
-  const itemSources: { value: string; label: string }[] = [
-    { value: 'card', label: t('linkForm.sourceCard') },
-  ];
-  if (connectors) {
-    for (const connector of connectors) {
-      itemSources.push({
-        value: connector.name,
-        label: connector.displayName,
-      });
-    }
-  }
-
-  useEffect(() => {
-    reset({
-      ...DEFAULT_LINK_FORM_DATA,
-      ...(data || {}),
-    });
-  }, [data, reset]);
-
-  // find chosen link type
-  const linkType = useWatch({
-    name: 'linkType',
-    control,
-  });
-
-  // Watch connector selection
-  const connector = useWatch({
-    name: 'connector',
-    control,
-  });
-
-  const selectedLinkType = linkTypes.find((t) => t.id === linkType);
-
-  // In edit mode, exclude the link being edited so it doesn't count as "already linked"
-  const linksForFilter =
-    state === 'edit' && data?.cardKey
-      ? currentCardLinks.filter((l) => l.key !== data.cardKey)
-      : currentCardLinks;
-
-  const usableCards = flattenTree(cards).filter(
-    createPredicate(
-      canCreateLinkToCard,
-      cardKey,
-      selectedLinkType,
-      linksForFilter,
-    ),
-  );
-
-  // If card is not in usable cards, reset the form
-  const formCardKey = useWatch({
-    name: 'cardKey',
-    control,
-  });
-  useEffect(() => {
-    // In edit mode, don't reset if the card is the original linked card
-    if (state === 'edit' && data?.cardKey && formCardKey === data.cardKey) {
-      return;
-    }
-    if (formCardKey && !usableCards.find((c) => c.key === formCardKey)) {
-      reset({
-        ...DEFAULT_LINK_FORM_DATA,
-        linkType,
-        connector,
-      });
-    }
-  }, [formCardKey, usableCards, linkType, connector, reset, state, data]);
-
-  const isCardConnector = connector === 'card';
-
-  // Get external items for selected connector
-  const selectedConnector =
-    isCardConnector || !connectors
-      ? null
-      : connectors.find((c) => c.name === connector) || null;
-
-  const externalItems = selectedConnector?.items || [];
-
-  return (
-    <form
-      ref={formRef}
-      onSubmit={handleSubmit(async (formData) => {
-        const linkType = linkTypes.find((t) => t.id === formData.linkType);
-        if (!linkType) return;
-        const success = await onSubmit?.({
-          linkType: linkType.name,
-          cardKey: formData.connector === 'card' ? formData.cardKey : '',
-          linkDescription: formData.linkDescription,
-          direction: linkType.direction,
-          connector: formData.connector,
-          externalItemKey:
-            formData.connector !== 'card'
-              ? formData.externalItemKey
-              : undefined,
-        });
-        if (success) reset();
-      })}
-    >
-      <Stack spacing={1}>
-        <Stack direction="row" spacing={1}>
-          <FormControl required>
-            <FormLabel>{t('linkForm.itemType')}</FormLabel>
-            <Controller
-              name="linkType"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  {...field}
-                  placeholder={t('linkForm.selectLinkType')}
-                  color="primary"
-                  onChange={(_, value) => field.onChange(value)}
-                  sx={{ width: 180 }}
-                  required={true}
-                >
-                  {linkTypes.map((linkType) => (
-                    <Option key={linkType.id} value={linkType.id}>
-                      {linkType.direction === 'outbound'
-                        ? linkType.outboundDisplayName
-                        : linkType.inboundDisplayName}
-                    </Option>
-                  ))}
-                </Select>
-              )}
-            />
-          </FormControl>
-          <FormControl required>
-            <FormLabel>{t('linkForm.itemSource')}</FormLabel>
-            <Controller
-              name="connector"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  {...field}
-                  placeholder={t('linkForm.selectSource')}
-                  color="primary"
-                  onChange={(_, value) => field.onChange(value)}
-                  sx={{ width: 180 }}
-                  required={true}
-                >
-                  {itemSources.map((source) => (
-                    <Option key={source.value} value={source.value}>
-                      {source.label}
-                    </Option>
-                  ))}
-                </Select>
-              )}
-            />
-          </FormControl>
-          <FormControl required sx={{ flexGrow: 1 }}>
-            <FormLabel>{t('linkForm.searchItem')}</FormLabel>
-            {isCardConnector ? (
-              <Controller
-                name="cardKey"
-                control={control}
-                render={({ field: { onChange, value } }) => (
-                  <Autocomplete
-                    color="primary"
-                    required={true}
-                    placeholder={t('linkForm.searchCard')}
-                    options={usableCards.map((c) => ({
-                      label: `${c.title} (${c.key})`,
-                      value: c.key,
-                    }))}
-                    isOptionEqualToValue={(option, value) =>
-                      option.value === value.value
-                    }
-                    onChange={(_, value) => onChange(value?.value || '')}
-                    value={
-                      value
-                        ? {
-                            label: `${findCard(cards, value)?.title}(${value})`,
-                            value,
-                          }
-                        : null
-                    }
-                    startDecorator={<Search />}
-                    sx={{ width: '100%' }}
-                  />
-                )}
-              />
-            ) : (
-              <Controller
-                name="externalItemKey"
-                control={control}
-                render={({ field: { onChange, value } }) => (
-                  <Autocomplete
-                    color="primary"
-                    required={true}
-                    placeholder={t('linkForm.searchExternalItem')}
-                    options={externalItems.map((item) => ({
-                      label: `${item.title} (${item.key})`,
-                      value: item.key,
-                    }))}
-                    isOptionEqualToValue={(option, value) =>
-                      option.value === value.value
-                    }
-                    onChange={(_, selected) => onChange(selected?.value || '')}
-                    value={
-                      value
-                        ? {
-                            label: `${externalItems.find((i) => i.key === value)?.title || value} (${value})`,
-                            value,
-                          }
-                        : null
-                    }
-                    startDecorator={<Search />}
-                    sx={{ width: '100%' }}
-                  />
-                )}
-              />
-            )}
-          </FormControl>
-        </Stack>
-
-        {selectedLinkType && selectedLinkType.enableLinkDescription && (
-          <Controller
-            name="linkDescription"
-            control={control}
-            render={({ field }) => (
-              <Input
-                {...field}
-                color="primary"
-                startDecorator={<Edit />}
-                placeholder={t('linkForm.writeDescription')}
-              />
-            )}
-          />
-        )}
-
-        {/* Only render the button if not in modal mode */}
-        {!inModal && (
-          <Stack direction="row" spacing={1} justifyContent="flex-end">
-            <Button
-              variant="plain"
-              onClick={onCancel}
-              sx={{
-                width: '100px',
-              }}
-              disabled={isLoading}
-            >
-              {t('cancel')}
-            </Button>
-            <Button
-              type="submit"
-              sx={{
-                width: '100px',
-              }}
-              loading={isUpdating}
-              disabled={isLoading}
-            >
-              {data ? t('linkForm.buttonEdit') : t('linkForm.button')}
-            </Button>
-          </Stack>
-        )}
-      </Stack>
-    </form>
-  );
-}
 
 const Notifications = ({
   notifications,
@@ -561,30 +204,18 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   cards,
   linkTypes,
   connectors,
-  onMetadataClick,
+  onMetadataUpdate,
   onLinkFormSubmit,
   preview,
   linkFormState,
   onLinkFormChange,
   onDeleteLink,
 }) => {
-  const { isUpdating } = useCard(card.key);
   const [visibleHeaderIds, setVisibleHeaderIds] = useState<string[] | null>(
-    null,
-  );
-  const [linksExpanded, setLinksExpanded] = useState(false);
-
-  const { modalOpen, openModal, closeModal } = useModals({
-    editLink: false,
-    deleteLink: false,
-  });
-
-  const [deleteLinkData, setDeleteLinkData] = useState<CalculationLink | null>(
     null,
   );
 
   const boxRef = useRef<HTMLDivElement>(null);
-  const linkedCardsRef = useRef<HTMLDivElement>(null);
 
   const [contentRef, setContentRef] = useState<HTMLDivElement | null>(null);
 
@@ -594,28 +225,6 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 
   const lastTitle = useAppSelector((state) => state.page.title);
   const cardKey = useAppSelector((state) => state.page.cardKey);
-
-  const [editLinkData, setEditLinkData] = useState<
-    LinkFormData & {
-      linkTypeName: string;
-      direction: LinkDirection;
-    }
-  >();
-
-  useEffect(() => {
-    if (
-      (linkFormState === 'add' || linkFormState === 'add-from-toolbar') &&
-      !linksExpanded
-    ) {
-      setLinksExpanded(true);
-    }
-  }, [linkFormState, linksExpanded]);
-
-  useEffect(() => {
-    if (linkFormState !== 'edit') {
-      setEditLinkData(undefined);
-    }
-  }, [linkFormState]);
 
   // scroll to last title on first render and when tab is changed
   useEffect(() => {
@@ -872,20 +481,6 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     }
   };
 
-  // Function to scroll to linked cards section
-  const scrollToLinkedCards = () => {
-    if (linkedCardsRef.current) {
-      linkedCardsRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
-  // Effect to scroll to linked cards when link form is opened from toolbar
-  useEffect(() => {
-    if (linkFormState === 'add-from-toolbar') {
-      scrollToLinkedCards();
-    }
-  }, [linkFormState]);
-
   return (
     <Stack direction="row" height="100%">
       <SvgViewerModal
@@ -907,232 +502,21 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         <Stack spacing={3} height="100%">
           <Typography level="h1">{card.title}</Typography>
           <MetadataView
-            editMode={false}
             initialExpanded={false}
-            onClick={onMetadataClick}
             card={card}
+            onUpdate={onMetadataUpdate}
           />
-          {(card.links.length > 0 || linkFormState !== 'hidden') && (
-            <Accordion
-              expanded={linksExpanded}
-              ref={linkedCardsRef}
-              sx={{
-                width: '100%',
-              }}
-            >
-              <Stack direction="row" width="100%">
-                <AccordionSummary
-                  indicator={<ExpandMore data-cy="expandLinks" />}
-                  onClick={() => {
-                    if (linksExpanded) {
-                      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-                      onLinkFormChange && onLinkFormChange('hidden');
-                    }
-                    setLinksExpanded(!linksExpanded);
-                  }}
-                  sx={{
-                    borderRadius: '4px',
-                    marginTop: 1,
-                    marginBottom: 1,
-                    flexGrow: 1,
-                    height: 36,
-                  }}
-                >
-                  <Typography
-                    level="body-xs"
-                    color="primary"
-                    variant="soft"
-                    width={24}
-                    height={24}
-                    alignContent="center"
-                    borderRadius={40}
-                    marginLeft={0}
-                    paddingX={1.1}
-                  >
-                    {card.links.length}
-                  </Typography>
-                  <Stack
-                    direction="row"
-                    justifyContent="space-between"
-                    alignItems="center"
-                    sx={{ width: '100%' }}
-                  >
-                    <Typography level="title-sm" fontWeight="bold">
-                      {t('linkedCards')}
-                    </Typography>
-                  </Stack>
-                </AccordionSummary>
-                {!preview &&
-                  linkFormState === 'hidden' &&
-                  !getConfig().staticMode && (
-                    <IconButton
-                      sx={{
-                        height: 36,
-                        alignSelf: 'center',
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-                        onLinkFormChange && onLinkFormChange('add');
-                      }}
-                    >
-                      <Add />
-                    </IconButton>
-                  )}
-              </Stack>
-              <AccordionDetails>
-                {!preview &&
-                  linkFormState !== 'hidden' &&
-                  linkFormState !== 'edit' && (
-                    <Box p={2}>
-                      <LinkForm
-                        cards={cards}
-                        linkTypes={linkTypes}
-                        connectors={connectors}
-                        onSubmit={onLinkFormSubmit}
-                        cardKey={card.key}
-                        currentCardLinks={card.links}
-                        state={linkFormState}
-                        onCancel={() =>
-                          onLinkFormChange && onLinkFormChange('hidden')
-                        }
-                        isLoading={isUpdating()}
-                        isUpdating={isUpdating('createLink')}
-                      />
-                    </Box>
-                  )}
-                {card.links.length > 0 && (
-                  <Stack
-                    bgcolor="neutral.softBg"
-                    borderRadius={16}
-                    paddingY={2}
-                    paddingX={2}
-                    spacing={2}
-                  >
-                    {card.links.map((link, index) => (
-                      <Stack
-                        key={index}
-                        borderRadius={16}
-                        paddingLeft={2}
-                        direction="row"
-                        justifyContent="space-between"
-                        alignItems="center"
-                        sx={{
-                          '&:hover .actionButton': {
-                            opacity: 1,
-                          },
-                          '& .actionButton': {
-                            opacity: 0,
-                            transition: 'opacity 0.2s',
-                          },
-                        }}
-                      >
-                        <Stack>
-                          <Typography data-cy="cardLinkType" level="body-sm">
-                            {link.displayName}
-                          </Typography>
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            {link.connector ? (
-                              link.url ? (
-                                <Link
-                                  data-cy="cardLink"
-                                  href={link.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  {link.key}
-                                </Link>
-                              ) : (
-                                <Typography data-cy="cardLink" level="body-sm">
-                                  {link.key}
-                                </Typography>
-                              )
-                            ) : (
-                              <RouterLink
-                                data-cy="cardLink"
-                                to={`/cards/${link.key}`}
-                              >
-                                <Link component="div">{link.key}</Link>
-                              </RouterLink>
-                            )}
-                            <Divider
-                              orientation="vertical"
-                              sx={{ marginX: '4px' }}
-                            />
-                            <Typography
-                              data-cy="cardLinkTitle"
-                              level="title-sm"
-                            >
-                              {link.title}
-                            </Typography>
-                            {link.linkDescription && (
-                              <Typography level="body-sm" marginLeft={2}>
-                                {link.linkDescription}
-                              </Typography>
-                            )}
-                          </Box>
-                        </Stack>
-                        {link.linkSource === 'user' &&
-                          !preview &&
-                          !getConfig().staticMode && (
-                            <Box
-                              gap={1}
-                              fontSize={24}
-                              alignItems="center"
-                              marginRight={2}
-                            >
-                              <IconButton
-                                className="actionButton"
-                                onClick={() => {
-                                  const linkType = linkTypes.find(
-                                    (t) =>
-                                      t.name === link.linkType &&
-                                      t.direction === link.direction,
-                                  );
-                                  setEditLinkData({
-                                    linkType: linkType?.id ?? NO_LINK_TYPE,
-                                    connector: link.connector ?? 'card',
-                                    cardKey: link.connector ? '' : link.key,
-                                    externalItemKey: link.connector
-                                      ? link.key
-                                      : '',
-                                    linkDescription: link.linkDescription || '',
-                                    linkTypeName: link.linkType,
-                                    direction: link.direction,
-                                  });
-                                  openModal('editLink')();
-                                }}
-                              >
-                                <Edit fontSize="inherit" />
-                              </IconButton>
-                              <IconButton
-                                className="actionButton"
-                                onClick={() => {
-                                  setDeleteLinkData(link);
-                                  openModal('deleteLink')();
-                                }}
-                              >
-                                <Delete
-                                  fontSize="inherit"
-                                  data-cy="DeleteIcon"
-                                />
-                              </IconButton>
-                            </Box>
-                          )}
-                        {link.linkSource === 'calculated' && (
-                          <IconButton color="primary">
-                            <Tooltip title={t('linkForm.calculatedLink')}>
-                              <Info fontSize="small" />
-                            </Tooltip>
-                          </IconButton>
-                        )}
-                      </Stack>
-                    ))}
-                  </Stack>
-                )}
-              </AccordionDetails>
-            </Accordion>
-          )}
+          <LinkedCardsSection
+            card={card}
+            cards={cards}
+            linkTypes={linkTypes}
+            connectors={connectors}
+            preview={preview}
+            linkFormState={linkFormState}
+            onLinkFormChange={onLinkFormChange}
+            onLinkFormSubmit={onLinkFormSubmit}
+            onDeleteLink={onDeleteLink}
+          />
           <Box>
             <div className="doc" ref={setRef}>
               {parsedContent}
@@ -1161,43 +545,6 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         <Notifications notifications={card.notifications} />
         <PolicyChecks policyChecks={card.policyChecks} cardKey={card.key} />
       </Stack>
-
-      {/* Modals */}
-      {!preview && (
-        <>
-          <EditLinkModal
-            open={modalOpen.editLink}
-            onClose={() => {
-              closeModal('editLink')();
-              setEditLinkData(undefined);
-            }}
-            onSubmit={async (data) => {
-              if (onLinkFormSubmit) {
-                return await onLinkFormSubmit(data);
-              }
-              return false;
-            }}
-            editLinkData={editLinkData}
-            cards={cards}
-            linkTypes={linkTypes}
-            cardKey={card.key}
-            connectors={connectors}
-          />
-          <GenericConfirmModal
-            open={modalOpen.deleteLink}
-            onClose={closeModal('deleteLink')}
-            onConfirm={async () => {
-              if (deleteLinkData) {
-                await onDeleteLink?.(deleteLinkData);
-              }
-              closeModal('deleteLink')();
-            }}
-            title={t('deleteLink')}
-            content={t('deleteLinkConfirm')}
-            confirmText={t('delete')}
-          />
-        </>
-      )}
     </Stack>
   );
 };
