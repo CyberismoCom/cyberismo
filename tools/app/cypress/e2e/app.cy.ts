@@ -125,6 +125,8 @@ describe('Navigation', () => {
       .clear()
       .type('Updated title');
 
+    cy.get('a').contains(t['showMore']).click(); // Click show more in metadata view
+
     cy.get('[data-cy="labelInput"]').type('testLabel');
     cy.get('[data-cy="labelAddButton"]').click();
     cy.get('[role="textbox"]').invoke('text', '== Updated content'); // Edit content

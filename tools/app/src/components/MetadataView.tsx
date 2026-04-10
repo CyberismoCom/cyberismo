@@ -56,7 +56,10 @@ function FieldItem({
   focus,
 }: FieldItemProps) {
   return (
-    <Accordion expanded={expanded}>
+    <Accordion
+      expanded={expanded}
+      sx={{ marginTop: expanded ? 1 : 0, '&:first-of-type': { marginTop: 0 } }}
+    >
       <AccordionDetails>
         {context?.control ? (
           <Controller
@@ -163,46 +166,7 @@ function MetadataView({
         onClick?.();
       }}
     >
-      <Stack flexGrow={1} spacing={1} paddingY={2}>
-        <FieldItem
-          name="__cardtype__"
-          forceValue={card.cardTypeDisplayName || card.cardType}
-          expanded={true}
-          editableFieldProps={{
-            label: t('cardType'),
-            dataType: 'shortText',
-            edit: false,
-          }}
-        />
-        <FieldItem
-          name="__lastUpdated__"
-          forceValue={
-            card.lastUpdated ? format(new Date(card.lastUpdated), 'PPp') : ''
-          }
-          expanded={true}
-          editableFieldProps={{
-            label: t('lastUpdated'),
-            dataType: 'dateTime',
-            edit: false,
-          }}
-        />
-
-        <FieldItem
-          name="__labels__"
-          description={t('labelEditor.splitterHint', {
-            splitter: LABEL_SPLITTER,
-          })}
-          context={context}
-          handleChange={handleChange}
-          forceValue={!editMode ? card.labels : undefined}
-          expanded={true}
-          editableFieldProps={{
-            label: t('labels'),
-            dataType: 'label',
-            edit: editMode ?? false,
-          }}
-        />
-
+      <Stack flexGrow={1} paddingY={2}>
         {(card.fields ?? []).map(
           ({
             key,
@@ -240,6 +204,31 @@ function MetadataView({
           ),
         )}
         <FieldItem
+          name="__cardtype__"
+          forceValue={card.cardTypeDisplayName || card.cardType}
+          expanded={expanded}
+          editableFieldProps={{
+            label: t('cardType'),
+            dataType: 'shortText',
+            edit: false,
+          }}
+        />
+        <FieldItem
+          name="__labels__"
+          description={t('labelEditor.splitterHint', {
+            splitter: LABEL_SPLITTER,
+          })}
+          context={context}
+          handleChange={handleChange}
+          forceValue={!editMode ? card.labels : undefined}
+          expanded={expanded}
+          editableFieldProps={{
+            label: t('labels'),
+            dataType: 'label',
+            edit: editMode ?? false,
+          }}
+        />
+        <FieldItem
           name="__createdAt__"
           forceValue={card.createdAt && format(new Date(card.createdAt), 'PPp')}
           context={context}
@@ -249,6 +238,18 @@ function MetadataView({
             label: t('createdAt'),
             dataType: 'dateTime',
             edit: card.createdAt ? false : editMode,
+          }}
+        />
+        <FieldItem
+          name="__lastUpdated__"
+          forceValue={
+            card.lastUpdated ? format(new Date(card.lastUpdated), 'PPp') : ''
+          }
+          expanded={expanded}
+          editableFieldProps={{
+            label: t('lastUpdated'),
+            dataType: 'dateTime',
+            edit: false,
           }}
         />
       </Stack>
