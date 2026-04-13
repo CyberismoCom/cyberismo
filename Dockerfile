@@ -25,6 +25,9 @@ ENV SHELL=/bin/bash
 ENV PATH=/usr/local/share/pnpm:$PATH
 ENV PNPM_HOME=/usr/local/share/pnpm
 
+# bind the backend to all interfaces so published ports are reachable
+ENV HOST=0.0.0.0
+
 WORKDIR /app
 
 # make sure logs directory exists and is writable
