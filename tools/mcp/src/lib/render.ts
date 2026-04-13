@@ -153,7 +153,6 @@ export async function renderCard(
     const rawContent = card.content || '';
     let parsedContent = rawContent;
 
-    // Generate calculations and run card query
     let cardQueryResult: QueryResult<'card'> | null = null;
 
     if (!options.raw) {
