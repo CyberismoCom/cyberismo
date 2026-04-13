@@ -52,7 +52,7 @@ export async function getCardQueryResult(
 ): Promise<QueryResult<'card'>[]> {
   if (!_cardQueryPromise) {
     // fetch all cards
-    _cardQueryPromise = commands.project.calculationEngine.runQuery(
+    _cardQueryPromise = commands.calculateCmd.runQuery(
       'card',
       'exportedSite',
       {},
