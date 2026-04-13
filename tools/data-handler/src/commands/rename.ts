@@ -291,7 +291,5 @@ export class Rename {
       operation: ConfigurationOperation.PROJECT_RENAME,
       target: this.to,
     });
-
-    return this.project.calculationEngine.generate();
   }
 }

@@ -52,7 +52,7 @@ export async function getCardQueryResult(
 ): Promise<QueryResult<'card'>[]> {
   if (!_cardQueryPromise) {
     // fetch all cards
-    _cardQueryPromise = commands.project.calculationEngine.runQuery(
+    _cardQueryPromise = commands.calculateCmd.runQuery(
       'card',
       'exportedSite',
       {},
@@ -109,7 +109,6 @@ export async function exportSite(
   );
 
   reset();
-  await commands.project.calculationEngine.generate();
 
   // estimate total based on the number of cards to export
   const cards = await findAllCards(commands, opts);

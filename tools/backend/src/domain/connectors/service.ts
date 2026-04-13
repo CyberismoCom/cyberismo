@@ -27,7 +27,6 @@ export interface Connector {
 export async function getConnectors(
   commands: CommandManager,
 ): Promise<Connector[]> {
-  await commands.calculateCmd.generate();
   const results = await commands.calculateCmd.runQuery(
     'connectors',
     'localApp',

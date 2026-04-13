@@ -40,14 +40,6 @@ export class Calculate {
   }
 
   /**
-   * Generates a logic program.
-   */
-  @read
-  public async generate() {
-    return this.project.calculationEngine.generate();
-  }
-
-  /**
    * Runs given logic program and creates a graph using clingraph
    * @param data Provide a query or/and a file which can be given to clingraph
    * @param timeout Maximum amount of milliseconds clingraph is allowed to run

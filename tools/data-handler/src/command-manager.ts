@@ -134,6 +134,7 @@ export class CommandManager {
     this.project.resources.changedModules();
     await this.project.populateCaches();
     await this.project.initializeGit();
+    await this.project.calculationEngine.generate();
   }
 
   /**

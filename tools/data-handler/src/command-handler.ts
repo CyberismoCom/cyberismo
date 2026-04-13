@@ -221,7 +221,6 @@ export class Commands {
           if (!cardKey) {
             return { statusCode: 400, message: 'File path is missing' };
           }
-          await this.generateLogicProgram();
           return this.runLogicProgram(
             cardKey,
             (options as CalcCommandOptions).context || 'localApp',
@@ -229,7 +228,6 @@ export class Commands {
         }
         if (command === 'generate') {
           const [destination, query] = rest;
-          await this.generateLogicProgram();
           return this.exportLogicProgram(destination, query);
         }
       } else if (command === Cmd.create) {
@@ -664,16 +662,6 @@ export class Commands {
     }
     process.env.EXPORT_FORMAT = '';
     return { statusCode: 200, message: message };
-  }
-
-  // Generates logic program for a card.
-  private async generateLogicProgram(): Promise<requestStatus> {
-    try {
-      await this.commands?.calculateCmd.generate();
-      return { statusCode: 200 };
-    } catch (e) {
-      return { statusCode: 500, message: errorFunction(e) };
-    }
   }
 
   private async exportLogicProgram(
