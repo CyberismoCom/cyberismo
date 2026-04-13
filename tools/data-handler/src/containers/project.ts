@@ -168,6 +168,7 @@ export class Project extends CardContainer {
         this.cardCache.clear();
         await this.populateCardsCache();
         this.resources.changed();
+        await this.calculationEngine.generate();
       });
     }
   }
