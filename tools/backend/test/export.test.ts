@@ -16,7 +16,7 @@ describe('export module', () => {
     function createMockCommands(mockCards: { key: string; title: string }[]) {
       const runQuery = vi.fn().mockResolvedValue(mockCards);
       const commands = {
-        calculatateCmd: { runQuery },
+        calculateCmd: { runQuery },
       } as unknown as CommandManager;
       return { commands, runQuery };
     }
