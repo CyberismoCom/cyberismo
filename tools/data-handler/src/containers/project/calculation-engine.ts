@@ -72,22 +72,6 @@ export class CalculationEngine {
     });
   }
 
-  // Storage for in-memory program content
-  private modules: string = '';
-
-  private modulesInitialized = false;
-
-  // Initialize modules during construction
-  private async initializeModules() {
-    try {
-      // Collect all available calculations at initialization time
-      this.modules = await this.generateModules();
-      this.modulesInitialized = true;
-    } catch (error) {
-      this.logger.error(error, 'Failed to initialize modules');
-    }
-  }
-
   /**
    * Gets the logic program content for a specific card
    * @param cardKey The key of the card
@@ -311,17 +295,15 @@ export class CalculationEngine {
     );
     this.clingo.removeAllPrograms();
 
-    if (!this.modulesInitialized) {
-      await this.initializeModules();
-    }
-
     // Set base common programs with main category
     this.clingo.setProgram('base', lpFiles.common.base, [ALL_CATEGORY]);
     this.clingo.setProgram('queryLanguage', lpFiles.common.queryLanguage, [
       ALL_CATEGORY,
     ]);
     this.clingo.setProgram('utils', lpFiles.common.utils, [ALL_CATEGORY]);
-    this.clingo.setProgram('modules', this.modules, [ALL_CATEGORY]);
+    this.clingo.setProgram('modules', await this.generateModules(), [
+      ALL_CATEGORY,
+    ]);
 
     // Set individual resource type programs
     await this.setCardTreeContent();
