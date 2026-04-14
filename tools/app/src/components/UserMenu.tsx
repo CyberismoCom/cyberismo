@@ -23,18 +23,8 @@ import {
 } from '@mui/joy';
 import LogoutOutlined from '@mui/icons-material/LogoutOutlined';
 import { useUser } from '@/lib/api';
-import { getConfig } from '@/lib/utils';
+import { getConfig, getInitials } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
-
-function getInitials(name: string): string {
-  return name
-    .split(/\s+/)
-    .map((part) => part[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
-}
 
 export default function UserMenu() {
   const { user } = useUser();

@@ -358,6 +358,10 @@
   },
   "policyCheckFail": "FAIL",
   "policyCheckPass": "PASS",
+  "presence": {
+    "editing": "Editing: {{names}}",
+    "viewing": "Viewing: {{names}}"
+  },
   "preview": "Preview",
   "project": "Project",
   "recents": "Recents",

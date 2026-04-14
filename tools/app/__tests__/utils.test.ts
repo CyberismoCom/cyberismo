@@ -25,6 +25,7 @@ import {
   canCreateLinkToCard,
   parseNestedDataAttributes,
   parseDataAttributes,
+  getInitials,
 } from '@/lib/utils';
 
 test('flattenTree works with test data', async () => {
@@ -792,5 +793,35 @@ describe('isSafeRedirectPath', () => {
     'cards/../../etc/passwd',
   ])('blocks %s', (path) => {
     expect(isSafeRedirectPath(path)).toBe(false);
+  });
+});
+
+describe('getInitials', () => {
+  test('returns initials from two-part name', () => {
+    expect(getInitials('John Doe')).toBe('JD');
+  });
+
+  test('returns single initial from single name', () => {
+    expect(getInitials('Alice')).toBe('A');
+  });
+
+  test('takes only first two initials from multi-part name', () => {
+    expect(getInitials('Jean-Luc Picard III')).toBe('JP');
+  });
+
+  test('handles multiple spaces between parts', () => {
+    expect(getInitials('Bob    Smith')).toBe('BS');
+  });
+
+  test('returns uppercase initials from lowercase name', () => {
+    expect(getInitials('jane doe')).toBe('JD');
+  });
+
+  test('returns empty string for empty input', () => {
+    expect(getInitials('')).toBe('');
+  });
+
+  test('handles whitespace-only input', () => {
+    expect(getInitials('   ')).toBe('');
   });
 });
