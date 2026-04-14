@@ -101,7 +101,7 @@ test('invalid card key returns error', async () => {
 test('test invalid api path returns not found', async () => {
   const response = await app.request('/api/bogus');
   expect(response).not.toBe(null);
-  expect(response.status).toBe(400);
+  expect(response.status).toBe(404);
 });
 
 test('non-existing attachment file returns an error', async () => {
