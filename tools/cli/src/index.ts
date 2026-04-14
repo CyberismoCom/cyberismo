@@ -1419,13 +1419,17 @@ const updateModulesCmd = new CommandWithPath('update-modules')
   .description(
     'Updates to latest versions either all modules or a specific module',
   )
-  .argument('[moduleName]', 'Module name');
+  .argument('[moduleName]', 'Module name')
+  .argument(
+    '[version]',
+    'Target version to update to (only with a specific module)',
+  );
 program.addCommand(updateModulesCmd);
 updateModulesCmd.action(
-  async (moduleName, options: CommandOptions<'updateModules'>) => {
+  async (moduleName, version, options: CommandOptions<'updateModules'>) => {
     const result = await commandHandler.command(
       Cmd.updateModules,
-      [moduleName],
+      [moduleName, version],
       Object.assign({}, options, program.opts()),
       credentials(),
     );

@@ -30,7 +30,7 @@ const createMockCommandManager = (overrides: any = {}) => {
     consistent: vi.fn().mockImplementation((fn: () => unknown) => fn()),
     showCmd: {
       showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
-      showModules: vi.fn().mockResolvedValue([]),
+      showModules: vi.fn().mockResolvedValue([] as { name: string }[]),
       showModule: vi.fn(),
       showResources: vi.fn(),
       showResource: vi.fn(),
@@ -151,7 +151,7 @@ describe('Resources Service', () => {
       const mockCommands = createMockCommandManager({
         showCmd: {
           showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
-          showModules: vi.fn().mockResolvedValue(['module1']),
+          showModules: vi.fn().mockResolvedValue([{ name: 'module1' }]),
           showModule: vi.fn().mockResolvedValue({
             name: 'Module One',
             cardKeyPrefix: 'module1',
@@ -216,7 +216,7 @@ describe('Resources Service', () => {
       const mockCommands = createMockCommandManager({
         showCmd: {
           showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
-          showModules: vi.fn().mockResolvedValue(['module1']),
+          showModules: vi.fn().mockResolvedValue([{ name: 'module1' }]),
           showModule: vi.fn().mockResolvedValue({
             name: 'Module One',
             cardKeyPrefix: 'module1',

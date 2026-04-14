@@ -36,6 +36,7 @@ import {
   type FetchCardDetails,
   type MetadataContent,
   type ModuleContent,
+  type ModuleInfo,
   type ModuleSetting,
   type ProjectFetchCardDetails,
   type ProjectMetadata,
@@ -776,6 +777,7 @@ export class Project extends CardContainer {
       return {
         name: moduleConfig.name,
         description: moduleConfig.description || '',
+        version: moduleConfig.version,
         modules: moduleConfig.modules,
         hubs: moduleConfig.hubs,
         path: modulePath,
@@ -1058,6 +1060,19 @@ export class Project extends CardContainer {
   }
 
   /**
+   * Returns installed modules with their versions.
+   */
+  public moduleInfos(): ModuleInfo[] {
+    return this.resources
+      .moduleNames()
+      .sort()
+      .map((name) => {
+        const setting = this.configuration.modules.find((m) => m.name === name);
+        return { name, version: setting?.version };
+      });
+  }
+
+  /**
    * Shows details of a project.
    * @returns details of a project.
    */
@@ -1070,7 +1085,7 @@ export class Project extends CardContainer {
       description: this.configuration.description,
       version: this.configuration.version,
       hubs: this.configuration.hubs,
-      modules: this.resources.moduleNames(),
+      modules: this.moduleInfos(),
       numberOfCards: (await this.listCards(CardLocation.projectOnly))[0].cards
         .length,
     };

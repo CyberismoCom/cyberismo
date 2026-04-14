@@ -32,6 +32,7 @@ import type {
   FileContentType,
   HubSetting,
   ModuleContent,
+  ModuleInfo,
   ModuleSettingFromHub,
   ProjectMetadata,
   ResourceType,
@@ -442,11 +443,11 @@ export class Show {
 
   /**
    * Shows all modules (if any) in a project.
-   * @returns all modules in a project.
+   * @returns all modules in a project with their installed versions.
    */
   @read
-  public async showModules(): Promise<string[]> {
-    return this.project.resources.moduleNames().sort();
+  public async showModules(): Promise<ModuleInfo[]> {
+    return this.project.moduleInfos();
   }
 
   /**

@@ -13,6 +13,7 @@
 
 import { ModuleManager } from '../module-manager.js';
 import { readCsvFile } from '../utils/csv.js';
+import { versionToTag } from '../utils/git-manager.js';
 import { Validate } from './validate.js';
 import { write } from '../utils/rw-lock.js';
 
@@ -162,11 +163,15 @@ export class Import {
       );
     }
 
+    const moduleVersion =
+      await this.moduleManager.readModuleVersion(modulePrefix);
+
     const moduleSettings = {
       name: modulePrefix,
       branch: options ? options.branch : undefined,
       private: options ? options.private : undefined,
       location: gitModule ? source : `file:${source}`,
+      version: moduleVersion,
     };
 
     // Fetch module dependencies.
@@ -194,10 +199,15 @@ export class Import {
    * Updates a specific imported module.
    * @param moduleName Name (prefix) of module to update.
    * @param credentials Optional credentials for a private module.
+   * @param version Optional target version to update to.
    * @throws if module is not part of the project
    */
   @write((moduleName) => `Update module ${moduleName}`)
-  public async updateModule(moduleName: string, credentials?: Credentials) {
+  public async updateModule(
+    moduleName: string,
+    credentials?: Credentials,
+    version?: string,
+  ) {
     // Ensure module list is up to date before updating
     await this.fetchCmd.ensureModuleListUpToDate();
 
@@ -207,6 +217,23 @@ export class Import {
     if (!module) {
       throw new Error(`Module '${moduleName}' is not part of the project`);
     }
+
+    if (version) {
+      // Validate the requested version exists
+      const availableVersions = await this.moduleManager.listAvailableVersions(
+        module,
+        credentials,
+      );
+      if (!availableVersions.includes(version)) {
+        throw new Error(
+          `Version '${version}' is not available for module '${moduleName}'. Available versions: ${availableVersions.join(', ') || 'none'}`,
+        );
+      }
+      // Clone the version tag without mutating the stored config
+      const moduleForClone = { ...module, branch: versionToTag(version) };
+      return this.moduleManager.updateModule(moduleForClone, credentials);
+    }
+
     return this.moduleManager.updateModule(module, credentials);
   }
 

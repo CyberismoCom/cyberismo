@@ -287,6 +287,20 @@ export class ProjectConfiguration implements ProjectSettings {
   }
 
   /**
+   * Updates the installed version of a module.
+   * @param moduleName Name of the module to update
+   * @param version Version string to set (or undefined to clear)
+   */
+  public async updateModuleVersion(moduleName: string, version?: string) {
+    const module = this.modules.find((item) => item.name === moduleName);
+    if (!module) {
+      throw new Error(`Module '${moduleName}' is not imported`);
+    }
+    module.version = version;
+    return this.save();
+  }
+
+  /**
    * Changes project name.
    * @param newName New project name
    */

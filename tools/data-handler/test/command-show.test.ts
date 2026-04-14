@@ -203,7 +203,7 @@ describe('shows command', () => {
       expect(result.statusCode).toBe(200);
       if (result.payload) {
         expect(result.payload).not.toBeUndefined();
-        const modules = Object.values(result.payload);
+        const modules = result.payload as Array<{ name: string }>;
         expect(modules.length).toBe(0);
       }
     });
@@ -336,12 +336,12 @@ describe('shows command', () => {
       );
       expect(result.statusCode).toBe(200);
       expect(result.payload!).not.toBeUndefined();
-      let modules = Object.values(result.payload!);
-      expect(modules.at(0)).toBe('mini');
+      let modules = result.payload as Array<{ name: string }>;
+      expect(modules.at(0)?.name).toBe('mini');
       result = await commandHandler.command(Cmd.show, ['modules'], optionsMini);
       expect(result.payload).not.toBeUndefined();
-      modules = Object.values(result.payload!);
-      expect(modules.at(0)).toBe('decision');
+      modules = result.payload as Array<{ name: string }>;
+      expect(modules.at(0)?.name).toBe('decision');
     });
     it('show particular module - success()', async () => {
       const result = await commandHandler.command(

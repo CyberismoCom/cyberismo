@@ -17,6 +17,7 @@ import { mkdir, readdir, rm } from 'node:fs/promises';
 import { simpleGit, type SimpleGit } from 'simple-git';
 
 import { copyDir, deleteDir, pathExists } from './utils/file-utils.js';
+import { GitManager } from './utils/git-manager.js';
 import type {
   Credentials,
   ModuleSetting,
@@ -86,6 +87,31 @@ export class ModuleManager {
     return unused;
   }
 
+  // Builds the remote URL for a module, applying credentials if needed.
+  private buildRemoteUrl(
+    module: ModuleSetting,
+    credentials?: Credentials,
+  ): string {
+    if (
+      module.private &&
+      credentials?.username &&
+      credentials?.token &&
+      module.location.startsWith(HTTPS_PROTOCOL)
+    ) {
+      try {
+        const repoUrl = new URL(module.location);
+        const user = credentials.username;
+        const pass = credentials.token;
+        const host = repoUrl.host;
+        const path = repoUrl.pathname;
+        return `https://${user}:${pass}@${host}${path}`;
+      } catch {
+        throw new Error(`Invalid repository URL: ${module.location}`);
+      }
+    }
+    return module.location;
+  }
+
   // Handles cloning of a repository.
   private async clone(
     module: ModuleSetting,
@@ -98,40 +124,15 @@ export class ModuleManager {
 
     const destinationPath = join(this.tempModulesDir, module.name);
 
-    let remote = module.location;
-    if (module.private) {
-      if (
-        credentials &&
-        credentials?.username &&
-        credentials?.token &&
-        module.location.startsWith(HTTPS_PROTOCOL)
-      ) {
-        if (verbose) {
-          console.log(
-            `... Using HTTPS with credentials '${credentials?.username}' for cloning '${module.name}'`,
-          );
-        }
-        try {
-          const repoUrl = new URL(module.location);
-          const user = credentials?.username;
-          const pass = credentials?.token;
-          const host = repoUrl.host;
-          const path = repoUrl.pathname;
-          remote = `https://${user}:${pass}@${host}${path}`;
-        } catch {
-          throw new Error(`Invalid repository URL: ${module.location}`);
-        }
-      } else if (module.location.startsWith('git@')) {
-        if (verbose) {
-          console.log(`... Using SSH for cloning '${module.name}'`);
-        }
-      }
-    } else {
-      if (verbose) {
-        console.log(
-          `... Using HTTPS without credentials for cloning '${module.name}'`,
-        );
-      }
+    const remote = this.buildRemoteUrl(module, credentials);
+    if (verbose) {
+      const protocol =
+        module.private && remote !== module.location
+          ? 'HTTPS with credentials'
+          : module.private && module.location.startsWith('git@')
+            ? 'SSH'
+            : 'HTTPS without credentials';
+      console.log(`... Using ${protocol} for cloning '${module.name}'`);
     }
 
     try {
@@ -218,9 +219,8 @@ export class ModuleManager {
     if (!module) {
       throw new Error(`Module '${moduleName}' not found`);
     }
-    const modulePath = join(module.path, 'cardsConfig.json');
     const moduleConfiguration = (await readJsonFile(
-      modulePath,
+      this.project.paths.moduleConfigurationFile(moduleName),
     )) as ProjectConfiguration;
     return moduleConfiguration.modules
       ? new Set(moduleConfiguration.modules.map((m) => m.name))
@@ -267,6 +267,7 @@ export class ModuleManager {
     this.stripProtocolFromLocation(module);
     await this.remove(module);
     await this.importFromFolder(module.location, module.name);
+    await this.persistModuleVersion(module);
   }
 
   // Updates one module that is received from Git.
@@ -275,6 +276,7 @@ export class ModuleManager {
     const tempLocation = join(this.tempModulesDir, module.name);
     await this.remove(module);
     await this.importFromFolder(tempLocation, module.name);
+    await this.persistModuleVersion(module);
   }
 
   // Updates one module.
@@ -282,6 +284,31 @@ export class ModuleManager {
     return this.isGitModule(module)
       ? this.handleGitModule(module)
       : this.handleFileModule(module);
+  }
+
+  // Reads the version from a module's cardsConfig.json.
+  public async readModuleVersion(
+    moduleName: string,
+  ): Promise<string | undefined> {
+    const configPath = this.project.paths.moduleConfigurationFile(moduleName);
+    try {
+      const config = await readJsonFile(configPath);
+      return config?.version;
+    } catch {
+      return undefined;
+    }
+  }
+
+  // Reads and persists the installed module version from the module's config.
+  private async persistModuleVersion(module: ModuleSetting) {
+    const version = await this.readModuleVersion(module.name);
+    if (version) {
+      module.version = version;
+      await this.project.configuration.updateModuleVersion(
+        module.name,
+        version,
+      );
+    }
   }
 
   // Imports from a given folder. Is used both for .temp/<module name> and file locations.
@@ -566,6 +593,23 @@ export class ModuleManager {
         `Imported project has a prefix '${modulePrefix}' that is already used in the project. Cannot import from module.`,
       );
     }
+  }
+
+  /**
+   * Lists available version tags for a module from its remote repository.
+   * @param module Module to query versions for.
+   * @param credentials Optional credentials for private repositories.
+   * @returns Semver version strings sorted descending (e.g. ["2.1.0", "1.0.0"])
+   */
+  public async listAvailableVersions(
+    module: ModuleSetting,
+    credentials?: Credentials,
+  ): Promise<string[]> {
+    if (!this.isGitModule(module)) {
+      return [];
+    }
+    const remoteUrl = this.buildRemoteUrl(module, credentials);
+    return GitManager.listRemoteVersionTags(remoteUrl);
   }
 
   /**
