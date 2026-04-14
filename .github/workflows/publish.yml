@@ -5,6 +5,12 @@ on:
     tags:
       - 'cyberismo-*'
       - 'node-clingo-*'
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+        description: 'Tag name (e.g. cyberismo-1.2.3 or node-clingo-1.0.0)'
 
 permissions:
   contents: read
@@ -17,6 +23,8 @@ jobs:
     steps:
       - name: Checkout code repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || '' }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4
@@ -32,7 +40,7 @@ jobs:
       - name: Determine package for tag
         id: tag
         run: |
-          TAG="${GITHUB_REF_NAME}"
+          TAG="${{ inputs.tag || github.ref_name }}"
           if [[ "$TAG" == cyberismo-* ]]; then
             PKG_PATH="tools/cli/package.json"
             PREFIX="cyberismo-"
@@ -78,13 +86,15 @@ jobs:
 
   npm-cli-test:
     needs: version
-    if: startsWith(github.ref, 'refs/tags/cyberismo-')
+    if: startsWith(inputs.tag || github.ref_name, 'cyberismo-')
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
       - name: Checkout code repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || '' }}
 
       - name: Install clingo
         run: |
@@ -113,7 +123,7 @@ jobs:
 
       - name: Verify published packages via npm
         env:
-          RELEASE_VERSION: ${{ github.ref_name }}
+          RELEASE_VERSION: ${{ inputs.tag || github.ref_name }}
           CYBERISMO_GIT_USER: ${{ secrets.CYBERISMO_GIT_USER }}
           CYBERISMO_GIT_TOKEN: ${{ secrets.CYBERISMO_GIT_TOKEN }}
         run: |
