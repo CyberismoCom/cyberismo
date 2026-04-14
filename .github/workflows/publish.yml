@@ -76,9 +76,6 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Update npm
-        run: npm install -g npm@latest
-
       - name: Publish packages
         run: pnpm ci:publish
 
@@ -133,8 +130,6 @@ jobs:
             "@cyberismo/mcp"
           )
           echo "Testing published packages at version ${VERSION}: ${PACKAGES[*]}"
-
-          npm install -g npm@latest
 
           # Wait briefly for npm replication
           for pkg in "${PACKAGES[@]}"; do
