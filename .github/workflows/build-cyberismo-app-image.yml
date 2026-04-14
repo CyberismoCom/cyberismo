@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'cyberismo-*'
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+        description: 'Tag name (e.g. cyberismo-1.2.3)'
 
 jobs:
   build-and-publish:
@@ -16,13 +22,15 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.tag || '' }}
           fetch-depth: 1
 
       - name: Extract version from tag
         id: parse
         run: |
-          VERSION="${GITHUB_REF_NAME#cyberismo-}"
-          if [ -z "$VERSION" ] || [ "$VERSION" = "$GITHUB_REF_NAME" ]; then
+          TAG="${{ inputs.tag || github.ref_name }}"
+          VERSION="${TAG#cyberismo-}"
+          if [ -z "$VERSION" ] || [ "$VERSION" = "$TAG" ]; then
             echo "Tag must be prefixed with cyberismo-" >&2
             exit 1
           fi
