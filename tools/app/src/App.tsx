@@ -23,6 +23,7 @@ import {
 } from '@mui/material/styles';
 import { CssVarsProvider as JoyCssVarsProvider } from '@mui/joy/styles';
 import StoreProvider from './providers/StoreProvider';
+import SessionExpiredBanner from './components/SessionExpiredBanner';
 import './lib/i18n';
 
 const materialTheme = createTheme();
@@ -38,6 +39,7 @@ function App() {
       >
         <CssBaseline />
         <StoreProvider>
+          <SessionExpiredBanner />
           <SWRConfig value={getSwrConfig()}>
             <RouterProvider router={router} />
           </SWRConfig>

@@ -12,10 +12,8 @@
 
 import type { ReactNode } from 'react';
 import { Provider } from 'react-redux';
-import { makeStore } from '../lib/store';
+import { store, persistor } from '../lib/store';
 import { PersistGate } from 'redux-persist/integration/react';
-
-const { store, persistor } = makeStore();
 
 export default function StoreProvider({ children }: { children: ReactNode }) {
   return (

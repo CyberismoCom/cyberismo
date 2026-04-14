@@ -387,6 +387,8 @@
   "searchCards": "Search cards",
   "selectCard": "Please select a card",
   "selectResource": "Select resource",
+  "sessionExpired": "Your session has expired.",
+  "sessionExpiredLogIn": "Log in",
   "showLess": "Show less",
   "showMore": "Show more",
   "sourceCardTypes": "Source card types",
