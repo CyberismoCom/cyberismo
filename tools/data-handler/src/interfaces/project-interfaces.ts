@@ -173,6 +173,12 @@ export interface ProjectFile {
   name: string;
 }
 
+// Summary of an installed module.
+export interface ModuleInfo {
+  name: string;
+  version?: string;
+}
+
 // Project metadata details. @todo - this overlaps the above; check & merge
 export interface ProjectMetadata {
   name: string;
@@ -181,7 +187,7 @@ export interface ProjectMetadata {
   category?: string;
   description?: string;
   version?: string;
-  modules: string[];
+  modules: ModuleInfo[];
   hubs: HubSetting[];
   numberOfCards: number;
 }
@@ -222,6 +228,7 @@ export interface ModuleSettingOptions {
   branch?: string;
   private?: boolean;
   credentials?: Credentials;
+  version?: string;
 }
 
 // Resources that are possible to remove.

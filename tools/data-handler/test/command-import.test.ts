@@ -15,7 +15,11 @@ import { join } from 'node:path';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Cmd, Commands } from '../src/command-handler.js';
 import { Fetch, Show } from '../src/commands/index.js';
-import { getTestProject } from './helpers/test-utils.js';
+import { ModuleManager } from '../src/module-manager.js';
+import {
+  getTestProject,
+  mockEnsureModuleListUpToDate,
+} from './helpers/test-utils.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
@@ -183,10 +187,10 @@ describe('import module', () => {
       result = await commandHandler.command(Cmd.show, ['modules'], testOptions);
       expect(result.statusCode).toBe(200);
       if (result.payload) {
-        const modules = Object.values(result.payload);
+        const modules = result.payload as Array<{ name: string }>;
         expect(modules.length).toBe(2);
-        expect(modules).toContain('mini');
-        expect(modules).toContain('decision');
+        expect(modules.map((m) => m.name)).toContain('mini');
+        expect(modules.map((m) => m.name)).toContain('decision');
       }
     }, 10000);
     it('try to import module - no source', async () => {
@@ -363,5 +367,67 @@ describe('import module', () => {
       );
       expect(result.statusCode).toBe(400);
     });
+  });
+});
+
+describe('update-modules version arg', () => {
+  beforeEach(async () => {
+    mkdirSync(testDir, { recursive: true });
+    await copyDir('test/test-data', testDir);
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+    vi.restoreAllMocks();
+  });
+
+  it('version without module name returns error', async () => {
+    const result = await commandHandler.command(
+      Cmd.updateModules,
+      ['', '1.0.0'],
+      optionsMini,
+    );
+    expect(result.statusCode).toBe(400);
+    expect(result.message).toContain(
+      'A target version can only be specified together with a module name',
+    );
+  });
+
+  it('version with unknown module name returns error', async () => {
+    mockEnsureModuleListUpToDate();
+    const result = await commandHandler.command(
+      Cmd.updateModules,
+      ['nonexistent-module', '1.0.0'],
+      optionsMini,
+    );
+    expect(result.statusCode).toBe(400);
+    expect(result.message).toContain(
+      "Module 'nonexistent-module' is not part of the project",
+    );
+  });
+
+  it('version not in available list returns error', async () => {
+    // Import a local module so it appears in project.configuration.modules
+    await commandHandler.command(
+      Cmd.import,
+      ['module', decisionRecordsPath],
+      optionsMini,
+    );
+
+    mockEnsureModuleListUpToDate();
+    vi.spyOn(
+      ModuleManager.prototype,
+      'listAvailableVersions',
+    ).mockResolvedValue(['2.0.0', '3.0.0']);
+
+    const result = await commandHandler.command(
+      Cmd.updateModules,
+      ['decision', '1.0.0'],
+      optionsMini,
+    );
+    expect(result.statusCode).toBe(400);
+    expect(result.message).toContain("Version '1.0.0' is not available");
+    expect(result.message).toContain('2.0.0');
+    expect(result.message).toContain('3.0.0');
   });
 });

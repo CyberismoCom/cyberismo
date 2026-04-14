@@ -57,7 +57,7 @@ export async function getProject(
     const project = await commands.showCmd.showProject();
     const modules = await commands.showCmd.showModules();
     const moduleDetails = await Promise.all(
-      modules.map((mod) => toModuleInfo(commands, mod)),
+      modules.map((mod) => toModuleInfo(commands, mod.name)),
     );
 
     return {

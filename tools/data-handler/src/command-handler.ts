@@ -23,6 +23,7 @@ import type {
   Credentials,
   HubSetting,
   ModuleContent,
+  ModuleInfo,
   ModuleSettingFromHub,
   ProjectMetadata,
   RemovableResourceTypes,
@@ -451,10 +452,19 @@ export class Commands {
           mappingTable,
         );
       } else if (command === Cmd.updateModules) {
-        const [module] = args;
+        const [module, targetVersion] = args;
         if (module) {
-          await this.commands?.importCmd.updateModule(module, credentials);
+          await this.commands?.importCmd.updateModule(
+            module,
+            credentials,
+            targetVersion,
+          );
         } else {
+          if (targetVersion) {
+            throw new Error(
+              'A target version can only be specified together with a module name',
+            );
+          }
           await this.commands?.importCmd.updateAllModules(credentials);
         }
       } else if (command === Cmd.validate) {
@@ -800,6 +810,7 @@ export class Commands {
       | CardListContainer[]
       | HubSetting[]
       | ModuleContent
+      | ModuleInfo[]
       | ModuleSettingFromHub[]
       | ProjectMetadata
       | AnyResourceContent

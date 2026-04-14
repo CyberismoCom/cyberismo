@@ -100,6 +100,10 @@ export class ProjectPaths {
     return join(this.internalRootFolder, 'modules');
   }
 
+  public moduleConfigurationFile(modulePrefix: string): string {
+    return join(this.modulesFolder, modulePrefix, 'cardsConfig.json');
+  }
+
   public moduleResourcePath(
     modulePrefix: string,
     resourceType: ResourceFolderType,
