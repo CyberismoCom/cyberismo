@@ -24,6 +24,7 @@ jobs:
         with:
           ref: ${{ inputs.tag || '' }}
           fetch-depth: 1
+          submodules: recursive
 
       - name: Extract version from tag
         id: parse
