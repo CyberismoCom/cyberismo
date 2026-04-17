@@ -17,6 +17,7 @@ import swr from './swr';
 import page from './pageState';
 import card from './card';
 import session from './session';
+import project from './project';
 
 const rootReducer = combineReducers({
   recentlyViewed,
@@ -25,6 +26,7 @@ const rootReducer = combineReducers({
   page,
   card,
   session,
+  project,
 });
 
 export default rootReducer;
