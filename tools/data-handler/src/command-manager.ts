@@ -11,6 +11,7 @@
 */
 
 import { Calculate } from './commands/calculate.js';
+import { CheckUpdates } from './commands/check-updates.js';
 import { Create } from './commands/create.js';
 import { Edit } from './commands/edit.js';
 import { Export } from './commands/export.js';
@@ -45,6 +46,7 @@ export class CommandManager {
 
   public project: Project;
   public calculateCmd: Calculate;
+  public checkUpdatesCmd: CheckUpdates;
   public createCmd: Create;
   public editCmd: Edit;
   public exportCmd: Export;
@@ -70,6 +72,7 @@ export class CommandManager {
     this.validateCmd = Validate.getInstance();
 
     this.calculateCmd = new Calculate(this.project);
+    this.checkUpdatesCmd = new CheckUpdates(this.project);
     this.fetchCmd = new Fetch(this.project);
     this.showCmd = new Show(this.project, this.fetchCmd);
     this.createCmd = new Create(this.project);

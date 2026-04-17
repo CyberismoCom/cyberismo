@@ -67,6 +67,7 @@ import { validBumps, type BumpType } from './commands/version.js';
 export const Cmd = {
   add: 'add',
   calc: 'calc',
+  checkUpdates: 'check-updates',
   create: 'create',
   edit: 'edit',
   export: 'export',
@@ -319,12 +320,12 @@ export class Commands {
       } else if (command === Cmd.import) {
         const target = args.splice(0, 1)[0];
         if (target === 'module') {
-          const [source, branch, useCredentials] = args;
+          const [source, useCredentials, version] = args;
           await this.import(
             source,
-            branch,
             useCredentials && useCredentials === 'true' ? true : false,
             credentials,
+            version,
           );
         }
         if (target === 'csv') {
@@ -467,6 +468,13 @@ export class Commands {
           }
           await this.commands?.importCmd.updateAllModules(credentials);
         }
+      } else if (command === Cmd.checkUpdates) {
+        const [moduleName] = args;
+        const results = await this.commands?.checkUpdatesCmd.checkUpdates(
+          moduleName || undefined,
+          credentials,
+        );
+        return { statusCode: 200, payload: results };
       } else if (command === Cmd.validate) {
         return this.validate();
       } else {
@@ -693,14 +701,14 @@ export class Commands {
   // Imports another project to the 'destination' project as a module.
   private async import(
     source: string,
-    branch?: string,
     useCredentials?: boolean,
     credentials?: Credentials,
+    version?: string,
   ) {
     return this.commands?.importCmd.importModule(source, this.projectPath, {
-      branch: branch,
       private: useCredentials,
       credentials,
+      version,
     });
   }
 

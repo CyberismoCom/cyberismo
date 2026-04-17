@@ -1056,15 +1056,22 @@ export class Project extends CardContainer {
 
   /**
    * Returns installed modules with their versions.
+   * Reads the installed version from each module's own cardsConfig.json.
    */
-  public moduleInfos(): ModuleInfo[] {
-    return this.resources
-      .moduleNames()
-      .sort()
-      .map((name) => {
-        const setting = this.configuration.modules.find((m) => m.name === name);
-        return { name, version: setting?.version };
-      });
+  public async moduleInfos(): Promise<ModuleInfo[]> {
+    const names = this.resources.moduleNames().sort();
+    return Promise.all(
+      names.map(async (name) => {
+        try {
+          const config = await readJsonFile(
+            this.paths.moduleConfigurationFile(name),
+          );
+          return { name, version: config?.version };
+        } catch {
+          return { name };
+        }
+      }),
+    );
   }
 
   /**
@@ -1080,7 +1087,7 @@ export class Project extends CardContainer {
       description: this.configuration.description,
       version: this.configuration.version,
       hubs: this.configuration.hubs,
-      modules: this.moduleInfos(),
+      modules: await this.moduleInfos(),
       numberOfCards: (await this.listCards(CardLocation.projectOnly))[0].cards
         .length,
     };

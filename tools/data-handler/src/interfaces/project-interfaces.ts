@@ -225,10 +225,27 @@ export interface ModuleSetting extends ModuleSettingOptions {
 
 // Additional options for module configuration.
 export interface ModuleSettingOptions {
-  branch?: string;
   private?: boolean;
   credentials?: Credentials;
   version?: string;
+}
+
+// Result of checking for module updates.
+export interface ModuleUpdateStatus {
+  name: string;
+  installedVersion?: string;
+  // Absolute latest available version from the remote, regardless of constraint.
+  latestVersion?: string;
+  // Highest available version that satisfies the module's version constraint (if any).
+  latestSatisfyingConstraint?: string;
+  availableVersions: string[];
+  // True when latestVersion is newer than installedVersion.
+  updateAvailable: boolean;
+  // True when the constraint prevents auto-updating to latestVersion.
+  constraintBlocksUpdate?: boolean;
+  isGitModule: boolean;
+  versionConstraint?: string;
+  noMatchingVersion?: boolean;
 }
 
 // Resources that are possible to remove.

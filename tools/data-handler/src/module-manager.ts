@@ -28,6 +28,11 @@ import type { ProjectConfiguration } from './project-settings.js';
 import { ProjectPaths } from './containers/project/project-paths.js';
 import { readJsonFile } from './utils/json.js';
 import { Validate } from './commands/validate.js';
+import { versionToTag } from './utils/git-manager.js';
+import {
+  resolveModuleVersions,
+  type VersionConstraint,
+} from './utils/version-resolver.js';
 
 const FILE_PROTOCOL = 'file:';
 const HTTPS_PROTOCOL = 'https:';
@@ -42,8 +47,12 @@ type DependencyGraph = Map<string, Set<string>>;
  */
 export class ModuleManager {
   private modules: ModuleSetting[] = [];
+  private moduleConstraints: Map<string, VersionConstraint[]> = new Map();
+  // Map of module name -> git tag to check out for that module. Populated by
+  // version resolution (or pre-seeded by callers that know an exact target),
+  // consumed by clone().
+  private moduleRefs: Map<string, string> = new Map();
   private tempModulesDir: string = '';
-  private defaultBranchCache: Map<string, string> = new Map();
 
   constructor(private project: Project) {
     this.tempModulesDir = join(this.project.paths.tempFolder, 'modules');
@@ -112,17 +121,21 @@ export class ModuleManager {
     return module.location;
   }
 
-  // Handles cloning of a repository.
+  // Handles cloning of a repository. If 'ref' is provided, it takes precedence
+  // over any entry in this.moduleRefs; with no ref, the module's default
+  // branch is cloned.
   private async clone(
     module: ModuleSetting,
     verbose: boolean = true,
     credentials?: Credentials,
+    ref?: string,
   ): Promise<string> {
     if (!module.name || module.name === '') {
       module.name = this.repositoryName(module.location);
     }
 
     const destinationPath = join(this.tempModulesDir, module.name);
+    const effectiveRef = ref ?? this.moduleRefs.get(module.name);
 
     const remote = this.buildRemoteUrl(module, credentials);
     if (verbose) {
@@ -137,7 +150,7 @@ export class ModuleManager {
 
     try {
       await mkdir(this.tempModulesDir, { recursive: true });
-      const cloneOptions = await this.setCloneOptions(module);
+      const cloneOptions = this.setCloneOptions(effectiveRef);
       await rm(destinationPath, { recursive: true, force: true });
 
       const git: SimpleGit = simpleGit({
@@ -188,31 +201,6 @@ export class ModuleManager {
     }
   }
 
-  // Gets the default branch for a repository from remote or cache
-  private async defaultBranch(module: ModuleSetting): Promise<string> {
-    if (this.defaultBranchCache.has(module.location)) {
-      return this.defaultBranchCache.get(module.location)!;
-    }
-    // Set the default branch if branch was not specified
-    if (!module.branch) {
-      const destinationPath = join(this.tempModulesDir, module.name);
-      // Only return path after cloning
-      if (pathExists(destinationPath)) {
-        const git: SimpleGit = simpleGit({
-          timeout: {
-            block: this.gitTimeout(),
-          },
-        });
-        const options = ['--abbrev-ref', 'HEAD'];
-        const defaultBranch = await git.cwd(destinationPath).revparse(options);
-        this.defaultBranchCache.set(module.location, defaultBranch);
-        return defaultBranch;
-      }
-    }
-    // The actual default branch will be updated later (after cloning).
-    return '';
-  }
-
   // Fetches direct dependencies of a module.
   private async dependencies(moduleName: string): Promise<Set<string>> {
     const module = await this.project.module(moduleName);
@@ -242,6 +230,7 @@ export class ModuleManager {
 
   // Collects one module's dependency prefixes to 'this.modules'.
   // Note that there can be duplicate entries.
+  // Also tracks version range constraints declared by each module on its dependencies.
   private async doCollectModulePrefix(
     module: ModuleSetting,
     credentials?: Credentials,
@@ -259,6 +248,16 @@ export class ModuleManager {
     this.modules.push(module);
 
     const configuration = await this.configuration(moduleRoot);
+
+    // Track version range constraints from this module's dependencies
+    for (const dep of configuration.modules ?? []) {
+      if (dep.version) {
+        const existing = this.moduleConstraints.get(dep.name) ?? [];
+        existing.push({ range: dep.version, source: module.name });
+        this.moduleConstraints.set(dep.name, existing);
+      }
+    }
+
     await this.collectModulePrefixes(configuration.modules, credentials);
   }
 
@@ -299,14 +298,14 @@ export class ModuleManager {
     }
   }
 
-  // Reads and persists the installed module version from the module's config.
+  // Persists the version range constraint for a module in the project config.
+  // The installed version is not stored in the project config — it is read
+  // from the module's own cardsConfig.json at runtime.
   private async persistModuleVersion(module: ModuleSetting) {
-    const version = await this.readModuleVersion(module.name);
-    if (version) {
-      module.version = version;
+    if (module.version) {
       await this.project.configuration.updateModuleVersion(
         module.name,
-        version,
+        module.version,
       );
     }
   }
@@ -401,27 +400,15 @@ export class ModuleManager {
   }
 
   // Checks for duplicate ModuleSetting entries and throws an error if modules
-  // with the same name have different branches or locations.
-  // Treats undefined branch, empty string branch, and default branch as equivalent.
-  // Returns an array with duplicate entries removed
-  private async removeDuplicates(
-    modules: ModuleSetting[],
-  ): Promise<ModuleSetting[]> {
+  // with the same name have different locations or access modes.
+  // Returns an array with duplicate entries removed.
+  private removeDuplicates(modules: ModuleSetting[]): ModuleSetting[] {
     const moduleMap = new Map<string, ModuleSetting>();
-
-    // Normalize branch names by checking against the default branch for each module
-
-    const normalizeBranch = async (module: ModuleSetting) => {
-      return module.branch ? module.branch! : await this.defaultBranch(module);
-    };
 
     for (const module of modules) {
       const existingModule = moduleMap.get(module.name);
       if (existingModule) {
-        if (
-          (existingModule.private && !module.private) ||
-          (!existingModule.private && module.private)
-        ) {
+        if (Boolean(existingModule.private) !== Boolean(module.private)) {
           throw new Error(
             `Module conflict: '${module.name}' has different access:\n` +
               `  - ${Boolean(existingModule.private)}\n` +
@@ -433,16 +420,6 @@ export class ModuleManager {
             `Module conflict: '${module.name}' has different locations:\n` +
               `  - ${existingModule.location}\n` +
               `  - ${module.location}`,
-          );
-        }
-        const existingBranch = await normalizeBranch(existingModule);
-        const newBranch = await normalizeBranch(module);
-
-        if (existingBranch !== newBranch) {
-          throw new Error(
-            `Module conflict: '${module.name}' has different branches:\n` +
-              `  - ${existingModule.branch || 'undefined'}\n` +
-              `  - ${module.branch || 'undefined'}`,
           );
         }
       } else {
@@ -468,17 +445,12 @@ export class ModuleManager {
     return repoName;
   }
 
-  // Sets cloning options with support for default branch.
-  private async setCloneOptions(module: ModuleSetting): Promise<string[]> {
+  // Returns git clone options, pinning to 'ref' (a tag or branch) when given.
+  // With no ref, clones the repository's default branch.
+  private setCloneOptions(ref?: string): string[] {
     const cloneOptions = ['--depth', '1'];
-    const defaultBranch = await this.defaultBranch(module);
-    // Only specify branch if it's different from the default branch
-    if (
-      module.branch &&
-      module.branch !== '' &&
-      module.branch !== defaultBranch
-    ) {
-      cloneOptions.push('--branch', module.branch);
+    if (ref) {
+      cloneOptions.push('--branch', ref);
     }
     return cloneOptions;
   }
@@ -509,11 +481,49 @@ export class ModuleManager {
     return transientDependencies;
   }
 
+  // Resolves version ranges for all modules that have constraints.
+  // Returns a map of module name -> resolved version string.
+  private async resolveVersions(
+    uniqueModules: ModuleSetting[],
+    credentials?: Credentials,
+  ): Promise<Map<string, string>> {
+    if (this.moduleConstraints.size === 0) {
+      return new Map();
+    }
+
+    // Fetch available versions for all constrained modules in parallel
+    const constrainedModules = uniqueModules.filter((m) =>
+      this.moduleConstraints.has(m.name),
+    );
+    const availableVersionsMap = new Map<string, string[]>();
+
+    await Promise.all(
+      constrainedModules.map(async (m) => {
+        const versions = await this.listAvailableVersions(m, credentials);
+        availableVersionsMap.set(m.name, versions);
+      }),
+    );
+
+    return resolveModuleVersions(this.moduleConstraints, availableVersionsMap);
+  }
+
+  // Records each resolved version as a tag in this.moduleRefs so that the
+  // next clone of that module checks out the correct commit. Any ref that
+  // was pre-seeded by the caller is preserved.
+  private applyResolvedVersions(resolvedVersions: Map<string, string>) {
+    for (const [name, version] of resolvedVersions) {
+      if (!this.moduleRefs.has(name)) {
+        this.moduleRefs.set(name, versionToTag(version));
+      }
+    }
+  }
+
   // Updates modules in the project.
   private async update(
     module?: ModuleSetting,
     credentials?: Credentials,
     skipModules?: Set<string>,
+    targetRefs?: Map<string, string>,
   ) {
     // Prints dots every half second so that user knows that something is ongoing
     function start() {
@@ -530,11 +540,28 @@ export class ModuleManager {
     }
 
     await this.prepare();
+    this.moduleConstraints.clear();
+    this.moduleRefs.clear();
+    if (targetRefs) {
+      for (const [name, ref] of targetRefs) {
+        this.moduleRefs.set(name, ref);
+      }
+    }
 
     let modules = module ? [module] : this.project.configuration.modules;
     if (modules.length === 0) {
       throw new Error(`No modules in the project!`);
     }
+
+    // Record version range constraints from the project's top-level modules
+    for (const mod of modules) {
+      if (mod.version) {
+        const existing = this.moduleConstraints.get(mod.name) ?? [];
+        existing.push({ range: mod.version, source: 'project' });
+        this.moduleConstraints.set(mod.name, existing);
+      }
+    }
+
     modules = modules.filter((module) => this.isGitModule(module));
 
     const dotInterval = start();
@@ -542,14 +569,22 @@ export class ModuleManager {
     let uniqueModules: ModuleSetting[] = [];
     try {
       await this.collectModulePrefixes(modules, credentials);
-      uniqueModules = await this.removeDuplicates(this.modules);
+      uniqueModules = this.removeDuplicates(this.modules);
+
+      // Resolve version ranges and remember the resulting tags for cloning.
+      const resolvedVersions = await this.resolveVersions(
+        uniqueModules,
+        credentials,
+      );
+      this.applyResolvedVersions(resolvedVersions);
     } finally {
       finished(
         dotInterval,
         uniqueModules.map((item) => item.name),
       );
 
-      // Filter out modules that are already imported
+      // Filter out modules that are already imported (but not if version resolution
+      // determined a different version than what's installed)
       const modulesToImport = skipModules
         ? uniqueModules.filter((module) => !skipModules.has(module.name))
         : uniqueModules;
@@ -661,6 +696,8 @@ export class ModuleManager {
    * @param options Modules setting options.
    * @param credentials Credentials for private repositories.
    * @param skipValidation Skip prefix validation (used during updates)
+   * @param ref Optional git tag/branch to check out; defaults to the
+   *        repository's default branch.
    * @returns module prefix as defined in its CardsConfig.json
    */
   public async importGitModule(
@@ -668,6 +705,7 @@ export class ModuleManager {
     options?: ModuleSettingOptions,
     credentials?: Credentials,
     skipValidation = false,
+    ref?: string,
   ) {
     const clonedName = await this.clone(
       {
@@ -677,6 +715,7 @@ export class ModuleManager {
       },
       undefined,
       credentials,
+      ref,
     );
     const clonePath = join(this.tempModulesDir, clonedName);
     const modulePrefix = (await this.configuration(clonePath)).cardKeyPrefix;
@@ -729,28 +768,38 @@ export class ModuleManager {
    * Used during module import to fetch dependencies after the main module is already imported.
    * @param module Module whose dependencies should be updated.
    * @param credentials Optional credentials for private repositories.
-   * @returns Module prefix as defined in its CardsConfig.json
+   * @param targetRefs Optional map of module name -> git ref (tag/branch) to
+   *        use for cloning that module, bypassing constraint-based resolution.
    */
   public async updateDependencies(
     module: ModuleSetting,
     credentials?: Credentials,
+    targetRefs?: Map<string, string>,
   ) {
-    return this.update(module, credentials, new Set([module.name]));
+    return this.update(
+      module,
+      credentials,
+      new Set([module.name]),
+      targetRefs,
+    );
   }
 
   /**
-   * Imports module from a local file path or a git URL.
-   * @param module Module to update. If not provided, updates all modules.
+   * Updates a single module.
+   * @param module Module to update.
    * @param credentials Optional credentials for private repositories.
    * @param skipModules Optional set of module names to skip during import.
-   * @returns Module prefix as defined in its CardsConfig.json
+   * @param targetRefs Optional map of module name -> git ref (tag/branch) to
+   *        use for cloning that module, bypassing constraint-based resolution.
+   *        The module's persisted version constraint is left untouched.
    */
   public async updateModule(
     module: ModuleSetting,
     credentials?: Credentials,
     skipModules?: Set<string>,
+    targetRefs?: Map<string, string>,
   ) {
-    return this.update(module, credentials, skipModules);
+    return this.update(module, credentials, skipModules, targetRefs);
   }
 
   /**
