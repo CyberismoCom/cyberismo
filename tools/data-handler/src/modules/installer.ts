@@ -107,7 +107,35 @@ class DefaultInstaller implements Installer {
     options: InstallOptions,
   ): Promise<void> {
     const skip = options.skip ?? new Set<string>();
-    const targets = resolved.filter((r) => !skip.has(r.declaration.name));
+    const selfPrefix = project.projectPrefix;
+
+    // Split the plan:
+    //  - `targets`     : entries we will install.
+    //  - `skippedSelf` : transitive entries whose name happens to match the
+    //                    project's own `cardKeyPrefix`. We silently skip
+    //                    these because the project already provides that
+    //                    prefix (e.g. when A and B cross-import each other,
+    //                    B's cardsConfig lists A as a transitive). A
+    //                    top-level entry (parent == undefined) with this
+    //                    same collision is a real user error — the caller
+    //                    is trying to import a module whose prefix matches
+    //                    the host project — and we let `validatePrefix`
+    //                    surface that below.
+    const targets: ResolvedModule[] = [];
+    for (const entry of resolved) {
+      if (skip.has(entry.declaration.name)) continue;
+      if (
+        entry.declaration.name === selfPrefix &&
+        entry.declaration.parent !== undefined
+      ) {
+        this.logger.debug(
+          { module: entry.declaration.name, selfPrefix },
+          'skipping transitive installation whose prefix matches the host project',
+        );
+        continue;
+      }
+      targets.push(entry);
+    }
 
     if (options.validate) {
       this.validateFileSources(targets);

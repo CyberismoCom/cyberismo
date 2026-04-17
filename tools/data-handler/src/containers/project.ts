@@ -675,12 +675,15 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Adds a module from project.
-   * @param module Module to add
+   * Adds a module from project, or updates the declaration when one with
+   * the same name is already persisted. Mirrors the spec's upsert semantics
+   * for `ImportModule` — re-importing with a new range is an update rather
+   * than an error.
+   * @param module Module to add or update
    */
   public async importModule(module: ModuleSetting) {
-    // Add module as a dependency.
-    await this.configuration.addModule(module);
+    // Upsert the module declaration (insert when new, update range when present).
+    await this.configuration.upsertModule(module);
     this.resources.changedModules();
     this.refreshAllModulePrefixes();
     await this.populateTemplateCards();

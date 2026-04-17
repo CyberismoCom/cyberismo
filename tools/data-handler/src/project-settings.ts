@@ -165,6 +165,11 @@ export class ProjectConfiguration implements ProjectSettings {
 
   /**
    * Adds new module to imported modules property.
+   *
+   * @deprecated Use {@link upsertModule} instead — `addModule` errors on
+   *   existing names, which breaks re-import. The spec's `ImportModule`
+   *   rule is upsert, so callers should use `upsertModule` to stay aligned.
+   *   This method is retained for one release to avoid an API break.
    * @param module Module to add as dependency
    */
   public async addModule(module: ModuleSetting) {

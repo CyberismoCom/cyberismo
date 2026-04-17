@@ -17,6 +17,7 @@ import type {
   Link,
   TemplateConfiguration,
 } from './resource-interfaces.js';
+import type { ModuleCheckReport } from '../modules/types.js';
 
 // Single card; either in project or in template.
 export interface Card {
@@ -231,6 +232,11 @@ export interface ModuleSettingOptions {
 }
 
 // Result of checking for module updates.
+//
+// Dual-shape during the spec migration: the top-level booleans remain for
+// backwards compatibility with the CLI / MCP / web surfaces, and `report`
+// carries the spec's `ModuleCheckReport` (module-system.allium) with the
+// canonical `status` enum.
 export interface ModuleUpdateStatus {
   name: string;
   installedVersion?: string;
@@ -246,6 +252,8 @@ export interface ModuleUpdateStatus {
   isGitModule: boolean;
   versionConstraint?: string;
   noMatchingVersion?: boolean;
+  // Spec's `ModuleCheckReport` shape (optional while callers migrate).
+  report?: ModuleCheckReport;
 }
 
 // Resources that are possible to remove.

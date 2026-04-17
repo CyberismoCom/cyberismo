@@ -11,30 +11,65 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import semver from 'semver';
+import { join, resolve as pathResolve } from 'node:path';
 
-import { ModuleManager } from '../module-manager.js';
+import { pathExists } from '../utils/file-utils.js';
 import { readCsvFile } from '../utils/csv.js';
-import { versionToTag } from '../utils/git-manager.js';
 import { Validate } from './validate.js';
 import { write } from '../utils/rw-lock.js';
 
-import { validateVersionAgainstConstraints } from '../modules/version.js';
+import {
+  createInventory,
+  createInstaller,
+  createResolver,
+  createSourceLayer,
+  toVersionRange,
+  validateVersionAgainstConstraints,
+} from '../modules/index.js';
+import { cleanOrphans } from '../modules/orphans.js';
+
 import type { Create } from './create.js';
 import type {
   Credentials,
-  ModuleSetting,
   ModuleSettingOptions,
 } from '../interfaces/project-interfaces.js';
 import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
+import type { ModuleDeclaration } from '../modules/types.js';
+
+const HTTPS_PROTOCOL = 'https:';
+const FILE_PROTOCOL = 'file:';
+const SSH_PREFIX = 'git@';
+
+/**
+ * Coerce a caller-supplied source into the canonical form used by the
+ * module layers:
+ *
+ * - Git URLs (`https://…`, `git@…`) pass through unchanged.
+ * - `file:<path>` URLs pass through unchanged.
+ * - Any other value is treated as a bare filesystem path and rewritten to
+ *   `file:<absolute path>` so the source layer can dispatch on the protocol.
+ */
+function normaliseLocation(source: string): string {
+  if (
+    source.startsWith(HTTPS_PROTOCOL) ||
+    source.startsWith(SSH_PREFIX) ||
+    source.startsWith(FILE_PROTOCOL)
+  ) {
+    return source;
+  }
+  return `${FILE_PROTOCOL}${pathResolve(source)}`;
+}
+
+/** True when the normalised source targets a local file tree. */
+function isFileSource(location: string): boolean {
+  return location.startsWith(FILE_PROTOCOL);
+}
 
 /**
  * Handles all import commands.
  */
 export class Import {
-  private moduleManager: ModuleManager;
-
   /**
    * Creates an instance of Import.
    * @param project Project to use.
@@ -44,19 +79,11 @@ export class Import {
     private project: Project,
     private createCmd: Create,
     private fetchCmd: Fetch,
-  ) {
-    this.moduleManager = new ModuleManager(this.project);
-  }
+  ) {}
 
-  // Collects version range constraints for a module from the project's configuration.
-  private collectConstraints(moduleName: string) {
-    const constraints: { range: string; source: string }[] = [];
-    for (const mod of this.project.configuration.modules) {
-      if (mod.name === moduleName && mod.version) {
-        constraints.push({ range: mod.version, source: 'project' });
-      }
-    }
-    return constraints;
+  /** Temp directory shared between the resolver and the installer. */
+  private get tempModulesDir(): string {
+    return join(this.project.paths.tempFolder, 'modules');
   }
 
   /**
@@ -141,15 +168,20 @@ export class Import {
   }
 
   /**
-   * Imports a module to a project. Copies resources to the project.
-   * Resources will be added to a new directory under '.cards/modules'.
-   * The name of the new folder will be module's prefix.
+   * Imports a module to a project (spec's `ImportModule`, upsert semantics).
+   * Copies resources to the project under `.cards/modules/<prefix>/`.
    *
-   * Note that file references are relative, and thus URI must be
-   * 'file:<relative path>', instead of 'file://<relative path>'.
+   * Re-importing an already-declared module with the same source updates
+   * the declared range rather than erroring. A re-import with a different
+   * source for an existing name is rejected by the resolver via the
+   * `DeclarationAndInstallationAgreeOnSource` invariant.
    *
-   * @param source Path to module that will be imported
-   * @param destination Path to project that will receive the imported module
+   * @param source Path to module that will be imported. Git URLs
+   *   (`https://…`, `git@…`) and `file:` URLs pass through; bare
+   *   filesystem paths are rewritten to `file:<absolute>`.
+   * @param destination Unused. Kept for backwards-compatibility with the
+   *   CLI command signature — the destination is always the project the
+   *   `Import` command was constructed with.
    * @param options Additional options for module import. Optional.
    *        private: If true, uses credentials to clone the repository
    *        version: Semver version or range (e.g. '1.0.0', '^1.0.0')
@@ -160,88 +192,124 @@ export class Import {
     destination?: string,
     options?: ModuleSettingOptions,
   ) {
-    // Ensure module list is up to date before importing
+    void destination;
+
+    // Ensure module list is up to date before importing.
     await this.fetchCmd.ensureModuleListUpToDate();
 
     const beforeImportValidateErrors = await Validate.getInstance().validate(
       this.project.basePath,
       () => this.project,
     );
-    const gitModule = source.startsWith('https') || source.startsWith('git@');
 
-    // If a version (specific or range) was requested for a git module,
-    // resolve it to a concrete tag and clone that tag — otherwise the
-    // default branch is cloned and the requested version is ignored.
-    let ref: string | undefined;
-    if (gitModule && options?.version) {
-      const availableVersions = await this.moduleManager.listAvailableVersions(
-        {
-          name: '',
-          location: source,
-          private: options.private,
-        } as ModuleSetting,
-        options.credentials,
-      );
-      const resolvedVersion = semver.maxSatisfying(
-        availableVersions,
-        options.version,
-      );
-      if (!resolvedVersion) {
+    const location = normaliseLocation(source);
+
+    // Early precondition check for file sources: catch bad folder names and
+    // missing paths before we hand off to the resolver so the error message
+    // matches what the legacy `importFileModule` produced.
+    if (isFileSource(location)) {
+      const folder = location.substring(FILE_PROTOCOL.length);
+      if (!Validate.validateFolder(folder)) {
         throw new Error(
-          `No version matching '${options.version}' is available for module at '${source}'. Available versions: ${availableVersions.join(', ') || 'none'}`,
+          `Input validation error: folder name is invalid '${folder}'`,
         );
       }
-      ref = versionToTag(resolvedVersion);
-    }
-
-    const modulePrefix = gitModule
-      ? await this.moduleManager.importGitModule(
-          source,
-          options,
-          options?.credentials,
-          false,
-          ref,
-        )
-      : await this.moduleManager.importFileModule(source, destination);
-
-    if (!modulePrefix) {
-      throw new Error(
-        `Cannot find prefix for imported module '${source}'. Import cancelled.`,
-      );
-    }
-
-    // If no version was explicitly specified, default to ^<installed_version>
-    let version = options?.version;
-    if (!version && gitModule) {
-      const moduleVersion =
-        await this.moduleManager.readModuleVersion(modulePrefix);
-      if (moduleVersion) {
-        version = `^${moduleVersion}`;
+      if (!pathExists(folder)) {
+        throw new Error(
+          `Input validation error: cannot find project '${folder}'`,
+        );
       }
     }
 
-    const moduleSettings = {
-      name: modulePrefix,
-      private: options?.private,
-      location: gitModule ? source : `file:${source}`,
-      version,
+    const inventory = createInventory();
+    const existing = inventory.declared(this.project);
+
+    // Build the fresh root declaration for the module being imported. The
+    // resolver fills in `name` from the fetched module's cardKeyPrefix when
+    // it is empty.
+    const newRoot: ModuleDeclaration = {
+      project: this.project.basePath,
+      name: '',
+      source: {
+        location,
+        private: options?.private ?? false,
+      },
+      versionRange: options?.version
+        ? toVersionRange(options.version)
+        : undefined,
+      parent: undefined,
     };
 
-    // Fetch module dependencies. Pass the already-resolved ref so the
-    // dependency walk clones the same commit we just imported.
-    const targetRefs = ref
-      ? new Map<string, string>([[modulePrefix, ref]])
-      : undefined;
-    await this.moduleManager.updateDependencies(
-      moduleSettings,
-      options?.credentials,
-      targetRefs,
+    // Include existing top-level declarations so the resolver's source-
+    // agreement check fires on a genuine location mismatch. Existing
+    // declarations that happen to share a name with the new root are kept
+    // so the resolver can see the collision.
+    const allRoots: ModuleDeclaration[] = [newRoot, ...existing];
+
+    const sourceLayer = createSourceLayer();
+    const resolver = createResolver(sourceLayer);
+    const installer = createInstaller(sourceLayer);
+
+    const resolved = await resolver.resolve(allRoots, {
+      credentials: options?.credentials,
+      tempDir: this.tempModulesDir,
+      onConflict: (event) => {
+        console.warn(
+          `Diamond version conflict for module '${event.name}': ` +
+            `installed version ${event.installedVersion ?? '<unknown>'} ` +
+            `does not satisfy range '${event.rejectingRange}' ` +
+            `(required by ${event.rejectingParent?.name ?? '<unknown parent>'})`,
+        );
+      },
+    });
+
+    // Only install the new root's subgraph — anything already declared has
+    // already been installed by a previous import/update and should not be
+    // churned by this import. The resolver still produces entries for
+    // existing roots (so transitive dedup works); we just skip re-installing
+    // them here.
+    const existingNames = new Set(existing.map((d) => d.name));
+    await installer.install(this.project, resolved, {
+      credentials: options?.credentials,
+      skip: existingNames,
+      tempDir: this.tempModulesDir,
+      validate: isFileSource(location),
+    });
+
+    // Clean up any installations orphaned by this import. Fixed-point
+    // cascade per the `NoOrphanInstallations` invariant.
+    await cleanOrphans(this.project);
+
+    // Refresh the project's cached module prefixes and template cards so
+    // the newly-installed root is immediately usable through the Project
+    // API. The installer already persisted the declaration via
+    // `configuration.upsertModule`; here we drive the side-effects on the
+    // in-memory `Project` (cache invalidation + template-card population).
+    const newRootResolved = resolved.find(
+      (r) => r.declaration.source.location === location,
     );
+    if (newRootResolved) {
+      const persistedRange = newRootResolved.declaration.versionRange;
+      await this.project.importModule({
+        name: newRootResolved.declaration.name,
+        location,
+        private: options?.private,
+        version:
+          persistedRange ??
+          (newRootResolved.version ? `^${newRootResolved.version}` : undefined),
+      });
+    } else {
+      // Defensive: the resolver dedupes on name, so a re-import whose
+      // name already resolved earlier (e.g. from transitive deps) may not
+      // surface the new location. Drive the project-side refresh against
+      // the declaration we know the caller asked for.
+      console.warn(
+        `importModule: no resolved entry matched source '${location}'; falling back to cache refresh only.`,
+      );
+      this.project.resources.changedModules();
+    }
 
-    // Persist the module in the project's config.
-    await this.project.importModule(moduleSettings);
-
-    // Validate the project after module has been imported
+    // Validate the project after module has been imported.
     const afterImportValidateErrors = await Validate.getInstance().validate(
       this.project.basePath,
       () => this.project,
@@ -253,8 +321,21 @@ export class Import {
     }
   }
 
+  // Collect declared version range constraints for a module. Used by the
+  // "update to exact version X" path to validate the override against
+  // already-declared ranges.
+  private collectConstraints(moduleName: string) {
+    const constraints: { range: string; source: string }[] = [];
+    for (const mod of this.project.configuration.modules) {
+      if (mod.name === moduleName && mod.version) {
+        constraints.push({ range: mod.version, source: 'project' });
+      }
+    }
+    return constraints;
+  }
+
   /**
-   * Updates a specific imported module.
+   * Updates a specific imported module (spec's `UpdateModules(name)`).
    * @param moduleName Name (prefix) of module to update.
    * @param credentials Optional credentials for a private module.
    * @param version Optional target version to update to.
@@ -269,55 +350,102 @@ export class Import {
     // Ensure module list is up to date before updating
     await this.fetchCmd.ensureModuleListUpToDate();
 
-    const module = this.project.configuration.modules.find(
-      (item) => item.name === moduleName,
-    );
-    if (!module) {
+    const inventory = createInventory();
+    const declared = inventory.declared(this.project);
+    const target = declared.find((d) => d.name === moduleName);
+    if (!target) {
       throw new Error(`Module '${moduleName}' is not part of the project`);
     }
 
-    if (version) {
-      // Validate the requested version exists
-      const availableVersions = await this.moduleManager.listAvailableVersions(
-        module,
-        credentials,
-      );
-      if (!availableVersions.includes(version)) {
-        throw new Error(
-          `Version '${version}' is not available for module '${moduleName}'. Available versions: ${availableVersions.join(', ') || 'none'}`,
-        );
-      }
+    const sourceLayer = createSourceLayer();
+    const resolver = createResolver(sourceLayer);
+    const installer = createInstaller(sourceLayer);
 
-      // Validate the version satisfies all existing version range constraints
+    let overrides: Map<string, string> | undefined;
+    if (version) {
+      // Validate the override against any declared ranges for this name.
       const constraints = this.collectConstraints(moduleName);
       if (constraints.length > 0) {
         validateVersionAgainstConstraints(moduleName, version, constraints);
       }
 
-      // Pass the resolved tag via targetRefs so the clone pins to the exact
-      // version without mutating the persisted constraint.
-      const targetRefs = new Map<string, string>([
-        [module.name, versionToTag(version)],
-      ]);
-      return this.moduleManager.updateModule(
-        module,
-        credentials,
-        undefined,
-        targetRefs,
+      // Pre-check that the version is actually available on the remote so
+      // we surface an actionable error before touching the filesystem.
+      const remoteVersions = await sourceLayer.listRemoteVersions(
+        target.source.location,
       );
+      if (remoteVersions.length > 0 && !remoteVersions.includes(version)) {
+        throw new Error(
+          `Version '${version}' is not available for module '${moduleName}'. ` +
+            `Available versions: ${remoteVersions.join(', ') || 'none'}`,
+        );
+      }
+
+      overrides = new Map<string, string>([[moduleName, version]]);
     }
 
-    return this.moduleManager.updateModule(module, credentials);
+    const resolved = await resolver.resolve(declared, {
+      credentials,
+      overrides,
+      tempDir: this.tempModulesDir,
+      onConflict: (event) => {
+        console.warn(
+          `Diamond version conflict for module '${event.name}': ` +
+            `installed version ${event.installedVersion ?? '<unknown>'} ` +
+            `does not satisfy range '${event.rejectingRange}' ` +
+            `(required by ${event.rejectingParent?.name ?? '<unknown parent>'})`,
+        );
+      },
+    });
+
+    await installer.install(this.project, resolved, {
+      credentials,
+      tempDir: this.tempModulesDir,
+    });
+
+    await cleanOrphans(this.project);
   }
 
   /**
-   * Updates all imported modules.
+   * Updates all imported modules (spec's `UpdateModules`, no name).
    * @param credentials Optional credentials for private modules.
    */
   @write(() => 'Update all modules')
   public async updateAllModules(credentials?: Credentials) {
     // Ensure module list is up to date before updating all modules
     await this.fetchCmd.ensureModuleListUpToDate();
-    return this.moduleManager.updateModules(credentials);
+
+    const inventory = createInventory();
+    const declared = inventory.declared(this.project);
+
+    if (declared.length === 0) {
+      // Preserve the legacy "no modules to update" error so callers that
+      // depended on it still observe a failure.
+      throw new Error('No modules in the project!');
+    }
+
+    const sourceLayer = createSourceLayer();
+    const resolver = createResolver(sourceLayer);
+    const installer = createInstaller(sourceLayer);
+
+    const resolved = await resolver.resolve(declared, {
+      credentials,
+      tempDir: this.tempModulesDir,
+      onConflict: (event) => {
+        console.warn(
+          `Diamond version conflict for module '${event.name}': ` +
+            `installed version ${event.installedVersion ?? '<unknown>'} ` +
+            `does not satisfy range '${event.rejectingRange}' ` +
+            `(required by ${event.rejectingParent?.name ?? '<unknown parent>'})`,
+        );
+      },
+    });
+
+    await installer.install(this.project, resolved, {
+      credentials,
+      tempDir: this.tempModulesDir,
+    });
+
+    await cleanOrphans(this.project);
   }
 }
