@@ -57,6 +57,7 @@ const ExportModal = ({
   const { card, exportCard } = useCard(cardKey);
   const [title, setTitle] = React.useState(defaultTitle);
   const [name, setName] = React.useState(defaultFileName);
+  const [version, setVersion] = React.useState('');
   React.useEffect(() => {
     if (card) {
       setTitle(card.title);
@@ -66,6 +67,7 @@ const ExportModal = ({
     setExportChildCards(forceChildExport);
     setTitle(card?.title ?? defaultTitle);
     setName(defaultFileName);
+    setVersion('');
     onClose();
   };
   return (
@@ -99,12 +101,26 @@ const ExportModal = ({
             {t('exportCardNameDescription')}
           </Typography>
 
-          <Checkbox
-            checked={exportChildCards}
-            onChange={(e) => setExportChildCards(e.target.checked)}
-            label={t('exportChildCards')}
-            disabled={forceChildExport}
+          <label htmlFor="version">
+            <Typography>{t('version')}</Typography>
+          </label>
+          <Input
+            fullWidth
+            id="version"
+            value={version}
+            onChange={(e) => setVersion(e.target.value)}
           />
+          <Typography level="body-sm">
+            {t('exportCardVersionDescription')}
+          </Typography>
+
+          {!forceChildExport && (
+            <Checkbox
+              checked={exportChildCards}
+              onChange={(e) => setExportChildCards(e.target.checked)}
+              label={t('exportChildCards')}
+            />
+          )}
         </DialogContent>
         <DialogActions>
           <Button
@@ -114,6 +130,7 @@ const ExportModal = ({
                 title,
                 name,
                 exportChildCards,
+                ...(version && { version }),
               });
               handleClose();
             }}

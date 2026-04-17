@@ -86,6 +86,9 @@ router.get('/', requireRole(UserRole.Reader), async (c) => {
  *       exportChildCards:
  *         type: boolean
  *       description: Whether to export child cards
+ *       version:
+ *         type: string
+ *       description: Version of the exported PDF (optional)
  *     responses:
  *       200:
  *         description: Card exported successfully
@@ -107,6 +110,7 @@ router.post(
         title: body.title,
         name: body.name,
         recursive: body.exportChildCards,
+        version: body.version,
       });
       return new Response(result, {
         status: 200,
