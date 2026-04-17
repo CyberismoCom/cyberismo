@@ -338,11 +338,15 @@ describe('ModuleManager git-based updates', () => {
       'isGitModule',
     ).mockReturnValue(true);
 
-    await manager.updateModule({
-      name: 'mini',
-      location: fakeRemotePath,
-      branch: 'v1.0.0',
-    });
+    await manager.updateModule(
+      {
+        name: 'mini',
+        location: fakeRemotePath,
+      },
+      undefined,
+      undefined,
+      new Map([['mini', 'v1.0.0']]),
+    );
 
     const installedConfig = JSON.parse(
       readFileSync(

@@ -59,13 +59,13 @@
             "description": "Git remote URL, or relative file reference.",
             "type": "string"
           },
-          "branch": {
-            "description": "If using git remote URL in 'location' defines git branch. If empty, uses repository default branch'.",
-            "type": "string"
-          },
           "private": {
             "description": "If true, the module is private and requires credentials (CYBERISMO_GIT_USER / CYBERISMO_GIT_TOKEN) or SSH. Does not apply for local file modules.",
             "type": "boolean"
+          },
+          "version": {
+            "description": "Semver version or range constraint (e.g., '1.0.0', '^1.0.0', '>=1.2.0 <2.0.0'). When omitted, any version is accepted.",
+            "type": "string"
           }
         },
         "required": ["name", "location"]

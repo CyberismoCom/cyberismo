@@ -110,6 +110,9 @@ export interface UpdateCommandOptions extends BaseCommandOptions {
   mappingFile?: string;
 }
 
+// Options for 'checkUpdates' command
+export type CheckUpdatesCommandOptions = BaseCommandOptions;
+
 // Options for 'updateModules' command
 export type UpdateModulesCommandOptions = BaseCommandOptions;
 
@@ -120,6 +123,7 @@ export type ValidateCommandOptions = BaseCommandOptions;
 export type AllCommandOptions =
   | AddCommandOptions
   | CalcCommandOptions
+  | CheckUpdatesCommandOptions
   | CreateCommandOptions
   | EditCommandOptions
   | ExportCommandOptions
@@ -144,6 +148,7 @@ export type AllCommandOptions =
 export type CommandOptions<T extends CmdKey> = {
   add: AddCommandOptions;
   calc: CalcCommandOptions;
+  checkUpdates: CheckUpdatesCommandOptions;
   create: CreateCommandOptions;
   edit: EditCommandOptions;
   export: ExportCommandOptions;
