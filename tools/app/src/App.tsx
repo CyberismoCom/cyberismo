@@ -10,8 +10,8 @@
   details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
+import { useMemo } from 'react';
 import { RouterProvider } from 'react-router';
-import { router } from './routes';
 import { CssBaseline } from '@mui/joy';
 import { SWRConfig } from 'swr';
 import { getSwrConfig } from './lib/swr';
@@ -25,10 +25,12 @@ import { CssVarsProvider as JoyCssVarsProvider } from '@mui/joy/styles';
 import StoreProvider from './providers/StoreProvider';
 import SessionExpiredBanner from './components/SessionExpiredBanner';
 import './lib/i18n';
+import { createAppRouter } from './routes';
 
 const materialTheme = createTheme();
 
 function App() {
+  const router = useMemo(() => createAppRouter(), []);
   return (
     <ThemeProvider theme={{ [MATERIAL_THEME_ID]: materialTheme }}>
       <JoyCssVarsProvider

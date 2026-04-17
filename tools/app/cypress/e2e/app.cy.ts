@@ -11,6 +11,7 @@ describe('Navigation', () => {
 
   beforeEach(() => {
     cy.visit('');
+    cy.url().should('include', '/projects/');
   });
 
   it('delete page and verify empty project', () => {
