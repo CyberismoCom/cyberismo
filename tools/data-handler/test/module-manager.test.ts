@@ -2,17 +2,9 @@
 import { expect, describe, it, beforeEach, afterEach, vi } from 'vitest';
 
 // node
-import {
-  mkdirSync,
-  rmSync,
-  writeFileSync,
-  readFileSync,
-  existsSync,
-} from 'node:fs';
+import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import * as os from 'node:os';
-
-import { simpleGit } from 'simple-git';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { CommandManager } from '../src/command-manager.js';
@@ -76,7 +68,9 @@ describe('module-manager', () => {
       expect(modules.length).equals(1);
     }
   }, 60000);
-  it('try to import duplicate local modules', async () => {
+  it('re-importing a local module is upsert (spec ImportModule)', async () => {
+    // Spec: re-importing a module with the same source is an upsert of the
+    // declaration's range, not a hard error.
     const localModule = join(testDir, 'valid/minimal');
     await commands.importCmd.importModule(
       localModule,
@@ -84,19 +78,19 @@ describe('module-manager', () => {
     );
     await expect(
       commands.importCmd.importModule(localModule, commands.project.basePath),
-    ).rejects.toThrow(
-      `Imported project has a prefix 'mini' that is already used in the project. Cannot import from module.`,
-    );
+    ).resolves.not.toThrow();
+    const modules = await commands.showCmd.showModules();
+    expect(modules.length).equals(1);
   });
-  it('try to import duplicate git modules', async () => {
+  it('re-importing a git module is upsert (spec ImportModule)', async () => {
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';
     await commands.importCmd.importModule(gitModule, commands.project.basePath);
 
     await expect(
       commands.importCmd.importModule(gitModule, commands.project.basePath),
-    ).rejects.toThrow(
-      `Imported project has a prefix 'base' that is already used in the project. Cannot import from module.`,
-    );
+    ).resolves.not.toThrow();
+    const modules = await commands.showCmd.showModules();
+    expect(modules.length).equals(1);
   }, 60000);
   it('try to import from incorrect local path', async () => {
     const localModule = join(testDir, 'valid/i-do-not-exist');
@@ -231,139 +225,10 @@ describe('ModuleManager.listAvailableVersions', () => {
   });
 });
 
-describe('ModuleManager git-based updates', () => {
-  const baseDir = import.meta.dirname;
-  const testDir = join(baseDir, 'tmp-module-manager-git-update-tests');
-  const decisionRecordsPath = join(testDir, 'valid/decision-records');
-  const fakeRemotePath = join(testDir, 'fake-remote');
-  let commands: CommandManager;
-
-  async function setupFakeRemote() {
-    mkdirSync(fakeRemotePath, { recursive: true });
-    await copyDir('test/test-data/valid/minimal', fakeRemotePath);
-
-    const git = simpleGit(fakeRemotePath, {
-      config: ['user.name=Test', 'user.email=test@test.com'],
-    });
-    await git.init();
-
-    // v1.0.0: just the base minimal structure with a version field
-    const configPath = join(
-      fakeRemotePath,
-      '.cards',
-      'local',
-      'cardsConfig.json',
-    );
-    const config = JSON.parse(readFileSync(configPath, 'utf-8'));
-    config.version = '1.0.0';
-    writeFileSync(configPath, JSON.stringify(config, null, 2));
-
-    await git.add('.');
-    await git.commit('Initial commit');
-    await git.addAnnotatedTag('v1.0.0', 'Version 1.0.0');
-
-    // v2.0.0: bump version and add a new card type
-    config.version = '2.0.0';
-    writeFileSync(configPath, JSON.stringify(config, null, 2));
-    writeFileSync(
-      join(fakeRemotePath, '.cards', 'local', 'cardTypes', 'newCardtype.json'),
-      JSON.stringify(
-        {
-          name: 'mini/cardTypes/newCardtype',
-          displayName: 'New Card Type',
-          workflow: 'mini/workflows/minimal',
-        },
-        null,
-        2,
-      ),
-    );
-
-    await git.add('.');
-    await git.commit('Bump to v2.0.0');
-    await git.addAnnotatedTag('v2.0.0', 'Version 2.0.0');
-  }
-
-  beforeEach(async () => {
-    mkdirSync(testDir, { recursive: true });
-    await copyDir('test/test-data/', testDir);
-    await setupFakeRemote();
-    commands = new CommandManager(decisionRecordsPath, {
-      autoSaveConfiguration: false,
-    });
-    await commands.initialize();
-    // Import the minimal module so the project has an initial 'mini' state to update from
-    await commands.importCmd.importModule(
-      join(testDir, 'valid/minimal'),
-      commands.project.basePath,
-    );
-  });
-
-  afterEach(() => {
-    rmSync(testDir, { recursive: true, force: true });
-    vi.restoreAllMocks();
-  });
-
-  it('updates module files to HEAD', async () => {
-    const manager = new ModuleManager(commands.project);
-    vi.spyOn(
-      manager as unknown as { isGitModule: (m: ModuleSetting) => boolean },
-      'isGitModule',
-    ).mockReturnValue(true);
-
-    await manager.updateModule({ name: 'mini', location: fakeRemotePath });
-
-    const installedConfig = JSON.parse(
-      readFileSync(
-        join(commands.project.paths.modulesFolder, 'mini', 'cardsConfig.json'),
-        'utf-8',
-      ),
-    );
-    expect(installedConfig.version).toBe('2.0.0');
-    expect(
-      existsSync(
-        join(
-          commands.project.paths.modulesFolder,
-          'mini',
-          'cardTypes',
-          'newCardtype.json',
-        ),
-      ),
-    ).toBe(true);
-  });
-
-  it('updates module files to a specific tagged version', async () => {
-    const manager = new ModuleManager(commands.project);
-    vi.spyOn(
-      manager as unknown as { isGitModule: (m: ModuleSetting) => boolean },
-      'isGitModule',
-    ).mockReturnValue(true);
-
-    await manager.updateModule(
-      {
-        name: 'mini',
-        location: fakeRemotePath,
-      },
-      undefined,
-      undefined,
-      new Map([['mini', 'v1.0.0']]),
-    );
-
-    const installedConfig = JSON.parse(
-      readFileSync(
-        join(commands.project.paths.modulesFolder, 'mini', 'cardsConfig.json'),
-        'utf-8',
-      ),
-    );
-    expect(installedConfig.version).toBe('1.0.0');
-    expect(
-      existsSync(
-        join(
-          commands.project.paths.modulesFolder,
-          'mini',
-          'cardTypes',
-          'newCardtype.json',
-        ),
-      ),
-    ).toBe(false);
-  });
-});
+// The `ModuleManager git-based updates` suite previously lived here and
+// exercised `ModuleManager.prototype.updateModule` + the private
+// `isGitModule` probe. That method was removed in the Phase 8 rewire —
+// update orchestration now lives in `commands/import.ts` backed by the
+// `modules/resolver.ts` + `modules/installer.ts` layers. Equivalent
+// integration coverage (update to HEAD, update to a specific tag) belongs
+// on the new layers and will land with Phase 10's `command-update.test.ts`.

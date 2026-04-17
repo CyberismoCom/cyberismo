@@ -14,7 +14,8 @@
 import { ActionGuard } from '../permissions/action-guard.js';
 import { isModuleCard, isExternalItemKey } from '../utils/card-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
-import { ModuleManager } from '../module-manager.js';
+import { createInventory } from '../modules/inventory.js';
+import { cleanOrphans } from '../modules/orphans.js';
 import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
 import type { RemovableResourceTypes } from '../interfaces/project-interfaces.js';
@@ -25,7 +26,6 @@ import { write } from '../utils/rw-lock.js';
  * Remove command.
  */
 export class Remove {
-  private moduleManager: ModuleManager;
   private get logger() {
     return getChildLogger({ module: 'remove' });
   }
@@ -36,9 +36,7 @@ export class Remove {
   constructor(
     private project: Project,
     private fetchCmd: Fetch,
-  ) {
-    this.moduleManager = new ModuleManager(this.project);
-  }
+  ) {}
 
   // True, if resource is a project resource
   private projectResource(type: RemovableResourceTypes): boolean {
@@ -315,9 +313,33 @@ export class Remove {
           rest.at(2),
           rest.at(3),
         );
-      else if (type === 'module')
-        return this.moduleManager.removeModule(targetName);
+      else if (type === 'module') return this.removeModule(targetName);
     }
     throw new Error(`Unknown resource type '${type}'`);
+  }
+
+  /**
+   * Remove a top-level module declaration and cascade orphan cleanup to a
+   * fixed point per the spec's `RemoveModule` rule. Transitive-only
+   * modules (no top-level declaration) cannot be removed directly — their
+   * lifetime is controlled by the parent installation.
+   */
+  private async removeModule(targetName: string) {
+    const inventory = createInventory();
+    const declaration = inventory
+      .declared(this.project)
+      .find((d) => d.name === targetName);
+    if (!declaration) {
+      throw new Error(`Module '${targetName}' is not part of the project`);
+    }
+
+    // Delete the top-level declaration (removes it from cardsConfig.json
+    // and invalidates the project's module cache).
+    await this.project.removeModule(targetName);
+
+    // Fixed-point orphan cascade: removes this module's installation
+    // (now orphaned) plus any transitives it owned that nothing else
+    // references. Enforces `NoOrphanInstallations` after the mutation.
+    await cleanOrphans(this.project);
   }
 }

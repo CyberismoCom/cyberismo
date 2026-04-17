@@ -12,8 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { join } from 'node:path';
-
+import { ProjectPaths } from '../containers/project/project-paths.js';
 import { readJsonFile } from '../utils/json.js';
 import { pickVersion, satisfies, versionToTag } from './version.js';
 import { toVersion, toVersionRange } from './types.js';
@@ -180,9 +179,12 @@ function buildRemoteUrl(
  * inspected here. The returned value is cast to the concrete
  * {@link ProjectConfiguration} type for documentation, but no class
  * methods are invoked.
+ *
+ * The config file lives at `<path>/.cards/local/cardsConfig.json` —
+ * mirrored by {@link ProjectPaths.configurationFile}.
  */
 async function readConfig(path: string): Promise<ProjectConfiguration> {
-  const configPath = join(path, 'cardsConfig.json');
+  const configPath = new ProjectPaths(path).configurationFile;
   const config = (await readJsonFile(configPath)) as
     | ProjectConfiguration
     | undefined;

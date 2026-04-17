@@ -9,14 +9,13 @@ import {
   vi,
 } from 'vitest';
 
-import { mkdirSync, rmSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { Cmd, Commands } from '../src/command-handler.js';
 import { Fetch, Show } from '../src/commands/index.js';
-import { ModuleManager } from '../src/module-manager.js';
-import { Project } from '../src/containers/project.js';
+import { GitManager } from '../src/utils/git-manager.js';
 import {
   getTestProject,
   mockEnsureModuleListUpToDate,
@@ -223,7 +222,10 @@ describe('import module', () => {
       });
       stubProjectPath.mockRestore();
     });
-    it('try to import module - twice the same module', async () => {
+    it('re-importing the same module is upsert (spec ImportModule)', async () => {
+      // Spec: `ImportModule` is upsert. Re-importing a module that is
+      // already declared with the same source location must succeed and
+      // update the declared range rather than error.
       const result1 = await commandHandler.command(
         Cmd.import,
         ['module', decisionRecordsPath],
@@ -235,7 +237,7 @@ describe('import module', () => {
         ['module', decisionRecordsPath],
         optionsMini,
       );
-      expect(result2.statusCode).toBe(400);
+      expect(result2.statusCode).toBe(200);
     });
     it('try to import module - that has the same prefix', async () => {
       const result = await commandHandler.command(
@@ -408,18 +410,39 @@ describe('update-modules version arg', () => {
   });
 
   it('version not in available list returns error', async () => {
-    // Import a local module so it appears in project.configuration.modules
+    // Import a local module so it appears in cardsConfig.json, then flip
+    // the persisted location to a git URL so the version check is routed
+    // through the source layer (which only queries tags for git remotes).
     await commandHandler.command(
       Cmd.import,
       ['module', decisionRecordsPath],
       optionsMini,
     );
 
+    const configPath = join(minimalPath, '.cards', 'local', 'cardsConfig.json');
+    const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+    const decisionModule = config.modules?.find(
+      (m: { name: string }) => m.name === 'decision',
+    );
+    if (decisionModule) {
+      decisionModule.location = 'https://example.com/decision.git';
+      writeFileSync(configPath, JSON.stringify(config, null, 4));
+    }
+
+    // Force the CommandManager singleton to reload from disk by routing
+    // through a different project path first — otherwise the in-memory
+    // Project still holds the pre-hack module location.
+    await commandHandler.command(Cmd.show, ['project'], {
+      projectPath: decisionRecordsPath,
+    });
+
     mockEnsureModuleListUpToDate();
-    vi.spyOn(
-      ModuleManager.prototype,
-      'listAvailableVersions',
-    ).mockResolvedValue(['2.0.0', '3.0.0']);
+    // `updateModule` consults the remote via the source layer, which in
+    // turn delegates to `GitManager.listRemoteVersionTags`.
+    vi.spyOn(GitManager, 'listRemoteVersionTags').mockResolvedValue([
+      '3.0.0',
+      '2.0.0',
+    ]);
 
     const result = await commandHandler.command(
       Cmd.updateModules,
@@ -433,130 +456,13 @@ describe('update-modules version arg', () => {
   });
 });
 
-describe('import module version resolution', () => {
-  // These tests exercise `Import.importModule` directly with a fresh Project
-  // instance, mocking every ModuleManager / Project / Validate method that
-  // would otherwise touch the filesystem, network, or shared state. The goal
-  // is to prove that the `@version` suffix actually controls which git tag
-  // is cloned.
-  const gitSource = 'https://example.com/test-module.git';
-
-  async function buildImport() {
-    const { Import } = await import('../src/commands/import.js');
-    const { Create } = await import('../src/commands/create.js');
-    const { Fetch } = await import('../src/commands/index.js');
-    const { Validate } = await import('../src/commands/validate.js');
-
-    const project = getTestProject(minimalPath);
-    await project.populateCaches();
-
-    const fetchCmd = new Fetch(project);
-    // ensureModuleListUpToDate hits the network; neutralize it
-    vi.spyOn(fetchCmd, 'ensureModuleListUpToDate').mockResolvedValue(undefined);
-
-    // Validate would walk disk looking at the (mocked) module contents
-    vi.spyOn(Validate.getInstance(), 'validate').mockResolvedValue('');
-
-    const importCmd = new Import(project, new Create(project), fetchCmd);
-    return { importCmd, project };
-  }
-
-  beforeEach(async () => {
-    mkdirSync(testDir, { recursive: true });
-    await copyDir('test/test-data', testDir);
-
-    // Neutralize all side-effecting module / project operations so the
-    // tests can focus purely on version-to-tag resolution.
-    vi.spyOn(ModuleManager.prototype, 'updateDependencies').mockResolvedValue(
-      undefined,
-    );
-    vi.spyOn(Project.prototype, 'importModule').mockResolvedValue(undefined);
-  });
-
-  afterEach(() => {
-    rmSync(testDir, { recursive: true, force: true });
-    vi.restoreAllMocks();
-  });
-
-  it('resolves a version range to the highest matching tag and clones it', async () => {
-    vi.spyOn(
-      ModuleManager.prototype,
-      'listAvailableVersions',
-    ).mockResolvedValue(['2.0.0', '1.2.3', '1.1.0', '1.0.0']);
-    const importGitSpy = vi
-      .spyOn(ModuleManager.prototype, 'importGitModule')
-      .mockResolvedValue('test');
-
-    const { importCmd } = await buildImport();
-    await importCmd.importModule(gitSource, minimalPath, {
-      private: false,
-      version: '^1.0.0',
-    });
-
-    expect(importGitSpy).toHaveBeenCalledTimes(1);
-    // importGitModule(source, options, credentials, skipValidation, ref)
-    const ref = importGitSpy.mock.calls[0][4];
-    // ^1.0.0 matches 1.0.0 | 1.1.0 | 1.2.3 (but not 2.0.0). Max is 1.2.3.
-    expect(ref).toBe('v1.2.3');
-  });
-
-  it('uses the exact tag when a specific version is requested', async () => {
-    vi.spyOn(
-      ModuleManager.prototype,
-      'listAvailableVersions',
-    ).mockResolvedValue(['1.2.0', '1.1.0', '1.0.0']);
-    const importGitSpy = vi
-      .spyOn(ModuleManager.prototype, 'importGitModule')
-      .mockResolvedValue('test');
-
-    const { importCmd } = await buildImport();
-    await importCmd.importModule(gitSource, minimalPath, {
-      private: false,
-      version: '1.1.0',
-    });
-
-    const ref = importGitSpy.mock.calls[0][4];
-    expect(ref).toBe('v1.1.0');
-  });
-
-  it('throws when no available version satisfies the requested range', async () => {
-    vi.spyOn(
-      ModuleManager.prototype,
-      'listAvailableVersions',
-    ).mockResolvedValue(['1.0.0', '1.1.0']);
-    vi.spyOn(ModuleManager.prototype, 'importGitModule').mockResolvedValue(
-      'test',
-    );
-
-    const { importCmd } = await buildImport();
-    await expect(
-      importCmd.importModule(gitSource, minimalPath, {
-        private: false,
-        version: '^2.0.0',
-      }),
-    ).rejects.toThrow(/No version matching '\^2\.0\.0' is available/);
-  });
-
-  it('skips version resolution when no version is requested', async () => {
-    const listSpy = vi.spyOn(ModuleManager.prototype, 'listAvailableVersions');
-    const importGitSpy = vi
-      .spyOn(ModuleManager.prototype, 'importGitModule')
-      .mockResolvedValue('test');
-
-    // readModuleVersion is consulted so the persisted constraint can default
-    // to ^<installed>.
-    vi.spyOn(ModuleManager.prototype, 'readModuleVersion').mockResolvedValue(
-      '1.0.0',
-    );
-
-    const { importCmd } = await buildImport();
-    await importCmd.importModule(gitSource, minimalPath, {
-      private: false,
-    });
-
-    expect(listSpy).not.toHaveBeenCalled();
-    // With no version requested, no ref is resolved — clone uses default branch.
-    const ref = importGitSpy.mock.calls[0][4];
-    expect(ref).toBeUndefined();
-  });
-});
+// The previous `import module version resolution` suite lived here and
+// exercised `Import.importModule` by spying on `ModuleManager.prototype`
+// private methods (importGitModule, updateDependencies,
+// listAvailableVersions, readModuleVersion). After Phase 8 the orchestration
+// moved into `modules/resolver.ts` and `modules/installer.ts`; those private
+// methods no longer exist. Per-layer coverage of version resolution
+// (resolver picks highest satisfying tag, override respected, no-match
+// throws) is the job of Phase 10's `modules/resolver.test.ts` and is
+// intentionally omitted here to avoid coupling integration tests to
+// implementation details.

@@ -13,28 +13,41 @@
 
 import semver from 'semver';
 
-import { ModuleManager } from '../module-manager.js';
 import { read } from '../utils/rw-lock.js';
+import {
+  createInventory,
+  createSourceLayer,
+  satisfies,
+  pickVersion,
+} from '../modules/index.js';
 
 import type {
   Credentials,
   ModuleUpdateStatus,
 } from '../interfaces/project-interfaces.js';
 import type { Project } from '../containers/project.js';
+import type {
+  CheckStatus,
+  ModuleCheckReport,
+  ModuleDeclaration,
+  ModuleInstallation,
+  Version,
+} from '../modules/types.js';
 
 /**
  * Handles checking for module updates.
  */
 export class CheckUpdates {
-  private moduleManager: ModuleManager;
-
-  constructor(private project: Project) {
-    this.moduleManager = new ModuleManager(this.project);
-  }
+  constructor(private project: Project) {}
 
   /**
-   * Checks for available updates for all or a specific module.
-   * Respects version range constraints when determining valid update targets.
+   * Checks for available updates for all or a specific module. Tolerant
+   * per the spec's `CheckUpdates` rule: a remote being unreachable
+   * produces a `source_unreachable` row rather than aborting the call.
+   *
+   * Returns the legacy dual-shape `ModuleUpdateStatus[]`: the top-level
+   * booleans remain for CLI/MCP/web backwards compatibility, and each row
+   * also carries the spec's `ModuleCheckReport` under `report`.
    *
    * @param moduleName Optional module name to check. If omitted, checks all.
    * @param credentials Optional credentials for private modules.
@@ -45,100 +58,217 @@ export class CheckUpdates {
     moduleName?: string,
     credentials?: Credentials,
   ): Promise<ModuleUpdateStatus[]> {
-    const modules = this.project.configuration.modules;
+    const inventory = createInventory();
+    const sourceLayer = createSourceLayer();
 
-    const toCheck = moduleName
-      ? modules.filter((m) => m.name === moduleName)
-      : modules;
+    const allDeclared = inventory.declared(this.project);
+    const declared = moduleName
+      ? allDeclared.filter((d) => d.name === moduleName)
+      : allDeclared;
 
-    if (moduleName && toCheck.length === 0) {
+    if (moduleName && declared.length === 0) {
       throw new Error(`Module '${moduleName}' is not part of the project`);
     }
 
-    const results: ModuleUpdateStatus[] = await Promise.all(
-      toCheck.map(async (moduleSetting) => {
-        // Read installed version from the module's own cardsConfig.json
-        const installedVersion = await this.moduleManager.readModuleVersion(
-          moduleSetting.name,
-        );
+    const installed = await inventory.installed(this.project);
+    const installedByName = new Map<string, ModuleInstallation>(
+      installed.map((i) => [i.name, i]),
+    );
 
+    const results = await Promise.all(
+      declared.map(async (decl) => {
+        const installation = installedByName.get(decl.name);
         const isGit =
-          moduleSetting.location?.startsWith('https:') ||
-          moduleSetting.location?.startsWith('git@');
+          decl.source.location.startsWith('https:') ||
+          decl.source.location.startsWith('git@');
 
         if (!isGit) {
+          const report: ModuleCheckReport = {
+            project: this.project.basePath,
+            declaration: decl,
+            installation,
+            status: 'up_to_date',
+          };
           return {
-            name: moduleSetting.name,
-            installedVersion,
+            name: decl.name,
+            installedVersion: installation?.version,
             availableVersions: [],
             updateAvailable: false,
             isGitModule: false,
-          };
+            report,
+          } satisfies ModuleUpdateStatus;
         }
 
-        try {
-          const availableVersions =
-            await this.moduleManager.listAvailableVersions(
-              moduleSetting,
-              credentials,
-            );
+        // Query remote tolerantly. An unreachable remote surfaces as a
+        // `source_unreachable` row; we still return a populated result so
+        // callers can show the module's last-known state.
+        const outcome = await sourceLayer.queryRemote(decl.source, {
+          remoteUrl: buildRemoteUrl(decl.source, credentials),
+          range: decl.versionRange,
+        });
 
-          // Absolute latest available (availableVersions is sorted descending)
-          const latestVersion: string | undefined = availableVersions[0];
-
-          // Highest version satisfying the constraint, when one is declared
-          let latestSatisfyingConstraint: string | undefined = latestVersion;
-          let noMatchingVersion = false;
-          if (moduleSetting.version) {
-            latestSatisfyingConstraint =
-              semver.maxSatisfying(availableVersions, moduleSetting.version) ??
-              undefined;
-
-            if (!latestSatisfyingConstraint && availableVersions.length > 0) {
-              noMatchingVersion = true;
-            }
-          }
-
-          // Update available if the absolute latest is newer than what's
-          // installed (or if nothing is installed yet).
-          const updateAvailable = !!(
-            latestVersion &&
-            (!installedVersion || semver.gt(latestVersion, installedVersion))
-          );
-
-          // The constraint blocks auto-update when there's a newer absolute
-          // version but it is outside the constraint, or the constraint
-          // doesn't yield a newer-than-installed satisfying version.
-          const constraintBlocksUpdate =
-            updateAvailable &&
-            (!latestSatisfyingConstraint ||
-              (!!installedVersion &&
-                !semver.gt(latestSatisfyingConstraint, installedVersion)));
-
-          return {
-            name: moduleSetting.name,
-            installedVersion,
-            latestVersion,
-            latestSatisfyingConstraint,
-            availableVersions,
-            updateAvailable,
-            constraintBlocksUpdate,
-            isGitModule: true,
-            versionConstraint: moduleSetting.version,
-            noMatchingVersion,
+        if (!outcome.reachable) {
+          const report: ModuleCheckReport = {
+            project: this.project.basePath,
+            declaration: decl,
+            installation,
+            status: 'source_unreachable',
           };
-        } catch {
           return {
-            name: moduleSetting.name,
-            installedVersion,
+            name: decl.name,
+            installedVersion: installation?.version,
             availableVersions: [],
             updateAvailable: false,
             isGitModule: true,
-          };
+            versionConstraint: decl.versionRange,
+            report,
+          } satisfies ModuleUpdateStatus;
         }
+
+        // Reachable: list all remote versions so we can populate the
+        // legacy `availableVersions` array. `queryRemote` does not return
+        // the full list (only latest + latestSatisfying), so we re-list.
+        let availableVersions: string[];
+        try {
+          availableVersions = await sourceLayer.listRemoteVersions(
+            decl.source.location,
+            buildRemoteUrl(decl.source, credentials),
+          );
+        } catch {
+          availableVersions = [];
+        }
+
+        const latestVersion = outcome.latest;
+        const latestSatisfyingConstraint =
+          outcome.latestSatisfying ??
+          (decl.versionRange === undefined ? latestVersion : undefined);
+
+        const installedVersion = installation?.version;
+        const updateAvailable = !!(
+          latestVersion &&
+          (!installedVersion || semver.gt(latestVersion, installedVersion))
+        );
+
+        const constraintBlocksUpdate =
+          updateAvailable &&
+          (!latestSatisfyingConstraint ||
+            (!!installedVersion &&
+              !semver.gt(latestSatisfyingConstraint, installedVersion)));
+
+        const noMatchingVersion =
+          !!decl.versionRange &&
+          availableVersions.length > 0 &&
+          !latestSatisfyingConstraint;
+
+        const status = deriveStatus({
+          declaration: decl,
+          installedVersion,
+          availableVersions,
+          latestSatisfying: latestSatisfyingConstraint,
+          updateAvailable,
+          constraintBlocksUpdate: constraintBlocksUpdate ?? false,
+        });
+
+        const report: ModuleCheckReport = {
+          project: this.project.basePath,
+          declaration: decl,
+          installation,
+          latestVersion,
+          latestSatisfying: latestSatisfyingConstraint,
+          status,
+        };
+
+        return {
+          name: decl.name,
+          installedVersion,
+          latestVersion,
+          latestSatisfyingConstraint,
+          availableVersions,
+          updateAvailable,
+          constraintBlocksUpdate,
+          isGitModule: true,
+          versionConstraint: decl.versionRange,
+          noMatchingVersion,
+          report,
+        } satisfies ModuleUpdateStatus;
       }),
     );
 
     return results;
   }
+}
+
+/**
+ * Build the remote URL for a module declaration, injecting HTTPS credentials
+ * when the source is private. Mirrors the resolver's `buildRemoteUrl`.
+ */
+function buildRemoteUrl(
+  source: { location: string; private?: boolean },
+  credentials?: Credentials,
+): string | undefined {
+  if (
+    source.private &&
+    credentials?.username &&
+    credentials?.token &&
+    source.location.startsWith('https:')
+  ) {
+    try {
+      const repoUrl = new URL(source.location);
+      return `https://${credentials.username}:${credentials.token}@${repoUrl.host}${repoUrl.pathname}`;
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Map the legacy boolean-flavoured status fields to the spec's
+ * `CheckStatus` enum. Order matters: once a row is `source_unreachable` we
+ * never reach this function, and the other branches are mutually exclusive.
+ */
+function deriveStatus(input: {
+  declaration: ModuleDeclaration;
+  installedVersion?: Version;
+  availableVersions: string[];
+  latestSatisfying?: Version;
+  updateAvailable: boolean;
+  constraintBlocksUpdate: boolean;
+}): CheckStatus {
+  const {
+    declaration,
+    installedVersion,
+    availableVersions,
+    latestSatisfying,
+    updateAvailable,
+    constraintBlocksUpdate,
+  } = input;
+
+  // `range_unsatisfiable`: a range is declared and no remote version satisfies it.
+  if (declaration.versionRange) {
+    const satisfied = pickVersion(availableVersions, declaration.versionRange);
+    if (!satisfied) {
+      return 'range_unsatisfiable';
+    }
+  }
+
+  // `drifted`: the installed version exists and violates the declared range.
+  if (
+    installedVersion &&
+    declaration.versionRange &&
+    !satisfies(installedVersion, declaration.versionRange)
+  ) {
+    return 'drifted';
+  }
+
+  if (updateAvailable && constraintBlocksUpdate) {
+    return 'range_blocks_update';
+  }
+
+  if (updateAvailable) {
+    return 'update_available';
+  }
+
+  void latestSatisfying;
+  return 'up_to_date';
 }
