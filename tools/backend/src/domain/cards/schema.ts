@@ -44,6 +44,7 @@ export const exportCardPdfSchema = z.object({
   name: z.string().min(1),
   cardKey: z.string(),
   exportChildCards: z.boolean(),
+  version: z.string().min(1).optional(),
 });
 
 export type ExportCardPdfRequestBody = z.infer<typeof exportCardPdfSchema>;

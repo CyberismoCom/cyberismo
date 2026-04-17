@@ -23,7 +23,7 @@ import { createLink, removeLink, updateLink } from './actions';
 import type { LinkDirection } from '@cyberismo/data-handler/types/queries';
 import type { CardAction } from './action-types';
 import { setRecentlyCreated } from '../slices/card';
-import { addNotification } from '../slices/notifications';
+import { addNotification, removeNotification } from '../slices/notifications';
 import { useTranslation } from 'react-i18next';
 import type { Card } from '@cyberismo/data-handler/interfaces/project-interfaces';
 
@@ -183,9 +183,14 @@ export const useCardMutations = (key: string | null) => {
       title,
       name,
       exportChildCards,
+      version,
     }: ExportCardParams) => {
       return call(
-        () => exportCard({ cardKey, title, exportChildCards, name }, dispatch),
+        () =>
+          exportCard(
+            { cardKey, title, exportChildCards, name, version },
+            dispatch,
+          ),
         'exportCard',
       );
     },
@@ -241,11 +246,19 @@ type ExportCardParams = {
   title: string;
   name: string;
   exportChildCards: boolean;
+  version?: string;
 };
 async function exportCard(
-  { cardKey, title, exportChildCards, name }: ExportCardParams,
+  { cardKey, title, exportChildCards, name, version }: ExportCardParams,
   dispatch: ReturnType<typeof useAppDispatch>,
 ) {
+  const progressNotification = dispatch(
+    addNotification({
+      message: `Exporting ${title} to PDF...`,
+      type: 'info',
+      disableAutoClose: true,
+    }),
+  );
   try {
     const swrKey = apiPaths.exportCard();
     const result = await fetch(swrKey, {
@@ -255,6 +268,7 @@ async function exportCard(
         title,
         exportChildCards,
         name,
+        ...(version && { version }),
       }),
       headers: {
         'Content-Type': 'application/json',
@@ -270,6 +284,7 @@ async function exportCard(
     a.download = `${name}.pdf`;
     a.click();
     URL.revokeObjectURL(url);
+    dispatch(removeNotification(progressNotification.payload.id));
     dispatch(
       addNotification({
         message: `Successfully exported card to PDF (${name}.pdf)`,
@@ -278,6 +293,7 @@ async function exportCard(
     );
     return true;
   } catch (error) {
+    dispatch(removeNotification(progressNotification.payload.id));
     dispatch(
       addNotification({
         message: error instanceof Error ? error.message : '',
