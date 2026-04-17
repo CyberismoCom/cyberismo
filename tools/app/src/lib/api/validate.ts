@@ -12,15 +12,16 @@
 */
 
 import type { SWRConfiguration } from 'swr';
-import { apiPaths } from '../swr';
+import { projectApiPaths } from '../swr';
 import { useSWRHook } from './common';
 
 export const useValidateResource = (
   resourceName: string,
   options?: SWRConfiguration,
+  projectPrefix?: string,
 ) =>
   useSWRHook<'validateResource'>(
-    apiPaths.validateResource(resourceName),
+    projectApiPaths(projectPrefix).validateResource(resourceName),
     'validateResource',
     null,
     options,

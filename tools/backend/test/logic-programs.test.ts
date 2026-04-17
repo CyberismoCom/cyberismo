@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
+import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 
 const fileUrl = fileURLToPath(import.meta.url);
@@ -17,12 +18,15 @@ beforeAll(async () => {
       '../../data-handler/test/test-data/valid/decision-records',
     ),
   );
-  app = createApp(new MockAuthProvider(), commands);
+  app = createApp(
+    new MockAuthProvider(),
+    ProjectRegistry.fromCommandManager(commands),
+  );
 });
 
 test('/api/logicPrograms returns logic program for a valid card', async () => {
   const response = await app.request(
-    '/api/logicPrograms/decision/cards/decision_5',
+    '/api/projects/decision/logicPrograms/decision/cards/decision_5',
   );
   expect(response).not.toBe(null);
   expect(response.status).toBe(200);
@@ -35,7 +39,7 @@ test('/api/logicPrograms returns logic program for a valid card', async () => {
 
 test('/api/logicPrograms returns logic program for a valid card type resource', async () => {
   const response = await app.request(
-    '/api/logicPrograms/decision/cardTypes/decision',
+    '/api/projects/decision/logicPrograms/decision/cardTypes/decision',
   );
   expect(response).not.toBe(null);
   expect(response.status).toBe(200);
@@ -48,7 +52,7 @@ test('/api/logicPrograms returns logic program for a valid card type resource', 
 
 test('/api/logicPrograms returns error for non-existent card', async () => {
   const response = await app.request(
-    '/api/logicPrograms/decision/cards/nonexistent_card',
+    '/api/projects/decision/logicPrograms/decision/cards/nonexistent_card',
   );
   expect(response).not.toBe(null);
   expect(response.status).toBe(500);
@@ -60,7 +64,7 @@ test('/api/logicPrograms returns error for non-existent card', async () => {
 
 test('/api/logicPrograms returns error for non-existent resource', async () => {
   const response = await app.request(
-    '/api/logicPrograms/decision/cardTypes/nonexistent',
+    '/api/projects/decision/logicPrograms/decision/cardTypes/nonexistent',
   );
   expect(response).not.toBe(null);
   expect(response.status).toBe(500);

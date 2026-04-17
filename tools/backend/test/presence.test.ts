@@ -1,6 +1,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, test } from 'vitest';
 import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
+import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { presenceStore } from '../src/domain/cards/presence.js';
 import { UserRole } from '../src/types.js';
@@ -14,7 +15,10 @@ beforeAll(async () => {
   process.argv = [];
   tempTestDataPath = await createTempTestData('decision-records');
   const commands = await CommandManager.getInstance(tempTestDataPath);
-  app = createApp(new MockAuthProvider(), commands);
+  app = createApp(
+    new MockAuthProvider(),
+    ProjectRegistry.fromCommandManager(commands),
+  );
 });
 
 afterAll(async () => {
@@ -42,10 +46,10 @@ function parseSSEEvents(
     });
 }
 
-describe('GET /api/cards/:key/presence', () => {
+describe('GET /api/projects/:prefix/cards/:key/presence', () => {
   test('returns 200 with text/event-stream content type', async () => {
     const response = await app.request(
-      '/api/cards/decision_5/presence?mode=viewing',
+      '/api/projects/decision/cards/decision_5/presence?mode=viewing',
     );
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toContain('text/event-stream');
@@ -53,7 +57,7 @@ describe('GET /api/cards/:key/presence', () => {
 
   test('emits an initial presence event with the connected user', async () => {
     const response = await app.request(
-      '/api/cards/decision_5/presence?mode=editing',
+      '/api/projects/decision/cards/decision_5/presence?mode=editing',
     );
     expect(response.status).toBe(200);
 
@@ -88,7 +92,9 @@ describe('GET /api/cards/:key/presence', () => {
   });
 
   test('defaults mode to viewing when not specified', async () => {
-    const response = await app.request('/api/cards/decision_5/presence');
+    const response = await app.request(
+      '/api/projects/decision/cards/decision_5/presence',
+    );
     expect(response.status).toBe(200);
 
     const reader = response.body!.getReader();

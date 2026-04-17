@@ -1,9 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
 import { Hono } from 'hono';
-import { attachCommandManager } from '../../src/middleware/commandManager.js';
+import {
+  attachCommandManager,
+  attachProjectRegistry,
+} from '../../src/middleware/commandManager.js';
 import type { CommandManager } from '@cyberismo/data-handler';
 import { UserRole } from '../../src/types.js';
 import type { UserInfo } from '../../src/types.js';
+import { ProjectRegistry } from '../../src/project-registry.js';
 
 const testUser: UserInfo = {
   id: 'user-1',
@@ -38,7 +42,10 @@ describe('attachCommandManager', () => {
 
     const res = await app.request('/test');
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as {
+      hasCommands: boolean;
+      projectPath: string;
+    };
     expect(body.hasCommands).toBe(true);
     expect(body.projectPath).toBe('/tmp/test-project');
   });
@@ -73,5 +80,102 @@ describe('attachCommandManager', () => {
     const res = await app.request('/test');
     expect(res.status).toBe(500);
     expect(commands.runAsAuthor).not.toHaveBeenCalled();
+  });
+});
+
+describe('attachProjectRegistry', () => {
+  function createRegistry(entries: { prefix: string }[]) {
+    return new ProjectRegistry(
+      entries.map(({ prefix }) => ({
+        prefix,
+        commands: mockCommands({
+          project: { basePath: `/tmp/${prefix}` },
+        } as Partial<CommandManager>),
+      })),
+    );
+  }
+
+  function createApp(registry: ProjectRegistry, staticMode = false) {
+    const app = new Hono();
+    app.use('*', async (c, next) => {
+      c.set('user', testUser);
+      await next();
+    });
+    app.use('/projects/:prefix/*', attachProjectRegistry(registry, staticMode));
+    app.get('/projects/:prefix/test', (c) =>
+      c.json({
+        projectPath: c.get('projectPath'),
+        hasRegistry: !!c.get('registry'),
+      }),
+    );
+    // Static mode route (no :prefix param)
+    app.use('/static/*', attachProjectRegistry(registry, staticMode));
+    app.get('/static/test', (c) => c.json({ ok: true }));
+    return app;
+  }
+
+  it('resolves project by prefix and sets commands', async () => {
+    const registry = createRegistry([{ prefix: 'decision' }]);
+    const app = createApp(registry);
+
+    const res = await app.request('/projects/decision/test');
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      projectPath: string;
+      hasRegistry: boolean;
+    };
+    expect(body.projectPath).toBe('/tmp/decision');
+    expect(body.hasRegistry).toBe(true);
+  });
+
+  it('selects the correct project from multiple registered projects', async () => {
+    const registry = createRegistry([
+      { prefix: 'decision' },
+      { prefix: 'other' },
+    ]);
+    const app = createApp(registry);
+
+    const res = await app.request('/projects/other/test');
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { projectPath: string };
+    expect(body.projectPath).toBe('/tmp/other');
+  });
+
+  it('returns 404 for unknown prefix', async () => {
+    const registry = createRegistry([{ prefix: 'decision' }]);
+    const app = createApp(registry);
+
+    const res = await app.request('/projects/unknown/test');
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toBe("Project 'unknown' not found");
+  });
+
+  it('returns 400 when prefix is missing and not in static mode', async () => {
+    const registry = createRegistry([{ prefix: 'decision' }]);
+    const app = createApp(registry, false);
+
+    const res = await app.request('/static/test');
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toBe('Project prefix is required');
+  });
+
+  it('uses first project as fallback in static mode when no prefix param', async () => {
+    const registry = createRegistry([{ prefix: 'decision' }]);
+    const app = createApp(registry, true);
+
+    const res = await app.request('/static/test');
+    expect(res.status).toBe(200);
+  });
+
+  it('returns 400 in static mode when registry is empty', async () => {
+    const registry = createRegistry([]);
+    const app = createApp(registry, true);
+
+    const res = await app.request('/static/test');
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toBe('Project prefix is required');
   });
 });

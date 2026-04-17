@@ -11,7 +11,7 @@
 */
 
 import { useSWRHook } from './common';
-import { apiPaths } from '../swr';
+import { projectApiPaths } from '../swr';
 
 import type { SWRConfiguration } from 'swr';
 import type { CardUpdate } from './types';
@@ -20,7 +20,11 @@ import { updateCard } from './card';
 /**
  * @deprecated Use useProjectSettings for project configuration. Use resource hooks for resources
  */
-export const useProject = (options?: SWRConfiguration) => {
+export const useProject = (
+  options?: SWRConfiguration,
+  projectPrefix?: string,
+) => {
+  const apiPaths = projectApiPaths(projectPrefix);
   const { callUpdate, ...rest } = useSWRHook<'project'>(
     apiPaths.cards(),
     'project',
