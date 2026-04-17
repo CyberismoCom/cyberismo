@@ -22,7 +22,9 @@ import ResourceOverviewPage from './pages/configuration/resource-overview';
 import Layout from './pages/layout';
 import ConfigLayout from './pages/configuration/layout';
 import NotFoundPage from './pages/not-found';
-import { isSafeRedirectPath } from './lib/utils.js';
+import { store } from './lib/store.js';
+import { selectProjectPrefix, setProjectPrefix } from './lib/slices/project.js';
+import { fetchAvailableProjects } from './lib/projectUtils.js';
 
 // Export mode guard - unfortunately need to refetch config.json to check export mode since hooks
 function createEditLoader(cardKey: string) {
@@ -50,86 +52,130 @@ function createEditLoader(cardKey: string) {
   };
 }
 
+// Resolve which project to use: try the given prefix first, then persisted, then first available
+async function resolveProject(urlPrefix?: string) {
+  const projects = await fetchAvailableProjects().catch(() => [] as string[]);
+  const lastActive = selectProjectPrefix(store.getState());
+
+  // TODO: Remove single-project fallback when multi-project UI (project selection view) is implemented
+  const fallbackPrefix = projects[0];
+
+  const prefix =
+    (urlPrefix && projects.includes(urlPrefix) ? urlPrefix : null) ??
+    (lastActive && projects.includes(lastActive) ? lastActive : null) ??
+    fallbackPrefix;
+
+  if (prefix) {
+    store.dispatch(setProjectPrefix(prefix));
+  }
+
+  return { prefix, fromUrl: prefix === urlPrefix };
+}
+
 // wrap all the routes in a cards layout
-export const router = createBrowserRouter([
-  {
-    path: '/',
-    loader: () => {
-      if (window.location.search) {
-        const newPath = window.location.search.slice(2).split('&')[0];
-        if (newPath && isSafeRedirectPath(newPath)) {
-          return redirect(newPath);
-        }
-      }
-      return redirect('/cards');
+export function createAppRouter() {
+  return createBrowserRouter([
+    {
+      path: '/',
+      loader: async () => {
+        const { prefix } = await resolveProject();
+        return prefix ? redirect(`/projects/${prefix}/cards`) : null;
+      },
     },
-  },
-  {
-    Component: Layout,
-    children: [
-      {
-        Component: CardsLayout,
-        children: [
-          {
-            path: '/cards.html',
-            loader: () => redirect('/cards'),
-          },
-          {
-            path: '/cards',
-            Component: CardsPage,
-          },
-          {
-            path: '/cards/:key.html',
-            loader: ({ params }) => {
-              return redirect(`/cards/${params.key}`);
+    {
+      path: '/projects/:projectPrefix',
+      Component: Layout,
+      loader: async ({ params }) => {
+        const { prefix, fromUrl } = await resolveProject(params.projectPrefix);
+        if (fromUrl) return null;
+        if (prefix) return redirect(`/projects/${prefix}/cards`);
+        return redirect('/');
+      },
+      children: [
+        {
+          index: true,
+          loader: () => redirect('cards'),
+        },
+        {
+          Component: CardsLayout,
+          children: [
+            {
+              path: 'cards.html',
+              loader: () => redirect('cards'),
             },
-          },
-          {
-            path: '/cards/:key',
-            Component: CardPage,
-          },
-          {
-            path: '/cards/:key/edit.html',
-            loader: ({ params }) => {
-              return redirect(`/cards/${params.key}/edit`);
+            {
+              path: 'cards',
+              Component: CardsPage,
             },
-          },
-          {
-            path: '/cards/:key/edit',
-            loader: ({ params }) => createEditLoader(params.key!)(),
-            Component: CardEditPage,
-          },
-        ],
+            {
+              path: 'cards/:key.html',
+              loader: ({ params }) => {
+                return redirect(
+                  `/projects/${params.projectPrefix}/cards/${params.key}`,
+                );
+              },
+            },
+            {
+              path: 'cards/:key',
+              Component: CardPage,
+            },
+            {
+              path: 'cards/:key/edit.html',
+              loader: ({ params }) => {
+                return redirect(
+                  `/projects/${params.projectPrefix}/cards/${params.key}/edit`,
+                );
+              },
+            },
+            {
+              path: 'cards/:key/edit',
+              loader: ({ params }) => createEditLoader(params.key!)(),
+              Component: CardEditPage,
+            },
+          ],
+        },
+        {
+          Component: ConfigLayout,
+          children: [
+            {
+              path: 'configuration/',
+              Component: Configuration,
+            },
+            {
+              path: 'configuration/general',
+              Component: General,
+            },
+            {
+              path: 'configuration/:resourceType',
+              Component: ResourceOverviewPage,
+            },
+            {
+              path: 'configuration/:module/:type/:resource',
+              Component: Resource,
+            },
+            {
+              path: 'configuration/:module/:type/:resource/:file',
+              Component: Resource,
+            },
+          ],
+        },
+        {
+          path: '*',
+          Component: NotFoundPage,
+        },
+      ],
+    },
+    {
+      // Catch legacy URLs without /projects/ prefix (e.g. /cards/KEY, /configuration/...)
+      path: '*',
+      loader: async ({ request }) => {
+        const { prefix } = await resolveProject();
+        const url = new URL(request.url);
+        if (prefix) {
+          return redirect(`/projects/${prefix}${url.pathname}`);
+        }
+        return redirect('/');
       },
-      {
-        Component: ConfigLayout,
-        children: [
-          {
-            path: '/configuration/',
-            Component: Configuration,
-          },
-          {
-            path: '/configuration/general',
-            Component: General,
-          },
-          {
-            path: '/configuration/:resourceType',
-            Component: ResourceOverviewPage,
-          },
-          {
-            path: '/configuration/:module/:type/:resource',
-            Component: Resource,
-          },
-          {
-            path: '/configuration/:module/:type/:resource/:file',
-            Component: Resource,
-          },
-        ],
-      },
-      {
-        path: '*',
-        Component: NotFoundPage,
-      },
-    ],
-  },
-]);
+    },
+  ]);
+}
