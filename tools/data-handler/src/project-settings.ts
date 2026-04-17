@@ -291,10 +291,7 @@ export class ProjectConfiguration implements ProjectSettings {
    * @param moduleName Name of the module to update
    * @param version Semver version or range constraint (e.g., "^1.0.0")
    */
-  public async updateModuleVersion(
-    moduleName: string,
-    version: string,
-  ) {
+  public async updateModuleVersion(moduleName: string, version: string) {
     const module = this.modules.find((item) => item.name === moduleName);
     if (!module) {
       throw new Error(`Module '${moduleName}' is not imported`);

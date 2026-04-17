@@ -652,11 +652,7 @@ createCmd
           for (const module of selectedModules) {
             const importResult = await commandHandler.command(
               Cmd.import,
-              [
-                'module',
-                module.location,
-                module.private ? 'true' : 'false',
-              ],
+              ['module', module.location, module.private ? 'true' : 'false'],
               commandOptions,
             );
             if (importResult.statusCode !== 200) {

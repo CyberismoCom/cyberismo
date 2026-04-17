@@ -776,12 +776,7 @@ export class ModuleManager {
     credentials?: Credentials,
     targetRefs?: Map<string, string>,
   ) {
-    return this.update(
-      module,
-      credentials,
-      new Set([module.name]),
-      targetRefs,
-    );
+    return this.update(module, credentials, new Set([module.name]), targetRefs);
   }
 
   /**

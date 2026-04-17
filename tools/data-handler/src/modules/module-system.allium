@@ -1,0 +1,432 @@
+-- allium: 3
+-- module-system.allium
+--
+-- Scope: The Cyberismo project's module system — how a project declares,
+-- fetches, installs, updates, inspects and removes modules that extend it.
+-- Includes: ModuleDeclaration, ModuleInstallation, and the operations
+--           (import, update, remove, check-updates) that mutate or inspect
+--           their state.
+-- Excludes:
+--   - The Cyberismo Project itself (cards, workflows, calculations).
+--   - Git internals and filesystem layout.
+--   - Credential storage and transport (treated as opaque).
+--   - The Hub (module discovery UX).
+-- Audience: The data-handler module API. Operations are interface-agnostic;
+--           CLI, web UI and MCP clients all route through the same calls.
+
+------------------------------------------------------------
+-- External Entities
+------------------------------------------------------------
+
+-- The Cyberismo project that owns declarations and installations.
+-- Its lifecycle and content (cards, workflows, calculations) are out of scope.
+external entity Project {}
+
+-- Opaque per-operation credentials for private remotes.
+external entity Credentials {}
+
+------------------------------------------------------------
+-- Value Types
+------------------------------------------------------------
+
+-- A location a module can be fetched from, together with whether it
+-- requires credentialed access.
+value Source {
+    -- Git remote URL (https://… or git@…) or file: URL (file:<path>)
+    location: String
+    private: Boolean
+}
+
+-- A concrete semver version, e.g. "1.2.3". Ordering and compatibility
+-- semantics are standard semver.
+value Version {
+    value: String
+}
+
+-- A semver range such as "^1.0.0" or ">=1.0 <2.0". A bare version
+-- ("1.2.3") is interpreted as an exact pin (=1.2.3).
+value VersionRange {
+    range: String
+}
+
+-- Outcome of querying a remote for available versions. Tolerant: if the
+-- remote is unreachable, `reachable` is false and the version fields are
+-- null; CheckUpdates still produces a report row instead of aborting.
+value RemoteQueryOutcome {
+    reachable: Boolean
+    latest: Version?
+    latest_satisfying: Version?
+}
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+-- Persisted record in the project's cardsConfig.json. Represents the
+-- caller's intent: "this project wants this module at this range".
+-- Top-level declarations (parent = null) are created by import and
+-- removed by remove. Transitive declarations (parent != null) are
+-- derived from the owning installation's own cardsConfig.json and
+-- appear/disappear as that installation is installed or replaced.
+entity ModuleDeclaration {
+    project: Project
+    name: String
+    source: Source
+    version_range: VersionRange?
+    parent: ModuleInstallation?
+
+    -- The installation that satisfies this declaration, if any.
+    installation: ModuleInstallation
+        with project = this.project and name = this.name
+
+    -- True when this declaration is a direct project-level import.
+    is_top_level: parent = null
+
+    -- True when an installation exists and (if a range is declared) we
+    -- can verify the installed version satisfies it. No-range means "any
+    -- version is fine"; no-version on the installation means we cannot
+    -- verify, so in_sync is false whenever a range is declared.
+    in_sync: installation != null
+        and (version_range = null
+             or (installation.version != null
+                 and satisfies(installation.version, version_range)))
+}
+
+-- Module files present under .cards/modules/<name>/. There is at most one
+-- installation per (project, name) because module prefixes are a global
+-- namespace — two versions of "base" cannot coexist.
+entity ModuleInstallation {
+    project: Project
+    name: String
+    source: Source
+    version: Version?
+
+    -- Declarations whose name = this.name (the top-level one, if any,
+    -- plus every transitive declaration from other installations that
+    -- references this name).
+    referencing_declarations: ModuleDeclaration
+        with project = this.project and name = this.name
+
+    -- Declarations this installation itself makes (its own dependencies,
+    -- read from its cardsConfig.json).
+    declared_deps: ModuleDeclaration with parent = this
+
+    -- True when some declaration references us by name.
+    is_referenced: referencing_declarations.count > 0
+
+    -- An installation is orphaned when nothing references it: no top-level
+    -- project declaration and no other installation declares it as a dep.
+    is_orphaned: not is_referenced
+}
+
+-- Read-only per-module report produced by CheckUpdates. One row per
+-- top-level project declaration inspected. Never mutates project state.
+entity ModuleCheckReport {
+    project: Project
+    declaration: ModuleDeclaration
+    installation: ModuleInstallation?
+    latest_version: Version?               -- absolute latest on the remote
+    latest_satisfying: Version?            -- highest remote version satisfying the range
+    status: up_to_date
+          | update_available
+          | range_blocks_update
+          | range_unsatisfiable
+          | source_unreachable
+          | drifted
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+-- Import is upsert: if no declaration with this name exists, create one;
+-- otherwise update the existing declaration's range (same source, same
+-- name). Changing source on re-import is rejected by invariant.
+rule ImportModule {
+    when: ImportModule(project, source, version_range?, credentials?)
+
+    let name = module_prefix_at(source, version_range, credentials)
+    let resolved = resolve_version(source, version_range, credentials)
+    let existing_decl = ModuleDeclaration{project, name, parent: null}
+
+    requires: name != null
+    requires: resolved != null or version_range = null
+
+    ensures:
+        -- Upsert the top-level declaration.
+        if exists existing_decl:
+            existing_decl.version_range = version_range
+            existing_decl.source = source
+        else:
+            ModuleDeclaration.created(
+                project: project,
+                name: name,
+                source: source,
+                version_range: version_range,
+                parent: null
+            )
+
+        -- Replace the installation with the resolved version.
+        ReplaceInstallation(
+            project: project,
+            name: name,
+            source: source,
+            resolved_version: resolved,
+            credentials: credentials
+        )
+
+        -- Transitive installs and orphan cleanup run at the end.
+        ReconcileTransitives(project: project, credentials: credentials)
+        CleanOrphans(project: project)
+}
+
+-- Update refreshes installations for already-declared modules against
+-- each declaration's current range. Never changes declarations.
+-- With a name: just that module (and its transitive subgraph).
+-- Without a name: every top-level declaration.
+rule UpdateModules {
+    when: UpdateModules(project, name?, credentials?)
+
+    for decl in ModuleDeclarations
+            where project = project and parent = null
+                  and (name = null or this.name = name):
+        let resolved = resolve_version(decl.source, decl.version_range, credentials)
+        requires: resolved != null
+        ensures:
+            ReplaceInstallation(
+                project: project,
+                name: decl.name,
+                source: decl.source,
+                resolved_version: resolved,
+                credentials: credentials
+            )
+
+    ensures:
+        ReconcileTransitives(project: project, credentials: credentials)
+        CleanOrphans(project: project)
+
+    @guidance
+        -- All state mutations are atomic from the caller's perspective.
+        -- An implementation should first resolve and fetch every target
+        -- version into a staging area (network phase), then apply the
+        -- installations as local copies (apply phase). If any step of the
+        -- network phase fails, no installation is replaced.
+}
+
+-- Remove deletes the top-level declaration and its installation, then
+-- cleans up transitive installations that are no longer referenced.
+-- Removing a transitive-only module (one without a top-level declaration)
+-- is an error — transitive installations are controlled by their parents.
+rule RemoveModule {
+    when: RemoveModule(project, name)
+
+    let decl = ModuleDeclaration{project, name, parent: null}
+    let installation = ModuleInstallation{project, name}
+
+    requires: exists decl
+
+    ensures:
+        not exists decl
+        if exists installation:
+            -- Transitive declarations owned by this installation are
+            -- removed too; the referenced installations become orphaned
+            -- candidates that CleanOrphans will pick up.
+            for dep in installation.declared_deps:
+                not exists dep
+            not exists installation
+        CleanOrphans(project: project)
+}
+
+-- CheckUpdates is read-only and tolerant of per-module failures. A remote
+-- being unreachable or a range being unsatisfiable yields a status row
+-- rather than aborting the whole operation, so callers can still see the
+-- state of healthy modules.
+rule CheckUpdates {
+    when: CheckUpdates(project, name?, credentials?)
+
+    for decl in ModuleDeclarations
+            where project = project and parent = null
+                  and (name = null or this.name = name):
+        let installation = decl.installation
+        let outcome: RemoteQueryOutcome = query_remote(decl.source, credentials)
+
+        ensures:
+            ModuleCheckReport.created(
+                project: project,
+                declaration: decl,
+                installation: installation,
+                latest_version: outcome.latest,
+                latest_satisfying: outcome.latest_satisfying,
+                status: check_status_of(decl, installation, outcome)
+            )
+}
+
+-- Resolves version ranges, fetches at the resolved ref, and replaces the
+-- installation files for a single module. Invoked by ImportModule,
+-- UpdateModules and (indirectly) ReconcileTransitives.
+rule ReplaceInstallation {
+    when: ReplaceInstallation(project, name, source, resolved_version, credentials?)
+
+    ensures:
+        -- Atomic replacement: the old installation (if any) and all the
+        -- transitive declarations it owned cease to exist; the new
+        -- installation exists with the resolved version and its own
+        -- declared_deps read from the fetched module's config.
+        let existing = ModuleInstallation{project, name}
+        if exists existing:
+            for old_dep in existing.declared_deps:
+                not exists old_dep
+            not exists existing
+
+        let new_install = ModuleInstallation.created(
+            project: project,
+            name: name,
+            source: source,
+            version: resolved_version
+        )
+        for dep in module_config_deps(source, resolved_version, credentials):
+            ModuleDeclaration.created(
+                project: project,
+                name: dep.name,
+                source: dep.source,
+                version_range: dep.version_range,
+                parent: new_install
+            )
+}
+
+-- Walks every current transitive declaration; installs or replaces as
+-- needed to bring each referenced dep on-disk at a compatible version.
+-- First-encounter wins on diamond conflicts: if module B is referenced
+-- at ^1.0 by parent A and ^2.0 by parent C, the first walk installs B
+-- and subsequent walks reuse the existing installation, emitting a
+-- DiamondVersionConflict trigger when a later declaration's range would
+-- reject the installed version.
+rule ReconcileTransitives {
+    when: ReconcileTransitives(project, credentials?)
+
+    for decl in ModuleDeclarations
+            where project = project and parent != null:
+        let existing = decl.installation
+        ensures:
+            if not exists existing:
+                -- First time we see this dep: install it at the highest
+                -- version satisfying the declaring range.
+                let resolved = resolve_version(
+                    decl.source, decl.version_range, credentials
+                )
+                ReplaceInstallation(
+                    project: project,
+                    name: decl.name,
+                    source: decl.source,
+                    resolved_version: resolved,
+                    credentials: credentials
+                )
+            else if decl.version_range != null
+                    and not satisfies(existing.version, decl.version_range):
+                -- Already installed at a version this declaration rejects.
+                -- Keep the existing install; surface the conflict.
+                DiamondVersionConflict(
+                    project: project,
+                    name: decl.name,
+                    installed_version: existing.version,
+                    rejecting_range: decl.version_range,
+                    rejecting_parent: decl.parent
+                )
+}
+
+-- Deletes installations that nothing references after a mutation.
+-- Fired at the end of ImportModule / UpdateModules / RemoveModule.
+-- Also cascades: removing an installation removes its declared_deps,
+-- which may orphan their installations, which on the next pass get
+-- removed too. Runs until a fixed point.
+rule CleanOrphans {
+    when: CleanOrphans(project)
+
+    for installation in ModuleInstallations
+            where project = project and is_orphaned:
+        ensures:
+            for dep in installation.declared_deps:
+                not exists dep
+            not exists installation
+
+    @guidance
+        -- An implementation should iterate to a fixed point: removing an
+        -- orphaned installation may remove its declared_deps, which may
+        -- orphan further installations, and so on. Practically this
+        -- terminates because the dependency graph is finite.
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+-- Global namespace invariant: because module prefixes (names) are
+-- globally unique across all cards/workflows/calculations a project
+-- sees, at most one installation per (project, name) can exist. Two
+-- versions of the same module in one project are forbidden.
+invariant SinglePrefixPerProject {
+    for a in ModuleInstallations:
+        for b in ModuleInstallations:
+            a != b and a.project = b.project
+                implies a.name != b.name
+}
+
+-- Project-level uniqueness: each project has at most one top-level
+-- declaration per name. Transitive declarations (parent != null) can
+-- appear multiple times for the same name (different parents), but
+-- only one installation can exist to satisfy them.
+invariant SingleTopLevelDeclaration {
+    for a in ModuleDeclarations:
+        for b in ModuleDeclarations:
+            a != b and a.project = b.project
+                and a.parent = null and b.parent = null
+                implies a.name != b.name
+}
+
+-- Declarations and installations don't disagree on source. If any
+-- declaration references a name, its source must match the installed
+-- source. Import with a different source for an existing name is
+-- blocked by this.
+invariant DeclarationAndInstallationAgreeOnSource {
+    for decl in ModuleDeclarations:
+        decl.installation != null
+            implies decl.source.location = decl.installation.source.location
+}
+
+-- No module is installed without being referenced. After every mutation
+-- (ImportModule / UpdateModules / RemoveModule), CleanOrphans runs to
+-- restore this property.
+invariant NoOrphanInstallations {
+    for i in ModuleInstallations:
+        i.is_referenced
+}
+
+------------------------------------------------------------
+-- Open Questions
+------------------------------------------------------------
+
+open question "Should CheckUpdates report drift as its own status, separate from update-available? Current spec includes it; semantics are 'installed version != what UpdateModules would choose right now'."
+
+open question "Should a non-fatal per-module failure in CheckUpdates (source unreachable) also appear in a summary count, or is per-row status sufficient?"
+
+open question "Is the 'first-encounter wins' policy for diamond conflicts acceptable long-term, or is the plan to replace ReconcileTransitives with a proper SAT/ASP solver before shipping to real users with non-trivial trees?"
+
+open question "Should temp staging directory used by the two-phase apply be cleaned up on failure, or left for debugging? Current code leaves it."
+
+open question "Does RemoveModule need a force flag for the case where a top-level declaration has no installation (removed manually) or the installation has no declaration (was only ever transitive)? Current behaviour: error if no declaration."
+
+------------------------------------------------------------
+-- Deferred Specifications
+------------------------------------------------------------
+
+-- Version-range → concrete-version selection. Intentionally naive in v1
+-- (per-module semver.maxSatisfying). Planned replacement: Clingo / ASP
+-- solver that handles transitive constraint intersection properly.
+deferred resolve_version                 -- see: modules/version.ts (interim); future ASP solver
+
+-- Black boxes for remote queries and module config reading.
+deferred module_prefix_at                -- fetch source, read cardsConfig.json, return cardKeyPrefix
+deferred module_config_deps              -- read cardsConfig.json's `modules` array
+deferred query_remote                    -- ls-remote + tolerate failures for CheckUpdates
+deferred satisfies                       -- standard semver range satisfaction
+deferred check_status_of                 -- map { decl, installation, outcome } → CheckStatus

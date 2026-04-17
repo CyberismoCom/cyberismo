@@ -538,10 +538,7 @@ describe('import module version resolution', () => {
   });
 
   it('skips version resolution when no version is requested', async () => {
-    const listSpy = vi.spyOn(
-      ModuleManager.prototype,
-      'listAvailableVersions',
-    );
+    const listSpy = vi.spyOn(ModuleManager.prototype, 'listAvailableVersions');
     const importGitSpy = vi
       .spyOn(ModuleManager.prototype, 'importGitModule')
       .mockResolvedValue('test');
