@@ -28,11 +28,6 @@ import type { ProjectConfiguration } from './project-settings.js';
 import { ProjectPaths } from './containers/project/project-paths.js';
 import { readJsonFile } from './utils/json.js';
 import { Validate } from './commands/validate.js';
-import { versionToTag } from './utils/git-manager.js';
-import {
-  resolveModuleVersions,
-  type VersionConstraint,
-} from './utils/version-resolver.js';
 
 const FILE_PROTOCOL = 'file:';
 const HTTPS_PROTOCOL = 'https:';
@@ -47,10 +42,12 @@ type DependencyGraph = Map<string, Set<string>>;
  */
 export class ModuleManager {
   private modules: ModuleSetting[] = [];
-  private moduleConstraints: Map<string, VersionConstraint[]> = new Map();
-  // Map of module name -> git tag to check out for that module. Populated by
-  // version resolution (or pre-seeded by callers that know an exact target),
-  // consumed by clone().
+  // Map of module name -> git tag to check out for that module. Pre-seeded
+  // by callers that know an exact target (e.g. the per-import
+  // `semver.maxSatisfying` step in `commands/import.ts`) and consumed by
+  // clone(). Graph-wide constraint intersection used to write into this
+  // map; that logic has been deleted and is deferred to a future ASP pass
+  // per `module-system.allium`.
   private moduleRefs: Map<string, string> = new Map();
   private tempModulesDir: string = '';
 
@@ -230,7 +227,6 @@ export class ModuleManager {
 
   // Collects one module's dependency prefixes to 'this.modules'.
   // Note that there can be duplicate entries.
-  // Also tracks version range constraints declared by each module on its dependencies.
   private async doCollectModulePrefix(
     module: ModuleSetting,
     credentials?: Credentials,
@@ -248,15 +244,6 @@ export class ModuleManager {
     this.modules.push(module);
 
     const configuration = await this.configuration(moduleRoot);
-
-    // Track version range constraints from this module's dependencies
-    for (const dep of configuration.modules ?? []) {
-      if (dep.version) {
-        const existing = this.moduleConstraints.get(dep.name) ?? [];
-        existing.push({ range: dep.version, source: module.name });
-        this.moduleConstraints.set(dep.name, existing);
-      }
-    }
 
     await this.collectModulePrefixes(configuration.modules, credentials);
   }
@@ -481,43 +468,6 @@ export class ModuleManager {
     return transientDependencies;
   }
 
-  // Resolves version ranges for all modules that have constraints.
-  // Returns a map of module name -> resolved version string.
-  private async resolveVersions(
-    uniqueModules: ModuleSetting[],
-    credentials?: Credentials,
-  ): Promise<Map<string, string>> {
-    if (this.moduleConstraints.size === 0) {
-      return new Map();
-    }
-
-    // Fetch available versions for all constrained modules in parallel
-    const constrainedModules = uniqueModules.filter((m) =>
-      this.moduleConstraints.has(m.name),
-    );
-    const availableVersionsMap = new Map<string, string[]>();
-
-    await Promise.all(
-      constrainedModules.map(async (m) => {
-        const versions = await this.listAvailableVersions(m, credentials);
-        availableVersionsMap.set(m.name, versions);
-      }),
-    );
-
-    return resolveModuleVersions(this.moduleConstraints, availableVersionsMap);
-  }
-
-  // Records each resolved version as a tag in this.moduleRefs so that the
-  // next clone of that module checks out the correct commit. Any ref that
-  // was pre-seeded by the caller is preserved.
-  private applyResolvedVersions(resolvedVersions: Map<string, string>) {
-    for (const [name, version] of resolvedVersions) {
-      if (!this.moduleRefs.has(name)) {
-        this.moduleRefs.set(name, versionToTag(version));
-      }
-    }
-  }
-
   // Updates modules in the project.
   private async update(
     module?: ModuleSetting,
@@ -540,7 +490,6 @@ export class ModuleManager {
     }
 
     await this.prepare();
-    this.moduleConstraints.clear();
     this.moduleRefs.clear();
     if (targetRefs) {
       for (const [name, ref] of targetRefs) {
@@ -553,15 +502,6 @@ export class ModuleManager {
       throw new Error(`No modules in the project!`);
     }
 
-    // Record version range constraints from the project's top-level modules
-    for (const mod of modules) {
-      if (mod.version) {
-        const existing = this.moduleConstraints.get(mod.name) ?? [];
-        existing.push({ range: mod.version, source: 'project' });
-        this.moduleConstraints.set(mod.name, existing);
-      }
-    }
-
     modules = modules.filter((module) => this.isGitModule(module));
 
     const dotInterval = start();
@@ -571,12 +511,10 @@ export class ModuleManager {
       await this.collectModulePrefixes(modules, credentials);
       uniqueModules = this.removeDuplicates(this.modules);
 
-      // Resolve version ranges and remember the resulting tags for cloning.
-      const resolvedVersions = await this.resolveVersions(
-        uniqueModules,
-        credentials,
-      );
-      this.applyResolvedVersions(resolvedVersions);
+      // Graph-wide constraint intersection used to live here. It has been
+      // deleted per `module-system.allium`; per-module clone-at-tag is
+      // still driven by `targetRefs` (pre-seeded by the caller) and by the
+      // per-import `semver.maxSatisfying` step in `commands/import.ts`.
     } finally {
       finished(
         dotInterval,

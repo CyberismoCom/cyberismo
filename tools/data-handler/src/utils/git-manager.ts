@@ -14,18 +14,12 @@
 import semver from 'semver';
 import { simpleGit, type SimpleGit } from 'simple-git';
 import { getChildLogger } from './log-utils.js';
+import { tagToVersion, versionToTag } from '../modules/version.js';
 
-const TAG_PREFIX = 'v';
-
-/** Convert a semver string to a git tag name (e.g. "1.2.3" → "v1.2.3"). */
-export function versionToTag(version: string): string {
-  return `${TAG_PREFIX}${version}`;
-}
-
-/** Strip the tag prefix and return the version, or return as-is if no prefix. */
-export function tagToVersion(tag: string): string {
-  return tag.startsWith(TAG_PREFIX) ? tag.substring(TAG_PREFIX.length) : tag;
-}
+// Re-exported here for backwards compatibility with existing import sites.
+// Canonical home is `src/modules/version.ts`; this re-export is temporary and
+// can be removed once all callers have migrated their imports.
+export { versionToTag, tagToVersion } from '../modules/version.js';
 
 export class GitManager {
   private git: SimpleGit;
