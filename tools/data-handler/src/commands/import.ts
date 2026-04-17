@@ -19,7 +19,7 @@ import { versionToTag } from '../utils/git-manager.js';
 import { Validate } from './validate.js';
 import { write } from '../utils/rw-lock.js';
 
-import { validateVersionAgainstConstraints } from '../utils/version-resolver.js';
+import { validateVersionAgainstConstraints } from '../modules/version.js';
 import type { Create } from './create.js';
 import type {
   Credentials,
