@@ -175,10 +175,7 @@ describe('check-updates', () => {
     vi.spyOn(ModuleManager.prototype, 'readModuleVersion').mockResolvedValue(
       undefined,
     );
-    const listSpy = vi.spyOn(
-      ModuleManager.prototype,
-      'listAvailableVersions',
-    );
+    const listSpy = vi.spyOn(ModuleManager.prototype, 'listAvailableVersions');
 
     const [status] = await new CheckUpdates(project).checkUpdates();
 

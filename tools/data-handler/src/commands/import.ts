@@ -174,15 +174,14 @@ export class Import {
     // default branch is cloned and the requested version is ignored.
     let ref: string | undefined;
     if (gitModule && options?.version) {
-      const availableVersions =
-        await this.moduleManager.listAvailableVersions(
-          {
-            name: '',
-            location: source,
-            private: options.private,
-          } as ModuleSetting,
-          options.credentials,
-        );
+      const availableVersions = await this.moduleManager.listAvailableVersions(
+        {
+          name: '',
+          location: source,
+          private: options.private,
+        } as ModuleSetting,
+        options.credentials,
+      );
       const resolvedVersion = semver.maxSatisfying(
         availableVersions,
         options.version,

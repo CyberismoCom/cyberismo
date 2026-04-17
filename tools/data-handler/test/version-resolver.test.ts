@@ -24,9 +24,7 @@ describe('resolveModuleVersions', () => {
     const constraints = new Map<string, VersionConstraint[]>([
       ['base', [{ range: '1.0.0', source: 'project' }]],
     ]);
-    const available = new Map<string, string[]>([
-      ['base', ['1.0.1', '1.0.0']],
-    ]);
+    const available = new Map<string, string[]>([['base', ['1.0.1', '1.0.0']]]);
 
     const resolved = resolveModuleVersions(constraints, available);
 
@@ -62,9 +60,7 @@ describe('resolveModuleVersions', () => {
         ],
       ],
     ]);
-    const available = new Map<string, string[]>([
-      ['base', ['2.0.0', '1.0.0']],
-    ]);
+    const available = new Map<string, string[]>([['base', ['2.0.0', '1.0.0']]]);
 
     expect(() => resolveModuleVersions(constraints, available)).toThrow(
       /Incompatible version requirements for module 'base'/,
@@ -75,9 +71,7 @@ describe('resolveModuleVersions', () => {
     const constraints = new Map<string, VersionConstraint[]>([
       ['base', [{ range: '^2.0.0', source: 'project' }]],
     ]);
-    const available = new Map<string, string[]>([
-      ['base', ['1.2.0', '1.0.0']],
-    ]);
+    const available = new Map<string, string[]>([['base', ['1.2.0', '1.0.0']]]);
 
     expect(() => resolveModuleVersions(constraints, available)).toThrow(
       /No available version satisfies all constraints/,

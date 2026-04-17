@@ -91,10 +91,8 @@ export class CheckUpdates {
           let noMatchingVersion = false;
           if (moduleSetting.version) {
             latestSatisfyingConstraint =
-              semver.maxSatisfying(
-                availableVersions,
-                moduleSetting.version,
-              ) ?? undefined;
+              semver.maxSatisfying(availableVersions, moduleSetting.version) ??
+              undefined;
 
             if (!latestSatisfyingConstraint && availableVersions.length > 0) {
               noMatchingVersion = true;
