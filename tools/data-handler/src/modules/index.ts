@@ -16,4 +16,5 @@ export * from './types.js';
 export * from './version.js';
 export * from './source.js';
 export * from './inventory.js';
+export * from './resolver.js';
 export * from './orphans.js';
