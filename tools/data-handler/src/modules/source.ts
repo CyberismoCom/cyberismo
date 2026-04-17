@@ -15,15 +15,13 @@
 import { mkdir, rm } from 'node:fs/promises';
 import { resolve as pathResolve, join } from 'node:path';
 
-import semver from 'semver';
 import { simpleGit, type SimpleGit } from 'simple-git';
 
 import { GitManager } from '../utils/git-manager.js';
+import { pickVersion } from './version.js';
 import {
-  toVersion,
   type RemoteQueryOutcome,
   type Source,
-  type Version,
   type VersionRange,
 } from './types.js';
 
@@ -164,35 +162,6 @@ function cloneOptions(ref?: string): string[] {
   return options;
 }
 
-/**
- * Pick the highest version from `available` that satisfies `range`.
- * When `range` is omitted, picks the highest version overall. Returns
- * undefined if `available` is empty or nothing satisfies the range.
- *
- * Kept private to this module for now — Phase 2 will introduce a
- * shared `modules/version.ts` that exposes the same helper to the rest
- * of the system.
- */
-function pickVersion(available: string[], range?: string): string | undefined {
-  if (available.length === 0) {
-    return undefined;
-  }
-  const match = semver.maxSatisfying(available, range ?? '*');
-  return match ?? undefined;
-}
-
-/** Safely coerce a raw string into a {@link Version}, or undefined. */
-function tryToVersion(value: string | undefined): Version | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  try {
-    return toVersion(value);
-  } catch {
-    return undefined;
-  }
-}
-
 class DefaultSourceLayer implements SourceLayer {
   async fetch(
     target: FetchTarget,
@@ -262,10 +231,10 @@ class DefaultSourceLayer implements SourceLayer {
       return { reachable: false };
     }
 
-    const latest = tryToVersion(pickVersion(available));
+    const latest = pickVersion(available);
     const latestSatisfying =
       options?.range !== undefined
-        ? tryToVersion(pickVersion(available, options.range))
+        ? pickVersion(available, options.range)
         : undefined;
 
     return {
