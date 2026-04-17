@@ -301,6 +301,54 @@ export class ProjectConfiguration implements ProjectSettings {
   }
 
   /**
+   * Inserts a module declaration, or updates the version range of an
+   * existing one. Used by the module installer to persist top-level
+   * declarations produced by import / update flows.
+   *
+   * Semantics:
+   *  - If no module with `module.name` is persisted, insert `module` as-is
+   *    (with `file:` locations absolutised, matching {@link addModule}).
+   *  - If a module with the same name already exists, overwrite its
+   *    version range. Other fields on the existing record are preserved
+   *    unless the new `module` supplies them — in which case the new
+   *    value wins. This mirrors the spec's upsert semantics for
+   *    `ImportModule`: the caller's declared range is the source of truth,
+   *    but an existing location / private / credentials tuple is kept
+   *    untouched when the caller omits those fields.
+   *
+   * Saves synchronously to disk before returning.
+   * @param module Module to insert or update.
+   */
+  public async upsertModule(module: ModuleSetting) {
+    if (!module || !module.name) {
+      throw new Error(`Module must have 'name' and 'url'`);
+    }
+
+    // Ensure that module file location is absolute.
+    if (module.location && module.location.startsWith('file:')) {
+      const filePath = module.location.substring(5, module.location.length);
+      module.location = `file:${resolve(filePath)}`;
+    }
+
+    const existing = this.modules.find((item) => item.name === module.name);
+    if (existing) {
+      existing.version = module.version;
+      if (module.location) {
+        existing.location = module.location;
+      }
+      if (module.private !== undefined) {
+        existing.private = module.private;
+      }
+      if (module.credentials !== undefined) {
+        existing.credentials = module.credentials;
+      }
+    } else {
+      this.modules.push(module);
+    }
+    return this.save();
+  }
+
+  /**
    * Changes project name.
    * @param newName New project name
    */
