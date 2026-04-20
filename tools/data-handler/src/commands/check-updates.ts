@@ -15,6 +15,7 @@ import semver from 'semver';
 
 import { read } from '../utils/rw-lock.js';
 import {
+  buildRemoteUrl,
   createInventory,
   createSourceLayer,
   satisfies,
@@ -99,11 +100,37 @@ export class CheckUpdates {
           } satisfies ModuleUpdateStatus;
         }
 
+        // Build the credential-injected remote URL once per declaration.
+        // The shared `buildRemoteUrl` throws only on a malformed private
+        // HTTPS URL; for `CheckUpdates` that is indistinguishable from an
+        // unreachable source, so catch it and surface a
+        // `source_unreachable` row.
+        let remoteUrl: string;
+        try {
+          remoteUrl = buildRemoteUrl(decl.source, credentials);
+        } catch {
+          const report: ModuleCheckReport = {
+            project: this.project.basePath,
+            declaration: decl,
+            installation,
+            status: 'source_unreachable',
+          };
+          return {
+            name: decl.name,
+            installedVersion: installation?.version,
+            availableVersions: [],
+            updateAvailable: false,
+            isGitModule: true,
+            versionConstraint: decl.versionRange,
+            report,
+          } satisfies ModuleUpdateStatus;
+        }
+
         // Query remote tolerantly. An unreachable remote surfaces as a
         // `source_unreachable` row; we still return a populated result so
         // callers can show the module's last-known state.
         const outcome = await sourceLayer.queryRemote(decl.source, {
-          remoteUrl: buildRemoteUrl(decl.source, credentials),
+          remoteUrl,
           range: decl.versionRange,
         });
 
@@ -132,7 +159,7 @@ export class CheckUpdates {
         try {
           availableVersions = await sourceLayer.listRemoteVersions(
             decl.source.location,
-            buildRemoteUrl(decl.source, credentials),
+            remoteUrl,
           );
         } catch {
           availableVersions = [];
@@ -196,30 +223,6 @@ export class CheckUpdates {
 
     return results;
   }
-}
-
-/**
- * Build the remote URL for a module declaration, injecting HTTPS credentials
- * when the source is private. Mirrors the resolver's `buildRemoteUrl`.
- */
-function buildRemoteUrl(
-  source: { location: string; private?: boolean },
-  credentials?: Credentials,
-): string | undefined {
-  if (
-    source.private &&
-    credentials?.username &&
-    credentials?.token &&
-    source.location.startsWith('https:')
-  ) {
-    try {
-      const repoUrl = new URL(source.location);
-      return `https://${credentials.username}:${credentials.token}@${repoUrl.host}${repoUrl.pathname}`;
-    } catch {
-      return undefined;
-    }
-  }
-  return undefined;
 }
 
 /**

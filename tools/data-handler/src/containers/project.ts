@@ -977,7 +977,7 @@ export class Project extends CardContainer {
 
   /**
    * Removes a module from the project cache and configuration.
-   * @note that ModuleManager removes the actual files.
+   * @note the `removeModule` command removes the actual files.
    * @param moduleName Module name to remove.
    */
   public async removeModule(moduleName: string) {

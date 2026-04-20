@@ -1,5 +1,5 @@
 // testing
-import { expect, describe, it, beforeEach, afterEach, vi } from 'vitest';
+import { expect, describe, it, beforeEach, afterEach } from 'vitest';
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';
@@ -8,9 +8,6 @@ import * as os from 'node:os';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { CommandManager } from '../src/command-manager.js';
-import { ModuleManager } from '../src/module-manager.js';
-import { GitManager } from '../src/utils/git-manager.js';
-import type { ModuleSetting } from '../src/interfaces/project-interfaces.js';
 
 describe('module-manager', () => {
   const skipTest = process.env.CI && os.platform() === 'win32';
@@ -156,79 +153,11 @@ describe('module-manager', () => {
   }, 60000);
 });
 
-describe('ModuleManager.listAvailableVersions', () => {
-  const baseDir = import.meta.dirname;
-  const testDir = join(baseDir, 'tmp-module-manager-versions-tests');
-  const decisionRecordsPath = join(testDir, 'valid/decision-records');
-  let commands: CommandManager;
-
-  beforeEach(async () => {
-    mkdirSync(testDir, { recursive: true });
-    await copyDir('test/test-data/', testDir);
-    commands = new CommandManager(decisionRecordsPath, {
-      autoSaveConfiguration: false,
-    });
-    await commands.initialize();
-  });
-
-  afterEach(() => {
-    rmSync(testDir, { recursive: true, force: true });
-    vi.restoreAllMocks();
-  });
-
-  it('returns empty array for a local (non-git) module', async () => {
-    const manager = new ModuleManager(commands.project);
-    const localModule: ModuleSetting = {
-      name: 'local-mod',
-      location: '/some/local/path',
-    };
-    const versions = await manager.listAvailableVersions(localModule);
-    expect(versions).toEqual([]);
-  });
-
-  it('embeds credentials in the remote URL for a private git module', async () => {
-    const manager = new ModuleManager(commands.project);
-    const privateModule: ModuleSetting = {
-      name: 'private-mod',
-      location: 'https://github.com/example/module.git',
-      private: true,
-    };
-    const credentials = { username: 'alice', token: 'secret-token' };
-    let capturedUrl = '';
-    vi.spyOn(GitManager, 'listRemoteVersionTags').mockImplementation(
-      async (url) => {
-        capturedUrl = url;
-        return [];
-      },
-    );
-    await manager.listAvailableVersions(privateModule, credentials);
-    expect(capturedUrl).toContain('alice:secret-token@github.com');
-  });
-
-  it('does not embed credentials for a public git module', async () => {
-    const manager = new ModuleManager(commands.project);
-    const publicModule: ModuleSetting = {
-      name: 'public-mod',
-      location: 'https://github.com/example/module.git',
-    };
-    const credentials = { username: 'alice', token: 'secret-token' };
-    let capturedUrl = '';
-    vi.spyOn(GitManager, 'listRemoteVersionTags').mockImplementation(
-      async (url) => {
-        capturedUrl = url;
-        return [];
-      },
-    );
-    await manager.listAvailableVersions(publicModule, credentials);
-    expect(capturedUrl).toBe('https://github.com/example/module.git');
-    expect(capturedUrl).not.toContain('alice');
-  });
-});
-
-// The `ModuleManager git-based updates` suite previously lived here and
-// exercised `ModuleManager.prototype.updateModule` + the private
-// `isGitModule` probe. That method was removed in the Phase 8 rewire —
-// update orchestration now lives in `commands/import.ts` backed by the
-// `modules/resolver.ts` + `modules/installer.ts` layers. Equivalent
-// integration coverage (update to HEAD, update to a specific tag) belongs
-// on the new layers and will land with Phase 10's `command-update.test.ts`.
+// The `ModuleManager.listAvailableVersions` and `ModuleManager git-based
+// updates` suites previously lived here. The `ModuleManager` facade was
+// deleted in the Phase 9 cleanup — credential-injected remote-URL
+// construction now lives in `modules/credentials.ts`, listing versions on
+// `modules/source.ts`, and update orchestration in `commands/import.ts`
+// backed by the `modules/resolver.ts` + `modules/installer.ts` layers.
+// Equivalent unit and integration coverage belongs on the new layers and
+// lands with Phase 10 (`modules/source.test.ts`, `command-update.test.ts`).
