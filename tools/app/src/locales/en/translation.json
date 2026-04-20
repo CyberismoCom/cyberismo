@@ -340,6 +340,10 @@
     "viewMore": "View more"
   },
   "passedPolicyChecks": "Passed policy checks",
+  "permissions": {
+    "editorRequired": "You need editor permissions to do this",
+    "adminRequired": "You need administrator permissions to do this"
+  },
   "placeholder": {
     "integer": "Enter number (integer)",
     "number": "Enter number (decimal)",
