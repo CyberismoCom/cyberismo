@@ -18,8 +18,16 @@ fi
 echo "=== Configuring git safe directory ==="
 git config --global --add safe.directory "${containerWorkspaceFolder:-/workspaces/${PWD##*/}}"
 
+echo "=== Running pnpm setup ==="
+SHELL="${SHELL:-/bin/bash}" pnpm setup
+export PNPM_HOME="${PNPM_HOME:-$HOME/.local/share/pnpm}"
+export PATH="$PNPM_HOME:$PATH"
+
 echo "=== Building project ==="
 pnpm build
+
+echo "=== Linking packages globally ==="
+pnpm link -g
 
 echo "=== Installing Cypress binary ==="
 pnpm --filter=app exec cypress install
