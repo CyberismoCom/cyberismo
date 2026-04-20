@@ -243,4 +243,31 @@ describe('check-updates', () => {
       new CheckUpdates(project).checkUpdates('nonexistent'),
     ).rejects.toThrow("Module 'nonexistent' is not part of the project");
   });
+
+  it('reports drifted when the installed version violates the declared range', async () => {
+    // Spec: a `drifted` row flags the case where someone (or a migration)
+    // left an installed version behind that no longer satisfies the
+    // declared range. Distinct from `update_available` — here the
+    // installed version is *outside* the range, not merely below latest.
+    const project = buildProjectWithModules([
+      {
+        name: 'base',
+        location: 'https://example.com/base.git',
+        version: '^2.0.0',
+        private: false,
+      },
+    ]);
+    // Installed version `1.5.0` is outside `^2.0.0`.
+    installModule(project, { name: 'base', version: '1.5.0' });
+
+    vi.spyOn(GitManager, 'listRemoteVersionTags').mockResolvedValue([
+      '2.1.0',
+      '2.0.0',
+    ]);
+
+    const [status] = await new CheckUpdates(project).checkUpdates();
+
+    expect(status.installedVersion).toBe('1.5.0');
+    expect(status.report?.status).toBe('drifted');
+  });
 });
