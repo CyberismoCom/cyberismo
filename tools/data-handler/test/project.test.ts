@@ -1,6 +1,12 @@
 import { expect, describe, it, beforeEach, afterEach } from 'vitest';
 
-import { mkdirSync, readFileSync, rmSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { basename, join, resolve, sep } from 'node:path';
 
 import { copyDir } from '../src/utils/file-utils.js';
@@ -774,6 +780,24 @@ describe('project', () => {
     await expect(
       project.removeCardAttachment('decision_5', 'newAttachment.heic'),
     ).rejects.toThrow('Attachment not found: newAttachment.heic');
+  });
+
+  it('should reject path traversal via .. in removeCardAttachment', async () => {
+    const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
+    const project = getTestProject(decisionRecordsPath);
+    await project.populateCaches();
+
+    const attachmentFolder = project.cardAttachmentFolder('decision_5');
+    const testFilePath = join(attachmentFolder, '..', 'test-file.txt');
+    writeFileSync(testFilePath, 'should not be deleted');
+
+    // Attempt to delete the test file via path traversal.
+    await expect(
+      project.removeCardAttachment('decision_5', '../test-file.txt'),
+    ).rejects.toThrow();
+
+    // The test file must still exist after the rejected operation.
+    expect(existsSync(testFilePath)).toBe(true);
   });
 
   it('should card cache populated', async () => {
