@@ -32,6 +32,7 @@ import {
 import { useAppSelector, useAppRouter } from '@/lib/hooks';
 import { useCard, useProject } from '@/lib/api';
 import { useParentCard } from '@/lib/hooks';
+import { Gate, UserRole } from '@/lib/auth';
 
 interface CardContextMenuProps {
   cardKey: string;
@@ -82,19 +83,21 @@ export function CardContextMenu({ cardKey }: CardContextMenuProps) {
           </MenuButton>
         </Tooltip>
         <Menu>
-          <MenuItem id="moveCardButton" onClick={openModal('move')}>
-            <Typography>{t('move')}</Typography>
-          </MenuItem>
-          <MenuItem
-            data-cy="addAttachmentButton"
-            onClick={openModal('addAttachment')}
-          >
-            <Typography>{t('addAttachment')}</Typography>
-          </MenuItem>
-          <Divider />
-          <MenuItem data-cy="deleteCardButton" onClick={handleDeleteClick}>
-            <Typography color="danger">{t('deleteCard')}</Typography>
-          </MenuItem>
+          <Gate role={UserRole.Editor}>
+            <MenuItem id="moveCardButton" onClick={openModal('move')}>
+              <Typography>{t('move')}</Typography>
+            </MenuItem>
+            <MenuItem
+              data-cy="addAttachmentButton"
+              onClick={openModal('addAttachment')}
+            >
+              <Typography>{t('addAttachment')}</Typography>
+            </MenuItem>
+            <Divider />
+            <MenuItem data-cy="deleteCardButton" onClick={handleDeleteClick}>
+              <Typography color="danger">{t('deleteCard')}</Typography>
+            </MenuItem>
+          </Gate>
           <MenuItem onClick={openModal('logicProgram')}>
             <Typography>{t('viewLogicProgram')}</Typography>
           </MenuItem>

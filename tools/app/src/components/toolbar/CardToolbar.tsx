@@ -35,6 +35,7 @@ import { getConfig } from '@/lib/utils';
 import BaseToolbar from './BaseToolbar';
 import { CardContextMenu } from '@/components/context-menus';
 import PresenceIndicator from '@/components/PresenceIndicator';
+import { useCanEdit } from '@/lib/auth';
 
 interface CardToolbarProps {
   cardKey: string;
@@ -67,6 +68,7 @@ export function CardToolbar({
   const presence = usePresence(cardKey, presenceMode);
 
   const dispatch = useAppDispatch();
+  const canEdit = useCanEdit();
 
   const workflow =
     project && card ? findWorkflowForCardType(card.cardType, project) : null;
@@ -93,7 +95,7 @@ export function CardToolbar({
 
   const actions = (
     <>
-      {!getConfig().staticMode && mode === CardMode.VIEW && (
+      {!getConfig().staticMode && mode === CardMode.VIEW && canEdit && (
         <Tooltip title={t('linkTooltip')} placement="top">
           <IconButton
             onClick={onInsertLink}
@@ -120,10 +122,10 @@ export function CardToolbar({
         workflow={workflow}
         onTransition={(transition) => onStateTransition(transition)}
         isLoading={isUpdating('updateState')}
-        disabled={isUpdating() && !isUpdating('updateState')}
+        disabled={!canEdit || (isUpdating() && !isUpdating('updateState'))}
       />
 
-      {!getConfig().staticMode && mode === CardMode.VIEW && (
+      {!getConfig().staticMode && mode === CardMode.VIEW && canEdit && (
         <Button
           variant="solid"
           aria-label="edit"

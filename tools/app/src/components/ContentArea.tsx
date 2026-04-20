@@ -87,6 +87,7 @@ import { GenericConfirmModal } from './modals';
 import { useCard } from '../lib/api';
 import SvgViewerModal from './modals/svgViewerModal';
 import { SafeRouterLink } from './SafeRouterLink';
+import { useCanEdit } from '@/lib/auth';
 
 export type LinkFormState = 'hidden' | 'add' | 'add-from-toolbar' | 'edit';
 
@@ -569,6 +570,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   onDeleteLink,
 }) => {
   const { isUpdating } = useCard(card.key);
+  const canEdit = useCanEdit();
   const [visibleHeaderIds, setVisibleHeaderIds] = useState<string[] | null>(
     null,
   );
@@ -964,7 +966,8 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                 </AccordionSummary>
                 {!preview &&
                   linkFormState === 'hidden' &&
-                  !getConfig().staticMode && (
+                  !getConfig().staticMode &&
+                  canEdit && (
                     <IconButton
                       sx={{
                         height: 36,
@@ -1074,7 +1077,8 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                         </Stack>
                         {link.linkSource === 'user' &&
                           !preview &&
-                          !getConfig().staticMode && (
+                          !getConfig().staticMode &&
+                          canEdit && (
                             <Box
                               gap={1}
                               fontSize={24}

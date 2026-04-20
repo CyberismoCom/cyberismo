@@ -26,6 +26,7 @@ import { findParentCard } from '../../lib/utils';
 import { useTree } from '../../lib/api/tree';
 import { useCard } from '../../lib/api/card';
 import { CardTreeMenu } from '@/components/CardTreeMenu';
+import { useCanEdit } from '@/lib/auth';
 
 export default function AppLayout() {
   // Last URL parameter after /cards base is the card key
@@ -33,6 +34,7 @@ export default function AppLayout() {
   const { project, error, isLoading, updateCard } = useProject();
   const { tree, isLoading: isLoadingTree, error: treeError } = useTree();
   const { card } = useCard(key);
+  const canEdit = useCanEdit();
 
   const router = useAppRouter();
 
@@ -83,6 +85,7 @@ export default function AppLayout() {
           tree={tree}
           selectedCardKey={key ?? null}
           onMove={async (cardKey: string, newParent: string, index: number) => {
+            if (!canEdit) return;
             const parent = findParentCard(tree, cardKey);
             await updateCard(cardKey, {
               parent: newParent === parent?.key ? undefined : newParent,

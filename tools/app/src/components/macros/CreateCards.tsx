@@ -18,6 +18,7 @@ import { useAppDispatch, useAppRouter } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
 import { useState } from 'react';
 import type { LinkDirection } from '@cyberismo/data-handler/types/queries';
+import { useCanEdit } from '@/lib/auth';
 
 export type CreateCardsProps = {
   buttonLabel: string;
@@ -39,12 +40,15 @@ export default function CreateCards({
   preview,
   link,
 }: CreateCardsProps) {
+  const canEdit = useCanEdit();
   const { t } = useTranslation();
   const { createCard, isUpdating } = useCard(cardKey || macroKey);
   const { createLink } = useCard(link?.cardKey || null);
   const dispatch = useAppDispatch();
   const [loading, setLoading] = useState(false);
   const router = useAppRouter();
+
+  if (!canEdit) return <></>;
 
   return (
     <Button
