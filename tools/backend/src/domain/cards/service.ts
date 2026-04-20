@@ -122,7 +122,7 @@ export async function uploadAttachments(
 
 function validateAttachmentFileName(filename: string): void {
   const decoded = decodeURIComponent(filename);
-  if (/(^|\/)\.\.(\/|$)/.test(decoded)) {
+  if (/(^|[/\\])\.\.([/\\]|$)/.test(decoded)) {
     throw new Error('Invalid attachment filename');
   }
 }
