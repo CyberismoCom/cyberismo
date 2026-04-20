@@ -14,6 +14,7 @@
 
 import { ProjectPaths } from '../containers/project/project-paths.js';
 import { readJsonFile } from '../utils/json.js';
+import { buildRemoteUrl } from './credentials.js';
 import { pickVersion, satisfies, versionToTag } from './version.js';
 import { toVersion, toVersionRange } from './types.js';
 import type { SourceLayer } from './source.js';
@@ -140,37 +141,6 @@ function isGitLocation(location: string): boolean {
 /** True when `location` is a `file:` URL. */
 function isFileLocation(location: string): boolean {
   return location.startsWith(FILE_PROTOCOL);
-}
-
-/**
- * Port of the legacy `ModuleManager.buildRemoteUrl`. When the source is
- * private HTTPS and complete credentials are supplied, inject them into
- * the URL. Otherwise return the location verbatim. Throws on a
- * malformed URL (the only case where credentials are requested and the
- * URL cannot be parsed) — all other locations pass through untouched.
- */
-function buildRemoteUrl(
-  source: { location: string; private?: boolean },
-  credentials?: Credentials,
-): string {
-  if (
-    source.private &&
-    credentials?.username &&
-    credentials?.token &&
-    source.location.startsWith(HTTPS_PROTOCOL)
-  ) {
-    try {
-      const repoUrl = new URL(source.location);
-      const user = credentials.username;
-      const pass = credentials.token;
-      const host = repoUrl.host;
-      const path = repoUrl.pathname;
-      return `https://${user}:${pass}@${host}${path}`;
-    } catch {
-      throw new Error(`Invalid repository URL: ${source.location}`);
-    }
-  }
-  return source.location;
 }
 
 /**
