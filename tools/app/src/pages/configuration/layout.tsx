@@ -10,16 +10,18 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Outlet, useParams } from 'react-router';
+import { Navigate, Outlet, useParams } from 'react-router';
 import TwoColumnLayout from '../../components/TwoColumnLayout';
 import ConfigMenu from '../../components/ConfigMenu';
 import { useDocumentTitle } from '../../lib/hooks';
 import { useProject } from '../../lib/api';
+import { useCanAdmin } from '@/lib/auth';
 
 export default function ConfigLayout() {
   // TODO: resource is not implemented yet, might need to change this
   const { resource, resourceType } = useParams();
   const { project } = useProject();
+  const canAdmin = useCanAdmin();
 
   const title =
     resource && project?.name
@@ -28,6 +30,8 @@ export default function ConfigLayout() {
         ? `${resourceType} - ${project.name}`
         : project?.name || 'Cyberismo App';
   useDocumentTitle(title);
+
+  if (!canAdmin) return <Navigate to="/cards" replace />;
 
   return <TwoColumnLayout leftPanel={<ConfigMenu />} rightPanel={<Outlet />} />;
 }
