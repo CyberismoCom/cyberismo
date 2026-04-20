@@ -38,6 +38,7 @@ import { useModals } from '@/lib/utils';
 import { NewTemplateCardModal } from '../components/modals/resource-forms/NewTemplateCardModal';
 import { useConfigTemplateCreationContext } from '@/lib/hooks';
 import { AppModalsProvider } from '@/lib/contexts/AppModalsProvider';
+import { useCanEdit, useCanAdmin } from '@/lib/auth';
 import type { ResourceName } from '@/lib/constants';
 import { useCallback } from 'react';
 
@@ -48,6 +49,8 @@ const Main = styled('main')(() => ({
 
 export default function Layout() {
   const inCards = useIsInCards();
+  const canEdit = useCanEdit();
+  const canAdmin = useCanAdmin();
   const { templateResource, parentCardKey } =
     useConfigTemplateCreationContext();
   const { modalOpen, openModal, closeModal } = useModals({
@@ -83,8 +86,10 @@ export default function Layout() {
       <AppToolbar
         onCreate={(resourceType) => {
           if (inCards) {
+            if (!canEdit) return;
             openModal('card')();
           } else {
+            if (!canAdmin) return;
             if (!resourceType) {
               console.warn(
                 'No resource type provided when creating a new resource',

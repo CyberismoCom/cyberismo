@@ -32,6 +32,7 @@ import {
   useKeyboardShortcut,
   useConfigTemplateCreationContext,
 } from '@/lib/hooks';
+import { useCanEdit, useCanAdmin } from '@/lib/auth';
 import type { ResourceName } from '@/lib/constants';
 import { RESOURCES } from '@/lib/constants';
 import { ThemeModeToggle } from './ThemeModeToggle';
@@ -116,12 +117,15 @@ export function CreateButton({
 
 export default function AppToolbar({ onCreate }: AppToolbarProps) {
   const inCards = useIsInCards();
+  const canEdit = useCanEdit();
+  const canAdmin = useCanAdmin();
+  const canCreate = inCards ? canEdit : canAdmin;
   useKeyboardShortcut(
     {
       key: 'c',
     },
     () => {
-      if (!getConfig().staticMode) {
+      if (!getConfig().staticMode && canCreate) {
         onCreate();
       }
     },
@@ -149,7 +153,7 @@ export default function AppToolbar({ onCreate }: AppToolbarProps) {
       </Box>
       <Box sx={{ flexGrow: 1 }} />
       <ThemeModeToggle />
-      {!getConfig().staticMode && (
+      {!getConfig().staticMode && canCreate && (
         <CreateButton type={inCards ? 'Card' : 'Resource'} onClick={onCreate} />
       )}
       <UserMenu />
