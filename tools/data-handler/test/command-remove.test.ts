@@ -1,8 +1,8 @@
 import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 
 // node
-import { mkdirSync, rmSync } from 'node:fs';
-import { join, sep } from 'node:path';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { join, sep, resolve as pathResolve } from 'node:path';
 
 // cyberismo
 import { Cmd, Commands, CommandManager } from '../src/command-handler.js';
@@ -739,5 +739,165 @@ describe('remove card', () => {
       );
       expect(foundCard).not.toBeUndefined();
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Spec-driven `RemoveModule` integration tests. These exercise Phase 8's
+// rewired `commands/remove.ts` end-to-end across `modules/inventory.ts`,
+// `Project.removeModule` and the fixed-point `modules/orphans.ts` cascade.
+// ---------------------------------------------------------------------------
+describe('remove module — spec behaviours', () => {
+  const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
+  const testDir = join(baseDir, 'tmp-remove-module-tests');
+
+  beforeEach(async () => {
+    mkdirSync(testDir, { recursive: true });
+    await copyDir('test/test-data/', testDir);
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  /** Same file-source fixture helper used in command-import.test.ts. */
+  function makeFakeModuleFixture(
+    root: string,
+    config: {
+      cardKeyPrefix: string;
+      name?: string;
+      modules?: Array<{ name: string; location: string; version?: string }>;
+    },
+  ): string {
+    const localDir = join(root, '.cards', 'local');
+    mkdirSync(localDir, { recursive: true });
+    mkdirSync(join(root, 'cardRoot'), { recursive: true });
+    writeFileSync(
+      join(localDir, 'cardsConfig.json'),
+      JSON.stringify(
+        {
+          cardKeyPrefix: config.cardKeyPrefix,
+          name: config.name ?? config.cardKeyPrefix,
+          description: '',
+          modules: config.modules ?? [],
+          hubs: [],
+        },
+        null,
+        2,
+      ),
+    );
+    return root;
+  }
+
+  it('removing a transitive-only module errors (spec: "not part of the project")', async () => {
+    // Spec's RemoveModule `requires: exists decl` — a transitive-only
+    // installation has no top-level declaration, so the command must
+    // reject with a clear error rather than silently tearing out a dep
+    // owned by another module.
+    const depRoot = join(testDir, 'fake-trans-dep');
+    makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'trdep' });
+    const hostRoot = join(testDir, 'fake-trans-host');
+    makeFakeModuleFixture(hostRoot, {
+      cardKeyPrefix: 'trhost',
+      modules: [{ name: 'trdep', location: `file:${pathResolve(depRoot)}` }],
+    });
+
+    const projectDir = join(testDir, 'proj-trans-only');
+    const commandHandler = new Commands();
+    const create = await commandHandler.command(
+      Cmd.create,
+      ['project', 'trans-only-proj', 'trsp'],
+      { projectPath: projectDir },
+    );
+    expect(create.statusCode).toBe(200);
+
+    const commands = new CommandManager(projectDir, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+
+    await commands.importCmd.importModule(hostRoot, projectDir);
+    // Both are installed; only `trhost` is a top-level declaration.
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'trhost'))).toBe(
+      true,
+    );
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'trdep'))).toBe(
+      true,
+    );
+    const topLevelNames = commands.project.configuration.modules.map(
+      (m) => m.name,
+    );
+    expect(topLevelNames).toEqual(['trhost']);
+
+    await expect(commands.removeCmd.remove('module', 'trdep')).rejects.toThrow(
+      "Module 'trdep' is not part of the project",
+    );
+
+    // Both installations still exist — the failed remove didn't
+    // accidentally mutate the tree.
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'trhost'))).toBe(
+      true,
+    );
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'trdep'))).toBe(
+      true,
+    );
+  });
+
+  it('removing a deep transitive chain cascades the orphan cleanup to a fixed point', async () => {
+    // A → B → C. Removing A must ultimately remove B and C too, via the
+    // fixed-point cascade in `cleanOrphans`. Previous ModuleManager
+    // behaviour cascaded exactly one level; spec now requires iteration
+    // until stable.
+    const cRoot = join(testDir, 'fake-chain-C');
+    makeFakeModuleFixture(cRoot, { cardKeyPrefix: 'chc' });
+    const bRoot = join(testDir, 'fake-chain-B');
+    makeFakeModuleFixture(bRoot, {
+      cardKeyPrefix: 'chb',
+      modules: [{ name: 'chc', location: `file:${pathResolve(cRoot)}` }],
+    });
+    const aRoot = join(testDir, 'fake-chain-A');
+    makeFakeModuleFixture(aRoot, {
+      cardKeyPrefix: 'cha',
+      modules: [{ name: 'chb', location: `file:${pathResolve(bRoot)}` }],
+    });
+
+    const projectDir = join(testDir, 'proj-chain');
+    const commandHandler = new Commands();
+    const create = await commandHandler.command(
+      Cmd.create,
+      ['project', 'chain-proj', 'chpr'],
+      { projectPath: projectDir },
+    );
+    expect(create.statusCode).toBe(200);
+
+    const commands = new CommandManager(projectDir, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+
+    await commands.importCmd.importModule(aRoot, projectDir);
+
+    // A, B, C all installed.
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'cha'))).toBe(true);
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'chb'))).toBe(true);
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'chc'))).toBe(true);
+
+    await commands.removeCmd.remove('module', 'cha');
+
+    // Fixed-point cascade removes all three.
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'cha'))).toBe(
+      false,
+    );
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'chb'))).toBe(
+      false,
+    );
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'chc'))).toBe(
+      false,
+    );
+    // Top-level declaration gone too.
+    const topLevelNames = commands.project.configuration.modules.map(
+      (m) => m.name,
+    );
+    expect(topLevelNames).not.toContain('cha');
   });
 });

@@ -9,13 +9,21 @@ import {
   vi,
 } from 'vitest';
 
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { join, resolve as pathResolve } from 'node:path';
 
+import { CommandManager } from '../src/command-manager.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Cmd, Commands } from '../src/command-handler.js';
 import { Fetch, Show } from '../src/commands/index.js';
 import { GitManager } from '../src/utils/git-manager.js';
+import type { SourceLayer } from '../src/modules/source.js';
 import {
   getTestProject,
   mockEnsureModuleListUpToDate,
@@ -238,6 +246,48 @@ describe('import module', () => {
         optionsMini,
       );
       expect(result2.statusCode).toBe(200);
+    });
+    it('re-importing with a mismatched source location is rejected', async () => {
+      // Spec invariant `DeclarationAndInstallationAgreeOnSource`: once a
+      // module has been imported from a given source, a re-import of the
+      // same module name from a different source must be rejected. The
+      // resolver enforces this via `assertSourceAgreement`.
+      const firstImport = await commandHandler.command(
+        Cmd.import,
+        ['module', decisionRecordsPath],
+        optionsMini,
+      );
+      expect(firstImport.statusCode).toBe(200);
+
+      // Capture the persisted declaration so we can assert it is not
+      // mutated by the failed re-import.
+      const configPath = join(
+        minimalPath,
+        '.cards',
+        'local',
+        'cardsConfig.json',
+      );
+      const configBefore = readFileSync(configPath, 'utf-8');
+
+      // Make a sibling copy of the same module fixture at a different
+      // path. Same `cardKeyPrefix` ("decision"), different `file:` URL.
+      const altModulePath = join(testDir, 'valid/decision-records-alt');
+      await copyDir(decisionRecordsPath, altModulePath);
+
+      const result = await commandHandler.command(
+        Cmd.import,
+        ['module', altModulePath],
+        optionsMini,
+      );
+      expect(result.statusCode).toBe(400);
+      expect(result.message).toMatch(
+        /Conflicting source for module 'decision'/,
+      );
+
+      // Config must not have been mutated — the resolver's source-
+      // agreement check fires before the installer persists anything.
+      const configAfter = readFileSync(configPath, 'utf-8');
+      expect(configAfter).toBe(configBefore);
     });
     it('try to import module - that has the same prefix', async () => {
       const result = await commandHandler.command(
@@ -466,3 +516,527 @@ describe('update-modules version arg', () => {
 // throws) is the job of Phase 10's `modules/resolver.test.ts` and is
 // intentionally omitted here to avoid coupling integration tests to
 // implementation details.
+
+// ---------------------------------------------------------------------------
+// Spec-driven integration tests for `Import.updateModule` and the
+// diamond-conflict / orphan cascade behaviours wired in Phases 5-8. Each
+// test sets up a real `CommandManager` against a project and drives the
+// command layer — no prototype spies on deleted private methods.
+// ---------------------------------------------------------------------------
+describe('module update — spec behaviours', () => {
+  const moduleTestDir = join(baseDir, 'tmp-command-import-module-update-tests');
+
+  beforeEach(async () => {
+    mkdirSync(moduleTestDir, { recursive: true });
+    await copyDir('test/test-data', moduleTestDir);
+  });
+
+  afterEach(() => {
+    rmSync(moduleTestDir, { recursive: true, force: true });
+    vi.restoreAllMocks();
+  });
+
+  /**
+   * Build a synthetic module fixture on disk that `Import.importModule`
+   * accepts as a `file:` source. The minimum a file-source module needs is
+   * a valid `.cards/local/cardsConfig.json`; optional `modules[]` entries
+   * declare transitive deps that the resolver walks.
+   */
+  function makeFakeModuleFixture(
+    root: string,
+    config: {
+      cardKeyPrefix: string;
+      name?: string;
+      modules?: Array<{ name: string; location: string; version?: string }>;
+    },
+  ): string {
+    const localDir = join(root, '.cards', 'local');
+    mkdirSync(localDir, { recursive: true });
+    // `cardRoot/` is what `Project.isCreated` looks for; the resolver never
+    // touches it, but having it lets the `Validate.validateFolder` +
+    // `pathExists` precondition in `importModule` sail through cleanly.
+    mkdirSync(join(root, 'cardRoot'), { recursive: true });
+    writeFileSync(
+      join(localDir, 'cardsConfig.json'),
+      JSON.stringify(
+        {
+          cardKeyPrefix: config.cardKeyPrefix,
+          name: config.name ?? config.cardKeyPrefix,
+          description: '',
+          modules: config.modules ?? [],
+          hubs: [],
+        },
+        null,
+        2,
+      ),
+    );
+    return root;
+  }
+
+  /**
+   * Rewrite a fake module fixture's `cardsConfig.json`. Used to simulate
+   * a module upstream dropping a transitive dependency between imports —
+   * the trigger for `cleanOrphans` during `updateAllModules`.
+   */
+  function rewriteFakeModuleFixture(
+    root: string,
+    config: {
+      cardKeyPrefix: string;
+      name?: string;
+      modules?: Array<{ name: string; location: string; version?: string }>;
+    },
+  ): void {
+    writeFileSync(
+      join(root, '.cards', 'local', 'cardsConfig.json'),
+      JSON.stringify(
+        {
+          cardKeyPrefix: config.cardKeyPrefix,
+          name: config.name ?? config.cardKeyPrefix,
+          description: '',
+          modules: config.modules ?? [],
+          hubs: [],
+        },
+        null,
+        2,
+      ),
+    );
+  }
+
+  it('updateAllModules cleans up installations orphaned by a dropped transitive dep', async () => {
+    // Build two fake modules: `host` (top-level) declares `dep`
+    // (transitive). Import host → dep is installed transitively. Edit
+    // host's fixture to drop dep, then run updateAllModules. After the
+    // orphan cascade, .cards/modules/dep/ must be gone.
+    const depRoot = join(moduleTestDir, 'fake-dep');
+    makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'fkdep' });
+    const hostRoot = join(moduleTestDir, 'fake-host');
+    makeFakeModuleFixture(hostRoot, {
+      cardKeyPrefix: 'fkhost',
+      modules: [{ name: 'fkdep', location: `file:${pathResolve(depRoot)}` }],
+    });
+
+    const projectDir = join(moduleTestDir, 'proj-orphan');
+    const commandHandler = new Commands();
+    const create = await commandHandler.command(
+      Cmd.create,
+      ['project', 'orphan-proj', 'orph'],
+      { projectPath: projectDir },
+    );
+    expect(create.statusCode).toBe(200);
+
+    const commands = new CommandManager(projectDir, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+
+    await commands.importCmd.importModule(hostRoot, projectDir);
+
+    const installedHost = join(projectDir, '.cards', 'modules', 'fkhost');
+    const installedDep = join(projectDir, '.cards', 'modules', 'fkdep');
+    expect(existsSync(installedHost)).toBe(true);
+    expect(existsSync(installedDep)).toBe(true);
+
+    // Upstream drops its transitive dep.
+    rewriteFakeModuleFixture(hostRoot, {
+      cardKeyPrefix: 'fkhost',
+      modules: [],
+    });
+
+    await commands.importCmd.updateAllModules();
+
+    // host is still around; dep must have been removed by the fixed-point
+    // orphan cascade that runs at the end of UpdateModules.
+    expect(existsSync(installedHost)).toBe(true);
+    expect(existsSync(installedDep)).toBe(false);
+  });
+
+  it('updateModule with an override version that violates the declared range throws', async () => {
+    // Spec: the `update <name> <exact-version>` path must refuse a
+    // version that contradicts the declared range. Implemented via
+    // `validateVersionAgainstConstraints` in `Import.updateModule`.
+    const projectDir = join(moduleTestDir, 'proj-override-bad');
+    const commandHandler = new Commands();
+    const create = await commandHandler.command(
+      Cmd.create,
+      ['project', 'override-bad-proj', 'ovb'],
+      { projectPath: projectDir },
+    );
+    expect(create.statusCode).toBe(200);
+
+    const depRoot = join(moduleTestDir, 'fake-override-mod');
+    makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'ovmod' });
+
+    const commands = new CommandManager(projectDir, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+    await commands.importCmd.importModule(depRoot, projectDir);
+
+    // Synthesise a declared range on the persisted module so the
+    // constraint-validation path fires. The caller-supplied override
+    // `2.0.0` violates `^1.0.0`.
+    const modSetting = commands.project.configuration.modules.find(
+      (m) => m.name === 'ovmod',
+    );
+    expect(modSetting).toBeDefined();
+    modSetting!.version = '^1.0.0';
+
+    await expect(
+      commands.importCmd.updateModule('ovmod', undefined, '2.0.0'),
+    ).rejects.toThrow(/does not satisfy constraint '\^1\.0\.0'/);
+  });
+
+  it('updateModule with an override version inside the declared range succeeds', async () => {
+    // Paired positive case for the override flow: `1.3.0` satisfies
+    // `^1.0.0`, so the constraint check passes and the install path
+    // completes end-to-end against a file source (which ignores the ref
+    // but still exercises the two-phase install).
+    const projectDir = join(moduleTestDir, 'proj-override-ok');
+    const commandHandler = new Commands();
+    const create = await commandHandler.command(
+      Cmd.create,
+      ['project', 'override-ok-proj', 'ovk'],
+      { projectPath: projectDir },
+    );
+    expect(create.statusCode).toBe(200);
+
+    const depRoot = join(moduleTestDir, 'fake-override-mod-ok');
+    makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'ovkmod' });
+
+    const commands = new CommandManager(projectDir, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+    await commands.importCmd.importModule(depRoot, projectDir);
+
+    const modSetting = commands.project.configuration.modules.find(
+      (m) => m.name === 'ovkmod',
+    );
+    expect(modSetting).toBeDefined();
+    modSetting!.version = '^1.0.0';
+
+    // No throw: constraint check passes, file source fetch/install runs
+    // end-to-end. The persisted range stays at `^1.0.0` — the installer
+    // only writes back the declared range, never the resolved tag.
+    await commands.importCmd.updateModule('ovkmod', undefined, '1.3.0');
+
+    const after = commands.project.configuration.modules.find(
+      (m) => m.name === 'ovkmod',
+    );
+    // The persisted range is semver-normalised by `toVersionRange`, so
+    // compare via satisfies semantics: `^1.0.0` and its normalised form
+    // `>=1.0.0 <2.0.0-0` are the same range. The important assertion is
+    // that the range remained a `^1.0.0`-style range (not `=1.3.0`).
+    expect(after?.version).toBeDefined();
+    expect(after?.version).toMatch(/1\.0\.0/);
+    expect(after?.version).not.toBe('1.3.0');
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'ovkmod'))).toBe(
+      true,
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Resolver-driven diamond-conflict integration tests. These exercise the
+// real resolver + installer against an in-memory SourceLayer — end-to-end
+// across every module layer (types / source / inventory / resolver /
+// installer / orphans) and against a real `Project`, matching what
+// `Import.importModule` does internally. We use the same `onConflict`
+// wrapper that the command layer uses so the wiring is exercised too.
+// ---------------------------------------------------------------------------
+describe('import module — transitive diamond conflicts', () => {
+  const diamondTestDir = join(baseDir, 'tmp-command-import-diamond-tests');
+
+  beforeEach(async () => {
+    mkdirSync(diamondTestDir, { recursive: true });
+    await copyDir('test/test-data', diamondTestDir);
+  });
+
+  afterEach(() => {
+    rmSync(diamondTestDir, { recursive: true, force: true });
+    vi.restoreAllMocks();
+  });
+
+  it('diamond with compatible ranges resolves without a warning and installs once', async () => {
+    // A and C both declare B at `^1.0.0`; the resolver dedups silently,
+    // no DiamondVersionConflict is emitted, and the command-level
+    // `onConflict` → console.warn wrapper is never invoked.
+    const { createResolver, createInstaller } =
+      await import('../src/modules/index.js');
+    const { cleanOrphans } = await import('../src/modules/orphans.js');
+    const { toVersionRange } = await import('../src/modules/types.js');
+    const { mkdir, writeFile } = await import('node:fs/promises');
+
+    const projectDir = join(diamondTestDir, 'proj-diamond-ok');
+    const commandHandler = new Commands();
+    const create = await commandHandler.command(
+      Cmd.create,
+      ['project', 'diamond-ok-proj', 'dok'],
+      { projectPath: projectDir },
+    );
+    expect(create.statusCode).toBe(200);
+
+    const commands = new CommandManager(projectDir, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+
+    const locations = {
+      A: 'https://example.test/A.git',
+      B: 'https://example.test/B.git',
+      C: 'https://example.test/C.git',
+    } as const;
+
+    const configs = new Map<
+      string,
+      {
+        cardKeyPrefix: string;
+        name: string;
+        modules: Array<{
+          name: string;
+          location: string;
+          version?: string;
+        }>;
+      }
+    >([
+      [
+        locations.A,
+        {
+          cardKeyPrefix: 'A',
+          name: 'A',
+          modules: [{ name: 'B', location: locations.B, version: '^1.0.0' }],
+        },
+      ],
+      [
+        locations.C,
+        {
+          cardKeyPrefix: 'C',
+          name: 'C',
+          modules: [{ name: 'B', location: locations.B, version: '^1.0.0' }],
+        },
+      ],
+      [locations.B, { cardKeyPrefix: 'B', name: 'B', modules: [] }],
+    ]);
+    const availableByLocation = new Map<string, string[]>([
+      [locations.A, ['1.0.0']],
+      [locations.C, ['1.0.0']],
+      [locations.B, ['1.2.0', '1.0.0']],
+    ]);
+
+    // In-memory SourceLayer: `fetch` materialises a synthetic resource
+    // tree under tempDir so the installer can copy from it; listTags /
+    // queryRemote serve the resolver's version picks.
+    const source: SourceLayer = {
+      async fetch(target, destRoot, nameHint) {
+        const dir = join(destRoot, nameHint);
+        await mkdir(join(dir, '.cards', 'local'), { recursive: true });
+        const cfg = configs.get(target.location);
+        if (!cfg) throw new Error(`no fake config for ${target.location}`);
+        await writeFile(
+          join(dir, '.cards', 'local', 'cardsConfig.json'),
+          JSON.stringify(cfg),
+        );
+        return dir;
+      },
+      async listRemoteVersions(location) {
+        return availableByLocation.get(location) ?? [];
+      },
+      async queryRemote() {
+        return { reachable: true };
+      },
+    };
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const tempDir = join(projectDir, '.temp', 'modules');
+    const rootA = {
+      project: commands.project.basePath,
+      name: 'A',
+      source: { location: locations.A, private: false },
+      versionRange: toVersionRange('^1.0.0'),
+      parent: undefined,
+    };
+    const rootC = {
+      project: commands.project.basePath,
+      name: 'C',
+      source: { location: locations.C, private: false },
+      versionRange: toVersionRange('^1.0.0'),
+      parent: undefined,
+    };
+
+    const resolver = createResolver(source);
+    const installer = createInstaller(source);
+    const resolved = await resolver.resolve([rootA, rootC], {
+      tempDir,
+      onConflict: (event) => {
+        // Mirror the command-layer wrapper — a conflict here would mean
+        // the dedup silent-path is broken.
+        console.warn(`Diamond version conflict for module '${event.name}'`);
+      },
+    });
+    await installer.install(commands.project, resolved, { tempDir });
+    await cleanOrphans(commands.project);
+
+    // B appears exactly once in the resolved plan.
+    const bEntries = resolved.filter((r) => r.declaration.name === 'B');
+    expect(bEntries).toHaveLength(1);
+    expect(bEntries[0].version).toBe('1.2.0');
+
+    // B on disk exactly once.
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'B'))).toBe(true);
+
+    // No diamond-conflict warn was produced.
+    const diamondWarns = warnSpy.mock.calls.filter((call) =>
+      typeof call[0] === 'string'
+        ? call[0].includes('Diamond version conflict')
+        : false,
+    );
+    expect(diamondWarns).toHaveLength(0);
+  });
+
+  it('diamond with incompatible ranges warns, keeps first-encountered, does not throw', async () => {
+    // A declares B^1.0, C declares B^2.0. Spec: first-encounter wins on
+    // dedup, later mismatched ranges surface as a `DiamondVersionConflict`
+    // warning, not a throw.
+    const { createResolver, createInstaller } =
+      await import('../src/modules/index.js');
+    const { cleanOrphans } = await import('../src/modules/orphans.js');
+    const { toVersionRange } = await import('../src/modules/types.js');
+    const { mkdir, writeFile } = await import('node:fs/promises');
+
+    const projectDir = join(diamondTestDir, 'proj-diamond-bad');
+    const commandHandler = new Commands();
+    const create = await commandHandler.command(
+      Cmd.create,
+      ['project', 'diamond-bad-proj', 'dbd'],
+      { projectPath: projectDir },
+    );
+    expect(create.statusCode).toBe(200);
+
+    const commands = new CommandManager(projectDir, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+
+    const locations = {
+      A: 'https://example.test/A.git',
+      B: 'https://example.test/B.git',
+      C: 'https://example.test/C.git',
+    } as const;
+
+    const configs = new Map<
+      string,
+      {
+        cardKeyPrefix: string;
+        name: string;
+        modules: Array<{
+          name: string;
+          location: string;
+          version?: string;
+        }>;
+      }
+    >([
+      [
+        locations.A,
+        {
+          cardKeyPrefix: 'A',
+          name: 'A',
+          modules: [{ name: 'B', location: locations.B, version: '^1.0.0' }],
+        },
+      ],
+      [
+        locations.C,
+        {
+          cardKeyPrefix: 'C',
+          name: 'C',
+          modules: [{ name: 'B', location: locations.B, version: '^2.0.0' }],
+        },
+      ],
+      [locations.B, { cardKeyPrefix: 'B', name: 'B', modules: [] }],
+    ]);
+    const availableByLocation = new Map<string, string[]>([
+      [locations.A, ['1.0.0']],
+      [locations.C, ['1.0.0']],
+      [locations.B, ['2.0.0', '1.5.0']],
+    ]);
+
+    const source: SourceLayer = {
+      async fetch(target, destRoot, nameHint) {
+        const dir = join(destRoot, nameHint);
+        await mkdir(join(dir, '.cards', 'local'), { recursive: true });
+        const cfg = configs.get(target.location);
+        if (!cfg) throw new Error(`no fake config for ${target.location}`);
+        await writeFile(
+          join(dir, '.cards', 'local', 'cardsConfig.json'),
+          JSON.stringify(cfg),
+        );
+        return dir;
+      },
+      async listRemoteVersions(location) {
+        return availableByLocation.get(location) ?? [];
+      },
+      async queryRemote() {
+        return { reachable: true };
+      },
+    };
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const tempDir = join(projectDir, '.temp', 'modules');
+    const rootA = {
+      project: commands.project.basePath,
+      name: 'A',
+      source: { location: locations.A, private: false },
+      versionRange: toVersionRange('^1.0.0'),
+      parent: undefined,
+    };
+    const rootC = {
+      project: commands.project.basePath,
+      name: 'C',
+      source: { location: locations.C, private: false },
+      versionRange: toVersionRange('^1.0.0'),
+      parent: undefined,
+    };
+
+    const resolver = createResolver(source);
+    const installer = createInstaller(source);
+
+    // Must not throw — spec mandates first-encounter wins and a warning.
+    const resolved = await resolver.resolve([rootA, rootC], {
+      tempDir,
+      onConflict: (event) => {
+        // Replicate the exact wrapper used by `Import.importModule`.
+        console.warn(
+          `Diamond version conflict for module '${event.name}': ` +
+            `installed version ${event.installedVersion ?? '<unknown>'} ` +
+            `does not satisfy range '${event.rejectingRange}' ` +
+            `(required by ${event.rejectingParent?.name ?? '<unknown parent>'})`,
+        );
+      },
+    });
+    await installer.install(commands.project, resolved, { tempDir });
+    await cleanOrphans(commands.project);
+
+    // B installed exactly once at the first-encountered range (^1.0.0 →
+    // 1.5.0, the max satisfying tag on the fake remote). The rejecting
+    // ^2.0.0 range did NOT win.
+    const bEntries = resolved.filter((r) => r.declaration.name === 'B');
+    expect(bEntries).toHaveLength(1);
+    expect(bEntries[0].version).toBe('1.5.0');
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'B'))).toBe(true);
+
+    // The conflict was surfaced via console.warn — the observable shape
+    // of the command-level wrapper.
+    const diamondWarns = warnSpy.mock.calls.filter((call) =>
+      typeof call[0] === 'string'
+        ? call[0].includes("Diamond version conflict for module 'B'")
+        : false,
+    );
+    expect(diamondWarns.length).toBeGreaterThanOrEqual(1);
+    // Range is semver-normalised by `toVersionRange` before it reaches
+    // the conflict event — `^2.0.0` becomes `>=2.0.0 <3.0.0-0`.
+    expect(diamondWarns[0][0]).toMatch(/>=2\.0\.0/);
+    // Rejecting parent came from the second walk, i.e. C.
+    expect(diamondWarns[0][0]).toContain('required by C');
+  });
+});
