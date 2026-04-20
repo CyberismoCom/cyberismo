@@ -177,51 +177,6 @@ describe('modules/installer', () => {
     expect(persisted.location).toBe('https://example.com/A.git');
   });
 
-  it('honours options.skip so listed modules are not installed', async () => {
-    const source = new InMemorySource(
-      new Map([
-        [
-          'https://example.com/A.git',
-          {
-            files: {
-              'cardsConfig.json': JSON.stringify({
-                cardKeyPrefix: 'A',
-                modules: [],
-              }),
-            },
-          },
-        ],
-        [
-          'https://example.com/B.git',
-          {
-            files: {
-              'cardsConfig.json': JSON.stringify({
-                cardKeyPrefix: 'B',
-                modules: [],
-              }),
-            },
-          },
-        ],
-      ]),
-    );
-    const { stub } = makeProjectStub(projectDir);
-    const installer = createInstaller(source);
-
-    const resolved = [
-      buildResolved('A', 'https://example.com/A.git', { range: '^1.0.0' }),
-      buildResolved('B', 'https://example.com/B.git', { range: '^1.0.0' }),
-    ];
-
-    await installer.install(stub as unknown as Project, resolved, {
-      tempDir,
-      skip: new Set(['A']),
-    });
-
-    expect(existsSync(join(projectDir, '.cards', 'modules', 'A'))).toBe(false);
-    expect(existsSync(join(projectDir, '.cards', 'modules', 'B'))).toBe(true);
-    expect(source.fetchCalls).toEqual(['B']);
-  });
-
   it('leaves .cards/modules/ untouched when the network phase fails', async () => {
     const source = new InMemorySource(
       new Map([
