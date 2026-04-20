@@ -263,15 +263,8 @@ export class Import {
       },
     });
 
-    // Only install the new root's subgraph — anything already declared has
-    // already been installed by a previous import/update and should not be
-    // churned by this import. The resolver still produces entries for
-    // existing roots (so transitive dedup works); we just skip re-installing
-    // them here.
-    const existingNames = new Set(existing.map((d) => d.name));
     await installer.install(this.project, resolved, {
       credentials: options?.credentials,
-      skip: existingNames,
       tempDir: this.tempModulesDir,
       validate: isFileSource(location),
     });

@@ -38,12 +38,6 @@ export interface InstallOptions {
    */
   credentials?: Credentials;
   /**
-   * Names to skip during install. Used by paths that re-install a
-   * module's dependencies without re-installing the root module itself
-   * (historically `ModuleManager.updateDependencies`).
-   */
-  skip?: Set<string>;
-  /**
    * Temporary directory used for intermediate clones in the network
    * phase. Shared with the resolver when possible so that staged copies
    * can be reused.
@@ -106,7 +100,6 @@ class DefaultInstaller implements Installer {
     resolved: ResolvedModule[],
     options: InstallOptions,
   ): Promise<void> {
-    const skip = options.skip ?? new Set<string>();
     const selfPrefix = project.projectPrefix;
 
     // Split the plan:
@@ -123,7 +116,6 @@ class DefaultInstaller implements Installer {
     //                    surface that below.
     const targets: ResolvedModule[] = [];
     for (const entry of resolved) {
-      if (skip.has(entry.declaration.name)) continue;
       if (
         entry.declaration.name === selfPrefix &&
         entry.declaration.parent !== undefined
