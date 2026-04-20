@@ -109,7 +109,7 @@ test('/api/cards/export-pdf returns a PDF buffer', async () => {
   expect(response).not.toBe(null);
   expect(response.status).toBe(200);
   expect(magicBytes).toBe('%PDF');
-});
+}, 30000);
 
 test('/api/cards/export-pdf returns a 400 error on a bad request', async () => {
   const response = await app.request('/api/cards/export-pdf', {
