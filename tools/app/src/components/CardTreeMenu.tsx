@@ -12,6 +12,7 @@
 */
 
 import { useAppRouter } from '@/lib/hooks';
+import { useCanAdmin } from '@/lib/auth';
 import { MoreHoriz } from '@mui/icons-material';
 import { Dropdown, MenuButton, Menu, MenuItem } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
@@ -19,6 +20,8 @@ import { useTranslation } from 'react-i18next';
 export const CardTreeMenu = () => {
   const { t } = useTranslation();
   const router = useAppRouter();
+  const canAdmin = useCanAdmin();
+  if (!canAdmin) return null;
   return (
     <Dropdown>
       <MenuButton variant="plain" size="sm" endDecorator={<MoreHoriz />} />
