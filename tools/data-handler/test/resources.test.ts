@@ -1155,10 +1155,7 @@ describe('resources', function () {
       const createCmdMini = new Create(projectMini);
       const fetchCmd = new Fetch(projectMini);
       const importCmdMini = new Import(projectMini, createCmdMini, fetchCmd);
-      await importCmdMini.importModule(
-        decisionRecordsPath,
-        projectMini.basePath,
-      );
+      await importCmdMini.importModule(decisionRecordsPath);
       const name = 'decision/reports/newREP';
       const res = project.resources.byType(name, 'reports');
       let data = await res.show();

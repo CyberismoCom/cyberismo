@@ -481,7 +481,7 @@ describe('update-modules version arg', () => {
 
     // Force the CommandManager singleton to reload from disk by routing
     // through a different project path first — otherwise the in-memory
-    // Project still holds the pre-hack module location.
+    // Project still holds the module location from before the rewrite above.
     await commandHandler.command(Cmd.show, ['project'], {
       projectPath: decisionRecordsPath,
     });
@@ -506,20 +506,13 @@ describe('update-modules version arg', () => {
   });
 });
 
-// The previous `import module version resolution` suite lived here and
-// exercised `Import.importModule` by spying on `ModuleManager.prototype`
-// private methods (importGitModule, updateDependencies,
-// listAvailableVersions, readModuleVersion). After Phase 8 the orchestration
-// moved into `modules/resolver.ts` and `modules/installer.ts`; those private
-// methods no longer exist. Per-layer coverage of version resolution
-// (resolver picks highest satisfying tag, override respected, no-match
-// throws) is the job of Phase 10's `modules/resolver.test.ts` and is
-// intentionally omitted here to avoid coupling integration tests to
-// implementation details.
+// Per-layer coverage of version resolution (resolver picks highest satisfying
+// tag, override respected, no-match throws) lives in
+// `modules/resolver.test.ts`.
 
 // ---------------------------------------------------------------------------
 // Spec-driven integration tests for `Import.updateModule` and the
-// diamond-conflict / orphan cascade behaviours wired in Phases 5-8. Each
+// diamond-conflict / orphan cascade behaviours. Each
 // test sets up a real `CommandManager` against a project and drives the
 // command layer — no prototype spies on deleted private methods.
 // ---------------------------------------------------------------------------
@@ -629,7 +622,7 @@ describe('module update — spec behaviours', () => {
     });
     await commands.initialize();
 
-    await commands.importCmd.importModule(hostRoot, projectDir);
+    await commands.importCmd.importModule(hostRoot);
 
     const installedHost = join(projectDir, '.cards', 'modules', 'fkhost');
     const installedDep = join(projectDir, '.cards', 'modules', 'fkdep');
@@ -651,11 +644,11 @@ describe('module update — spec behaviours', () => {
   });
 
   it('updateAllModules refreshes allModulePrefixes when a new transitive is pulled in', async () => {
-    // Phase C regression guard: when `updateAllModules` pulls in a brand-new
-    // transitive (because the upstream started declaring a dep it previously
-    // did not), the project's cached `allModulePrefixes()` must immediately
-    // include that transitive's prefix without any manual refresh by the
-    // caller. The installer now fires the refresh itself.
+    // When `updateAllModules` pulls in a brand-new transitive (because the
+    // upstream started declaring a dep it previously did not), the project's
+    // cached `allModulePrefixes()` must immediately include that transitive's
+    // prefix without any manual refresh by the caller — the installer fires
+    // the refresh itself.
     const depRoot = join(moduleTestDir, 'fake-new-dep');
     makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'newdep' });
     const hostRoot = join(moduleTestDir, 'fake-new-host');
@@ -679,7 +672,7 @@ describe('module update — spec behaviours', () => {
     });
     await commands.initialize();
 
-    await commands.importCmd.importModule(hostRoot, projectDir);
+    await commands.importCmd.importModule(hostRoot);
     // Initially only `newhost` is installed — no `newdep` yet.
     expect(commands.project.allModulePrefixes()).toContain('newhost');
     expect(commands.project.allModulePrefixes()).not.toContain('newdep');
@@ -722,7 +715,7 @@ describe('module update — spec behaviours', () => {
       autoSaveConfiguration: false,
     });
     await commands.initialize();
-    await commands.importCmd.importModule(depRoot, projectDir);
+    await commands.importCmd.importModule(depRoot);
 
     // Synthesise a declared range on the persisted module so the
     // constraint-validation path fires. The caller-supplied override
@@ -759,7 +752,7 @@ describe('module update — spec behaviours', () => {
       autoSaveConfiguration: false,
     });
     await commands.initialize();
-    await commands.importCmd.importModule(depRoot, projectDir);
+    await commands.importCmd.importModule(depRoot);
 
     const modSetting = commands.project.configuration.modules.find(
       (m) => m.name === 'ovkmod',
@@ -1099,10 +1092,8 @@ describe('import module — transitive diamond conflicts', () => {
 
 // ---------------------------------------------------------------------------
 // Staged-fetch reuse: the resolver's ResolvedModule.stagedPath lets the
-// installer skip a second source.fetch for every module. Before Phase B
-// every import/update paid 2× the network cost because the installer
-// re-fetched whatever the resolver had already cloned. These tests pin
-// the invariant that fetch is called exactly once per unique module.
+// installer skip a second source.fetch for every module. These tests pin the
+// invariant that fetch is called exactly once per unique module.
 // ---------------------------------------------------------------------------
 describe('import module — resolver+installer reuse staged fetches', () => {
   const reuseTestDir = join(baseDir, 'tmp-command-import-reuse-tests');
@@ -1119,11 +1110,9 @@ describe('import module — resolver+installer reuse staged fetches', () => {
 
   it('calls SourceLayer.fetch once per module (3 times for a 3-module tree)', async () => {
     // Build a root + 2 transitives and drive the resolver/installer
-    // against an instrumented SourceLayer. Before Phase B this would
-    // record 6 calls (resolver fetches each module for config reading,
-    // then the installer fetches each module again for the apply
-    // phase). After Phase B the resolver's staging path is reused by
-    // the installer and the count drops to 3.
+    // against an instrumented SourceLayer. The resolver stages each unique
+    // module once and the installer reuses that staging path, so fetch
+    // should be called exactly 3 times — not 6.
     const { createResolver, createInstaller } =
       await import('../src/modules/index.js');
     const { cleanOrphans } = await import('../src/modules/orphans.js');
@@ -1222,8 +1211,7 @@ describe('import module — resolver+installer reuse staged fetches', () => {
     await installer.install(commands.project, resolved, { tempDir });
     await cleanOrphans(commands.project);
 
-    // Exactly three fetches — one per unique module (A, B, C). Before
-    // the refactor this would be six.
+    // Exactly three fetches — one per unique module (A, B, C).
     expect(fetchCalls.length).toBe(3);
     expect(fetchCalls.sort()).toEqual(
       [locations.A, locations.B, locations.C].sort(),

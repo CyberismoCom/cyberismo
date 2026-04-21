@@ -38,9 +38,7 @@ function buildProjectWithModules(modules: ModuleSetting[]) {
 
 /**
  * Write a fake `.cards/modules/<name>/cardsConfig.json` so the inventory
- * layer reports `name` as an installation with the given version. The
- * legacy tests mocked `ModuleManager.readModuleVersion` for this; the new
- * flow reads from disk, so we materialise a real file.
+ * layer reports `name` as an installation with the given version.
  */
 function installModule(
   project: ReturnType<typeof getTestProject>,

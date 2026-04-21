@@ -32,16 +32,13 @@ describe('module-manager', () => {
 
   it('import local module', async () => {
     const localModule = join(testDir, 'valid/minimal');
-    await commands.importCmd.importModule(
-      localModule,
-      commands.project.basePath,
-    );
+    await commands.importCmd.importModule(localModule);
     const modules = await commands.showCmd.showModules();
     expect(modules.length).equals(1);
   });
   it('import git module', async () => {
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';
-    await commands.importCmd.importModule(gitModule, commands.project.basePath);
+    await commands.importCmd.importModule(gitModule);
     const modules = await commands.showCmd.showModules();
     expect(modules.length).equals(1);
   }, 60000);
@@ -50,17 +47,13 @@ describe('module-manager', () => {
       context.skip();
     } else {
       const gitModule = 'https://github.com/CyberismoCom/module-base.git';
-      await commands.importCmd.importModule(
-        gitModule,
-        commands.project.basePath,
-        {
-          private: true,
-          credentials: {
-            username: process.env.CYBERISMO_GIT_USER,
-            token: process.env.CYBERISMO_GIT_TOKEN,
-          },
+      await commands.importCmd.importModule(gitModule, {
+        private: true,
+        credentials: {
+          username: process.env.CYBERISMO_GIT_USER,
+          token: process.env.CYBERISMO_GIT_TOKEN,
         },
-      );
+      });
       const modules = await commands.showCmd.showModules();
       expect(modules.length).equals(1);
     }
@@ -69,31 +62,28 @@ describe('module-manager', () => {
     // Spec: re-importing a module with the same source is an upsert of the
     // declaration's range, not a hard error.
     const localModule = join(testDir, 'valid/minimal');
-    await commands.importCmd.importModule(
-      localModule,
-      commands.project.basePath,
-    );
+    await commands.importCmd.importModule(localModule);
     await expect(
-      commands.importCmd.importModule(localModule, commands.project.basePath),
+      commands.importCmd.importModule(localModule),
     ).resolves.not.toThrow();
     const modules = await commands.showCmd.showModules();
     expect(modules.length).equals(1);
   });
   it('re-importing a git module is upsert (spec ImportModule)', async () => {
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';
-    await commands.importCmd.importModule(gitModule, commands.project.basePath);
+    await commands.importCmd.importModule(gitModule);
 
     await expect(
-      commands.importCmd.importModule(gitModule, commands.project.basePath),
+      commands.importCmd.importModule(gitModule),
     ).resolves.not.toThrow();
     const modules = await commands.showCmd.showModules();
     expect(modules.length).equals(1);
   }, 60000);
   it('try to import from incorrect local path', async () => {
     const localModule = join(testDir, 'valid/i-do-not-exist');
-    await expect(
-      commands.importCmd.importModule(localModule, commands.project.basePath),
-    ).rejects.toThrow(`Input validation error: cannot find project`);
+    await expect(commands.importCmd.importModule(localModule)).rejects.toThrow(
+      `Input validation error: cannot find project`,
+    );
   });
   it('try to import from incorrect git path', async function (context) {
     if (skipTest) {
@@ -101,9 +91,9 @@ describe('module-manager', () => {
     } else {
       const gitModule = 'https://github.com/CyberismoCom/i-do-not-exist.git';
 
-      await expect(
-        commands.importCmd.importModule(gitModule, commands.project.basePath),
-      ).rejects.toThrow('Failed to clone module');
+      await expect(commands.importCmd.importModule(gitModule)).rejects.toThrow(
+        'Failed to clone module',
+      );
     }
   }, 60000);
   it('try to import from incorrect private git path', async () => {
@@ -116,33 +106,22 @@ describe('module-manager', () => {
       },
     };
     await expect(
-      commands.importCmd.importModule(
-        gitModule,
-        commands.project.basePath,
-        options,
-      ),
+      commands.importCmd.importModule(gitModule, options),
     ).rejects.toThrow('Failed to clone module');
   }, 60000);
   it('update all modules', async () => {
     let modules = await commands.showCmd.showModules();
     expect(modules.length).equals(0);
     const localModule = join(testDir, 'valid/minimal');
-    await commands.importCmd.importModule(
-      localModule,
-      commands.project.basePath,
-    );
+    await commands.importCmd.importModule(localModule);
 
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';
-    await commands.importCmd.importModule(
-      gitModule,
-      commands.project.basePath,
-      {
-        credentials: {
-          username: process.env.CYBERISMO_GIT_USER,
-          token: process.env.CYBERISMO_GIT_TOKEN,
-        },
+    await commands.importCmd.importModule(gitModule, {
+      credentials: {
+        username: process.env.CYBERISMO_GIT_USER,
+        token: process.env.CYBERISMO_GIT_TOKEN,
       },
-    );
+    });
 
     modules = await commands.showCmd.showModules();
     expect(modules.length).equals(2);
