@@ -117,7 +117,7 @@ export class Inventory {
     const path = join(project.paths.modulesFolder, name);
     const configPath = project.paths.moduleConfigurationFile(name);
 
-    let config: { version?: string } | undefined;
+    let config: InstallationConfig | undefined;
     try {
       config = await readJsonFile(configPath);
     } catch (error) {
@@ -152,6 +152,7 @@ export class Inventory {
     }
 
     const version = parseInstalledVersion(config.version);
+    const declaredDependencies = extractDependencyNames(config.modules);
 
     return {
       project: project.basePath,
@@ -159,8 +160,18 @@ export class Inventory {
       source,
       version,
       path,
+      declaredDependencies,
     };
   }
+}
+
+/**
+ * Minimal shape of an installation's own `cardsConfig.json` — only the
+ * fields inventory reads. Other fields are allowed and ignored.
+ */
+interface InstallationConfig {
+  version?: string;
+  modules?: Array<{ name?: string }>;
 }
 
 function parseInstalledVersion(raw: unknown): Version | undefined {
@@ -173,6 +184,21 @@ function parseInstalledVersion(raw: unknown): Version | undefined {
     // Treat invalid semver as missing rather than failing the whole read.
     return undefined;
   }
+}
+
+function extractDependencyNames(
+  modules: InstallationConfig['modules'],
+): string[] {
+  if (!modules) {
+    return [];
+  }
+  const names: string[] = [];
+  for (const dep of modules) {
+    if (typeof dep.name === 'string' && dep.name.length > 0) {
+      names.push(dep.name);
+    }
+  }
+  return names;
 }
 
 function isEnoent(error: unknown): boolean {
