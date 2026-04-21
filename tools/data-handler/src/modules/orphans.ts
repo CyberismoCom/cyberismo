@@ -26,18 +26,9 @@ import type { ModuleInstallation } from './types.js';
  * Options for {@link cleanOrphans}.
  */
 export interface CleanOrphansOptions {
-  /**
-   * Maximum iterations; throws if exceeded. Defaults to the initial
-   * installation count + 2 (a finite graph can require at most O(depth)
-   * passes; the cap exists purely to prevent pathological loops on
-   * malformed inputs).
-   */
+  /** Safety cap on fixed-point iterations. */
   maxIterations?: number;
-  /**
-   * Hook invoked before an orphaned installation's folder is deleted.
-   * Intended for logging / telemetry from callers that want to surface
-   * what was removed. Exceptions thrown by the hook propagate.
-   */
+  /** Hook invoked before each orphan is deleted. Exceptions propagate. */
   onRemove?: (installation: ModuleInstallation) => void;
 }
 
@@ -51,24 +42,13 @@ interface InstallationConfig {
 
 /**
  * Fixed-point orphan cleanup. Deletes installations under
- * `.cards/modules/<name>/` for modules that nothing references.
+ * `.cards/modules/<name>/` that no top-level declaration and no other
+ * installation's `cardsConfig.json` references, iterating until stable
+ * so cascaded orphans are caught.
  *
- * An installation is "orphaned" when:
- *   - no top-level declaration in the project names it, AND
- *   - no other installation's own `cardsConfig.json` declares it as a
- *     dependency.
+ * Does not touch `project.configuration.modules` — top-level declarations
+ * are the caller's responsibility.
  *
- * Cascades: removing an installation may orphan its former dependencies,
- * which are removed on the next pass. Iterates until stable.
- *
- * Implements the spec's `CleanOrphans` rule (see `module-system.allium`).
- * Does NOT modify `project.configuration.modules`; top-level declarations
- * are the caller's responsibility (e.g. `RemoveModule`). Transitive
- * declarations are virtual — derived from each installation's own config
- * — so they "disappear" automatically when the installation folder goes.
- *
- * @param project Project whose `.cards/modules/` is being reconciled.
- * @param options Optional hooks and iteration cap.
  * @returns Number of installation folders removed across all iterations.
  */
 export async function cleanOrphans(
@@ -78,10 +58,7 @@ export async function cleanOrphans(
   const logger = getChildLogger({ module: 'orphans' });
   const inventory = createInventory();
 
-  // Pre-compute the safety cap from the initial installed count. A finite
-  // dependency graph can cascade at most O(depth) times; this + 2 is a
-  // generous upper bound that still catches runaway loops on malformed
-  // inputs (e.g. hand-edited `cardsConfig.json`).
+  // Default cap: initial count + 2 is enough for any finite graph.
   const initialInstalled = await inventory.installed(project);
   const maxIterations = options.maxIterations ?? initialInstalled.length + 2;
 
@@ -90,8 +67,7 @@ export async function cleanOrphans(
 
   for (let iteration = 1; iteration <= maxIterations; iteration++) {
     const declared = inventory.declared(project);
-    // Reuse the already-fetched `initialInstalled` on the first pass to
-    // avoid a redundant disk walk; subsequent passes re-read.
+    // Reuse `initialInstalled` on the first pass to skip a disk walk.
     const installed =
       iteration === 1 ? currentInstalled : await inventory.installed(project);
     currentInstalled = installed;
@@ -138,22 +114,15 @@ export async function cleanOrphans(
   }
 
   if (removed > 0) {
-    // Invalidate the module cache exactly once, after all deletions, so
-    // downstream resource lookups don't return stale prefixes. Also
-    // refresh the in-memory project caches (all-module-prefix list and
-    // loaded template cards) to keep them in sync with the filesystem.
-    project.resources.changedModules();
-    project.refreshAllModulePrefixes();
-    await project.populateTemplateCards();
+    await project.refreshAfterModuleChange();
   }
 
   return removed;
 }
 
 /**
- * Reads an installation's own `cardsConfig.json`. Returns `undefined`
- * when the file is missing or unreadable — the caller treats that as
- * "no declared deps" rather than failing the whole cleanup.
+ * Reads an installation's `cardsConfig.json`, returning `undefined` when
+ * missing or unreadable so cleanup treats it as "no declared deps".
  */
 async function readInstallationConfig(
   installation: ModuleInstallation,
@@ -179,8 +148,5 @@ async function readInstallationConfig(
 }
 
 function joinConfigPath(installationPath: string): string {
-  // `installation.path` points at `.cards/modules/<name>/`; the config
-  // file sits directly inside it. Built from the installation path
-  // directly to avoid reaching back into `Project.paths`.
   return join(installationPath, 'cardsConfig.json');
 }

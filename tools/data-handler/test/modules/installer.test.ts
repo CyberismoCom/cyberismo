@@ -61,14 +61,12 @@ class InMemorySource implements SourceLayer {
 /**
  * Build a Project stub that exposes the fields the installer touches:
  *   configuration.modules / upsertModule, paths.modulesFolder,
- *   projectPrefix, projectPrefixes(), resources.changedModules().
+ *   projectPrefix, projectPrefixes(), refreshAfterModuleChange().
  */
 function makeProjectStub(basePath: string) {
   const paths = new ProjectPaths(basePath);
   const modules: ModuleSetting[] = [];
-  const changedModules = vi.fn();
-  const refreshAllModulePrefixes = vi.fn();
-  const populateTemplateCards = vi.fn(async () => {});
+  const refreshAfterModuleChange = vi.fn(async () => {});
   const stub = {
     basePath,
     paths,
@@ -87,16 +85,12 @@ function makeProjectStub(basePath: string) {
         }
       },
     },
-    resources: { changedModules },
-    refreshAllModulePrefixes,
-    populateTemplateCards,
+    refreshAfterModuleChange,
   };
   return {
     stub,
     modules,
-    changedModules,
-    refreshAllModulePrefixes,
-    populateTemplateCards,
+    refreshAfterModuleChange,
   };
 }
 
@@ -307,7 +301,7 @@ describe('modules/installer', () => {
         ],
       ]),
     );
-    const { stub, changedModules } = makeProjectStub(projectDir);
+    const { stub, refreshAfterModuleChange } = makeProjectStub(projectDir);
     const installer = createInstaller(source);
 
     await installer.install(
@@ -316,7 +310,7 @@ describe('modules/installer', () => {
       { tempDir },
     );
 
-    expect(changedModules).toHaveBeenCalledTimes(1);
+    expect(refreshAfterModuleChange).toHaveBeenCalledTimes(1);
     // Sanity: the staged file really landed.
     const configContent = await readFile(
       join(projectDir, '.cards', 'modules', 'A', 'cardsConfig.json'),

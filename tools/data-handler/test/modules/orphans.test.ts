@@ -21,22 +21,16 @@ interface ChildDep {
 
 function makeProject(basePath: string, modules: ModuleSetting[]) {
   const paths = new ProjectPaths(basePath);
-  const changedModules = vi.fn();
-  const refreshAllModulePrefixes = vi.fn();
-  const populateTemplateCards = vi.fn(async () => {});
+  const refreshAfterModuleChange = vi.fn(async () => {});
   const project = {
     basePath,
     paths,
     configuration: { modules },
-    resources: { changedModules },
-    refreshAllModulePrefixes,
-    populateTemplateCards,
+    refreshAfterModuleChange,
   } as unknown as Project;
   return {
     project,
-    changedModules,
-    refreshAllModulePrefixes,
-    populateTemplateCards,
+    refreshAfterModuleChange,
   };
 }
 
@@ -80,7 +74,7 @@ describe('modules/orphans', () => {
     await installModule(projectDir, 'B', [{ name: 'C' }]);
     await installModule(projectDir, 'C', []);
 
-    const { project, changedModules } = makeProject(projectDir, [
+    const { project, refreshAfterModuleChange } = makeProject(projectDir, [
       { name: 'A', location: 'https://example.com/A.git' },
     ]);
 
@@ -90,7 +84,7 @@ describe('modules/orphans', () => {
     expect(existsSync(join(projectDir, '.cards', 'modules', 'B'))).toBe(true);
     expect(existsSync(join(projectDir, '.cards', 'modules', 'C'))).toBe(true);
     // No deletions => no cache invalidation.
-    expect(changedModules).not.toHaveBeenCalled();
+    expect(refreshAfterModuleChange).not.toHaveBeenCalled();
   });
 
   it('cascades A → B → C removal when A is no longer declared', async () => {
@@ -98,14 +92,14 @@ describe('modules/orphans', () => {
     await installModule(projectDir, 'B', [{ name: 'C' }]);
     await installModule(projectDir, 'C', []);
 
-    const { project, changedModules } = makeProject(projectDir, []);
+    const { project, refreshAfterModuleChange } = makeProject(projectDir, []);
 
     const removed = await cleanOrphans(project);
     expect(removed).toBe(3);
     expect(existsSync(join(projectDir, '.cards', 'modules', 'A'))).toBe(false);
     expect(existsSync(join(projectDir, '.cards', 'modules', 'B'))).toBe(false);
     expect(existsSync(join(projectDir, '.cards', 'modules', 'C'))).toBe(false);
-    expect(changedModules).toHaveBeenCalledTimes(1);
+    expect(refreshAfterModuleChange).toHaveBeenCalledTimes(1);
   });
 
   it('removes untracked installations nobody references', async () => {
