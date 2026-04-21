@@ -65,9 +65,7 @@ function normaliseLocation(source: string): string {
 function freshRootStagingName(location: string): string {
   const last = location.lastIndexOf('/');
   const tail =
-    last >= 0
-      ? location.slice(last + 1).replace(/\.git$/i, '')
-      : location;
+    last >= 0 ? location.slice(last + 1).replace(/\.git$/i, '') : location;
   const safe = tail.replace(/[^A-Za-z0-9._-]/g, '_') || 'module';
   return `${safe}.__fresh__`;
 }
