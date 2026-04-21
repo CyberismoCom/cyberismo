@@ -18,6 +18,7 @@ import {
   buildRemoteUrl,
   createInventory,
   createSourceLayer,
+  isGitLocation,
   satisfies,
   pickVersion,
 } from '../modules/index.js';
@@ -72,20 +73,7 @@ export class CheckUpdates {
     const results = await Promise.all(
       declared.map(async (decl) => {
         const installation = installedByName.get(decl.name);
-        const isGit =
-          decl.source.location.startsWith('https:') ||
-          decl.source.location.startsWith('git@');
-
-        if (!isGit) {
-          return {
-            name: decl.name,
-            installedVersion: installation?.version,
-            availableVersions: [],
-            updateAvailable: false,
-            isGitModule: false,
-            status: 'up_to_date',
-          } satisfies ModuleUpdateStatus;
-        }
+        const isGitModule = isGitLocation(decl.source.location);
 
         // A malformed private HTTPS URL is indistinguishable from an
         // unreachable source here, so treat it as `source_unreachable`.
@@ -98,7 +86,7 @@ export class CheckUpdates {
             installedVersion: installation?.version,
             availableVersions: [],
             updateAvailable: false,
-            isGitModule: true,
+            isGitModule,
             versionConstraint: decl.versionRange,
             status: 'source_unreachable',
           } satisfies ModuleUpdateStatus;
@@ -115,7 +103,7 @@ export class CheckUpdates {
             installedVersion: installation?.version,
             availableVersions: [],
             updateAvailable: false,
-            isGitModule: true,
+            isGitModule,
             versionConstraint: decl.versionRange,
             status: 'source_unreachable',
           } satisfies ModuleUpdateStatus;
@@ -172,7 +160,7 @@ export class CheckUpdates {
           availableVersions,
           updateAvailable,
           constraintBlocksUpdate,
-          isGitModule: true,
+          isGitModule,
           versionConstraint: decl.versionRange,
           noMatchingVersion,
           status,
