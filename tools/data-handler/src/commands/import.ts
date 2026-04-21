@@ -60,12 +60,7 @@ function normaliseLocation(source: string): string {
 
 /**
  * Produce a deterministic staging subdirectory name for a fresh-root
- * import. The import command pre-fetches the module to read its
- * `cardKeyPrefix`, but it doesn't yet know what that prefix is when it
- * chooses the staging path — so we key the staging directory off the
- * location's tail. Kept pure so concurrent imports of the same URL
- * produce the same path — the source layer removes any pre-existing
- * checkout before cloning, so a repeat call idempotently overwrites.
+ * import, keyed off the location's tail.
  */
 function freshRootStagingName(location: string): string {
   const last = location.lastIndexOf('/');
@@ -179,13 +174,9 @@ export class Import {
   }
 
   /**
-   * Imports a module to a project (spec's `ImportModule`, upsert semantics).
-   * Copies resources to the project under `.cards/modules/<prefix>/`.
-   *
-   * Re-importing an already-declared module with the same source updates
-   * the declared range rather than erroring. A re-import with a different
-   * source for an existing name is rejected by the resolver via the
-   * `DeclarationAndInstallationAgreeOnSource` invariant.
+   * Imports a module to a project. Copies resources to the project under
+   * `.cards/modules/<prefix>/`. Re-importing an already-declared module
+   * with the same source updates the declared range rather than erroring.
    *
    * @param source Path to module that will be imported. Git URLs
    *   (`https://…`, `git@…`) and `file:` URLs pass through; bare
@@ -239,15 +230,8 @@ export class Import {
     const resolver = createResolver(sourceLayer);
     const installer = createInstaller(sourceLayer);
 
-    // Fresh-root pre-fetch. The caller handed us a location but not the
-    // module's `cardKeyPrefix` (which becomes the declaration's `name`).
-    // The resolver now requires a non-empty name, so we fetch the module
-    // ourselves, read its `cardsConfig.json`, and hand the resolver a
-    // named declaration whose `stagedPath` points at the pre-fetch — so
-    // the resolver skips its own clone on the first BFS iteration, and
-    // the installer in turn reuses the same stagedPath for its apply
-    // phase. Total fetches for this import = (one pre-fetch) + (one per
-    // transitive dep) instead of 2×.
+    // Pre-fetch so we can read `cardKeyPrefix` and pass `stagedPath` to
+    // the resolver/installer, letting them skip a second clone.
     const remoteUrl = buildRemoteUrl(
       { location, private: options?.private ?? false },
       options?.credentials,
@@ -255,10 +239,6 @@ export class Import {
     const stagedPath = await sourceLayer.fetch(
       { location, remoteUrl },
       this.tempModulesDir,
-      // Final name isn't known yet — use a deterministic slug of the
-      // location so `destRoot/<slug>` is unambiguous. The resolver
-      // copies the declaration (including its name) verbatim into the
-      // resolved entry.
       freshRootStagingName(location),
     );
 
@@ -285,13 +265,9 @@ export class Import {
       stagedPath,
     };
 
-    // Include existing top-level declarations so the resolver's source-
-    // agreement check fires on a genuine location mismatch, and so their
-    // transitive subgraphs participate in dedup. Drop the one being
-    // re-imported (same source location) so its stale version range does
-    // not compete with the caller's new range in `ReconcileTransitives`.
-    // A re-import with a *different* location for the same eventual name
-    // is still caught by the resolver's `assertSourceAgreement`.
+    // Include existing top-level declarations so their transitive
+    // subgraphs participate in dedup. Drop the one being re-imported so
+    // its stale version range doesn't compete with the caller's new one.
     const allRoots: ModuleDeclaration[] = [
       newRoot,
       ...existing.filter((d) => d.source.location !== location),
@@ -300,18 +276,6 @@ export class Import {
     const resolved = await resolver.resolve(allRoots, {
       credentials: options?.credentials,
       tempDir: this.tempModulesDir,
-      onConflict: (event) => {
-        const installedDesc =
-          event.installedVersion.kind === 'pinned'
-            ? `installed version ${event.installedVersion.value}`
-            : `default branch (no version pinned)`;
-        console.warn(
-          `Diamond version conflict for module '${event.name}': ` +
-            `${installedDesc} ` +
-            `does not satisfy range '${event.rejectingRange}' ` +
-            `(required by ${event.rejectingParent?.name ?? '<unknown parent>'})`,
-        );
-      },
     });
 
     await installer.install(this.project, resolved, {
@@ -320,11 +284,7 @@ export class Import {
       validate: isFileLocation(location),
     });
 
-    // Clean up any installations orphaned by this import. Fixed-point
-    // cascade per the `NoOrphanInstallations` invariant. The installer
-    // already persisted the declaration and refreshed the project's
-    // caches; orphan cleanup re-runs the refresh when it removes
-    // anything, so nothing else is required here.
+    // Clean up any installations orphaned by this import.
     await cleanOrphans(this.project);
 
     // Validate the project after module has been imported.
@@ -339,9 +299,6 @@ export class Import {
     }
   }
 
-  // Collect declared version range constraints for a module. Used by the
-  // "update to exact version X" path to validate the override against
-  // already-declared ranges.
   private collectConstraints(moduleName: string) {
     const constraints: { range: string; source: string }[] = [];
     for (const mod of this.project.configuration.modules) {
@@ -353,7 +310,7 @@ export class Import {
   }
 
   /**
-   * Updates a specific imported module (spec's `UpdateModules(name)`).
+   * Updates a specific imported module.
    * @param moduleName Name (prefix) of module to update.
    * @param credentials Optional credentials for a private module.
    * @param version Optional target version to update to.
@@ -406,18 +363,6 @@ export class Import {
       credentials,
       overrides,
       tempDir: this.tempModulesDir,
-      onConflict: (event) => {
-        const installedDesc =
-          event.installedVersion.kind === 'pinned'
-            ? `installed version ${event.installedVersion.value}`
-            : `default branch (no version pinned)`;
-        console.warn(
-          `Diamond version conflict for module '${event.name}': ` +
-            `${installedDesc} ` +
-            `does not satisfy range '${event.rejectingRange}' ` +
-            `(required by ${event.rejectingParent?.name ?? '<unknown parent>'})`,
-        );
-      },
     });
 
     await installer.install(this.project, resolved, {
@@ -429,7 +374,7 @@ export class Import {
   }
 
   /**
-   * Updates all imported modules (spec's `UpdateModules`, no name).
+   * Updates all imported modules.
    * @param credentials Optional credentials for private modules.
    */
   @write(() => 'Update all modules')
@@ -453,18 +398,6 @@ export class Import {
     const resolved = await resolver.resolve(declared, {
       credentials,
       tempDir: this.tempModulesDir,
-      onConflict: (event) => {
-        const installedDesc =
-          event.installedVersion.kind === 'pinned'
-            ? `installed version ${event.installedVersion.value}`
-            : `default branch (no version pinned)`;
-        console.warn(
-          `Diamond version conflict for module '${event.name}': ` +
-            `${installedDesc} ` +
-            `does not satisfy range '${event.rejectingRange}' ` +
-            `(required by ${event.rejectingParent?.name ?? '<unknown parent>'})`,
-        );
-      },
     });
 
     await installer.install(this.project, resolved, {
