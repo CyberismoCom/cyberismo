@@ -126,6 +126,17 @@ export interface ModuleDeclaration {
   source: Source;
   versionRange?: VersionRange;
   parent?: InstallationRef;
+  /**
+   * Optional absolute path to a directory the caller has already
+   * fetched for this declaration. When present (and the directory
+   * still exists on disk), the resolver treats it as the staged
+   * clone for this module's first encounter and skips its own
+   * `source.fetch` call. Used by the `import` command's fresh-root
+   * pre-fetch, where the caller has to read the module's
+   * `cardsConfig.json` to learn its `cardKeyPrefix` before the
+   * resolver runs.
+   */
+  stagedPath?: string;
 }
 
 /**

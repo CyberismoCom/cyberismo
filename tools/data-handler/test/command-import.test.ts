@@ -1096,3 +1096,143 @@ describe('import module — transitive diamond conflicts', () => {
     expect(diamondWarns[0][0]).toContain('required by C');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Staged-fetch reuse: the resolver's ResolvedModule.stagedPath lets the
+// installer skip a second source.fetch for every module. Before Phase B
+// every import/update paid 2× the network cost because the installer
+// re-fetched whatever the resolver had already cloned. These tests pin
+// the invariant that fetch is called exactly once per unique module.
+// ---------------------------------------------------------------------------
+describe('import module — resolver+installer reuse staged fetches', () => {
+  const reuseTestDir = join(baseDir, 'tmp-command-import-reuse-tests');
+
+  beforeEach(async () => {
+    mkdirSync(reuseTestDir, { recursive: true });
+    await copyDir('test/test-data', reuseTestDir);
+  });
+
+  afterEach(() => {
+    rmSync(reuseTestDir, { recursive: true, force: true });
+    vi.restoreAllMocks();
+  });
+
+  it('calls SourceLayer.fetch once per module (3 times for a 3-module tree)', async () => {
+    // Build a root + 2 transitives and drive the resolver/installer
+    // against an instrumented SourceLayer. Before Phase B this would
+    // record 6 calls (resolver fetches each module for config reading,
+    // then the installer fetches each module again for the apply
+    // phase). After Phase B the resolver's staging path is reused by
+    // the installer and the count drops to 3.
+    const { createResolver, createInstaller } = await import(
+      '../src/modules/index.js'
+    );
+    const { cleanOrphans } = await import('../src/modules/orphans.js');
+    const { toVersionRange } = await import('../src/modules/types.js');
+    const { mkdir, writeFile } = await import('node:fs/promises');
+
+    const projectDir = join(reuseTestDir, 'proj-fetch-reuse');
+    const commandHandler = new Commands();
+    const create = await commandHandler.command(
+      Cmd.create,
+      ['project', 'fetch-reuse-proj', 'reu'],
+      { projectPath: projectDir },
+    );
+    expect(create.statusCode).toBe(200);
+
+    const commands = new CommandManager(projectDir, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+
+    const locations = {
+      A: 'https://example.test/A.git',
+      B: 'https://example.test/B.git',
+      C: 'https://example.test/C.git',
+    } as const;
+
+    // A → B → C, all at ^1.0.0.
+    const configs = new Map<
+      string,
+      {
+        cardKeyPrefix: string;
+        name: string;
+        modules: Array<{ name: string; location: string; version?: string }>;
+      }
+    >([
+      [
+        locations.A,
+        {
+          cardKeyPrefix: 'A',
+          name: 'A',
+          modules: [{ name: 'B', location: locations.B, version: '^1.0.0' }],
+        },
+      ],
+      [
+        locations.B,
+        {
+          cardKeyPrefix: 'B',
+          name: 'B',
+          modules: [{ name: 'C', location: locations.C, version: '^1.0.0' }],
+        },
+      ],
+      [locations.C, { cardKeyPrefix: 'C', name: 'C', modules: [] }],
+    ]);
+    const availableByLocation = new Map<string, string[]>([
+      [locations.A, ['1.0.0']],
+      [locations.B, ['1.0.0']],
+      [locations.C, ['1.0.0']],
+    ]);
+
+    // Instrumented SourceLayer: records every fetch call so we can
+    // assert the total count.
+    const fetchCalls: string[] = [];
+    const source: SourceLayer = {
+      async fetch(target, destRoot, nameHint) {
+        fetchCalls.push(target.location);
+        const dir = join(destRoot, nameHint);
+        await mkdir(join(dir, '.cards', 'local'), { recursive: true });
+        const cfg = configs.get(target.location);
+        if (!cfg) throw new Error(`no fake config for ${target.location}`);
+        await writeFile(
+          join(dir, '.cards', 'local', 'cardsConfig.json'),
+          JSON.stringify(cfg),
+        );
+        return dir;
+      },
+      async listRemoteVersions(location) {
+        return availableByLocation.get(location) ?? [];
+      },
+      async queryRemote() {
+        return { reachable: true };
+      },
+    };
+
+    const tempDir = join(projectDir, '.temp', 'modules');
+    const rootA = {
+      project: commands.project.basePath,
+      name: 'A',
+      source: { location: locations.A, private: false },
+      versionRange: toVersionRange('^1.0.0'),
+      parent: undefined,
+    };
+
+    const resolver = createResolver(source);
+    const installer = createInstaller(source);
+    const resolved = await resolver.resolve([rootA], { tempDir });
+    await installer.install(commands.project, resolved, { tempDir });
+    await cleanOrphans(commands.project);
+
+    // Exactly three fetches — one per unique module (A, B, C). Before
+    // the refactor this would be six.
+    expect(fetchCalls.length).toBe(3);
+    expect(fetchCalls.sort()).toEqual(
+      [locations.A, locations.B, locations.C].sort(),
+    );
+
+    // Sanity: all three modules landed on disk.
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'A'))).toBe(true);
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'B'))).toBe(true);
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'C'))).toBe(true);
+  });
+});

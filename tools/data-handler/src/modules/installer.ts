@@ -12,6 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { existsSync } from 'node:fs';
 import { join, resolve as pathResolve } from 'node:path';
 
 import { ProjectPaths } from '../containers/project/project-paths.js';
@@ -227,6 +228,14 @@ export class Installer {
    * Fetch a single module's source into tempDir (or resolve its local
    * path for `file:` sources). Returns the staging metadata consumed by
    * the apply phase.
+   *
+   * Reuses the resolver's staged clone when available — the resolver
+   * always fetches each module's source during its BFS walk, so a
+   * second `source.fetch` here would wipe the staged directory
+   * (`DefaultSourceLayer.fetch` does an `rm -rf` before cloning) and
+   * reclone it, doubling every import/update's network cost. Fall back
+   * to a fresh fetch only when the staged path is absent or the
+   * directory has disappeared.
    */
   private async fetchOne(
     entry: ResolvedModule,
@@ -234,11 +243,16 @@ export class Installer {
   ): Promise<StagedModule> {
     const { declaration, remoteUrl, ref } = entry;
 
-    const stagingRoot = await this.source.fetch(
-      { location: declaration.source.location, remoteUrl, ref },
-      tempDir,
-      declaration.name,
-    );
+    let stagingRoot: string;
+    if (entry.stagedPath && existsSync(entry.stagedPath)) {
+      stagingRoot = entry.stagedPath;
+    } else {
+      stagingRoot = await this.source.fetch(
+        { location: declaration.source.location, remoteUrl, ref },
+        tempDir,
+        declaration.name,
+      );
+    }
 
     // `SourceLayer.fetch` returns the path that already contains the
     // module's checkout (git) or the local file-source root. In both
