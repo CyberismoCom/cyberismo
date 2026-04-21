@@ -16,55 +16,22 @@ import semver from 'semver';
 
 import { toVersion, type Version, type VersionRange } from './types.js';
 
-/**
- * Pure semver helpers used by the module system. This file intentionally
- * contains no graph-wide constraint-intersection logic — per
- * `module-system.allium`, cross-graph version resolution is deferred to a
- * future ASP pass. The helpers here operate on a single declaration at a
- * time.
- */
+/** Pure semver helpers used by the module system. */
 
 /** Prefix used on git tags to mark a semver release, e.g. `v1.2.3`. */
 export const TAG_PREFIX = 'v';
 
-/**
- * Convert a semver version to a git tag name.
- *
- * Accepts either a branded {@link Version} or a raw string so that callers
- * which have not yet branded their value can still use this helper.
- *
- * @example versionToTag("1.2.3") // "v1.2.3"
- */
+/** Convert a semver version to a git tag name (prefixes with `v`). */
 export function versionToTag(version: Version | string): string {
   return `${TAG_PREFIX}${version}`;
 }
 
-/**
- * Strip the tag prefix and return the version portion. If the tag does
- * not start with the prefix, it is returned unchanged.
- *
- * The return value is intentionally NOT branded as {@link Version}: the
- * caller is closer to the source of the string and decides whether it
- * should be trusted as valid semver.
- *
- * @example tagToVersion("v1.2.3") // "1.2.3"
- * @example tagToVersion("main")   // "main"
- */
+/** Strip the tag prefix; returns input unchanged if the prefix is absent. */
 export function tagToVersion(tag: string): string {
   return tag.startsWith(TAG_PREFIX) ? tag.substring(TAG_PREFIX.length) : tag;
 }
 
-/**
- * Pick the highest version from `available` that satisfies `range`. Thin
- * wrapper around `semver.maxSatisfying` with a couple of conventions:
- *
- * - An empty `available` list always returns `undefined`.
- * - An undefined `range` returns the highest valid version in the list
- *   (or `undefined` if none of the entries parse as semver).
- *
- * The result is branded as {@link Version} so that downstream code that
- * tracks branding does not need to re-validate.
- */
+/** Pick the highest version from `available` that satisfies `range`. */
 export function pickVersion(
   available: string[],
   range?: VersionRange | string,
@@ -83,10 +50,7 @@ export function pickVersion(
   return best ? toVersion(best) : undefined;
 }
 
-/**
- * Returns true when `version` satisfies `range`. Thin wrapper over
- * `semver.satisfies` that accepts either branded or raw strings.
- */
+/** Returns true when `version` satisfies `range`. */
 export function satisfies(
   version: Version | string,
   range: VersionRange | string,
@@ -94,14 +58,7 @@ export function satisfies(
   return semver.satisfies(version, range);
 }
 
-/**
- * Throws a descriptive error when `version` does not satisfy `range`.
- * `context` is interpolated into the message so the caller can describe
- * where the constraint came from (e.g. the declaring module).
- *
- * Used by the "update to exact version X" path to block pinning to a
- * version that would violate an already-declared range.
- */
+/** Throws a descriptive error when `version` does not satisfy `range`. */
 export function assertSatisfies(
   version: string,
   range: string,
@@ -115,18 +72,8 @@ export function assertSatisfies(
 }
 
 /**
- * Validates that a specific version satisfies all existing constraints.
- *
- * Kept from the (now deleted) `utils/version-resolver.ts` because the
- * `update <name> <exact-version>` path still needs to validate a pinned
- * version against every range already declared for that module. This
- * function does NOT compute a cross-graph intersection — it simply
- * checks each constraint in turn.
- *
- * @param moduleName Name of the module the version targets.
- * @param version The concrete version to validate.
- * @param constraints All version range constraints that must be satisfied.
- * @throws If the version does not satisfy one or more constraints.
+ * Validates that `version` satisfies every range in `constraints`.
+ * Throws if any constraint is not satisfied.
  */
 export function validateVersionAgainstConstraints(
   moduleName: string,
