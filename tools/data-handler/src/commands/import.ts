@@ -179,21 +179,12 @@ export class Import {
    * @param source Path to module that will be imported. Git URLs
    *   (`https://…`, `git@…`) and `file:` URLs pass through; bare
    *   filesystem paths are rewritten to `file:<absolute>`.
-   * @param destination Unused. Kept for backwards-compatibility with the
-   *   CLI command signature — the destination is always the project the
-   *   `Import` command was constructed with.
    * @param options Additional options for module import. Optional.
    *        private: If true, uses credentials to clone the repository
    *        version: Semver version or range (e.g. '1.0.0', '^1.0.0')
    */
   @write((source) => `Import module ${source}`)
-  public async importModule(
-    source: string,
-    destination?: string,
-    options?: ModuleSettingOptions,
-  ) {
-    void destination;
-
+  public async importModule(source: string, options?: ModuleSettingOptions) {
     // Ensure module list is up to date before importing.
     await this.fetchCmd.ensureModuleListUpToDate();
 
@@ -205,8 +196,7 @@ export class Import {
     const location = normaliseLocation(source);
 
     // Early precondition check for file sources: catch bad folder names and
-    // missing paths before we hand off to the resolver so the error message
-    // matches what the legacy `importFileModule` produced.
+    // missing paths before we hand off to the resolver.
     if (isFileLocation(location)) {
       const folder = location.substring(FILE_PROTOCOL.length);
       if (!Validate.validateFolder(folder)) {
@@ -384,8 +374,6 @@ export class Import {
     const declared = inventory.declared(this.project);
 
     if (declared.length === 0) {
-      // Preserve the legacy "no modules to update" error so callers that
-      // depended on it still observe a failure.
       throw new Error('No modules in the project!');
     }
 

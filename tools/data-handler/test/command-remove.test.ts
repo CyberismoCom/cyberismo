@@ -743,8 +743,8 @@ describe('remove card', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Spec-driven `RemoveModule` integration tests. These exercise Phase 8's
-// rewired `commands/remove.ts` end-to-end across `modules/inventory.ts`,
+// Spec-driven `RemoveModule` integration tests. These exercise
+// `commands/remove.ts` end-to-end across `modules/inventory.ts`,
 // `Project.removeModule` and the fixed-point `modules/orphans.ts` cascade.
 // ---------------------------------------------------------------------------
 describe('remove module — spec behaviours', () => {
@@ -816,7 +816,7 @@ describe('remove module — spec behaviours', () => {
     });
     await commands.initialize();
 
-    await commands.importCmd.importModule(hostRoot, projectDir);
+    await commands.importCmd.importModule(hostRoot);
     // Both are installed; only `trhost` is a top-level declaration.
     expect(existsSync(join(projectDir, '.cards', 'modules', 'trhost'))).toBe(
       true,
@@ -845,9 +845,7 @@ describe('remove module — spec behaviours', () => {
 
   it('removing a deep transitive chain cascades the orphan cleanup to a fixed point', async () => {
     // A → B → C. Removing A must ultimately remove B and C too, via the
-    // fixed-point cascade in `cleanOrphans`. Previous ModuleManager
-    // behaviour cascaded exactly one level; spec now requires iteration
-    // until stable.
+    // fixed-point cascade in `cleanOrphans` (iterates until stable).
     const cRoot = join(testDir, 'fake-chain-C');
     makeFakeModuleFixture(cRoot, { cardKeyPrefix: 'chc' });
     const bRoot = join(testDir, 'fake-chain-B');
@@ -875,7 +873,7 @@ describe('remove module — spec behaviours', () => {
     });
     await commands.initialize();
 
-    await commands.importCmd.importModule(aRoot, projectDir);
+    await commands.importCmd.importModule(aRoot);
 
     // A, B, C all installed.
     expect(existsSync(join(projectDir, '.cards', 'modules', 'cha'))).toBe(true);
@@ -902,10 +900,10 @@ describe('remove module — spec behaviours', () => {
   });
 
   it('removing a module with transitives drops the orphaned prefixes from allModulePrefixes', async () => {
-    // Phase C regression guard: after the orphan-cleanup cascade has
-    // deleted `.cards/modules/<name>/` for each orphaned transitive,
-    // the project's cached `allModulePrefixes()` must no longer list
-    // them. `cleanOrphans` now refreshes that cache itself.
+    // After the orphan-cleanup cascade has deleted `.cards/modules/<name>/`
+    // for each orphaned transitive, the project's cached
+    // `allModulePrefixes()` must no longer list them — `cleanOrphans`
+    // refreshes that cache itself.
     const cRoot = join(testDir, 'fake-drop-C');
     makeFakeModuleFixture(cRoot, { cardKeyPrefix: 'drpc' });
     const bRoot = join(testDir, 'fake-drop-B');
@@ -933,7 +931,7 @@ describe('remove module — spec behaviours', () => {
     });
     await commands.initialize();
 
-    await commands.importCmd.importModule(aRoot, projectDir);
+    await commands.importCmd.importModule(aRoot);
     // All three transitives live in the cached prefix list.
     expect(commands.project.allModulePrefixes()).toContain('drpa');
     expect(commands.project.allModulePrefixes()).toContain('drpb');

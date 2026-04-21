@@ -705,7 +705,7 @@ export class Commands {
     credentials?: Credentials,
     version?: string,
   ) {
-    return this.commands?.importCmd.importModule(source, this.projectPath, {
+    return this.commands?.importCmd.importModule(source, {
       private: useCredentials,
       credentials,
       version,
