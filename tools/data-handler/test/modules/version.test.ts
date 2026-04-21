@@ -9,9 +9,6 @@ import {
 } from '../../src/modules/version.js';
 import { toVersionRange } from '../../src/modules/types.js';
 
-// Pure helpers — no fixtures, no async. Keep the suite light; integration
-// behaviour lives on resolver/source suites.
-
 describe('modules/version', () => {
   describe('tag helpers', () => {
     it('versionToTag prefixes a version with v', () => {
@@ -23,8 +20,7 @@ describe('modules/version', () => {
     });
 
     it('tagToVersion passes through a string that has no v prefix', () => {
-      // Phase 2 doc: the helper intentionally does not validate the tail,
-      // so non-semver refs survive the round-trip unchanged.
+      // The helper does not validate the tail; non-semver refs survive.
       expect(tagToVersion('1.2.3')).toBe('1.2.3');
       expect(tagToVersion('main')).toBe('main');
     });

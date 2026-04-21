@@ -44,10 +44,6 @@ describe('modules/source', () => {
   });
 
   it('queryRemote on a file: source is reachable with no versions', async () => {
-    // Implementation: queryRemote first calls listRemoteVersions which
-    // returns [] for file sources — so reachable=true with both version
-    // fields undefined. If this ever becomes "unreachable" at the spec
-    // level, flip the expectation here.
     const layer = createSourceLayer();
     const outcome = await layer.queryRemote({
       location: 'file:/tmp/whatever',
@@ -79,14 +75,11 @@ describe('modules/source', () => {
     );
 
     expect(returnedPath).toBe(sourcePath);
-    // destRoot/<hint> must NOT have been created — file sources never
-    // touch the target tree.
+    // File sources must never create destRoot/<hint>.
     expect(existsSync(join(destRoot, 'my-mod'))).toBe(false);
   });
 
   it('listRemoteVersions delegates to GitManager for https sources', async () => {
-    // The source layer is a thin wrapper — all we need to prove here is
-    // that a git location is forwarded through `GitManager.listRemoteVersionTags`.
     const spy = vi
       .spyOn(GitManager, 'listRemoteVersionTags')
       .mockResolvedValue(['2.0.0', '1.0.0']);

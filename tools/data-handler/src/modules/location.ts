@@ -12,20 +12,6 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-/**
- * Protocol-dispatch helpers shared by the module layers and the
- * commands that drive them. The module system recognises three flavours
- * of source location:
- *
- *   - HTTPS git remotes (`https://…`)
- *   - SSH git remotes (`git@…`)
- *   - File-system paths wrapped in a `file:` URL (`file:<path>`)
- *
- * These helpers let each layer branch on the flavour without
- * re-deriving the prefix constants. They are pure string predicates
- * with no I/O.
- */
-
 /** Prefix used by HTTPS git remote URLs. */
 export const HTTPS_PROTOCOL = 'https:';
 

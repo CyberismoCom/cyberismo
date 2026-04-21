@@ -19,19 +19,9 @@ const HTTPS_PROTOCOL = 'https:';
 
 /**
  * Build the remote URL for a module source, injecting HTTPS credentials
- * when the source is private. When the source is not private HTTPS or
- * credentials are missing/incomplete, the location passes through
- * verbatim.
+ * when the source is private. Non-private or non-HTTPS sources pass through.
  *
- * Lifted out of the original `ModuleManager.buildRemoteUrl` so that
- * every layer that talks to a remote (the resolver's version list /
- * fetch, and `CheckUpdates`' `listRemoteVersions` call) shares one
- * credential-injection site.
- *
- * @throws Error when the source is a private HTTPS remote with valid
- *   credentials but the `location` cannot be parsed as a URL. This is
- *   the only failure mode: non-HTTPS sources and sources without
- *   credentials always return successfully.
+ * @throws when a private HTTPS `location` cannot be parsed as a URL.
  */
 export function buildRemoteUrl(
   source: Pick<Source, 'location' | 'private'>,

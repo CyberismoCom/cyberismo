@@ -32,33 +32,15 @@ import {
 import type { Project } from '../containers/project.js';
 import type { ModuleSetting } from '../interfaces/project-interfaces.js';
 
-/**
- * Factory for an {@link Inventory}. Stateless — all state lives on
- * the {@link Project} passed into each method.
- */
 export function createInventory(): Inventory {
   return new Inventory();
 }
 
-/**
- * Read-only view over a project's declared and installed modules.
- *
- * The spec distinguishes between {@link ModuleDeclaration} (what the
- * project's `cardsConfig.json` says it wants) and
- * {@link ModuleInstallation} (what is physically present under
- * `.cards/modules/<name>/`). The inventory layer materialises both
- * without mutating anything.
- */
+/** Read-only view over a project's declared and installed modules. */
 export class Inventory {
   private readonly logger = getChildLogger({ module: 'inventory' });
 
-  /**
-   * Project-level, top-level declarations — the entries persisted in
-   * `project.configuration.modules`. Transitive (parent != null)
-   * declarations are produced by the resolver at reconcile time and
-   * are never persisted, so this method always returns declarations
-   * with `parent` absent.
-   */
+  /** Top-level declarations persisted in `project.configuration.modules`. */
   declared(project: Project): ModuleDeclaration[] {
     const settings: ModuleSetting[] = project.configuration.modules;
     return settings.map((setting) => this.toDeclaration(project, setting));
@@ -71,8 +53,7 @@ export class Inventory {
     try {
       entries = await readdir(modulesFolder);
     } catch (error) {
-      // `.cards/modules/` may legitimately not exist when no module
-      // has been imported yet. Any other error is surfaced.
+      // `.cards/modules/` may not exist yet when no module has been imported.
       if (isEnoent(error)) {
         return [];
       }
@@ -162,10 +143,7 @@ export class Inventory {
         private: declaredSetting.private ?? false,
       };
     } else {
-      // Transitive installation: the current v1 data model doesn't
-      // persist the source of dependencies declared by other
-      // installations. Leave it empty; `location` is still a string
-      // so the Source shape stays honest.
+      // Transitive installation: source not persisted, leave it empty.
       this.logger.debug(
         { module: name },
         'installed module has no top-level declaration; leaving source.location empty',
@@ -192,8 +170,7 @@ function parseInstalledVersion(raw: unknown): Version | undefined {
   try {
     return toVersion(raw);
   } catch {
-    // toVersion throws on invalid semver; treat as missing rather
-    // than failing the whole inventory read.
+    // Treat invalid semver as missing rather than failing the whole read.
     return undefined;
   }
 }

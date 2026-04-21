@@ -152,12 +152,3 @@ describe('module-manager', () => {
     expect(modules.length).equals(2);
   }, 60000);
 });
-
-// The `ModuleManager.listAvailableVersions` and `ModuleManager git-based
-// updates` suites previously lived here. The `ModuleManager` facade was
-// deleted in the Phase 9 cleanup — credential-injected remote-URL
-// construction now lives in `modules/credentials.ts`, listing versions on
-// `modules/source.ts`, and update orchestration in `commands/import.ts`
-// backed by the `modules/resolver.ts` + `modules/installer.ts` layers.
-// Equivalent unit and integration coverage belongs on the new layers and
-// lands with Phase 10 (`modules/source.test.ts`, `command-update.test.ts`).
