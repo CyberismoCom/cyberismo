@@ -16,11 +16,6 @@ import { simpleGit, type SimpleGit } from 'simple-git';
 import { getChildLogger } from './log-utils.js';
 import { tagToVersion, versionToTag } from '../modules/version.js';
 
-// Re-exported here for backwards compatibility with existing import sites.
-// Canonical home is `src/modules/version.ts`; this re-export is temporary and
-// can be removed once all callers have migrated their imports.
-export { versionToTag, tagToVersion } from '../modules/version.js';
-
 export class GitManager {
   private git: SimpleGit;
   private logger = getChildLogger({ module: 'GitManager' });
