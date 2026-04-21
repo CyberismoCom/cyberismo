@@ -139,8 +139,12 @@ export async function cleanOrphans(
 
   if (removed > 0) {
     // Invalidate the module cache exactly once, after all deletions, so
-    // downstream resource lookups don't return stale prefixes.
+    // downstream resource lookups don't return stale prefixes. Also
+    // refresh the in-memory project caches (all-module-prefix list and
+    // loaded template cards) to keep them in sync with the filesystem.
     project.resources.changedModules();
+    project.refreshAllModulePrefixes();
+    await project.populateTemplateCards();
   }
 
   return removed;

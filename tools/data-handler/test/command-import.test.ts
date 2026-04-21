@@ -650,6 +650,58 @@ describe('module update — spec behaviours', () => {
     expect(existsSync(installedDep)).toBe(false);
   });
 
+  it('updateAllModules refreshes allModulePrefixes when a new transitive is pulled in', async () => {
+    // Phase C regression guard: when `updateAllModules` pulls in a brand-new
+    // transitive (because the upstream started declaring a dep it previously
+    // did not), the project's cached `allModulePrefixes()` must immediately
+    // include that transitive's prefix without any manual refresh by the
+    // caller. The installer now fires the refresh itself.
+    const depRoot = join(moduleTestDir, 'fake-new-dep');
+    makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'newdep' });
+    const hostRoot = join(moduleTestDir, 'fake-new-host');
+    // Host initially declares no transitives.
+    makeFakeModuleFixture(hostRoot, {
+      cardKeyPrefix: 'newhost',
+      modules: [],
+    });
+
+    const projectDir = join(moduleTestDir, 'proj-new-transitive');
+    const commandHandler = new Commands();
+    const create = await commandHandler.command(
+      Cmd.create,
+      ['project', 'new-transitive-proj', 'ntrp'],
+      { projectPath: projectDir },
+    );
+    expect(create.statusCode).toBe(200);
+
+    const commands = new CommandManager(projectDir, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+
+    await commands.importCmd.importModule(hostRoot, projectDir);
+    // Initially only `newhost` is installed — no `newdep` yet.
+    expect(commands.project.allModulePrefixes()).toContain('newhost');
+    expect(commands.project.allModulePrefixes()).not.toContain('newdep');
+
+    // Upstream starts declaring the new transitive.
+    rewriteFakeModuleFixture(hostRoot, {
+      cardKeyPrefix: 'newhost',
+      modules: [{ name: 'newdep', location: `file:${pathResolve(depRoot)}` }],
+    });
+
+    await commands.importCmd.updateAllModules();
+
+    // The new transitive is installed on disk...
+    expect(
+      existsSync(join(projectDir, '.cards', 'modules', 'newdep')),
+    ).toBe(true);
+    // ...and immediately visible through the cached prefix list without any
+    // manual refresh call.
+    expect(commands.project.allModulePrefixes()).toContain('newdep');
+    expect(commands.project.allModulePrefixes()).toContain('newhost');
+  });
+
   it('updateModule with an override version that violates the declared range throws', async () => {
     // Spec: the `update <name> <exact-version>` path must refuse a
     // version that contradicts the declared range. Implemented via

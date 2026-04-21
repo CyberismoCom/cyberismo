@@ -67,6 +67,8 @@ function makeProjectStub(basePath: string) {
   const paths = new ProjectPaths(basePath);
   const modules: ModuleSetting[] = [];
   const changedModules = vi.fn();
+  const refreshAllModulePrefixes = vi.fn();
+  const populateTemplateCards = vi.fn(async () => {});
   const stub = {
     basePath,
     paths,
@@ -86,8 +88,16 @@ function makeProjectStub(basePath: string) {
       },
     },
     resources: { changedModules },
+    refreshAllModulePrefixes,
+    populateTemplateCards,
   };
-  return { stub, modules, changedModules };
+  return {
+    stub,
+    modules,
+    changedModules,
+    refreshAllModulePrefixes,
+    populateTemplateCards,
+  };
 }
 
 function buildResolved(

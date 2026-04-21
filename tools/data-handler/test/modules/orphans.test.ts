@@ -22,13 +22,22 @@ interface ChildDep {
 function makeProject(basePath: string, modules: ModuleSetting[]) {
   const paths = new ProjectPaths(basePath);
   const changedModules = vi.fn();
+  const refreshAllModulePrefixes = vi.fn();
+  const populateTemplateCards = vi.fn(async () => {});
   const project = {
     basePath,
     paths,
     configuration: { modules },
     resources: { changedModules },
+    refreshAllModulePrefixes,
+    populateTemplateCards,
   } as unknown as Project;
-  return { project, changedModules };
+  return {
+    project,
+    changedModules,
+    refreshAllModulePrefixes,
+    populateTemplateCards,
+  };
 }
 
 async function installModule(

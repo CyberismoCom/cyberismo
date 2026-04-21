@@ -119,7 +119,7 @@ export class CardContainer {
   /**
    * Populates template cards into the cache.
    */
-  protected async populateTemplateCards(): Promise<void> {}
+  public async populateTemplateCards(): Promise<void> {}
 
   /**
    * Lists all attachments from the container.
