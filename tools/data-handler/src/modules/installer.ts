@@ -32,24 +32,11 @@ import type { Project } from '../containers/project.js';
  * Options consumed by {@link Installer.install}.
  */
 export interface InstallOptions {
-  /**
-   * Credentials used for private HTTPS remotes. Forwarded verbatim to
-   * the source layer through each resolved module's pre-built
-   * `remoteUrl`; the installer itself does not inject credentials.
-   */
+  /** Credentials for private HTTPS remotes. */
   credentials?: Credentials;
-  /**
-   * Temporary directory used for intermediate clones in the network
-   * phase. Shared with the resolver when possible so that staged copies
-   * can be reused.
-   */
+  /** Temporary directory used for staging clones. */
   tempDir: string;
-  /**
-   * When true, validate each `file:` source's folder shape before the
-   * network phase. Mirrors the `importFileModule` preconditions from
-   * the legacy `ModuleManager`. Defaults to false — consistent with
-   * update flows where the caller already trusts the sources.
-   */
+  /** When true, validate each `file:` source before fetching. */
   validate?: boolean;
 }
 
@@ -68,9 +55,8 @@ interface StagedModule {
 
 /**
  * Applies a resolved module plan to a project's `.cards/modules/`.
- * Implements the spec's `ReplaceInstallation` rule with the two-phase
- * `@guidance` applied: fetch every target first (network phase), then
- * replace the installation files (apply phase).
+ * Fetches every target into staging first, then replaces installation
+ * files so a fetch failure cannot leave the project half-updated.
  */
 export class Installer {
   private readonly logger = getChildLogger({ module: 'installer' });
@@ -78,15 +64,9 @@ export class Installer {
   constructor(private readonly source: SourceLayer) {}
 
   /**
-   * Two-phase atomic installation:
-   *   1. **Network phase**: fetch every target's resources into
-   *      `options.tempDir` staging. If any fetch fails, abort before
-   *      touching `.cards/modules/`.
-   *   2. **Apply phase**: replace each `.cards/modules/<name>/` from its
-   *      staged copy. Upsert the project-level declarations (persisted
-   *      range only — never the resolved tag).
-   *
-   * The installer does not re-resolve. The caller owns the plan.
+   * Two-phase install: fetch all targets into `tempDir`, then replace
+   * each `.cards/modules/<name>/` from its staged copy and persist the
+   * top-level declarations. The caller owns the resolved plan.
    */
   async install(
     project: Project,
@@ -95,18 +75,9 @@ export class Installer {
   ): Promise<void> {
     const selfPrefix = project.projectPrefix;
 
-    // Split the plan:
-    //  - `targets`     : entries we will install.
-    //  - `skippedSelf` : transitive entries whose name happens to match the
-    //                    project's own `cardKeyPrefix`. We silently skip
-    //                    these because the project already provides that
-    //                    prefix (e.g. when A and B cross-import each other,
-    //                    B's cardsConfig lists A as a transitive). A
-    //                    top-level entry (parent == undefined) with this
-    //                    same collision is a real user error — the caller
-    //                    is trying to import a module whose prefix matches
-    //                    the host project — and we let `validatePrefix`
-    //                    surface that below.
+    // Skip transitive entries whose prefix matches the host project;
+    // a top-level entry with the same collision is caught by
+    // `validatePrefix` below.
     const targets: ResolvedModule[] = [];
     for (const entry of resolved) {
       if (
@@ -126,23 +97,14 @@ export class Installer {
       this.validateFileSources(targets);
     }
 
-    // ------------------------------------------------------------------
-    // Prefix validation (pre-network). The legacy ModuleManager ran this
-    // against each newly-installed module; we do the same here, but at
-    // the plan level so all failures surface before any network I/O.
-    // Modules already present in the project's persisted declarations
-    // skip the uniqueness check (re-imports / updates).
-    // ------------------------------------------------------------------
+    // Validate prefixes at plan level so all failures surface before any
+    // network I/O. Existing top-level modules skip the uniqueness check
+    // (re-imports / updates).
     const existingDeclaredNames = new Set(
       project.configuration.modules.map((m) => m.name),
     );
     for (const entry of targets) {
       const name = entry.declaration.name;
-      // Transitive declarations are not exposed to `projectPrefixes()`
-      // either (that only considers top-level declarations), so they are
-      // naturally covered by the same check: either the prefix collides
-      // with a different existing top-level module (error) or it matches
-      // an existing one (skip).
       this.validatePrefix(
         project,
         name,
@@ -150,30 +112,21 @@ export class Installer {
       );
     }
 
-    // ------------------------------------------------------------------
-    // Network phase. Fetch every target into tempDir staging. We keep
-    // these running in parallel — the source layer already serialises
-    // filesystem writes per clone target via its destinationPath.
-    // ------------------------------------------------------------------
+    // Fetch every target into tempDir staging in parallel. On failure,
+    // abort before touching `.cards/modules/`.
     let staged: StagedModule[];
     try {
       staged = await Promise.all(
         targets.map((entry) => this.fetchOne(entry, options.tempDir)),
       );
     } catch (error) {
-      // Per spec open question #4: leave tempDir contents intact on
-      // failure for debugging. Re-throw so the caller sees the fault.
       throw error instanceof Error
         ? error
         : new Error(`Module install failed during network phase: ${error}`);
     }
 
-    // ------------------------------------------------------------------
-    // Apply phase. Replace each .cards/modules/<name>/ from its staged
-    // copy. Per spec open questions #3/#4, partial-failure rollback is
-    // out of scope: we log and continue so that later modules still get
-    // a chance to land.
-    // ------------------------------------------------------------------
+    // Apply each staged module. Partial-failure rollback is out of
+    // scope: log and continue so later modules still get a chance.
     const applied: StagedModule[] = [];
     for (const stage of staged) {
       try {
@@ -190,52 +143,32 @@ export class Installer {
       }
     }
 
-    // Refresh module resource cache after all filesystem replacements.
-    project.resources.changedModules();
-
-    // ------------------------------------------------------------------
     // Persist top-level declarations. Only the declared range is stored;
-    // the resolved tag is never written back per spec.
-    // ------------------------------------------------------------------
+    // transitive declarations are re-derived from each installation's
+    // own cardsConfig.json at read time.
     for (const entry of targets) {
       if (entry.declaration.parent !== undefined) {
-        // Transitive declarations are virtual — they are re-derived from
-        // each installation's own cardsConfig.json at read time.
         continue;
       }
       await project.configuration.upsertModule(this.toPersistedSetting(entry));
     }
 
-    // ------------------------------------------------------------------
-    // Cleanup staging for modules that were applied cleanly. Anything we
-    // failed to apply is left behind for debugging.
-    // ------------------------------------------------------------------
+    // Clean up staging for cleanly-applied modules; anything that failed
+    // is left behind for debugging.
     await Promise.all(
       applied
         .filter((stage) => this.isGitStage(stage, options.tempDir))
         .map((stage) => this.cleanupStage(stage, options.tempDir)),
     );
 
-    // Refresh the in-memory project caches so newly-installed modules
-    // (including transitives) are immediately visible through the
-    // Project API. The installer always mutates resources, so this runs
-    // unconditionally.
-    project.refreshAllModulePrefixes();
-    await project.populateTemplateCards();
+    await project.refreshAfterModuleChange();
   }
 
   /**
    * Fetch a single module's source into tempDir (or resolve its local
-   * path for `file:` sources). Returns the staging metadata consumed by
-   * the apply phase.
-   *
-   * Reuses the resolver's staged clone when available — the resolver
-   * always fetches each module's source during its BFS walk, so a
-   * second `source.fetch` here would wipe the staged directory
-   * (`DefaultSourceLayer.fetch` does an `rm -rf` before cloning) and
-   * reclone it, doubling every import/update's network cost. Fall back
-   * to a fresh fetch only when the staged path is absent or the
-   * directory has disappeared.
+   * path for `file:` sources). Reuses the resolver's staged clone when
+   * available to avoid re-cloning, falling back to a fresh fetch only
+   * when the staged path has disappeared.
    */
   private async fetchOne(
     entry: ResolvedModule,
@@ -254,10 +187,8 @@ export class Installer {
       );
     }
 
-    // `SourceLayer.fetch` returns the path that already contains the
-    // module's checkout (git) or the local file-source root. In both
-    // cases the resources to copy live under the project's `.cards/<prefix>/`
-    // tree. `ProjectPaths.resourcesFolder` computes that path for us.
+    // The resources to copy live under the staging root's `.cards/<prefix>/`
+    // tree for both git and file sources.
     const resourcesFolder = new ProjectPaths(stagingRoot).resourcesFolder;
 
     return {
@@ -268,9 +199,8 @@ export class Installer {
   }
 
   /**
-   * Copy a staged module into `.cards/modules/<name>/`. The replacement
-   * is "rm then copy" — the legacy `ModuleManager.handleGitModule` did
-   * the same. `copyDir` creates the destination folder if missing.
+   * Copy a staged module into `.cards/modules/<name>/`, replacing any
+   * existing installation.
    */
   private async applyOne(project: Project, stage: StagedModule): Promise<void> {
     const destinationPath = join(project.paths.modulesFolder, stage.name);
@@ -287,9 +217,9 @@ export class Installer {
   }
 
   /**
-   * Reshape a {@link ResolvedModule} into the legacy `ModuleSetting`
-   * that is persisted in `cardsConfig.json`. Crucially, the persisted
-   * `version` is the declared range — not the resolved tag — per spec.
+   * Reshape a {@link ResolvedModule} into the `ModuleSetting` persisted
+   * in `cardsConfig.json`. The stored `version` is the declared range,
+   * never the resolved tag.
    */
   private toPersistedSetting(entry: ResolvedModule): ModuleSetting {
     const setting: ModuleSetting = {
@@ -306,10 +236,8 @@ export class Installer {
   }
 
   /**
-   * Port of the legacy `ModuleManager.validatePrefix`. Rejects a new
-   * module whose prefix collides with a project-level prefix already in
-   * use. Skipped for modules the caller has marked as already installed
-   * (re-imports / updates).
+   * Rejects a new module whose prefix collides with a project-level
+   * prefix already in use. Skipped for already-installed modules.
    */
   private validatePrefix(
     project: Project,
@@ -329,9 +257,8 @@ export class Installer {
   }
 
   /**
-   * Optional pre-check: for each `file:` source, ensure the referenced
-   * folder name is a legal OS path and actually exists. Matches the
-   * historical `ModuleManager.importFileModule` preconditions.
+   * For each `file:` source, ensure the referenced folder name is a
+   * legal OS path and actually exists.
    */
   private validateFileSources(targets: ResolvedModule[]): void {
     for (const entry of targets) {
@@ -354,10 +281,9 @@ export class Installer {
   }
 
   /**
-   * True when `stage` was produced by a git fetch into `tempDir` (and
-   * therefore owns the staging directory — safe to remove on success).
-   * File sources have their staging root pointing at the caller's own
-   * local checkout; we never delete those.
+   * True when `stage` was produced by a git fetch into `tempDir` and
+   * therefore owns the staging directory. File sources point at the
+   * caller's own checkout and must not be deleted.
    */
   private isGitStage(stage: StagedModule, tempDir: string): boolean {
     const location = stage.resolved.declaration.source.location;
@@ -376,8 +302,7 @@ export class Installer {
     try {
       await deleteDir(stagedRoot);
     } catch (error) {
-      // Staging cleanup is best-effort — a failure here does not affect
-      // the installation outcome. Log and move on.
+      // Staging cleanup is best-effort.
       this.logger.debug(
         {
           module: stage.name,
@@ -391,8 +316,7 @@ export class Installer {
 }
 
 /**
- * Construct the default {@link Installer} — a two-phase apply backed by
- * a {@link SourceLayer} for fetches.
+ * Construct the default {@link Installer} backed by a {@link SourceLayer}.
  */
 export function createInstaller(source: SourceLayer): Installer {
   return new Installer(source);

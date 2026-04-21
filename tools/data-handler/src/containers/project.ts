@@ -259,7 +259,7 @@ export class Project extends CardContainer {
 
   // Refreshes the cached list of all module prefixes.
   // This includes both direct and transient module dependencies.
-  public refreshAllModulePrefixes(): void {
+  private refreshAllModulePrefixes(): void {
     const prefixes: string[] = [this.projectPrefix];
 
     try {
@@ -315,7 +315,7 @@ export class Project extends CardContainer {
   /**
    * Populate template cards into the card cache.
    */
-  public async populateTemplateCards(): Promise<void> {
+  protected async populateTemplateCards(): Promise<void> {
     try {
       const templateResources = this.resources.templates();
       const prefixes = this.allModulePrefixes();
@@ -989,6 +989,18 @@ export class Project extends CardContainer {
     });
 
     this.logger.info(`Removed module '${moduleName}'`);
+  }
+
+  /**
+   * Refreshes caches after the module installation set has changed on disk.
+   * Invalidates the module resource cache, rebuilds the all-module-prefix
+   * list, and reloads template cards so the Project API reflects the new
+   * module layout.
+   */
+  public async refreshAfterModuleChange(): Promise<void> {
+    this.resources.changedModules();
+    this.refreshAllModulePrefixes();
+    await this.populateTemplateCards();
   }
 
   /**
