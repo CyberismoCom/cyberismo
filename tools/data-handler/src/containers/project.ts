@@ -36,9 +36,7 @@ import {
   type FetchCardDetails,
   type MetadataContent,
   type ModuleContent,
-  type ModuleInfo,
   type ProjectFetchCardDetails,
-  type ProjectMetadata,
 } from '../interfaces/project-interfaces.js';
 import { pathExists } from '../utils/file-utils.js';
 import { generateRandomString } from '../utils/random.js';
@@ -1049,45 +1047,6 @@ export class Project extends CardContainer {
     }
 
     return result;
-  }
-
-  /**
-   * Returns installed modules with their versions.
-   * Reads the installed version from each module's own cardsConfig.json.
-   */
-  public async moduleInfos(): Promise<ModuleInfo[]> {
-    const names = this.resources.moduleNames().sort();
-    return Promise.all(
-      names.map(async (name) => {
-        try {
-          const config = await readJsonFile(
-            this.paths.moduleConfigurationFile(name),
-          );
-          return { name, version: config?.version };
-        } catch {
-          return { name };
-        }
-      }),
-    );
-  }
-
-  /**
-   * Shows details of a project.
-   * @returns details of a project.
-   */
-  public async show(): Promise<ProjectMetadata> {
-    return {
-      name: this.settings.name,
-      path: this.basePath,
-      prefix: this.projectPrefix,
-      category: this.configuration.category,
-      description: this.configuration.description,
-      version: this.configuration.version,
-      hubs: this.configuration.hubs,
-      modules: await this.moduleInfos(),
-      numberOfCards: (await this.listCards(CardLocation.projectOnly))[0].cards
-        .length,
-    };
   }
 
   /**

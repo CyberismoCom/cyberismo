@@ -108,13 +108,9 @@ describe('project', () => {
     await project.populateCaches();
     expect(project).not.toBeUndefined();
 
-    const projectDetails = await project.show();
-    expect(projectDetails.name).toBe(project.projectName);
-    expect(projectDetails.prefix).toBe(project.projectPrefix);
-    expect(projectDetails.path).toBe(
-      resolve(project.paths.cardRootFolder, '..'),
-    );
-    expect(projectDetails.numberOfCards).toBe(2);
+    expect(project.basePath).toBe(resolve(project.paths.cardRootFolder, '..'));
+    const [projectCards] = await project.listCards(CardLocation.projectOnly);
+    expect(projectCards.cards.length).toBe(2);
   });
 
   it('create class - card operation (success)', async () => {
@@ -399,23 +395,6 @@ describe('project', () => {
 
     const projectCards = project.showProjectCards();
     expect(projectCards.length).toBe(0);
-  });
-  it('show project metadata includes category and description', async () => {
-    const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = getTestProject(decisionRecordsPath);
-    await project.populateCaches();
-    expect(project).not.toBeUndefined();
-
-    const projectMetadata = await project.show();
-    expect(projectMetadata).not.toBeUndefined();
-    expect(projectMetadata).toHaveProperty('name');
-    expect(projectMetadata).toHaveProperty('path');
-    expect(projectMetadata).toHaveProperty('prefix');
-    expect(projectMetadata).toHaveProperty('modules');
-    expect(projectMetadata).toHaveProperty('hubs');
-    expect(projectMetadata).toHaveProperty('numberOfCards');
-    expect(projectMetadata).toHaveProperty('category');
-    expect(projectMetadata).toHaveProperty('description');
   });
   it('access workflow details (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
