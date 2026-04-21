@@ -12,6 +12,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { existsSync } from 'node:fs';
+
 import { ProjectPaths } from '../containers/project/project-paths.js';
 import { readJsonFile } from '../utils/json.js';
 import { buildRemoteUrl } from './credentials.js';
@@ -40,9 +42,7 @@ export interface ResolvedModule {
   /**
    * The declaration that produced this resolution. For transitive
    * declarations, `parent` points at the installation that owns the
-   * declaration. The resolver uses the declaration's name verbatim; the
-   * empty-name case is resolved via the module's own `cardKeyPrefix` and
-   * the result is reflected here.
+   * declaration.
    */
   declaration: ModuleDeclaration;
   /**
@@ -63,6 +63,14 @@ export interface ResolvedModule {
    * default branch is used (no concrete version is pinned).
    */
   version?: Version;
+  /**
+   * Absolute path to the directory where the resolver staged this
+   * module's clone during resolution. Downstream consumers (the
+   * installer) reuse this directory for their apply phase instead of
+   * re-cloning, so every import/update pays the network cost only once
+   * per module.
+   */
+  stagedPath: string;
 }
 
 /**
@@ -110,8 +118,13 @@ export interface ResolveOptions {
  *
  * The config file lives at `<path>/.cards/local/cardsConfig.json` —
  * mirrored by {@link ProjectPaths.configurationFile}.
+ *
+ * Exported so the `import` command can read a freshly-fetched module's
+ * `cardKeyPrefix` before handing it to the resolver.
  */
-async function readConfig(path: string): Promise<ProjectConfiguration> {
+export async function readModuleConfig(
+  path: string,
+): Promise<ProjectConfiguration> {
   const configPath = new ProjectPaths(path).configurationFile;
   const config = (await readJsonFile(configPath)) as
     | ProjectConfiguration
@@ -173,7 +186,21 @@ export class Resolver {
 
     while (queue.length > 0) {
       const decl = queue.shift()!;
-      const existing = decl.name !== '' ? resolved.get(decl.name) : undefined;
+
+      if (decl.name === '') {
+        // Names must be resolved by the caller. The fresh-root case is
+        // handled by the import command, which pre-fetches the module,
+        // reads its cardsConfig.json, and builds a named declaration
+        // (with `stagedPath` pointing at the pre-fetch) before invoking
+        // the resolver.
+        throw new Error(
+          `Resolver encountered a declaration with an empty name ` +
+            `for source '${decl.source.location}'. Callers must resolve ` +
+            `the name before invoking the resolver.`,
+        );
+      }
+
+      const existing = resolved.get(decl.name);
 
       if (existing) {
         // Name was resolved earlier. Verify that this later declaration
@@ -201,8 +228,7 @@ export class Resolver {
       // First encounter: decide a version (possibly via override), fetch
       // the module so we can read its transitive deps, and record it.
       const remoteUrl = buildRemoteUrl(decl.source, options.credentials);
-      const override =
-        decl.name !== '' ? options.overrides?.get(decl.name) : undefined;
+      const override = options.overrides?.get(decl.name);
 
       let version: Version | undefined;
       let ref: string | undefined;
@@ -234,55 +260,31 @@ export class Resolver {
         ref = undefined;
       }
 
-      // Fetch so we can read the module's own declared deps. The name
-      // hint falls back to a deterministic placeholder for the empty
-      // fresh-root case; once we have the config we rekey the resolved
-      // entry on the true `cardKeyPrefix`.
-      const nameHint = decl.name !== '' ? decl.name : fallbackNameHint(decl);
-      const path = await this.source.fetch(
-        { location: decl.source.location, remoteUrl, ref },
-        options.tempDir,
-        nameHint,
-      );
-      const childConfig = await readConfig(path);
-      const resolvedName =
-        decl.name !== '' ? decl.name : childConfig.cardKeyPrefix;
-
-      if (!resolvedName) {
-        throw new Error(
-          `Module at '${decl.source.location}' has no name and its ` +
-            `cardsConfig.json is missing cardKeyPrefix`,
+      // Reuse a caller-supplied staged clone when possible — the import
+      // command pre-fetches fresh-root modules to discover their
+      // `cardKeyPrefix`, and we don't want to clone them again. Fall
+      // back to a fresh fetch when no staged path was supplied or the
+      // directory has disappeared between invocations.
+      let path: string;
+      if (decl.stagedPath && existsSync(decl.stagedPath)) {
+        path = decl.stagedPath;
+      } else {
+        path = await this.source.fetch(
+          { location: decl.source.location, remoteUrl, ref },
+          options.tempDir,
+          decl.name,
         );
       }
-
-      // A late check for the empty-name case — another root may have
-      // resolved to the same prefix before this one.
-      const rekeyed = resolved.get(resolvedName);
-      if (rekeyed) {
-        this.assertSourceAgreement(rekeyed, decl);
-        if (
-          decl.versionRange &&
-          rekeyed.version &&
-          !this.versionSatisfies(rekeyed.version, decl.versionRange)
-        ) {
-          onConflict({
-            project: decl.project,
-            name: resolvedName,
-            installedVersion: { kind: 'pinned', value: rekeyed.version },
-            rejectingRange: decl.versionRange,
-            rejectingParent: decl.parent,
-          });
-        }
-        continue;
-      }
+      const childConfig = await readModuleConfig(path);
 
       const resolvedEntry: ResolvedModule = {
-        declaration: { ...decl, name: resolvedName },
+        declaration: { ...decl },
         ref,
         remoteUrl,
         version,
+        stagedPath: path,
       };
-      resolved.set(resolvedName, resolvedEntry);
+      resolved.set(decl.name, resolvedEntry);
 
       // Enqueue transitive declarations read from the fetched module's
       // own cardsConfig.json. Each gets the owning installation as its
@@ -290,7 +292,7 @@ export class Resolver {
       // useful attribution.
       const childDecls = childConfig.modules ?? [];
       for (const child of childDecls) {
-        queue.push(toChildDeclaration(decl.project, resolvedName, child));
+        queue.push(toChildDeclaration(decl.project, decl.name, child));
       }
     }
 
@@ -351,23 +353,6 @@ function toChildDeclaration(
     versionRange,
     parent: { project: projectId, name: parentName },
   };
-}
-
-/**
- * Produce a stable placeholder name for a declaration that arrived
- * without one. Preferred for fresh-root imports where the resolver is
- * the first component to learn the module's real prefix.
- */
-function fallbackNameHint(decl: ModuleDeclaration): string {
-  // Use the tail of the location plus a random suffix so that
-  // concurrent imports of the same repo do not collide on disk.
-  const last = decl.source.location.lastIndexOf('/');
-  const tail =
-    last >= 0
-      ? decl.source.location.slice(last + 1).replace(/\.git$/i, '')
-      : decl.source.location;
-  const safe = tail.replace(/[^A-Za-z0-9._-]/g, '_') || 'module';
-  return `${safe}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 /**

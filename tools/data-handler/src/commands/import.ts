@@ -19,6 +19,7 @@ import { Validate } from './validate.js';
 import { write } from '../utils/rw-lock.js';
 
 import {
+  buildRemoteUrl,
   createInventory,
   createInstaller,
   createResolver,
@@ -26,6 +27,7 @@ import {
   FILE_PROTOCOL,
   isFileLocation,
   isGitLocation,
+  readModuleConfig,
   toVersionRange,
   validateVersionAgainstConstraints,
 } from '../modules/index.js';
@@ -54,6 +56,25 @@ function normaliseLocation(source: string): string {
     return source;
   }
   return `${FILE_PROTOCOL}${pathResolve(source)}`;
+}
+
+/**
+ * Produce a deterministic staging subdirectory name for a fresh-root
+ * import. The import command pre-fetches the module to read its
+ * `cardKeyPrefix`, but it doesn't yet know what that prefix is when it
+ * chooses the staging path — so we key the staging directory off the
+ * location's tail. Kept pure so concurrent imports of the same URL
+ * produce the same path — the source layer removes any pre-existing
+ * checkout before cloning, so a repeat call idempotently overwrites.
+ */
+function freshRootStagingName(location: string): string {
+  const last = location.lastIndexOf('/');
+  const tail =
+    last >= 0
+      ? location.slice(last + 1).replace(/\.git$/i, '')
+      : location;
+  const safe = tail.replace(/[^A-Za-z0-9._-]/g, '_') || 'module';
+  return `${safe}.__fresh__`;
 }
 
 /**
@@ -214,12 +235,45 @@ export class Import {
     const inventory = createInventory();
     const existing = inventory.declared(this.project);
 
-    // Build the fresh root declaration for the module being imported. The
-    // resolver fills in `name` from the fetched module's cardKeyPrefix when
-    // it is empty.
+    const sourceLayer = createSourceLayer();
+    const resolver = createResolver(sourceLayer);
+    const installer = createInstaller(sourceLayer);
+
+    // Fresh-root pre-fetch. The caller handed us a location but not the
+    // module's `cardKeyPrefix` (which becomes the declaration's `name`).
+    // The resolver now requires a non-empty name, so we fetch the module
+    // ourselves, read its `cardsConfig.json`, and hand the resolver a
+    // named declaration whose `stagedPath` points at the pre-fetch — so
+    // the resolver skips its own clone on the first BFS iteration, and
+    // the installer in turn reuses the same stagedPath for its apply
+    // phase. Total fetches for this import = (one pre-fetch) + (one per
+    // transitive dep) instead of 2×.
+    const remoteUrl = buildRemoteUrl(
+      { location, private: options?.private ?? false },
+      options?.credentials,
+    );
+    const stagedPath = await sourceLayer.fetch(
+      { location, remoteUrl },
+      this.tempModulesDir,
+      // Final name isn't known yet — use a deterministic slug of the
+      // location so `destRoot/<slug>` is unambiguous. The resolver
+      // copies the declaration (including its name) verbatim into the
+      // resolved entry.
+      freshRootStagingName(location),
+    );
+
+    const stagedConfig = await readModuleConfig(stagedPath);
+    const resolvedName = stagedConfig.cardKeyPrefix;
+    if (!resolvedName) {
+      throw new Error(
+        `Module at '${location}' has no cardKeyPrefix in its ` +
+          `cardsConfig.json; cannot import without a name.`,
+      );
+    }
+
     const newRoot: ModuleDeclaration = {
       project: this.project.basePath,
-      name: '',
+      name: resolvedName,
       source: {
         location,
         private: options?.private ?? false,
@@ -228,6 +282,7 @@ export class Import {
         ? toVersionRange(options.version)
         : undefined,
       parent: undefined,
+      stagedPath,
     };
 
     // Include existing top-level declarations so the resolver's source-
@@ -241,10 +296,6 @@ export class Import {
       newRoot,
       ...existing.filter((d) => d.source.location !== location),
     ];
-
-    const sourceLayer = createSourceLayer();
-    const resolver = createResolver(sourceLayer);
-    const installer = createInstaller(sourceLayer);
 
     const resolved = await resolver.resolve(allRoots, {
       credentials: options?.credentials,

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { existsSync } from 'node:fs';
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -416,5 +417,102 @@ describe('modules/resolver', () => {
         { tempDir },
       ),
     ).rejects.toThrow(/Conflicting source for module 'B'/);
+  });
+
+  it('populates stagedPath on every resolved module with an existing directory', async () => {
+    // Spec invariant from the reuse-staged-fetches refactor: the resolver
+    // stages each module's clone and records the path on its
+    // ResolvedModule so the installer can reuse it instead of cloning
+    // again. Every entry must carry a populated stagedPath that points
+    // at a real directory on disk.
+    const source = new InMemorySource(
+      new Map([
+        [
+          'https://example.com/A.git',
+          {
+            cardKeyPrefix: 'A',
+            name: 'A',
+            modules: [{ name: 'B', location: 'https://example.com/B.git' }],
+          },
+        ],
+        [
+          'https://example.com/B.git',
+          {
+            cardKeyPrefix: 'B',
+            name: 'B',
+            modules: [{ name: 'C', location: 'https://example.com/C.git' }],
+          },
+        ],
+        [
+          'https://example.com/C.git',
+          { cardKeyPrefix: 'C', name: 'C', modules: [] },
+        ],
+      ]),
+      new Map(),
+    );
+    const resolver = createResolver(source);
+
+    const out = await resolver.resolve(
+      [decl('A', 'https://example.com/A.git')],
+      { tempDir },
+    );
+
+    expect(out.map((r) => r.declaration.name)).toEqual(['A', 'B', 'C']);
+    for (const entry of out) {
+      expect(entry.stagedPath).toBeTypeOf('string');
+      expect(entry.stagedPath.length).toBeGreaterThan(0);
+      expect(existsSync(entry.stagedPath)).toBe(true);
+    }
+  });
+
+  it('reuses caller-supplied stagedPath without calling source.fetch', async () => {
+    // When the import command pre-fetches the fresh-root module and
+    // hands the resolver a ModuleDeclaration with `stagedPath` set, the
+    // resolver must reuse the directory rather than re-fetching.
+    const source = new InMemorySource(
+      new Map([
+        [
+          'https://example.com/A.git',
+          { cardKeyPrefix: 'A', name: 'A', modules: [] },
+        ],
+      ]),
+      new Map(),
+    );
+    const resolver = createResolver(source);
+
+    // Pre-stage the module by hand (mirroring what Import.importModule
+    // does on its pre-fetch) and pass the path into the declaration.
+    const preStaged = join(tempDir, 'pre-staged-A');
+    await mkdir(join(preStaged, '.cards', 'local'), { recursive: true });
+    await writeFile(
+      join(preStaged, '.cards', 'local', 'cardsConfig.json'),
+      JSON.stringify({ cardKeyPrefix: 'A', name: 'A', modules: [] }),
+    );
+
+    const rootDecl: ModuleDeclaration = {
+      project: '/project',
+      name: 'A',
+      source: { location: 'https://example.com/A.git', private: false },
+      stagedPath: preStaged,
+    };
+
+    const out = await resolver.resolve([rootDecl], { tempDir });
+
+    expect(out).toHaveLength(1);
+    expect(out[0].stagedPath).toBe(preStaged);
+    expect(source.fetchLog).toEqual([]);
+  });
+
+  it('throws when a declaration with an empty name reaches the resolver', async () => {
+    // Callers must resolve names before invoking the resolver. The
+    // fresh-root path is owned by the import command now.
+    const source = new InMemorySource(new Map(), new Map());
+    const resolver = createResolver(source);
+
+    await expect(
+      resolver.resolve([decl('', 'https://example.com/whatever.git')], {
+        tempDir,
+      }),
+    ).rejects.toThrow(/empty name/);
   });
 });
