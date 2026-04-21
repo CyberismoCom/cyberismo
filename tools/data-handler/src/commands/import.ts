@@ -241,10 +241,16 @@ export class Import {
     };
 
     // Include existing top-level declarations so the resolver's source-
-    // agreement check fires on a genuine location mismatch. Existing
-    // declarations that happen to share a name with the new root are kept
-    // so the resolver can see the collision.
-    const allRoots: ModuleDeclaration[] = [newRoot, ...existing];
+    // agreement check fires on a genuine location mismatch, and so their
+    // transitive subgraphs participate in dedup. Drop the one being
+    // re-imported (same source location) so its stale version range does
+    // not compete with the caller's new range in `ReconcileTransitives`.
+    // A re-import with a *different* location for the same eventual name
+    // is still caught by the resolver's `assertSourceAgreement`.
+    const allRoots: ModuleDeclaration[] = [
+      newRoot,
+      ...existing.filter((d) => d.source.location !== location),
+    ];
 
     const sourceLayer = createSourceLayer();
     const resolver = createResolver(sourceLayer);
