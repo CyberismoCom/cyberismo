@@ -182,11 +182,16 @@ export interface ModuleCheckReport {
  * resolution wins; the conflict is surfaced as a structured event so
  * that callers (CLI, web UI, MCP) can warn without aborting the whole
  * operation.
+ *
+ * `installedVersion` is a tagged union so that callers can distinguish
+ * "first resolution pinned an exact version" from "first resolution
+ * used the default branch because no version was pinned" without an
+ * `undefined` sentinel.
  */
 export interface DiamondVersionConflict {
   project: string;
   name: string;
-  installedVersion?: Version;
+  installedVersion: { kind: 'pinned'; value: Version } | { kind: 'unpinned' };
   rejectingRange: VersionRange;
   rejectingParent?: InstallationRef;
 }

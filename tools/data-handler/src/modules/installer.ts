@@ -52,31 +52,6 @@ export interface InstallOptions {
   validate?: boolean;
 }
 
-/**
- * Applies a resolved module plan to a project's `.cards/modules/`.
- * Implements the spec's `ReplaceInstallation` rule with the two-phase
- * `@guidance` applied: fetch every target first (network phase), then
- * replace the installation files (apply phase).
- */
-export interface Installer {
-  /**
-   * Two-phase atomic installation:
-   *   1. **Network phase**: fetch every target's resources into
-   *      `options.tempDir` staging. If any fetch fails, abort before
-   *      touching `.cards/modules/`.
-   *   2. **Apply phase**: replace each `.cards/modules/<name>/` from its
-   *      staged copy. Upsert the project-level declarations (persisted
-   *      range only — never the resolved tag).
-   *
-   * The installer does not re-resolve. The caller owns the plan.
-   */
-  install(
-    project: Project,
-    resolved: ResolvedModule[],
-    options: InstallOptions,
-  ): Promise<void>;
-}
-
 const FILE_PROTOCOL = 'file:';
 
 /**
@@ -90,11 +65,28 @@ interface StagedModule {
   resolved: ResolvedModule;
 }
 
-class DefaultInstaller implements Installer {
+/**
+ * Applies a resolved module plan to a project's `.cards/modules/`.
+ * Implements the spec's `ReplaceInstallation` rule with the two-phase
+ * `@guidance` applied: fetch every target first (network phase), then
+ * replace the installation files (apply phase).
+ */
+export class Installer {
   private readonly logger = getChildLogger({ module: 'installer' });
 
   constructor(private readonly source: SourceLayer) {}
 
+  /**
+   * Two-phase atomic installation:
+   *   1. **Network phase**: fetch every target's resources into
+   *      `options.tempDir` staging. If any fetch fails, abort before
+   *      touching `.cards/modules/`.
+   *   2. **Apply phase**: replace each `.cards/modules/<name>/` from its
+   *      staged copy. Upsert the project-level declarations (persisted
+   *      range only — never the resolved tag).
+   *
+   * The installer does not re-resolve. The caller owns the plan.
+   */
   async install(
     project: Project,
     resolved: ResolvedModule[],
@@ -389,5 +381,5 @@ class DefaultInstaller implements Installer {
  * a {@link SourceLayer} for fetches.
  */
 export function createInstaller(source: SourceLayer): Installer {
-  return new DefaultInstaller(source);
+  return new Installer(source);
 }

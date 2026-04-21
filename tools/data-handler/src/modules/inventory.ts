@@ -33,6 +33,14 @@ import type { Project } from '../containers/project.js';
 import type { ModuleSetting } from '../interfaces/project-interfaces.js';
 
 /**
+ * Factory for an {@link Inventory}. Stateless — all state lives on
+ * the {@link Project} passed into each method.
+ */
+export function createInventory(): Inventory {
+  return new Inventory();
+}
+
+/**
  * Read-only view over a project's declared and installed modules.
  *
  * The spec distinguishes between {@link ModuleDeclaration} (what the
@@ -41,7 +49,9 @@ import type { ModuleSetting } from '../interfaces/project-interfaces.js';
  * `.cards/modules/<name>/`). The inventory layer materialises both
  * without mutating anything.
  */
-export interface Inventory {
+export class Inventory {
+  private readonly logger = getChildLogger({ module: 'inventory' });
+
   /**
    * Project-level, top-level declarations — the entries persisted in
    * `project.configuration.modules`. Transitive (parent != null)
@@ -49,28 +59,6 @@ export interface Inventory {
    * are never persisted, so this method always returns declarations
    * with `parent` absent.
    */
-  declared(project: Project): ModuleDeclaration[];
-
-  /**
-   * Modules physically installed under `.cards/modules/<name>/`. Each
-   * entry is reconstructed by reading the installed module's own
-   * `cardsConfig.json`. Folders without a readable config are
-   * skipped.
-   */
-  installed(project: Project): Promise<ModuleInstallation[]>;
-}
-
-/**
- * Factory for an {@link Inventory}. Stateless — all state lives on
- * the {@link Project} passed into each method.
- */
-export function createInventory(): Inventory {
-  return new FilesystemInventory();
-}
-
-class FilesystemInventory implements Inventory {
-  private readonly logger = getChildLogger({ module: 'inventory' });
-
   declared(project: Project): ModuleDeclaration[] {
     const settings: ModuleSetting[] = project.configuration.modules;
     return settings.map((setting) => this.toDeclaration(project, setting));

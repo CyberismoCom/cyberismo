@@ -1058,9 +1058,13 @@ describe('import module — transitive diamond conflicts', () => {
       tempDir,
       onConflict: (event) => {
         // Replicate the exact wrapper used by `Import.importModule`.
+        const installedDesc =
+          event.installedVersion.kind === 'pinned'
+            ? `installed version ${event.installedVersion.value}`
+            : `default branch (no version pinned)`;
         console.warn(
           `Diamond version conflict for module '${event.name}': ` +
-            `installed version ${event.installedVersion ?? '<unknown>'} ` +
+            `${installedDesc} ` +
             `does not satisfy range '${event.rejectingRange}' ` +
             `(required by ${event.rejectingParent?.name ?? '<unknown parent>'})`,
         );

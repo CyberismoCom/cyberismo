@@ -23,6 +23,9 @@ import {
   createInstaller,
   createResolver,
   createSourceLayer,
+  FILE_PROTOCOL,
+  isFileLocation,
+  isGitLocation,
   toVersionRange,
   validateVersionAgainstConstraints,
 } from '../modules/index.js';
@@ -37,10 +40,6 @@ import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
 import type { ModuleDeclaration } from '../modules/types.js';
 
-const HTTPS_PROTOCOL = 'https:';
-const FILE_PROTOCOL = 'file:';
-const SSH_PREFIX = 'git@';
-
 /**
  * Coerce a caller-supplied source into the canonical form used by the
  * module layers:
@@ -51,19 +50,10 @@ const SSH_PREFIX = 'git@';
  *   `file:<absolute path>` so the source layer can dispatch on the protocol.
  */
 function normaliseLocation(source: string): string {
-  if (
-    source.startsWith(HTTPS_PROTOCOL) ||
-    source.startsWith(SSH_PREFIX) ||
-    source.startsWith(FILE_PROTOCOL)
-  ) {
+  if (isGitLocation(source) || isFileLocation(source)) {
     return source;
   }
   return `${FILE_PROTOCOL}${pathResolve(source)}`;
-}
-
-/** True when the normalised source targets a local file tree. */
-function isFileSource(location: string): boolean {
-  return location.startsWith(FILE_PROTOCOL);
 }
 
 /**
@@ -207,7 +197,7 @@ export class Import {
     // Early precondition check for file sources: catch bad folder names and
     // missing paths before we hand off to the resolver so the error message
     // matches what the legacy `importFileModule` produced.
-    if (isFileSource(location)) {
+    if (isFileLocation(location)) {
       const folder = location.substring(FILE_PROTOCOL.length);
       if (!Validate.validateFolder(folder)) {
         throw new Error(
@@ -260,9 +250,13 @@ export class Import {
       credentials: options?.credentials,
       tempDir: this.tempModulesDir,
       onConflict: (event) => {
+        const installedDesc =
+          event.installedVersion.kind === 'pinned'
+            ? `installed version ${event.installedVersion.value}`
+            : `default branch (no version pinned)`;
         console.warn(
           `Diamond version conflict for module '${event.name}': ` +
-            `installed version ${event.installedVersion ?? '<unknown>'} ` +
+            `${installedDesc} ` +
             `does not satisfy range '${event.rejectingRange}' ` +
             `(required by ${event.rejectingParent?.name ?? '<unknown parent>'})`,
         );
@@ -272,7 +266,7 @@ export class Import {
     await installer.install(this.project, resolved, {
       credentials: options?.credentials,
       tempDir: this.tempModulesDir,
-      validate: isFileSource(location),
+      validate: isFileLocation(location),
     });
 
     // Clean up any installations orphaned by this import. Fixed-point
@@ -362,9 +356,13 @@ export class Import {
       overrides,
       tempDir: this.tempModulesDir,
       onConflict: (event) => {
+        const installedDesc =
+          event.installedVersion.kind === 'pinned'
+            ? `installed version ${event.installedVersion.value}`
+            : `default branch (no version pinned)`;
         console.warn(
           `Diamond version conflict for module '${event.name}': ` +
-            `installed version ${event.installedVersion ?? '<unknown>'} ` +
+            `${installedDesc} ` +
             `does not satisfy range '${event.rejectingRange}' ` +
             `(required by ${event.rejectingParent?.name ?? '<unknown parent>'})`,
         );
@@ -405,9 +403,13 @@ export class Import {
       credentials,
       tempDir: this.tempModulesDir,
       onConflict: (event) => {
+        const installedDesc =
+          event.installedVersion.kind === 'pinned'
+            ? `installed version ${event.installedVersion.value}`
+            : `default branch (no version pinned)`;
         console.warn(
           `Diamond version conflict for module '${event.name}': ` +
-            `installed version ${event.installedVersion ?? '<unknown>'} ` +
+            `${installedDesc} ` +
             `does not satisfy range '${event.rejectingRange}' ` +
             `(required by ${event.rejectingParent?.name ?? '<unknown parent>'})`,
         );
