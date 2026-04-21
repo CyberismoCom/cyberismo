@@ -164,32 +164,6 @@ export class ProjectConfiguration implements ProjectSettings {
   }
 
   /**
-   * Adds new module to imported modules property.
-   *
-   * @deprecated Use {@link upsertModule} instead — `addModule` errors on
-   *   existing names, which breaks re-import. The spec's `ImportModule`
-   *   rule is upsert, so callers should use `upsertModule` to stay aligned.
-   *   This method is retained for one release to avoid an API break.
-   * @param module Module to add as dependency
-   */
-  public async addModule(module: ModuleSetting) {
-    if (!module) {
-      throw new Error(`Module must have 'name' and 'url'`);
-    }
-    const exists = this.modules.find((item) => item.name === module.name);
-    if (exists) {
-      throw new Error(`Module '${module.name}' already imported`);
-    }
-    // Ensure that module file location is absolute
-    if (module.location && module.location.startsWith('file:')) {
-      const filePath = module.location.substring(5, module.location.length);
-      module.location = `file:${resolve(filePath)}`;
-    }
-    this.modules.push(module);
-    return this.save();
-  }
-
-  /**
    * Checks schema version compatibility.
    * @returns Compatibility state (true - compatible; false - not) and optional message related to it.
    */
@@ -306,22 +280,9 @@ export class ProjectConfiguration implements ProjectSettings {
   }
 
   /**
-   * Inserts a module declaration, or updates the version range of an
-   * existing one. Used by the module installer to persist top-level
-   * declarations produced by import / update flows.
-   *
-   * Semantics:
-   *  - If no module with `module.name` is persisted, insert `module` as-is
-   *    (with `file:` locations absolutised, matching {@link addModule}).
-   *  - If a module with the same name already exists, overwrite its
-   *    version range. Other fields on the existing record are preserved
-   *    unless the new `module` supplies them — in which case the new
-   *    value wins. This mirrors the spec's upsert semantics for
-   *    `ImportModule`: the caller's declared range is the source of truth,
-   *    but an existing location / private / credentials tuple is kept
-   *    untouched when the caller omits those fields.
-   *
-   * Saves synchronously to disk before returning.
+   * Inserts a module declaration, or updates an existing one in place.
+   * Fields on the existing record are preserved unless overridden by the
+   * incoming `module`.
    * @param module Module to insert or update.
    */
   public async upsertModule(module: ModuleSetting) {
