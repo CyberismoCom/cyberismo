@@ -12,11 +12,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { join } from 'node:path';
-
 import { deleteDir } from '../utils/file-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
-import { readJsonFile } from '../utils/json.js';
 import { createInventory } from './inventory.js';
 
 import type { Project } from '../containers/project.js';
@@ -30,14 +27,6 @@ export interface CleanOrphansOptions {
   maxIterations?: number;
   /** Hook invoked before each orphan is deleted. Exceptions propagate. */
   onRemove?: (installation: ModuleInstallation) => void;
-}
-
-/**
- * Minimal shape of an installation's own `cardsConfig.json` — only the
- * fields this module reads. Other fields are allowed and ignored.
- */
-interface InstallationConfig {
-  modules?: Array<{ name?: string }>;
 }
 
 /**
@@ -78,14 +67,8 @@ export async function cleanOrphans(
     }
 
     for (const installation of installed) {
-      const config = await readInstallationConfig(installation, logger);
-      if (!config) {
-        continue;
-      }
-      for (const dep of config.modules ?? []) {
-        if (typeof dep.name === 'string' && dep.name.length > 0) {
-          referenced.add(dep.name);
-        }
+      for (const dep of installation.declaredDependencies) {
+        referenced.add(dep);
       }
     }
 
@@ -118,35 +101,4 @@ export async function cleanOrphans(
   }
 
   return removed;
-}
-
-/**
- * Reads an installation's `cardsConfig.json`, returning `undefined` when
- * missing or unreadable so cleanup treats it as "no declared deps".
- */
-async function readInstallationConfig(
-  installation: ModuleInstallation,
-  logger: ReturnType<typeof getChildLogger>,
-): Promise<InstallationConfig | undefined> {
-  const configPath = joinConfigPath(installation.path);
-  try {
-    const config = (await readJsonFile(configPath)) as
-      | InstallationConfig
-      | undefined;
-    return config;
-  } catch (error) {
-    logger.debug(
-      {
-        module: installation.name,
-        path: configPath,
-        err: error instanceof Error ? error.message : String(error),
-      },
-      'installation has no readable cardsConfig.json; treating as having no declared deps',
-    );
-    return undefined;
-  }
-}
-
-function joinConfigPath(installationPath: string): string {
-  return join(installationPath, 'cardsConfig.json');
 }

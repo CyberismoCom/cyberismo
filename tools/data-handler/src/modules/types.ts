@@ -97,6 +97,12 @@ export interface ModuleInstallation {
   source: Source;
   version?: Version;
   path: string;
+  /**
+   * Names of modules this installation declares as transitive dependencies
+   * in its own `cardsConfig.json`. Empty when the file has no `modules`
+   * array or is unreadable.
+   */
+  declaredDependencies: string[];
 }
 
 // ---------------------------------------------------------------------------
