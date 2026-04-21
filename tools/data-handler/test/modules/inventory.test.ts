@@ -8,12 +8,7 @@ import { ProjectPaths } from '../../src/containers/project/project-paths.js';
 import type { Project } from '../../src/containers/project.js';
 import type { ModuleSetting } from '../../src/interfaces/project-interfaces.js';
 
-/**
- * Construct a Project-shaped stub that the inventory layer can consume
- * without pulling in the full Project + cache machinery. The inventory
- * only touches `configuration.modules`, `basePath`, and `paths.*` — so
- * we assemble exactly those fields.
- */
+/** Project stub exposing only `configuration.modules`, `basePath`, `paths.*`. */
 function makeStub(basePath: string, modules: ModuleSetting[]): Project {
   const paths = new ProjectPaths(basePath);
   return {
@@ -100,7 +95,7 @@ describe('modules/inventory', () => {
 
     const [decl] = inventory.declared(project);
     expect(decl.versionRange).toBeUndefined();
-    // source/name still populated — the invalid range is warn-only.
+    // Invalid range is warn-only; name/source still populate.
     expect(decl.name).toBe('baz');
   });
 
@@ -172,9 +167,7 @@ describe('modules/inventory', () => {
   });
 
   it('installed flags an untracked installation with an empty source.location', async () => {
-    // No declaration for "trans" — it showed up under .cards/modules/
-    // because some other installation pulled it in. Inventory must still
-    // return it so orphan cleanup can reason about it.
+    // No declaration for "trans" — it was pulled in by another installation.
     const project = makeStub(projectDir, []);
     await writeInstalledModule(projectDir, 'trans', {
       cardKeyPrefix: 'trans',

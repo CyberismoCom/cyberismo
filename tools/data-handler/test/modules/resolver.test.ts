@@ -12,10 +12,7 @@ import type {
   DiamondVersionConflict,
 } from '../../src/modules/types.js';
 
-/**
- * Minimal `cardsConfig.json` shape the resolver reads via readConfig.
- * Only `cardKeyPrefix` and `modules` matter.
- */
+/** Minimal `cardsConfig.json` shape the resolver reads. */
 interface FakeModuleConfig {
   cardKeyPrefix?: string;
   name?: string;
@@ -28,11 +25,8 @@ interface FakeModuleConfig {
 }
 
 /**
- * In-memory `SourceLayer` that writes a synthetic `cardsConfig.json`
- * into `destRoot/<nameHint>/.cards/local/` on `fetch`, so the
- * resolver's `readConfig` can actually read something. `fetch` is
- * instrumented so each test can assert whether a given module was
- * fetched and with what ref.
+ * In-memory `SourceLayer` that writes a synthetic `cardsConfig.json` on
+ * fetch. Instrumented so tests can assert fetch calls and refs.
  */
 class InMemorySource implements SourceLayer {
   readonly fetchLog: Array<{
@@ -379,7 +373,6 @@ describe('modules/resolver', () => {
             cardKeyPrefix: 'A',
             name: 'A',
             modules: [
-              // A declares a transitive B via location #1.
               { name: 'B', location: 'https://example.com/B1.git' },
             ],
           },
@@ -390,8 +383,7 @@ describe('modules/resolver', () => {
             cardKeyPrefix: 'C',
             name: 'C',
             modules: [
-              // C declares a transitive B via location #2 — spec invariant
-              // violation.
+              // C declares B via a different location — must be rejected.
               { name: 'B', location: 'https://example.com/B2.git' },
             ],
           },
@@ -420,11 +412,6 @@ describe('modules/resolver', () => {
   });
 
   it('populates stagedPath on every resolved module with an existing directory', async () => {
-    // Spec invariant from the reuse-staged-fetches refactor: the resolver
-    // stages each module's clone and records the path on its
-    // ResolvedModule so the installer can reuse it instead of cloning
-    // again. Every entry must carry a populated stagedPath that points
-    // at a real directory on disk.
     const source = new InMemorySource(
       new Map([
         [
@@ -466,9 +453,6 @@ describe('modules/resolver', () => {
   });
 
   it('reuses caller-supplied stagedPath without calling source.fetch', async () => {
-    // When the import command pre-fetches the fresh-root module and
-    // hands the resolver a ModuleDeclaration with `stagedPath` set, the
-    // resolver must reuse the directory rather than re-fetching.
     const source = new InMemorySource(
       new Map([
         [
@@ -480,8 +464,7 @@ describe('modules/resolver', () => {
     );
     const resolver = createResolver(source);
 
-    // Pre-stage the module by hand (mirroring what Import.importModule
-    // does on its pre-fetch) and pass the path into the declaration.
+    // Pre-stage the module by hand and pass the path into the declaration.
     const preStaged = join(tempDir, 'pre-staged-A');
     await mkdir(join(preStaged, '.cards', 'local'), { recursive: true });
     await writeFile(
@@ -504,8 +487,6 @@ describe('modules/resolver', () => {
   });
 
   it('throws when a declaration with an empty name reaches the resolver', async () => {
-    // Callers must resolve names before invoking the resolver. The
-    // fresh-root path is owned by the import command now.
     const source = new InMemorySource(new Map(), new Map());
     const resolver = createResolver(source);
 

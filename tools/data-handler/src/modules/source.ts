@@ -30,50 +30,20 @@ import {
   type VersionRange,
 } from './types.js';
 
-/**
- * A concrete fetch target handed to {@link SourceLayer.fetch}. The
- * `remoteUrl` has already been built by the caller (typically the
- * resolver) with any required credentials injected — the source layer
- * itself is credential-agnostic.
- */
+/** A concrete fetch target. `remoteUrl` is pre-built with any credentials injected. */
 export interface FetchTarget {
-  /**
-   * The module's declared location (a `file:` URL, an `https://` URL
-   * or a `git@…` SSH URL). Used to decide between the git and file
-   * code paths; not passed to git.
-   */
   location: string;
-  /**
-   * Pre-built remote URL passed to `git clone`. For git sources the
-   * caller may inject HTTPS credentials; for file sources this is
-   * ignored.
-   */
   remoteUrl: string;
-  /**
-   * Optional git ref (tag or branch) to shallow-clone. When omitted,
-   * the repository's default branch is cloned.
-   */
+  /** Optional git ref (tag or branch). Default branch when omitted. */
   ref?: string;
 }
 
-/**
- * File-I/O and network layer for fetching modules. Mirrors the spec's
- * deferred specifications for `query_remote` and the fetch behaviour
- * implicit in `ReplaceInstallation`. The source layer never touches
- * version-range semantics beyond what is needed to compute
- * `latestSatisfying` in {@link queryRemote}; it never persists state.
- */
+/** File-I/O and network layer for fetching modules. Never persists state. */
 export interface SourceLayer {
   /**
-   * Fetch a module into `destRoot/<nameHint>` and return the absolute
-   * path to the fetched copy.
-   *
-   * For git sources (`https://`, `git@`) this is a shallow clone
-   * (`--depth 1`, with `--branch ref` when `ref` is provided). Any
-   * pre-existing directory at the target path is removed first.
-   *
-   * For file sources (`file:<path>` or a plain path) this resolves the
-   * local path and performs no filesystem mutation.
+   * Fetch a module into `destRoot/<nameHint>` and return the absolute path.
+   * Git sources are shallow-cloned (`--depth 1`); file sources resolve
+   * without any filesystem mutation.
    */
   fetch(
     target: FetchTarget,
@@ -81,26 +51,12 @@ export interface SourceLayer {
     nameHint: string,
   ): Promise<string>;
 
-  /**
-   * List remote version tags for a git source, in descending semver
-   * order. Returns an empty array for file sources.
-   *
-   * @param location Raw source location (used to detect file sources).
-   * @param remoteUrl Optional credential-injected URL; falls back to
-   *        `location` when absent.
-   */
+  /** Remote version tags in descending semver order; `[]` for file sources. */
   listRemoteVersions(location: string, remoteUrl?: string): Promise<string[]>;
 
   /**
-   * Implements the spec's deferred `query_remote` operation. Always
-   * resolves: transient failures (network error, authentication
-   * failure, missing remote) yield `{ reachable: false }` rather than
-   * throwing, so `CheckUpdates` can still produce a report row.
-   *
-   * When a `range` is supplied the `latestSatisfying` field is
-   * populated with the highest remote version satisfying it. Without a
-   * range, `latestSatisfying` is left undefined and the caller may
-   * compute it themselves.
+   * Query a remote for available versions. Always resolves: transient
+   * failures yield `{ reachable: false }` rather than throwing.
    */
   queryRemote(
     source: Source,
@@ -116,11 +72,7 @@ const NON_INTERACTIVE_GIT_ENV = {
   GCM_INTERACTIVE: 'never',
 } as const;
 
-/**
- * Block timeout for git operations. Mirrors the historical behaviour
- * of `ModuleManager.gitTimeout`: a 15-second base, doubled in CI, plus
- * a 50 % bump on Windows.
- */
+/** 15s base, doubled in CI, plus a 50% bump on Windows. */
 function gitTimeout(): number {
   const baseTimeout = 15000;
   const isCI = process.env.CI;
@@ -133,11 +85,6 @@ function gitTimeout(): number {
   return timeout;
 }
 
-/**
- * Build git clone options. Always `--depth 1` (shallow); `--branch ref`
- * pins to a specific tag or branch when `ref` is given, otherwise the
- * default branch is cloned.
- */
 function cloneOptions(ref?: string): string[] {
   const options = ['--depth', '1'];
   if (ref) {
@@ -153,8 +100,6 @@ class DefaultSourceLayer implements SourceLayer {
     nameHint: string,
   ): Promise<string> {
     if (isFileLocation(target.location)) {
-      // File sources: no filesystem mutation — return the resolved
-      // path so the caller can copy files from it.
       return pathResolve(stripFileProtocol(target.location));
     }
 
@@ -210,8 +155,7 @@ class DefaultSourceLayer implements SourceLayer {
         options?.remoteUrl,
       );
     } catch {
-      // Transient or permanent failure reaching the remote — the spec
-      // mandates we return an unreachable outcome rather than throw.
+      // Any failure reaching the remote becomes an unreachable outcome.
       return { reachable: false };
     }
 
@@ -229,10 +173,6 @@ class DefaultSourceLayer implements SourceLayer {
   }
 }
 
-/**
- * Construct the default {@link SourceLayer} implementation — a thin
- * wrapper around `simple-git` and {@link GitManager.listRemoteVersionTags}.
- */
 export function createSourceLayer(): SourceLayer {
   return new DefaultSourceLayer();
 }

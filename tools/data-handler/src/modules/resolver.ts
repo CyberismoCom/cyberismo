@@ -33,94 +33,39 @@ import type {
 } from '../interfaces/project-interfaces.js';
 import type { ProjectConfiguration } from '../project-settings.js';
 
-/**
- * A module declaration after the resolver has chosen a concrete version
- * (or determined that no version applies). Mirrors the output of the
- * spec's `ReconcileTransitives` rule: one entry per reachable name.
- */
+/** A module declaration after the resolver has chosen a concrete version. */
 export interface ResolvedModule {
-  /**
-   * The declaration that produced this resolution. For transitive
-   * declarations, `parent` points at the installation that owns the
-   * declaration.
-   */
   declaration: ModuleDeclaration;
-  /**
-   * Git tag (or branch name) to check out. Undefined for file sources
-   * and for declarations without a `versionRange` — in the latter case
-   * the remote's default branch is cloned at fetch time.
-   */
+  /** Git tag/branch to check out; undefined for file sources or unranged git. */
   ref?: string;
-  /**
-   * Remote URL with credentials injected when the source is private and
-   * HTTPS. For non-git or non-private sources this is the declaration's
-   * `location` verbatim. Ready to pass to `SourceLayer.fetch`.
-   */
+  /** Remote URL with credentials injected when needed; ready for `SourceLayer.fetch`. */
   remoteUrl: string;
-  /**
-   * Resolved semver version, when one was chosen. Undefined for file
-   * sources and for git sources without a declared range where the
-   * default branch is used (no concrete version is pinned).
-   */
+  /** Resolved semver version; undefined when no concrete version was pinned. */
   version?: Version;
-  /**
-   * Absolute path to the directory where the resolver staged this
-   * module's clone during resolution. Downstream consumers (the
-   * installer) reuse this directory for their apply phase instead of
-   * re-cloning, so every import/update pays the network cost only once
-   * per module.
-   */
+  /** Absolute path where the resolver staged this module's clone. */
   stagedPath: string;
 }
 
-/**
- * Options consumed by {@link Resolver.resolve}. All are optional bar
- * `tempDir`, which the resolver shares with the installer so that
- * intermediate clones can be reused downstream.
- */
+/** Options consumed by {@link Resolver.resolve}. */
 export interface ResolveOptions {
-  /**
-   * Credentials used for private HTTPS remotes. When present and the
-   * declaration marks its source `private`, the resolver injects the
-   * username/token into the URL before handing it to the source layer.
-   */
+  /** Injected into private HTTPS URLs before fetching. */
   credentials?: Credentials;
   /**
-   * Override version selection for specific modules (name → exact
-   * version). Used when the caller already knows the target, e.g.
-   * `update-modules X 1.2.3`. Returned verbatim — the resolver does not
-   * re-check an override against any declared range; the caller is
-   * responsible for validating the override.
+   * Name → exact version overrides. Returned verbatim; the caller is
+   * responsible for validating the override against any declared range.
    */
   overrides?: Map<string, string>;
-  /**
-   * Temp directory used for intermediate clones. Shared with the
-   * installer when possible so that its two-phase apply can reuse the
-   * staged copies.
-   */
+  /** Temp directory for intermediate clones; shared with the installer. */
   tempDir: string;
-  /**
-   * Optional consumer for {@link DiamondVersionConflict} events. The
-   * spec treats diamond range mismatches as warnings rather than hard
-   * errors — the first resolution wins and later declarations whose
-   * range rejects it produce a structured event here. Defaults to
-   * `console.warn` when absent.
-   */
+  /** Consumer for diamond conflict events; defaults to `console.warn`. */
   onConflict?: (event: DiamondVersionConflict) => void;
 }
 
 /**
- * Read a fetched module's `cardsConfig.json`. Only `cardKeyPrefix` and
- * `modules` are consumed by the resolver; the rest of the shape is not
- * inspected here. The returned value is cast to the concrete
- * {@link ProjectConfiguration} type for documentation, but no class
- * methods are invoked.
+ * Read a fetched module's `cardsConfig.json`. Exported so callers can
+ * read `cardKeyPrefix` before handing a pre-fetched module to the resolver.
  *
- * The config file lives at `<path>/.cards/local/cardsConfig.json` —
- * mirrored by {@link ProjectPaths.configurationFile}.
- *
- * Exported so the `import` command can read a freshly-fetched module's
- * `cardKeyPrefix` before handing it to the resolver.
+ * @throws if the file does not exist or is empty.
  */
 export async function readModuleConfig(
   path: string,
@@ -136,30 +81,13 @@ export async function readModuleConfig(
 }
 
 /**
- * Implements the module-resolution half of the spec's
- * `ReconcileTransitives` rule: BFS over declarations with
- * first-encounter-wins semantics on each name. Does not mutate the
- * project state.
- *
- * Throws on:
- *  - A later declaration whose source `location` or `private` flag
- *    differs from the first encountered for the same name (spec
- *    invariant `DeclarationAndInstallationAgreeOnSource`).
- *  - No remote version satisfying a declared range when no override
- *    was provided.
- *  - Invalid remote URL when injecting credentials.
- *
- * Diamond range mismatches do not throw — they are reported through
- * `onConflict` (or `console.warn` when absent).
+ * BFS walker over module declarations with first-encounter-wins semantics
+ * per name. Diamond range mismatches fire `onConflict` rather than throwing.
  */
 export class Resolver {
   constructor(private readonly source: SourceLayer) {}
 
-  /**
-   * Resolve a set of root declarations plus every transitive
-   * declaration reachable via their `cardsConfig.json`. Returns one
-   * {@link ResolvedModule} per unique name encountered during the walk.
-   */
+  /** Resolve roots plus every transitive declaration reachable via their `cardsConfig.json`. */
   async resolve(
     roots: ModuleDeclaration[],
     options: ResolveOptions,
@@ -169,9 +97,6 @@ export class Resolver {
     const onConflict =
       options.onConflict ??
       ((event) => {
-        // Default: log to stderr. CLI wrappers typically provide their
-        // own handler; this is a safety net so that conflicts never go
-        // silent when a caller forgets.
         const installedDesc =
           event.installedVersion.kind === 'pinned'
             ? `installed version ${event.installedVersion.value}`
@@ -188,11 +113,7 @@ export class Resolver {
       const decl = queue.shift()!;
 
       if (decl.name === '') {
-        // Names must be resolved by the caller. The fresh-root case is
-        // handled by the import command, which pre-fetches the module,
-        // reads its cardsConfig.json, and builds a named declaration
-        // (with `stagedPath` pointing at the pre-fetch) before invoking
-        // the resolver.
+        // Callers must resolve the name before invoking the resolver.
         throw new Error(
           `Resolver encountered a declaration with an empty name ` +
             `for source '${decl.source.location}'. Callers must resolve ` +
@@ -203,9 +124,6 @@ export class Resolver {
       const existing = resolved.get(decl.name);
 
       if (existing) {
-        // Name was resolved earlier. Verify that this later declaration
-        // agrees on source, then either dedup silently or surface a
-        // diamond conflict.
         this.assertSourceAgreement(existing, decl);
 
         if (
@@ -225,8 +143,7 @@ export class Resolver {
         continue;
       }
 
-      // First encounter: decide a version (possibly via override), fetch
-      // the module so we can read its transitive deps, and record it.
+      // First encounter: pick a version, fetch, and record.
       const remoteUrl = buildRemoteUrl(decl.source, options.credentials);
       const override = options.overrides?.get(decl.name);
 
@@ -254,17 +171,12 @@ export class Resolver {
         version = picked;
         ref = versionToTag(version);
       } else {
-        // Git source without a range, or a non-git/non-file location:
-        // fall through to the default branch.
+        // Git source without a range: use the default branch.
         version = undefined;
         ref = undefined;
       }
 
-      // Reuse a caller-supplied staged clone when possible — the import
-      // command pre-fetches fresh-root modules to discover their
-      // `cardKeyPrefix`, and we don't want to clone them again. Fall
-      // back to a fresh fetch when no staged path was supplied or the
-      // directory has disappeared between invocations.
+      // Reuse a caller-supplied staged clone when its directory still exists.
       let path: string;
       if (decl.stagedPath && existsSync(decl.stagedPath)) {
         path = decl.stagedPath;
@@ -286,10 +198,6 @@ export class Resolver {
       };
       resolved.set(decl.name, resolvedEntry);
 
-      // Enqueue transitive declarations read from the fetched module's
-      // own cardsConfig.json. Each gets the owning installation as its
-      // `parent`, so the resolver can surface diamond conflicts with
-      // useful attribution.
       const childDecls = childConfig.modules ?? [];
       for (const child of childDecls) {
         queue.push(toChildDeclaration(decl.project, decl.name, child));
@@ -299,11 +207,7 @@ export class Resolver {
     return Array.from(resolved.values());
   }
 
-  /**
-   * Enforce the spec's `DeclarationAndInstallationAgreeOnSource`
-   * invariant at resolve time: if any two declarations for the same
-   * name disagree on `location` or `private`, the walk is a hard error.
-   */
+  /** @throws when two declarations for the same name disagree on location/private. */
   private assertSourceAgreement(
     existing: ResolvedModule,
     decl: ModuleDeclaration,
@@ -328,11 +232,7 @@ export class Resolver {
   }
 }
 
-/**
- * Build a transitive declaration from a child `ModuleSetting`, attaching
- * the owning installation as its `parent`. Mirrors the relation
- * `ModuleInstallation.declared_deps` from the spec.
- */
+/** Build a transitive declaration from a child `ModuleSetting`. */
 function toChildDeclaration(
   projectId: string,
   parentName: string,
@@ -355,10 +255,6 @@ function toChildDeclaration(
   };
 }
 
-/**
- * Construct the default {@link Resolver} — a BFS walk backed by a
- * {@link SourceLayer} for fetch / list-tags.
- */
 export function createResolver(source: SourceLayer): Resolver {
   return new Resolver(source);
 }

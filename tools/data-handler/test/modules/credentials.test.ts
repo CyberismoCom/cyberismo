@@ -2,10 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import { buildRemoteUrl } from '../../src/modules/credentials.js';
 
-// `buildRemoteUrl` is the single injection site for credentialed HTTPS
-// remotes (Phase 3 / Phase 5). These tests pin the four corners: public
-// HTTPS, private HTTPS, SSH, and file sources.
-
 describe('modules/credentials', () => {
   it('leaves a public HTTPS URL unchanged when no credentials are provided', () => {
     const url = buildRemoteUrl({
@@ -50,9 +46,7 @@ describe('modules/credentials', () => {
   });
 
   it('returns the original URL when private is true but no credentials are supplied', () => {
-    // Credentials are optional: authentication can still happen out-of-band
-    // (e.g. the SSH agent, a credential helper). `buildRemoteUrl` must not
-    // invent values.
+    // Auth may happen out-of-band (SSH agent, credential helper); don't invent values.
     const url = buildRemoteUrl({
       location: 'https://example.com/repo.git',
       private: true,
@@ -69,9 +63,7 @@ describe('modules/credentials', () => {
   });
 
   it('throws a clear message on a malformed private HTTPS URL', () => {
-    // The `https:` prefix takes the code path that parses via `new URL(...)`.
-    // A URL with no host should trip the parser and surface a descriptive
-    // error — not a generic TypeError from WHATWG URL.
+    // A hostless URL must surface a descriptive error, not a generic TypeError.
     expect(() =>
       buildRemoteUrl(
         { location: 'https://', private: true },

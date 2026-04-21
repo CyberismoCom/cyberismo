@@ -14,9 +14,7 @@ import type { ModuleSetting } from '../../src/interfaces/project-interfaces.js';
 
 /**
  * In-memory SourceLayer fake. Populates the staging area with whatever
- * content the test wants copied into `.cards/modules/<name>/`. Works with
- * the installer's `ProjectPaths(stagingRoot).resourcesFolder` contract
- * (= `<stagingRoot>/.cards/local`).
+ * content each test wants copied into `.cards/modules/<name>/`.
  */
 class InMemorySource implements SourceLayer {
   readonly fetchCalls: string[] = [];
@@ -58,11 +56,7 @@ class InMemorySource implements SourceLayer {
   }
 }
 
-/**
- * Build a Project stub that exposes the fields the installer touches:
- *   configuration.modules / upsertModule, paths.modulesFolder,
- *   projectPrefix, projectPrefixes(), refreshAfterModuleChange().
- */
+/** Project stub exposing the fields the installer touches. */
 function makeProjectStub(basePath: string) {
   const paths = new ProjectPaths(basePath);
   const modules: ModuleSetting[] = [];
