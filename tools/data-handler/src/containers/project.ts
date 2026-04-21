@@ -37,7 +37,6 @@ import {
   type MetadataContent,
   type ModuleContent,
   type ModuleInfo,
-  type ModuleSetting,
   type ProjectFetchCardDetails,
   type ProjectMetadata,
 } from '../interfaces/project-interfaces.js';
@@ -260,7 +259,7 @@ export class Project extends CardContainer {
 
   // Refreshes the cached list of all module prefixes.
   // This includes both direct and transient module dependencies.
-  private refreshAllModulePrefixes(): void {
+  public refreshAllModulePrefixes(): void {
     const prefixes: string[] = [this.projectPrefix];
 
     try {
@@ -316,7 +315,7 @@ export class Project extends CardContainer {
   /**
    * Populate template cards into the card cache.
    */
-  protected async populateTemplateCards(): Promise<void> {
+  public async populateTemplateCards(): Promise<void> {
     try {
       const templateResources = this.resources.templates();
       const prefixes = this.allModulePrefixes();
@@ -672,23 +671,6 @@ export class Project extends CardContainer {
       }
     });
     return this.calculationEngine.handleNewCards(cards);
-  }
-
-  /**
-   * Adds a module from project, or updates the declaration when one with
-   * the same name is already persisted. Mirrors the spec's upsert semantics
-   * for `ImportModule` — re-importing with a new range is an update rather
-   * than an error.
-   * @param module Module to add or update
-   */
-  public async importModule(module: ModuleSetting) {
-    // Upsert the module declaration (insert when new, update range when present).
-    await this.configuration.upsertModule(module);
-    this.resources.changedModules();
-    this.refreshAllModulePrefixes();
-    await this.populateTemplateCards();
-
-    this.logger.info(`Imported module '${module.name}'`);
   }
 
   /**

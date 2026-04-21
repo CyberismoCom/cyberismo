@@ -900,4 +900,51 @@ describe('remove module — spec behaviours', () => {
     );
     expect(topLevelNames).not.toContain('cha');
   });
+
+  it('removing a module with transitives drops the orphaned prefixes from allModulePrefixes', async () => {
+    // Phase C regression guard: after the orphan-cleanup cascade has
+    // deleted `.cards/modules/<name>/` for each orphaned transitive,
+    // the project's cached `allModulePrefixes()` must no longer list
+    // them. `cleanOrphans` now refreshes that cache itself.
+    const cRoot = join(testDir, 'fake-drop-C');
+    makeFakeModuleFixture(cRoot, { cardKeyPrefix: 'drpc' });
+    const bRoot = join(testDir, 'fake-drop-B');
+    makeFakeModuleFixture(bRoot, {
+      cardKeyPrefix: 'drpb',
+      modules: [{ name: 'drpc', location: `file:${pathResolve(cRoot)}` }],
+    });
+    const aRoot = join(testDir, 'fake-drop-A');
+    makeFakeModuleFixture(aRoot, {
+      cardKeyPrefix: 'drpa',
+      modules: [{ name: 'drpb', location: `file:${pathResolve(bRoot)}` }],
+    });
+
+    const projectDir = join(testDir, 'proj-drop-prefix');
+    const commandHandler = new Commands();
+    const create = await commandHandler.command(
+      Cmd.create,
+      ['project', 'drop-prefix-proj', 'dppr'],
+      { projectPath: projectDir },
+    );
+    expect(create.statusCode).toBe(200);
+
+    const commands = new CommandManager(projectDir, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+
+    await commands.importCmd.importModule(aRoot, projectDir);
+    // All three transitives live in the cached prefix list.
+    expect(commands.project.allModulePrefixes()).toContain('drpa');
+    expect(commands.project.allModulePrefixes()).toContain('drpb');
+    expect(commands.project.allModulePrefixes()).toContain('drpc');
+
+    await commands.removeCmd.remove('module', 'drpa');
+
+    // Orphan cascade removed the transitives from disk *and* from the
+    // cached prefix list.
+    expect(commands.project.allModulePrefixes()).not.toContain('drpa');
+    expect(commands.project.allModulePrefixes()).not.toContain('drpb');
+    expect(commands.project.allModulePrefixes()).not.toContain('drpc');
+  });
 });

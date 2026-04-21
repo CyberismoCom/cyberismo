@@ -276,37 +276,11 @@ export class Import {
     });
 
     // Clean up any installations orphaned by this import. Fixed-point
-    // cascade per the `NoOrphanInstallations` invariant.
+    // cascade per the `NoOrphanInstallations` invariant. The installer
+    // already persisted the declaration and refreshed the project's
+    // caches; orphan cleanup re-runs the refresh when it removes
+    // anything, so nothing else is required here.
     await cleanOrphans(this.project);
-
-    // Refresh the project's cached module prefixes and template cards so
-    // the newly-installed root is immediately usable through the Project
-    // API. The installer already persisted the declaration via
-    // `configuration.upsertModule`; here we drive the side-effects on the
-    // in-memory `Project` (cache invalidation + template-card population).
-    const newRootResolved = resolved.find(
-      (r) => r.declaration.source.location === location,
-    );
-    if (newRootResolved) {
-      const persistedRange = newRootResolved.declaration.versionRange;
-      await this.project.importModule({
-        name: newRootResolved.declaration.name,
-        location,
-        private: options?.private,
-        version:
-          persistedRange ??
-          (newRootResolved.version ? `^${newRootResolved.version}` : undefined),
-      });
-    } else {
-      // Defensive: the resolver dedupes on name, so a re-import whose
-      // name already resolved earlier (e.g. from transitive deps) may not
-      // surface the new location. Drive the project-side refresh against
-      // the declaration we know the caller asked for.
-      console.warn(
-        `importModule: no resolved entry matched source '${location}'; falling back to cache refresh only.`,
-      );
-      this.project.resources.changedModules();
-    }
 
     // Validate the project after module has been imported.
     const afterImportValidateErrors = await Validate.getInstance().validate(

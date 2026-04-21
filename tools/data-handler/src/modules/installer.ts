@@ -222,6 +222,13 @@ class DefaultInstaller implements Installer {
         .filter((stage) => this.isGitStage(stage, options.tempDir))
         .map((stage) => this.cleanupStage(stage, options.tempDir)),
     );
+
+    // Refresh the in-memory project caches so newly-installed modules
+    // (including transitives) are immediately visible through the
+    // Project API. The installer always mutates resources, so this runs
+    // unconditionally.
+    project.refreshAllModulePrefixes();
+    await project.populateTemplateCards();
   }
 
   /**
