@@ -19,13 +19,15 @@ import { spawn } from 'node:child_process';
 import { writeFile } from 'node:fs/promises';
 
 import { type Fetch, MODULE_LIST_FULL_PATH } from './fetch.js';
+import { createInventory } from '../modules/index.js';
+
+import { CardLocation } from '../interfaces/project-interfaces.js';
 
 import type { attachmentPayload } from '../interfaces/request-status-interfaces.js';
 import type {
   Card,
   CardAttachment,
   CardListContainer,
-  CardLocation,
   CardWithChildrenCards,
   Context,
   FetchCardDetails,
@@ -447,7 +449,10 @@ export class Show {
    */
   @read
   public async showModules(): Promise<ModuleInfo[]> {
-    return this.project.moduleInfos();
+    const installed = await createInventory().installed(this.project);
+    return installed
+      .map((m) => ({ name: m.name, version: m.version }))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
 
   /**
@@ -456,7 +461,22 @@ export class Show {
    */
   @read
   public async showProject(): Promise<ProjectMetadata> {
-    return this.project.show();
+    const p = this.project;
+    const [cards, modules] = await Promise.all([
+      p.listCards(CardLocation.projectOnly),
+      this.showModules(),
+    ]);
+    return {
+      name: p.projectName,
+      path: p.basePath,
+      prefix: p.projectPrefix,
+      category: p.configuration.category,
+      description: p.configuration.description,
+      version: p.configuration.version,
+      hubs: p.configuration.hubs,
+      modules,
+      numberOfCards: cards[0].cards.length,
+    };
   }
 
   /**
