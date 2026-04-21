@@ -693,9 +693,9 @@ describe('module update — spec behaviours', () => {
     await commands.importCmd.updateAllModules();
 
     // The new transitive is installed on disk...
-    expect(
-      existsSync(join(projectDir, '.cards', 'modules', 'newdep')),
-    ).toBe(true);
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'newdep'))).toBe(
+      true,
+    );
     // ...and immediately visible through the cached prefix list without any
     // manual refresh call.
     expect(commands.project.allModulePrefixes()).toContain('newdep');
@@ -1124,9 +1124,8 @@ describe('import module — resolver+installer reuse staged fetches', () => {
     // then the installer fetches each module again for the apply
     // phase). After Phase B the resolver's staging path is reused by
     // the installer and the count drops to 3.
-    const { createResolver, createInstaller } = await import(
-      '../src/modules/index.js'
-    );
+    const { createResolver, createInstaller } =
+      await import('../src/modules/index.js');
     const { cleanOrphans } = await import('../src/modules/orphans.js');
     const { toVersionRange } = await import('../src/modules/types.js');
     const { mkdir, writeFile } = await import('node:fs/promises');
