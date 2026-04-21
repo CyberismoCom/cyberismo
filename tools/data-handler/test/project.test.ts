@@ -684,20 +684,17 @@ describe('project', () => {
     expect(projectSettings.modules.length).toBe(0);
 
     // Add module
-    await projectSettings.addModule({
+    await projectSettings.upsertModule({
       name: 'mini',
       location: `file:../valid/minimal`,
     });
     expect(projectSettings.modules.length).toBe(1);
 
-    // try to add the same module again
-
-    await expect(
-      projectSettings.addModule({
-        name: 'mini',
-        location: `file:../valid/minimal`,
-      }),
-    ).rejects.toThrow();
+    // upserting the same module is idempotent (no duplicate entry)
+    await projectSettings.upsertModule({
+      name: 'mini',
+      location: `file:../valid/minimal`,
+    });
     expect(projectSettings.modules.length).toBe(1);
 
     // Remove module
