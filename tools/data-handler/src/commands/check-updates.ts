@@ -29,7 +29,6 @@ import type {
 import type { Project } from '../containers/project.js';
 import type {
   CheckStatus,
-  ModuleCheckReport,
   ModuleDeclaration,
   ModuleInstallation,
   Version,
@@ -42,13 +41,7 @@ export class CheckUpdates {
   constructor(private project: Project) {}
 
   /**
-   * Checks for available updates for all or a specific module. Tolerant
-   * per the spec's `CheckUpdates` rule: a remote being unreachable
-   * produces a `source_unreachable` row rather than aborting the call.
-   *
-   * Returns the legacy dual-shape `ModuleUpdateStatus[]`: the top-level
-   * booleans remain for CLI/MCP/web backwards compatibility, and each row
-   * also carries the spec's `ModuleCheckReport` under `report`.
+   * Checks for available updates for all or a specific module.
    *
    * @param moduleName Optional module name to check. If omitted, checks all.
    * @param credentials Optional credentials for private modules.
@@ -84,37 +77,22 @@ export class CheckUpdates {
           decl.source.location.startsWith('git@');
 
         if (!isGit) {
-          const report: ModuleCheckReport = {
-            project: this.project.basePath,
-            declaration: decl,
-            installation,
-            status: 'up_to_date',
-          };
           return {
             name: decl.name,
             installedVersion: installation?.version,
             availableVersions: [],
             updateAvailable: false,
             isGitModule: false,
-            report,
+            status: 'up_to_date',
           } satisfies ModuleUpdateStatus;
         }
 
-        // Build the credential-injected remote URL once per declaration.
-        // The shared `buildRemoteUrl` throws only on a malformed private
-        // HTTPS URL; for `CheckUpdates` that is indistinguishable from an
-        // unreachable source, so catch it and surface a
-        // `source_unreachable` row.
+        // A malformed private HTTPS URL is indistinguishable from an
+        // unreachable source here, so treat it as `source_unreachable`.
         let remoteUrl: string;
         try {
           remoteUrl = buildRemoteUrl(decl.source, credentials);
         } catch {
-          const report: ModuleCheckReport = {
-            project: this.project.basePath,
-            declaration: decl,
-            installation,
-            status: 'source_unreachable',
-          };
           return {
             name: decl.name,
             installedVersion: installation?.version,
@@ -122,25 +100,16 @@ export class CheckUpdates {
             updateAvailable: false,
             isGitModule: true,
             versionConstraint: decl.versionRange,
-            report,
+            status: 'source_unreachable',
           } satisfies ModuleUpdateStatus;
         }
 
-        // Query remote tolerantly. An unreachable remote surfaces as a
-        // `source_unreachable` row; we still return a populated result so
-        // callers can show the module's last-known state.
         const outcome = await sourceLayer.queryRemote(decl.source, {
           remoteUrl,
           range: decl.versionRange,
         });
 
         if (!outcome.reachable) {
-          const report: ModuleCheckReport = {
-            project: this.project.basePath,
-            declaration: decl,
-            installation,
-            status: 'source_unreachable',
-          };
           return {
             name: decl.name,
             installedVersion: installation?.version,
@@ -148,13 +117,12 @@ export class CheckUpdates {
             updateAvailable: false,
             isGitModule: true,
             versionConstraint: decl.versionRange,
-            report,
+            status: 'source_unreachable',
           } satisfies ModuleUpdateStatus;
         }
 
-        // Reachable: list all remote versions so we can populate the
-        // legacy `availableVersions` array. `queryRemote` does not return
-        // the full list (only latest + latestSatisfying), so we re-list.
+        // `queryRemote` only returns latest + latestSatisfying, so re-list
+        // to populate `availableVersions`.
         let availableVersions: string[];
         try {
           availableVersions = await sourceLayer.listRemoteVersions(
@@ -196,15 +164,6 @@ export class CheckUpdates {
           constraintBlocksUpdate: constraintBlocksUpdate ?? false,
         });
 
-        const report: ModuleCheckReport = {
-          project: this.project.basePath,
-          declaration: decl,
-          installation,
-          latestVersion,
-          latestSatisfying: latestSatisfyingConstraint,
-          status,
-        };
-
         return {
           name: decl.name,
           installedVersion,
@@ -216,7 +175,7 @@ export class CheckUpdates {
           isGitModule: true,
           versionConstraint: decl.versionRange,
           noMatchingVersion,
-          report,
+          status,
         } satisfies ModuleUpdateStatus;
       }),
     );
@@ -226,9 +185,8 @@ export class CheckUpdates {
 }
 
 /**
- * Map the legacy boolean-flavoured status fields to the spec's
- * `CheckStatus` enum. Order matters: once a row is `source_unreachable` we
- * never reach this function, and the other branches are mutually exclusive.
+ * Derive the `CheckStatus` for a reachable module. Branches are ordered and
+ * mutually exclusive.
  */
 function deriveStatus(input: {
   declaration: ModuleDeclaration;
@@ -247,7 +205,6 @@ function deriveStatus(input: {
     constraintBlocksUpdate,
   } = input;
 
-  // `range_unsatisfiable`: a range is declared and no remote version satisfies it.
   if (declaration.versionRange) {
     const satisfied = pickVersion(availableVersions, declaration.versionRange);
     if (!satisfied) {
@@ -255,7 +212,6 @@ function deriveStatus(input: {
     }
   }
 
-  // `drifted`: the installed version exists and violates the declared range.
   if (
     installedVersion &&
     declaration.versionRange &&

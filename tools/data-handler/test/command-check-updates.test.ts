@@ -110,8 +110,7 @@ describe('check-updates', () => {
     expect(status.latestSatisfyingConstraint).toBe('1.0.1');
     expect(status.updateAvailable).toBe(true);
     expect(status.constraintBlocksUpdate).toBeFalsy();
-    // Spec's ModuleCheckReport is attached as `report`.
-    expect(status.report?.status).toBe('update_available');
+    expect(status.status).toBe('update_available');
   });
 
   it('still surfaces the absolute latest when an exact pin blocks auto-update', async () => {
@@ -137,7 +136,7 @@ describe('check-updates', () => {
     expect(status.latestSatisfyingConstraint).toBe('1.0.0');
     expect(status.updateAvailable).toBe(true);
     expect(status.constraintBlocksUpdate).toBe(true);
-    expect(status.report?.status).toBe('range_blocks_update');
+    expect(status.status).toBe('range_blocks_update');
   });
 
   it('reports up-to-date when the installed version matches the latest', async () => {
@@ -162,7 +161,7 @@ describe('check-updates', () => {
     expect(status.latestVersion).toBe('1.0.1');
     expect(status.updateAvailable).toBe(false);
     expect(status.constraintBlocksUpdate).toBeFalsy();
-    expect(status.report?.status).toBe('up_to_date');
+    expect(status.status).toBe('up_to_date');
   });
 
   it('flags noMatchingVersion when the constraint excludes every remote tag', async () => {
@@ -189,7 +188,7 @@ describe('check-updates', () => {
     expect(status.updateAvailable).toBe(true);
     expect(status.constraintBlocksUpdate).toBe(true);
     // Range excludes every remote tag → range_unsatisfiable per spec.
-    expect(status.report?.status).toBe('range_unsatisfiable');
+    expect(status.status).toBe('range_unsatisfiable');
   });
 
   it('marks non-git (local) modules as such and skips version checks', async () => {
@@ -233,7 +232,7 @@ describe('check-updates', () => {
     expect(status.isGitModule).toBe(true);
     expect(status.updateAvailable).toBe(false);
     expect(status.availableVersions).toEqual([]);
-    expect(status.report?.status).toBe('source_unreachable');
+    expect(status.status).toBe('source_unreachable');
   });
 
   it('throws when a specific module name is not in the project', async () => {
@@ -268,6 +267,6 @@ describe('check-updates', () => {
     const [status] = await new CheckUpdates(project).checkUpdates();
 
     expect(status.installedVersion).toBe('1.5.0');
-    expect(status.report?.status).toBe('drifted');
+    expect(status.status).toBe('drifted');
   });
 });
