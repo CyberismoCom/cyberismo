@@ -293,7 +293,10 @@ describe('modules/resolver', () => {
     // Normalised by toVersionRange — compare against the normalised form.
     expect(conflicts[0].name).toBe('B');
     expect(conflicts[0].rejectingRange).toBe(toVersionRange('^2.0.0'));
-    expect(conflicts[0].installedVersion).toBe('1.5.0');
+    expect(conflicts[0].installedVersion).toEqual({
+      kind: 'pinned',
+      value: '1.5.0',
+    });
   });
 
   it('override returns the exact version without calling listRemoteVersions', async () => {

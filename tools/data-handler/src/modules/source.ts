@@ -18,6 +18,11 @@ import { resolve as pathResolve, join } from 'node:path';
 import { simpleGit, type SimpleGit } from 'simple-git';
 
 import { GitManager } from '../utils/git-manager.js';
+import {
+  isFileLocation,
+  isGitLocation,
+  stripFileProtocol,
+} from './location.js';
 import { pickVersion } from './version.js';
 import {
   type RemoteQueryOutcome,
@@ -103,10 +108,6 @@ export interface SourceLayer {
   ): Promise<RemoteQueryOutcome>;
 }
 
-const FILE_PROTOCOL = 'file:';
-const HTTPS_PROTOCOL = 'https:';
-const SSH_PREFIX = 'git@';
-
 // Git environment settings that keep clone/ls-remote non-interactive.
 // `GIT_TERMINAL_PROMPT=0` suppresses the credential prompt and
 // `GCM_INTERACTIVE=never` opts out of Git Credential Manager popups.
@@ -130,23 +131,6 @@ function gitTimeout(): number {
   if (isWindows) timeout *= 1.5;
 
   return timeout;
-}
-
-/** True when `location` is a git remote (HTTPS or SSH). */
-function isGitLocation(location: string): boolean {
-  return location.startsWith(HTTPS_PROTOCOL) || location.startsWith(SSH_PREFIX);
-}
-
-/** True when `location` is a `file:` URL. */
-function isFileLocation(location: string): boolean {
-  return location.startsWith(FILE_PROTOCOL);
-}
-
-/** Strip the `file:` prefix from a `file:<path>` URL if present. */
-function stripFileProtocol(location: string): string {
-  return isFileLocation(location)
-    ? location.substring(FILE_PROTOCOL.length)
-    : location;
 }
 
 /**

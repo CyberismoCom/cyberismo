@@ -13,6 +13,7 @@
 */
 
 export * from './types.js';
+export * from './location.js';
 export * from './version.js';
 export * from './credentials.js';
 export * from './source.js';

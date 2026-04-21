@@ -15,6 +15,7 @@
 import { ProjectPaths } from '../containers/project/project-paths.js';
 import { readJsonFile } from '../utils/json.js';
 import { buildRemoteUrl } from './credentials.js';
+import { isFileLocation, isGitLocation } from './location.js';
 import { pickVersion, satisfies, versionToTag } from './version.js';
 import { toVersion, toVersionRange } from './types.js';
 import type { SourceLayer } from './source.js';
@@ -101,49 +102,6 @@ export interface ResolveOptions {
 }
 
 /**
- * Implements the module-resolution half of the spec's
- * `ReconcileTransitives` rule: BFS over declarations with
- * first-encounter-wins semantics on each name. Does not mutate the
- * project state.
- */
-export interface Resolver {
-  /**
-   * Resolve a set of root declarations plus every transitive
-   * declaration reachable via their `cardsConfig.json`. Returns one
-   * {@link ResolvedModule} per unique name encountered during the walk.
-   *
-   * Throws on:
-   *  - A later declaration whose source `location` or `private` flag
-   *    differs from the first encountered for the same name (spec
-   *    invariant `DeclarationAndInstallationAgreeOnSource`).
-   *  - No remote version satisfying a declared range when no override
-   *    was provided.
-   *  - Invalid remote URL when injecting credentials.
-   *
-   * Diamond range mismatches do not throw — they are reported through
-   * `onConflict` (or `console.warn` when absent).
-   */
-  resolve(
-    roots: ModuleDeclaration[],
-    options: ResolveOptions,
-  ): Promise<ResolvedModule[]>;
-}
-
-const HTTPS_PROTOCOL = 'https:';
-const FILE_PROTOCOL = 'file:';
-const SSH_PREFIX = 'git@';
-
-/** True when `location` is a git remote (HTTPS or SSH). */
-function isGitLocation(location: string): boolean {
-  return location.startsWith(HTTPS_PROTOCOL) || location.startsWith(SSH_PREFIX);
-}
-
-/** True when `location` is a `file:` URL. */
-function isFileLocation(location: string): boolean {
-  return location.startsWith(FILE_PROTOCOL);
-}
-
-/**
  * Read a fetched module's `cardsConfig.json`. Only `cardKeyPrefix` and
  * `modules` are consumed by the resolver; the rest of the shape is not
  * inspected here. The returned value is cast to the concrete
@@ -164,9 +122,31 @@ async function readConfig(path: string): Promise<ProjectConfiguration> {
   return config;
 }
 
-class BFSResolver implements Resolver {
+/**
+ * Implements the module-resolution half of the spec's
+ * `ReconcileTransitives` rule: BFS over declarations with
+ * first-encounter-wins semantics on each name. Does not mutate the
+ * project state.
+ *
+ * Throws on:
+ *  - A later declaration whose source `location` or `private` flag
+ *    differs from the first encountered for the same name (spec
+ *    invariant `DeclarationAndInstallationAgreeOnSource`).
+ *  - No remote version satisfying a declared range when no override
+ *    was provided.
+ *  - Invalid remote URL when injecting credentials.
+ *
+ * Diamond range mismatches do not throw — they are reported through
+ * `onConflict` (or `console.warn` when absent).
+ */
+export class Resolver {
   constructor(private readonly source: SourceLayer) {}
 
+  /**
+   * Resolve a set of root declarations plus every transitive
+   * declaration reachable via their `cardsConfig.json`. Returns one
+   * {@link ResolvedModule} per unique name encountered during the walk.
+   */
   async resolve(
     roots: ModuleDeclaration[],
     options: ResolveOptions,
@@ -179,9 +159,13 @@ class BFSResolver implements Resolver {
         // Default: log to stderr. CLI wrappers typically provide their
         // own handler; this is a safety net so that conflicts never go
         // silent when a caller forgets.
+        const installedDesc =
+          event.installedVersion.kind === 'pinned'
+            ? `installed version ${event.installedVersion.value}`
+            : `default branch (no version pinned)`;
         console.warn(
           `Diamond version conflict for module '${event.name}': ` +
-            `installed version ${event.installedVersion ?? '<unknown>'} ` +
+            `${installedDesc} ` +
             `does not satisfy range '${event.rejectingRange}' ` +
             `(required by ${event.rejectingParent?.name ?? '<unknown parent>'})`,
         );
@@ -205,7 +189,7 @@ class BFSResolver implements Resolver {
           onConflict({
             project: decl.project,
             name: decl.name,
-            installedVersion: existing.version,
+            installedVersion: { kind: 'pinned', value: existing.version },
             rejectingRange: decl.versionRange,
             rejectingParent: decl.parent,
           });
@@ -284,7 +268,7 @@ class BFSResolver implements Resolver {
           onConflict({
             project: decl.project,
             name: resolvedName,
-            installedVersion: rekeyed.version,
+            installedVersion: { kind: 'pinned', value: rekeyed.version },
             rejectingRange: decl.versionRange,
             rejectingParent: decl.parent,
           });
@@ -387,9 +371,9 @@ function fallbackNameHint(decl: ModuleDeclaration): string {
 }
 
 /**
- * Construct the default {@link Resolver} implementation — a BFS walk
- * backed by a {@link SourceLayer} for fetch / list-tags.
+ * Construct the default {@link Resolver} — a BFS walk backed by a
+ * {@link SourceLayer} for fetch / list-tags.
  */
 export function createResolver(source: SourceLayer): Resolver {
-  return new BFSResolver(source);
+  return new Resolver(source);
 }
