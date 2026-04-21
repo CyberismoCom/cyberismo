@@ -17,7 +17,6 @@ import { existsSync } from 'node:fs';
 import { ProjectPaths } from '../containers/project/project-paths.js';
 import { readJsonFile } from '../utils/json.js';
 import { buildRemoteUrl } from './credentials.js';
-import { isFileLocation, isGitLocation } from './location.js';
 import { pickVersion, satisfies, versionToTag } from './version.js';
 import { toVersion, toVersionRange } from './types.js';
 import type { SourceLayer } from './source.js';
@@ -153,28 +152,26 @@ export class Resolver {
       if (override !== undefined) {
         version = toVersion(override);
         ref = versionToTag(version);
-      } else if (isFileLocation(decl.source.location)) {
-        version = undefined;
-        ref = undefined;
-      } else if (decl.versionRange && isGitLocation(decl.source.location)) {
+      } else if (decl.versionRange) {
         const available = await this.source.listRemoteVersions(
           decl.source.location,
           remoteUrl,
         );
-        const picked = pickVersion(available, decl.versionRange);
-        if (!picked) {
-          throw new Error(
-            `No version satisfies range '${decl.versionRange}' for module ` +
-              `'${decl.name || decl.source.location}'`,
-          );
+        if (available.length > 0) {
+          const picked = pickVersion(available, decl.versionRange);
+          if (!picked) {
+            throw new Error(
+              `No version satisfies range '${decl.versionRange}' for module ` +
+                `'${decl.name || decl.source.location}'`,
+            );
+          }
+          version = picked;
+          ref = versionToTag(version);
         }
-        version = picked;
-        ref = versionToTag(version);
-      } else {
-        // Git source without a range: use the default branch.
-        version = undefined;
-        ref = undefined;
+        // Empty list → source doesn't support versioning; leave
+        // version/ref undefined (silently ignore the range).
       }
+      // No override, no range → leave version/ref undefined (default branch for git).
 
       // Reuse a caller-supplied staged clone when its directory still exists.
       let path: string;
