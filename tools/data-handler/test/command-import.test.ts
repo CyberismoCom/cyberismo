@@ -33,6 +33,9 @@ import {
   getTestProject,
   mockEnsureModuleListUpToDate,
 } from './helpers/test-utils.js';
+import { createResolver, createInstaller } from '../src/modules/index.js';
+import { cleanOrphans } from '../src/modules/orphans.js';
+import { toVersionRange } from '../src/modules/types.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
@@ -764,11 +767,6 @@ describe('import module — transitive diamond conflicts', () => {
     // A and C both declare B at `^1.0.0`; the resolver dedups silently,
     // no DiamondVersionConflict is emitted, and the command-level
     // `onConflict` → console.warn wrapper is never invoked.
-    const { createResolver, createInstaller } =
-      await import('../src/modules/index.js');
-    const { cleanOrphans } = await import('../src/modules/orphans.js');
-    const { toVersionRange } = await import('../src/modules/types.js');
-
     const projectDir = join(diamondTestDir, 'proj-diamond-ok');
     const commandHandler = new Commands();
     const create = await commandHandler.command(
@@ -868,11 +866,6 @@ describe('import module — transitive diamond conflicts', () => {
     // A declares B^1.0, C declares B^2.0. Spec: first-encounter wins on
     // dedup, later mismatched ranges surface as a `DiamondVersionConflict`
     // warning, not a throw.
-    const { createResolver, createInstaller } =
-      await import('../src/modules/index.js');
-    const { cleanOrphans } = await import('../src/modules/orphans.js');
-    const { toVersionRange } = await import('../src/modules/types.js');
-
     const projectDir = join(diamondTestDir, 'proj-diamond-bad');
     const commandHandler = new Commands();
     const create = await commandHandler.command(
@@ -1008,11 +1001,6 @@ describe('import module — resolver+installer reuse staged fetches', () => {
     // against an instrumented SourceLayer. The resolver stages each unique
     // module once and the installer reuses that staging path, so fetch
     // should be called exactly 3 times — not 6.
-    const { createResolver, createInstaller } =
-      await import('../src/modules/index.js');
-    const { cleanOrphans } = await import('../src/modules/orphans.js');
-    const { toVersionRange } = await import('../src/modules/types.js');
-
     const projectDir = join(reuseTestDir, 'proj-fetch-reuse');
     const commandHandler = new Commands();
     const create = await commandHandler.command(
