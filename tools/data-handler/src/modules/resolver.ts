@@ -18,7 +18,7 @@ import { ProjectPaths } from '../containers/project/project-paths.js';
 import { readJsonFile } from '../utils/json.js';
 import { buildRemoteUrl } from './credentials.js';
 import { pickVersion, satisfies, versionToTag } from './version.js';
-import { toVersion, toVersionRange } from './types.js';
+import { assertValidModuleName, toVersion, toVersionRange } from './types.js';
 import type { SourceLayer } from './source.js';
 import type {
   DiamondVersionConflict,
@@ -75,6 +75,18 @@ export async function readModuleConfig(
     | undefined;
   if (!config) {
     throw new Error(`Module has no cardsConfig.json at '${configPath}'`);
+  }
+  // Reject path-traversal or otherwise-unsafe names from fetched module
+  // trees before any caller uses them as a filesystem path component.
+  // Empty / missing values are left to caller-level checks that produce
+  // more specific messages.
+  if (config.cardKeyPrefix) {
+    assertValidModuleName(config.cardKeyPrefix);
+  }
+  for (const child of config.modules ?? []) {
+    if (child.name) {
+      assertValidModuleName(child.name);
+    }
   }
   return config;
 }
