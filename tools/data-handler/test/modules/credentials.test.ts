@@ -99,57 +99,44 @@ describe('modules/credentials', () => {
       expect(url).toBe('https://u:t@host:8443/repo.git');
     });
 
-    it('produces a broken URL when the token contains @', () => {
-      // buildRemoteUrl does not percent-encode the token before interpolation.
-      // libcurl uses first-@-wins, so `u:tok` becomes the userinfo and
-      // `en@host` resolves as the host — a guaranteed connection failure.
-      // Tokens containing @ are not safe; the function should percent-encode.
+    it('percent-encodes @ in the token so the userinfo parses unambiguously', () => {
       const url = buildRemoteUrl(
         { location: 'https://host/repo.git', private: true },
         { username: 'u', token: 'tok@en' },
       );
-      expect(url).toBe('https://u:tok@en@host/repo.git');
+      expect(url).toBe('https://u:tok%40en@host/repo.git');
     });
 
-    it('produces a non-standard but functional URL when the token contains :', () => {
-      // libcurl treats everything between the first : and the @ as the
-      // password, so colon-containing tokens reach the server intact.
-      // Non-standard but not broken.
+    it('percent-encodes : in the token', () => {
       const url = buildRemoteUrl(
         { location: 'https://host/repo.git', private: true },
         { username: 'u', token: 'tok:en' },
       );
-      expect(url).toBe('https://u:tok:en@host/repo.git');
+      expect(url).toBe('https://u:tok%3Aen@host/repo.git');
     });
 
-    it('returns an unusable URL when the token contains /', () => {
-      // The interpolated string https://u:tok/en@host/repo.git is not a valid
-      // URL: libcurl parses `u` as host and `tok` as port, failing with
-      // "Port number was not a decimal number…". The function should
-      // percent-encode the token.
+    it('percent-encodes / in the token so libcurl sees a valid host:port', () => {
       const url = buildRemoteUrl(
         { location: 'https://host/repo.git', private: true },
         { username: 'u', token: 'tok/en' },
       );
-      expect(url).toBe('https://u:tok/en@host/repo.git');
+      expect(url).toBe('https://u:tok%2Fen@host/repo.git');
     });
 
-    it('silently drops the query string from a source URL with a query component', () => {
-      // repoUrl.pathname does not include search params; they are lost.
+    it('preserves the query string from the source URL', () => {
       const url = buildRemoteUrl(
         { location: 'https://host/repo.git?foo=bar', private: true },
         { username: 'u', token: 't' },
       );
-      expect(url).toBe('https://u:t@host/repo.git');
+      expect(url).toBe('https://u:t@host/repo.git?foo=bar');
     });
 
-    it('silently drops the fragment from a source URL with a hash component', () => {
-      // repoUrl.pathname does not include the fragment; it is lost.
+    it('preserves the fragment from the source URL', () => {
       const url = buildRemoteUrl(
         { location: 'https://host/repo.git#frag', private: true },
         { username: 'u', token: 't' },
       );
-      expect(url).toBe('https://u:t@host/repo.git');
+      expect(url).toBe('https://u:t@host/repo.git#frag');
     });
   });
 });
