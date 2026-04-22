@@ -169,6 +169,50 @@ describe('modules/resolver', () => {
     });
   });
 
+  it('terminates on a cycle (A -> B -> A) by resolving each name once', async () => {
+    // A declares B, B declares A back. Without cycle handling the BFS
+    // would re-enqueue A and loop; the resolver keys its `resolved` map
+    // by name so the second visit short-circuits.
+    const source = new InMemorySource(
+      new Map([
+        [
+          'https://example.com/A.git',
+          {
+            cardKeyPrefix: 'A',
+            name: 'A',
+            modules: [{ name: 'B', location: 'https://example.com/B.git' }],
+          },
+        ],
+        [
+          'https://example.com/B.git',
+          {
+            cardKeyPrefix: 'B',
+            name: 'B',
+            modules: [{ name: 'A', location: 'https://example.com/A.git' }],
+          },
+        ],
+      ]),
+      new Map([
+        ['https://example.com/A.git', ['1.0.0']],
+        ['https://example.com/B.git', ['1.0.0']],
+      ]),
+    );
+    const resolver = createResolver(source);
+
+    const out = await resolver.resolve(
+      [decl('A', 'https://example.com/A.git', '^1.0.0')],
+      { tempDir },
+    );
+
+    expect(out.map((r) => r.declaration.name).sort()).toEqual(['A', 'B']);
+    // A is fetched once as the top-level target; B is fetched once as
+    // A's dep. The cycle edge (B -> A) must not trigger a second fetch.
+    const aFetches = source.fetchLog.filter(
+      (call) => call.location === 'https://example.com/A.git',
+    );
+    expect(aFetches).toHaveLength(1);
+  });
+
   it('dedups with compatible ranges without firing onConflict', async () => {
     const source = new InMemorySource(
       new Map([
