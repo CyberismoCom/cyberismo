@@ -5,6 +5,7 @@ import {
   pickVersion,
   satisfies,
   tagToVersion,
+  validateVersionAgainstConstraints,
   versionToTag,
 } from '../../src/modules/version.js';
 import { toVersionRange } from '../../src/modules/types.js';
@@ -78,6 +79,31 @@ describe('modules/version', () => {
       expect(() => assertSatisfies('2.0.0', '^1.0.0', 'ctx')).toThrow(
         /'2\.0\.0'.*'\^1\.0\.0'/,
       );
+    });
+  });
+
+  describe('validateVersionAgainstConstraints', () => {
+    it('accepts a version that satisfies every constraint', () => {
+      expect(() =>
+        validateVersionAgainstConstraints('base', '1.2.3', [
+          { range: '^1.0.0', source: 'project' },
+          { range: '>=1.2.0', source: 'other' },
+        ]),
+      ).not.toThrow();
+    });
+
+    it('rejects a version that violates any constraint', () => {
+      expect(() =>
+        validateVersionAgainstConstraints('base', '2.0.0', [
+          { range: '^1.0.0', source: 'project' },
+        ]),
+      ).toThrow(/does not satisfy constraint '\^1\.0\.0'/);
+    });
+
+    it('accepts when the constraint list is empty', () => {
+      expect(() =>
+        validateVersionAgainstConstraints('base', '1.0.0', []),
+      ).not.toThrow();
     });
   });
 });
