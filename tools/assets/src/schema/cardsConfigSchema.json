@@ -53,7 +53,10 @@
         "properties": {
           "name": {
             "description": "Module name (project prefix). Must be unique.",
-            "type": "string"
+            "type": "string",
+            "pattern": "^[a-z]+$",
+            "minLength": 3,
+            "maxLength": 10
           },
           "location": {
             "description": "Git remote URL, or relative file reference.",

@@ -568,4 +568,37 @@ describe('modules/resolver', () => {
       }),
     ).rejects.toThrow(/empty name/);
   });
+
+  it('rejects a transitive child whose name would escape a join() before fetching it', async () => {
+    const source = new InMemorySource(
+      new Map([
+        [
+          'https://example.com/A.git',
+          {
+            cardKeyPrefix: 'A',
+            name: 'A',
+            modules: [
+              { name: '../evil', location: 'https://example.com/evil.git' },
+            ],
+          },
+        ],
+      ]),
+      new Map([['https://example.com/A.git', ['1.0.0']]]),
+    );
+    const resolver = createResolver(source);
+
+    await expect(
+      resolver.resolve(
+        [decl('A', 'https://example.com/A.git', '^1.0.0')],
+        { tempDir },
+      ),
+    ).rejects.toThrow(/Invalid module name/);
+
+    // The malicious child must be rejected at ingestion, before the
+    // resolver fetches or lists versions for it.
+    expect(source.fetchLog.map((f) => f.location)).toEqual([
+      'https://example.com/A.git',
+    ]);
+    expect(source.listLog).toEqual(['https://example.com/A.git']);
+  });
 });
