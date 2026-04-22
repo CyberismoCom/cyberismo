@@ -452,6 +452,15 @@ describe('modules/resolver', () => {
       expect(entry.stagedPath.length).toBeGreaterThan(0);
       expect(existsSync(entry.stagedPath)).toBe(true);
     }
+    // Each unique module is fetched exactly once (no duplicate fetches).
+    expect(source.fetchLog).toHaveLength(3);
+    expect(source.fetchLog.map((e) => e.location).sort()).toEqual(
+      [
+        'https://example.com/A.git',
+        'https://example.com/B.git',
+        'https://example.com/C.git',
+      ].sort(),
+    );
   });
 
   it('reuses caller-supplied stagedPath without calling source.fetch', async () => {
