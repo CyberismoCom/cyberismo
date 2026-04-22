@@ -20,6 +20,8 @@ import { Validate } from '../commands/validate.js';
 import { copyDir, deleteDir, pathExists } from '../utils/file-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 
+import { FILE_PROTOCOL } from './location.js';
+
 import type { ResolvedModule } from './resolver.js';
 import type { SourceLayer } from './source.js';
 import type {
@@ -39,8 +41,6 @@ export interface InstallOptions {
   /** When true, validate each `file:` source before fetching. */
   validate?: boolean;
 }
-
-const FILE_PROTOCOL = 'file:';
 
 /**
  * A module that has been fetched into `tempDir` and is ready to be
