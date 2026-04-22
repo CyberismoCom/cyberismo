@@ -13,7 +13,7 @@
 */
 
 // node
-import { basename, join, resolve } from 'node:path';
+import { basename, join, resolve, sep } from 'node:path';
 import {
   constants as fsConstants,
   copyFile,
@@ -954,7 +954,12 @@ export class Project extends CardContainer {
       throw new Error(`Cannot modify imported module`);
     }
 
-    const attachmentPath = join(attachmentFolder, fileName);
+    const attachmentPath = resolve(attachmentFolder, fileName);
+
+    // Prevent path traversal
+    if (!attachmentPath.startsWith(resolve(attachmentFolder) + sep)) {
+      throw new Error(`Invalid attachment filename: ${fileName}`);
+    }
 
     try {
       await unlink(attachmentPath);

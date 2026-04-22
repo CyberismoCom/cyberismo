@@ -120,11 +120,19 @@ export async function uploadAttachments(
   };
 }
 
+function validateAttachmentFileName(filename: string): void {
+  const decoded = decodeURIComponent(filename);
+  if (/(^|[/\\])\.\.([/\\]|$)/.test(decoded)) {
+    throw new Error('Invalid attachment filename');
+  }
+}
+
 export async function removeAttachment(
   commands: CommandManager,
   key: string,
   filename: string,
 ) {
+  validateAttachmentFileName(filename);
   await commands.removeCmd.remove('attachment', key, filename);
   return { message: 'Attachment removed successfully' };
 }
@@ -134,6 +142,7 @@ export async function openAttachment(
   key: string,
   filename: string,
 ) {
+  validateAttachmentFileName(filename);
   await commands.showCmd.openAttachment(key, filename);
   return { message: 'Attachment opened successfully' };
 }
@@ -259,6 +268,7 @@ export async function getAttachment(
   key: string,
   filename: string,
 ): Promise<attachmentPayload> {
+  validateAttachmentFileName(filename);
   return commands.showCmd.showAttachment(key, filename);
 }
 
