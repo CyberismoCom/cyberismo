@@ -140,7 +140,7 @@ export interface ModuleCheckReport {
 export interface DiamondVersionConflict {
   project: string;
   name: string;
-  installedVersion: { kind: 'pinned'; value: Version } | { kind: 'unpinned' };
+  installedVersion: { kind: 'pinned'; value: Version };
   rejectingRange: VersionRange;
   rejectingParent?: InstallationRef;
 }
