@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { existsSync } from 'node:fs';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -9,12 +9,15 @@ import type { ResolvedModule } from '../../src/modules/resolver.js';
 import type { FetchTarget, SourceLayer } from '../../src/modules/source.js';
 import { ProjectPaths } from '../../src/containers/project/project-paths.js';
 import { toVersion, toVersionRange } from '../../src/modules/types.js';
-import type { Project } from '../../src/containers/project.js';
-import type { ModuleSetting } from '../../src/interfaces/project-interfaces.js';
+import { makeProjectStub } from '../helpers/module-fixtures.js';
 
 /**
  * In-memory SourceLayer fake. Populates the staging area with whatever
- * content each test wants copied into `.cards/modules/<name>/`.
+ * content each test wants copied into `.cards/modules/<name>/`. The
+ * shared `inMemorySource` helper writes a `.cards/local/cardsConfig.json`
+ * skeleton, but these installer tests need the exact subset of files
+ * the installer copies into `.cards/modules/<name>/` — so the class
+ * stays local.
  */
 class InMemorySource implements SourceLayer {
   readonly fetchCalls: string[] = [];
@@ -54,38 +57,6 @@ class InMemorySource implements SourceLayer {
   async queryRemote(): Promise<never> {
     throw new Error('queryRemote not used by installer tests');
   }
-}
-
-/** Project stub exposing the fields the installer touches. */
-function makeProjectStub(basePath: string) {
-  const paths = new ProjectPaths(basePath);
-  const modules: ModuleSetting[] = [];
-  const refreshAfterModuleChange = vi.fn(async () => {});
-  const stub = {
-    basePath,
-    paths,
-    projectPrefix: 'root',
-    projectPrefixes: () => ['root', ...modules.map((m) => m.name)],
-    configuration: {
-      modules,
-      async upsertModule(setting: ModuleSetting) {
-        const existing = modules.find((m) => m.name === setting.name);
-        if (existing) {
-          existing.version = setting.version;
-          if (setting.location) existing.location = setting.location;
-          if (setting.private !== undefined) existing.private = setting.private;
-        } else {
-          modules.push({ ...setting });
-        }
-      },
-    },
-    refreshAfterModuleChange,
-  };
-  return {
-    stub,
-    modules,
-    refreshAfterModuleChange,
-  };
 }
 
 function buildResolved(
@@ -150,7 +121,7 @@ describe('modules/installer', () => {
         ],
       ]),
     );
-    const { stub, modules } = makeProjectStub(projectDir);
+    const { project, modules } = makeProjectStub({ basePath: projectDir });
     const installer = createInstaller(source);
 
     const resolved = [
@@ -160,7 +131,7 @@ describe('modules/installer', () => {
       }),
     ];
 
-    await installer.install(stub as unknown as Project, resolved, { tempDir });
+    await installer.install(project, resolved, { tempDir });
 
     const moduleDir = join(projectDir, '.cards', 'modules', 'A');
     expect(existsSync(moduleDir)).toBe(true);
@@ -198,7 +169,7 @@ describe('modules/installer', () => {
         ],
       ]),
     );
-    const { stub } = makeProjectStub(projectDir);
+    const { project } = makeProjectStub({ basePath: projectDir });
     const installer = createInstaller(source);
 
     const resolved = [
@@ -207,7 +178,7 @@ describe('modules/installer', () => {
     ];
 
     await expect(
-      installer.install(stub as unknown as Project, resolved, { tempDir }),
+      installer.install(project, resolved, { tempDir }),
     ).rejects.toThrow(/clone boom/);
 
     // Network-phase failure ⇒ nothing lands under .cards/modules.
@@ -217,13 +188,13 @@ describe('modules/installer', () => {
 
   it('validate=true rejects a file: source whose folder does not exist', async () => {
     const source = new InMemorySource(new Map());
-    const { stub } = makeProjectStub(projectDir);
+    const { project } = makeProjectStub({ basePath: projectDir });
     const installer = createInstaller(source);
 
     const resolved = [buildResolved('F', 'file:/nonexistent/path/to/mod')];
 
     await expect(
-      installer.install(stub as unknown as Project, resolved, {
+      installer.install(project, resolved, {
         tempDir,
         validate: true,
       }),
@@ -259,7 +230,7 @@ describe('modules/installer', () => {
         ],
       ]),
     );
-    const { stub, modules } = makeProjectStub(projectDir);
+    const { project, modules } = makeProjectStub({ basePath: projectDir });
     const installer = createInstaller(source);
 
     const resolved = [
@@ -270,7 +241,7 @@ describe('modules/installer', () => {
       }),
     ];
 
-    await installer.install(stub as unknown as Project, resolved, { tempDir });
+    await installer.install(project, resolved, { tempDir });
 
     // Both folders installed.
     expect(existsSync(join(projectDir, '.cards', 'modules', 'A'))).toBe(true);
@@ -295,11 +266,13 @@ describe('modules/installer', () => {
         ],
       ]),
     );
-    const { stub, refreshAfterModuleChange } = makeProjectStub(projectDir);
+    const { project, refreshAfterModuleChange } = makeProjectStub({
+      basePath: projectDir,
+    });
     const installer = createInstaller(source);
 
     await installer.install(
-      stub as unknown as Project,
+      project,
       [buildResolved('A', 'https://example.com/A.git', { range: '^1.0.0' })],
       { tempDir },
     );

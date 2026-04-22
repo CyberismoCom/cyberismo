@@ -1,7 +1,7 @@
 import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 
 // node
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import { join, sep, resolve as pathResolve } from 'node:path';
 
 // cyberismo
@@ -9,6 +9,7 @@ import { Cmd, Commands, CommandManager } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Fetch, Remove } from '../src/commands/index.js';
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
+import { makeFakeModuleFixture } from './helpers/module-fixtures.js';
 
 import type { Card } from '../src/interfaces/project-interfaces.js';
 import type { requestStatus } from '../src/interfaces/request-status-interfaces.js';
@@ -759,35 +760,6 @@ describe('remove module — spec behaviours', () => {
   afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
   });
-
-  /** Same file-source fixture helper used in command-import.test.ts. */
-  function makeFakeModuleFixture(
-    root: string,
-    config: {
-      cardKeyPrefix: string;
-      name?: string;
-      modules?: Array<{ name: string; location: string; version?: string }>;
-    },
-  ): string {
-    const localDir = join(root, '.cards', 'local');
-    mkdirSync(localDir, { recursive: true });
-    mkdirSync(join(root, 'cardRoot'), { recursive: true });
-    writeFileSync(
-      join(localDir, 'cardsConfig.json'),
-      JSON.stringify(
-        {
-          cardKeyPrefix: config.cardKeyPrefix,
-          name: config.name ?? config.cardKeyPrefix,
-          description: '',
-          modules: config.modules ?? [],
-          hubs: [],
-        },
-        null,
-        2,
-      ),
-    );
-    return root;
-  }
 
   it('removing a transitive-only module errors (spec: "not part of the project")', async () => {
     // Spec's RemoveModule `requires: exists decl` — a transitive-only

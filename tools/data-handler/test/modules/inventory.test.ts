@@ -4,18 +4,11 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import { createInventory } from '../../src/modules/inventory.js';
-import { ProjectPaths } from '../../src/containers/project/project-paths.js';
-import type { Project } from '../../src/containers/project.js';
+import { makeProjectStub } from '../helpers/module-fixtures.js';
 import type { ModuleSetting } from '../../src/interfaces/project-interfaces.js';
 
-/** Project stub exposing only `configuration.modules`, `basePath`, `paths.*`. */
-function makeStub(basePath: string, modules: ModuleSetting[]): Project {
-  const paths = new ProjectPaths(basePath);
-  return {
-    basePath,
-    configuration: { modules },
-    paths,
-  } as unknown as Project;
+function makeStub(basePath: string, modules: ModuleSetting[]) {
+  return makeProjectStub({ basePath, modules }).project;
 }
 
 async function writeInstalledModule(

@@ -23,7 +23,12 @@ import { copyDir } from '../src/utils/file-utils.js';
 import { Cmd, Commands } from '../src/command-handler.js';
 import { Fetch, Show } from '../src/commands/index.js';
 import { GitManager } from '../src/utils/git-manager.js';
-import type { SourceLayer } from '../src/modules/source.js';
+import {
+  inMemorySource,
+  makeFakeModuleFixture,
+  rewriteFakeModuleFixture,
+  type InMemoryModuleConfig,
+} from './helpers/module-fixtures.js';
 import {
   getTestProject,
   mockEnsureModuleListUpToDate,
@@ -529,72 +534,6 @@ describe('module update — spec behaviours', () => {
     vi.restoreAllMocks();
   });
 
-  /**
-   * Build a synthetic module fixture on disk that `Import.importModule`
-   * accepts as a `file:` source. The minimum a file-source module needs is
-   * a valid `.cards/local/cardsConfig.json`; optional `modules[]` entries
-   * declare transitive deps that the resolver walks.
-   */
-  function makeFakeModuleFixture(
-    root: string,
-    config: {
-      cardKeyPrefix: string;
-      name?: string;
-      modules?: Array<{ name: string; location: string; version?: string }>;
-    },
-  ): string {
-    const localDir = join(root, '.cards', 'local');
-    mkdirSync(localDir, { recursive: true });
-    // `cardRoot/` is what `Project.isCreated` looks for; the resolver never
-    // touches it, but having it lets the `Validate.validateFolder` +
-    // `pathExists` precondition in `importModule` sail through cleanly.
-    mkdirSync(join(root, 'cardRoot'), { recursive: true });
-    writeFileSync(
-      join(localDir, 'cardsConfig.json'),
-      JSON.stringify(
-        {
-          cardKeyPrefix: config.cardKeyPrefix,
-          name: config.name ?? config.cardKeyPrefix,
-          description: '',
-          modules: config.modules ?? [],
-          hubs: [],
-        },
-        null,
-        2,
-      ),
-    );
-    return root;
-  }
-
-  /**
-   * Rewrite a fake module fixture's `cardsConfig.json`. Used to simulate
-   * a module upstream dropping a transitive dependency between imports —
-   * the trigger for `cleanOrphans` during `updateAllModules`.
-   */
-  function rewriteFakeModuleFixture(
-    root: string,
-    config: {
-      cardKeyPrefix: string;
-      name?: string;
-      modules?: Array<{ name: string; location: string; version?: string }>;
-    },
-  ): void {
-    writeFileSync(
-      join(root, '.cards', 'local', 'cardsConfig.json'),
-      JSON.stringify(
-        {
-          cardKeyPrefix: config.cardKeyPrefix,
-          name: config.name ?? config.cardKeyPrefix,
-          description: '',
-          modules: config.modules ?? [],
-          hubs: [],
-        },
-        null,
-        2,
-      ),
-    );
-  }
-
   it('updateAllModules cleans up installations orphaned by a dropped transitive dep', async () => {
     // Build two fake modules: `host` (top-level) declares `dep`
     // (transitive). Import host → dep is installed transitively. Edit
@@ -810,7 +749,6 @@ describe('import module — transitive diamond conflicts', () => {
       await import('../src/modules/index.js');
     const { cleanOrphans } = await import('../src/modules/orphans.js');
     const { toVersionRange } = await import('../src/modules/types.js');
-    const { mkdir, writeFile } = await import('node:fs/promises');
 
     const projectDir = join(diamondTestDir, 'proj-diamond-ok');
     const commandHandler = new Commands();
@@ -832,18 +770,7 @@ describe('import module — transitive diamond conflicts', () => {
       C: 'https://example.test/C.git',
     } as const;
 
-    const configs = new Map<
-      string,
-      {
-        cardKeyPrefix: string;
-        name: string;
-        modules: Array<{
-          name: string;
-          location: string;
-          version?: string;
-        }>;
-      }
-    >([
+    const configs = new Map<string, InMemoryModuleConfig>([
       [
         locations.A,
         {
@@ -868,28 +795,7 @@ describe('import module — transitive diamond conflicts', () => {
       [locations.B, ['1.2.0', '1.0.0']],
     ]);
 
-    // In-memory SourceLayer: `fetch` materialises a synthetic resource
-    // tree under tempDir so the installer can copy from it; listTags /
-    // queryRemote serve the resolver's version picks.
-    const source: SourceLayer = {
-      async fetch(target, destRoot, nameHint) {
-        const dir = join(destRoot, nameHint);
-        await mkdir(join(dir, '.cards', 'local'), { recursive: true });
-        const cfg = configs.get(target.location);
-        if (!cfg) throw new Error(`no fake config for ${target.location}`);
-        await writeFile(
-          join(dir, '.cards', 'local', 'cardsConfig.json'),
-          JSON.stringify(cfg),
-        );
-        return dir;
-      },
-      async listRemoteVersions(location) {
-        return availableByLocation.get(location) ?? [];
-      },
-      async queryRemote() {
-        return { reachable: true };
-      },
-    };
+    const source = inMemorySource({ configs, availableByLocation });
 
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -947,7 +853,6 @@ describe('import module — transitive diamond conflicts', () => {
       await import('../src/modules/index.js');
     const { cleanOrphans } = await import('../src/modules/orphans.js');
     const { toVersionRange } = await import('../src/modules/types.js');
-    const { mkdir, writeFile } = await import('node:fs/promises');
 
     const projectDir = join(diamondTestDir, 'proj-diamond-bad');
     const commandHandler = new Commands();
@@ -969,18 +874,7 @@ describe('import module — transitive diamond conflicts', () => {
       C: 'https://example.test/C.git',
     } as const;
 
-    const configs = new Map<
-      string,
-      {
-        cardKeyPrefix: string;
-        name: string;
-        modules: Array<{
-          name: string;
-          location: string;
-          version?: string;
-        }>;
-      }
-    >([
+    const configs = new Map<string, InMemoryModuleConfig>([
       [
         locations.A,
         {
@@ -1005,25 +899,7 @@ describe('import module — transitive diamond conflicts', () => {
       [locations.B, ['2.0.0', '1.5.0']],
     ]);
 
-    const source: SourceLayer = {
-      async fetch(target, destRoot, nameHint) {
-        const dir = join(destRoot, nameHint);
-        await mkdir(join(dir, '.cards', 'local'), { recursive: true });
-        const cfg = configs.get(target.location);
-        if (!cfg) throw new Error(`no fake config for ${target.location}`);
-        await writeFile(
-          join(dir, '.cards', 'local', 'cardsConfig.json'),
-          JSON.stringify(cfg),
-        );
-        return dir;
-      },
-      async listRemoteVersions(location) {
-        return availableByLocation.get(location) ?? [];
-      },
-      async queryRemote() {
-        return { reachable: true };
-      },
-    };
+    const source = inMemorySource({ configs, availableByLocation });
 
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -1117,7 +993,6 @@ describe('import module — resolver+installer reuse staged fetches', () => {
       await import('../src/modules/index.js');
     const { cleanOrphans } = await import('../src/modules/orphans.js');
     const { toVersionRange } = await import('../src/modules/types.js');
-    const { mkdir, writeFile } = await import('node:fs/promises');
 
     const projectDir = join(reuseTestDir, 'proj-fetch-reuse');
     const commandHandler = new Commands();
@@ -1140,14 +1015,7 @@ describe('import module — resolver+installer reuse staged fetches', () => {
     } as const;
 
     // A → B → C, all at ^1.0.0.
-    const configs = new Map<
-      string,
-      {
-        cardKeyPrefix: string;
-        name: string;
-        modules: Array<{ name: string; location: string; version?: string }>;
-      }
-    >([
+    const configs = new Map<string, InMemoryModuleConfig>([
       [
         locations.A,
         {
@@ -1172,29 +1040,13 @@ describe('import module — resolver+installer reuse staged fetches', () => {
       [locations.C, ['1.0.0']],
     ]);
 
-    // Instrumented SourceLayer: records every fetch call so we can
-    // assert the total count.
+    // `onFetch` records every fetch call so we can assert the total count.
     const fetchCalls: string[] = [];
-    const source: SourceLayer = {
-      async fetch(target, destRoot, nameHint) {
-        fetchCalls.push(target.location);
-        const dir = join(destRoot, nameHint);
-        await mkdir(join(dir, '.cards', 'local'), { recursive: true });
-        const cfg = configs.get(target.location);
-        if (!cfg) throw new Error(`no fake config for ${target.location}`);
-        await writeFile(
-          join(dir, '.cards', 'local', 'cardsConfig.json'),
-          JSON.stringify(cfg),
-        );
-        return dir;
-      },
-      async listRemoteVersions(location) {
-        return availableByLocation.get(location) ?? [];
-      },
-      async queryRemote() {
-        return { reachable: true };
-      },
-    };
+    const source = inMemorySource({
+      configs,
+      availableByLocation,
+      onFetch: (target) => fetchCalls.push(target.location),
+    });
 
     const tempDir = join(projectDir, '.temp', 'modules');
     const rootA = {
