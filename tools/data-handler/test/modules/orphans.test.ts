@@ -1,12 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { existsSync } from 'node:fs';
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import { cleanOrphans } from '../../src/modules/orphans.js';
-import { ProjectPaths } from '../../src/containers/project/project-paths.js';
-import type { Project } from '../../src/containers/project.js';
+import { makeProjectStub } from '../helpers/module-fixtures.js';
 import type {
   ModuleSetting,
   ModuleSettingOptions,
@@ -20,18 +19,7 @@ interface ChildDep {
 }
 
 function makeProject(basePath: string, modules: ModuleSetting[]) {
-  const paths = new ProjectPaths(basePath);
-  const refreshAfterModuleChange = vi.fn(async () => {});
-  const project = {
-    basePath,
-    paths,
-    configuration: { modules },
-    refreshAfterModuleChange,
-  } as unknown as Project;
-  return {
-    project,
-    refreshAfterModuleChange,
-  };
+  return makeProjectStub({ basePath, modules });
 }
 
 async function installModule(
