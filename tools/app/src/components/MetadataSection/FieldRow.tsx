@@ -129,11 +129,13 @@ export function FieldRow({
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === 'Enter' && onSave && isDirty) {
+        // For multiline fields, require Ctrl/Cmd+Enter to save
+        if (dataType === 'longText' && !e.ctrlKey && !e.metaKey) return;
         e.preventDefault();
         handleSave();
       }
     },
-    [handleSave, onSave, isDirty],
+    [handleSave, onSave, isDirty, dataType],
   );
 
   const isClickable = canEdit && !forceReadOnly && !isEditing && !disabled;

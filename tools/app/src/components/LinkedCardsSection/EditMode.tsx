@@ -55,7 +55,7 @@ export interface LinkFormSubmitData {
   cardKey: string;
   linkDescription: string;
   direction: LinkDirection;
-  // External link: connector name, empty string for card links
+  // External link: connector name, 'card' for card links
   connector: string;
   externalItemKey?: string;
   // Edit mode previous values

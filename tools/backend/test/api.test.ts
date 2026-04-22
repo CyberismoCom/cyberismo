@@ -426,6 +426,10 @@ test('PUT /api/cards/:key/links returns 400 when required fields are missing', a
 });
 
 test('PATCH /api/cards/:key updates a single metadata field and returns updated card', async () => {
+  const before = (await (
+    await app.request('/api/cards/decision_5')
+  ).json()) as CardApiResponse;
+
   const response = await app.request('/api/cards/decision_5', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
@@ -436,9 +440,22 @@ test('PATCH /api/cards/:key updates a single metadata field and returns updated 
   expect(response.status).toBe(200);
   const result = (await response.json()) as CardApiResponse;
   expect(result.title).toBe('Updated Title');
+
+  // Restore original title
+  await app.request('/api/cards/decision_5', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      metadata: { title: before.title },
+    }),
+  });
 });
 
 test('PATCH /api/cards/:key updates labels and returns updated card', async () => {
+  const before = (await (
+    await app.request('/api/cards/decision_5')
+  ).json()) as CardApiResponse;
+
   const response = await app.request('/api/cards/decision_5', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
@@ -449,6 +466,15 @@ test('PATCH /api/cards/:key updates labels and returns updated card', async () =
   expect(response.status).toBe(200);
   const result = (await response.json()) as CardApiResponse;
   expect(result.labels).toEqual(['new-label', 'another-label']);
+
+  // Restore original labels
+  await app.request('/api/cards/decision_5', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      metadata: { labels: before.labels },
+    }),
+  });
 });
 
 test('PATCH /api/cards/:key returns 400 for unknown card key', async () => {
@@ -485,4 +511,13 @@ test('PATCH /api/cards/:key does not override other metadata fields', async () =
   expect(after.labels).toEqual(before.labels);
   expect(after.workflowState).toBe(before.workflowState);
   expect(after.cardType).toBe(before.cardType);
+
+  // Restore original title
+  await app.request('/api/cards/decision_5', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      metadata: { title: before.title },
+    }),
+  });
 });
