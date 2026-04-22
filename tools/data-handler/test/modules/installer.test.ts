@@ -25,7 +25,17 @@ class InMemorySource implements SourceLayer {
   constructor(
     private readonly plan: Map<
       string,
-      { files: Record<string, string>; failWith?: Error }
+      {
+        files: Record<string, string>;
+        failWith?: Error;
+        /**
+         * When true, `fetch` resolves successfully but the returned
+         * stagingRoot has no resources folder. This forces `applyOne`
+         * to fail at `copyDir` (ENOENT on readdir) without aborting
+         * the network phase.
+         */
+        skipResourcesFolder?: boolean;
+      }
     >,
   ) {}
 
@@ -40,6 +50,10 @@ class InMemorySource implements SourceLayer {
       throw entry.failWith;
     }
     const stagingRoot = join(destRoot, nameHint);
+    if (entry?.skipResourcesFolder) {
+      await mkdir(stagingRoot, { recursive: true });
+      return stagingRoot;
+    }
     const resourcesFolder = new ProjectPaths(stagingRoot).resourcesFolder;
     await mkdir(resourcesFolder, { recursive: true });
     const files = entry?.files ?? {};
@@ -248,6 +262,105 @@ describe('modules/installer', () => {
     expect(existsSync(join(projectDir, '.cards', 'modules', 'B'))).toBe(true);
     // Only A is persisted as a top-level declaration.
     expect(modules.map((m) => m.name)).toEqual(['A']);
+  });
+
+  // The install() loop catches `applyOne` failures and continues so later
+  // modules still get a chance. The subsequent persistence loop, however,
+  // iterates `targets` rather than the `applied` subset — so a module
+  // whose files never made it onto disk still gets written into
+  // `configuration.modules`. The assertions below describe the *correct*
+  // behaviour; `it.fails` keeps the suite green while pinning the bug.
+  // Flip to `it(...)` once `installer.ts` iterates `applied` (or otherwise
+  // filters failed stages) in the persistence loop.
+  it.fails(
+    'persists only successfully applied modules when applyOne throws mid-batch',
+    async () => {
+      const source = new InMemorySource(
+        new Map([
+          [
+            'https://example.com/A.git',
+            {
+              files: {
+                'cardsConfig.json': JSON.stringify({
+                  cardKeyPrefix: 'A',
+                  modules: [],
+                }),
+              },
+            },
+          ],
+          [
+            'https://example.com/B.git',
+            { files: {}, skipResourcesFolder: true },
+          ],
+          [
+            'https://example.com/C.git',
+            {
+              files: {
+                'cardsConfig.json': JSON.stringify({
+                  cardKeyPrefix: 'C',
+                  modules: [],
+                }),
+              },
+            },
+          ],
+        ]),
+      );
+      const { project, modules } = makeProjectStub({ basePath: projectDir });
+      const installer = createInstaller(source);
+
+      const resolved = [
+        buildResolved('A', 'https://example.com/A.git', { range: '^1.0.0' }),
+        buildResolved('B', 'https://example.com/B.git', { range: '^1.0.0' }),
+        buildResolved('C', 'https://example.com/C.git', { range: '^1.0.0' }),
+      ];
+
+      await installer.install(project, resolved, { tempDir });
+
+      // A and C landed on disk; B did not.
+      expect(existsSync(join(projectDir, '.cards', 'modules', 'A'))).toBe(true);
+      expect(existsSync(join(projectDir, '.cards', 'modules', 'B'))).toBe(
+        false,
+      );
+      expect(existsSync(join(projectDir, '.cards', 'modules', 'C'))).toBe(true);
+
+      // Persisted declarations should match what is actually installed.
+      expect(modules.map((m) => m.name).sort()).toEqual(['A', 'C']);
+    },
+  );
+
+  it('currently persists declarations for failed applyOne targets (BUG pin)', async () => {
+    const source = new InMemorySource(
+      new Map([
+        [
+          'https://example.com/A.git',
+          {
+            files: {
+              'cardsConfig.json': JSON.stringify({
+                cardKeyPrefix: 'A',
+                modules: [],
+              }),
+            },
+          },
+        ],
+        ['https://example.com/B.git', { files: {}, skipResourcesFolder: true }],
+      ]),
+    );
+    const { project, modules } = makeProjectStub({ basePath: projectDir });
+    const installer = createInstaller(source);
+
+    const resolved = [
+      buildResolved('A', 'https://example.com/A.git', { range: '^1.0.0' }),
+      buildResolved('B', 'https://example.com/B.git', { range: '^1.0.0' }),
+    ];
+
+    await installer.install(project, resolved, { tempDir });
+
+    // Pin the current (broken) behaviour: B failed to apply but the
+    // persistence loop at L149–154 iterates `targets`, so B shows up in
+    // `configuration.modules` anyway. Removing this assertion is part of
+    // the fix.
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'B'))).toBe(false);
+    expect(modules.map((m) => m.name).sort()).toEqual(['A', 'B']);
   });
 
   it('refreshes the module cache after install', async () => {
