@@ -109,7 +109,7 @@ describe('modules/orphans', () => {
   });
 
   it('throws with a graph dump when maxIterations is too small for the cascade', async () => {
-    // A → B → C → D cascade needs 3 full passes. Cap at 1.
+    // A → B → C cascade needs 3 full passes. Cap at 1.
     await installModule(projectDir, 'A', [{ name: 'B' }]);
     await installModule(projectDir, 'B', [{ name: 'C' }]);
     await installModule(projectDir, 'C', []);
