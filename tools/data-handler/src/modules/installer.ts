@@ -120,9 +120,12 @@ export class Installer {
         targets.map((entry) => this.fetchOne(entry, options.tempDir)),
       );
     } catch (error) {
-      throw error instanceof Error
-        ? error
-        : new Error(`Module install failed during network phase: ${error}`);
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error(`Module install failed during network phase: ${error}`, {
+        cause: error,
+      });
     }
 
     // Apply each staged module. Partial-failure rollback is out of
@@ -155,8 +158,11 @@ export class Installer {
       await project.configuration.upsertModule(this.toPersistedSetting(entry));
     }
 
-    // Clean up staging for cleanly-applied modules; anything that failed
-    // is left behind for debugging.
+    // Clean up staging for cleanly-applied modules. Failed stages are
+    // intentionally left on disk so the offending tree can be inspected
+    // after the run — see module-system.allium's "Should temp staging
+    // directory be cleaned up on failure" open question. Callers that
+    // do not want the leftovers should pass a short-lived tempDir.
     await Promise.all(
       applied
         .filter((stage) => this.isGitStage(stage, options.tempDir))
