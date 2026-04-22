@@ -1,7 +1,25 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeAll,
+  afterAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 import { GitSourceLayer } from '../../src/modules/source-git.js';
 import { GitManager } from '../../src/utils/git-manager.js';
+
+vi.mock('simple-git', () => {
+  const cloneMock = vi.fn();
+  const envMock = vi.fn(() => ({ clone: cloneMock }));
+  const simpleGit = vi.fn(() => ({ env: envMock }));
+  return { simpleGit, __cloneMock: cloneMock };
+});
 
 describe('modules/source-git', () => {
   afterEach(() => {
@@ -80,6 +98,76 @@ describe('modules/source-git', () => {
       reachable: true,
       latest: '2.0.0',
       latestSatisfying: undefined,
+    });
+  });
+
+  describe('fetch', () => {
+    let tmpRoot: string;
+
+    beforeAll(async () => {
+      tmpRoot = await mkdtemp(join(tmpdir(), 'source-git-fetch-test-'));
+    });
+
+    afterAll(async () => {
+      await rm(tmpRoot, { recursive: true, force: true });
+    });
+
+    it('wraps clone errors with "Failed to clone module" message', async () => {
+      const { __cloneMock } = await import('simple-git');
+      (__cloneMock as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+        new Error('authentication required'),
+      );
+
+      const layer = new GitSourceLayer();
+      await expect(
+        layer.fetch(
+          {
+            location: 'https://example.com/repo.git',
+            remoteUrl: 'https://example.com/repo.git',
+          },
+          tmpRoot,
+          'my-module',
+        ),
+      ).rejects.toThrow(
+        "Failed to clone module 'my-module': authentication required",
+      );
+    });
+
+    it('rethrows non-Error clone failures as-is', async () => {
+      const { __cloneMock } = await import('simple-git');
+      const sentinel = 'raw string rejection';
+      (__cloneMock as ReturnType<typeof vi.fn>).mockRejectedValueOnce(sentinel);
+
+      const layer = new GitSourceLayer();
+      await expect(
+        layer.fetch(
+          {
+            location: 'https://example.com/repo.git',
+            remoteUrl: 'https://example.com/repo.git',
+          },
+          tmpRoot,
+          'my-module',
+        ),
+      ).rejects.toBe(sentinel);
+    });
+
+    it('returns the destination path on a successful clone', async () => {
+      const { __cloneMock } = await import('simple-git');
+      (__cloneMock as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+        undefined,
+      );
+
+      const layer = new GitSourceLayer();
+      const result = await layer.fetch(
+        {
+          location: 'https://example.com/repo.git',
+          remoteUrl: 'https://example.com/repo.git',
+        },
+        tmpRoot,
+        'my-module',
+      );
+
+      expect(result).toBe(join(tmpRoot, 'my-module'));
     });
   });
 });
