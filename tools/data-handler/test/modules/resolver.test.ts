@@ -320,13 +320,8 @@ describe('modules/resolver', () => {
   });
 
   it('file-source root with version range: ref/version remain undefined', async () => {
-    // The resolver delegates to `SourceLayer.listRemoteVersions`; file-source
-    // leaves return `[]` which the resolver treats as "source doesn't support
-    // versioning", leaving ref and version undefined. This test used to assert
-    // the resolver wouldn't even call `listRemoteVersions` for a file source,
-    // but that branch moved into the source layer itself — the resolver now
-    // uniformly asks and the leaf decides. The observable outcome (ref /
-    // version undefined for a file source with a range) is preserved.
+    // File-source leaves return `[]` from `listRemoteVersions`, so ref and
+    // version stay undefined for a file source with a version range.
     const staged = join(tempDir, 'file-src');
     await mkdir(join(staged, '.cards', 'local'), { recursive: true });
     await writeFile(
