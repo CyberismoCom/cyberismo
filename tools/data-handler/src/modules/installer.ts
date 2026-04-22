@@ -143,10 +143,12 @@ export class Installer {
       }
     }
 
-    // Persist top-level declarations. Only the declared range is stored;
-    // transitive declarations are re-derived from each installation's
-    // own cardsConfig.json at read time.
-    for (const entry of targets) {
+    // Persist top-level declarations for modules that actually landed on
+    // disk. Only the declared range is stored; transitive declarations
+    // are re-derived from each installation's own cardsConfig.json at
+    // read time.
+    for (const stage of applied) {
+      const entry = stage.resolved;
       if (entry.declaration.parent !== undefined) {
         continue;
       }
