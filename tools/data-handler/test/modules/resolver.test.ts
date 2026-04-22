@@ -294,6 +294,67 @@ describe('modules/resolver', () => {
     });
   });
 
+  it('default onConflict formats a console.warn message with name, version, range and parent', async () => {
+    const source = new InMemorySource(
+      new Map([
+        [
+          'https://example.com/A.git',
+          {
+            cardKeyPrefix: 'A',
+            name: 'A',
+            modules: [
+              {
+                name: 'B',
+                location: 'https://example.com/B.git',
+                version: '^1.0.0',
+              },
+            ],
+          },
+        ],
+        [
+          'https://example.com/C.git',
+          {
+            cardKeyPrefix: 'C',
+            name: 'C',
+            modules: [
+              {
+                name: 'B',
+                location: 'https://example.com/B.git',
+                version: '^2.0.0',
+              },
+            ],
+          },
+        ],
+        [
+          'https://example.com/B.git',
+          { cardKeyPrefix: 'B', name: 'B', modules: [] },
+        ],
+      ]),
+      new Map([
+        ['https://example.com/A.git', ['1.0.0']],
+        ['https://example.com/C.git', ['1.0.0']],
+        ['https://example.com/B.git', ['1.5.0', '2.0.0']],
+      ]),
+    );
+    const resolver = createResolver(source);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await resolver.resolve(
+      [
+        decl('A', 'https://example.com/A.git', '^1.0.0'),
+        decl('C', 'https://example.com/C.git', '^1.0.0'),
+      ],
+      { tempDir },
+    );
+
+    expect(warn).toHaveBeenCalledWith(
+      `Diamond version conflict for module 'B': ` +
+        `installed version 1.5.0 ` +
+        `does not satisfy range '${toVersionRange('^2.0.0')}' ` +
+        `(required by C)`,
+    );
+  });
+
   it('override returns the exact version without calling listRemoteVersions', async () => {
     const source = new InMemorySource(
       new Map([
