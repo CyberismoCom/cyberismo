@@ -33,16 +33,19 @@ export function buildRemoteUrl(
     credentials?.token &&
     source.location.startsWith(HTTPS_PROTOCOL)
   ) {
+    let repoUrl: URL;
     try {
-      const repoUrl = new URL(source.location);
-      const user = credentials.username;
-      const pass = credentials.token;
-      const host = repoUrl.host;
-      const path = repoUrl.pathname;
-      return `https://${user}:${pass}@${host}${path}`;
+      repoUrl = new URL(source.location);
     } catch {
       throw new Error(`Invalid repository URL: ${source.location}`);
     }
+    // The WHATWG URL setters percent-encode the userinfo component
+    // themselves, so `@`, `/`, `:` and other reserved characters round-
+    // trip through the remote correctly. String interpolation would
+    // place them in positions the parser reinterprets.
+    repoUrl.username = credentials.username;
+    repoUrl.password = credentials.token;
+    return repoUrl.toString();
   }
   return source.location;
 }
