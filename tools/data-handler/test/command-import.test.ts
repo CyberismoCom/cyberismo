@@ -31,6 +31,7 @@ import {
   getTestProject,
   mockEnsureModuleListUpToDate,
 } from './helpers/test-utils.js';
+import { toVersionRange } from '../src/modules/types.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
@@ -197,12 +198,11 @@ describe('import module', () => {
       expect(result.statusCode).toBe(200);
       result = await commandHandler.command(Cmd.show, ['modules'], testOptions);
       expect(result.statusCode).toBe(200);
-      if (result.payload) {
-        const modules = result.payload as Array<{ name: string }>;
-        expect(modules.length).toBe(2);
-        expect(modules.map((m) => m.name)).toContain('mini');
-        expect(modules.map((m) => m.name)).toContain('decision');
-      }
+      expect(result.payload).toBeDefined();
+      const modules = result.payload as Array<{ name: string }>;
+      expect(modules.length).toBe(2);
+      expect(modules.map((m) => m.name)).toContain('mini');
+      expect(modules.map((m) => m.name)).toContain('decision');
     }, 10000);
     it('try to import module - no source', async () => {
       const stubProjectPath = vi
@@ -589,6 +589,68 @@ describe('module update — spec behaviours', () => {
     expect(existsSync(installedDep)).toBe(false);
   });
 
+  it('importModule cleans up installations orphaned by a dropped transitive dep (NoOrphanInstallations)', async () => {
+    // Spec invariant `NoOrphanInstallations`: running `importModule` on a
+    // host whose upstream dropped a transitive dep must remove the stale
+    // installation from disk. Transitives are not top-level declarations so
+    // they do not appear in `configuration.modules`; the proof is purely
+    // disk-based.
+    const depRoot = join(moduleTestDir, 'fake-dep-reimport');
+    makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'reimpdep' });
+    const hostRoot = join(moduleTestDir, 'fake-host-reimport');
+    makeFakeModuleFixture(hostRoot, {
+      cardKeyPrefix: 'reimphost',
+      modules: [{ name: 'reimpdep', location: `file:${pathResolve(depRoot)}` }],
+    });
+
+    const projectDir = join(moduleTestDir, 'proj-reimport-orphan');
+    const handler = new Commands();
+    const create = await handler.command(
+      Cmd.create,
+      ['project', 'reimport-orphan-proj', 'riop'],
+      { projectPath: projectDir },
+    );
+    expect(create.statusCode).toBe(200);
+
+    const commands = new CommandManager(projectDir, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+
+    // First import: host is declared, dep is installed transitively on disk.
+    await commands.importCmd.importModule(hostRoot);
+
+    const installedHost = join(projectDir, '.cards', 'modules', 'reimphost');
+    const installedDep = join(projectDir, '.cards', 'modules', 'reimpdep');
+    expect(existsSync(installedHost)).toBe(true);
+    expect(existsSync(installedDep)).toBe(true);
+    // Only top-level declarations appear in configuration.modules.
+    expect(
+      commands.project.configuration.modules.some(
+        (m) => m.name === 'reimphost',
+      ),
+    ).toBe(true);
+
+    // Upstream drops its transitive dep.
+    rewriteFakeModuleFixture(hostRoot, {
+      cardKeyPrefix: 'reimphost',
+      modules: [],
+    });
+
+    // Re-import via importModule (not updateAllModules).
+    await commands.importCmd.importModule(hostRoot);
+
+    // cleanOrphans must have run: dep folder gone, host still present.
+    expect(existsSync(installedHost)).toBe(true);
+    expect(existsSync(installedDep)).toBe(false);
+    // Host declaration is still intact.
+    expect(
+      commands.project.configuration.modules.some(
+        (m) => m.name === 'reimphost',
+      ),
+    ).toBe(true);
+  });
+
   it('updateAllModules refreshes allModulePrefixes when a new transitive is pulled in', async () => {
     // When `updateAllModules` pulls in a brand-new transitive (because the
     // upstream started declaring a dep it previously did not), the project's
@@ -714,13 +776,7 @@ describe('module update — spec behaviours', () => {
     const after = commands.project.configuration.modules.find(
       (m) => m.name === 'ovkmod',
     );
-    // The persisted range is semver-normalised by `toVersionRange`, so
-    // compare via satisfies semantics: `^1.0.0` and its normalised form
-    // `>=1.0.0 <2.0.0-0` are the same range. The important assertion is
-    // that the range remained a `^1.0.0`-style range (not `=1.3.0`).
-    expect(after?.version).toBeDefined();
-    expect(after?.version).toMatch(/1\.0\.0/);
-    expect(after?.version).not.toBe('1.3.0');
+    expect(after?.version).toBe(toVersionRange('^1.0.0'));
     expect(existsSync(join(projectDir, '.cards', 'modules', 'ovkmod'))).toBe(
       true,
     );

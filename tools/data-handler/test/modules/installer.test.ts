@@ -392,6 +392,12 @@ describe('modules/installer', () => {
       { tempDir },
     );
 
+    // refreshAfterModuleChange is a no-op spy whose only purpose is to
+    // verify that the installer triggers a cache invalidation after install.
+    // There is no observable project-state outcome to assert instead: the
+    // stub's `modules` array is already populated by `upsertModule` before
+    // the refresh fires, so checking `modules` would not distinguish "refresh
+    // called" from "refresh not called".
     expect(refreshAfterModuleChange).toHaveBeenCalledTimes(1);
     // Sanity: the staged file really landed.
     const configContent = await readFile(
