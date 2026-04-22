@@ -99,11 +99,11 @@ describe('modules/credentials', () => {
       expect(url).toBe('https://u:t@host:8443/repo.git');
     });
 
-    it('produces a literal URL with two @ signs when the token contains @', () => {
+    it('produces a broken URL when the token contains @', () => {
       // buildRemoteUrl does not percent-encode the token before interpolation.
-      // The returned string contains u:tok@en@host/… — git's URL parser will
-      // see the last @ as the auth/host boundary, which likely mis-routes the
-      // request.  This is a latent bug: tokens with @ are not safe.
+      // libcurl uses first-@-wins, so `u:tok` becomes the userinfo and
+      // `en@host` resolves as the host — a guaranteed connection failure.
+      // Tokens containing @ are not safe; the function should percent-encode.
       const url = buildRemoteUrl(
         { location: 'https://host/repo.git', private: true },
         { username: 'u', token: 'tok@en' },
@@ -111,11 +111,10 @@ describe('modules/credentials', () => {
       expect(url).toBe('https://u:tok@en@host/repo.git');
     });
 
-    it('produces a literal URL with extra colon when the token contains :', () => {
-      // Colons in the token are not encoded; git treats the first : after the
-      // scheme as the username/password separator, so additional colons land
-      // inside the password field when the URL is later re-parsed by git.
-      // This is unlikely to break auth but the raw string is non-standard.
+    it('produces a non-standard but functional URL when the token contains :', () => {
+      // libcurl treats everything between the first : and the @ as the
+      // password, so colon-containing tokens reach the server intact.
+      // Non-standard but not broken.
       const url = buildRemoteUrl(
         { location: 'https://host/repo.git', private: true },
         { username: 'u', token: 'tok:en' },
@@ -123,11 +122,11 @@ describe('modules/credentials', () => {
       expect(url).toBe('https://u:tok:en@host/repo.git');
     });
 
-    it('throws or returns an unusable URL when the token contains /', () => {
-      // A slash in the token makes the interpolated string invalid as a URL
-      // (https://u:tok/en@host/repo.git is unparseable).  The function does
-      // not guard against this; the raw string is returned to the caller and
-      // git will reject it.
+    it('returns an unusable URL when the token contains /', () => {
+      // The interpolated string https://u:tok/en@host/repo.git is not a valid
+      // URL: libcurl parses `u` as host and `tok` as port, failing with
+      // "Port number was not a decimal number…". The function should
+      // percent-encode the token.
       const url = buildRemoteUrl(
         { location: 'https://host/repo.git', private: true },
         { username: 'u', token: 'tok/en' },
