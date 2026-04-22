@@ -107,7 +107,7 @@ describe('check-updates', () => {
     expect(status.latestVersion).toBe('1.0.1');
     expect(status.latestSatisfyingConstraint).toBe('1.0.1');
     expect(status.updateAvailable).toBe(true);
-    expect(status.constraintBlocksUpdate).toBeFalsy();
+    expect(status.constraintBlocksUpdate).toBe(false);
     expect(status.status).toBe('update_available');
   });
 
@@ -158,7 +158,7 @@ describe('check-updates', () => {
     expect(status.installedVersion).toBe('1.0.1');
     expect(status.latestVersion).toBe('1.0.1');
     expect(status.updateAvailable).toBe(false);
-    expect(status.constraintBlocksUpdate).toBeFalsy();
+    expect(status.constraintBlocksUpdate).toBe(false);
     expect(status.status).toBe('up_to_date');
   });
 
