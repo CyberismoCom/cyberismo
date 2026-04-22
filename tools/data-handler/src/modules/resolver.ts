@@ -96,13 +96,9 @@ export class Resolver {
     const onConflict =
       options.onConflict ??
       ((event) => {
-        const installedDesc =
-          event.installedVersion.kind === 'pinned'
-            ? `installed version ${event.installedVersion.value}`
-            : `default branch (no version pinned)`;
         console.warn(
           `Diamond version conflict for module '${event.name}': ` +
-            `${installedDesc} ` +
+            `installed version ${event.installedVersion.value} ` +
             `does not satisfy range '${event.rejectingRange}' ` +
             `(required by ${event.rejectingParent?.name ?? '<unknown parent>'})`,
         );
