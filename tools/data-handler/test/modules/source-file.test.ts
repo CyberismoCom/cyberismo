@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -9,11 +9,11 @@ import { FileSourceLayer } from '../../src/modules/source-file.js';
 describe('modules/source-file', () => {
   let tmpRoot: string;
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     tmpRoot = await mkdtemp(join(tmpdir(), 'modules-source-file-test-'));
   });
 
-  afterAll(async () => {
+  afterEach(async () => {
     await rm(tmpRoot, { recursive: true, force: true });
   });
 
