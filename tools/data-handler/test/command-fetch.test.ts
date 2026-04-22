@@ -161,7 +161,7 @@ describe('fetch command', () => {
           description: 'Test hub 1',
           displayName: 'Test Hub 1',
           version: 1,
-          modules: [{ name: 'module1', location: 'https://git.com/m1.git' }],
+          modules: [{ name: 'modulea', location: 'https://git.com/m1.git' }],
         }),
         headers: new Headers({ 'content-type': 'application/json' }),
       } as Response);
@@ -172,7 +172,7 @@ describe('fetch command', () => {
           description: 'Test hub 2',
           displayName: 'Test Hub 2',
           version: 2,
-          modules: [{ name: 'module2', location: 'https://git.com/m2.git' }],
+          modules: [{ name: 'moduleb', location: 'https://git.com/m2.git' }],
         }),
         headers: new Headers({ 'content-type': 'application/json' }),
       } as Response);
