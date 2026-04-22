@@ -632,10 +632,9 @@ describe('modules/resolver', () => {
     const resolver = createResolver(source);
 
     await expect(
-      resolver.resolve(
-        [decl('A', 'https://example.com/A.git', '^1.0.0')],
-        { tempDir },
-      ),
+      resolver.resolve([decl('A', 'https://example.com/A.git', '^1.0.0')], {
+        tempDir,
+      }),
     ).rejects.toThrow(/Invalid module name/);
 
     // The malicious child must be rejected at ingestion, before the
