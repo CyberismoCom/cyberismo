@@ -743,11 +743,6 @@ describe('remove card', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Spec-driven `RemoveModule` integration tests. These exercise
-// `commands/remove.ts` end-to-end across `modules/inventory.ts`,
-// `Project.removeModule` and the fixed-point `modules/orphans.ts` cascade.
-// ---------------------------------------------------------------------------
 describe('remove module — spec behaviours', () => {
   const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
   const testDir = join(baseDir, 'tmp-remove-module-tests');

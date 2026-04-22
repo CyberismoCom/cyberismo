@@ -533,16 +533,6 @@ describe('update-modules version arg', () => {
   });
 });
 
-// Per-layer coverage of version resolution (resolver picks highest satisfying
-// tag, override respected, no-match throws) lives in
-// `modules/resolver.test.ts`.
-
-// ---------------------------------------------------------------------------
-// Spec-driven integration tests for `Import.updateModule` and the
-// diamond-conflict / orphan cascade behaviours. Each
-// test sets up a real `CommandManager` against a project and drives the
-// command layer — no prototype spies on deleted private methods.
-// ---------------------------------------------------------------------------
 describe('module update — spec behaviours', () => {
   const moduleTestDir = join(baseDir, 'tmp-command-import-module-update-tests');
 
@@ -742,14 +732,6 @@ describe('module update — spec behaviours', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Resolver-driven diamond-conflict integration tests. These exercise the
-// real resolver + installer against an in-memory SourceLayer — end-to-end
-// across every module layer (types / source / inventory / resolver /
-// installer / orphans) and against a real `Project`, matching what
-// `Import.importModule` does internally. We use the same `onConflict`
-// wrapper that the command layer uses so the wiring is exercised too.
-// ---------------------------------------------------------------------------
 describe('import module — transitive diamond conflicts', () => {
   const diamondTestDir = join(baseDir, 'tmp-command-import-diamond-tests');
 
@@ -978,11 +960,6 @@ describe('import module — transitive diamond conflicts', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Staged-fetch reuse: the resolver's ResolvedModule.stagedPath lets the
-// installer skip a second source.fetch for every module. These tests pin the
-// invariant that fetch is called exactly once per unique module.
-// ---------------------------------------------------------------------------
 describe('import module — resolver+installer reuse staged fetches', () => {
   const reuseTestDir = join(baseDir, 'tmp-command-import-reuse-tests');
 
