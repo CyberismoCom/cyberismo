@@ -212,7 +212,9 @@ describe('modules/installer', () => {
         tempDir,
         validate: true,
       }),
-    ).rejects.toThrow(/cannot find project|folder name is invalid/);
+    ).rejects.toThrow(
+      `Input validation error: cannot find project '/nonexistent/path/to/mod'`,
+    );
 
     expect(source.fetchCalls).toEqual([]);
   });

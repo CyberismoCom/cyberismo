@@ -69,7 +69,7 @@ describe('modules/credentials', () => {
         { location: 'https://', private: true },
         { username: 'u', token: 't' },
       ),
-    ).toThrow(/Invalid repository URL/);
+    ).toThrow('Invalid repository URL: https://');
   });
 
   describe('edge cases', () => {
