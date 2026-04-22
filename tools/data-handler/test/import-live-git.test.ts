@@ -9,10 +9,10 @@ import * as os from 'node:os';
 import { copyDir } from '../src/utils/file-utils.js';
 import { CommandManager } from '../src/command-manager.js';
 
-describe('module-manager', () => {
+describe('import command — live git', () => {
   const skipTest = process.env.CI && os.platform() === 'win32';
   const baseDir = import.meta.dirname;
-  const testDir = join(baseDir, 'tmp-module-manager-tests');
+  const testDir = join(baseDir, 'tmp-import-live-git-tests');
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
   let commands: CommandManager;
 
@@ -30,12 +30,6 @@ describe('module-manager', () => {
     rmSync(join(testDir, '.temp'), { recursive: true, force: true });
   });
 
-  it('import local module', async () => {
-    const localModule = join(testDir, 'valid/minimal');
-    await commands.importCmd.importModule(localModule);
-    const modules = await commands.showCmd.showModules();
-    expect(modules.length).equals(1);
-  });
   it('import git module', async () => {
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';
     await commands.importCmd.importModule(gitModule);
@@ -58,17 +52,6 @@ describe('module-manager', () => {
       expect(modules.length).equals(1);
     }
   }, 60000);
-  it('re-importing a local module is upsert (spec ImportModule)', async () => {
-    // Spec: re-importing a module with the same source is an upsert of the
-    // declaration's range, not a hard error.
-    const localModule = join(testDir, 'valid/minimal');
-    await commands.importCmd.importModule(localModule);
-    await expect(
-      commands.importCmd.importModule(localModule),
-    ).resolves.not.toThrow();
-    const modules = await commands.showCmd.showModules();
-    expect(modules.length).equals(1);
-  });
   it('re-importing a git module is upsert (spec ImportModule)', async () => {
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';
     await commands.importCmd.importModule(gitModule);
@@ -79,12 +62,6 @@ describe('module-manager', () => {
     const modules = await commands.showCmd.showModules();
     expect(modules.length).equals(1);
   }, 60000);
-  it('try to import from incorrect local path', async () => {
-    const localModule = join(testDir, 'valid/i-do-not-exist');
-    await expect(commands.importCmd.importModule(localModule)).rejects.toThrow(
-      `Input validation error: cannot find project`,
-    );
-  });
   it('try to import from incorrect git path', async function (context) {
     if (skipTest) {
       context.skip();
