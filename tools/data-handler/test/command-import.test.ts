@@ -302,6 +302,25 @@ describe('import module', () => {
       );
       expect(result.statusCode).toBe(400);
     });
+    it('try to import module - no cardKeyPrefix in cardsConfig.json', async () => {
+      const noPrefix = join(testDir, 'fake-no-prefix');
+      makeFakeModuleFixture(noPrefix, { cardKeyPrefix: 'placeholder' });
+      writeFileSync(
+        join(noPrefix, '.cards', 'local', 'cardsConfig.json'),
+        JSON.stringify(
+          { cardKeyPrefix: '', name: 'noprefix', modules: [], hubs: [] },
+          null,
+          2,
+        ),
+      );
+      const result = await commandHandler.command(
+        Cmd.import,
+        ['module', noPrefix],
+        optionsMini,
+      );
+      expect(result.statusCode).toBe(400);
+      expect(result.message).toContain('has no cardKeyPrefix');
+    });
   });
 
   describe('modifying imported module content is forbidden', () => {
