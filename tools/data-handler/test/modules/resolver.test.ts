@@ -361,7 +361,9 @@ describe('modules/resolver', () => {
       resolver.resolve([decl('X', 'https://example.com/X.git', '^5.0.0')], {
         tempDir,
       }),
-    ).rejects.toThrow(/No version satisfies range.*for module 'X'/);
+    ).rejects.toThrow(
+      `No version satisfies range '>=5.0.0 <6.0.0-0' for module 'X'`,
+    );
   });
 
   it('throws when the same name is declared with two different source locations', async () => {
@@ -406,7 +408,9 @@ describe('modules/resolver', () => {
         ],
         { tempDir },
       ),
-    ).rejects.toThrow(/Conflicting source for module 'B'/);
+    ).rejects.toThrow(
+      `Conflicting source for module 'B': installed from 'https://example.com/B1.git' (private=false), but also declared with 'https://example.com/B2.git' (private=false)`,
+    );
   });
 
   it('populates stagedPath on every resolved module with an existing directory', async () => {
