@@ -233,6 +233,27 @@ describe('check-updates', () => {
     expect(status.status).toBe('source_unreachable');
   });
 
+  it('reports source_unreachable when buildRemoteUrl throws on a malformed private HTTPS URL', async () => {
+    const project = buildProjectWithModules([
+      {
+        name: 'base',
+        location: 'https://',
+        private: true,
+      },
+    ]);
+    installModule(project, { name: 'base', version: '1.0.0' });
+
+    const [status] = await new CheckUpdates(project).checkUpdates(undefined, {
+      username: 'u',
+      token: 't',
+    });
+
+    expect(status.name).toBe('base');
+    expect(status.updateAvailable).toBe(false);
+    expect(status.availableVersions).toEqual([]);
+    expect(status.status).toBe('source_unreachable');
+  });
+
   it('throws when a specific module name is not in the project', async () => {
     const project = buildProjectWithModules([]);
 
