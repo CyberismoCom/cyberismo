@@ -26,10 +26,7 @@
         "properties": {
           "name": {
             "description": "Module name (project prefix). Must be unique globally.",
-            "type": "string",
-            "pattern": "^[a-z]+$",
-            "minLength": 3,
-            "maxLength": 10
+            "$ref": "cardsConfigSchema#/$defs/projectPrefix"
           },
           "displayName": {
             "description": "Display name of the module",
