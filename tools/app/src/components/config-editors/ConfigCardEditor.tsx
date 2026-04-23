@@ -15,11 +15,12 @@ import { useRawCard } from '@/lib/api';
 import CardEditor from '../CardEditor';
 import type { AnyNode } from '@/lib/api/types';
 import { useTranslation } from 'react-i18next';
-import { getConfig } from '@/lib/utils';
+import { useCanAdmin } from '@/lib/auth';
 
 export function ConfigCardEditor({ node }: { node: AnyNode }) {
   const card = useRawCard(node.id);
   const { t } = useTranslation();
+  const canAdmin = useCanAdmin();
   if (card.isLoading) {
     return <div>{t('loading')}</div>;
   }
@@ -31,7 +32,7 @@ export function ConfigCardEditor({ node }: { node: AnyNode }) {
       cardKey={node.id}
       cardData={card}
       afterSave={() => {}}
-      readOnly={node?.readOnly || getConfig().staticMode}
+      readOnly={node?.readOnly || !canAdmin}
     />
   );
 }

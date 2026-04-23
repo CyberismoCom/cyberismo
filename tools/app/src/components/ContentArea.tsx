@@ -81,12 +81,12 @@ import type {
   CalculationLink,
   LinkDirection,
 } from '@cyberismo/data-handler/types/queries';
-import { getConfig } from '@/lib/utils';
 import type { CardResponse, Connector } from '../lib/api/types';
 import { GenericConfirmModal } from './modals';
 import { useCard } from '../lib/api';
 import SvgViewerModal from './modals/svgViewerModal';
 import { SafeRouterLink } from './SafeRouterLink';
+import { useCanEdit } from '@/lib/auth';
 
 export type LinkFormState = 'hidden' | 'add' | 'add-from-toolbar' | 'edit';
 
@@ -569,6 +569,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   onDeleteLink,
 }) => {
   const { isUpdating } = useCard(card.key);
+  const canEdit = useCanEdit();
   const [visibleHeaderIds, setVisibleHeaderIds] = useState<string[] | null>(
     null,
   );
@@ -962,23 +963,21 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                     </Typography>
                   </Stack>
                 </AccordionSummary>
-                {!preview &&
-                  linkFormState === 'hidden' &&
-                  !getConfig().staticMode && (
-                    <IconButton
-                      sx={{
-                        height: 36,
-                        alignSelf: 'center',
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-                        onLinkFormChange && onLinkFormChange('add');
-                      }}
-                    >
-                      <Add />
-                    </IconButton>
-                  )}
+                {!preview && linkFormState === 'hidden' && canEdit && (
+                  <IconButton
+                    sx={{
+                      height: 36,
+                      alignSelf: 'center',
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+                      onLinkFormChange && onLinkFormChange('add');
+                    }}
+                  >
+                    <Add />
+                  </IconButton>
+                )}
               </Stack>
               <AccordionDetails>
                 {!preview &&
@@ -1072,53 +1071,48 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                             )}
                           </Box>
                         </Stack>
-                        {link.linkSource === 'user' &&
-                          !preview &&
-                          !getConfig().staticMode && (
-                            <Box
-                              gap={1}
-                              fontSize={24}
-                              alignItems="center"
-                              marginRight={2}
+                        {link.linkSource === 'user' && !preview && canEdit && (
+                          <Box
+                            gap={1}
+                            fontSize={24}
+                            alignItems="center"
+                            marginRight={2}
+                          >
+                            <IconButton
+                              className="actionButton"
+                              onClick={() => {
+                                const linkType = linkTypes.find(
+                                  (t) =>
+                                    t.name === link.linkType &&
+                                    t.direction === link.direction,
+                                );
+                                setEditLinkData({
+                                  linkType: linkType?.id ?? NO_LINK_TYPE,
+                                  connector: link.connector ?? 'card',
+                                  cardKey: link.connector ? '' : link.key,
+                                  externalItemKey: link.connector
+                                    ? link.key
+                                    : '',
+                                  linkDescription: link.linkDescription || '',
+                                  linkTypeName: link.linkType,
+                                  direction: link.direction,
+                                });
+                                openModal('editLink')();
+                              }}
                             >
-                              <IconButton
-                                className="actionButton"
-                                onClick={() => {
-                                  const linkType = linkTypes.find(
-                                    (t) =>
-                                      t.name === link.linkType &&
-                                      t.direction === link.direction,
-                                  );
-                                  setEditLinkData({
-                                    linkType: linkType?.id ?? NO_LINK_TYPE,
-                                    connector: link.connector ?? 'card',
-                                    cardKey: link.connector ? '' : link.key,
-                                    externalItemKey: link.connector
-                                      ? link.key
-                                      : '',
-                                    linkDescription: link.linkDescription || '',
-                                    linkTypeName: link.linkType,
-                                    direction: link.direction,
-                                  });
-                                  openModal('editLink')();
-                                }}
-                              >
-                                <Edit fontSize="inherit" />
-                              </IconButton>
-                              <IconButton
-                                className="actionButton"
-                                onClick={() => {
-                                  setDeleteLinkData(link);
-                                  openModal('deleteLink')();
-                                }}
-                              >
-                                <Delete
-                                  fontSize="inherit"
-                                  data-cy="DeleteIcon"
-                                />
-                              </IconButton>
-                            </Box>
-                          )}
+                              <Edit fontSize="inherit" />
+                            </IconButton>
+                            <IconButton
+                              className="actionButton"
+                              onClick={() => {
+                                setDeleteLinkData(link);
+                                openModal('deleteLink')();
+                              }}
+                            >
+                              <Delete fontSize="inherit" data-cy="DeleteIcon" />
+                            </IconButton>
+                          </Box>
+                        )}
                         {link.linkSource === 'calculated' && (
                           <IconButton color="primary">
                             <Tooltip title={t('linkForm.calculatedLink')}>

@@ -37,12 +37,13 @@ import type {
 import FieldRow from './fields/FieldRow';
 import { resourceFieldConfigs, type FieldConfig } from './resourceFieldConfigs';
 import { FORM_FIELD_MAX_WIDTH } from '@/lib/constants';
-import { getConfig } from '@/lib/utils';
+import { useCanAdmin } from '@/lib/auth';
 
 export function ResourceEditor({ node }: { node: ResourceNode }) {
   const { t } = useTranslation();
   const { validateResource } = useValidateResource(node.name);
   const editor = useResourceEditorHelpers(node);
+  const canAdmin = useCanAdmin();
 
   if (!isResourceNode(node) || !('data' in node)) {
     return (
@@ -54,7 +55,7 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
   const constrainedConfigs = fieldConfigs.filter((c) => !c.fullWidth);
   const fullWidthConfigs = fieldConfigs.filter((c) => c.fullWidth);
 
-  const isDisabled = Boolean(node.readOnly) || getConfig().staticMode;
+  const isDisabled = Boolean(node.readOnly) || !canAdmin;
 
   const renderField = (fieldConfig: FieldConfig) => {
     const { key, type, label, options, staticOptions } = fieldConfig;

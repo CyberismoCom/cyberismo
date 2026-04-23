@@ -30,6 +30,7 @@ import { Box, Stack, Typography } from '@mui/joy';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useRequiredKeyParam } from '@/lib/hooks';
+import { useCanEdit } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -74,6 +75,8 @@ export default function Page() {
     }
   }, [listCard, dispatch]);
 
+  const canEdit = useCanEdit();
+
   if (error) {
     let errorMessage = t('unknownError');
     if (error instanceof Error) {
@@ -102,9 +105,10 @@ export default function Page() {
             cards={tree!}
             card={card!}
             connectors={connectors ?? []}
-            onMetadataClick={() =>
-              router.push(`/cards/${key}/edit?expand=true`)
-            }
+            onMetadataClick={() => {
+              if (!canEdit) return;
+              router.push(`/cards/${key}/edit?expand=true`);
+            }}
             linkTypes={expandedLinkTypes}
             onLinkFormSubmit={async (data) => {
               try {

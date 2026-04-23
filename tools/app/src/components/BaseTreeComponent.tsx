@@ -17,7 +17,7 @@ import type { NodeRendererProps, NodeApi, TreeApi } from 'react-arborist';
 import { Tree } from 'react-arborist';
 import { Link } from 'react-router';
 import { useResizeObserver } from '../lib/hooks';
-import { getConfig } from '@/lib/utils';
+import { useCanEdit } from '@/lib/auth';
 
 export interface BaseTreeProps<T> {
   title?: string;
@@ -51,6 +51,7 @@ export function BaseTreeComponent<T>({
   const treeRef = useRef(null);
   const { width, height, ref } = useResizeObserver();
   const { height: titleHeight, ref: titleRef } = useResizeObserver();
+  const canEdit = useCanEdit();
 
   useEffect(() => {
     const tree = treeRef.current as unknown as TreeApi<T> | null;
@@ -103,7 +104,7 @@ export function BaseTreeComponent<T>({
         ref={treeRef}
         data={data || []}
         openByDefault={openByDefault}
-        disableDrag={getConfig().staticMode}
+        disableDrag={!canEdit}
         idAccessor={idAccessor}
         childrenAccessor={childrenAccessor}
         indent={16}

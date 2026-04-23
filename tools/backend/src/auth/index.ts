@@ -12,6 +12,6 @@
 */
 
 export type { AuthProvider } from './types.js';
-export { MockAuthProvider } from './mock.js';
+export { MockAuthProvider, mockRoleCookieMiddleware } from './mock.js';
 export { KeycloakAuthProvider } from './keycloak.js';
 export type { KeycloakConfig } from './keycloak.js';
