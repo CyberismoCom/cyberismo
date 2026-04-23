@@ -13,10 +13,10 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { MetadataValue } from '@/lib/definitions';
-import { CardMode } from '@/lib/definitions';
 
 import {
   Box,
+  Button,
   Tab,
   Tabs,
   TabPanel,
@@ -41,7 +41,7 @@ import { EditorView } from '@codemirror/view';
 import { asciidoc } from 'codemirror-asciidoc';
 
 import CardToolbar from '@/components/toolbar/CardToolbar';
-import { ContentArea } from '@/components/ContentArea';
+import { CardLayout } from '@/components/card/CardLayout';
 import {
   type CardData,
   useCardMutations,
@@ -305,7 +305,7 @@ export default function CardEditor({
   const {
     handleSubmit,
     control,
-    formState: { isDirty },
+    formState: { isDirty, isSubmitting },
     getValues,
     reset,
   } = formMethods;
@@ -589,13 +589,34 @@ export default function CardEditor({
         <FormProvider {...formMethods}>
           <CardToolbar
             cardKey={cardKey}
-            mode={CardMode.EDIT}
-            onUpdate={() => handleSubmit(handleSave)()}
-            onCancel={handleCancel}
             linkButtonDisabled={true}
-            readOnly={readOnly}
+            presenceMode="editing"
           />
           <Stack flexGrow={1} minHeight={0} padding={3}>
+            <Stack direction="row" justifyContent="flex-end" spacing={1} sx={{ mb: 1 }}>
+              <Button
+                id="cancelButton"
+                variant="plain"
+                aria-label="cancel"
+                size="sm"
+                color="neutral"
+                onClick={handleCancel}
+                disabled={readOnly || isSubmitting}
+              >
+                {t('cancel')}
+              </Button>
+              <Button
+                variant="solid"
+                size="sm"
+                aria-label="update"
+                data-cy="updateButton"
+                loading={isSubmitting}
+                onClick={() => handleSubmit(handleSave)()}
+                disabled={readOnly || !isEditedValue || isSubmitting}
+              >
+                {t('update')}
+              </Button>
+            </Stack>
             <Tabs
               value={tab}
               onChange={(_, newValue) =>
@@ -761,10 +782,10 @@ export default function CardEditor({
               >
                 <Box height="100%">
                   <LoadingGate values={[linkTypes, previewCard]}>
-                    {/* Note: It is very important that ContentArea is not rendered unless we have gotten the parsed response.
+                    {/* Note: It is very important that CardLayout is not rendered unless we have gotten the parsed response.
                         LoadingGate ensures that it will show up as loading until previewCard is not null*/}
 
-                    <ContentArea
+                    <CardLayout
                       card={previewCard!}
                       linkTypes={expandedLinkTypes}
                       preview={true}

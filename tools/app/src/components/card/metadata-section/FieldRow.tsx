@@ -17,9 +17,9 @@ import { Accordion, AccordionDetails, Box, IconButton, Stack } from '@mui/joy';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import { Controller, useForm } from 'react-hook-form';
-import type { DataType, MetadataValue } from '../../lib/definitions';
+import type { DataType, MetadataValue } from '@/lib/definitions';
 import type { EnumDefinition } from '@cyberismo/data-handler/types/queries';
-import EditableField from '../EditableField';
+import EditableField from '@/components/EditableField';
 
 export interface FieldRowProps {
   id?: string;

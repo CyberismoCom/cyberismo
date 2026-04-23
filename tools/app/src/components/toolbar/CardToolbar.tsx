@@ -12,15 +12,12 @@
 */
 
 import { useCallback } from 'react';
-import { Button, IconButton, Tooltip } from '@mui/joy';
-import EditIcon from '@mui/icons-material/Edit';
+import { IconButton, Tooltip } from '@mui/joy';
 import AddLink from '@mui/icons-material/AddLink';
 import { ProjectBreadcrumbs } from '../ProjectBreadcrumbs';
-import type { WorkflowTransition } from '../../lib/definitions';
-import { CardMode } from '../../lib/definitions';
 import StatusSelector from '../StateSelector';
 import { findWorkflowForCardType } from '../../lib/utils';
-import { useAppRouter, useAppSelector } from '../../lib/hooks';
+import type { WorkflowTransition } from '../../lib/definitions';
 import { useTranslation } from 'react-i18next';
 import {
   useCard,
@@ -38,32 +35,25 @@ import PresenceIndicator from '@/components/PresenceIndicator';
 
 interface CardToolbarProps {
   cardKey: string;
-  mode: CardMode;
   linkButtonDisabled?: boolean;
-  onUpdate?: () => void;
   onInsertLink?: () => void;
-  onCancel?: () => void;
-  readOnly?: boolean;
+  onAttachmentAdded?: () => void;
+  presenceMode?: 'viewing' | 'editing';
 }
 
 export function CardToolbar({
   cardKey,
-  mode,
-  onUpdate,
   onInsertLink,
-  onCancel,
   linkButtonDisabled,
-  readOnly,
+  onAttachmentAdded,
+  presenceMode = 'viewing',
 }: CardToolbarProps) {
-  const router = useAppRouter();
   const { t } = useTranslation();
 
   const { project } = useProject();
   const { tree } = useTree();
-  const isEdited = useAppSelector((state) => state.page.isEdited);
   const { card, updateWorkFlowState, isUpdating } = useCard(cardKey);
   const { user } = useUser();
-  const presenceMode = mode === CardMode.EDIT ? 'editing' : 'viewing';
   const presence = usePresence(cardKey, presenceMode);
 
   const dispatch = useAppDispatch();
@@ -93,7 +83,7 @@ export function CardToolbar({
 
   const actions = (
     <>
-      {!getConfig().staticMode && mode === CardMode.VIEW && (
+      {!getConfig().staticMode && (
         <Tooltip title={t('linkTooltip')} placement="top">
           <IconButton
             onClick={onInsertLink}
@@ -122,53 +112,6 @@ export function CardToolbar({
         isLoading={isUpdating('updateState')}
         disabled={isUpdating() && !isUpdating('updateState')}
       />
-
-      {!getConfig().staticMode && mode === CardMode.VIEW && (
-        <Button
-          variant="solid"
-          aria-label="edit"
-          data-cy="editButton"
-          size="sm"
-          startDecorator={<EditIcon />}
-          style={{ marginLeft: 8, minWidth: 80 }}
-          onClick={() => router.push(`/cards/${cardKey}/edit`)}
-          disabled={isUpdating()}
-        >
-          {t('edit')}
-        </Button>
-      )}
-
-      {mode === CardMode.EDIT && (
-        <>
-          <Button
-            id="cancelButton"
-            variant="plain"
-            aria-label="cancel"
-            size="sm"
-            color="neutral"
-            style={{ marginLeft: 8, minWidth: 80 }}
-            onClick={onCancel}
-            disabled={isUpdating() || readOnly}
-          >
-            {t('cancel')}
-          </Button>
-
-          <Button
-            variant="solid"
-            size="sm"
-            aria-label="update"
-            data-cy="updateButton"
-            style={{ marginLeft: 8, minWidth: 80 }}
-            onClick={onUpdate}
-            loading={isUpdating('update')}
-            disabled={
-              (isUpdating() && !isUpdating('update')) || readOnly || !isEdited
-            }
-          >
-            {t('update')}
-          </Button>
-        </>
-      )}
     </>
   );
 
@@ -179,7 +122,10 @@ export function CardToolbar({
         !getConfig().staticMode && (
           <>
             <PresenceIndicator presence={presence} currentUserId={user?.id} />
-            <CardContextMenu cardKey={cardKey} />
+            <CardContextMenu
+              cardKey={cardKey}
+              onAttachmentAdded={onAttachmentAdded}
+            />
           </>
         )
       }
