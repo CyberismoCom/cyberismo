@@ -12,8 +12,6 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { existsSync } from 'node:fs';
-
 import { ProjectPaths } from '../containers/project/project-paths.js';
 import { readJsonFile } from '../utils/json.js';
 import { buildRemoteUrl } from './credentials.js';
@@ -181,17 +179,11 @@ export class Resolver {
       }
       // No override, no range → leave version/ref undefined (default branch for git).
 
-      // Reuse a caller-supplied staged clone when its directory still exists.
-      let path: string;
-      if (decl.stagedPath && existsSync(decl.stagedPath)) {
-        path = decl.stagedPath;
-      } else {
-        path = await this.source.fetch(
-          { location: decl.source.location, remoteUrl, ref },
-          options.tempDir,
-          decl.name,
-        );
-      }
+      const path = await this.source.fetch(
+        { location: decl.source.location, remoteUrl, ref },
+        options.tempDir,
+        decl.name,
+      );
       const childConfig = await readModuleConfig(path);
 
       const resolvedEntry: ResolvedModule = {

@@ -1,6 +1,6 @@
 import { expect, describe, it, beforeEach, afterEach } from 'vitest';
 
-import { mkdirSync, rmSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { platform } from 'node:os';
 
@@ -33,6 +33,27 @@ describe('import command — live git', () => {
     const modules = await commands.showCmd.showModules();
     expect(modules.length).toBe(1);
     expect(modules[0].name).toBe('base');
+  }, 60000);
+  it('import git module at a pinned version installs that version', async () => {
+    const gitModule = 'https://github.com/CyberismoCom/module-base.git';
+    await commands.importCmd.importModule(gitModule, { version: '1.0.0' });
+    const modules = await commands.showCmd.showModules();
+    expect(modules.length).toBe(1);
+    expect(modules[0].name).toBe('base');
+    expect(modules[0].version).toBe('1.0.0');
+    const installedConfig = JSON.parse(
+      readFileSync(
+        join(
+          decisionRecordsPath,
+          '.cards',
+          'modules',
+          'base',
+          'cardsConfig.json',
+        ),
+        'utf-8',
+      ),
+    );
+    expect(installedConfig.version).toBe('1.0.0');
   }, 60000);
   it.skipIf(skipTest)(
     'import git module using credentials',
