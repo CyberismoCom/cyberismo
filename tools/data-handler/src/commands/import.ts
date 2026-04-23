@@ -27,6 +27,7 @@ import {
   FILE_PROTOCOL,
   isFileLocation,
   isGitLocation,
+  pickVersion,
   readModuleConfig,
   toVersionRange,
   validateVersionAgainstConstraints,
@@ -242,6 +243,25 @@ export class Import {
       );
     }
 
+    // Resolve the declared range. An explicit caller range wins; otherwise
+    // pin to `^<latest tagged version>` so re-runs stay on the same major
+    // — the npm-install default. Sources without any tags (file sources,
+    // unversioned git remotes) fall through with no range and install the
+    // default branch.
+    let versionRange = options?.version
+      ? toVersionRange(options.version)
+      : undefined;
+    if (!versionRange) {
+      const available = await sourceLayer.listRemoteVersions(
+        location,
+        remoteUrl,
+      );
+      const latest = pickVersion(available);
+      if (latest) {
+        versionRange = toVersionRange(`^${latest}`);
+      }
+    }
+
     const newRoot: ModuleDeclaration = {
       project: this.project.basePath,
       name: resolvedName,
@@ -249,9 +269,7 @@ export class Import {
         location,
         private: options?.private ?? false,
       },
-      versionRange: options?.version
-        ? toVersionRange(options.version)
-        : undefined,
+      versionRange,
       parent: undefined,
     };
 
