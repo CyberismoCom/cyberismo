@@ -568,40 +568,6 @@ describe('modules/resolver', () => {
     );
   });
 
-  it('reuses caller-supplied stagedPath without calling source.fetch', async () => {
-    const source = new InMemorySource(
-      new Map([
-        [
-          'https://example.com/A.git',
-          { cardKeyPrefix: 'A', name: 'A', modules: [] },
-        ],
-      ]),
-      new Map(),
-    );
-    const resolver = createResolver(source);
-
-    // Pre-stage the module by hand and pass the path into the declaration.
-    const preStaged = join(tempDir, 'pre-staged-A');
-    await mkdir(join(preStaged, '.cards', 'local'), { recursive: true });
-    await writeFile(
-      join(preStaged, '.cards', 'local', 'cardsConfig.json'),
-      JSON.stringify({ cardKeyPrefix: 'A', name: 'A', modules: [] }),
-    );
-
-    const rootDecl: ModuleDeclaration = {
-      project: '/project',
-      name: 'A',
-      source: { location: 'https://example.com/A.git', private: false },
-      stagedPath: preStaged,
-    };
-
-    const out = await resolver.resolve([rootDecl], { tempDir });
-
-    expect(out).toHaveLength(1);
-    expect(out[0].stagedPath).toBe(preStaged);
-    expect(source.fetchLog).toEqual([]);
-  });
-
   it('throws when a declaration with an empty name reaches the resolver', async () => {
     const source = new InMemorySource(new Map(), new Map());
     const resolver = createResolver(source);

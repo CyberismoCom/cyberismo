@@ -218,20 +218,23 @@ export class Import {
     const resolver = createResolver(sourceLayer);
     const installer = createInstaller(sourceLayer);
 
-    // Pre-fetch so we can read `cardKeyPrefix` and pass `stagedPath` to
-    // the resolver/installer, letting them skip a second clone.
+    // Pre-fetch only to read `cardKeyPrefix`; the resolver does its own
+    // fetch at the ref it picks. We don't hand this tree off as
+    // `stagedPath` because it was cloned without a ref (default branch),
+    // which silently mis-installs whenever the resolver's pick diverges
+    // from the default branch — e.g. a pinned older version.
     const remoteUrl = buildRemoteUrl(
       { location, private: options?.private ?? false },
       options?.credentials,
     );
-    const stagedPath = await sourceLayer.fetch(
+    const prefetchPath = await sourceLayer.fetch(
       { location, remoteUrl },
       this.tempModulesDir,
       freshRootStagingName(location),
     );
 
-    const stagedConfig = await readModuleConfig(stagedPath);
-    const resolvedName = stagedConfig.cardKeyPrefix;
+    const prefetchConfig = await readModuleConfig(prefetchPath);
+    const resolvedName = prefetchConfig.cardKeyPrefix;
     if (!resolvedName) {
       throw new Error(
         `Module at '${location}' has no cardKeyPrefix in its ` +
@@ -250,7 +253,6 @@ export class Import {
         ? toVersionRange(options.version)
         : undefined,
       parent: undefined,
-      stagedPath,
     };
 
     // Include existing top-level declarations so their transitive

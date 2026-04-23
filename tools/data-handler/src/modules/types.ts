@@ -102,12 +102,6 @@ export interface ModuleDeclaration {
   source: Source;
   versionRange?: VersionRange;
   parent?: InstallationRef;
-  /**
-   * Optional absolute path to a directory the caller has already fetched
-   * for this declaration. When present (and the directory still exists),
-   * the resolver treats it as the staged clone and skips its own fetch.
-   */
-  stagedPath?: string;
 }
 
 /**
