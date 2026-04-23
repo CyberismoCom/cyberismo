@@ -2,17 +2,23 @@
   "$id": "cardsConfigSchema",
   "additionalProperties": false,
   "description": "General configuration settings for the card tree.",
+  "$defs": {
+    "projectPrefix": {
+      "type": "string",
+      "description": "Project prefix: 3–10 lowercase letters.",
+      "pattern": "^[a-z]+$",
+      "minLength": 3,
+      "maxLength": 10
+    }
+  },
   "properties": {
     "schemaVersion": {
       "type": "number",
       "description": "Project schema version"
     },
     "cardKeyPrefix": {
-      "type": "string",
       "description": "The prefix or the fist component of the card key. For example, ABC",
-      "pattern": "^[a-z]+$",
-      "minLength": 3,
-      "maxLength": 10
+      "$ref": "#/$defs/projectPrefix"
     },
     "name": {
       "description": "Project name",
@@ -53,10 +59,7 @@
         "properties": {
           "name": {
             "description": "Module name (project prefix). Must be unique.",
-            "type": "string",
-            "pattern": "^[a-z]+$",
-            "minLength": 3,
-            "maxLength": 10
+            "$ref": "#/$defs/projectPrefix"
           },
           "location": {
             "description": "Git remote URL, or relative file reference.",
