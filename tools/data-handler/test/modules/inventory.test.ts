@@ -64,7 +64,7 @@ describe('modules/inventory', () => {
       project: projectDir,
       name: 'foo',
       source: { location: 'https://example.com/foo.git', private: false },
-      versionRange: '>=1.0.0 <2.0.0-0',
+      versionRange: '^1.0.0',
       parent: undefined,
     });
     expect(byName.get('bar')).toMatchObject({

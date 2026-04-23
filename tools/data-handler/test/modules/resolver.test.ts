@@ -329,7 +329,6 @@ describe('modules/resolver', () => {
     const b = out.find((r) => r.declaration.name === 'B');
     expect(b?.version).toBe('1.5.0');
     expect(conflicts).toHaveLength(1);
-    // Normalised by toVersionRange — compare against the normalised form.
     expect(conflicts[0].name).toBe('B');
     expect(conflicts[0].rejectingRange).toBe(toVersionRange('^2.0.0'));
     expect(conflicts[0].installedVersion).toEqual({
@@ -466,9 +465,7 @@ describe('modules/resolver', () => {
       resolver.resolve([decl('X', 'https://example.com/X.git', '^5.0.0')], {
         tempDir,
       }),
-    ).rejects.toThrow(
-      `No version satisfies range '>=5.0.0 <6.0.0-0' for module 'X'`,
-    );
+    ).rejects.toThrow(`No version satisfies range '^5.0.0' for module 'X'`);
   });
 
   it('throws when the same name is declared with two different source locations', async () => {

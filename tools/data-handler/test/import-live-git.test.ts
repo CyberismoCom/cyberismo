@@ -4,8 +4,12 @@ import { mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { platform } from 'node:os';
 
+import semver from 'semver';
+
 import { copyDir } from '../src/utils/file-utils.js';
 import { CommandManager } from '../src/command-manager.js';
+
+const { satisfies } = semver;
 
 describe('import command — live git', () => {
   const skipTest = process.env.CI && platform() === 'win32';
@@ -33,6 +37,23 @@ describe('import command — live git', () => {
     const modules = await commands.showCmd.showModules();
     expect(modules.length).toBe(1);
     expect(modules[0].name).toBe('base');
+  }, 60000);
+  it('import git module with no version pins ^<latest tagged version>', async () => {
+    // npm-install-style default: no caller range means pin to the highest
+    // remote tag with a caret. The persisted range must be a valid caret
+    // expansion covering the installed version.
+    const gitModule = 'https://github.com/CyberismoCom/module-base.git';
+    await commands.importCmd.importModule(gitModule);
+    const persisted = commands.project.configuration.modules.find(
+      (m) => m.name === 'base',
+    );
+    expect(persisted).toBeDefined();
+    expect(persisted!.version).toMatch(/^\^\d+\.\d+\.\d+$/);
+    const modules = await commands.showCmd.showModules();
+    expect(modules[0].version).toBeDefined();
+    expect(
+      satisfies(modules[0].version as string, persisted!.version as string),
+    ).toBe(true);
   }, 60000);
   it('import git module at a pinned version installs that version', async () => {
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';

@@ -62,13 +62,17 @@ export function toVersion(value: string): Version {
   return normalized as Version;
 }
 
-/** @throws if `range` is not a valid semver range. */
+/**
+ * Validate that `range` parses as a semver range and return it unchanged.
+ * The round-trip preserves whatever form the user wrote (`^1.0.0`, `~1.2`,
+ * `>=1 <2`, …) so `cardsConfig.json` and error messages stay readable.
+ * @throws if `range` is not a valid semver range.
+ */
 export function toVersionRange(range: string): VersionRange {
-  const normalized = semver.validRange(range);
-  if (normalized === null) {
+  if (semver.validRange(range) === null) {
     throw new Error(`Invalid semver range: ${range}`);
   }
-  return normalized as VersionRange;
+  return range as VersionRange;
 }
 
 /**
