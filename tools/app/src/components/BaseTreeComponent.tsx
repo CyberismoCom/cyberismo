@@ -17,7 +17,7 @@ import type { NodeRendererProps, NodeApi, TreeApi } from 'react-arborist';
 import { Tree } from 'react-arborist';
 import { Link } from 'react-router';
 import { useResizeObserver } from '../lib/hooks';
-import { getConfig } from '@/lib/utils';
+import { useCanEdit } from '@/lib/auth';
 
 export interface BaseTreeProps<T> {
   title?: string;
@@ -33,6 +33,8 @@ export interface BaseTreeProps<T> {
   onMove?: (dragIds: string[], parentId: string | null, index: number) => void;
   onNodeClick?: (node: NodeApi<T>) => void;
   openByDefault?: boolean;
+  /** Disable drag & drop regardless of the user's edit role. */
+  readOnly?: boolean;
 }
 
 export function BaseTreeComponent<T>({
@@ -47,10 +49,12 @@ export function BaseTreeComponent<T>({
   onMove,
   onNodeClick,
   openByDefault = false,
+  readOnly = false,
 }: BaseTreeProps<T>) {
   const treeRef = useRef(null);
   const { width, height, ref } = useResizeObserver();
   const { height: titleHeight, ref: titleRef } = useResizeObserver();
+  const canEdit = useCanEdit() && !readOnly;
 
   useEffect(() => {
     const tree = treeRef.current as unknown as TreeApi<T> | null;
@@ -116,12 +120,12 @@ export function BaseTreeComponent<T>({
         data={data || []}
         openByDefault={openByDefault}
         disableDrag={
-          getConfig().staticMode || !onMove
+          !canEdit || !onMove
             ? true
             : (node: T) => (node as { readOnly?: boolean })?.readOnly === true
         }
         disableDrop={
-          getConfig().staticMode || !onMove
+          !canEdit || !onMove
             ? true
             : ({ parentNode }) =>
                 (parentNode?.data as { readOnly?: boolean })?.readOnly === true

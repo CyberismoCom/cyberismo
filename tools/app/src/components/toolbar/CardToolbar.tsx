@@ -29,11 +29,11 @@ import {
 } from '../../lib/api';
 import { useAppDispatch } from '../../lib/hooks';
 import { addNotification } from '../../lib/slices/notifications';
-import { getConfig } from '@/lib/utils';
 import BaseToolbar from './BaseToolbar';
 import { CardContextMenu } from '@/components/context-menus';
 import PresenceIndicator from '@/components/PresenceIndicator';
 import SvgViewerModal from '@/components/modals/svgViewerModal';
+import { useCanEdit } from '@/lib/auth';
 
 interface CardToolbarProps {
   cardKey: string;
@@ -61,6 +61,7 @@ export function CardToolbar({
   const presence = usePresence(cardKey, presenceMode);
 
   const dispatch = useAppDispatch();
+  const canEdit = useCanEdit();
 
   const workflow =
     project && card ? findWorkflowForCardType(card.cardType, project) : null;
@@ -94,7 +95,7 @@ export function CardToolbar({
 
   const actions = (
     <>
-      {!getConfig().staticMode && (
+      {canEdit && (
         <Tooltip title={t('linkTooltip')} placement="top">
           <IconButton
             onClick={onInsertLink}
@@ -122,7 +123,7 @@ export function CardToolbar({
         onTransition={(transition) => onStateTransition(transition)}
         onViewWorkflow={workflow ? () => setWorkflowGraphOpen(true) : undefined}
         isLoading={isUpdating('updateState')}
-        disabled={isUpdating() && !isUpdating('updateState')}
+        disabled={!canEdit || (isUpdating() && !isUpdating('updateState'))}
       />
 
       <SvgViewerModal
@@ -137,7 +138,7 @@ export function CardToolbar({
     <BaseToolbar
       breadcrumbs={breadcrumbs}
       contextMenu={
-        !getConfig().staticMode && (
+        canEdit && (
           <>
             <PresenceIndicator presence={presence} currentUserId={user?.id} />
             <CardContextMenu

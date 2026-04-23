@@ -41,6 +41,7 @@ import { createMcpRouter } from './domain/mcp/index.js';
 import { createAuthRouter } from './domain/auth/index.js';
 import { createAuthMiddleware } from './middleware/auth.js';
 import type { AuthProvider } from './auth/types.js';
+import { MockAuthProvider, mockRoleCookieMiddleware } from './auth/mock.js';
 import type { ProjectRegistry } from './project-registry.js';
 import { CommandManager, scanForProjects } from '@cyberismo/data-handler';
 import { createProjectsRouter } from './domain/projects/index.js';
@@ -112,6 +113,12 @@ export function createApp(
       defaultProject: process.env.CYBERISMO_DEFAULT_PROJECT || undefined,
     });
   });
+
+  // Dev-only: let `?role=<reader|editor|admin>` set a persistent mock-role cookie
+  // so role gating can be exercised locally without code changes or a restart.
+  if (authProvider instanceof MockAuthProvider) {
+    app.use(mockRoleCookieMiddleware());
+  }
 
   // Apply authentication middleware to all API and MCP routes
   app.use('/api/*', createAuthMiddleware(authProvider));

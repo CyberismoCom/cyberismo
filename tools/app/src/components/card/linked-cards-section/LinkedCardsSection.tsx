@@ -25,7 +25,8 @@ import type {
   CalculationLink,
   QueryResult,
 } from '@cyberismo/data-handler/types/queries';
-import { getConfig, useModals } from '@/lib/utils';
+import { useModals } from '@/lib/utils';
+import { useCanEdit } from '@/lib/auth';
 import { useCard } from '@/lib/api';
 import { useAppDispatch, useAppSelector } from '@/lib/hooks/redux';
 import { setLinkedCardsExpanded } from '@/lib/slices/pageState';
@@ -63,6 +64,7 @@ export default function LinkedCardsSection({
   const { t } = useTranslation();
   const { isUpdating } = useCard(card.key);
   const dispatch = useAppDispatch();
+  const canEdit = useCanEdit();
   const expanded = useAppSelector((state) => state.page.linkedCardsExpanded);
   const [editing, setEditing] = useState(false);
   const [deleteLinkData, setDeleteLinkData] = useState<CalculationLink | null>(
@@ -139,7 +141,7 @@ export default function LinkedCardsSection({
             {linkCount > 0 ? t('linkedCards') : t('noLinkedCards')}
           </Typography>
           {!preview &&
-            !getConfig().staticMode &&
+            canEdit &&
             linkCount === 0 &&
             (editing ? (
               <Button
@@ -169,7 +171,7 @@ export default function LinkedCardsSection({
               </IconButton>
             ))}
           {!preview &&
-            !getConfig().staticMode &&
+            canEdit &&
             expanded &&
             linkCount > 0 &&
             (editing ? (

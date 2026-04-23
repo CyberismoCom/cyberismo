@@ -24,8 +24,8 @@ import {
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import ExpandMore from '@mui/icons-material/ExpandMore';
-import { getConfig } from '@/lib/utils';
 import { CountBadge } from './CountBadge';
+import { useCanEdit } from '@/lib/auth';
 
 // Generic types for check items
 export interface CheckItem {
@@ -77,6 +77,7 @@ export function ChecksAccordion({
   const [failuresExpanded, setFailuresExpanded] = useState(
     initialFailuresExpanded,
   );
+  const canEdit = useCanEdit();
 
   if (checks.successes.length === 0 && checks.failures.length === 0) {
     return null;
@@ -140,7 +141,7 @@ export function ChecksAccordion({
               {failure.title}
             </Typography>
             <Typography fontSize="xs">{failure.errorMessage}</Typography>
-            {onGoToField && !getConfig().staticMode && failure.fieldName && (
+            {onGoToField && canEdit && failure.fieldName && (
               <Link
                 data-cy="goToFieldLink"
                 level="body-sm"

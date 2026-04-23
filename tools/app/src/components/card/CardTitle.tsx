@@ -20,7 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { useAppDispatch } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
 import { isEdited } from '@/lib/slices/pageState';
-import { getConfig } from '@/lib/utils';
+import { useCanEdit } from '@/lib/auth';
 import type { MetadataValue } from '@/lib/definitions';
 
 type CardTitleProps = {
@@ -40,13 +40,14 @@ export const CardTitle: React.FC<CardTitleProps> = ({
 }) => {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
+  const canEditRole = useCanEdit();
 
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(title);
   const editBoxRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const canEdit = !preview && !!onSave && !disabled && !getConfig().staticMode;
+  const canEdit = !preview && !!onSave && !disabled && canEditRole;
 
   const handleStartEdit = (e: React.MouseEvent) => {
     if (!canEdit) return;

@@ -1,4 +1,5 @@
 import { beforeEach, describe, it } from 'vitest';
+import type * as libHooksModule from '../src/lib/hooks';
 import { TreeMenu } from '../src/components/TreeMenu';
 import { SearchableTreeMenu } from '../src/components/SearchableTreeMenu';
 import { LabelEditorField } from '@/components/LabelEditor';
@@ -13,10 +14,12 @@ import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router';
 
 // mock useAppRouter and useResizeObserver
-vi.mock('../src/lib/hooks', async () => {
+vi.mock('../src/lib/hooks', async (importOriginal) => {
+  const actual = await importOriginal<typeof libHooksModule>();
   const { selectRecentPrefixes } = await import('../src/lib/slices/project');
   let callCount = 0;
   return {
+    ...actual,
     useAppRouter: vi.fn(() => ({
       push: vi.fn(),
     })),
@@ -42,6 +45,12 @@ vi.mock('../src/lib/hooks', async () => {
 
 vi.mock('../src/lib/api/projects', () => ({
   useAvailableProjects: vi.fn(() => ({ data: [] })),
+}));
+
+vi.mock('@/lib/api', () => ({
+  useUser: () => ({
+    user: { id: 'test', email: '', name: '', role: 'editor' },
+  }),
 }));
 
 vi.mock('@/lib/utils', async () => {

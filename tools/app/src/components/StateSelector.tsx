@@ -28,8 +28,7 @@ import {
 } from '@mui/joy';
 import ArrowForward from '@mui/icons-material/ArrowForward';
 import { useTranslation } from 'react-i18next';
-import { getStateColor } from '../lib/utils';
-import { getConfig } from '@/lib/utils';
+import { getStateColor, getConfig } from '../lib/utils';
 import { ANY_STATE } from '@/lib/constants';
 
 interface StateSelectorProps {

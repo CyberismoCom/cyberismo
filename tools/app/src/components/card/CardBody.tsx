@@ -32,7 +32,8 @@ import {
   Typography,
 } from '@mui/joy';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { getConfig, isAppUrl, parseDataAttributes } from '@/lib/utils';
+import { isAppUrl, parseDataAttributes } from '@/lib/utils';
+import { useCanEdit } from '@/lib/auth';
 import { useLocation } from 'react-router';
 import DownloadIcon from '@mui/icons-material/Download';
 import OpenInFullIcon from '@mui/icons-material/OpenInFull';
@@ -117,6 +118,7 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
     const router = useAppRouter();
     const { t } = useTranslation();
     const isDarkMode = useIsDarkMode();
+    const canEditRole = useCanEdit();
     const location = useLocation();
 
     // Inline editing state
@@ -127,7 +129,7 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
     const [previewing, setPreviewing] = useState(false);
     const [previewHtml, setPreviewHtml] = useState<string | null>(null);
 
-    const canEdit = !preview && !!onContentSave && !getConfig().staticMode;
+    const canEdit = !preview && !!onContentSave && canEditRole;
 
     useEffect(() => {
       onEditingChange?.(editing);

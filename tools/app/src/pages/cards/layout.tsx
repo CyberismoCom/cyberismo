@@ -27,6 +27,7 @@ import { useTree } from '../../lib/api/tree';
 import { useCard } from '../../lib/api/card';
 import { CardTreeMenu } from '@/components/CardTreeMenu';
 import type { AppLayoutOutletContext } from '../layout';
+import { useCanEdit } from '@/lib/auth';
 
 /**
  * Delay in milliseconds before hiding the loading overlay after a move operation.
@@ -38,6 +39,7 @@ export default function AppLayout() {
   const { project, error, isLoading, updateCard } = useProject();
   const { tree, isLoading: isLoadingTree, error: treeError } = useTree();
   const { card } = useCard(key);
+  const canEdit = useCanEdit();
   const router = useAppRouter();
   const { drawerOpen, setDrawerOpen } =
     useOutletContext<AppLayoutOutletContext>();
@@ -92,6 +94,7 @@ export default function AppLayout() {
           selectedCardKey={key ?? null}
           onClose={() => setDrawerOpen(false)}
           onMove={async (cardKey: string, newParent: string, index: number) => {
+            if (!canEdit) return;
             const parent = findParentCard(tree, cardKey);
             await updateCard(cardKey, {
               parent: newParent === parent?.key ? undefined : newParent,

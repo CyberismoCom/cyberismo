@@ -11,13 +11,14 @@
 */
 
 import { useCard } from '@/lib/api';
-import { Button } from '@mui/joy';
+import { Button, Tooltip } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import type { MacroContext } from '.';
 import { useAppDispatch, useAppRouter } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
 import { useState } from 'react';
 import type { LinkDirection } from '@cyberismo/data-handler/types/queries';
+import { useCanEdit } from '@/lib/auth';
 
 export type CreateCardsProps = {
   buttonLabel: string;
@@ -39,6 +40,7 @@ export default function CreateCards({
   preview,
   link,
 }: CreateCardsProps) {
+  const canEdit = useCanEdit();
   const { t } = useTranslation();
   const { createCard, isUpdating } = useCard(cardKey || macroKey);
   const { createLink } = useCard(link?.cardKey || null);
@@ -47,99 +49,108 @@ export default function CreateCards({
   const router = useAppRouter();
 
   return (
-    <Button
-      loading={loading}
-      disabled={isUpdating()}
-      onClick={async () => {
-        try {
-          if (preview) {
-            dispatch(
-              addNotification({
-                message: t('createCard.macro.preview'),
-                type: 'success',
-              }),
-            );
-            return;
-          }
-          setLoading(true);
-          const cards = await createCard(template);
-          dispatch(
-            addNotification({
-              message: t('createCard.success'),
-              type: 'success',
-            }),
-          );
-
-          if (cards && cards.length > 0) {
-            if (link) {
-              const rootCards = cards.filter(
-                (card) => card.parent === (cardKey || macroKey),
+    <Tooltip
+      title={t('permissions.editorRequired')}
+      disableHoverListener={canEdit}
+    >
+      <span>
+        <Button
+          loading={loading}
+          disabled={!canEdit || isUpdating()}
+          onClick={async () => {
+            try {
+              if (preview) {
+                dispatch(
+                  addNotification({
+                    message: t('createCard.macro.preview'),
+                    type: 'success',
+                  }),
+                );
+                return;
+              }
+              setLoading(true);
+              const cards = await createCard(template);
+              dispatch(
+                addNotification({
+                  message: t('createCard.success'),
+                  type: 'success',
+                }),
               );
-              if (rootCards.length > 0) {
-                try {
-                  const linkResults = await Promise.allSettled(
-                    rootCards.map((card) =>
-                      createLink(
-                        card.key,
-                        link.linkType,
-                        link.description,
-                        link.direction,
-                      ),
-                    ),
+
+              if (cards && cards.length > 0) {
+                if (link) {
+                  const rootCards = cards.filter(
+                    (card) => card.parent === (cardKey || macroKey),
                   );
+                  if (rootCards.length > 0) {
+                    try {
+                      const linkResults = await Promise.allSettled(
+                        rootCards.map((card) =>
+                          createLink(
+                            card.key,
+                            link.linkType,
+                            link.description,
+                            link.direction,
+                          ),
+                        ),
+                      );
 
-                  const successful = linkResults.filter(
-                    (result) => result.status === 'fulfilled',
-                  ).length;
-                  const failed = linkResults.filter(
-                    (result) => result.status === 'rejected',
-                  ).length;
+                      const successful = linkResults.filter(
+                        (result) => result.status === 'fulfilled',
+                      ).length;
+                      const failed = linkResults.filter(
+                        (result) => result.status === 'rejected',
+                      ).length;
 
-                  if (successful > 0) {
-                    dispatch(
-                      addNotification({
-                        message: t('createLink.success', { count: successful }),
-                        type: 'success',
-                      }),
-                    );
-                  }
+                      if (successful > 0) {
+                        dispatch(
+                          addNotification({
+                            message: t('createLink.success', {
+                              count: successful,
+                            }),
+                            type: 'success',
+                          }),
+                        );
+                      }
 
-                  if (failed > 0) {
-                    dispatch(
-                      addNotification({
-                        message: t('createLink.partialFailure', {
-                          count: failed,
+                      if (failed > 0) {
+                        dispatch(
+                          addNotification({
+                            message: t('createLink.partialFailure', {
+                              count: failed,
+                            }),
+                            type: 'error',
+                          }),
+                        );
+                      }
+                    } catch (e) {
+                      dispatch(
+                        addNotification({
+                          message:
+                            e instanceof Error ? e.message : t('unknownError'),
+                          type: 'error',
                         }),
-                        type: 'error',
-                      }),
-                    );
+                      );
+                    }
                   }
-                } catch (e) {
-                  dispatch(
-                    addNotification({
-                      message:
-                        e instanceof Error ? e.message : t('unknownError'),
-                      type: 'error',
-                    }),
-                  );
                 }
               }
+              router.push(`/cards/${cards[0].key}`);
+            } catch (e) {
+              dispatch(
+                addNotification({
+                  message: e instanceof Error ? e.message : t('unknownError'),
+                  type: 'error',
+                }),
+              );
+            } finally {
+              setLoading(false);
             }
-          }
-          router.push(`/cards/${cards[0].key}`);
-        } catch (e) {
-          dispatch(
-            addNotification({
-              message: e instanceof Error ? e.message : t('unknownError'),
-              type: 'error',
-            }),
-          );
-        } finally {
-          setLoading(false);
-        }
-      }}
-    >
-      {buttonLabel}
-    </Button>
+          }}
+        >
+          {buttonLabel}
+        </Button>
+      </span>
+    </Tooltip>
   );
 }

@@ -18,7 +18,8 @@ import { Box, Button, Stack } from '@mui/joy';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import type { MetadataValue } from '@/lib/definitions';
 import type { CardResponse } from '@/lib/api/types';
-import { getConfig, getDefaultValue } from '@/lib/utils';
+import { getDefaultValue } from '@/lib/utils';
+import { useCanEdit } from '@/lib/auth';
 import { format } from 'date-fns';
 import { FieldRow } from './FieldRow';
 import { LABEL_SPLITTER } from '@/lib/constants';
@@ -49,6 +50,7 @@ export default function MetadataSection({
   const [expanded, setExpanded] = useState(initialExpanded);
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
+  const canEditRole = useCanEdit();
 
   useEffect(() => {
     setEditingFieldKey(null);
@@ -74,7 +76,7 @@ export default function MetadataSection({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusFieldKey, card.key]);
 
-  const canEdit = !getConfig().staticMode && !!onUpdate;
+  const canEdit = canEditRole && !!onUpdate;
 
   const notifyError = (error: unknown) => {
     dispatch(
