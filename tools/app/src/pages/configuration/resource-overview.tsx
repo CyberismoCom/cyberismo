@@ -27,7 +27,7 @@ import {
   ResourceModuleSection,
   ResourceOverviewCard,
 } from '@/components/resource-overview';
-import { getConfig } from '@/lib/utils';
+import { useCanAdmin } from '@/lib/auth';
 
 function identifier(name: string) {
   const parts = name.split('/');
@@ -83,6 +83,7 @@ function ResourceOverviewContent({
 }) {
   const { t } = useTranslation();
   const { openCreateResourceModal } = useAppModals();
+  const canAdmin = useCanAdmin();
   const [expandedModules, setExpandedModules] = useState<
     Record<string, boolean>
   >({});
@@ -154,7 +155,7 @@ function ResourceOverviewContent({
                   gap: 2,
                 }}
               >
-                {isProject && !getConfig().staticMode && (
+                {isProject && canAdmin && (
                   <CreateResourceCard
                     title={t('overview.createNew', {
                       resourceType: t(

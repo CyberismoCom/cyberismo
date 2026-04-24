@@ -12,8 +12,8 @@
 */
 
 import { useEffect, useState } from 'react';
-import { getConfig } from '@/lib/utils';
 import { apiPaths } from '@/lib/swr.js';
+import { useCanEdit } from '@/lib/auth';
 import { z } from 'zod';
 
 const presenceEntrySchema = z.object({
@@ -39,10 +39,11 @@ export function usePresence(
   cardKey: string | null,
   mode: 'viewing' | 'editing' = 'viewing',
 ): PresenceEntry[] {
+  const canEdit = useCanEdit();
   const [editors, setEditors] = useState<PresenceEntry[]>([]);
 
   useEffect(() => {
-    if (!cardKey || getConfig().staticMode) {
+    if (!cardKey || !canEdit) {
       return;
     }
 
@@ -67,9 +68,9 @@ export function usePresence(
       eventSource.close();
       setEditors([]);
     };
-  }, [cardKey, mode]);
+  }, [cardKey, mode, canEdit]);
 
-  if (!cardKey || getConfig().staticMode) return [];
+  if (!cardKey || !canEdit) return [];
 
   return editors;
 }

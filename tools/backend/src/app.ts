@@ -40,6 +40,7 @@ import mcpRouter from './domain/mcp/index.js';
 import { createAuthRouter } from './domain/auth/index.js';
 import { createAuthMiddleware } from './middleware/auth.js';
 import type { AuthProvider } from './auth/types.js';
+import { MockAuthProvider, mockRoleCookieMiddleware } from './auth/mock.js';
 
 /**
  * Create the Hono app for the backend
@@ -54,6 +55,11 @@ export function createApp(
   const app = new Hono<{ Variables: AppVars }>();
 
   app.use(treeMiddleware(opts));
+  // Dev-only: let `?role=<reader|editor|admin>` set a persistent mock-role cookie
+  // so role gating can be exercised locally without code changes or a restart.
+  if (authProvider instanceof MockAuthProvider) {
+    app.use(mockRoleCookieMiddleware());
+  }
   // Apply authentication middleware to all API and MCP routes
   app.use('/api/*', createAuthMiddleware(authProvider));
   app.use('/mcp', createAuthMiddleware(authProvider));

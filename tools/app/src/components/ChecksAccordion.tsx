@@ -24,8 +24,8 @@ import {
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import ExpandMore from '@mui/icons-material/ExpandMore';
-import { getConfig } from '@/lib/utils';
 import { useAppRouter } from '../lib/hooks';
+import { useCanEdit } from '@/lib/auth';
 
 // Generic types for check items
 export interface CheckItem {
@@ -78,6 +78,7 @@ export function ChecksAccordion({
     initialFailuresExpanded,
   );
   const router = useAppRouter();
+  const canEdit = useCanEdit();
 
   if (checks.successes.length === 0 && checks.failures.length === 0) {
     return null;
@@ -206,20 +207,18 @@ export function ChecksAccordion({
                       <Typography fontSize="xs">
                         {failure.errorMessage}
                       </Typography>
-                      {showGoToField &&
-                        !getConfig().staticMode &&
-                        failure.fieldName && (
-                          <Link
-                            level="body-sm"
-                            component="button"
-                            onClick={() =>
-                              handleGoToField(cardKey, failure.fieldName!)
-                            }
-                            sx={{ mt: 1 }}
-                          >
-                            {goToFieldText || t('goToField')}
-                          </Link>
-                        )}
+                      {showGoToField && canEdit && failure.fieldName && (
+                        <Link
+                          level="body-sm"
+                          component="button"
+                          onClick={() =>
+                            handleGoToField(cardKey, failure.fieldName!)
+                          }
+                          sx={{ mt: 1 }}
+                        >
+                          {goToFieldText || t('goToField')}
+                        </Link>
+                      )}
                     </Box>
                     <Typography level="title-sm" fontWeight="bold">
                       {failureFailText}

@@ -11,26 +11,26 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useSWRHook } from './common';
-import { apiPaths } from '../swr';
-import { getConfig } from '../utils';
-import type { User } from './types';
+export enum UserRole {
+  Reader = 0,
+  Editor = 1,
+  Admin = 2,
+}
 
-import type { SWRConfiguration } from 'swr';
-
-const STATIC_READER_USER: User = {
-  id: 'static-reader',
-  email: '',
-  name: '',
-  role: 'reader',
+const ROLE_MAP: Record<string, UserRole> = {
+  reader: UserRole.Reader,
+  editor: UserRole.Editor,
+  admin: UserRole.Admin,
 };
 
-export const useUser = (options?: SWRConfiguration) => {
-  const staticMode = getConfig().staticMode;
-  return useSWRHook<'user', User | null>(
-    staticMode ? null : apiPaths.user(),
-    'user',
-    staticMode ? STATIC_READER_USER : null,
-    options,
-  );
-};
+export function parseRole(raw: string | undefined | null): UserRole | null {
+  if (!raw) return null;
+  return ROLE_MAP[raw.toLowerCase()] ?? null;
+}
+
+export function roleSatisfies(
+  userRole: UserRole | null,
+  minRole: UserRole,
+): boolean {
+  return userRole != null && userRole >= minRole;
+}
