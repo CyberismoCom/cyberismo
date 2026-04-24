@@ -13,14 +13,7 @@
 
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  Autocomplete,
-  Box,
-  Chip,
-  ChipDelete,
-  IconButton,
-  Stack,
-} from '@mui/joy';
+import { Autocomplete, Chip, ChipDelete, IconButton, Stack } from '@mui/joy';
 import Add from '@mui/icons-material/Add';
 
 import { LABEL_SPLITTER } from '../lib/constants';
@@ -123,7 +116,7 @@ export function LabelEditorField({
           <Add />
         </IconButton>
       </Stack>
-      <Box>
+      <Stack direction="row" spacing={1} rowGap={1} flexWrap="wrap">
         {(value ?? []).map((label) => (
           <Chip
             key={label}
@@ -146,7 +139,7 @@ export function LabelEditorField({
             {label}
           </Chip>
         ))}
-      </Box>
+      </Stack>
     </Stack>
   );
 }

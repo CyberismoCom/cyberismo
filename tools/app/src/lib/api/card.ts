@@ -133,9 +133,7 @@ export const useCardMutations = (
         (await call(
           () =>
             createLink(key, target, type, linkDescription, direction).then(
-              () => {
-                mutate(apiPaths.card(key)); // raw cards do not have links, no need to mutate them
-              },
+              () => mutate(apiPaths.card(key)), // raw cards do not have links, no need to mutate them
             ),
           'createLink',
         ))) ||
@@ -150,9 +148,7 @@ export const useCardMutations = (
         (await call(
           () =>
             removeLink(key, target, linkType, linkDescription, direction).then(
-              () => {
-                mutate(apiPaths.card(key));
-              },
+              () => mutate(apiPaths.card(key)),
             ),
           'deleteLink',
         ))) ||

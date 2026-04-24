@@ -22,12 +22,14 @@ export interface PageState {
   isEdited: boolean;
   title: string | null; // title of the section being viewed as an asciidoc id
   cardKey: string | null; // cardKey of the section being edited. Mainly used to make sure we don't scroll on other cards
+  linkedCardsExpanded: boolean;
 }
 
 export const initialState: PageState = {
   isEdited: false,
   title: null,
   cardKey: null,
+  linkedCardsExpanded: false,
 };
 
 export const pageSlice = createSlice({
@@ -41,9 +43,13 @@ export const pageSlice = createSlice({
       state.cardKey = action.payload.cardKey;
       state.title = action.payload.title;
     },
+    setLinkedCardsExpanded: (state, action: PayloadAction<boolean>) => {
+      state.linkedCardsExpanded = action.payload;
+    },
   },
 });
 
-export const { isEdited, viewChanged } = pageSlice.actions;
+export const { isEdited, viewChanged, setLinkedCardsExpanded } =
+  pageSlice.actions;
 
 export default pageSlice.reducer;
