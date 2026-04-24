@@ -58,6 +58,30 @@ jobs:
       with:
         submodules: ${{ matrix.language == 'c-cpp' && 'recursive' || 'false' }}
 
+    - name: Set up Node.js
+      if: matrix.language == 'c-cpp'
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ vars.NODE_VERSION }}
+
+    - name: Install pnpm
+      if: matrix.language == 'c-cpp'
+      uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda
+
+    - name: Install dependencies (skip prebuilt download)
+      if: matrix.language == 'c-cpp'
+      run: pnpm install --filter @cyberismo/node-clingo --ignore-scripts
+
+    # Build the Clingo submodule BEFORE CodeQL init. With build-mode: manual,
+    # CodeQL only traces compilations between `init` and `analyze`, so the
+    # submodule's .cc files stay out of the database. Submodule headers pulled
+    # in by our post-init bindings are filtered by paths-ignore in codeql-config.yml.
+    - name: Pre-build Clingo submodule (skip CodeQL tracing)
+      if: matrix.language == 'c-cpp'
+      run: |
+        cd tools/node-clingo
+        cmake -P scripts/build-clingo.cmake
+
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v4
       with:
@@ -70,25 +94,10 @@ jobs:
 
         # For more details on CodeQL's query packs, refer to: https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
 
-    - name: Set up Node.js
-      if: matrix.language == 'c-cpp'
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ vars.NODE_VERSION }}
-
-    - name: Install pnpm
-      if: matrix.language == 'c-cpp'
-      uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda 
-
-    - name: Install dependencies (skip prebuilt download)
-      if: matrix.language == 'c-cpp'
-      run: pnpm install --filter @cyberismo/node-clingo --ignore-scripts
-
-    - name: Build C++ from source (manual mode)
+    - name: Build node-clingo bindings (manual mode)
       if: matrix.language == 'c-cpp'
       run: |
         cd tools/node-clingo
-        cmake -P scripts/build-clingo.cmake
         npx node-gyp rebuild
 
     - name: Perform CodeQL Analysis
