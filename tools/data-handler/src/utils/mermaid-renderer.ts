@@ -20,9 +20,10 @@ import { tmpdir } from 'node:os';
  * Regex that matches standard AsciiDoc mermaid diagram blocks.
  * Supports [mermaid], [mermaid,id], [mermaid,id,format=svg], etc.
  * Matches both literal blocks (....) and listing blocks (----).
+ * Supports both LF and CRLF line endings.
  */
 const MERMAID_BLOCK_REGEX =
-  /\[mermaid[^\]]*\]\n(\.{4,}|-{4,})\n([\s\S]*?)\n\1/g;
+  /\[mermaid[^\]]*\]\r?\n(\.{4,}|-{4,})\r?\n([\s\S]*?)\r?\n\1/g;
 
 /**
  * Render mermaid code to a file using the `mmdc` CLI (mermaid-cli).

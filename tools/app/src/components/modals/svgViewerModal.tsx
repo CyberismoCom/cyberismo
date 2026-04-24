@@ -37,45 +37,183 @@ const MAX_ZOOM = 8;
 const ZOOM_STEP = 1.25;
 
 /**
- * Parse intrinsic dimensions from an SVG string.
- * Tries viewBox first, then explicit width/height attributes.
+ * Returns true when the SVG string has a valid viewBox with positive dimensions.
  */
-function parseNaturalSize(markup: string): Size | null {
-  const vbMatch = markup.match(/viewBox\s*=\s*"([^"]+)"/i);
-  if (vbMatch) {
-    const parts = vbMatch[1].split(/[\s,]+/).map(Number);
-    if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
-      return { width: parts[2], height: parts[3] };
+function hasUsableViewBox(markup: string): boolean {
+  const doc = new DOMParser().parseFromString(markup, 'image/svg+xml');
+  const svg = doc.documentElement;
+  if (svg?.nodeName.toLowerCase() !== 'svg') {
+    return false;
+  }
+
+  const viewBox = svg.getAttribute('viewBox');
+  if (!viewBox) {
+    return false;
+  }
+
+  const parts = viewBox
+    .trim()
+    .split(/[\s,]+/)
+    .map((part) => Number(part));
+
+  return (
+    parts.length === 4 &&
+    Number.isFinite(parts[2]) &&
+    Number.isFinite(parts[3]) &&
+    parts[2] > 0 &&
+    parts[3] > 0
+  );
+}
+
+/**
+ * Parse an absolute SVG length value (px, pt, pc, in, cm, mm) into pixels.
+ * Returns null for relative/unit-less/invalid values.
+ */
+function parseAbsoluteSvgLength(value: string | null): number | null {
+  if (!value) {
+    return null;
+  }
+
+  const match = value.trim().match(/^([+-]?\d*\.?\d+)(px|pt|pc|in|cm|mm)?$/i);
+  if (!match) {
+    return null;
+  }
+
+  const amount = Number.parseFloat(match[1]);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return null;
+  }
+
+  const unit = (match[2] || 'px').toLowerCase();
+  switch (unit) {
+    case 'px':
+      return amount;
+    case 'pt':
+      return amount * (96 / 72);
+    case 'pc':
+      return amount * 16;
+    case 'in':
+      return amount * 96;
+    case 'cm':
+      return amount * (96 / 2.54);
+    case 'mm':
+      return amount * (96 / 25.4);
+    default:
+      return null;
+  }
+}
+
+/**
+ * Measure the natural size of an SVG by temporarily inserting it into the DOM.
+ * Used as a fallback when viewBox and explicit width/height are not parseable.
+ */
+function measureNaturalSize(markup: string): Size | null {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
+  const wrapper = document.createElement('div');
+  wrapper.style.position = 'absolute';
+  wrapper.style.left = '-10000px';
+  wrapper.style.top = '-10000px';
+  wrapper.style.visibility = 'hidden';
+  wrapper.style.pointerEvents = 'none';
+  wrapper.style.width = 'auto';
+  wrapper.style.height = 'auto';
+
+  wrapper.innerHTML = DOMPurify.sanitize(markup, {
+    USE_PROFILES: { svg: true, svgFilters: true },
+  });
+
+  const svg = wrapper.querySelector('svg') as SVGSVGElement | null;
+  if (!svg) {
+    return null;
+  }
+
+  document.body.appendChild(wrapper);
+  try {
+    const bbox = typeof svg.getBBox === 'function' ? svg.getBBox() : null;
+    if (bbox && bbox.width > 0 && bbox.height > 0) {
+      return { width: bbox.width, height: bbox.height };
     }
+
+    const rect = svg.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      return { width: rect.width, height: rect.height };
+    }
+  } catch {
+    // Ignore measurement failures and fall back to null.
+  } finally {
+    wrapper.remove();
   }
-  const wMatch = markup.match(
-    /<svg[^>]*\bwidth\s*=\s*"(\d+(?:\.\d+)?)(?:px)?"/i,
-  );
-  const hMatch = markup.match(
-    /<svg[^>]*\bheight\s*=\s*"(\d+(?:\.\d+)?)(?:px)?"/i,
-  );
-  if (wMatch && hMatch) {
-    return { width: parseFloat(wMatch[1]), height: parseFloat(hMatch[1]) };
-  }
+
   return null;
 }
 
 /**
+ * Parse intrinsic dimensions from an SVG string.
+ * Tries viewBox first, then explicit width/height attributes, then a
+ * temporary DOM measurement fallback for valid SVGs without parseable lengths.
+ */
+function parseNaturalSize(markup: string): Size | null {
+  const doc = new DOMParser().parseFromString(markup, 'image/svg+xml');
+  const svg = doc.documentElement;
+  if (svg?.nodeName.toLowerCase() !== 'svg') {
+    return null;
+  }
+
+  const viewBox = svg.getAttribute('viewBox');
+  if (viewBox) {
+    const parts = viewBox
+      .trim()
+      .split(/[\s,]+/)
+      .map((part) => Number(part));
+    if (
+      parts.length === 4 &&
+      Number.isFinite(parts[2]) &&
+      Number.isFinite(parts[3]) &&
+      parts[2] > 0 &&
+      parts[3] > 0
+    ) {
+      return { width: parts[2], height: parts[3] };
+    }
+  }
+
+  const width = parseAbsoluteSvgLength(svg.getAttribute('width'));
+  const height = parseAbsoluteSvgLength(svg.getAttribute('height'));
+  if (width && height) {
+    return { width, height };
+  }
+
+  return measureNaturalSize(markup);
+}
+
+/**
  * Strip constraining dimension attributes / styles from the root <svg> so it
- * fills its container.  Preserves viewBox for correct aspect-ratio scaling.
+ * fills its container when intrinsic sizing is reliable. Preserves viewBox for
+ * correct aspect-ratio scaling.
  */
 function normalizeSvgMarkup(markup: string): string {
+  const canFillContainer =
+    hasUsableViewBox(markup) || parseNaturalSize(markup) !== null;
+
   return markup.replace(/<svg\b([^>]*)>/i, (_match, attrs: string) => {
     let cleaned = attrs
-      .replace(/\s+width\s*=\s*"[^"]*"/gi, '')
-      .replace(/\s+height\s*=\s*"[^"]*"/gi, '');
+      .replace(/\s+width\s*=\s*(?:"[^"]*"|'[^']*')/gi, '')
+      .replace(/\s+height\s*=\s*(?:"[^"]*"|'[^']*')/gi, '');
     cleaned = cleaned.replace(
-      /style\s*=\s*"([^"]*)"/i,
-      (_: string, style: string) => {
+      /style\s*=\s*(?:"([^"]*)"|'([^']*)')/i,
+      (_: string, doubleQuotedStyle?: string, singleQuotedStyle?: string) => {
+        const style = doubleQuotedStyle ?? singleQuotedStyle ?? '';
         const newStyle = style.replace(/max-width:\s*[^;]+;?\s*/gi, '').trim();
         return newStyle ? `style="${newStyle}"` : '';
       },
     );
+
+    if (!canFillContainer) {
+      return `<svg${cleaned}>`;
+    }
+
     return `<svg width="100%" height="100%"${cleaned}>`;
   });
 }

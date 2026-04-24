@@ -697,7 +697,8 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 
   /**
    * Adds fullscreen/download controls to an SVG wrapper element.
-   * Returns a cleanup function to remove event listeners and controls.
+   * Stores a cleanup function on the element's `__cleanupSvgControls` property
+   * to remove event listeners and controls.
    */
   const addSvgControls = (wrapper: HTMLElement) => {
     if (wrapper.querySelector('[data-cy="svg-controls"]')) return;
@@ -815,7 +816,23 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         .then(({ svg }) => {
           const wrapper = document.createElement('div');
           wrapper.setAttribute('data-type', 'cyberismo-svg-wrapper');
-          wrapper.innerHTML = svg;
+          wrapper.innerHTML = contentPurify.sanitize(svg, {
+            USE_PROFILES: { svg: true, svgFilters: true },
+            ADD_TAGS: [
+              'foreignObject',
+              'div',
+              'span',
+              'p',
+              'br',
+              'i',
+              'b',
+              'em',
+              'strong',
+              'pre',
+              'code',
+            ],
+            ADD_ATTR: ['class', 'style', 'xmlns', 'requiredExtensions'],
+          });
           block.innerHTML = '';
           block.appendChild(wrapper);
           addSvgControls(wrapper);

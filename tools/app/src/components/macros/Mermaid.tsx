@@ -13,6 +13,7 @@
 */
 
 import { useEffect, useRef, useState } from 'react';
+import DOMPurify from 'dompurify';
 import mermaid from 'mermaid';
 import type { MacroContext } from '.';
 
@@ -55,7 +56,23 @@ function Mermaid({ code }: MermaidProps) {
           // adds the standard fullscreen/download controls automatically
           const wrapper = document.createElement('div');
           wrapper.setAttribute('data-type', 'cyberismo-svg-wrapper');
-          wrapper.innerHTML = svg;
+          wrapper.innerHTML = DOMPurify.sanitize(svg, {
+            USE_PROFILES: { svg: true, svgFilters: true },
+            ADD_TAGS: [
+              'foreignObject',
+              'div',
+              'span',
+              'p',
+              'br',
+              'i',
+              'b',
+              'em',
+              'strong',
+              'pre',
+              'code',
+            ],
+            ADD_ATTR: ['class', 'style', 'xmlns', 'requiredExtensions'],
+          });
           containerRef.current.innerHTML = '';
           containerRef.current.appendChild(wrapper);
         }
