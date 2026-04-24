@@ -15,12 +15,23 @@ await esbuild.build({
     {
       name: 'lp-loader',
       setup(build) {
-        build.onLoad({ filter: /\.(lp|hbs)$/ }, async (args) => {
+        build.onLoad({ filter: /\.lp$/ }, async (args) => {
           const contents = await fs.readFile(args.path, 'utf8');
           // Remove all comments
           let cleanedContents = contents.replace(/%.*$/gm, '');
           // Remove all empty lines and normalize newlines
           cleanedContents = cleanedContents.replace(/^\s*[\r\n]+/gm, '');
+          return {
+            contents: `export default ${JSON.stringify(cleanedContents)}`,
+            loader: 'js',
+          };
+        });
+        build.onLoad({ filter: /\.hbs$/ }, async (args) => {
+          const contents = await fs.readFile(args.path, 'utf8');
+          // Remove all comments
+          let cleanedContents = contents.replace(/%.*$/gm, '');
+          // Normalize newlines without removing blank lines
+          cleanedContents = cleanedContents.replace(/\r\n?/g, '\n');
           return {
             contents: `export default ${JSON.stringify(cleanedContents)}`,
             loader: 'js',

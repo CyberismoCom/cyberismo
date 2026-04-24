@@ -32,6 +32,7 @@ import {
 import { useAppSelector, useAppRouter } from '@/lib/hooks';
 import { useCard, useProject } from '@/lib/api';
 import { useParentCard } from '@/lib/hooks';
+import { ExportCardModal } from '../modals/ExportCardModal';
 
 interface CardContextMenuProps {
   cardKey: string;
@@ -44,6 +45,7 @@ export function CardContextMenu({ cardKey }: CardContextMenuProps) {
     metadata: false,
     addAttachment: false,
     logicProgram: false,
+    exportCard: false,
   });
 
   const { project } = useProject();
@@ -92,11 +94,16 @@ export function CardContextMenu({ cardKey }: CardContextMenuProps) {
             <Typography>{t('addAttachment')}</Typography>
           </MenuItem>
           <Divider />
-          <MenuItem data-cy="deleteCardButton" onClick={handleDeleteClick}>
-            <Typography color="danger">{t('deleteCard')}</Typography>
-          </MenuItem>
           <MenuItem onClick={openModal('logicProgram')}>
             <Typography>{t('viewLogicProgram')}</Typography>
+          </MenuItem>
+          <Divider />
+          <MenuItem onClick={openModal('exportCard')}>
+            <Typography>{t('exportCard')}</Typography>
+          </MenuItem>
+          <Divider />
+          <MenuItem data-cy="deleteCardButton" onClick={handleDeleteClick}>
+            <Typography color="danger">{t('deleteCard')}</Typography>
           </MenuItem>
         </Menu>
       </Dropdown>
@@ -121,6 +128,11 @@ export function CardContextMenu({ cardKey }: CardContextMenuProps) {
         onClose={closeModal('logicProgram')}
         title={t('logicProgram')}
         resourceName={`${project?.prefix}/cards/${cardKey}`}
+      />
+      <ExportCardModal
+        open={modalOpen.exportCard}
+        onClose={closeModal('exportCard')}
+        cardKey={cardKey}
       />
     </>
   );

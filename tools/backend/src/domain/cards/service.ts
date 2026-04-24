@@ -12,7 +12,10 @@
 */
 
 import Processor from '@asciidoctor/core';
-import { type MetadataContent } from '@cyberismo/data-handler/interfaces/project-interfaces';
+import type {
+  ExportPdfOptions,
+  MetadataContent,
+} from '@cyberismo/data-handler/interfaces/project-interfaces';
 import type { attachmentPayload } from '@cyberismo/data-handler/interfaces/request-status-interfaces';
 import { type CommandManager, evaluateMacros } from '@cyberismo/data-handler';
 import { allCards } from './lib.js';
@@ -307,4 +310,12 @@ export async function findRelevantAttachments(
       key: attachment.card,
       attachment: attachment.fileName,
     }));
+}
+
+export async function exportCard(
+  commands: CommandManager,
+  options: ExportPdfOptions,
+): Promise<Buffer> {
+  const result = await commands.exportCmd.exportPdfBuffer(options);
+  return result;
 }

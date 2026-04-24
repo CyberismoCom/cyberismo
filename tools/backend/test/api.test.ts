@@ -92,6 +92,36 @@ test('/api/cards/decision_1/a/the-needle.heic returns an attachment file', async
   expect(response.body).not.toBe(null);
 });
 
+test('/api/cards/export-pdf returns a PDF buffer', async () => {
+  const response = await app.request('/api/cards/export-pdf', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: 'Exported file',
+      cardKey: 'decision_5',
+      name: 'exported-file',
+      exportChildCards: false,
+    }),
+  });
+  const buffer = await response.arrayBuffer();
+  const magicBytes = new TextDecoder().decode(buffer.slice(0, 4));
+
+  expect(response).not.toBe(null);
+  expect(response.status).toBe(200);
+  expect(magicBytes).toBe('%PDF');
+}, 30000);
+
+test('/api/cards/export-pdf returns a 400 error on a bad request', async () => {
+  const response = await app.request('/api/cards/export-pdf', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: 'test' }),
+  });
+
+  expect(response).not.toBe(null);
+  expect(response.status).toBe(400);
+});
+
 test('invalid card key returns error', async () => {
   const response = await app.request('/api/cards/bogus');
   expect(response).not.toBe(null);
