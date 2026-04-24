@@ -45,7 +45,7 @@
     "@viz-js/viz": "^3.24.0",
     "csv-parse": "^6.2.1",
     "directory-schema-validator": "^1.0.17",
-    "dompurify": "^3.3.3",
+    "dompurify": "^3.4.0",
     "email-validator": "^2.0.4",
     "entities": "^7.0.1",
     "handlebars": "^4.7.9",
