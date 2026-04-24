@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Box, Chip, Stack, Tooltip, Typography } from '@mui/joy';
+import { Stack, Tooltip, Typography } from '@mui/joy';
 import type { DataType, MetadataValue } from '../lib/definitions';
 import FieldEditor from './FieldEditor';
 import { metadataValueToString } from '../lib/utils';
@@ -43,21 +43,31 @@ const EditableField = ({
 }: EditableFieldProps) => {
   const { t } = useTranslation();
   return (
-    <Stack direction="row" spacing={0} alignItems="top">
+    <Stack direction="row" spacing={4}>
       <Typography
-        level="title-sm"
+        level="body-xs"
         width="40%"
         maxWidth={150}
         flexShrink={0}
-        endDecorator={
-          description && (
-            <Tooltip title={description} color="primary" variant="outlined">
-              <InfoOutlined fontSize="small" color="primary" />
-            </Tooltip>
-          )
-        }
+        sx={{
+          whiteSpace: 'normal',
+          position: 'relative',
+        }}
       >
         {label}
+        {description && (
+          <Tooltip title={description} color="primary" variant="outlined">
+            <InfoOutlined
+              color="primary"
+              sx={{
+                position: 'absolute',
+                height: 16,
+                width: 16,
+                ml: 0.5,
+              }}
+            />
+          </Tooltip>
+        )}
       </Typography>
       {edit ? (
         <FieldEditor
@@ -68,29 +78,16 @@ const EditableField = ({
           disabled={disabled}
           focus={focus}
         />
-      ) : dataType === 'label' ? (
-        <Box>
-          {(value as string[] | null)?.map((label) => (
-            <Chip
-              key={label}
-              variant="soft"
-              color="primary"
-              data-cy="labelChip"
-              sx={{
-                marginX: 0.2,
-                marginBottom: 0.4,
-              }}
-            >
-              {label}
-            </Chip>
-          ))}
-        </Box>
       ) : (
         <Typography
-          level="body-sm"
+          level="body-xs"
+          fontWeight="bold"
+          color="primary"
           whiteSpace={dataType === 'longText' ? 'pre-line' : 'normal'}
         >
-          {metadataValueToString(value, dataType, t, enumValues)}
+          {dataType === 'label'
+            ? (value as string[] | null)?.join(', ')
+            : metadataValueToString(value, dataType, t, enumValues)}
         </Typography>
       )}
     </Stack>

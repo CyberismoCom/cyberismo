@@ -25,7 +25,6 @@ import {
 import { useTranslation } from 'react-i18next';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import { getConfig } from '@/lib/utils';
-import { useAppRouter } from '../lib/hooks';
 
 // Generic types for check items
 export interface CheckItem {
@@ -47,7 +46,6 @@ export interface CheckCollection {
 
 interface ChecksAccordionProps {
   checks: CheckCollection;
-  cardKey: string;
   successTitle: string;
   failureTitle: string;
   successPassText: string;
@@ -55,12 +53,11 @@ interface ChecksAccordionProps {
   initialSuccessesExpanded?: boolean;
   initialFailuresExpanded?: boolean;
   goToFieldText?: string;
-  showGoToField?: boolean;
+  onGoToField?: (fieldName: string) => void;
 }
 
 export function ChecksAccordion({
   checks,
-  cardKey,
   successTitle,
   failureTitle,
   successPassText,
@@ -68,7 +65,7 @@ export function ChecksAccordion({
   initialSuccessesExpanded = false,
   initialFailuresExpanded = true,
   goToFieldText,
-  showGoToField = true,
+  onGoToField,
 }: ChecksAccordionProps) {
   const { t } = useTranslation();
   const [successesExpanded, setSuccessesExpanded] = useState(
@@ -77,15 +74,10 @@ export function ChecksAccordion({
   const [failuresExpanded, setFailuresExpanded] = useState(
     initialFailuresExpanded,
   );
-  const router = useAppRouter();
 
   if (checks.successes.length === 0 && checks.failures.length === 0) {
     return null;
   }
-
-  const handleGoToField = (cardKey: string, fieldName: string) => {
-    router.push(`/cards/${cardKey}/edit?focusField=${fieldName}`);
-  };
 
   return (
     <Box sx={{ marginTop: 2, maxWidth: 400 }}>
@@ -206,15 +198,14 @@ export function ChecksAccordion({
                       <Typography fontSize="xs">
                         {failure.errorMessage}
                       </Typography>
-                      {showGoToField &&
+                      {onGoToField &&
                         !getConfig().staticMode &&
                         failure.fieldName && (
                           <Link
+                            data-cy="goToFieldLink"
                             level="body-sm"
                             component="button"
-                            onClick={() =>
-                              handleGoToField(cardKey, failure.fieldName!)
-                            }
+                            onClick={() => onGoToField(failure.fieldName!)}
                             sx={{ mt: 1 }}
                           >
                             {goToFieldText || t('goToField')}

@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { LinkFormState } from '@/components/ContentArea';
+import type { LinkFormState } from '@/components/LinkedCardsSection/LinkedCardsSection';
 import { ContentArea } from '@/components/ContentArea';
 import CardToolbar from '@/components/toolbar/CardToolbar';
 import LoadingGate from '@/components/LoadingGate';
@@ -37,7 +37,8 @@ export default function Page() {
   // use params from the url, it should always have a key
   const key = useRequiredKeyParam();
 
-  const { card, error, createLink, deleteLink, editLink } = useCard(key);
+  const { card, error, createLink, deleteLink, editLink, updateCard } =
+    useCard(key);
 
   const { tree } = useTree();
 
@@ -61,6 +62,10 @@ export default function Page() {
   const { t } = useTranslation();
 
   const [linkFormState, setLinkFormState] = useState<LinkFormState>('hidden');
+
+  useEffect(() => {
+    setLinkFormState('hidden');
+  }, [key]);
 
   useEffect(() => {
     if (listCard) {
@@ -102,9 +107,9 @@ export default function Page() {
             cards={tree!}
             card={card!}
             connectors={connectors ?? []}
-            onMetadataClick={() =>
-              router.push(`/cards/${key}/edit?expand=true`)
-            }
+            onMetadataUpdate={async (update) => {
+              await updateCard(update);
+            }}
             linkTypes={expandedLinkTypes}
             onLinkFormSubmit={async (data) => {
               try {
@@ -152,7 +157,6 @@ export default function Page() {
                       : undefined,
                     data.direction,
                   );
-                  setLinkFormState('hidden');
                   return true;
                 }
               } catch (error) {
