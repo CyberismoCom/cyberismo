@@ -123,6 +123,20 @@ function measureNaturalSize(markup: string): Size | null {
 
   wrapper.innerHTML = DOMPurify.sanitize(markup, {
     USE_PROFILES: { svg: true, svgFilters: true },
+    ADD_TAGS: [
+      'foreignObject',
+      'div',
+      'span',
+      'p',
+      'br',
+      'i',
+      'b',
+      'em',
+      'strong',
+      'pre',
+      'code',
+    ],
+    ADD_ATTR: ['class', 'style', 'xmlns', 'requiredExtensions'],
   });
 
   const svg = wrapper.querySelector('svg') as SVGSVGElement | null;
