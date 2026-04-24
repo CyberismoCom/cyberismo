@@ -14,7 +14,7 @@
 import { useCallback, useState } from 'react';
 import { Button, IconButton, Tooltip } from '@mui/joy';
 import EditIcon from '@mui/icons-material/Edit';
-import InsertLink from '@mui/icons-material/InsertLink';
+import AddLink from '@mui/icons-material/AddLink';
 import { ProjectBreadcrumbs } from '../ProjectBreadcrumbs';
 import type { WorkflowTransition } from '../../lib/definitions';
 import { CardMode } from '../../lib/definitions';
@@ -121,7 +121,7 @@ export function CardToolbar({
                 (!tree[0]?.children || tree[0]?.children.length === 0))
             }
           >
-            <InsertLink />
+            <AddLink />
           </IconButton>
         </Tooltip>
       )}

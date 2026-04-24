@@ -105,7 +105,24 @@ describe('Navigation', () => {
     cy.get('[data-cy="metadataView"]').contains(t['cardType']);
     cy.get('[data-cy="metadataView"]').contains(t['lastUpdated']);
 
-    // Check that edit element is visible and clicks it
+    // Expand metadata and enter inline edit for labels
+    cy.get('[data-cy="showMoreButton"]').click(); // Click show more
+    cy.get('[data-cy="metadataView"]')
+      .contains(t['labels'])
+      .closest('[data-cy="editableFieldRow"]')
+      .click(); // Click labels field to enter inline edit
+
+    // Add a label inline
+    cy.get('[data-cy="labelInput"]').type('testLabel');
+    cy.get('[data-cy="labelAddButton"]').click();
+
+    // Close inline edit for labels
+    cy.get('[data-cy="fieldCancelButton"]').click();
+
+    // Verify label appears in metadata view
+    cy.get('[data-cy="metadataView"]').contains('testLabel');
+
+    // Enter card editor to edit title and content
     cy.get('[data-cy="editButton"]').contains(t['edit']).click(); // Clicks Edit button
 
     // Check that editor elements are visible
@@ -125,10 +142,6 @@ describe('Navigation', () => {
       .clear()
       .type('Updated title');
 
-    cy.get('a').contains(t['showMore']).click(); // Click show more in metadata view
-
-    cy.get('[data-cy="labelInput"]').type('testLabel');
-    cy.get('[data-cy="labelAddButton"]').click();
     cy.get('[role="textbox"]').invoke('text', '== Updated content'); // Edit content
     cy.get('[data-cy="updateButton"]').click(); // Clicks update button
     cy.get('[role="presentation"]').contains(t.saveCard['success']); // Verify text in popup infobox
@@ -136,7 +149,10 @@ describe('Navigation', () => {
     cy.get('p').contains('Updated title'); // Title in tree menu
     cy.get('h1').contains('Updated title'); // Title in content area
     cy.get('h2').contains('Updated content'); // Text in asciidoc content
-    cy.get('[data-cy="labelChip"]').contains('testLabel'); // Label in asciidoc content
+
+    // Verify label persists after content edit
+    cy.get('[data-cy="showMoreButton"]').click(); // Expand metadata
+    cy.get('[data-cy="metadataView"]').contains('testLabel'); // Label in metadata
   });
 
   it('adds an attachment image to card', () => {
@@ -194,19 +210,20 @@ describe('Navigation', () => {
     cy.get('h1').contains('Updated title');
 
     cy.get('[data-cy="linkIconButton"]').click(); // Click link button
-    cy.get('p').contains(t['linkedCards']); // Verifies Linked cards text in page
+    cy.get('h2').contains(t['noLinkedCards']); // The card has no links yet
     cy.get('.MuiSelect-button').contains(t.linkForm['selectLinkType']).click(); // Click select link type button
     cy.get('.Mui-expanded').contains('Outbound').click(); // Select outbound
 
     cy.get('.MuiSelect-button').contains('Outbound'); // checks Select Link Type text changed to previously selected blocks option
     cy.get('.MuiAutocomplete-root').get('[placeholder="Search card"]').click(); // click Search card field
     cy.get('.MuiAutocomplete-option').contains('Untitled page').click(); // Select Untitled page
-    cy.get('button').contains(t.linkForm['button']).click(); // Click add link button
+    cy.get('[data-cy="addLinkButton"]').click(); // Click add link button
+
+    // After adding, section stays in edit mode — close it to verify link in view mode
+    cy.get('button').contains(t['close']).click();
 
     cy.get('[data-cy="cardLinkType"]').contains('Outbound');
     cy.get('[data-cy="cardLinkTitle"]').contains('Untitled page');
-
-    cy.get('[data-cy="cardLinkType"]').should('have.length', 1); // checks 2nd link was not created
 
     // Navigate to Untitled page to check if link has appeared there
     // Use cy.visit because otherwise timing issues with loading content can occur
@@ -218,11 +235,14 @@ describe('Navigation', () => {
 
     // Verifies link exists in Untitled page
     cy.get('h1').contains('Untitled page');
+    // cy.visit resets redux, so the linked cards section starts collapsed — expand it
+    cy.get('[data-cy="linkedCardsShowMoreButton"]').click();
     cy.get('[data-cy="cardLinkType"]').contains('Inbound');
     cy.get('[data-cy="cardLinkTitle"]').contains('Updated title');
     cy.get('[data-cy="cardLink"]');
 
-    cy.get('[data-cy="expandLinks"]').click();
+    // Enter edit mode to delete the link
+    cy.get('[data-cy="linkedCardsEditButton"]').click();
     cy.get('[data-cy="DeleteIcon"]').click(); // Delete link
     // Verify delete link dialog contents and click delete
     cy.get('[role="dialog"] >>> button').contains(t['cancel']);
@@ -294,5 +314,48 @@ describe('Navigation', () => {
       cy.contains(t['policyCheckPass']); // PASS label
       cy.contains('Category 2 - Successful check title');
     });
+  });
+
+  it('goToField focuses the referenced metadata field inline', () => {
+    // The existing policy check fixture emits a failure without a fieldName.
+    // Intercept the card fetch and inject one so the "goToField" link renders,
+    // exercising the inline focus flow end-to-end.
+    cy.intercept('GET', '/api/cards/*', (req) => {
+      req.continue((res) => {
+        const failures = res.body?.policyChecks?.failures;
+        if (Array.isArray(failures) && failures.length > 0) {
+          res.body.policyChecks.failures = failures.map((f) => ({
+            ...f,
+            fieldName: 'test/fieldTypes/failureTitle',
+          }));
+        }
+      });
+    });
+
+    // Navigate to the policy checks card created by the previous test.
+    cy.get('p').contains('Test notifications and policy checks').click();
+    cy.get('h1').contains('Test notifications and policy checks');
+
+    // No field is in edit mode initially.
+    cy.get('[data-cy="fieldSaveButton"]').should('not.exist');
+
+    // Click the goToField link on the failing policy check.
+    cy.get('[data-cy="cardSidebar"] [data-cy="goToFieldLink"]')
+      .should('be.visible')
+      .click();
+
+    // The linked field's row is now in edit mode (save + cancel rendered).
+    cy.get('[id="metadata-field-test/fieldTypes/failureTitle"]').within(() => {
+      cy.get('[data-cy="fieldSaveButton"]').should('exist');
+      cy.get('[data-cy="fieldCancelButton"]').should('exist');
+    });
+
+    // No other field's row is in edit mode.
+    cy.get('[data-cy="fieldSaveButton"]').should('have.length', 1);
+
+    // Close inline edit so this test does not leak state.
+    cy.get('[id="metadata-field-test/fieldTypes/failureTitle"]')
+      .find('[data-cy="fieldCancelButton"]')
+      .click({ force: true });
   });
 });

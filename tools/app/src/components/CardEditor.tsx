@@ -41,7 +41,6 @@ import { EditorView } from '@codemirror/view';
 import { asciidoc } from 'codemirror-asciidoc';
 
 import CardToolbar from '@/components/toolbar/CardToolbar';
-import { useSearchParams } from 'react-router';
 import { ContentArea } from '@/components/ContentArea';
 import {
   type CardData,
@@ -60,7 +59,6 @@ import {
   useKeyboardShortcut,
 } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
-import MetadataView from '@/components/MetadataView';
 
 import AddLink from '@mui/icons-material/AddLink';
 import Delete from '@mui/icons-material/Delete';
@@ -266,10 +264,6 @@ export default function CardEditor({
     isLoading: isLoadingLinkTypes,
     error: errorLinkTypes,
   } = useLinkTypes();
-
-  const [searchParams] = useSearchParams();
-
-  const focusField = searchParams.get('focusField') || undefined;
 
   const dispatch = useAppDispatch();
 
@@ -660,14 +654,6 @@ export default function CardEditor({
                         />
                       )}
                     />
-                    <Box marginBottom={1.2}>
-                      <MetadataView
-                        initialExpanded={searchParams.get('expand') === 'true'}
-                        editMode={true}
-                        card={card}
-                        focusField={focusField}
-                      />
-                    </Box>
                     <AsciiDocToolbar view={view} readOnly={readOnly} />
                     <CodeMirror
                       {...CODE_MIRROR_BASE_PROPS}
