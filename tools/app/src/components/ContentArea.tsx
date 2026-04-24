@@ -171,10 +171,10 @@ const Notifications = ({
 
 const PolicyChecks = ({
   policyChecks,
-  cardKey,
+  onGoToField,
 }: {
   policyChecks: PolicyCheckCollection;
-  cardKey: string;
+  onGoToField?: (fieldName: string) => void;
 }) => {
   const { t } = useTranslation();
 
@@ -187,7 +187,6 @@ const PolicyChecks = ({
   return (
     <ChecksAccordion
       checks={checksData}
-      cardKey={cardKey}
       successTitle={t('passedPolicyChecks')}
       failureTitle={t('failedPolicyChecks')}
       successPassText={t('policyCheckPass')}
@@ -195,6 +194,7 @@ const PolicyChecks = ({
       goToFieldText={t('goToField')}
       initialSuccessesExpanded={false}
       initialFailuresExpanded={true}
+      onGoToField={onGoToField}
     />
   );
 };
@@ -214,6 +214,8 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   const [visibleHeaderIds, setVisibleHeaderIds] = useState<string[] | null>(
     null,
   );
+
+  const [focusFieldKey, setFocusFieldKey] = useState<string | null>(null);
 
   const boxRef = useRef<HTMLDivElement>(null);
 
@@ -505,6 +507,8 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
             initialExpanded={false}
             card={card}
             onUpdate={onMetadataUpdate}
+            focusFieldKey={focusFieldKey}
+            onFieldFocused={() => setFocusFieldKey(null)}
           />
           <LinkedCardsSection
             card={card}
@@ -543,7 +547,10 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
           )}
         </Box>
         <Notifications notifications={card.notifications} />
-        <PolicyChecks policyChecks={card.policyChecks} cardKey={card.key} />
+        <PolicyChecks
+          policyChecks={card.policyChecks}
+          onGoToField={onMetadataUpdate ? setFocusFieldKey : undefined}
+        />
       </Stack>
     </Stack>
   );

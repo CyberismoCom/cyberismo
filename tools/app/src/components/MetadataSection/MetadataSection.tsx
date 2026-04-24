@@ -22,6 +22,11 @@ import { getConfig, getDefaultValue } from '../../lib/utils';
 import { format } from 'date-fns';
 import { FieldRow } from './FieldRow';
 import { LABEL_SPLITTER } from '../../lib/constants';
+import { useAppDispatch } from '../../lib/hooks';
+import { addNotification } from '../../lib/slices/notifications';
+
+const FIELD_ROW_ID_PREFIX = 'metadata-field-';
+const fieldRowId = (key: string) => `${FIELD_ROW_ID_PREFIX}${key}`;
 
 export interface MetadataViewProps {
   initialExpanded?: boolean;
@@ -29,27 +34,74 @@ export interface MetadataViewProps {
   onUpdate?: (update: {
     metadata: Record<string, MetadataValue>;
   }) => Promise<void>;
+  focusFieldKey?: string | null;
+  onFieldFocused?: () => void;
 }
 
 export default function MetadataSection({
   initialExpanded,
   card,
   onUpdate,
+  focusFieldKey,
+  onFieldFocused,
 }: MetadataViewProps) {
   const [editingFieldKey, setEditingFieldKey] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(initialExpanded);
   const { t } = useTranslation();
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setEditingFieldKey(null);
   }, [card.key]);
 
+  useEffect(() => {
+    if (!focusFieldKey) return;
+    const fieldExists =
+      focusFieldKey === 'labels' ||
+      (card.fields ?? []).some((f) => f.key === focusFieldKey);
+    if (!fieldExists) {
+      onFieldFocused?.();
+      return;
+    }
+    setExpanded(true);
+    setEditingFieldKey(focusFieldKey);
+    // Scroll after the state updates commit so the element is in its final layout.
+    requestAnimationFrame(() => {
+      const el = document.getElementById(fieldRowId(focusFieldKey));
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    onFieldFocused?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusFieldKey, card.key]);
+
   const canEdit = !getConfig().staticMode && !!onUpdate;
 
+  const notifyError = (error: unknown) => {
+    dispatch(
+      addNotification({
+        message: error instanceof Error ? error.message : '',
+        type: 'error',
+      }),
+    );
+  };
+
   const handleSaveField = async (metadataKey: string, value: MetadataValue) => {
-    await onUpdate!({ metadata: { [metadataKey]: value } });
-    setEditingFieldKey(null);
+    if (!onUpdate) return;
+    try {
+      await onUpdate({ metadata: { [metadataKey]: value } });
+      setEditingFieldKey(null);
+    } catch (error) {
+      notifyError(error);
+    }
+  };
+
+  const handleAutoSaveLabels = async (value: MetadataValue) => {
+    if (!onUpdate) return;
+    try {
+      await onUpdate({ metadata: { labels: value } });
+    } catch (error) {
+      notifyError(error);
+    }
   };
 
   // Disable "Show Less" when the field being edited would be hidden by collapsing
@@ -83,18 +135,21 @@ export default function MetadataSection({
           }) => (
             <FieldRow
               key={key}
+              id={fieldRowId(key)}
               expanded={visibility === 'always' || expanded}
               value={getDefaultValue(value)}
               label={fieldDisplayName || key}
               dataType={dataType}
               description={fieldDescription}
               enumValues={enumValues}
-              canEdit={canEdit && !isCalculated}
               isEditing={editingFieldKey === key}
-              disabled={card.deniedOperations.editField
-                .map((f) => f.fieldName)
-                .includes(key)}
-              forceReadOnly={isCalculated}
+              disabled={
+                !canEdit ||
+                isCalculated ||
+                card.deniedOperations.editField
+                  .map((f) => f.fieldName)
+                  .includes(key)
+              }
               onStartEdit={() => setEditingFieldKey(key)}
               onSave={(val) => handleSaveField(key, val)}
               onCancel={() => setEditingFieldKey(null)}
@@ -106,14 +161,15 @@ export default function MetadataSection({
           value={card.cardTypeDisplayName || card.cardType}
           label={t('cardType')}
           dataType="shortText"
-          forceReadOnly
+          disabled
         />
         <FieldRow
+          id={fieldRowId('labels')}
           expanded={expanded}
           value={card.labels}
           label={t('labels')}
           dataType="label"
-          canEdit={canEdit}
+          disabled={!canEdit}
           isEditing={editingFieldKey === 'labels'}
           description={
             editingFieldKey === 'labels'
@@ -121,9 +177,7 @@ export default function MetadataSection({
               : undefined
           }
           onStartEdit={() => setEditingFieldKey('labels')}
-          onAutoSave={(val) =>
-            onUpdate!({ metadata: { labels: val } })
-          }
+          onAutoSave={handleAutoSaveLabels}
           onCancel={() => setEditingFieldKey(null)}
         />
         <FieldRow
@@ -133,7 +187,7 @@ export default function MetadataSection({
           }
           label={t('createdAt')}
           dataType="dateTime"
-          forceReadOnly
+          disabled
         />
         <FieldRow
           expanded={expanded}
@@ -142,7 +196,7 @@ export default function MetadataSection({
           }
           label={t('lastUpdated')}
           dataType="dateTime"
-          forceReadOnly
+          disabled
         />
       </Stack>
       <Stack flexShrink={0} paddingLeft={1}>

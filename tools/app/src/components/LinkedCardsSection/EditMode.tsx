@@ -33,8 +33,8 @@ import Delete from '@mui/icons-material/Delete';
 import Edit from '@mui/icons-material/Edit';
 import Search from '@mui/icons-material/Search';
 import { Controller, useForm, useWatch } from 'react-hook-form';
-import type { ExpandedLinkType } from '../../lib/definitions';
-import type { CardResponse, Connector } from '../../lib/api/types';
+import type { ExpandedLinkType } from '@/lib/definitions';
+import type { CardResponse, Connector } from '@/lib/api/types';
 import type {
   CalculationLink,
   LinkDirection,
@@ -45,7 +45,7 @@ import {
   createPredicate,
   findCard,
   flattenTree,
-} from '../../lib/utils';
+} from '@/lib/utils';
 import { LinkRow } from './LinkRow';
 
 export type LinkFormState = 'hidden' | 'add' | 'add-from-toolbar' | 'edit';

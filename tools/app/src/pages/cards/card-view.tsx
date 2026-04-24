@@ -108,16 +108,7 @@ export default function Page() {
             card={card!}
             connectors={connectors ?? []}
             onMetadataUpdate={async (update) => {
-              try {
-                await updateCard(update);
-              } catch (error) {
-                dispatch(
-                  addNotification({
-                    message: error instanceof Error ? error.message : '',
-                    type: 'error',
-                  }),
-                );
-              }
+              await updateCard(update);
             }}
             linkTypes={expandedLinkTypes}
             onLinkFormSubmit={async (data) => {

@@ -12,7 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useCallback, useEffect } from 'react';
+import { useEffect } from 'react';
 import { Accordion, AccordionDetails, Box, IconButton, Stack } from '@mui/joy';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
@@ -22,16 +22,15 @@ import type { EnumDefinition } from '@cyberismo/data-handler/types/queries';
 import EditableField from '../EditableField';
 
 export interface FieldRowProps {
+  id?: string;
   expanded?: boolean;
   value: MetadataValue | null | undefined;
   label: string;
   dataType: DataType | 'label';
   description?: string;
   enumValues?: EnumDefinition[];
-  canEdit?: boolean;
   isEditing?: boolean;
   disabled?: boolean;
-  forceReadOnly?: boolean;
   onStartEdit?: () => void;
   onSave?: (value: MetadataValue) => void;
   onAutoSave?: (value: MetadataValue) => void;
@@ -63,16 +62,15 @@ function coerceValue(
 }
 
 export function FieldRow({
+  id,
   expanded,
   value,
   label,
   dataType,
   description,
   enumValues,
-  canEdit,
   isEditing,
   disabled,
-  forceReadOnly,
   onStartEdit,
   onSave,
   onAutoSave,
@@ -93,55 +91,46 @@ export function FieldRow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serializedInitial, reset, isEditing]);
 
-  const handleChange = useCallback(
-    (
-      rawValue: string | string[] | null,
-      onChange: (v: MetadataValue) => void,
-    ) => {
-      const coerced = coerceValue(rawValue, dataType);
-      onChange(coerced);
-      onAutoSave?.(coerced);
-    },
-    [dataType, onAutoSave],
-  );
+  const handleChange = (
+    rawValue: string | string[] | null,
+    onChange: (v: MetadataValue) => void,
+  ) => {
+    const coerced = coerceValue(rawValue, dataType);
+    onChange(coerced);
+    onAutoSave?.(coerced);
+  };
 
-  const handleSave = useCallback(() => {
+  const handleSave = () => {
     onSave?.(getValues('value'));
-  }, [onSave, getValues]);
+  };
 
-  const handleCancel = useCallback(() => {
+  const handleCancel = () => {
     reset({ value: initialValue });
     onCancel?.();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reset, serializedInitial, onCancel]);
+  };
 
-  const handleKeyDownCapture = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        e.stopPropagation();
-        handleCancel();
-      }
-    },
-    [handleCancel],
-  );
+  const handleKeyDownCapture = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      handleCancel();
+    }
+  };
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' && onSave && isDirty) {
-        // For multiline fields, require Ctrl/Cmd+Enter to save
-        if (dataType === 'longText' && !e.ctrlKey && !e.metaKey) return;
-        e.preventDefault();
-        handleSave();
-      }
-    },
-    [handleSave, onSave, isDirty, dataType],
-  );
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && onSave && isDirty) {
+      // For multiline fields, require Ctrl/Cmd+Enter to save
+      if (dataType === 'longText' && !e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      handleSave();
+    }
+  };
 
-  const isClickable = canEdit && !forceReadOnly && !isEditing && !disabled;
+  const isClickable = !disabled && !isEditing && !!onStartEdit;
 
   return (
     <Accordion
+      id={id}
       expanded={expanded}
       sx={{
         borderLeft: '3px solid',
@@ -210,7 +199,7 @@ export function FieldRow({
         ) : (
           <Box
             onClick={isClickable ? onStartEdit : undefined}
-            data-cy={isClickable ? 'editableFieldRow' : undefined}
+            data-cy="editableFieldRow"
           >
             <EditableField
               value={value ?? ''}

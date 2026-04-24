@@ -210,7 +210,7 @@ describe('Navigation', () => {
     cy.get('h1').contains('Updated title');
 
     cy.get('[data-cy="linkIconButton"]').click(); // Click link button
-    cy.get('h2').contains(t['linkedCards']); // Verifies Linked cards text in page
+    cy.get('h2').contains(t['noLinkedCards']); // The card has no links yet
     cy.get('.MuiSelect-button').contains(t.linkForm['selectLinkType']).click(); // Click select link type button
     cy.get('.Mui-expanded').contains('Outbound').click(); // Select outbound
 
@@ -235,6 +235,8 @@ describe('Navigation', () => {
 
     // Verifies link exists in Untitled page
     cy.get('h1').contains('Untitled page');
+    // cy.visit resets redux, so the linked cards section starts collapsed — expand it
+    cy.get('[data-cy="linkedCardsShowMoreButton"]').click();
     cy.get('[data-cy="cardLinkType"]').contains('Inbound');
     cy.get('[data-cy="cardLinkTitle"]').contains('Updated title');
     cy.get('[data-cy="cardLink"]');
@@ -312,5 +314,48 @@ describe('Navigation', () => {
       cy.contains(t['policyCheckPass']); // PASS label
       cy.contains('Category 2 - Successful check title');
     });
+  });
+
+  it('goToField focuses the referenced metadata field inline', () => {
+    // The existing policy check fixture emits a failure without a fieldName.
+    // Intercept the card fetch and inject one so the "goToField" link renders,
+    // exercising the inline focus flow end-to-end.
+    cy.intercept('GET', '/api/cards/*', (req) => {
+      req.continue((res) => {
+        const failures = res.body?.policyChecks?.failures;
+        if (Array.isArray(failures) && failures.length > 0) {
+          res.body.policyChecks.failures = failures.map((f) => ({
+            ...f,
+            fieldName: 'test/fieldTypes/failureTitle',
+          }));
+        }
+      });
+    });
+
+    // Navigate to the policy checks card created by the previous test.
+    cy.get('p').contains('Test notifications and policy checks').click();
+    cy.get('h1').contains('Test notifications and policy checks');
+
+    // No field is in edit mode initially.
+    cy.get('[data-cy="fieldSaveButton"]').should('not.exist');
+
+    // Click the goToField link on the failing policy check.
+    cy.get('[data-cy="cardSidebar"] [data-cy="goToFieldLink"]')
+      .should('be.visible')
+      .click();
+
+    // The linked field's row is now in edit mode (save + cancel rendered).
+    cy.get('[id="metadata-field-test/fieldTypes/failureTitle"]').within(() => {
+      cy.get('[data-cy="fieldSaveButton"]').should('exist');
+      cy.get('[data-cy="fieldCancelButton"]').should('exist');
+    });
+
+    // No other field's row is in edit mode.
+    cy.get('[data-cy="fieldSaveButton"]').should('have.length', 1);
+
+    // Close inline edit so this test does not leak state.
+    cy.get('[id="metadata-field-test/fieldTypes/failureTitle"]')
+      .find('[data-cy="fieldCancelButton"]')
+      .click({ force: true });
   });
 });

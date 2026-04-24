@@ -207,12 +207,10 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
         {validateResource && (
           <ChecksAccordion
             checks={validationChecks}
-            cardKey={node.name}
             successTitle=""
             failureTitle={t('validationErrors')}
             successPassText=""
             failureFailText={t('invalid')}
-            showGoToField={false}
             initialSuccessesExpanded={false}
             initialFailuresExpanded={true}
           />
