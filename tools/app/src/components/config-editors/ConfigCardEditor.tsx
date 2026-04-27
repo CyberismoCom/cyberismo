@@ -11,14 +11,17 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useRawCard } from '@/lib/api';
+import { useRawCard, useResourceTree } from '@/lib/api';
 import CardEditor from '../CardEditor';
 import type { AnyNode } from '@/lib/api/types';
 import { useTranslation } from 'react-i18next';
-import { getConfig } from '@/lib/utils';
+import { findCardParentInResourceTree, getConfig } from '@/lib/utils';
+import { useAppRouter } from '@/lib/hooks';
 
 export function ConfigCardEditor({ node }: { node: AnyNode }) {
   const card = useRawCard(node.id);
+  const { resourceTree } = useResourceTree();
+  const router = useAppRouter();
   const { t } = useTranslation();
   if (card.isLoading) {
     return <div>{t('loading')}</div>;
@@ -26,11 +29,17 @@ export function ConfigCardEditor({ node }: { node: AnyNode }) {
   if (card.error) {
     return <div>{card.error.message}</div>;
   }
+  const parent = resourceTree
+    ? findCardParentInResourceTree(resourceTree, node.id)
+    : null;
   return (
     <CardEditor
       cardKey={node.id}
       cardData={card}
       afterSave={() => {}}
+      afterDelete={() =>
+        router.push(parent ? `/configuration/${parent.name}` : '/configuration')
+      }
       readOnly={node?.readOnly || getConfig().staticMode}
     />
   );
