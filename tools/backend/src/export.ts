@@ -18,6 +18,7 @@ import fs, { readFile } from 'node:fs/promises';
 import type { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from './app.js';
 import { MockAuthProvider } from './auth/mock.js';
+import { ProjectRegistry } from './project-registry.js';
 import { cp, writeFile } from 'node:fs/promises';
 import { staticFrontendDirRelative } from './utils.js';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
@@ -95,7 +96,11 @@ export async function exportSite(
     ...options,
   };
 
-  const app = createApp(new MockAuthProvider(), commands, opts);
+  const app = createApp(
+    new MockAuthProvider(),
+    ProjectRegistry.fromCommandManager(commands),
+    opts,
+  );
 
   // copy whole frontend to the same directory
   await cp(staticFrontendDirRelative, exportDir, { recursive: true });

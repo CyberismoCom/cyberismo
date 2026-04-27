@@ -12,9 +12,17 @@
 */
 
 import { useSWRHook } from './common';
-import { apiPaths } from '../swr';
+import { projectApiPaths } from '../swr';
 
 import type { SWRConfiguration } from 'swr';
 
-export const useConnectors = (options?: SWRConfiguration) =>
-  useSWRHook<'connectors'>(apiPaths.connectors(), 'connectors', null, options);
+export const useConnectors = (
+  options?: SWRConfiguration,
+  projectPrefix?: string,
+) =>
+  useSWRHook<'connectors'>(
+    projectApiPaths(projectPrefix).connectors(),
+    'connectors',
+    null,
+    options,
+  );

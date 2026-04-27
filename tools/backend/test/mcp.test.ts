@@ -18,6 +18,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
+import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 
 const fileUrl = fileURLToPath(import.meta.url);
@@ -34,7 +35,10 @@ beforeAll(async () => {
       '../../data-handler/test/test-data/valid/decision-records',
     ),
   );
-  app = createApp(new MockAuthProvider(), commands);
+  app = createApp(
+    new MockAuthProvider(),
+    ProjectRegistry.fromCommandManager(commands),
+  );
 });
 
 describe('MCP HTTP Endpoint', () => {

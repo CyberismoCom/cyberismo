@@ -14,11 +14,16 @@
 import { useState, useMemo } from 'react';
 import type { NodeApi } from 'react-arborist';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
-import { Input, Stack, IconButton } from '@mui/joy';
+import { Input, Stack, IconButton, Select, Option } from '@mui/joy';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
+import FolderOpen from '@mui/icons-material/FolderOpen';
 import { TreeMenu } from './TreeMenu';
 import { useTranslation } from 'react-i18next';
+import useSWR from 'swr';
+import { globalApiPaths } from '../lib/swr';
+import { useNavigate, useParams } from 'react-router';
+import type { AvailableProject } from '../lib/projectUtils';
 
 type SearchableTreeMenuProps = {
   title?: string;
@@ -67,6 +72,13 @@ export const SearchableTreeMenu = ({
 }: SearchableTreeMenuProps) => {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
+  const { projectPrefix: currentPrefix } = useParams();
+  // TODO: Replace with a dedicated project management view
+  const { data: projects } = useSWR<AvailableProject[]>(
+    globalApiPaths.projects(),
+  );
+  const showProjectSelector = projects && projects.length > 1;
 
   const handleClearSearch = () => {
     setSearchQuery('');
@@ -87,8 +99,31 @@ export const SearchableTreeMenu = ({
 
   return (
     <Stack height="100%" width="100%" bgcolor="background.surface">
+      {/* Project selector — placeholder until the next feature update with proper project manager/selector */}
+      {showProjectSelector && (
+        <Stack px={3} pt={3} pb={0}>
+          <Select
+            value={currentPrefix ?? ''}
+            onChange={(_e, value) => {
+              if (value && value !== currentPrefix) {
+                navigate(`/projects/${value}/cards`);
+              }
+            }}
+            size="sm"
+            startDecorator={<FolderOpen />}
+            sx={{ bgcolor: 'transparent' }}
+          >
+            {projects.map((p) => (
+              <Option key={p.prefix} value={p.prefix}>
+                {p.name}
+              </Option>
+            ))}
+          </Select>
+        </Stack>
+      )}
+
       {/* Search input */}
-      <Stack px={3} pt={3} pb={1}>
+      <Stack px={3} pt={showProjectSelector ? 1 : 3} pb={1}>
         <Input
           placeholder={t('searchCards')}
           value={searchQuery}

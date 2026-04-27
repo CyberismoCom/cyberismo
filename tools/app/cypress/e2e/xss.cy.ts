@@ -14,8 +14,11 @@ const createPageCard = () => {
 const patchCardContent = (content: string) => {
   cy.url().then((url) => {
     const cardKey = url.split('/cards/')[1];
-    cy.request('PATCH', `/api/cards/${cardKey}`, { content });
-    cy.visit(`/cards/${cardKey}`);
+    const projectPrefix = url.split('/projects/')[1].split('/')[0];
+    cy.request('PATCH', `/api/projects/${projectPrefix}/cards/${cardKey}`, {
+      content,
+    });
+    cy.visit(`/projects/${projectPrefix}/cards/${cardKey}`);
   });
 };
 

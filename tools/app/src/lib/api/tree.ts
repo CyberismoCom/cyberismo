@@ -11,9 +11,14 @@
 */
 
 import { useSWRHook } from './common';
-import { apiPaths } from '../swr';
+import { projectApiPaths } from '../swr';
 
 import type { SWRConfiguration } from 'swr';
 
-export const useTree = (options?: SWRConfiguration) =>
-  useSWRHook<'tree'>(apiPaths.tree(), 'tree', null, options);
+export const useTree = (options?: SWRConfiguration, projectPrefix?: string) =>
+  useSWRHook<'tree'>(
+    projectApiPaths(projectPrefix).tree(),
+    'tree',
+    null,
+    options,
+  );
