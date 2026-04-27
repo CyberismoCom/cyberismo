@@ -29,7 +29,7 @@ import {
   Divider,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
-import { apiPaths } from '@/lib/swr';
+import { projectApiPaths } from '@/lib/swr';
 import type { ModuleSettingFromHub } from '@cyberismo/data-handler';
 import { CategoryOption } from './OptionCards';
 import { addNotification } from '@/lib/slices/notifications';
@@ -50,7 +50,7 @@ export function AddModuleModal({ open, onClose, onAdd }: AddModuleModalProps) {
   const [isImporting, setIsImporting] = useState(false);
 
   const { data: hubModules } = useSWR<ModuleSettingFromHub[]>(
-    apiPaths.projectModulesImportable(),
+    projectApiPaths().projectModulesImportable(),
   );
 
   const handleSelectModule = (moduleName: string) => {

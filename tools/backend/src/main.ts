@@ -10,12 +10,13 @@
   details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-import { CommandManager } from '@cyberismo/data-handler';
+import { CommandManager, scanForProjects } from '@cyberismo/data-handler';
 import { startServer } from './index.js';
 import { exportSite } from './export.js';
 import { MockAuthProvider } from './auth/mock.js';
 import { KeycloakAuthProvider } from './auth/keycloak.js';
 import type { AuthProvider } from './auth/types.js';
+import { ProjectRegistry } from './project-registry.js';
 import dotenv from 'dotenv';
 
 // Load environment variables from .env file
@@ -55,12 +56,47 @@ function createAuthProvider(): AuthProvider {
   process.exit(1);
 }
 
-const projectPath = process.env.npm_config_project_path || '';
-const commands = await CommandManager.getInstance(projectPath);
+const projectPath = process.env.npm_config_project_path || process.cwd();
+let projects;
+try {
+  projects = await scanForProjects(projectPath);
+} catch (error) {
+  console.error(
+    error instanceof Error
+      ? error.message
+      : `Failed to scan for projects in '${projectPath}'`,
+  );
+  process.exit(1);
+}
 
 if (process.argv.includes('--export')) {
+  if (projects.length === 0) {
+    console.error('No projects found to export.');
+    process.exit(1);
+  }
+  if (projects.length > 1) {
+    // TODO: Support multi-project export when mass export is implemented
+    console.error(
+      'Export is not supported with multiple projects. Please specify a directory containing a single project.',
+    );
+    process.exit(1);
+  }
+  const commands = new CommandManager(projects[0].path);
+  await commands.initialize();
   await exportSite(commands);
 } else {
+  if (projects.length === 0) {
+    console.error(
+      `No projects found in "${projectPath}". Cannot start the server without at least one project.`,
+    );
+    process.exit(1);
+  }
+  const registry = new ProjectRegistry();
+  for (const project of projects) {
+    const commands = new CommandManager(project.path);
+    await commands.initialize();
+    registry.add(project.prefix, commands);
+  }
   const authProvider = createAuthProvider();
-  await startServer(authProvider, commands);
+  await startServer(authProvider, registry);
 }

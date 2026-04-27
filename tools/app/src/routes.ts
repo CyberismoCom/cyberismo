@@ -25,6 +25,7 @@ import NotFoundPage from './pages/not-found';
 import { store } from './lib/store.js';
 import { selectProjectPrefix, setProjectPrefix } from './lib/slices/project.js';
 import { fetchAvailableProjects } from './lib/projectUtils.js';
+import type { AvailableProject } from './lib/projectUtils.js';
 
 // Export mode guard - unfortunately need to refetch config.json to check export mode since hooks
 function createEditLoader(cardKey: string) {
@@ -54,15 +55,18 @@ function createEditLoader(cardKey: string) {
 
 // Resolve which project to use: try the given prefix first, then persisted, then first available
 async function resolveProject(urlPrefix?: string) {
-  const projects = await fetchAvailableProjects().catch(() => [] as string[]);
+  const projects = await fetchAvailableProjects().catch(
+    () => [] as AvailableProject[],
+  );
+  const prefixes = projects.map((p) => p.prefix);
   const lastActive = selectProjectPrefix(store.getState());
 
   // TODO: Remove single-project fallback when multi-project UI (project selection view) is implemented
-  const fallbackPrefix = projects[0];
+  const fallbackPrefix = prefixes[0];
 
   const prefix =
-    (urlPrefix && projects.includes(urlPrefix) ? urlPrefix : null) ??
-    (lastActive && projects.includes(lastActive) ? lastActive : null) ??
+    (urlPrefix && prefixes.includes(urlPrefix) ? urlPrefix : null) ??
+    (lastActive && prefixes.includes(lastActive) ? lastActive : null) ??
     fallbackPrefix;
 
   if (prefix) {

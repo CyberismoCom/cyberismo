@@ -13,7 +13,7 @@
 
 import { useEffect, useState } from 'react';
 import { getConfig } from '@/lib/utils';
-import { apiPaths } from '@/lib/swr.js';
+import { projectApiPaths } from '@/lib/swr.js';
 import { z } from 'zod';
 
 const presenceEntrySchema = z.object({
@@ -38,15 +38,18 @@ export type PresenceEntry = z.infer<typeof presenceEntrySchema>;
 export function usePresence(
   cardKey: string | null,
   mode: 'viewing' | 'editing' = 'viewing',
+  projectPrefix?: string,
 ): PresenceEntry[] {
   const [editors, setEditors] = useState<PresenceEntry[]>([]);
+  const url = cardKey
+    ? projectApiPaths(projectPrefix).presence(cardKey, mode)
+    : null;
 
   useEffect(() => {
-    if (!cardKey || getConfig().staticMode) {
+    if (!url || getConfig().staticMode) {
       return;
     }
 
-    const url = apiPaths.presence(cardKey, mode);
     const eventSource = new EventSource(url);
 
     eventSource.addEventListener('presence', (event) => {
@@ -67,7 +70,7 @@ export function usePresence(
       eventSource.close();
       setEditors([]);
     };
-  }, [cardKey, mode]);
+  }, [url]);
 
   if (!cardKey || getConfig().staticMode) return [];
 

@@ -11,12 +11,15 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { callApi } from '../swr';
-import { apiPaths } from '../swr';
+import { callApi, projectApiPaths } from '../swr';
 import { mutate } from 'swr';
 import type { CreateWorkflowData } from '@/lib/definitions';
 
-export const createWorkflow = async (data: CreateWorkflowData) => {
+export const createWorkflow = async (
+  data: CreateWorkflowData,
+  projectPrefix?: string,
+) => {
+  const apiPaths = projectApiPaths(projectPrefix);
   await callApi(apiPaths.workflows(), 'POST', data);
   mutate(apiPaths.workflows());
   mutate(apiPaths.resourceTree());
