@@ -39,6 +39,7 @@ import {
   resourceNameToString,
 } from './utils/resource-utils.js';
 import { moduleNameFromCardKey } from './utils/card-utils.js';
+import { scanForProjects } from './project-scanner.js';
 
 export {
   Cmd,
@@ -52,6 +53,7 @@ export {
   requestStatus,
   resourceName,
   resourceNameToString,
+  scanForProjects,
   UpdateOperations,
   Validate,
   evaluateMacros,

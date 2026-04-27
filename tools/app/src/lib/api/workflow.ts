@@ -12,13 +12,17 @@
 */
 
 import type { SWRConfiguration } from 'swr';
-import { callApi } from '../swr';
 import { apiPaths } from '../swr';
+import { callApi, projectApiPaths } from '../swr';
 import { mutate } from 'swr';
 import type { CreateWorkflowData } from '@/lib/definitions';
 import { useSWRHook } from './common';
 
-export const createWorkflow = async (data: CreateWorkflowData) => {
+export const createWorkflow = async (
+  data: CreateWorkflowData,
+  projectPrefix?: string,
+) => {
+  const apiPaths = projectApiPaths(projectPrefix);
   await callApi(apiPaths.workflows(), 'POST', data);
   mutate(apiPaths.workflows());
   mutate(apiPaths.resourceTree());

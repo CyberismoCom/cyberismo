@@ -1,0 +1,74 @@
+/**
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2026
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
+*/
+
+import type { CommandManager } from '@cyberismo/data-handler';
+
+export type ProjectRegistryEntry = {
+  prefix: string;
+  commands: CommandManager;
+};
+
+export type ProjectListItem = {
+  prefix: string;
+  name: string;
+};
+
+export class ProjectRegistry {
+  private projects: Map<string, CommandManager> = new Map();
+
+  constructor(entries: ProjectRegistryEntry[] = []) {
+    for (const entry of entries) {
+      this.add(entry.prefix, entry.commands);
+    }
+  }
+
+  get(prefix: string): CommandManager | undefined {
+    return this.projects.get(prefix);
+  }
+
+  add(prefix: string, commands: CommandManager): void {
+    if (this.projects.has(prefix)) {
+      throw new Error(`Project '${prefix}' is already registered`);
+    }
+    this.projects.set(prefix, commands);
+  }
+
+  list(): ProjectListItem[] {
+    return Array.from(this.projects.entries()).map(([prefix, commands]) => ({
+      prefix,
+      name: commands.project.configuration.name,
+    }));
+  }
+
+  first(): CommandManager | undefined {
+    const [first] = this.projects.values();
+    return first;
+  }
+
+  dispose(): void {
+    for (const commands of this.projects.values()) {
+      commands.project.dispose();
+    }
+    this.projects.clear();
+  }
+
+  /**
+   * Create a single-project registry from a CommandManager.
+   * Used by export mode and tests where only one project is needed.
+   */
+  static fromCommandManager(commands: CommandManager): ProjectRegistry {
+    return new ProjectRegistry([
+      { prefix: commands.project.configuration.cardKeyPrefix, commands },
+    ]);
+  }
+}

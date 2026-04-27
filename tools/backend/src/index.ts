@@ -16,14 +16,15 @@ import { Hono } from 'hono';
 import { serveStatic } from '@hono/node-server/serve-static';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
-import type { CommandManager } from '@cyberismo/data-handler';
 import { findFreePort } from './utils.js';
 import { createApp } from './app.js';
 import type { AuthProvider } from './auth/types.js';
+import type { ProjectRegistry } from './project-registry.js';
 export { MockAuthProvider } from './auth/mock.js';
 export type { MockUserConfig } from './auth/mock.js';
 export type { AuthProvider } from './auth/types.js';
 export { exportSite } from './export.js';
+export { ProjectRegistry } from './project-registry.js';
 
 const DEFAULT_PORT = 3000;
 const DEFAULT_MAX_PORT = DEFAULT_PORT + 100;
@@ -56,12 +57,12 @@ export async function previewSite(dir: string, findPort: boolean = true) {
 /**
  * Start the server
  * @param authProvider - Authentication provider
- * @param commands - CommandManager instance for the project
+ * @param registry - ProjectRegistry holding all project CommandManagers
  * @param findPort - If true, find a free port
  */
 export async function startServer(
   authProvider: AuthProvider,
-  commands: CommandManager,
+  registry: ProjectRegistry,
   findPort: boolean = true,
 ) {
   let port = parseInt(process.env.PORT || DEFAULT_PORT.toString(), 10);
@@ -69,7 +70,7 @@ export async function startServer(
   if (findPort) {
     port = await findFreePort(port, DEFAULT_MAX_PORT);
   }
-  const app = createApp(authProvider, commands);
+  const app = createApp(authProvider, registry);
   startApp(app, port);
 }
 

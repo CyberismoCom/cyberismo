@@ -1,6 +1,7 @@
 import { expect, test, beforeAll, afterAll } from 'vitest';
 import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
+import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { type QueryResult } from '@cyberismo/data-handler/types/queries';
 import type {
@@ -21,7 +22,10 @@ beforeAll(async () => {
   process.argv = [];
   tempTestDataPath = await createTempTestData('decision-records');
   const commands = await CommandManager.getInstance(tempTestDataPath);
-  app = createApp(new MockAuthProvider(), commands);
+  app = createApp(
+    new MockAuthProvider(),
+    ProjectRegistry.fromCommandManager(commands),
+  );
 });
 
 afterAll(async () => {
@@ -41,8 +45,8 @@ type ProjectInfoResponse = {
   cardTypes: CardType[];
 };
 
-test('/api/cards returns a project with a list of cards', async () => {
-  const response = await app.request('/api/cards');
+test('/api/projects/:prefix/cards returns a project with a list of cards', async () => {
+  const response = await app.request('/api/projects/decision/cards');
   expect(response).not.toBe(null);
 
   const result = (await response.json()) as ProjectInfoResponse;
@@ -52,8 +56,8 @@ test('/api/cards returns a project with a list of cards', async () => {
   expect(result.cardTypes.length).toBeGreaterThan(0);
 });
 
-test('/api/cards/decision_5 returns a card object', async () => {
-  const response = await app.request('/api/cards/decision_5');
+test('/api/projects/decision/cards/decision_5 returns a card object', async () => {
+  const response = await app.request('/api/projects/decision/cards/decision_5');
   expect(response).not.toBe(null);
 
   const result = (await response.json()) as CardApiResponse;
@@ -70,8 +74,10 @@ test('/api/cards/decision_5 returns a card object', async () => {
   expect(result.cardType).toBe('decision/cardTypes/simplepage');
 });
 
-test('/api/cards/decision_5?raw=true returns raw card data without calculated extras', async () => {
-  const response = await app.request('/api/cards/decision_5?raw=true');
+test('/api/projects/decision/cards/decision_5?raw=true returns raw card data without calculated extras', async () => {
+  const response = await app.request(
+    '/api/projects/decision/cards/decision_5?raw=true',
+  );
   expect(response).not.toBe(null);
 
   const result = (await response.json()) as CardApiResponse;
@@ -84,8 +90,10 @@ test('/api/cards/decision_5?raw=true returns raw card data without calculated ex
   expect(result.cardTypeDisplayName).toBe('decision/cardTypes/simplepage');
 });
 
-test('/api/cards/decision_1/a/the-needle.heic returns an attachment file', async () => {
-  const response = await app.request('/api/cards/decision_1/a/the-needle.heic');
+test('/api/projects/decision/cards/decision_1/a/the-needle.heic returns an attachment file', async () => {
+  const response = await app.request(
+    '/api/projects/decision/cards/decision_1/a/the-needle.heic',
+  );
   expect(response).not.toBe(null);
   expect(response.status).toBe(200);
   expect(response.headers.get('content-type')).toBe('image/heic');
@@ -123,7 +131,7 @@ test('/api/cards/export-pdf returns a 400 error on a bad request', async () => {
 });
 
 test('invalid card key returns error', async () => {
-  const response = await app.request('/api/cards/bogus');
+  const response = await app.request('/api/projects/decision/cards/bogus');
   expect(response).not.toBe(null);
   expect(response.status).toBe(400);
 });
@@ -135,13 +143,15 @@ test('test invalid api path returns not found', async () => {
 });
 
 test('non-existing attachment file returns an error', async () => {
-  const response = await app.request('/api/cards/decision_1/a/bogus.gif');
+  const response = await app.request(
+    '/api/projects/decision/cards/decision_1/a/bogus.gif',
+  );
   expect(response).not.toBe(null);
   expect(response.status).toBe(404);
 });
 
 test('fieldTypes endpoint returns proper data', async () => {
-  const response = await app.request('/api/fieldTypes');
+  const response = await app.request('/api/projects/decision/fieldTypes');
   expect(response).not.toBe(null);
 
   const result = (await response.json()) as FieldType[];
@@ -154,7 +164,7 @@ test('fieldTypes endpoint returns proper data', async () => {
 });
 
 test('linkTypes endpoint returns proper data', async () => {
-  const response = await app.request('/api/linkTypes');
+  const response = await app.request('/api/projects/decision/linkTypes');
   expect(response).not.toBe(null);
 
   const result = (await response.json()) as LinkType[];
@@ -168,7 +178,7 @@ test('linkTypes endpoint returns proper data', async () => {
 });
 
 test('templates endpoint returns proper data', async () => {
-  const response = await app.request('/api/templates');
+  const response = await app.request('/api/projects/decision/templates');
   expect(response).not.toBe(null);
 
   const result = (await response.json()) as TemplateConfiguration[];
@@ -181,7 +191,7 @@ test('templates endpoint returns proper data', async () => {
 });
 
 test('tree endpoint returns proper data', async () => {
-  const response = await app.request('/api/tree');
+  const response = await app.request('/api/projects/decision/tree');
   expect(response).not.toBe(null);
 
   const result = (await response.json()) as QueryResult<'tree'>[];
@@ -197,7 +207,7 @@ test('tree endpoint returns proper data', async () => {
 });
 
 test('labels endpoint returns the list of labels', async () => {
-  const response = await app.request('/api/labels');
+  const response = await app.request('/api/projects/decision/labels');
   expect(response).not.toBe(null);
 
   const result = (await response.json()) as string[];
@@ -207,7 +217,7 @@ test('labels endpoint returns the list of labels', async () => {
 });
 
 test('connectors endpoint returns connectors data', async () => {
-  const response = await app.request('/api/connectors');
+  const response = await app.request('/api/projects/decision/connectors');
   const result = (await response.json()) as {
     name: string;
     displayName: string;
@@ -218,39 +228,45 @@ test('connectors endpoint returns connectors data', async () => {
   expect(result).toHaveLength(0);
 });
 
-test('POST /api/cards/:key/links creates a link successfully', async () => {
-  const response = await app.request('/api/cards/decision_5/links', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      toCard: 'decision_6',
-      linkType: 'decision/linkTypes/test',
-      direction: 'outbound',
-    }),
-  });
+test('POST /api/projects/:prefix/cards/:key/links creates a link successfully', async () => {
+  const response = await app.request(
+    '/api/projects/decision/cards/decision_5/links',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        toCard: 'decision_6',
+        linkType: 'decision/linkTypes/test',
+        direction: 'outbound',
+      }),
+    },
+  );
   const result = (await response.json()) as { message: string };
   expect(response.status).toBe(200);
   expect(result.message).toBe('Link created successfully');
 });
 
-test('POST /api/cards/:key/links creates an inbound link successfully', async () => {
+test('POST /api/projects/:prefix/cards/:key/links creates an inbound link successfully', async () => {
   // direction='inbound' means decision_6 links TO decision_5 (key is the destination)
-  const response = await app.request('/api/cards/decision_5/links', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      toCard: 'decision_6',
-      linkType: 'decision/linkTypes/test',
-      direction: 'inbound',
-    }),
-  });
+  const response = await app.request(
+    '/api/projects/decision/cards/decision_5/links',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        toCard: 'decision_6',
+        linkType: 'decision/linkTypes/test',
+        direction: 'inbound',
+      }),
+    },
+  );
   const result = (await response.json()) as { message: string };
   expect(response.status).toBe(200);
   expect(result.message).toBe('Link created successfully');
 });
 
-test('DELETE /api/cards/:key/links removes an inbound link successfully', async () => {
-  await app.request('/api/cards/decision_5/links', {
+test('DELETE /api/projects/:prefix/cards/:key/links removes an inbound link successfully', async () => {
+  await app.request('/api/projects/decision/cards/decision_5/links', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -260,69 +276,81 @@ test('DELETE /api/cards/:key/links removes an inbound link successfully', async 
     }),
   });
 
-  const response = await app.request('/api/cards/decision_5/links', {
-    method: 'DELETE',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      toCard: 'decision_6',
-      linkType: 'decision/linkTypes/test',
-      direction: 'inbound',
-    }),
-  });
+  const response = await app.request(
+    '/api/projects/decision/cards/decision_5/links',
+    {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        toCard: 'decision_6',
+        linkType: 'decision/linkTypes/test',
+        direction: 'inbound',
+      }),
+    },
+  );
   const result = (await response.json()) as { message: string };
   expect(response.status).toBe(200);
   expect(result.message).toBe('Link removed successfully');
 });
 
-test('DELETE /api/cards/:key/links removes a link successfully', async () => {
-  const response = await app.request('/api/cards/decision_5/links', {
-    method: 'DELETE',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      toCard: 'decision_6',
-      linkType: 'decision/linkTypes/test',
-      direction: 'outbound',
-    }),
-  });
+test('DELETE /api/projects/:prefix/cards/:key/links removes a link successfully', async () => {
+  const response = await app.request(
+    '/api/projects/decision/cards/decision_5/links',
+    {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        toCard: 'decision_6',
+        linkType: 'decision/linkTypes/test',
+        direction: 'outbound',
+      }),
+    },
+  );
   const result = (await response.json()) as { message: string };
   expect(response.status).toBe(200);
   expect(result.message).toBe('Link removed successfully');
 });
 
-test('POST /api/cards/:key/links creates external link successfully', async () => {
-  const response = await app.request('/api/cards/decision_5/links', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      toCard: 'jira:TEST-123',
-      linkType: 'decision/linkTypes/test',
-      direction: 'outbound',
-    }),
-  });
+test('POST /api/projects/:prefix/cards/:key/links creates external link successfully', async () => {
+  const response = await app.request(
+    '/api/projects/decision/cards/decision_5/links',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        toCard: 'jira:TEST-123',
+        linkType: 'decision/linkTypes/test',
+        direction: 'outbound',
+      }),
+    },
+  );
   const result = (await response.json()) as { message: string };
   expect(response.status).toBe(200);
   expect(result.message).toBe('Link created successfully');
 });
 
-test('DELETE /api/cards/:key/links removes external link successfully', async () => {
-  const response = await app.request('/api/cards/decision_5/links', {
-    method: 'DELETE',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      toCard: 'jira:TEST-123',
-      linkType: 'decision/linkTypes/test',
-      direction: 'outbound',
-    }),
-  });
+test('DELETE /api/projects/:prefix/cards/:key/links removes external link successfully', async () => {
+  const response = await app.request(
+    '/api/projects/decision/cards/decision_5/links',
+    {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        toCard: 'jira:TEST-123',
+        linkType: 'decision/linkTypes/test',
+        direction: 'outbound',
+      }),
+    },
+  );
   const result = (await response.json()) as { message: string };
   expect(response.status).toBe(200);
   expect(result.message).toBe('Link removed successfully');
 });
 
-test('PUT /api/cards/:key/links changes link type', async () => {
+test('PUT /api/projects/:prefix/cards/:key/links changes link type', async () => {
   // testTypes requires source=decision cardType, destination=simplepage cardType
   // decision_6 is 'decision' cardType, decision_5 is 'simplepage' cardType
-  await app.request('/api/cards/decision_6/links', {
+  await app.request('/api/projects/decision/cards/decision_6/links', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -332,24 +360,27 @@ test('PUT /api/cards/:key/links changes link type', async () => {
     }),
   });
 
-  const response = await app.request('/api/cards/decision_6/links', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      toCard: 'decision_5',
-      linkType: 'decision/linkTypes/testTypes',
-      direction: 'outbound',
-      previousToCard: 'decision_5',
-      previousLinkType: 'decision/linkTypes/test',
-      previousDirection: 'outbound',
-    }),
-  });
+  const response = await app.request(
+    '/api/projects/decision/cards/decision_6/links',
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        toCard: 'decision_5',
+        linkType: 'decision/linkTypes/testTypes',
+        direction: 'outbound',
+        previousToCard: 'decision_5',
+        previousLinkType: 'decision/linkTypes/test',
+        previousDirection: 'outbound',
+      }),
+    },
+  );
   const result = (await response.json()) as { message: string };
   expect(response.status).toBe(200);
   expect(result.message).toBe('Link updated successfully');
 
   // Cleanup
-  await app.request('/api/cards/decision_6/links', {
+  await app.request('/api/projects/decision/cards/decision_6/links', {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -360,9 +391,9 @@ test('PUT /api/cards/:key/links changes link type', async () => {
   });
 });
 
-test('PUT /api/cards/:key/links changes link direction', async () => {
+test('PUT /api/projects/:prefix/cards/:key/links changes link direction', async () => {
   // Create initial outbound link
-  await app.request('/api/cards/decision_5/links', {
+  await app.request('/api/projects/decision/cards/decision_5/links', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -372,24 +403,27 @@ test('PUT /api/cards/:key/links changes link direction', async () => {
     }),
   });
 
-  const response = await app.request('/api/cards/decision_5/links', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      toCard: 'decision_6',
-      linkType: 'decision/linkTypes/test',
-      direction: 'inbound',
-      previousToCard: 'decision_6',
-      previousLinkType: 'decision/linkTypes/test',
-      previousDirection: 'outbound',
-    }),
-  });
+  const response = await app.request(
+    '/api/projects/decision/cards/decision_5/links',
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        toCard: 'decision_6',
+        linkType: 'decision/linkTypes/test',
+        direction: 'inbound',
+        previousToCard: 'decision_6',
+        previousLinkType: 'decision/linkTypes/test',
+        previousDirection: 'outbound',
+      }),
+    },
+  );
   const result = (await response.json()) as { message: string };
   expect(response.status).toBe(200);
   expect(result.message).toBe('Link updated successfully');
 
   // Cleanup
-  await app.request('/api/cards/decision_5/links', {
+  await app.request('/api/projects/decision/cards/decision_5/links', {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -400,9 +434,9 @@ test('PUT /api/cards/:key/links changes link direction', async () => {
   });
 });
 
-test('PUT /api/cards/:key/links changes link description', async () => {
+test('PUT /api/projects/:prefix/cards/:key/links changes link description', async () => {
   // Create initial link without description
-  await app.request('/api/cards/decision_5/links', {
+  await app.request('/api/projects/decision/cards/decision_5/links', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -412,25 +446,28 @@ test('PUT /api/cards/:key/links changes link description', async () => {
     }),
   });
 
-  const response = await app.request('/api/cards/decision_5/links', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      toCard: 'decision_6',
-      linkType: 'decision/linkTypes/test',
-      direction: 'outbound',
-      description: 'new description',
-      previousToCard: 'decision_6',
-      previousLinkType: 'decision/linkTypes/test',
-      previousDirection: 'outbound',
-    }),
-  });
+  const response = await app.request(
+    '/api/projects/decision/cards/decision_5/links',
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        toCard: 'decision_6',
+        linkType: 'decision/linkTypes/test',
+        direction: 'outbound',
+        description: 'new description',
+        previousToCard: 'decision_6',
+        previousLinkType: 'decision/linkTypes/test',
+        previousDirection: 'outbound',
+      }),
+    },
+  );
   const result = (await response.json()) as { message: string };
   expect(response.status).toBe(200);
   expect(result.message).toBe('Link updated successfully');
 
   // Cleanup
-  await app.request('/api/cards/decision_5/links', {
+  await app.request('/api/projects/decision/cards/decision_5/links', {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -442,15 +479,18 @@ test('PUT /api/cards/:key/links changes link description', async () => {
   });
 });
 
-test('PUT /api/cards/:key/links returns 400 when required fields are missing', async () => {
-  const response = await app.request('/api/cards/decision_5/links', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      toCard: 'decision_6',
-      linkType: 'decision/linkTypes/test',
-      // missing direction, previousToCard, previousLinkType, previousDirection
-    }),
-  });
+test('PUT /api/projects/:prefix/cards/:key/links returns 400 when required fields are missing', async () => {
+  const response = await app.request(
+    '/api/projects/decision/cards/decision_5/links',
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        toCard: 'decision_6',
+        linkType: 'decision/linkTypes/test',
+        // missing direction, previousToCard, previousLinkType, previousDirection
+      }),
+    },
+  );
   expect(response.status).toBe(400);
 });

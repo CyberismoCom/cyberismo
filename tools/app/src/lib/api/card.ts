@@ -11,8 +11,8 @@
 */
 
 import { useSWRHook } from './common';
-import { callApi, apiPaths } from '../swr';
 import { downloadBlob } from '@/lib/utils';
+import { callApi, projectApiPaths } from '../swr';
 
 import type { SWRConfiguration } from 'swr';
 import { mutate } from 'swr';
@@ -32,7 +32,9 @@ const useCardData = (
   key: string | null,
   raw: boolean = false,
   options?: SWRConfiguration,
+  projectPrefix?: string,
 ) => {
+  const apiPaths = projectApiPaths(projectPrefix);
   const {
     // TODO: get rid of these functions from useSWRHook
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -55,9 +57,13 @@ export type CardData = ReturnType<typeof useCardData>;
 export const useRawCard = (key: string | null, options?: SWRConfiguration) =>
   useCardData(key, true, options);
 
-export const useCardMutations = (key: string | null) => {
+export const useCardMutations = (
+  key: string | null,
+  projectPrefix?: string,
+) => {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
+  const apiPaths = projectApiPaths(projectPrefix);
 
   // since writes and reads are separate, we can use apiPath.card here
   const swrKey = key ? apiPaths.card(key) : null;
@@ -197,7 +203,12 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
 
   return { ...cardData, ...mutations };
 };
-export async function updateCard(key: string, cardUpdate: CardUpdate) {
+export async function updateCard(
+  key: string,
+  cardUpdate: CardUpdate,
+  projectPrefix?: string,
+) {
+  const apiPaths = projectApiPaths(projectPrefix);
   const swrKey = apiPaths.card(key);
   const result = await callApi<CardDetails>(swrKey, 'PATCH', cardUpdate);
 
@@ -209,7 +220,8 @@ export async function updateCard(key: string, cardUpdate: CardUpdate) {
   mutate(apiPaths.tree());
 }
 
-export async function deleteCard(key: string) {
+export async function deleteCard(key: string, projectPrefix?: string) {
+  const apiPaths = projectApiPaths(projectPrefix);
   const swrKey = apiPaths.card(key);
   await callApi(swrKey, 'DELETE');
 
@@ -222,7 +234,9 @@ export async function deleteCard(key: string) {
 export async function createCard(
   parentKey: string,
   template: string,
+  projectPrefix?: string,
 ): Promise<Card[]> {
+  const apiPaths = projectApiPaths(projectPrefix);
   const result = await callApi<Card[]>(apiPaths.card(parentKey), 'POST', {
     template,
   });

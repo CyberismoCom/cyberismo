@@ -19,6 +19,7 @@ vi.mock('../src/lib/hooks', async () => {
     useAppRouter: vi.fn(() => ({
       push: vi.fn(),
     })),
+    useAppSelector: vi.fn(() => 'decision'),
     useResizeObserver: vi.fn(() => {
       if (callCount++ % 2 === 0) {
         return { width: 800, height: 2000, ref: vi.fn() }; // Main container height
