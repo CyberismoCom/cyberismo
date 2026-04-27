@@ -13,7 +13,7 @@
 
 import type { SWRConfiguration } from 'swr';
 import { mutate } from 'swr';
-import { apiPaths, callApi } from '../swr';
+import { projectApiPaths, callApi } from '../swr';
 import type { ResourceBaseMetadata } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import { useSWRHook } from './common';
 import type { AnyNode } from './types';
@@ -27,28 +27,45 @@ export const hasResourceData = (
   return 'data' in node;
 };
 
-export const useResourceTree = (options?: SWRConfiguration) =>
-  useSWRHook(apiPaths.resourceTree(), 'resourceTree', [], options);
+export const useResourceTree = (
+  options?: SWRConfiguration,
+  projectPrefix?: string,
+) =>
+  useSWRHook(
+    projectApiPaths(projectPrefix).resourceTree(),
+    'resourceTree',
+    [],
+    options,
+  );
 
-export const useResource = (resourceName: string) => {
+export const useResource = (resourceName: string, projectPrefix?: string) => {
   const { isUpdating, call } = useUpdating(resourceName);
   return {
     isUpdating: (action?: string) => isUpdating(action),
     deleteResource: async () => {
-      await deleteResource(resourceName);
+      await deleteResource(resourceName, projectPrefix);
     },
     update: async <Type, T extends UpdateOperations>(
       body: UpdateOperationBody<Type, T>,
     ) => {
       await call(
-        () => updateResourceWithOperation<Type, T>(resourceName, body),
+        () =>
+          updateResourceWithOperation<Type, T>(
+            resourceName,
+            body,
+            projectPrefix,
+          ),
         'update',
       );
     },
   };
 };
 
-export const deleteResource = async (resourceName: string) => {
+export const deleteResource = async (
+  resourceName: string,
+  projectPrefix?: string,
+) => {
+  const apiPaths = projectApiPaths(projectPrefix);
   const swrKey = apiPaths.resource(resourceName);
   await callApi(swrKey, 'DELETE');
   mutate(swrKey);
@@ -70,7 +87,9 @@ export const updateResourceWithOperation = async <
 >(
   resourceName: string,
   body: UpdateOperationBody<Type, T>,
+  projectPrefix?: string,
 ) => {
+  const apiPaths = projectApiPaths(projectPrefix);
   const swrKey = apiPaths.resource(resourceName);
   await callApi(apiPaths.resourceOperation(resourceName), 'POST', body);
   mutate(swrKey);

@@ -11,17 +11,18 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getSwrConfig, apiPaths } from './swr.js';
+import { getSwrConfig, globalApiPaths } from './swr.js';
+
+// Mirrors ProjectListItem from @cyberismo/backend (project-registry.ts)
+export type AvailableProject = { prefix: string; name: string };
 
 /**
- * Fetch the list of available project prefixes.
- * Currently uses GET /api/project (single project) and returns a one-element array.
- * TODO: Replace with GET /api/projects when multi-project backend is available.
+ * Fetch the list of available projects from the backend.
  */
-export async function fetchAvailableProjects(): Promise<string[]> {
+export async function fetchAvailableProjects(): Promise<AvailableProject[]> {
   const { fetcher } = getSwrConfig();
-  const { cardKeyPrefix: prefix } = (await fetcher!(apiPaths.project())) as {
-    cardKeyPrefix?: string;
-  };
-  return prefix ? [prefix] : [];
+  const projects = (await fetcher!(
+    globalApiPaths.projects(),
+  )) as AvailableProject[];
+  return projects ?? [];
 }

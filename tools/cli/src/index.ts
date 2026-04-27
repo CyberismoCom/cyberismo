@@ -34,6 +34,7 @@ import {
   CommandManager,
   Commands,
   ExportFormats,
+  scanForProjects,
   validBumps,
   validContexts,
 } from '@cyberismo/data-handler';
@@ -44,6 +45,7 @@ import {
   exportSite,
   previewSite,
   MockAuthProvider,
+  ProjectRegistry,
 } from '@cyberismo/backend';
 import type { MockUserConfig } from '@cyberismo/backend';
 import { simpleGit } from 'simple-git';
@@ -1463,45 +1465,78 @@ const appCmd = new CommandWithPath('app')
   .option('--autocommit', 'Enable git-backed transactional writes');
 program.addCommand(appCmd);
 appCmd.action(async (options: CommandOptions<'start'>) => {
-  // validate project
-  const result = await commandHandler.command(
-    Cmd.validate,
-    [],
-    Object.assign({}, options, program.opts()),
-  );
-  if (!result.message) {
-    program.error('Expected validation result, but got none');
+  const basePath = options.projectPath || process.cwd();
+  let projects: Awaited<ReturnType<typeof scanForProjects>>;
+  try {
+    projects = await scanForProjects(basePath);
+  } catch (error) {
+    program.error(
+      error instanceof Error
+        ? error.message
+        : `Failed to scan for projects in '${basePath}'`,
+    );
     return;
   }
-  if (result.message !== 'Project structure validated') {
-    truncateMessage(result.message).forEach((item) => console.error(item));
-    console.error('\n'); // The output looks nicer with one extra row.
-    result.message = '';
-    const userConfirmation = await confirm(
-      {
-        message: 'There are validation errors. Do you want to continue?',
-      },
-      { signal: AbortSignal.timeout(10000), clearPromptOnDone: true },
-    ).catch((error) => {
-      return error.name === 'AbortPromptError';
-    });
-    if (!userConfirmation) {
-      handleResponse(result);
+
+  if (projects.length === 0) {
+    console.log('No projects found. Starting with empty project collection.');
+  }
+
+  // Validate each discovered project
+  for (const project of projects) {
+    const result = await commandHandler.command(
+      Cmd.validate,
+      [],
+      Object.assign({}, options, program.opts(), {
+        projectPath: project.path,
+      }),
+    );
+    if (!result.message) {
+      program.error(
+        `Expected validation result for project '${project.name}', but got none`,
+      );
       return;
     }
+    if (result.message !== 'Project structure validated') {
+      console.error(`Validation errors in project '${project.name}':`);
+      truncateMessage(result.message).forEach((item) => console.error(item));
+      console.error('\n');
+      result.message = '';
+      const userConfirmation = await confirm(
+        {
+          message: `There are validation errors in '${project.name}'. Do you want to continue?`,
+        },
+        { signal: AbortSignal.timeout(10000), clearPromptOnDone: true },
+      ).catch((error) => {
+        return error.name === 'AbortPromptError';
+      });
+      if (!userConfirmation) {
+        handleResponse(result);
+        return;
+      }
+    }
   }
+
   const gitUser = await getGitUserConfig();
   if (!gitUser.name || !gitUser.email) {
     console.warn(
       'Warning: git user.name or user.email is not configured. Using defaults.',
     );
   }
-  const projectPath = await commandHandler.getProjectPath(options.projectPath);
-  const commands = await CommandManager.getInstance(projectPath, {
-    autocommit: options.autocommit,
-    watchResourceChanges: options.watchResourceChanges,
-  });
-  await startServer(new MockAuthProvider(gitUser), commands);
+
+  // Create a CommandManager for each discovered project
+  const registryEntries = [];
+  for (const project of projects) {
+    const commands = new CommandManager(project.path, {
+      autocommit: options.autocommit,
+      watchResourceChanges: options.watchResourceChanges,
+    });
+    await commands.initialize();
+    registryEntries.push({ prefix: project.prefix, commands });
+  }
+
+  const registry = new ProjectRegistry(registryEntries);
+  await startServer(new MockAuthProvider(gitUser), registry);
 });
 
 // Publish command - creates a git tag from cardsConfig version and pushes

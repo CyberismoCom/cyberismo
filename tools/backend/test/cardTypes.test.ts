@@ -1,6 +1,7 @@
 import { expect, test, describe, beforeEach, afterEach } from 'vitest';
 import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
+import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
 
@@ -18,7 +19,10 @@ interface CardTypeResponse {
 beforeEach(async () => {
   tempTestDataPath = await createTempTestData('decision-records');
   const commands = await CommandManager.getInstance(tempTestDataPath);
-  app = createApp(new MockAuthProvider(), commands);
+  app = createApp(
+    new MockAuthProvider(),
+    ProjectRegistry.fromCommandManager(commands),
+  );
 });
 
 afterEach(async () => {
@@ -26,7 +30,7 @@ afterEach(async () => {
 });
 
 async function getCardType(name: string): Promise<CardTypeResponse> {
-  const response = await app.request('/api/cardTypes');
+  const response = await app.request('/api/projects/decision/cardTypes');
   expect(response.status).toBe(200);
   const cardTypes = (await response.json()) as CardTypeResponse[];
   const cardType = cardTypes.find((ct) => ct.name === name);
@@ -34,8 +38,8 @@ async function getCardType(name: string): Promise<CardTypeResponse> {
   return cardType;
 }
 
-test('POST /api/cardTypes creates a card type successfully', async () => {
-  const response = await app.request('/api/cardTypes', {
+test('POST /api/projects/:prefix/cardTypes creates a card type successfully', async () => {
+  const response = await app.request('/api/projects/decision/cardTypes', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -55,8 +59,8 @@ test('POST /api/cardTypes creates a card type successfully', async () => {
   expect(result.message).toBe('Card type created successfully');
 });
 
-test('POST /api/cardTypes returns error for non-existent workflow', async () => {
-  const response = await app.request('/api/cardTypes', {
+test('POST /api/projects/:prefix/cardTypes returns error for non-existent workflow', async () => {
+  const response = await app.request('/api/projects/decision/cardTypes', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -74,7 +78,7 @@ test('POST /api/cardTypes returns error for non-existent workflow', async () => 
   expect(result).toHaveProperty('error');
 });
 
-describe('PATCH /api/cardTypes/:cardTypeName/field-visibility', () => {
+describe('PATCH /api/projects/:prefix/cardTypes/:cardTypeName/field-visibility', () => {
   const cardTypeName = 'decision/cardTypes/decision';
   const fieldInAlways = 'decision/fieldTypes/admins';
   const fieldInHidden = 'decision/fieldTypes/responsible';
@@ -87,7 +91,7 @@ describe('PATCH /api/cardTypes/:cardTypeName/field-visibility', () => {
 
     // Move field
     const response = await app.request(
-      `/api/cardTypes/${encodeURIComponent(cardTypeName)}/field-visibility`,
+      `/api/projects/decision/cardTypes/${encodeURIComponent(cardTypeName)}/field-visibility`,
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -112,7 +116,7 @@ describe('PATCH /api/cardTypes/:cardTypeName/field-visibility', () => {
   test('moves field from optional to hidden', async () => {
     // First move a field to optional
     await app.request(
-      `/api/cardTypes/${encodeURIComponent(cardTypeName)}/field-visibility`,
+      `/api/projects/decision/cardTypes/${encodeURIComponent(cardTypeName)}/field-visibility`,
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -129,7 +133,7 @@ describe('PATCH /api/cardTypes/:cardTypeName/field-visibility', () => {
 
     // Move to hidden
     const response = await app.request(
-      `/api/cardTypes/${encodeURIComponent(cardTypeName)}/field-visibility`,
+      `/api/projects/decision/cardTypes/${encodeURIComponent(cardTypeName)}/field-visibility`,
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -156,7 +160,7 @@ describe('PATCH /api/cardTypes/:cardTypeName/field-visibility', () => {
 
     // Move to always
     const response = await app.request(
-      `/api/cardTypes/${encodeURIComponent(cardTypeName)}/field-visibility`,
+      `/api/projects/decision/cardTypes/${encodeURIComponent(cardTypeName)}/field-visibility`,
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -183,7 +187,7 @@ describe('PATCH /api/cardTypes/:cardTypeName/field-visibility', () => {
     // Move the second field to index 0
     const fieldToMove = initialAlways[1];
     const response = await app.request(
-      `/api/cardTypes/${encodeURIComponent(cardTypeName)}/field-visibility`,
+      `/api/projects/decision/cardTypes/${encodeURIComponent(cardTypeName)}/field-visibility`,
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -205,7 +209,7 @@ describe('PATCH /api/cardTypes/:cardTypeName/field-visibility', () => {
   test('moves field to group with specific index', async () => {
     // Move a field from hidden to always at index 0
     const response = await app.request(
-      `/api/cardTypes/${encodeURIComponent(cardTypeName)}/field-visibility`,
+      `/api/projects/decision/cardTypes/${encodeURIComponent(cardTypeName)}/field-visibility`,
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -226,7 +230,7 @@ describe('PATCH /api/cardTypes/:cardTypeName/field-visibility', () => {
 
   test('returns 404 for non-existent field', async () => {
     const response = await app.request(
-      `/api/cardTypes/${encodeURIComponent(cardTypeName)}/field-visibility`,
+      `/api/projects/decision/cardTypes/${encodeURIComponent(cardTypeName)}/field-visibility`,
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -245,7 +249,7 @@ describe('PATCH /api/cardTypes/:cardTypeName/field-visibility', () => {
 
   test('returns 404 for non-existent card type', async () => {
     const response = await app.request(
-      `/api/cardTypes/${encodeURIComponent('nonexistent/cardTypes/fake')}/field-visibility`,
+      `/api/projects/decision/cardTypes/${encodeURIComponent('nonexistent/cardTypes/fake')}/field-visibility`,
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -261,7 +265,7 @@ describe('PATCH /api/cardTypes/:cardTypeName/field-visibility', () => {
 
   test('returns 400 for invalid group value', async () => {
     const response = await app.request(
-      `/api/cardTypes/${encodeURIComponent(cardTypeName)}/field-visibility`,
+      `/api/projects/decision/cardTypes/${encodeURIComponent(cardTypeName)}/field-visibility`,
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -277,7 +281,7 @@ describe('PATCH /api/cardTypes/:cardTypeName/field-visibility', () => {
 
   test('returns 400 for missing fieldName', async () => {
     const response = await app.request(
-      `/api/cardTypes/${encodeURIComponent(cardTypeName)}/field-visibility`,
+      `/api/projects/decision/cardTypes/${encodeURIComponent(cardTypeName)}/field-visibility`,
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -292,7 +296,7 @@ describe('PATCH /api/cardTypes/:cardTypeName/field-visibility', () => {
 
   test('returns 400 for missing group', async () => {
     const response = await app.request(
-      `/api/cardTypes/${encodeURIComponent(cardTypeName)}/field-visibility`,
+      `/api/projects/decision/cardTypes/${encodeURIComponent(cardTypeName)}/field-visibility`,
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -308,7 +312,7 @@ describe('PATCH /api/cardTypes/:cardTypeName/field-visibility', () => {
   test('no-op when moving hidden field to hidden', async () => {
     // This should succeed without error
     const response = await app.request(
-      `/api/cardTypes/${encodeURIComponent(cardTypeName)}/field-visibility`,
+      `/api/projects/decision/cardTypes/${encodeURIComponent(cardTypeName)}/field-visibility`,
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
