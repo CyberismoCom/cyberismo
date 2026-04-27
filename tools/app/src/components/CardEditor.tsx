@@ -234,12 +234,14 @@ function AttachmentPreviewCard({
 export default function CardEditor({
   cardKey,
   afterSave,
+  afterDelete,
   cardData,
   readOnly = false,
   onCancel,
 }: {
   cardKey: string;
   afterSave?: () => void;
+  afterDelete?: () => void;
   cardData: CardData;
   readOnly?: boolean;
   onCancel?: () => void;
@@ -598,6 +600,7 @@ export default function CardEditor({
             mode={CardMode.EDIT}
             onUpdate={() => handleSubmit(handleSave)()}
             onCancel={handleCancel}
+            afterDelete={afterDelete}
             linkButtonDisabled={true}
             readOnly={readOnly}
           />

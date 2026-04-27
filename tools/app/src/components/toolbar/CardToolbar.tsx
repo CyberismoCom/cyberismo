@@ -43,6 +43,7 @@ interface CardToolbarProps {
   onUpdate?: () => void;
   onInsertLink?: () => void;
   onCancel?: () => void;
+  afterDelete?: () => void;
   readOnly?: boolean;
 }
 
@@ -52,6 +53,7 @@ export function CardToolbar({
   onUpdate,
   onInsertLink,
   onCancel,
+  afterDelete,
   linkButtonDisabled,
   readOnly,
 }: CardToolbarProps) {
@@ -179,7 +181,7 @@ export function CardToolbar({
         !getConfig().staticMode && (
           <>
             <PresenceIndicator presence={presence} currentUserId={user?.id} />
-            <CardContextMenu cardKey={cardKey} />
+            <CardContextMenu cardKey={cardKey} afterDelete={afterDelete} />
           </>
         )
       }

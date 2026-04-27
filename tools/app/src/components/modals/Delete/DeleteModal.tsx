@@ -12,7 +12,7 @@
 */
 
 import { useCard } from '../../../lib/api';
-import { useChildAmount, useParentCard, useAppRouter } from '@/lib/hooks';
+import { useChildAmount } from '@/lib/hooks';
 import { useMemo } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { Typography } from '@mui/joy';
@@ -22,14 +22,18 @@ export interface DeleteModalProps {
   open: boolean;
   onClose: () => void;
   cardKey: string;
+  afterDelete?: () => void;
 }
 
-export function DeleteModal({ open, onClose, cardKey }: DeleteModalProps) {
+export function DeleteModal({
+  open,
+  onClose,
+  cardKey,
+  afterDelete,
+}: DeleteModalProps) {
   const { t } = useTranslation();
   const { deleteCard, isUpdating } = useCard(cardKey);
   const childAmount = useChildAmount(cardKey);
-  const parent = useParentCard(cardKey);
-  const router = useAppRouter();
 
   const warning = useMemo((): string | undefined => {
     if (childAmount > 1) {
@@ -58,11 +62,7 @@ export function DeleteModal({ open, onClose, cardKey }: DeleteModalProps) {
     const result = await deleteCard();
     if (result) {
       onClose();
-      if (parent) {
-        router.push(`/cards/${parent.key}`);
-      } else {
-        router.push('/cards');
-      }
+      afterDelete?.();
     }
   };
 

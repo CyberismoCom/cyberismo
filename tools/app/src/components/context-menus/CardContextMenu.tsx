@@ -29,15 +29,18 @@ import {
   AddAttachmentModal,
   LogicProgramModal,
 } from '@/components/modals';
-import { useAppSelector, useAppRouter } from '@/lib/hooks';
+import { useAppSelector } from '@/lib/hooks';
 import { useCard, useProject } from '@/lib/api';
-import { useParentCard } from '@/lib/hooks';
 
 interface CardContextMenuProps {
   cardKey: string;
+  afterDelete?: () => void;
 }
 
-export function CardContextMenu({ cardKey }: CardContextMenuProps) {
+export function CardContextMenu({
+  cardKey,
+  afterDelete,
+}: CardContextMenuProps) {
   const { modalOpen, openModal, closeModal } = useModals({
     delete: false,
     move: false,
@@ -48,20 +51,14 @@ export function CardContextMenu({ cardKey }: CardContextMenuProps) {
 
   const { project } = useProject();
   const { t } = useTranslation();
-  const router = useAppRouter();
   const { deleteCard } = useCard(cardKey);
-  const parent = useParentCard(cardKey);
   const recentlyCreated = useAppSelector((state) => state.card.recentlyCreated);
 
   const handleDeleteClick = async () => {
     if (recentlyCreated.includes(cardKey)) {
       const success = await deleteCard();
       if (success) {
-        if (parent) {
-          router.push(`/cards/${parent.key}`);
-        } else {
-          router.push('/cards');
-        }
+        afterDelete?.();
       }
     } else {
       openModal('delete')();
@@ -110,6 +107,7 @@ export function CardContextMenu({ cardKey }: CardContextMenuProps) {
         open={modalOpen.delete}
         onClose={closeModal('delete')}
         cardKey={cardKey}
+        afterDelete={afterDelete}
       />
       <AddAttachmentModal
         open={modalOpen.addAttachment}

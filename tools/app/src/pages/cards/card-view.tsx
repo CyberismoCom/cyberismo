@@ -23,6 +23,7 @@ import {
   useListCard,
   useAppRouter,
   useKeyboardShortcut,
+  useParentCard,
 } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
 import { expandLinkTypes } from '@/lib/utils';
@@ -40,6 +41,8 @@ export default function Page() {
   const { card, error, createLink, deleteLink, editLink } = useCard(key);
 
   const { tree } = useTree();
+
+  const parent = useParentCard(key);
 
   const listCard = useListCard(key);
 
@@ -94,6 +97,9 @@ export default function Page() {
         mode={CardMode.VIEW}
         onUpdate={() => {}}
         onInsertLink={() => setLinkFormState('add-from-toolbar')}
+        afterDelete={() =>
+          router.push(parent ? `/cards/${parent.key}` : '/cards')
+        }
         linkButtonDisabled={expandedLinkTypes.length === 0}
       />
       <Box flexGrow={1} minHeight={0}>
