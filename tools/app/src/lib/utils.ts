@@ -288,6 +288,33 @@ export function findResourceNodeByName(
 }
 
 /**
+ * Finds the parent of a template card in the resource tree. The parent is
+ * either another card node (when the deleted card was nested) or the owning
+ * templates node (when the deleted card was at the top level of a template).
+ * @param nodes: resource tree
+ * @param cardKey: id of the card whose parent should be found
+ * @returns the parent node if found, otherwise null
+ */
+export function findCardParentInResourceTree(
+  nodes: AnyNode[] | undefined,
+  cardKey: string,
+): AnyNode | null {
+  if (!nodes) return null;
+  for (const node of nodes) {
+    if (
+      node.children?.some(
+        (child) => child.type === 'card' && child.id === cardKey,
+      )
+    ) {
+      return node;
+    }
+    const found = findCardParentInResourceTree(node.children, cardKey);
+    if (found) return found;
+  }
+  return null;
+}
+
+/**
  * Finds the correct workflow for the card, if exists
  * @param cardType: cardType to search for
  * @param project: project object
