@@ -90,7 +90,11 @@ jobs:
 
       - uses: pnpm/action-setup@v4
 
-      - run: pnpm install --frozen-lockfile --ignore-scripts
+      # Host install is unused on the musl matrix (the docker run does its
+      # own install inside the container) and only causes the container to
+      # see glibc-flavoured node_modules and wipe-and-reinstall.
+      - if: ${{ !endsWith(matrix.target, '-musl') }}
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Resolve clingo submodule SHA
         id: clingo-sha
@@ -98,7 +102,6 @@ jobs:
         run: echo "sha=$(git -C tools/node-clingo/external/clingo rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Cache bundled clingo build
-        if: ${{ !endsWith(matrix.target, '-musl') }}
         uses: actions/cache@v4
         with:
           path: tools/node-clingo/external/clingo/build
