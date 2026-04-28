@@ -65,25 +65,23 @@ export default function AppLayout() {
     },
   );
 
-  // Memoize the onMove handler to prevent recreation on every render
-  // MUST be called before any conditional returns to satisfy Rules of Hooks
+  // Stable refs so the renderer chain down to BaseTreeComponent's renderNode
+  // useCallback stays valid mid-drag (react-arborist remounts rows on
+  // renderer-ref change → aborted drag).
   const handleMove = useCallback(
     async (cardKey: string, newParent: string, index: number) => {
       if (!tree) return;
       const parent = findParentCard(tree, cardKey);
 
-      // Show loading state
       setIsMoving(true);
 
       try {
-        // Fire the update - use a small delay to ensure UI updates
         await updateCard(cardKey, {
           parent: newParent === parent?.key ? undefined : newParent,
           index,
         });
       } catch (error) {
         console.error('Failed to move card:', error);
-        // SWR will revalidate and restore the correct state
       } finally {
         // Delay hiding the overlay to prevent flickering during SWR revalidation
         setTimeout(() => setIsMoving(false), MOVE_LOADING_DISMISS_DELAY_MS);
@@ -92,7 +90,6 @@ export default function AppLayout() {
     [tree, updateCard],
   );
 
-  // Memoize the onCardSelect handler to prevent recreation
   const handleCardSelect = useCallback(
     (node: NodeApi<QueryResult<'tree'>>) => {
       if (node.data.key) {

@@ -74,7 +74,8 @@ export function BaseTreeComponent<T>({
     [onMove],
   );
 
-  // Create stable node renderer wrapper to prevent component remounting
+  // Stable reference required by react-arborist: a fresh renderer function each
+  // render causes row components to remount, which aborts in-progress drags.
   const renderNode = useCallback(
     (props: NodeRendererProps<T>) => (
       <NodeRenderer {...props} onNodeClick={onNodeClick} />
@@ -114,7 +115,7 @@ export function BaseTreeComponent<T>({
         ref={treeRef}
         data={data || []}
         openByDefault={openByDefault}
-        disableDrag={getConfig().staticMode}
+        disableDrag={getConfig().staticMode || !onMove}
         idAccessor={idAccessor}
         childrenAccessor={childrenAccessor}
         indent={16}

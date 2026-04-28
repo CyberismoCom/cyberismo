@@ -37,7 +37,8 @@ export const TreeMenu = ({
   openByDefault = false,
   titleRightSlot,
 }: TreeMenuProps) => {
-  // Memoize handleMove to prevent unnecessary re-renders of BaseTreeComponent
+  // Stable ref so BaseTreeComponent's renderNode useCallback doesn't invalidate
+  // mid-drag (react-arborist remounts rows on renderer-ref change → aborted drag).
   const handleMove = useCallback(
     (dragIds: string[], parentId: string | null, index: number) => {
       if (onMove && dragIds.length === 1) {

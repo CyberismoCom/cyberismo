@@ -13,7 +13,6 @@
 
 import { useMemo } from 'react';
 import type { NodeApi } from 'react-arborist';
-import { config } from '@/lib/utils';
 
 interface TreeNodeVisualState {
   backgroundColor: string;
@@ -35,7 +34,7 @@ export function useTreeNodeVisualState<T>(
   return useMemo(() => {
     const isDropTarget = node.state?.willReceiveDrop || false;
     const isDragging = node.state?.isDragging || false;
-    const isDragEnabled = !config.staticMode;
+    const isDragEnabled = !node.tree.props.disableDrag;
 
     return {
       backgroundColor: isDropTarget
@@ -49,8 +48,12 @@ export function useTreeNodeVisualState<T>(
         ? { border: '2px solid', borderColor: 'primary.500' }
         : {},
       opacity: isDragging ? 0.5 : 1,
-      // Only show grab cursor when dragging is enabled
       cursor: !isDragEnabled ? 'pointer' : isDragging ? 'grabbing' : 'grab',
     };
-  }, [node.state?.willReceiveDrop, node.state?.isDragging, node.isSelected]);
+  }, [
+    node.state?.willReceiveDrop,
+    node.state?.isDragging,
+    node.isSelected,
+    node.tree.props.disableDrag,
+  ]);
 }
