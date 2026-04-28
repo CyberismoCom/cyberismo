@@ -18,17 +18,17 @@ import { Box, Button, Chip, IconButton, Stack, Typography } from '@mui/joy';
 import Edit from '@mui/icons-material/Edit';
 import AddLink from '@mui/icons-material/AddLink';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import type { ExpandedLinkType } from '../../lib/definitions';
-import type { CardResponse, Connector } from '../../lib/api/types';
+import type { ExpandedLinkType } from '@/lib/definitions';
+import type { CardResponse, Connector } from '@/lib/api/types';
 import type {
   CalculationLink,
   QueryResult,
 } from '@cyberismo/data-handler/types/queries';
-import { getConfig, useModals } from '../../lib/utils';
-import { useCard } from '../../lib/api';
-import { useAppDispatch, useAppSelector } from '../../lib/hooks/redux';
-import { setLinkedCardsExpanded } from '../../lib/slices/pageState';
-import { GenericConfirmModal } from '../modals';
+import { getConfig, useModals } from '@/lib/utils';
+import { useCard } from '@/lib/api';
+import { useAppDispatch, useAppSelector } from '@/lib/hooks/redux';
+import { setLinkedCardsExpanded } from '@/lib/slices/pageState';
+import { GenericConfirmModal } from '@/components/modals';
 import { EditMode } from './EditMode';
 import { LinkRow } from './LinkRow';
 import type { LinkFormSubmitData, LinkFormState } from './EditMode';

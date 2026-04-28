@@ -35,9 +35,13 @@ import { useParentCard } from '@/lib/hooks';
 
 interface CardContextMenuProps {
   cardKey: string;
+  onAttachmentAdded?: () => void;
 }
 
-export function CardContextMenu({ cardKey }: CardContextMenuProps) {
+export function CardContextMenu({
+  cardKey,
+  onAttachmentAdded,
+}: CardContextMenuProps) {
   const { modalOpen, openModal, closeModal } = useModals({
     delete: false,
     move: false,
@@ -115,6 +119,7 @@ export function CardContextMenu({ cardKey }: CardContextMenuProps) {
         open={modalOpen.addAttachment}
         onClose={closeModal('addAttachment')}
         cardKey={cardKey}
+        onAttachmentAdded={onAttachmentAdded}
       />
       <LogicProgramModal
         open={modalOpen.logicProgram}

@@ -10,6 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import type { DragEvent } from 'react';
 import type { EditorView } from '@uiw/react-codemirror';
 import { apiPaths } from '../swr';
 import type { CardAttachment } from '@cyberismo/data-handler/interfaces/project-interfaces';
@@ -147,6 +148,53 @@ export function addAttachment(
       },
     });
   }
+}
+
+/**
+ * Handles a drag-and-drop event whose payload is an attachment URL coming
+ * from the attachment panel. Inserts the matching attachment into the editor
+ * at the position closest to the drop coordinates.
+ * @param event The drag event from CodeMirror's onDrop prop
+ * @param view The CodeMirror editor view
+ * @param editor The CodeMirror editor DOM element (used for focus)
+ * @param attachments The card's attachments to look up by file name
+ * @param cardKey The key of the card the attachments belong to
+ */
+export function handleAttachmentDrop(
+  event: DragEvent<HTMLDivElement>,
+  view: EditorView | null,
+  editor: HTMLDivElement | null,
+  attachments: CardAttachment[] | undefined,
+  cardKey: string,
+) {
+  event.preventDefault();
+  const { items } = event.dataTransfer;
+  if (items.length === 0) return;
+  if (items[0].kind !== 'string' || items[0].type !== 'text/uri-list') return;
+
+  const x = event.pageX;
+  const y = event.pageY;
+
+  items[0].getAsString((uri) => {
+    let decodedURI: string;
+    try {
+      decodedURI = decodeURI(uri);
+    } catch {
+      return;
+    }
+
+    const attachment = attachments?.find((a) =>
+      decodedURI.includes(a.fileName),
+    );
+    if (!attachment || !view || !editor) return;
+
+    editor.focus();
+    const dropPosition = view.posAtCoords({ x, y }) ?? 0;
+    view.dispatch({
+      selection: { anchor: dropPosition, head: dropPosition },
+    });
+    addAttachment(view, attachment, cardKey);
+  });
 }
 
 /**
