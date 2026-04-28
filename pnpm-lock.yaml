@@ -436,6 +436,28 @@ importers:
       node-gyp:
         specifier: ^12.2.0
         version: 12.2.0
+    optionalDependencies:
+      '@cyberismo/node-clingo-darwin-arm64':
+        specifier: 1.6.0-rc.0
+        version: 1.6.0-rc.0
+      '@cyberismo/node-clingo-darwin-x64':
+        specifier: 1.6.0-rc.0
+        version: 1.6.0-rc.0
+      '@cyberismo/node-clingo-linux-arm64-gnu':
+        specifier: 1.6.0-rc.0
+        version: 1.6.0-rc.0
+      '@cyberismo/node-clingo-linux-arm64-musl':
+        specifier: 1.6.0-rc.0
+        version: 1.6.0-rc.0
+      '@cyberismo/node-clingo-linux-x64-gnu':
+        specifier: 1.6.0-rc.0
+        version: 1.6.0-rc.0
+      '@cyberismo/node-clingo-linux-x64-musl':
+        specifier: 1.6.0-rc.0
+        version: 1.6.0-rc.0
+      '@cyberismo/node-clingo-win32-x64':
+        specifier: 1.6.0-rc.0
+        version: 1.6.0-rc.0
 
 packages:
 
@@ -700,6 +722,48 @@ packages:
   '@csstools/css-tokenizer@4.0.0':
     resolution: {integrity: sha512-QxULHAm7cNu72w97JUNCBFODFaXpbDg+dP8b/oWFAZ2MTRppA3U00Y2L1HqaS4J6yBqxwa/Y3nMBaxVKbB/NsA==}
     engines: {node: '>=20.19.0'}
+
+  '@cyberismo/node-clingo-darwin-arm64@1.6.0-rc.0':
+    resolution: {integrity: sha512-4XTCI/Z9kYP6AoqUesX7Km6WuVE9UzMXc/iHCrq9fEyNzzJ9dVk8NOHFW7Ypa0j6TgQI/5m502MTmlaJ4iRz2Q==}
+    engines: {node: '>=22'}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@cyberismo/node-clingo-darwin-x64@1.6.0-rc.0':
+    resolution: {integrity: sha512-LDG43tGoY7p+G+28TythHLgsnaZ1QZAyNWVHIDJpzjhPWjV/+M3F7lFMtASYpMQThiW4C7VKCKjwUSri7ihjAg==}
+    engines: {node: '>=22'}
+    cpu: [x64]
+    os: [darwin]
+
+  '@cyberismo/node-clingo-linux-arm64-gnu@1.6.0-rc.0':
+    resolution: {integrity: sha512-oHieKjaGvMBRJVGejBUVfHBxnWksYTW7r8xEHcF7IFqB5LOpppa6Og06QV2EH5WUS6CmIg0x9rWkkwLKEKPfXQ==}
+    engines: {node: '>=22'}
+    cpu: [arm64]
+    os: [linux]
+
+  '@cyberismo/node-clingo-linux-arm64-musl@1.6.0-rc.0':
+    resolution: {integrity: sha512-njrk1tR/7jVTGjJna3vmc0Di+V0bQCNbCmEnIYpcBm1i2PFrVzlA/WSBVKSqPQ+93Zyt2r6wWfi3UegeTuSOog==}
+    engines: {node: '>=22'}
+    cpu: [arm64]
+    os: [linux]
+
+  '@cyberismo/node-clingo-linux-x64-gnu@1.6.0-rc.0':
+    resolution: {integrity: sha512-iZyE5kfXx6oUv/3/0qAamdJsNlWNtup02FZKGsYYEAq9VdqapVKnXDe2+UL4nmautsoVOcKlUq8RxSRhYunefw==}
+    engines: {node: '>=22'}
+    cpu: [x64]
+    os: [linux]
+
+  '@cyberismo/node-clingo-linux-x64-musl@1.6.0-rc.0':
+    resolution: {integrity: sha512-t3ceSPIiK/JBuJOsbWKJ+jCdcMr+CI+kkaeWXLBatkf3hMk3GPz9SBBvrHCTTI8IhT3tB8NM2OyNs5/f3ggk0w==}
+    engines: {node: '>=22'}
+    cpu: [x64]
+    os: [linux]
+
+  '@cyberismo/node-clingo-win32-x64@1.6.0-rc.0':
+    resolution: {integrity: sha512-jITPMHONnDzv3HPjaHPP+X5x2BwzVoFctpxIKEVxTlcfINuIBFVPT2PZucbwGd+zfvNym+mYKpZesOi4M1j+uQ==}
+    engines: {node: '>=22'}
+    cpu: [x64]
+    os: [win32]
 
   '@cypress/request@3.0.10':
     resolution: {integrity: sha512-hauBrOdvu08vOsagkZ/Aju5XuiZx6ldsLfByg1htFeldhex+PeMrYauANzFsMJeAA0+dyPLbDoX2OYuvVoLDkQ==}
@@ -6025,6 +6089,27 @@ snapshots:
       css-tree: 3.2.1
 
   '@csstools/css-tokenizer@4.0.0': {}
+
+  '@cyberismo/node-clingo-darwin-arm64@1.6.0-rc.0':
+    optional: true
+
+  '@cyberismo/node-clingo-darwin-x64@1.6.0-rc.0':
+    optional: true
+
+  '@cyberismo/node-clingo-linux-arm64-gnu@1.6.0-rc.0':
+    optional: true
+
+  '@cyberismo/node-clingo-linux-arm64-musl@1.6.0-rc.0':
+    optional: true
+
+  '@cyberismo/node-clingo-linux-x64-gnu@1.6.0-rc.0':
+    optional: true
+
+  '@cyberismo/node-clingo-linux-x64-musl@1.6.0-rc.0':
+    optional: true
+
+  '@cyberismo/node-clingo-win32-x64@1.6.0-rc.0':
+    optional: true
 
   '@cypress/request@3.0.10':
     dependencies:
