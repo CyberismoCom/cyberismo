@@ -142,7 +142,12 @@ function AttachmentPreviewCard({
             </IconButton>
           </Tooltip>
         </Box>
-        <AspectRatio ratio="1" maxHeight={97} variant="plain">
+        <AspectRatio
+          ratio="1"
+          maxHeight={97}
+          variant="plain"
+          objectFit="contain"
+        >
           {children}
         </AspectRatio>
       </CardOverflow>
@@ -207,20 +212,51 @@ export const AttachmentPanel: React.FC<AttachmentPanelProps> = ({
               display="flex"
               justifyContent="center"
               width={120}
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.effectAllowed = 'copy';
+                e.dataTransfer.setData(
+                  'text/uri-list',
+                  apiPaths.attachment(cardKey, attachment.fileName),
+                );
+                const preview = e.currentTarget.querySelector<HTMLElement>(
+                  '[data-attachment-preview]',
+                );
+                if (preview) {
+                  const rect = preview.getBoundingClientRect();
+                  e.dataTransfer.setDragImage(
+                    preview,
+                    rect.width / 2,
+                    rect.height / 2,
+                  );
+                }
+              }}
             >
               <AttachmentPreviewCard
                 name={attachment.fileName}
                 cardKey={cardKey}
                 onInsert={() => onInsert(attachment)}
               >
-                {attachment.mimeType?.startsWith('image') ? (
-                  <img
-                    src={apiPaths.attachment(cardKey, attachment.fileName)}
-                    alt=""
-                  />
-                ) : (
-                  <InsertDriveFile />
-                )}
+                <Box
+                  data-attachment-preview
+                  sx={{
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {attachment.mimeType?.startsWith('image') ? (
+                    <img
+                      src={apiPaths.attachment(cardKey, attachment.fileName)}
+                      alt=""
+                      draggable={false}
+                    />
+                  ) : (
+                    <InsertDriveFile />
+                  )}
+                </Box>
               </AttachmentPreviewCard>
             </Grid>
           ))}
