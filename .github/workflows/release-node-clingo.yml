@@ -130,7 +130,7 @@ jobs:
               apk add --no-cache g++ python3 make cmake git
               corepack enable
               corepack prepare pnpm@10.8.0 --activate
-              pnpm install --frozen-lockfile
+              pnpm install --frozen-lockfile --ignore-scripts
               pnpm --filter @cyberismo/node-clingo run build:native
             '
 
