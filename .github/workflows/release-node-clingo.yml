@@ -9,26 +9,32 @@ name: Release node-clingo
 # Trigger semantics:
 #   - pull_request touching tools/node-clingo/** → matrix build only.
 #     This is the validation gate for any source change.
-#   - push to main where tools/node-clingo/package.json changed →
-#     matrix build + publish + smoke. The release IS the version bump.
-#     Source-only merges don't re-fire on main; they were already
-#     validated in the PR.
-#   - workflow_dispatch → manual re-runs and bootstrap. `natives_only`
-#     skips the umbrella publish during the one-time bootstrap before
-#     optionalDependencies are wired up.
+#   - push to main where tools/node-clingo/package.json or this workflow
+#     file changed → matrix + publish + smoke. The release IS the
+#     version bump. Source-only merges don't re-fire on main; they were
+#     already validated in the PR.
+#   - workflow_dispatch → manual override. `natives_only` skips the
+#     umbrella publish (rarely needed in steady state — umbrella_ready
+#     auto-detects empty optionalDependencies).
 #
-# Both publish jobs are idempotent: an `npm view` check skips versions
-# that are already on the registry, so workflow_dispatch re-runs and
-# accidental dual-runs are safe.
+# Both publish jobs are idempotent (`npm view` skips versions already on
+# the registry). The publish-umbrella job is additionally gated on
+# `umbrella_ready`: the umbrella is only published when its
+# optionalDependencies block is populated. This handles the bootstrap
+# (empty optionalDependencies → natives publish, umbrella waits until
+# the block is wired up in a follow-up commit) and acts as a permanent
+# safety rail against accidental "broken umbrella" publishes.
 
 on:
   push:
-    branches: [main]
+    # `feature/samutoljamo/INTDEV-1248-1` is here so the bootstrap can be
+    # exercised before the workflow is on `main` (workflow_dispatch isn't
+    # available off the default branch). Remove this branch entry before
+    # merging to main.
+    branches: [main, feature/samutoljamo/INTDEV-1248-1]
     paths:
-      # The release event: a merge that bumps package.json. Source-only
-      # changes don't fire the workflow on main — they were already
-      # validated in the PR run below.
       - 'tools/node-clingo/package.json'
+      - '.github/workflows/release-node-clingo.yml'
   pull_request:
     branches: [main]
     paths:
@@ -37,7 +43,7 @@ on:
   workflow_dispatch:
     inputs:
       natives_only:
-        description: 'Skip the umbrella publish (bootstrap only)'
+        description: 'Skip the umbrella publish (manual override)'
         type: boolean
         default: false
 
@@ -55,14 +61,25 @@ jobs:
     timeout-minutes: 5
     outputs:
       version: ${{ steps.r.outputs.version }}
+      umbrella_ready: ${{ steps.r.outputs.umbrella_ready }}
     steps:
       - uses: actions/checkout@v4
       - id: r
         run: |
           set -euo pipefail
           VERSION=$(node -p "require('./tools/node-clingo/package.json').version")
+          # umbrella_ready guards against publishing a broken umbrella: the
+          # umbrella's optionalDependencies must be populated, otherwise
+          # consumers would install it and get no native binary. Used by
+          # the bootstrap (empty → skip umbrella, publish only natives) and
+          # as a permanent safety rail in steady state.
+          OPT_DEPS_COUNT=$(node -p "Object.keys(require('./tools/node-clingo/package.json').optionalDependencies || {}).length")
+          UMBRELLA_READY=true
+          if [ "$OPT_DEPS_COUNT" = "0" ]; then UMBRELLA_READY=false; fi
           echo "Resolved version: $VERSION"
+          echo "umbrella_ready: $UMBRELLA_READY"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "umbrella_ready=$UMBRELLA_READY" >> "$GITHUB_OUTPUT"
 
   build:
     needs: resolve
@@ -177,7 +194,7 @@ jobs:
 
   publish-umbrella:
     needs: [resolve, publish-natives]
-    if: ${{ github.event_name != 'pull_request' && !inputs.natives_only }}
+    if: ${{ github.event_name != 'pull_request' && !inputs.natives_only && needs.resolve.outputs.umbrella_ready == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
