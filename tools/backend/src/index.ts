@@ -23,7 +23,7 @@ import type { ProjectRegistry } from './project-registry.js';
 export { MockAuthProvider } from './auth/mock.js';
 export type { MockUserConfig } from './auth/mock.js';
 export type { AuthProvider } from './auth/types.js';
-export { exportSite } from './export.js';
+export { exportSite, type ExportSiteOptions } from './export.js';
 export { ProjectRegistry } from './project-registry.js';
 
 const DEFAULT_PORT = 3000;

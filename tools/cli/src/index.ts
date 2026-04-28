@@ -31,7 +31,6 @@ import type {
 } from '@cyberismo/data-handler';
 import {
   Cmd,
-  CommandManager,
   Commands,
   ExportFormats,
   scanForProjects,
@@ -821,6 +820,10 @@ exportCmd
     '-m, --revremark [revremark]',
     'Revision remark of the exported document(pdf export only)',
   )
+  .option(
+    '--default-project <prefix>',
+    'Default project prefix for exported site (site export only)',
+  )
   .action(
     async (
       format: string,
@@ -835,18 +838,25 @@ exportCmd
         );
         // Should be in commandHandler, once it is moved under the CLI package
         try {
-          const projectPath = await commandHandler.getProjectPath(
-            options.projectPath,
-          );
-          const commands = await CommandManager.getInstance(projectPath, {
-            logLevel: options.logLevel,
-          });
+          const projectPath = options.projectPath
+            ? resolve(options.projectPath)
+            : process.cwd();
+          const projects = await scanForProjects(projectPath);
+          if (projects.length === 0) {
+            handleResponse({
+              statusCode: 400,
+              message: `No projects found in '${projectPath}'.`,
+            });
+            return;
+          }
+          const registry = await ProjectRegistry.fromScannedProjects(projects);
           const { errors } = await exportSite(
-            commands,
+            registry,
             output,
             {
               recursive: options.recursive,
               cardKey: cardKey,
+              defaultProject: options.defaultProject,
             },
             (current?: number, total?: number) => {
               if (!progress.isActive && total !== undefined) {
@@ -1525,17 +1535,11 @@ appCmd.action(async (options: CommandOptions<'start'>) => {
   }
 
   // Create a CommandManager for each discovered project
-  const registryEntries = [];
-  for (const project of projects) {
-    const commands = new CommandManager(project.path, {
-      autocommit: options.autocommit,
-      watchResourceChanges: options.watchResourceChanges,
-    });
-    await commands.initialize();
-    registryEntries.push({ prefix: project.prefix, commands });
-  }
+  const registry = await ProjectRegistry.fromScannedProjects(projects, {
+    autocommit: options.autocommit,
+    watchResourceChanges: options.watchResourceChanges,
+  });
 
-  const registry = new ProjectRegistry(registryEntries);
   await startServer(new MockAuthProvider(gitUser), registry);
 });
 

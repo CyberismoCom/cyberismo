@@ -26,6 +26,7 @@ import { store } from './lib/store.js';
 import { selectProjectPrefix, setProjectPrefix } from './lib/slices/project.js';
 import { fetchAvailableProjects } from './lib/projectUtils.js';
 import type { AvailableProject } from './lib/projectUtils.js';
+import { getConfig } from './lib/utils.js';
 
 // Export mode guard - unfortunately need to refetch config.json to check export mode since hooks
 function createEditLoader(cardKey: string) {
@@ -64,8 +65,12 @@ async function resolveProject(urlPrefix?: string) {
   // TODO: Remove single-project fallback when multi-project UI (project selection view) is implemented
   const fallbackPrefix = prefixes[0];
 
+  const configDefault = getConfig().defaultProject;
   const prefix =
     (urlPrefix && prefixes.includes(urlPrefix) ? urlPrefix : null) ??
+    (configDefault && prefixes.includes(configDefault)
+      ? configDefault
+      : null) ??
     (lastActive && prefixes.includes(lastActive) ? lastActive : null) ??
     fallbackPrefix;
 
@@ -173,7 +178,8 @@ export function createAppRouter() {
       // Catch legacy URLs without /projects/ prefix (e.g. /cards/KEY, /configuration/...)
       path: '*',
       loader: async ({ request }) => {
-        const { prefix } = await resolveProject();
+        const active = selectProjectPrefix(store.getState());
+        const prefix = active ?? (await resolveProject()).prefix;
         const url = new URL(request.url);
         if (prefix) {
           return redirect(`/projects/${prefix}${url.pathname}`);

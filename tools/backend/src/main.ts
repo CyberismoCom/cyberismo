@@ -10,13 +10,14 @@
   details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-import { CommandManager, scanForProjects } from '@cyberismo/data-handler';
+import { scanForProjects } from '@cyberismo/data-handler';
 import { startServer } from './index.js';
 import { exportSite } from './export.js';
 import { MockAuthProvider } from './auth/mock.js';
 import { KeycloakAuthProvider } from './auth/keycloak.js';
 import type { AuthProvider } from './auth/types.js';
 import { ProjectRegistry } from './project-registry.js';
+import { parseArgs } from 'node:util';
 import dotenv from 'dotenv';
 
 // Load environment variables from .env file
@@ -69,21 +70,26 @@ try {
   process.exit(1);
 }
 
-if (process.argv.includes('--export')) {
+const { values: args } = parseArgs({
+  options: {
+    export: { type: 'boolean', default: false },
+    'default-project': { type: 'string' },
+  },
+  strict: false,
+});
+
+if (args.export) {
   if (projects.length === 0) {
     console.error('No projects found to export.');
     process.exit(1);
   }
-  if (projects.length > 1) {
-    // TODO: Support multi-project export when mass export is implemented
-    console.error(
-      'Export is not supported with multiple projects. Please specify a directory containing a single project.',
-    );
-    process.exit(1);
-  }
-  const commands = new CommandManager(projects[0].path);
-  await commands.initialize();
-  await exportSite(commands);
+  const registry = await ProjectRegistry.fromScannedProjects(projects);
+  await exportSite(registry, undefined, {
+    defaultProject:
+      typeof args['default-project'] === 'string'
+        ? args['default-project']
+        : undefined,
+  });
 } else {
   if (projects.length === 0) {
     console.error(
@@ -91,12 +97,7 @@ if (process.argv.includes('--export')) {
     );
     process.exit(1);
   }
-  const registry = new ProjectRegistry();
-  for (const project of projects) {
-    const commands = new CommandManager(project.path);
-    await commands.initialize();
-    registry.add(project.prefix, commands);
-  }
+  const registry = await ProjectRegistry.fromScannedProjects(projects);
   const authProvider = createAuthProvider();
   await startServer(authProvider, registry);
 }
