@@ -9,7 +9,8 @@
     You should have received a copy of the GNU Affero General Public
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-import build from 'node-gyp-build';
+import { createRequire } from 'node:module';
+import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 interface RawClingoResult {
@@ -40,14 +41,44 @@ interface NativeBinding {
   clearCache(): void;
 }
 
-let nativeBinding: NativeBinding;
-// Use import.meta.dirname when available, fallback to __dirname for compatibility
-const currentDirname = import.meta.dirname || __dirname;
-try {
-  nativeBinding = build(resolve(currentDirname, '..')) as NativeBinding;
-} catch (error) {
-  console.error('Error building clingo:', error);
-  nativeBinding = build(currentDirname) as NativeBinding;
+const require = createRequire(import.meta.url);
+const pkgRoot = resolve(import.meta.dirname, '..');
+const localBinary = resolve(pkgRoot, 'build', 'Release', 'node-clingo.node');
+
+let nativeBinding: NativeBinding | undefined;
+
+if (existsSync(localBinary)) {
+  // Dev path: a contributor ran `node-gyp rebuild` (or `pnpm build:native`).
+  nativeBinding = require(localBinary) as NativeBinding;
+} else {
+  // Production path: npm/pnpm installed exactly one matching optional dep
+  // via os/cpu/libc filters. Iterate candidates, use whichever resolved.
+  const candidates =
+    process.platform === 'linux'
+      ? [
+          `@cyberismo/node-clingo-linux-${process.arch}-gnu`,
+          `@cyberismo/node-clingo-linux-${process.arch}-musl`,
+        ]
+      : [`@cyberismo/node-clingo-${process.platform}-${process.arch}`];
+
+  for (const name of candidates) {
+    try {
+      nativeBinding = require(name) as NativeBinding;
+      break;
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== 'MODULE_NOT_FOUND') throw e;
+    }
+  }
+
+  if (!nativeBinding) {
+    throw new Error(
+      `@cyberismo/node-clingo: no prebuilt binary installed for ${process.platform}-${process.arch}.\n` +
+        `Tried: ${candidates.join(', ')}.\n` +
+        `If your package manager ran with --no-optional or --omit=optional, reinstall without it.\n` +
+        `If your platform is not in the supported matrix, please open an issue at\n` +
+        `  https://github.com/CyberismoCom/cyberismo/issues`,
+    );
+  }
 }
 
 /**
@@ -100,7 +131,7 @@ export class ClingoContext {
   private _ctx: NativeClingoContext;
 
   constructor(options?: ClingoOptions) {
-    this._ctx = new nativeBinding.ClingoContext(options);
+    this._ctx = new nativeBinding!.ClingoContext(options);
   }
 
   /**
@@ -184,7 +215,7 @@ export class ClingoContext {
  * Clears the shared solve result cache.
  */
 export function clearCache(): void {
-  nativeBinding.clearCache();
+  nativeBinding!.clearCache();
 }
 
 export default ClingoContext;

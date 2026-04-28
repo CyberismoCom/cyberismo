@@ -52,6 +52,16 @@ jobs:
         path: .tmp/cyberismo-docs
         ref: main
     - run: pnpm install
+    - name: Resolve clingo submodule SHA
+      id: clingo-sha
+      run: echo "sha=$(git -C tools/node-clingo/external/clingo rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+    - name: Cache bundled clingo build
+      uses: actions/cache@v4
+      with:
+        path: tools/node-clingo/external/clingo/build
+        key: clingo-${{ runner.os }}-${{ runner.arch }}-node${{ vars.NODE_VERSION }}-${{ steps.clingo-sha.outputs.sha }}-${{ hashFiles('tools/node-clingo/scripts/build-clingo.cmake', 'tools/node-clingo/binding.gyp') }}
+    - name: Build node-clingo native binary
+      run: pnpm --filter @cyberismo/node-clingo run build:native
     - run: pnpm --filter=app exec cypress install
     - run: pnpm prettier-check
     - run: pnpm lint
