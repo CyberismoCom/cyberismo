@@ -33,7 +33,10 @@ name: Release node-clingo
 
 on:
   push:
-    branches: [main]
+    # `feature/samutoljamo/INTDEV-1248-1` is here to exercise the new
+    # promote / load-test / cache-namespacing changes on a real release
+    # before they land on main. Remove this entry before merging.
+    branches: [main, feature/samutoljamo/INTDEV-1248-1]
     paths:
       - 'tools/node-clingo/package.json'
       - '.github/workflows/release-node-clingo.yml'
