@@ -72,6 +72,8 @@ function Mermaid({ code }: MermaidProps) {
               'code',
             ],
             ADD_ATTR: ['class', 'style', 'xmlns', 'requiredExtensions'],
+            // Allow HTML content inside <foreignObject> (used by Mermaid for text labels)
+            HTML_INTEGRATION_POINTS: { foreignobject: true },
           });
           containerRef.current.innerHTML = '';
           containerRef.current.appendChild(wrapper);

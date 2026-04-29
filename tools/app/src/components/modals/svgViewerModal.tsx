@@ -137,6 +137,7 @@ function measureNaturalSize(markup: string): Size | null {
       'code',
     ],
     ADD_ATTR: ['class', 'style', 'xmlns', 'requiredExtensions'],
+    HTML_INTEGRATION_POINTS: { foreignobject: true },
   });
 
   const svg = wrapper.querySelector('svg') as SVGSVGElement | null;
@@ -560,6 +561,7 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
                   'code',
                 ],
                 ADD_ATTR: ['class', 'style', 'xmlns', 'requiredExtensions'],
+                HTML_INTEGRATION_POINTS: { foreignobject: true },
               }),
             }}
           />

@@ -832,6 +832,8 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
               'code',
             ],
             ADD_ATTR: ['class', 'style', 'xmlns', 'requiredExtensions'],
+            // Allow HTML content inside <foreignObject> (used by Mermaid for text labels)
+            HTML_INTEGRATION_POINTS: { foreignobject: true },
           });
           block.innerHTML = '';
           block.appendChild(wrapper);
