@@ -14,7 +14,7 @@ RUN pnpm install --frozen-lockfile --no-scripts
 RUN pnpm build
 
 # make sure a build is done
-RUN cd /app/tools/node-clingo && pnpm run native:build
+RUN cd /app/tools/node-clingo && pnpm run build:native
 
 
 
