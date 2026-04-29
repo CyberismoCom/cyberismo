@@ -1,9 +1,7 @@
 name: Release node-clingo
 
 # PRs run the build matrix; pushes to main that bump the umbrella version
-# also publish the natives + umbrella, smoke-test, and promote `next` →
-# `latest`. The umbrella stays on `next` until smoke passes so a broken
-# release never becomes the default `npm install` target.
+# also publish the natives + umbrella and smoke-test the result.
 #
 # Publish steps are idempotent (`npm view` skips versions already on the
 # registry), so partial failures are recovered by re-running failed jobs.
@@ -198,9 +196,7 @@ jobs:
       - run: pnpm build
       - run: npm install -g npm@latest
 
-      # Publish to `next`; the promote job moves it to `latest` only after
-      # smoke passes.
-      - name: Publish umbrella (dist-tag next)
+      - name: Publish umbrella
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
@@ -211,7 +207,7 @@ jobs:
             echo "@cyberismo/node-clingo@${VERSION} already published; skipping."
             exit 0
           fi
-          pnpm --filter @cyberismo/node-clingo publish --tag next --no-git-checks --access public
+          pnpm --filter @cyberismo/node-clingo publish --no-git-checks --access public
 
   smoke:
     needs: [resolve, publish-umbrella]
@@ -267,22 +263,3 @@ jobs:
           npm install "@cyberismo/node-clingo@${VERSION}"
           node --input-type=module -e "import { ClingoContext } from '@cyberismo/node-clingo'; const c = new ClingoContext(); console.log(await c.solve('a. b :- a.'));"
 
-  # If smoke fails, the umbrella stays on `next` and `latest` keeps
-  # pointing at the previous good release.
-  promote:
-    needs: [resolve, smoke, smoke-alpine]
-    if: ${{ github.event_name != 'pull_request' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ vars.NODE_VERSION }}
-          registry-url: 'https://registry.npmjs.org'
-      - name: Promote to latest
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          set -euo pipefail
-          VERSION="${{ needs.resolve.outputs.version }}"
-          npm dist-tag add "@cyberismo/node-clingo@${VERSION}" latest
