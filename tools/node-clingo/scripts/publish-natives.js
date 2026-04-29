@@ -177,6 +177,19 @@ for (const { dir, pkg } of candidates) {
     );
   }
 }
+// Refuse to publish a partial set: with fail-fast: false on the build
+// matrix, a single matrix leg failure must not let publish-natives ship
+// 6 of 7 packages and have the umbrella reference a missing native.
+const presentNames = new Set(candidates.map((c) => c.pkg.name));
+const missing = [...KNOWN_TARGETS].filter((n) => !presentNames.has(n));
+if (missing.length > 0) {
+  validationErrors.push(
+    `Incomplete native set under ${opts.dir}: missing\n` +
+      missing.map((n) => `    ${n}`).join('\n') +
+      `\nExpected all ${KNOWN_TARGETS.size} natives. ` +
+      `Check the build matrix for failed legs and re-run.`,
+  );
+}
 if (validationErrors.length > 0) {
   for (const e of validationErrors) console.error(e);
   process.exit(1);

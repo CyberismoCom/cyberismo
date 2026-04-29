@@ -10,13 +10,26 @@ name: Release node-clingo
 #   - pull_request touching tools/node-clingo/** → matrix build only.
 #     This is the validation gate for any source change.
 #   - push to main where tools/node-clingo/package.json or this workflow
-#     file changed → matrix + publish + smoke. The release IS the
-#     version bump. Source-only merges don't re-fire on main; they were
-#     already validated in the PR.
+#     file changed → matrix + publish + smoke + promote. The release IS
+#     the version bump. Source-only merges don't re-fire on main; they
+#     were already validated in the PR.
 #
-# Both publish jobs are idempotent (`npm view` skips versions already on
-# the registry), so a partial failure is recovered by re-running the
-# failed jobs from the workflow run UI.
+# Release flow on main:
+#   build → publish-natives → publish-umbrella (dist-tag: next) →
+#   smoke + smoke-alpine → promote (dist-tag add latest)
+#
+# The umbrella ships under `next` and only moves to `latest` after smoke
+# + smoke-alpine pass. A broken release therefore never becomes the
+# default `npm install` target — recovery is just "fix and ship a patch
+# bump" rather than `npm deprecate` + new patch.
+#
+# Native sub-packages are referenced by exact version from the umbrella's
+# optionalDependencies and are not addressed by dist-tag at install time,
+# so they keep the default `latest` tag and don't need a promote step.
+#
+# Publish steps are idempotent (`npm view` skips versions already on the
+# registry), so a partial failure is recovered by re-running the failed
+# jobs from the workflow run UI.
 
 on:
   push:
@@ -94,12 +107,17 @@ jobs:
       # node-gyp binding consumes (see binding.gyp). Skipping the cmake
       # step entirely on cache hit avoids the mtime trap where freshly
       # checked-out sources look newer than cached object files.
+      # Cache key includes github.event_name so a fork PR cannot poison a
+      # cache entry that a subsequent push-to-main build would restore.
+      # PR caches and release caches live in disjoint namespaces; no
+      # restore-keys, so partial-prefix matches across namespaces are
+      # impossible.
       - name: Cache clingo static libs
         id: cache-clingo
         uses: actions/cache@v4
         with:
           path: tools/node-clingo/external/clingo/build/lib
-          key: clingo-libs-${{ runner.os }}-${{ runner.arch }}-${{ matrix.target }}-node${{ vars.NODE_VERSION }}-${{ steps.clingo-sha.outputs.sha }}-${{ hashFiles('tools/node-clingo/scripts/build-clingo.cmake', 'tools/node-clingo/binding.gyp') }}
+          key: clingo-libs-${{ github.event_name }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.target }}-node${{ vars.NODE_VERSION }}-${{ steps.clingo-sha.outputs.sha }}-${{ hashFiles('tools/node-clingo/scripts/build-clingo.cmake', 'tools/node-clingo/binding.gyp') }}
 
       - name: Build clingo static libs (Linux glibc)
         if: ${{ steps.cache-clingo.outputs.cache-hit != 'true' && startsWith(matrix.target, 'linux-') && !endsWith(matrix.target, '-musl') }}
@@ -136,11 +154,21 @@ jobs:
                 pnpm --filter @cyberismo/node-clingo run build:clingo
               fi
               pnpm --filter @cyberismo/node-clingo run build:binding
+              # Load-test inside the alpine container: a binary that links
+              # but has unresolved dlopen symbols (e.g. wrong libstdc++ ABI)
+              # would otherwise slip through to consumers.
+              node -e "require(\"./tools/node-clingo/build/Release/node-clingo.node\")"
             '
 
-      - name: Verify native binary exists
+      # Load-test the freshly-built binary on the same host that built it.
+      # Catches unresolved-symbol breakage before the artifact is uploaded;
+      # the existing smoke jobs only run *after* publish, which is too late.
+      # Musl is load-tested inside the docker run above (the host node would
+      # be glibc-linked and can't dlopen a musl binary).
+      - name: Load-test native binary (non-musl)
+        if: ${{ !endsWith(matrix.target, '-musl') }}
         shell: bash
-        run: test -f tools/node-clingo/build/Release/node-clingo.node
+        run: node -e "require('./tools/node-clingo/build/Release/node-clingo.node')"
 
       - name: Assemble per-platform package
         run: node tools/node-clingo/scripts/build-native-packages.js @cyberismo/node-clingo-${{ matrix.target }}
@@ -199,7 +227,11 @@ jobs:
       - run: pnpm build
       - run: npm install -g npm@latest
 
-      - name: Publish umbrella
+      # Publish to the `next` dist-tag. The promote job moves it to
+      # `latest` only after smoke + smoke-alpine pass. Re-running this
+      # job on a version that's already on npm is a no-op regardless of
+      # its current tag.
+      - name: Publish umbrella (dist-tag next)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
@@ -210,7 +242,7 @@ jobs:
             echo "@cyberismo/node-clingo@${VERSION} already published; skipping."
             exit 0
           fi
-          pnpm --filter @cyberismo/node-clingo publish --no-git-checks --access public
+          pnpm --filter @cyberismo/node-clingo publish --tag next --no-git-checks --access public
 
   smoke:
     needs: [resolve, publish-umbrella]
@@ -265,3 +297,27 @@ jobs:
           done
           npm install "@cyberismo/node-clingo@${VERSION}"
           node --input-type=module -e "import { ClingoContext } from '@cyberismo/node-clingo'; const c = new ClingoContext(); console.log(await c.solve('a. b :- a.'));"
+
+  # Move the umbrella from `next` to `latest` only after both smoke jobs
+  # have validated a real `npm install` + import on every supported
+  # platform. If smoke fails, the version stays on `next` and `latest`
+  # keeps pointing at the previous good release.
+  promote:
+    needs: [resolve, smoke, smoke-alpine]
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ vars.NODE_VERSION }}
+          registry-url: 'https://registry.npmjs.org'
+      - name: Promote to latest
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.resolve.outputs.version }}"
+          # Idempotent: re-running on a version already at `latest` is a
+          # no-op `npm dist-tag add` (npm exits 0 with "already set").
+          npm dist-tag add "@cyberismo/node-clingo@${VERSION}" latest
