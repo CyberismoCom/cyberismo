@@ -18,8 +18,7 @@ import { resolve } from 'node:path';
 // On Windows the `npm` binary is `npm.cmd`; spawn won't auto-resolve.
 const NPM = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 
-// The seven known native sub-package names. Must match the umbrella's
-// optionalDependencies block once it lands and the TARGETS map in
+// Must match the umbrella's optionalDependencies and TARGETS in
 // build-native-packages.js.
 const KNOWN_TARGETS = new Set([
   '@cyberismo/node-clingo-linux-x64-gnu',
@@ -107,7 +106,6 @@ if (opts.help) {
   process.exit(0);
 }
 
-// Read umbrella version for lockstep validation.
 const umbrellaPkgPath = resolve(pkgRoot, 'package.json');
 const umbrellaPkg = JSON.parse(readFileSync(umbrellaPkgPath, 'utf8'));
 const expectedVersion = umbrellaPkg.version;
@@ -127,7 +125,6 @@ console.log(`dist-tag: ${opts.tag}`);
 console.log(`dry-run: ${opts.dryRun ? 'yes' : 'no'}`);
 console.log(`repo root: ${repoRoot}`);
 
-// Discover candidate sub-package directories.
 const entries = readdirSync(opts.dir, { withFileTypes: true });
 const candidates = [];
 for (const entry of entries) {
@@ -146,7 +143,6 @@ for (const entry of entries) {
     typeof subPkg.name !== 'string' ||
     !subPkg.name.startsWith('@cyberismo/node-clingo-')
   ) {
-    // Not one of ours; ignore stray dirs.
     continue;
   }
   candidates.push({ dir: dirPath, pkg: subPkg });
@@ -159,7 +155,6 @@ if (candidates.length === 0) {
   process.exit(1);
 }
 
-// Validate names + versions before doing any network work.
 const validationErrors = [];
 for (const { dir, pkg } of candidates) {
   if (!KNOWN_TARGETS.has(pkg.name)) {
@@ -177,9 +172,8 @@ for (const { dir, pkg } of candidates) {
     );
   }
 }
-// Refuse to publish a partial set: with fail-fast: false on the build
-// matrix, a single matrix leg failure must not let publish-natives ship
-// 6 of 7 packages and have the umbrella reference a missing native.
+// fail-fast: false on the build matrix means we must explicitly refuse a
+// partial set; otherwise the umbrella could reference a missing native.
 const presentNames = new Set(candidates.map((c) => c.pkg.name));
 const missing = [...KNOWN_TARGETS].filter((n) => !presentNames.has(n));
 if (missing.length > 0) {
@@ -195,7 +189,6 @@ if (validationErrors.length > 0) {
   process.exit(1);
 }
 
-// Publish (or dry-run) each sub-package, skipping ones already on npm.
 let published = 0;
 let skipped = 0;
 let wouldPublish = 0;
@@ -205,16 +198,13 @@ for (const { dir, pkg } of candidates) {
   console.log('----');
   console.log(`Considering ${pkg.name}@${pkg.version} from ${dir}`);
 
-  // Idempotency check: ask npm if this exact version is already published.
+  // `npm view` exits non-zero (and prints nothing) when the version isn't
+  // on the registry; an exact-version stdout match means already published.
   const view = spawnSync(
     NPM,
     ['view', `${pkg.name}@${pkg.version}`, 'version'],
-    {
-      encoding: 'utf8',
-    },
+    { encoding: 'utf8' },
   );
-  // `npm view` exits non-zero when the package or version isn't found.
-  // We treat any output that exactly matches the version as "already published".
   const viewOut = (view.stdout || '').trim();
   if (view.status === 0 && viewOut === pkg.version) {
     console.log(`${pkg.name}@${pkg.version} already published; skipping.`);

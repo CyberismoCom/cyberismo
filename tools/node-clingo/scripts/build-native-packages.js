@@ -20,9 +20,8 @@ import {
 } from 'node:fs';
 import { resolve } from 'node:path';
 
-// Map of supported native package names to their os/cpu/libc and a human
-// readable description. The seven entries here MUST match the umbrella's
-// optionalDependencies block once it lands.
+// Must match the umbrella's optionalDependencies and KNOWN_TARGETS in
+// publish-natives.js.
 const TARGETS = {
   '@cyberismo/node-clingo-linux-x64-gnu': {
     os: 'linux',
@@ -130,17 +129,10 @@ const readmeTemplatePath = resolve(templatesDir, 'sub-package.README.md');
 const outputDir = resolve(pkgRoot, 'dist-packages', targetName);
 mkdirSync(outputDir, { recursive: true });
 
-// Copy binary + license + third-party notices into the package directory.
 copyFileSync(nativeBinarySrc, resolve(outputDir, 'node-clingo.node'));
 copyFileSync(thirdPartySrc, resolve(outputDir, 'THIRD-PARTY.txt'));
 copyFileSync(licenseSrc, resolve(outputDir, 'LICENSE.md'));
 
-// Build the per-platform package.json from the template. The template stores
-// placeholder values inside a fully valid JSON object; we parse it, do
-// string-level substitutions on every leaf, then conditionally insert the
-// `libc` field for Linux targets only. This keeps the template human-
-// readable in editors that lint JSON while letting the script handle the
-// optional `libc` array cleanly.
 const placeholders = {
   '{{NAME}}': targetName,
   '{{VERSION}}': version,
@@ -173,8 +165,6 @@ function substitute(value) {
 const subPkgTemplate = JSON.parse(readFileSync(pkgTemplatePath, 'utf8'));
 const subPkg = substitute(subPkgTemplate);
 
-// Insert `libc` immediately after `cpu` so the field ordering matches the
-// published shape on Linux targets. Darwin and Windows get no `libc` key.
 if (target.libc) {
   const ordered = {};
   for (const [k, v] of Object.entries(subPkg)) {
@@ -194,7 +184,6 @@ if (target.libc) {
   );
 }
 
-// Render README from its template.
 let readme = readFileSync(readmeTemplatePath, 'utf8');
 for (const [k, v] of Object.entries(placeholders)) {
   readme = readme.split(k).join(v);
