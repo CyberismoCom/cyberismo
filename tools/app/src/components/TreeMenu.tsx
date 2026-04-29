@@ -11,6 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { useCallback } from 'react';
 import type { NodeApi } from 'react-arborist';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
 import { Stack } from '@mui/joy';
@@ -36,15 +37,16 @@ export const TreeMenu = ({
   openByDefault = false,
   titleRightSlot,
 }: TreeMenuProps) => {
-  const handleMove = (
-    dragIds: string[],
-    parentId: string | null,
-    index: number,
-  ) => {
-    if (onMove && dragIds.length === 1) {
-      onMove(dragIds[0], parentId ?? 'root', index);
-    }
-  };
+  // Stable ref so BaseTreeComponent's renderNode useCallback doesn't invalidate
+  // mid-drag (react-arborist remounts rows on renderer-ref change → aborted drag).
+  const handleMove = useCallback(
+    (dragIds: string[], parentId: string | null, index: number) => {
+      if (onMove && dragIds.length === 1) {
+        onMove(dragIds[0], parentId ?? 'root', index);
+      }
+    },
+    [onMove],
+  );
 
   return (
     <Stack height="100%" width="100%" bgcolor="background.surface">
