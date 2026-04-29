@@ -39,6 +39,7 @@
     "test-app": "pnpm --filter app test",
     "test-cli": "pnpm --filter cli test",
     "bump-version": "pnpm -r --filter '!app' --filter '!node-clingo' exec npm version",
+    "bump-clingo": "pnpm --filter @cyberismo/node-clingo bump-version",
     "test-data-handler": "pnpm --filter data-handler test",
     "test-backend": "pnpm --filter backend test",
     "test-clingo": "pnpm --filter node-clingo test",
