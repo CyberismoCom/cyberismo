@@ -8,9 +8,7 @@ name: Release node-clingo
 
 on:
   push:
-    # TODO: drop the feature branch before merging — kept here to
-    # exercise the release flow end-to-end on a real publish first.
-    branches: [main, feature/samutoljamo/INTDEV-1248-1]
+    branches: [main]
     paths:
       - 'tools/node-clingo/package.json'
       - '.github/workflows/release-node-clingo.yml'
