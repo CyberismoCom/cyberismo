@@ -13,8 +13,8 @@ COPY . /app
 RUN pnpm install --frozen-lockfile --no-scripts
 RUN pnpm build
 
-# make sure a prebuild is done
-RUN cd /app/tools/node-clingo && pnpm run build-prebuildify
+# make sure a build is done
+RUN cd /app/tools/node-clingo && pnpm run native:build
 
 
 
@@ -98,7 +98,7 @@ COPY --from=builder /app/tools/migrations/dist ./tools/migrations/dist
 RUN pnpm install --prod --ignore-scripts
 
 # copy prebuilds
-COPY --from=builder /app/tools/node-clingo/prebuilds ./tools/node-clingo/prebuilds
+COPY --from=builder /app/tools/node-clingo/build ./tools/node-clingo/build
 
 # setup bin
 RUN pnpm setup
