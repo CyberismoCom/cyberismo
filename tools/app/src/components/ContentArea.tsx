@@ -756,7 +756,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 
   const sanitizedHtml = contentPurify.sanitize(htmlContent, {
     USE_PROFILES: { html: true, svg: true },
-    ADD_TAGS: [...MACRO_TAGS, 'iframe'],
+    ADD_TAGS: [...MACRO_TAGS, 'iframe', 'foreignObject'],
     ADD_ATTR: [
       'options',
       'key',
@@ -764,7 +764,14 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
       'allow',
       'allowfullscreen',
       'frameborder',
+      // SVG text attribute used by scoreCard and other SVG generators
+      'dominant-baseline',
     ],
+    // Mermaid v11 and other tools place text labels in
+    // <foreignObject><div>...</div></foreignObject>. Without this option
+    // DOMPurify treats foreignObject children as invalid (wrong namespace)
+    // and strips them, making all diagram labels invisible.
+    HTML_INTEGRATION_POINTS: { foreignobject: true },
   });
 
   const combinedMacros = Object.entries(macroMetadata).reduce<
