@@ -140,7 +140,7 @@ export default function AppLayout() {
               display="flex"
               alignItems="center"
               justifyContent="center"
-              bgcolor="rgba(255, 255, 255, 0.7)"
+              bgcolor="background.backdrop"
               sx={{
                 backdropFilter: 'blur(2px)',
                 zIndex: 1000,
