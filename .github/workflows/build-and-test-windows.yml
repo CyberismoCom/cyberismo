@@ -54,14 +54,23 @@ jobs:
       id: clingo-sha
       shell: bash
       run: echo "sha=$(git -C tools/node-clingo/external/clingo rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-    - name: Cache bundled clingo build
+    # Cache only the static archives produced by cmake — that's all the
+    # node-gyp binding consumes (see binding.gyp). Skipping the cmake
+    # step entirely on cache hit avoids the mtime trap where freshly
+    # checked-out sources look newer than cached object files.
+    - name: Cache clingo static libs
+      id: cache-clingo
       uses: actions/cache@v4
       with:
-        path: tools/node-clingo/external/clingo/build
-        key: clingo-${{ runner.os }}-${{ runner.arch }}-node${{ vars.NODE_VERSION }}-${{ steps.clingo-sha.outputs.sha }}-${{ hashFiles('tools/node-clingo/scripts/build-clingo.cmake', 'tools/node-clingo/binding.gyp') }}
-    - name: Build node-clingo native binary
+        path: tools/node-clingo/external/clingo/build/lib
+        key: clingo-libs-${{ runner.os }}-${{ runner.arch }}-node${{ vars.NODE_VERSION }}-${{ steps.clingo-sha.outputs.sha }}-${{ hashFiles('tools/node-clingo/scripts/build-clingo.cmake', 'tools/node-clingo/binding.gyp') }}
+    - name: Build clingo static libs
+      if: steps.cache-clingo.outputs.cache-hit != 'true'
       shell: bash
-      run: pnpm --filter @cyberismo/node-clingo run build:native
+      run: pnpm --filter @cyberismo/node-clingo run build:clingo
+    - name: Build node-clingo native binding
+      shell: bash
+      run: pnpm --filter @cyberismo/node-clingo run build:binding
     - run: pnpm --filter=app exec cypress install
     - run: pnpm build
     - run: pnpm test

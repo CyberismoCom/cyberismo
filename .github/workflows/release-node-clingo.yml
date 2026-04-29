@@ -118,29 +118,41 @@ jobs:
         shell: bash
         run: echo "sha=$(git -C tools/node-clingo/external/clingo rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
-      - name: Cache bundled clingo build
+      # Cache only the static archives produced by cmake — that's all the
+      # node-gyp binding consumes (see binding.gyp). Skipping the cmake
+      # step entirely on cache hit avoids the mtime trap where freshly
+      # checked-out sources look newer than cached object files.
+      - name: Cache clingo static libs
+        id: cache-clingo
         uses: actions/cache@v4
         with:
-          path: tools/node-clingo/external/clingo/build
-          key: clingo-${{ runner.os }}-${{ runner.arch }}-${{ matrix.target }}-node${{ vars.NODE_VERSION }}-${{ steps.clingo-sha.outputs.sha }}-${{ hashFiles('tools/node-clingo/scripts/build-clingo.cmake', 'tools/node-clingo/binding.gyp') }}
+          path: tools/node-clingo/external/clingo/build/lib
+          key: clingo-libs-${{ runner.os }}-${{ runner.arch }}-${{ matrix.target }}-node${{ vars.NODE_VERSION }}-${{ steps.clingo-sha.outputs.sha }}-${{ hashFiles('tools/node-clingo/scripts/build-clingo.cmake', 'tools/node-clingo/binding.gyp') }}
 
-      - name: Build native binary (Linux glibc)
-        if: ${{ startsWith(matrix.target, 'linux-') && !endsWith(matrix.target, '-musl') }}
+      - name: Build clingo static libs (Linux glibc)
+        if: ${{ steps.cache-clingo.outputs.cache-hit != 'true' && startsWith(matrix.target, 'linux-') && !endsWith(matrix.target, '-musl') }}
         env:
           CC: gcc-14
           CXX: g++-14
-        run: pnpm --filter @cyberismo/node-clingo run build:native
+        run: pnpm --filter @cyberismo/node-clingo run build:clingo
 
-      - name: Build native binary (macOS / Windows)
-        if: ${{ !startsWith(matrix.target, 'linux-') }}
-        run: pnpm --filter @cyberismo/node-clingo run build:native
+      - name: Build clingo static libs (macOS / Windows)
+        if: ${{ steps.cache-clingo.outputs.cache-hit != 'true' && !startsWith(matrix.target, 'linux-') }}
+        run: pnpm --filter @cyberismo/node-clingo run build:clingo
+
+      - name: Build native binding (non-musl)
+        if: ${{ !endsWith(matrix.target, '-musl') }}
+        run: pnpm --filter @cyberismo/node-clingo run build:binding
 
       - name: Build native binary (musl in Docker)
         if: ${{ endsWith(matrix.target, '-musl') }}
+        env:
+          CACHE_HIT: ${{ steps.cache-clingo.outputs.cache-hit }}
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/workspace" \
             -w /workspace \
+            -e CACHE_HIT \
             node:22-alpine \
             sh -c '
               set -eu
@@ -148,7 +160,10 @@ jobs:
               corepack enable
               corepack prepare pnpm@10.8.0 --activate
               pnpm install --frozen-lockfile --ignore-scripts
-              pnpm --filter @cyberismo/node-clingo run build:native
+              if [ "$CACHE_HIT" != "true" ]; then
+                pnpm --filter @cyberismo/node-clingo run build:clingo
+              fi
+              pnpm --filter @cyberismo/node-clingo run build:binding
             '
 
       - name: Verify native binary exists
