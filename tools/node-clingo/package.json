@@ -5,6 +5,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "build:native": "cmake -P scripts/build-clingo.cmake && node-gyp rebuild",
+    "bump-version": "node scripts/bump-version.js",
     "install": "node -e \"\"",
     "prepack": "node scripts/manage-publish-manifest.js strip",
     "postpack": "node scripts/manage-publish-manifest.js restore",
@@ -45,7 +46,8 @@
     "@cyberismo/node-clingo-win32-x64": "1.6.0-rc.0"
   },
   "devDependencies": {
-    "node-gyp": "^12.2.0"
+    "node-gyp": "^12.2.0",
+    "semver": "^7.7.0"
   },
   "type": "module",
   "exports": {

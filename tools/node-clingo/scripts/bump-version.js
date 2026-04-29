@@ -13,26 +13,26 @@
 */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import semver from 'semver';
 
-// Semver regex covering the standard core + optional prerelease + optional
-// build metadata. Mirrors the official semver.org grammar closely enough for
-// our publishing workflow.
-const SEMVER_RE =
-  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
+const RELEASE_TYPES = new Set([
+  'major',
+  'minor',
+  'patch',
+  'premajor',
+  'preminor',
+  'prepatch',
+  'prerelease',
+]);
 
-const [, , newVersion] = process.argv;
+const [, , arg, preid] = process.argv;
 
-if (!newVersion) {
+if (!arg) {
   console.error(
-    'Usage: node scripts/bump-version.js <new-version>\n' +
-      '  <new-version> must be a valid semver string (e.g. 1.6.0, 1.6.0-rc.0).',
-  );
-  process.exit(1);
-}
-
-if (!SEMVER_RE.test(newVersion)) {
-  console.error(
-    `Invalid version "${newVersion}": expected a semver string (e.g. 1.6.0, 1.6.0-rc.0).`,
+    'Usage: node scripts/bump-version.js <new-version | release-type> [preid]\n' +
+      '  <new-version>  a valid semver string (e.g. 1.6.0, 1.6.0-rc.0)\n' +
+      `  <release-type> one of: ${[...RELEASE_TYPES].join(', ')}\n` +
+      '  [preid]        optional prerelease identifier (e.g. rc) for pre* bumps',
   );
   process.exit(1);
 }
@@ -40,6 +40,25 @@ if (!SEMVER_RE.test(newVersion)) {
 const packageJsonPath = resolve(import.meta.dirname, '..', 'package.json');
 const original = readFileSync(packageJsonPath, 'utf8');
 const pkg = JSON.parse(original);
+
+let newVersion;
+if (RELEASE_TYPES.has(arg)) {
+  newVersion = semver.inc(pkg.version, arg, preid);
+  if (!newVersion) {
+    console.error(
+      `Failed to bump "${pkg.version}" with release type "${arg}".`,
+    );
+    process.exit(1);
+  }
+} else if (semver.valid(arg)) {
+  newVersion = arg;
+} else {
+  console.error(
+    `Invalid argument "${arg}": expected a semver string (e.g. 1.6.0, 1.6.0-rc.0) ` +
+      `or a release type (${[...RELEASE_TYPES].join(', ')}).`,
+  );
+  process.exit(1);
+}
 
 pkg.version = newVersion;
 

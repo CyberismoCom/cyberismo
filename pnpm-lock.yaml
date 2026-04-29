@@ -436,6 +436,9 @@ importers:
       node-gyp:
         specifier: ^12.2.0
         version: 12.2.0
+      semver:
+        specifier: ^7.7.0
+        version: 7.7.4
     optionalDependencies:
       '@cyberismo/node-clingo-darwin-arm64':
         specifier: 1.6.0-rc.0
