@@ -331,7 +331,7 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
               __html: DOMPurify.sanitize(svgMarkup, {
                 USE_PROFILES: { svg: true },
                 ADD_TAGS: [
-                  'foreignObject',
+                  'foreignobject',
                   'div',
                   'span',
                   'p',

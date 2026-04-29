@@ -31,7 +31,7 @@ const removeSvgWidthAndHeight = (node: Element) => {
 // HTML_INTEGRATION_POINTS tells DOMPurify that HTML elements inside <foreignObject> are valid
 const SVG_EXTRA_CONFIG = {
   USE_PROFILES: { svg: true },
-  ADD_TAGS: ['foreignObject', 'div', 'span', 'p', 'b', 'i', 'em', 'strong', 'br'],
+  ADD_TAGS: ['foreignobject', 'div', 'span', 'p', 'b', 'i', 'em', 'strong', 'br'],
   ADD_ATTR: ['class', 'style', 'xmlns', 'dominant-baseline'],
   HTML_INTEGRATION_POINTS: { foreignobject: true },
 };

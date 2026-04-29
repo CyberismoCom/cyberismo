@@ -756,7 +756,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 
   const sanitizedHtml = contentPurify.sanitize(htmlContent, {
     USE_PROFILES: { html: true, svg: true },
-    ADD_TAGS: [...MACRO_TAGS, 'iframe', 'foreignObject'],
+    ADD_TAGS: [...MACRO_TAGS, 'iframe', 'foreignobject'],
     ADD_ATTR: [
       'options',
       'key',
