@@ -12,18 +12,17 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-// Strip / restore the no-op `install` script around publish.
+// Strip / restore the `install` script around publish.
 //
-// The `install` script in source exists only to suppress pnpm's auto-injection
-// of `node-gyp rebuild` for the workspace package during dev `pnpm install` —
-// pnpm hard-codes that detection and offers no opt-out for workspace packages
-// (see https://github.com/pnpm/pnpm/pull/8325). Keeping the script in the
-// published manifest would surface as an unapproved lifecycle script for
-// pnpm v10 / bun consumers, so we strip it on prepack and restore on postpack.
+// The `install` script (`pnpm run build:native`) exists to build the native
+// binary for in-tree contributors; published consumers must not run it,
+// since they receive the binary via the platform-specific optional
+// dependency. Stripping at prepack also avoids pnpm v10 / bun flagging it
+// as an unapproved lifecycle script.
 //
-// A backup file is used (rather than git) so this works in CI shallow clones
-// and on uncommitted local changes. If a previous publish died between strip
-// and restore, the next strip self-heals by restoring first.
+// A backup file (rather than git) keeps this working in CI shallow clones
+// and with uncommitted local changes. If a previous publish died between
+// strip and restore, the next strip self-heals by restoring first.
 
 import {
   copyFileSync,

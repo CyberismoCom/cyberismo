@@ -48,11 +48,10 @@ const localBinary = resolve(pkgRoot, 'build', 'Release', 'node-clingo.node');
 let nativeBinding: NativeBinding | undefined;
 
 if (existsSync(localBinary)) {
-  // Dev path: a contributor ran `node-gyp rebuild` (or `pnpm build:native`).
+  // Dev: a contributor ran `pnpm build:native` in-tree.
   nativeBinding = require(localBinary) as NativeBinding;
 } else {
-  // Production path: npm/pnpm installed exactly one matching optional dep
-  // via os/cpu/libc filters. Iterate candidates, use whichever resolved.
+  // Published: exactly one optional dep resolves via os/cpu/libc filters.
   const candidates =
     process.platform === 'linux'
       ? [
