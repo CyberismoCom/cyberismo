@@ -4,7 +4,9 @@
   "description": "Node.js bindings for Clingo answer set solver",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "build:native": "cmake -P scripts/build-clingo.cmake && node-gyp rebuild",
+    "build:clingo": "cmake -P scripts/build-clingo.cmake",
+    "build:binding": "node-gyp rebuild",
+    "build:native": "pnpm run build:clingo && pnpm run build:binding",
     "bump-version": "node scripts/bump-version.js",
     "install": "node -e \"\"",
     "prepack": "node scripts/manage-publish-manifest.js strip",
