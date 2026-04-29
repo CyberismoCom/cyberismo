@@ -66,13 +66,8 @@ async function resolveProject(urlPrefix?: string) {
   const fallbackPrefix = prefixes[0];
 
   const configDefault = getConfig().defaultProject;
-  const prefix =
-    (urlPrefix && prefixes.includes(urlPrefix) ? urlPrefix : null) ??
-    (configDefault && prefixes.includes(configDefault)
-      ? configDefault
-      : null) ??
-    (lastActive && prefixes.includes(lastActive) ? lastActive : null) ??
-    fallbackPrefix;
+  const candidates = [urlPrefix, configDefault, lastActive, fallbackPrefix];
+  const prefix = candidates.find((c) => c && prefixes.includes(c));
 
   if (prefix) {
     store.dispatch(setProjectPrefix(prefix));
