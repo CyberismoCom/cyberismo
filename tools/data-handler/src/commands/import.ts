@@ -11,10 +11,28 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ModuleManager } from '../module-manager.js';
+import { join, resolve as pathResolve } from 'node:path';
+
+import { pathExists } from '../utils/file-utils.js';
 import { readCsvFile } from '../utils/csv.js';
 import { Validate } from './validate.js';
 import { write } from '../utils/rw-lock.js';
+
+import {
+  buildRemoteUrl,
+  createInventory,
+  createInstaller,
+  createResolver,
+  createSourceLayer,
+  FILE_PROTOCOL,
+  isFileLocation,
+  isGitLocation,
+  pickVersion,
+  readModuleConfig,
+  toVersionRange,
+  validateVersionAgainstConstraints,
+} from '../modules/index.js';
+import { cleanOrphans } from '../modules/orphans.js';
 
 import type { Create } from './create.js';
 import type {
@@ -23,13 +41,40 @@ import type {
 } from '../interfaces/project-interfaces.js';
 import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
+import type { ModuleDeclaration } from '../modules/types.js';
+
+/**
+ * Coerce a caller-supplied source into the canonical form used by the
+ * module layers:
+ *
+ * - Git URLs (`https://…`, `git@…`) pass through unchanged.
+ * - `file:<path>` URLs pass through unchanged.
+ * - Any other value is treated as a bare filesystem path and rewritten to
+ *   `file:<absolute path>` so the source layer can dispatch on the protocol.
+ */
+function normaliseLocation(source: string): string {
+  if (isGitLocation(source) || isFileLocation(source)) {
+    return source;
+  }
+  return `${FILE_PROTOCOL}${pathResolve(source)}`;
+}
+
+/**
+ * Produce a deterministic staging subdirectory name for a fresh-root
+ * import, keyed off the location's tail.
+ */
+function freshRootStagingName(location: string): string {
+  const last = location.lastIndexOf('/');
+  const tail =
+    last >= 0 ? location.slice(last + 1).replace(/\.git$/i, '') : location;
+  const safe = tail.replace(/[^A-Za-z0-9._-]/g, '_') || 'module';
+  return `${safe}.__fresh__`;
+}
 
 /**
  * Handles all import commands.
  */
 export class Import {
-  private moduleManager: ModuleManager;
-
   /**
    * Creates an instance of Import.
    * @param project Project to use.
@@ -39,8 +84,11 @@ export class Import {
     private project: Project,
     private createCmd: Create,
     private fetchCmd: Fetch,
-  ) {
-    this.moduleManager = new ModuleManager(this.project);
+  ) {}
+
+  /** Temp directory shared between the resolver and the installer. */
+  private get tempModulesDir(): string {
+    return join(this.project.paths.tempFolder, 'modules');
   }
 
   /**
@@ -125,60 +173,129 @@ export class Import {
   }
 
   /**
-   * Imports a module to a project. Copies resources to the project.
-   * Resources will be added to a new directory under '.cards/modules'.
-   * The name of the new folder will be module's prefix.
+   * Imports a module to a project. Copies resources to the project under
+   * `.cards/modules/<prefix>/`. Re-importing an already-declared module
+   * with the same source updates the declared range rather than erroring.
    *
-   * Note that file references are relative, and thus URI must be
-   * 'file:<relative path>', instead of 'file://<relative path>'.
-   *
-   * @param source Path to module that will be imported
-   * @param destination Path to project that will receive the imported module
+   * @param source Path to module that will be imported. Git URLs
+   *   (`https://…`, `git@…`) and `file:` URLs pass through; bare
+   *   filesystem paths are rewritten to `file:<absolute>`.
    * @param options Additional options for module import. Optional.
-   *        branch: Git branch for module from Git.
    *        private: If true, uses credentials to clone the repository
+   *        version: Semver version or range (e.g. '1.0.0', '^1.0.0')
    */
   @write((source) => `Import module ${source}`)
-  public async importModule(
-    source: string,
-    destination?: string,
-    options?: ModuleSettingOptions,
-  ) {
-    // Ensure module list is up to date before importing
+  public async importModule(source: string, options?: ModuleSettingOptions) {
+    // Ensure module list is up to date before importing.
     await this.fetchCmd.ensureModuleListUpToDate();
 
     const beforeImportValidateErrors = await Validate.getInstance().validate(
       this.project.basePath,
       () => this.project,
     );
-    const gitModule = source.startsWith('https') || source.startsWith('git@');
-    const modulePrefix = gitModule
-      ? await this.moduleManager.importGitModule(source, options)
-      : await this.moduleManager.importFileModule(source, destination);
 
-    if (!modulePrefix) {
+    const location = normaliseLocation(source);
+
+    // Early precondition check for file sources: catch bad folder names and
+    // missing paths before we hand off to the resolver.
+    if (isFileLocation(location)) {
+      const folder = location.substring(FILE_PROTOCOL.length);
+      if (!Validate.validateFolder(folder)) {
+        throw new Error(
+          `Input validation error: folder name is invalid '${folder}'`,
+        );
+      }
+      if (!pathExists(folder)) {
+        throw new Error(
+          `Input validation error: cannot find project '${folder}'`,
+        );
+      }
+    }
+
+    const inventory = createInventory();
+    const existing = inventory.declared(this.project);
+
+    const sourceLayer = createSourceLayer();
+    const resolver = createResolver(sourceLayer);
+    const installer = createInstaller(sourceLayer);
+
+    // Pre-fetch only to read `cardKeyPrefix`; the resolver does its own
+    // fetch at the ref it picks. We don't hand this tree off as
+    // `stagedPath` because it was cloned without a ref (default branch),
+    // which silently mis-installs whenever the resolver's pick diverges
+    // from the default branch — e.g. a pinned older version.
+    const remoteUrl = buildRemoteUrl(
+      { location, private: options?.private ?? false },
+      options?.credentials,
+    );
+    const prefetchPath = await sourceLayer.fetch(
+      { location, remoteUrl },
+      this.tempModulesDir,
+      freshRootStagingName(location),
+    );
+
+    const prefetchConfig = await readModuleConfig(prefetchPath);
+    const resolvedName = prefetchConfig.cardKeyPrefix;
+    if (!resolvedName) {
       throw new Error(
-        `Cannot find prefix for imported module '${source}'. Import cancelled.`,
+        `Module at '${location}' has no cardKeyPrefix in its ` +
+          `cardsConfig.json; cannot import without a name.`,
       );
     }
 
-    const moduleSettings = {
-      name: modulePrefix,
-      branch: options ? options.branch : undefined,
-      private: options ? options.private : undefined,
-      location: gitModule ? source : `file:${source}`,
+    // Resolve the declared range. An explicit caller range wins; otherwise
+    // pin to `^<latest tagged version>` so re-runs stay on the same major
+    // — the npm-install default. Sources without any tags (file sources,
+    // unversioned git remotes) fall through with no range and install the
+    // default branch.
+    let versionRange = options?.version
+      ? toVersionRange(options.version)
+      : undefined;
+    if (!versionRange) {
+      const available = await sourceLayer.listRemoteVersions(
+        location,
+        remoteUrl,
+      );
+      const latest = pickVersion(available);
+      if (latest) {
+        versionRange = toVersionRange(`^${latest}`);
+      }
+    }
+
+    const newRoot: ModuleDeclaration = {
+      project: this.project.basePath,
+      name: resolvedName,
+      source: {
+        location,
+        private: options?.private ?? false,
+      },
+      versionRange,
+      parent: undefined,
     };
 
-    // Fetch module dependencies.
-    await this.moduleManager.updateDependencies(
-      moduleSettings,
-      options?.credentials,
-    );
+    // Include existing top-level declarations so their transitive
+    // subgraphs participate in dedup. Drop the one being re-imported so
+    // its stale version range doesn't compete with the caller's new one.
+    const allRoots: ModuleDeclaration[] = [
+      newRoot,
+      ...existing.filter((d) => d.source.location !== location),
+    ];
 
-    // Add module as a dependency.
-    await this.project.importModule(moduleSettings);
+    const resolved = await resolver.resolve(allRoots, {
+      credentials: options?.credentials,
+      tempDir: this.tempModulesDir,
+    });
 
-    // Validate the project after module has been imported
+    await installer.install(this.project, resolved, {
+      credentials: options?.credentials,
+      tempDir: this.tempModulesDir,
+      validate: isFileLocation(location),
+    });
+
+    // Clean up any installations orphaned by this import.
+    await cleanOrphans(this.project);
+
+    // Validate the project after module has been imported.
     const afterImportValidateErrors = await Validate.getInstance().validate(
       this.project.basePath,
       () => this.project,
@@ -190,24 +307,78 @@ export class Import {
     }
   }
 
+  private collectConstraints(moduleName: string) {
+    const constraints: { range: string; source: string }[] = [];
+    for (const mod of this.project.configuration.modules) {
+      if (mod.name === moduleName && mod.version) {
+        constraints.push({ range: mod.version, source: 'project' });
+      }
+    }
+    return constraints;
+  }
+
   /**
    * Updates a specific imported module.
    * @param moduleName Name (prefix) of module to update.
    * @param credentials Optional credentials for a private module.
+   * @param version Optional target version to update to.
    * @throws if module is not part of the project
    */
   @write((moduleName) => `Update module ${moduleName}`)
-  public async updateModule(moduleName: string, credentials?: Credentials) {
+  public async updateModule(
+    moduleName: string,
+    credentials?: Credentials,
+    version?: string,
+  ) {
     // Ensure module list is up to date before updating
     await this.fetchCmd.ensureModuleListUpToDate();
 
-    const module = this.project.configuration.modules.find(
-      (item) => item.name === moduleName,
-    );
-    if (!module) {
+    const inventory = createInventory();
+    const declared = inventory.declared(this.project);
+    const target = declared.find((d) => d.name === moduleName);
+    if (!target) {
       throw new Error(`Module '${moduleName}' is not part of the project`);
     }
-    return this.moduleManager.updateModule(module, credentials);
+
+    const sourceLayer = createSourceLayer();
+    const resolver = createResolver(sourceLayer);
+    const installer = createInstaller(sourceLayer);
+
+    let overrides: Map<string, string> | undefined;
+    if (version) {
+      // Validate the override against any declared ranges for this name.
+      const constraints = this.collectConstraints(moduleName);
+      if (constraints.length > 0) {
+        validateVersionAgainstConstraints(moduleName, version, constraints);
+      }
+
+      // Pre-check that the version is actually available on the remote so
+      // we surface an actionable error before touching the filesystem.
+      const remoteVersions = await sourceLayer.listRemoteVersions(
+        target.source.location,
+      );
+      if (remoteVersions.length > 0 && !remoteVersions.includes(version)) {
+        throw new Error(
+          `Version '${version}' is not available for module '${moduleName}'. ` +
+            `Available versions: ${remoteVersions.join(', ') || 'none'}`,
+        );
+      }
+
+      overrides = new Map<string, string>([[moduleName, version]]);
+    }
+
+    const resolved = await resolver.resolve(declared, {
+      credentials,
+      overrides,
+      tempDir: this.tempModulesDir,
+    });
+
+    await installer.install(this.project, resolved, {
+      credentials,
+      tempDir: this.tempModulesDir,
+    });
+
+    await cleanOrphans(this.project);
   }
 
   /**
@@ -218,6 +389,28 @@ export class Import {
   public async updateAllModules(credentials?: Credentials) {
     // Ensure module list is up to date before updating all modules
     await this.fetchCmd.ensureModuleListUpToDate();
-    return this.moduleManager.updateModules(credentials);
+
+    const inventory = createInventory();
+    const declared = inventory.declared(this.project);
+
+    if (declared.length === 0) {
+      throw new Error('No modules in the project!');
+    }
+
+    const sourceLayer = createSourceLayer();
+    const resolver = createResolver(sourceLayer);
+    const installer = createInstaller(sourceLayer);
+
+    const resolved = await resolver.resolve(declared, {
+      credentials,
+      tempDir: this.tempModulesDir,
+    });
+
+    await installer.install(this.project, resolved, {
+      credentials,
+      tempDir: this.tempModulesDir,
+    });
+
+    await cleanOrphans(this.project);
   }
 }

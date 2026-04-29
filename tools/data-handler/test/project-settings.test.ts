@@ -1,7 +1,7 @@
 import { expect, describe, it, beforeEach, afterEach } from 'vitest';
 
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { join, sep } from 'node:path';
+import { join } from 'node:path';
 import type {
   HubSetting,
   ModuleSetting,
@@ -110,48 +110,6 @@ describe('project settings', () => {
     new ProjectConfiguration(configPath, false);
     const finalContent = readJsonFileSync(configPath);
     expect(finalContent).to.deep.equal(initialContent);
-  });
-
-  it('should add a module successfully', async () => {
-    const configPath = createTestConfig('test-config-add-module.json');
-    const projectSettings = new ProjectConfiguration(configPath, false);
-    await projectSettings.addModule({
-      name: 'test-module',
-      location: 'https://example.com/module',
-    });
-
-    expect(projectSettings.modules.length).toBe(1);
-    expect(projectSettings.modules[0].name).toBe('test-module');
-    const savedConfig = readJsonFileSync(configPath);
-    expect(savedConfig.modules.length).toBe(1);
-  });
-
-  it('should normalize file paths when adding modules', async () => {
-    const configPath = createTestConfig('test-config-module-path.json');
-    const projectSettings = new ProjectConfiguration(configPath, false);
-    await projectSettings.addModule({
-      name: 'test-module',
-      location: `file:${['relative', 'path'].join(sep)}`,
-    });
-
-    expect(projectSettings.modules[0].location).to.include('file:');
-    expect(projectSettings.modules[0].location).to.not.equal(
-      `file:${['relative', 'path'].join(sep)}`,
-    );
-  });
-
-  it('should reject adding duplicate module', async () => {
-    const configPath = createTestConfig('test-config-duplicate-module.json', {
-      modules: [{ name: 'existing-module', location: 'https://example.com' }],
-    });
-    const projectSettings = new ProjectConfiguration(configPath, false);
-
-    await expect(
-      projectSettings.addModule({
-        name: 'existing-module',
-        location: 'https://example.com',
-      }),
-    ).rejects.toThrow("Module 'existing-module' already imported");
   });
 
   it('should remove a module successfully', async () => {
@@ -351,7 +309,7 @@ describe('project settings', () => {
   it('should persist all configuration changes', async () => {
     const configPath = createTestConfig('test-config-persist.json');
     const projectSettings = new ProjectConfiguration(configPath, false);
-    await projectSettings.addModule({
+    await projectSettings.upsertModule({
       name: 'module1',
       location: 'https://example.com',
     });

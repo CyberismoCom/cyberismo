@@ -10,8 +10,6 @@ import {
 } from '../../src/utils/configuration-logger.js';
 import { deleteDir, pathExists } from '../../src/utils/file-utils.js';
 
-/* eslint-disable @typescript-eslint/no-unused-expressions */
-
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-configuration-logger-tests');

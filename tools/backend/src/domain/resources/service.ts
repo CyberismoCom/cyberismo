@@ -42,14 +42,14 @@ const resourceTypes: ResourceFolderType[] = [
 
 async function getModules(commands: CommandManager) {
   try {
-    const moduleNames = await commands.showCmd.showModules();
+    const modules = await commands.showCmd.showModules();
     return Promise.all(
-      moduleNames.map(async (moduleName) => {
+      modules.map(async (mod) => {
         try {
-          const module = await commands.showCmd.showModule(moduleName);
+          const module = await commands.showCmd.showModule(mod.name);
           return { name: module.name, cardKeyPrefix: module.cardKeyPrefix };
         } catch {
-          return { name: moduleName, cardKeyPrefix: moduleName };
+          return { name: mod.name, cardKeyPrefix: mod.name };
         }
       }),
     );

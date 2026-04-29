@@ -11,10 +11,10 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import semver from 'semver';
 import { simpleGit, type SimpleGit } from 'simple-git';
 import { getChildLogger } from './log-utils.js';
-
-const TAG_PREFIX = 'v';
+import { tagToVersion, versionToTag } from '../modules/version.js';
 
 export class GitManager {
   private git: SimpleGit;
@@ -99,14 +99,14 @@ export class GitManager {
    * @param message Optional tag message (defaults to the tag name)
    */
   async tagVersion(version: string, message?: string): Promise<void> {
-    const tag = `${TAG_PREFIX}${version}`;
+    const tag = versionToTag(version);
     this.logger.info({ tag }, 'Creating tag');
     await this.git.tag(['-a', tag, '-m', message ?? tag]);
   }
 
   /** Delete a local version tag. */
   async deleteTag(version: string): Promise<void> {
-    const tag = `${TAG_PREFIX}${version}`;
+    const tag = versionToTag(version);
     this.logger.info({ tag }, 'Deleting tag');
     await this.git.tag(['-d', tag]);
   }
@@ -129,5 +129,29 @@ export class GitManager {
       args.push('--follow-tags');
     }
     await this.git.push(args);
+  }
+
+  /**
+   * List available version tags from a remote repository.
+   * Does not require a local repo — queries the remote directly.
+   * @param remoteUrl Git remote URL to query
+   * @returns Semver version strings sorted descending (e.g. ["2.1.0", "1.0.0"])
+   */
+  static async listRemoteVersionTags(remoteUrl: string): Promise<string[]> {
+    const git = simpleGit();
+    const output = await git.listRemote(['--tags', '--refs', remoteUrl]);
+    if (!output.trim()) {
+      return [];
+    }
+    const versions: string[] = [];
+    for (const line of output.trim().split('\n')) {
+      const match = line.match(/refs\/tags\/(.+)$/);
+      if (!match) continue;
+      const version = tagToVersion(match[1]);
+      if (semver.valid(version)) {
+        versions.push(version);
+      }
+    }
+    return versions.sort(semver.rcompare);
   }
 }

@@ -36,9 +36,7 @@ import {
   type FetchCardDetails,
   type MetadataContent,
   type ModuleContent,
-  type ModuleSetting,
   type ProjectFetchCardDetails,
-  type ProjectMetadata,
 } from '../interfaces/project-interfaces.js';
 import { pathExists } from '../utils/file-utils.js';
 import { generateRandomString } from '../utils/random.js';
@@ -674,20 +672,6 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Adds a module from project.
-   * @param module Module to add
-   */
-  public async importModule(module: ModuleSetting) {
-    // Add module as a dependency.
-    await this.configuration.addModule(module);
-    this.resources.changedModules();
-    this.refreshAllModulePrefixes();
-    await this.populateTemplateCards();
-
-    this.logger.info(`Imported module '${module.name}'`);
-  }
-
-  /**
    * Checks if a given path is a project.
    * @param path Path to a project
    * @returns true, if in the given path there is a project; false otherwise
@@ -776,6 +760,7 @@ export class Project extends CardContainer {
       return {
         name: moduleConfig.name,
         description: moduleConfig.description || '',
+        version: moduleConfig.version,
         modules: moduleConfig.modules,
         hubs: moduleConfig.hubs,
         path: modulePath,
@@ -972,7 +957,7 @@ export class Project extends CardContainer {
 
   /**
    * Removes a module from the project cache and configuration.
-   * @note that ModuleManager removes the actual files.
+   * @note the `removeModule` command removes the actual files.
    * @param moduleName Module name to remove.
    */
   public async removeModule(moduleName: string) {
@@ -1002,6 +987,18 @@ export class Project extends CardContainer {
     });
 
     this.logger.info(`Removed module '${moduleName}'`);
+  }
+
+  /**
+   * Refreshes caches after the module installation set has changed on disk.
+   * Invalidates the module resource cache, rebuilds the all-module-prefix
+   * list, and reloads template cards so the Project API reflects the new
+   * module layout.
+   */
+  public async refreshAfterModuleChange(): Promise<void> {
+    this.resources.changedModules();
+    this.refreshAllModulePrefixes();
+    await this.populateTemplateCards();
   }
 
   /**
@@ -1055,25 +1052,6 @@ export class Project extends CardContainer {
     }
 
     return result;
-  }
-
-  /**
-   * Shows details of a project.
-   * @returns details of a project.
-   */
-  public async show(): Promise<ProjectMetadata> {
-    return {
-      name: this.settings.name,
-      path: this.basePath,
-      prefix: this.projectPrefix,
-      category: this.configuration.category,
-      description: this.configuration.description,
-      version: this.configuration.version,
-      hubs: this.configuration.hubs,
-      modules: this.resources.moduleNames(),
-      numberOfCards: (await this.listCards(CardLocation.projectOnly))[0].cards
-        .length,
-    };
   }
 
   /**
