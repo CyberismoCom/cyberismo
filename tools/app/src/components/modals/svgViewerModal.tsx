@@ -329,7 +329,33 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
             style={sizeStyle}
             dangerouslySetInnerHTML={{
               __html: DOMPurify.sanitize(svgMarkup, {
-                USE_PROFILES: { svg: true },
+                USE_PROFILES: { svg: true, svgFilters: true },
+                ADD_TAGS: [
+                  'foreignObject',
+                  'div',
+                  'span',
+                  'p',
+                  'br',
+                  'i',
+                  'b',
+                  'em',
+                  'strong',
+                  'pre',
+                  'code',
+                ],
+                ADD_ATTR: [
+                  'class',
+                  'style',
+                  'xmlns',
+                  'requiredExtensions',
+                  'dominant-baseline',
+                ],
+                // Mermaid v11 places text labels in
+                // <foreignObject><div>...</div></foreignObject>.
+                // Without this option DOMPurify treats foreignObject children
+                // as SVG elements (not HTML) and strips them, making all
+                // diagram labels invisible.
+                HTML_INTEGRATION_POINTS: { foreignobject: true },
               }),
             }}
           />
