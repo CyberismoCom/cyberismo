@@ -6,6 +6,8 @@
     "build": "tsc -p tsconfig.build.json",
     "build:native": "cmake -P scripts/build-clingo.cmake && node-gyp rebuild",
     "install": "node -e \"\"",
+    "prepack": "node scripts/manage-publish-manifest.js strip",
+    "postpack": "node scripts/manage-publish-manifest.js restore",
     "clean": "rm -rf build dist dist-packages external/clingo/build",
     "dev": "tsc -p tsconfig.build.json --watch",
     "test": "vitest run",
