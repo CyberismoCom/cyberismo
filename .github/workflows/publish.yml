@@ -159,5 +159,5 @@ jobs:
           cyberismo --version
           cyberismo --version | grep "cyberismo version: ${VERSION}"
 
-          pnpm install
+          pnpm install --ignore-scripts
           CYBERISMO_GLOBAL_CLI=true pnpm --filter cli test

@@ -51,24 +51,31 @@ jobs:
         repository: CyberismoCom/cyberismo-docs
         path: .tmp/cyberismo-docs
         ref: main
-    - run: pnpm install
+    - run: pnpm install --ignore-scripts
     - name: Resolve clingo submodule SHA
       id: clingo-sha
       run: echo "sha=$(git -C tools/node-clingo/external/clingo rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-    # Cache only the static archives produced by cmake — that's all the
-    # node-gyp binding consumes (see binding.gyp). Skipping the cmake
-    # step entirely on cache hit avoids the mtime trap where freshly
-    # checked-out sources look newer than cached object files.
+    # Two-layer cache: the .node binding is the artifact we actually
+    # need at runtime, so try that first. The clingo static libs are
+    # only needed if we have to rebuild the binding.
+    - name: Cache node-clingo binding
+      id: cache-binding
+      uses: actions/cache@v4
+      with:
+        path: tools/node-clingo/build/Release
+        key: binding-${{ runner.os }}-${{ runner.arch }}-node${{ vars.NODE_VERSION }}-${{ steps.clingo-sha.outputs.sha }}-${{ hashFiles('tools/node-clingo/src/**', 'tools/node-clingo/binding.gyp', 'tools/node-clingo/package.json') }}
     - name: Cache clingo static libs
+      if: steps.cache-binding.outputs.cache-hit != 'true'
       id: cache-clingo
       uses: actions/cache@v4
       with:
         path: tools/node-clingo/external/clingo/build/lib
         key: clingo-libs-${{ runner.os }}-${{ runner.arch }}-node${{ vars.NODE_VERSION }}-${{ steps.clingo-sha.outputs.sha }}-${{ hashFiles('tools/node-clingo/scripts/build-clingo.cmake', 'tools/node-clingo/binding.gyp') }}
     - name: Build clingo static libs
-      if: steps.cache-clingo.outputs.cache-hit != 'true'
+      if: steps.cache-binding.outputs.cache-hit != 'true' && steps.cache-clingo.outputs.cache-hit != 'true'
       run: pnpm --filter @cyberismo/node-clingo run build:clingo
     - name: Build node-clingo native binding
+      if: steps.cache-binding.outputs.cache-hit != 'true'
       run: pnpm --filter @cyberismo/node-clingo run build:binding
     - run: pnpm --filter=app exec cypress install
     - run: pnpm prettier-check

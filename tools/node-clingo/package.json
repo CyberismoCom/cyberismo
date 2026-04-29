@@ -8,7 +8,7 @@
     "build:binding": "node-gyp rebuild",
     "build:native": "pnpm run build:clingo && pnpm run build:binding",
     "bump-version": "node scripts/bump-version.js",
-    "install": "node -e \"\"",
+    "install": "pnpm run build:native",
     "prepack": "node scripts/manage-publish-manifest.js strip",
     "postpack": "node scripts/manage-publish-manifest.js restore",
     "clean": "rm -rf build dist dist-packages external/clingo/build",
