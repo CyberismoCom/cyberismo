@@ -98,3 +98,53 @@ describe('multi-project routing', () => {
     expect([400, 404]).toContain(miniCardRes.status);
   });
 });
+
+describe('multi-project export mode routing', () => {
+  let exportApp: ReturnType<typeof createApp>;
+  let tempDecisionPath: string;
+  let tempMinimalPath: string;
+
+  beforeAll(async () => {
+    process.argv = [];
+    tempDecisionPath = await createTempTestData('decision-records');
+    tempMinimalPath = await createTempTestData('minimal');
+
+    const decisionCommands = await CommandManager.getInstance(tempDecisionPath);
+    const minimalCommands = await CommandManager.getInstance(tempMinimalPath);
+
+    const registry = new ProjectRegistry([
+      {
+        prefix: decisionCommands.project.configuration.cardKeyPrefix,
+        commands: decisionCommands,
+      },
+      {
+        prefix: minimalCommands.project.configuration.cardKeyPrefix,
+        commands: minimalCommands,
+      },
+    ]);
+
+    exportApp = createApp(new MockAuthProvider(), registry, undefined, true);
+  });
+
+  afterAll(async () => {
+    await cleanupTempTestData(tempDecisionPath);
+    await cleanupTempTestData(tempMinimalPath);
+  });
+
+  test('routes work at concrete prefixes in export mode', async () => {
+    const decisionRes = await exportApp.request('/api/projects/decision/cards');
+    expect(decisionRes.status).toBe(200);
+    const decisionData = (await decisionRes.json()) as { name: string };
+    expect(decisionData.name).toBe('decision');
+
+    const miniRes = await exportApp.request('/api/projects/mini/cards');
+    expect(miniRes.status).toBe(200);
+    const miniData = (await miniRes.json()) as { name: string };
+    expect(miniData.name).toBe('minimal');
+  });
+
+  test('returns 404 for unknown project prefix in export mode', async () => {
+    const response = await exportApp.request('/api/projects/nonexistent/cards');
+    expect(response.status).toBe(404);
+  });
+});

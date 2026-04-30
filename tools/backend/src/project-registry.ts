@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { CommandManager } from '@cyberismo/data-handler';
+import { CommandManager } from '@cyberismo/data-handler';
 
 export type ProjectRegistryEntry = {
   prefix: string;
@@ -22,6 +22,13 @@ export type ProjectListItem = {
   prefix: string;
   name: string;
 };
+
+/** Minimal project descriptor returned by scanForProjects. */
+export interface ScannedProject {
+  path: string;
+  prefix: string;
+  name: string;
+}
 
 export class ProjectRegistry {
   private projects: Map<string, CommandManager> = new Map();
@@ -36,6 +43,10 @@ export class ProjectRegistry {
     return this.projects.get(prefix);
   }
 
+  has(prefix: string): boolean {
+    return this.projects.has(prefix);
+  }
+
   add(prefix: string, commands: CommandManager): void {
     if (this.projects.has(prefix)) {
       throw new Error(`Project '${prefix}' is already registered`);
@@ -48,6 +59,11 @@ export class ProjectRegistry {
       prefix,
       name: commands.project.configuration.name,
     }));
+  }
+
+  /** Iterate over all registered CommandManagers. */
+  values(): IterableIterator<CommandManager> {
+    return this.projects.values();
   }
 
   first(): CommandManager | undefined {
@@ -70,5 +86,21 @@ export class ProjectRegistry {
     return new ProjectRegistry([
       { prefix: commands.project.configuration.cardKeyPrefix, commands },
     ]);
+  }
+
+  /**
+   * Build a registry from scanned project entries, initializing each CommandManager.
+   */
+  static async fromScannedProjects(
+    projects: ScannedProject[],
+    options?: ConstructorParameters<typeof CommandManager>[1],
+  ): Promise<ProjectRegistry> {
+    const entries: ProjectRegistryEntry[] = [];
+    for (const project of projects) {
+      const commands = new CommandManager(project.path, options);
+      await commands.initialize();
+      entries.push({ prefix: project.prefix, commands });
+    }
+    return new ProjectRegistry(entries);
   }
 }
