@@ -91,6 +91,7 @@ export default function LinkedCardsSection({
   }, [linkFormState, dispatch]);
 
   const linkCount = card.links.length;
+  const headerClickable = !editing && !expanded && linkCount > 0;
 
   return (
     <>
@@ -101,7 +102,22 @@ export default function LinkedCardsSection({
           editing ? 'primary.outlinedBorder' : 'neutral.outlinedBorder'
         }
         borderRadius={6}
-        padding={2}
+        padding={1.5}
+        onClick={
+          headerClickable
+            ? () => dispatch(setLinkedCardsExpanded(true))
+            : undefined
+        }
+        sx={
+          headerClickable
+            ? {
+                cursor: 'pointer',
+                '&:hover [data-cy="linkedCardsShowMoreButton"]': {
+                  backgroundColor: 'var(--joy-palette-primary-plainHoverBg)',
+                },
+              }
+            : undefined
+        }
       >
         <Stack
           direction="row"

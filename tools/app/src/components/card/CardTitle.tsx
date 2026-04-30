@@ -141,7 +141,7 @@ export const CardTitle: React.FC<CardTitleProps> = ({
         border="1px solid"
         borderColor="primary.outlinedBorder"
         borderRadius={6}
-        padding={2}
+        padding={1.5}
       >
         <Stack spacing={1}>
           <Textarea
@@ -202,7 +202,7 @@ export const CardTitle: React.FC<CardTitleProps> = ({
       border="1px solid"
       borderColor="transparent"
       borderRadius={6}
-      padding={2}
+      padding={1.5}
       position="relative"
       onClick={handleStartEdit}
       sx={

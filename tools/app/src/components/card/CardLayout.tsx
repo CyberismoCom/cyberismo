@@ -152,13 +152,22 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
     };
 
     return (
-      <Stack direction="row" height="100%">
+      <Stack
+        direction={{ xs: 'column', lg: 'row' }}
+        height="100%"
+        sx={{
+          overflowY: { xs: 'auto', lg: 'hidden' },
+          scrollbarWidth: 'thin',
+        }}
+        onScroll={handleScroll}
+        ref={boxRef}
+      >
         <Box
           width="100%"
           padding={3}
           flexGrow={1}
           sx={{
-            overflowY: 'auto',
+            overflowY: { lg: 'auto' },
             scrollbarWidth: 'thin',
             paddingBottom: 0,
             // Safari stuff
@@ -168,10 +177,8 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
               height: (theme) => theme.spacing(3),
             },
           }}
-          onScroll={handleScroll}
-          ref={boxRef}
         >
-          <Stack spacing={3}>
+          <Stack spacing={2}>
             <CardTitle
               title={card.title}
               preview={preview}
@@ -211,13 +218,16 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
           </Stack>
         </Box>
         <Stack
-          my={2}
-          mr={3}
           sx={{
-            overflowY: 'auto',
+            overflowY: { lg: 'auto' },
             scrollbarWidth: 'thin',
-            width: 250,
-            minWidth: 250,
+            width: { xs: '100%', lg: 250 },
+            minWidth: { lg: 250 },
+            flexShrink: 0,
+            my: { lg: 2 },
+            mr: { lg: 3 },
+            px: { xs: 3, lg: 0 },
+            pb: { xs: 3, lg: 0 },
           }}
           data-cy="cardSidebar"
         >

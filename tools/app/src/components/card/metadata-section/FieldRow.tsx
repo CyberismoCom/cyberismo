@@ -19,7 +19,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import { Controller, useForm } from 'react-hook-form';
 import type { DataType, MetadataValue } from '@/lib/definitions';
 import type { EnumDefinition } from '@cyberismo/data-handler/types/queries';
-import EditableField from '@/components/EditableField';
+import EditableField, { FieldLabel } from '@/components/EditableField';
+import FieldEditor from '@/components/FieldEditor';
 
 export interface FieldRowProps {
   id?: string;
@@ -149,52 +150,67 @@ export function FieldRow({
       <AccordionDetails>
         {isEditing ? (
           <Stack
-            direction="row"
-            alignItems="flex-start"
-            spacing={0.5}
+            direction={{ xs: 'column', md: 'row' }}
+            spacing={{ xs: 0.5, md: 4 }}
             onKeyDownCapture={handleKeyDownCapture}
             onKeyDown={handleKeyDown}
           >
-            <Box flexGrow={1}>
-              <Controller
-                name="value"
-                control={control}
-                render={({ field: { value: formValue, onChange } }) => (
-                  <EditableField
-                    value={formValue}
-                    label={label}
-                    dataType={dataType}
-                    description={description}
-                    enumValues={enumValues}
-                    disabled={disabled}
-                    edit={true}
-                    focus={true}
-                    onChange={(e) => handleChange(e, onChange)}
-                  />
-                )}
-              />
-            </Box>
-            {onSave && (
+            <FieldLabel
+              label={label}
+              description={description}
+              disabled={disabled}
+              edit={true}
+            />
+            <Stack
+              direction="row"
+              alignItems="flex-start"
+              spacing={0.5}
+              sx={{
+                flexGrow: 1,
+                width: { xs: '100%', md: 'auto' },
+                minWidth: 0,
+              }}
+            >
+              <Box flexGrow={1} minWidth={0}>
+                <Controller
+                  name="value"
+                  control={control}
+                  render={({ field: { value: formValue, onChange } }) => (
+                    <FieldEditor
+                      value={formValue}
+                      onChange={(e: string | string[] | null) =>
+                        handleChange(e, onChange)
+                      }
+                      dataType={dataType}
+                      enumValues={enumValues}
+                      disabled={disabled}
+                      focus={true}
+                    />
+                  )}
+                />
+              </Box>
+              {onSave && (
+                <IconButton
+                  data-cy="fieldSaveButton"
+                  size="sm"
+                  variant="soft"
+                  color="primary"
+                  disabled={!isDirty}
+                  onClick={handleSave}
+                >
+                  <CheckIcon />
+                </IconButton>
+              )}
               <IconButton
-                data-cy="fieldSaveButton"
+                data-cy="fieldCancelButton"
                 size="sm"
                 variant="soft"
-                color="primary"
-                disabled={!isDirty}
-                onClick={handleSave}
+                color="neutral"
+                onClick={handleCancel}
               >
-                <CheckIcon />
+                <CloseIcon />
               </IconButton>
-            )}
-            <IconButton
-              data-cy="fieldCancelButton"
-              size="sm"
-              variant="soft"
-              color="neutral"
-              onClick={handleCancel}
-            >
-              <CloseIcon />
-            </IconButton>
+            </Stack>
           </Stack>
         ) : (
           <Box
@@ -208,6 +224,7 @@ export function FieldRow({
               description={description}
               enumValues={enumValues}
               edit={false}
+              disabled={disabled}
             />
           </Box>
         )}

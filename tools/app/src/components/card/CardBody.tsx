@@ -154,17 +154,6 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
       setCmEditor(cmRef.editor as HTMLDivElement);
     }, []);
 
-    const handleStartEdit = (e: React.MouseEvent) => {
-      if (!canEdit) return;
-      const selection = window.getSelection();
-      if (selection && selection.toString().length > 0) return;
-      const target = e.target as HTMLElement;
-      if (target.closest('a, button, input, select, textarea, [role="button"]'))
-        return;
-      editContentRef.current = card.rawContent || '';
-      setEditing(true);
-    };
-
     const handleEditButtonClick = (e: React.MouseEvent) => {
       e.stopPropagation();
       if (!canEdit) return;
@@ -457,7 +446,7 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
             border="1px solid"
             borderColor="primary.outlinedBorder"
             borderRadius={6}
-            padding={2}
+            padding={1.5}
             sx={{
               '& .cm-gutters': {
                 bgcolor: 'background.level1',
@@ -465,13 +454,20 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
             }}
           >
             <Stack spacing={1}>
-              <Stack
-                direction="row"
-                spacing={0.5}
-                justifyContent="space-between"
-                alignItems="center"
+              <Box
+                sx={{
+                  display: 'grid',
+                  columnGap: 1,
+                  rowGap: 1,
+                  alignItems: 'center',
+                  gridTemplateColumns: 'auto 1fr auto',
+                  gridTemplateAreas: {
+                    xs: '"preview . actions" "toolbar toolbar toolbar"',
+                    xl: '"preview toolbar actions"',
+                  },
+                }}
               >
-                <Stack direction="row" spacing={0.5} alignItems="center">
+                <Box sx={{ gridArea: 'preview' }}>
                   <Tooltip title={previewing ? t('edit') : t('preview')}>
                     <IconButton
                       data-cy="contentPreviewButton"
@@ -483,9 +479,15 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
                       <VisibilityIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
+                </Box>
+                <Box sx={{ gridArea: 'toolbar', minWidth: 0 }}>
                   <AsciiDocToolbar view={cmView} />
-                </Stack>
-                <Stack direction="row" spacing={0.5}>
+                </Box>
+                <Stack
+                  direction="row"
+                  spacing={0.5}
+                  sx={{ gridArea: 'actions', justifySelf: 'end' }}
+                >
                   <Button
                     size="sm"
                     variant="plain"
@@ -506,7 +508,7 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
                     {t('save')}
                   </Button>
                 </Stack>
-              </Stack>
+              </Box>
               {previewing ? (
                 <Box
                   maxHeight="calc(100vh - 250px)"
@@ -557,16 +559,11 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
             border="1px solid"
             borderColor="neutral.outlinedBorder"
             borderRadius={6}
-            padding={2}
+            padding={1.5}
             position="relative"
-            onClick={handleStartEdit}
             sx={
               canEdit
                 ? {
-                    cursor: 'pointer',
-                    '&:hover': {
-                      borderColor: 'primary.outlinedBorder',
-                    },
                     '&:hover .edit-icon-button': {
                       opacity: 1,
                     },
@@ -575,23 +572,32 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
             }
           >
             {canEdit && (
-              <IconButton
-                className="edit-icon-button"
-                data-cy="editBodyButton"
-                size="sm"
-                variant="soft"
-                color="primary"
-                onClick={handleEditButtonClick}
+              <Box
                 sx={{
-                  position: 'absolute',
+                  position: 'sticky',
                   top: 8,
-                  right: 8,
-                  opacity: 0,
-                  transition: 'opacity 0.15s',
+                  height: 0,
+                  zIndex: 1,
                 }}
               >
-                <EditIcon fontSize="small" />
-              </IconButton>
+                <IconButton
+                  className="edit-icon-button"
+                  data-cy="editBodyButton"
+                  size="sm"
+                  variant="soft"
+                  color="primary"
+                  onClick={handleEditButtonClick}
+                  sx={{
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    opacity: { xs: 1, md: 0 },
+                    transition: 'opacity 0.15s',
+                  }}
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Box>
             )}
             <div className="doc" ref={setRef}>
               {parsedContent}

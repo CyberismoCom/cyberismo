@@ -204,7 +204,11 @@ export function LinkForm({
       })}
     >
       <Stack spacing={1}>
-        <Stack direction="row" spacing={1} alignItems="flex-end">
+        <Stack
+          direction={{ xs: 'column', xl: 'row' }}
+          spacing={1}
+          alignItems={{ xs: 'stretch', xl: 'flex-end' }}
+        >
           <FormControl required>
             {mode === 'add' && <FormLabel>{t('linkForm.itemType')}</FormLabel>}
             <Controller
@@ -216,7 +220,7 @@ export function LinkForm({
                   placeholder={t('linkForm.selectLinkType')}
                   color="primary"
                   onChange={(_, value) => field.onChange(value)}
-                  sx={{ width: 180 }}
+                  sx={{ width: { xs: '100%', xl: 180 } }}
                   required={true}
                 >
                   {linkTypes.map((linkType) => (
@@ -243,7 +247,7 @@ export function LinkForm({
                   placeholder={t('linkForm.selectSource')}
                   color="primary"
                   onChange={(_, value) => field.onChange(value)}
-                  sx={{ width: 180 }}
+                  sx={{ width: { xs: '100%', xl: 180 } }}
                   required={true}
                 >
                   {itemSources.map((source) => (
@@ -321,7 +325,12 @@ export function LinkForm({
               />
             )}
           </FormControl>
-          <Stack direction="row" spacing={0.5} py={0.5}>
+          <Stack
+            direction="row"
+            spacing={0.5}
+            py={0.5}
+            alignSelf={{ xs: 'flex-end', xl: 'auto' }}
+          >
             {mode === 'add' ? (
               <IconButton
                 data-cy="addLinkButton"
@@ -513,7 +522,7 @@ export function EditMode({
             isUpdating={isEditUpdating}
           />
         ) : (
-          <LinkRow key={link.key + index} link={link} />
+          <LinkRow key={link.key + index} link={link} locked />
         ),
       )}
     </Stack>

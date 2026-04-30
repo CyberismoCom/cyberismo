@@ -249,7 +249,7 @@
     "description": "Description",
     "button": "Add link",
     "buttonEdit": "Update",
-    "calculatedLink": "This is an automatic link that cannot be deleted",
+    "calculatedLink": "This is an automatic link that cannot be edited or deleted",
     "sourceCard": "Card"
   },
   "linkTooltip": "Link to another card",

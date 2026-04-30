@@ -70,14 +70,18 @@ export function AsciiDocToolbar({
   return (
     <Stack
       direction="row"
-      top={0}
-      zIndex={5}
       bgcolor="background.surface"
-      position="sticky"
-      justifyContent="flex-end"
       gap={1.5}
       borderRadius={6}
       padding={0.5}
+      flexWrap="nowrap"
+      minWidth={0}
+      sx={{
+        overflowX: 'auto',
+        scrollbarWidth: 'thin',
+        width: 'fit-content',
+        maxWidth: '100%',
+      }}
     >
       <Tooltip title={t('asciiDocEditor.toolbar.undo')}>
         <IconButton onClick={() => asciiDocToolbarActions.undo(view, readOnly)}>
@@ -89,12 +93,7 @@ export function AsciiDocToolbar({
           <Redo color="inherit" />
         </IconButton>
       </Tooltip>
-      <Divider
-        orientation="vertical"
-        sx={{
-          my: 1,
-        }}
-      />
+      <Divider orientation="vertical" sx={{ my: 1 }} />
       {[1, 2, 3].map((level) => (
         <Tooltip
           key={level}
@@ -111,12 +110,7 @@ export function AsciiDocToolbar({
           </IconButton>
         </Tooltip>
       ))}
-      <Divider
-        orientation="vertical"
-        sx={{
-          my: 1,
-        }}
-      />
+      <Divider orientation="vertical" sx={{ my: 1 }} />
       <Tooltip title={t('asciiDocEditor.toolbar.bulletedList')}>
         <IconButton
           onClick={() => asciiDocToolbarActions.bulletedList(view, readOnly)}
@@ -131,12 +125,7 @@ export function AsciiDocToolbar({
           <FormatListNumbered color="inherit" />
         </IconButton>
       </Tooltip>
-      <Divider
-        orientation="vertical"
-        sx={{
-          my: 1,
-        }}
-      />
+      <Divider orientation="vertical" sx={{ my: 1 }} />
       <Tooltip title={t('asciiDocEditor.toolbar.bold')}>
         <IconButton onClick={() => asciiDocToolbarActions.bold(view, readOnly)}>
           <FormatBold color="inherit" />
@@ -156,12 +145,7 @@ export function AsciiDocToolbar({
           <Highlight color="inherit" />
         </IconButton>
       </Tooltip>
-      <Divider
-        orientation="vertical"
-        sx={{
-          my: 1,
-        }}
-      />
+      <Divider orientation="vertical" sx={{ my: 1 }} />
       <Tooltip title={t('asciiDocEditor.toolbar.insertTable')}>
         <IconButton
           onClick={() => asciiDocToolbarActions.table(view, readOnly)}
@@ -169,12 +153,7 @@ export function AsciiDocToolbar({
           <ViewList color="inherit" />
         </IconButton>
       </Tooltip>
-      <Divider
-        orientation="vertical"
-        sx={{
-          my: 1,
-        }}
-      />
+      <Divider orientation="vertical" sx={{ my: 1 }} />
       {showMacroHelpers && (
         <>
           <Dropdown>
