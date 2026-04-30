@@ -13,6 +13,7 @@ import type Handlebars from 'handlebars';
 import { escapeJsonString } from './json.js';
 import { escapeCsvField } from './csv.js';
 import { resourceName } from './resource-utils.js';
+import { encodeClingoValue } from './clingo-fact-builder.js';
 
 /**
  * Formats a value from a logic program for use in graphviz
@@ -80,6 +81,20 @@ function formatValue(value: unknown): string {
 export function registerComparisonHelpers(instance: typeof Handlebars) {
   instance.registerHelper('eq', (a: unknown, b: unknown) => a === b);
   instance.registerHelper('ne', (a: unknown, b: unknown) => a !== b);
+}
+
+/**
+ * Registers helpers for templating Clingo source.
+ *
+ * `clingoEscape` escapes a string so it is safe to interpolate inside a
+ * Clingo string literal (`"..."`), preserving newlines and quotes.
+ * Use it with the triple-stash form: `"{{{clingoEscape value}}}"`.
+ * @param instance handlebars instance
+ */
+export function registerClingoHelpers(instance: typeof Handlebars) {
+  instance.registerHelper('clingoEscape', (value: unknown) =>
+    typeof value === 'string' ? encodeClingoValue(value) : '',
+  );
 }
 
 /**

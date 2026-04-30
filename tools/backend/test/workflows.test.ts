@@ -35,3 +35,47 @@ test('POST /api/workflows creates a workflow successfully', async () => {
   expect(result).toHaveProperty('message');
   expect(result.message).toBe('Workflow created successfully');
 });
+
+test('GET /api/resources/:prefix/workflows/:identifier/graph renders the workflow graph', async () => {
+  const response = await app.request(
+    '/api/resources/decision/workflows/simple/graph',
+  );
+
+  expect(response.status).toBe(200);
+  const result = (await response.json()) as { svg: string };
+  expect(result.svg).toBeTruthy();
+  const decoded = Buffer.from(result.svg, 'base64').toString('utf-8');
+  expect(decoded).toContain('<svg');
+  expect(decoded).toContain('Created');
+  expect(decoded).toContain('Approved');
+}, 20000);
+
+test('GET /api/resources/:prefix/workflows/:identifier/graph returns 404 for unknown workflow', async () => {
+  const response = await app.request(
+    '/api/resources/decision/workflows/does-not-exist/graph',
+  );
+
+  expect(response.status).toBe(404);
+});
+
+test('GET /api/resources/:prefix/workflows/:identifier/graph?card=... highlights the card state', async () => {
+  const plain = await app.request(
+    '/api/resources/decision/workflows/simple/graph',
+  );
+  const highlighted = await app.request(
+    '/api/resources/decision/workflows/simple/graph?card=decision_5',
+  );
+
+  expect(plain.status).toBe(200);
+  expect(highlighted.status).toBe(200);
+  const plainSvg = ((await plain.json()) as { svg: string }).svg;
+  const highlightedSvg = ((await highlighted.json()) as { svg: string }).svg;
+  expect(plainSvg).not.toBe(highlightedSvg);
+}, 20000);
+
+test('GET /api/resources/:prefix/workflows/:identifier/graph?card=... returns 404 for unknown card', async () => {
+  const response = await app.request(
+    '/api/resources/decision/workflows/simple/graph?card=decision_999',
+  );
+  expect(response.status).toBe(404);
+});

@@ -419,6 +419,12 @@
   "viewedAgo": "Viewed {{time}} ago",
   "visibility": "Visibility",
   "workflow": "Workflow",
+  "workflowGraph": {
+    "title": "Diagram",
+    "alt": "Workflow state-machine diagram",
+    "error": "Failed to render workflow diagram",
+    "viewTooltip": "View workflow"
+  },
   "workflowState": "Workflow state",
   "workflowStates": {
     "states": "States",

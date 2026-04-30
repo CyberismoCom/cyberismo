@@ -468,6 +468,52 @@ export async function validateResource(
 }
 
 /**
+ * Renders the built-in state-machine graph for a single workflow.
+ * When `cardKey` is provided, the card's current workflowState is
+ * highlighted in the diagram. The workflow lookup, card lookup and
+ * graph rendering all run inside the same consistency window so the
+ * highlighted state matches the diagram even if the card is being
+ * transitioned concurrently.
+ * @returns base64-encoded sanitized SVG.
+ * @throws Error with 'not found' in the message when the workflow or
+ *   card cannot be resolved.
+ */
+export async function getWorkflowGraph(
+  commands: CommandManager,
+  workflowName: string,
+  cardKey?: string,
+): Promise<string> {
+  return commands.consistent(async () => {
+    try {
+      await commands.showCmd.showResource(workflowName, 'workflows');
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('does not exist')) {
+        throw new Error(`Workflow '${workflowName}' not found`, {
+          cause: error,
+        });
+      }
+      throw error;
+    }
+    let currentState: string | undefined;
+    if (cardKey) {
+      let card;
+      try {
+        card = await commands.showCmd.showCardDetails(cardKey);
+      } catch (error) {
+        throw new Error(`Card '${cardKey}' not found`, { cause: error });
+      }
+      if (!card?.metadata) {
+        throw new Error(`Card '${cardKey}' not found`);
+      }
+      currentState = card.metadata.workflowState;
+    }
+    return commands.calculateCmd.runWorkflowGraph(workflowName, {
+      currentState,
+    });
+  });
+}
+
+/**
  * Perform an updateOperation on a resource key.
  * This delegates to data-handler Update.applyResourceOperation.
  */

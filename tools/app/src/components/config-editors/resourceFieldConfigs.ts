@@ -28,7 +28,8 @@ export type FieldType =
   | 'boolean'
   | 'cardFields'
   | 'enumValues'
-  | 'workflowStates';
+  | 'workflowStates'
+  | 'workflowGraph';
 
 export interface FieldConfig {
   key: string;
@@ -151,6 +152,12 @@ export const resourceFieldConfigs: Record<ResourceNode['type'], FieldConfig[]> =
         key: 'states',
         type: 'workflowStates',
         label: 'workflowStates',
+        fullWidth: true,
+      },
+      {
+        key: 'graph',
+        type: 'workflowGraph',
+        label: 'workflowGraph.title',
         fullWidth: true,
       },
     ],

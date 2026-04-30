@@ -16,6 +16,8 @@ import pdfReportIndex from './exportPdfReport/index.adoc.hbs';
 import pdfReportQuery from './exportPdfReport/query.lp.hbs';
 import graphvizReportIndex from './graphvizReport/index.adoc.hbs';
 import graphvizReportQuery from './graphvizReport/query.lp.hbs';
+import workflowGraphModel from './workflowGraph/model.lp';
+import workflowGraphView from './workflowGraph/view.lp.hbs';
 
 export const graphvizReport = {
   query: graphvizReportQuery,
@@ -25,6 +27,11 @@ export const graphvizReport = {
 export const pdfReport = {
   query: pdfReportQuery,
   content: pdfReportIndex,
+};
+
+export const workflowGraph = {
+  model: workflowGraphModel,
+  view: workflowGraphView,
 };
 
 export const lpFiles = {
