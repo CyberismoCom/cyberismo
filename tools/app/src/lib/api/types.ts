@@ -63,6 +63,10 @@ export type Connector = {
   items: ExternalItem[];
 };
 
+export type WorkflowGraphResponse = {
+  svg: string;
+};
+
 export type Resources = {
   project: Project;
   card: CardResponse;
@@ -78,6 +82,7 @@ export type Resources = {
   validateResource: ValidateResourceResponse;
   general: GeneralSettings;
   user: User;
+  workflowGraph: WorkflowGraphResponse;
 };
 
 export type ResourceName = keyof Resources;

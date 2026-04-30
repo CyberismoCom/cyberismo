@@ -125,16 +125,12 @@ export const createWorkflowFacts = (workflow: Workflow) => {
 
   // add states
   for (const state of workflow.states) {
-    if (state.category) {
-      builder.addFact(
-        Facts.Workflow.WORKFLOW_STATE,
-        workflow.name,
-        state.name,
-        state.category,
-      );
-    } else {
-      builder.addFact(Facts.Workflow.WORKFLOW_STATE, workflow.name, state.name);
-    }
+    builder.addFact(
+      Facts.Workflow.WORKFLOW_STATE,
+      workflow.name,
+      state.name,
+      state.category ?? 'none',
+    );
   }
 
   // add transitions

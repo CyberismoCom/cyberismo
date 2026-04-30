@@ -206,7 +206,7 @@ describe('Navigation', () => {
     cy.get('[data-cy="cardLinkType"]').contains('Outbound');
     cy.get('[data-cy="cardLinkTitle"]').contains('Untitled page');
 
-    cy.get(':nth-child(5) > :nth-child(2)').should('not.exist'); // checks 2nd link was not created
+    cy.get('[data-cy="cardLinkType"]').should('have.length', 1); // checks 2nd link was not created
 
     // Navigate to Untitled page to check if link has appeared there
     // Use cy.visit because otherwise timing issues with loading content can occur
