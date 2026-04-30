@@ -50,22 +50,23 @@ export const attachCommandManager = (
   return (c, next) => runWithCommands(c, commands, next);
 };
 
+/**
+ * Middleware that resolves the project from the registry and sets the
+ * CommandManager on context.
+ *
+ * @param registry - Project registry to look up projects.
+ * @param fixedPrefix - When provided, used instead of the `:prefix` route
+ *   param. This is needed in export/SSG mode where routes are mounted at
+ *   concrete paths (e.g. `/api/projects/decision/...`) with no dynamic param.
+ */
 export const attachProjectRegistry = (
   registry: ProjectRegistry,
-  staticMode?: boolean,
+  fixedPrefix?: string,
 ): MiddlewareHandler => {
   return async (c: Context, next) => {
     c.set('registry', registry);
-    const prefix = c.req.param('prefix');
+    const prefix = c.req.param('prefix') ?? fixedPrefix;
     if (!prefix) {
-      if (staticMode) {
-        // Export / static mode: mounted at a concrete prefix, so no
-        // :prefix param exists. Use the single registered project.
-        const fallback = registry.first();
-        if (fallback) {
-          return runWithCommands(c, fallback, next);
-        }
-      }
       return c.json({ error: 'Project prefix is required' }, 400);
     }
     const commands = registry.get(prefix);

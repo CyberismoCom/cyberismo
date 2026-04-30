@@ -18,7 +18,7 @@ import fs, { readFile } from 'node:fs/promises';
 import type { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from './app.js';
 import { MockAuthProvider } from './auth/mock.js';
-import { ProjectRegistry } from './project-registry.js';
+import type { ProjectRegistry } from './project-registry.js';
 import { cp, writeFile } from 'node:fs/promises';
 import { staticFrontendDirRelative } from './utils.js';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
@@ -29,7 +29,11 @@ import {
   findRelevantAttachments,
 } from './domain/cards/service.js';
 
-let _cardQueryPromise: Promise<QueryResult<'card'>[]> | null = null;
+export interface ExportSiteOptions extends TreeOptions {
+  defaultProject?: string;
+}
+
+const _cardQueryCache = new Map<string, Promise<QueryResult<'card'>[]>>();
 const OVERHEAD_CALLS = 6; // estimated number of overhead calls during export in addition to card exports
 
 /**
@@ -37,7 +41,7 @@ const OVERHEAD_CALLS = 6; // estimated number of overhead calls during export in
  * Also resets the card query promise.
  */
 export function reset() {
-  _cardQueryPromise = null;
+  _cardQueryCache.clear();
 }
 
 /**
@@ -51,15 +55,14 @@ export async function getCardQueryResult(
   commands: CommandManager,
   cardKey?: string,
 ): Promise<QueryResult<'card'>[]> {
-  if (!_cardQueryPromise) {
-    // fetch all cards
-    _cardQueryPromise = commands.calculateCmd.runQuery(
-      'card',
-      'exportedSite',
-      {},
+  const prefix = commands.project.configuration.cardKeyPrefix;
+  if (!_cardQueryCache.has(prefix)) {
+    _cardQueryCache.set(
+      prefix,
+      commands.calculateCmd.runQuery('card', 'exportedSite', {}),
     );
   }
-  return _cardQueryPromise.then((results) => {
+  return _cardQueryCache.get(prefix)!.then((results) => {
     if (!cardKey) {
       return results;
     }
@@ -74,33 +77,38 @@ export async function getCardQueryResult(
 /**
  * Export the site to a given directory.
  * Note: Do not call this function in parallel.
- * @param commands - CommandManager instance for the project.
+ * @param registry - ProjectRegistry holding all project CommandManagers.
  * @param exportDir - Directory to export to.
  * @param options - Export options.
  * @param options.recursive - Whether to export cards recursively.
  * @param options.cardKey - Key of the card to export. If not provided, all cards will be exported.
- * @param level - Log level for the operation.
+ * @param options.defaultProject - Default project prefix to write into config.json.
  * @param onProgress - Optional progress callback function.
  * @returns An object containing any errors that occurred during export.
  */
 export async function exportSite(
-  commands: CommandManager,
+  registry: ProjectRegistry,
   exportDir?: string,
-  options?: TreeOptions,
+  options?: ExportSiteOptions,
   onProgress?: (current: number, total: number) => void,
 ): Promise<{ errors: string[] }> {
   exportDir = exportDir || 'static';
-  const opts = {
+  const { defaultProject, ...treeOpts } = options ?? {};
+  const opts: TreeOptions = {
     recursive: false,
-    cardKey: undefined,
-    ...options,
+    ...treeOpts,
   };
 
-  const app = createApp(
-    new MockAuthProvider(),
-    ProjectRegistry.fromCommandManager(commands),
-    opts,
-  );
+  if (defaultProject && !registry.has(defaultProject)) {
+    throw new Error(
+      `Default project '${defaultProject}' is not in the registry. Available: ${registry
+        .list()
+        .map((p) => p.prefix)
+        .join(', ')}`,
+    );
+  }
+
+  const app = createApp(new MockAuthProvider(), registry, opts, true);
 
   // copy whole frontend to the same directory
   await cp(staticFrontendDirRelative, exportDir, { recursive: true });
@@ -108,6 +116,9 @@ export async function exportSite(
   const config = await readFile(path.join(exportDir, 'config.json'), 'utf-8');
   const configJson = JSON.parse(config);
   configJson.staticMode = true;
+  if (defaultProject) {
+    configJson.defaultProject = defaultProject;
+  }
   await writeFile(
     path.join(exportDir, 'config.json'),
     JSON.stringify(configJson),
@@ -115,10 +126,13 @@ export async function exportSite(
 
   reset();
 
-  // estimate total based on the number of cards to export
-  const cards = await findAllCards(commands, opts);
-  const attachments = await findRelevantAttachments(commands, opts);
-  let total = cards.length + attachments.length + OVERHEAD_CALLS;
+  // estimate total based on the number of cards to export across all projects
+  let total = OVERHEAD_CALLS;
+  for (const commands of registry.values()) {
+    const cards = await findAllCards(commands, opts);
+    const attachments = await findRelevantAttachments(commands, opts);
+    total += cards.length + attachments.length;
+  }
 
   // Actual export with progress reporting
   let done = 0;
