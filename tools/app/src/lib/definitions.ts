@@ -40,6 +40,7 @@ export { type CardAttachment } from '@cyberismo/data-handler/interfaces/project-
 export type AppConfig = {
   staticMode: boolean;
   logoutUrl?: string;
+  defaultProject?: string;
 };
 
 // Single card with metadata and children, but no content.

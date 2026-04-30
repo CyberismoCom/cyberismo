@@ -95,21 +95,21 @@ describe('attachProjectRegistry', () => {
     );
   }
 
-  function createApp(registry: ProjectRegistry, staticMode = false) {
+  function createApp(registry: ProjectRegistry, fixedPrefix?: string) {
     const app = new Hono();
     app.use('*', async (c, next) => {
       c.set('user', testUser);
       await next();
     });
-    app.use('/projects/:prefix/*', attachProjectRegistry(registry, staticMode));
+    app.use('/projects/:prefix/*', attachProjectRegistry(registry));
     app.get('/projects/:prefix/test', (c) =>
       c.json({
         projectPath: c.get('projectPath'),
         hasRegistry: !!c.get('registry'),
       }),
     );
-    // Static mode route (no :prefix param)
-    app.use('/static/*', attachProjectRegistry(registry, staticMode));
+    // Fixed prefix route (no :prefix param)
+    app.use('/static/*', attachProjectRegistry(registry, fixedPrefix));
     app.get('/static/test', (c) => c.json({ ok: true }));
     return app;
   }
@@ -151,9 +151,9 @@ describe('attachProjectRegistry', () => {
     expect(body.error).toBe("Project 'unknown' not found");
   });
 
-  it('returns 400 when prefix is missing and not in static mode', async () => {
+  it('returns 400 when prefix is missing and no fixedPrefix', async () => {
     const registry = createRegistry([{ prefix: 'decision' }]);
-    const app = createApp(registry, false);
+    const app = createApp(registry);
 
     const res = await app.request('/static/test');
     expect(res.status).toBe(400);
@@ -161,21 +161,21 @@ describe('attachProjectRegistry', () => {
     expect(body.error).toBe('Project prefix is required');
   });
 
-  it('uses first project as fallback in static mode when no prefix param', async () => {
+  it('uses fixedPrefix as fallback when no prefix param', async () => {
     const registry = createRegistry([{ prefix: 'decision' }]);
-    const app = createApp(registry, true);
+    const app = createApp(registry, 'decision');
 
     const res = await app.request('/static/test');
     expect(res.status).toBe(200);
   });
 
-  it('returns 400 in static mode when registry is empty', async () => {
+  it('returns 404 when fixedPrefix is not in registry', async () => {
     const registry = createRegistry([]);
-    const app = createApp(registry, true);
+    const app = createApp(registry, 'nonexistent');
 
     const res = await app.request('/static/test');
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(404);
     const body = (await res.json()) as { error: string };
-    expect(body.error).toBe('Project prefix is required');
+    expect(body.error).toBe("Project 'nonexistent' not found");
   });
 });

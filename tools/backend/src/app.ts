@@ -10,7 +10,7 @@
   details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-import { Hono } from 'hono';
+import { Hono, type MiddlewareHandler } from 'hono';
 import { staticFrontendDirRelative } from './utils.js';
 import { serveStatic } from '@hono/node-server/serve-static';
 import {
@@ -46,30 +46,13 @@ import type { ProjectRegistry } from './project-registry.js';
 import { createProjectsRouter } from './domain/projects/index.js';
 
 /**
- * Create the Hono app for the backend
- * @param authProvider - Authentication provider
- * @param registry - ProjectRegistry holding all project CommandManagers
+ * Create a Hono sub-app with all project-scoped routes.
  */
-export function createApp(
-  authProvider: AuthProvider,
-  registry: ProjectRegistry,
-  opts?: TreeOptions,
-) {
-  const app = new Hono<{ Variables: AppVars }>();
-
-  app.use(treeMiddleware(opts));
-  // Apply authentication middleware to all API and MCP routes
-  app.use('/api/*', createAuthMiddleware(authProvider));
-  app.use('/mcp', createAuthMiddleware(authProvider));
-  app.use('/mcp/*', createAuthMiddleware(authProvider));
-
-  // Global routes (no project-specific CommandManager needed)
-  app.route('/api/auth', createAuthRouter());
-  app.route('/api/projects', createProjectsRouter(registry));
-
-  // Project-scoped routes under /api/projects/:prefix/
+function createProjectScopedRoutes(
+  middleware: MiddlewareHandler,
+): Hono<{ Variables: AppVars }> {
   const projectScoped = new Hono<{ Variables: AppVars }>();
-  projectScoped.use('*', attachProjectRegistry(registry, !!opts));
+  projectScoped.use('*', middleware);
   projectScoped.route('/calculations', calculationsRouter);
   projectScoped.route('/cards', cardsRouter);
   projectScoped.route('/cardTypes', cardTypesRouter);
@@ -86,14 +69,46 @@ export function createApp(
   projectScoped.route('/logicPrograms', logicProgramsRouter);
   projectScoped.route('/labels', labelsRouter);
   projectScoped.route('/project', projectRouter);
+  return projectScoped;
+}
 
-  // In export mode (opts set), mount at the concrete prefix so SSG sees
-  // static routes instead of dynamic :prefix patterns it would skip.
-  const exportPrefix = opts ? registry.list()[0]?.prefix : undefined;
-  app.route(
-    exportPrefix ? `/api/projects/${exportPrefix}` : '/api/projects/:prefix',
-    projectScoped,
-  );
+/**
+ * Create the Hono app for the backend
+ * @param authProvider - Authentication provider
+ * @param registry - ProjectRegistry holding all project CommandManagers
+ */
+export function createApp(
+  authProvider: AuthProvider,
+  registry: ProjectRegistry,
+  opts?: TreeOptions,
+  exportMode = false,
+) {
+  const app = new Hono<{ Variables: AppVars }>();
+
+  app.use(treeMiddleware(opts));
+  // Apply authentication middleware to all API and MCP routes
+  app.use('/api/*', createAuthMiddleware(authProvider));
+  app.use('/mcp', createAuthMiddleware(authProvider));
+  app.use('/mcp/*', createAuthMiddleware(authProvider));
+
+  // Global routes (no project-specific CommandManager needed)
+  app.route('/api/auth', createAuthRouter());
+  app.route('/api/projects', createProjectsRouter(registry));
+
+  if (exportMode) {
+    // Export mode: mount at each concrete prefix so SSG sees
+    // static routes instead of dynamic :prefix patterns it would skip.
+    for (const { prefix } of registry.list()) {
+      const scoped = createProjectScopedRoutes(
+        attachProjectRegistry(registry, prefix),
+      );
+      app.route(`/api/projects/${prefix}`, scoped);
+    }
+  } else {
+    // Normal mode: dynamic :prefix param
+    const scoped = createProjectScopedRoutes(attachProjectRegistry(registry));
+    app.route('/api/projects/:prefix', scoped);
+  }
 
   // MCP endpoint for AI assistant integration
   // TODO: Make MCP project-scoped when multi-project MCP is implemented
