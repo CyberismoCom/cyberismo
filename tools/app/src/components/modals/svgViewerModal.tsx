@@ -1,5 +1,11 @@
 import DOMPurify from 'dompurify';
-import React, { useState, useEffect, useRef } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from 'react';
 import {
   Modal,
   Box,
@@ -29,6 +35,203 @@ const CONTROL_BAR_HEIGHT = 44;
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 8;
 const ZOOM_STEP = 1.25;
+
+/**
+ * Returns true when the SVG string has a valid viewBox with positive dimensions.
+ */
+function hasUsableViewBox(markup: string): boolean {
+  const doc = new DOMParser().parseFromString(markup, 'image/svg+xml');
+  const svg = doc.documentElement;
+  if (svg?.nodeName.toLowerCase() !== 'svg') {
+    return false;
+  }
+
+  const viewBox = svg.getAttribute('viewBox');
+  if (!viewBox) {
+    return false;
+  }
+
+  const parts = viewBox
+    .trim()
+    .split(/[\s,]+/)
+    .map((part) => Number(part));
+
+  return (
+    parts.length === 4 &&
+    Number.isFinite(parts[2]) &&
+    Number.isFinite(parts[3]) &&
+    parts[2] > 0 &&
+    parts[3] > 0
+  );
+}
+
+/**
+ * Parse an absolute SVG length value (px, pt, pc, in, cm, mm) into pixels.
+ * Returns null for relative/unit-less/invalid values.
+ */
+function parseAbsoluteSvgLength(value: string | null): number | null {
+  if (!value) {
+    return null;
+  }
+
+  const match = value.trim().match(/^([+-]?\d*\.?\d+)(px|pt|pc|in|cm|mm)?$/i);
+  if (!match) {
+    return null;
+  }
+
+  const amount = Number.parseFloat(match[1]);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return null;
+  }
+
+  const unit = (match[2] || 'px').toLowerCase();
+  switch (unit) {
+    case 'px':
+      return amount;
+    case 'pt':
+      return amount * (96 / 72);
+    case 'pc':
+      return amount * 16;
+    case 'in':
+      return amount * 96;
+    case 'cm':
+      return amount * (96 / 2.54);
+    case 'mm':
+      return amount * (96 / 25.4);
+    default:
+      return null;
+  }
+}
+
+/**
+ * Measure the natural size of an SVG by temporarily inserting it into the DOM.
+ * Used as a fallback when viewBox and explicit width/height are not parseable.
+ */
+function measureNaturalSize(markup: string): Size | null {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
+  const wrapper = document.createElement('div');
+  wrapper.style.position = 'absolute';
+  wrapper.style.left = '-10000px';
+  wrapper.style.top = '-10000px';
+  wrapper.style.visibility = 'hidden';
+  wrapper.style.pointerEvents = 'none';
+  wrapper.style.width = 'auto';
+  wrapper.style.height = 'auto';
+
+  wrapper.innerHTML = DOMPurify.sanitize(markup, {
+    USE_PROFILES: { svg: true, svgFilters: true },
+    ADD_TAGS: [
+      'foreignObject',
+      'div',
+      'span',
+      'p',
+      'br',
+      'i',
+      'b',
+      'em',
+      'strong',
+      'pre',
+      'code',
+    ],
+    ADD_ATTR: ['class', 'style', 'xmlns', 'requiredExtensions'],
+    HTML_INTEGRATION_POINTS: { foreignobject: true },
+  });
+
+  const svg = wrapper.querySelector('svg') as SVGSVGElement | null;
+  if (!svg) {
+    return null;
+  }
+
+  document.body.appendChild(wrapper);
+  try {
+    const bbox = typeof svg.getBBox === 'function' ? svg.getBBox() : null;
+    if (bbox && bbox.width > 0 && bbox.height > 0) {
+      return { width: bbox.width, height: bbox.height };
+    }
+
+    const rect = svg.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      return { width: rect.width, height: rect.height };
+    }
+  } catch {
+    // Ignore measurement failures and fall back to null.
+  } finally {
+    wrapper.remove();
+  }
+
+  return null;
+}
+
+/**
+ * Parse intrinsic dimensions from an SVG string.
+ * Tries viewBox first, then explicit width/height attributes, then a
+ * temporary DOM measurement fallback for valid SVGs without parseable lengths.
+ */
+function parseNaturalSize(markup: string): Size | null {
+  const doc = new DOMParser().parseFromString(markup, 'image/svg+xml');
+  const svg = doc.documentElement;
+  if (svg?.nodeName.toLowerCase() !== 'svg') {
+    return null;
+  }
+
+  const viewBox = svg.getAttribute('viewBox');
+  if (viewBox) {
+    const parts = viewBox
+      .trim()
+      .split(/[\s,]+/)
+      .map((part) => Number(part));
+    if (
+      parts.length === 4 &&
+      Number.isFinite(parts[2]) &&
+      Number.isFinite(parts[3]) &&
+      parts[2] > 0 &&
+      parts[3] > 0
+    ) {
+      return { width: parts[2], height: parts[3] };
+    }
+  }
+
+  const width = parseAbsoluteSvgLength(svg.getAttribute('width'));
+  const height = parseAbsoluteSvgLength(svg.getAttribute('height'));
+  if (width && height) {
+    return { width, height };
+  }
+
+  return measureNaturalSize(markup);
+}
+
+/**
+ * Strip constraining dimension attributes / styles from the root <svg> so it
+ * fills its container when intrinsic sizing is reliable. Preserves viewBox for
+ * correct aspect-ratio scaling.
+ */
+function normalizeSvgMarkup(markup: string): string {
+  const canFillContainer =
+    hasUsableViewBox(markup) || parseNaturalSize(markup) !== null;
+
+  return markup.replace(/<svg\b([^>]*)>/i, (_match, attrs: string) => {
+    let cleaned = attrs
+      .replace(/\s+width\s*=\s*(?:"[^"]*"|'[^']*')/gi, '')
+      .replace(/\s+height\s*=\s*(?:"[^"]*"|'[^']*')/gi, '');
+    cleaned = cleaned.replace(
+      /style\s*=\s*(?:"([^"]*)"|'([^']*)')/i,
+      (_: string, doubleQuotedStyle?: string, singleQuotedStyle?: string) => {
+        const style = doubleQuotedStyle ?? singleQuotedStyle ?? '';
+        const newStyle = style.replace(/max-width:\s*[^;]+;?\s*/gi, '').trim();
+        return newStyle ? `style="${newStyle}"` : '';
+      },
+    );
+
+    if (!canFillContainer) {
+      return `<svg${cleaned}>`;
+    }
+
+    return `<svg width="100%" height="100%"${cleaned}>`;
+  });
+}
 
 // To allow backbutton to close the modal, not to change the page
 function useBackButtonModal(open: boolean, onClose: () => void) {
@@ -63,49 +266,57 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
   const { t } = useTranslation();
 
   const [zoom, setZoom] = useState(1);
-  const [naturalSize, setNaturalSize] = useState<Size | null>(null);
+  const zoomRef = useRef(1);
 
-  const svgHolderRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollTargetRef = useRef<{ left: number; top: number } | null>(null);
+
+  // Derive intrinsic size and normalized SVG from the markup string
+  const naturalSize = useMemo(() => parseNaturalSize(svgMarkup), [svgMarkup]);
+  const normalizedSvg = useMemo(
+    () => normalizeSvgMarkup(svgMarkup),
+    [svgMarkup],
+  );
+
+  // Apply queued scroll position synchronously after React commits the DOM
+  useLayoutEffect(() => {
+    const target = scrollTargetRef.current;
+    const scroll = scrollRef.current;
+    if (target && scroll) {
+      scroll.scrollLeft = target.left;
+      scroll.scrollTop = target.top;
+      scrollTargetRef.current = null;
+    }
+  }, [zoom]);
 
   /* ---------- fit & center on open ---------- */
   useEffect(() => {
-    if (!open) return;
+    if (!open || !naturalSize) return;
 
-    const id = requestAnimationFrame(() => {
-      const svg = svgHolderRef.current?.querySelector('svg');
-      if (!svg) return;
+    const viewW = window.innerWidth - padding * 2;
+    const viewH = window.innerHeight - CONTROL_BAR_HEIGHT - padding * 2;
+    const fit = Math.min(
+      viewW / naturalSize.width,
+      viewH / naturalSize.height,
+      1,
+    );
+    zoomRef.current = fit;
 
-      let width =
-        (svg as SVGSVGElement).width?.baseVal?.value || svg.getBBox().width;
-      let height =
-        (svg as SVGSVGElement).height?.baseVal?.value || svg.getBBox().height;
-      if (!width || !height) {
-        const rect = svg.getBoundingClientRect();
-        width = rect.width;
-        height = rect.height;
-      }
-      const intrinsic = { width, height };
-      setNaturalSize(intrinsic);
-
-      const viewW = window.innerWidth - padding * 2;
-      const viewH = window.innerHeight - CONTROL_BAR_HEIGHT - padding * 2;
-      const fit = Math.min(viewW / width, viewH / height, 1);
+    // Center after initial layout and update zoom state
+    requestAnimationFrame(() => {
       setZoom(fit);
-
-      requestAnimationFrame(() => {
-        const scroll = scrollRef.current;
-        if (!scroll) return;
-        scroll.scrollLeft = Math.max(0, (width * fit - scroll.clientWidth) / 2);
-        scroll.scrollTop = Math.max(
-          0,
-          (height * fit - scroll.clientHeight) / 2,
-        );
-      });
+      const scroll = scrollRef.current;
+      if (!scroll) return;
+      scroll.scrollLeft = Math.max(
+        0,
+        (naturalSize.width * fit - scroll.clientWidth) / 2,
+      );
+      scroll.scrollTop = Math.max(
+        0,
+        (naturalSize.height * fit - scroll.clientHeight) / 2,
+      );
     });
-
-    return () => cancelAnimationFrame(id);
-  }, [open, padding]);
+  }, [open, padding, naturalSize]);
 
   /* ---------- zoom helpers ---------- */
   const applyZoom = (factor: number, localX?: number, localY?: number) => {
@@ -113,7 +324,7 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
     const scroll = scrollRef.current;
     if (!scroll) return;
 
-    const oldZoom = zoom;
+    const oldZoom = zoomRef.current;
     const newZoom = Math.min(Math.max(oldZoom * factor, MIN_ZOOM), MAX_ZOOM);
     if (newZoom === oldZoom) return;
 
@@ -123,17 +334,22 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
     const contentX = (scroll.scrollLeft + cx) / oldZoom;
     const contentY = (scroll.scrollTop + cy) / oldZoom;
 
-    setZoom(newZoom);
+    // Queue scroll position for useLayoutEffect (fires after DOM commit)
+    scrollTargetRef.current = {
+      left: contentX * newZoom - cx,
+      top: contentY * newZoom - cy,
+    };
 
-    requestAnimationFrame(() => {
-      scroll.scrollLeft = contentX * newZoom - cx;
-      scroll.scrollTop = contentY * newZoom - cy;
-    });
+    zoomRef.current = newZoom;
+    setZoom(newZoom);
   };
 
   const zoomIn = () => applyZoom(ZOOM_STEP);
   const zoomOut = () => applyZoom(1 / ZOOM_STEP);
-  const resetZoom = () => setZoom(1);
+  const resetZoom = () => {
+    zoomRef.current = 1;
+    setZoom(1);
+  };
 
   /* ---------- wheel zoom (always) ---------- */
   /* ---------- wheel / pinch zoom ---------- */
@@ -325,11 +541,27 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
           onWheel={handleWheel}
         >
           <Box
-            ref={svgHolderRef}
             style={sizeStyle}
             dangerouslySetInnerHTML={{
-              __html: DOMPurify.sanitize(svgMarkup, {
+              __html: DOMPurify.sanitize(normalizedSvg, {
                 USE_PROFILES: { svg: true },
+                // Mermaid renders text inside <foreignObject> with HTML elements.
+                // Allow only the specific tags/attributes Mermaid uses.
+                ADD_TAGS: [
+                  'foreignObject',
+                  'div',
+                  'span',
+                  'p',
+                  'br',
+                  'i',
+                  'b',
+                  'em',
+                  'strong',
+                  'pre',
+                  'code',
+                ],
+                ADD_ATTR: ['class', 'style', 'xmlns', 'requiredExtensions'],
+                HTML_INTEGRATION_POINTS: { foreignobject: true },
               }),
             }}
           />

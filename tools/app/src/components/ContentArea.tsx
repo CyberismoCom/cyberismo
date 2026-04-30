@@ -64,10 +64,11 @@ import CheckBoxOutlineBlank from '@mui/icons-material/CheckBoxOutlineBlank';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import EditLinkModal from './modals/EditLinkModal';
 
-import { useAppDispatch, useAppSelector } from '../lib/hooks';
+import { useAppDispatch, useAppSelector, useIsDarkMode } from '../lib/hooks';
 import { viewChanged } from '../lib/slices/pageState';
 
 import createDOMPurify from 'dompurify';
+import mermaid from 'mermaid';
 import type { MacroMetadata } from '@cyberismo/data-handler/interfaces/macros';
 import { macroMetadata } from '@cyberismo/data-handler/macros/common';
 import type { UIMacroName } from './macros';
@@ -150,6 +151,8 @@ interface LinkFormProps {
 const MACRO_TAGS = Object.values(macroMetadata)
   .map((meta) => meta.tagName.toUpperCase())
   .filter(Boolean) as string[];
+
+let mermaidRenderCounter = 0;
 
 const contentPurify = createDOMPurify(window);
 contentPurify.addHook('afterSanitizeAttributes', (node) => {
@@ -588,6 +591,8 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 
   const [contentRef, setContentRef] = useState<HTMLDivElement | null>(null);
 
+  const isDarkMode = useIsDarkMode();
+
   const dispatch = useAppDispatch();
 
   const { t } = useTranslation();
@@ -690,63 +695,156 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     URL.revokeObjectURL(url);
   };
 
+  /**
+   * Adds fullscreen/download controls to an SVG wrapper element.
+   * Stores a cleanup function on the element's `__cleanupSvgControls` property
+   * to remove event listeners and controls.
+   */
+  const addSvgControls = (wrapper: HTMLElement) => {
+    if (wrapper.querySelector('[data-cy="svg-controls"]')) return;
+
+    if (wrapper.style.paddingTop === '') wrapper.style.paddingTop = '48px';
+    if (wrapper.style.position === '') wrapper.style.position = 'relative';
+
+    const controls = document.createElement('div');
+    controls.setAttribute('data-cy', 'svg-controls');
+    Object.assign(controls.style, {
+      position: 'absolute',
+      top: '8px',
+      right: '8px',
+      display: 'flex',
+      gap: '6px',
+      zIndex: 10,
+    } as unknown as CSSStyleDeclaration);
+
+    const fullScreenBtn = makeIconButton(fullScreenIcon, 'fullscreen');
+    const downloadBtn = makeIconButton(downloadIcon, 'download');
+
+    const handleFullScreenClick = () => handleFullScreen(wrapper);
+    const handleDownloadClick = () => handleDownload(wrapper);
+
+    fullScreenBtn.addEventListener('click', handleFullScreenClick);
+    downloadBtn.addEventListener('click', handleDownloadClick);
+
+    controls.appendChild(fullScreenBtn);
+    controls.appendChild(downloadBtn);
+    wrapper.appendChild(controls);
+
+    const cleanup = () => {
+      fullScreenBtn.removeEventListener('click', handleFullScreenClick);
+      downloadBtn.removeEventListener('click', handleDownloadClick);
+      wrapper.querySelector('[data-cy="svg-controls"]')?.remove();
+    };
+    (wrapper as HTMLElementWithCleanup).__cleanupSvgControls = cleanup;
+  };
+
   useEffect(() => {
     if (!contentRef) return;
 
-    const wrappers: NodeListOf<HTMLElement> =
-      contentRef.querySelectorAll<HTMLElement>(
-        '[data-type="cyberismo-svg-wrapper"]',
-      );
+    // Process any wrappers already in the DOM
+    const processExisting = () => {
+      contentRef
+        .querySelectorAll<HTMLElement>('[data-type="cyberismo-svg-wrapper"]')
+        .forEach((wrapper) => addSvgControls(wrapper));
+    };
+    processExisting();
 
-    wrappers.forEach((wrapper) => {
-      if (wrapper.querySelector('[data-cy="svg-controls"]')) return;
-
-      if (wrapper.style.paddingTop === '') wrapper.style.paddingTop = '48px';
-      if (wrapper.style.position === '') wrapper.style.position = 'relative';
-
-      const controls = document.createElement('div');
-      controls.setAttribute('data-cy', 'svg-controls');
-      Object.assign(controls.style, {
-        position: 'absolute',
-        top: '8px',
-        right: '8px',
-        display: 'flex',
-        gap: '6px',
-        zIndex: 10,
-      } as unknown as CSSStyleDeclaration);
-
-      /* ---------- Buttons ---------- */
-      const fullScreenBtn = makeIconButton(fullScreenIcon, 'fullscreen');
-      const downloadBtn = makeIconButton(downloadIcon, 'download');
-
-      const handleFullScreenClick = () => handleFullScreen(wrapper);
-      const handleDownloadClick = () => handleDownload(wrapper);
-
-      fullScreenBtn.addEventListener('click', handleFullScreenClick);
-      downloadBtn.addEventListener('click', handleDownloadClick);
-
-      controls.appendChild(fullScreenBtn);
-      controls.appendChild(downloadBtn);
-      wrapper.appendChild(controls);
-
-      /* ---------- Cleanup for this wrapper ---------- */
-      const cleanup = () => {
-        fullScreenBtn.removeEventListener('click', handleFullScreenClick);
-        downloadBtn.removeEventListener('click', handleDownloadClick);
-        wrapper.querySelector('[data-cy="svg-controls"]')?.remove();
-      };
-      (wrapper as HTMLElementWithCleanup).__cleanupSvgControls = cleanup;
+    // Watch for wrappers added later (e.g. async mermaid rendering in macro components)
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (!(node instanceof HTMLElement)) continue;
+          if (node.getAttribute('data-type') === 'cyberismo-svg-wrapper') {
+            addSvgControls(node);
+          }
+          node
+            .querySelectorAll?.<HTMLElement>(
+              '[data-type="cyberismo-svg-wrapper"]',
+            )
+            .forEach((wrapper) => addSvgControls(wrapper));
+        }
+      }
     });
+    observer.observe(contentRef, { childList: true, subtree: true });
 
     /* ---------- Global cleanup on effect teardown ---------- */
     return () => {
-      wrappers.forEach((wrapper) => {
-        (wrapper as HTMLElementWithCleanup).__cleanupSvgControls?.();
-        delete (wrapper as HTMLElementWithCleanup).__cleanupSvgControls;
-      });
+      observer.disconnect();
+      contentRef
+        .querySelectorAll<HTMLElement>('[data-type="cyberismo-svg-wrapper"]')
+        .forEach((wrapper) => {
+          (wrapper as HTMLElementWithCleanup).__cleanupSvgControls?.();
+          delete (wrapper as HTMLElementWithCleanup).__cleanupSvgControls;
+        });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contentRef, useLocation().key]);
+
+  // Render [mermaid] AsciiDoc blocks into diagrams
+  // The backend pre-processes mermaid blocks into <div class="mermaid-block" data-mermaid-code="base64">
+  useEffect(() => {
+    if (!contentRef) return;
+
+    // Re-initialize mermaid with the current theme so diagrams match light/dark mode
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: isDarkMode ? 'dark' : 'default',
+      securityLevel: 'strict',
+    });
+
+    const mermaidBlocks = contentRef.querySelectorAll<HTMLElement>(
+      '.mermaid-block[data-mermaid-code]',
+    );
+
+    mermaidBlocks.forEach((block) => {
+      const encoded = block.getAttribute('data-mermaid-code') || '';
+      let code: string;
+      try {
+        code = new TextDecoder().decode(
+          Uint8Array.from(atob(encoded), (c) => c.charCodeAt(0)),
+        );
+      } catch {
+        return;
+      }
+      if (!code) return;
+
+      const id = `mermaid-block-${mermaidRenderCounter++}`;
+      block.setAttribute('data-mermaid-rendered', 'true');
+
+      mermaid
+        .render(id, code)
+        .then(({ svg }) => {
+          const wrapper = document.createElement('div');
+          wrapper.setAttribute('data-type', 'cyberismo-svg-wrapper');
+          wrapper.innerHTML = contentPurify.sanitize(svg, {
+            USE_PROFILES: { svg: true, svgFilters: true },
+            ADD_TAGS: [
+              'foreignObject',
+              'div',
+              'span',
+              'p',
+              'br',
+              'i',
+              'b',
+              'em',
+              'strong',
+              'pre',
+              'code',
+            ],
+            ADD_ATTR: ['class', 'style', 'xmlns', 'requiredExtensions'],
+            // Allow HTML content inside <foreignObject> (used by Mermaid for text labels)
+            HTML_INTEGRATION_POINTS: { foreignobject: true },
+          });
+          block.innerHTML = '';
+          block.appendChild(wrapper);
+          addSvgControls(wrapper);
+        })
+        .catch(() => {
+          block.textContent = `Mermaid diagram error`;
+        });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contentRef, isDarkMode, useLocation().key]);
 
   const setRef = useCallback((node: HTMLDivElement | null) => {
     setContentRef(node);
@@ -764,6 +862,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
       'allow',
       'allowfullscreen',
       'frameborder',
+      'data-mermaid-code',
     ],
   });
 

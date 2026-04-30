@@ -24,13 +24,34 @@ const removeSvgWidthAndHeight = (node: Element) => {
   }
 };
 
+// DOMPurify config that preserves HTML content inside <foreignObject> elements.
+// Mermaid and other tools render text labels as HTML inside foreignObject.
+const SVG_PURIFY_CONFIG = {
+  USE_PROFILES: { svg: true },
+  ADD_TAGS: [
+    'foreignObject',
+    'div',
+    'span',
+    'p',
+    'br',
+    'i',
+    'b',
+    'em',
+    'strong',
+    'pre',
+    'code',
+  ],
+  ADD_ATTR: ['class', 'style', 'xmlns', 'requiredExtensions'],
+  HTML_INTEGRATION_POINTS: { foreignobject: true },
+};
+
 // Prevents use of global hooks
 const purifyRemoveSize = createDOMPurify(window as unknown as WindowLike);
-purifyRemoveSize.setConfig({ USE_PROFILES: { svg: true } });
+purifyRemoveSize.setConfig(SVG_PURIFY_CONFIG);
 purifyRemoveSize.addHook('afterSanitizeAttributes', removeSvgWidthAndHeight);
 
 const purifyKeepSize = createDOMPurify(window as unknown as WindowLike);
-purifyKeepSize.setConfig({ USE_PROFILES: { svg: true } });
+purifyKeepSize.setConfig(SVG_PURIFY_CONFIG);
 
 /**
  * Sanitize an SVG string and return a base64-encoded string

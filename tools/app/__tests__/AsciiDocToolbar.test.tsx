@@ -60,6 +60,7 @@ const buttonIndex = {
   italic: 8,
   highlight: 9,
   table: 10,
+  mermaid: 11,
 };
 
 const basicCases = [
@@ -233,6 +234,15 @@ const basicCases = [
     expectedDoc:
       'text\n[cols="1,1"]\n|===\n| Column 1 | Column 2\n\n| Cell in column 1, row 1\n| Cell in column 2, row 1\n\n| Cell in column 1, row 2\n| Cell in column 2, row 2\n|===\n',
     expectedSelection: EditorSelection.range(48, 71),
+  },
+  {
+    name: 'inserts a mermaid diagram block at the cursor position',
+    button: buttonIndex.mermaid,
+    initialDoc: 'text',
+    selection: EditorSelection.cursor(2),
+    expectedDoc:
+      'te[mermaid]\n....\ngraph TD\n    A[Start] --> B[End]\n....\nxt',
+    expectedSelection: EditorSelection.cursor(2),
   },
 ];
 
