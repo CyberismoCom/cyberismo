@@ -1,4 +1,2 @@
-build/
 dist-packages/
-external/clingo/build/
 package.json.prepack-backup
