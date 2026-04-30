@@ -1,6 +1,6 @@
 /**
   Cyberismo
-  Copyright © Cyberismo Ltd and contributors 2025
+  Copyright © Cyberismo Ltd and contributors 2026
 
   This program is free software: you can redistribute it and/or modify it under
   the terms of the GNU Affero General Public License version 3 as published by
@@ -13,5 +13,13 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-export { createMcpServer, singleProjectProvider } from './server.js';
-export type { McpServerOptions, ProjectProvider } from './server.js';
+import type { CommandManager } from '../command-manager.js';
+
+/**
+ * Minimal interface for project lookup by prefix.
+ * Implemented by ProjectRegistry in the backend and used by the MCP server.
+ */
+export interface ProjectProvider {
+  get(prefix: string): CommandManager | undefined;
+  list(): { prefix: string; name: string }[];
+}

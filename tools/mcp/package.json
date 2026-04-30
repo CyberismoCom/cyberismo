@@ -3,12 +3,7 @@
   "version": "0.0.23",
   "description": "MCP server for Cyberismo content projects",
   "main": "dist/index.js",
-  "bin": {
-    "cyberismo-mcp": "bin/run"
-  },
   "scripts": {
-    "start": "node dist/index.js",
-    "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
     "lint": "eslint ."
@@ -34,18 +29,11 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "tsx": "^4.21.0",
     "vitest": "^4.0.15"
   },
   "types": "dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js",
-    "./server": "./dist/server.js"
+    ".": "./dist/index.js"
   },
-  "type": "module",
-  "files": [
-    "bin",
-    "dist",
-    "src"
-  ]
+  "type": "module"
 }

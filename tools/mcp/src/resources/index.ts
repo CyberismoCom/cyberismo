@@ -14,8 +14,12 @@
 */
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { CommandManager } from '@cyberismo/data-handler';
+import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ResourceTypeConfig } from '../lib/mcp-helpers.js';
+import {
+  resolveCommands,
+  type ProjectProvider,
+} from '../lib/resolve-project.js';
 
 import { getCardTree } from '../lib/render.js';
 
@@ -61,14 +65,18 @@ const resourceTypeConfigs: ResourceTypeConfig[] = [
 
 const registerResourceType = (
   server: McpServer,
-  commands: CommandManager,
+  provider: ProjectProvider,
   config: ResourceTypeConfig,
 ) => {
   server.registerResource(
     config.name,
-    config.uri,
+    new ResourceTemplate(
+      `cyberismo:///projects/{projectPrefix}/${config.name}`,
+      { list: undefined },
+    ),
     { description: config.description, mimeType: 'application/json' },
-    async () => {
+    async (uri, { projectPrefix }) => {
+      const commands = resolveCommands(provider, projectPrefix as string);
       const names = await commands.showCmd.showResources(config.resourceType);
       const details = await Promise.all(
         names.map((name) =>
@@ -78,7 +86,7 @@ const registerResourceType = (
       return {
         contents: [
           {
-            uri: config.uri,
+            uri: uri.href,
             mimeType: 'application/json',
             text: JSON.stringify(details, null, 2),
           },
@@ -93,22 +101,47 @@ const registerResourceType = (
  */
 export function registerResources(
   server: McpServer,
-  commands: CommandManager,
+  provider: ProjectProvider,
 ): void {
+  // Projects listing (static URI)
+  server.registerResource(
+    'projects',
+    'cyberismo:///projects',
+    {
+      description: 'List all available projects',
+      mimeType: 'application/json',
+    },
+    async () => {
+      const projects = provider.list();
+      return {
+        contents: [
+          {
+            uri: 'cyberismo:///projects',
+            mimeType: 'application/json',
+            text: JSON.stringify(projects, null, 2),
+          },
+        ],
+      };
+    },
+  );
+
   // Project information
   server.registerResource(
     'project',
-    'cyberismo:///project',
+    new ResourceTemplate('cyberismo:///projects/{projectPrefix}/project', {
+      list: undefined,
+    }),
     {
       description: 'Project information and settings',
       mimeType: 'application/json',
     },
-    async () => {
+    async (uri, { projectPrefix }) => {
+      const commands = resolveCommands(provider, projectPrefix as string);
       const project = await commands.showCmd.showProject();
       return {
         contents: [
           {
-            uri: 'cyberismo:///project',
+            uri: uri.href,
             mimeType: 'application/json',
             text: JSON.stringify(project, null, 2),
           },
@@ -120,17 +153,20 @@ export function registerResources(
   // Card tree
   server.registerResource(
     'cards',
-    'cyberismo:///cards',
+    new ResourceTemplate('cyberismo:///projects/{projectPrefix}/cards', {
+      list: undefined,
+    }),
     {
       description: 'Card tree with hierarchy',
       mimeType: 'application/json',
     },
-    async () => {
+    async (uri, { projectPrefix }) => {
+      const commands = resolveCommands(provider, projectPrefix as string);
       const tree = await getCardTree(commands);
       return {
         contents: [
           {
-            uri: 'cyberismo:///cards',
+            uri: uri.href,
             mimeType: 'application/json',
             text: JSON.stringify(tree, null, 2),
           },
@@ -142,17 +178,20 @@ export function registerResources(
   // Card types
   server.registerResource(
     'card-types',
-    'cyberismo:///card-types',
+    new ResourceTemplate('cyberismo:///projects/{projectPrefix}/card-types', {
+      list: undefined,
+    }),
     {
       description: 'All card type definitions',
       mimeType: 'application/json',
     },
-    async () => {
+    async (uri, { projectPrefix }) => {
+      const commands = resolveCommands(provider, projectPrefix as string);
       const cardTypes = await commands.showCmd.showCardTypesWithDetails();
       return {
         contents: [
           {
-            uri: 'cyberismo:///card-types',
+            uri: uri.href,
             mimeType: 'application/json',
             text: JSON.stringify(cardTypes, null, 2),
           },
@@ -164,17 +203,20 @@ export function registerResources(
   // Workflows
   server.registerResource(
     'workflows',
-    'cyberismo:///workflows',
+    new ResourceTemplate('cyberismo:///projects/{projectPrefix}/workflows', {
+      list: undefined,
+    }),
     {
       description: 'All workflow definitions',
       mimeType: 'application/json',
     },
-    async () => {
+    async (uri, { projectPrefix }) => {
+      const commands = resolveCommands(provider, projectPrefix as string);
       const workflows = await commands.showCmd.showWorkflowsWithDetails();
       return {
         contents: [
           {
-            uri: 'cyberismo:///workflows',
+            uri: uri.href,
             mimeType: 'application/json',
             text: JSON.stringify(workflows, null, 2),
           },
@@ -186,17 +228,20 @@ export function registerResources(
   // Templates
   server.registerResource(
     'templates',
-    'cyberismo:///templates',
+    new ResourceTemplate('cyberismo:///projects/{projectPrefix}/templates', {
+      list: undefined,
+    }),
     {
       description: 'All template definitions',
       mimeType: 'application/json',
     },
-    async () => {
+    async (uri, { projectPrefix }) => {
+      const commands = resolveCommands(provider, projectPrefix as string);
       const templates = await commands.showCmd.showTemplatesWithDetails();
       return {
         contents: [
           {
-            uri: 'cyberismo:///templates',
+            uri: uri.href,
             mimeType: 'application/json',
             text: JSON.stringify(templates, null, 2),
           },
@@ -206,6 +251,6 @@ export function registerResources(
   );
 
   resourceTypeConfigs.forEach((config) => {
-    registerResourceType(server, commands, config);
+    registerResourceType(server, provider, config);
   });
 }
