@@ -4,13 +4,12 @@ on:
   push:
     tags:
       - 'cyberismo-*'
-      - 'node-clingo-*'
   workflow_call:
     inputs:
       tag:
         required: true
         type: string
-        description: 'Tag name (e.g. cyberismo-1.2.3 or node-clingo-1.0.0)'
+        description: 'Tag name (e.g. cyberismo-1.2.3)'
 
 permissions:
   contents: read
@@ -39,16 +38,12 @@ jobs:
         id: tag
         run: |
           TAG="${{ inputs.tag || github.ref_name }}"
-          if [[ "$TAG" == cyberismo-* ]]; then
-            PKG_PATH="tools/cli/package.json"
-            PREFIX="cyberismo-"
-          elif [[ "$TAG" == node-clingo-* ]]; then
-            PKG_PATH="tools/node-clingo/package.json"
-            PREFIX="node-clingo-"
-          else
+          if [[ "$TAG" != cyberismo-* ]]; then
             echo "Unsupported tag pattern: $TAG" >&2
             exit 1
           fi
+          PKG_PATH="tools/cli/package.json"
+          PREFIX="cyberismo-"
           echo "package_path=$PKG_PATH" >> "$GITHUB_OUTPUT"
           echo "expected_version=${TAG#$PREFIX}" >> "$GITHUB_OUTPUT"
           echo "prefix=$PREFIX" >> "$GITHUB_OUTPUT"
@@ -84,7 +79,6 @@ jobs:
 
   npm-cli-test:
     needs: version
-    if: startsWith(inputs.tag || github.ref_name, 'cyberismo-')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -159,5 +153,5 @@ jobs:
           cyberismo --version
           cyberismo --version | grep "cyberismo version: ${VERSION}"
 
-          pnpm install
+          pnpm install --ignore-scripts
           CYBERISMO_GLOBAL_CLI=true pnpm --filter cli test
