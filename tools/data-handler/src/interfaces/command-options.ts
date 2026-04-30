@@ -51,6 +51,7 @@ export interface ExportCommandOptions extends BaseCommandOptions {
   version?: string;
   date?: string;
   revremark?: string;
+  defaultProject?: string;
 }
 
 // Options for 'fetch' command
