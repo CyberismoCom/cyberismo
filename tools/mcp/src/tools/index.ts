@@ -14,10 +14,14 @@
 */
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { resourceName, type CommandManager } from '@cyberismo/data-handler';
+import { resourceName } from '@cyberismo/data-handler';
 import { z } from 'zod';
 import { toolResult, toolError } from '../lib/mcp-helpers.js';
 import { renderCard, getCardTree } from '../lib/render.js';
+import {
+  resolveCommands,
+  type ProjectProvider,
+} from '../lib/resolve-project.js';
 
 import {
   resourceNameRegex,
@@ -29,17 +33,55 @@ import {
 } from './sharedSchemas.js';
 
 /**
+ * Build the projectPrefix Zod param.
+ * When a defaultPrefix is provided (single-project mode), the field has a
+ * default value so the AI never needs to send it explicitly.
+ */
+function makeProjectPrefixParam(defaultPrefix?: string) {
+  return defaultPrefix
+    ? z
+        .string()
+        .default(defaultPrefix)
+        .describe(`Project prefix (defaults to "${defaultPrefix}").`)
+    : z
+        .string()
+        .describe(
+          'Project prefix. Call list_projects to see available projects.',
+        );
+}
+
+/**
  * Register all MCP tools for Cyberismo operations
  */
 export function registerTools(
   server: McpServer,
-  commands: CommandManager,
+  provider: ProjectProvider,
+  defaultPrefix?: string,
 ): void {
+  const projectPrefixParam = makeProjectPrefixParam(defaultPrefix);
+  // Project discovery tool
+  server.registerTool(
+    'list_projects',
+    {
+      description:
+        'List all available projects. Use the returned prefix values as the projectPrefix parameter in other tools.',
+    },
+    async () => {
+      try {
+        const projects = provider.list();
+        return toolResult({ projects });
+      } catch (error) {
+        return toolError('listing projects', error);
+      }
+    },
+  );
+
   server.registerTool(
     'create_card',
     {
       description: 'Create a new card from a template',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         template: z
           .string()
           .describe('Template name to use (e.g., "base/templates/page")'),
@@ -49,8 +91,9 @@ export function registerTools(
           .describe('Parent card key (omit for root level)'),
       },
     },
-    async ({ template, parentKey }) => {
+    async ({ projectPrefix, template, parentKey }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         const cards = await commands.createCmd.createCard(template, parentKey);
         return toolResult({
           created: cards.map((c) => ({
@@ -69,12 +112,14 @@ export function registerTools(
     {
       description: 'Update the AsciiDoc content of a card',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         cardKey: z.string().describe('Card key to edit'),
         content: z.string().describe('New AsciiDoc content'),
       },
     },
-    async ({ cardKey, content }) => {
+    async ({ projectPrefix, cardKey, content }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         await commands.editCmd.editCardContent(cardKey, content);
         return toolResult({ cardKey });
       } catch (error) {
@@ -88,6 +133,7 @@ export function registerTools(
     {
       description: 'Update a metadata field of a card',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         cardKey: z.string().describe('Card key to edit'),
         field: z
           .string()
@@ -103,8 +149,9 @@ export function registerTools(
           .describe('New field value'),
       },
     },
-    async ({ cardKey, field, value }) => {
+    async ({ projectPrefix, cardKey, field, value }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         await commands.editCmd.editCardMetadata(cardKey, field, value);
         return toolResult({ cardKey, field, value });
       } catch (error) {
@@ -118,14 +165,16 @@ export function registerTools(
     {
       description: 'Transition a card to a new workflow state',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         cardKey: z.string().describe('Card key to transition'),
         transition: z
           .string()
           .describe('Transition name (e.g., "Approve", "Reject")'),
       },
     },
-    async ({ cardKey, transition }) => {
+    async ({ projectPrefix, cardKey, transition }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         await commands.transitionCmd.cardTransition(cardKey, {
           name: transition,
         });
@@ -141,14 +190,16 @@ export function registerTools(
     {
       description: 'Move a card to a new parent',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         cardKey: z.string().describe('Card key to move'),
         destinationKey: z
           .string()
           .describe('Destination parent card key, or "root" for root level'),
       },
     },
-    async ({ cardKey, destinationKey }) => {
+    async ({ projectPrefix, cardKey, destinationKey }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         await commands.moveCmd.moveCard(cardKey, destinationKey);
         return toolResult({ cardKey, newParent: destinationKey });
       } catch (error) {
@@ -161,6 +212,7 @@ export function registerTools(
     {
       description: 'Create a link between two cards',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         sourceKey: z.string().describe('Source card key'),
         destinationKey: z.string().describe('Destination card key'),
         linkType: z
@@ -173,8 +225,15 @@ export function registerTools(
       },
     },
 
-    async ({ sourceKey, destinationKey, linkType, description }) => {
+    async ({
+      projectPrefix,
+      sourceKey,
+      destinationKey,
+      linkType,
+      description,
+    }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         await commands.createCmd.createLink(
           sourceKey,
           destinationKey,
@@ -193,13 +252,15 @@ export function registerTools(
     {
       description: 'Remove a link between two cards',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         sourceKey: z.string().describe('Source card key'),
         destinationKey: z.string().describe('Destination card key'),
         linkType: z.string().describe('Link type name'),
       },
     },
-    async ({ sourceKey, destinationKey, linkType }) => {
+    async ({ projectPrefix, sourceKey, destinationKey, linkType }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         await commands.removeCmd.remove(
           'link',
           sourceKey,
@@ -218,13 +279,15 @@ export function registerTools(
     {
       description: 'Add an attachment to a card using base64 encoding',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         cardKey: z.string().describe('Card key'),
         filename: z.string().describe('Attachment filename'),
         content: z.string().describe('Base64-encoded file content (max 10MB)'),
       },
     },
-    async ({ cardKey, filename, content }) => {
+    async ({ projectPrefix, cardKey, filename, content }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         const buffer = Buffer.from(content, 'base64');
         await commands.createCmd.createAttachment(cardKey, filename, buffer);
         return toolResult({ cardKey, filename });
@@ -239,11 +302,13 @@ export function registerTools(
     {
       description: 'Delete a card and its children',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         cardKey: z.string().describe('Card key to remove'),
       },
     },
-    async ({ cardKey }) => {
+    async ({ projectPrefix, cardKey }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         await commands.removeCmd.remove('card', cardKey);
         return toolResult({ removed: cardKey });
       } catch (error) {
@@ -257,12 +322,14 @@ export function registerTools(
     {
       description: 'Add a label to a card',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         cardKey: z.string().describe('Card key'),
         label: z.string().describe('Label name'),
       },
     },
-    async ({ cardKey, label }) => {
+    async ({ projectPrefix, cardKey, label }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         await commands.createCmd.createLabel(cardKey, label);
         return toolResult({ cardKey, label });
       } catch (error) {
@@ -276,12 +343,14 @@ export function registerTools(
     {
       description: 'Remove a label from a card',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         cardKey: z.string().describe('Card key'),
         label: z.string().describe('Label name'),
       },
     },
-    async ({ cardKey, label }) => {
+    async ({ projectPrefix, cardKey, label }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         await commands.removeCmd.remove('label', cardKey, label);
         return toolResult({ cardKey, label });
       } catch (error) {
@@ -310,6 +379,7 @@ export function registerTools(
         - notifications: Warnings or alerts about the card
         - policyChecks: Policy check results with successes and failures`,
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         cardKey: z.string().describe('Card key to retrieve'),
         raw: z
           .boolean()
@@ -319,8 +389,9 @@ export function registerTools(
           ),
       },
     },
-    async ({ cardKey, raw }) => {
+    async ({ projectPrefix, cardKey, raw }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         if (raw) {
           const card = await commands.showCmd.showCardDetails(cardKey);
           return toolResult({ card });
@@ -338,9 +409,13 @@ export function registerTools(
     'list_cards',
     {
       description: 'List all cards in the project with their hierarchy',
+      inputSchema: {
+        projectPrefix: projectPrefixParam,
+      },
     },
-    async () => {
+    async ({ projectPrefix }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         const tree = await getCardTree(commands);
         return toolResult({ cards: tree });
       } catch (error) {
@@ -353,9 +428,13 @@ export function registerTools(
     'list_templates',
     {
       description: 'List all available templates for creating cards',
+      inputSchema: {
+        projectPrefix: projectPrefixParam,
+      },
     },
-    async () => {
+    async ({ projectPrefix }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         const templates = await commands.showCmd.showTemplatesWithDetails();
         return toolResult({ templates });
       } catch (error) {
@@ -371,12 +450,14 @@ export function registerTools(
     {
       description: 'Remove an attachment from a card',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         cardKey: z.string().describe('Card key'),
         filename: z.string().describe('Attachment filename to remove'),
       },
     },
-    async ({ cardKey, filename }) => {
+    async ({ projectPrefix, cardKey, filename }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         await commands.removeCmd.remove('attachment', cardKey, filename);
         return toolResult({ cardKey, filename });
       } catch (error) {
@@ -389,9 +470,13 @@ export function registerTools(
     'list_labels',
     {
       description: 'List all unique labels used across the project',
+      inputSchema: {
+        projectPrefix: projectPrefixParam,
+      },
     },
-    async () => {
+    async ({ projectPrefix }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         const labels = await commands.showCmd.showLabels();
         return toolResult({ labels });
       } catch (error) {
@@ -405,11 +490,13 @@ export function registerTools(
     {
       description: 'Move a card to first position among its siblings',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         cardKey: z.string().describe('Card key to move to first position'),
       },
     },
-    async ({ cardKey }) => {
+    async ({ projectPrefix, cardKey }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         await commands.moveCmd.rankFirst(cardKey);
         return toolResult({ cardKey, position: 'first' });
       } catch (error) {
@@ -423,12 +510,14 @@ export function registerTools(
     {
       description: 'Position a card after another sibling card',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         cardKey: z.string().describe('Card key to reposition'),
         afterCardKey: z.string().describe('Card key to position after'),
       },
     },
-    async ({ cardKey, afterCardKey }) => {
+    async ({ projectPrefix, cardKey, afterCardKey }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         await commands.moveCmd.rankCard(cardKey, afterCardKey);
         return toolResult({ cardKey, afterCardKey });
       } catch (error) {
@@ -442,12 +531,14 @@ export function registerTools(
     {
       description: 'Position a card at a specific index among its siblings',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         cardKey: z.string().describe('Card key to reposition'),
         index: z.number().int().min(0).describe('Zero-based position index'),
       },
     },
-    async ({ cardKey, index }) => {
+    async ({ projectPrefix, cardKey, index }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         await commands.moveCmd.rankByIndex(cardKey, index);
         return toolResult({ cardKey, index });
       } catch (error) {
@@ -463,12 +554,14 @@ export function registerTools(
     {
       description: 'Create a new card type',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         name: z.string().describe('Card type identifier'),
         workflowName: z.string().describe('Workflow to use for this card type'),
       },
     },
-    async ({ name, workflowName }) => {
+    async ({ projectPrefix, name, workflowName }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         await commands.createCmd.createCardType(name, workflowName);
         return toolResult({ name, workflowName });
       } catch (error) {
@@ -482,6 +575,7 @@ export function registerTools(
     {
       description: 'Create a new field type',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         name: z.string().describe('Field type identifier'),
         dataType: z
           .enum([
@@ -499,8 +593,9 @@ export function registerTools(
           .describe('Data type for the field'),
       },
     },
-    async ({ name, dataType }) => {
+    async ({ projectPrefix, name, dataType }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         await commands.createCmd.createFieldType(name, dataType);
         return toolResult({ name, dataType });
       } catch (error) {
@@ -514,6 +609,7 @@ export function registerTools(
     {
       description: 'Create a new workflow',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         name: z.string().describe('Workflow identifier'),
         content: z
           .string()
@@ -521,8 +617,9 @@ export function registerTools(
           .describe('JSON workflow definition (omit for default)'),
       },
     },
-    async ({ name, content }) => {
+    async ({ projectPrefix, name, content }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         await commands.createCmd.createWorkflow(name, content ?? '');
         return toolResult({ name });
       } catch (error) {
@@ -536,11 +633,13 @@ export function registerTools(
     {
       description: 'Create a new link type',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         name: z.string().describe('Link type identifier'),
       },
     },
-    async ({ name }) => {
+    async ({ projectPrefix, name }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         await commands.createCmd.createLinkType(name);
         return toolResult({ name });
       } catch (error) {
@@ -554,6 +653,7 @@ export function registerTools(
     {
       description: 'Create a new template',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         name: z.string().describe('Template identifier'),
         content: z
           .string()
@@ -561,8 +661,9 @@ export function registerTools(
           .describe('JSON template definition (omit for default)'),
       },
     },
-    async ({ name, content }) => {
+    async ({ projectPrefix, name, content }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         await commands.createCmd.createTemplate(name, content ?? '');
         return toolResult({ name });
       } catch (error) {
@@ -576,6 +677,7 @@ export function registerTools(
     {
       description: 'Add card(s) to a template',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         templateName: z.string().describe('Template to add cards to'),
         cardTypeName: z.string().describe('Card type for the new cards'),
         parentCard: z
@@ -591,8 +693,15 @@ export function registerTools(
           .describe('Number of cards to add (default: 1)'),
       },
     },
-    async ({ templateName, cardTypeName, parentCard, count }) => {
+    async ({
+      projectPrefix,
+      templateName,
+      cardTypeName,
+      parentCard,
+      count,
+    }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         const cards = await commands.createCmd.addCards(
           cardTypeName,
           templateName,
@@ -625,14 +734,16 @@ export function registerTools(
     {
       description: 'Delete a project resource by type and name',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         resourceType: removableResourceTypes.describe(
           'Type of resource to delete',
         ),
         name: z.string().describe('Resource name'),
       },
     },
-    async ({ resourceType, name }) => {
+    async ({ projectPrefix, resourceType, name }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         await commands.removeCmd.remove(resourceType, name);
         return toolResult({ resourceType, name });
       } catch (error) {
@@ -646,13 +757,15 @@ export function registerTools(
     {
       description: 'Validate a resource definition and return any errors',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         name: z
           .string()
           .describe('Full resource name (e.g., "prefix/cardTypes/myType")'),
       },
     },
-    async ({ name }) => {
+    async ({ projectPrefix, name }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         const parsed = resourceName(name);
         const result = await commands.validateCmd.validateResource(
           parsed,
@@ -676,6 +789,7 @@ export function registerTools(
         'Update a file based resource (card types, field types, workflows, link types)',
       inputSchema: z.union([
         z.object({
+          projectPrefix: projectPrefixParam,
           key: z
             .enum([...BASE_PROPERTY_KEYS, 'workflow'])
             .describe('Available property keys to update'),
@@ -688,6 +802,7 @@ export function registerTools(
             ),
         }),
         z.object({
+          projectPrefix: projectPrefixParam,
           key: z
             .enum([
               'alwaysVisibleFields',
@@ -704,6 +819,7 @@ export function registerTools(
             ),
         }),
         z.object({
+          projectPrefix: projectPrefixParam,
           key: z
             .enum(BASE_PROPERTY_KEYS)
             .describe('Available property keys to update'),
@@ -716,6 +832,7 @@ export function registerTools(
             ),
         }),
         z.object({
+          projectPrefix: projectPrefixParam,
           key: z.literal('dataType'),
           operation: changeOperationSchema.extend({
             to: z.enum(DATA_TYPES).describe('New data type for the field'),
@@ -728,6 +845,7 @@ export function registerTools(
             ),
         }),
         z.object({
+          projectPrefix: projectPrefixParam,
           key: z.literal('enumValues'),
           operation: arrayUpdateOperationSchema,
           resource: z
@@ -738,6 +856,7 @@ export function registerTools(
             ),
         }),
         z.object({
+          projectPrefix: projectPrefixParam,
           key: z
             .enum([
               ...BASE_PROPERTY_KEYS,
@@ -755,6 +874,7 @@ export function registerTools(
             ),
         }),
         z.object({
+          projectPrefix: projectPrefixParam,
           key: z.enum(['destinationCardTypes', 'sourceCardTypes']),
           operation: arrayUpdateOperationSchema,
           resource: z
@@ -765,6 +885,7 @@ export function registerTools(
             ),
         }),
         z.object({
+          projectPrefix: projectPrefixParam,
           key: z
             .enum(BASE_PROPERTY_KEYS)
             .describe('Available property keys to update'),
@@ -777,6 +898,7 @@ export function registerTools(
             ),
         }),
         z.object({
+          projectPrefix: projectPrefixParam,
           key: z.enum(['states', 'transitions']),
           operation: arrayUpdateOperationSchema,
           resource: z
@@ -788,8 +910,9 @@ export function registerTools(
         }),
       ]),
     },
-    async ({ resource, operation, key }) => {
+    async ({ projectPrefix, resource, operation, key }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         await commands.updateCmd.applyResourceOperation(
           resource,
           { key },
@@ -813,6 +936,7 @@ export function registerTools(
       description:
         'Update folder based resource (calculations, graphModels, graphViews, reports, templates)',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         query: z.union([
           z.object({
             key: z
@@ -844,8 +968,9 @@ export function registerTools(
           ),
       },
     },
-    async ({ resource, query }) => {
+    async ({ projectPrefix, resource, query }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         const updateKey =
           query.key === 'content'
             ? { key: 'content', subKey: query.subKey }
@@ -875,11 +1000,13 @@ export function registerTools(
     {
       description: 'Create a new calculation definition',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         name: z.string().describe('Calculation identifier'),
       },
     },
-    async ({ name }) => {
+    async ({ projectPrefix, name }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         await commands.createCmd.createCalculation(name);
         return toolResult({ name });
       } catch (error) {
@@ -893,13 +1020,15 @@ export function registerTools(
     {
       description: 'Run a predefined query against the project',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         queryName: z
           .enum(['card', 'onCreation', 'onTransition', 'tree'])
           .describe('Query type to run'),
       },
     },
-    async ({ queryName }) => {
+    async ({ projectPrefix, queryName }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         const results = await commands.calculateCmd.runQuery(queryName);
         return toolResult({ results });
       } catch (error) {
@@ -914,11 +1043,13 @@ export function registerTools(
       description:
         'Execute a custom logic program (Clingo/ASP). AI can design and iterate on logic programs for calculations, validations, and derived fields.',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         query: z.string().describe('Clingo/ASP logic program source code'),
       },
     },
-    async ({ query }) => {
+    async ({ projectPrefix, query }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         const result = await commands.calculateCmd.runLogicProgram(query);
         return toolResult({ result });
       } catch (error) {
@@ -932,11 +1063,13 @@ export function registerTools(
     {
       description: 'Create a new report definition',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         name: z.string().describe('Report identifier'),
       },
     },
-    async ({ name }) => {
+    async ({ projectPrefix, name }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         await commands.createCmd.createReport(name);
         return toolResult({ name });
       } catch (error) {
@@ -950,11 +1083,13 @@ export function registerTools(
     {
       description: 'Create a new graph model definition',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         name: z.string().describe('Graph model identifier'),
       },
     },
-    async ({ name }) => {
+    async ({ projectPrefix, name }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         await commands.createCmd.createGraphModel(name);
         return toolResult({ name });
       } catch (error) {
@@ -968,11 +1103,13 @@ export function registerTools(
     {
       description: 'Create a new graph view definition',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         name: z.string().describe('Graph view identifier'),
       },
     },
-    async ({ name }) => {
+    async ({ projectPrefix, name }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         await commands.createCmd.createGraphView(name);
         return toolResult({ name });
       } catch (error) {
@@ -986,6 +1123,7 @@ export function registerTools(
     {
       description: 'Execute a report and return results',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         reportName: z.string().describe('Report name to execute'),
         cardKey: z.string().describe('Card key as report context'),
         parameters: z
@@ -995,8 +1133,9 @@ export function registerTools(
           .describe('Additional report parameters'),
       },
     },
-    async ({ reportName, cardKey, parameters }) => {
+    async ({ projectPrefix, reportName, cardKey, parameters }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         const result = await commands.showCmd.showReportResults(
           reportName,
           cardKey,
@@ -1015,12 +1154,14 @@ export function registerTools(
     {
       description: 'Generate a graph visualization',
       inputSchema: {
+        projectPrefix: projectPrefixParam,
         model: z.string().describe('Graph model name'),
         view: z.string().describe('Graph view name'),
       },
     },
-    async ({ model, view }) => {
+    async ({ projectPrefix, model, view }) => {
       try {
+        const commands = resolveCommands(provider, projectPrefix);
         const base64 = await commands.calculateCmd.runGraph(
           model,
           view,

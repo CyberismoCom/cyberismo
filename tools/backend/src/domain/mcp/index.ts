@@ -14,8 +14,7 @@
 import { Hono } from 'hono';
 import { randomUUID } from 'node:crypto';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
-import { createMcpServer } from '@cyberismo/mcp/server';
-import type { CommandManager } from '@cyberismo/data-handler';
+import { createMcpServer, type ProjectProvider } from '@cyberismo/mcp';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 const MAX_SESSIONS = 100;
@@ -25,7 +24,6 @@ const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 interface McpSession {
   transport: WebStandardStreamableHTTPServerTransport;
   server: McpServer;
-  commands: CommandManager;
   lastActivity: number;
 }
 
@@ -71,89 +69,92 @@ const cleanupInterval = setInterval(() => {
 }, CLEANUP_INTERVAL_MS);
 cleanupInterval.unref();
 
-const router = new Hono();
-
 /**
- * MCP HTTP endpoint handler.
- * Supports GET (SSE streaming), POST (messages), and DELETE (session cleanup).
+ * Create an MCP HTTP router that serves all projects via the given provider.
  */
-router.all('/', async (c) => {
-  const commands = c.get('commands');
-  const sessionId = c.req.header('mcp-session-id');
+export function createMcpRouter(provider: ProjectProvider): Hono {
+  const router = new Hono();
 
-  // Handle DELETE before routing to existing session so it always runs cleanup
-  if (c.req.method === 'DELETE') {
-    if (sessionId) {
-      await destroySession(sessionId);
+  /**
+   * MCP HTTP endpoint handler.
+   * Supports GET (SSE streaming), POST (messages), and DELETE (session cleanup).
+   */
+  router.all('/', async (c) => {
+    const sessionId = c.req.header('mcp-session-id');
+
+    // Handle DELETE before routing to existing session so it always runs cleanup
+    if (c.req.method === 'DELETE') {
+      if (sessionId) {
+        await destroySession(sessionId);
+      }
+      return c.json({ message: 'Session closed' });
     }
-    return c.json({ message: 'Session closed' });
-  }
 
-  // Handle existing session
-  if (sessionId && sessions.has(sessionId)) {
+    // Handle existing session
+    if (sessionId && sessions.has(sessionId)) {
+      const session = sessions.get(sessionId)!;
+      session.lastActivity = Date.now();
+      const response = await session.transport.handleRequest(c.req.raw);
+      return response;
+    }
+
+    // Only allow POST to create new sessions (initialize)
+    if (c.req.method !== 'POST') {
+      return c.json(
+        { error: 'Method not allowed. Use POST to initialize a session.' },
+        405,
+      );
+    }
+
+    // Reject new sessions when at capacity
+    if (sessions.size >= MAX_SESSIONS) {
+      return c.json({ error: 'Too many active sessions' }, 503);
+    }
+
+    // Create new session for initialization
+    const transport = new WebStandardStreamableHTTPServerTransport({
+      sessionIdGenerator: () => randomUUID(),
+      onsessioninitialized: (newSessionId: string) => {
+        sessions.set(newSessionId, {
+          transport,
+          server,
+          lastActivity: Date.now(),
+        });
+      },
+      onsessionclosed: (closedSessionId: string) => {
+        void destroySession(closedSessionId, true);
+      },
+    });
+
+    transport.onclose = () => {
+      const sid = transport.sessionId;
+      if (sid) {
+        void destroySession(sid, true);
+      }
+    };
+
+    const server = createMcpServer(provider);
+    await server.connect(transport);
+
+    const response = await transport.handleRequest(c.req.raw);
+    return response;
+  });
+
+  /**
+   * SSE endpoint for server-to-client messages
+   */
+  router.get('/sse', async (c) => {
+    const sessionId = c.req.header('mcp-session-id');
+
+    if (!sessionId || !sessions.has(sessionId)) {
+      return c.json({ error: 'Invalid or missing session ID' }, 400);
+    }
+
     const session = sessions.get(sessionId)!;
     session.lastActivity = Date.now();
     const response = await session.transport.handleRequest(c.req.raw);
     return response;
-  }
-
-  // Only allow POST to create new sessions (initialize)
-  if (c.req.method !== 'POST') {
-    return c.json(
-      { error: 'Method not allowed. Use POST to initialize a session.' },
-      405,
-    );
-  }
-
-  // Reject new sessions when at capacity
-  if (sessions.size >= MAX_SESSIONS) {
-    return c.json({ error: 'Too many active sessions' }, 503);
-  }
-
-  // Create new session for initialization
-  const transport = new WebStandardStreamableHTTPServerTransport({
-    sessionIdGenerator: () => randomUUID(),
-    onsessioninitialized: (newSessionId: string) => {
-      sessions.set(newSessionId, {
-        transport,
-        server,
-        commands,
-        lastActivity: Date.now(),
-      });
-    },
-    onsessionclosed: (closedSessionId: string) => {
-      void destroySession(closedSessionId, true);
-    },
   });
 
-  transport.onclose = () => {
-    const sid = transport.sessionId;
-    if (sid) {
-      void destroySession(sid, true);
-    }
-  };
-
-  const server = createMcpServer(commands);
-  await server.connect(transport);
-
-  const response = await transport.handleRequest(c.req.raw);
-  return response;
-});
-
-/**
- * SSE endpoint for server-to-client messages
- */
-router.get('/sse', async (c) => {
-  const sessionId = c.req.header('mcp-session-id');
-
-  if (!sessionId || !sessions.has(sessionId)) {
-    return c.json({ error: 'Invalid or missing session ID' }, 400);
-  }
-
-  const session = sessions.get(sessionId)!;
-  session.lastActivity = Date.now();
-  const response = await session.transport.handleRequest(c.req.raw);
-  return response;
-});
-
-export default router;
+  return router;
+}

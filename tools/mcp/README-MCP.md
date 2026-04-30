@@ -173,59 +173,6 @@ Once configured, you can ask Claude or Copilot to interact with your Cyberismo p
 
 ---
 
-## Standalone MCP Server (stdio)
-
-For local development or when the HTTP server is not available, you can run the MCP server as a subprocess communicating via stdin/stdout.
-
-### Running Manually
-
-```bash
-# With auto-detection (run from within a Cyberismo project)
-cyberismo mcp
-
-# With explicit project path
-cyberismo mcp --project-path=/path/to/your/project
-
-# Using environment variable
-CYBERISMO_PROJECT_PATH=/path/to/your/project cyberismo mcp
-```
-
-### Configuring Claude Code (stdio)
-
-```json
-{
-  "mcpServers": {
-    "cyberismo": {
-      "command": "cyberismo",
-      "args": ["mcp", "--project-path=/path/to/your/project"]
-    }
-  }
-}
-```
-
-### Configuring VS Code (stdio)
-
-Create `.vscode/mcp.json` in your project:
-
-```json
-{
-  "servers": {
-    "cyberismo": {
-      "command": "cyberismo",
-      "args": ["mcp", "--project-path=${workspaceFolder}"]
-    }
-  }
-}
-```
-
-### Testing with MCP Inspector (stdio)
-
-```bash
-npx @modelcontextprotocol/inspector cyberismo mcp --project-path=/path/to/project
-```
-
----
-
 ## Developing
 
 When adding/editing tools, you need to rebuild the project with `pnpm build`, and then run the application to update your MCP server with the latest tools.
@@ -247,16 +194,9 @@ Using the MCP inspector is a good way to quickly verify what tools your MCP serv
 
 1. Restart Claude Code or VS Code after configuration changes
 2. Check the config file path and JSON syntax
-3. For HTTP: verify the backend is running and accessible
-
-### Server not starting (stdio)
-
-1. Ensure `cyberismo` is installed and in your PATH
-2. Check the project path exists and contains a `.cards` directory
-3. Try running `cyberismo mcp` manually to see error messages
+3. Verify the backend is running and accessible
 
 ### MCP Inspector connection issues
 
-1. For HTTP: Ensure the server is running before starting inspector
-2. For stdio: Check the command and arguments are correct
-3. Look at the inspector's console output for error messages
+1. Ensure the server is running before starting inspector
+2. Look at the inspector's console output for error messages
