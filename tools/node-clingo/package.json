@@ -1,6 +1,6 @@
 {
   "name": "@cyberismo/node-clingo",
-  "version": "1.6.0-rc.5",
+  "version": "1.6.0",
   "description": "Node.js bindings for Clingo answer set solver",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
@@ -39,13 +39,13 @@
     "node-addon-api": "^8.7.0"
   },
   "optionalDependencies": {
-    "@cyberismo/node-clingo-linux-x64-gnu": "1.6.0-rc.5",
-    "@cyberismo/node-clingo-linux-x64-musl": "1.6.0-rc.5",
-    "@cyberismo/node-clingo-linux-arm64-gnu": "1.6.0-rc.5",
-    "@cyberismo/node-clingo-linux-arm64-musl": "1.6.0-rc.5",
-    "@cyberismo/node-clingo-darwin-x64": "1.6.0-rc.5",
-    "@cyberismo/node-clingo-darwin-arm64": "1.6.0-rc.5",
-    "@cyberismo/node-clingo-win32-x64": "1.6.0-rc.5"
+    "@cyberismo/node-clingo-linux-x64-gnu": "1.6.0",
+    "@cyberismo/node-clingo-linux-x64-musl": "1.6.0",
+    "@cyberismo/node-clingo-linux-arm64-gnu": "1.6.0",
+    "@cyberismo/node-clingo-linux-arm64-musl": "1.6.0",
+    "@cyberismo/node-clingo-darwin-x64": "1.6.0",
+    "@cyberismo/node-clingo-darwin-arm64": "1.6.0",
+    "@cyberismo/node-clingo-win32-x64": "1.6.0"
   },
   "devDependencies": {
     "node-gyp": "^12.2.0",
