@@ -23,7 +23,9 @@ import {
   Dropdown,
   MenuButton,
   CircularProgress,
+  Stack,
 } from '@mui/joy';
+import ArrowForward from '@mui/icons-material/ArrowForward';
 import { useTranslation } from 'react-i18next';
 import { getStateColor } from '../lib/utils';
 import { getConfig } from '@/lib/utils';
@@ -100,15 +102,35 @@ const StateSelector: React.FC<StateSelectorProps> = ({
         )}
       </MenuButton>
       <Menu>
-        {availableTransitions.map((transition) => (
-          <MenuItem
-            key={transition.name}
-            onClick={() => onTransition(transition)}
-            disabled={disabled}
-          >
-            <ListItemContent>{transition.name}</ListItemContent>
-          </MenuItem>
-        ))}
+        {availableTransitions.map((transition) => {
+          const toState = workflow?.states.find(
+            (state) => state.name === transition.toState,
+          );
+          return (
+            <MenuItem
+              key={transition.name}
+              onClick={() => onTransition(transition)}
+              disabled={disabled}
+            >
+              <ListItemContent>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <span>{transition.name}</span>
+                  <ArrowForward fontSize="small" sx={{ opacity: 0.6 }} />
+                  <span
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: '50%',
+                      backgroundColor: getStateColor(toState?.category),
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span>{transition.toState}</span>
+                </Stack>
+              </ListItemContent>
+            </MenuItem>
+          );
+        })}
       </Menu>
     </Dropdown>
   );

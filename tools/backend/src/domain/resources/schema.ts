@@ -1,8 +1,22 @@
 import { z } from 'zod';
 import {
+  identifierSchema,
   resourceParamsSchema,
   resourceTypes,
 } from '../../common/validationSchemas.js';
+
+export const workflowGraphParamsSchema = z.object({
+  prefix: z.string(),
+  identifier: identifierSchema,
+});
+
+export type WorkflowGraphParams = z.infer<typeof workflowGraphParamsSchema>;
+
+export const workflowGraphQuerySchema = z.object({
+  card: z.string().optional(),
+});
+
+export type WorkflowGraphQuery = z.infer<typeof workflowGraphQuerySchema>;
 
 export const resourceFileParamsSchema = resourceParamsSchema.extend({
   file: z.string(),

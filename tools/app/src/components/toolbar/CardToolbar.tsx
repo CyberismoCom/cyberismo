@@ -11,10 +11,11 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useCallback } from 'react';
-import { Button, IconButton, Tooltip } from '@mui/joy';
+import { useCallback, useState } from 'react';
+import { Button, CircularProgress, IconButton, Tooltip } from '@mui/joy';
 import EditIcon from '@mui/icons-material/Edit';
 import InsertLink from '@mui/icons-material/InsertLink';
+import Schema from '@mui/icons-material/Schema';
 import { ProjectBreadcrumbs } from '../ProjectBreadcrumbs';
 import type { WorkflowTransition } from '../../lib/definitions';
 import { CardMode } from '../../lib/definitions';
@@ -28,6 +29,7 @@ import {
   useProject,
   useTree,
   useUser,
+  useWorkflowGraph,
 } from '../../lib/api';
 import { useAppDispatch } from '../../lib/hooks';
 import { addNotification } from '../../lib/slices/notifications';
@@ -35,6 +37,7 @@ import { getConfig } from '@/lib/utils';
 import BaseToolbar from './BaseToolbar';
 import { CardContextMenu } from '@/components/context-menus';
 import PresenceIndicator from '@/components/PresenceIndicator';
+import SvgViewerModal from '@/components/modals/svgViewerModal';
 
 interface CardToolbarProps {
   cardKey: string;
@@ -74,6 +77,13 @@ export function CardToolbar({
     project && card ? findWorkflowForCardType(card.cardType, project) : null;
   const currentState =
     workflow?.states.find((state) => state.name == card?.workflowState) ?? null;
+
+  const [workflowGraphOpen, setWorkflowGraphOpen] = useState(false);
+  const { workflowGraph, isLoading: isWorkflowGraphLoading } = useWorkflowGraph(
+    workflowGraphOpen ? (workflow?.name ?? null) : null,
+    cardKey,
+  );
+  const workflowGraphMarkup = workflowGraph?.svg ? atob(workflowGraph.svg) : '';
 
   const onStateTransition = useCallback(
     async (transition: WorkflowTransition) => {
@@ -117,12 +127,37 @@ export function CardToolbar({
         </Tooltip>
       )}
 
+      {workflow && (
+        <Tooltip title={t('workflowGraph.viewTooltip')} placement="top">
+          <IconButton
+            onClick={() => setWorkflowGraphOpen(true)}
+            size="sm"
+            variant="plain"
+            style={{ marginRight: 8, minWidth: 40 }}
+            data-cy="viewWorkflowButton"
+            disabled={isWorkflowGraphLoading}
+          >
+            {isWorkflowGraphLoading ? (
+              <CircularProgress size="sm" />
+            ) : (
+              <Schema />
+            )}
+          </IconButton>
+        </Tooltip>
+      )}
+
       <StatusSelector
         currentState={currentState}
         workflow={workflow}
         onTransition={(transition) => onStateTransition(transition)}
         isLoading={isUpdating('updateState')}
         disabled={isUpdating() && !isUpdating('updateState')}
+      />
+
+      <SvgViewerModal
+        open={workflowGraphOpen && Boolean(workflowGraphMarkup)}
+        svgMarkup={workflowGraphMarkup}
+        onClose={() => setWorkflowGraphOpen(false)}
       />
 
       {!getConfig().staticMode && mode === CardMode.VIEW && (

@@ -20,6 +20,8 @@ import { zValidator } from '../../middleware/zvalidator.js';
 import {
   validateResourceParamsSchema,
   updateOperationBodySchema,
+  workflowGraphParamsSchema,
+  workflowGraphQuerySchema,
 } from './schema.js';
 import { requireRole } from '../../middleware/auth.js';
 
@@ -129,6 +131,78 @@ router.delete(
     return c.json({
       message: 'Resource deleted',
     });
+  },
+);
+
+/**
+ * @swagger
+ * /api/resources/{prefix}/workflows/{identifier}/graph:
+ *   get:
+ *     summary: Render the state-machine graph for a workflow
+ *     description: Returns a base64-encoded sanitized SVG of the workflow's
+ *                  state-machine diagram, rendered with the built-in
+ *                  workflow graph model and view. When the optional `card`
+ *                  query parameter is provided, the diagram highlights
+ *                  that card's current workflowState.
+ *     parameters:
+ *       - in: path
+ *         name: prefix
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: identifier
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: card
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Card key whose current workflowState should be
+ *                      highlighted in the rendered diagram.
+ *     responses:
+ *       200:
+ *         description: Rendered diagram
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 svg:
+ *                   type: string
+ *                   description: Base64-encoded SVG document.
+ *       400:
+ *         description: Invalid path parameters
+ *       404:
+ *         description: Workflow or card not found
+ *       500:
+ *         description: Server error
+ */
+router.get(
+  '/:prefix/workflows/:identifier/graph',
+  requireRole(UserRole.Reader),
+  zValidator('param', workflowGraphParamsSchema),
+  zValidator('query', workflowGraphQuerySchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const { prefix, identifier } = c.req.valid('param');
+    const { card } = c.req.valid('query');
+    const workflowName = `${prefix}/workflows/${identifier}`;
+    try {
+      const svg = await resourceService.getWorkflowGraph(
+        commands,
+        workflowName,
+        card,
+      );
+      return c.json({ svg });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('not found')) {
+        return c.json({ error: error.message }, 404);
+      }
+      throw error;
+    }
   },
 );
 
