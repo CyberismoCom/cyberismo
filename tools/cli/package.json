@@ -31,7 +31,7 @@
     "@cyberismo/data-handler": "workspace:*",
     "@cyberismo/mcp": "workspace:*",
     "@inquirer/confirm": "^6.0.4",
-    "@inquirer/prompts": "^7.9.0",
+    "@inquirer/prompts": "^8.4.2",
     "cli-progress": "^3.12.0",
     "commander": "^14.0.2",
     "dotenv": "^17.3.1",
