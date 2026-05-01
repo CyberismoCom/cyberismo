@@ -63,7 +63,7 @@
     "react-router": "^7.14.0",
     "react-vega": "^8.0.0",
     "redux-persist": "^6.0.0",
-    "rollup-plugin-license": "^3.6.0",
+    "rollup-plugin-license": "^3.7.1",
     "start-server-and-test": "^2.1.5",
     "swr": "^2.4.1",
     "vega": "^6.2.0",
