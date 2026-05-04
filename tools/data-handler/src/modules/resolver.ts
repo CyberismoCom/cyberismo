@@ -134,7 +134,7 @@ export class Resolver {
         if (
           decl.versionRange &&
           existing.version &&
-          !this.versionSatisfies(existing.version, decl.versionRange)
+          !satisfies(existing.version, decl.versionRange)
         ) {
           onConflict({
             project: decl.project,
@@ -222,10 +222,6 @@ export class Resolver {
           `'${decl.source.location}' (private=${declPrivate})`,
       );
     }
-  }
-
-  private versionSatisfies(version: Version, range: VersionRange): boolean {
-    return satisfies(version, range);
   }
 }
 
