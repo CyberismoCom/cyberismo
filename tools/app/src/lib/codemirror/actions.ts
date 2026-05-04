@@ -301,6 +301,17 @@ export const asciiDocToolbarActions = {
       insertTable(cmView);
     });
   },
+  mermaidDiagram(view: MaybeEditorView, readOnly: boolean) {
+    withEditableView(view, readOnly, (cmView) => {
+      const snippet = `[mermaid]\n....\ngraph TD\n    A[Start] --> B[End]\n....\n`;
+      cmView.dispatch({
+        changes: {
+          from: cmView.state.selection.main.from,
+          insert: snippet,
+        },
+      });
+    });
+  },
   insertMacro(
     view: MaybeEditorView,
     readOnly: boolean,

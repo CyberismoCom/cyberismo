@@ -13,7 +13,13 @@
 */
 
 import type { ReactElement } from 'react';
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useRef,
+} from 'react';
 import type { ExpandedLinkType } from '../lib/definitions';
 
 import { parse } from 'node-html-parser';
@@ -64,10 +70,11 @@ import CheckBoxOutlineBlank from '@mui/icons-material/CheckBoxOutlineBlank';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import EditLinkModal from './modals/EditLinkModal';
 
-import { useAppDispatch, useAppSelector } from '../lib/hooks';
+import { useAppDispatch, useAppSelector, useIsDarkMode } from '../lib/hooks';
 import { viewChanged } from '../lib/slices/pageState';
 
 import createDOMPurify from 'dompurify';
+import mermaid from 'mermaid';
 import type { MacroMetadata } from '@cyberismo/data-handler/interfaces/macros';
 import { macroMetadata } from '@cyberismo/data-handler/macros/common';
 import type { UIMacroName } from './macros';
@@ -151,6 +158,19 @@ const MACRO_TAGS = Object.values(macroMetadata)
   .map((meta) => meta.tagName.toUpperCase())
   .filter(Boolean) as string[];
 
+const combinedMacros = Object.entries(macroMetadata).reduce<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (MacroMetadata & { component: (props: any) => ReactElement })[]
+>((acc, [key, value]) => {
+  acc.push({
+    ...value,
+    component: UImacros[key as UIMacroName] ?? (() => <>err</>),
+  });
+  return acc;
+}, []);
+
+let mermaidRenderCounter = 0;
+
 const contentPurify = createDOMPurify(window);
 contentPurify.addHook('afterSanitizeAttributes', (node) => {
   if (node.tagName === 'IFRAME') {
@@ -226,18 +246,25 @@ export function LinkForm({
   const selectedLinkType = linkTypes.find((t) => t.id === linkType);
 
   // In edit mode, exclude the link being edited so it doesn't count as "already linked"
-  const linksForFilter =
-    state === 'edit' && data?.cardKey
-      ? currentCardLinks.filter((l) => l.key !== data.cardKey)
-      : currentCardLinks;
+  const linksForFilter = useMemo(
+    () =>
+      state === 'edit' && data?.cardKey
+        ? currentCardLinks.filter((l) => l.key !== data.cardKey)
+        : currentCardLinks,
+    [state, data, currentCardLinks],
+  );
 
-  const usableCards = flattenTree(cards).filter(
-    createPredicate(
-      canCreateLinkToCard,
-      cardKey,
-      selectedLinkType,
-      linksForFilter,
-    ),
+  const usableCards = useMemo(
+    () =>
+      flattenTree(cards).filter(
+        createPredicate(
+          canCreateLinkToCard,
+          cardKey,
+          selectedLinkType,
+          linksForFilter,
+        ),
+      ),
+    [cards, cardKey, selectedLinkType, linksForFilter],
   );
 
   // If card is not in usable cards, reset the form
@@ -588,6 +615,8 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 
   const [contentRef, setContentRef] = useState<HTMLDivElement | null>(null);
 
+  const isDarkMode = useIsDarkMode();
+
   const dispatch = useAppDispatch();
 
   const { t } = useTranslation();
@@ -690,95 +719,193 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     URL.revokeObjectURL(url);
   };
 
+  /**
+   * Adds fullscreen/download controls to an SVG wrapper element.
+   * Stores a cleanup function on the element's `__cleanupSvgControls` property
+   * to remove event listeners and controls.
+   */
+  const addSvgControls = (wrapper: HTMLElement) => {
+    if (wrapper.querySelector('[data-cy="svg-controls"]')) return;
+
+    if (wrapper.style.paddingTop === '') wrapper.style.paddingTop = '48px';
+    if (wrapper.style.position === '') wrapper.style.position = 'relative';
+
+    const controls = document.createElement('div');
+    controls.setAttribute('data-cy', 'svg-controls');
+    Object.assign(controls.style, {
+      position: 'absolute',
+      top: '8px',
+      right: '8px',
+      display: 'flex',
+      gap: '6px',
+      zIndex: 10,
+    } as unknown as CSSStyleDeclaration);
+
+    const fullScreenBtn = makeIconButton(fullScreenIcon, 'fullscreen');
+    const downloadBtn = makeIconButton(downloadIcon, 'download');
+
+    const handleFullScreenClick = () => handleFullScreen(wrapper);
+    const handleDownloadClick = () => handleDownload(wrapper);
+
+    fullScreenBtn.addEventListener('click', handleFullScreenClick);
+    downloadBtn.addEventListener('click', handleDownloadClick);
+
+    controls.appendChild(fullScreenBtn);
+    controls.appendChild(downloadBtn);
+    wrapper.appendChild(controls);
+
+    const cleanup = () => {
+      fullScreenBtn.removeEventListener('click', handleFullScreenClick);
+      downloadBtn.removeEventListener('click', handleDownloadClick);
+      wrapper.querySelector('[data-cy="svg-controls"]')?.remove();
+    };
+    (wrapper as HTMLElementWithCleanup).__cleanupSvgControls = cleanup;
+  };
+
+  const locationKey = useLocation().key;
+
   useEffect(() => {
     if (!contentRef) return;
 
-    const wrappers: NodeListOf<HTMLElement> =
-      contentRef.querySelectorAll<HTMLElement>(
-        '[data-type="cyberismo-svg-wrapper"]',
-      );
+    // Process any wrappers already in the DOM
+    const processExisting = () => {
+      contentRef
+        .querySelectorAll<HTMLElement>('[data-type="cyberismo-svg-wrapper"]')
+        .forEach((wrapper) => addSvgControls(wrapper));
+    };
+    processExisting();
 
-    wrappers.forEach((wrapper) => {
-      if (wrapper.querySelector('[data-cy="svg-controls"]')) return;
-
-      if (wrapper.style.paddingTop === '') wrapper.style.paddingTop = '48px';
-      if (wrapper.style.position === '') wrapper.style.position = 'relative';
-
-      const controls = document.createElement('div');
-      controls.setAttribute('data-cy', 'svg-controls');
-      Object.assign(controls.style, {
-        position: 'absolute',
-        top: '8px',
-        right: '8px',
-        display: 'flex',
-        gap: '6px',
-        zIndex: 10,
-      } as unknown as CSSStyleDeclaration);
-
-      /* ---------- Buttons ---------- */
-      const fullScreenBtn = makeIconButton(fullScreenIcon, 'fullscreen');
-      const downloadBtn = makeIconButton(downloadIcon, 'download');
-
-      const handleFullScreenClick = () => handleFullScreen(wrapper);
-      const handleDownloadClick = () => handleDownload(wrapper);
-
-      fullScreenBtn.addEventListener('click', handleFullScreenClick);
-      downloadBtn.addEventListener('click', handleDownloadClick);
-
-      controls.appendChild(fullScreenBtn);
-      controls.appendChild(downloadBtn);
-      wrapper.appendChild(controls);
-
-      /* ---------- Cleanup for this wrapper ---------- */
-      const cleanup = () => {
-        fullScreenBtn.removeEventListener('click', handleFullScreenClick);
-        downloadBtn.removeEventListener('click', handleDownloadClick);
-        wrapper.querySelector('[data-cy="svg-controls"]')?.remove();
-      };
-      (wrapper as HTMLElementWithCleanup).__cleanupSvgControls = cleanup;
+    // Watch for wrappers added later (e.g. async mermaid rendering in macro components)
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (!(node instanceof HTMLElement)) continue;
+          if (node.getAttribute('data-type') === 'cyberismo-svg-wrapper') {
+            addSvgControls(node);
+          }
+          node
+            .querySelectorAll?.<HTMLElement>(
+              '[data-type="cyberismo-svg-wrapper"]',
+            )
+            .forEach((wrapper) => addSvgControls(wrapper));
+        }
+      }
     });
+    observer.observe(contentRef, { childList: true, subtree: true });
 
     /* ---------- Global cleanup on effect teardown ---------- */
     return () => {
-      wrappers.forEach((wrapper) => {
-        (wrapper as HTMLElementWithCleanup).__cleanupSvgControls?.();
-        delete (wrapper as HTMLElementWithCleanup).__cleanupSvgControls;
-      });
+      observer.disconnect();
+      contentRef
+        .querySelectorAll<HTMLElement>('[data-type="cyberismo-svg-wrapper"]')
+        .forEach((wrapper) => {
+          (wrapper as HTMLElementWithCleanup).__cleanupSvgControls?.();
+          delete (wrapper as HTMLElementWithCleanup).__cleanupSvgControls;
+        });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contentRef, useLocation().key]);
+  }, [contentRef, locationKey]);
+
+  // Render [mermaid] AsciiDoc blocks into diagrams
+  // The backend pre-processes mermaid blocks into <div class="mermaid-block" data-mermaid-code="base64">
+  useEffect(() => {
+    if (!contentRef) return;
+
+    let cancelled = false;
+
+    // Re-initialize mermaid with the current theme so diagrams match light/dark mode
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: isDarkMode ? 'dark' : 'default',
+      securityLevel: 'strict',
+    });
+
+    const mermaidBlocks = contentRef.querySelectorAll<HTMLElement>(
+      '.mermaid-block[data-mermaid-code]',
+    );
+
+    const renderBlocks = async () => {
+      for (const block of mermaidBlocks) {
+        if (cancelled) return;
+
+        const encoded = block.getAttribute('data-mermaid-code') || '';
+        let code: string;
+        try {
+          code = new TextDecoder().decode(
+            Uint8Array.from(atob(encoded), (c) => c.charCodeAt(0)),
+          );
+        } catch {
+          continue;
+        }
+        if (!code) continue;
+
+        const id = `mermaid-block-${mermaidRenderCounter++}`;
+
+        try {
+          const { svg } = await mermaid.render(id, code);
+          if (cancelled) return;
+
+          const wrapper = document.createElement('div');
+          wrapper.setAttribute('data-type', 'cyberismo-svg-wrapper');
+          wrapper.innerHTML = contentPurify.sanitize(svg, {
+            USE_PROFILES: { svg: true, svgFilters: true },
+            ADD_TAGS: [
+              'foreignObject',
+              'div',
+              'span',
+              'p',
+              'br',
+              'i',
+              'b',
+              'em',
+              'strong',
+              'pre',
+              'code',
+            ],
+            ADD_ATTR: ['class', 'style', 'xmlns', 'requiredExtensions'],
+            // Allow HTML content inside <foreignObject> (used by Mermaid for text labels)
+            HTML_INTEGRATION_POINTS: { foreignobject: true },
+          });
+          block.innerHTML = '';
+          block.appendChild(wrapper);
+          addSvgControls(wrapper);
+        } catch {
+          if (!cancelled) {
+            block.textContent = `Mermaid diagram error`;
+          }
+        }
+      }
+    };
+
+    renderBlocks();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contentRef, isDarkMode, locationKey, card.parsedContent]);
 
   const setRef = useCallback((node: HTMLDivElement | null) => {
     setContentRef(node);
   }, []);
 
-  const htmlContent = card.parsedContent || '';
-
-  const sanitizedHtml = contentPurify.sanitize(htmlContent, {
-    USE_PROFILES: { html: true, svg: true },
-    ADD_TAGS: [...MACRO_TAGS, 'iframe'],
-    ADD_ATTR: [
-      'options',
-      'key',
-      'sandbox',
-      'allow',
-      'allowfullscreen',
-      'frameborder',
-    ],
-  });
-
-  const combinedMacros = Object.entries(macroMetadata).reduce<
-    // We simply trust that the macro has been validated
-    // If a validation error occurs, it should also not try to render
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (MacroMetadata & { component: (props: any) => ReactElement })[]
-  >((acc, [key, value]) => {
-    acc.push({
-      ...value,
-      component: UImacros[key as UIMacroName] ?? (() => <>err</>),
-    });
-    return acc;
-  }, []);
+  const sanitizedHtml = useMemo(
+    () =>
+      contentPurify.sanitize(card.parsedContent || '', {
+        USE_PROFILES: { html: true, svg: true },
+        ADD_TAGS: [...MACRO_TAGS, 'iframe'],
+        ADD_ATTR: [
+          'options',
+          'key',
+          'sandbox',
+          'allow',
+          'allowfullscreen',
+          'frameborder',
+          'data-mermaid-code',
+        ],
+      }),
+    [card.parsedContent],
+  );
 
   // NOTE: Parser is case-insensitive and lower cases all tags and attributes
   // htmlparser2 options cannot be used on the browser

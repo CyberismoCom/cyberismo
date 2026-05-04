@@ -24,7 +24,8 @@
     ".": "./dist/index.js",
     "./interfaces/*": "./dist/interfaces/*.js",
     "./types/*": "./dist/types/*.js",
-    "./macros/*": "./dist/macros/*.js"
+    "./macros/*": "./dist/macros/*.js",
+    "./utils/*": "./dist/utils/*.js"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",

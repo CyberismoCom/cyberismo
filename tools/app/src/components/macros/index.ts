@@ -14,6 +14,7 @@
 
 import type { MacroName } from '@cyberismo/data-handler/interfaces/macros';
 import CreateCards from './CreateCards';
+import Mermaid from './Mermaid';
 import ScoreCard from './ScoreCard';
 import type { ReactElement } from 'react';
 import Vega from './Vega';
@@ -39,6 +40,7 @@ export type UIMacroName = Exclude<
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const macros: Record<UIMacroName, (props: any) => ReactElement> = {
   createCards: CreateCards,
+  mermaid: Mermaid,
   scoreCard: ScoreCard,
   vega: Vega,
 };

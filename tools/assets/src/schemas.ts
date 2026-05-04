@@ -27,6 +27,7 @@ import hubSchema from './schema/hubSchema.json' with { type: 'json' };
 import imageMacroSchema from './schema/macros/imageMacroSchema.json' with { type: 'json' };
 import includeMacroSchema from './schema/macros/includeMacroSchema.json' with { type: 'json' };
 import linkTypeSchema from './schema/resources/linkTypeSchema.json' with { type: 'json' };
+import mermaidMacroSchema from './schema/macros/mermaidMacroSchema.json' with { type: 'json' };
 import percentageMacroSchema from './schema/macros/percentageMacroSchema.json' with { type: 'json' };
 import reportMacroBaseSchema from './schema/macros/reportMacroBaseSchema.json' with { type: 'json' };
 import reportSchema from './schema/resources/reportSchema.json' with { type: 'json' };
@@ -58,6 +59,7 @@ export const schemas = [
   imageMacroSchema,
   includeMacroSchema,
   linkTypeSchema,
+  mermaidMacroSchema,
   percentageMacroSchema,
   reportMacroBaseSchema,
   reportSchema,

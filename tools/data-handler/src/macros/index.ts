@@ -21,6 +21,7 @@ import report from './report/index.js';
 import scoreCard from './scoreCard/index.js';
 import xref from './xref/index.js';
 import percentage from './percentage/index.js';
+import mermaid from './mermaid/index.js';
 import vega from './vega/index.js';
 import vegaLite from './vegalite/index.js';
 
@@ -141,6 +142,7 @@ export const macros: {
   graph,
   image,
   include,
+  mermaid,
   report,
   scoreCard,
   xref,

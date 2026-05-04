@@ -14,6 +14,7 @@
 import Processor from '@asciidoctor/core';
 import type { Card } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import { type CommandManager, evaluateMacros } from '@cyberismo/data-handler';
+import { preprocessMermaidBlocksForHtml } from '@cyberismo/data-handler/utils/mermaid-renderer';
 import { getCardQueryResult } from '../../export.js';
 import type { TreeOptions } from '../../types.js';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
@@ -56,6 +57,9 @@ export async function getCardDetails(
     } catch (error) {
       asciidocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${asciidocContent}`;
     }
+
+    // Convert [mermaid] AsciiDoc blocks to passthrough HTML before asciidoctor processes them
+    asciidocContent = preprocessMermaidBlocksForHtml(asciidocContent);
 
     const htmlContent = Processor()
       .convert(asciidocContent, {
