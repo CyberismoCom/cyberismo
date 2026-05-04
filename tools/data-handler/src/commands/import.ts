@@ -283,7 +283,7 @@ export class Import {
       tempDir: this.tempModulesDir,
     });
 
-    await installModules(sourceLayer, this.project, resolved, {
+    await installModules(this.project, resolved, {
       tempDir: this.tempModulesDir,
       validate: isFileLocation(location),
     });
@@ -366,7 +366,7 @@ export class Import {
       tempDir: this.tempModulesDir,
     });
 
-    await installModules(sourceLayer, this.project, resolved, {
+    await installModules(this.project, resolved, {
       tempDir: this.tempModulesDir,
     });
 
@@ -395,7 +395,7 @@ export class Import {
       tempDir: this.tempModulesDir,
     });
 
-    await installModules(sourceLayer, this.project, resolved, {
+    await installModules(this.project, resolved, {
       tempDir: this.tempModulesDir,
     });
 

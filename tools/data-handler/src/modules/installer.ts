@@ -12,7 +12,6 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { existsSync } from 'node:fs';
 import { join, resolve as pathResolve } from 'node:path';
 
 import { ProjectPaths } from '../containers/project/project-paths.js';
@@ -23,7 +22,6 @@ import { getChildLogger } from '../utils/log-utils.js';
 import { FILE_PROTOCOL } from './location.js';
 
 import type { ResolvedModule } from './resolver.js';
-import type { SourceLayer } from './source.js';
 import type { ModuleSetting } from '../interfaces/project-interfaces.js';
 import type { Project } from '../containers/project.js';
 
@@ -33,34 +31,24 @@ const logger = getChildLogger({ module: 'installer' });
  * Options consumed by {@link installModules}.
  */
 export interface InstallOptions {
-  /** Temporary directory used for staging clones. */
+  /** Directory holding each entry's `stagedPath` tree. */
   tempDir: string;
-  /** When true, validate each `file:` source before fetching. */
+  /** When true, validate each `file:` source before applying. */
   validate?: boolean;
 }
 
-/**
- * A module that has been fetched into `tempDir` and is ready to be
- * copied into place. `resourcesFolder` is the absolute path whose
- * contents become the new `.cards/modules/<name>/`.
- */
 interface StagedModule {
   name: string;
+  /** Absolute path whose contents become the new `.cards/modules/<name>/`. */
   resourcesFolder: string;
   resolved: ResolvedModule;
 }
 
 /**
- * Applies a resolved module plan to a project's `.cards/modules/`.
- * Fetches every target into staging first, then replaces installation
- * files so a fetch failure cannot leave the project half-updated.
- *
- * Two-phase install: fetch all targets into `tempDir`, then replace
- * each `.cards/modules/<name>/` from its staged copy and persist the
- * top-level declarations. The caller owns the resolved plan.
+ * Copy each entry's staged tree into `.cards/modules/<name>/` and
+ * persist top-level declarations.
  */
 export async function installModules(
-  source: SourceLayer,
   project: Project,
   resolved: ResolvedModule[],
   options: InstallOptions,
@@ -90,8 +78,8 @@ export async function installModules(
   }
 
   // Validate prefixes at plan level so all failures surface before any
-  // network I/O. Existing top-level modules skip the uniqueness check
-  // (re-imports / updates).
+  // filesystem mutation. Existing top-level modules skip the uniqueness
+  // check (re-imports / updates).
   const existingDeclaredNames = new Set(
     project.configuration.modules.map((m) => m.name),
   );
@@ -104,21 +92,7 @@ export async function installModules(
     );
   }
 
-  // Fetch every target into tempDir staging in parallel. On failure,
-  // abort before touching `.cards/modules/`.
-  let staged: StagedModule[];
-  try {
-    staged = await Promise.all(
-      targets.map((entry) => fetchOne(source, entry, options.tempDir)),
-    );
-  } catch (error) {
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error(`Module install failed during network phase: ${error}`, {
-      cause: error,
-    });
-  }
+  const staged: StagedModule[] = targets.map(toStagedModule);
 
   // Apply each staged module. Partial-failure rollback is out of
   // scope: log and continue so later modules still get a chance.
@@ -164,37 +138,10 @@ export async function installModules(
   await project.refreshAfterModuleChange();
 }
 
-/**
- * Fetch a single module's source into tempDir (or resolve its local
- * path for `file:` sources). Reuses the resolver's staged clone when
- * available to avoid re-cloning, falling back to a fresh fetch only
- * when the staged path has disappeared.
- */
-async function fetchOne(
-  source: SourceLayer,
-  entry: ResolvedModule,
-  tempDir: string,
-): Promise<StagedModule> {
-  const { declaration, remoteUrl, ref } = entry;
-
-  let stagingRoot: string;
-  if (entry.stagedPath && existsSync(entry.stagedPath)) {
-    stagingRoot = entry.stagedPath;
-  } else {
-    stagingRoot = await source.fetch(
-      { location: declaration.source.location, remoteUrl, ref },
-      tempDir,
-      declaration.name,
-    );
-  }
-
-  // The resources to copy live under the staging root's `.cards/<prefix>/`
-  // tree for both git and file sources.
-  const resourcesFolder = new ProjectPaths(stagingRoot).resourcesFolder;
-
+function toStagedModule(entry: ResolvedModule): StagedModule {
   return {
-    name: declaration.name,
-    resourcesFolder,
+    name: entry.declaration.name,
+    resourcesFolder: new ProjectPaths(entry.stagedPath).resourcesFolder,
     resolved: entry,
   };
 }

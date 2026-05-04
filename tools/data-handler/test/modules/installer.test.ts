@@ -6,76 +6,34 @@ import { tmpdir } from 'node:os';
 
 import { installModules } from '../../src/modules/installer.js';
 import type { ResolvedModule } from '../../src/modules/resolver.js';
-import type { FetchTarget, SourceLayer } from '../../src/modules/source.js';
 import { ProjectPaths } from '../../src/containers/project/project-paths.js';
 import { toVersion, toVersionRange } from '../../src/modules/types.js';
 import { makeProjectStub } from '../helpers/module-fixtures.js';
 
 /**
- * In-memory SourceLayer fake. Populates the staging area with whatever
- * content each test wants copied into `.cards/modules/<name>/`. The
- * shared `inMemorySource` helper writes a `.cards/local/cardsConfig.json`
- * skeleton, but these installer tests need the exact subset of files
- * the installer copies into `.cards/modules/<name>/` — so the class
- * stays local.
+ * Write `files` under `tempDir/<name>/.cards/<prefix>/` and return the
+ * absolute root, suitable for use as `ResolvedModule.stagedPath`.
  */
-class InMemorySource implements SourceLayer {
-  readonly fetchCalls: string[] = [];
-
-  constructor(
-    private readonly plan: Map<
-      string,
-      {
-        files: Record<string, string>;
-        failWith?: Error;
-        /**
-         * When true, `fetch` resolves successfully but the returned
-         * stagingRoot has no resources folder. This forces `applyOne`
-         * to fail at `copyDir` (ENOENT on readdir) without aborting
-         * the network phase.
-         */
-        skipResourcesFolder?: boolean;
-      }
-    >,
-  ) {}
-
-  async fetch(
-    target: FetchTarget,
-    destRoot: string,
-    nameHint: string,
-  ): Promise<string> {
-    this.fetchCalls.push(nameHint);
-    const entry = this.plan.get(target.location);
-    if (entry?.failWith) {
-      throw entry.failWith;
-    }
-    const stagingRoot = join(destRoot, nameHint);
-    if (entry?.skipResourcesFolder) {
-      await mkdir(stagingRoot, { recursive: true });
-      return stagingRoot;
-    }
-    const resourcesFolder = new ProjectPaths(stagingRoot).resourcesFolder;
-    await mkdir(resourcesFolder, { recursive: true });
-    const files = entry?.files ?? {};
-    for (const [rel, content] of Object.entries(files)) {
-      const full = join(resourcesFolder, rel);
-      await mkdir(join(full, '..'), { recursive: true });
-      await writeFile(full, content);
-    }
-    return stagingRoot;
+async function stage(
+  tempDir: string,
+  name: string,
+  files: Record<string, string>,
+): Promise<string> {
+  const stagingRoot = join(tempDir, name);
+  const resourcesFolder = new ProjectPaths(stagingRoot).resourcesFolder;
+  await mkdir(resourcesFolder, { recursive: true });
+  for (const [rel, content] of Object.entries(files)) {
+    const full = join(resourcesFolder, rel);
+    await mkdir(join(full, '..'), { recursive: true });
+    await writeFile(full, content);
   }
-
-  async listRemoteVersions(): Promise<string[]> {
-    return [];
-  }
-  async queryRemote(): Promise<never> {
-    throw new Error('queryRemote not used by installer tests');
-  }
+  return stagingRoot;
 }
 
 function buildResolved(
   name: string,
   location: string,
+  stagedPath: string,
   opts: {
     version?: string;
     range?: string;
@@ -94,6 +52,7 @@ function buildResolved(
     ref: opts.version ? `v${opts.version}` : undefined,
     remoteUrl: location,
     version: opts.version ? toVersion(opts.version) : undefined,
+    stagedPath,
   };
 }
 
@@ -117,34 +76,25 @@ describe('modules/installer', () => {
   });
 
   it('copies staged files into .cards/modules/<name>/ and upserts the declaration (range, not tag)', async () => {
-    const source = new InMemorySource(
-      new Map([
-        [
-          'https://example.com/A.git',
-          {
-            files: {
-              'cardsConfig.json': JSON.stringify({
-                cardKeyPrefix: 'A',
-                name: 'A',
-                version: '1.2.3',
-                modules: [],
-              }),
-              'cardTypes/marker.json': '{"x":1}',
-            },
-          },
-        ],
-      ]),
-    );
+    const stagedPath = await stage(tempDir, 'A', {
+      'cardsConfig.json': JSON.stringify({
+        cardKeyPrefix: 'A',
+        name: 'A',
+        version: '1.2.3',
+        modules: [],
+      }),
+      'cardTypes/marker.json': '{"x":1}',
+    });
     const { project, modules } = makeProjectStub({ basePath: projectDir });
 
     const resolved = [
-      buildResolved('A', 'https://example.com/A.git', {
+      buildResolved('A', 'https://example.com/A.git', stagedPath, {
         version: '1.2.3',
         range: '^1.0.0',
       }),
     ];
 
-    await installModules(source, project, resolved, { tempDir });
+    await installModules(project, resolved, { tempDir });
 
     const moduleDir = join(projectDir, '.cards', 'modules', 'A');
     expect(existsSync(moduleDir)).toBe(true);
@@ -159,101 +109,50 @@ describe('modules/installer', () => {
     expect(persisted.location).toBe('https://example.com/A.git');
   });
 
-  it('leaves .cards/modules/ untouched when the network phase fails', async () => {
-    const source = new InMemorySource(
-      new Map([
-        [
-          'https://example.com/A.git',
-          {
-            files: {
-              'cardsConfig.json': JSON.stringify({
-                cardKeyPrefix: 'A',
-                modules: [],
-              }),
-            },
-          },
-        ],
-        [
-          'https://example.com/B.git',
-          {
-            files: {} as Record<string, string>,
-            failWith: new Error('clone boom'),
-          },
-        ],
-      ]),
-    );
+  it('validate=true rejects a file: source whose folder does not exist', async () => {
     const { project } = makeProjectStub({ basePath: projectDir });
 
+    const stagedPath = await stage(tempDir, 'F', {});
     const resolved = [
-      buildResolved('A', 'https://example.com/A.git', { range: '^1.0.0' }),
-      buildResolved('B', 'https://example.com/B.git', { range: '^1.0.0' }),
+      buildResolved('F', 'file:/nonexistent/path/to/mod', stagedPath),
     ];
 
     await expect(
-      installModules(source, project, resolved, { tempDir }),
-    ).rejects.toThrow(/clone boom/);
-
-    // Network-phase failure ⇒ nothing lands under .cards/modules.
-    const modulesFolder = join(projectDir, '.cards', 'modules');
-    expect(existsSync(modulesFolder)).toBe(false);
-  });
-
-  it('validate=true rejects a file: source whose folder does not exist', async () => {
-    const source = new InMemorySource(new Map());
-    const { project } = makeProjectStub({ basePath: projectDir });
-
-    const resolved = [buildResolved('F', 'file:/nonexistent/path/to/mod')];
-
-    await expect(
-      installModules(source, project, resolved, {
+      installModules(project, resolved, {
         tempDir,
         validate: true,
       }),
     ).rejects.toThrow(
       `Input validation error: cannot find project '/nonexistent/path/to/mod'`,
     );
-
-    expect(source.fetchCalls).toEqual([]);
   });
 
   it('does not persist a transitive declaration (parent defined)', async () => {
-    const source = new InMemorySource(
-      new Map([
-        [
-          'https://example.com/A.git',
-          {
-            files: {
-              'cardsConfig.json': JSON.stringify({
-                cardKeyPrefix: 'A',
-                modules: [],
-              }),
-            },
-          },
-        ],
-        [
-          'https://example.com/B.git',
-          {
-            files: {
-              'cardsConfig.json': JSON.stringify({
-                cardKeyPrefix: 'B',
-                modules: [],
-              }),
-            },
-          },
-        ],
-      ]),
-    );
+    const stagedA = await stage(tempDir, 'A', {
+      'cardsConfig.json': JSON.stringify({
+        cardKeyPrefix: 'A',
+        modules: [],
+      }),
+    });
+    const stagedB = await stage(tempDir, 'B', {
+      'cardsConfig.json': JSON.stringify({
+        cardKeyPrefix: 'B',
+        modules: [],
+      }),
+    });
     const { project, modules } = makeProjectStub({ basePath: projectDir });
 
     const resolved = [
-      buildResolved('A', 'https://example.com/A.git', { range: '^1.0.0' }),
-      buildResolved('B', 'https://example.com/B.git', {
+      buildResolved('A', 'https://example.com/A.git', stagedA, {
+        range: '^1.0.0',
+      }),
+      buildResolved('B', 'https://example.com/B.git', stagedB, {
         range: '^1.0.0',
         parent: { project: '/project', name: 'A' },
       }),
     ];
 
-    await installModules(source, project, resolved, { tempDir });
+    await installModules(project, resolved, { tempDir });
 
     // Both folders installed.
     expect(existsSync(join(projectDir, '.cards', 'modules', 'A'))).toBe(true);
@@ -263,45 +162,37 @@ describe('modules/installer', () => {
   });
 
   it('persists only successfully applied modules when applyOne throws mid-batch', async () => {
-    const source = new InMemorySource(
-      new Map([
-        [
-          'https://example.com/A.git',
-          {
-            files: {
-              'cardsConfig.json': JSON.stringify({
-                cardKeyPrefix: 'A',
-                modules: [],
-              }),
-            },
-          },
-        ],
-        [
-          'https://example.com/B.git',
-          { files: {} as Record<string, string>, skipResourcesFolder: true },
-        ],
-        [
-          'https://example.com/C.git',
-          {
-            files: {
-              'cardsConfig.json': JSON.stringify({
-                cardKeyPrefix: 'C',
-                modules: [],
-              }),
-            },
-          },
-        ],
-      ]),
-    );
+    const stagedA = await stage(tempDir, 'A', {
+      'cardsConfig.json': JSON.stringify({
+        cardKeyPrefix: 'A',
+        modules: [],
+      }),
+    });
+    // B's staging root has no resources folder, so copyDir will fail
+    // with ENOENT during apply.
+    const stagedB = join(tempDir, 'B');
+    await mkdir(stagedB, { recursive: true });
+    const stagedC = await stage(tempDir, 'C', {
+      'cardsConfig.json': JSON.stringify({
+        cardKeyPrefix: 'C',
+        modules: [],
+      }),
+    });
     const { project, modules } = makeProjectStub({ basePath: projectDir });
 
     const resolved = [
-      buildResolved('A', 'https://example.com/A.git', { range: '^1.0.0' }),
-      buildResolved('B', 'https://example.com/B.git', { range: '^1.0.0' }),
-      buildResolved('C', 'https://example.com/C.git', { range: '^1.0.0' }),
+      buildResolved('A', 'https://example.com/A.git', stagedA, {
+        range: '^1.0.0',
+      }),
+      buildResolved('B', 'https://example.com/B.git', stagedB, {
+        range: '^1.0.0',
+      }),
+      buildResolved('C', 'https://example.com/C.git', stagedC, {
+        range: '^1.0.0',
+      }),
     ];
 
-    await installModules(source, project, resolved, { tempDir });
+    await installModules(project, resolved, { tempDir });
 
     // A and C landed on disk; B did not.
     expect(existsSync(join(projectDir, '.cards', 'modules', 'A'))).toBe(true);
@@ -313,29 +204,23 @@ describe('modules/installer', () => {
   });
 
   it('refreshes the module cache after install', async () => {
-    const source = new InMemorySource(
-      new Map([
-        [
-          'https://example.com/A.git',
-          {
-            files: {
-              'cardsConfig.json': JSON.stringify({
-                cardKeyPrefix: 'A',
-                modules: [],
-              }),
-            },
-          },
-        ],
-      ]),
-    );
+    const stagedA = await stage(tempDir, 'A', {
+      'cardsConfig.json': JSON.stringify({
+        cardKeyPrefix: 'A',
+        modules: [],
+      }),
+    });
     const { project, refreshAfterModuleChange } = makeProjectStub({
       basePath: projectDir,
     });
 
     await installModules(
-      source,
       project,
-      [buildResolved('A', 'https://example.com/A.git', { range: '^1.0.0' })],
+      [
+        buildResolved('A', 'https://example.com/A.git', stagedA, {
+          range: '^1.0.0',
+        }),
+      ],
       { tempDir },
     );
 
