@@ -764,7 +764,12 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
       'allow',
       'allowfullscreen',
       'frameborder',
+      'dominant-baseline',
     ],
+    // Mermaid v11 places text labels in <foreignObject><div>...</div></foreignObject>.
+    // Without this option DOMPurify treats foreignObject children as SVG elements
+    // (not HTML) and strips them, making all diagram labels invisible.
+    HTML_INTEGRATION_POINTS: { foreignobject: true },
   });
 
   const combinedMacros = Object.entries(macroMetadata).reduce<
