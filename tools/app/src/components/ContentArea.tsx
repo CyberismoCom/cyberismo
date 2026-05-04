@@ -13,7 +13,7 @@
 */
 
 import type { ReactElement } from 'react';
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import type { ExpandedLinkType } from '../lib/definitions';
 
 import { parse } from 'node-html-parser';
@@ -152,6 +152,17 @@ const MACRO_TAGS = Object.values(macroMetadata)
   .map((meta) => meta.tagName.toUpperCase())
   .filter(Boolean) as string[];
 
+const combinedMacros = Object.entries(macroMetadata).reduce<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (MacroMetadata & { component: (props: any) => ReactElement })[]
+>((acc, [key, value]) => {
+  acc.push({
+    ...value,
+    component: UImacros[key as UIMacroName] ?? (() => <>err</>),
+  });
+  return acc;
+}, []);
+
 let mermaidRenderCounter = 0;
 
 const contentPurify = createDOMPurify(window);
@@ -229,18 +240,25 @@ export function LinkForm({
   const selectedLinkType = linkTypes.find((t) => t.id === linkType);
 
   // In edit mode, exclude the link being edited so it doesn't count as "already linked"
-  const linksForFilter =
-    state === 'edit' && data?.cardKey
-      ? currentCardLinks.filter((l) => l.key !== data.cardKey)
-      : currentCardLinks;
+  const linksForFilter = useMemo(
+    () =>
+      state === 'edit' && data?.cardKey
+        ? currentCardLinks.filter((l) => l.key !== data.cardKey)
+        : currentCardLinks,
+    [state, data, currentCardLinks],
+  );
 
-  const usableCards = flattenTree(cards).filter(
-    createPredicate(
-      canCreateLinkToCard,
-      cardKey,
-      selectedLinkType,
-      linksForFilter,
-    ),
+  const usableCards = useMemo(
+    () =>
+      flattenTree(cards).filter(
+        createPredicate(
+          canCreateLinkToCard,
+          cardKey,
+          selectedLinkType,
+          linksForFilter,
+        ),
+      ),
+    [cards, cardKey, selectedLinkType, linksForFilter],
   );
 
   // If card is not in usable cards, reset the form
@@ -738,6 +756,8 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     (wrapper as HTMLElementWithCleanup).__cleanupSvgControls = cleanup;
   };
 
+  const locationKey = useLocation().key;
+
   useEffect(() => {
     if (!contentRef) return;
 
@@ -778,12 +798,14 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contentRef, useLocation().key]);
+  }, [contentRef, locationKey]);
 
   // Render [mermaid] AsciiDoc blocks into diagrams
   // The backend pre-processes mermaid blocks into <div class="mermaid-block" data-mermaid-code="base64">
   useEffect(() => {
     if (!contentRef) return;
+
+    let cancelled = false;
 
     // Re-initialize mermaid with the current theme so diagrams match light/dark mode
     mermaid.initialize({
@@ -796,24 +818,27 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
       '.mermaid-block[data-mermaid-code]',
     );
 
-    mermaidBlocks.forEach((block) => {
-      const encoded = block.getAttribute('data-mermaid-code') || '';
-      let code: string;
-      try {
-        code = new TextDecoder().decode(
-          Uint8Array.from(atob(encoded), (c) => c.charCodeAt(0)),
-        );
-      } catch {
-        return;
-      }
-      if (!code) return;
+    const renderBlocks = async () => {
+      for (const block of mermaidBlocks) {
+        if (cancelled) return;
 
-      const id = `mermaid-block-${mermaidRenderCounter++}`;
-      block.setAttribute('data-mermaid-rendered', 'true');
+        const encoded = block.getAttribute('data-mermaid-code') || '';
+        let code: string;
+        try {
+          code = new TextDecoder().decode(
+            Uint8Array.from(atob(encoded), (c) => c.charCodeAt(0)),
+          );
+        } catch {
+          continue;
+        }
+        if (!code) continue;
 
-      mermaid
-        .render(id, code)
-        .then(({ svg }) => {
+        const id = `mermaid-block-${mermaidRenderCounter++}`;
+
+        try {
+          const { svg } = await mermaid.render(id, code);
+          if (cancelled) return;
+
           const wrapper = document.createElement('div');
           wrapper.setAttribute('data-type', 'cyberismo-svg-wrapper');
           wrapper.innerHTML = contentPurify.sanitize(svg, {
@@ -838,46 +863,43 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
           block.innerHTML = '';
           block.appendChild(wrapper);
           addSvgControls(wrapper);
-        })
-        .catch(() => {
-          block.textContent = `Mermaid diagram error`;
-        });
-    });
+        } catch {
+          if (!cancelled) {
+            block.textContent = `Mermaid diagram error`;
+          }
+        }
+      }
+    };
+
+    renderBlocks();
+
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contentRef, isDarkMode, useLocation().key]);
+  }, [contentRef, isDarkMode, locationKey, card.parsedContent]);
 
   const setRef = useCallback((node: HTMLDivElement | null) => {
     setContentRef(node);
   }, []);
 
-  const htmlContent = card.parsedContent || '';
-
-  const sanitizedHtml = contentPurify.sanitize(htmlContent, {
-    USE_PROFILES: { html: true, svg: true },
-    ADD_TAGS: [...MACRO_TAGS, 'iframe'],
-    ADD_ATTR: [
-      'options',
-      'key',
-      'sandbox',
-      'allow',
-      'allowfullscreen',
-      'frameborder',
-      'data-mermaid-code',
-    ],
-  });
-
-  const combinedMacros = Object.entries(macroMetadata).reduce<
-    // We simply trust that the macro has been validated
-    // If a validation error occurs, it should also not try to render
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (MacroMetadata & { component: (props: any) => ReactElement })[]
-  >((acc, [key, value]) => {
-    acc.push({
-      ...value,
-      component: UImacros[key as UIMacroName] ?? (() => <>err</>),
-    });
-    return acc;
-  }, []);
+  const sanitizedHtml = useMemo(
+    () =>
+      contentPurify.sanitize(card.parsedContent || '', {
+        USE_PROFILES: { html: true, svg: true },
+        ADD_TAGS: [...MACRO_TAGS, 'iframe'],
+        ADD_ATTR: [
+          'options',
+          'key',
+          'sandbox',
+          'allow',
+          'allowfullscreen',
+          'frameborder',
+          'data-mermaid-code',
+        ],
+      }),
+    [card.parsedContent],
+  );
 
   // NOTE: Parser is case-insensitive and lower cases all tags and attributes
   // htmlparser2 options cannot be used on the browser
