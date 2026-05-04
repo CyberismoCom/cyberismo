@@ -124,11 +124,6 @@ export async function applyModules(
     await project.configuration.upsertModule(toPersistedSetting(entry));
   }
 
-  // Clean up staging for cleanly-applied modules. Failed stages are
-  // intentionally left on disk so the offending tree can be inspected
-  // after the run — see module-system.allium's "Should temp staging
-  // directory be cleaned up on failure" open question. Callers that
-  // do not want the leftovers should pass a short-lived tempDir.
   await Promise.all(
     applied
       .filter((stage) => isGitStage(stage, options.tempDir))
