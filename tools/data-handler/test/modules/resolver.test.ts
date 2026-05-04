@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import { createResolver } from '../../src/modules/resolver.js';
+import { resolveModules } from '../../src/modules/resolver.js';
 import type { SourceLayer, FetchTarget } from '../../src/modules/source.js';
 import { toVersionRange } from '../../src/modules/types.js';
 import type {
@@ -120,9 +120,9 @@ describe('modules/resolver', () => {
       ]),
       new Map([['https://example.com/A.git', ['2.0.0', '1.5.0', '1.0.0']]]),
     );
-    const resolver = createResolver(source);
 
-    const out = await resolver.resolve(
+    const out = await resolveModules(
+      source,
       [decl('A', 'https://example.com/A.git', '^1.0.0')],
       { tempDir },
     );
@@ -155,9 +155,9 @@ describe('modules/resolver', () => {
         ['https://example.com/B.git', ['2.0.0']],
       ]),
     );
-    const resolver = createResolver(source);
 
-    const out = await resolver.resolve(
+    const out = await resolveModules(
+      source,
       [decl('A', 'https://example.com/A.git', '^1.0.0')],
       { tempDir },
     );
@@ -197,9 +197,9 @@ describe('modules/resolver', () => {
         ['https://example.com/B.git', ['1.0.0']],
       ]),
     );
-    const resolver = createResolver(source);
 
-    const out = await resolver.resolve(
+    const out = await resolveModules(
+      source,
       [decl('A', 'https://example.com/A.git', '^1.0.0')],
       { tempDir },
     );
@@ -255,10 +255,10 @@ describe('modules/resolver', () => {
         ['https://example.com/C.git', ['1.0.0']],
       ]),
     );
-    const resolver = createResolver(source);
     const onConflict = vi.fn();
 
-    const out = await resolver.resolve(
+    const out = await resolveModules(
+      source,
       [
         decl('A', 'https://example.com/A.git', '^1.0.0'),
         decl('C', 'https://example.com/C.git', '^1.0.0'),
@@ -312,10 +312,10 @@ describe('modules/resolver', () => {
         ['https://example.com/B.git', ['1.5.0', '2.0.0']],
       ]),
     );
-    const resolver = createResolver(source);
     const conflicts: DiamondVersionConflict[] = [];
 
-    const out = await resolver.resolve(
+    const out = await resolveModules(
+      source,
       [
         decl('A', 'https://example.com/A.git', '^1.0.0'),
         decl('C', 'https://example.com/C.git', '^1.0.0'),
@@ -379,10 +379,10 @@ describe('modules/resolver', () => {
         ['https://example.com/B.git', ['1.5.0', '2.0.0']],
       ]),
     );
-    const resolver = createResolver(source);
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    await resolver.resolve(
+    await resolveModules(
+      source,
       [
         decl('A', 'https://example.com/A.git', '^1.0.0'),
         decl('C', 'https://example.com/C.git', '^1.0.0'),
@@ -408,9 +408,9 @@ describe('modules/resolver', () => {
       ]),
       new Map([['https://example.com/B.git', ['2.0.0', '1.5.0']]]),
     );
-    const resolver = createResolver(source);
 
-    const out = await resolver.resolve(
+    const out = await resolveModules(
+      source,
       [decl('B', 'https://example.com/B.git', '^1.0.0')],
       {
         tempDir,
@@ -438,11 +438,14 @@ describe('modules/resolver', () => {
       new Map([[fileLocation, { cardKeyPrefix: 'F', name: 'F', modules: [] }]]),
       new Map(),
     );
-    const resolver = createResolver(source);
 
-    const out = await resolver.resolve([decl('F', fileLocation, '^1.0.0')], {
-      tempDir,
-    });
+    const out = await resolveModules(
+      source,
+      [decl('F', fileLocation, '^1.0.0')],
+      {
+        tempDir,
+      },
+    );
 
     expect(out).toHaveLength(1);
     expect(out[0].ref).toBeUndefined();
@@ -459,12 +462,15 @@ describe('modules/resolver', () => {
       ]),
       new Map([['https://example.com/X.git', ['1.0.0']]]),
     );
-    const resolver = createResolver(source);
 
     await expect(
-      resolver.resolve([decl('X', 'https://example.com/X.git', '^5.0.0')], {
-        tempDir,
-      }),
+      resolveModules(
+        source,
+        [decl('X', 'https://example.com/X.git', '^5.0.0')],
+        {
+          tempDir,
+        },
+      ),
     ).rejects.toThrow(`No version satisfies range '^5.0.0' for module 'X'`);
   });
 
@@ -500,10 +506,10 @@ describe('modules/resolver', () => {
         ['https://example.com/C.git', ['1.0.0']],
       ]),
     );
-    const resolver = createResolver(source);
 
     await expect(
-      resolver.resolve(
+      resolveModules(
+        source,
         [
           decl('A', 'https://example.com/A.git'),
           decl('C', 'https://example.com/C.git'),
@@ -541,9 +547,9 @@ describe('modules/resolver', () => {
       ]),
       new Map(),
     );
-    const resolver = createResolver(source);
 
-    const out = await resolver.resolve(
+    const out = await resolveModules(
+      source,
       [decl('A', 'https://example.com/A.git')],
       { tempDir },
     );
@@ -567,10 +573,9 @@ describe('modules/resolver', () => {
 
   it('throws when a declaration with an empty name reaches the resolver', async () => {
     const source = new InMemorySource(new Map(), new Map());
-    const resolver = createResolver(source);
 
     await expect(
-      resolver.resolve([decl('', 'https://example.com/whatever.git')], {
+      resolveModules(source, [decl('', 'https://example.com/whatever.git')], {
         tempDir,
       }),
     ).rejects.toThrow(/empty name/);
@@ -592,12 +597,15 @@ describe('modules/resolver', () => {
       ]),
       new Map([['https://example.com/A.git', ['1.0.0']]]),
     );
-    const resolver = createResolver(source);
 
     await expect(
-      resolver.resolve([decl('A', 'https://example.com/A.git', '^1.0.0')], {
-        tempDir,
-      }),
+      resolveModules(
+        source,
+        [decl('A', 'https://example.com/A.git', '^1.0.0')],
+        {
+          tempDir,
+        },
+      ),
     ).rejects.toThrow(/Invalid module name/);
 
     // The malicious child must be rejected at ingestion, before the

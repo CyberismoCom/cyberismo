@@ -14,7 +14,7 @@
 
 import { deleteDir } from '../utils/file-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
-import { createInventory } from './inventory.js';
+import { declaredModules, installedModules } from './inventory.js';
 
 import type { Project } from '../containers/project.js';
 import type { ModuleInstallation } from './types.js';
@@ -45,20 +45,19 @@ export async function cleanOrphans(
   options: CleanOrphansOptions = {},
 ): Promise<number> {
   const logger = getChildLogger({ module: 'orphans' });
-  const inventory = createInventory();
 
   // Default cap: initial count + 2 is enough for any finite graph.
-  const initialInstalled = await inventory.installed(project);
+  const initialInstalled = await installedModules(project);
   const maxIterations = options.maxIterations ?? initialInstalled.length + 2;
 
   let removed = 0;
   let currentInstalled = initialInstalled;
 
   for (let iteration = 1; iteration <= maxIterations; iteration++) {
-    const declared = inventory.declared(project);
+    const declared = declaredModules(project);
     // Reuse `initialInstalled` on the first pass to skip a disk walk.
     const installed =
-      iteration === 1 ? currentInstalled : await inventory.installed(project);
+      iteration === 1 ? currentInstalled : await installedModules(project);
     currentInstalled = installed;
 
     const referenced = new Set<string>();

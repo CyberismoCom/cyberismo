@@ -16,7 +16,8 @@ import semver from 'semver';
 import { read } from '../utils/rw-lock.js';
 import {
   buildRemoteUrl,
-  createInventory,
+  declaredModules,
+  installedModules,
   createSourceLayer,
   isGitLocation,
   satisfies,
@@ -53,10 +54,9 @@ export class CheckUpdates {
     moduleName?: string,
     credentials?: Credentials,
   ): Promise<ModuleUpdateStatus[]> {
-    const inventory = createInventory();
     const sourceLayer = createSourceLayer();
 
-    const allDeclared = inventory.declared(this.project);
+    const allDeclared = declaredModules(this.project);
     const declared = moduleName
       ? allDeclared.filter((d) => d.name === moduleName)
       : allDeclared;
@@ -65,7 +65,7 @@ export class CheckUpdates {
       throw new Error(`Module '${moduleName}' is not part of the project`);
     }
 
-    const installed = await inventory.installed(this.project);
+    const installed = await installedModules(this.project);
     const installedByName = new Map<string, ModuleInstallation>(
       installed.map((i) => [i.name, i]),
     );

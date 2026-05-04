@@ -3,7 +3,10 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import { createInventory } from '../../src/modules/inventory.js';
+import {
+  declaredModules,
+  installedModules,
+} from '../../src/modules/inventory.js';
 import { makeProjectStub } from '../helpers/module-fixtures.js';
 import type { ModuleSetting } from '../../src/interfaces/project-interfaces.js';
 
@@ -54,9 +57,8 @@ describe('modules/inventory', () => {
         private: true,
       },
     ]);
-    const inventory = createInventory();
 
-    const decls = inventory.declared(project);
+    const decls = declaredModules(project);
 
     expect(decls).toHaveLength(2);
     const byName = new Map(decls.map((d) => [d.name, d]));
@@ -84,9 +86,8 @@ describe('modules/inventory', () => {
         version: 'not-semver',
       },
     ]);
-    const inventory = createInventory();
 
-    const [decl] = inventory.declared(project);
+    const [decl] = declaredModules(project);
     expect(decl.versionRange).toBeUndefined();
     // Invalid range is warn-only; name/source still populate.
     expect(decl.name).toBe('baz');
@@ -94,9 +95,8 @@ describe('modules/inventory', () => {
 
   it('installed returns [] when .cards/modules/ does not exist', async () => {
     const project = makeStub(projectDir, []);
-    const inventory = createInventory();
 
-    const installations = await inventory.installed(project);
+    const installations = await installedModules(project);
     expect(installations).toEqual([]);
   });
 
@@ -115,8 +115,7 @@ describe('modules/inventory', () => {
       modules: [],
     });
 
-    const inventory = createInventory();
-    const installations = await inventory.installed(project);
+    const installations = await installedModules(project);
 
     expect(installations).toHaveLength(1);
     const [foo] = installations;
@@ -141,8 +140,7 @@ describe('modules/inventory', () => {
       version: 'not-semver',
     });
 
-    const inventory = createInventory();
-    const [foo] = await inventory.installed(project);
+    const [foo] = await installedModules(project);
     expect(foo.name).toBe('foo');
     expect(foo.version).toBeUndefined();
   });
@@ -154,8 +152,7 @@ describe('modules/inventory', () => {
       recursive: true,
     });
 
-    const inventory = createInventory();
-    const installations = await inventory.installed(project);
+    const installations = await installedModules(project);
     expect(installations).toEqual([]);
   });
 
@@ -168,8 +165,7 @@ describe('modules/inventory', () => {
       version: '1.0.0',
     });
 
-    const inventory = createInventory();
-    const installations = await inventory.installed(project);
+    const installations = await installedModules(project);
     expect(installations).toHaveLength(1);
     expect(installations[0].source.location).toBe('');
     expect(installations[0].version).toBe('1.0.0');

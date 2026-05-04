@@ -187,7 +187,7 @@ export interface MakeProjectStubOptions {
 
 export interface ProjectStub {
   /**
-   * The typed stub. Pass directly to `installer.install`, `createInventory`,
+   * The typed stub. Pass directly to `installModules`, `declaredModules`,
    * `cleanOrphans` — production signatures expect `Project`, so the
    * single cast lives here.
    */

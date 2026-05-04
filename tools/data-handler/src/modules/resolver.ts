@@ -22,7 +22,6 @@ import type {
   DiamondVersionConflict,
   ModuleDeclaration,
   Version,
-  VersionRange,
 } from './types.js';
 import type {
   Credentials,
@@ -43,7 +42,7 @@ export interface ResolvedModule {
   stagedPath: string;
 }
 
-/** Options consumed by {@link Resolver.resolve}. */
+/** Options consumed by {@link resolveModules}. */
 export interface ResolveOptions {
   /** Injected into private HTTPS URLs before fetching. */
   credentials?: Credentials;
@@ -93,135 +92,131 @@ export async function readModuleConfig(
  * BFS walker over module declarations with first-encounter-wins semantics
  * per name. Diamond range mismatches fire `onConflict` rather than throwing.
  */
-export class Resolver {
-  constructor(private readonly source: SourceLayer) {}
-
-  /** Resolve roots plus every transitive declaration reachable via their `cardsConfig.json`. */
-  async resolve(
-    roots: ModuleDeclaration[],
-    options: ResolveOptions,
-  ): Promise<ResolvedModule[]> {
-    const resolved = new Map<string, ResolvedModule>();
-    const queue: ModuleDeclaration[] = [...roots];
-    const onConflict =
-      options.onConflict ??
-      ((event) => {
-        console.warn(
-          `Diamond version conflict for module '${event.name}': ` +
-            `installed version ${event.installedVersion.value} ` +
-            `does not satisfy range '${event.rejectingRange}' ` +
-            `(required by ${event.rejectingParent?.name ?? '<unknown parent>'})`,
-        );
-      });
-
-    while (queue.length > 0) {
-      const decl = queue.shift()!;
-
-      if (decl.name === '') {
-        // Callers must resolve the name before invoking the resolver.
-        throw new Error(
-          `Resolver encountered a declaration with an empty name ` +
-            `for source '${decl.source.location}'. Callers must resolve ` +
-            `the name before invoking the resolver.`,
-        );
-      }
-
-      const existing = resolved.get(decl.name);
-
-      if (existing) {
-        this.assertSourceAgreement(existing, decl);
-
-        if (
-          decl.versionRange &&
-          existing.version &&
-          !satisfies(existing.version, decl.versionRange)
-        ) {
-          onConflict({
-            project: decl.project,
-            name: decl.name,
-            installedVersion: { kind: 'pinned', value: existing.version },
-            rejectingRange: decl.versionRange,
-            rejectingParent: decl.parent,
-          });
-        }
-
-        continue;
-      }
-
-      // First encounter: pick a version, fetch, and record.
-      const remoteUrl = buildRemoteUrl(decl.source, options.credentials);
-      const override = options.overrides?.get(decl.name);
-
-      let version: Version | undefined;
-      let ref: string | undefined;
-
-      if (override !== undefined) {
-        version = toVersion(override);
-        ref = versionToTag(version);
-      } else if (decl.versionRange) {
-        const available = await this.source.listRemoteVersions(
-          decl.source.location,
-          remoteUrl,
-        );
-        if (available.length > 0) {
-          const picked = pickVersion(available, decl.versionRange);
-          if (!picked) {
-            throw new Error(
-              `No version satisfies range '${decl.versionRange}' for module ` +
-                `'${decl.name || decl.source.location}'`,
-            );
-          }
-          version = picked;
-          ref = versionToTag(version);
-        }
-        // Empty list → source doesn't support versioning; leave
-        // version/ref undefined (silently ignore the range).
-      }
-      // No override, no range → leave version/ref undefined (default branch for git).
-
-      const path = await this.source.fetch(
-        { location: decl.source.location, remoteUrl, ref },
-        options.tempDir,
-        decl.name,
+export async function resolveModules(
+  source: SourceLayer,
+  roots: ModuleDeclaration[],
+  options: ResolveOptions,
+): Promise<ResolvedModule[]> {
+  const resolved = new Map<string, ResolvedModule>();
+  const queue: ModuleDeclaration[] = [...roots];
+  const onConflict =
+    options.onConflict ??
+    ((event) => {
+      console.warn(
+        `Diamond version conflict for module '${event.name}': ` +
+          `installed version ${event.installedVersion.value} ` +
+          `does not satisfy range '${event.rejectingRange}' ` +
+          `(required by ${event.rejectingParent?.name ?? '<unknown parent>'})`,
       );
-      const childConfig = await readModuleConfig(path);
+    });
 
-      const resolvedEntry: ResolvedModule = {
-        declaration: { ...decl },
-        ref,
-        remoteUrl,
-        version,
-        stagedPath: path,
-      };
-      resolved.set(decl.name, resolvedEntry);
+  while (queue.length > 0) {
+    const decl = queue.shift()!;
 
-      const childDecls = childConfig.modules ?? [];
-      for (const child of childDecls) {
-        queue.push(toChildDeclaration(decl.project, decl.name, child));
-      }
+    if (decl.name === '') {
+      // Callers must resolve the name before invoking the resolver.
+      throw new Error(
+        `Resolver encountered a declaration with an empty name ` +
+          `for source '${decl.source.location}'. Callers must resolve ` +
+          `the name before invoking the resolver.`,
+      );
     }
 
-    return Array.from(resolved.values());
+    const existing = resolved.get(decl.name);
+
+    if (existing) {
+      assertSourceAgreement(existing, decl);
+
+      if (
+        decl.versionRange &&
+        existing.version &&
+        !satisfies(existing.version, decl.versionRange)
+      ) {
+        onConflict({
+          project: decl.project,
+          name: decl.name,
+          installedVersion: { kind: 'pinned', value: existing.version },
+          rejectingRange: decl.versionRange,
+          rejectingParent: decl.parent,
+        });
+      }
+
+      continue;
+    }
+
+    // First encounter: pick a version, fetch, and record.
+    const remoteUrl = buildRemoteUrl(decl.source, options.credentials);
+    const override = options.overrides?.get(decl.name);
+
+    let version: Version | undefined;
+    let ref: string | undefined;
+
+    if (override !== undefined) {
+      version = toVersion(override);
+      ref = versionToTag(version);
+    } else if (decl.versionRange) {
+      const available = await source.listRemoteVersions(
+        decl.source.location,
+        remoteUrl,
+      );
+      if (available.length > 0) {
+        const picked = pickVersion(available, decl.versionRange);
+        if (!picked) {
+          throw new Error(
+            `No version satisfies range '${decl.versionRange}' for module ` +
+              `'${decl.name || decl.source.location}'`,
+          );
+        }
+        version = picked;
+        ref = versionToTag(version);
+      }
+      // Empty list → source doesn't support versioning; leave
+      // version/ref undefined (silently ignore the range).
+    }
+    // No override, no range → leave version/ref undefined (default branch for git).
+
+    const path = await source.fetch(
+      { location: decl.source.location, remoteUrl, ref },
+      options.tempDir,
+      decl.name,
+    );
+    const childConfig = await readModuleConfig(path);
+
+    const resolvedEntry: ResolvedModule = {
+      declaration: { ...decl },
+      ref,
+      remoteUrl,
+      version,
+      stagedPath: path,
+    };
+    resolved.set(decl.name, resolvedEntry);
+
+    const childDecls = childConfig.modules ?? [];
+    for (const child of childDecls) {
+      queue.push(toChildDeclaration(decl.project, decl.name, child));
+    }
   }
 
-  /** @throws when two declarations for the same name disagree on location/private. */
-  private assertSourceAgreement(
-    existing: ResolvedModule,
-    decl: ModuleDeclaration,
-  ): void {
-    const existingPrivate = existing.declaration.source.private ?? false;
-    const declPrivate = decl.source.private ?? false;
-    if (
-      existing.declaration.source.location !== decl.source.location ||
-      existingPrivate !== declPrivate
-    ) {
-      throw new Error(
-        `Conflicting source for module '${decl.name}': ` +
-          `installed from '${existing.declaration.source.location}' ` +
-          `(private=${existingPrivate}), but also declared with ` +
-          `'${decl.source.location}' (private=${declPrivate})`,
-      );
-    }
+  return Array.from(resolved.values());
+}
+
+/** @throws when two declarations for the same name disagree on location/private. */
+function assertSourceAgreement(
+  existing: ResolvedModule,
+  decl: ModuleDeclaration,
+): void {
+  const existingPrivate = existing.declaration.source.private ?? false;
+  const declPrivate = decl.source.private ?? false;
+  if (
+    existing.declaration.source.location !== decl.source.location ||
+    existingPrivate !== declPrivate
+  ) {
+    throw new Error(
+      `Conflicting source for module '${decl.name}': ` +
+        `installed from '${existing.declaration.source.location}' ` +
+        `(private=${existingPrivate}), but also declared with ` +
+        `'${decl.source.location}' (private=${declPrivate})`,
+    );
   }
 }
 
@@ -246,8 +241,4 @@ function toChildDeclaration(
     versionRange,
     parent: { project: projectId, name: parentName },
   };
-}
-
-export function createResolver(source: SourceLayer): Resolver {
-  return new Resolver(source);
 }

@@ -14,7 +14,7 @@
 import { ActionGuard } from '../permissions/action-guard.js';
 import { isModuleCard, isExternalItemKey } from '../utils/card-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
-import { createInventory } from '../modules/inventory.js';
+import { declaredModules } from '../modules/inventory.js';
 import { cleanOrphans } from '../modules/orphans.js';
 import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
@@ -325,10 +325,9 @@ export class Remove {
    * lifetime is controlled by the parent installation.
    */
   private async removeModule(targetName: string) {
-    const inventory = createInventory();
-    const declaration = inventory
-      .declared(this.project)
-      .find((d) => d.name === targetName);
+    const declaration = declaredModules(this.project).find(
+      (d) => d.name === targetName,
+    );
     if (!declaration) {
       throw new Error(`Module '${targetName}' is not part of the project`);
     }

@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import { createInstaller } from '../../src/modules/installer.js';
+import { installModules } from '../../src/modules/installer.js';
 import type { ResolvedModule } from '../../src/modules/resolver.js';
 import type { FetchTarget, SourceLayer } from '../../src/modules/source.js';
 import { ProjectPaths } from '../../src/containers/project/project-paths.js';
@@ -136,7 +136,6 @@ describe('modules/installer', () => {
       ]),
     );
     const { project, modules } = makeProjectStub({ basePath: projectDir });
-    const installer = createInstaller(source);
 
     const resolved = [
       buildResolved('A', 'https://example.com/A.git', {
@@ -145,7 +144,7 @@ describe('modules/installer', () => {
       }),
     ];
 
-    await installer.install(project, resolved, { tempDir });
+    await installModules(source, project, resolved, { tempDir });
 
     const moduleDir = join(projectDir, '.cards', 'modules', 'A');
     expect(existsSync(moduleDir)).toBe(true);
@@ -184,7 +183,6 @@ describe('modules/installer', () => {
       ]),
     );
     const { project } = makeProjectStub({ basePath: projectDir });
-    const installer = createInstaller(source);
 
     const resolved = [
       buildResolved('A', 'https://example.com/A.git', { range: '^1.0.0' }),
@@ -192,7 +190,7 @@ describe('modules/installer', () => {
     ];
 
     await expect(
-      installer.install(project, resolved, { tempDir }),
+      installModules(source, project, resolved, { tempDir }),
     ).rejects.toThrow(/clone boom/);
 
     // Network-phase failure ⇒ nothing lands under .cards/modules.
@@ -203,12 +201,11 @@ describe('modules/installer', () => {
   it('validate=true rejects a file: source whose folder does not exist', async () => {
     const source = new InMemorySource(new Map());
     const { project } = makeProjectStub({ basePath: projectDir });
-    const installer = createInstaller(source);
 
     const resolved = [buildResolved('F', 'file:/nonexistent/path/to/mod')];
 
     await expect(
-      installer.install(project, resolved, {
+      installModules(source, project, resolved, {
         tempDir,
         validate: true,
       }),
@@ -247,7 +244,6 @@ describe('modules/installer', () => {
       ]),
     );
     const { project, modules } = makeProjectStub({ basePath: projectDir });
-    const installer = createInstaller(source);
 
     const resolved = [
       buildResolved('A', 'https://example.com/A.git', { range: '^1.0.0' }),
@@ -257,7 +253,7 @@ describe('modules/installer', () => {
       }),
     ];
 
-    await installer.install(project, resolved, { tempDir });
+    await installModules(source, project, resolved, { tempDir });
 
     // Both folders installed.
     expect(existsSync(join(projectDir, '.cards', 'modules', 'A'))).toBe(true);
@@ -298,7 +294,6 @@ describe('modules/installer', () => {
       ]),
     );
     const { project, modules } = makeProjectStub({ basePath: projectDir });
-    const installer = createInstaller(source);
 
     const resolved = [
       buildResolved('A', 'https://example.com/A.git', { range: '^1.0.0' }),
@@ -306,7 +301,7 @@ describe('modules/installer', () => {
       buildResolved('C', 'https://example.com/C.git', { range: '^1.0.0' }),
     ];
 
-    await installer.install(project, resolved, { tempDir });
+    await installModules(source, project, resolved, { tempDir });
 
     // A and C landed on disk; B did not.
     expect(existsSync(join(projectDir, '.cards', 'modules', 'A'))).toBe(true);
@@ -336,9 +331,9 @@ describe('modules/installer', () => {
     const { project, refreshAfterModuleChange } = makeProjectStub({
       basePath: projectDir,
     });
-    const installer = createInstaller(source);
 
-    await installer.install(
+    await installModules(
+      source,
       project,
       [buildResolved('A', 'https://example.com/A.git', { range: '^1.0.0' })],
       { tempDir },

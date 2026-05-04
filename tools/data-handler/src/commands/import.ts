@@ -20,9 +20,9 @@ import { write } from '../utils/rw-lock.js';
 
 import {
   buildRemoteUrl,
-  createInventory,
-  createInstaller,
-  createResolver,
+  declaredModules,
+  installModules,
+  resolveModules,
   createSourceLayer,
   FILE_PROTOCOL,
   isFileLocation,
@@ -212,12 +212,9 @@ export class Import {
       }
     }
 
-    const inventory = createInventory();
-    const existing = inventory.declared(this.project);
+    const existing = declaredModules(this.project);
 
     const sourceLayer = createSourceLayer();
-    const resolver = createResolver(sourceLayer);
-    const installer = createInstaller(sourceLayer);
 
     // Pre-fetch only to read `cardKeyPrefix`; the resolver does its own
     // fetch at the ref it picks. We don't hand this tree off as
@@ -281,12 +278,12 @@ export class Import {
       ...existing.filter((d) => d.source.location !== location),
     ];
 
-    const resolved = await resolver.resolve(allRoots, {
+    const resolved = await resolveModules(sourceLayer, allRoots, {
       credentials: options?.credentials,
       tempDir: this.tempModulesDir,
     });
 
-    await installer.install(this.project, resolved, {
+    await installModules(sourceLayer, this.project, resolved, {
       tempDir: this.tempModulesDir,
       validate: isFileLocation(location),
     });
@@ -332,16 +329,13 @@ export class Import {
     // Ensure module list is up to date before updating
     await this.fetchCmd.ensureModuleListUpToDate();
 
-    const inventory = createInventory();
-    const declared = inventory.declared(this.project);
+    const declared = declaredModules(this.project);
     const target = declared.find((d) => d.name === moduleName);
     if (!target) {
       throw new Error(`Module '${moduleName}' is not part of the project`);
     }
 
     const sourceLayer = createSourceLayer();
-    const resolver = createResolver(sourceLayer);
-    const installer = createInstaller(sourceLayer);
 
     let overrides: Map<string, string> | undefined;
     if (version) {
@@ -366,13 +360,13 @@ export class Import {
       overrides = new Map<string, string>([[moduleName, version]]);
     }
 
-    const resolved = await resolver.resolve(declared, {
+    const resolved = await resolveModules(sourceLayer, declared, {
       credentials,
       overrides,
       tempDir: this.tempModulesDir,
     });
 
-    await installer.install(this.project, resolved, {
+    await installModules(sourceLayer, this.project, resolved, {
       tempDir: this.tempModulesDir,
     });
 
@@ -388,23 +382,20 @@ export class Import {
     // Ensure module list is up to date before updating all modules
     await this.fetchCmd.ensureModuleListUpToDate();
 
-    const inventory = createInventory();
-    const declared = inventory.declared(this.project);
+    const declared = declaredModules(this.project);
 
     if (declared.length === 0) {
       throw new Error('No modules in the project!');
     }
 
     const sourceLayer = createSourceLayer();
-    const resolver = createResolver(sourceLayer);
-    const installer = createInstaller(sourceLayer);
 
-    const resolved = await resolver.resolve(declared, {
+    const resolved = await resolveModules(sourceLayer, declared, {
       credentials,
       tempDir: this.tempModulesDir,
     });
 
-    await installer.install(this.project, resolved, {
+    await installModules(sourceLayer, this.project, resolved, {
       tempDir: this.tempModulesDir,
     });
 

@@ -19,7 +19,7 @@ import { spawn } from 'node:child_process';
 import { writeFile } from 'node:fs/promises';
 
 import { type Fetch, MODULE_LIST_FULL_PATH } from './fetch.js';
-import { createInventory } from '../modules/index.js';
+import { installedModules } from '../modules/index.js';
 
 import { CardLocation } from '../interfaces/project-interfaces.js';
 
@@ -449,7 +449,7 @@ export class Show {
    */
   @read
   public async showModules(): Promise<ModuleInfo[]> {
-    const installed = await createInventory().installed(this.project);
+    const installed = await installedModules(this.project);
     return installed
       .map((m) => ({ name: m.name, version: m.version }))
       .sort((a, b) => a.name.localeCompare(b.name));
