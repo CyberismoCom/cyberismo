@@ -323,10 +323,9 @@ export class Remove {
   }
 
   /**
-   * Remove a top-level module declaration and cascade orphan cleanup to a
-   * fixed point per the spec's `RemoveModule` rule. Transitive-only
-   * modules (no top-level declaration) cannot be removed directly — their
-   * lifetime is controlled by the parent installation.
+   * Remove a top-level module declaration and cascade orphan cleanup.
+   * Transitive-only modules (no top-level declaration) cannot be removed
+   * directly — their lifetime is controlled by the parent installation.
    */
   private async removeModule(targetName: string) {
     const declaration = declaredModules(this.project).find(
@@ -343,10 +342,8 @@ export class Remove {
       target: targetName,
     });
 
-    // Fixed-point orphan cascade: removes this module's installation
-    // (now orphaned) plus any transitives it owned that nothing else
-    // references, and refreshes project caches when anything was
-    // removed. Enforces `NoOrphanInstallations` after the mutation.
+    // Removes this module's installation (now orphaned) plus any
+    // transitives it owned that nothing else references.
     await cleanOrphans(this.project);
 
     this.logger.info(`Removed module '${targetName}'`);

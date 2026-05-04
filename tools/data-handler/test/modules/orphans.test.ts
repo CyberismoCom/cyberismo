@@ -137,7 +137,7 @@ describe('modules/orphans', () => {
   });
 
   it('does not mutate the persisted top-level declarations', async () => {
-    // CleanOrphans is file-system-only; configuration.modules stays
+    // cleanOrphans is file-system-only; configuration.modules stays
     // exactly what the caller passed in.
     await installModule(projectDir, 'A', []);
     await installModule(projectDir, 'Ghost', []);

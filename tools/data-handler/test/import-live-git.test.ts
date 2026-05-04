@@ -92,7 +92,7 @@ describe('import command — live git', () => {
     },
     60000,
   );
-  it('re-importing a git module is upsert (spec ImportModule)', async () => {
+  it('re-importing a git module is upsert', async () => {
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';
     await commands.importCmd.importModule(gitModule);
     await commands.importCmd.importModule(gitModule);

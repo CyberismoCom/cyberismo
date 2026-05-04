@@ -756,11 +756,10 @@ describe('remove module — spec behaviours', () => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
-  it('removing a transitive-only module errors (spec: "not part of the project")', async () => {
-    // Spec's RemoveModule `requires: exists decl` — a transitive-only
-    // installation has no top-level declaration, so the command must
-    // reject with a clear error rather than silently tearing out a dep
-    // owned by another module.
+  it('removing a transitive-only module errors with "not part of the project"', async () => {
+    // A transitive-only installation has no top-level declaration, so
+    // the command must reject with a clear error rather than silently
+    // tearing out a dep owned by another module.
     const depRoot = join(testDir, 'fake-trans-dep');
     makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'trdep' });
     const hostRoot = join(testDir, 'fake-trans-host');

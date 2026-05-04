@@ -233,10 +233,10 @@ describe('import module', () => {
       });
       stubProjectPath.mockRestore();
     });
-    it('re-importing the same module is upsert (spec ImportModule)', async () => {
-      // Spec: `ImportModule` is upsert. Re-importing a module that is
-      // already declared with the same source location must succeed and
-      // update the declared range rather than error.
+    it('re-importing the same module is upsert', async () => {
+      // Re-importing a module that is already declared with the same
+      // source location must succeed and update the declared range
+      // rather than error.
       const result1 = await commandHandler.command(
         Cmd.import,
         ['module', decisionRecordsPath],
@@ -251,10 +251,9 @@ describe('import module', () => {
       expect(result2.statusCode).toBe(200);
     });
     it('re-importing with a mismatched source location is rejected', async () => {
-      // Spec invariant `DeclarationAndInstallationAgreeOnSource`: once a
-      // module has been imported from a given source, a re-import of the
-      // same module name from a different source must be rejected. The
-      // resolver enforces this via `assertSourceAgreement`.
+      // Once a module has been imported from a given source, a re-import
+      // of the same module name from a different source must be rejected.
+      // The resolver enforces this via `assertSourceAgreement`.
       const firstImport = await commandHandler.command(
         Cmd.import,
         ['module', decisionRecordsPath],
@@ -583,18 +582,17 @@ describe('module update — spec behaviours', () => {
 
     await commands.importCmd.updateAllModules();
 
-    // host is still around; dep must have been removed by the fixed-point
-    // orphan cascade that runs at the end of UpdateModules.
+    // host is still around; dep must have been removed by the orphan
+    // cascade that runs at the end of updateAllModules.
     expect(existsSync(installedHost)).toBe(true);
     expect(existsSync(installedDep)).toBe(false);
   });
 
-  it('importModule cleans up installations orphaned by a dropped transitive dep (NoOrphanInstallations)', async () => {
-    // Spec invariant `NoOrphanInstallations`: running `importModule` on a
-    // host whose upstream dropped a transitive dep must remove the stale
-    // installation from disk. Transitives are not top-level declarations so
-    // they do not appear in `configuration.modules`; the proof is purely
-    // disk-based.
+  it('importModule cleans up installations orphaned by a dropped transitive dep', async () => {
+    // Running `importModule` on a host whose upstream dropped a transitive
+    // dep must remove the stale installation from disk. Transitives are
+    // not top-level declarations so they do not appear in
+    // `configuration.modules`; the proof is purely disk-based.
     const depRoot = join(moduleTestDir, 'fake-dep-reimport');
     makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'reimpdep' });
     const hostRoot = join(moduleTestDir, 'fake-host-reimport');
