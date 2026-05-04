@@ -606,7 +606,7 @@ describe('modules/resolver', () => {
           tempDir,
         },
       ),
-    ).rejects.toThrow(/Invalid module name/);
+    ).rejects.toThrow(/Invalid name/);
 
     // The malicious child must be rejected at ingestion, before the
     // resolver fetches or lists versions for it.

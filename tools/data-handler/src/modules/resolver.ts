@@ -13,10 +13,10 @@
 */
 
 import { ProjectPaths } from '../containers/project/project-paths.js';
-import { readJsonFile } from '../utils/json.js';
+import { readCardsConfig } from '../containers/project/cards-config.js';
 import { buildRemoteUrl } from './remote-url.js';
 import { pickVersion, satisfies, versionToTag } from './version.js';
-import { assertValidModuleName, toVersion, toVersionRange } from './types.js';
+import { toVersion, toVersionRange } from './types.js';
 import type { SourceLayer } from './source.js';
 import type {
   DiamondVersionConflict,
@@ -26,8 +26,8 @@ import type {
 import type {
   Credentials,
   ModuleSetting,
+  ProjectSettings,
 } from '../interfaces/project-interfaces.js';
-import type { ProjectConfiguration } from '../project-settings.js';
 
 /** A module declaration after the resolver has chosen a concrete version. */
 export interface ResolvedModule {
@@ -58,34 +58,17 @@ export interface ResolveOptions {
 }
 
 /**
- * Read a fetched module's `cardsConfig.json`. Exported so callers can
- * read `cardKeyPrefix` before handing a pre-fetched module to the resolver.
+ * Read a fetched module's `cardsConfig.json` from its base directory.
+ * Exported so callers can read `cardKeyPrefix` before handing a pre-fetched
+ * module to the resolver.
  *
- * @throws if the file does not exist or is empty.
+ * @throws if the file does not exist or is empty, or if any name fails
+ *         filesystem-safety validation.
  */
 export async function readModuleConfig(
-  path: string,
-): Promise<ProjectConfiguration> {
-  const configPath = new ProjectPaths(path).configurationFile;
-  const config = (await readJsonFile(configPath)) as
-    | ProjectConfiguration
-    | undefined;
-  if (!config) {
-    throw new Error(`Module has no cardsConfig.json at '${configPath}'`);
-  }
-  // Reject path-traversal or otherwise-unsafe names from fetched module
-  // trees before any caller uses them as a filesystem path component.
-  // Empty / missing values are left to caller-level checks that produce
-  // more specific messages.
-  if (config.cardKeyPrefix) {
-    assertValidModuleName(config.cardKeyPrefix);
-  }
-  for (const child of config.modules ?? []) {
-    if (child.name) {
-      assertValidModuleName(child.name);
-    }
-  }
-  return config;
+  basePath: string,
+): Promise<ProjectSettings> {
+  return readCardsConfig(new ProjectPaths(basePath).configurationFile);
 }
 
 /**

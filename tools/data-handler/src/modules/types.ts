@@ -30,29 +30,6 @@ export type Version = string & { readonly __brand: 'Version' };
 /** Branded semver range (e.g. `"^1.0.0"`). Construct via {@link toVersionRange}. */
 export type VersionRange = string & { readonly __brand: 'VersionRange' };
 
-/**
- * Valid module name / `cardKeyPrefix` characters: alphanumerics, underscore
- * and hyphen, starting with an alphanumeric. Rejects path separators, `.`,
- * `..`, null bytes, and anything else that could escape a join().
- */
-const MODULE_NAME_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/;
-
-/**
- * Reject module names that could escape a `path.join` (e.g. `..`, `a/b`,
- * absolute paths, names containing null bytes). Call on any name value
- * that originates from a fetched module's `cardsConfig.json` before it
- * is used as a filesystem path component.
- *
- * @throws if `name` is not a legal module name.
- */
-export function assertValidModuleName(name: string): void {
-  if (typeof name !== 'string' || !MODULE_NAME_PATTERN.test(name)) {
-    throw new Error(
-      `Invalid module name '${name}': must match ${MODULE_NAME_PATTERN.source}`,
-    );
-  }
-}
-
 /** @throws if `value` is not a valid semver version. */
 export function toVersion(value: string): Version {
   const normalized = semver.valid(value);

@@ -233,12 +233,6 @@ export class Import {
 
     const prefetchConfig = await readModuleConfig(prefetchPath);
     const resolvedName = prefetchConfig.cardKeyPrefix;
-    if (!resolvedName) {
-      throw new Error(
-        `Module at '${location}' has no cardKeyPrefix in its ` +
-          `cardsConfig.json; cannot import without a name.`,
-      );
-    }
 
     // Resolve the declared range. An explicit caller range wins; otherwise
     // pin to `^<latest tagged version>` so re-runs stay on the same major

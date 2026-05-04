@@ -317,7 +317,7 @@ describe('import module', () => {
         optionsMini,
       );
       expect(result.statusCode).toBe(400);
-      expect(result.message).toContain('has no cardKeyPrefix');
+      expect(result.message).toContain('cardKeyPrefix');
     });
   });
 

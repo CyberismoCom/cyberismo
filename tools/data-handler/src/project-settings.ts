@@ -24,7 +24,7 @@ import type {
 } from './interfaces/project-interfaces.js';
 import { formatJson } from './utils/json.js';
 import { getChildLogger } from './utils/log-utils.js';
-import { readJsonFileSync } from './utils/json.js';
+import { readCardsConfigSync } from './containers/project/cards-config.js';
 import { Validate } from './commands/validate.js';
 import { SCHEMA_VERSION } from '@cyberismo/assets';
 
@@ -70,27 +70,16 @@ export class ProjectConfiguration implements ProjectSettings {
 
   // Sets configuration values from file.
   private readSettings() {
-    const settings = readJsonFileSync(this.settingPath);
-    if (!settings) {
-      throw new Error(`File at '${this.settingPath}' is not a valid JSON file`);
-    }
+    const settings = readCardsConfigSync(this.settingPath);
 
-    const valid =
-      Object.prototype.hasOwnProperty.call(settings, 'cardKeyPrefix') &&
-      Object.prototype.hasOwnProperty.call(settings, 'name');
-
-    if (valid) {
-      this.schemaVersion = settings.schemaVersion;
-      this.cardKeyPrefix = settings.cardKeyPrefix;
-      this.name = settings.name;
-      this.category = settings.category;
-      this.description = settings.description || '';
-      this.version = settings.version;
-      this.modules = settings.modules || [];
-      this.hubs = settings.hubs || [];
-    } else {
-      throw new Error(`Invalid configuration file '${this.settingPath}'`);
-    }
+    this.schemaVersion = settings.schemaVersion;
+    this.cardKeyPrefix = settings.cardKeyPrefix;
+    this.name = settings.name;
+    this.category = settings.category;
+    this.description = settings.description || '';
+    this.version = settings.version;
+    this.modules = settings.modules || [];
+    this.hubs = settings.hubs || [];
   }
 
   // Synchronously persists configuration file to disk.
