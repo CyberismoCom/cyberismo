@@ -317,8 +317,8 @@ importers:
         specifier: ^3.0.1
         version: 3.0.1
       '@viz-js/viz':
-        specifier: ^3.24.0
-        version: 3.24.0
+        specifier: ^3.26.0
+        version: 3.26.0
       csv-parse:
         specifier: ^6.2.1
         version: 6.2.1
@@ -2277,8 +2277,8 @@ packages:
   '@vitest/utils@4.0.15':
     resolution: {integrity: sha512-HXjPW2w5dxhTD0dLwtYHDnelK3j8sR8cWIaLxr22evTyY6q8pRCjZSmhRWVjBaOVXChQd6AwMzi9pucorXCPZA==}
 
-  '@viz-js/viz@3.24.0':
-    resolution: {integrity: sha512-sTRz2cFN6PwICVC7GVlF2aYNAZ/LwF7Y1mp3B+8LXQ7otyHrzQYSzNBwJ4lctL/aS3x97ppw59z6zIW+wPs6bQ==}
+  '@viz-js/viz@3.26.0':
+    resolution: {integrity: sha512-q/m3rj4aTs38yezZsWABRSsI1auZIWXk5X2aOdz9B7oPR1eYIn9JMEBXY/HbTJwhgS1vEOESC+m0eO6p3imFyQ==}
 
   abbrev@4.0.0:
     resolution: {integrity: sha512-a1wflyaL0tHtJSmLSOVybYhy22vRih4eduhhrkcjgrWGnRfrZtovJ2FRjxuTtkkj47O/baf0R86QU5OuYpz8fA==}
@@ -7629,7 +7629,7 @@ snapshots:
       '@vitest/pretty-format': 4.0.15
       tinyrainbow: 3.0.3
 
-  '@viz-js/viz@3.24.0': {}
+  '@viz-js/viz@3.26.0': {}
 
   abbrev@4.0.0: {}
 
