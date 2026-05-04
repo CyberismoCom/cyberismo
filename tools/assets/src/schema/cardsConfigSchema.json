@@ -1,7 +1,4 @@
 {
-  "$id": "cardsConfigSchema",
-  "additionalProperties": false,
-  "description": "General configuration settings for the card tree.",
   "$defs": {
     "projectPrefix": {
       "type": "string",
@@ -11,6 +8,9 @@
       "maxLength": 10
     }
   },
+  "$id": "cardsConfigSchema",
+  "additionalProperties": false,
+  "description": "General configuration settings for the card tree.",
   "properties": {
     "schemaVersion": {
       "type": "number",
