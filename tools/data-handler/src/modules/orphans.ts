@@ -53,8 +53,9 @@ export async function cleanOrphans(
   let removed = 0;
   let currentInstalled = initialInstalled;
 
+  const declared = declaredModules(project);
+
   for (let iteration = 1; iteration <= maxIterations; iteration++) {
-    const declared = declaredModules(project);
     // Reuse `initialInstalled` on the first pass to skip a disk walk.
     const installed =
       iteration === 1 ? currentInstalled : await installedModules(project);
@@ -64,7 +65,6 @@ export async function cleanOrphans(
     for (const decl of declared) {
       referenced.add(decl.name);
     }
-
     for (const installation of installed) {
       for (const dep of installation.declaredDependencies) {
         referenced.add(dep);
