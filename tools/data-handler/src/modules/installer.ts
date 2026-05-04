@@ -24,18 +24,13 @@ import { FILE_PROTOCOL } from './location.js';
 
 import type { ResolvedModule } from './resolver.js';
 import type { SourceLayer } from './source.js';
-import type {
-  Credentials,
-  ModuleSetting,
-} from '../interfaces/project-interfaces.js';
+import type { ModuleSetting } from '../interfaces/project-interfaces.js';
 import type { Project } from '../containers/project.js';
 
 /**
  * Options consumed by {@link Installer.install}.
  */
 export interface InstallOptions {
-  /** Credentials for private HTTPS remotes. */
-  credentials?: Credentials;
   /** Temporary directory used for staging clones. */
   tempDir: string;
   /** When true, validate each `file:` source before fetching. */

@@ -287,7 +287,6 @@ export class Import {
     });
 
     await installer.install(this.project, resolved, {
-      credentials: options?.credentials,
       tempDir: this.tempModulesDir,
       validate: isFileLocation(location),
     });
@@ -374,7 +373,6 @@ export class Import {
     });
 
     await installer.install(this.project, resolved, {
-      credentials,
       tempDir: this.tempModulesDir,
     });
 
@@ -407,7 +405,6 @@ export class Import {
     });
 
     await installer.install(this.project, resolved, {
-      credentials,
       tempDir: this.tempModulesDir,
     });
 
