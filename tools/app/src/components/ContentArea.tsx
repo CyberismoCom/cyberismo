@@ -13,7 +13,13 @@
 */
 
 import type { ReactElement } from 'react';
-import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useRef,
+} from 'react';
 import type { ExpandedLinkType } from '../lib/definitions';
 
 import { parse } from 'node-html-parser';
