@@ -288,7 +288,7 @@ describe('import module', () => {
       );
 
       // Config must not have been mutated — the resolver's source-
-      // agreement check fires before the installer persists anything.
+      // agreement check fires before the applier persists anything.
       const configAfter = readFileSync(configPath, 'utf-8');
       expect(configAfter).toBe(configBefore);
     });
@@ -655,7 +655,7 @@ describe('module update — spec behaviours', () => {
     // When `updateAllModules` pulls in a brand-new transitive (because the
     // upstream started declaring a dep it previously did not), the project's
     // cached `allModulePrefixes()` must immediately include that transitive's
-    // prefix without any manual refresh by the caller — the installer fires
+    // prefix without any manual refresh by the caller — the applier fires
     // the refresh itself.
     const depRoot = join(moduleTestDir, 'fake-new-dep');
     makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'newdep' });
@@ -769,7 +769,7 @@ describe('module update — spec behaviours', () => {
     modSetting!.version = '^1.0.0';
 
     // No throw: constraint check passes, file source fetch/install runs
-    // end-to-end. The persisted range stays at `^1.0.0` — the installer
+    // end-to-end. The persisted range stays at `^1.0.0` — the applier
     // only writes back the declared range, never the resolved tag.
     await commands.importCmd.updateModule('ovkmod', undefined, '1.3.0');
 

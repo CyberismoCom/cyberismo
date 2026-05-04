@@ -25,12 +25,12 @@ import type { ResolvedModule } from './resolver.js';
 import type { ModuleSetting } from '../interfaces/project-interfaces.js';
 import type { Project } from '../containers/project.js';
 
-const logger = getChildLogger({ module: 'installer' });
+const logger = getChildLogger({ module: 'applier' });
 
 /**
- * Options consumed by {@link installModules}.
+ * Options consumed by {@link applyModules}.
  */
-export interface InstallOptions {
+export interface ApplyOptions {
   /** Directory holding each entry's `stagedPath` tree. */
   tempDir: string;
   /** When true, validate each `file:` source before applying. */
@@ -48,10 +48,10 @@ interface StagedModule {
  * Copy each entry's staged tree into `.cards/modules/<name>/` and
  * persist top-level declarations.
  */
-export async function installModules(
+export async function applyModules(
   project: Project,
   resolved: ResolvedModule[],
-  options: InstallOptions,
+  options: ApplyOptions,
 ): Promise<void> {
   const selfPrefix = project.projectPrefix;
 

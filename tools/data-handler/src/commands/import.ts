@@ -19,9 +19,9 @@ import { Validate } from './validate.js';
 import { write } from '../utils/rw-lock.js';
 
 import {
+  applyModules,
   buildRemoteUrl,
   declaredModules,
-  installModules,
   resolveModules,
   createSourceLayer,
   FILE_PROTOCOL,
@@ -86,7 +86,7 @@ export class Import {
     private fetchCmd: Fetch,
   ) {}
 
-  /** Temp directory shared between the resolver and the installer. */
+  /** Temp directory shared between the resolver and the applier. */
   private get tempModulesDir(): string {
     return join(this.project.paths.tempFolder, 'modules');
   }
@@ -283,7 +283,7 @@ export class Import {
       tempDir: this.tempModulesDir,
     });
 
-    await installModules(this.project, resolved, {
+    await applyModules(this.project, resolved, {
       tempDir: this.tempModulesDir,
       validate: isFileLocation(location),
     });
@@ -366,7 +366,7 @@ export class Import {
       tempDir: this.tempModulesDir,
     });
 
-    await installModules(this.project, resolved, {
+    await applyModules(this.project, resolved, {
       tempDir: this.tempModulesDir,
     });
 
@@ -395,7 +395,7 @@ export class Import {
       tempDir: this.tempModulesDir,
     });
 
-    await installModules(this.project, resolved, {
+    await applyModules(this.project, resolved, {
       tempDir: this.tempModulesDir,
     });
 

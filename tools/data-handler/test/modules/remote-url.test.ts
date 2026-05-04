@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildRemoteUrl } from '../../src/modules/credentials.js';
+import { buildRemoteUrl } from '../../src/modules/remote-url.js';
 
-describe('modules/credentials', () => {
+describe('modules/remote-url', () => {
   it('leaves a public HTTPS URL unchanged when no credentials are provided', () => {
     const url = buildRemoteUrl({
       location: 'https://example.com/repo.git',

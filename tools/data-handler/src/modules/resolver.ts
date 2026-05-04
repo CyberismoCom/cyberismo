@@ -14,7 +14,7 @@
 
 import { ProjectPaths } from '../containers/project/project-paths.js';
 import { readJsonFile } from '../utils/json.js';
-import { buildRemoteUrl } from './credentials.js';
+import { buildRemoteUrl } from './remote-url.js';
 import { pickVersion, satisfies, versionToTag } from './version.js';
 import { assertValidModuleName, toVersion, toVersionRange } from './types.js';
 import type { SourceLayer } from './source.js';
@@ -51,7 +51,7 @@ export interface ResolveOptions {
    * responsible for validating the override against any declared range.
    */
   overrides?: Map<string, string>;
-  /** Temp directory for intermediate clones; shared with the installer. */
+  /** Temp directory for intermediate clones; shared with the applier. */
   tempDir: string;
   /** Consumer for diamond conflict events; defaults to `console.warn`. */
   onConflict?: (event: DiamondVersionConflict) => void;

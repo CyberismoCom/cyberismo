@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import { installModules } from '../../src/modules/installer.js';
+import { applyModules } from '../../src/modules/applier.js';
 import type { ResolvedModule } from '../../src/modules/resolver.js';
 import { ProjectPaths } from '../../src/containers/project/project-paths.js';
 import { toVersion, toVersionRange } from '../../src/modules/types.js';
@@ -56,13 +56,13 @@ function buildResolved(
   };
 }
 
-describe('modules/installer', () => {
+describe('modules/applier', () => {
   let projectDir: string;
   let tempDir: string;
 
   beforeEach(async () => {
-    projectDir = await mkdtemp(join(tmpdir(), 'modules-installer-project-'));
-    tempDir = await mkdtemp(join(tmpdir(), 'modules-installer-temp-'));
+    projectDir = await mkdtemp(join(tmpdir(), 'modules-applier-project-'));
+    tempDir = await mkdtemp(join(tmpdir(), 'modules-applier-temp-'));
     await mkdir(join(projectDir, '.cards', 'local'), { recursive: true });
     await writeFile(
       join(projectDir, '.cards', 'local', 'cardsConfig.json'),
@@ -94,7 +94,7 @@ describe('modules/installer', () => {
       }),
     ];
 
-    await installModules(project, resolved, { tempDir });
+    await applyModules(project, resolved, { tempDir });
 
     const moduleDir = join(projectDir, '.cards', 'modules', 'A');
     expect(existsSync(moduleDir)).toBe(true);
@@ -118,7 +118,7 @@ describe('modules/installer', () => {
     ];
 
     await expect(
-      installModules(project, resolved, {
+      applyModules(project, resolved, {
         tempDir,
         validate: true,
       }),
@@ -152,7 +152,7 @@ describe('modules/installer', () => {
       }),
     ];
 
-    await installModules(project, resolved, { tempDir });
+    await applyModules(project, resolved, { tempDir });
 
     // Both folders installed.
     expect(existsSync(join(projectDir, '.cards', 'modules', 'A'))).toBe(true);
@@ -192,7 +192,7 @@ describe('modules/installer', () => {
       }),
     ];
 
-    await installModules(project, resolved, { tempDir });
+    await applyModules(project, resolved, { tempDir });
 
     // A and C landed on disk; B did not.
     expect(existsSync(join(projectDir, '.cards', 'modules', 'A'))).toBe(true);
@@ -214,7 +214,7 @@ describe('modules/installer', () => {
       basePath: projectDir,
     });
 
-    await installModules(
+    await applyModules(
       project,
       [
         buildResolved('A', 'https://example.com/A.git', stagedA, {
@@ -225,7 +225,7 @@ describe('modules/installer', () => {
     );
 
     // refreshAfterModuleChange is a no-op spy whose only purpose is to
-    // verify that the installer triggers a cache invalidation after install.
+    // verify that the applier triggers a cache invalidation after install.
     // There is no observable project-state outcome to assert instead: the
     // stub's `modules` array is already populated by `upsertModule` before
     // the refresh fires, so checking `modules` would not distinguish "refresh

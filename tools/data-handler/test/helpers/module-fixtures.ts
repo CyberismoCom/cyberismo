@@ -86,7 +86,7 @@ function buildConfigPayload(config: FakeModuleConfig) {
 }
 
 // ---------------------------------------------------------------------------
-// In-memory SourceLayer for resolver / installer integration tests.
+// In-memory SourceLayer for resolver / applier integration tests.
 // ---------------------------------------------------------------------------
 
 export interface InMemoryModuleConfig {
@@ -124,7 +124,7 @@ export interface InMemorySourceOptions {
 
 /**
  * Build a `SourceLayer` backed entirely by in-memory maps. Consolidates
- * the resolver/installer fakes previously inlined across multiple
+ * the resolver/applier fakes previously inlined across multiple
  * command-import integration tests.
  */
 export function inMemorySource(opts: InMemorySourceOptions): SourceLayer {
@@ -160,7 +160,7 @@ export function inMemorySource(opts: InMemorySourceOptions): SourceLayer {
 // ---------------------------------------------------------------------------
 
 /**
- * Narrow slice of `Project` used by `modules/installer`, `modules/inventory`
+ * Narrow slice of `Project` used by `modules/applier`, `modules/inventory`
  * and `modules/orphans`. Unit tests construct this directly instead of
  * casting through `as unknown as Project`.
  */
@@ -187,7 +187,7 @@ export interface MakeProjectStubOptions {
 
 export interface ProjectStub {
   /**
-   * The typed stub. Pass directly to `installModules`, `declaredModules`,
+   * The typed stub. Pass directly to `applyModules`, `declaredModules`,
    * `cleanOrphans` — production signatures expect `Project`, so the
    * single cast lives here.
    */
