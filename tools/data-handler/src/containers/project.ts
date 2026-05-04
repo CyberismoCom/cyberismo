@@ -62,11 +62,6 @@ import type { Template } from './template.js';
 
 import { ROOT } from '../utils/constants.js';
 
-import {
-  ConfigurationLogger,
-  ConfigurationOperation,
-} from '../utils/configuration-logger.js';
-
 /**
  * Options for Project initialization.
  * autoSave - If project configuration changes are saved automatically. Default true.
@@ -953,40 +948,6 @@ export class Project extends CardContainer {
       throw new Error(`Attachment not found: ${fileName}`, { cause: error });
     }
     await this.handleAttachmentChange(cardKey, 'removed', fileName);
-  }
-
-  /**
-   * Removes a module from the project cache and configuration.
-   * @note the `removeModule` command removes the actual files.
-   * @param moduleName Module name to remove.
-   */
-  public async removeModule(moduleName: string) {
-    const toBeRemovedTemplates = this.resources.moduleResourceNames(
-      'templates',
-      moduleName,
-    );
-
-    // First, remove template cards from the cache that are part of removed templates.
-    for (const templateName of toBeRemovedTemplates) {
-      this.cardCache.deleteCardsFromTemplate(templateName);
-    }
-
-    // Then, remove all module resources from cache
-    this.resources.removeModule(moduleName);
-
-    // Finally, remove module from project configuration
-    await this.configuration.removeModule(moduleName);
-
-    // Refresh cached module prefixes after removal
-    this.refreshAllModulePrefixes();
-
-    // Log configuration change
-    await ConfigurationLogger.log(this.basePath, {
-      operation: ConfigurationOperation.MODULE_REMOVE,
-      target: moduleName,
-    });
-
-    this.logger.info(`Removed module '${moduleName}'`);
   }
 
   /**

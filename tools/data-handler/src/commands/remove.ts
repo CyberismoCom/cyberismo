@@ -16,6 +16,10 @@ import { isModuleCard, isExternalItemKey } from '../utils/card-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { declaredModules } from '../modules/inventory.js';
 import { cleanOrphans } from '../modules/orphans.js';
+import {
+  ConfigurationLogger,
+  ConfigurationOperation,
+} from '../utils/configuration-logger.js';
 import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
 import type { RemovableResourceTypes } from '../interfaces/project-interfaces.js';
@@ -332,13 +336,19 @@ export class Remove {
       throw new Error(`Module '${targetName}' is not part of the project`);
     }
 
-    // Delete the top-level declaration (removes it from cardsConfig.json
-    // and invalidates the project's module cache).
-    await this.project.removeModule(targetName);
+    // Delete the top-level declaration from cardsConfig.json.
+    await this.project.configuration.removeModule(targetName);
+    await ConfigurationLogger.log(this.project.basePath, {
+      operation: ConfigurationOperation.MODULE_REMOVE,
+      target: targetName,
+    });
 
     // Fixed-point orphan cascade: removes this module's installation
     // (now orphaned) plus any transitives it owned that nothing else
-    // references. Enforces `NoOrphanInstallations` after the mutation.
+    // references, and refreshes project caches when anything was
+    // removed. Enforces `NoOrphanInstallations` after the mutation.
     await cleanOrphans(this.project);
+
+    this.logger.info(`Removed module '${targetName}'`);
   }
 }
