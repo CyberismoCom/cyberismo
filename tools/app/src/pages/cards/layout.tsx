@@ -78,7 +78,6 @@ export default function AppLayout() {
     <TwoColumnLayout
       leftPanel={
         <SearchableTreeMenu
-          title={project.name}
           titleRightSlot={<CardTreeMenu />}
           tree={tree}
           selectedCardKey={key ?? null}

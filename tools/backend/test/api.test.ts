@@ -101,16 +101,19 @@ test('/api/projects/decision/cards/decision_1/a/the-needle.heic returns an attac
 });
 
 test('/api/cards/export-pdf returns a PDF buffer', async () => {
-  const response = await app.request('/api/cards/export-pdf', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      title: 'Exported file',
-      cardKey: 'decision_5',
-      name: 'exported-file',
-      exportChildCards: false,
-    }),
-  });
+  const response = await app.request(
+    '/api/projects/decision/cards/export-pdf',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: 'Exported file',
+        cardKey: 'decision_5',
+        name: 'exported-file',
+        exportChildCards: false,
+      }),
+    },
+  );
   const buffer = await response.arrayBuffer();
   const magicBytes = new TextDecoder().decode(buffer.slice(0, 4));
 
@@ -120,11 +123,14 @@ test('/api/cards/export-pdf returns a PDF buffer', async () => {
 }, 30000);
 
 test('/api/cards/export-pdf returns a 400 error on a bad request', async () => {
-  const response = await app.request('/api/cards/export-pdf', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: 'test' }),
-  });
+  const response = await app.request(
+    '/api/projects/decision/cards/export-pdf',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'test' }),
+    },
+  );
 
   expect(response).not.toBe(null);
   expect(response.status).toBe(400);
