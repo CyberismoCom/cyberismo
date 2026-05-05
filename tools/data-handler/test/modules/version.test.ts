@@ -1,10 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  assertSatisfies,
   pickVersion,
-  satisfies,
-  tagToVersion,
+  stripTagPrefix,
   validateVersionAgainstConstraints,
   versionToTag,
 } from '../../src/modules/version.js';
@@ -16,14 +14,14 @@ describe('modules/version', () => {
       expect(versionToTag('1.2.3')).toBe('v1.2.3');
     });
 
-    it('tagToVersion strips a leading v', () => {
-      expect(tagToVersion('v1.2.3')).toBe('1.2.3');
+    it('stripTagPrefix strips a leading v', () => {
+      expect(stripTagPrefix('v1.2.3')).toBe('1.2.3');
     });
 
-    it('tagToVersion passes through a string that has no v prefix', () => {
+    it('stripTagPrefix passes through a string that has no v prefix', () => {
       // The helper does not validate the tail; non-semver refs survive.
-      expect(tagToVersion('1.2.3')).toBe('1.2.3');
-      expect(tagToVersion('main')).toBe('main');
+      expect(stripTagPrefix('1.2.3')).toBe('1.2.3');
+      expect(stripTagPrefix('main')).toBe('main');
     });
   });
 
@@ -49,36 +47,6 @@ describe('modules/version', () => {
 
     it('accepts a raw string range (callers not yet branded)', () => {
       expect(pickVersion(['1.2.3', '1.2.4'], '~1.2.0')).toBe('1.2.4');
-    });
-  });
-
-  describe('satisfies', () => {
-    it('returns true when the version is inside the range', () => {
-      expect(satisfies('1.5.0', toVersionRange('^1.0.0'))).toBe(true);
-    });
-
-    it('returns false when the version is outside the range', () => {
-      expect(satisfies('2.0.0', toVersionRange('^1.0.0'))).toBe(false);
-    });
-  });
-
-  describe('assertSatisfies', () => {
-    it('is a no-op when the version satisfies the range', () => {
-      expect(() =>
-        assertSatisfies('1.5.0', '^1.0.0', 'imported by project'),
-      ).not.toThrow();
-    });
-
-    it('throws with the supplied context interpolated into the message', () => {
-      expect(() =>
-        assertSatisfies('2.0.0', '^1.0.0', 'imported by project'),
-      ).toThrow(/imported by project/);
-    });
-
-    it('includes the offending version and range in the error', () => {
-      expect(() => assertSatisfies('2.0.0', '^1.0.0', 'ctx')).toThrow(
-        /'2\.0\.0'.*'\^1\.0\.0'/,
-      );
     });
   });
 

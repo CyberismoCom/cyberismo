@@ -15,7 +15,7 @@ import semver from 'semver';
 import { simpleGit, type SimpleGit } from 'simple-git';
 import { NON_INTERACTIVE_GIT_ENV, gitTimeout } from './git-config.js';
 import { getChildLogger } from './log-utils.js';
-import { tagToVersion, versionToTag } from '../modules/version.js';
+import { stripTagPrefix, versionToTag } from '../modules/version.js';
 
 export class GitManager {
   private git: SimpleGit;
@@ -150,7 +150,7 @@ export class GitManager {
     for (const line of output.trim().split('\n')) {
       const match = line.match(/refs\/tags\/(.+)$/);
       if (!match) continue;
-      const version = tagToVersion(match[1]);
+      const version = stripTagPrefix(match[1]);
       if (semver.valid(version)) {
         versions.push(version);
       }

@@ -14,8 +14,9 @@
 
 import { ProjectPaths } from '../containers/project/project-paths.js';
 import { readCardsConfig } from '../containers/project/cards-config.js';
+import semver from 'semver';
 import { buildRemoteUrl } from './remote-url.js';
-import { pickVersion, satisfies, versionToTag } from './version.js';
+import { pickVersion, versionToTag } from './version.js';
 import { toVersion, toVersionRange } from './types.js';
 import type { SourceLayer } from './source.js';
 import type {
@@ -113,7 +114,7 @@ export async function resolveModules(
       if (
         decl.versionRange &&
         existing.version &&
-        !satisfies(existing.version, decl.versionRange)
+        !semver.satisfies(existing.version, decl.versionRange)
       ) {
         onConflict({
           project: decl.project,

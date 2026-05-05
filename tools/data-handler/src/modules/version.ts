@@ -27,7 +27,7 @@ export function versionToTag(version: Version | string): string {
 }
 
 /** Strip the tag prefix; returns input unchanged if the prefix is absent. */
-export function tagToVersion(tag: string): string {
+export function stripTagPrefix(tag: string): string {
   return tag.startsWith(TAG_PREFIX) ? tag.substring(TAG_PREFIX.length) : tag;
 }
 
@@ -48,27 +48,6 @@ export function pickVersion(
   }
   const best = semver.maxSatisfying(available, range);
   return best ? toVersion(best) : undefined;
-}
-
-/** Returns true when `version` satisfies `range`. */
-export function satisfies(
-  version: Version | string,
-  range: VersionRange | string,
-): boolean {
-  return semver.satisfies(version, range);
-}
-
-/** Throws a descriptive error when `version` does not satisfy `range`. */
-export function assertSatisfies(
-  version: string,
-  range: string,
-  context: string,
-): void {
-  if (!semver.satisfies(version, range)) {
-    throw new Error(
-      `Version '${version}' does not satisfy range '${range}' (${context})`,
-    );
-  }
 }
 
 /**

@@ -20,7 +20,6 @@ import {
   installedModules,
   createSourceLayer,
   isGitLocation,
-  satisfies,
   pickVersion,
 } from '../modules/index.js';
 
@@ -203,7 +202,7 @@ function deriveStatus(input: {
   if (
     installedVersion &&
     declaration.versionRange &&
-    !satisfies(installedVersion, declaration.versionRange)
+    !semver.satisfies(installedVersion, declaration.versionRange)
   ) {
     return 'drifted';
   }
