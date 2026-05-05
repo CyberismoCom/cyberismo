@@ -59,8 +59,8 @@ class TestableResourceObject extends ResourceObject<
   }
 
   // Minimal abstract method stubs
-  protected async create() {}
-  protected async delete() {}
+  public async create() {}
+  public async delete() {}
   protected async read() {}
   protected async rename() {}
   protected show(): ShowReturnType<ResourceBaseMetadata, never> {
@@ -70,7 +70,7 @@ class TestableResourceObject extends ResourceObject<
   protected async usage() {
     return [];
   }
-  protected async validate() {}
+  public async validate() {}
   protected async write() {}
   protected get getType() {
     return this.type;

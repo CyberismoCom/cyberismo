@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import { FileSourceLayer } from '../../src/modules/source-file.js';
+import type { SourceLayer } from '../../src/modules/source.js';
 import { ProjectPaths } from '../../src/containers/project/project-paths.js';
 
 /**
@@ -36,19 +37,19 @@ describe('modules/source-file', () => {
   });
 
   it('listRemoteVersions returns [] for a file: source', async () => {
-    const layer = new FileSourceLayer();
+    const layer: SourceLayer = new FileSourceLayer();
     const versions = await layer.listRemoteVersions('file:/tmp/whatever');
     expect(versions).toEqual([]);
   });
 
   it('listRemoteVersions returns [] for a bare path', async () => {
-    const layer = new FileSourceLayer();
+    const layer: SourceLayer = new FileSourceLayer();
     const versions = await layer.listRemoteVersions('/tmp/whatever');
     expect(versions).toEqual([]);
   });
 
   it('queryRemote on a file: source is reachable with no versions', async () => {
-    const layer = new FileSourceLayer();
+    const layer: SourceLayer = new FileSourceLayer();
     const outcome = await layer.queryRemote({
       location: 'file:/tmp/whatever',
       private: false,
@@ -61,7 +62,7 @@ describe('modules/source-file', () => {
   });
 
   it('queryRemote ignores range for a file: source', async () => {
-    const layer = new FileSourceLayer();
+    const layer: SourceLayer = new FileSourceLayer();
     const outcome = await layer.queryRemote(
       { location: 'file:/tmp/whatever', private: false },
       { range: '^1.0.0' },
@@ -74,7 +75,7 @@ describe('modules/source-file', () => {
   });
 
   it('fetch on a file: source stages the resources subfolder and leaves the original untouched', async () => {
-    const layer = new FileSourceLayer();
+    const layer: SourceLayer = new FileSourceLayer();
     const destRoot = join(tmpRoot, 'file-dest');
     await mkdir(destRoot, { recursive: true });
 
@@ -103,7 +104,7 @@ describe('modules/source-file', () => {
   });
 
   it('fetch does not copy ambient parts of the source project (e.g., .temp, .cards/modules)', async () => {
-    const layer = new FileSourceLayer();
+    const layer: SourceLayer = new FileSourceLayer();
     const destRoot = join(tmpRoot, 'scoped-dest');
     await mkdir(destRoot, { recursive: true });
 
@@ -144,7 +145,7 @@ describe('modules/source-file', () => {
   });
 
   it('fetch on a bare path stages the resources subfolder', async () => {
-    const layer = new FileSourceLayer();
+    const layer: SourceLayer = new FileSourceLayer();
     const destRoot = join(tmpRoot, 'bare-dest');
     await mkdir(destRoot, { recursive: true });
 
@@ -165,7 +166,7 @@ describe('modules/source-file', () => {
   });
 
   it('fetch overwrites a stale staging directory from a previous run', async () => {
-    const layer = new FileSourceLayer();
+    const layer: SourceLayer = new FileSourceLayer();
     const destRoot = join(tmpRoot, 'restage-dest');
     await mkdir(destRoot, { recursive: true });
 
@@ -191,7 +192,7 @@ describe('modules/source-file', () => {
   });
 
   it('fetch on a missing file: source throws a descriptive error', async () => {
-    const layer = new FileSourceLayer();
+    const layer: SourceLayer = new FileSourceLayer();
     const destRoot = join(tmpRoot, 'missing-dest');
     await mkdir(destRoot, { recursive: true });
 
@@ -206,7 +207,7 @@ describe('modules/source-file', () => {
   });
 
   it('fetch on a file: source with an invalid folder name throws', async () => {
-    const layer = new FileSourceLayer();
+    const layer: SourceLayer = new FileSourceLayer();
     const destRoot = join(tmpRoot, 'invalid-dest');
     await mkdir(destRoot, { recursive: true });
 
@@ -220,7 +221,7 @@ describe('modules/source-file', () => {
   });
 
   it('fetch on a missing bare path throws a descriptive error', async () => {
-    const layer = new FileSourceLayer();
+    const layer: SourceLayer = new FileSourceLayer();
     const destRoot = join(tmpRoot, 'missing-bare-dest');
     await mkdir(destRoot, { recursive: true });
 

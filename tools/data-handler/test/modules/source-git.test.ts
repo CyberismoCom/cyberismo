@@ -113,10 +113,10 @@ describe('modules/source-git', () => {
     });
 
     it('wraps clone errors with "Failed to clone module" message', async () => {
-      const { __cloneMock } = await import('simple-git');
-      (__cloneMock as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
-        new Error('authentication required'),
-      );
+      const { __cloneMock } = (await import('simple-git')) as unknown as {
+        __cloneMock: ReturnType<typeof vi.fn>;
+      };
+      __cloneMock.mockRejectedValueOnce(new Error('authentication required'));
 
       const layer = new GitSourceLayer();
       await expect(
@@ -134,9 +134,11 @@ describe('modules/source-git', () => {
     });
 
     it('rethrows non-Error clone failures as-is', async () => {
-      const { __cloneMock } = await import('simple-git');
+      const { __cloneMock } = (await import('simple-git')) as unknown as {
+        __cloneMock: ReturnType<typeof vi.fn>;
+      };
       const sentinel = 'raw string rejection';
-      (__cloneMock as ReturnType<typeof vi.fn>).mockRejectedValueOnce(sentinel);
+      __cloneMock.mockRejectedValueOnce(sentinel);
 
       const layer = new GitSourceLayer();
       await expect(
@@ -152,10 +154,10 @@ describe('modules/source-git', () => {
     });
 
     it('returns the destination path on a successful clone', async () => {
-      const { __cloneMock } = await import('simple-git');
-      (__cloneMock as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
-        undefined,
-      );
+      const { __cloneMock } = (await import('simple-git')) as unknown as {
+        __cloneMock: ReturnType<typeof vi.fn>;
+      };
+      __cloneMock.mockResolvedValueOnce(undefined);
 
       const layer = new GitSourceLayer();
       const result = await layer.fetch(
