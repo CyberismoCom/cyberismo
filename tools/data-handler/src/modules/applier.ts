@@ -12,14 +12,13 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { join, resolve as pathResolve } from 'node:path';
+import { randomBytes } from 'node:crypto';
+import { mkdir, rename } from 'node:fs/promises';
+import { join } from 'node:path';
 
 import { ProjectPaths } from '../containers/project/project-paths.js';
-import { Validate } from '../commands/validate.js';
-import { copyDir, deleteDir, pathExists } from '../utils/file-utils.js';
+import { deleteDir, pathExists } from '../utils/file-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
-
-import { FILE_PROTOCOL } from './location.js';
 
 import type { ResolvedModule } from './resolver.js';
 import type { ModuleSetting } from '../interfaces/project-interfaces.js';
@@ -33,8 +32,6 @@ const logger = getChildLogger({ module: 'applier' });
 export interface ApplyOptions {
   /** Directory holding each entry's `stagedPath` tree. */
   tempDir: string;
-  /** When true, validate each `file:` source before applying. */
-  validate?: boolean;
 }
 
 interface StagedModule {
@@ -47,6 +44,10 @@ interface StagedModule {
 /**
  * Copy each entry's staged tree into `.cards/modules/<name>/` and
  * persist top-level declarations.
+ *
+ * Every `stagedPath` is rooted in `options.tempDir` (the source layer
+ * is responsible for staging there). The applier is therefore source-
+ * agnostic: it owns the staging tree and may delete from it freely.
  */
 export async function applyModules(
   project: Project,
@@ -71,10 +72,6 @@ export async function applyModules(
       continue;
     }
     targets.push(entry);
-  }
-
-  if (options.validate) {
-    validateFileSources(targets);
   }
 
   // Validate prefixes at plan level so all failures surface before any
@@ -125,9 +122,7 @@ export async function applyModules(
   }
 
   await Promise.all(
-    applied
-      .filter((stage) => isGitStage(stage, options.tempDir))
-      .map((stage) => cleanupStage(stage, options.tempDir)),
+    applied.map((stage) => cleanupStage(stage, options.tempDir)),
   );
 
   await project.refreshAfterModuleChange();
@@ -142,13 +137,65 @@ function toStagedModule(entry: ResolvedModule): StagedModule {
 }
 
 /**
- * Copy a staged module into `.cards/modules/<name>/`, replacing any
- * existing installation.
+ * Install a staged module at `.cards/modules/<name>/`, replacing any
+ * existing installation via a move-aside + rename swap.
+ *
+ * Both `stage.resourcesFolder` (under the resolver's tempDir) and the
+ * destination live on the project's filesystem, so `rename` is the
+ * commit point. If anything goes wrong before the swap, the prior
+ * installation is restored; the destination is never observed in a
+ * half-built state.
  */
 async function applyOne(project: Project, stage: StagedModule): Promise<void> {
   const destinationPath = join(project.paths.modulesFolder, stage.name);
-  await deleteDir(destinationPath);
-  await copyDir(stage.resourcesFolder, destinationPath);
+  await mkdir(project.paths.modulesFolder, { recursive: true });
+
+  const trashPath = `${destinationPath}.removing-${randomBytes(4).toString('hex')}`;
+  const hadPrior = pathExists(destinationPath);
+  if (hadPrior) {
+    await rename(destinationPath, trashPath);
+  }
+
+  try {
+    await rename(stage.resourcesFolder, destinationPath);
+  } catch (error) {
+    if (hadPrior) {
+      try {
+        await rename(trashPath, destinationPath);
+      } catch (restoreError) {
+        logger.error(
+          {
+            module: stage.name,
+            path: trashPath,
+            err:
+              restoreError instanceof Error
+                ? restoreError.message
+                : String(restoreError),
+          },
+          'failed to restore prior installation after a failed rename swap; manual recovery may be required',
+        );
+      }
+    }
+    throw error;
+  }
+
+  if (hadPrior) {
+    // Awaited so concurrent readers of `.cards/modules/` (orphan
+    // sweeps, prefix caches) never observe the displaced directory.
+    try {
+      await deleteDir(trashPath);
+    } catch (error) {
+      logger.debug(
+        {
+          module: stage.name,
+          path: trashPath,
+          err: error instanceof Error ? error.message : String(error),
+        },
+        'failed to remove displaced previous installation; safe to delete manually',
+      );
+    }
+  }
+
   logger.debug(
     {
       module: stage.name,
@@ -197,44 +244,6 @@ function validatePrefix(
   throw new Error(
     `Imported project has a prefix '${modulePrefix}' that is already used in the project. Cannot import from module.`,
   );
-}
-
-/**
- * For each `file:` source, ensure the referenced folder name is a
- * legal OS path and actually exists.
- */
-function validateFileSources(targets: ResolvedModule[]): void {
-  for (const entry of targets) {
-    const location = entry.declaration.source.location;
-    if (!location.startsWith(FILE_PROTOCOL)) {
-      continue;
-    }
-    const folder = location.substring(FILE_PROTOCOL.length);
-    if (!Validate.validateFolder(folder)) {
-      throw new Error(
-        `Input validation error: folder name is invalid '${folder}'`,
-      );
-    }
-    if (!pathExists(folder)) {
-      throw new Error(
-        `Input validation error: cannot find project '${folder}'`,
-      );
-    }
-  }
-}
-
-/**
- * True when `stage` was produced by a git fetch into `tempDir` and
- * therefore owns the staging directory. File sources point at the
- * caller's own checkout and must not be deleted.
- */
-function isGitStage(stage: StagedModule, tempDir: string): boolean {
-  const location = stage.resolved.declaration.source.location;
-  if (location.startsWith(FILE_PROTOCOL)) {
-    return false;
-  }
-  const stagedRoot = pathResolve(join(tempDir, stage.name));
-  return stage.resourcesFolder.startsWith(stagedRoot);
 }
 
 async function cleanupStage(

@@ -109,24 +109,6 @@ describe('modules/applier', () => {
     expect(persisted.location).toBe('https://example.com/A.git');
   });
 
-  it('validate=true rejects a file: source whose folder does not exist', async () => {
-    const { project } = makeProjectStub({ basePath: projectDir });
-
-    const stagedPath = await stage(tempDir, 'F', {});
-    const resolved = [
-      buildResolved('F', 'file:/nonexistent/path/to/mod', stagedPath),
-    ];
-
-    await expect(
-      applyModules(project, resolved, {
-        tempDir,
-        validate: true,
-      }),
-    ).rejects.toThrow(
-      `Input validation error: cannot find project '/nonexistent/path/to/mod'`,
-    );
-  });
-
   it('does not persist a transitive declaration (parent defined)', async () => {
     const stagedA = await stage(tempDir, 'A', {
       'cardsConfig.json': JSON.stringify({
@@ -201,6 +183,81 @@ describe('modules/applier', () => {
 
     // Persisted declarations should match what is actually installed.
     expect(modules.map((m) => m.name).sort()).toEqual(['A', 'C']);
+  });
+
+  it('replaces a prior installation, removing files that the new version no longer ships', async () => {
+    const { project, modules } = makeProjectStub({ basePath: projectDir });
+
+    // First install: ships an orphan file.
+    const stagedV1 = await stage(tempDir, 'A', {
+      'cardsConfig.json': JSON.stringify({ cardKeyPrefix: 'A', modules: [] }),
+      'cardTypes/orphan.json': '{"old":true}',
+    });
+    await applyModules(
+      project,
+      [
+        buildResolved('A', 'https://example.com/A.git', stagedV1, {
+          range: '^1.0.0',
+        }),
+      ],
+      { tempDir },
+    );
+
+    expect(
+      existsSync(join(projectDir, '.cards', 'modules', 'A', 'cardTypes', 'orphan.json')),
+    ).toBe(true);
+
+    // Re-install at a new version that no longer ships orphan.json.
+    const stagedV2 = await stage(tempDir, 'A', {
+      'cardsConfig.json': JSON.stringify({ cardKeyPrefix: 'A', modules: [] }),
+      'cardTypes/replacement.json': '{"new":true}',
+    });
+    await applyModules(
+      project,
+      [
+        buildResolved('A', 'https://example.com/A.git', stagedV2, {
+          range: '^2.0.0',
+        }),
+      ],
+      { tempDir },
+    );
+
+    const moduleDir = join(projectDir, '.cards', 'modules', 'A');
+    expect(existsSync(join(moduleDir, 'cardTypes', 'replacement.json'))).toBe(true);
+    expect(existsSync(join(moduleDir, 'cardTypes', 'orphan.json'))).toBe(false);
+
+    // Persisted declaration was upserted, not duplicated.
+    expect(modules).toHaveLength(1);
+    expect(modules[0].name).toBe('A');
+  });
+
+  it('does not leave .removing-* directories behind on a successful re-install', async () => {
+    const { project } = makeProjectStub({ basePath: projectDir });
+
+    const stagedV1 = await stage(tempDir, 'A', {
+      'cardsConfig.json': JSON.stringify({ cardKeyPrefix: 'A', modules: [] }),
+    });
+    await applyModules(
+      project,
+      [buildResolved('A', 'https://example.com/A.git', stagedV1)],
+      { tempDir },
+    );
+
+    const stagedV2 = await stage(tempDir, 'A', {
+      'cardsConfig.json': JSON.stringify({ cardKeyPrefix: 'A', modules: [] }),
+    });
+    await applyModules(
+      project,
+      [buildResolved('A', 'https://example.com/A.git', stagedV2)],
+      { tempDir },
+    );
+
+    const modulesDir = join(projectDir, '.cards', 'modules');
+    const entries = await import('node:fs/promises').then((fs) =>
+      fs.readdir(modulesDir),
+    );
+    const trash = entries.filter((e) => e.includes('.removing-'));
+    expect(trash).toEqual([]);
   });
 
   it('refreshes the module cache after install', async () => {

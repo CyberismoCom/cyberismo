@@ -27,6 +27,7 @@ import {
   FILE_PROTOCOL,
   isFileLocation,
   isGitLocation,
+  stripFileProtocol,
   pickVersion,
   readModuleConfig,
   toVersionRange,
@@ -225,11 +226,17 @@ export class Import {
       { location, private: options?.private ?? false },
       options?.credentials,
     );
-    const prefetchPath = await sourceLayer.fetch(
-      { location, remoteUrl },
-      this.tempModulesDir,
-      freshRootStagingName(location),
-    );
+    // For file: sources we can read `cardsConfig.json` directly from the
+    // user's checkout — no need to stage twice (here and again from the
+    // resolver). Git sources still need the prefetch clone to discover
+    // the prefix before the resolver runs.
+    const prefetchPath = isFileLocation(location)
+      ? pathResolve(stripFileProtocol(location))
+      : await sourceLayer.fetch(
+          { location, remoteUrl },
+          this.tempModulesDir,
+          freshRootStagingName(location),
+        );
 
     const prefetchConfig = await readModuleConfig(prefetchPath);
     const resolvedName = prefetchConfig.cardKeyPrefix;
@@ -279,7 +286,6 @@ export class Import {
 
     await applyModules(this.project, resolved, {
       tempDir: this.tempModulesDir,
-      validate: isFileLocation(location),
     });
 
     // Clean up any installations orphaned by this import.
