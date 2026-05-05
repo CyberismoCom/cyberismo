@@ -17,31 +17,11 @@ import { join } from 'node:path';
 
 import { simpleGit, type SimpleGit } from 'simple-git';
 
+import { NON_INTERACTIVE_GIT_ENV, gitTimeout } from '../utils/git-config.js';
 import { GitManager } from '../utils/git-manager.js';
 import { pickVersion } from './version.js';
 import type { FetchTarget, SourceLayer } from './source.js';
 import type { RemoteQueryOutcome, Source, VersionRange } from './types.js';
-
-// Git environment settings that keep clone/ls-remote non-interactive.
-// `GIT_TERMINAL_PROMPT=0` suppresses the credential prompt and
-// `GCM_INTERACTIVE=never` opts out of Git Credential Manager popups.
-const NON_INTERACTIVE_GIT_ENV = {
-  GIT_TERMINAL_PROMPT: 0,
-  GCM_INTERACTIVE: 'never',
-} as const;
-
-/** 15s base, doubled in CI, plus a 50% bump on Windows. */
-function gitTimeout(): number {
-  const baseTimeout = 15000;
-  const isCI = process.env.CI;
-  const isWindows = process.platform === 'win32';
-
-  let timeout = baseTimeout;
-  if (isCI) timeout *= 2;
-  if (isWindows) timeout *= 1.5;
-
-  return timeout;
-}
 
 function cloneOptions(ref?: string): string[] {
   const options = ['--depth', '1'];

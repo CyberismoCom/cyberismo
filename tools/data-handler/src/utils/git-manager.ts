@@ -13,6 +13,7 @@
 
 import semver from 'semver';
 import { simpleGit, type SimpleGit } from 'simple-git';
+import { NON_INTERACTIVE_GIT_ENV, gitTimeout } from './git-config.js';
 import { getChildLogger } from './log-utils.js';
 import { tagToVersion, versionToTag } from '../modules/version.js';
 
@@ -128,7 +129,7 @@ export class GitManager {
     if (options?.tags) {
       args.push('--follow-tags');
     }
-    await this.git.push(args);
+    await this.git.env({ ...NON_INTERACTIVE_GIT_ENV }).push(args);
   }
 
   /**
@@ -138,8 +139,10 @@ export class GitManager {
    * @returns Semver version strings sorted descending (e.g. ["2.1.0", "1.0.0"])
    */
   static async listRemoteVersionTags(remoteUrl: string): Promise<string[]> {
-    const git = simpleGit();
-    const output = await git.listRemote(['--tags', '--refs', remoteUrl]);
+    const git = simpleGit({ timeout: { block: gitTimeout() } });
+    const output = await git
+      .env({ ...NON_INTERACTIVE_GIT_ENV })
+      .listRemote(['--tags', '--refs', remoteUrl]);
     if (!output.trim()) {
       return [];
     }
