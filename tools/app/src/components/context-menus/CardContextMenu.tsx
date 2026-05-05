@@ -22,7 +22,7 @@ import {
   Tooltip,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
-import { useModals } from '@/lib/utils';
+import { getConfig, useModals } from '@/lib/utils';
 import {
   MoveCardModal,
   DeleteModal,
@@ -31,6 +31,7 @@ import {
 } from '@/components/modals';
 import { useAppSelector } from '@/lib/hooks';
 import { useCard, useProject } from '@/lib/api';
+import { ExportCardModal } from '../modals/ExportCardModal';
 
 interface CardContextMenuProps {
   cardKey: string;
@@ -47,6 +48,7 @@ export function CardContextMenu({
     metadata: false,
     addAttachment: false,
     logicProgram: false,
+    exportCard: false,
   });
 
   const { project } = useProject();
@@ -89,11 +91,20 @@ export function CardContextMenu({
             <Typography>{t('addAttachment')}</Typography>
           </MenuItem>
           <Divider />
-          <MenuItem data-cy="deleteCardButton" onClick={handleDeleteClick}>
-            <Typography color="danger">{t('deleteCard')}</Typography>
-          </MenuItem>
           <MenuItem onClick={openModal('logicProgram')}>
             <Typography>{t('viewLogicProgram')}</Typography>
+          </MenuItem>
+          {!getConfig().staticMode && (
+            <>
+              <Divider />
+              <MenuItem onClick={openModal('exportCard')}>
+                <Typography>{t('exportCard')}</Typography>
+              </MenuItem>
+            </>
+          )}
+          <Divider />
+          <MenuItem data-cy="deleteCardButton" onClick={handleDeleteClick}>
+            <Typography color="danger">{t('deleteCard')}</Typography>
           </MenuItem>
         </Menu>
       </Dropdown>
@@ -119,6 +130,11 @@ export function CardContextMenu({
         onClose={closeModal('logicProgram')}
         title={t('logicProgram')}
         resourceName={`${project?.prefix}/cards/${cardKey}`}
+      />
+      <ExportCardModal
+        open={modalOpen.exportCard}
+        onClose={closeModal('exportCard')}
+        cardKey={cardKey}
       />
     </>
   );

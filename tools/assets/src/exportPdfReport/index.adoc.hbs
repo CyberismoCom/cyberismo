@@ -4,13 +4,13 @@
 :toc: macro
 :numbered:
 :imagesdir: images
-:revnumber: {{version}}
-:revdate: {{date}}
-:revremark: {{revremark}}
-:!chapter-signifier:
+{{#if version}}:revnumber: {{version}}
+{{/if}}{{#if date}}:revdate: {{date}}
+{{/if}}{{#if revremark}}:revremark: {{revremark}}
+{{/if}}:!chapter-signifier:
 :source-highlighter: rouge
 :toclevels: 5
-+
+
 toc::[]
 {{#each results}}
   {{#include}}

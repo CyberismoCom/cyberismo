@@ -12,6 +12,7 @@
 
 import { useSWRHook } from './common';
 import { callApi, apiPaths } from '../swr';
+import { downloadBlob } from '@/lib/utils';
 
 import type { SWRConfiguration } from 'swr';
 import { mutate } from 'swr';
@@ -23,7 +24,7 @@ import { createLink, removeLink, updateLink } from './actions';
 import type { LinkDirection } from '@cyberismo/data-handler/types/queries';
 import type { CardAction } from './action-types';
 import { setRecentlyCreated } from '../slices/card';
-import { addNotification } from '../slices/notifications';
+import { addNotification, removeNotification } from '../slices/notifications';
 import { useTranslation } from 'react-i18next';
 import type { Card } from '@cyberismo/data-handler/interfaces/project-interfaces';
 
@@ -181,6 +182,13 @@ export const useCardMutations = (key: string | null) => {
   };
 };
 
+export const useCardExport = () => {
+  const dispatch = useAppDispatch();
+  return {
+    exportCard: (params: ExportCardParams) => exportCard(params, dispatch),
+  };
+};
+
 export const useCard = (key: string | null, options?: SWRConfiguration) => {
   const cardData = useCardData(key, false, options);
   const mutations = useCardMutations(key);
@@ -223,4 +231,56 @@ export async function createCard(
   mutate(apiPaths.tree());
 
   return result;
+}
+
+type ExportCardParams = {
+  cardKey: string;
+  title: string;
+  name: string;
+  exportChildCards: boolean;
+  version?: string;
+};
+async function exportCard(
+  { cardKey, title, exportChildCards, name, version }: ExportCardParams,
+  dispatch: ReturnType<typeof useAppDispatch>,
+) {
+  const progressNotification = dispatch(
+    addNotification({
+      message: `Exporting ${title} to PDF...`,
+      type: 'info',
+      disableAutoClose: true,
+    }),
+  );
+  try {
+    const blob = await callApi<Blob>(
+      apiPaths.exportCard(),
+      'POST',
+      {
+        cardKey,
+        title,
+        exportChildCards,
+        name,
+        ...(version && { version }),
+      },
+      { responseType: 'blob' },
+    );
+    downloadBlob(blob, `${name}.pdf`);
+    dispatch(removeNotification(progressNotification.payload.id));
+    dispatch(
+      addNotification({
+        message: `Successfully exported card to PDF (${name}.pdf)`,
+        type: 'success',
+      }),
+    );
+    return true;
+  } catch (error) {
+    dispatch(removeNotification(progressNotification.payload.id));
+    dispatch(
+      addNotification({
+        message: error instanceof Error ? error.message : '',
+        type: 'error',
+      }),
+    );
+    return false;
+  }
 }

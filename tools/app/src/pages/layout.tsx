@@ -46,6 +46,18 @@ const Main = styled('main')(() => ({
   flexGrow: 1,
 }));
 
+const notificationColorMap = {
+  error: 'danger',
+  info: 'primary',
+  success: 'success',
+} as const;
+
+const notificationDurationMap = {
+  error: 10000,
+  info: 4000,
+  success: 4000,
+} as const;
+
 export default function Layout() {
   const inCards = useIsInCards();
   const { templateResource, parentCardKey } =
@@ -151,49 +163,56 @@ export default function Layout() {
         open={modalOpen.workflows}
         onClose={closeModal('workflows')}
       />
-      {notifications.map((notification, index) => (
-        <Snackbar
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-          key={notification.id}
-          open={!notification.closed}
-          sx={{
-            marginBottom: index * 9,
-          }}
-          autoHideDuration={notification.type === 'error' ? 10000 : 4000}
-          color={notification.type === 'error' ? 'danger' : 'success'}
-          variant="solid"
-          data-cy="notification"
-          onClose={(_, reason) => {
-            // If the notification has been closed by clicking away, and it has been less than 2 seconds, don't close it
-            if (
-              reason === 'clickaway' &&
-              notification.createdAt + 2000 >= Date.now()
-            ) {
-              return;
-            }
+      {notifications.map((notification, index) => {
+        const color = notificationColorMap[notification.type];
+        const autoHideDuration = notification.disableAutoClose
+          ? null
+          : notificationDurationMap[notification.type];
 
-            dispatch(closeNotification(notification.id));
-          }}
-          onUnmount={() => {
-            dispatch(removeNotification(notification.id));
-          }}
-          endDecorator={
-            <IconButton
-              variant="plain"
-              size="sm"
-              color="neutral"
-              data-cy="notificationClose"
-              onClick={() => {
-                dispatch(closeNotification(notification.id));
-              }}
-            >
-              <CloseRounded />
-            </IconButton>
-          }
-        >
-          {notification.message}
-        </Snackbar>
-      ))}
+        return (
+          <Snackbar
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            key={notification.id}
+            open={!notification.closed}
+            sx={{
+              marginBottom: index * 9,
+            }}
+            autoHideDuration={autoHideDuration}
+            color={color}
+            variant="solid"
+            data-cy="notification"
+            onClose={(_, reason) => {
+              // If the notification has been closed by clicking away, and it has been less than 2 seconds, don't close it
+              if (
+                reason === 'clickaway' &&
+                notification.createdAt + 2000 >= Date.now()
+              ) {
+                return;
+              }
+
+              dispatch(closeNotification(notification.id));
+            }}
+            onUnmount={() => {
+              dispatch(removeNotification(notification.id));
+            }}
+            endDecorator={
+              <IconButton
+                variant="plain"
+                size="sm"
+                color="neutral"
+                data-cy="notificationClose"
+                onClick={() => {
+                  dispatch(closeNotification(notification.id));
+                }}
+              >
+                <CloseRounded />
+              </IconButton>
+            }
+          >
+            {notification.message}
+          </Snackbar>
+        );
+      })}
     </Stack>
   );
 }
