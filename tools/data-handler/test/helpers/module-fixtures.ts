@@ -19,6 +19,7 @@ import { vi } from 'vitest';
 
 import { ProjectPaths } from '../../src/containers/project/project-paths.js';
 import type { Project } from '../../src/containers/project.js';
+import { isGitLocation } from '../../src/modules/location.js';
 import type { FetchTarget, SourceLayer } from '../../src/modules/source.js';
 import type { ModuleSetting } from '../../src/interfaces/project-interfaces.js';
 import type {
@@ -147,6 +148,9 @@ export function inMemorySource(opts: InMemorySourceOptions): SourceLayer {
         JSON.stringify(cfg),
       );
       return dir;
+    },
+    supportsVersioning(location) {
+      return isGitLocation(location);
     },
     async listRemoteVersions(location) {
       return availableByLocation.get(location) ?? [];

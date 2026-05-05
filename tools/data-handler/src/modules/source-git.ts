@@ -88,6 +88,10 @@ export class GitSourceLayer implements SourceLayer {
     return destinationPath;
   }
 
+  supportsVersioning(): boolean {
+    return true;
+  }
+
   async listRemoteVersions(
     location: string,
     remoteUrl?: string,

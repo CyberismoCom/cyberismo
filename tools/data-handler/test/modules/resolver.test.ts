@@ -4,6 +4,7 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
+import { isGitLocation } from '../../src/modules/location.js';
 import { resolveModules } from '../../src/modules/resolver.js';
 import type { SourceLayer, FetchTarget } from '../../src/modules/source.js';
 import { toVersionRange } from '../../src/modules/types.js';
@@ -73,6 +74,10 @@ class InMemorySource implements SourceLayer {
       JSON.stringify(config),
     );
     return dir;
+  }
+
+  supportsVersioning(location: string): boolean {
+    return isGitLocation(location);
   }
 
   async listRemoteVersions(location: string): Promise<string[]> {
@@ -424,8 +429,9 @@ describe('modules/resolver', () => {
   });
 
   it('file-source root with version range: ref/version remain undefined', async () => {
-    // File-source leaves return `[]` from `listRemoteVersions`, so ref and
-    // version stay undefined for a file source with a version range.
+    // Sources that don't support versioning (file:) silently ignore a
+    // declared range — there are no tags to pick from, so ref/version
+    // stay undefined and the resolver never calls `listRemoteVersions`.
     const staged = join(tempDir, 'file-src');
     await mkdir(join(staged, '.cards', 'local'), { recursive: true });
     await writeFile(
@@ -450,6 +456,33 @@ describe('modules/resolver', () => {
     expect(out).toHaveLength(1);
     expect(out[0].ref).toBeUndefined();
     expect(out[0].version).toBeUndefined();
+    expect(source.listLog).not.toContain(fileLocation);
+  });
+
+  it('throws when a versioned source has no tags but a range was requested', async () => {
+    // Distinct from "no version satisfies the range": here the remote
+    // exposes zero tags at all. Previously this fell through silently
+    // to the default branch; now we surface it instead of pretending
+    // the request was satisfied.
+    const source = new InMemorySource(
+      new Map([
+        [
+          'https://example.com/Y.git',
+          { cardKeyPrefix: 'Y', name: 'Y', modules: [] },
+        ],
+      ]),
+      new Map([['https://example.com/Y.git', []]]),
+    );
+
+    await expect(
+      resolveModules(
+        source,
+        [decl('Y', 'https://example.com/Y.git', '^1.0.0')],
+        {
+          tempDir,
+        },
+      ),
+    ).rejects.toThrow(/no available versions on the remote/);
   });
 
   it('throws when no remote version satisfies the declared range', async () => {

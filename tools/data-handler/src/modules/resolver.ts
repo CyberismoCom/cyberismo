@@ -137,26 +137,33 @@ export async function resolveModules(
     if (override !== undefined) {
       version = toVersion(override);
       ref = versionToTag(version);
-    } else if (decl.versionRange) {
+    } else if (
+      decl.versionRange &&
+      source.supportsVersioning(decl.source.location)
+    ) {
       const available = await source.listRemoteVersions(
         decl.source.location,
         remoteUrl,
       );
-      if (available.length > 0) {
-        const picked = pickVersion(available, decl.versionRange);
-        if (!picked) {
-          throw new Error(
-            `No version satisfies range '${decl.versionRange}' for module ` +
-              `'${decl.name || decl.source.location}'`,
-          );
-        }
-        version = picked;
-        ref = versionToTag(version);
+      if (available.length === 0) {
+        throw new Error(
+          `Module '${decl.name || decl.source.location}' has no available ` +
+            `versions on the remote, but range '${decl.versionRange}' was ` +
+            `requested. Publish a matching tag or remove the version range.`,
+        );
       }
-      // Empty list → source doesn't support versioning; leave
-      // version/ref undefined (silently ignore the range).
+      const picked = pickVersion(available, decl.versionRange);
+      if (!picked) {
+        throw new Error(
+          `No version satisfies range '${decl.versionRange}' for module ` +
+            `'${decl.name || decl.source.location}'`,
+        );
+      }
+      version = picked;
+      ref = versionToTag(version);
     }
-    // No override, no range → leave version/ref undefined (default branch for git).
+    // No override, no range, or unversioned source → leave version/ref
+    // undefined (default branch for git, no-op for file sources).
 
     const path = await source.fetch(
       { location: decl.source.location, remoteUrl, ref },

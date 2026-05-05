@@ -43,6 +43,13 @@ export interface SourceLayer {
     nameHint: string,
   ): Promise<string>;
 
+  /**
+   * True when this source kind exposes discrete versions (git tags). When
+   * false, declared version ranges are silently ignored by the resolver
+   * because there is no concept of "available versions" to pick from.
+   */
+  supportsVersioning(location: string): boolean;
+
   /** Remote version tags in descending semver order; `[]` for file sources. */
   listRemoteVersions(location: string, remoteUrl?: string): Promise<string[]>;
 

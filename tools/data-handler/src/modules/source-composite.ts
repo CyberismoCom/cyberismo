@@ -52,6 +52,10 @@ export class CompositeSourceLayer implements SourceLayer {
     return this.pick(target.location).fetch(target, destRoot, nameHint);
   }
 
+  supportsVersioning(location: string): boolean {
+    return this.pick(location).supportsVersioning(location);
+  }
+
   async listRemoteVersions(
     location: string,
     remoteUrl?: string,

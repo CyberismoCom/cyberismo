@@ -103,6 +103,7 @@ describe('modules/source-composite', () => {
         accepts: () => true,
         layer: {
           fetch: async () => 'custom',
+          supportsVersioning: () => true,
           listRemoteVersions: async () => sentinel,
           queryRemote: async () => ({ reachable: true }),
         },

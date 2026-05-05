@@ -26,13 +26,13 @@ import type { RemoteQueryOutcome } from './types.js';
 /**
  * Source layer for `file:` URLs and bare filesystem paths.
  *
- * File sources do not support versioning: `listRemoteVersions` returns
- * `[]` and `queryRemote` always reports `reachable: true` with no
- * version information. `fetch` stages the referenced project's
- * resources into `destRoot/<nameHint>/.cards/local/` so the applier
- * can treat every staged module uniformly — there is no longer a
- * "live checkout" path that must not be touched. Only the resources
- * subfolder is copied; the rest of the host project (`.temp/`,
+ * File sources do not support versioning: `supportsVersioning` returns
+ * `false`, `listRemoteVersions` returns `[]`, and `queryRemote` always
+ * reports `reachable: true` with no version information. `fetch` stages
+ * the referenced project's resources into `destRoot/<nameHint>/.cards/local/`
+ * so the applier can treat every staged module uniformly — there is no
+ * longer a "live checkout" path that must not be touched. Only the
+ * resources subfolder is copied; the rest of the host project (`.temp/`,
  * `.cards/modules/`, working files) is intentionally left out so a
  * file source pointing at a project that itself has imports does not
  * snowball.
@@ -78,6 +78,10 @@ export class FileSourceLayer implements SourceLayer {
     await mkdir(stagedResources, { recursive: true });
     await copyDir(sourceResources, stagedResources);
     return stagedPath;
+  }
+
+  supportsVersioning(): boolean {
+    return false;
   }
 
   async listRemoteVersions(): Promise<string[]> {
