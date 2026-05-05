@@ -58,7 +58,7 @@ export const TreeMenu = ({
         selectedId={selectedCardKey}
         nodeRenderer={CardTreeNode}
         idAccessor={(node) => node.key}
-        childrenAccessor="children"
+        childrenAccessor={(node) => node.children ?? []}
         onMove={handleMove}
         onNodeClick={onCardSelect}
         openByDefault={openByDefault}
