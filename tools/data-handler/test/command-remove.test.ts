@@ -1,14 +1,15 @@
 import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 
 // node
-import { mkdirSync, rmSync } from 'node:fs';
-import { join, sep } from 'node:path';
+import { existsSync, mkdirSync, rmSync } from 'node:fs';
+import { join, sep, resolve as pathResolve } from 'node:path';
 
 // cyberismo
 import { Cmd, Commands, CommandManager } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Fetch, Remove } from '../src/commands/index.js';
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
+import { makeFakeModuleFixture } from './helpers/module-fixtures.js';
 
 import type { Card } from '../src/interfaces/project-interfaces.js';
 import type { requestStatus } from '../src/interfaces/request-status-interfaces.js';
@@ -739,5 +740,175 @@ describe('remove card', () => {
       );
       expect(foundCard).not.toBeUndefined();
     }
+  });
+});
+
+describe('remove module — spec behaviours', () => {
+  const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
+  const testDir = join(baseDir, 'tmp-remove-module-tests');
+
+  beforeEach(async () => {
+    mkdirSync(testDir, { recursive: true });
+    await copyDir('test/test-data/', testDir);
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('removing a transitive-only module errors with "not part of the project"', async () => {
+    // A transitive-only installation has no top-level declaration, so
+    // the command must reject with a clear error rather than silently
+    // tearing out a dep owned by another module.
+    const depRoot = join(testDir, 'fake-trans-dep');
+    makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'trdep' });
+    const hostRoot = join(testDir, 'fake-trans-host');
+    makeFakeModuleFixture(hostRoot, {
+      cardKeyPrefix: 'trhost',
+      modules: [{ name: 'trdep', location: `file:${pathResolve(depRoot)}` }],
+    });
+
+    const projectDir = join(testDir, 'proj-trans-only');
+    const commandHandler = new Commands();
+    const create = await commandHandler.command(
+      Cmd.create,
+      ['project', 'trans-only-proj', 'trsp'],
+      { projectPath: projectDir },
+    );
+    expect(create.statusCode).toBe(200);
+
+    const commands = new CommandManager(projectDir, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+
+    await commands.importCmd.importModule(hostRoot);
+    // Both are installed; only `trhost` is a top-level declaration.
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'trhost'))).toBe(
+      true,
+    );
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'trdep'))).toBe(
+      true,
+    );
+    const topLevelNames = commands.project.configuration.modules.map(
+      (m) => m.name,
+    );
+    expect(topLevelNames).toEqual(['trhost']);
+
+    await expect(commands.removeCmd.remove('module', 'trdep')).rejects.toThrow(
+      "Module 'trdep' is not part of the project",
+    );
+
+    // Both installations still exist — the failed remove didn't
+    // accidentally mutate the tree.
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'trhost'))).toBe(
+      true,
+    );
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'trdep'))).toBe(
+      true,
+    );
+  });
+
+  it('removing a deep transitive chain cascades the orphan cleanup to a fixed point', async () => {
+    // A → B → C. Removing A must ultimately remove B and C too, via the
+    // fixed-point cascade in `cleanOrphans` (iterates until stable).
+    const cRoot = join(testDir, 'fake-chain-C');
+    makeFakeModuleFixture(cRoot, { cardKeyPrefix: 'chc' });
+    const bRoot = join(testDir, 'fake-chain-B');
+    makeFakeModuleFixture(bRoot, {
+      cardKeyPrefix: 'chb',
+      modules: [{ name: 'chc', location: `file:${pathResolve(cRoot)}` }],
+    });
+    const aRoot = join(testDir, 'fake-chain-A');
+    makeFakeModuleFixture(aRoot, {
+      cardKeyPrefix: 'cha',
+      modules: [{ name: 'chb', location: `file:${pathResolve(bRoot)}` }],
+    });
+
+    const projectDir = join(testDir, 'proj-chain');
+    const commandHandler = new Commands();
+    const create = await commandHandler.command(
+      Cmd.create,
+      ['project', 'chain-proj', 'chpr'],
+      { projectPath: projectDir },
+    );
+    expect(create.statusCode).toBe(200);
+
+    const commands = new CommandManager(projectDir, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+
+    await commands.importCmd.importModule(aRoot);
+
+    // A, B, C all installed.
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'cha'))).toBe(true);
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'chb'))).toBe(true);
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'chc'))).toBe(true);
+
+    await commands.removeCmd.remove('module', 'cha');
+
+    // Fixed-point cascade removes all three.
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'cha'))).toBe(
+      false,
+    );
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'chb'))).toBe(
+      false,
+    );
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'chc'))).toBe(
+      false,
+    );
+    // Top-level declaration gone too.
+    const topLevelNames = commands.project.configuration.modules.map(
+      (m) => m.name,
+    );
+    expect(topLevelNames).not.toContain('cha');
+  });
+
+  it('removing a module with transitives drops the orphaned prefixes from allModulePrefixes', async () => {
+    // After the orphan-cleanup cascade has deleted `.cards/modules/<name>/`
+    // for each orphaned transitive, the project's cached
+    // `allModulePrefixes()` must no longer list them — `cleanOrphans`
+    // refreshes that cache itself.
+    const cRoot = join(testDir, 'fake-drop-C');
+    makeFakeModuleFixture(cRoot, { cardKeyPrefix: 'drpc' });
+    const bRoot = join(testDir, 'fake-drop-B');
+    makeFakeModuleFixture(bRoot, {
+      cardKeyPrefix: 'drpb',
+      modules: [{ name: 'drpc', location: `file:${pathResolve(cRoot)}` }],
+    });
+    const aRoot = join(testDir, 'fake-drop-A');
+    makeFakeModuleFixture(aRoot, {
+      cardKeyPrefix: 'drpa',
+      modules: [{ name: 'drpb', location: `file:${pathResolve(bRoot)}` }],
+    });
+
+    const projectDir = join(testDir, 'proj-drop-prefix');
+    const commandHandler = new Commands();
+    const create = await commandHandler.command(
+      Cmd.create,
+      ['project', 'drop-prefix-proj', 'dppr'],
+      { projectPath: projectDir },
+    );
+    expect(create.statusCode).toBe(200);
+
+    const commands = new CommandManager(projectDir, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+
+    await commands.importCmd.importModule(aRoot);
+    // All three transitives live in the cached prefix list.
+    expect(commands.project.allModulePrefixes()).toContain('drpa');
+    expect(commands.project.allModulePrefixes()).toContain('drpb');
+    expect(commands.project.allModulePrefixes()).toContain('drpc');
+
+    await commands.removeCmd.remove('module', 'drpa');
+
+    // Orphan cascade removed the transitives from disk *and* from the
+    // cached prefix list.
+    expect(commands.project.allModulePrefixes()).not.toContain('drpa');
+    expect(commands.project.allModulePrefixes()).not.toContain('drpb');
+    expect(commands.project.allModulePrefixes()).not.toContain('drpc');
   });
 });

@@ -9,13 +9,29 @@ import {
   vi,
 } from 'vitest';
 
-import { mkdirSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { join, resolve as pathResolve } from 'node:path';
 
+import { CommandManager } from '../src/command-manager.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Cmd, Commands } from '../src/command-handler.js';
 import { Fetch, Show } from '../src/commands/index.js';
-import { getTestProject } from './helpers/test-utils.js';
+import { GitManager } from '../src/utils/git-manager.js';
+import {
+  makeFakeModuleFixture,
+  rewriteFakeModuleFixture,
+} from './helpers/module-fixtures.js';
+import {
+  getTestProject,
+  mockEnsureModuleListUpToDate,
+} from './helpers/test-utils.js';
+import { toVersionRange } from '../src/modules/types.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
@@ -182,12 +198,11 @@ describe('import module', () => {
       expect(result.statusCode).toBe(200);
       result = await commandHandler.command(Cmd.show, ['modules'], testOptions);
       expect(result.statusCode).toBe(200);
-      if (result.payload) {
-        const modules = Object.values(result.payload);
-        expect(modules.length).toBe(2);
-        expect(modules).toContain('mini');
-        expect(modules).toContain('decision');
-      }
+      expect(result.payload).toBeDefined();
+      const modules = result.payload as Array<{ name: string }>;
+      expect(modules.length).toBe(2);
+      expect(modules.map((m) => m.name)).toContain('mini');
+      expect(modules.map((m) => m.name)).toContain('decision');
     }, 10000);
     it('try to import module - no source', async () => {
       const stubProjectPath = vi
@@ -218,7 +233,10 @@ describe('import module', () => {
       });
       stubProjectPath.mockRestore();
     });
-    it('try to import module - twice the same module', async () => {
+    it('re-importing the same module is upsert', async () => {
+      // Re-importing a module that is already declared with the same
+      // source location must succeed and update the declared range
+      // rather than error.
       const result1 = await commandHandler.command(
         Cmd.import,
         ['module', decisionRecordsPath],
@@ -230,7 +248,48 @@ describe('import module', () => {
         ['module', decisionRecordsPath],
         optionsMini,
       );
-      expect(result2.statusCode).toBe(400);
+      expect(result2.statusCode).toBe(200);
+    });
+    it('re-importing with a mismatched source location is rejected', async () => {
+      // Once a module has been imported from a given source, a re-import
+      // of the same module name from a different source must be rejected.
+      // The resolver enforces this via `assertSourceAgreement`.
+      const firstImport = await commandHandler.command(
+        Cmd.import,
+        ['module', decisionRecordsPath],
+        optionsMini,
+      );
+      expect(firstImport.statusCode).toBe(200);
+
+      // Capture the persisted declaration so we can assert it is not
+      // mutated by the failed re-import.
+      const configPath = join(
+        minimalPath,
+        '.cards',
+        'local',
+        'cardsConfig.json',
+      );
+      const configBefore = readFileSync(configPath, 'utf-8');
+
+      // Make a sibling copy of the same module fixture at a different
+      // path. Same `cardKeyPrefix` ("decision"), different `file:` URL.
+      const altModulePath = join(testDir, 'valid/decision-records-alt');
+      await copyDir(decisionRecordsPath, altModulePath);
+
+      const result = await commandHandler.command(
+        Cmd.import,
+        ['module', altModulePath],
+        optionsMini,
+      );
+      expect(result.statusCode).toBe(400);
+      expect(result.message).toMatch(
+        /Conflicting source for module 'decision'/,
+      );
+
+      // Config must not have been mutated — the resolver's source-
+      // agreement check fires before the applier persists anything.
+      const configAfter = readFileSync(configPath, 'utf-8');
+      expect(configAfter).toBe(configBefore);
     });
     it('try to import module - that has the same prefix', async () => {
       const result = await commandHandler.command(
@@ -239,6 +298,25 @@ describe('import module', () => {
         optionsMini,
       );
       expect(result.statusCode).toBe(400);
+    });
+    it('try to import module - no cardKeyPrefix in cardsConfig.json', async () => {
+      const noPrefix = join(testDir, 'fake-no-prefix');
+      makeFakeModuleFixture(noPrefix, { cardKeyPrefix: 'placeholder' });
+      writeFileSync(
+        join(noPrefix, '.cards', 'local', 'cardsConfig.json'),
+        JSON.stringify(
+          { cardKeyPrefix: '', name: 'noprefix', modules: [], hubs: [] },
+          null,
+          2,
+        ),
+      );
+      const result = await commandHandler.command(
+        Cmd.import,
+        ['module', noPrefix],
+        optionsMini,
+      );
+      expect(result.statusCode).toBe(400);
+      expect(result.message).toContain('cardKeyPrefix');
     });
   });
 
@@ -363,5 +441,342 @@ describe('import module', () => {
       );
       expect(result.statusCode).toBe(400);
     });
+  });
+});
+
+describe('update-modules version arg', () => {
+  beforeEach(async () => {
+    mkdirSync(testDir, { recursive: true });
+    await copyDir('test/test-data', testDir);
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+    vi.restoreAllMocks();
+  });
+
+  it('version without module name returns error', async () => {
+    const result = await commandHandler.command(
+      Cmd.updateModules,
+      ['', '1.0.0'],
+      optionsMini,
+    );
+    expect(result.statusCode).toBe(400);
+    expect(result.message).toContain(
+      'A target version can only be specified together with a module name',
+    );
+  });
+
+  it('version with unknown module name returns error', async () => {
+    mockEnsureModuleListUpToDate();
+    const result = await commandHandler.command(
+      Cmd.updateModules,
+      ['nonexistent-module', '1.0.0'],
+      optionsMini,
+    );
+    expect(result.statusCode).toBe(400);
+    expect(result.message).toContain(
+      "Module 'nonexistent-module' is not part of the project",
+    );
+  });
+
+  it('version not in available list returns error', async () => {
+    // Import a local module so it appears in cardsConfig.json, then flip
+    // the persisted location to a git URL so the version check is routed
+    // through the source layer (which only queries tags for git remotes).
+    await commandHandler.command(
+      Cmd.import,
+      ['module', decisionRecordsPath],
+      optionsMini,
+    );
+
+    const configPath = join(minimalPath, '.cards', 'local', 'cardsConfig.json');
+    const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+    const decisionModule = config.modules?.find(
+      (m: { name: string }) => m.name === 'decision',
+    );
+    if (decisionModule) {
+      decisionModule.location = 'https://example.com/decision.git';
+      writeFileSync(configPath, JSON.stringify(config, null, 4));
+    }
+
+    // Force the CommandManager singleton to reload from disk by routing
+    // through a different project path first — otherwise the in-memory
+    // Project still holds the module location from before the rewrite above.
+    await commandHandler.command(Cmd.show, ['project'], {
+      projectPath: decisionRecordsPath,
+    });
+
+    mockEnsureModuleListUpToDate();
+    // `updateModule` consults the remote via the source layer, which in
+    // turn delegates to `GitManager.listRemoteVersionTags`.
+    vi.spyOn(GitManager, 'listRemoteVersionTags').mockResolvedValue([
+      '3.0.0',
+      '2.0.0',
+    ]);
+
+    const result = await commandHandler.command(
+      Cmd.updateModules,
+      ['decision', '1.0.0'],
+      optionsMini,
+    );
+    expect(result.statusCode).toBe(400);
+    expect(result.message).toContain("Version '1.0.0' is not available");
+    expect(result.message).toContain('2.0.0');
+    expect(result.message).toContain('3.0.0');
+  });
+});
+
+describe('module update — spec behaviours', () => {
+  const moduleTestDir = join(baseDir, 'tmp-command-import-module-update-tests');
+
+  beforeEach(async () => {
+    mkdirSync(moduleTestDir, { recursive: true });
+    await copyDir('test/test-data', moduleTestDir);
+  });
+
+  afterEach(() => {
+    rmSync(moduleTestDir, { recursive: true, force: true });
+    vi.restoreAllMocks();
+  });
+
+  it('updateAllModules cleans up installations orphaned by a dropped transitive dep', async () => {
+    // Build two fake modules: `host` (top-level) declares `dep`
+    // (transitive). Import host → dep is installed transitively. Edit
+    // host's fixture to drop dep, then run updateAllModules. After the
+    // orphan cascade, .cards/modules/dep/ must be gone.
+    const depRoot = join(moduleTestDir, 'fake-dep');
+    makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'fkdep' });
+    const hostRoot = join(moduleTestDir, 'fake-host');
+    makeFakeModuleFixture(hostRoot, {
+      cardKeyPrefix: 'fkhost',
+      modules: [{ name: 'fkdep', location: `file:${pathResolve(depRoot)}` }],
+    });
+
+    const projectDir = join(moduleTestDir, 'proj-orphan');
+    const commandHandler = new Commands();
+    const create = await commandHandler.command(
+      Cmd.create,
+      ['project', 'orphan-proj', 'orph'],
+      { projectPath: projectDir },
+    );
+    expect(create.statusCode).toBe(200);
+
+    const commands = new CommandManager(projectDir, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+
+    await commands.importCmd.importModule(hostRoot);
+
+    const installedHost = join(projectDir, '.cards', 'modules', 'fkhost');
+    const installedDep = join(projectDir, '.cards', 'modules', 'fkdep');
+    expect(existsSync(installedHost)).toBe(true);
+    expect(existsSync(installedDep)).toBe(true);
+
+    // Upstream drops its transitive dep.
+    rewriteFakeModuleFixture(hostRoot, {
+      cardKeyPrefix: 'fkhost',
+      modules: [],
+    });
+
+    await commands.importCmd.updateAllModules();
+
+    // host is still around; dep must have been removed by the orphan
+    // cascade that runs at the end of updateAllModules.
+    expect(existsSync(installedHost)).toBe(true);
+    expect(existsSync(installedDep)).toBe(false);
+  });
+
+  it('importModule cleans up installations orphaned by a dropped transitive dep', async () => {
+    // Running `importModule` on a host whose upstream dropped a transitive
+    // dep must remove the stale installation from disk. Transitives are
+    // not top-level declarations so they do not appear in
+    // `configuration.modules`; the proof is purely disk-based.
+    const depRoot = join(moduleTestDir, 'fake-dep-reimport');
+    makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'reimpdep' });
+    const hostRoot = join(moduleTestDir, 'fake-host-reimport');
+    makeFakeModuleFixture(hostRoot, {
+      cardKeyPrefix: 'reimphost',
+      modules: [{ name: 'reimpdep', location: `file:${pathResolve(depRoot)}` }],
+    });
+
+    const projectDir = join(moduleTestDir, 'proj-reimport-orphan');
+    const handler = new Commands();
+    const create = await handler.command(
+      Cmd.create,
+      ['project', 'reimport-orphan-proj', 'riop'],
+      { projectPath: projectDir },
+    );
+    expect(create.statusCode).toBe(200);
+
+    const commands = new CommandManager(projectDir, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+
+    // First import: host is declared, dep is installed transitively on disk.
+    await commands.importCmd.importModule(hostRoot);
+
+    const installedHost = join(projectDir, '.cards', 'modules', 'reimphost');
+    const installedDep = join(projectDir, '.cards', 'modules', 'reimpdep');
+    expect(existsSync(installedHost)).toBe(true);
+    expect(existsSync(installedDep)).toBe(true);
+    // Only top-level declarations appear in configuration.modules.
+    expect(
+      commands.project.configuration.modules.some(
+        (m) => m.name === 'reimphost',
+      ),
+    ).toBe(true);
+
+    // Upstream drops its transitive dep.
+    rewriteFakeModuleFixture(hostRoot, {
+      cardKeyPrefix: 'reimphost',
+      modules: [],
+    });
+
+    // Re-import via importModule (not updateAllModules).
+    await commands.importCmd.importModule(hostRoot);
+
+    // cleanOrphans must have run: dep folder gone, host still present.
+    expect(existsSync(installedHost)).toBe(true);
+    expect(existsSync(installedDep)).toBe(false);
+    // Host declaration is still intact.
+    expect(
+      commands.project.configuration.modules.some(
+        (m) => m.name === 'reimphost',
+      ),
+    ).toBe(true);
+  });
+
+  it('updateAllModules refreshes allModulePrefixes when a new transitive is pulled in', async () => {
+    // When `updateAllModules` pulls in a brand-new transitive (because the
+    // upstream started declaring a dep it previously did not), the project's
+    // cached `allModulePrefixes()` must immediately include that transitive's
+    // prefix without any manual refresh by the caller — the applier fires
+    // the refresh itself.
+    const depRoot = join(moduleTestDir, 'fake-new-dep');
+    makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'newdep' });
+    const hostRoot = join(moduleTestDir, 'fake-new-host');
+    // Host initially declares no transitives.
+    makeFakeModuleFixture(hostRoot, {
+      cardKeyPrefix: 'newhost',
+      modules: [],
+    });
+
+    const projectDir = join(moduleTestDir, 'proj-new-transitive');
+    const commandHandler = new Commands();
+    const create = await commandHandler.command(
+      Cmd.create,
+      ['project', 'new-transitive-proj', 'ntrp'],
+      { projectPath: projectDir },
+    );
+    expect(create.statusCode).toBe(200);
+
+    const commands = new CommandManager(projectDir, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+
+    await commands.importCmd.importModule(hostRoot);
+    // Initially only `newhost` is installed — no `newdep` yet.
+    expect(commands.project.allModulePrefixes()).toContain('newhost');
+    expect(commands.project.allModulePrefixes()).not.toContain('newdep');
+
+    // Upstream starts declaring the new transitive.
+    rewriteFakeModuleFixture(hostRoot, {
+      cardKeyPrefix: 'newhost',
+      modules: [{ name: 'newdep', location: `file:${pathResolve(depRoot)}` }],
+    });
+
+    await commands.importCmd.updateAllModules();
+
+    // The new transitive is installed on disk...
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'newdep'))).toBe(
+      true,
+    );
+    // ...and immediately visible through the cached prefix list without any
+    // manual refresh call.
+    expect(commands.project.allModulePrefixes()).toContain('newdep');
+    expect(commands.project.allModulePrefixes()).toContain('newhost');
+  });
+
+  it('updateModule with an override version that violates the declared range throws', async () => {
+    // Spec: the `update <name> <exact-version>` path must refuse a
+    // version that contradicts the declared range. Implemented via
+    // `validateVersionAgainstConstraints` in `Import.updateModule`.
+    const projectDir = join(moduleTestDir, 'proj-override-bad');
+    const commandHandler = new Commands();
+    const create = await commandHandler.command(
+      Cmd.create,
+      ['project', 'override-bad-proj', 'ovb'],
+      { projectPath: projectDir },
+    );
+    expect(create.statusCode).toBe(200);
+
+    const depRoot = join(moduleTestDir, 'fake-override-mod');
+    makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'ovmod' });
+
+    const commands = new CommandManager(projectDir, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+    await commands.importCmd.importModule(depRoot);
+
+    // Synthesise a declared range on the persisted module so the
+    // constraint-validation path fires. The caller-supplied override
+    // `2.0.0` violates `^1.0.0`.
+    const modSetting = commands.project.configuration.modules.find(
+      (m) => m.name === 'ovmod',
+    );
+    expect(modSetting).toBeDefined();
+    modSetting!.version = '^1.0.0';
+
+    await expect(
+      commands.importCmd.updateModule('ovmod', undefined, '2.0.0'),
+    ).rejects.toThrow(/does not satisfy constraint '\^1\.0\.0'/);
+  });
+
+  it('updateModule with an override version inside the declared range succeeds', async () => {
+    // Paired positive case for the override flow: `1.3.0` satisfies
+    // `^1.0.0`, so the constraint check passes and the install path
+    // completes end-to-end against a file source (which ignores the ref
+    // but still exercises the two-phase install).
+    const projectDir = join(moduleTestDir, 'proj-override-ok');
+    const commandHandler = new Commands();
+    const create = await commandHandler.command(
+      Cmd.create,
+      ['project', 'override-ok-proj', 'ovk'],
+      { projectPath: projectDir },
+    );
+    expect(create.statusCode).toBe(200);
+
+    const depRoot = join(moduleTestDir, 'fake-override-mod-ok');
+    makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'ovkmod' });
+
+    const commands = new CommandManager(projectDir, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+    await commands.importCmd.importModule(depRoot);
+
+    const modSetting = commands.project.configuration.modules.find(
+      (m) => m.name === 'ovkmod',
+    );
+    expect(modSetting).toBeDefined();
+    modSetting!.version = '^1.0.0';
+
+    // No throw: constraint check passes, file source fetch/install runs
+    // end-to-end. The persisted range stays at `^1.0.0` — the applier
+    // only writes back the declared range, never the resolved tag.
+    await commands.importCmd.updateModule('ovkmod', undefined, '1.3.0');
+
+    const after = commands.project.configuration.modules.find(
+      (m) => m.name === 'ovkmod',
+    );
+    expect(after?.version).toBe(toVersionRange('^1.0.0'));
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'ovkmod'))).toBe(
+      true,
+    );
   });
 });

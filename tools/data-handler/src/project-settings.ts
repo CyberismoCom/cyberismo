@@ -24,7 +24,7 @@ import type {
 } from './interfaces/project-interfaces.js';
 import { formatJson } from './utils/json.js';
 import { getChildLogger } from './utils/log-utils.js';
-import { readJsonFileSync } from './utils/json.js';
+import { readCardsConfigSync } from './containers/project/cards-config.js';
 import { Validate } from './commands/validate.js';
 import { SCHEMA_VERSION } from '@cyberismo/assets';
 
@@ -70,27 +70,16 @@ export class ProjectConfiguration implements ProjectSettings {
 
   // Sets configuration values from file.
   private readSettings() {
-    const settings = readJsonFileSync(this.settingPath);
-    if (!settings) {
-      throw new Error(`File at '${this.settingPath}' is not a valid JSON file`);
-    }
+    const settings = readCardsConfigSync(this.settingPath);
 
-    const valid =
-      Object.prototype.hasOwnProperty.call(settings, 'cardKeyPrefix') &&
-      Object.prototype.hasOwnProperty.call(settings, 'name');
-
-    if (valid) {
-      this.schemaVersion = settings.schemaVersion;
-      this.cardKeyPrefix = settings.cardKeyPrefix;
-      this.name = settings.name;
-      this.category = settings.category;
-      this.description = settings.description || '';
-      this.version = settings.version;
-      this.modules = settings.modules || [];
-      this.hubs = settings.hubs || [];
-    } else {
-      throw new Error(`Invalid configuration file '${this.settingPath}'`);
-    }
+    this.schemaVersion = settings.schemaVersion;
+    this.cardKeyPrefix = settings.cardKeyPrefix;
+    this.name = settings.name;
+    this.category = settings.category;
+    this.description = settings.description || '';
+    this.version = settings.version;
+    this.modules = settings.modules || [];
+    this.hubs = settings.hubs || [];
   }
 
   // Synchronously persists configuration file to disk.
@@ -160,27 +149,6 @@ export class ProjectConfiguration implements ProjectSettings {
     }
 
     this.hubs.push({ location: trimmedHub });
-    return this.save();
-  }
-
-  /**
-   * Adds new module to imported modules property.
-   * @param module Module to add as dependency
-   */
-  public async addModule(module: ModuleSetting) {
-    if (!module) {
-      throw new Error(`Module must have 'name' and 'url'`);
-    }
-    const exists = this.modules.find((item) => item.name === module.name);
-    if (exists) {
-      throw new Error(`Module '${module.name}' already imported`);
-    }
-    // Ensure that module file location is absolute
-    if (module.location && module.location.startsWith('file:')) {
-      const filePath = module.location.substring(5, module.location.length);
-      module.location = `file:${resolve(filePath)}`;
-    }
-    this.modules.push(module);
     return this.save();
   }
 
@@ -283,6 +251,55 @@ export class ProjectConfiguration implements ProjectSettings {
    */
   public async setVersion(newVersion: string) {
     this.version = newVersion;
+    return this.save();
+  }
+
+  /**
+   * Updates the version constraint of a module.
+   * @param moduleName Name of the module to update
+   * @param version Semver version or range constraint (e.g., "^1.0.0")
+   */
+  public async updateModuleVersion(moduleName: string, version: string) {
+    const module = this.modules.find((item) => item.name === moduleName);
+    if (!module) {
+      throw new Error(`Module '${moduleName}' is not imported`);
+    }
+    module.version = version;
+    return this.save();
+  }
+
+  /**
+   * Inserts a module declaration, or updates an existing one in place.
+   * Fields on the existing record are preserved unless overridden by the
+   * incoming `module`.
+   * @param module Module to insert or update.
+   */
+  public async upsertModule(module: ModuleSetting) {
+    if (!module || !module.name) {
+      throw new Error(`Module must have 'name' and 'url'`);
+    }
+
+    // Ensure that module file location is absolute.
+    if (module.location && module.location.startsWith('file:')) {
+      const filePath = module.location.substring(5, module.location.length);
+      module.location = `file:${resolve(filePath)}`;
+    }
+
+    const existing = this.modules.find((item) => item.name === module.name);
+    if (existing) {
+      existing.version = module.version;
+      if (module.location) {
+        existing.location = module.location;
+      }
+      if (module.private !== undefined) {
+        existing.private = module.private;
+      }
+      if (module.credentials !== undefined) {
+        existing.credentials = module.credentials;
+      }
+    } else {
+      this.modules.push(module);
+    }
     return this.save();
   }
 

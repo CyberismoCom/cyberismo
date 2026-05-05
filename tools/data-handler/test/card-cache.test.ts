@@ -683,10 +683,7 @@ describe('Card cache', () => {
 
     it('should import base module and verify template cards in cache', async () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
-      await commands.importCmd.importModule(
-        baseModule,
-        commands.project.basePath,
-      );
+      await commands.importCmd.importModule(baseModule);
 
       const allTemplateCards = commands.project.allTemplateCards();
       const baseTemplateCards = allTemplateCards.filter((card: Card) =>
@@ -705,10 +702,7 @@ describe('Card cache', () => {
     it('should remove base module and verify template cards are gone from the cache', async () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
 
-      await commands.importCmd.importModule(
-        baseModule,
-        commands.project.basePath,
-      );
+      await commands.importCmd.importModule(baseModule);
 
       const allTemplateCards = commands.project.allTemplateCards();
       const baseTemplateCards = allTemplateCards.filter((card: Card) =>

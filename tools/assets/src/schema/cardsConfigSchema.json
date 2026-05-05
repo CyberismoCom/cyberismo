@@ -1,4 +1,13 @@
 {
+  "$defs": {
+    "projectPrefix": {
+      "type": "string",
+      "description": "Project prefix: 3–10 lowercase letters.",
+      "pattern": "^[a-z]+$",
+      "minLength": 3,
+      "maxLength": 10
+    }
+  },
   "$id": "cardsConfigSchema",
   "additionalProperties": false,
   "description": "General configuration settings for the card tree.",
@@ -8,11 +17,8 @@
       "description": "Project schema version"
     },
     "cardKeyPrefix": {
-      "type": "string",
       "description": "The prefix or the fist component of the card key. For example, ABC",
-      "pattern": "^[a-z]+$",
-      "minLength": 3,
-      "maxLength": 10
+      "$ref": "#/$defs/projectPrefix"
     },
     "name": {
       "description": "Project name",
@@ -53,19 +59,19 @@
         "properties": {
           "name": {
             "description": "Module name (project prefix). Must be unique.",
-            "type": "string"
+            "$ref": "#/$defs/projectPrefix"
           },
           "location": {
             "description": "Git remote URL, or relative file reference.",
             "type": "string"
           },
-          "branch": {
-            "description": "If using git remote URL in 'location' defines git branch. If empty, uses repository default branch'.",
-            "type": "string"
-          },
           "private": {
             "description": "If true, the module is private and requires credentials (CYBERISMO_GIT_USER / CYBERISMO_GIT_TOKEN) or SSH. Does not apply for local file modules.",
             "type": "boolean"
+          },
+          "version": {
+            "description": "Semver version or range constraint (e.g., '1.0.0', '^1.0.0', '>=1.2.0 <2.0.0'). When omitted, any version is accepted.",
+            "type": "string"
           }
         },
         "required": ["name", "location"]

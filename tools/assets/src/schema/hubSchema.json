@@ -26,7 +26,7 @@
         "properties": {
           "name": {
             "description": "Module name (project prefix). Must be unique globally.",
-            "type": "string"
+            "$ref": "cardsConfigSchema#/$defs/projectPrefix"
           },
           "displayName": {
             "description": "Display name of the module",
@@ -42,10 +42,6 @@
           },
           "documentationLocation": {
             "description": "URI to the documentation of the module",
-            "type": "string"
-          },
-          "branch": {
-            "description": "If using git remote URL in 'location' defines git branch. If empty, uses repository default branch'.",
             "type": "string"
           },
           "private": {

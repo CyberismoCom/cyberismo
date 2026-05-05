@@ -36,9 +36,7 @@ import {
   type FetchCardDetails,
   type MetadataContent,
   type ModuleContent,
-  type ModuleSetting,
   type ProjectFetchCardDetails,
-  type ProjectMetadata,
 } from '../interfaces/project-interfaces.js';
 import { pathExists } from '../utils/file-utils.js';
 import { generateRandomString } from '../utils/random.js';
@@ -49,7 +47,7 @@ import {
 } from '../utils/card-utils.js';
 import { ProjectConfiguration } from '../project-settings.js';
 import { ProjectPaths } from './project/project-paths.js';
-import { readJsonFile } from '../utils/json.js';
+import { readCardsConfig } from './project/cards-config.js';
 import { ResourceHandler } from './project/resource-handler.js';
 import { Validate } from '../commands/validate.js';
 import { ContentWatcher } from './project/project-content-watcher.js';
@@ -63,11 +61,6 @@ import type { MigrationResult } from '@cyberismo/migrations';
 import type { Template } from './template.js';
 
 import { ROOT } from '../utils/constants.js';
-
-import {
-  ConfigurationLogger,
-  ConfigurationOperation,
-} from '../utils/configuration-logger.js';
 
 /**
  * Options for Project initialization.
@@ -317,6 +310,10 @@ export class Project extends CardContainer {
    */
   protected async populateTemplateCards(): Promise<void> {
     try {
+      // Evict any stale template cards from a prior population — templates may
+      // have been removed (e.g. via module removal) and would otherwise linger.
+      this.cardCache.deleteAllTemplateCards();
+
       const templateResources = this.resources.templates();
       const prefixes = this.allModulePrefixes();
       const loadPromises = templateResources.map(async (template) => {
@@ -674,20 +671,6 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Adds a module from project.
-   * @param module Module to add
-   */
-  public async importModule(module: ModuleSetting) {
-    // Add module as a dependency.
-    await this.configuration.addModule(module);
-    this.resources.changedModules();
-    this.refreshAllModulePrefixes();
-    await this.populateTemplateCards();
-
-    this.logger.info(`Imported module '${module.name}'`);
-  }
-
-  /**
    * Checks if a given path is a project.
    * @param path Path to a project
    * @returns true, if in the given path there is a project; false otherwise
@@ -770,12 +753,13 @@ export class Project extends CardContainer {
     const module = await this.findModule(moduleName);
     if (module && module.path) {
       const modulePath = module.path;
-      const moduleConfig = await readJsonFile(
+      const moduleConfig = await readCardsConfig(
         join(modulePath, Project.projectConfigFileName),
       );
       return {
         name: moduleConfig.name,
         description: moduleConfig.description || '',
+        version: moduleConfig.version,
         modules: moduleConfig.modules,
         hubs: moduleConfig.hubs,
         path: modulePath,
@@ -971,37 +955,15 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Removes a module from the project cache and configuration.
-   * @note that ModuleManager removes the actual files.
-   * @param moduleName Module name to remove.
+   * Refreshes caches after the module installation set has changed on disk.
+   * Invalidates the module resource cache, rebuilds the all-module-prefix
+   * list, and reloads template cards so the Project API reflects the new
+   * module layout.
    */
-  public async removeModule(moduleName: string) {
-    const toBeRemovedTemplates = this.resources.moduleResourceNames(
-      'templates',
-      moduleName,
-    );
-
-    // First, remove template cards from the cache that are part of removed templates.
-    for (const templateName of toBeRemovedTemplates) {
-      this.cardCache.deleteCardsFromTemplate(templateName);
-    }
-
-    // Then, remove all module resources from cache
-    this.resources.removeModule(moduleName);
-
-    // Finally, remove module from project configuration
-    await this.configuration.removeModule(moduleName);
-
-    // Refresh cached module prefixes after removal
+  public async refreshAfterModuleChange(): Promise<void> {
+    this.resources.changedModules();
     this.refreshAllModulePrefixes();
-
-    // Log configuration change
-    await ConfigurationLogger.log(this.basePath, {
-      operation: ConfigurationOperation.MODULE_REMOVE,
-      target: moduleName,
-    });
-
-    this.logger.info(`Removed module '${moduleName}'`);
+    await this.populateTemplateCards();
   }
 
   /**
@@ -1055,25 +1017,6 @@ export class Project extends CardContainer {
     }
 
     return result;
-  }
-
-  /**
-   * Shows details of a project.
-   * @returns details of a project.
-   */
-  public async show(): Promise<ProjectMetadata> {
-    return {
-      name: this.settings.name,
-      path: this.basePath,
-      prefix: this.projectPrefix,
-      category: this.configuration.category,
-      description: this.configuration.description,
-      version: this.configuration.version,
-      hubs: this.configuration.hubs,
-      modules: this.resources.moduleNames(),
-      numberOfCards: (await this.listCards(CardLocation.projectOnly))[0].cards
-        .length,
-    };
   }
 
   /**

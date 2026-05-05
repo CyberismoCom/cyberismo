@@ -26,6 +26,7 @@ import type {
   CommandOptions,
   Credentials,
   ModuleSettingFromHub,
+  ModuleUpdateStatus,
   requestStatus,
   UpdateOperations,
 } from '@cyberismo/data-handler';
@@ -115,6 +116,29 @@ function handleResponse(response: requestStatus) {
 }
 
 // Helper to get modules that have not been imported.
+// Splits a "source@version" argument into source and version parts.
+// Leaves the "@" in SSH URLs like "git@github.com:foo/bar.git" intact by
+// only considering "@" that appears after the host:path separator.
+function parseSourceAtVersion(input: string): {
+  source: string;
+  version?: string;
+} {
+  let searchFrom = 0;
+  if (input.startsWith('git@')) {
+    const colonIdx = input.indexOf(':');
+    searchFrom = colonIdx >= 0 ? colonIdx : input.length;
+  }
+  const atIdx = input.lastIndexOf('@');
+  if (atIdx > searchFrom) {
+    const version = input.slice(atIdx + 1);
+    return {
+      source: input.slice(0, atIdx),
+      version: version || undefined,
+    };
+  }
+  return { source: input };
+}
+
 async function importableModules(options: CommandOptions<'show'>) {
   const copyOptions = Object.assign({}, options);
   copyOptions.details = true;
@@ -628,12 +652,7 @@ createCmd
           for (const module of selectedModules) {
             const importResult = await commandHandler.command(
               Cmd.import,
-              [
-                'module',
-                module.location,
-                module.branch ?? '',
-                module.private ? 'true' : 'false',
-              ],
+              ['module', module.location, module.private ? 'true' : 'false'],
               commandOptions,
             );
             if (importResult.statusCode !== 200) {
@@ -917,9 +936,8 @@ importCmd
   )
   .argument(
     '[source]',
-    'Path to import from or module name. If omitted, shows interactive selection',
+    'Path, git URL, or module name. Append "@<version>" to pin a semver version or range (e.g. "my-module@^1.0.0"). If omitted, shows interactive selection.',
   )
-  .argument('[branch]', 'When using git URL defines the branch. Default: main')
   .argument(
     '[useCredentials]',
     'When using git URL uses credentials for cloning. Default: false',
@@ -927,15 +945,17 @@ importCmd
   .action(
     async (
       source: string,
-      branch: string,
       useCredentials: boolean,
       options: CommandOptions<'import'>,
     ) => {
-      let resolvedSource = source;
-      let resolvedBranch = branch;
+      const { source: parsedSource, version } = source
+        ? parseSourceAtVersion(source)
+        : { source: undefined, version: undefined };
+
+      let resolvedSource = parsedSource;
       let resolvedUseCredentials = useCredentials;
 
-      if (!source) {
+      if (!parsedSource) {
         // Interactive mode: show importable modules
         try {
           const choices = await importableModules(options);
@@ -945,7 +965,6 @@ importCmd
           });
 
           resolvedSource = selectedModule.location;
-          resolvedBranch = branch || selectedModule.branch || '';
           resolvedUseCredentials =
             useCredentials ?? selectedModule.private ?? false;
         } catch (error) {
@@ -972,12 +991,11 @@ importCmd
           const moduleList = JSON.parse(moduleListContent);
           const modules = moduleList.modules || [];
           const foundModule = modules?.find(
-            (m: ModuleSettingFromHub) => m.name === source,
+            (m: ModuleSettingFromHub) => m.name === parsedSource,
           );
 
           if (foundModule) {
             resolvedSource = foundModule.location;
-            resolvedBranch = branch || foundModule.branch || '';
             resolvedUseCredentials =
               useCredentials ?? foundModule.private ?? false;
           }
@@ -994,8 +1012,8 @@ importCmd
         [
           'module',
           resolvedSource!,
-          resolvedBranch,
           String(resolvedUseCredentials),
+          ...(version ? [version] : []),
         ],
         Object.assign({}, options, program.opts()),
         credentials(),
@@ -1419,17 +1437,116 @@ const updateModulesCmd = new CommandWithPath('update-modules')
   .description(
     'Updates to latest versions either all modules or a specific module',
   )
-  .argument('[moduleName]', 'Module name');
+  .argument('[moduleName]', 'Module name')
+  .argument(
+    '[version]',
+    'Target version to update to (only with a specific module)',
+  );
 program.addCommand(updateModulesCmd);
 updateModulesCmd.action(
-  async (moduleName, options: CommandOptions<'updateModules'>) => {
+  async (moduleName, version, options: CommandOptions<'updateModules'>) => {
     const result = await commandHandler.command(
       Cmd.updateModules,
-      [moduleName],
+      [moduleName, version],
       Object.assign({}, options, program.opts()),
       credentials(),
     );
     handleResponse(result);
+  },
+);
+
+// Check updates command
+const checkUpdatesCmd = new CommandWithPath('check-updates')
+  .description('Check if updates are available for installed modules')
+  .argument('[moduleName]', 'Module name to check. If omitted, checks all.');
+program.addCommand(checkUpdatesCmd);
+checkUpdatesCmd.action(
+  async (
+    moduleName: string | undefined,
+    options: CommandOptions<'checkUpdates'>,
+  ) => {
+    const result = await commandHandler.command(
+      Cmd.checkUpdates,
+      moduleName ? [moduleName] : [],
+      Object.assign({}, options, program.opts()),
+      credentials(),
+    );
+
+    if (result.statusCode !== 200) {
+      handleResponse(result);
+      return;
+    }
+
+    const updates = result.payload as ModuleUpdateStatus[];
+
+    // Display summary
+    for (const mod of updates) {
+      if (mod.updateAvailable) {
+        const from = mod.installedVersion || 'unversioned';
+        const blocked = mod.constraintBlocksUpdate
+          ? `  (constraint "${mod.versionConstraint}" blocks auto-update)`
+          : '';
+        console.log(
+          `  ${mod.name}    ${from}  →  ${mod.latestVersion}${blocked}`,
+        );
+      } else if (!mod.isGitModule) {
+        console.log(`  ${mod.name}    (local module, skipped)`);
+      } else if (mod.noMatchingVersion) {
+        console.log(
+          `  ${mod.name}    (no version matches constraint ${mod.versionConstraint})`,
+        );
+      } else if (mod.availableVersions.length === 0) {
+        console.log(
+          `  ${mod.name}    ${mod.installedVersion || 'unknown'}  (no version tags)`,
+        );
+      } else {
+        console.log(
+          `  ${mod.name}    ${mod.installedVersion || 'unknown'}  (up to date)`,
+        );
+      }
+    }
+
+    const updatable = updates.filter((m) => m.updateAvailable);
+    if (updatable.length === 0) {
+      console.log('\nAll modules are up to date.');
+      return;
+    }
+
+    const autoUpdatable = updatable.filter((m) => !m.constraintBlocksUpdate);
+    const blocked = updatable.filter((m) => m.constraintBlocksUpdate);
+
+    console.log(`\n${updatable.length} module(s) have updates available.`);
+    if (blocked.length > 0) {
+      console.log(
+        `${blocked.length} module(s) are blocked by version constraints — edit the constraint in cardsConfig.json to upgrade.`,
+      );
+    }
+
+    if (autoUpdatable.length === 0) {
+      return;
+    }
+
+    const shouldUpdate = await confirm({
+      message: `Apply ${autoUpdatable.length} available update(s)?`,
+    });
+    if (shouldUpdate) {
+      for (const mod of autoUpdatable) {
+        const target = mod.latestSatisfyingConstraint ?? mod.latestVersion!;
+        const updateResult = await commandHandler.command(
+          Cmd.updateModules,
+          [mod.name, target],
+          Object.assign({}, options, program.opts()),
+          credentials(),
+        );
+        if (updateResult.statusCode === 200) {
+          console.log(`  Updated ${mod.name} to ${target}`);
+        } else {
+          console.error(
+            `  Failed to update ${mod.name}: ${updateResult.message}`,
+          );
+        }
+      }
+    }
   },
 );
 
