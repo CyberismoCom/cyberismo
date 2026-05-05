@@ -272,9 +272,6 @@ importers:
       '@cyberismo/data-handler':
         specifier: workspace:*
         version: link:../data-handler
-      '@cyberismo/mcp':
-        specifier: workspace:*
-        version: link:../mcp
       '@inquirer/confirm':
         specifier: ^6.0.12
         version: 6.0.12(@types/node@22.19.17)
@@ -413,9 +410,6 @@ importers:
         specifier: ^4.3.6
         version: 4.3.6
     devDependencies:
-      tsx:
-        specifier: ^4.21.0
-        version: 4.21.0
       vitest:
         specifier: ^4.0.15
         version: 4.0.15(@types/node@22.19.17)(jsdom@29.0.1)(lightningcss@1.32.0)(terser@5.40.0)(tsx@4.21.0)

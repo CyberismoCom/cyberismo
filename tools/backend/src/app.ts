@@ -13,10 +13,7 @@
 import { Hono, type MiddlewareHandler } from 'hono';
 import { staticFrontendDirRelative } from './utils.js';
 import { serveStatic } from '@hono/node-server/serve-static';
-import {
-  attachCommandManager,
-  attachProjectRegistry,
-} from './middleware/commandManager.js';
+import { attachProjectRegistry } from './middleware/commandManager.js';
 import calculationsRouter from './domain/calculations/index.js';
 import cardsRouter from './domain/cards/index.js';
 import cardTypesRouter from './domain/cardTypes/index.js';
@@ -38,7 +35,7 @@ import { isSSGContext } from 'hono/ssg';
 import type { AppVars, TreeOptions } from './types.js';
 import treeMiddleware from './middleware/tree.js';
 import projectRouter from './domain/project/index.js';
-import mcpRouter from './domain/mcp/index.js';
+import { createMcpRouter } from './domain/mcp/index.js';
 import { createAuthRouter } from './domain/auth/index.js';
 import { createAuthMiddleware } from './middleware/auth.js';
 import type { AuthProvider } from './auth/types.js';
@@ -111,14 +108,7 @@ export function createApp(
   }
 
   // MCP endpoint for AI assistant integration
-  // TODO: Make MCP project-scoped when multi-project MCP is implemented
-  const mcpCommands = registry.first();
-  if (mcpCommands) {
-    const mcpMiddleware = attachCommandManager(mcpCommands);
-    app.use('/mcp', mcpMiddleware);
-    app.use('/mcp/*', mcpMiddleware);
-  }
-  app.route('/mcp', mcpRouter);
+  app.route('/mcp', createMcpRouter(registry));
 
   app.use(
     '*',

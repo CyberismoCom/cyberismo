@@ -20,6 +20,8 @@ import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
+import { UserRole } from '../src/types.js';
+import type { AuthProvider } from '../src/auth/types.js';
 
 const fileUrl = fileURLToPath(import.meta.url);
 const dirname = path.dirname(fileUrl);
@@ -83,31 +85,19 @@ describe('MCP HTTP Endpoint', () => {
     expect(result.message).toBe('Session closed');
   });
 
-  test('GET /mcp/sse without session returns error', async () => {
-    const response = await app.request('/mcp/sse', {
-      method: 'GET',
-    });
-
-    expect(response).not.toBe(null);
-    expect(response.status).toBe(400);
-
-    const result = await response.json();
-    expect(result.error).toBe('Invalid or missing session ID');
-  });
-
-  test('GET /mcp/sse with invalid session returns error', async () => {
-    const response = await app.request('/mcp/sse', {
-      method: 'GET',
+  test('POST /mcp with unknown session ID returns 404', async () => {
+    const response = await app.request('/mcp', {
+      method: 'POST',
       headers: {
-        'mcp-session-id': 'invalid-session-id',
+        'Content-Type': 'application/json',
+        'mcp-session-id': 'nonexistent-session-id',
       },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'ping' }),
     });
 
-    expect(response).not.toBe(null);
-    expect(response.status).toBe(400);
-
+    expect(response.status).toBe(404);
     const result = await response.json();
-    expect(result.error).toBe('Invalid or missing session ID');
+    expect(result.error).toBe('Unknown session ID');
   });
 
   test('POST /mcp with invalid JSON returns error', async () => {
@@ -122,5 +112,48 @@ describe('MCP HTTP Endpoint', () => {
     expect(response).not.toBe(null);
     // Should return an error status
     expect(response.status).toBeGreaterThanOrEqual(400);
+  });
+
+  test('POST /mcp returns 403 for Reader role', async () => {
+    const readerProvider: AuthProvider = {
+      authenticate: async () => ({
+        id: 'reader-user',
+        email: 'reader@test.com',
+        name: 'Reader User',
+        role: UserRole.Reader,
+      }),
+    };
+
+    const commands = await CommandManager.getInstance(
+      path.resolve(
+        dirname,
+        '../../data-handler/test/test-data/valid/decision-records',
+      ),
+    );
+    const readerApp = createApp(
+      readerProvider,
+      ProjectRegistry.fromCommandManager(commands),
+    );
+
+    const response = await readerApp.request('/mcp', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: {
+          protocolVersion: '2024-11-05',
+          capabilities: {},
+          clientInfo: { name: 'test-client', version: '1.0.0' },
+        },
+      }),
+    });
+
+    expect(response.status).toBe(403);
+    const result = await response.json();
+    expect(result.error).toBe('Forbidden');
   });
 });
