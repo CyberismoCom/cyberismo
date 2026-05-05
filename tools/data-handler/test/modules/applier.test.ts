@@ -204,7 +204,9 @@ describe('modules/applier', () => {
     );
 
     expect(
-      existsSync(join(projectDir, '.cards', 'modules', 'A', 'cardTypes', 'orphan.json')),
+      existsSync(
+        join(projectDir, '.cards', 'modules', 'A', 'cardTypes', 'orphan.json'),
+      ),
     ).toBe(true);
 
     // Re-install at a new version that no longer ships orphan.json.
@@ -223,7 +225,9 @@ describe('modules/applier', () => {
     );
 
     const moduleDir = join(projectDir, '.cards', 'modules', 'A');
-    expect(existsSync(join(moduleDir, 'cardTypes', 'replacement.json'))).toBe(true);
+    expect(existsSync(join(moduleDir, 'cardTypes', 'replacement.json'))).toBe(
+      true,
+    );
     expect(existsSync(join(moduleDir, 'cardTypes', 'orphan.json'))).toBe(false);
 
     // Persisted declaration was upserted, not duplicated.

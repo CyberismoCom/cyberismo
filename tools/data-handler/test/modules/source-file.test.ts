@@ -138,9 +138,7 @@ describe('modules/source-file', () => {
     // Ambient siblings did not.
     expect(existsSync(join(returnedPath, '.temp'))).toBe(false);
     expect(
-      existsSync(
-        join(new ProjectPaths(returnedPath).modulesFolder, 'sibling'),
-      ),
+      existsSync(join(new ProjectPaths(returnedPath).modulesFolder, 'sibling')),
     ).toBe(false);
   });
 
