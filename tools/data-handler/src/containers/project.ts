@@ -47,7 +47,7 @@ import {
 } from '../utils/card-utils.js';
 import { ProjectConfiguration } from '../project-settings.js';
 import { ProjectPaths } from './project/project-paths.js';
-import { readJsonFile } from '../utils/json.js';
+import { readCardsConfig } from './project/cards-config.js';
 import { ResourceHandler } from './project/resource-handler.js';
 import { Validate } from '../commands/validate.js';
 import { ContentWatcher } from './project/project-content-watcher.js';
@@ -749,7 +749,7 @@ export class Project extends CardContainer {
     const module = await this.findModule(moduleName);
     if (module && module.path) {
       const modulePath = module.path;
-      const moduleConfig = await readJsonFile(
+      const moduleConfig = await readCardsConfig(
         join(modulePath, Project.projectConfigFileName),
       );
       return {
