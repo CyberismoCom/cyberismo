@@ -12,6 +12,7 @@
 
 import { useSWRHook } from './common';
 import { callApi, apiPaths } from '../swr';
+import { downloadBlob } from '@/lib/utils';
 
 import type { SWRConfiguration } from 'swr';
 import { mutate } from 'swr';
@@ -178,22 +179,13 @@ export const useCardMutations = (key: string | null) => {
         null
       );
     },
-    exportCard: async ({
-      cardKey,
-      title,
-      name,
-      exportChildCards,
-      version,
-    }: ExportCardParams) => {
-      return call(
-        () =>
-          exportCard(
-            { cardKey, title, exportChildCards, name, version },
-            dispatch,
-          ),
-        'exportCard',
-      );
-    },
+  };
+};
+
+export const useCardExport = () => {
+  const dispatch = useAppDispatch();
+  return {
+    exportCard: (params: ExportCardParams) => exportCard(params, dispatch),
   };
 };
 
@@ -260,30 +252,19 @@ async function exportCard(
     }),
   );
   try {
-    const swrKey = apiPaths.exportCard();
-    const result = await fetch(swrKey, {
-      method: 'POST',
-      body: JSON.stringify({
+    const blob = await callApi<Blob>(
+      apiPaths.exportCard(),
+      'POST',
+      {
         cardKey,
         title,
         exportChildCards,
         name,
         ...(version && { version }),
-      }),
-      headers: {
-        'Content-Type': 'application/json',
       },
-    });
-    if (result.status !== 200) {
-      throw new Error(`Unable to export ${name}`);
-    }
-    const blob = await result.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${name}.pdf`;
-    a.click();
-    URL.revokeObjectURL(url);
+      { responseType: 'blob' },
+    );
+    downloadBlob(blob, `${name}.pdf`);
     dispatch(removeNotification(progressNotification.payload.id));
     dispatch(
       addNotification({

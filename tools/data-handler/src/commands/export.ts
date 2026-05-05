@@ -212,8 +212,6 @@ export class Export {
   private async evaluateExportContent(
     options: ExportPdfOptions,
   ): Promise<string> {
-    await this.project.calculationEngine.generate();
-
     const result = await generateReportContent({
       calculate: this.project.calculationEngine,
       contentTemplate: pdfReport.content,

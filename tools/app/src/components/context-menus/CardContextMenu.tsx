@@ -22,7 +22,7 @@ import {
   Tooltip,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
-import { useModals } from '@/lib/utils';
+import { getConfig, useModals } from '@/lib/utils';
 import {
   MoveCardModal,
   DeleteModal,
@@ -94,10 +94,14 @@ export function CardContextMenu({
           <MenuItem onClick={openModal('logicProgram')}>
             <Typography>{t('viewLogicProgram')}</Typography>
           </MenuItem>
-          <Divider />
-          <MenuItem onClick={openModal('exportCard')}>
-            <Typography>{t('exportCard')}</Typography>
-          </MenuItem>
+          {!getConfig().staticMode && (
+            <>
+              <Divider />
+              <MenuItem onClick={openModal('exportCard')}>
+                <Typography>{t('exportCard')}</Typography>
+              </MenuItem>
+            </>
+          )}
           <Divider />
           <MenuItem data-cy="deleteCardButton" onClick={handleDeleteClick}>
             <Typography color="danger">{t('deleteCard')}</Typography>

@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import React from 'react';
+import { useState } from 'react';
 import {
   Modal,
   ModalDialog,
@@ -20,11 +20,13 @@ import {
   DialogActions,
   Button,
   Checkbox,
-  Typography,
+  FormControl,
+  FormLabel,
+  FormHelperText,
   Input,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
-import { useCard } from '@/lib/api/card';
+import { useCard, useCardExport } from '@/lib/api/card';
 import { useProject } from '@/lib/api/project';
 
 interface ModalProps {
@@ -52,17 +54,13 @@ const ExportModal = ({
   heading,
 }: ModalProps) => {
   const { t } = useTranslation();
-  const [exportChildCards, setExportChildCards] =
-    React.useState(forceChildExport);
-  const { card, exportCard } = useCard(cardKey);
-  const [title, setTitle] = React.useState(defaultTitle);
-  const [name, setName] = React.useState(defaultFileName);
-  const [version, setVersion] = React.useState('');
-  React.useEffect(() => {
-    if (card) {
-      setTitle(card.title);
-    }
-  }, [card]);
+  const { card } = useCard(cardKey);
+  const { exportCard } = useCardExport();
+  const [exportChildCards, setExportChildCards] = useState(forceChildExport);
+  const [title, setTitle] = useState(card?.title ?? defaultTitle);
+  const [name, setName] = useState(defaultFileName);
+  const [version, setVersion] = useState('');
+
   const handleClose = () => {
     setExportChildCards(forceChildExport);
     setTitle(card?.title ?? defaultTitle);
@@ -70,49 +68,41 @@ const ExportModal = ({
     setVersion('');
     onClose();
   };
+
   return (
     <Modal open={open} onClose={handleClose} disableEscapeKeyDown>
       <ModalDialog size="md" sx={{ minWidth: 480 }}>
         <DialogTitle>{heading}</DialogTitle>
         <DialogContent sx={{ overflow: 'hidden' }}>
-          <label htmlFor="title">
-            <Typography>{t('title')}</Typography>
-          </label>
-          <Input
-            fullWidth
-            id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-          <Typography level="body-sm">
-            {t('exportCardTitleDescription')}
-          </Typography>
+          <FormControl>
+            <FormLabel>{t('title')}</FormLabel>
+            <Input
+              fullWidth
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+            <FormHelperText>{t('exportCardTitleDescription')}</FormHelperText>
+          </FormControl>
 
-          <label htmlFor="name">
-            <Typography>{t('name')}</Typography>
-          </label>
-          <Input
-            fullWidth
-            id="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <Typography level="body-sm">
-            {t('exportCardNameDescription')}
-          </Typography>
+          <FormControl>
+            <FormLabel>{t('name')}</FormLabel>
+            <Input
+              fullWidth
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+            <FormHelperText>{t('exportCardNameDescription')}</FormHelperText>
+          </FormControl>
 
-          <label htmlFor="version">
-            <Typography>{t('version')}</Typography>
-          </label>
-          <Input
-            fullWidth
-            id="version"
-            value={version}
-            onChange={(e) => setVersion(e.target.value)}
-          />
-          <Typography level="body-sm">
-            {t('exportCardVersionDescription')}
-          </Typography>
+          <FormControl>
+            <FormLabel>{t('version')}</FormLabel>
+            <Input
+              fullWidth
+              value={version}
+              onChange={(e) => setVersion(e.target.value)}
+            />
+            <FormHelperText>{t('exportCardVersionDescription')}</FormHelperText>
+          </FormControl>
 
           {!forceChildExport && (
             <Checkbox

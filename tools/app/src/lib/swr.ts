@@ -42,7 +42,12 @@ export async function createApiCallError(
   }
 }
 
-async function handleResponse<T>(response: Response): Promise<T> {
+type CallApiOptions = { responseType?: 'json' | 'blob' };
+
+async function handleResponse<T>(
+  response: Response,
+  responseType: 'json' | 'blob' = 'json',
+): Promise<T> {
   if (!response.ok) {
     if (response.status === 401) {
       store.dispatch(setSessionExpired());
@@ -53,6 +58,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
     throw await createApiCallError(response);
   }
   if (response.status === 204) return null as unknown as T; // no content, return null
+  if (responseType === 'blob') return response.blob() as unknown as Promise<T>;
   return response.json();
 }
 
@@ -63,28 +69,33 @@ export async function callApi<T>(
   // Below is disabled as JSON stringify also accepts any
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   body?: any,
+  options?: CallApiOptions,
 ): Promise<T> {
   if (getConfig().staticMode && method !== 'GET') {
     throw new Error('Export mode is enabled, only GET requests are allowed');
   }
-  const options: RequestInit = {
+  const requestOpts: RequestInit = {
     method,
   };
 
   if (body) {
     // if body is file, don't stringify it
     if (body instanceof FormData) {
-      options.body = body;
+      requestOpts.body = body;
     } else {
-      options.body = JSON.stringify(body);
-      options.headers = {
+      requestOpts.body = JSON.stringify(body);
+      requestOpts.headers = {
         'Content-Type': 'application/json',
       };
     }
   }
 
   return handleResponse(
-    await fetch(`${url}${getConfig().staticMode ? '.json' : ''}`, options),
+    await fetch(
+      `${url}${getConfig().staticMode ? '.json' : ''}`,
+      requestOpts,
+    ),
+    options?.responseType,
   );
 }
 

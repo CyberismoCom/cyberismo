@@ -88,7 +88,7 @@ import type {
   CalculationLink,
   LinkDirection,
 } from '@cyberismo/data-handler/types/queries';
-import { getConfig } from '@/lib/utils';
+import { downloadBlob, getConfig } from '@/lib/utils';
 import type { CardResponse, Connector } from '../lib/api/types';
 import { GenericConfirmModal } from './modals';
 import { useCard } from '../lib/api';
@@ -707,16 +707,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     }
 
     const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = (svgEl.id || card.title) + ' diagram.svg';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-
-    URL.revokeObjectURL(url);
+    downloadBlob(blob, (svgEl.id || card.title) + ' diagram.svg');
   };
 
   /**
