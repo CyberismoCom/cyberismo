@@ -310,6 +310,10 @@ export class Project extends CardContainer {
    */
   protected async populateTemplateCards(): Promise<void> {
     try {
+      // Evict any stale template cards from a prior population — templates may
+      // have been removed (e.g. via module removal) and would otherwise linger.
+      this.cardCache.deleteAllTemplateCards();
+
       const templateResources = this.resources.templates();
       const prefixes = this.allModulePrefixes();
       const loadPromises = templateResources.map(async (template) => {

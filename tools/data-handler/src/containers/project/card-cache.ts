@@ -328,6 +328,17 @@ export class CardCache {
   }
 
   /**
+   * Removes all template cards (i.e. cards whose location is not 'project') from the cache.
+   */
+  public deleteAllTemplateCards() {
+    for (const card of this.cardCache.values()) {
+      if (card.location !== 'project') {
+        this.deleteCard(card.key);
+      }
+    }
+  }
+
+  /**
    * Returns all the template cards in the cache.
    * @returns all the template cards in the cache.
    */
