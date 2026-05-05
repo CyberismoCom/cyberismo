@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Modal,
   ModalDialog,
@@ -60,6 +60,13 @@ const ExportModal = ({
   const [title, setTitle] = useState(card?.title ?? defaultTitle);
   const [name, setName] = useState(defaultFileName);
   const [version, setVersion] = useState('');
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => {
+    if (card) {
+      setTitle(card.title);
+    }
+  }, [card]);
 
   const handleClose = () => {
     setExportChildCards(forceChildExport);
