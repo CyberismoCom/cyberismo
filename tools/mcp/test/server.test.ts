@@ -15,7 +15,7 @@
 
 import { beforeAll, afterAll, describe, expect, test } from 'vitest';
 import { CommandManager } from '@cyberismo/data-handler';
-import { createMcpServer } from '../src/server.js';
+import { createMcpServer, singleProjectProvider } from '../src/server.js';
 import { testDataPath } from './test-utils.js';
 
 let commands: CommandManager;
@@ -32,12 +32,12 @@ afterAll(async () => {
 
 describe('createMcpServer', () => {
   test('creates an MCP server instance with default options', () => {
-    const server = createMcpServer(commands);
+    const server = createMcpServer(singleProjectProvider(commands));
     expect(server).toBeDefined();
   });
 
   test('creates server with custom name and version', () => {
-    const server = createMcpServer(commands, {
+    const server = createMcpServer(singleProjectProvider(commands), {
       name: 'test-server',
       version: '2.0.0',
     });

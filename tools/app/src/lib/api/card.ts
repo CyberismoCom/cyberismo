@@ -188,10 +188,11 @@ export const useCardMutations = (
   };
 };
 
-export const useCardExport = () => {
+export const useCardExport = (projectPrefix?: string) => {
   const dispatch = useAppDispatch();
   return {
-    exportCard: (params: ExportCardParams) => exportCard(params, dispatch),
+    exportCard: (params: ExportCardParams) =>
+      exportCard(params, dispatch, projectPrefix),
   };
 };
 
@@ -257,7 +258,9 @@ type ExportCardParams = {
 async function exportCard(
   { cardKey, title, exportChildCards, name, version }: ExportCardParams,
   dispatch: ReturnType<typeof useAppDispatch>,
+  projectPrefix?: string,
 ) {
+  const apiPaths = projectApiPaths(projectPrefix);
   const progressNotification = dispatch(
     addNotification({
       message: `Exporting ${title} to PDF...`,

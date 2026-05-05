@@ -88,6 +88,7 @@ export function projectApiPaths(projectPrefix?: string) {
     projectModulesImportable: () => `${base}/project/modules/importable`,
     presence: (cardKey: string, mode: string) =>
       `${base}/cards/${encodeURIComponent(cardKey)}/presence?mode=${mode}`,
+    exportCard: () => `${base}/cards/export-pdf`,
   };
 }
 

@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { CommandManager } from '@cyberismo/data-handler';
+import { CommandManager, type ProjectProvider } from '@cyberismo/data-handler';
 
 export type ProjectRegistryEntry = {
   prefix: string;
@@ -30,7 +30,7 @@ export interface ScannedProject {
   name: string;
 }
 
-export class ProjectRegistry {
+export class ProjectRegistry implements ProjectProvider {
   private projects: Map<string, CommandManager> = new Map();
 
   constructor(entries: ProjectRegistryEntry[] = []) {
