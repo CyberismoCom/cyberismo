@@ -61,9 +61,9 @@ const ExportModal = ({
   const [name, setName] = useState(defaultFileName);
   const [version, setVersion] = useState('');
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (card) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTitle(card.title);
     }
   }, [card]);

@@ -91,10 +91,7 @@ export async function callApi<T>(
   }
 
   return handleResponse(
-    await fetch(
-      `${url}${getConfig().staticMode ? '.json' : ''}`,
-      requestOpts,
-    ),
+    await fetch(`${url}${getConfig().staticMode ? '.json' : ''}`, requestOpts),
     options?.responseType,
   );
 }
