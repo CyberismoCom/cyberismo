@@ -1,189 +1,100 @@
-# @cyberismocom/node-clingo
+# @cyberismo/node-clingo
 
-Node.js native bindings for the [Clingo](https://potassco.org/clingo/) answer set solver (ASP).
-
----
+Node.js bindings for the [Clingo](https://potassco.org/clingo/) answer set
+solver (ASP). ESM-only. AGPL-3.0.
 
 ## Installation
 
-To install, run `pnpm install`:
+```sh
+npm install @cyberismo/node-clingo
+# or: pnpm add @cyberismo/node-clingo
+```
 
-- On install, a script attempts to download the correct prebuilt binary for your platform from GitHub Releases.
-- If no prebuild is available, it will attempt a local build (requires CMake and C++ build tools — Clingo is built from source).
+Prebuilt native binaries are delivered via platform-specific optional
+dependencies -- no compiler or toolchain needed.
 
----
+## Supported platforms
+
+| Platform | Architecture | libc         |
+| -------- | ------------ | ------------ |
+| Linux    | x64          | glibc + musl |
+| Linux    | arm64        | glibc + musl |
+| macOS    | x64          | -            |
+| macOS    | arm64        | -            |
+| Windows  | x64          | -            |
 
 ## Usage
 
-```js
-import {
-  solve,
-  setProgram,
-  removeProgram,
-  removeAllPrograms,
-} from '@cyberismo/node-clingo';
+```ts
+import { ClingoContext } from '@cyberismo/node-clingo';
 
-// Solve a simple logic program
-const result = await solve('a. b. c(1). c(2).');
-console.log(result.answers); // [ 'a\nb\nc(1)\nc(2)' ]
+const ctx = new ClingoContext();
 
-// Set a base program (persisted across solves)
-setProgram('base', 'base(1).');
-const result2 = await solve('derived :- base(X).', ['base']);
-console.log(result2.answers); // [ 'base(1)\nderived' ]
+// Solve a one-shot program.
+const result = await ctx.solve('a. b :- a.');
+console.log(result.answers); // [ 'a\nb' ]
 
-// Named base programs
-setProgram('query', 'type(query).');
-setProgram('graph', 'type(graph).');
-const result3 = await solve('valid :- type(query).', ['query']);
+// Stash a reusable program under a key, then reference it from later solves.
+ctx.setProgram('facts', 'person(alice). person(bob).');
+const friends = await ctx.solve(
+  'friend(X,Y) :- person(X), person(Y), X != Y.',
+  ['facts'],
+);
 
-// Combine multiple base programs
-setProgram('colors', 'color(red).');
-setProgram('shapes', 'shape(circle).');
-setProgram('sizes', 'size(large).');
-const result4 = await solve('valid :- color(X), shape(Y), size(Z).', [
-  'colors',
-  'shapes',
-  'sizes',
-]);
-
-// Programs with categories for easier management
-setProgram('base-facts', 'person(alice). person(bob).', ['facts']);
-setProgram('base-rules', 'friend(X,Y) :- person(X), person(Y), X != Y.', [
-  'rules',
-]);
-const result5 = await solve('happy(X) :- friend(X,Y).', ['facts', 'rules']);
-
-// Remove programs
-removeProgram('query'); // removes specific program
-removeAllPrograms(); // clears all programs
+// Drop a stored program when you're done with it.
+ctx.removeProgram('facts');
 ```
 
----
+`ClingoContext` exposes:
 
-## API
+- `solve(program, categories?)` -- ground and solve `program`, optionally
+  prepended with stored programs whose `key` (or assigned category)
+  appears in `categories`. Returns `{ answers, stats }`.
+- `setProgram(key, program, categories?)` -- store `program` under `key`,
+  optionally tagging it with one or more categories so `solve` can pull
+  it in by category instead of by key.
+- `removeProgram(key)` -- remove one stored program. Returns `true` if it was
+  there.
+- `removeAllPrograms()` -- remove every stored program in this context.
+- `buildProgram(program, categories?)` -- assemble the combined program text
+  without solving. Useful for debugging.
 
-### `async solve(program: string, categories?: string[]): Promise<ClingoResult>`
+A module-level `clearCache()` clears the solve-result cache shared across all
+contexts.
 
-Solves a logic program, optionally combining with one or more stored programs referenced by key or category. Returns all answer sets, execution time (μs), and any errors/warnings.
+When a program fails to parse or solve, `solve` throws a `ClingoError` whose
+`details` field carries the raw `errors`, `warnings`, and (for syntax errors)
+the offending program text.
 
-**Returns:** `ClingoResult` object with:
+## Development
 
-- `answers: string[]` - Array of answer sets (each answer set as a single string with atoms separated by newlines)
-- `errors: string[]` - Any error messages from Clingo
-- `warnings: string[]` - Any warning messages from Clingo
-- `stats: { glue: number; add: number; ground: number; solve: number }` - Microsecond timings for each phase:
-  - `glue`: building/expanding referenced base programs
-  - `add`: adding parts (base and main) to Clingo
-  - `ground`: grounding all parts
-  - `solve`: solving and collecting models
+Most contributors don't need to build the native side at all. A normal
+`pnpm install` pulls the published native sub-package for your platform, and
+the rest of the monorepo's tests run against it.
 
-### `setProgram(key: string, program: string, categories?: string[])`
+If you _are_ working on the C++ binding, you'll need:
 
-Stores a program under a key. Optionally assign categories for easier program management.
-
-**Parameters:**
-
-- `key: string` - Unique identifier for this program
-- `program: string` - The logic program content
-- `categories?: string[]` - Optional array of category names to associate with this program
-
-### `removeProgram(key: string): boolean`
-
-Removes a stored program by key.
-
-**Returns:** `true` if the program was found and removed, `false` if it didn't exist.
-
-### `removeAllPrograms()`
-
-Removes all stored programs.
-
-### Error Handling
-
-The `solve` function may throw a `ClingoError` when parsing or solving fails. This error contains additional details:
-
-```js
-import { solve, ClingoError } from '@cyberismo/node-clingo';
-
-try {
-  const result = await solve('invalid syntax here');
-} catch (error) {
-  if (error instanceof ClingoError) {
-    console.log('Clingo error:', error.message);
-    console.log('Errors:', error.details.errors);
-    console.log('Warnings:', error.details.warnings);
-    if (error.details.program) {
-      console.log('Failed program:', error.details.program);
-    }
-  }
-}
-```
-
----
-
-## Prebuilds & Supported Platforms
-
-Prebuilt binaries are provided for:
-
-- **Linux x64** (glibc & musl/Alpine)
-- **Linux arm64** (glibc & musl/Alpine)
-- **macOS x64**
-- **macOS arm64**
-- **Windows x64**
-
-Prebuilds are downloaded automatically on install. If a prebuild is not available, a local build is attempted (requires CMake and C++ build tools — Clingo is built from source via the git submodule).
-
-### Prebuild details
-
-- Prebuilds are stored in `prebuilds/{platform}-{arch}/`.
-- Linux glibc and musl (Alpine) builds are distinguished by `.glibc.node` and `.musl.node` suffixes.
-- See `.github/workflows/prebuild.yml` for the full CI build matrix and packaging logic.
-
----
-
-## Building Locally
-
-If you need to build from source (e.g., for unsupported platforms):
-
-### Prerequisites
-
-- Node.js 22
 - CMake 3.x
-- C++20 compiler (GCC 14+ recommended)
-- Python 3, make, and build tools
+- A C++20 compiler (GCC 14+, recent Clang, or MSVC)
+- Python 3 (used by node-gyp)
+- Node.js 22
 
-Clingo is compiled from the git submodule — no system Clingo installation required.
-
-After cloning, initialize the submodule:
+Clingo is built from the bundled git submodule. After cloning:
 
 ```sh
 git submodule update --init --recursive
 ```
 
-### Tips for building
-
-**Windows**:
-Make sure you installed the build tools when you installed Node.js (includes MSVC and CMake).
-
-**macOS**:
-Xcode Command Line Tools include the compiler; CMake can be installed via Homebrew:
-`brew install cmake`
-
-**Linux**:
+Then:
 
 ```sh
-sudo apt install build-essential make python3 cmake
+pnpm --filter @cyberismo/node-clingo run build:native
+pnpm --filter @cyberismo/node-clingo test
+pnpm --filter @cyberismo/node-clingo run clean
 ```
 
-### Build steps
+## License
 
-```sh
-pnpm install
-pnpm run build-prebuildify
-```
-
-#### Alpine/musl builds
-
-See `alpine.Dockerfile` for the musl/Alpine build process (used in CI).
-
----
+This package is licensed under [AGPL-3.0](./LICENSE.md). The bundled Clingo
+distribution and other vendored libraries carry their own licenses; see
+[`THIRD-PARTY.txt`](./THIRD-PARTY.txt) for the full list.

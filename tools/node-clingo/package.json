@@ -1,12 +1,17 @@
 {
   "name": "@cyberismo/node-clingo",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "description": "Node.js bindings for Clingo answer set solver",
   "scripts": {
-    "install": "node scripts/download-prebuild.js || (cmake -P scripts/build-clingo.cmake && node-gyp-build)",
     "build": "tsc -p tsconfig.build.json",
-    "build-prebuildify": "cmake -P scripts/build-clingo.cmake && shx rm -rf prebuilds && prebuildify --napi",
-    "build-debug": "cross-env GYP_DEFINES=\"enable_cpp_logs=1\" pnpm build-prebuildify",
+    "build:clingo": "cmake -P scripts/build-clingo.cmake",
+    "build:binding": "node-gyp rebuild",
+    "build:native": "pnpm run build:clingo && pnpm run build:binding",
+    "bump-version": "node scripts/bump-version.js",
+    "install": "pnpm run build:native",
+    "prepack": "node scripts/manage-publish-manifest.js strip",
+    "postpack": "node scripts/manage-publish-manifest.js restore",
+    "clean": "rm -rf build dist dist-packages external/clingo/build",
     "dev": "tsc -p tsconfig.build.json --watch",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -23,31 +28,37 @@
     "url": "git+https://github.com/CyberismoCom/cyberismo.git"
   },
   "bugs": "https://github.com/CyberismoCom/cyberismo/issues",
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "dependencies": {
-    "node-addon-api": "^8.7.0",
-    "node-gyp-build": "^4.8.4",
-    "tar-stream": "^3.1.8"
+    "node-addon-api": "^8.7.0"
+  },
+  "optionalDependencies": {
+    "@cyberismo/node-clingo-linux-x64-gnu": "1.6.0",
+    "@cyberismo/node-clingo-linux-x64-musl": "1.6.0",
+    "@cyberismo/node-clingo-linux-arm64-gnu": "1.6.0",
+    "@cyberismo/node-clingo-linux-arm64-musl": "1.6.0",
+    "@cyberismo/node-clingo-darwin-x64": "1.6.0",
+    "@cyberismo/node-clingo-darwin-arm64": "1.6.0",
+    "@cyberismo/node-clingo-win32-x64": "1.6.0"
   },
   "devDependencies": {
     "node-gyp": "^12.2.0",
-    "prebuildify": "^6.0.1"
+    "semver": "^7.7.0"
   },
-  "gypfile": true,
   "type": "module",
   "exports": {
     ".": "./dist/index.js"
   },
-  "binary": {
-    "module_name": "node-clingo",
-    "host": "https://github.com",
-    "remote_path": "CyberismoCom/cyberismo/releases/download/node-clingo-{version}",
-    "package_name": "{platform}-{arch}.tar.gz",
-    "package_json": "package.json"
-  },
   "files": [
     "dist",
-    "src",
-    "scripts/download-prebuild.js",
-    "external"
+    "lib",
+    "LICENSE.md",
+    "THIRD-PARTY.txt"
   ]
 }

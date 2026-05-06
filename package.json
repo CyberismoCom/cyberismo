@@ -39,6 +39,7 @@
     "test-app": "pnpm --filter app test",
     "test-cli": "pnpm --filter cli test",
     "bump-version": "pnpm -r --filter '!app' --filter '!node-clingo' exec npm version",
+    "bump-clingo": "pnpm --filter @cyberismo/node-clingo bump-version",
     "test-data-handler": "pnpm --filter data-handler test",
     "test-backend": "pnpm --filter backend test",
     "test-clingo": "pnpm --filter node-clingo test",
@@ -50,15 +51,23 @@
     "prepare-export": "pnpm --filter backend export && shx cp -r tools/backend/static/api tools/app/public",
     "dev-export": "pnpm prepare-export && cross-env VITE_CYBERISMO_EXPORT=true pnpm --filter app dev",
     "build-docker": "docker build -t cyberismo .",
-    "ci:publish": "pnpm --filter !app publish --access public --no-git-checks",
+    "ci:publish": "pnpm --filter !app --filter !@cyberismo/node-clingo publish --access public --no-git-checks",
     "release": "node scripts/release.mjs",
     "create-migration": "node scripts/create-migration.mjs"
   },
   "pnpm": {
     "overrides": {
       "@types/node": "^22.18.1",
-      "rollup": "^4.45.1",
-      "tar-fs": "^2.1.4"
-    }
+      "rollup": "^4.45.1"
+    },
+    "ignoredOptionalDependencies": [
+      "@cyberismo/node-clingo-darwin-arm64",
+      "@cyberismo/node-clingo-darwin-x64",
+      "@cyberismo/node-clingo-linux-arm64-gnu",
+      "@cyberismo/node-clingo-linux-arm64-musl",
+      "@cyberismo/node-clingo-linux-x64-gnu",
+      "@cyberismo/node-clingo-linux-x64-musl",
+      "@cyberismo/node-clingo-win32-x64"
+    ]
   }
 }

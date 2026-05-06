@@ -56,7 +56,7 @@
         ["OS=='mac'", {
           "xcode_settings": {
             "CLANG_CXX_LANGUAGE_STANDARD": "c++20",
-            "MACOSX_DEPLOYMENT_TARGET": "10.13"
+            "MACOSX_DEPLOYMENT_TARGET": "11.0"
           }
         }]
       ]

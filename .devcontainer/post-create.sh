@@ -1,6 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
+echo "=== Initializing git submodules ==="
+git submodule update --init --recursive
+
 echo "=== Installing dependencies ==="
 corepack enable
 COREPACK_ENABLE_DOWNLOAD_PROMPT=0 pnpm install

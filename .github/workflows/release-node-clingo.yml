@@ -1,0 +1,291 @@
+name: Release node-clingo
+
+# PRs run the build matrix; pushes to main that bump the umbrella version
+# also publish the natives + umbrella and smoke-test the result.
+#
+# Publish steps are idempotent (`npm view` skips versions already on the
+# registry), so partial failures are recovered by re-running failed jobs.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/node-clingo/package.json'
+      - '.github/workflows/release-node-clingo.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tools/node-clingo/**'
+      - '.github/workflows/release-node-clingo.yml'
+
+concurrency:
+  group: release-node-clingo-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.r.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: r
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./tools/node-clingo/package.json').version")
+          echo "Resolved version: $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: resolve
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest,    target: linux-x64-gnu    }
+          - { os: ubuntu-latest,    target: linux-x64-musl   }
+          - { os: ubuntu-24.04-arm, target: linux-arm64-gnu  }
+          - { os: ubuntu-24.04-arm, target: linux-arm64-musl }
+          - { os: macos-15-intel,   target: darwin-x64       }
+          - { os: macos-latest,     target: darwin-arm64     }
+          - { os: windows-latest,   target: win32-x64        }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ vars.NODE_VERSION }}
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+
+      # Host install is unused on the musl matrix (the docker run does its
+      # own install inside the container) and only causes the container to
+      # see glibc-flavoured node_modules and wipe-and-reinstall.
+      - if: ${{ !endsWith(matrix.target, '-musl') }}
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Resolve clingo submodule SHA
+        id: clingo-sha
+        shell: bash
+        run: echo "sha=$(git -C tools/node-clingo/external/clingo rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      # Cache only the static archives consumed by binding.gyp; skipping
+      # cmake on hit avoids the mtime trap where fresh sources look newer
+      # than cached objects.
+      - name: Cache clingo static libs
+        id: cache-clingo
+        uses: actions/cache@v4
+        with:
+          path: tools/node-clingo/external/clingo/build/lib
+          key: clingo-libs-${{ runner.os }}-${{ runner.arch }}-${{ matrix.target }}-node${{ vars.NODE_VERSION }}-${{ steps.clingo-sha.outputs.sha }}-${{ hashFiles('tools/node-clingo/scripts/build-clingo.cmake', 'tools/node-clingo/binding.gyp') }}
+
+      - name: Build clingo static libs (Linux glibc)
+        if: ${{ steps.cache-clingo.outputs.cache-hit != 'true' && startsWith(matrix.target, 'linux-') && !endsWith(matrix.target, '-musl') }}
+        env:
+          CC: gcc-14
+          CXX: g++-14
+        run: pnpm --filter @cyberismo/node-clingo run build:clingo
+
+      - name: Build clingo static libs (macOS / Windows)
+        if: ${{ steps.cache-clingo.outputs.cache-hit != 'true' && !startsWith(matrix.target, 'linux-') }}
+        run: pnpm --filter @cyberismo/node-clingo run build:clingo
+
+      - name: Build native binding (non-musl)
+        if: ${{ !endsWith(matrix.target, '-musl') }}
+        run: pnpm --filter @cyberismo/node-clingo run build:binding
+
+      - name: Build native binary (musl in Docker)
+        if: ${{ endsWith(matrix.target, '-musl') }}
+        env:
+          CACHE_HIT: ${{ steps.cache-clingo.outputs.cache-hit }}
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            -w /workspace \
+            -e CACHE_HIT \
+            node:22-alpine \
+            sh -c '
+              set -eu
+              apk add --no-cache g++ python3 make cmake git
+              corepack enable
+              corepack prepare pnpm@10.8.0 --activate
+              pnpm install --frozen-lockfile --ignore-scripts
+              if [ "$CACHE_HIT" != "true" ]; then
+                pnpm --filter @cyberismo/node-clingo run build:clingo
+              fi
+              pnpm --filter @cyberismo/node-clingo run build:binding
+              # dlopen test catches unresolved symbols (e.g. wrong libstdc++
+              # ABI) before the artifact ships. Must run inside the container
+              # since the host node is glibc-linked.
+              node -e "require(\"./tools/node-clingo/build/Release/node-clingo.node\")"
+            '
+
+      # dlopen test on the same host that built the binary, catching
+      # unresolved-symbol breakage before upload. The post-publish smoke
+      # jobs would catch this too but only after the artifact is on npm.
+      - name: Load-test native binary (non-musl)
+        if: ${{ !endsWith(matrix.target, '-musl') }}
+        shell: bash
+        run: node -e "require('./tools/node-clingo/build/Release/node-clingo.node')"
+
+      - name: Assemble per-platform package
+        run: node tools/node-clingo/scripts/build-native-packages.js @cyberismo/node-clingo-${{ matrix.target }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: node-clingo-pkg-${{ matrix.target }}
+          path: tools/node-clingo/dist-packages/@cyberismo/node-clingo-${{ matrix.target }}/
+          if-no-files-found: error
+          retention-days: 7
+
+  publish-natives:
+    needs: [resolve, build]
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ vars.NODE_VERSION }}
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: npm install -g npm@latest
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: native-packages
+          pattern: node-clingo-pkg-*
+          merge-multiple: false
+
+      - name: Publish native sub-packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: node tools/node-clingo/scripts/publish-natives.js --dir native-packages
+
+  publish-umbrella:
+    needs: [resolve, publish-natives]
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ vars.NODE_VERSION }}
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'pnpm'
+      - run: pnpm config set '//registry.npmjs.org/:_authToken' "${NODE_AUTH_TOKEN}"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm build
+      - run: npm install -g npm@latest
+
+      - name: Publish umbrella
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.resolve.outputs.version }}"
+          published=$(npm view "@cyberismo/node-clingo@${VERSION}" version 2>/dev/null || true)
+          if [ "$published" = "$VERSION" ]; then
+            echo "@cyberismo/node-clingo@${VERSION} already published; skipping."
+            exit 0
+          fi
+          pnpm --filter @cyberismo/node-clingo publish --no-git-checks --access public
+
+  smoke:
+    needs: [resolve, publish-umbrella]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest,  label: linux-glibc  }
+          - { os: macos-15-intel, label: darwin-x64   }
+          - { os: macos-latest,   label: darwin-arm64 }
+          - { os: windows-latest, label: win32-x64    }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ vars.NODE_VERSION }}
+      - name: npm install + import
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.resolve.outputs.version }}"
+          mkdir -p smoke && cd smoke
+          npm init -y >/dev/null
+          npm pkg set type=module >/dev/null
+          for i in 1 2 3 4 5 6 7 8; do
+            npm view "@cyberismo/node-clingo@${VERSION}" version >/dev/null 2>&1 && break
+            [ "$i" -eq 8 ] && { echo "umbrella not on npm" >&2; exit 1; }
+            sleep 10
+          done
+          npm install "@cyberismo/node-clingo@${VERSION}"
+          node --input-type=module -e "import { ClingoContext } from '@cyberismo/node-clingo'; const c = new ClingoContext(); console.log(await c.solve('a. b :- a.'));"
+
+  smoke-alpine:
+    needs: [resolve, publish-umbrella]
+    runs-on: ubuntu-latest
+    container: { image: 'node:22-alpine' }
+    steps:
+      - name: npm install + import (musl)
+        shell: sh
+        run: |
+          set -eu
+          VERSION="${{ needs.resolve.outputs.version }}"
+          mkdir -p smoke && cd smoke
+          npm init -y >/dev/null
+          npm pkg set type=module >/dev/null
+          i=1
+          while [ "$i" -le 8 ]; do
+            npm view "@cyberismo/node-clingo@${VERSION}" version >/dev/null 2>&1 && break
+            [ "$i" -eq 8 ] && { echo "umbrella not on npm" >&2; exit 1; }
+            sleep 10
+            i=$((i + 1))
+          done
+          npm install "@cyberismo/node-clingo@${VERSION}"
+          node --input-type=module -e "import { ClingoContext } from '@cyberismo/node-clingo'; const c = new ClingoContext(); console.log(await c.solve('a. b :- a.'));"
+
+  tag:
+    needs: [resolve, smoke, smoke-alpine]
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create release tag
+        env:
+          TAG: node-clingo-${{ needs.resolve.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "Tag ${TAG} already exists on remote; skipping."
+            exit 0
+          fi
+
+          git tag -a "${TAG}" -m "Release ${TAG}"
+          git push origin "${TAG}"
+
