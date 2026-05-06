@@ -12,10 +12,10 @@ import queriesConnectors from './calculations/queries/connectors.lp';
 import queriesTree from './calculations/queries/tree.lp';
 import testModel from './calculations/test/model.lp';
 
-import pdfReportIndex from './exportPdfReport/index.adoc.hbs';
-import pdfReportQuery from './exportPdfReport/query.lp.hbs';
-import graphvizReportIndex from './graphvizReport/index.adoc.hbs';
-import graphvizReportQuery from './graphvizReport/query.lp.hbs';
+import pdfReportIndex from './exportPdfReport/index.adoc.hbs' with { type: 'text' };
+import pdfReportQuery from './exportPdfReport/query.lp.hbs' with { type: 'text' };
+import graphvizReportIndex from './graphvizReport/index.adoc.hbs' with { type: 'text' };
+import graphvizReportQuery from './graphvizReport/query.lp.hbs' with { type: 'text' };
 
 export const graphvizReport = {
   query: graphvizReportQuery,
