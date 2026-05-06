@@ -54,7 +54,7 @@ jobs:
           echo "tag=cyberismo-${VERSION}" >> "$GITHUB_OUTPUT"
 
   tag:
-    needs: version
+    needs: [version, publish-npm, push-image]
     if: github.event_name != 'pull_request'
     timeout-minutes: 5
     runs-on: ubuntu-latest
@@ -188,7 +188,7 @@ jobs:
         run: docker stop verdaccio || true
 
   push-image:
-    needs: [version, publish-npm]
+    needs: version
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -266,7 +266,7 @@ jobs:
         run: docker pull "localhost:5000/cyberismo:${VERSION}"
 
   github-release:
-    needs: [version, tag, push-image]
+    needs: [version, tag]
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
