@@ -51,12 +51,23 @@ export function WorkflowGraph({ workflowName }: { workflowName: string }) {
       <img
         src={`data:image/svg+xml;base64,${workflowGraph.svg}`}
         alt={t('workflowGraph.alt')}
+        role="button"
+        tabIndex={0}
+        aria-label={t('workflowGraph.viewTooltip')}
+        onClick={() => setModalOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setModalOpen(true);
+          }
+        }}
         style={{
           maxWidth: '100%',
           maxHeight: '500px',
           width: 'auto',
           height: 'auto',
           display: 'block',
+          cursor: 'pointer',
         }}
       />
       <Tooltip title={t('workflowGraph.viewTooltip')} placement="top">

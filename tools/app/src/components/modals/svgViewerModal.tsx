@@ -1,11 +1,5 @@
 import DOMPurify from 'dompurify';
-import React, {
-  useState,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-} from 'react';
+import React, { useState, useEffect, useMemo, useLayoutEffect, useRef } from 'react';
 import {
   Modal,
   Box,
@@ -289,8 +283,11 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
     }
   }, [zoom]);
 
-  /* ---------- fit & center on open ---------- */
-  useEffect(() => {
+  // Apply fit-to-window zoom synchronously before paint so the user never
+  // sees an unsized intermediate frame. naturalSize is derived from the
+  // markup string, so it's already available on the first commit.
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useLayoutEffect(() => {
     if (!open || !naturalSize) return;
 
     const viewW = window.innerWidth - padding * 2;
@@ -301,22 +298,19 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
       1,
     );
     zoomRef.current = fit;
+    setZoom(fit);
 
-    // Center after initial layout and update zoom state
-    requestAnimationFrame(() => {
-      setZoom(fit);
-      const scroll = scrollRef.current;
-      if (!scroll) return;
-      scroll.scrollLeft = Math.max(
-        0,
-        (naturalSize.width * fit - scroll.clientWidth) / 2,
-      );
-      scroll.scrollTop = Math.max(
-        0,
-        (naturalSize.height * fit - scroll.clientHeight) / 2,
-      );
-    });
+    const scroll = scrollRef.current;
+    if (scroll) {
+      // Queue the centered scroll position; the [zoom] useLayoutEffect
+      // above applies it after the re-render, still before paint.
+      scrollTargetRef.current = {
+        left: Math.max(0, (naturalSize.width * fit - scroll.clientWidth) / 2),
+        top: Math.max(0, (naturalSize.height * fit - scroll.clientHeight) / 2),
+      };
+    }
   }, [open, padding, naturalSize]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   /* ---------- zoom helpers ---------- */
   const applyZoom = (factor: number, localX?: number, localY?: number) => {

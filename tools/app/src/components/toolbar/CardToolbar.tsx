@@ -12,10 +12,9 @@
 */
 
 import { useCallback, useState } from 'react';
-import { Button, CircularProgress, IconButton, Tooltip } from '@mui/joy';
+import { Button, IconButton, Tooltip } from '@mui/joy';
 import EditIcon from '@mui/icons-material/Edit';
 import InsertLink from '@mui/icons-material/InsertLink';
-import Schema from '@mui/icons-material/Schema';
 import { ProjectBreadcrumbs } from '../ProjectBreadcrumbs';
 import type { WorkflowTransition } from '../../lib/definitions';
 import { CardMode } from '../../lib/definitions';
@@ -79,7 +78,7 @@ export function CardToolbar({
     workflow?.states.find((state) => state.name == card?.workflowState) ?? null;
 
   const [workflowGraphOpen, setWorkflowGraphOpen] = useState(false);
-  const { workflowGraph, isLoading: isWorkflowGraphLoading } = useWorkflowGraph(
+  const { workflowGraph } = useWorkflowGraph(
     workflowGraphOpen ? (workflow?.name ?? null) : null,
     cardKey,
   );
@@ -127,29 +126,11 @@ export function CardToolbar({
         </Tooltip>
       )}
 
-      {workflow && (
-        <Tooltip title={t('workflowGraph.viewTooltip')} placement="top">
-          <IconButton
-            onClick={() => setWorkflowGraphOpen(true)}
-            size="sm"
-            variant="plain"
-            style={{ marginRight: 8, minWidth: 40 }}
-            data-cy="viewWorkflowButton"
-            disabled={isWorkflowGraphLoading}
-          >
-            {isWorkflowGraphLoading ? (
-              <CircularProgress size="sm" />
-            ) : (
-              <Schema />
-            )}
-          </IconButton>
-        </Tooltip>
-      )}
-
       <StatusSelector
         currentState={currentState}
         workflow={workflow}
         onTransition={(transition) => onStateTransition(transition)}
+        onViewWorkflow={workflow ? () => setWorkflowGraphOpen(true) : undefined}
         isLoading={isUpdating('updateState')}
         disabled={isUpdating() && !isUpdating('updateState')}
       />

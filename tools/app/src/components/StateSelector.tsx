@@ -20,6 +20,7 @@ import {
   Menu,
   MenuItem,
   ListItemContent,
+  ListDivider,
   Dropdown,
   MenuButton,
   CircularProgress,
@@ -35,6 +36,7 @@ interface StateSelectorProps {
   currentState: WorkflowState | null;
   workflow: Workflow | null;
   onTransition: (transition: WorkflowTransition) => void;
+  onViewWorkflow?: () => void;
   isLoading?: boolean;
   disabled?: boolean;
 }
@@ -43,6 +45,7 @@ const StateSelector: React.FC<StateSelectorProps> = ({
   currentState,
   workflow,
   onTransition,
+  onViewWorkflow,
   disabled,
   isLoading,
 }) => {
@@ -78,15 +81,17 @@ const StateSelector: React.FC<StateSelectorProps> = ({
     ></span>
   );
 
+  const hasTransitions = availableTransitions.length > 0;
+  const buttonDisabled =
+    (!hasTransitions && !onViewWorkflow) ||
+    (hasTransitions && disabled) ||
+    getConfig().staticMode;
+
   return (
     <Dropdown>
       <MenuButton
         size="sm"
-        disabled={
-          availableTransitions.length === 0 ||
-          disabled ||
-          getConfig().staticMode
-        }
+        disabled={buttonDisabled}
         variant="soft"
         color="neutral"
         endDecorator={!isLoading && statusDot}
@@ -131,6 +136,16 @@ const StateSelector: React.FC<StateSelectorProps> = ({
             </MenuItem>
           );
         })}
+        {onViewWorkflow && (
+          <>
+            {hasTransitions && <ListDivider />}
+            <MenuItem onClick={onViewWorkflow} data-cy="viewWorkflowMenuItem">
+              <ListItemContent>
+                {t('workflowGraph.viewTooltip')}
+              </ListItemContent>
+            </MenuItem>
+          </>
+        )}
       </Menu>
     </Dropdown>
   );
