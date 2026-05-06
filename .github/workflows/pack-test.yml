@@ -1,0 +1,117 @@
+name: Pack Test
+
+# Validates that the published artifact shape works end-to-end before merge.
+# Publishes all @cyberismo/* packages to a local Verdaccio registry, installs
+# the cli from there, and runs the cli test suite against the installed cli.
+# Catches packaging bugs (missing files, bad bin paths, broken workspace dep
+# substitution) that source-only tests can't see.
+on:
+  pull_request:
+    paths:
+      - tools/cli/package.json
+
+jobs:
+  pack-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Determine CLI version
+        id: version
+        run: |
+          VERSION=$(node -p "require('./tools/cli/package.json').version")
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Start Verdaccio
+        run: |
+          mkdir -p /tmp/verdaccio-storage
+          chmod 777 /tmp/verdaccio-storage
+          docker run -d --rm \
+            --name verdaccio \
+            -p 4873:4873 \
+            -v "${{ github.workspace }}/.github/verdaccio/config.yaml:/verdaccio/conf/config.yaml:ro" \
+            -v /tmp/verdaccio-storage:/verdaccio/storage \
+            verdaccio/verdaccio:6
+          for i in {1..30}; do
+            if curl -fs http://localhost:4873/-/ping >/dev/null; then
+              echo "Verdaccio ready."
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Verdaccio failed to start" >&2
+          docker logs verdaccio || true
+          exit 1
+
+      - name: Install clingo
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gringo
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@829114fc20da43a41d27359103ec7a63020954d4 # v1
+        with:
+          ruby-version: '3.2'
+
+      - name: Install asciidoctor-pdf
+        run: gem install --no-document asciidoctor-pdf rouge
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4
+
+      - name: Setup node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ vars.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --ignore-scripts
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Configure local registry credentials
+        # Auth token is keyed to localhost:4873 so it can only ever be sent
+        # there. If a publish accidentally targeted npmjs it would 401 (no
+        # NPM_TOKEN is configured in this workflow).
+        run: |
+          npm config set //localhost:4873/:_authToken local-pack-test
+          pnpm config set //localhost:4873/:_authToken local-pack-test
+
+      - name: Publish packages to local Verdaccio
+        # Three layers pinning the registry to localhost:
+        #   - npm_config_registry env var (process-scoped, overrides config)
+        #   - --registry CLI flag (propagates to per-package publish)
+        #   - no NPM_TOKEN in env, so any npmjs leak would 401 not ship
+        env:
+          npm_config_registry: http://localhost:4873/
+        run: pnpm --filter !app --filter !@cyberismo/node-clingo publish --access public --no-git-checks --registry http://localhost:4873/
+
+      - name: Install CLI from local registry
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          npm install -g "@cyberismo/cli@${VERSION}" --registry=http://localhost:4873/
+          cyberismo --version
+          cyberismo --version | grep "cyberismo version: ${VERSION}"
+
+      - name: Run cli tests against installed cli
+        env:
+          CYBERISMO_GIT_USER: ${{ secrets.CYBERISMO_GIT_USER }}
+          CYBERISMO_GIT_TOKEN: ${{ secrets.CYBERISMO_GIT_TOKEN }}
+        run: CYBERISMO_GLOBAL_CLI=true pnpm --filter cli test
+
+      - name: Verdaccio logs (on failure)
+        if: failure()
+        run: docker logs verdaccio || true
+
+      - name: Stop Verdaccio
+        if: always()
+        run: docker stop verdaccio || true
