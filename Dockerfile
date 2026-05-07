@@ -10,10 +10,12 @@ WORKDIR /app
 
 # Copy whole monorepo
 COPY . /app
-RUN pnpm install --frozen-lockfile --no-scripts
+RUN pnpm install --frozen-lockfile --ignore-scripts
 RUN pnpm build
 
-# make sure a build is done
+# node-clingo's `install` hook builds the C++ binding, but we ran
+# `pnpm install --ignore-scripts` above. `pnpm build` only runs `tsc`
+# for this package, so compile the native binding explicitly here.
 RUN cd /app/tools/node-clingo && pnpm run build:native
 
 

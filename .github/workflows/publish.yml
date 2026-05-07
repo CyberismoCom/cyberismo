@@ -3,10 +3,12 @@ name: Publish
 # Unified release pipeline. Runs in two modes:
 #
 #   pull_request  (touching tools/cli/package.json): dry-run. Publishes
-#       to a local Verdaccio, pushes the docker image to a local
-#       registry:2, smoke-tests the cli installed from Verdaccio. Skips
-#       tag push and GitHub Release creation. The full shipping sequence
-#       is exercised end-to-end against mocks before merge.
+#       to a local Verdaccio, smoke-tests the cli installed from there,
+#       and per-arch loads the docker image into the runner's docker
+#       daemon to smoke-run `cyberismo --version`. Skips tag push,
+#       multi-arch manifest assembly, and GitHub Release creation.
+#       The full shipping sequence is exercised end-to-end against
+#       mocks before merge.
 #   push to main / workflow_dispatch: real release. Same job graph,
 #       targeting registry.npmjs.org and Docker Hub, plus tag and
 #       gh release create.
@@ -54,7 +56,7 @@ jobs:
           echo "tag=cyberismo-${VERSION}" >> "$GITHUB_OUTPUT"
 
   tag:
-    needs: [version, publish-npm, push-image]
+    needs: [version, publish-npm, push-image-merge]
     if: github.event_name != 'pull_request'
     timeout-minutes: 5
     runs-on: ubuntu-latest
@@ -187,47 +189,37 @@ jobs:
         if: always() && env.DRYRUN == 'true'
         run: docker stop verdaccio || true
 
+  # Per-arch builds on native runners — the slow piece is node-clingo's
+  # C++ compile, which used to run under QEMU (~10x slowdown for arm64).
+  # Each job builds a single-platform image. Real release pushes by
+  # digest to Docker Hub; the digests are then assembled into the
+  # multi-arch tags by push-image-merge. Dry-run loads locally and
+  # smoke-runs — the manifest assembly itself is a one-liner not worth
+  # validating against mocks.
   push-image:
     needs: version
-    runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, platform: linux/amd64, suffix: amd64 }
+          - { os: ubuntu-24.04-arm, platform: linux/arm64, suffix: arm64 }
+    runs-on: ${{ matrix.os }}
     env:
       DRYRUN: ${{ github.event_name == 'pull_request' }}
-    services:
-      # Local docker registry used in dry-run. Harmless on real release
-      # since we just don't push anything to it.
-      registry:
-        image: registry:2
-        ports:
-          - 5000:5000
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Compute docker tags
-        id: docker
-        env:
-          VERSION: ${{ needs.version.outputs.version }}
-        run: |
-          MAJOR=$(echo "$VERSION" | cut -d. -f1)
-          MINOR=$(echo "$VERSION" | cut -d. -f1-2)
-          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
-          echo "minor=$MINOR" >> "$GITHUB_OUTPUT"
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3
         with:
           install: true
-          # network=host so the buildx container can reach the local
-          # registry:2 service on localhost:5000 in dry-run.
-          driver-opts: network=host
 
       - name: Log in to Docker Hub
         if: env.DRYRUN != 'true'
@@ -241,29 +233,109 @@ jobs:
         id: repo
         run: |
           if [ "$DRYRUN" = "true" ]; then
-            echo "name=localhost:5000/cyberismo" >> "$GITHUB_OUTPUT"
+            echo "name=cyberismo" >> "$GITHUB_OUTPUT"
           else
             echo "name=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cyberismo" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Push multi-arch Docker image
+      - name: Build single-arch image (dry-run)
+        if: env.DRYRUN == 'true'
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6
         with:
           context: .
           file: Dockerfile
-          push: true
-          platforms: linux/amd64,linux/arm64
-          tags: |
-            ${{ steps.repo.outputs.name }}:latest
-            ${{ steps.repo.outputs.name }}:${{ needs.version.outputs.version }}
-            ${{ steps.repo.outputs.name }}:${{ steps.docker.outputs.minor }}
-            ${{ steps.repo.outputs.name }}:${{ steps.docker.outputs.major }}
+          platforms: ${{ matrix.platform }}
+          load: true
+          tags: ${{ steps.repo.outputs.name }}:${{ needs.version.outputs.version }}
+          cache-from: type=gha,scope=${{ matrix.suffix }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.suffix }}
 
-      - name: Verify image pulls from local registry (dry-run only)
+      - name: Smoke-run loaded image (dry-run)
         if: env.DRYRUN == 'true'
         env:
+          IMAGE: ${{ steps.repo.outputs.name }}:${{ needs.version.outputs.version }}
+        run: docker run --rm "$IMAGE" cyberismo --version
+
+      - name: Build and push by digest (real release)
+        if: env.DRYRUN != 'true'
+        id: build
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6
+        with:
+          context: .
+          file: Dockerfile
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,name=${{ steps.repo.outputs.name }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ matrix.suffix }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.suffix }}
+
+      - name: Export digest (real release)
+        if: env.DRYRUN != 'true'
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest artifact (real release)
+        if: env.DRYRUN != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.suffix }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # Combines the per-arch digests pushed above into the multi-arch tags.
+  # Real release only — dry-run validates each arch independently.
+  push-image-merge:
+    needs: [version, push-image]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Compute docker tags
+        id: docker
+        env:
           VERSION: ${{ needs.version.outputs.version }}
-        run: docker pull "localhost:5000/cyberismo:${VERSION}"
+        run: |
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f1-2)
+          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
+          echo "minor=$MINOR" >> "$GITHUB_OUTPUT"
+
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        env:
+          REPO: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cyberismo
+          VERSION: ${{ needs.version.outputs.version }}
+          MAJOR: ${{ steps.docker.outputs.major }}
+          MINOR: ${{ steps.docker.outputs.minor }}
+        run: |
+          DIGEST_REFS=$(printf "${REPO}@sha256:%s " *)
+          docker buildx imagetools create \
+            -t "${REPO}:latest" \
+            -t "${REPO}:${VERSION}" \
+            -t "${REPO}:${MINOR}" \
+            -t "${REPO}:${MAJOR}" \
+            ${DIGEST_REFS}
 
   github-release:
     needs: [version, tag]
