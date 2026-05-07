@@ -60,14 +60,23 @@ export class CheckUpdates {
       ? allDeclared.filter((d) => d.name === moduleName)
       : allDeclared;
 
-    if (moduleName && declared.length === 0) {
-      throw new Error(`Module '${moduleName}' is not part of the project`);
-    }
-
     const installed = await installedModules(this.project);
     const installedByName = new Map<string, ModuleInstallation>(
       installed.map((i) => [i.name, i]),
     );
+
+    if (moduleName && declared.length === 0) {
+      const parents = installed
+        .filter((m) => m.declaredDependencies.includes(moduleName))
+        .map((m) => m.name);
+      if (parents.length > 0) {
+        const parentList = parents.map((n) => `'${n}'`).join(', ');
+        throw new Error(
+          `Cannot check updates for module '${moduleName}' because it is required by ${parentList}. Check updates for the parent module(s) instead.`,
+        );
+      }
+      throw new Error(`Module '${moduleName}' is not part of the project`);
+    }
 
     const results = await Promise.all(
       declared.map(async (decl) => {

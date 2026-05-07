@@ -756,10 +756,11 @@ describe('remove module — spec behaviours', () => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
-  it('removing a transitive-only module errors with "not part of the project"', async () => {
+  it('removing a transitive-only module errors naming the parent that requires it', async () => {
     // A transitive-only installation has no top-level declaration, so
-    // the command must reject with a clear error rather than silently
-    // tearing out a dep owned by another module.
+    // the command must reject — but the error must explain the module
+    // is required by its parent rather than misleadingly claiming it
+    // isn't part of the project.
     const depRoot = join(testDir, 'fake-trans-dep');
     makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'trdep' });
     const hostRoot = join(testDir, 'fake-trans-host');
@@ -796,7 +797,7 @@ describe('remove module — spec behaviours', () => {
     expect(topLevelNames).toEqual(['trhost']);
 
     await expect(commands.removeCmd.remove('module', 'trdep')).rejects.toThrow(
-      "Module 'trdep' is not part of the project",
+      "Cannot remove module 'trdep' because it is required by 'trhost'. Remove the parent module(s) first.",
     );
 
     // Both installations still exist — the failed remove didn't
@@ -807,6 +808,28 @@ describe('remove module — spec behaviours', () => {
     expect(existsSync(join(projectDir, '.cards', 'modules', 'trdep'))).toBe(
       true,
     );
+  });
+
+  it('removing a module that is genuinely absent errors with "not part of the project"', async () => {
+    // The "not part of the project" message must still apply when the
+    // name truly does not exist anywhere — declared or installed.
+    const projectDir = join(testDir, 'proj-truly-absent');
+    const commandHandler = new Commands();
+    const create = await commandHandler.command(
+      Cmd.create,
+      ['project', 'truly-absent-proj', 'tasp'],
+      { projectPath: projectDir },
+    );
+    expect(create.statusCode).toBe(200);
+
+    const commands = new CommandManager(projectDir, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+
+    await expect(
+      commands.removeCmd.remove('module', 'never-imported'),
+    ).rejects.toThrow("Module 'never-imported' is not part of the project");
   });
 
   it('removing a deep transitive chain cascades the orphan cleanup to a fixed point', async () => {

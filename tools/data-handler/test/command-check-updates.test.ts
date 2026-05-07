@@ -46,6 +46,7 @@ function installModule(
     name: string;
     version?: string;
     cardKeyPrefix?: string;
+    modules?: Array<{ name: string }>;
   },
 ) {
   const modulesFolder = project.paths.modulesFolder;
@@ -55,7 +56,7 @@ function installModule(
     name: setup.name,
     cardKeyPrefix: setup.cardKeyPrefix ?? setup.name,
     description: '',
-    modules: [],
+    modules: setup.modules ?? [],
     hubs: [],
     ...(setup.version ? { version: setup.version } : {}),
   };
@@ -260,6 +261,29 @@ describe('check-updates', () => {
     await expect(
       new CheckUpdates(project).checkUpdates('nonexistent'),
     ).rejects.toThrow("Module 'nonexistent' is not part of the project");
+  });
+
+  it('throws naming the parent when asked about a transitive-only module', async () => {
+    // `dep` is installed but has no top-level declaration — its lifetime
+    // is owned by `host`. Checking updates for it must surface the parent
+    // rather than misleadingly claim it is not part of the project.
+    const project = buildProjectWithModules([
+      {
+        name: 'host',
+        location: 'https://example.com/host.git',
+        private: false,
+      },
+    ]);
+    installModule(project, {
+      name: 'host',
+      version: '1.0.0',
+      modules: [{ name: 'dep' }],
+    });
+    installModule(project, { name: 'dep', version: '1.0.0' });
+
+    await expect(new CheckUpdates(project).checkUpdates('dep')).rejects.toThrow(
+      "Cannot check updates for module 'dep' because it is required by 'host'. Check updates for the parent module(s) instead.",
+    );
   });
 
   it('returns one row per declared module when multiple modules are configured', async () => {

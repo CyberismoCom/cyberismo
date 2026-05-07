@@ -14,7 +14,7 @@
 import { ActionGuard } from '../permissions/action-guard.js';
 import { isModuleCard, isExternalItemKey } from '../utils/card-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
-import { declaredModules } from '../modules/inventory.js';
+import { declaredModules, installedModules } from '../modules/inventory.js';
 import { cleanOrphans } from '../modules/orphans.js';
 import {
   ConfigurationLogger,
@@ -332,6 +332,16 @@ export class Remove {
       (d) => d.name === targetName,
     );
     if (!declaration) {
+      const installations = await installedModules(this.project);
+      const parents = installations
+        .filter((m) => m.declaredDependencies.includes(targetName))
+        .map((m) => m.name);
+      if (parents.length > 0) {
+        const parentList = parents.map((n) => `'${n}'`).join(', ');
+        throw new Error(
+          `Cannot remove module '${targetName}' because it is required by ${parentList}. Remove the parent module(s) first.`,
+        );
+      }
       throw new Error(`Module '${targetName}' is not part of the project`);
     }
 

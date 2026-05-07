@@ -22,6 +22,7 @@ import {
   applyModules,
   buildRemoteUrl,
   declaredModules,
+  installedModules,
   resolveModules,
   createSourceLayer,
   FILE_PROTOCOL,
@@ -332,6 +333,16 @@ export class Import {
     const declared = declaredModules(this.project);
     const target = declared.find((d) => d.name === moduleName);
     if (!target) {
+      const installations = await installedModules(this.project);
+      const parents = installations
+        .filter((m) => m.declaredDependencies.includes(moduleName))
+        .map((m) => m.name);
+      if (parents.length > 0) {
+        const parentList = parents.map((n) => `'${n}'`).join(', ');
+        throw new Error(
+          `Cannot update module '${moduleName}' because it is required by ${parentList}. Update the parent module(s) instead.`,
+        );
+      }
       throw new Error(`Module '${moduleName}' is not part of the project`);
     }
 
