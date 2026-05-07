@@ -1,7 +1,5 @@
-# Build clingo's static libraries in an isolated stage. Cache key
-# depends only on the clingo submodule and its build script, so this
-# stage hits ~100% across PRs that don't touch clingo itself —
-# avoiding the ~5min cmake compile on every build.
+# Isolated stage so the ~5min cmake compile is cached when clingo
+# source is unchanged.
 FROM node:22-alpine AS clingo-builder
 RUN apk add --no-cache g++ python3 make cmake
 WORKDIR /app
@@ -12,20 +10,11 @@ RUN cmake -P tools/node-clingo/scripts/build-clingo.cmake
 
 FROM node:22-alpine AS builder
 
-# Enable corepack to use pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
-
-# OS build deps for node-gyp (clingo itself is built in the
-# clingo-builder stage above and copied in below)
 RUN apk add --no-cache g++ python3 make
 
 WORKDIR /app
-
-# Copy whole monorepo
 COPY . /app
-
-# Pull in clingo static libs from the clingo-builder stage so the
-# binding step below links against them without rebuilding clingo.
 COPY --from=clingo-builder \
      /app/tools/node-clingo/external/clingo/build \
      /app/tools/node-clingo/external/clingo/build
@@ -33,10 +22,7 @@ COPY --from=clingo-builder \
 RUN pnpm install --frozen-lockfile --ignore-scripts
 RUN pnpm build
 
-# node-clingo's `install` hook would run build:native (clingo + binding)
-# but we ran `pnpm install --ignore-scripts` above. clingo libs are
-# already present from the clingo-builder stage; just compile the JS
-# binding via node-gyp here.
+# --ignore-scripts above skipped node-clingo's install hook
 RUN cd /app/tools/node-clingo && pnpm run build:binding
 
 
