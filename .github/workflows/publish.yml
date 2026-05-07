@@ -1,29 +1,136 @@
 name: Publish
 
+# Unified release pipeline. Runs in two modes:
+#
+#   pull_request  (touching tools/cli/package.json): dry-run. Publishes
+#       to a local Verdaccio, smoke-tests the cli installed from there,
+#       and per-arch loads the docker image into the runner's docker
+#       daemon to smoke-run `cyberismo --version`. Skips tag push,
+#       multi-arch manifest assembly, and GitHub Release creation.
+#       The full shipping sequence is exercised end-to-end against
+#       mocks before merge.
+#   push to main / workflow_dispatch: real release. Same job graph,
+#       targeting registry.npmjs.org and Docker Hub, plus tag and
+#       gh release create.
+#
+# What can still fail post-merge despite a green PR run: NPM_TOKEN /
+# DOCKERHUB_TOKEN expiry, branch-protection on tag push, GitHub Release
+# API. Everything else (workflow logic, package contents, image build,
+# smoke) is validated pre-merge against the same job structure.
+
 on:
+  pull_request:
+    paths:
+      - tools/cli/package.json
   push:
-    tags:
-      - 'cyberismo-*'
-  workflow_call:
-    inputs:
-      tag:
-        required: true
-        type: string
-        description: 'Tag name (e.g. cyberismo-1.2.3)'
+    branches:
+      - main
+    paths:
+      - tools/cli/package.json
+  workflow_dispatch: {}
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
+
+concurrency:
+  group: cli-release-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || 'main' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   version:
-    timeout-minutes: 15
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      tag: ${{ steps.v.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Determine CLI version
+        id: v
+        run: |
+          VERSION=$(node -p "require('./tools/cli/package.json').version")
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=cyberismo-${VERSION}" >> "$GITHUB_OUTPUT"
+
+  tag:
+    needs: [version, publish-npm, push-image-merge]
+    if: github.event_name != 'pull_request'
+    timeout-minutes: 5
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code repository
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag || '' }}
+          fetch-depth: 0
+
+      - name: Create release tag
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "Tag ${TAG} already exists on remote; nothing to do."
+            exit 0
+          fi
+
+          git tag -a "${TAG}" -m "Release version ${TAG#cyberismo-}"
+          git push origin "${TAG}"
+
+  publish-npm:
+    needs: version
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    env:
+      DRYRUN: ${{ github.event_name == 'pull_request' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Start Verdaccio (dry-run only)
+        if: env.DRYRUN == 'true'
+        run: |
+          mkdir -p /tmp/verdaccio-storage
+          chmod 777 /tmp/verdaccio-storage
+          docker run -d --rm \
+            --name verdaccio \
+            -p 4873:4873 \
+            -v "${{ github.workspace }}/.github/verdaccio/config.yaml:/verdaccio/conf/config.yaml:ro" \
+            -v /tmp/verdaccio-storage:/verdaccio/storage \
+            verdaccio/verdaccio:6
+          for i in {1..30}; do
+            if curl -fs http://localhost:4873/-/ping >/dev/null; then
+              echo "Verdaccio ready."
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Verdaccio failed to start" >&2
+          docker logs verdaccio || true
+          exit 1
+
+      # The smoke step (dry-run only) needs the same env that build-and-test.yml uses.
+      - name: Install clingo
+        if: env.DRYRUN == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gringo
+
+      - name: Set up Ruby
+        if: env.DRYRUN == 'true'
+        uses: ruby/setup-ruby@829114fc20da43a41d27359103ec7a63020954d4 # v1
+        with:
+          ruby-version: '3.2'
+
+      - name: Install asciidoctor-pdf
+        if: env.DRYRUN == 'true'
+        run: gem install --no-document asciidoctor-pdf rouge
 
       - name: Setup pnpm
         uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4
@@ -34,36 +141,16 @@ jobs:
           node-version: ${{ vars.NODE_VERSION }}
           cache: 'pnpm'
 
-      - name: Determine package for tag
-        id: tag
-        run: |
-          TAG="${{ inputs.tag || github.ref_name }}"
-          if [[ "$TAG" != cyberismo-* ]]; then
-            echo "Unsupported tag pattern: $TAG" >&2
-            exit 1
-          fi
-          PKG_PATH="tools/cli/package.json"
-          PREFIX="cyberismo-"
-          echo "package_path=$PKG_PATH" >> "$GITHUB_OUTPUT"
-          echo "expected_version=${TAG#$PREFIX}" >> "$GITHUB_OUTPUT"
-          echo "prefix=$PREFIX" >> "$GITHUB_OUTPUT"
-
-      - name: Validate tag matches package version
-        run: |
-          tag_version="${{ steps.tag.outputs.expected_version }}"
-          pkg_path="${{ steps.tag.outputs.package_path }}"
-          pkg_version=$(node -p "require('./$pkg_path').version")
-          echo "Tag version: $tag_version"
-          echo "Package version in $pkg_path: $pkg_version"
-          if [ "$tag_version" != "$pkg_version" ]; then
-            echo "Tag version ($tag_version) does not match package version ($pkg_version)"
-            exit 1
-          fi
-
-      - name: Set publishing config
-        run: pnpm config set '//registry.npmjs.org/:_authToken' "${NODE_AUTH_TOKEN}"
+      - name: Configure registry credentials
         env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ "$DRYRUN" = "true" ]; then
+            npm config set //localhost:4873/:_authToken local-pack-test
+            pnpm config set //localhost:4873/:_authToken local-pack-test
+          else
+            pnpm config set "//registry.npmjs.org/:_authToken" "$NPM_TOKEN"
+          fi
 
       - name: Install dependencies
         run: pnpm install --ignore-scripts
@@ -75,83 +162,288 @@ jobs:
         run: npm install -g npm@latest
 
       - name: Publish packages
-        run: pnpm ci:publish
-
-  npm-cli-test:
-    needs: version
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout code repository
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.tag || '' }}
-
-      - name: Install clingo
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gringo
-
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@829114fc20da43a41d27359103ec7a63020954d4 # v1
-        with:
-          ruby-version: '3.2'
-
-      - name: Install asciidoctor-pdf
-        run: |
-          gem install --no-document asciidoctor-pdf rouge
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4
-
-      - name: Setup node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ vars.NODE_VERSION }}
-          cache: 'pnpm'
-
-      - name: Verify published packages via npm
         env:
-          RELEASE_VERSION: ${{ inputs.tag || github.ref_name }}
+          # Three layers pinning the registry to whichever target the mode
+          # selects: env var, CLI flag, and (dry-run) no NPM_TOKEN in env.
+          NPM_REGISTRY: ${{ env.DRYRUN == 'true' && 'http://localhost:4873/' || 'https://registry.npmjs.org/' }}
+          npm_config_registry: ${{ env.DRYRUN == 'true' && 'http://localhost:4873/' || 'https://registry.npmjs.org/' }}
+        run: pnpm --filter '!app' --filter '!@cyberismo/node-clingo' publish --access public --no-git-checks --registry "$NPM_REGISTRY"
+
+      - name: Smoke test installed cli (dry-run only)
+        if: env.DRYRUN == 'true'
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
           CYBERISMO_GIT_USER: ${{ secrets.CYBERISMO_GIT_USER }}
           CYBERISMO_GIT_TOKEN: ${{ secrets.CYBERISMO_GIT_TOKEN }}
         run: |
-          VERSION="${RELEASE_VERSION#cyberismo-}"
-          PACKAGES=(
-            "@cyberismo/cli"
-            "@cyberismo/backend"
-            "@cyberismo/data-handler"
-            "@cyberismo/assets"
-            "@cyberismo/migrations"
-            "@cyberismo/mcp"
-          )
-          echo "Testing published packages at version ${VERSION}: ${PACKAGES[*]}"
-
-          npm install -g npm@latest
-
-          # Wait briefly for npm replication
-          for pkg in "${PACKAGES[@]}"; do
-            for i in {1..8}; do
-              published_version=$(npm view "${pkg}@${VERSION}" version 2>/dev/null || true)
-              if [ "${published_version}" = "${VERSION}" ]; then
-                echo "${pkg}@${VERSION} available."
-                break
-              fi
-              if [ "$i" -eq 8 ]; then
-                echo "Package ${pkg}@${VERSION} not available after waiting."
-                exit 1
-              fi
-              echo "Waiting for ${pkg}@${VERSION} to be available (attempt $i)..."
-              sleep 10
-            done
-          done
-
-          npm install -g @cyberismo/cli@"${VERSION}"
-
-          # Assert reported version matches tag
+          npm install -g "@cyberismo/cli@${VERSION}" --registry=http://localhost:4873/
           cyberismo --version
           cyberismo --version | grep "cyberismo version: ${VERSION}"
-
-          pnpm install --ignore-scripts
           CYBERISMO_GLOBAL_CLI=true pnpm --filter cli test
+
+      - name: Verdaccio logs (on failure)
+        if: failure() && env.DRYRUN == 'true'
+        run: docker logs verdaccio || true
+
+      - name: Stop Verdaccio
+        if: always() && env.DRYRUN == 'true'
+        run: docker stop verdaccio || true
+
+  # Per-arch builds on native runners — the slow piece is node-clingo's
+  # C++ compile, which used to run under QEMU (~10x slowdown for arm64).
+  # Each job builds a single-platform image. Real release pushes by
+  # digest to Docker Hub; the digests are then assembled into the
+  # multi-arch tags by push-image-merge. Dry-run loads locally and
+  # smoke-runs — the manifest assembly itself is a one-liner not worth
+  # validating against mocks.
+  push-image:
+    needs: version
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, platform: linux/amd64, suffix: amd64 }
+          - { os: ubuntu-24.04-arm, platform: linux/arm64, suffix: arm64 }
+    runs-on: ${{ matrix.os }}
+    env:
+      DRYRUN: ${{ github.event_name == 'pull_request' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3
+        with:
+          install: true
+
+      - name: Log in to Docker Hub
+        if: env.DRYRUN != 'true'
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Compute image repository
+        id: repo
+        run: |
+          if [ "$DRYRUN" = "true" ]; then
+            echo "name=cyberismo" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cyberismo" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build single-arch image (dry-run)
+        if: env.DRYRUN == 'true'
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6
+        with:
+          context: .
+          file: Dockerfile
+          platforms: ${{ matrix.platform }}
+          load: true
+          tags: ${{ steps.repo.outputs.name }}:${{ needs.version.outputs.version }}
+          cache-from: type=gha,scope=${{ matrix.suffix }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.suffix }}
+
+      - name: Smoke-run loaded image (dry-run)
+        if: env.DRYRUN == 'true'
+        env:
+          IMAGE: ${{ steps.repo.outputs.name }}:${{ needs.version.outputs.version }}
+        run: docker run --rm "$IMAGE" cyberismo --version
+
+      - name: Build and push by digest (real release)
+        if: env.DRYRUN != 'true'
+        id: build
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6
+        with:
+          context: .
+          file: Dockerfile
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,name=${{ steps.repo.outputs.name }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ matrix.suffix }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.suffix }}
+
+      - name: Export digest (real release)
+        if: env.DRYRUN != 'true'
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest artifact (real release)
+        if: env.DRYRUN != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.suffix }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # Combines the per-arch digests pushed above into the multi-arch tags.
+  # Real release only — dry-run validates each arch independently.
+  push-image-merge:
+    needs: [version, push-image]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Compute docker tags
+        id: docker
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f1-2)
+          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
+          echo "minor=$MINOR" >> "$GITHUB_OUTPUT"
+
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        env:
+          REPO: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cyberismo
+          VERSION: ${{ needs.version.outputs.version }}
+          MAJOR: ${{ steps.docker.outputs.major }}
+          MINOR: ${{ steps.docker.outputs.minor }}
+        run: |
+          DIGEST_REFS=$(printf "${REPO}@sha256:%s " *)
+          docker buildx imagetools create \
+            -t "${REPO}:latest" \
+            -t "${REPO}:${VERSION}" \
+            -t "${REPO}:${MINOR}" \
+            -t "${REPO}:${MAJOR}" \
+            ${DIGEST_REFS}
+
+  # Validates CHANGELOG.md and renders the GitHub Release body. Runs in
+  # both modes: on PR it surfaces the rendered notes as a step summary +
+  # artifact (so the maintainer sees exactly what will ship before merging
+  # and a missing/stale changelog fails the PR, not the post-merge release).
+  # On main, github-release downloads the artifact and publishes it verbatim.
+  release-body:
+    needs: version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Render release body
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+          VERSION: ${{ needs.version.outputs.version }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ ! -f CHANGELOG.md ]; then
+            echo "::error::CHANGELOG.md is missing. Run /release-notes and commit the new section before merging the version bump." >&2
+            exit 1
+          fi
+
+          FIRST_HEADING=$(grep -m1 '^## \[' CHANGELOG.md || true)
+          case "$FIRST_HEADING" in
+            "## [$VERSION]"*) ;;
+            *)
+              echo "::error::CHANGELOG.md top heading is '${FIRST_HEADING:-<none>}', expected to start with '## [$VERSION]'." >&2
+              exit 1
+              ;;
+          esac
+
+          if grep -q '<!-- REVIEW:' CHANGELOG.md; then
+            echo "::error::CHANGELOG.md still contains a <!-- REVIEW: --> marker. Remove it after editing the draft." >&2
+            exit 1
+          fi
+
+          # Extract from the first '## [' heading up to (but not including) the next one.
+          # Drop the version heading (gh sets its own title) and promote level-3
+          # subsections to level-2 so the body has a consistent heading hierarchy.
+          awk '/^## \[/{c++; if (c==2) exit} c==1' CHANGELOG.md \
+            | tail -n +2 \
+            | sed 's/^### /## /' > section.md
+
+          git fetch --tags --force >/dev/null 2>&1 || true
+          PREV_TAG=$(git describe --tags --match 'cyberismo-*' --abbrev=0 \
+            "${TAG}^" 2>/dev/null \
+            || git describe --tags --match 'cyberismo-*' --abbrev=0 2>/dev/null \
+            || true)
+
+          {
+            cat section.md
+            echo
+            echo "## Install"
+            echo
+            echo '```bash'
+            echo "npm install -g @cyberismo/cli@$VERSION"
+            echo "docker pull cyberismo/cyberismo:$VERSION"
+            echo '```'
+            if [ -n "$PREV_TAG" ]; then
+              echo
+              echo "**Full changelog**: https://github.com/$REPO/compare/$PREV_TAG...$TAG"
+            fi
+          } > release-body.md
+
+          {
+            echo "## Rendered release body for \`$TAG\`"
+            echo
+            cat release-body.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload release body artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-body
+          path: release-body.md
+          if-no-files-found: error
+          retention-days: 7
+
+  github-release:
+    needs: [version, tag, release-body]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download release body
+        uses: actions/download-artifact@v4
+        with:
+          name: release-body
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.version.outputs.tag }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; leaving it untouched."
+            exit 0
+          fi
+          gh release create "$TAG" \
+            --title "Cyberismo v$VERSION" \
+            --notes-file release-body.md \
+            --verify-tag

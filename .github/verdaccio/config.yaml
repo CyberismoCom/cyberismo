@@ -1,0 +1,35 @@
+# Minimal Verdaccio config for the pack-test CI gate.
+# - @cyberismo/* packages are published anonymously by the workflow
+# - everything else proxies to npmjs so transitive deps still resolve
+
+storage: /verdaccio/storage
+
+auth:
+  htpasswd:
+    file: /verdaccio/htpasswd
+
+uplinks:
+  npmjs:
+    url: https://registry.npmjs.org/
+
+packages:
+  '@cyberismo/*':
+    access: $all
+    publish: $all
+    unpublish: $all
+    proxy: npmjs
+  '@*/*':
+    access: $all
+    publish: $authenticated
+    proxy: npmjs
+  '**':
+    access: $all
+    publish: $authenticated
+    proxy: npmjs
+
+log:
+  type: stdout
+  format: pretty
+  level: warn
+
+listen: 0.0.0.0:4873

@@ -12,8 +12,9 @@ jobs:
   test-image:
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm]
-        node-version: ["${{ vars.NODE_VERSION }}"]
+        include:
+          - { os: ubuntu-latest, suffix: amd64 }
+          - { os: ubuntu-24.04-arm, suffix: arm64 }
     runs-on: ${{ matrix.os }}
 
     permissions:
@@ -38,13 +39,15 @@ jobs:
           tags: |
             cyberismo:latest
           load: true
+          cache-from: type=gha,scope=${{ matrix.suffix }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.suffix }}
 
       - name: Install pnpm
         uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: ${{ vars.NODE_VERSION }}
           cache: 'pnpm'
           registry-url: 'https://npm.pkg.github.com'
           scope: '@cyberismocom'
