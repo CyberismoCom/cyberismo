@@ -13,11 +13,11 @@
 
 import { Box, Chip, Typography } from '@mui/joy';
 import type { NodeRendererProps, NodeApi } from 'react-arborist';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import FiberManualRecord from '@mui/icons-material/FiberManualRecord';
 import ErrorIcon from '@mui/icons-material/Error';
 import { getStateColor } from '../../lib/utils';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
+import { BaseTreeNode } from './BaseTreeNode';
 
 interface CardTreeNodeProps extends NodeRendererProps<QueryResult<'tree'>> {
   onNodeClick?: (node: NodeApi<QueryResult<'tree'>>) => void;
@@ -31,38 +31,24 @@ const chipColor = (value: string) => {
   else return 'warning.300';
 };
 
-export const CardTreeNode = ({
-  node,
-  style,
-  dragHandle,
-  onNodeClick,
-}: CardTreeNodeProps) => {
+export const CardTreeNode = (props: CardTreeNodeProps) => {
+  const { node } = props;
   const progress = node.data.progress;
+  const statusIndicator = node.data.statusIndicator;
 
-  const renderStatusIndicator = () => {
-    const statusIndicator = node.data.statusIndicator;
-
-    if (statusIndicator === 'error') {
-      return (
-        <Box
-          display="flex"
-          alignItems="center"
-          alignSelf="center"
-          width={10}
-          height={10}
-          marginRight={1}
-        >
-          <ErrorIcon
-            color="error"
-            sx={{
-              fontSize: 15,
-            }}
-          />
-        </Box>
-      );
-    }
-
-    return (
+  const statusBox =
+    statusIndicator === 'error' ? (
+      <Box
+        display="flex"
+        alignItems="center"
+        alignSelf="center"
+        width={10}
+        height={10}
+        marginRight={1}
+      >
+        <ErrorIcon color="error" sx={{ fontSize: 15 }} />
+      </Box>
+    ) : (
       <Box
         color={getStateColor(statusIndicator)}
         display="flex"
@@ -72,57 +58,18 @@ export const CardTreeNode = ({
         height={10}
         marginRight={1}
       >
-        <FiberManualRecord
-          sx={{
-            fontSize: 15,
-          }}
-        />
+        <FiberManualRecord sx={{ fontSize: 15 }} />
       </Box>
     );
-  };
 
   return (
-    <Box
-      className="treenode"
-      style={style}
-      ref={dragHandle}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (node.isClosed) node.toggle();
-        onNodeClick?.(node);
-      }}
-      alignContent="center"
-      display="flex"
-      paddingRight="4px"
-      height="100%"
-      marginRight={1}
-      borderRadius="6px 6px 6px 6px"
-      bgcolor={node.isSelected ? 'background.body' : 'transparent'}
-    >
-      <ExpandMoreIcon
-        data-cy="ExpandMoreIcon"
-        visibility={
-          node.children && node.children.length > 0 ? 'visible' : 'hidden'
-        }
-        onClick={(e) => {
-          e.stopPropagation();
-          node.toggle();
-        }}
-        sx={{
-          // direction is down if open, right if closed
-          maxWidth: '20px',
-          transform: node.isOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
-          cursor: 'pointer',
-        }}
-      />
-      {renderStatusIndicator()}
+    <BaseTreeNode {...props}>
+      {statusBox}
       <Typography
         level="title-sm"
         noWrap
         alignSelf="center"
-        sx={{
-          cursor: 'pointer',
-        }}
+        sx={{ cursor: 'pointer' }}
       >
         {node.data.title ?? node.data.key}
       </Typography>
@@ -145,6 +92,6 @@ export const CardTreeNode = ({
           {progress + '%'}
         </Chip>
       )}
-    </Box>
+    </BaseTreeNode>
   );
 };

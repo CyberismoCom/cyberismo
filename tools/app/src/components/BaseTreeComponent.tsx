@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { Stack, Typography } from '@mui/joy';
 import type { NodeRendererProps, NodeApi, TreeApi } from 'react-arborist';
 import { Tree } from 'react-arborist';
@@ -59,17 +59,28 @@ export function BaseTreeComponent<T>({
       tree.open(selectedId);
       tree.select(selectedId);
     }
-  }, [selectedId, data]);
+  }, [selectedId]);
 
-  const handleMove = (moveData: {
-    dragIds: string[];
-    parentId: string | null;
-    index: number;
-  }) => {
-    if (onMove && moveData.dragIds.length === 1) {
-      onMove(moveData.dragIds, moveData.parentId, moveData.index);
-    }
-  };
+  const handleMove = useCallback(
+    (moveData: {
+      dragIds: string[];
+      parentId: string | null;
+      index: number;
+    }) => {
+      if (onMove && moveData.dragIds.length === 1) {
+        onMove(moveData.dragIds, moveData.parentId, moveData.index);
+      }
+    },
+    [onMove],
+  );
+
+  // react-arborist remounts rows when this ref changes, aborting in-progress drags.
+  const renderNode = useCallback(
+    (props: NodeRendererProps<T>) => (
+      <NodeRenderer {...props} onNodeClick={onNodeClick} />
+    ),
+    [NodeRenderer, onNodeClick],
+  );
 
   return (
     <Stack
@@ -103,7 +114,7 @@ export function BaseTreeComponent<T>({
         ref={treeRef}
         data={data || []}
         openByDefault={openByDefault}
-        disableDrag={getConfig().staticMode}
+        disableDrag={getConfig().staticMode || !onMove}
         idAccessor={idAccessor}
         childrenAccessor={childrenAccessor}
         indent={16}
@@ -112,9 +123,7 @@ export function BaseTreeComponent<T>({
         rowHeight={28}
         onMove={handleMove}
       >
-        {(props: NodeRendererProps<T>) => (
-          <NodeRenderer {...props} onNodeClick={onNodeClick} />
-        )}
+        {renderNode}
       </Tree>
     </Stack>
   );

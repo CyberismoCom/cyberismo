@@ -11,12 +11,12 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Box, Typography } from '@mui/joy';
+import { Typography } from '@mui/joy';
 import type { NodeRendererProps, NodeApi } from 'react-arborist';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { hasResourceData } from '@/lib/api/resources';
 import type { AnyNode } from '@/lib/api/types';
 import { useTranslation } from 'react-i18next';
+import { BaseTreeNode } from './BaseTreeNode';
 
 interface ConfigTreeNodeProps extends NodeRendererProps<AnyNode> {
   onNodeClick?: (node: NodeApi<AnyNode>) => void;
@@ -47,58 +47,20 @@ function getResourceName(node: NodeApi<AnyNode>, t: (key: string) => string) {
   return resourceData?.displayName || identifier(node.data.name);
 }
 
-export const ConfigTreeNode = ({
-  node,
-  style,
-  dragHandle,
-  onNodeClick,
-}: ConfigTreeNodeProps) => {
+export const ConfigTreeNode = (props: ConfigTreeNodeProps) => {
   const { t } = useTranslation();
+  const { node } = props;
 
   return (
-    <Box
-      className="treenode"
-      style={style}
-      ref={dragHandle}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (node.isClosed) node.toggle();
-        onNodeClick?.(node);
-      }}
-      alignContent="center"
-      display="flex"
-      paddingRight="4px"
-      height="100%"
-      marginRight={1}
-      borderRadius="6px 6px 6px 6px"
-      bgcolor={node.isSelected ? 'background.body' : 'transparent'}
-    >
-      <ExpandMoreIcon
-        data-cy="ExpandMoreIcon"
-        visibility={
-          node.children && node.children.length > 0 ? 'visible' : 'hidden'
-        }
-        onClick={(e) => {
-          e.stopPropagation();
-          node.toggle();
-        }}
-        sx={{
-          // direction is down if open, right if closed
-          maxWidth: '20px',
-          transform: node.isOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
-          cursor: 'pointer',
-        }}
-      />
+    <BaseTreeNode {...props}>
       <Typography
         level="title-sm"
         noWrap
         alignSelf="center"
-        sx={{
-          cursor: 'pointer',
-        }}
+        sx={{ cursor: 'pointer' }}
       >
         {getResourceName(node, t)}
       </Typography>
-    </Box>
+    </BaseTreeNode>
   );
 };
