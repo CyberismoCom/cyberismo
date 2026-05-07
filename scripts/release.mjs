@@ -117,7 +117,9 @@ console.log(`New version: ${newVersion}`);
 console.log(
   `\n────────────────────────────────────────────────────────────────────`,
 );
-console.log(`Update CHANGELOG.md: add a new section at the top with the heading`);
+console.log(
+  `Update CHANGELOG.md: add a new section at the top with the heading`,
+);
 console.log(``);
 console.log(`    ## [${newVersion}] — <date>`);
 console.log(``);
