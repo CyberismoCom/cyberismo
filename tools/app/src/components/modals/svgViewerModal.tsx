@@ -1,5 +1,11 @@
 import DOMPurify from 'dompurify';
-import React, { useState, useEffect, useMemo, useLayoutEffect, useRef } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useLayoutEffect,
+  useRef,
+} from 'react';
 import {
   Modal,
   Box,
