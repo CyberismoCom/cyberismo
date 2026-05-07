@@ -1,22 +1,43 @@
+# Build clingo's static libraries in an isolated stage. Cache key
+# depends only on the clingo submodule and its build script, so this
+# stage hits ~100% across PRs that don't touch clingo itself —
+# avoiding the ~5min cmake compile on every build.
+FROM node:22-alpine AS clingo-builder
+RUN apk add --no-cache g++ python3 make cmake
+WORKDIR /app
+COPY tools/node-clingo/external/clingo ./tools/node-clingo/external/clingo
+COPY tools/node-clingo/scripts/build-clingo.cmake ./tools/node-clingo/scripts/build-clingo.cmake
+RUN cmake -P tools/node-clingo/scripts/build-clingo.cmake
+
+
 FROM node:22-alpine AS builder
 
 # Enable corepack to use pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Install OS build dependencies for native module compilation
-RUN apk add --no-cache g++ python3 make cmake
+# OS build deps for node-gyp (clingo itself is built in the
+# clingo-builder stage above and copied in below)
+RUN apk add --no-cache g++ python3 make
 
 WORKDIR /app
 
 # Copy whole monorepo
 COPY . /app
+
+# Pull in clingo static libs from the clingo-builder stage so the
+# binding step below links against them without rebuilding clingo.
+COPY --from=clingo-builder \
+     /app/tools/node-clingo/external/clingo/build \
+     /app/tools/node-clingo/external/clingo/build
+
 RUN pnpm install --frozen-lockfile --ignore-scripts
 RUN pnpm build
 
-# node-clingo's `install` hook builds the C++ binding, but we ran
-# `pnpm install --ignore-scripts` above. `pnpm build` only runs `tsc`
-# for this package, so compile the native binding explicitly here.
-RUN cd /app/tools/node-clingo && pnpm run build:native
+# node-clingo's `install` hook would run build:native (clingo + binding)
+# but we ran `pnpm install --ignore-scripts` above. clingo libs are
+# already present from the clingo-builder stage; just compile the JS
+# binding via node-gyp here.
+RUN cd /app/tools/node-clingo && pnpm run build:binding
 
 
 
