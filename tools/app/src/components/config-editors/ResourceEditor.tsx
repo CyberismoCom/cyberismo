@@ -28,6 +28,7 @@ import {
   TextareaInput,
   TextInput,
   SelectInput,
+  WorkflowGraph,
   WorkflowStatesEditor,
 } from './fields';
 import type {
@@ -150,6 +151,8 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
             readOnly={isDisabled}
           />
         );
+      case 'workflowGraph':
+        return <WorkflowGraph workflowName={node.name} />;
       default:
         return null;
     }

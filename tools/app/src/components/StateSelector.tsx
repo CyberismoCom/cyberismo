@@ -20,10 +20,13 @@ import {
   Menu,
   MenuItem,
   ListItemContent,
+  ListDivider,
   Dropdown,
   MenuButton,
   CircularProgress,
+  Stack,
 } from '@mui/joy';
+import ArrowForward from '@mui/icons-material/ArrowForward';
 import { useTranslation } from 'react-i18next';
 import { getStateColor } from '../lib/utils';
 import { getConfig } from '@/lib/utils';
@@ -33,6 +36,7 @@ interface StateSelectorProps {
   currentState: WorkflowState | null;
   workflow: Workflow | null;
   onTransition: (transition: WorkflowTransition) => void;
+  onViewWorkflow?: () => void;
   isLoading?: boolean;
   disabled?: boolean;
 }
@@ -41,6 +45,7 @@ const StateSelector: React.FC<StateSelectorProps> = ({
   currentState,
   workflow,
   onTransition,
+  onViewWorkflow,
   disabled,
   isLoading,
 }) => {
@@ -76,15 +81,17 @@ const StateSelector: React.FC<StateSelectorProps> = ({
     ></span>
   );
 
+  const hasTransitions = availableTransitions.length > 0;
+  const buttonDisabled =
+    (!hasTransitions && !onViewWorkflow) ||
+    (hasTransitions && disabled) ||
+    getConfig().staticMode;
+
   return (
     <Dropdown>
       <MenuButton
         size="sm"
-        disabled={
-          availableTransitions.length === 0 ||
-          disabled ||
-          getConfig().staticMode
-        }
+        disabled={buttonDisabled}
         variant="soft"
         color="neutral"
         endDecorator={!isLoading && statusDot}
@@ -100,15 +107,45 @@ const StateSelector: React.FC<StateSelectorProps> = ({
         )}
       </MenuButton>
       <Menu>
-        {availableTransitions.map((transition) => (
-          <MenuItem
-            key={transition.name}
-            onClick={() => onTransition(transition)}
-            disabled={disabled}
-          >
-            <ListItemContent>{transition.name}</ListItemContent>
-          </MenuItem>
-        ))}
+        {availableTransitions.map((transition) => {
+          const toState = workflow?.states.find(
+            (state) => state.name === transition.toState,
+          );
+          return (
+            <MenuItem
+              key={transition.name}
+              onClick={() => onTransition(transition)}
+              disabled={disabled}
+            >
+              <ListItemContent>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <span>{transition.name}</span>
+                  <ArrowForward fontSize="small" sx={{ opacity: 0.6 }} />
+                  <span
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: '50%',
+                      backgroundColor: getStateColor(toState?.category),
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span>{transition.toState}</span>
+                </Stack>
+              </ListItemContent>
+            </MenuItem>
+          );
+        })}
+        {onViewWorkflow && (
+          <>
+            {hasTransitions && <ListDivider />}
+            <MenuItem onClick={onViewWorkflow} data-cy="viewWorkflowMenuItem">
+              <ListItemContent>
+                {t('workflowGraph.viewTooltip')}
+              </ListItemContent>
+            </MenuItem>
+          </>
+        )}
       </Menu>
     </Dropdown>
   );

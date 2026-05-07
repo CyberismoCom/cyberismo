@@ -19,6 +19,7 @@ export { default as TextInput } from './TextInput';
 export { default as CardTypeFieldsEditor } from './CardTypeFieldsEditor';
 export { default as EnumValuesEditor } from './EnumValuesEditor';
 export { default as WorkflowStatesEditor } from './WorkflowStatesEditor';
+export { default as WorkflowGraph } from './WorkflowGraph';
 export { EditableRowActions } from './EditableRowActions';
 export { ListRow } from './ListRow';
 export { ReorderButton, ReorderButtonContainer } from './ReorderButtons';

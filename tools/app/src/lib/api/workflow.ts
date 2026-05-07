@@ -11,13 +11,33 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import type { SWRConfiguration } from 'swr';
 import { callApi } from '../swr';
 import { apiPaths } from '../swr';
 import { mutate } from 'swr';
 import type { CreateWorkflowData } from '@/lib/definitions';
+import { useSWRHook } from './common';
 
 export const createWorkflow = async (data: CreateWorkflowData) => {
   await callApi(apiPaths.workflows(), 'POST', data);
   mutate(apiPaths.workflows());
   mutate(apiPaths.resourceTree());
+};
+
+/**
+ * Fetches the rendered state-machine graph for a workflow.
+ * When `cardKey` is provided, the diagram highlights that card's
+ * current workflowState.
+ * @param resourceName Full workflow resource name (prefix/workflows/identifier).
+ * @param cardKey Optional card key to highlight the card's current state.
+ */
+export const useWorkflowGraph = (
+  resourceName: string | null | undefined,
+  cardKey?: string | null,
+  options?: SWRConfiguration,
+) => {
+  const swrKey = resourceName
+    ? apiPaths.workflowGraph(resourceName, cardKey ?? undefined)
+    : null;
+  return useSWRHook(swrKey, 'workflowGraph', null, options);
 };

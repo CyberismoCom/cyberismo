@@ -6,6 +6,7 @@ import { copyDir } from '../src/utils/file-utils.js';
 import type { Project } from '../src/containers/project.js';
 import type { QueryResult } from '../src/types/queries.js';
 import { lpFiles } from '@cyberismo/assets';
+import { Calculate } from '../src/commands/calculate.js';
 import { getTestProject } from './helpers/test-utils.js';
 
 const expectedTree: QueryResult<'tree'>[] = [
@@ -62,6 +63,30 @@ describe('calculate', () => {
     );
 
     expect(res).not.toBe('');
+  }, 20000);
+
+  it('runWorkflowGraph renders the built-in workflow graph', async () => {
+    const calculate = new Calculate(project);
+    const res = await calculate.runWorkflowGraph('decision/workflows/simple');
+    expect(res).not.toBe('');
+    const decoded = Buffer.from(res, 'base64').toString('utf-8');
+    expect(decoded).toContain('<svg');
+    // Workflow state names should be rendered into the SVG.
+    expect(decoded).toContain('Created');
+    expect(decoded).toContain('Approved');
+  }, 20000);
+
+  it('runWorkflowGraph emphasises the given currentState', async () => {
+    const calculate = new Calculate(project);
+    const plain = await calculate.runWorkflowGraph('decision/workflows/simple');
+    const highlighted = await calculate.runWorkflowGraph(
+      'decision/workflows/simple',
+      { currentState: 'Approved' },
+    );
+    expect(highlighted).not.toBe(plain);
+    const decoded = Buffer.from(highlighted, 'base64').toString('utf-8');
+    expect(decoded).toContain('<svg');
+    expect(decoded).toContain('Approved');
   }, 20000);
 
   describe('python functions', () => {

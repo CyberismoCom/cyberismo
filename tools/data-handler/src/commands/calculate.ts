@@ -11,10 +11,21 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import Handlebars from 'handlebars';
+import { workflowGraph } from '@cyberismo/assets';
+
 import type { Context } from '../interfaces/project-interfaces.js';
 import type { Project } from '../containers/project.js';
 import type { QueryName, QueryResult } from '../types/queries.js';
+import { registerClingoHelpers } from '../utils/handlebars-helpers.js';
 import { read } from '../utils/rw-lock.js';
+
+const workflowGraphHandlebars = Handlebars.create();
+registerClingoHelpers(workflowGraphHandlebars);
+const workflowGraphView = workflowGraphHandlebars.compile<{
+  workflow: string;
+  currentState?: string;
+}>(workflowGraph.view);
 
 // Class that calculates with logic program card / project level calculations.
 export class Calculate {
@@ -48,6 +59,28 @@ export class Calculate {
   @read
   public async runGraph(model: string, view: string, context: Context) {
     return this.project.calculationEngine.runGraph(model, view, context);
+  }
+
+  /**
+   * Renders the built-in workflow state-machine graph for a single workflow.
+   * @param workflowName Fully qualified workflow resource name (e.g. "base/workflows/foo").
+   * @param options Optional `currentState` to highlight, and Clingo `context`.
+   * @returns base64-encoded sanitized SVG string.
+   */
+  @read
+  public async runWorkflowGraph(
+    workflowName: string,
+    options: { currentState?: string; context?: Context } = {},
+  ) {
+    const view = workflowGraphView({
+      workflow: workflowName,
+      currentState: options.currentState,
+    });
+    return this.project.calculationEngine.runGraph(
+      workflowGraph.model,
+      view,
+      options.context ?? 'localApp',
+    );
   }
 
   /**

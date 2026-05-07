@@ -75,4 +75,5 @@ export const updateResourceWithOperation = async <
   await callApi(apiPaths.resourceOperation(resourceName), 'POST', body);
   mutate(swrKey);
   mutate(apiPaths.resourceTree());
+  mutate((key) => typeof key === 'string' && key.startsWith(`${swrKey}/`));
 };
