@@ -26,6 +26,8 @@ import { readdirSync } from 'node:fs';
 // base class
 import { CardContainer } from './card-container.js';
 
+import { writeJsonFile as atomicWriteJson } from 'write-json-file';
+
 import { CalculationEngine } from './project/calculation-engine.js';
 import {
   type Card,
@@ -39,6 +41,7 @@ import {
   type ProjectFetchCardDetails,
 } from '../interfaces/project-interfaces.js';
 import { pathExists } from '../utils/file-utils.js';
+import { readJsonFile } from '../utils/json.js';
 import { generateRandomString } from '../utils/random.js';
 import {
   cardPathParts,
@@ -999,8 +1002,16 @@ export class Project extends CardContainer {
       fromVersion,
       toVersion,
       async (version: number) => {
+        // Persist the new schemaVersion via raw file I/O rather than
+        // settings.save(). The migration that just ran may have rewritten
+        // cardsConfig.json on disk; settings.save() would re-serialize the
+        // pre-migration in-memory state and clobber those changes.
+        const configPath = this.paths.configurationFile;
+        const raw = await readJsonFile(configPath);
+        if (!raw) throw new Error(`Cannot read ${configPath}`);
+        raw.schemaVersion = version;
+        await atomicWriteJson(configPath, raw, { indent: 4 });
         this.settings.schemaVersion = version;
-        await this.settings.save();
       },
     );
 
