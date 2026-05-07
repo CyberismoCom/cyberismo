@@ -337,17 +337,101 @@ jobs:
             -t "${REPO}:${MAJOR}" \
             ${DIGEST_REFS}
 
-  github-release:
-    needs: [version, tag]
-    if: github.event_name != 'pull_request'
+  # Validates CHANGELOG.md and renders the GitHub Release body. Runs in
+  # both modes: on PR it surfaces the rendered notes as a step summary +
+  # artifact (so the maintainer sees exactly what will ship before merging
+  # and a missing/stale changelog fails the PR, not the post-merge release).
+  # On main, github-release downloads the artifact and publishes it verbatim.
+  release-body:
+    needs: version
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
-      contents: write
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Render release body
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+          VERSION: ${{ needs.version.outputs.version }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ ! -f CHANGELOG.md ]; then
+            echo "::error::CHANGELOG.md is missing. Run /release-notes and commit the new section before merging the version bump." >&2
+            exit 1
+          fi
+
+          FIRST_HEADING=$(grep -m1 '^## \[' CHANGELOG.md || true)
+          case "$FIRST_HEADING" in
+            "## [$VERSION]"*) ;;
+            *)
+              echo "::error::CHANGELOG.md top heading is '${FIRST_HEADING:-<none>}', expected to start with '## [$VERSION]'." >&2
+              exit 1
+              ;;
+          esac
+
+          if grep -q '<!-- REVIEW:' CHANGELOG.md; then
+            echo "::error::CHANGELOG.md still contains a <!-- REVIEW: --> marker. Remove it after editing the draft." >&2
+            exit 1
+          fi
+
+          # Extract from the first '## [' heading up to (but not including) the next one.
+          # Drop the version heading (gh sets its own title) and promote level-3
+          # subsections to level-2 so the body has a consistent heading hierarchy.
+          awk '/^## \[/{c++; if (c==2) exit} c==1' CHANGELOG.md \
+            | tail -n +2 \
+            | sed 's/^### /## /' > section.md
+
+          git fetch --tags --force >/dev/null 2>&1 || true
+          PREV_TAG=$(git describe --tags --match 'cyberismo-*' --abbrev=0 \
+            "${TAG}^" 2>/dev/null \
+            || git describe --tags --match 'cyberismo-*' --abbrev=0 2>/dev/null \
+            || true)
+
+          {
+            cat section.md
+            echo
+            echo "## Install"
+            echo
+            echo '```bash'
+            echo "npm install -g @cyberismo/cli@$VERSION"
+            echo "docker pull cyberismo/cyberismo:$VERSION"
+            echo '```'
+            if [ -n "$PREV_TAG" ]; then
+              echo
+              echo "**Full changelog**: https://github.com/$REPO/compare/$PREV_TAG...$TAG"
+            fi
+          } > release-body.md
+
+          {
+            echo "## Rendered release body for \`$TAG\`"
+            echo
+            cat release-body.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload release body artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-body
+          path: release-body.md
+          if-no-files-found: error
+          retention-days: 7
+
+  github-release:
+    needs: [version, tag, release-body]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download release body
+        uses: actions/download-artifact@v4
+        with:
+          name: release-body
 
       - name: Create GitHub Release
         env:
@@ -361,5 +445,5 @@ jobs:
           fi
           gh release create "$TAG" \
             --title "Cyberismo v$VERSION" \
-            --generate-notes \
+            --notes-file release-body.md \
             --verify-tag
