@@ -65,9 +65,7 @@ export default function AppLayout() {
     },
   );
 
-  // Stable refs so the renderer chain down to BaseTreeComponent's renderNode
-  // useCallback stays valid mid-drag (react-arborist remounts rows on
-  // renderer-ref change → aborted drag).
+  // react-arborist remounts rows when this ref changes, aborting in-progress drags.
   const handleMove = useCallback(
     async (cardKey: string, newParent: string, index: number) => {
       if (!tree) return;

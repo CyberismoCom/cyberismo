@@ -74,8 +74,7 @@ export function BaseTreeComponent<T>({
     [onMove],
   );
 
-  // Stable reference required by react-arborist: a fresh renderer function each
-  // render causes row components to remount, which aborts in-progress drags.
+  // react-arborist remounts rows when this ref changes, aborting in-progress drags.
   const renderNode = useCallback(
     (props: NodeRendererProps<T>) => (
       <NodeRenderer {...props} onNodeClick={onNodeClick} />
