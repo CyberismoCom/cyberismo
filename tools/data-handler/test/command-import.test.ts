@@ -779,4 +779,45 @@ describe('module update — spec behaviours', () => {
       true,
     );
   });
+
+  it('updateModule on a transitive-only module errors naming the parent', async () => {
+    // A transitive's version is owned by its parent's resolution — you
+    // cannot pin or update it directly. The error must surface the
+    // parent rather than misleadingly claim the module isn't part of
+    // the project.
+    const depRoot = join(moduleTestDir, 'fake-tup-dep');
+    makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'tupdep' });
+    const hostRoot = join(moduleTestDir, 'fake-tup-host');
+    makeFakeModuleFixture(hostRoot, {
+      cardKeyPrefix: 'tuphost',
+      modules: [{ name: 'tupdep', location: `file:${pathResolve(depRoot)}` }],
+    });
+
+    const projectDir = join(moduleTestDir, 'proj-tup');
+    const commandHandler = new Commands();
+    const create = await commandHandler.command(
+      Cmd.create,
+      ['project', 'tup-proj', 'tupp'],
+      { projectPath: projectDir },
+    );
+    expect(create.statusCode).toBe(200);
+
+    const commands = new CommandManager(projectDir, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+
+    await commands.importCmd.importModule(hostRoot);
+    const topLevelNames = commands.project.configuration.modules.map(
+      (m) => m.name,
+    );
+    expect(topLevelNames).toEqual(['tuphost']);
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'tupdep'))).toBe(
+      true,
+    );
+
+    await expect(commands.importCmd.updateModule('tupdep')).rejects.toThrow(
+      "Cannot update module 'tupdep' because it is required by 'tuphost'. Update the parent module(s) instead.",
+    );
+  });
 });
