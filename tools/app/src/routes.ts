@@ -22,8 +22,14 @@ import ResourceOverviewPage from './pages/configuration/resource-overview';
 import Layout from './pages/layout';
 import ConfigLayout from './pages/configuration/layout';
 import NotFoundPage from './pages/not-found';
+import ProjectNotFoundPage from './pages/project-not-found';
+import ProjectSelectionPage from './pages/ProjectSelectionPage';
 import { store } from './lib/store.js';
-import { selectProjectPrefix, setProjectPrefix } from './lib/slices/project.js';
+import {
+  selectProjectPrefix,
+  setProjectPrefix,
+  addRecentProject,
+} from './lib/slices/project.js';
 import { fetchAvailableProjects } from './lib/projectUtils.js';
 import type { AvailableProject } from './lib/projectUtils.js';
 import { getConfig } from './lib/utils.js';
@@ -62,8 +68,8 @@ async function resolveProject(urlPrefix?: string) {
   const prefixes = projects.map((p) => p.prefix);
   const lastActive = selectProjectPrefix(store.getState());
 
-  // TODO: Remove single-project fallback when multi-project UI (project selection view) is implemented
-  const fallbackPrefix = prefixes[0];
+  // If there's only one project, use it directly without requiring user selection
+  const fallbackPrefix = prefixes.length === 1 ? prefixes[0] : undefined;
 
   const configDefault = getConfig().defaultProject;
   const candidates = [urlPrefix, configDefault, lastActive, fallbackPrefix];
@@ -71,9 +77,10 @@ async function resolveProject(urlPrefix?: string) {
 
   if (prefix) {
     store.dispatch(setProjectPrefix(prefix));
+    store.dispatch(addRecentProject(prefix));
   }
 
-  return { prefix, fromUrl: prefix === urlPrefix };
+  return { prefix, projects };
 }
 
 // wrap all the routes in a cards layout
@@ -83,17 +90,20 @@ export function createAppRouter() {
       path: '/',
       loader: async () => {
         const { prefix } = await resolveProject();
-        return prefix ? redirect(`/projects/${prefix}/cards`) : null;
+        if (prefix) return redirect(`/projects/${prefix}/cards`);
+        // No prefix resolved — show project selection page
+        return null;
       },
+      Component: ProjectSelectionPage,
     },
     {
       path: '/projects/:projectPrefix',
       Component: Layout,
+      ErrorBoundary: ProjectNotFoundPage,
       loader: async ({ params }) => {
-        const { prefix, fromUrl } = await resolveProject(params.projectPrefix);
-        if (fromUrl) return null;
-        if (prefix) return redirect(`/projects/${prefix}/cards`);
-        return redirect('/');
+        const { prefix } = await resolveProject(params.projectPrefix);
+        if (prefix === params.projectPrefix) return null;
+        throw new Response('Project not found', { status: 404 });
       },
       children: [
         {

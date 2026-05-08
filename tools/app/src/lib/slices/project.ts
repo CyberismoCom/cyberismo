@@ -14,12 +14,16 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '../store';
 
+const MAX_RECENT_PROJECTS = 5;
+
 export interface ProjectState {
   projectPrefix: string | undefined;
+  recentPrefixes: string[];
 }
 
 export const initialState: ProjectState = {
   projectPrefix: undefined,
+  recentPrefixes: [],
 };
 
 export const projectSlice = createSlice({
@@ -29,10 +33,24 @@ export const projectSlice = createSlice({
     setProjectPrefix(state, action: PayloadAction<string>) {
       state.projectPrefix = action.payload;
     },
+    clearProjectPrefix(state) {
+      state.projectPrefix = undefined;
+    },
+    addRecentProject(state, action: PayloadAction<string>) {
+      const prefix = action.payload;
+      const current = state.recentPrefixes ?? [];
+      state.recentPrefixes = [
+        prefix,
+        ...current.filter((p) => p !== prefix),
+      ].slice(0, MAX_RECENT_PROJECTS);
+    },
   },
 });
 
-export const { setProjectPrefix } = projectSlice.actions;
+export const { setProjectPrefix, clearProjectPrefix, addRecentProject } =
+  projectSlice.actions;
 export const selectProjectPrefix = (state: RootState) =>
   state.project.projectPrefix;
+export const selectRecentPrefixes = (state: RootState) =>
+  state.project.recentPrefixes;
 export default projectSlice.reducer;

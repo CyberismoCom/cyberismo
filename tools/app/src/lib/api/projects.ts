@@ -11,23 +11,9 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getSwrConfig, globalApiPaths } from './swr.js';
+import useSWR from 'swr';
+import { globalApiPaths } from '../swr';
+import type { AvailableProject } from '../projectUtils';
 
-// Mirrors ProjectListItem from @cyberismo/backend (project-registry.ts)
-export type AvailableProject = {
-  prefix: string;
-  name: string;
-  category?: string;
-  description?: string;
-};
-
-/**
- * Fetch the list of available projects from the backend.
- */
-export async function fetchAvailableProjects(): Promise<AvailableProject[]> {
-  const { fetcher } = getSwrConfig();
-  const projects = (await fetcher!(
-    globalApiPaths.projects(),
-  )) as AvailableProject[];
-  return projects ?? [];
-}
+export const useAvailableProjects = () =>
+  useSWR<AvailableProject[]>(globalApiPaths.projects());

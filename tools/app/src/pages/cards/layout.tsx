@@ -119,36 +119,23 @@ export default function AppLayout() {
   return (
     <TwoColumnLayout
       leftPanel={
-        <Box position="relative" height="100%">
-          <SearchableTreeMenu
-            title={project.name}
-            titleRightSlot={<CardTreeMenu />}
-            tree={tree}
-            selectedCardKey={key ?? null}
-            onMove={handleMove}
-            onCardSelect={handleCardSelect}
-          />
-          {isMoving && (
-            <Box
-              position="absolute"
-              top={0}
-              left={0}
-              right={0}
-              bottom={0}
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-              bgcolor="background.backdrop"
-              sx={{
-                backdropFilter: 'blur(2px)',
-                zIndex: 1000,
-                pointerEvents: 'none',
-              }}
-            >
-              <CircularProgress size="md" color="primary" />
-            </Box>
-          )}
-        </Box>
+        <SearchableTreeMenu
+          titleRightSlot={<CardTreeMenu />}
+          tree={tree}
+          selectedCardKey={key ?? null}
+          onMove={async (cardKey: string, newParent: string, index: number) => {
+            const parent = findParentCard(tree, cardKey);
+            await updateCard(cardKey, {
+              parent: newParent === parent?.key ? undefined : newParent,
+              index,
+            });
+          }}
+          onCardSelect={(node) => {
+            if (node.data.key) {
+              router.safePush(`/cards/${node.data.key}`);
+            }
+          }}
+        />
       }
       rightPanel={<Outlet />}
     />

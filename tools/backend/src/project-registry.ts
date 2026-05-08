@@ -21,6 +21,8 @@ export type ProjectRegistryEntry = {
 export type ProjectListItem = {
   prefix: string;
   name: string;
+  category?: string;
+  description?: string;
 };
 
 /** Minimal project descriptor returned by scanForProjects. */
@@ -58,6 +60,8 @@ export class ProjectRegistry implements ProjectProvider {
     return Array.from(this.projects.entries()).map(([prefix, commands]) => ({
       prefix,
       name: commands.project.configuration.name,
+      category: commands.project.configuration.category || undefined,
+      description: commands.project.configuration.description || undefined,
     }));
   }
 

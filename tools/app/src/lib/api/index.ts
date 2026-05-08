@@ -30,5 +30,6 @@ export * from './report';
 export * from './workflow';
 export * from './labels';
 export * from './user';
+export * from './projects';
 export * from './presence';
 export type { CardUpdate };
