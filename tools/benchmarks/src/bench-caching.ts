@@ -147,6 +147,22 @@ async function main() {
       } finally {
         commands.project.dispose();
       }
+
+      // Flush partial results after each cell so the JSON can be inspected
+      // with `jq` / plot.py while the bench is still running.
+      const partial: BenchmarkResult = {
+        feature: FEATURE,
+        config: {
+          projectPath: root,
+          runs: RUNS_PER_POINT,
+          warmupRuns: WARMUP_RUNS,
+          scales: [...allScalesUnion].sort((a, b) => a - b),
+        },
+        runs: allRuns,
+        timestamp: new Date().toISOString(),
+        machine: machineName(),
+      };
+      await writeResults(partial, outputPath);
     }
   }
 

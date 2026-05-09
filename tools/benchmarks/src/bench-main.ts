@@ -467,10 +467,25 @@ async function main() {
       }
     }
 
-    // Measurement loop
+    // Measurement loop. Flush partial results after each (project, scale) cell
+    // so the in-flight JSON can be inspected with `jq` while the bench is
+    // still running.
     for (const scale of scales) {
       const bundle = await loadFixture(root, project, scale);
       await runFixture(bundle, allRuns);
+      const partial: BenchmarkResult = {
+        feature: FEATURE,
+        config: {
+          projectPath: root,
+          runs: RUNS_PER_POINT,
+          warmupRuns: WARMUP_RUNS,
+          scales: [...allScalesUnion].sort((a, b) => a - b),
+        },
+        runs: allRuns,
+        timestamp: new Date().toISOString(),
+        machine: machineName(),
+      };
+      await writeResults(partial, outputPath);
     }
   }
 
