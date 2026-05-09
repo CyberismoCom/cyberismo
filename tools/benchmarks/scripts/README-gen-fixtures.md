@@ -6,9 +6,9 @@ materialises one self-contained fixture tree per (project, scale) pair under
 tree plus the LP programs and ASPIF base used by the various benchmark
 variants.
 
-## `--fast` flag
+## How scaling works
 
-By default the generator scales each project up by repeatedly invoking
+Naively, scaling a project means repeatedly invoking
 `commands.createCmd.createCard(template)`. That call performs:
 
 - Template + schema validation.
@@ -34,7 +34,7 @@ Across all 53 calculation files in the two projects, no
 match any of the cards these templates produce. `creationQuery` returns an
 empty result set; `handleNewCards` is a no-op for these benchmarks.
 
-`--fast` opts into a path that:
+`fastScaleProject` therefore:
 
 1. Calls `createCard` ONCE to produce a known-good seed instance (paying
    validation + the empty `creationQuery` once).
@@ -43,42 +43,30 @@ empty result set; `handleNewCards` is a no-op for these benchmarks.
    fresh card keys (`<projectPrefix>_b<n>`) and rewriting `links[].cardKey`
    entries that reference seed-instance cards.
 
-Default: `--fast` is OFF. Existing behaviour is unchanged.
-
-## When NOT to use `--fast`
+## Adding a new project
 
 If you add a new project (or a new template within an existing project) that
 has any `onTransitionSetField` / `onTransitionExecuteTransition` rule whose
-preconditions DO match an instance card, `--fast` will silently produce
-fixtures that differ from the slow-path output: the fields the rule sets
-will be missing, and any cascading transitions will not have run.
+preconditions DO match an instance card, `fastScaleProject` will silently
+produce fixtures missing those fields / cascading transitions.
 
-Before enabling `--fast` for a new (project, template) combo:
+Before adding a new (project, template) combo:
 
 1. Audit the project's calculation files
    (`<project>/.cards/**/calculations/**.lp`).
 2. Confirm none of the rules' preconditions match the cards the template
    instantiates.
-3. If a rule does match, either don't use `--fast`, or extend
-   `fastScaleProject` to replay the relevant transitions.
-
-A reasonable cross-check: scale a small project (~250 cards) under both
-`scaleProject` and `fastScaleProject`, then diff the per-card-type counts
-and the index.json field sets.
+3. If a rule does match, extend `fastScaleProject` to replay the relevant
+   transitions.
 
 ## Usage
 
 ```bash
-# Slow path (default)
+# Single-process
 pnpm --filter @cyberismo/benchmarks bench:gen-fixtures /tmp/fixtures \
   --scale-min 1000 --scale-max 5000 --scale-step 1000
 
-# Fast path
-pnpm --filter @cyberismo/benchmarks bench:gen-fixtures /tmp/fixtures \
-  --scale-min 1000 --scale-max 5000 --scale-step 1000 \
-  --fast
-
 # Parallel driver
 tools/benchmarks/scripts/gen-fixtures-parallel.sh /tmp/fixtures \
-  --scale-min 1000 --scale-max 5000 --concurrency 4 --fast
+  --scale-min 1000 --scale-max 5000 --concurrency 4
 ```
