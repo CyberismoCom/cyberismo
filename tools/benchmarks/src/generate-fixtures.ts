@@ -225,8 +225,20 @@ async function generateOne(args: GenerateOneArgs): Promise<void> {
     `  scale ${scale}: scaling source project${fast ? ' (fast path)' : ''}`,
   );
 
+  // Protect each cardType the bench needs to query so trimToTarget doesn't
+  // delete the last representative when scaling below the seed-instance size.
+  const protectedCardTypes = new Set<string>(
+    Object.values(project.cardTypes).filter(
+      (t): t is string => typeof t === 'string' && t.length > 0,
+    ),
+  );
   const scaledTmp = fast
-    ? await fastScaleProject(sourcePath, scale, project.template)
+    ? await fastScaleProject(
+        sourcePath,
+        scale,
+        project.template,
+        protectedCardTypes,
+      )
     : await scaleProject(sourcePath, scale, project.template);
   let commands: Awaited<ReturnType<typeof CommandManager.getInstance>> | null =
     null;
@@ -255,15 +267,9 @@ async function generateOne(args: GenerateOneArgs): Promise<void> {
       if (!cardType) continue;
       const found = allCards.find((c) => c.metadata?.cardType === cardType);
       if (!found) {
-        // At sub-seed-instance scales (e.g. target<41 on eu-cra) the trim
-        // path can remove leaf cards of every type below the project root.
-        // Skip the slot — the bench's activeQueries() filters card queries
-        // by cards.json membership, so an absent slot just means that card
-        // query won't run for this fixture.
-        progress(
-          `  scale ${scale}: WARN no card found for type '${cardType}' (slot '${slot}') — skipping`,
+        throw new Error(
+          `Project '${project.name}' at scale ${scale}: could not find a card with type '${cardType}' (slot '${slot}'). Trim should have preserved one — verify protectedCardTypes is wired through.`,
         );
-        continue;
       }
       slotCards[slot] = { key: found.key, content: found.content ?? '' };
     }

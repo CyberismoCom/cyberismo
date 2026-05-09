@@ -248,16 +248,21 @@ function rewriteAttachmentName(
  * `targetCount` cards remain. A leaf is a directory containing `index.json`
  * with no live children under its `c/` subdirectory. We delete deepest
  * cards first so each deletion preserves project validity (no orphans).
+ *
+ * `protectedCardTypes` lists cardTypes for which at least one card must
+ * survive (so the bench can still run card-queries against those types).
+ * The trim refuses to delete the last representative of any protected type.
  */
 async function trimToTarget(
   cardRoot: string,
   targetCount: number,
   currentCount: number,
+  protectedCardTypes: Set<string>,
 ): Promise<void> {
   if (currentCount <= targetCount) return;
 
-  // Walk all card directories with their depth (rooted at cardRoot).
-  const cards: { path: string; depth: number }[] = [];
+  // Walk all card directories with depth and cardType.
+  const cards: { path: string; depth: number; cardType: string }[] = [];
   async function walk(dir: string, depth: number): Promise<void> {
     let entries;
     try {
@@ -266,7 +271,17 @@ async function trimToTarget(
       return;
     }
     const isCard = entries.some((e) => e.name === 'index.json' && e.isFile());
-    if (isCard) cards.push({ path: dir, depth });
+    if (isCard) {
+      let cardType = '';
+      try {
+        const idx = await readFile(join(dir, 'index.json'), 'utf-8');
+        const obj = JSON.parse(idx) as { cardType?: unknown };
+        if (typeof obj.cardType === 'string') cardType = obj.cardType;
+      } catch {
+        // ignore — card with malformed index.json gets cardType=''
+      }
+      cards.push({ path: dir, depth, cardType });
+    }
     for (const e of entries) {
       if (e.isDirectory()) await walk(join(dir, e.name), depth + 1);
     }
@@ -275,13 +290,19 @@ async function trimToTarget(
     if (e.isDirectory()) await walk(join(cardRoot, e.name), 0);
   }
 
+  // Per-type counts for the protection check.
+  const typeCount = new Map<string, number>();
+  for (const c of cards) {
+    typeCount.set(c.cardType, (typeCount.get(c.cardType) ?? 0) + 1);
+  }
+
   // Sort by depth descending — deepest first. Tie-break by path so the
   // deletion order is deterministic across machines.
   cards.sort(
     (a, b) => b.depth - a.depth || a.path.localeCompare(b.path),
   );
 
-  let deleted = new Set<string>();
+  const deleted = new Set<string>();
   let remaining = currentCount;
   for (const c of cards) {
     if (remaining <= targetCount) break;
@@ -301,8 +322,16 @@ async function trimToTarget(
       // No `c/` dir — definitely a leaf.
     }
     if (hasLiveChild) continue;
+    // Refuse to delete the last representative of a protected cardType.
+    if (
+      protectedCardTypes.has(c.cardType) &&
+      (typeCount.get(c.cardType) ?? 0) <= 1
+    ) {
+      continue;
+    }
     await rm(c.path, { recursive: true, force: true });
     deleted.add(c.path);
+    typeCount.set(c.cardType, (typeCount.get(c.cardType) ?? 0) - 1);
     remaining--;
   }
 }
@@ -311,6 +340,7 @@ export async function fastScaleProject(
   projectPath: string,
   targetCount: number,
   templateName: string,
+  protectedCardTypes: Set<string> = new Set(),
 ): Promise<string> {
   // 1. Copy project to temp directory.
   const tmpDir = await mkdtemp(join(tmpdir(), 'cyberismo-bench-fast-'));
@@ -325,7 +355,7 @@ export async function fastScaleProject(
       // measure the regime-1 overhead floor at very small N (e.g. 10, 50)
       // even when the project's natural minimum exceeds the target.
       const cardRoot = join(tmpDir, 'cardRoot');
-      await trimToTarget(cardRoot, targetCount, initialCount);
+      await trimToTarget(cardRoot, targetCount, initialCount, protectedCardTypes);
       // Refresh the calculation engine so the addon's program store no
       // longer references the deleted cards.
       commands.project.cardsCache.clear();
@@ -352,7 +382,7 @@ export async function fastScaleProject(
     const postSeedCount = commands.project.cards().length;
     if (postSeedCount > targetCount) {
       const cardRoot = join(tmpDir, 'cardRoot');
-      await trimToTarget(cardRoot, targetCount, postSeedCount);
+      await trimToTarget(cardRoot, targetCount, postSeedCount, protectedCardTypes);
       commands.project.cardsCache.clear();
       await commands.project.cardsCache.populateFromPath(cardRoot);
       await commands.project.calculationEngine.generate();
@@ -462,7 +492,7 @@ export async function fastScaleProject(
     // multiple of cardsPerInstance), trim leaves down to exact target so
     // benchmarks measure at the requested scale.
     if (currentCount > targetCount) {
-      await trimToTarget(cardRoot, targetCount, currentCount);
+      await trimToTarget(cardRoot, targetCount, currentCount, protectedCardTypes);
       console.error(`[fast] Trimmed overshoot to <= ${targetCount} cards`);
     }
     // We wrote files directly to disk, bypassing the card cache. The
