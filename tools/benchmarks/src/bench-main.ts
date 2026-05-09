@@ -64,6 +64,12 @@ if (!fixturesDir) {
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const RUNS_PER_POINT = 10;
+// Per-variant warmup: discard the first N solves after each context state
+// change (replaceContext, swapToOldQL). Absorbs the one-shot cost of the
+// addon/macro pipeline populating its caches on the new context — without
+// this, the first run's wall-clock contaminates the cell's std and produces
+// the negative-going error bands seen in early runs.
+const VARIANT_WARMUP = 2;
 const WARMUP_RUNS = 3;
 const FEATURE = 'main-scaling';
 
@@ -280,6 +286,12 @@ async function runFixture(
     const capiCtx = commands.project.calculationEngine.context;
     swapToOldQL(capiCtx, bf);
     try {
+      // warmup discards the first VARIANT_WARMUP solves after the context
+      // state change (replaceContext + swapToOldQL).
+      const warmupQuery = bundle.queries.tree;
+      for (let i = 0; i < VARIANT_WARMUP; i++) {
+        await capiCtx.solve(warmupQuery, ['all'], { cache: false });
+      }
       for (const queryName of queries) {
         const query = bundle.queries[queryName];
         if (!query) continue;
@@ -319,6 +331,12 @@ async function runFixture(
       preParsing: false,
     });
     const resultfieldCtx = commands.project.calculationEngine.context;
+    {
+      const warmupQuery = bundle.queries.tree;
+      for (let i = 0; i < VARIANT_WARMUP; i++) {
+        await resultfieldCtx.solve(warmupQuery, ['all'], { cache: false });
+      }
+    }
     for (const queryName of queries) {
       const query = bundle.queries[queryName];
       if (!query) continue;
@@ -375,6 +393,12 @@ async function runFixture(
       preParsing: true,
     });
     const preparsingCtx = commands.project.calculationEngine.context;
+    {
+      const warmupQuery = bundle.queries.tree;
+      for (let i = 0; i < VARIANT_WARMUP; i++) {
+        await preparsingCtx.solve(warmupQuery, ['all'], { cache: false });
+      }
+    }
     for (const queryName of queries) {
       const query = bundle.queries[queryName];
       if (!query) continue;
@@ -434,6 +458,12 @@ async function runRenderingMacros(
     /\{\{#graph\}\}[\s\S]*?\{\{\/graph\}\}/g,
     '',
   );
+  // Per-variant warmup: evaluateMacros's first call after a fresh
+  // ClingoContext pays a one-shot setup cost (template caches, addon
+  // program-store population). Discard.
+  for (let i = 0; i < VARIANT_WARMUP; i++) {
+    await evaluateMacros(contentNoGraph, macroCtx);
+  }
   for (let run = 1; run <= RUNS_PER_POINT; run++) {
     const start = performance.now();
     await evaluateMacros(contentNoGraph, macroCtx);
