@@ -401,7 +401,7 @@ async function generateOne(args: GenerateOneArgs): Promise<void> {
 // ── CLI ────────────────────────────────────────────────────────────────────
 interface CliArgs {
   outputDir: string;
-  projects: string[];
+  projects: string[] | undefined;
   scaleMin: number;
   scaleMax: number;
   scaleStep: number;
@@ -455,7 +455,7 @@ function parseArgs(argv: string[]): CliArgs {
 
   return {
     outputDir: resolve(outputDir),
-    projects,
+    projects: projects.length > 0 ? projects : undefined,
     scaleMin,
     scaleMax,
     scaleStep,

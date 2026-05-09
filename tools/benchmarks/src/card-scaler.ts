@@ -58,7 +58,7 @@ export async function scaleProject(
     }
   }
 
-  console.error(`Scaled to ${currentCount} cards in ${tmpDir}`);
+  console.error(`Scaled to ${currentCount} cards (scratch: ${tmpDir})`);
   return tmpDir;
 }
 
