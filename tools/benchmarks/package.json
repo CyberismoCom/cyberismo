@@ -9,6 +9,7 @@
     "bench:caching": "tsx src/bench-caching.ts",
     "bench:threading": "tsx src/bench-threading.ts",
     "bench:main": "tsx src/bench-main.ts",
+    "bench:solver-stats": "tsx src/bench-solver-stats.ts",
     "bench:gen-fixtures": "tsx src/generate-fixtures.ts",
     "test": "vitest run"
   },

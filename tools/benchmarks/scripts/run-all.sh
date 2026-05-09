@@ -46,7 +46,14 @@ echo "--- bench-threading (async vs sync at scale=200) ---"
 UV_THREADPOOL_SIZE=$(nproc) "$TSX" "$BENCH_DIR/src/bench-threading.ts" "$FIXTURES_DIR" "$OUTPUT_DIR/threading.json"
 
 echo ""
+echo "--- bench-solver-stats (rules/atoms/equivalences for QL comparison) ---"
+"$TSX" "$BENCH_DIR/src/bench-solver-stats.ts" "$FIXTURES_DIR" "$OUTPUT_DIR/solver-stats.json"
+
+echo ""
 echo "--- aggregate (JSON → combined CSV) ---"
+# solver-stats.json uses a separate schema (SolverStatsResult) and is consumed
+# by hand for the chapter §4 supplementary table — it is not passed to
+# aggregate.ts.
 "$TSX" "$BENCH_DIR/src/aggregate.ts" \
   --output "$OUTPUT_DIR/combined.csv" \
   "$OUTPUT_DIR/main.json" \

@@ -54,10 +54,20 @@ export async function collectSolverStats(
     return match ? parseInt(match[1], 10) : 0;
   };
 
+  // Clingo's --stats=2 timing block looks like:
+  //   Time         : 0.078s (Solving: 0.00s 1st Model: 0.00s Unsat: 0.00s)
+  // There is no separate "Grounding" or "Total" line — the headline `Time`
+  // figure IS the total (grounding + solving + I/O), and the breakdown is
+  // inside the parentheses on the same line. We compute grounding as the
+  // residual after subtracting solving from the total.
+  const totalTimeSec = parseFloat_(/^Time\s*:\s*([\d.]+)s/m);
+  const solvingTimeSec = parseFloat_(/Solving:\s*([\d.]+)s/);
+  const groundingTimeSec = Math.max(0, totalTimeSec - solvingTimeSec);
+
   return {
-    groundingTimeSec: parseFloat_(/Grounding\s*:\s*([\d.]+)s/),
-    solvingTimeSec: parseFloat_(/Solving\s*:\s*([\d.]+)s/),
-    totalTimeSec: parseFloat_(/Total\s*:\s*([\d.]+)s/),
+    groundingTimeSec,
+    solvingTimeSec,
+    totalTimeSec,
     rules: parseInt_(/Rules\s*:\s*(\d+)/),
     bodies: parseInt_(/Bodies\s*:\s*(\d+)/),
     atoms: parseInt_(/Atoms\s*:\s*(\d+)/),
