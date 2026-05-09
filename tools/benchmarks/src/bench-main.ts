@@ -3,12 +3,15 @@ import type { MacroGenerationContext } from '@cyberismo/data-handler';
 import { clearCache } from '@cyberismo/node-clingo';
 import type { ClingoContext } from '@cyberismo/node-clingo';
 import { lpFiles } from '@cyberismo/assets';
-import { readFile } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import Handlebars from 'handlebars';
 import { solveBinary, solveWithPregrounding } from './binary-baseline.js';
 import { scaleProject, cleanupScaledProject } from './card-scaler.js';
+import {
+  loadBaselineFiles,
+  swapToOldQL,
+  restoreCurrentQL,
+  type BaselineFiles,
+} from './baseline-ql.js';
 import { writeResults, machineName } from './utils.js';
 import type { BenchmarkRun, BenchmarkResult } from './types.js';
 
@@ -35,37 +38,6 @@ const CARD_TYPES = {
   riskTask: 'base/cardTypes/quarterlyTask',
   projectRoot: 'secdeva/cardTypes/project',
 } as const;
-
-// ── Baseline LP files ────────────────────────────────────────────────────────
-interface BaselineFiles {
-  queryLanguage: string;
-  utils: string;
-  card: string;
-}
-
-async function loadBaselineFiles(): Promise<BaselineFiles> {
-  const baselineDir = join(
-    dirname(fileURLToPath(import.meta.url)),
-    '../baselines/pre-resultfield',
-  );
-  const [queryLanguage, utils, card] = await Promise.all([
-    readFile(join(baselineDir, 'queryLanguage.lp'), 'utf-8'),
-    readFile(join(baselineDir, 'utils.lp'), 'utf-8'),
-    readFile(join(baselineDir, 'card.lp'), 'utf-8'),
-  ]);
-  return { queryLanguage, utils, card };
-}
-
-// ── Program swap helpers ──────────────────────────────────────────────────────
-function swapToOldQL(clingo: ClingoContext, bf: BaselineFiles) {
-  clingo.setProgram('queryLanguage', bf.queryLanguage, ['all']);
-  clingo.setProgram('utils', bf.utils, ['all']);
-}
-
-function restoreCurrentQL(clingo: ClingoContext) {
-  clingo.setProgram('queryLanguage', lpFiles.common.queryLanguage, ['all']);
-  clingo.setProgram('utils', lpFiles.common.utils, ['all']);
-}
 
 // ── Query compilation ────────────────────────────────────────────────────────
 function compileTreeQuery(): string {

@@ -3,6 +3,7 @@ import { writeFile, mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { promisify } from 'node:util';
+import { groundToAspif } from './gringo.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -82,27 +83,21 @@ export async function solveWithPregrounding(
   answers: string[];
 }> {
   const tmpDir = await mkdtemp(join(tmpdir(), 'clingo-preground-'));
-  const baseFile = join(tmpDir, 'base.lp');
   const aspifFile = join(tmpDir, 'base.aspif');
   const queryFile = join(tmpDir, 'query.lp');
 
-  await writeFile(baseFile, baseProgram);
   await writeFile(queryFile, queryProgram);
 
-  // Step 1: Preground base with gringo
+  // Step 1: Preground base with gringo (shared helper).
   const gringoStart = performance.now();
+  let aspif: string;
   try {
-    const gringoResult = await execFileAsync('gringo', [
-      baseFile,
-      '--output=smodels',
-    ]);
-    await writeFile(aspifFile, gringoResult.stdout);
+    aspif = await groundToAspif(baseProgram);
   } catch (error: unknown) {
     await rm(tmpDir, { recursive: true, force: true });
-    throw new Error(
-      `gringo failed: ${error instanceof Error ? error.message : String(error)}`,
-    );
+    throw error;
   }
+  await writeFile(aspifFile, aspif);
   const gringoMs = performance.now() - gringoStart;
 
   // Step 2: Solve with clingo using ASPIF + query

@@ -144,6 +144,33 @@ describe.skipIf(!hasGringo)('generateFixtures', () => {
         }
       });
 
+      // The rendering reference fixture is only emitted for projects with a
+      // riskTask slot configured (matches generate-fixtures.ts and bench-main.ts).
+      // Derive presence from `expectedCards` so the expectation stays in sync.
+      it('emits rendering.lp under baseline+resultfield iff a riskTask slot exists', async () => {
+        const fixtureRoot = join(
+          outputDir,
+          expectation.project,
+          String(TEST_SCALE),
+        );
+        const renderingLp = join(
+          fixtureRoot,
+          'programs',
+          'baseline+resultfield',
+          'rendering.lp',
+        );
+        const expectsRendering = expectation.expectedCards.some(
+          (c) => c.jsonKey === 'riskKey',
+        );
+        if (expectsRendering) {
+          const renderingStat = await stat(renderingLp);
+          expect(renderingStat.isFile()).toBe(true);
+          expect(renderingStat.size).toBeGreaterThan(0);
+        } else {
+          await expect(stat(renderingLp)).rejects.toThrow();
+        }
+      });
+
       it('meta.json has the right keys with non-empty values', async () => {
         const fixtureRoot = join(
           outputDir,

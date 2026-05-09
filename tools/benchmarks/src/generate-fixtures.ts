@@ -16,16 +16,21 @@
  * project tree must work on any machine without re-scaling.
  */
 import { CommandManager } from '@cyberismo/data-handler';
-import type { ClingoContext } from '@cyberismo/node-clingo';
 import { lpFiles } from '@cyberismo/assets';
 import { execFile } from 'node:child_process';
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { cp, mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import Handlebars from 'handlebars';
 import { scaleProject, cleanupScaledProject } from './card-scaler.js';
+import {
+  loadBaselineFiles,
+  swapToOldQL,
+  restoreCurrentQL,
+  type BaselineFiles,
+} from './baseline-ql.js';
+import { groundToAspif } from './gringo.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -98,64 +103,18 @@ const QUERY_SLOTS = [
   slot: keyof ProjectConfig['cardTypes'];
 }>;
 
-// ── Baseline (pre-resultField) LP files ─────────────────────────────────────
-interface BaselineFiles {
-  queryLanguage: string;
-  utils: string;
-  card: string;
-}
-
-async function loadBaselineFiles(): Promise<BaselineFiles> {
-  const baselineDir = join(
-    dirname(fileURLToPath(import.meta.url)),
-    '../baselines/pre-resultfield',
-  );
-  const [queryLanguage, utils, card] = await Promise.all([
-    readFile(join(baselineDir, 'queryLanguage.lp'), 'utf-8'),
-    readFile(join(baselineDir, 'utils.lp'), 'utf-8'),
-    readFile(join(baselineDir, 'card.lp'), 'utf-8'),
-  ]);
-  return { queryLanguage, utils, card };
-}
-
-function swapToOldQL(clingo: ClingoContext, bf: BaselineFiles) {
-  clingo.setProgram('queryLanguage', bf.queryLanguage, ['all']);
-  clingo.setProgram('utils', bf.utils, ['all']);
-}
-
-function restoreCurrentQL(clingo: ClingoContext) {
-  clingo.setProgram('queryLanguage', lpFiles.common.queryLanguage, ['all']);
-  clingo.setProgram('utils', lpFiles.common.utils, ['all']);
-}
-
 // ── gringo helper ───────────────────────────────────────────────────────────
 /**
- * Runs `gringo --output=smodels` over a base program and writes ASPIF text to
- * the destination file. Uses the same invocation as binary-baseline.ts (kept
- * inline here so the generator has zero benchmarking dependencies).
+ * Pre-grounds `baseProgram` and writes the ASPIF text to `destFile`. The
+ * gringo invocation itself lives in `gringo.ts`, shared with
+ * `binary-baseline.ts`.
  */
 async function buildAspifBase(
   baseProgram: string,
   destFile: string,
 ): Promise<void> {
-  const tmp = await mkdtemp(join(tmpdir(), 'gen-fixtures-gringo-'));
-  const baseFile = join(tmp, 'base.lp');
-  try {
-    await writeFile(baseFile, baseProgram);
-    const result = await execFileAsync(
-      'gringo',
-      [baseFile, '--output=smodels'],
-      { maxBuffer: 1024 * 1024 * 1024 },
-    );
-    await writeFile(destFile, result.stdout);
-  } catch (error) {
-    throw new Error(
-      `gringo failed: ${error instanceof Error ? error.message : String(error)}`,
-      { cause: error },
-    );
-  } finally {
-    await rm(tmp, { recursive: true, force: true });
-  }
+  const aspif = await groundToAspif(baseProgram);
+  await writeFile(destFile, aspif);
 }
 
 // ── Git SHA (best-effort, for meta.json) ────────────────────────────────────
