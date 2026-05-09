@@ -255,9 +255,15 @@ async function generateOne(args: GenerateOneArgs): Promise<void> {
       if (!cardType) continue;
       const found = allCards.find((c) => c.metadata?.cardType === cardType);
       if (!found) {
-        throw new Error(
-          `Project '${project.name}' at scale ${scale}: could not find a card with type '${cardType}' (slot '${slot}').`,
+        // At sub-seed-instance scales (e.g. target<41 on eu-cra) the trim
+        // path can remove leaf cards of every type below the project root.
+        // Skip the slot — the bench's activeQueries() filters card queries
+        // by cards.json membership, so an absent slot just means that card
+        // query won't run for this fixture.
+        progress(
+          `  scale ${scale}: WARN no card found for type '${cardType}' (slot '${slot}') — skipping`,
         );
+        continue;
       }
       slotCards[slot] = { key: found.key, content: found.content ?? '' };
     }
