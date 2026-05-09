@@ -70,21 +70,17 @@ const PROJECTS: ProjectConfig[] = [
   {
     name: 'module-eu-cra',
     sourcePath: 'module-eu-cra',
-    template: 'local/templates/project',
+    // Mirrors bench-main.ts: module-eu-cra imports the secdeva module and the
+    // `secdeva/templates/project` template is the proven-working configuration
+    // for this source tree. The `local/` prefix is rejected by the validator
+    // (only imported module prefixes are allowed) and there are no
+    // `eucra/cardTypes/*` types in the source.
+    template: 'secdeva/templates/project',
     cardTypes: {
-      // bench-main.ts uses base/cardTypes/annualTask, secdeva/cardTypes/page,
-      // base/cardTypes/quarterlyTask, secdeva/cardTypes/project. The
-      // module-eu-cra `local/templates/project` instance produces these
-      // card types (verified by inspecting the template tree):
-      //   base/cardTypes/annualTask
-      //   base/cardTypes/quarterlyTask
-      //   eucra/cardTypes/phase
-      //   eucra/cardTypes/project
-      // We map secdeva-equivalents to their eucra counterparts.
       leafTask: 'base/cardTypes/annualTask',
-      phase: 'eucra/cardTypes/phase',
+      phase: 'secdeva/cardTypes/page',
       riskTask: 'base/cardTypes/quarterlyTask',
-      projectRoot: 'eucra/cardTypes/project',
+      projectRoot: 'secdeva/cardTypes/project',
     },
   },
 ];
