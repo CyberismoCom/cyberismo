@@ -19,9 +19,9 @@ pip install -r tools/benchmarks/scripts/requirements.txt
 Dependencies:
 
 - `matplotlib` (vector PDF output)
-- `pandas`     (DataFrame aggregation)
-- `numpy`      (statistics)
-- `pytest`     (smoke tests)
+- `pandas` (DataFrame aggregation)
+- `numpy` (statistics)
+- `pytest` (smoke tests)
 
 No `seaborn`, no `plotly` required.
 
@@ -63,16 +63,16 @@ plotting script never hardcodes paths outside the tool repo.
 
 ### Figure inventory (output filenames are exact)
 
-| Filename                       | Source feature     | Description                                     |
-|--------------------------------|--------------------|-------------------------------------------------|
-| `caching-scaling.pdf`          | `caching`          | Total time vs. card count, one panel per project |
-| `threading-batch.pdf`          | `threading`        | Grouped bars: batch wall-clock for sync/async    |
-| `threading-latency.pdf`        | `threading`        | Box plot of per-solve totals (sync vs. async)    |
-| `main-tree-scaling.pdf`        | `main-scaling`     | Tree query, all six variants, per project        |
-| `main-tree-speedup.pdf`        | `main-scaling`     | Variant / baseline ratio for the tree query      |
-| `main-phase-breakdown.pdf`     | `main-scaling`     | Stacked glue / add / ground / solve at max scale |
-| `main-incremental-decomp.pdf`  | `main-scaling`     | Stacked gringoMs / clingoMs per scale, per project |
-| `main-rendering.pdf`           | `main-scaling`     | Rendering query for the three measured variants  |
+| Filename                      | Source feature | Description                                        |
+| ----------------------------- | -------------- | -------------------------------------------------- |
+| `caching-scaling.pdf`         | `caching`      | Total time vs. card count, one panel per project   |
+| `threading-batch.pdf`         | `threading`    | Grouped bars: batch wall-clock for sync/async      |
+| `threading-latency.pdf`       | `threading`    | Box plot of per-solve totals (sync vs. async)      |
+| `main-tree-scaling.pdf`       | `main-scaling` | Tree query, all six variants, per project          |
+| `main-tree-speedup.pdf`       | `main-scaling` | Variant / baseline ratio for the tree query        |
+| `main-phase-breakdown.pdf`    | `main-scaling` | Stacked glue / add / ground / solve at max scale   |
+| `main-incremental-decomp.pdf` | `main-scaling` | Stacked gringoMs / clingoMs per scale, per project |
+| `main-rendering.pdf`          | `main-scaling` | Rendering query for the three measured variants    |
 
 All PDFs are vector, single-page, with stable colours per variant
 (`VARIANT_COLOURS` at the top of `plot.py`). 1-σ shaded bands are computed
@@ -104,14 +104,19 @@ pytest tools/benchmarks/scripts/test_plot.py -v
 Each test invokes `plot.py` as a subprocess against the fixtures and asserts
 that every expected PDF exists, starts with `%PDF`, and is at least 1 KB.
 
-## Solver-stats figure: TODO
+## Solver-stats: out of scope for plot.py
 
-The thesis chapter expects one further artefact from the
-`tools/benchmarks/src/solver-stats.ts` benchmark. That is rendered as a
-**LaTeX table**, not a PDF figure, so it is intentionally out of scope for
-this script. Once the solver-stats benchmark is wired up, the table can be
-written by a separate `solver-stats-table.py` (or a sibling `tex` writer) that
-reads the same JSON shape; do not add it to `plot.py`.
+The `pnpm bench:solver-stats` script (`tools/benchmarks/src/bench-solver-stats.ts`)
+emits `solver-stats.json` containing per-(project, scale, variant, query)
+program-shape statistics — rules, bodies, atoms, equivalences, variables,
+constraints — together with the grounding / solving / total times reported by
+`clingo --stats=2`. The schema is a `SolverStatsResult` (see
+`tools/benchmarks/src/types.ts`) and is intentionally distinct from the
+`BenchmarkResult` consumed by `plot.py`.
+
+The chapter §4 supplementary table is rendered **by hand** from this JSON —
+it is a small (≤ 8 rows) LaTeX table, not a figure, and is intentionally out
+of scope for `plot.py`.
 
 ## Style notes
 
