@@ -23,7 +23,11 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import Handlebars from 'handlebars';
-import { scaleProject, cleanupScaledProject } from './card-scaler.js';
+import {
+  scaleProject,
+  fastScaleProject,
+  cleanupScaledProject,
+} from './card-scaler.js';
 import {
   loadBaselineFiles,
   swapToOldQL,
@@ -143,6 +147,13 @@ export interface GenerateOptions {
   scaleStep: number;
   /** Optional override of the repo root. Defaults to `<this-file>/../../..`. */
   repoRoot?: string;
+  /**
+   * If true, use the fast scaling path (`fastScaleProject`) which skips
+   * `handleNewCards` for replicated instances. Safe only for projects whose
+   * `onTransitionSetField` / `onTransitionExecuteTransition` rules don't fire
+   * on creation; see README-gen-fixtures.md.
+   */
+  fast?: boolean;
 }
 
 function repoRootDefault(): string {
@@ -191,6 +202,7 @@ export async function generateFixtures(
         outputDir: options.outputDir,
         baseline: bf,
         gitSha,
+        fast: options.fast ?? false,
       });
     }
   }
@@ -203,13 +215,19 @@ interface GenerateOneArgs {
   outputDir: string;
   baseline: BaselineFiles;
   gitSha: string | null;
+  fast: boolean;
 }
 
 async function generateOne(args: GenerateOneArgs): Promise<void> {
-  const { project, scale, sourcePath, outputDir, baseline, gitSha } = args;
-  progress(`  scale ${scale}: scaling source project`);
+  const { project, scale, sourcePath, outputDir, baseline, gitSha, fast } =
+    args;
+  progress(
+    `  scale ${scale}: scaling source project${fast ? ' (fast path)' : ''}`,
+  );
 
-  const scaledTmp = await scaleProject(sourcePath, scale, project.template);
+  const scaledTmp = fast
+    ? await fastScaleProject(sourcePath, scale, project.template)
+    : await scaleProject(sourcePath, scale, project.template);
   let commands: Awaited<ReturnType<typeof CommandManager.getInstance>> | null =
     null;
 
@@ -405,6 +423,7 @@ interface CliArgs {
   scaleMin: number;
   scaleMax: number;
   scaleStep: number;
+  fast: boolean;
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -418,6 +437,7 @@ function parseArgs(argv: string[]): CliArgs {
   let scaleMin = 1000;
   let scaleMax = 50_000;
   let scaleStep = 1000;
+  let fast = false;
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -431,6 +451,8 @@ function parseArgs(argv: string[]): CliArgs {
       scaleMax = parseScale(argv[++i], '--scale-max');
     } else if (arg === '--scale-step') {
       scaleStep = parseScale(argv[++i], '--scale-step');
+    } else if (arg === '--fast') {
+      fast = true;
     } else if (arg === '--help' || arg === '-h') {
       usage();
       process.exit(0);
@@ -459,6 +481,7 @@ function parseArgs(argv: string[]): CliArgs {
     scaleMin,
     scaleMax,
     scaleStep,
+    fast,
   };
 }
 
@@ -473,7 +496,7 @@ function parseScale(raw: string | undefined, flag: string): number {
 
 function usage() {
   console.error(
-    'Usage: tsx src/generate-fixtures.ts <output-dir> [--project <name>] [--scale-min 1000] [--scale-max 50000] [--scale-step 1000]',
+    'Usage: tsx src/generate-fixtures.ts <output-dir> [--project <name>] [--scale-min 1000] [--scale-max 50000] [--scale-step 1000] [--fast]',
   );
   console.error(
     '  --project may be passed multiple times to limit generation.',
@@ -481,6 +504,13 @@ function usage() {
   console.error(
     `  Configured projects: ${PROJECTS.map((p) => p.name).join(', ')}`,
   );
+  console.error(
+    '  --fast  Use the fast scaling path (skips per-card createCard / handleNewCards.',
+  );
+  console.error(
+    '          Only safe when no on-creation transition rules fire — see',
+  );
+  console.error('          tools/benchmarks/scripts/README-gen-fixtures.md.');
 }
 
 // Only run main() when invoked as a script.

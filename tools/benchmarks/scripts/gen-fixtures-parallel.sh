@@ -18,6 +18,10 @@ Options:
   --projects "a b"     Project names, space-separated
                        (default: cyberismo-docs module-eu-cra)
   --concurrency N      Parallel jobs (default: \$(nproc))
+  --fast               Pass --fast to bench:gen-fixtures (skips per-card
+                       createCard for replicated instances; semantically a
+                       no-op for the two configured projects — see
+                       README-gen-fixtures.md).
   -h, --help           Show this help
 
 Projects must exist at <repo-root>/<project-name>/.
@@ -40,6 +44,7 @@ SCALE_MAX=50000
 SCALE_STEP=1000
 PROJECTS="cyberismo-docs module-eu-cra"
 CONCURRENCY="$(nproc)"
+FAST=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -48,6 +53,7 @@ while [[ $# -gt 0 ]]; do
     --scale-step) SCALE_STEP="$2"; shift 2 ;;
     --projects) PROJECTS="$2"; shift 2 ;;
     --concurrency|-P) CONCURRENCY="$2"; shift 2 ;;
+    --fast) FAST="--fast"; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown flag: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -66,10 +72,11 @@ echo "Fixtures dir: $FIXTURES_DIR"
 echo "Projects:     $PROJECTS"
 echo "Scales:       $SCALE_MIN .. $SCALE_MAX step $SCALE_STEP"
 echo "Concurrency:  $CONCURRENCY"
+echo "Fast path:    ${FAST:-no}"
 echo "Logs:         $LOG_DIR"
 echo ""
 
-export ROOT_DIR FIXTURES_DIR LOG_DIR
+export ROOT_DIR FIXTURES_DIR LOG_DIR FAST
 
 {
   for proj in $PROJECTS; do
@@ -84,6 +91,7 @@ export ROOT_DIR FIXTURES_DIR LOG_DIR
   if pnpm --filter @cyberismo/benchmarks bench:gen-fixtures "$FIXTURES_DIR" \
        --project "$proj" \
        --scale-min "$scale" --scale-max "$scale" --scale-step 1 \
+       $FAST \
        >"$LOG_DIR/$proj-$scale.log" 2>&1; then
     echo "[$(date +%H:%M:%S)] done   $proj scale=$scale"
   else
