@@ -775,7 +775,6 @@ def plot_main(results_dir: Path, output_dir: Path) -> list[Path]:
         plot_main_tree_scaling(df, output_dir),
         plot_main_tree_speedup(df, output_dir),
         plot_main_phase_breakdown(df, output_dir),
-        plot_main_incremental_decomp(df, output_dir),
     ]
     rendering = plot_main_rendering(df, output_dir)
     if rendering is not None:
