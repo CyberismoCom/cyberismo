@@ -849,10 +849,14 @@ def plot_main_rendering(df: pd.DataFrame, output_dir: Path) -> Path | None:
     if sub.empty:
         print("main.json had no rendering records", file=sys.stderr)
         return None
+    # evaluateMacros runs report-query sub-solves through the addon — those
+    # paths only exist for native variants. The baseline+resultfield
+    # "rendering" record actually measures the card-risk LP via clingo
+    # subprocess (the binary can't expand macros), so it's not comparable
+    # here. That data is already present in main-card-risk-scaling.
     target_variants = [
         "c-api",
         "c-api+preparsing",
-        "baseline+resultfield",
     ]
     sub = sub[sub["variant"].isin(target_variants)].copy()
     if sub.empty:
