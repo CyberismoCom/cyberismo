@@ -94,9 +94,16 @@ namespace node_clingo
          * Prepares a query for the program store
          * @param query The query
          * @param categories The categories
+         * @param computeHash When true (default), computes the cache key hash over
+         *        the assembled programs. When false, skips the XXHash work entirely
+         *        and leaves Query::hash zero — useful when the caller has opted out
+         *        of the result cache for this call.
          * @returns The query
          */
-        Query prepareQuery(const std::string& query, const std::vector<std::string>& categories);
+        Query prepareQuery(
+            const std::string& query,
+            const std::vector<std::string>& categories,
+            bool computeHash = true);
     };
 
 } // namespace node_clingo

@@ -1,83 +1,72 @@
+/**
+ * Main benchmark — consumes pre-generated fixtures (see generate-fixtures.ts).
+ *
+ * For every project under `<fixturesDir>/`, for every scale under
+ * `<fixturesDir>/<project>/`, runs all six variants:
+ *
+ *   - baseline                — clingo binary on pre-built old-QL programs
+ *   - baseline+resultfield    — clingo binary on pre-built current-QL programs
+ *                                (LP-only wall-clock reference for rendering;
+ *                                 evaluateMacros is intentionally NOT measured
+ *                                 here — see chapter §1)
+ *   - c-api                   — native addon, swapped to old QL
+ *   - c-api+resultfield       — native addon, current QL
+ *   - c-api+aspif             — native addon, current QL (preParsing differs
+ *                                inside the addon — same call shape here)
+ *   - incremental             — clingo binary on pre-grounded ASPIF + per-query
+ *                                LP (current QL + utils + query)
+ *
+ * No project scaling, no Handlebars compilation, no in-line program building
+ * happens on the hot path. All of that is baked into the fixture.
+ */
 import { CommandManager, evaluateMacros } from '@cyberismo/data-handler';
 import type { MacroGenerationContext } from '@cyberismo/data-handler';
 import { clearCache } from '@cyberismo/node-clingo';
 import type { ClingoContext } from '@cyberismo/node-clingo';
 import { lpFiles } from '@cyberismo/assets';
 import { readFile } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import Handlebars from 'handlebars';
-import { solveBinary, solveWithPregrounding } from './binary-baseline.js';
-import { scaleProject, cleanupScaledProject } from './card-scaler.js';
+import { resolve } from 'node:path';
+import { solveBinary, solveAspifWithQuery } from './binary-baseline.js';
+import {
+  loadBaselineFiles,
+  swapToOldQL,
+  restoreCurrentQL,
+} from './baseline-ql.js';
+import {
+  listProjects,
+  listScales,
+  loadFixture,
+  programPath,
+  incrementalAspifPath,
+} from './fixture-loader.js';
+import type { FixtureBundle, FixtureCards } from './fixture-loader.js';
 import { writeResults, machineName } from './utils.js';
 import type { BenchmarkRun, BenchmarkResult } from './types.js';
 
 // ── CLI args ────────────────────────────────────────────────────────────────
-const projectPath = process.argv[2];
+const fixturesDir = process.argv[2];
 const outputPath = process.argv[3] ?? 'results-main.json';
 
-if (!projectPath) {
-  console.error('Usage: tsx src/bench-main.ts <project-path> [output-path]');
+if (!fixturesDir) {
+  console.error('Usage: tsx src/bench-main.ts <fixtures-dir> [output-path]');
   process.exit(1);
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const RUNS_PER_POINT = 10;
 const WARMUP_RUNS = 3;
-const SCALE_MIN = 1000;
-const SCALE_MAX = 50000;
-const SCALE_STEP = 1000;
-const TEMPLATE = 'secdeva/templates/project';
+const FEATURE = 'main-scaling';
 
-const CARD_TYPES = {
-  leafTask: 'base/cardTypes/annualTask',
-  phase: 'secdeva/cardTypes/page',
-  riskTask: 'base/cardTypes/quarterlyTask',
-  projectRoot: 'secdeva/cardTypes/project',
-} as const;
+// ── Card-query slot mapping (which fixture cards.json key gates which query) ─
+const QUERY_TO_CARD_KEY: Record<string, keyof FixtureCards> = {
+  'card-leaf-task': 'leafKey',
+  'card-phase': 'phaseKey',
+  'card-risk': 'riskKey',
+  'card-root': 'rootKey',
+};
+const CARD_QUERIES = Object.keys(QUERY_TO_CARD_KEY);
 
-// ── Baseline LP files ────────────────────────────────────────────────────────
-interface BaselineFiles {
-  queryLanguage: string;
-  utils: string;
-  card: string;
-}
-
-async function loadBaselineFiles(): Promise<BaselineFiles> {
-  const baselineDir = join(
-    dirname(fileURLToPath(import.meta.url)),
-    '../baselines/pre-resultfield',
-  );
-  const [queryLanguage, utils, card] = await Promise.all([
-    readFile(join(baselineDir, 'queryLanguage.lp'), 'utf-8'),
-    readFile(join(baselineDir, 'utils.lp'), 'utf-8'),
-    readFile(join(baselineDir, 'card.lp'), 'utf-8'),
-  ]);
-  return { queryLanguage, utils, card };
-}
-
-// ── Program swap helpers ──────────────────────────────────────────────────────
-function swapToOldQL(clingo: ClingoContext, bf: BaselineFiles) {
-  clingo.setProgram('queryLanguage', bf.queryLanguage, ['all']);
-  clingo.setProgram('utils', bf.utils, ['all']);
-}
-
-function restoreCurrentQL(clingo: ClingoContext) {
-  clingo.setProgram('queryLanguage', lpFiles.common.queryLanguage, ['all']);
-  clingo.setProgram('utils', lpFiles.common.utils, ['all']);
-}
-
-// ── Query compilation ────────────────────────────────────────────────────────
-function compileTreeQuery(): string {
-  return Handlebars.compile(lpFiles.queries.tree)({});
-}
-
-function compileCardQuery(cardKey: string, currentQL: boolean, bf: BaselineFiles): string {
-  const cardLp = currentQL ? lpFiles.queries.card : bf.card;
-  return Handlebars.compile(cardLp)({ cardKey });
-}
-
-// ── BenchmarkRun factory ─────────────────────────────────────────────────────
+// ── BenchmarkRun factories ──────────────────────────────────────────────────
 function makeNativeRun(
   variant: string,
   query: string,
@@ -89,7 +78,7 @@ function makeNativeRun(
   const s = result.stats;
   return {
     method: 'native',
-    feature: 'main-scaling',
+    feature: FEATURE,
     variant,
     query,
     project,
@@ -114,7 +103,7 @@ function makeBinaryRun(
 ): BenchmarkRun {
   return {
     method: 'binary',
-    feature: 'main-scaling',
+    feature: FEATURE,
     variant,
     query,
     project,
@@ -130,360 +119,368 @@ function makeBinaryRun(
   };
 }
 
+/**
+ * Incremental run record. Per-run timing is the clingo solve over the prebuilt
+ * ASPIF + per-query LP — gringo is fixture-build cost and is NOT included
+ * here. We surface the wall-clock as `solveUs` and `totalUs` and leave
+ * `glueUs`/`addUs`/`groundUs` zero (preserves BenchmarkRun shape).
+ */
 function makeIncrementalRun(
   query: string,
   cardCount: number,
   run: number,
   project: string,
-  result: Awaited<ReturnType<typeof solveWithPregrounding>>,
+  clingoMs: number,
 ): BenchmarkRun {
   return {
     method: 'pregrounding',
-    feature: 'main-scaling',
+    feature: FEATURE,
     variant: 'incremental',
     query,
     project,
     cardCount,
     run,
-    glueUs: Math.round(result.gringoMs * 1000),
+    glueUs: 0,
     addUs: 0,
     groundUs: 0,
-    solveUs: Math.round(result.clingoMs * 1000),
-    totalUs: Math.round(result.totalMs * 1000),
+    solveUs: Math.round(clingoMs * 1000),
+    totalUs: Math.round(clingoMs * 1000),
     cacheHit: false,
-    wallClockMs: result.totalMs,
+    wallClockMs: clingoMs,
   };
 }
 
-// ── Main ─────────────────────────────────────────────────────────────────────
-async function main() {
-  const bf = await loadBaselineFiles();
-  const allRuns: BenchmarkRun[] = [];
-
-  // ── Warm-up: scale to 1000 and run 3 native solves ──────────────────────
-  console.error('Warming up native addon...');
-  const warmupTmpDir = await scaleProject(projectPath, SCALE_MIN, TEMPLATE);
-  const warmupCmds = await CommandManager.getInstance(warmupTmpDir);
-  const clingo = warmupCmds.project.calculationEngine.context;
-  const treeQuery = compileTreeQuery();
-
-  for (let i = 0; i < WARMUP_RUNS; i++) {
-    clearCache();
-    await clingo.solve(treeQuery, ['all']);
-    console.error(`  warmup ${i + 1}/${WARMUP_RUNS}`);
+/**
+ * Returns the list of (queryName, lpFile) tuples to run for this project,
+ * always including `tree`, plus any card-query whose target key is present in
+ * `cards.json`.
+ */
+function activeQueries(bundle: FixtureBundle): string[] {
+  const out = ['tree'];
+  for (const q of CARD_QUERIES) {
+    const key = QUERY_TO_CARD_KEY[q];
+    if (bundle.cards[key]) out.push(q);
   }
+  return out;
+}
 
-  // ── Measurement loop ─────────────────────────────────────────────────────
-  for (let scale = SCALE_MIN; scale <= SCALE_MAX; scale += SCALE_STEP) {
-    console.error(`\n=== Scale: ${scale} cards ===`);
+// ── Per-fixture worker ──────────────────────────────────────────────────────
+async function runFixture(
+  bundle: FixtureBundle,
+  allRuns: BenchmarkRun[],
+): Promise<void> {
+  const { meta, projectDir } = bundle;
+  const projectName = meta.project;
+  const scale = meta.scale;
+  const cardCount = meta.cardCount;
+  const queries = activeQueries(bundle);
 
-    const tmpDir =
-      scale === SCALE_MIN
-        ? warmupTmpDir
-        : await scaleProject(projectPath, scale, TEMPLATE);
+  console.error(
+    `\n=== project=${projectName} scale=${scale} (cardCount=${cardCount}) ===`,
+  );
 
-    let commands: Awaited<ReturnType<typeof CommandManager.getInstance>>;
-    if (scale === SCALE_MIN) {
-      commands = warmupCmds;
-    } else {
-      commands = await CommandManager.getInstance(tmpDir);
-    }
-    const ctx = commands.project.calculationEngine.context;
+  const bf = await loadBaselineFiles();
+  const commands = await CommandManager.getInstance(projectDir);
+  const ctx = commands.project.calculationEngine.context;
+  const projectId = commands.project.projectPrefix;
 
-    const projectId = commands.project.projectPrefix;
-
-    // Find target cards
-    // cards() signature: cards(path?: string, details?: FetchCardDetails)
-    // Pass undefined for path to use default; second arg controls what's populated.
-    const allCards = commands.project.cards(undefined, { metadata: true });
-    const leafCard = allCards.find(
-      (c) => c.metadata?.cardType === CARD_TYPES.leafTask,
-    );
-    const phaseCard = allCards.find(
-      (c) => c.metadata?.cardType === CARD_TYPES.phase,
-    );
-    const riskCard = allCards.find(
-      (c) => c.metadata?.cardType === CARD_TYPES.riskTask,
-    );
-    const rootCard = allCards.find(
-      (c) => c.metadata?.cardType === CARD_TYPES.projectRoot,
-    );
-
-    if (!leafCard || !phaseCard || !riskCard || !rootCard) {
-      console.error(
-        `  WARNING: Could not find all target card types at scale ${scale}`,
-      );
-      console.error(`  leaf=${leafCard?.key} phase=${phaseCard?.key} risk=${riskCard?.key} root=${rootCard?.key}`);
-    }
-
-    // Query content map
-    const cardKeys = {
-      'card-leaf-task': leafCard?.key ?? '',
-      'card-phase': phaseCard?.key ?? '',
-      'card-risk': riskCard?.key ?? '',
-      'card-root': rootCard?.key ?? '',
-    };
-
-    // IMPORTANT: Each variant block must unconditionally set ALL its solver
-    // flags at its start. Never rely on carry-over state from the previous
-    // block — reordering variants must not silently change measurements.
-
+  try {
     // ── VARIANT: baseline (binary + old QL) ────────────────────────────────
     console.error('  variant: baseline');
-    swapToOldQL(ctx, bf);
-    for (const [queryName, cardKey] of [
-      ['tree', ''] as const,
-      ...(['card-leaf-task', 'card-phase', 'card-risk', 'card-root'] as const).map(
-        (q) => [q, cardKeys[q]] as [typeof q, string],
-      ),
-    ]) {
-      const query =
-        queryName === 'tree'
-          ? treeQuery
-          : compileCardQuery(cardKey, false, bf);
-      const fullProgram = ctx.buildProgram(query, ['all']);
+    for (const queryName of queries) {
+      const program = await readFile(
+        programPath(bundle, 'baseline', queryName),
+        'utf-8',
+      );
       for (let run = 1; run <= RUNS_PER_POINT; run++) {
-        const r = await solveBinary(fullProgram);
-        allRuns.push(makeBinaryRun('baseline', queryName, scale, run, projectId, r));
+        const r = await solveBinary(program);
+        allRuns.push(
+          makeBinaryRun('baseline', queryName, cardCount, run, projectId, r),
+        );
       }
       console.error(`    ${queryName}: ${RUNS_PER_POINT} runs done`);
     }
-    restoreCurrentQL(ctx);
 
-    // ── VARIANT: baseline+resultfield (binary + current QL) ───────────────
+    // ── VARIANT: baseline+resultfield (binary + current QL) ────────────────
+    // Note: this is intentionally LP-only via clingo binary — the rendering
+    // measurement here is a wall-clock REFERENCE, NOT evaluateMacros. See
+    // chapter §1: evaluateMacros for resultfield is the c-api+resultfield
+    // measurement; the binary line is to bound LP cost alone.
     console.error('  variant: baseline+resultfield');
-    for (const [queryName, cardKey] of [
-      ['tree', ''] as const,
-      ...(['card-leaf-task', 'card-phase', 'card-risk', 'card-root'] as const).map(
-        (q) => [q, cardKeys[q]] as [typeof q, string],
-      ),
-    ]) {
-      const query =
-        queryName === 'tree'
-          ? treeQuery
-          : Handlebars.compile(lpFiles.queries.card)({ cardKey });
-      const fullProgram = ctx.buildProgram(query, ['all']);
+    for (const queryName of queries) {
+      const program = await readFile(
+        programPath(bundle, 'baseline+resultfield', queryName),
+        'utf-8',
+      );
       for (let run = 1; run <= RUNS_PER_POINT; run++) {
-        const r = await solveBinary(fullProgram);
-        allRuns.push(makeBinaryRun('baseline+resultfield', queryName, scale, run, projectId, r));
+        const r = await solveBinary(program);
+        allRuns.push(
+          makeBinaryRun(
+            'baseline+resultfield',
+            queryName,
+            cardCount,
+            run,
+            projectId,
+            r,
+          ),
+        );
       }
       console.error(`    ${queryName}: ${RUNS_PER_POINT} runs done`);
     }
-
-    // rendering reference for baseline+resultfield
-    {
-      const renderQuery = Handlebars.compile(lpFiles.queries.card)({
-        cardKey: riskCard?.key ?? '',
-      });
-      const fullProgram = ctx.buildProgram(renderQuery, ['all']);
+    // rendering reference (LP-only, intentional — see comment above)
+    if (bundle.cards.riskKey) {
+      const program = await readFile(
+        programPath(bundle, 'baseline+resultfield', 'rendering'),
+        'utf-8',
+      );
       for (let run = 1; run <= RUNS_PER_POINT; run++) {
-        const r = await solveBinary(fullProgram);
-        allRuns.push(makeBinaryRun('baseline+resultfield', 'rendering', scale, run, projectId, r));
+        const r = await solveBinary(program);
+        allRuns.push(
+          makeBinaryRun(
+            'baseline+resultfield',
+            'rendering',
+            cardCount,
+            run,
+            projectId,
+            r,
+          ),
+        );
       }
       console.error(`    rendering (reference): ${RUNS_PER_POINT} runs done`);
     }
 
+    // ── INVARIANT ─────────────────────────────────────────────────────────
+    // IMPORTANT: Each variant block below must unconditionally set ALL its
+    // solver flags (here: which QL variant is loaded into the addon) at its
+    // start. Never rely on carry-over state from the previous block —
+    // reordering variants must not silently change measurements.
+    // `restoreCurrentQL` is an idempotent setProgram call; calling it at the
+    // start of a variant that already has the current QL loaded is a cheap
+    // no-op that we accept for safety.
+    // ──────────────────────────────────────────────────────────────────────
+
     // ── VARIANT: c-api (native + old QL) ──────────────────────────────────
     console.error('  variant: c-api');
     swapToOldQL(ctx, bf);
-    for (const [queryName, cardKey] of [
-      ['tree', ''] as const,
-      ...(['card-leaf-task', 'card-phase', 'card-risk', 'card-root'] as const).map(
-        (q) => [q, cardKeys[q]] as [typeof q, string],
-      ),
-    ]) {
-      const query =
-        queryName === 'tree'
-          ? treeQuery
-          : compileCardQuery(cardKey, false, bf);
-      for (let run = 1; run <= RUNS_PER_POINT; run++) {
-        clearCache();
-        const r = await ctx.solve(query, ['all']);
-        allRuns.push(makeNativeRun('c-api', queryName, scale, run, projectId, r));
+    try {
+      for (const queryName of queries) {
+        const query = bundle.queries[queryName];
+        if (!query) continue;
+        for (let run = 1; run <= RUNS_PER_POINT; run++) {
+          clearCache();
+          const r = await ctx.solve(query, ['all']);
+          allRuns.push(
+            makeNativeRun('c-api', queryName, cardCount, run, projectId, r),
+          );
+        }
+        console.error(`    ${queryName}: ${RUNS_PER_POINT} runs done`);
       }
-      console.error(`    ${queryName}: ${RUNS_PER_POINT} runs done`);
+    } finally {
+      restoreCurrentQL(ctx);
     }
-    restoreCurrentQL(ctx);
-
-    // rendering for c-api
-    {
-      const cardsWithContent = commands.project.cards(undefined, { metadata: true, content: true });
-      const riskCardContent = cardsWithContent.find(
-        (c) => c.metadata?.cardType === CARD_TYPES.riskTask,
+    // rendering for c-api (evaluateMacros pipeline, current QL)
+    if (bundle.cards.riskKey && bundle.cards.riskContent !== undefined) {
+      await runRenderingMacros(
+        commands,
+        bundle.cards.riskKey,
+        bundle.cards.riskContent,
+        cardCount,
+        projectId,
+        'c-api',
+        allRuns,
       );
-      const ctx: MacroGenerationContext = {
-        context: 'localApp',
-        project: commands.project,
-        mode: 'static',
-        cardKey: riskCard?.key ?? '',
-      };
-      for (let run = 1; run <= RUNS_PER_POINT; run++) {
-        clearCache();
-        const start = performance.now();
-        // Strip {{#graph}} blocks — graphviz rendering is not Clingo work and
-        // its WASM can abort the process. The rendering benchmark measures
-        // evaluateMacros pipeline cost (createCards + report macros), not SVG rendering.
-        const contentNoGraph = (riskCardContent?.content ?? '').replace(
-          /\{\{#graph\}\}[\s\S]*?\{\{\/graph\}\}/g,
-          '',
-        );
-        await evaluateMacros(contentNoGraph, ctx);
-        const wallClockMs = performance.now() - start;
-        allRuns.push({
-          method: 'native',
-          feature: 'main-scaling',
-          variant: 'c-api',
-          query: 'rendering',
-          project: projectId,
-          cardCount: scale,
-          run,
-          glueUs: 0,
-          addUs: 0,
-          groundUs: 0,
-          solveUs: 0,
-          totalUs: Math.round(wallClockMs * 1000),
-          cacheHit: false,
-          wallClockMs,
-        });
-      }
-      console.error(`    rendering: ${RUNS_PER_POINT} runs done`);
     }
 
     // ── VARIANT: c-api+resultfield (native + current QL) ──────────────────
+    // Unconditionally restore current QL at block start (per invariant above).
     console.error('  variant: c-api+resultfield');
-    for (const [queryName, cardKey] of [
-      ['tree', ''] as const,
-      ...(['card-leaf-task', 'card-phase', 'card-risk', 'card-root'] as const).map(
-        (q) => [q, cardKeys[q]] as [typeof q, string],
-      ),
-    ]) {
-      const query =
-        queryName === 'tree'
-          ? treeQuery
-          : Handlebars.compile(lpFiles.queries.card)({ cardKey });
+    restoreCurrentQL(ctx);
+    for (const queryName of queries) {
+      const query = bundle.queries[queryName];
+      if (!query) continue;
       for (let run = 1; run <= RUNS_PER_POINT; run++) {
         clearCache();
         const r = await ctx.solve(query, ['all']);
-        allRuns.push(makeNativeRun('c-api+resultfield', queryName, scale, run, projectId, r));
+        allRuns.push(
+          makeNativeRun(
+            'c-api+resultfield',
+            queryName,
+            cardCount,
+            run,
+            projectId,
+            r,
+          ),
+        );
       }
       console.error(`    ${queryName}: ${RUNS_PER_POINT} runs done`);
     }
-
-    // Note: no rendering query for c-api+resultfield — rendering (evaluateMacros)
-    // is only measured for c-api and c-api+aspif (per spec). baseline+resultfield
-    // provides a wall-clock reference via solveBinary.
+    // No rendering measurement for c-api+resultfield — see chapter §1.
 
     // ── VARIANT: c-api+aspif (native + current QL + pre-parsing) ──────────
+    // Same call shape as c-api+resultfield at this layer; the addon's
+    // preParsing-at-set-program behaviour is what differentiates the two
+    // internally, and that's not toggled here.
+    // Unconditionally restore current QL at block start (per invariant above).
     console.error('  variant: c-api+aspif');
-    for (const [queryName, cardKey] of [
-      ['tree', ''] as const,
-      ...(['card-leaf-task', 'card-phase', 'card-risk', 'card-root'] as const).map(
-        (q) => [q, cardKeys[q]] as [typeof q, string],
-      ),
-    ]) {
-      const query =
-        queryName === 'tree'
-          ? treeQuery
-          : Handlebars.compile(lpFiles.queries.card)({ cardKey });
+    restoreCurrentQL(ctx);
+    for (const queryName of queries) {
+      const query = bundle.queries[queryName];
+      if (!query) continue;
       for (let run = 1; run <= RUNS_PER_POINT; run++) {
         clearCache();
         const r = await ctx.solve(query, ['all']);
-        allRuns.push(makeNativeRun('c-api+aspif', queryName, scale, run, projectId, r));
-      }
-      console.error(`    ${queryName}: ${RUNS_PER_POINT} runs done`);
-    }
-
-    // rendering for c-api+aspif
-    {
-      const cardsWithContent = commands.project.cards(undefined, { metadata: true, content: true });
-      const riskCardContent = cardsWithContent.find(
-        (c) => c.metadata?.cardType === CARD_TYPES.riskTask,
-      );
-      const ctx: MacroGenerationContext = {
-        context: 'localApp',
-        project: commands.project,
-        mode: 'static',
-        cardKey: riskCard?.key ?? '',
-      };
-      for (let run = 1; run <= RUNS_PER_POINT; run++) {
-        clearCache();
-        const start = performance.now();
-        const contentNoGraph = (riskCardContent?.content ?? '').replace(
-          /\{\{#graph\}\}[\s\S]*?\{\{\/graph\}\}/g,
-          '',
+        allRuns.push(
+          makeNativeRun('c-api+aspif', queryName, cardCount, run, projectId, r),
         );
-        await evaluateMacros(contentNoGraph, ctx);
-        const wallClockMs = performance.now() - start;
-        allRuns.push({
-          method: 'native',
-          feature: 'main-scaling',
-          variant: 'c-api+aspif',
-          query: 'rendering',
-          project: projectId,
-          cardCount: scale,
-          run,
-          glueUs: 0,
-          addUs: 0,
-          groundUs: 0,
-          solveUs: 0,
-          totalUs: Math.round(wallClockMs * 1000),
-          cacheHit: false,
-          wallClockMs,
-        });
-      }
-      console.error(`    rendering: ${RUNS_PER_POINT} runs done`);
-    }
-
-    // ── VARIANT: incremental (gringo→ASPIF→clingo) ─────────────────────────
-    // Build base without queryLanguage/utils (they stay in the query step)
-    console.error('  variant: incremental');
-    ctx.removeProgram('queryLanguage');
-    ctx.removeProgram('utils');
-    let baseProgram: string;
-    try {
-      baseProgram = ctx.buildProgram('', ['all']);
-    } finally {
-      restoreCurrentQL(ctx); // always restore, even if buildProgram throws
-    }
-
-    for (const [queryName, cardKey] of [
-      ['tree', ''] as const,
-      ...(['card-leaf-task', 'card-phase', 'card-risk', 'card-root'] as const).map(
-        (q) => [q, cardKeys[q]] as [typeof q, string],
-      ),
-    ]) {
-      const specificQuery =
-        queryName === 'tree'
-          ? treeQuery
-          : Handlebars.compile(lpFiles.queries.card)({ cardKey });
-      const queryProgram =
-        lpFiles.common.queryLanguage + '\n' + lpFiles.common.utils + '\n' + specificQuery;
-      for (let run = 1; run <= RUNS_PER_POINT; run++) {
-        const r = await solveWithPregrounding(baseProgram, queryProgram);
-        allRuns.push(makeIncrementalRun(queryName, scale, run, projectId, r));
       }
       console.error(`    ${queryName}: ${RUNS_PER_POINT} runs done`);
     }
+    // rendering for c-api+aspif
+    if (bundle.cards.riskKey && bundle.cards.riskContent !== undefined) {
+      await runRenderingMacros(
+        commands,
+        bundle.cards.riskKey,
+        bundle.cards.riskContent,
+        cardCount,
+        projectId,
+        'c-api+aspif',
+        allRuns,
+      );
+    }
 
-    if (scale > SCALE_MIN) {
-      await cleanupScaledProject(tmpDir);
+    // ── VARIANT: incremental (prebuilt ASPIF + per-query LP) ──────────────
+    console.error('  variant: incremental');
+    const aspifPath = incrementalAspifPath(bundle);
+    for (const queryName of queries) {
+      const specificQuery = bundle.queries[queryName];
+      if (!specificQuery) continue;
+      const queryProgram =
+        lpFiles.common.queryLanguage +
+        '\n' +
+        lpFiles.common.utils +
+        '\n' +
+        specificQuery;
+      for (let run = 1; run <= RUNS_PER_POINT; run++) {
+        const r = await solveAspifWithQuery(aspifPath, queryProgram);
+        allRuns.push(
+          makeIncrementalRun(queryName, cardCount, run, projectId, r.clingoMs),
+        );
+      }
+      console.error(`    ${queryName}: ${RUNS_PER_POINT} runs done`);
+    }
+  } finally {
+    commands.project.dispose();
+  }
+}
+
+/**
+ * Runs RUNS_PER_POINT rendering measurements via evaluateMacros and pushes
+ * BenchmarkRun records under `variant`. Strips `{{#graph}}…{{/graph}}` blocks
+ * (graphviz WASM can abort the process and is not Clingo work).
+ */
+async function runRenderingMacros(
+  commands: Awaited<ReturnType<typeof CommandManager.getInstance>>,
+  cardKey: string,
+  riskContent: string,
+  cardCount: number,
+  projectId: string,
+  variant: string,
+  allRuns: BenchmarkRun[],
+): Promise<void> {
+  const macroCtx: MacroGenerationContext = {
+    context: 'localApp',
+    project: commands.project,
+    mode: 'static',
+    cardKey,
+  };
+  const contentNoGraph = riskContent.replace(
+    /\{\{#graph\}\}[\s\S]*?\{\{\/graph\}\}/g,
+    '',
+  );
+  for (let run = 1; run <= RUNS_PER_POINT; run++) {
+    clearCache();
+    const start = performance.now();
+    await evaluateMacros(contentNoGraph, macroCtx);
+    const wallClockMs = performance.now() - start;
+    allRuns.push({
+      method: 'native',
+      feature: FEATURE,
+      variant,
+      query: 'rendering',
+      project: projectId,
+      cardCount,
+      run,
+      glueUs: 0,
+      addUs: 0,
+      groundUs: 0,
+      solveUs: 0,
+      totalUs: Math.round(wallClockMs * 1000),
+      cacheHit: false,
+      wallClockMs,
+    });
+  }
+  console.error(`    rendering: ${RUNS_PER_POINT} runs done`);
+}
+
+// ── Main ─────────────────────────────────────────────────────────────────────
+async function main() {
+  const root = resolve(fixturesDir);
+  const projects = await listProjects(root);
+  if (projects.length === 0) {
+    console.error(`No project directories found under ${root}.`);
+    process.exit(1);
+  }
+  console.error(`Discovered projects: ${projects.join(', ')}`);
+
+  const allRuns: BenchmarkRun[] = [];
+  const allScalesUnion = new Set<number>();
+
+  for (const project of projects) {
+    const scales = await listScales(root, project);
+    if (scales.length === 0) {
+      console.error(`  project=${project}: no scales found, skipping`);
+      continue;
+    }
+    console.error(`  project=${project}: scales=[${scales.join(', ')}]`);
+    scales.forEach((s) => allScalesUnion.add(s));
+
+    // Warm-up: 3 native solves of `tree` at the smallest scale of THIS project
+    const warmupScale = scales[0];
+    const warmupBundle = await loadFixture(root, project, warmupScale);
+    {
+      console.error(
+        `  warmup: ${WARMUP_RUNS} solves of tree at scale=${warmupScale}`,
+      );
+      const warmupCmds = await CommandManager.getInstance(
+        warmupBundle.projectDir,
+      );
+      const warmupCtx = warmupCmds.project.calculationEngine.context;
+      const treeQuery = warmupBundle.queries.tree;
+      try {
+        for (let i = 0; i < WARMUP_RUNS; i++) {
+          clearCache();
+          await warmupCtx.solve(treeQuery, ['all']);
+          console.error(`    warmup ${i + 1}/${WARMUP_RUNS}`);
+        }
+      } finally {
+        warmupCmds.project.dispose();
+      }
+    }
+
+    // Measurement loop
+    for (const scale of scales) {
+      const bundle = await loadFixture(root, project, scale);
+      await runFixture(bundle, allRuns);
     }
   }
 
-  // Cleanup warm-up dir (was used for scale=1000)
-  await cleanupScaledProject(warmupTmpDir);
-
   const result: BenchmarkResult = {
-    feature: 'main-scaling',
+    feature: FEATURE,
     config: {
-      projectPath,
+      projectPath: root,
       runs: RUNS_PER_POINT,
       warmupRuns: WARMUP_RUNS,
-      scales: Array.from(
-        { length: (SCALE_MAX - SCALE_MIN) / SCALE_STEP + 1 },
-        (_, i) => SCALE_MIN + i * SCALE_STEP,
-      ),
-      template: TEMPLATE,
+      scales: [...allScalesUnion].sort((a, b) => a - b),
     },
     runs: allRuns,
     timestamp: new Date().toISOString(),
@@ -491,7 +488,9 @@ async function main() {
   };
 
   await writeResults(result, outputPath);
-  console.error(`\nDone. ${allRuns.length} total runs written to ${outputPath}`);
+  console.error(
+    `\nDone. ${allRuns.length} total runs written to ${outputPath}`,
+  );
 }
 
 main().catch((error) => {

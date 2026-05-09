@@ -613,6 +613,66 @@ describe('Clingo solver', () => {
     });
   });
 
+  describe('Per-call cache option', () => {
+    beforeEach(() => {
+      clearCache();
+    });
+
+    it('returns the same answers with cache: false as with cache: true', async () => {
+      const program = 'a. b. c(1). c(2).';
+      const cached = await ctx.solve(program, [], { cache: true });
+      const uncached = await ctx.solve(program, [], { cache: false });
+
+      expect(uncached.answers).toEqual(cached.answers);
+    });
+
+    it('does not store the result when cache: false (next cache: true call still misses)', async () => {
+      const program = 'a. b. c(1). c(99).';
+      const first = await ctx.solve(program, [], { cache: false });
+      expect(first.stats.cacheHit).toBe(false);
+
+      const second = await ctx.solve(program, [], { cache: true });
+      // Disabled call did not store, so the cached call must miss too.
+      expect(second.stats.cacheHit).toBe(false);
+
+      // Third call should now be a hit (second one stored).
+      const third = await ctx.solve(program, [], { cache: true });
+      expect(third.stats.cacheHit).toBe(true);
+    });
+
+    it('does not report a cache hit on cache: false even when an entry exists', async () => {
+      const program = 'a. b. c(7). c(8).';
+
+      // Warm the cache.
+      const warm = await ctx.solve(program, [], { cache: true });
+      expect(warm.stats.cacheHit).toBe(false);
+      const hit = await ctx.solve(program, [], { cache: true });
+      expect(hit.stats.cacheHit).toBe(true);
+
+      // With cache disabled we must NOT consult the cache.
+      const bypass = await ctx.solve(program, [], { cache: false });
+      expect(bypass.stats.cacheHit).toBe(false);
+    });
+
+    it('default behaviour (no option) is unchanged: hits the cache on second call', async () => {
+      const program = 'a. b. c(11). c(12).';
+      const first = await ctx.solve(program);
+      expect(first.stats.cacheHit).toBe(false);
+
+      const second = await ctx.solve(program);
+      expect(second.stats.cacheHit).toBe(true);
+    });
+
+    it('treats explicit cache: true the same as the default', async () => {
+      const program = 'a. b. c(13). c(14).';
+      const first = await ctx.solve(program, [], { cache: true });
+      expect(first.stats.cacheHit).toBe(false);
+
+      const second = await ctx.solve(program, [], { cache: true });
+      expect(second.stats.cacheHit).toBe(true);
+    });
+  });
+
   describe('Pre-parsing option', () => {
     it('should produce correct results without pre-parsing', async () => {
       const ctxNoParse = new ClingoContext({ preParsing: false });
