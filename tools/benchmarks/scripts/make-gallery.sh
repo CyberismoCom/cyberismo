@@ -84,4 +84,12 @@ mapfile -t breakdown_files < <(ls main-phase-breakdown-*.png 2>/dev/null | sort)
 } >> "$OUT"
 
 echo "Wrote $OUT"
-echo "Open with: xdg-open $OUT"
+
+if [[ "${2:-}" == "--serve" ]]; then
+  PORT="${3:-8765}"
+  echo "Serving at http://localhost:$PORT/  (Ctrl-C to stop)"
+  cd "$PLOTS_DIR" && exec python3 -m http.server "$PORT"
+else
+  echo "Open with: xdg-open $OUT"
+  echo "(If you get ERR_FILE_NOT_FOUND in a Flatpak browser, re-run with: $0 $PLOTS_DIR --serve)"
+fi
