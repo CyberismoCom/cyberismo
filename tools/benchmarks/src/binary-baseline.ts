@@ -3,15 +3,12 @@ import { writeFile, mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { promisify } from 'node:util';
-import { groundToAspif } from './gringo.js';
 
 const execFileAsync = promisify(execFile);
 
 interface BinaryResult {
   answers: string[];
   wallClockMs: number;
-  groundMs?: number;
-  solveMs?: number;
 }
 
 /**
@@ -42,24 +39,18 @@ function parseAnswers(stdout: string): string[] {
 }
 
 /**
- * Runs a logic program through the clingo binary.
- * Returns wall-clock time and optionally parsed solver stats.
+ * Runs a logic program through the clingo binary. Returns wall-clock
+ * time and parsed answer sets.
  */
-export async function solveBinary(
-  program: string,
-  useStats = false,
-): Promise<BinaryResult> {
+export async function solveBinary(program: string): Promise<BinaryResult> {
   const tmpDir = await mkdtemp(join(tmpdir(), 'clingo-bench-'));
   const lpFile = join(tmpDir, 'program.lp');
   await writeFile(lpFile, program);
 
-  const args = [lpFile];
-  if (useStats) args.push('--stats');
-
   const start = performance.now();
   let stdout: string;
   try {
-    stdout = await runClingo(args);
+    stdout = await runClingo([lpFile]);
   } catch (error) {
     await rm(tmpDir, { recursive: true, force: true });
     throw error;
@@ -67,19 +58,7 @@ export async function solveBinary(
   const wallClockMs = performance.now() - start;
   await rm(tmpDir, { recursive: true, force: true });
 
-  const answers = parseAnswers(stdout);
-
-  // Parse stats if requested
-  let groundMs: number | undefined;
-  let solveMs: number | undefined;
-  if (useStats) {
-    const groundMatch = stdout.match(/Grounding\s*:\s*([\d.]+)s/);
-    const solveMatch = stdout.match(/Solving\s*:\s*([\d.]+)s/);
-    if (groundMatch) groundMs = parseFloat(groundMatch[1]) * 1000;
-    if (solveMatch) solveMs = parseFloat(solveMatch[1]) * 1000;
-  }
-
-  return { answers, wallClockMs, groundMs, solveMs };
+  return { answers: parseAnswers(stdout), wallClockMs };
 }
 
 /**
@@ -109,53 +88,3 @@ export async function solveAspifWithQuery(
   return { clingoMs, answers: parseAnswers(stdout) };
 }
 
-/**
- * Pregrounding pipeline: gringo (base → ASPIF) → clingo (ASPIF + query)
- */
-export async function solveWithPregrounding(
-  baseProgram: string,
-  queryProgram: string,
-): Promise<{
-  gringoMs: number;
-  clingoMs: number;
-  totalMs: number;
-  answers: string[];
-}> {
-  const tmpDir = await mkdtemp(join(tmpdir(), 'clingo-preground-'));
-  const aspifFile = join(tmpDir, 'base.aspif');
-  const queryFile = join(tmpDir, 'query.lp');
-
-  await writeFile(queryFile, queryProgram);
-
-  // Step 1: Preground base with gringo (shared helper).
-  const gringoStart = performance.now();
-  let aspif: string;
-  try {
-    aspif = await groundToAspif(baseProgram);
-  } catch (error: unknown) {
-    await rm(tmpDir, { recursive: true, force: true });
-    throw error;
-  }
-  await writeFile(aspifFile, aspif);
-  const gringoMs = performance.now() - gringoStart;
-
-  // Step 2: Solve with clingo using ASPIF + query
-  const clingoStart = performance.now();
-  let stdout: string;
-  try {
-    stdout = await runClingo([aspifFile, queryFile]);
-  } catch (error) {
-    await rm(tmpDir, { recursive: true, force: true });
-    throw error;
-  }
-  const clingoMs = performance.now() - clingoStart;
-
-  await rm(tmpDir, { recursive: true, force: true });
-
-  return {
-    gringoMs,
-    clingoMs,
-    totalMs: gringoMs + clingoMs,
-    answers: parseAnswers(stdout),
-  };
-}

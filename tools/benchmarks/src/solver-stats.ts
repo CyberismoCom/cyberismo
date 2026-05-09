@@ -16,7 +16,6 @@ export interface SolverStatistics {
   equivalences: number;
   variables: number;
   constraints: number;
-  raw: string; // full stats output for manual inspection
 }
 
 /**
@@ -74,6 +73,5 @@ export async function collectSolverStats(
     equivalences: parseInt_(/Equivalences\s*:\s*(\d+)/),
     variables: parseInt_(/Variables\s*:\s*(\d+)/),
     constraints: parseInt_(/Constraints\s*:\s*(\d+)/),
-    raw: stdout,
   };
 }

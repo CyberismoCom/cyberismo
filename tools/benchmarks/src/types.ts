@@ -20,7 +20,6 @@ export interface BenchmarkConfig {
   runs: number;
   warmupRuns: number;
   scales?: number[]; // card counts for scaling benchmarks
-  template?: string; // template name for card scaling
 }
 
 export interface CellTiming {
