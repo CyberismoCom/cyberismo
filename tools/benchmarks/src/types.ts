@@ -23,10 +23,19 @@ export interface BenchmarkConfig {
   template?: string; // template name for card scaling
 }
 
+export interface CellTiming {
+  project: string;
+  scale: number;
+  elapsedMs: number;
+  completedAt: string; // ISO-8601
+}
+
 export interface BenchmarkResult {
   feature: string;
   config: BenchmarkConfig;
   runs: BenchmarkRun[];
+  /** Per (project, scale) wall-clock so eta.sh can extrapolate. */
+  cellTimings?: CellTiming[];
   timestamp: string;
   machine: string;
 }

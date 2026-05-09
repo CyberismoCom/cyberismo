@@ -16,7 +16,7 @@ import { clearCache } from '@cyberismo/node-clingo';
 import { resolve } from 'node:path';
 import { listProjects, listScales, loadFixture } from './fixture-loader.js';
 import { writeResults, machineName } from './utils.js';
-import type { BenchmarkRun, BenchmarkResult } from './types.js';
+import type { BenchmarkRun, BenchmarkResult, CellTiming } from './types.js';
 
 const fixturesDir = process.argv[2];
 const outputPath = process.argv[3] ?? 'results-caching.json';
@@ -41,6 +41,7 @@ async function main() {
 
   const allRuns: BenchmarkRun[] = [];
   const allScalesUnion = new Set<number>();
+  const cellTimings: CellTiming[] = [];
 
   for (const project of projects) {
     const scales = await listScales(root, project);
@@ -73,6 +74,7 @@ async function main() {
 
     for (const scale of scales) {
       console.error(`\n  project=${project} scale=${scale}`);
+      const cellStart = performance.now();
       const bundle = await loadFixture(root, project, scale);
       const commands = await CommandManager.getInstance(bundle.projectDir);
       const ctx = commands.project.calculationEngine.context;
@@ -148,6 +150,17 @@ async function main() {
         commands.project.dispose();
       }
 
+      const elapsedMs = performance.now() - cellStart;
+      cellTimings.push({
+        project,
+        scale,
+        elapsedMs,
+        completedAt: new Date().toISOString(),
+      });
+      console.error(
+        `    cell elapsed=${(elapsedMs / 1000).toFixed(1)}s`,
+      );
+
       // Flush partial results after each cell so the JSON can be inspected
       // with `jq` / plot.py while the bench is still running.
       const partial: BenchmarkResult = {
@@ -159,6 +172,7 @@ async function main() {
           scales: [...allScalesUnion].sort((a, b) => a - b),
         },
         runs: allRuns,
+        cellTimings,
         timestamp: new Date().toISOString(),
         machine: machineName(),
       };
@@ -175,6 +189,7 @@ async function main() {
       scales: [...allScalesUnion].sort((a, b) => a - b),
     },
     runs: allRuns,
+    cellTimings,
     timestamp: new Date().toISOString(),
     machine: machineName(),
   };

@@ -41,7 +41,7 @@ import {
 } from './fixture-loader.js';
 import type { FixtureBundle, FixtureCards } from './fixture-loader.js';
 import { writeResults, machineName } from './utils.js';
-import type { BenchmarkRun, BenchmarkResult } from './types.js';
+import type { BenchmarkRun, BenchmarkResult, CellTiming } from './types.js';
 
 // ── CLI args ────────────────────────────────────────────────────────────────
 const fixturesDir = process.argv[2];
@@ -434,6 +434,7 @@ async function main() {
 
   const allRuns: BenchmarkRun[] = [];
   const allScalesUnion = new Set<number>();
+  const cellTimings: CellTiming[] = [];
 
   for (const project of projects) {
     const scales = await listScales(root, project);
@@ -472,7 +473,18 @@ async function main() {
     // still running.
     for (const scale of scales) {
       const bundle = await loadFixture(root, project, scale);
+      const cellStart = performance.now();
       await runFixture(bundle, allRuns);
+      const elapsedMs = performance.now() - cellStart;
+      cellTimings.push({
+        project,
+        scale,
+        elapsedMs,
+        completedAt: new Date().toISOString(),
+      });
+      console.error(
+        `  cell project=${project} scale=${scale} elapsed=${(elapsedMs / 1000).toFixed(1)}s`,
+      );
       const partial: BenchmarkResult = {
         feature: FEATURE,
         config: {
@@ -482,6 +494,7 @@ async function main() {
           scales: [...allScalesUnion].sort((a, b) => a - b),
         },
         runs: allRuns,
+        cellTimings,
         timestamp: new Date().toISOString(),
         machine: machineName(),
       };
@@ -498,6 +511,7 @@ async function main() {
       scales: [...allScalesUnion].sort((a, b) => a - b),
     },
     runs: allRuns,
+    cellTimings,
     timestamp: new Date().toISOString(),
     machine: machineName(),
   };
