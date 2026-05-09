@@ -9,10 +9,21 @@
  *                                (LP-only wall-clock reference for rendering;
  *                                 evaluateMacros is intentionally NOT measured
  *                                 here — see chapter §1)
- *   - c-api                   — native addon, swapped to old QL
- *   - c-api+resultfield       — native addon, current QL
- *   - c-api+aspif             — native addon, current QL (preParsing differs
- *                                inside the addon — same call shape here)
+ *   - c-api                   — native addon, swapped to old QL, pre-parsing
+ *                                OFF (`preParsing: false`).
+ *   - c-api+resultfield       — native addon, current QL, pre-parsing OFF
+ *                                (`preParsing: false`) — represents the
+ *                                "C-API + new QL only" configuration so the
+ *                                next variant can isolate the pre-parsing
+ *                                contribution. NOTE: the addon's default is
+ *                                `preParsing: true`, so the explicit `false`
+ *                                here is what makes the cumulative variant
+ *                                story honest.
+ *   - c-api+preparsing        — native addon, current QL, pre-parsing ON
+ *                                (`preParsing: true`) — programs are parsed
+ *                                to ASPIF at add-time, not solve-time. Wired
+ *                                by replacing the ClingoContext via
+ *                                CalculationEngine.replaceContext.
  *   - incremental             — clingo binary on pre-grounded ASPIF + per-query
  *                                LP (current QL + utils + query)
  *
@@ -21,7 +32,6 @@
  */
 import { CommandManager, evaluateMacros } from '@cyberismo/data-handler';
 import type { MacroGenerationContext } from '@cyberismo/data-handler';
-import { clearCache } from '@cyberismo/node-clingo';
 import type { ClingoContext } from '@cyberismo/node-clingo';
 import { lpFiles } from '@cyberismo/assets';
 import { readFile } from 'node:fs/promises';
@@ -181,7 +191,6 @@ async function runFixture(
 
   const bf = await loadBaselineFiles();
   const commands = await CommandManager.getInstance(projectDir);
-  const ctx = commands.project.calculationEngine.context;
   const projectId = commands.project.projectPrefix;
 
   try {
@@ -259,16 +268,23 @@ async function runFixture(
     // no-op that we accept for safety.
     // ──────────────────────────────────────────────────────────────────────
 
-    // ── VARIANT: c-api (native + old QL) ──────────────────────────────────
+    // ── VARIANT: c-api (native + old QL, pre-parsing OFF) ────────────────
+    // Rebuild the context with `preParsing: false` so this variant matches
+    // the chapter's cumulative-story contract: `c-api+preparsing` later flips
+    // pre-parsing back on, isolating its contribution. (The addon's default
+    // is `preParsing: true`, so we must set it explicitly.)
     console.error('  variant: c-api');
-    swapToOldQL(ctx, bf);
+    await commands.project.calculationEngine.replaceContext({
+      preParsing: false,
+    });
+    const capiCtx = commands.project.calculationEngine.context;
+    swapToOldQL(capiCtx, bf);
     try {
       for (const queryName of queries) {
         const query = bundle.queries[queryName];
         if (!query) continue;
         for (let run = 1; run <= RUNS_PER_POINT; run++) {
-          clearCache();
-          const r = await ctx.solve(query, ['all']);
+          const r = await capiCtx.solve(query, ['all'], { cache: false });
           allRuns.push(
             makeNativeRun('c-api', queryName, cardCount, run, projectId, r),
           );
@@ -276,9 +292,9 @@ async function runFixture(
         console.error(`    ${queryName}: ${RUNS_PER_POINT} runs done`);
       }
     } finally {
-      restoreCurrentQL(ctx);
+      restoreCurrentQL(capiCtx);
     }
-    // rendering for c-api (evaluateMacros pipeline, current QL)
+    // rendering for c-api (evaluateMacros pipeline, current QL, pre-parsing OFF)
     if (bundle.cards.riskKey && bundle.cards.riskContent !== undefined) {
       await runRenderingMacros(
         commands,
@@ -291,16 +307,23 @@ async function runFixture(
       );
     }
 
-    // ── VARIANT: c-api+resultfield (native + current QL) ──────────────────
-    // Unconditionally restore current QL at block start (per invariant above).
+    // ── VARIANT: c-api+resultfield (native + current QL, pre-parsing OFF) ─
+    // Unconditionally rebuild the context with `preParsing: false` so this
+    // variant represents the "C-API + new QL only" point in the cumulative
+    // story (per invariant above). The c-api+preparsing variant later flips
+    // this back on to isolate the pre-parsing contribution. The addon default
+    // is `preParsing: true`, so the explicit `false` is necessary to get a
+    // meaningful comparison between c-api+resultfield and c-api+preparsing.
     console.error('  variant: c-api+resultfield');
-    restoreCurrentQL(ctx);
+    await commands.project.calculationEngine.replaceContext({
+      preParsing: false,
+    });
+    const resultfieldCtx = commands.project.calculationEngine.context;
     for (const queryName of queries) {
       const query = bundle.queries[queryName];
       if (!query) continue;
       for (let run = 1; run <= RUNS_PER_POINT; run++) {
-        clearCache();
-        const r = await ctx.solve(query, ['all']);
+        const r = await resultfieldCtx.solve(query, ['all'], { cache: false });
         allRuns.push(
           makeNativeRun(
             'c-api+resultfield',
@@ -316,39 +339,9 @@ async function runFixture(
     }
     // No rendering measurement for c-api+resultfield — see chapter §1.
 
-    // ── VARIANT: c-api+aspif (native + current QL + pre-parsing) ──────────
-    // Same call shape as c-api+resultfield at this layer; the addon's
-    // preParsing-at-set-program behaviour is what differentiates the two
-    // internally, and that's not toggled here.
-    // Unconditionally restore current QL at block start (per invariant above).
-    console.error('  variant: c-api+aspif');
-    restoreCurrentQL(ctx);
-    for (const queryName of queries) {
-      const query = bundle.queries[queryName];
-      if (!query) continue;
-      for (let run = 1; run <= RUNS_PER_POINT; run++) {
-        clearCache();
-        const r = await ctx.solve(query, ['all']);
-        allRuns.push(
-          makeNativeRun('c-api+aspif', queryName, cardCount, run, projectId, r),
-        );
-      }
-      console.error(`    ${queryName}: ${RUNS_PER_POINT} runs done`);
-    }
-    // rendering for c-api+aspif
-    if (bundle.cards.riskKey && bundle.cards.riskContent !== undefined) {
-      await runRenderingMacros(
-        commands,
-        bundle.cards.riskKey,
-        bundle.cards.riskContent,
-        cardCount,
-        projectId,
-        'c-api+aspif',
-        allRuns,
-      );
-    }
-
     // ── VARIANT: incremental (prebuilt ASPIF + per-query LP) ──────────────
+    // Runs before c-api+preparsing because incremental uses the binary path
+    // and is independent of the in-process ClingoContext state.
     console.error('  variant: incremental');
     const aspifPath = incrementalAspifPath(bundle);
     for (const queryName of queries) {
@@ -367,6 +360,50 @@ async function runFixture(
         );
       }
       console.error(`    ${queryName}: ${RUNS_PER_POINT} runs done`);
+    }
+
+    // ── VARIANT: c-api+preparsing (native + current QL + pre-parsing) ─────
+    // This variant differs from c-api+resultfield at the addon level: we
+    // construct a fresh ClingoContext with `preParsing: true` so programs are
+    // parsed to ASPIF when set (not on every solve). `replaceContext` swaps
+    // the underlying context inside CalculationEngine and re-runs `generate()`
+    // to populate it. We run this LAST in the cell so we don't need to
+    // restore the original context — `commands.project.dispose()` happens in
+    // the enclosing `finally`.
+    console.error('  variant: c-api+preparsing');
+    await commands.project.calculationEngine.replaceContext({
+      preParsing: true,
+    });
+    const preparsingCtx = commands.project.calculationEngine.context;
+    for (const queryName of queries) {
+      const query = bundle.queries[queryName];
+      if (!query) continue;
+      for (let run = 1; run <= RUNS_PER_POINT; run++) {
+        const r = await preparsingCtx.solve(query, ['all'], { cache: false });
+        allRuns.push(
+          makeNativeRun(
+            'c-api+preparsing',
+            queryName,
+            cardCount,
+            run,
+            projectId,
+            r,
+          ),
+        );
+      }
+      console.error(`    ${queryName}: ${RUNS_PER_POINT} runs done`);
+    }
+    // rendering for c-api+preparsing
+    if (bundle.cards.riskKey && bundle.cards.riskContent !== undefined) {
+      await runRenderingMacros(
+        commands,
+        bundle.cards.riskKey,
+        bundle.cards.riskContent,
+        cardCount,
+        projectId,
+        'c-api+preparsing',
+        allRuns,
+      );
     }
   } finally {
     commands.project.dispose();
@@ -398,7 +435,6 @@ async function runRenderingMacros(
     '',
   );
   for (let run = 1; run <= RUNS_PER_POINT; run++) {
-    clearCache();
     const start = performance.now();
     await evaluateMacros(contentNoGraph, macroCtx);
     const wallClockMs = performance.now() - start;
@@ -459,8 +495,7 @@ async function main() {
       const treeQuery = warmupBundle.queries.tree;
       try {
         for (let i = 0; i < WARMUP_RUNS; i++) {
-          clearCache();
-          await warmupCtx.solve(treeQuery, ['all']);
+          await warmupCtx.solve(treeQuery, ['all'], { cache: false });
           console.error(`    warmup ${i + 1}/${WARMUP_RUNS}`);
         }
       } finally {

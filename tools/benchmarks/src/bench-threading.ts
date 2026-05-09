@@ -12,7 +12,6 @@
  * includes 200.
  */
 import { CommandManager } from '@cyberismo/data-handler';
-import { clearCache } from '@cyberismo/node-clingo';
 import { stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { listProjects, loadFixture } from './fixture-loader.js';
@@ -80,18 +79,16 @@ async function main() {
       // Warm-up
       console.error('  warming up...');
       for (let i = 0; i < WARMUP_RUNS; i++) {
-        clearCache();
-        await clingo.solve(treeQuery, ['all']);
+        await clingo.solve(treeQuery, ['all'], { cache: false });
       }
 
       // ── Variant: concurrent (Promise.all — thread pool) ─────────────────
       console.error('  running concurrent variant...');
       for (let run = 1; run <= RUNS; run++) {
-        clearCache();
         const start = performance.now();
         const results = await Promise.all(
           Array.from({ length: CONCURRENCY }, () =>
-            clingo.solve(treeQuery, ['all']),
+            clingo.solve(treeQuery, ['all'], { cache: false }),
           ),
         );
         const wallClockMs = performance.now() - start;
@@ -142,8 +139,9 @@ async function main() {
         const start = performance.now();
         const results: Awaited<ReturnType<typeof clingo.solve>>[] = [];
         for (let i = 0; i < CONCURRENCY; i++) {
-          clearCache();
-          results.push(await clingo.solve(treeQuery, ['all']));
+          results.push(
+            await clingo.solve(treeQuery, ['all'], { cache: false }),
+          );
         }
         const wallClockMs = performance.now() - start;
 
