@@ -377,12 +377,23 @@ export async function fastScaleProject(
       );
     }
 
+    // 2a. Union every cardType the seed instance produced into the protected
+    // set. The caller-supplied set covers cardTypes the BENCH queries; this
+    // step covers cardTypes the TEMPLATE introduces (e.g. base/cardTypes/
+    // roleAssignment in module-eu-cra's seed) so the trim's program-shape
+    // composition stays representative at sub-seed scales.
+    const trimProtected = new Set(protectedCardTypes);
+    for (const c of seedCards) {
+      const ct = c.metadata?.cardType;
+      if (typeof ct === 'string' && ct.length > 0) trimProtected.add(ct);
+    }
+
     // 2b. If the seeded project already exceeds target (e.g. target=10 but
     // the template produces a 41-card instance), trim leaves to reach target.
     const postSeedCount = commands.project.cards().length;
     if (postSeedCount > targetCount) {
       const cardRoot = join(tmpDir, 'cardRoot');
-      await trimToTarget(cardRoot, targetCount, postSeedCount, protectedCardTypes);
+      await trimToTarget(cardRoot, targetCount, postSeedCount, trimProtected);
       commands.project.cardsCache.clear();
       await commands.project.cardsCache.populateFromPath(cardRoot);
       await commands.project.calculationEngine.generate();
@@ -492,7 +503,7 @@ export async function fastScaleProject(
     // multiple of cardsPerInstance), trim leaves down to exact target so
     // benchmarks measure at the requested scale.
     if (currentCount > targetCount) {
-      await trimToTarget(cardRoot, targetCount, currentCount, protectedCardTypes);
+      await trimToTarget(cardRoot, targetCount, currentCount, trimProtected);
       console.error(`[fast] Trimmed overshoot to <= ${targetCount} cards`);
     }
     // We wrote files directly to disk, bypassing the card cache. The
