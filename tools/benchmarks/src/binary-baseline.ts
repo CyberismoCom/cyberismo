@@ -15,6 +15,33 @@ interface BinaryResult {
 }
 
 /**
+ * Runs clingo with the given args. Treats SAT/UNSAT/UNKNOWN exits (10/20/30)
+ * as success and returns their stdout. Re-throws any other failure.
+ */
+async function runClingo(args: string[]): Promise<string> {
+  try {
+    const result = await execFileAsync('clingo', args);
+    return result.stdout;
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'stdout' in error) {
+      return (error as { stdout: string }).stdout;
+    }
+    throw error;
+  }
+}
+
+function parseAnswers(stdout: string): string[] {
+  const answers: string[] = [];
+  const lines = stdout.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].startsWith('Answer:') && i + 1 < lines.length) {
+      answers.push(lines[i + 1]);
+    }
+  }
+  return answers;
+}
+
+/**
  * Runs a logic program through the clingo binary.
  * Returns wall-clock time and optionally parsed solver stats.
  */
@@ -30,32 +57,17 @@ export async function solveBinary(
   if (useStats) args.push('--stats');
 
   const start = performance.now();
-  let stdout = '';
-
+  let stdout: string;
   try {
-    const result = await execFileAsync('clingo', args);
-    stdout = result.stdout;
-  } catch (error: unknown) {
-    // Clingo exits with code 10/20/30 for SAT/UNSAT/UNKNOWN — still valid
-    if (error && typeof error === 'object' && 'stdout' in error) {
-      stdout = (error as { stdout: string }).stdout;
-    } else {
-      await rm(tmpDir, { recursive: true, force: true });
-      throw error;
-    }
+    stdout = await runClingo(args);
+  } catch (error) {
+    await rm(tmpDir, { recursive: true, force: true });
+    throw error;
   }
-
   const wallClockMs = performance.now() - start;
   await rm(tmpDir, { recursive: true, force: true });
 
-  // Parse answer sets from stdout
-  const answers: string[] = [];
-  const lines = stdout.split('\n');
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].startsWith('Answer:') && i + 1 < lines.length) {
-      answers.push(lines[i + 1]);
-    }
-  }
+  const answers = parseAnswers(stdout);
 
   // Parse stats if requested
   let groundMs: number | undefined;
@@ -68,6 +80,33 @@ export async function solveBinary(
   }
 
   return { answers, wallClockMs, groundMs, solveMs };
+}
+
+/**
+ * Solves a pre-grounded ASPIF base together with an extra query LP via the
+ * clingo binary. The base is read from `aspifPath` directly (no gringo
+ * invocation). Returns wall-clock time and parsed answers.
+ */
+export async function solveAspifWithQuery(
+  aspifPath: string,
+  queryProgram: string,
+): Promise<{ clingoMs: number; answers: string[] }> {
+  const tmpDir = await mkdtemp(join(tmpdir(), 'clingo-incr-'));
+  const queryFile = join(tmpDir, 'query.lp');
+  await writeFile(queryFile, queryProgram);
+
+  const start = performance.now();
+  let stdout: string;
+  try {
+    stdout = await runClingo([aspifPath, queryFile]);
+  } catch (error) {
+    await rm(tmpDir, { recursive: true, force: true });
+    throw error;
+  }
+  const clingoMs = performance.now() - start;
+  await rm(tmpDir, { recursive: true, force: true });
+
+  return { clingoMs, answers: parseAnswers(stdout) };
 }
 
 /**
@@ -102,30 +141,21 @@ export async function solveWithPregrounding(
 
   // Step 2: Solve with clingo using ASPIF + query
   const clingoStart = performance.now();
-  let stdout = '';
+  let stdout: string;
   try {
-    const result = await execFileAsync('clingo', [aspifFile, queryFile]);
-    stdout = result.stdout;
-  } catch (error: unknown) {
-    if (error && typeof error === 'object' && 'stdout' in error) {
-      stdout = (error as { stdout: string }).stdout;
-    } else {
-      await rm(tmpDir, { recursive: true, force: true });
-      throw error;
-    }
+    stdout = await runClingo([aspifFile, queryFile]);
+  } catch (error) {
+    await rm(tmpDir, { recursive: true, force: true });
+    throw error;
   }
   const clingoMs = performance.now() - clingoStart;
 
   await rm(tmpDir, { recursive: true, force: true });
 
-  // Parse answers
-  const answers: string[] = [];
-  const lines = stdout.split('\n');
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].startsWith('Answer:') && i + 1 < lines.length) {
-      answers.push(lines[i + 1]);
-    }
-  }
-
-  return { gringoMs, clingoMs, totalMs: gringoMs + clingoMs, answers };
+  return {
+    gringoMs,
+    clingoMs,
+    totalMs: gringoMs + clingoMs,
+    answers: parseAnswers(stdout),
+  };
 }
