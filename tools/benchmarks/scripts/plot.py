@@ -665,10 +665,13 @@ def _plot_phase_progression(
     project: str,
     out_path: Path,
     normalised: bool = False,
+    query_name: str = "tree",
 ) -> None:
     """Per-variant stacked bars across scales, one panel per variant.
     If `normalised` is True, each bar is 100% so the composition shift
-    is visible without being dominated by the absolute-time growth."""
+    is visible without being dominated by the absolute-time growth.
+    `query_name` is used in the title only — `sub` is expected to be
+    pre-filtered to that query."""
     psub = sub[sub["project"] == project].copy()
     if psub.empty:
         return
@@ -719,7 +722,7 @@ def _plot_phase_progression(
     axes[0].set_ylabel("share of total time (%)" if normalised else "time (ms)")
     place_legend_below(fig, axes, ncol=4)
     fig.suptitle(
-        f"Phase progression across scale — {project_pretty(project)}, tree query"
+        f"Phase progression — {project_pretty(project)}, {query_name} query"
         + (" (normalised)" if normalised else ""),
         y=1.02,
     )
@@ -727,26 +730,29 @@ def _plot_phase_progression(
 
 
 def plot_main_phase_breakdown(df: pd.DataFrame, output_dir: Path) -> list[Path]:
-    """Phase breakdown for native variants on the tree query. Emits:
-      - per-(project, scale) cell figures into phase-breakdown/  (deep dive)
-      - per-project progression figures (variants × scales side-by-side)
-    Pick whichever serves the chapter better."""
-    sub = df[df["query"] == "tree"].copy()
+    """Phase breakdown for native variants. Emits:
+      - per-(project, scale) cell figures into phase-breakdown/  (tree query, deep dive)
+      - per-(project, query, normalised?) progression figures into phase-progression/
+    Per-cell figures stay tree-only (would explode to >100 PDFs across queries);
+    progression figures cover all queries that have native phase data."""
+    sub_all = df[df["variant"].isin(
+        ["c-api", "c-api+resultfield", "c-api+preparsing"]
+    )].copy()
+    if sub_all.empty:
+        raise SystemExit("main.json had no native records for phase breakdown")
+
     target_variants = [
         "c-api",
         "c-api+resultfield",
         "c-api+preparsing",
     ]
-    sub = sub[sub["variant"].isin(target_variants)].copy()
-    if sub.empty:
-        raise SystemExit("main.json had no native tree records for phase breakdown")
-
     out_paths: list[Path] = []
 
-    # Per-cell figures (one per project × scale).
+    # Per-cell figures (tree query only).
     cell_dir = output_dir / "phase-breakdown"
     cell_dir.mkdir(parents=True, exist_ok=True)
-    for (project, scale), cell in sub.groupby(["project", "cardCount"]):
+    tree_sub = sub_all[sub_all["query"] == "tree"]
+    for (project, scale), cell in tree_sub.groupby(["project", "cardCount"]):
         scale_int = int(scale)
         title = (
             f"Phase breakdown — {project_pretty(project)}, {scale_int} cards, tree query"
@@ -758,17 +764,34 @@ def plot_main_phase_breakdown(df: pd.DataFrame, output_dir: Path) -> list[Path]:
         if out_path.exists():
             out_paths.append(out_path)
 
-    # Per-project progression figures (one panel per variant, scales along x).
-    # Both absolute (time in ms) and normalised (% of total) variants —
-    # absolute shows the magnitude, normalised shows composition shift.
-    for project in sorted(sub["project"].unique()):
-        for suffix, normalised in [("", False), ("-normalised", True)]:
-            out_path = output_dir / f"main-phase-progression-{project}{suffix}.pdf"
-            _plot_phase_progression(
-                sub, target_variants, project, out_path, normalised=normalised
-            )
-            if out_path.exists():
-                out_paths.append(out_path)
+    # Per-(project, query) progression figures, absolute + normalised. Native
+    # phase data is only meaningful for queries that go through ctx.solve;
+    # rendering's evaluateMacros records totalUs only (other phases are 0)
+    # so it has no useful breakdown.
+    progression_dir = output_dir / "phase-progression"
+    progression_dir.mkdir(parents=True, exist_ok=True)
+    queries_with_phases = [
+        q for q in sub_all["query"].unique()
+        if q != "rendering" and isinstance(q, str)
+    ]
+    for query in sorted(queries_with_phases):
+        qsub = sub_all[sub_all["query"] == query]
+        for project in sorted(qsub["project"].unique()):
+            for suffix, normalised in [("", False), ("-normalised", True)]:
+                out_path = (
+                    progression_dir
+                    / f"main-phase-progression-{project}-{query}{suffix}.pdf"
+                )
+                _plot_phase_progression(
+                    qsub,
+                    target_variants,
+                    project,
+                    out_path,
+                    normalised=normalised,
+                    query_name=query,
+                )
+                if out_path.exists():
+                    out_paths.append(out_path)
 
     return out_paths
 
