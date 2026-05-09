@@ -143,11 +143,11 @@ namespace node_clingo
         key_to_hash[key] = hash;
         return hash;
     }
-    Query ProgramStore::prepareQuery(const std::string& query, const std::vector<std::string>& categories)
+    Query ProgramStore::prepareQuery(
+        const std::string& query,
+        const std::vector<std::string>& categories,
+        bool computeHash)
     {
-        XXH3_state_t* state = XXH3_createState();
-        XXH3_64bits_reset(state);
-        XXH3_64bits_update(state, query.c_str(), query.size());
         auto programs = programByReferences(categories);
 
         // add the main program
@@ -155,16 +155,23 @@ namespace node_clingo
         programs.push_back(
             std::make_shared<const Program>("__program__", query, std::move(ast), std::vector<KeyHash>(), 0));
 
-        for (const auto& program : programs)
+        Hash hash = 0;
+        if (computeHash)
         {
-            // hash is 8 bytes, remember to update if it is changed
-            if (program->hash != 0)
+            XXH3_state_t* state = XXH3_createState();
+            XXH3_64bits_reset(state);
+            XXH3_64bits_update(state, query.c_str(), query.size());
+            for (const auto& program : programs)
             {
-                XXH3_64bits_update(state, &program->hash, 8);
+                // hash is 8 bytes, remember to update if it is changed
+                if (program->hash != 0)
+                {
+                    XXH3_64bits_update(state, &program->hash, 8);
+                }
             }
+            hash = XXH3_64bits_digest(state);
+            XXH3_freeState(state);
         }
-        Hash hash = XXH3_64bits_digest(state);
-        XXH3_freeState(state);
 
         Query result;
         result.programs = std::move(programs);

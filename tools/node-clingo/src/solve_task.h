@@ -36,6 +36,7 @@ namespace node_clingo
         std::chrono::high_resolution_clock::time_point t2;
         SolveResultCache& cache;
         Hash queryHash;
+        bool cacheEnabled;
     };
 
     /**
@@ -50,7 +51,8 @@ namespace node_clingo
         std::chrono::high_resolution_clock::time_point t1,
         std::chrono::high_resolution_clock::time_point t2,
         Napi::Promise::Deferred deferred,
-        Napi::Env env)
+        Napi::Env env,
+        bool cacheEnabled = true)
     {
         auto* data = new SolveCallbackData{
             .result = std::nullopt,
@@ -61,6 +63,7 @@ namespace node_clingo
             .t2 = t2,
             .cache = cache,
             .queryHash = query.hash,
+            .cacheEnabled = cacheEnabled,
         };
 
         // could be shared
@@ -112,7 +115,10 @@ namespace node_clingo
                 {
                     d->result->stats.glue = std::chrono::duration_cast<std::chrono::microseconds>(d->t2 - d->t1);
                     Napi::Object resultObj = create_napi_object_from_solve_result(env, *d->result);
-                    d->cache.addResult(d->queryHash, std::move(*d->result));
+                    if (d->cacheEnabled)
+                    {
+                        d->cache.addResult(d->queryHash, std::move(*d->result));
+                    }
                     d->deferred.Resolve(resultObj);
                 }
 

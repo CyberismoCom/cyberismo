@@ -47,9 +47,13 @@ ctx.removeProgram('facts');
 
 `ClingoContext` exposes:
 
-- `solve(program, categories?)` -- ground and solve `program`, optionally
-  prepended with stored programs whose `key` (or assigned category)
+- `solve(program, categories?, options?)` -- ground and solve `program`,
+  optionally prepended with stored programs whose `key` (or assigned category)
   appears in `categories`. Returns `{ answers, stats }`.
+  - `options.cache` (default `true`): when set to `false`, this call acts as
+    if there is no cache -- the cache key hash is not computed, the shared
+    result cache is not consulted, and the produced result is not stored.
+    `stats.cacheHit` is always `false` in this mode.
 - `setProgram(key, program, categories?)` -- store `program` under `key`,
   optionally tagging it with one or more categories so `solve` can pull
   it in by category instead of by key.

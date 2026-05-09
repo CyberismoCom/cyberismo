@@ -192,7 +192,9 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
     }
 
     /**
-     * solve(program, refs) → Promise<SolveResult>
+     * solve(program, refs, options?) → Promise<SolveResult>
+     *   options.cache: when false, skip the cache entirely for this call —
+     *                  no hash, no lookup, no store. Default: true.
      */
     Napi::Value Solve(const Napi::CallbackInfo& info)
     {
@@ -206,22 +208,37 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
 
         std::string program = info[0].As<Napi::String>().Utf8Value();
         std::vector<std::string> refs = parse_refs_or_throw(info);
-        node_clingo::Query query = m_store.prepareQuery(program, refs);
+
+        bool cacheEnabled = true;
+        if (info.Length() >= 3 && info[2].IsObject())
+        {
+            Napi::Object opts = info[2].As<Napi::Object>();
+            if (opts.Has("cache") && opts.Get("cache").IsBoolean())
+            {
+                cacheEnabled = opts.Get("cache").As<Napi::Boolean>().Value();
+            }
+        }
+
+        node_clingo::Query query = m_store.prepareQuery(program, refs, cacheEnabled);
 
         // Cache hit — resolve immediately on the main thread.
-        node_clingo::SolveResult result;
-        if (g_cache.result(query.hash, result))
+        // Skipped entirely when the caller opted out of the cache.
+        if (cacheEnabled)
         {
-            auto cacheHitTime = std::chrono::high_resolution_clock::now();
-            result.stats.glue = std::chrono::duration_cast<std::chrono::microseconds>(cacheHitTime - startTime);
-            result.stats.add = std::chrono::microseconds::zero();
-            result.stats.ground = std::chrono::microseconds::zero();
-            result.stats.solve = std::chrono::microseconds::zero();
-            result.stats.cacheHit = true;
+            node_clingo::SolveResult result;
+            if (g_cache.result(query.hash, result))
+            {
+                auto cacheHitTime = std::chrono::high_resolution_clock::now();
+                result.stats.glue = std::chrono::duration_cast<std::chrono::microseconds>(cacheHitTime - startTime);
+                result.stats.add = std::chrono::microseconds::zero();
+                result.stats.ground = std::chrono::microseconds::zero();
+                result.stats.solve = std::chrono::microseconds::zero();
+                result.stats.cacheHit = true;
 
-            auto deferred = Napi::Promise::Deferred::New(env);
-            deferred.Resolve(node_clingo::create_napi_object_from_solve_result(env, result));
-            return deferred.Promise();
+                auto deferred = Napi::Promise::Deferred::New(env);
+                deferred.Resolve(node_clingo::create_napi_object_from_solve_result(env, result));
+                return deferred.Promise();
+            }
         }
 
         auto afterCacheCheckTime = std::chrono::high_resolution_clock::now();
@@ -229,7 +246,14 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
         auto deferred = Napi::Promise::Deferred::New(env);
         auto promise = deferred.Promise();
         node_clingo::spawnSolveTask(
-            get_thread_pool(), g_cache, std::move(query), startTime, afterCacheCheckTime, std::move(deferred), env);
+            get_thread_pool(),
+            g_cache,
+            std::move(query),
+            startTime,
+            afterCacheCheckTime,
+            std::move(deferred),
+            env,
+            cacheEnabled);
         return promise;
     }
 };
