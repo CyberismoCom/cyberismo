@@ -447,9 +447,11 @@ def _plot_main_query_scaling(
         ax.set_xlabel("cards")
         ax.set_ylabel("total time (ms)")
 
-    if _decide_log_y(np.array(all_means)):
-        for ax in panels.values():
-            ax.set_yscale("log")
+    # Linear y, log x: linear y honestly shows absolute timing at scale
+    # (log-y compresses the variant gap at large N); log x spreads our
+    # non-uniform scale grid so small-N detail isn't squashed.
+    for ax in panels.values():
+        ax.set_xscale("log")
 
     place_legend_below(fig, panels.values(), ncol=3)
     fig.suptitle(f"Main scaling: {query_name} query, total time vs. project size", y=1.02)
@@ -508,6 +510,7 @@ def _plot_main_query_speedup(
         ax.set_title(project_pretty(project))
         ax.set_xlabel("cards")
         ax.set_ylabel("speedup vs. baseline (×)")
+        ax.set_xscale("log")
 
     place_legend_below(fig, panels.values(), ncol=3)
     fig.suptitle(f"Main scaling: {query_name} query speedup over baseline", y=1.02)
@@ -543,9 +546,11 @@ def plot_main_tree_scaling(df: pd.DataFrame, output_dir: Path) -> Path:
         ax.set_xlabel("cards")
         ax.set_ylabel("total time (ms)")
 
-    if _decide_log_y(np.array(all_means)):
-        for ax in panels.values():
-            ax.set_yscale("log")
+    # Linear y, log x: linear y honestly shows absolute timing at scale
+    # (log-y compresses the variant gap at large N); log x spreads our
+    # non-uniform scale grid so small-N detail isn't squashed.
+    for ax in panels.values():
+        ax.set_xscale("log")
 
     place_legend_below(fig, panels.values(), ncol=3)
     fig.suptitle("Main scaling: tree query, total time vs. project size", y=1.02)
@@ -606,6 +611,7 @@ def plot_main_tree_speedup(df: pd.DataFrame, output_dir: Path) -> Path:
         ax.set_title(project_pretty(project))
         ax.set_xlabel("cards")
         ax.set_ylabel("speedup vs. baseline (×)")
+        ax.set_xscale("log")
 
     place_legend_below(fig, panels.values(), ncol=3)
     fig.suptitle("Main scaling: tree query speedup over baseline", y=1.02)
@@ -755,9 +761,11 @@ def plot_main_rendering(df: pd.DataFrame, output_dir: Path) -> Path | None:
         ax.set_xlabel("cards")
         ax.set_ylabel("total time (ms)")
 
-    if _decide_log_y(np.array(all_means)):
-        for ax in panels.values():
-            ax.set_yscale("log")
+    # Linear y, log x: linear y honestly shows absolute timing at scale
+    # (log-y compresses the variant gap at large N); log x spreads our
+    # non-uniform scale grid so small-N detail isn't squashed.
+    for ax in panels.values():
+        ax.set_xscale("log")
 
     place_legend_below(fig, panels.values(), ncol=3)
     fig.suptitle("Main scaling: rendering pipeline cost vs. project size", y=1.02)
