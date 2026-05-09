@@ -39,10 +39,7 @@ import {
   programPath,
   incrementalAspifPath,
 } from './fixture-loader.js';
-import type {
-  FixtureBundle,
-  FixtureCards,
-} from './fixture-loader.js';
+import type { FixtureBundle, FixtureCards } from './fixture-loader.js';
 import { writeResults, machineName } from './utils.js';
 import type { BenchmarkRun, BenchmarkResult } from './types.js';
 
@@ -252,6 +249,16 @@ async function runFixture(
       console.error(`    rendering (reference): ${RUNS_PER_POINT} runs done`);
     }
 
+    // ── INVARIANT ─────────────────────────────────────────────────────────
+    // IMPORTANT: Each variant block below must unconditionally set ALL its
+    // solver flags (here: which QL variant is loaded into the addon) at its
+    // start. Never rely on carry-over state from the previous block —
+    // reordering variants must not silently change measurements.
+    // `restoreCurrentQL` is an idempotent setProgram call; calling it at the
+    // start of a variant that already has the current QL loaded is a cheap
+    // no-op that we accept for safety.
+    // ──────────────────────────────────────────────────────────────────────
+
     // ── VARIANT: c-api (native + old QL) ──────────────────────────────────
     console.error('  variant: c-api');
     swapToOldQL(ctx, bf);
@@ -285,7 +292,9 @@ async function runFixture(
     }
 
     // ── VARIANT: c-api+resultfield (native + current QL) ──────────────────
+    // Unconditionally restore current QL at block start (per invariant above).
     console.error('  variant: c-api+resultfield');
+    restoreCurrentQL(ctx);
     for (const queryName of queries) {
       const query = bundle.queries[queryName];
       if (!query) continue;
@@ -311,7 +320,9 @@ async function runFixture(
     // Same call shape as c-api+resultfield at this layer; the addon's
     // preParsing-at-set-program behaviour is what differentiates the two
     // internally, and that's not toggled here.
+    // Unconditionally restore current QL at block start (per invariant above).
     console.error('  variant: c-api+aspif');
+    restoreCurrentQL(ctx);
     for (const queryName of queries) {
       const query = bundle.queries[queryName];
       if (!query) continue;
