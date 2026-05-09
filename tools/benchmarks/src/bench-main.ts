@@ -59,7 +59,7 @@ if (!fixturesDir) {
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
-const RUNS_PER_POINT = 1;
+const RUNS_PER_POINT = 5;
 // Per-variant warmup: discard the first N solves after each context state
 // change (replaceContext, swapToOldQL). Absorbs the one-shot cost of the
 // addon/macro pipeline populating its caches on the new context — without

@@ -5,7 +5,6 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "bench:native-vs-binary": "tsx src/bench-native-vs-binary.ts",
     "bench:caching": "tsx src/bench-caching.ts",
     "bench:threading": "tsx src/bench-threading.ts",
     "bench:main": "tsx src/bench-main.ts",
