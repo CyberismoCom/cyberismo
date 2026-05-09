@@ -417,6 +417,105 @@ def _decide_log_y(values: np.ndarray) -> bool:
     return float(pos.max() / pos.min()) >= 50.0
 
 
+def _plot_main_query_scaling(
+    df: pd.DataFrame, query_name: str, output_dir: Path, slug: str
+) -> Path | None:
+    """Per-query scaling plot. Returns None if no records for this query."""
+    sub = df[df["query"] == query_name].copy()
+    if sub.empty:
+        return None
+
+    fig, panels = project_panels(sub, figsize=(5.5 * max(len(sub["project"].unique()), 1), 4.2))
+    all_means: list[float] = []
+    for project, ax in panels.items():
+        psub = sub[sub["project"] == project]
+        for variant in VARIANT_ORDER_MAIN:
+            cell = psub[psub["variant"] == variant]
+            if cell.empty:
+                continue
+            agg = aggregate_runs(cell, ["cardCount"]).sort_values("cardCount")
+            line_with_band(
+                ax,
+                agg["cardCount"].to_numpy(),
+                agg["mean"].to_numpy(),
+                agg["std"].to_numpy(),
+                label=variant,
+                colour=variant_colour(variant),
+            )
+            all_means.extend(agg["mean"].tolist())
+        ax.set_title(project_pretty(project))
+        ax.set_xlabel("cards")
+        ax.set_ylabel("total time (ms)")
+
+    if _decide_log_y(np.array(all_means)):
+        for ax in panels.values():
+            ax.set_yscale("log")
+
+    place_legend_below(fig, panels.values(), ncol=3)
+    fig.suptitle(f"Main scaling: {query_name} query, total time vs. project size", y=1.02)
+    out = output_dir / f"main-{slug}-scaling.pdf"
+    save_figure(fig, out)
+    return out
+
+
+def _plot_main_query_speedup(
+    df: pd.DataFrame, query_name: str, output_dir: Path, slug: str
+) -> Path | None:
+    """Per-query speedup vs baseline plot. Returns None if no data."""
+    sub = df[df["query"] == query_name].copy()
+    if sub.empty:
+        return None
+
+    fig, panels = project_panels(sub, figsize=(5.5 * max(len(sub["project"].unique()), 1), 4.2))
+    other_variants = [v for v in VARIANT_ORDER_MAIN if v != "baseline"]
+    for project, ax in panels.items():
+        psub = sub[sub["project"] == project]
+        baseline = psub[psub["variant"] == "baseline"]
+        if baseline.empty:
+            ax.set_title(f"{project_pretty(project)} — no baseline")
+            continue
+        baseline_stats = (
+            baseline.groupby("cardCount")["totalMs"]
+            .agg(baselineMs="mean", baselineStd="std")
+        )
+        baseline_stats["baselineStd"] = baseline_stats["baselineStd"].fillna(0.0)
+        for variant in other_variants:
+            cell = psub[psub["variant"] == variant]
+            if cell.empty:
+                continue
+            variant_stats = cell.groupby("cardCount")["totalMs"].agg(["mean", "std"])
+            variant_stats["std"] = variant_stats["std"].fillna(0.0)
+            joined = variant_stats.join(baseline_stats, how="inner")
+            joined["speedup"] = joined["baselineMs"] / joined["mean"]
+            joined["speedup_std"] = (
+                joined["speedup"]
+                * np.sqrt(
+                    (joined["baselineStd"] / joined["baselineMs"]) ** 2
+                    + (joined["std"] / joined["mean"]) ** 2
+                )
+            ).fillna(0.0)
+            joined = joined.drop(columns=["baselineMs", "baselineStd"])
+            x = joined.index.to_numpy()
+            line_with_band(
+                ax,
+                x,
+                joined["speedup"].to_numpy(),
+                joined["speedup_std"].to_numpy(),
+                label=variant,
+                colour=variant_colour(variant),
+            )
+        ax.axhline(1.0, color="black", linewidth=0.8, linestyle="--", alpha=0.5)
+        ax.set_title(project_pretty(project))
+        ax.set_xlabel("cards")
+        ax.set_ylabel("speedup vs. baseline (×)")
+
+    place_legend_below(fig, panels.values(), ncol=3)
+    fig.suptitle(f"Main scaling: {query_name} query speedup over baseline", y=1.02)
+    out = output_dir / f"main-{slug}-speedup.pdf"
+    save_figure(fig, out)
+    return out
+
+
 def plot_main_tree_scaling(df: pd.DataFrame, output_dir: Path) -> Path:
     sub = df[df["query"] == "tree"].copy()
     if sub.empty:
@@ -623,10 +722,11 @@ def plot_main_incremental_decomp(df: pd.DataFrame, output_dir: Path) -> Path:
     return out
 
 
-def plot_main_rendering(df: pd.DataFrame, output_dir: Path) -> Path:
+def plot_main_rendering(df: pd.DataFrame, output_dir: Path) -> Path | None:
     sub = df[df["query"] == "rendering"].copy()
     if sub.empty:
-        raise SystemExit("main.json had no rendering records")
+        print("main.json had no rendering records", file=sys.stderr)
+        return None
     target_variants = [
         "c-api",
         "c-api+preparsing",
@@ -634,7 +734,11 @@ def plot_main_rendering(df: pd.DataFrame, output_dir: Path) -> Path:
     ]
     sub = sub[sub["variant"].isin(target_variants)].copy()
     if sub.empty:
-        raise SystemExit("main.json had no rendering data for target variants")
+        print(
+            "main.json had no rendering data for target variants",
+            file=sys.stderr,
+        )
+        return None
 
     fig, panels = project_panels(sub, figsize=(5.5 * max(len(sub["project"].unique()), 1), 4.0))
     all_means: list[float] = []
@@ -674,13 +778,24 @@ def plot_main(results_dir: Path, output_dir: Path) -> list[Path]:
     if df.empty:
         raise SystemExit("main.json contained no runs")
     df = df[df["feature"] == "main-scaling"].copy()
-    return [
+    out: list[Path] = [
         plot_main_tree_scaling(df, output_dir),
         plot_main_tree_speedup(df, output_dir),
         plot_main_phase_breakdown(df, output_dir),
         plot_main_incremental_decomp(df, output_dir),
-        plot_main_rendering(df, output_dir),
     ]
+    rendering = plot_main_rendering(df, output_dir)
+    if rendering is not None:
+        out.append(rendering)
+    # Per-card-query scaling + speedup plots (appendix-style figures).
+    for q in ["card-leaf-task", "card-phase", "card-risk", "card-root"]:
+        s = _plot_main_query_scaling(df, q, output_dir, q)
+        if s is not None:
+            out.append(s)
+        sp = _plot_main_query_speedup(df, q, output_dir, q)
+        if sp is not None:
+            out.append(sp)
+    return out
 
 
 # ── CLI ─────────────────────────────────────────────────────────────────────
