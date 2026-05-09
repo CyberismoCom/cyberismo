@@ -2,7 +2,8 @@
 """Plot benchmark JSON output as PDF figures for the thesis evaluation chapter.
 
 Consumes JSON files produced by tools/benchmarks/src/bench-{caching,threading,main}.ts
-and emits the eight PDF figures the thesis chapter expects.
+and emits the eight figures the thesis chapter expects, both as `.pdf` and as
+`.pgf` (the latter for `\\input` into the LaTeX document; requires lualatex).
 
 Usage:
     python plot.py all       <results-dir> <output-dir>
@@ -90,7 +91,23 @@ plt.rcParams.update({
     "axes.titlesize": 11,
     "xtick.labelsize": 9,
     "ytick.labelsize": 9,
+    # PGF backend: use lualatex (matches the TAU thesis class) and let the
+    # surrounding LaTeX document control fonts. Keep the preamble minimal.
+    "pgf.texsystem": "lualatex",
+    "pgf.rcfonts": False,
+    "pgf.preamble": "",
 })
+
+# Set once per script invocation when the PGF backend fails (e.g. lualatex
+# missing). Used to suppress duplicate warnings across figures.
+_PGF_WARNED = False
+
+
+class PlotInputError(Exception):
+    """Raised when an input JSON file is missing or malformed.
+
+    Caught by `cmd_all` so that one bad file does not abort the whole batch.
+    """
 
 
 # ── Loading ─────────────────────────────────────────────────────────────────
@@ -101,9 +118,20 @@ def load_runs(json_path: Path) -> pd.DataFrame:
     Adds derived columns:
         totalMs   = totalUs / 1000
         machine   = top-level machine name (broadcast to every row)
+
+    Raises `PlotInputError` if the file is missing, malformed, or has no
+    `runs` key. Callers that want to abort the process can convert this to a
+    `SystemExit`; `cmd_all` catches it to keep the batch going.
     """
-    with json_path.open("r", encoding="utf-8") as fh:
-        payload = json.load(fh)
+    try:
+        with json_path.open("r", encoding="utf-8") as fh:
+            payload = json.load(fh)
+    except FileNotFoundError:
+        raise PlotInputError(f"error: {json_path} not found")
+    except json.JSONDecodeError as exc:
+        raise PlotInputError(f"error: {json_path} is not valid JSON: {exc.msg}")
+    if "runs" not in payload:
+        raise PlotInputError(f"error: {json_path} has no 'runs' key")
     runs = pd.DataFrame(payload["runs"])
     if runs.empty:
         return runs
@@ -194,9 +222,31 @@ def place_legend_below(fig: plt.Figure, axes: Iterable[plt.Axes], ncol: int) -> 
     fig.subplots_adjust(bottom=0.22)
 
 
-def save_pdf(fig: plt.Figure, out_path: Path) -> None:
+def save_figure(fig: plt.Figure, out_path: Path) -> None:
+    """Save `fig` as both <out_path>.pdf and <out_path>.pgf.
+
+    `out_path` is expected to use the `.pdf` suffix; the `.pgf` companion is
+    derived via `with_suffix('.pgf')` so the thesis can `\\input` it directly.
+
+    The PGF write uses matplotlib's `pgf` backend per-savefig so the global
+    backend stays on `pdf`. If the PGF write fails (typically because
+    lualatex is not installed), a single warning is emitted to stderr for
+    the whole script invocation and PDF-only output continues.
+    """
+    global _PGF_WARNED
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path, format="pdf", bbox_inches="tight")
+    pgf_path = out_path.with_suffix(".pgf")
+    try:
+        fig.savefig(pgf_path, format="pgf", backend="pgf", bbox_inches="tight")
+    except Exception:
+        if not _PGF_WARNED:
+            print(
+                "warning: PGF output skipped because lualatex is not "
+                "available; only PDFs were written",
+                file=sys.stderr,
+            )
+            _PGF_WARNED = True
     plt.close(fig)
 
 
@@ -241,7 +291,7 @@ def plot_caching(results_dir: Path, output_dir: Path) -> list[Path]:
     place_legend_below(fig, panels.values(), ncol=min(len(variants_present), 4))
     fig.suptitle("Caching: total solve time vs. project size", y=1.02)
     out = output_dir / "caching-scaling.pdf"
-    save_pdf(fig, out)
+    save_figure(fig, out)
     return [out]
 
 
@@ -308,7 +358,7 @@ def plot_threading(results_dir: Path, output_dir: Path) -> list[Path]:
         ax.legend(title="machine", loc="best")
 
     out_batch = output_dir / "threading-batch.pdf"
-    save_pdf(fig, out_batch)
+    save_figure(fig, out_batch)
     out_paths.append(out_batch)
 
     # ── Per-solve latency distribution ──────────────────────────────────
@@ -352,7 +402,7 @@ def plot_threading(results_dir: Path, output_dir: Path) -> list[Path]:
     ax.set_yscale("log")
 
     out_lat = output_dir / "threading-latency.pdf"
-    save_pdf(fig, out_lat)
+    save_figure(fig, out_lat)
     out_paths.append(out_lat)
 
     return out_paths
@@ -402,7 +452,7 @@ def plot_main_tree_scaling(df: pd.DataFrame, output_dir: Path) -> Path:
     place_legend_below(fig, panels.values(), ncol=3)
     fig.suptitle("Main scaling: tree query, total time vs. project size", y=1.02)
     out = output_dir / "main-tree-scaling.pdf"
-    save_pdf(fig, out)
+    save_figure(fig, out)
     return out
 
 
@@ -420,9 +470,11 @@ def plot_main_tree_speedup(df: pd.DataFrame, output_dir: Path) -> Path:
         if baseline.empty:
             ax.set_title(f"{project_pretty(project)} — no baseline")
             continue
-        baseline_mean = (
-            baseline.groupby("cardCount")["totalMs"].mean().rename("baselineMs")
+        baseline_stats = (
+            baseline.groupby("cardCount")["totalMs"]
+            .agg(baselineMs="mean", baselineStd="std")
         )
+        baseline_stats["baselineStd"] = baseline_stats["baselineStd"].fillna(0.0)
         for variant in other_variants:
             cell = psub[psub["variant"] == variant]
             if cell.empty:
@@ -430,12 +482,19 @@ def plot_main_tree_speedup(df: pd.DataFrame, output_dir: Path) -> Path:
             # Per-run speedup is more honest than ratio of means; here we use
             # variant-mean / baseline-mean per scale point because the runs
             # are not paired across variants.
-            variant_mean = cell.groupby("cardCount")["totalMs"].agg(["mean", "std"])
-            joined = variant_mean.join(baseline_mean, how="inner")
+            variant_stats = cell.groupby("cardCount")["totalMs"].agg(["mean", "std"])
+            variant_stats["std"] = variant_stats["std"].fillna(0.0)
+            joined = variant_stats.join(baseline_stats, how="inner")
             joined["speedup"] = joined["baselineMs"] / joined["mean"]
+            # Ratio-of-means uncertainty: r * sqrt((sb/b)**2 + (sv/v)**2)
             joined["speedup_std"] = (
-                joined["std"] / joined["mean"] * joined["speedup"]
+                joined["speedup"]
+                * np.sqrt(
+                    (joined["baselineStd"] / joined["baselineMs"]) ** 2
+                    + (joined["std"] / joined["mean"]) ** 2
+                )
             ).fillna(0.0)
+            joined = joined.drop(columns=["baselineMs", "baselineStd"])
             x = joined.index.to_numpy()
             line_with_band(
                 ax,
@@ -453,7 +512,7 @@ def plot_main_tree_speedup(df: pd.DataFrame, output_dir: Path) -> Path:
     place_legend_below(fig, panels.values(), ncol=3)
     fig.suptitle("Main scaling: tree query speedup over baseline", y=1.02)
     out = output_dir / "main-tree-speedup.pdf"
-    save_pdf(fig, out)
+    save_figure(fig, out)
     return out
 
 
@@ -502,7 +561,7 @@ def plot_main_phase_breakdown(df: pd.DataFrame, output_dir: Path) -> Path:
     )
     ax.legend(loc="best", title="phase")
     out = output_dir / "main-phase-breakdown.pdf"
-    save_pdf(fig, out)
+    save_figure(fig, out)
     return out
 
 
@@ -557,7 +616,7 @@ def plot_main_incremental_decomp(df: pd.DataFrame, output_dir: Path) -> Path:
     place_legend_below(fig, panels.values(), ncol=2)
     fig.suptitle("Main scaling: incremental pipeline decomposition", y=1.02)
     out = output_dir / "main-incremental-decomp.pdf"
-    save_pdf(fig, out)
+    save_figure(fig, out)
     return out
 
 
@@ -599,7 +658,7 @@ def plot_main_rendering(df: pd.DataFrame, output_dir: Path) -> Path:
     place_legend_below(fig, panels.values(), ncol=3)
     fig.suptitle("Main scaling: rendering pipeline cost vs. project size", y=1.02)
     out = output_dir / "main-rendering.pdf"
-    save_pdf(fig, out)
+    save_figure(fig, out)
     return out
 
 
@@ -620,21 +679,33 @@ def plot_main(results_dir: Path, output_dir: Path) -> list[Path]:
 # ── CLI ─────────────────────────────────────────────────────────────────────
 
 def cmd_caching(args: argparse.Namespace) -> int:
-    paths = plot_caching(args.results_dir, args.output_dir)
+    try:
+        paths = plot_caching(args.results_dir, args.output_dir)
+    except PlotInputError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
     for p in paths:
         print(p)
     return 0
 
 
 def cmd_threading(args: argparse.Namespace) -> int:
-    paths = plot_threading(args.results_dir, args.output_dir)
+    try:
+        paths = plot_threading(args.results_dir, args.output_dir)
+    except PlotInputError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
     for p in paths:
         print(p)
     return 0
 
 
 def cmd_main(args: argparse.Namespace) -> int:
-    paths = plot_main(args.results_dir, args.output_dir)
+    try:
+        paths = plot_main(args.results_dir, args.output_dir)
+    except PlotInputError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
     for p in paths:
         print(p)
     return 0
@@ -642,9 +713,18 @@ def cmd_main(args: argparse.Namespace) -> int:
 
 def cmd_all(args: argparse.Namespace) -> int:
     out: list[Path] = []
-    out.extend(plot_caching(args.results_dir, args.output_dir))
-    out.extend(plot_threading(args.results_dir, args.output_dir))
-    out.extend(plot_main(args.results_dir, args.output_dir))
+    # Per-feature input failures should not abort the whole batch — skip the
+    # offending feature, log to stderr, continue with the rest.
+    for feature_name, plot_fn in (
+        ("caching", plot_caching),
+        ("threading", plot_threading),
+        ("main", plot_main),
+    ):
+        try:
+            out.extend(plot_fn(args.results_dir, args.output_dir))
+        except PlotInputError as exc:
+            print(str(exc), file=sys.stderr)
+            print(f"warning: skipped {feature_name} feature", file=sys.stderr)
     for p in out:
         print(p)
     return 0

@@ -23,7 +23,11 @@ Dependencies:
 - `numpy`      (statistics)
 - `pytest`     (smoke tests)
 
-No `seaborn`, no `plotly`, no LaTeX engine required.
+No `seaborn`, no `plotly` required.
+
+PDF output works with no LaTeX engine. PGF output (see below) additionally
+requires `lualatex` on `$PATH`; if it is missing the script prints a single
+warning to stderr and writes only the PDFs.
 
 ## Running the benchmarks first
 
@@ -74,6 +78,15 @@ All PDFs are vector, single-page, with stable colours per variant
 (`VARIANT_COLOURS` at the top of `plot.py`). 1-σ shaded bands are computed
 across the per-cell run repetitions on every line plot.
 
+### PGF companions
+
+Alongside each `<name>.pdf` the script also writes `<name>.pgf` so the
+thesis can `\input{<name>.pgf}` for native font and size matching with the
+surrounding LaTeX document. The PGF backend is configured for `lualatex`
+(matching the TAU thesis class). If `lualatex` is not installed locally —
+typical on minimal CI environments — the script prints a single warning to
+stderr and skips PGF output for that invocation; PDFs are still written.
+
 ## Smoke test
 
 The fixtures in `tools/benchmarks/scripts/test-fixtures/` are tiny synthetic
@@ -102,7 +115,9 @@ reads the same JSON shape; do not add it to `plot.py`.
 
 ## Style notes
 
-- Backend forced to `pdf` (vector). No PNG output.
+- Backend forced to `pdf` (vector). No PNG output. A `.pgf` companion is
+  written for each figure via per-savefig backend selection; the global
+  backend stays on `pdf`.
 - Legends are placed below the figure so they cannot occlude data.
 - Spines top/right removed; light dotted grid for readability.
 - Same colour for the same variant in every figure (define a new entry in
@@ -112,8 +127,16 @@ reads the same JSON shape; do not add it to `plot.py`.
 
 - **`ModuleNotFoundError: matplotlib`** — install `requirements.txt` (or
   activate your venv).
+- **`error: <foo>.json not found` / `not valid JSON` / `has no 'runs' key`**
+  — file-load failures are reported as a single one-line stderr message and
+  exit code 2 (instead of a Python traceback). When running `all`, a single
+  bad file only skips that feature; the others still render.
 - **`SystemExit: <foo>.json contained no runs`** — the JSON file exists but
   its `runs` array is empty. Re-run the corresponding benchmark.
+- **`warning: PGF output skipped because lualatex is not available`** —
+  install `lualatex` (TeX Live's `texlive-luatex` package on Debian-family
+  distros) if you want the `.pgf` companions. Otherwise the PDFs are still
+  written and the warning is harmless.
 - **All bars/lines cluster at zero** — likely caused by mixing `Us` and `Ms`
   values; inspect the JSON. The script only divides `totalUs` by 1000 for the
   y-axis, so if a benchmark wrote ms into `totalUs` the units will be wrong.
