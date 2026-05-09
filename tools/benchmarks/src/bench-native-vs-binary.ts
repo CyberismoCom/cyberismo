@@ -21,10 +21,6 @@ if (!projectPath) {
 
 async function main() {
   const commands = await CommandManager.getInstance(projectPath);
-  const engine = commands.calculateCmd;
-
-  // Generate logic program
-  await engine.generate();
   const clingo = commands.project.calculationEngine.context;
 
   // Compile the Handlebars query template (no options = full tree query)

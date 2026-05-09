@@ -26,7 +26,6 @@ async function main() {
   console.error(`Scaling project to ${SCALE} cards...`);
   const tmpDir = await scaleProject(projectPath, SCALE, TEMPLATE);
   const commands = await CommandManager.getInstance(tmpDir);
-  await commands.calculateCmd.generate();
   const clingo = commands.project.calculationEngine.context;
 
   const treeQuery = Handlebars.compile(lpFiles.queries.tree)({});

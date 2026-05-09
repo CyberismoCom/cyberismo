@@ -66,6 +66,10 @@ export class CalculationEngine {
 
   private clingo = new ClingoContext();
 
+  public get context(): ClingoContext {
+    return this.clingo;
+  }
+
   private get logger() {
     return getChildLogger({
       module: 'calculate',

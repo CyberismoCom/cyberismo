@@ -29,7 +29,6 @@ async function main() {
   console.error('Warming up native addon...');
   const warmupTmpDir = await scaleProject(projectPath, SCALE_MIN, TEMPLATE);
   const warmupCmds = await CommandManager.getInstance(warmupTmpDir);
-  await warmupCmds.calculateCmd.generate();
   const clingo = warmupCmds.project.calculationEngine.context;
   for (let i = 0; i < WARMUP_RUNS; i++) {
     clearCache();
@@ -48,7 +47,6 @@ async function main() {
       commands = warmupCmds;
     } else {
       commands = await CommandManager.getInstance(tmpDir);
-      await commands.calculateCmd.generate();
     }
     const ctx = commands.project.calculationEngine.context;
 
