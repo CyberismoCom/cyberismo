@@ -75,7 +75,10 @@ describe.skipIf(!hasGringo)('fastScaleProject', () => {
       let fastCards: Array<{ key: string; metadata?: { cardType?: string } }> =
         [];
       let cardsPerInstance = 0;
-      let answerCount = 0;
+      let fastCardFactCount = 0;
+      let fastTotalCardCount = 0;
+      let fastLpSize = 0;
+      let slowLpSize = 0;
 
       beforeAll(async () => {
         // Slow path
@@ -87,6 +90,12 @@ describe.skipIf(!hasGringo)('fastScaleProject', () => {
             key: x.key,
             metadata: x.metadata,
           }));
+        {
+          const ctx = mgr.project.calculationEngine.context;
+          const treeQuery = Handlebars.compile(lpFiles.queries.tree)({});
+          const program = ctx.buildProgram(treeQuery, ['all']);
+          slowLpSize = Buffer.byteLength(program, 'utf-8');
+        }
         mgr.project.dispose();
 
         // Fast path
@@ -99,10 +108,17 @@ describe.skipIf(!hasGringo)('fastScaleProject', () => {
             key: x.key,
             metadata: x.metadata,
           }));
-        // Build tree query program and solve once for structural validity.
+        fastTotalCardCount = mgr.project.cards().length;
+        // Build tree query program for structural validity. We count
+        // `card(<key>).` facts directly (lines ending with `).` to skip the
+        // `card(C) :- ...` rule emitted from common/base.lp): this catches the
+        // case where the calculation engine's program store wasn't refreshed
+        // after the bulk on-disk replication.
         const treeQuery = Handlebars.compile(lpFiles.queries.tree)({});
-        const result = await ctx.solve(treeQuery, ['all']);
-        answerCount = result.answers?.length ?? 0;
+        const program = ctx.buildProgram(treeQuery, ['all']);
+        fastLpSize = Buffer.byteLength(program, 'utf-8');
+        const cardFactMatches = program.match(/^card\([^)]+\)\.\s*$/gm);
+        fastCardFactCount = cardFactMatches?.length ?? 0;
         mgr.project.dispose();
 
         // cardsPerInstance: 1 for the page template, 41 for secdeva/project.
@@ -137,8 +153,21 @@ describe.skipIf(!hasGringo)('fastScaleProject', () => {
         }
       });
 
-      it('fast-path project produces at least one Clingo answer set for the tree query', () => {
-        expect(answerCount).toBeGreaterThanOrEqual(1);
+      it('fast-path LP includes facts for every replicated card', () => {
+        // Direct check that the calculation engine's program store sees ALL
+        // cards, not just the seed instance. If `fastScaleProject` forgets to
+        // refresh the calc engine after the bulk on-disk replication, only the
+        // seed-instance card facts end up in the built program and this
+        // expectation fails.
+        expect(fastCardFactCount).toBe(fastTotalCardCount);
+      });
+
+      it('fast-path LP size is comparable to slow-path LP size', () => {
+        // Regression guard: the LP must scale with cardCount. If the calc
+        // engine isn't regenerated, the LP collapses to roughly seed-only size
+        // (a small constant) regardless of `target`, which would be << half of
+        // the slow-path LP at the same scale.
+        expect(fastLpSize).toBeGreaterThanOrEqual(0.5 * slowLpSize);
       });
     });
   }

@@ -187,11 +187,20 @@ function rewriteIndexJson(data: Buffer, keyMap: Map<string, string>): Buffer {
 }
 
 /**
+ * Escape a string so it can be embedded literally in a RegExp source.
+ */
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
  * Rewrite an attachment-bearing file: in the seed, attachment files are named
  * `<seedKey>-<basename>` and `index.adoc` may reference them by that exact
  * name. Replace every `<seedKey>-` prefix occurrence with `<newKey>-`.
  *
- * For text content (index.adoc): substitute any literal `<oldKey>` occurrence
+ * For text content (index.adoc): substitute any whole-word occurrence of a
+ * known seed key with its replacement. Word boundaries (`\b`) prevent
+ * accidental collisions with substrings that just happen to contain a seed key
  * — covers both `image::<seedKey>-...` and any handlebars `{{#image}}` blocks
  * pointing at the renamed attachment file.
  */
@@ -199,15 +208,12 @@ function rewriteTextWithKeys(
   data: Buffer,
   keyMap: Map<string, string>,
 ): Buffer {
-  let text = data.toString('utf-8');
-  // Only rewrite tokens that actually appear in keyMap to avoid accidental
-  // collisions with other strings.
-  for (const [oldKey, newKey] of keyMap) {
-    if (text.includes(oldKey)) {
-      text = text.split(oldKey).join(newKey);
-    }
-  }
-  return Buffer.from(text);
+  if (keyMap.size === 0) return data;
+  const text = data.toString('utf-8');
+  const escaped = [...keyMap.keys()].map(escapeRegExp).join('|');
+  const re = new RegExp(`\\b(?:${escaped})\\b`, 'g');
+  const replaced = text.replace(re, (m) => keyMap.get(m) ?? m);
+  return Buffer.from(replaced);
 }
 
 function rewriteAttachmentName(
@@ -244,130 +250,140 @@ export async function fastScaleProject(
 ): Promise<string> {
   // 1. Copy project to temp directory.
   const tmpDir = await mkdtemp(join(tmpdir(), 'cyberismo-bench-fast-'));
-  await cp(projectPath, tmpDir, { recursive: true });
+  try {
+    await cp(projectPath, tmpDir, { recursive: true });
 
-  const commands = await CommandManager.getInstance(tmpDir);
-  const initialCount = commands.project.cards().length;
-  if (initialCount >= targetCount) {
-    console.error(
-      `Project already has ${initialCount} cards (target: ${targetCount})`,
-    );
-    return tmpDir;
-  }
-
-  // 2. Seed: pay the createCard cost ONCE.
-  const seedCards = await commands.createCmd.createCard(templateName);
-  const cardsPerInstance = seedCards.length;
-  if (cardsPerInstance === 0) {
-    await rm(tmpDir, { recursive: true, force: true });
-    throw new Error(
-      `Template '${templateName}' produces 0 cards — cannot scale`,
-    );
-  }
-
-  // 3. Identify top-level seed cards (parent === ROOT/'root') and the full
-  //    set of seed keys (top + nested).
-  const seedKeys = new Set(seedCards.map((c) => c.key));
-  const seedTopLevelKeys = seedCards
-    .filter((c) => !c.parent || c.parent === 'root')
-    .map((c) => c.key);
-  if (seedTopLevelKeys.length === 0) {
-    await rm(tmpDir, { recursive: true, force: true });
-    throw new Error(
-      `Template '${templateName}' did not produce any top-level cards`,
-    );
-  }
-
-  const cardRoot = join(tmpDir, 'cardRoot');
-  const projectPrefix = commands.project.projectPrefix;
-
-  // 4. Snapshot the seed instance's on-disk subtree.
-  const snapshot = await snapshotSeedInstance(
-    cardRoot,
-    seedTopLevelKeys,
-    seedKeys,
-  );
-
-  let currentCount = initialCount + cardsPerInstance;
-  console.error(
-    `[fast] Template '${templateName}' produces ${cardsPerInstance} card(s). Initial: ${initialCount}, target: ${targetCount}. Seed keys: ${seedKeys.size}, top-level: ${seedTopLevelKeys.length}`,
-  );
-
-  // 5. Replicate. Use a deterministic counter-based key scheme that won't
-  //    collide with the seed (seed keys are 8-char base36; we use a different
-  //    pattern: <prefix>_b<n>).
-  let keyCounter = 0;
-  while (currentCount < targetCount) {
-    // Generate a fresh key map for this instance.
-    const keyMap = new Map<string, string>();
-    for (const seedKey of seedKeys) {
-      // Unique, collision-free with seed keys (which never match this pattern).
-      const newKey = `${projectPrefix}_b${keyCounter++}`;
-      keyMap.set(seedKey, newKey);
+    const commands = await CommandManager.getInstance(tmpDir);
+    const initialCount = commands.project.cards().length;
+    if (initialCount >= targetCount) {
+      console.error(
+        `Project already has ${initialCount} cards (target: ${targetCount})`,
+      );
+      return tmpDir;
     }
 
-    // Reconstruct subtrees on disk.
-    for (const seedTopKey of snapshot.topLevelKeys) {
-      const newTopKey = keyMap.get(seedTopKey);
-      if (!newTopKey) {
-        throw new Error(
-          `internal: seed top-level key ${seedTopKey} missing from keyMap`,
-        );
+    // 2. Seed: pay the createCard cost ONCE.
+    const seedCards = await commands.createCmd.createCard(templateName);
+    const cardsPerInstance = seedCards.length;
+    if (cardsPerInstance === 0) {
+      throw new Error(
+        `Template '${templateName}' produces 0 cards — cannot scale`,
+      );
+    }
+
+    // 3. Identify top-level seed cards (parent === ROOT/'root') and the full
+    //    set of seed keys (top + nested).
+    const seedKeys = new Set(seedCards.map((c) => c.key));
+    const seedTopLevelKeys = seedCards
+      .filter((c) => !c.parent || c.parent === 'root')
+      .map((c) => c.key);
+    if (seedTopLevelKeys.length === 0) {
+      throw new Error(
+        `Template '${templateName}' did not produce any top-level cards`,
+      );
+    }
+
+    const cardRoot = join(tmpDir, 'cardRoot');
+    const projectPrefix = commands.project.projectPrefix;
+
+    // 4. Snapshot the seed instance's on-disk subtree.
+    const snapshot = await snapshotSeedInstance(
+      cardRoot,
+      seedTopLevelKeys,
+      seedKeys,
+    );
+
+    let currentCount = initialCount + cardsPerInstance;
+    console.error(
+      `[fast] Template '${templateName}' produces ${cardsPerInstance} card(s). Initial: ${initialCount}, target: ${targetCount}. Seed keys: ${seedKeys.size}, top-level: ${seedTopLevelKeys.length}`,
+    );
+
+    // 5. Replicate. Use a deterministic counter-based key scheme that won't
+    //    collide with the seed (seed keys are 8-char base36; we use a different
+    //    pattern: <prefix>_b<n>).
+    let keyCounter = 0;
+    while (currentCount < targetCount) {
+      // Generate a fresh key map for this instance.
+      const keyMap = new Map<string, string>();
+      for (const seedKey of seedKeys) {
+        // Unique, collision-free with seed keys (which never match this pattern).
+        const newKey = `${projectPrefix}_b${keyCounter++}`;
+        keyMap.set(seedKey, newKey);
       }
-      const newTopDir = join(cardRoot, newTopKey);
-      const nodes = snapshot.subtrees.get(seedTopKey);
-      if (!nodes) {
-        throw new Error(
-          `internal: seed subtree for ${seedTopKey} missing from snapshot`,
-        );
-      }
-      for (const node of nodes) {
-        const newRelDir = rewritePath(node.relativeDir, keyMap);
-        const dirAbs = newRelDir ? join(newTopDir, newRelDir) : newTopDir;
-        await mkdir(dirAbs, { recursive: true });
-        for (const file of node.files) {
-          let data: Buffer;
-          let outName = file.name;
-          if (file.name === 'index.json') {
-            data = rewriteIndexJson(file.data, keyMap);
-          } else if (file.name === 'index.adoc') {
-            data = rewriteTextWithKeys(file.data, keyMap);
-          } else if (
-            newRelDir.split(sep).pop() === 'a' ||
-            node.relativeDir.split(sep).pop() === 'a'
-          ) {
-            // Attachment: rewrite filename prefix and (if text) any embedded
-            // key references. Most attachments are binary (svg/png/...), in
-            // which case key prefix replacement on the raw bytes for binary
-            // formats would be unsafe. We only touch the FILENAME for
-            // attachments — content is copied verbatim.
-            outName = rewriteAttachmentName(file.name, keyMap);
-            data = file.data;
-          } else {
-            // Unknown file under a card dir (e.g. .schema). Pass through.
-            data = file.data;
+
+      // Reconstruct subtrees on disk.
+      for (const seedTopKey of snapshot.topLevelKeys) {
+        const newTopKey = keyMap.get(seedTopKey);
+        if (!newTopKey) {
+          throw new Error(
+            `internal: seed top-level key ${seedTopKey} missing from keyMap`,
+          );
+        }
+        const newTopDir = join(cardRoot, newTopKey);
+        const nodes = snapshot.subtrees.get(seedTopKey);
+        if (!nodes) {
+          throw new Error(
+            `internal: seed subtree for ${seedTopKey} missing from snapshot`,
+          );
+        }
+        for (const node of nodes) {
+          const newRelDir = rewritePath(node.relativeDir, keyMap);
+          const dirAbs = newRelDir ? join(newTopDir, newRelDir) : newTopDir;
+          await mkdir(dirAbs, { recursive: true });
+          for (const file of node.files) {
+            let data: Buffer;
+            let outName = file.name;
+            if (file.name === 'index.json') {
+              data = rewriteIndexJson(file.data, keyMap);
+            } else if (file.name === 'index.adoc') {
+              data = rewriteTextWithKeys(file.data, keyMap);
+            } else if (
+              newRelDir.split(sep).pop() === 'a' ||
+              node.relativeDir.split(sep).pop() === 'a'
+            ) {
+              // Attachment: rewrite filename prefix and (if text) any embedded
+              // key references. Most attachments are binary (svg/png/...), in
+              // which case key prefix replacement on the raw bytes for binary
+              // formats would be unsafe. We only touch the FILENAME for
+              // attachments — content is copied verbatim.
+              outName = rewriteAttachmentName(file.name, keyMap);
+              data = file.data;
+            } else {
+              // Unknown file under a card dir (e.g. .schema). Pass through.
+              data = file.data;
+            }
+            await writeFile(join(dirAbs, outName), data);
           }
-          await writeFile(join(dirAbs, outName), data);
         }
       }
+
+      currentCount += cardsPerInstance;
+      if (currentCount % 500 === 0 || currentCount >= targetCount) {
+        console.error(`  [fast] ${currentCount} / ${targetCount} cards`);
+      }
     }
 
-    currentCount += cardsPerInstance;
-    if (currentCount % 500 === 0 || currentCount >= targetCount) {
-      console.error(`  [fast] ${currentCount} / ${targetCount} cards`);
-    }
+    console.error(
+      `[fast] Scaled to ${currentCount} cards (scratch: ${tmpDir})`,
+    );
+    // We wrote files directly to disk, bypassing the card cache. The
+    // CommandManager singleton is re-used by the caller (the second
+    // getInstance(tmpDir) returns the SAME live instance), so we must refresh
+    // the cache from disk now or the caller's `commands.project.cards()`
+    // will only see the seed instance.
+    commands.project.cardsCache.clear();
+    await commands.project.cardsCache.populateFromPath(cardRoot);
+    // Re-run the calculation engine setup over the now-fully-populated cache
+    // so the Clingo program store has facts for every replicated card. Without
+    // this, callers who later run `buildProgram` / `solve` would only see the
+    // seed instance's facts, leaving the LP undersized.
+    await commands.project.calculationEngine.generate();
+    // Match the slow path's contract: do NOT dispose. Caller owns the lifetime.
+    return tmpDir;
+  } catch (err) {
+    await rm(tmpDir, { recursive: true, force: true });
+    throw err;
   }
-
-  console.error(`[fast] Scaled to ${currentCount} cards (scratch: ${tmpDir})`);
-  // We wrote files directly to disk, bypassing the card cache. The
-  // CommandManager singleton is re-used by the caller (the second
-  // getInstance(tmpDir) returns the SAME live instance), so we must refresh
-  // the cache from disk now or the caller's `commands.project.cards()`
-  // will only see the seed instance.
-  commands.project.cardsCache.clear();
-  await commands.project.cardsCache.populateFromPath(cardRoot);
-  // Match the slow path's contract: do NOT dispose. Caller owns the lifetime.
-  return tmpDir;
 }
 
 /**
