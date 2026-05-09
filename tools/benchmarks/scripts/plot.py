@@ -659,11 +659,69 @@ def _plot_phase_cell(
     save_figure(fig, out_path)
 
 
+def _plot_phase_progression(
+    sub: pd.DataFrame,
+    target_variants: list[str],
+    project: str,
+    out_path: Path,
+) -> None:
+    """Per-variant stacked bars across scales, one panel per variant.
+    Shows how each phase grows with project size."""
+    psub = sub[sub["project"] == project].copy()
+    if psub.empty:
+        return
+
+    variants_present = [v for v in target_variants if v in psub["variant"].unique()]
+    if not variants_present:
+        return
+
+    n = len(variants_present)
+    fig, axes = plt.subplots(1, n, figsize=(4.0 * n, 4.4), sharey=True)
+    if n == 1:
+        axes = [axes]
+
+    for ax, variant in zip(axes, variants_present):
+        vsub = psub[psub["variant"] == variant]
+        means = (
+            vsub.groupby("cardCount")[PHASE_COMPONENTS]
+            .mean()
+            .sort_index()
+        ) / 1000.0  # us → ms
+        scales = means.index.to_numpy().astype(int)
+        positions = np.arange(len(scales))
+        bottoms = np.zeros(len(scales))
+        for component in PHASE_COMPONENTS:
+            vals = means[component].fillna(0.0).to_numpy()
+            ax.bar(
+                positions,
+                vals,
+                bottom=bottoms,
+                color=PHASE_COLOURS[component],
+                label=PHASE_LABELS[component],
+                edgecolor="black",
+                linewidth=0.3,
+                width=0.7,
+            )
+            bottoms += vals
+        ax.set_xticks(positions)
+        ax.set_xticklabels([str(s) for s in scales], rotation=45, ha="right")
+        ax.set_title(variant)
+        ax.set_xlabel("cards")
+
+    axes[0].set_ylabel("time (ms)")
+    place_legend_below(fig, axes, ncol=4)
+    fig.suptitle(
+        f"Phase progression across scale — {project_pretty(project)}, tree query",
+        y=1.02,
+    )
+    save_figure(fig, out_path)
+
+
 def plot_main_phase_breakdown(df: pd.DataFrame, output_dir: Path) -> list[Path]:
-    """Phase breakdown stacked bars per (project, scale) for native variants
-    on the tree query. Produces one figure per cell so you can see how the
-    phase distribution shifts with project size — e.g. add/parsing share
-    shrinking as ground/solve grow."""
+    """Phase breakdown for native variants on the tree query. Emits:
+      - per-(project, scale) cell figures into phase-breakdown/  (deep dive)
+      - per-project progression figures (variants × scales side-by-side)
+    Pick whichever serves the chapter better."""
     sub = df[df["query"] == "tree"].copy()
     target_variants = [
         "c-api",
@@ -674,21 +732,27 @@ def plot_main_phase_breakdown(df: pd.DataFrame, output_dir: Path) -> list[Path]:
     if sub.empty:
         raise SystemExit("main.json had no native tree records for phase breakdown")
 
-    out_dir = output_dir / "phase-breakdown"
-    out_dir.mkdir(parents=True, exist_ok=True)
     out_paths: list[Path] = []
 
-    # One figure per (project, scale) cell.
+    # Per-cell figures (one per project × scale).
+    cell_dir = output_dir / "phase-breakdown"
+    cell_dir.mkdir(parents=True, exist_ok=True)
     for (project, scale), cell in sub.groupby(["project", "cardCount"]):
         scale_int = int(scale)
         title = (
             f"Phase breakdown — {project_pretty(project)}, {scale_int} cards, tree query"
         )
         out_path = (
-            out_dir
-            / f"main-phase-breakdown-{project}-{scale_int}.pdf"
+            cell_dir / f"main-phase-breakdown-{project}-{scale_int}.pdf"
         )
         _plot_phase_cell(cell, target_variants, title, out_path)
+        if out_path.exists():
+            out_paths.append(out_path)
+
+    # Per-project progression figure (one panel per variant, scales along x).
+    for project in sorted(sub["project"].unique()):
+        out_path = output_dir / f"main-phase-progression-{project}.pdf"
+        _plot_phase_progression(sub, target_variants, project, out_path)
         if out_path.exists():
             out_paths.append(out_path)
 
