@@ -620,29 +620,19 @@ def plot_main_tree_speedup(df: pd.DataFrame, output_dir: Path) -> Path:
     return out
 
 
-def plot_main_phase_breakdown(df: pd.DataFrame, output_dir: Path) -> Path:
-    """Stacked bar at the largest available scale, eucra preferred, native variants."""
-    sub = df[df["query"] == "tree"].copy()
-    target_variants = [
-        "c-api",
-        "c-api+resultfield",
-        "c-api+preparsing",
-    ]
-    sub = sub[sub["variant"].isin(target_variants)].copy()
-    if sub.empty:
-        raise SystemExit("main.json had no native tree records for phase breakdown")
-
-    project_choice = "eucra" if "eucra" in sub["project"].unique() else sorted(sub["project"].unique())[0]
-    psub = sub[sub["project"] == project_choice]
-    target_scale = int(psub["cardCount"].max())  # largest available scale
-    cell = psub[psub["cardCount"] == target_scale]
-    if cell.empty:
-        raise SystemExit(f"No phase-breakdown data for project {project_choice}")
-
+def _plot_phase_cell(
+    cell: pd.DataFrame,
+    target_variants: list[str],
+    title: str,
+    out_path: Path,
+) -> None:
+    """Single phase-breakdown stacked bar for a (project, scale, query) cell."""
     means = (
         cell.groupby("variant")[PHASE_COMPONENTS].mean().reindex(target_variants)
     ) / 1000.0  # us → ms
     means = means.dropna(how="all")
+    if means.empty:
+        return
 
     fig, ax = plt.subplots(figsize=(6.0, 4.2))
     x = np.arange(len(means.index))
@@ -664,13 +654,45 @@ def plot_main_phase_breakdown(df: pd.DataFrame, output_dir: Path) -> Path:
     ax.set_xticks(x)
     ax.set_xticklabels(means.index, rotation=15, ha="right")
     ax.set_ylabel("time (ms)")
-    ax.set_title(
-        f"Main scaling: phase breakdown ({project_pretty(project_choice)}, {target_scale} cards, tree query)"
-    )
+    ax.set_title(title)
     ax.legend(loc="best", title="phase")
-    out = output_dir / "main-phase-breakdown.pdf"
-    save_figure(fig, out)
-    return out
+    save_figure(fig, out_path)
+
+
+def plot_main_phase_breakdown(df: pd.DataFrame, output_dir: Path) -> list[Path]:
+    """Phase breakdown stacked bars per (project, scale) for native variants
+    on the tree query. Produces one figure per cell so you can see how the
+    phase distribution shifts with project size — e.g. add/parsing share
+    shrinking as ground/solve grow."""
+    sub = df[df["query"] == "tree"].copy()
+    target_variants = [
+        "c-api",
+        "c-api+resultfield",
+        "c-api+preparsing",
+    ]
+    sub = sub[sub["variant"].isin(target_variants)].copy()
+    if sub.empty:
+        raise SystemExit("main.json had no native tree records for phase breakdown")
+
+    out_dir = output_dir / "phase-breakdown"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_paths: list[Path] = []
+
+    # One figure per (project, scale) cell.
+    for (project, scale), cell in sub.groupby(["project", "cardCount"]):
+        scale_int = int(scale)
+        title = (
+            f"Phase breakdown — {project_pretty(project)}, {scale_int} cards, tree query"
+        )
+        out_path = (
+            out_dir
+            / f"main-phase-breakdown-{project}-{scale_int}.pdf"
+        )
+        _plot_phase_cell(cell, target_variants, title, out_path)
+        if out_path.exists():
+            out_paths.append(out_path)
+
+    return out_paths
 
 
 def plot_main_incremental_decomp(df: pd.DataFrame, output_dir: Path) -> Path:
@@ -782,8 +804,8 @@ def plot_main(results_dir: Path, output_dir: Path) -> list[Path]:
     out: list[Path] = [
         plot_main_tree_scaling(df, output_dir),
         plot_main_tree_speedup(df, output_dir),
-        plot_main_phase_breakdown(df, output_dir),
     ]
+    out.extend(plot_main_phase_breakdown(df, output_dir))
     rendering = plot_main_rendering(df, output_dir)
     if rendering is not None:
         out.append(rendering)
