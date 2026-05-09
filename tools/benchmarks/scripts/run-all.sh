@@ -41,12 +41,7 @@ for proj_dir in "$FIXTURES_DIR"/*/; do
 done
 echo ""
 
-echo "--- bench-main (6 variants × queries × scales × projects) ---"
-"$TSX" "$BENCH_DIR/src/bench-main.ts" "$FIXTURES_DIR" "$OUTPUT_DIR/main-$HOST.json"
 
-echo ""
-echo "--- bench-caching (cache-disabled, cache-miss, cache-hit) ---"
-"$TSX" "$BENCH_DIR/src/bench-caching.ts" "$FIXTURES_DIR" "$OUTPUT_DIR/caching-$HOST.json"
 
 echo ""
 echo "--- bench-threading (async vs sync at scale=200) ---"
@@ -55,6 +50,13 @@ UV_THREADPOOL_SIZE=$(nproc) "$TSX" "$BENCH_DIR/src/bench-threading.ts" "$FIXTURE
 echo ""
 echo "--- bench-solver-stats (rules/atoms/equivalences for QL comparison) ---"
 "$TSX" "$BENCH_DIR/src/bench-solver-stats.ts" "$FIXTURES_DIR" "$OUTPUT_DIR/solver-stats-$HOST.json"
+
+echo "--- bench-main (6 variants × queries × scales × projects) ---"
+"$TSX" "$BENCH_DIR/src/bench-main.ts" "$FIXTURES_DIR" "$OUTPUT_DIR/main-$HOST.json"
+
+echo ""
+echo "--- bench-caching (cache-disabled, cache-miss, cache-hit) ---"
+"$TSX" "$BENCH_DIR/src/bench-caching.ts" "$FIXTURES_DIR" "$OUTPUT_DIR/caching-$HOST.json"
 
 echo ""
 echo "=== Done on $HOST. Per-machine results in $OUTPUT_DIR ==="
