@@ -13,7 +13,9 @@
     "bench:aspif": "tsx src/bench-aspif.ts",
     "bench:scaling": "tsx src/bench-scaling.ts",
     "bench:solver-stats": "tsx src/bench-solver-stats.ts",
-    "bench:main": "tsx src/bench-main.ts"
+    "bench:main": "tsx src/bench-main.ts",
+    "bench:gen-fixtures": "tsx src/generate-fixtures.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@cyberismo/data-handler": "workspace:*",
@@ -23,6 +25,7 @@
   },
   "devDependencies": {
     "tsx": "^4.19.0",
-    "typescript": "^5.8.0"
+    "typescript": "^5.8.0",
+    "vitest": "^4.0.15"
   }
 }
