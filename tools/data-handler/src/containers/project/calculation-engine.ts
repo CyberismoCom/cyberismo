@@ -51,6 +51,7 @@ import type {
   Workflow,
 } from '../../interfaces/resource-interfaces.js';
 import { ClingoContext } from '@cyberismo/node-clingo';
+import type { ClingoOptions } from '@cyberismo/node-clingo';
 import { generateReportContent } from '../../utils/report.js';
 import { lpFiles, graphvizReport } from '@cyberismo/assets';
 import {
@@ -285,6 +286,25 @@ export class CalculationEngine {
       );
       throw error;
     }
+  }
+
+  /**
+   * Replace the underlying ClingoContext with a freshly-constructed one using
+   * the given options, then re-run `generate()` to repopulate every program
+   * (cards, calculations, query language, utils) into the new context.
+   *
+   * Use this when you need pre-parsing or other context-construction options
+   * to take effect — programs must be (re-)set on a context that already has
+   * the right options.
+   */
+  public async replaceContext(options?: ClingoOptions): Promise<void> {
+    // dispose the previous context if it exposes a dispose method
+    const prev = this.clingo as unknown as { dispose?: () => void };
+    if (typeof prev.dispose === 'function') {
+      prev.dispose();
+    }
+    this.clingo = new ClingoContext(options);
+    await this.generate();
   }
 
   /**

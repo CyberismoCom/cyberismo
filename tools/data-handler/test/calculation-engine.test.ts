@@ -89,6 +89,25 @@ describe('calculate', () => {
     expect(decoded).toContain('Approved');
   }, 20000);
 
+  describe('replaceContext', () => {
+    it('keeps queries working after swapping the underlying ClingoContext', async () => {
+      // Capture the original context reference, then swap it out.
+      const originalContext = project.calculationEngine.context;
+      await project.calculationEngine.replaceContext({ preParsing: false });
+      const swappedContext = project.calculationEngine.context;
+      // The internal ClingoContext must have been replaced.
+      expect(swappedContext).not.toBe(originalContext);
+
+      // After swap, generate() has been re-run by replaceContext, so named
+      // queries must keep working against the freshly-populated programs.
+      const res = await project.calculationEngine.runQuery('tree');
+      expect(res.length).toBeGreaterThan(0);
+
+      // Restore default options so the rest of the suite is unaffected.
+      await project.calculationEngine.replaceContext({});
+    }, 30000);
+  });
+
   describe('python functions', () => {
     it('concatenate a string, a number and a constant', async () => {
       const res = await project.calculationEngine.runLogicProgram(

@@ -38,7 +38,8 @@ VARIANT_COLOURS: dict[str, str] = {
     "baseline+resultfield":  "#1f77b4",  # blue
     "c-api":                 "#ff7f0e",  # orange
     "c-api+resultfield":     "#2ca02c",  # green
-    "c-api+aspif":           "#d62728",  # red
+    "c-api+aspif":           "#d62728",  # red (legacy variant name; kept so older JSONs still plot)
+    "c-api+preparsing":      "#d62728",  # red (current name for the pre-parsing variant)
     "incremental":           "#9467bd",  # purple
     # caching
     "cache-enabled":         "#1f77b4",
@@ -57,6 +58,8 @@ VARIANT_ORDER_MAIN = [
     "baseline+resultfield",
     "c-api",
     "c-api+resultfield",
+    "c-api+preparsing",
+    # Legacy name retained so historical JSONs still render in the same slot.
     "c-api+aspif",
     "incremental",
 ]
@@ -519,7 +522,15 @@ def plot_main_tree_speedup(df: pd.DataFrame, output_dir: Path) -> Path:
 def plot_main_phase_breakdown(df: pd.DataFrame, output_dir: Path) -> Path:
     """Stacked bar at the largest available scale, eucra preferred, native variants."""
     sub = df[df["query"] == "tree"].copy()
-    target_variants = ["c-api", "c-api+resultfield", "c-api+aspif"]
+    # Include the legacy `c-api+aspif` name alongside the current
+    # `c-api+preparsing` so older JSONs still render correctly. Whichever is
+    # present in the data takes the slot; the other is dropped via `dropna`.
+    target_variants = [
+        "c-api",
+        "c-api+resultfield",
+        "c-api+preparsing",
+        "c-api+aspif",
+    ]
     sub = sub[sub["variant"].isin(target_variants)].copy()
     if sub.empty:
         raise SystemExit("main.json had no native tree records for phase breakdown")
@@ -624,7 +635,14 @@ def plot_main_rendering(df: pd.DataFrame, output_dir: Path) -> Path:
     sub = df[df["query"] == "rendering"].copy()
     if sub.empty:
         raise SystemExit("main.json had no rendering records")
-    target_variants = ["c-api", "c-api+aspif", "baseline+resultfield"]
+    # Accept both the legacy `c-api+aspif` and the current `c-api+preparsing`
+    # rendering records so older JSONs still plot.
+    target_variants = [
+        "c-api",
+        "c-api+preparsing",
+        "c-api+aspif",
+        "baseline+resultfield",
+    ]
     sub = sub[sub["variant"].isin(target_variants)].copy()
     if sub.empty:
         raise SystemExit("main.json had no rendering data for target variants")
