@@ -28,7 +28,11 @@ interface NativeClingoContext {
   setProgram(key: string, program: string, categories: string[]): void;
   removeProgram(key: string): boolean;
   removeAllPrograms(): void;
-  solve(program: string, categories: string[]): Promise<RawClingoResult>;
+  solve(
+    program: string,
+    categories: string[],
+    options?: SolveOptions,
+  ): Promise<RawClingoResult>;
   buildProgram(program: string, categories: string[]): string;
 }
 
@@ -123,6 +127,19 @@ export interface ClingoOptions {
 }
 
 /**
+ * Per-call options for {@link ClingoContext.solve}.
+ */
+export interface SolveOptions {
+  /**
+   * When false, this call acts as if there is no cache: the cache key hash is
+   * not computed, the shared result cache is not consulted, and the result
+   * produced by this call is not stored. The returned `stats.cacheHit` is
+   * always `false` in this mode. Default: true.
+   */
+  cache?: boolean;
+}
+
+/**
  * A Clingo solver instance with its own isolated program store.
  * The solve result cache is shared globally across all instances.
  */
@@ -166,15 +183,21 @@ export class ClingoContext {
    * Solves a logic program.
    * @param program The logic program as a string
    * @param categories Optional array of program keys or categories to include
+   * @param options Optional per-call options. Pass `{ cache: false }` to bypass
+   *   the shared result cache entirely for this call.
    * @returns Promise resolving to answers and execution stats
    */
-  async solve(program: string, categories?: string[]): Promise<ClingoResult> {
+  async solve(
+    program: string,
+    categories?: string[],
+    options?: SolveOptions,
+  ): Promise<ClingoResult> {
     if (!program) {
       throw new Error('No program provided');
     }
 
     try {
-      return await this._ctx.solve(program, categories ?? []);
+      return await this._ctx.solve(program, categories ?? [], options);
     } catch (error) {
       if (
         error instanceof Error &&
