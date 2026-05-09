@@ -664,9 +664,11 @@ def _plot_phase_progression(
     target_variants: list[str],
     project: str,
     out_path: Path,
+    normalised: bool = False,
 ) -> None:
     """Per-variant stacked bars across scales, one panel per variant.
-    Shows how each phase grows with project size."""
+    If `normalised` is True, each bar is 100% so the composition shift
+    is visible without being dominated by the absolute-time growth."""
     psub = sub[sub["project"] == project].copy()
     if psub.empty:
         return
@@ -687,6 +689,10 @@ def _plot_phase_progression(
             .mean()
             .sort_index()
         ) / 1000.0  # us → ms
+        if normalised:
+            row_sums = means.sum(axis=1)
+            row_sums = row_sums.replace(0, np.nan)
+            means = means.div(row_sums, axis=0).fillna(0.0) * 100.0
         scales = means.index.to_numpy().astype(int)
         positions = np.arange(len(scales))
         bottoms = np.zeros(len(scales))
@@ -707,11 +713,14 @@ def _plot_phase_progression(
         ax.set_xticklabels([str(s) for s in scales], rotation=45, ha="right")
         ax.set_title(variant)
         ax.set_xlabel("cards")
+        if normalised:
+            ax.set_ylim(0, 100)
 
-    axes[0].set_ylabel("time (ms)")
+    axes[0].set_ylabel("share of total time (%)" if normalised else "time (ms)")
     place_legend_below(fig, axes, ncol=4)
     fig.suptitle(
-        f"Phase progression across scale — {project_pretty(project)}, tree query",
+        f"Phase progression across scale — {project_pretty(project)}, tree query"
+        + (" (normalised)" if normalised else ""),
         y=1.02,
     )
     save_figure(fig, out_path)
@@ -749,12 +758,17 @@ def plot_main_phase_breakdown(df: pd.DataFrame, output_dir: Path) -> list[Path]:
         if out_path.exists():
             out_paths.append(out_path)
 
-    # Per-project progression figure (one panel per variant, scales along x).
+    # Per-project progression figures (one panel per variant, scales along x).
+    # Both absolute (time in ms) and normalised (% of total) variants —
+    # absolute shows the magnitude, normalised shows composition shift.
     for project in sorted(sub["project"].unique()):
-        out_path = output_dir / f"main-phase-progression-{project}.pdf"
-        _plot_phase_progression(sub, target_variants, project, out_path)
-        if out_path.exists():
-            out_paths.append(out_path)
+        for suffix, normalised in [("", False), ("-normalised", True)]:
+            out_path = output_dir / f"main-phase-progression-{project}{suffix}.pdf"
+            _plot_phase_progression(
+                sub, target_variants, project, out_path, normalised=normalised
+            )
+            if out_path.exists():
+                out_paths.append(out_path)
 
     return out_paths
 
