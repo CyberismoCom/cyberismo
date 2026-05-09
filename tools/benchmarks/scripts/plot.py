@@ -672,51 +672,44 @@ def plot_main_incremental_decomp(df: pd.DataFrame, output_dir: Path) -> Path:
     if sub.empty:
         raise SystemExit("main.json had no incremental tree records")
 
-    # gringoMs encoded as glueUs / 1000; clingoMs encoded as solveUs / 1000
-    sub["gringoMs"] = sub["glueUs"] / 1000.0
+    # The bench records only the per-query clingo cost (the prebuilt ASPIF is
+    # generated at fixture-build time). totalUs == solveUs for incremental
+    # records by construction.
     sub["clingoMs"] = sub["solveUs"] / 1000.0
 
     fig, panels = project_panels(sub, figsize=(5.5 * max(len(sub["project"].unique()), 1), 4.0))
-    width = None
     for project, ax in panels.items():
         psub = sub[sub["project"] == project]
         agg = (
-            psub.groupby("cardCount")[["gringoMs", "clingoMs"]]
+            psub.groupby("cardCount")["clingoMs"]
             .agg(["mean", "std"])
             .sort_index()
         )
-        x = agg.index.to_numpy().astype(float)
-        if width is None and len(x) >= 2:
-            width = float(np.min(np.diff(x))) * 0.7
-        elif width is None:
-            width = 0.6
-        gringo = agg[("gringoMs", "mean")].to_numpy()
-        clingo = agg[("clingoMs", "mean")].to_numpy()
+        agg["std"] = agg["std"].fillna(0.0)
+        scales = agg.index.to_numpy().astype(int)
+        positions = np.arange(len(scales))
         ax.bar(
-            x,
-            gringo,
-            width=width,
-            color=PHASE_COLOURS["groundUs"],
-            label="gringo (ground)",
-            edgecolor="black",
-            linewidth=0.3,
-        )
-        ax.bar(
-            x,
-            clingo,
-            bottom=gringo,
-            width=width,
+            positions,
+            agg["mean"].to_numpy(),
+            yerr=agg["std"].to_numpy(),
+            width=0.7,
             color=PHASE_COLOURS["solveUs"],
-            label="clingo (solve)",
             edgecolor="black",
             linewidth=0.3,
+            label="clingo (solve on prebuilt ASPIF)",
+            capsize=3,
         )
+        ax.set_xticks(positions)
+        ax.set_xticklabels([str(s) for s in scales], rotation=45, ha="right")
         ax.set_title(project_pretty(project))
         ax.set_xlabel("cards")
-        ax.set_ylabel("time (ms)")
+        ax.set_ylabel("per-query time (ms)")
 
-    place_legend_below(fig, panels.values(), ncol=2)
-    fig.suptitle("Main scaling: incremental pipeline decomposition", y=1.02)
+    place_legend_below(fig, panels.values(), ncol=1)
+    fig.suptitle(
+        "Incremental: per-query clingo cost on prebuilt ASPIF (gringo amortised at fixture-build)",
+        y=1.02,
+    )
     out = output_dir / "main-incremental-decomp.pdf"
     save_figure(fig, out)
     return out
