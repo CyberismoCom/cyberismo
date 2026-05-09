@@ -1,17 +1,12 @@
 /**
- * Threading benchmark — consumes pre-generated fixtures across a small
- * set of scales so the per-cell async-vs-sync delta can be observed as
- * project size grows. Scales are chosen as a coarse spread (small, mid,
- * large-ish) rather than the full sweep — the goal is "does the
- * threading speedup hold at scale?", not high-resolution scaling.
- *
- * Each project must have fixtures at every SCALES entry; missing fixtures
- * are skipped with a stderr warning.
+ * Threading benchmark — consumes pre-generated fixtures. Iterates every
+ * (project, scale) cell in the fixture tree, runs RUNS batches of
+ * CONCURRENCY concurrent vs sequential solves, records both per-solve
+ * latency and per-batch wall-clock.
  */
 import { CommandManager } from '@cyberismo/data-handler';
-import { stat } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
-import { listProjects, loadFixture } from './fixture-loader.js';
+import { resolve } from 'node:path';
+import { listProjects, listScales, loadFixture } from './fixture-loader.js';
 import { writeResults, machineName } from './utils.js';
 import type { BenchmarkRun, BenchmarkResult } from './types.js';
 
@@ -28,21 +23,7 @@ if (!fixturesDir) {
 const RUNS = 5; // number of Promise.all batches
 const WARMUP_RUNS = 3; // individual warm-up solves
 const CONCURRENCY = 64; // simultaneous solves per batch
-const SCALES = [200, 1000, 5000, 25000]; // coarse spread; understanding-not-precision
 const FEATURE = 'threading';
-
-async function hasScale(
-  root: string,
-  project: string,
-  scale: number,
-): Promise<boolean> {
-  try {
-    const s = await stat(join(root, project, String(scale)));
-    return s.isDirectory();
-  } catch {
-    return false;
-  }
-}
 
 async function main() {
   const root = resolve(fixturesDir);
@@ -55,14 +36,12 @@ async function main() {
   const allRuns: BenchmarkRun[] = [];
 
   for (const project of projects) {
-    for (const SCALE of SCALES) {
-    if (!(await hasScale(root, project, SCALE))) {
-      console.error(
-        `WARNING: project '${project}' has no scale=${SCALE} fixture — skipping that cell.`,
-      );
+    const scales = await listScales(root, project);
+    if (scales.length === 0) {
+      console.error(`  project=${project}: no scales found, skipping`);
       continue;
     }
-
+    for (const SCALE of scales) {
     console.error(`\n=== project=${project} scale=${SCALE} ===`);
     const bundle = await loadFixture(root, project, SCALE);
     const commands = await CommandManager.getInstance(bundle.projectDir);
