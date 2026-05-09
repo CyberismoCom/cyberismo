@@ -844,63 +844,6 @@ def plot_main_incremental_decomp(df: pd.DataFrame, output_dir: Path) -> Path:
     return out
 
 
-def plot_main_rendering(df: pd.DataFrame, output_dir: Path) -> Path | None:
-    sub = df[df["query"] == "rendering"].copy()
-    if sub.empty:
-        print("main.json had no rendering records", file=sys.stderr)
-        return None
-    # evaluateMacros runs report-query sub-solves through the addon — those
-    # paths only exist for native variants. The baseline+resultfield
-    # "rendering" record actually measures the card-risk LP via clingo
-    # subprocess (the binary can't expand macros), so it's not comparable
-    # here. That data is already present in main-card-risk-scaling.
-    target_variants = [
-        "c-api",
-        "c-api+preparsing",
-    ]
-    sub = sub[sub["variant"].isin(target_variants)].copy()
-    if sub.empty:
-        print(
-            "main.json had no rendering data for target variants",
-            file=sys.stderr,
-        )
-        return None
-
-    fig, panels = project_panels(sub, figsize=(5.5 * max(len(sub["project"].unique()), 1), 4.0))
-    all_means: list[float] = []
-    for project, ax in panels.items():
-        psub = sub[sub["project"] == project]
-        for variant in target_variants:
-            cell = psub[psub["variant"] == variant]
-            if cell.empty:
-                continue
-            agg = aggregate_runs(cell, ["cardCount"]).sort_values("cardCount")
-            line_with_band(
-                ax,
-                agg["cardCount"].to_numpy(),
-                agg["mean"].to_numpy(),
-                agg["std"].to_numpy(),
-                label=variant,
-                colour=variant_colour(variant),
-            )
-            all_means.extend(agg["mean"].tolist())
-        ax.set_title(project_pretty(project))
-        ax.set_xlabel("cards")
-        ax.set_ylabel("total time (ms)")
-
-    # Linear y, log x: linear y honestly shows absolute timing at scale
-    # (log-y compresses the variant gap at large N); log x spreads our
-    # non-uniform scale grid so small-N detail isn't squashed.
-    for ax in panels.values():
-        ax.set_xscale("log")
-
-    place_legend_below(fig, panels.values(), ncol=3)
-    fig.suptitle("Main scaling: rendering pipeline cost vs. project size", y=1.02)
-    out = output_dir / "main-rendering.pdf"
-    save_figure(fig, out)
-    return out
-
-
 def plot_main(results_dir: Path, output_dir: Path) -> list[Path]:
     df = load_runs(results_dir / "main.json")
     if df.empty:
@@ -911,9 +854,6 @@ def plot_main(results_dir: Path, output_dir: Path) -> list[Path]:
         plot_main_tree_speedup(df, output_dir),
     ]
     out.extend(plot_main_phase_breakdown(df, output_dir))
-    rendering = plot_main_rendering(df, output_dir)
-    if rendering is not None:
-        out.append(rendering)
     # Per-card-query scaling + speedup plots (appendix-style figures).
     for q in ["card-leaf-task", "card-phase", "card-risk", "card-root"]:
         s = _plot_main_query_scaling(df, q, output_dir, q)

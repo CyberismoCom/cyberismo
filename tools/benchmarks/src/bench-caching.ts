@@ -26,7 +26,7 @@ if (!fixturesDir) {
   process.exit(1);
 }
 
-const RUNS_PER_POINT = 10;
+const RUNS_PER_POINT = 1;
 const WARMUP_RUNS = 3;
 const FEATURE = 'caching';
 
@@ -83,6 +83,20 @@ async function main() {
       const treeQuery = bundle.queries.tree;
 
       try {
+        // Per-cell warmup: a few throwaway solves through each path so the
+        // first measurement isn't contaminated by JIT / addon-state setup.
+        // Without this, cache-disabled (which runs first in each cell) has
+        // measurements that include first-solve cost while cache-miss gets
+        // the warm path.
+        const VARIANT_WARMUP = 2;
+        for (let i = 0; i < VARIANT_WARMUP; i++) {
+          await ctx.solve(treeQuery, ['all'], { cache: false });
+        }
+        clearCache();
+        for (let i = 0; i < VARIANT_WARMUP; i++) {
+          await ctx.solve(treeQuery, ['all']);
+        }
+
         // ── cache-disabled: bypass cache via { cache: false } ─────────────
         for (let run = 1; run <= RUNS_PER_POINT; run++) {
           clearCache();

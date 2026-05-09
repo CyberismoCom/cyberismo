@@ -6,9 +6,6 @@
  *
  *   - baseline                — clingo binary on pre-built old-QL programs
  *   - baseline+resultfield    — clingo binary on pre-built current-QL programs
- *                                (LP-only wall-clock reference for rendering;
- *                                 evaluateMacros is intentionally NOT measured
- *                                 here — see chapter §1)
  *   - c-api                   — native addon, swapped to old QL, pre-parsing
  *                                OFF (`preParsing: false`).
  *   - c-api+resultfield       — native addon, current QL, pre-parsing OFF
@@ -30,8 +27,7 @@
  * No project scaling, no Handlebars compilation, no in-line program building
  * happens on the hot path. All of that is baked into the fixture.
  */
-import { CommandManager, evaluateMacros } from '@cyberismo/data-handler';
-import type { MacroGenerationContext } from '@cyberismo/data-handler';
+import { CommandManager } from '@cyberismo/data-handler';
 import type { ClingoContext } from '@cyberismo/node-clingo';
 import { lpFiles } from '@cyberismo/assets';
 import { readFile } from 'node:fs/promises';
@@ -63,7 +59,7 @@ if (!fixturesDir) {
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
-const RUNS_PER_POINT = 10;
+const RUNS_PER_POINT = 1;
 // Per-variant warmup: discard the first N solves after each context state
 // change (replaceContext, swapToOldQL). Absorbs the one-shot cost of the
 // addon/macro pipeline populating its caches on the new context — without
@@ -217,10 +213,6 @@ async function runFixture(
     }
 
     // ── VARIANT: baseline+resultfield (binary + current QL) ────────────────
-    // Note: this is intentionally LP-only via clingo binary — the rendering
-    // measurement here is a wall-clock REFERENCE, NOT evaluateMacros. See
-    // chapter §1: evaluateMacros for resultfield is the c-api+resultfield
-    // measurement; the binary line is to bound LP cost alone.
     console.error('  variant: baseline+resultfield');
     for (const queryName of queries) {
       const program = await readFile(
@@ -241,27 +233,6 @@ async function runFixture(
         );
       }
       console.error(`    ${queryName}: ${RUNS_PER_POINT} runs done`);
-    }
-    // rendering reference (LP-only, intentional — see comment above)
-    if (bundle.cards.riskKey) {
-      const program = await readFile(
-        programPath(bundle, 'baseline+resultfield', 'rendering'),
-        'utf-8',
-      );
-      for (let run = 1; run <= RUNS_PER_POINT; run++) {
-        const r = await solveBinary(program);
-        allRuns.push(
-          makeBinaryRun(
-            'baseline+resultfield',
-            'rendering',
-            cardCount,
-            run,
-            projectId,
-            r,
-          ),
-        );
-      }
-      console.error(`    rendering (reference): ${RUNS_PER_POINT} runs done`);
     }
 
     // ── INVARIANT ─────────────────────────────────────────────────────────
@@ -306,18 +277,6 @@ async function runFixture(
     } finally {
       restoreCurrentQL(capiCtx);
     }
-    // rendering for c-api (evaluateMacros pipeline, current QL, pre-parsing OFF)
-    if (bundle.cards.riskKey && bundle.cards.riskContent !== undefined) {
-      await runRenderingMacros(
-        commands,
-        bundle.cards.riskKey,
-        bundle.cards.riskContent,
-        cardCount,
-        projectId,
-        'c-api',
-        allRuns,
-      );
-    }
 
     // ── VARIANT: c-api+resultfield (native + current QL, pre-parsing OFF) ─
     // Unconditionally rebuild the context with `preParsing: false` so this
@@ -355,7 +314,6 @@ async function runFixture(
       }
       console.error(`    ${queryName}: ${RUNS_PER_POINT} runs done`);
     }
-    // No rendering measurement for c-api+resultfield — see chapter §1.
 
     // ── VARIANT: incremental (prebuilt ASPIF + per-query LP) ──────────────
     // Runs before c-api+preparsing because incremental uses the binary path
@@ -417,75 +375,9 @@ async function runFixture(
       }
       console.error(`    ${queryName}: ${RUNS_PER_POINT} runs done`);
     }
-    // rendering for c-api+preparsing
-    if (bundle.cards.riskKey && bundle.cards.riskContent !== undefined) {
-      await runRenderingMacros(
-        commands,
-        bundle.cards.riskKey,
-        bundle.cards.riskContent,
-        cardCount,
-        projectId,
-        'c-api+preparsing',
-        allRuns,
-      );
-    }
   } finally {
     commands.project.dispose();
   }
-}
-
-/**
- * Runs RUNS_PER_POINT rendering measurements via evaluateMacros and pushes
- * BenchmarkRun records under `variant`. Strips `{{#graph}}…{{/graph}}` blocks
- * (graphviz WASM can abort the process and is not Clingo work).
- */
-async function runRenderingMacros(
-  commands: Awaited<ReturnType<typeof CommandManager.getInstance>>,
-  cardKey: string,
-  riskContent: string,
-  cardCount: number,
-  projectId: string,
-  variant: string,
-  allRuns: BenchmarkRun[],
-): Promise<void> {
-  const macroCtx: MacroGenerationContext = {
-    context: 'localApp',
-    project: commands.project,
-    mode: 'static',
-    cardKey,
-  };
-  const contentNoGraph = riskContent.replace(
-    /\{\{#graph\}\}[\s\S]*?\{\{\/graph\}\}/g,
-    '',
-  );
-  // Per-variant warmup: evaluateMacros's first call after a fresh
-  // ClingoContext pays a one-shot setup cost (template caches, addon
-  // program-store population). Discard.
-  for (let i = 0; i < VARIANT_WARMUP; i++) {
-    await evaluateMacros(contentNoGraph, macroCtx);
-  }
-  for (let run = 1; run <= RUNS_PER_POINT; run++) {
-    const start = performance.now();
-    await evaluateMacros(contentNoGraph, macroCtx);
-    const wallClockMs = performance.now() - start;
-    allRuns.push({
-      method: 'native',
-      feature: FEATURE,
-      variant,
-      query: 'rendering',
-      project: projectId,
-      cardCount,
-      run,
-      glueUs: 0,
-      addUs: 0,
-      groundUs: 0,
-      solveUs: 0,
-      totalUs: Math.round(wallClockMs * 1000),
-      cacheHit: false,
-      wallClockMs,
-    });
-  }
-  console.error(`    rendering: ${RUNS_PER_POINT} runs done`);
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────

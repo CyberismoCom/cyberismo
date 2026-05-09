@@ -341,20 +341,6 @@ async function generateOne(args: GenerateOneArgs): Promise<void> {
       );
     }
 
-    // rendering reference: matches bench-main.ts — uses the card-risk query.
-    // Skip if no riskTask slot configured.
-    const riskCard = slotCards.riskTask;
-    if (riskCard) {
-      const renderQuery = Handlebars.compile(lpFiles.queries.card)({
-        cardKey: riskCard.key,
-      });
-      const program = ctx.buildProgram(renderQuery, ['all']);
-      await writeFile(
-        join(fixtureRoot, 'programs', 'baseline+resultfield', 'rendering.lp'),
-        program,
-      );
-    }
-
     // ── incremental base (gringo-prebuilt ASPIF) ───────────────────────────
     progress(`  scale ${scale}: pre-grounding incremental base via gringo`);
     ctx.removeProgram('queryLanguage');
