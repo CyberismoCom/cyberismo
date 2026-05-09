@@ -1,0 +1,689 @@
+#!/usr/bin/env python3
+"""Plot benchmark JSON output as PDF figures for the thesis evaluation chapter.
+
+Consumes JSON files produced by tools/benchmarks/src/bench-{caching,threading,main}.ts
+and emits the eight PDF figures the thesis chapter expects.
+
+Usage:
+    python plot.py all       <results-dir> <output-dir>
+    python plot.py caching   <results-dir> <output-dir>
+    python plot.py threading <results-dir> <output-dir>
+    python plot.py main      <results-dir> <output-dir>
+
+<results-dir> contains caching.json / threading.json / main.json.
+<output-dir> is created if it does not already exist.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+from typing import Iterable
+
+import matplotlib
+
+matplotlib.use("pdf")  # ensure non-GUI backend; vector PDF output
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+# ── Style ───────────────────────────────────────────────────────────────────
+
+# Stable colour mapping per variant. Used everywhere to keep figures consistent.
+VARIANT_COLOURS: dict[str, str] = {
+    # main-scaling
+    "baseline":              "#7f7f7f",  # grey
+    "baseline+resultfield":  "#1f77b4",  # blue
+    "c-api":                 "#ff7f0e",  # orange
+    "c-api+resultfield":     "#2ca02c",  # green
+    "c-api+aspif":           "#d62728",  # red
+    "incremental":           "#9467bd",  # purple
+    # caching
+    "cache-enabled":         "#1f77b4",
+    "cache-disabled":        "#7f7f7f",
+    "cache-miss":            "#d62728",
+    "cache-hit":             "#2ca02c",
+    # threading
+    "sync":                  "#7f7f7f",
+    "async":                 "#1f77b4",
+    "sync-batch":            "#7f7f7f",
+    "async-batch":           "#1f77b4",
+}
+
+VARIANT_ORDER_MAIN = [
+    "baseline",
+    "baseline+resultfield",
+    "c-api",
+    "c-api+resultfield",
+    "c-api+aspif",
+    "incremental",
+]
+
+VARIANT_ORDER_CACHING = ["cache-disabled", "cache-enabled", "cache-miss", "cache-hit"]
+
+PHASE_COMPONENTS = ["glueUs", "addUs", "groundUs", "solveUs"]
+PHASE_LABELS = {
+    "glueUs":   "glue",
+    "addUs":    "add",
+    "groundUs": "ground",
+    "solveUs":  "solve",
+}
+PHASE_COLOURS = {
+    "glueUs":   "#9467bd",
+    "addUs":    "#1f77b4",
+    "groundUs": "#ff7f0e",
+    "solveUs":  "#2ca02c",
+}
+
+plt.rcParams.update({
+    "figure.dpi": 100,
+    "savefig.dpi": 200,
+    "axes.grid": True,
+    "grid.alpha": 0.3,
+    "grid.linestyle": ":",
+    "axes.spines.top": False,
+    "axes.spines.right": False,
+    "legend.frameon": False,
+    "legend.fontsize": 9,
+    "axes.labelsize": 10,
+    "axes.titlesize": 11,
+    "xtick.labelsize": 9,
+    "ytick.labelsize": 9,
+})
+
+
+# ── Loading ─────────────────────────────────────────────────────────────────
+
+def load_runs(json_path: Path) -> pd.DataFrame:
+    """Load a benchmark JSON file and return its `runs` array as a DataFrame.
+
+    Adds derived columns:
+        totalMs   = totalUs / 1000
+        machine   = top-level machine name (broadcast to every row)
+    """
+    with json_path.open("r", encoding="utf-8") as fh:
+        payload = json.load(fh)
+    runs = pd.DataFrame(payload["runs"])
+    if runs.empty:
+        return runs
+    runs["machine"] = payload.get("machine", "unknown")
+    runs["totalMs"] = runs["totalUs"] / 1000.0
+    # Normalise missing query column to a sentinel so groupby works.
+    if "query" not in runs.columns:
+        runs["query"] = "-"
+    runs["query"] = runs["query"].fillna("-")
+    return runs
+
+
+def variant_colour(variant: str) -> str:
+    return VARIANT_COLOURS.get(variant, "#444444")
+
+
+def project_pretty(name: str) -> str:
+    """Pretty-print project prefix for axis titles."""
+    mapping = {
+        "decision": "cyberismo-docs",
+        "docs": "cyberismo-docs",
+        "eucra": "eucra",
+    }
+    return mapping.get(name, name)
+
+
+# ── Plot helpers ────────────────────────────────────────────────────────────
+
+def aggregate_runs(
+    df: pd.DataFrame,
+    group_cols: Iterable[str],
+    value_col: str = "totalMs",
+) -> pd.DataFrame:
+    """Mean and std of `value_col` per group."""
+    agg = (
+        df.groupby(list(group_cols))[value_col]
+        .agg(mean="mean", std="std", count="count")
+        .reset_index()
+    )
+    agg["std"] = agg["std"].fillna(0.0)
+    return agg
+
+
+def line_with_band(
+    ax,
+    x: np.ndarray,
+    mean: np.ndarray,
+    std: np.ndarray,
+    *,
+    label: str,
+    colour: str,
+) -> None:
+    """Plot a mean line with a 1-σ shaded band."""
+    ax.plot(x, mean, label=label, color=colour, linewidth=1.6, marker="o", markersize=3)
+    ax.fill_between(x, mean - std, mean + std, color=colour, alpha=0.18, linewidth=0)
+
+
+def project_panels(
+    df: pd.DataFrame,
+    *,
+    figsize: tuple[float, float],
+) -> tuple[plt.Figure, dict[str, plt.Axes]]:
+    """Create a side-by-side panel per project present in `df`."""
+    projects = sorted(df["project"].unique())
+    n = len(projects)
+    fig, axes = plt.subplots(1, n, figsize=figsize, sharey=False, squeeze=False)
+    return fig, dict(zip(projects, axes[0]))
+
+
+def place_legend_below(fig: plt.Figure, axes: Iterable[plt.Axes], ncol: int) -> None:
+    """Collect handles/labels from the first non-empty axis, place legend below."""
+    handles, labels = [], []
+    for ax in axes:
+        h, l = ax.get_legend_handles_labels()
+        if h:
+            handles, labels = h, l
+            break
+    if not handles:
+        return
+    fig.legend(
+        handles,
+        labels,
+        loc="lower center",
+        ncol=ncol,
+        bbox_to_anchor=(0.5, -0.02),
+        frameon=False,
+    )
+    fig.subplots_adjust(bottom=0.22)
+
+
+def save_pdf(fig: plt.Figure, out_path: Path) -> None:
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, format="pdf", bbox_inches="tight")
+    plt.close(fig)
+
+
+# ── Caching ─────────────────────────────────────────────────────────────────
+
+def plot_caching(results_dir: Path, output_dir: Path) -> list[Path]:
+    """caching-scaling.pdf — line chart per project, one line per cache variant."""
+    df = load_runs(results_dir / "caching.json")
+    if df.empty:
+        raise SystemExit("caching.json contained no runs")
+
+    df = df[df["feature"] == "caching"].copy()
+    projects = sorted(df["project"].unique())
+    fig, panels = project_panels(df, figsize=(5.5 * max(len(projects), 1), 4.0))
+
+    variants_present = [v for v in VARIANT_ORDER_CACHING if v in df["variant"].unique()]
+    # Append any unexpected variants too, for forward compatibility.
+    for v in sorted(df["variant"].unique()):
+        if v not in variants_present:
+            variants_present.append(v)
+
+    for project, ax in panels.items():
+        sub = df[df["project"] == project]
+        for variant in variants_present:
+            cell = sub[sub["variant"] == variant]
+            if cell.empty:
+                continue
+            agg = aggregate_runs(cell, ["cardCount"])
+            agg = agg.sort_values("cardCount")
+            line_with_band(
+                ax,
+                agg["cardCount"].to_numpy(),
+                agg["mean"].to_numpy(),
+                agg["std"].to_numpy(),
+                label=variant,
+                colour=variant_colour(variant),
+            )
+        ax.set_title(project_pretty(project))
+        ax.set_xlabel("cards")
+        ax.set_ylabel("total time (ms)")
+
+    place_legend_below(fig, panels.values(), ncol=min(len(variants_present), 4))
+    fig.suptitle("Caching: total solve time vs. project size", y=1.02)
+    out = output_dir / "caching-scaling.pdf"
+    save_pdf(fig, out)
+    return [out]
+
+
+# ── Threading ───────────────────────────────────────────────────────────────
+
+def plot_threading(results_dir: Path, output_dir: Path) -> list[Path]:
+    """threading-batch.pdf and threading-latency.pdf."""
+    df = load_runs(results_dir / "threading.json")
+    if df.empty:
+        raise SystemExit("threading.json contained no runs")
+    df = df[df["feature"] == "threading"].copy()
+
+    out_paths: list[Path] = []
+
+    # ── Batch wall-clock ────────────────────────────────────────────────
+    batch = df[df["variant"].isin(["sync-batch", "async-batch"])].copy()
+    if batch.empty:
+        raise SystemExit("threading.json had no sync-batch / async-batch records")
+    # wallClockMs is set on batch records; fall back to totalMs if it wasn't.
+    batch["batchMs"] = batch["wallClockMs"].fillna(batch["totalMs"])
+
+    machines = sorted(batch["machine"].unique())
+    variant_order = ["sync-batch", "async-batch"]
+
+    fig, ax = plt.subplots(figsize=(6.5, 4.0))
+    n_groups = len(variant_order)
+    n_machines = len(machines)
+    bar_width = 0.8 / max(n_machines, 1)
+    x_base = np.arange(n_groups)
+
+    for m_idx, machine in enumerate(machines):
+        means = []
+        stds = []
+        for v in variant_order:
+            cell = batch[(batch["machine"] == machine) & (batch["variant"] == v)]
+            means.append(cell["batchMs"].mean() if not cell.empty else 0.0)
+            stds.append(cell["batchMs"].std(ddof=1) if len(cell) > 1 else 0.0)
+        means = np.nan_to_num(np.array(means))
+        stds = np.nan_to_num(np.array(stds))
+        offset = (m_idx - (n_machines - 1) / 2.0) * bar_width
+        colours = [variant_colour(v) for v in variant_order]
+        bars = ax.bar(
+            x_base + offset,
+            means,
+            bar_width,
+            yerr=stds,
+            capsize=3,
+            color=colours,
+            edgecolor="black",
+            linewidth=0.5,
+            label=machine if n_machines > 1 else None,
+        )
+        if n_machines > 1:
+            for bar in bars:
+                bar.set_hatch("//" if m_idx % 2 else "")
+
+    ax.set_xticks(x_base)
+    ax.set_xticklabels(["sequential (sync)", "concurrent (async)"])
+    ax.set_ylabel("batch wall-clock time (ms)")
+    ax.set_title("Threading: 64-solve batch wall-clock")
+
+    if n_machines > 1:
+        # Manual legend listing both machines.
+        ax.legend(title="machine", loc="best")
+
+    out_batch = output_dir / "threading-batch.pdf"
+    save_pdf(fig, out_batch)
+    out_paths.append(out_batch)
+
+    # ── Per-solve latency distribution ──────────────────────────────────
+    solos = df[df["variant"].isin(["sync", "async"])].copy()
+    if solos.empty:
+        raise SystemExit("threading.json had no sync / async per-solve records")
+
+    # One box per (machine, variant). variants kept in fixed order.
+    variant_order_solo = ["sync", "async"]
+    boxes: list[np.ndarray] = []
+    labels: list[str] = []
+    colours: list[str] = []
+    for machine in machines:
+        for v in variant_order_solo:
+            cell = solos[(solos["machine"] == machine) & (solos["variant"] == v)]
+            if cell.empty:
+                continue
+            boxes.append(cell["totalMs"].to_numpy())
+            label = v if len(machines) == 1 else f"{machine}\n{v}"
+            labels.append(label)
+            colours.append(variant_colour(v))
+
+    fig, ax = plt.subplots(figsize=(max(5.0, 1.4 * len(boxes) + 2), 4.0))
+    bp = ax.boxplot(
+        boxes,
+        tick_labels=labels,
+        showfliers=True,
+        patch_artist=True,
+        widths=0.6,
+        medianprops=dict(color="black", linewidth=1.2),
+        flierprops=dict(marker=".", markersize=3, alpha=0.4),
+    )
+    for patch, colour in zip(bp["boxes"], colours):
+        patch.set_facecolor(colour)
+        patch.set_alpha(0.55)
+        patch.set_edgecolor("black")
+        patch.set_linewidth(0.6)
+
+    ax.set_ylabel("per-solve total time (ms)")
+    ax.set_title("Threading: per-solve latency distribution (64 solves × 5 batches)")
+    ax.set_yscale("log")
+
+    out_lat = output_dir / "threading-latency.pdf"
+    save_pdf(fig, out_lat)
+    out_paths.append(out_lat)
+
+    return out_paths
+
+
+# ── Main scaling ────────────────────────────────────────────────────────────
+
+def _decide_log_y(values: np.ndarray) -> bool:
+    """Pick log-y if dynamic range ≥ 50× and all values strictly positive."""
+    pos = values[values > 0]
+    if pos.size == 0:
+        return False
+    return float(pos.max() / pos.min()) >= 50.0
+
+
+def plot_main_tree_scaling(df: pd.DataFrame, output_dir: Path) -> Path:
+    sub = df[df["query"] == "tree"].copy()
+    if sub.empty:
+        raise SystemExit("main.json had no tree query records")
+
+    fig, panels = project_panels(sub, figsize=(5.5 * max(len(sub["project"].unique()), 1), 4.2))
+    all_means: list[float] = []
+    for project, ax in panels.items():
+        psub = sub[sub["project"] == project]
+        for variant in VARIANT_ORDER_MAIN:
+            cell = psub[psub["variant"] == variant]
+            if cell.empty:
+                continue
+            agg = aggregate_runs(cell, ["cardCount"]).sort_values("cardCount")
+            line_with_band(
+                ax,
+                agg["cardCount"].to_numpy(),
+                agg["mean"].to_numpy(),
+                agg["std"].to_numpy(),
+                label=variant,
+                colour=variant_colour(variant),
+            )
+            all_means.extend(agg["mean"].tolist())
+        ax.set_title(project_pretty(project))
+        ax.set_xlabel("cards")
+        ax.set_ylabel("total time (ms)")
+
+    if _decide_log_y(np.array(all_means)):
+        for ax in panels.values():
+            ax.set_yscale("log")
+
+    place_legend_below(fig, panels.values(), ncol=3)
+    fig.suptitle("Main scaling: tree query, total time vs. project size", y=1.02)
+    out = output_dir / "main-tree-scaling.pdf"
+    save_pdf(fig, out)
+    return out
+
+
+def plot_main_tree_speedup(df: pd.DataFrame, output_dir: Path) -> Path:
+    sub = df[df["query"] == "tree"].copy()
+    if sub.empty:
+        raise SystemExit("main.json had no tree query records")
+
+    fig, panels = project_panels(sub, figsize=(5.5 * max(len(sub["project"].unique()), 1), 4.2))
+    other_variants = [v for v in VARIANT_ORDER_MAIN if v != "baseline"]
+
+    for project, ax in panels.items():
+        psub = sub[sub["project"] == project]
+        baseline = psub[psub["variant"] == "baseline"]
+        if baseline.empty:
+            ax.set_title(f"{project_pretty(project)} — no baseline")
+            continue
+        baseline_mean = (
+            baseline.groupby("cardCount")["totalMs"].mean().rename("baselineMs")
+        )
+        for variant in other_variants:
+            cell = psub[psub["variant"] == variant]
+            if cell.empty:
+                continue
+            # Per-run speedup is more honest than ratio of means; here we use
+            # variant-mean / baseline-mean per scale point because the runs
+            # are not paired across variants.
+            variant_mean = cell.groupby("cardCount")["totalMs"].agg(["mean", "std"])
+            joined = variant_mean.join(baseline_mean, how="inner")
+            joined["speedup"] = joined["baselineMs"] / joined["mean"]
+            joined["speedup_std"] = (
+                joined["std"] / joined["mean"] * joined["speedup"]
+            ).fillna(0.0)
+            x = joined.index.to_numpy()
+            line_with_band(
+                ax,
+                x,
+                joined["speedup"].to_numpy(),
+                joined["speedup_std"].to_numpy(),
+                label=variant,
+                colour=variant_colour(variant),
+            )
+        ax.axhline(1.0, color="black", linewidth=0.8, linestyle="--", alpha=0.5)
+        ax.set_title(project_pretty(project))
+        ax.set_xlabel("cards")
+        ax.set_ylabel("speedup vs. baseline (×)")
+
+    place_legend_below(fig, panels.values(), ncol=3)
+    fig.suptitle("Main scaling: tree query speedup over baseline", y=1.02)
+    out = output_dir / "main-tree-speedup.pdf"
+    save_pdf(fig, out)
+    return out
+
+
+def plot_main_phase_breakdown(df: pd.DataFrame, output_dir: Path) -> Path:
+    """Stacked bar at the largest available scale, eucra preferred, native variants."""
+    sub = df[df["query"] == "tree"].copy()
+    target_variants = ["c-api", "c-api+resultfield", "c-api+aspif"]
+    sub = sub[sub["variant"].isin(target_variants)].copy()
+    if sub.empty:
+        raise SystemExit("main.json had no native tree records for phase breakdown")
+
+    project_choice = "eucra" if "eucra" in sub["project"].unique() else sorted(sub["project"].unique())[0]
+    psub = sub[sub["project"] == project_choice]
+    target_scale = int(psub["cardCount"].max())  # largest available scale
+    cell = psub[psub["cardCount"] == target_scale]
+    if cell.empty:
+        raise SystemExit(f"No phase-breakdown data for project {project_choice}")
+
+    means = (
+        cell.groupby("variant")[PHASE_COMPONENTS].mean().reindex(target_variants)
+    ) / 1000.0  # us → ms
+    means = means.dropna(how="all")
+
+    fig, ax = plt.subplots(figsize=(6.0, 4.2))
+    x = np.arange(len(means.index))
+    bottoms = np.zeros(len(means.index))
+    for component in PHASE_COMPONENTS:
+        vals = means[component].fillna(0.0).to_numpy()
+        ax.bar(
+            x,
+            vals,
+            bottom=bottoms,
+            color=PHASE_COLOURS[component],
+            label=PHASE_LABELS[component],
+            edgecolor="black",
+            linewidth=0.4,
+            width=0.6,
+        )
+        bottoms += vals
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(means.index, rotation=15, ha="right")
+    ax.set_ylabel("time (ms)")
+    ax.set_title(
+        f"Main scaling: phase breakdown ({project_pretty(project_choice)}, {target_scale} cards, tree query)"
+    )
+    ax.legend(loc="best", title="phase")
+    out = output_dir / "main-phase-breakdown.pdf"
+    save_pdf(fig, out)
+    return out
+
+
+def plot_main_incremental_decomp(df: pd.DataFrame, output_dir: Path) -> Path:
+    sub = df[(df["variant"] == "incremental") & (df["query"] == "tree")].copy()
+    if sub.empty:
+        raise SystemExit("main.json had no incremental tree records")
+
+    # gringoMs encoded as glueUs / 1000; clingoMs encoded as solveUs / 1000
+    sub["gringoMs"] = sub["glueUs"] / 1000.0
+    sub["clingoMs"] = sub["solveUs"] / 1000.0
+
+    fig, panels = project_panels(sub, figsize=(5.5 * max(len(sub["project"].unique()), 1), 4.0))
+    width = None
+    for project, ax in panels.items():
+        psub = sub[sub["project"] == project]
+        agg = (
+            psub.groupby("cardCount")[["gringoMs", "clingoMs"]]
+            .agg(["mean", "std"])
+            .sort_index()
+        )
+        x = agg.index.to_numpy().astype(float)
+        if width is None and len(x) >= 2:
+            width = float(np.min(np.diff(x))) * 0.7
+        elif width is None:
+            width = 0.6
+        gringo = agg[("gringoMs", "mean")].to_numpy()
+        clingo = agg[("clingoMs", "mean")].to_numpy()
+        ax.bar(
+            x,
+            gringo,
+            width=width,
+            color=PHASE_COLOURS["groundUs"],
+            label="gringo (ground)",
+            edgecolor="black",
+            linewidth=0.3,
+        )
+        ax.bar(
+            x,
+            clingo,
+            bottom=gringo,
+            width=width,
+            color=PHASE_COLOURS["solveUs"],
+            label="clingo (solve)",
+            edgecolor="black",
+            linewidth=0.3,
+        )
+        ax.set_title(project_pretty(project))
+        ax.set_xlabel("cards")
+        ax.set_ylabel("time (ms)")
+
+    place_legend_below(fig, panels.values(), ncol=2)
+    fig.suptitle("Main scaling: incremental pipeline decomposition", y=1.02)
+    out = output_dir / "main-incremental-decomp.pdf"
+    save_pdf(fig, out)
+    return out
+
+
+def plot_main_rendering(df: pd.DataFrame, output_dir: Path) -> Path:
+    sub = df[df["query"] == "rendering"].copy()
+    if sub.empty:
+        raise SystemExit("main.json had no rendering records")
+    target_variants = ["c-api", "c-api+aspif", "baseline+resultfield"]
+    sub = sub[sub["variant"].isin(target_variants)].copy()
+    if sub.empty:
+        raise SystemExit("main.json had no rendering data for target variants")
+
+    fig, panels = project_panels(sub, figsize=(5.5 * max(len(sub["project"].unique()), 1), 4.0))
+    all_means: list[float] = []
+    for project, ax in panels.items():
+        psub = sub[sub["project"] == project]
+        for variant in target_variants:
+            cell = psub[psub["variant"] == variant]
+            if cell.empty:
+                continue
+            agg = aggregate_runs(cell, ["cardCount"]).sort_values("cardCount")
+            line_with_band(
+                ax,
+                agg["cardCount"].to_numpy(),
+                agg["mean"].to_numpy(),
+                agg["std"].to_numpy(),
+                label=variant,
+                colour=variant_colour(variant),
+            )
+            all_means.extend(agg["mean"].tolist())
+        ax.set_title(project_pretty(project))
+        ax.set_xlabel("cards")
+        ax.set_ylabel("total time (ms)")
+
+    if _decide_log_y(np.array(all_means)):
+        for ax in panels.values():
+            ax.set_yscale("log")
+
+    place_legend_below(fig, panels.values(), ncol=3)
+    fig.suptitle("Main scaling: rendering pipeline cost vs. project size", y=1.02)
+    out = output_dir / "main-rendering.pdf"
+    save_pdf(fig, out)
+    return out
+
+
+def plot_main(results_dir: Path, output_dir: Path) -> list[Path]:
+    df = load_runs(results_dir / "main.json")
+    if df.empty:
+        raise SystemExit("main.json contained no runs")
+    df = df[df["feature"] == "main-scaling"].copy()
+    return [
+        plot_main_tree_scaling(df, output_dir),
+        plot_main_tree_speedup(df, output_dir),
+        plot_main_phase_breakdown(df, output_dir),
+        plot_main_incremental_decomp(df, output_dir),
+        plot_main_rendering(df, output_dir),
+    ]
+
+
+# ── CLI ─────────────────────────────────────────────────────────────────────
+
+def cmd_caching(args: argparse.Namespace) -> int:
+    paths = plot_caching(args.results_dir, args.output_dir)
+    for p in paths:
+        print(p)
+    return 0
+
+
+def cmd_threading(args: argparse.Namespace) -> int:
+    paths = plot_threading(args.results_dir, args.output_dir)
+    for p in paths:
+        print(p)
+    return 0
+
+
+def cmd_main(args: argparse.Namespace) -> int:
+    paths = plot_main(args.results_dir, args.output_dir)
+    for p in paths:
+        print(p)
+    return 0
+
+
+def cmd_all(args: argparse.Namespace) -> int:
+    out: list[Path] = []
+    out.extend(plot_caching(args.results_dir, args.output_dir))
+    out.extend(plot_threading(args.results_dir, args.output_dir))
+    out.extend(plot_main(args.results_dir, args.output_dir))
+    for p in out:
+        print(p)
+    return 0
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Plot Cyberismo benchmark JSON output as thesis PDFs.",
+    )
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    def add_paths(p: argparse.ArgumentParser) -> None:
+        p.add_argument("results_dir", type=Path, help="Directory containing benchmark JSON files")
+        p.add_argument("output_dir", type=Path, help="Directory to write PDFs into (created if absent)")
+
+    p_all = sub.add_parser("all", help="Generate every figure from every JSON file")
+    add_paths(p_all)
+    p_all.set_defaults(func=cmd_all)
+
+    p_cache = sub.add_parser("caching", help="Generate caching figure")
+    add_paths(p_cache)
+    p_cache.set_defaults(func=cmd_caching)
+
+    p_thread = sub.add_parser("threading", help="Generate threading figures")
+    add_paths(p_thread)
+    p_thread.set_defaults(func=cmd_threading)
+
+    p_main = sub.add_parser("main", help="Generate main-scaling figures")
+    add_paths(p_main)
+    p_main.set_defaults(func=cmd_main)
+
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
