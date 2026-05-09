@@ -379,101 +379,110 @@ def plot_threading(results_dir: Path, output_dir: Path) -> list[Path]:
 
     out_paths: list[Path] = []
 
-    # ── Batch wall-clock ────────────────────────────────────────────────
+    # ── Batch wall-clock vs scale ───────────────────────────────────────
+    # Now multi-scale: bench-threading runs at several card counts to show
+    # whether the async/sync speedup holds at scale.
     batch = df[df["variant"].isin(["sync-batch", "async-batch"])].copy()
     if batch.empty:
         raise SystemExit("threading.json had no sync-batch / async-batch records")
-    # wallClockMs is set on batch records; fall back to totalMs if it wasn't.
     batch["batchMs"] = batch["wallClockMs"].fillna(batch["totalMs"])
 
-    machines = sorted(batch["machine"].unique())
-    variant_order = ["sync-batch", "async-batch"]
+    projects = sorted(batch["project"].unique())
+    fig, panels = project_panels(batch, figsize=(5.5 * max(len(projects), 1), 4.0))
+    for project, ax in panels.items():
+        sub = batch[batch["project"] == project]
+        scales = sorted(sub["cardCount"].unique())
+        positions = np.arange(len(scales))
+        bar_width = 0.4
+        for v_idx, variant in enumerate(["sync-batch", "async-batch"]):
+            means = []
+            stds = []
+            for s in scales:
+                cell = sub[(sub["variant"] == variant) & (sub["cardCount"] == s)]
+                means.append(cell["batchMs"].mean() if not cell.empty else 0.0)
+                stds.append(cell["batchMs"].std(ddof=1) if len(cell) > 1 else 0.0)
+            offset = (v_idx - 0.5) * bar_width
+            ax.bar(
+                positions + offset,
+                np.nan_to_num(means),
+                bar_width,
+                yerr=np.nan_to_num(stds),
+                capsize=3,
+                color=variant_colour(variant),
+                edgecolor="black",
+                linewidth=0.5,
+                label="sequential (sync)" if variant == "sync-batch" else "concurrent (async)",
+            )
+        ax.set_xticks(positions)
+        ax.set_xticklabels([str(s) for s in scales])
+        ax.set_xlabel("cards")
+        ax.set_ylabel("batch wall-clock (ms)")
+        ax.set_title(project_pretty(project))
 
-    fig, ax = plt.subplots(figsize=(6.5, 4.0))
-    n_groups = len(variant_order)
-    n_machines = len(machines)
-    bar_width = 0.8 / max(n_machines, 1)
-    x_base = np.arange(n_groups)
-
-    for m_idx, machine in enumerate(machines):
-        means = []
-        stds = []
-        for v in variant_order:
-            cell = batch[(batch["machine"] == machine) & (batch["variant"] == v)]
-            means.append(cell["batchMs"].mean() if not cell.empty else 0.0)
-            stds.append(cell["batchMs"].std(ddof=1) if len(cell) > 1 else 0.0)
-        means = np.nan_to_num(np.array(means))
-        stds = np.nan_to_num(np.array(stds))
-        offset = (m_idx - (n_machines - 1) / 2.0) * bar_width
-        colours = [variant_colour(v) for v in variant_order]
-        bars = ax.bar(
-            x_base + offset,
-            means,
-            bar_width,
-            yerr=stds,
-            capsize=3,
-            color=colours,
-            edgecolor="black",
-            linewidth=0.5,
-            label=machine if n_machines > 1 else None,
-        )
-        if n_machines > 1:
-            for bar in bars:
-                bar.set_hatch("//" if m_idx % 2 else "")
-
-    ax.set_xticks(x_base)
-    ax.set_xticklabels(["sequential (sync)", "concurrent (async)"])
-    ax.set_ylabel("batch wall-clock time (ms)")
-    ax.set_title("Threading: 64-solve batch wall-clock")
-
-    if n_machines > 1:
-        # Manual legend listing both machines.
-        ax.legend(title="machine", loc="best")
-
+    place_legend_below(fig, panels.values(), ncol=2)
+    fig.suptitle("Threading: 64-solve batch wall-clock vs project size", y=1.02)
     out_batch = output_dir / "threading-batch.pdf"
     save_figure(fig, out_batch)
     out_paths.append(out_batch)
 
-    # ── Per-solve latency distribution ──────────────────────────────────
+    # ── Speedup: sync-batch / async-batch vs scale ──────────────────────
+    fig, panels = project_panels(batch, figsize=(5.5 * max(len(projects), 1), 4.0))
+    for project, ax in panels.items():
+        sub = batch[batch["project"] == project]
+        scales = sorted(sub["cardCount"].unique())
+        speedups = []
+        for s in scales:
+            sync_mean = sub[(sub["variant"] == "sync-batch") & (sub["cardCount"] == s)]["batchMs"].mean()
+            async_mean = sub[(sub["variant"] == "async-batch") & (sub["cardCount"] == s)]["batchMs"].mean()
+            speedups.append(sync_mean / async_mean if async_mean > 0 else np.nan)
+        ax.plot(scales, speedups, marker="o", color=variant_colour("async"), linewidth=1.5)
+        ax.set_xscale("log")
+        ax.axhline(1.0, color="black", linewidth=0.6, linestyle="--", alpha=0.5)
+        ax.set_title(project_pretty(project))
+        ax.set_xlabel("cards")
+        ax.set_ylabel("async speedup (sync / async)")
+
+    fig.suptitle("Threading: concurrent speedup vs project size", y=1.02)
+    out_speedup = output_dir / "threading-speedup.pdf"
+    save_figure(fig, out_speedup)
+    out_paths.append(out_speedup)
+
+    # ── Per-solve latency, faceted by scale ─────────────────────────────
     solos = df[df["variant"].isin(["sync", "async"])].copy()
     if solos.empty:
         raise SystemExit("threading.json had no sync / async per-solve records")
 
-    # One box per (machine, variant). variants kept in fixed order.
-    variant_order_solo = ["sync", "async"]
-    boxes: list[np.ndarray] = []
-    labels: list[str] = []
-    colours: list[str] = []
-    for machine in machines:
-        for v in variant_order_solo:
-            cell = solos[(solos["machine"] == machine) & (solos["variant"] == v)]
-            if cell.empty:
-                continue
-            boxes.append(cell["totalMs"].to_numpy())
-            label = v if len(machines) == 1 else f"{machine}\n{v}"
-            labels.append(label)
-            colours.append(variant_colour(v))
+    scales = sorted(solos["cardCount"].unique())
+    n_scales = len(scales)
+    fig, axes = plt.subplots(1, n_scales, figsize=(3.0 * n_scales + 1, 4.2), sharey=False)
+    if n_scales == 1:
+        axes = [axes]
 
-    fig, ax = plt.subplots(figsize=(max(5.0, 1.4 * len(boxes) + 2), 4.0))
-    bp = ax.boxplot(
-        boxes,
-        tick_labels=labels,
-        showfliers=True,
-        patch_artist=True,
-        widths=0.6,
-        medianprops=dict(color="black", linewidth=1.2),
-        flierprops=dict(marker=".", markersize=3, alpha=0.4),
-    )
-    for patch, colour in zip(bp["boxes"], colours):
-        patch.set_facecolor(colour)
-        patch.set_alpha(0.55)
-        patch.set_edgecolor("black")
-        patch.set_linewidth(0.6)
+    for ax, scale in zip(axes, scales):
+        cell_sync = solos[(solos["variant"] == "sync") & (solos["cardCount"] == scale)]
+        cell_async = solos[(solos["variant"] == "async") & (solos["cardCount"] == scale)]
+        boxes = [cell_sync["totalMs"].to_numpy(), cell_async["totalMs"].to_numpy()]
+        labels = ["sync", "async"]
+        colours_box = [variant_colour("sync"), variant_colour("async")]
+        bp = ax.boxplot(
+            boxes,
+            tick_labels=labels,
+            showfliers=True,
+            patch_artist=True,
+            widths=0.6,
+            medianprops=dict(color="black", linewidth=1.2),
+            flierprops=dict(marker=".", markersize=3, alpha=0.4),
+        )
+        for patch, colour in zip(bp["boxes"], colours_box):
+            patch.set_facecolor(colour)
+            patch.set_alpha(0.55)
+            patch.set_edgecolor("black")
+            patch.set_linewidth(0.6)
+        ax.set_title(f"{scale} cards")
+        ax.set_yscale("log")
 
-    ax.set_ylabel("per-solve total time (ms)")
-    ax.set_title("Threading: per-solve latency distribution (64 solves × 5 batches)")
-    ax.set_yscale("log")
-
+    axes[0].set_ylabel("per-solve total time (ms)")
+    fig.suptitle("Threading: per-solve latency distribution by project size", y=1.02)
     out_lat = output_dir / "threading-latency.pdf"
     save_figure(fig, out_lat)
     out_paths.append(out_lat)

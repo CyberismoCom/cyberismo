@@ -1,15 +1,12 @@
 /**
- * Threading benchmark — consumes pre-generated fixtures.
+ * Threading benchmark — consumes pre-generated fixtures across a small
+ * set of scales so the per-cell async-vs-sync delta can be observed as
+ * project size grows. Scales are chosen as a coarse spread (small, mid,
+ * large-ish) rather than the full sweep — the goal is "does the
+ * threading speedup hold at scale?", not high-resolution scaling.
  *
- * For every project under `<fixturesDir>/`, requires a fixture at scale=200
- * (`<fixtures-dir>/<project>/200/`). If the project does not have that scale
- * generated, it is skipped with a clear stderr warning.
- *
- * Generation note: scale 200 is BELOW the fixture generator's default
- * `--scale-min` (1000). Generate with
- *   `pnpm bench:gen-fixtures <fixturesDir> --scale-min 200 --scale-max 200`
- * for threading-only fixtures, or `--scale-min 200` for a sweep that also
- * includes 200.
+ * Each project must have fixtures at every SCALES entry; missing fixtures
+ * are skipped with a stderr warning.
  */
 import { CommandManager } from '@cyberismo/data-handler';
 import { stat } from 'node:fs/promises';
@@ -31,7 +28,7 @@ if (!fixturesDir) {
 const RUNS = 5; // number of Promise.all batches
 const WARMUP_RUNS = 3; // individual warm-up solves
 const CONCURRENCY = 64; // simultaneous solves per batch
-const SCALE = 200; // fixed card count for this benchmark
+const SCALES = [200, 1000, 5000, 25000]; // coarse spread; understanding-not-precision
 const FEATURE = 'threading';
 
 async function hasScale(
@@ -58,10 +55,10 @@ async function main() {
   const allRuns: BenchmarkRun[] = [];
 
   for (const project of projects) {
+    for (const SCALE of SCALES) {
     if (!(await hasScale(root, project, SCALE))) {
       console.error(
-        `WARNING: project '${project}' has no scale=${SCALE} fixture (threading benchmark requires it). Skipping.\n` +
-          `         Re-run: pnpm bench:gen-fixtures ${fixturesDir} --project ${project} --scale-min ${SCALE} --scale-max ${SCALE}`,
+        `WARNING: project '${project}' has no scale=${SCALE} fixture — skipping that cell.`,
       );
       continue;
     }
@@ -186,6 +183,7 @@ async function main() {
       }
     } finally {
       commands.project.dispose();
+    }
     }
   }
 
