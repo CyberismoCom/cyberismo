@@ -252,17 +252,23 @@ def save_figure(fig: plt.Figure, out_path: Path) -> None:
 # ── Caching ─────────────────────────────────────────────────────────────────
 
 def plot_caching(results_dir: Path, output_dir: Path) -> list[Path]:
-    """caching-scaling.pdf — line chart per project, one line per cache variant."""
+    """Three caching figures:
+      caching-scaling.pdf      — absolute time, all three variants vs scale
+      caching-hit-speedup.pdf  — miss/hit ratio vs scale (log-y)
+      caching-hash-overhead.pdf — (miss - disabled)/miss as % per scale
+    """
     df = load_runs(results_dir / "caching.json")
     if df.empty:
         raise SystemExit("caching.json contained no runs")
 
     df = df[df["feature"] == "caching"].copy()
     projects = sorted(df["project"].unique())
-    fig, panels = project_panels(df, figsize=(5.5 * max(len(projects), 1), 4.0))
 
+    out_paths: list[Path] = []
+
+    # ── caching-scaling: absolute time ──────────────────────────────────────
+    fig, panels = project_panels(df, figsize=(5.5 * max(len(projects), 1), 4.0))
     variants_present = [v for v in VARIANT_ORDER_CACHING if v in df["variant"].unique()]
-    # Append any unexpected variants too, for forward compatibility.
     for v in sorted(df["variant"].unique()):
         if v not in variants_present:
             variants_present.append(v)
@@ -273,8 +279,7 @@ def plot_caching(results_dir: Path, output_dir: Path) -> list[Path]:
             cell = sub[sub["variant"] == variant]
             if cell.empty:
                 continue
-            agg = aggregate_runs(cell, ["cardCount"])
-            agg = agg.sort_values("cardCount")
+            agg = aggregate_runs(cell, ["cardCount"]).sort_values("cardCount")
             line_with_band(
                 ax,
                 agg["cardCount"].to_numpy(),
@@ -286,12 +291,81 @@ def plot_caching(results_dir: Path, output_dir: Path) -> list[Path]:
         ax.set_title(project_pretty(project))
         ax.set_xlabel("cards")
         ax.set_ylabel("total time (ms)")
+        ax.set_xscale("log")
 
     place_legend_below(fig, panels.values(), ncol=min(len(variants_present), 4))
     fig.suptitle("Caching: total solve time vs. project size", y=1.02)
     out = output_dir / "caching-scaling.pdf"
     save_figure(fig, out)
-    return [out]
+    out_paths.append(out)
+
+    # ── caching-hit-speedup: miss / hit ratio ───────────────────────────────
+    # The headline cache figure: shows how cache value grows with N.
+    fig, panels = project_panels(df, figsize=(5.5 * max(len(projects), 1), 4.0))
+    for project, ax in panels.items():
+        sub = df[df["project"] == project]
+        miss = sub[sub["variant"] == "cache-miss"].groupby("cardCount")["totalMs"].mean()
+        hit = sub[sub["variant"] == "cache-hit"].groupby("cardCount")["totalMs"].mean()
+        joined = pd.DataFrame({"miss": miss, "hit": hit}).dropna()
+        if joined.empty:
+            ax.set_title(f"{project_pretty(project)} — no data")
+            continue
+        joined["speedup"] = joined["miss"] / joined["hit"].replace(0, np.nan)
+        joined = joined.dropna(subset=["speedup"])
+        ax.plot(
+            joined.index.to_numpy(),
+            joined["speedup"].to_numpy(),
+            marker="o",
+            color=variant_colour("cache-hit"),
+            linewidth=1.5,
+        )
+        ax.set_title(project_pretty(project))
+        ax.set_xlabel("cards")
+        ax.set_ylabel("hit speedup (miss / hit)")
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+
+    fig.suptitle("Caching: hit speedup grows with project size", y=1.02)
+    out = output_dir / "caching-hit-speedup.pdf"
+    save_figure(fig, out)
+    out_paths.append(out)
+
+    # ── caching-hash-overhead: (miss - disabled) / miss × 100 ───────────────
+    # Visualises that the cache machinery (hash compute + lookup + store) is
+    # a small fraction of total miss time at every scale.
+    fig, panels = project_panels(df, figsize=(5.5 * max(len(projects), 1), 4.0))
+    for project, ax in panels.items():
+        sub = df[df["project"] == project]
+        miss = sub[sub["variant"] == "cache-miss"].groupby("cardCount")["totalMs"].mean()
+        disabled = sub[sub["variant"] == "cache-disabled"].groupby("cardCount")["totalMs"].mean()
+        joined = pd.DataFrame({"miss": miss, "disabled": disabled}).dropna()
+        if joined.empty:
+            ax.set_title(f"{project_pretty(project)} — no data")
+            continue
+        joined["overheadPct"] = (joined["miss"] - joined["disabled"]) / joined["miss"] * 100.0
+        scales = joined.index.to_numpy().astype(int)
+        positions = np.arange(len(scales))
+        ax.bar(
+            positions,
+            joined["overheadPct"].to_numpy(),
+            width=0.7,
+            color=variant_colour("cache-miss"),
+            edgecolor="black",
+            linewidth=0.3,
+        )
+        ax.axhline(0, color="black", linewidth=0.6)
+        ax.set_xticks(positions)
+        ax.set_xticklabels([str(s) for s in scales], rotation=45, ha="right")
+        ax.set_title(project_pretty(project))
+        ax.set_xlabel("cards")
+        ax.set_ylabel("hash + lookup + store as % of miss")
+
+    fig.suptitle("Caching: cache-machinery overhead as fraction of cache-miss time", y=1.02)
+    out = output_dir / "caching-hash-overhead.pdf"
+    save_figure(fig, out)
+    out_paths.append(out)
+
+    return out_paths
 
 
 # ── Threading ───────────────────────────────────────────────────────────────
