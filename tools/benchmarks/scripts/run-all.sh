@@ -45,7 +45,7 @@ echo ""
 
 echo ""
 echo "--- bench-threading (async vs sync at scale=200) ---"
-UV_THREADPOOL_SIZE=$(nproc) "$TSX" "$BENCH_DIR/src/bench-threading.ts" "$FIXTURES_DIR" "$OUTPUT_DIR/threading-$HOST.json"
+"$TSX" "$BENCH_DIR/src/bench-threading.ts" "$FIXTURES_DIR" "$OUTPUT_DIR/threading-$HOST.json"
 
 echo ""
 echo "--- bench-solver-stats (rules/atoms/equivalences for QL comparison) ---"
