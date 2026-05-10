@@ -62,11 +62,13 @@ Before adding a new (project, template) combo:
 ## Usage
 
 ```bash
-# Single-process
-pnpm --filter @cyberismo/benchmarks bench:gen-fixtures /tmp/fixtures \
-  --scale-min 1000 --scale-max 5000 --scale-step 1000
+# Default scale set (see `make help`).
+make fixtures
 
-# Parallel driver
-tools/benchmarks/scripts/gen-fixtures-parallel.sh /tmp/fixtures \
-  --scale-min 1000 --scale-max 5000 --concurrency 4
+# A custom subset.
+make fixtures SCALES="200 1000 5000" PROJECTS="cyberismo-docs"
+
+# Or invoke the underlying generator directly (one cell at a time):
+pnpm --filter @cyberismo/benchmarks bench:gen-fixtures /tmp/fixtures \
+  --project cyberismo-docs --scale 1000
 ```

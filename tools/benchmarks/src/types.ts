@@ -13,6 +13,7 @@ export interface BenchmarkRun {
   totalUs: number;
   cacheHit: boolean;
   wallClockMs?: number; // for binary baseline
+  clingoVariant?: string; // tags which clingo build produced the run; absent = "stock"
 }
 
 export interface BenchmarkConfig {

@@ -12,10 +12,11 @@ import type { BenchmarkRun, BenchmarkResult } from './types.js';
 
 const fixturesDir = process.argv[2];
 const outputPath = process.argv[3] ?? 'results-threading.json';
+const clingoVariant = process.argv[4] ?? 'stock';
 
 if (!fixturesDir) {
   console.error(
-    'Usage: tsx src/bench-threading.ts <fixtures-dir> [output-path]',
+    'Usage: tsx src/bench-threading.ts <fixtures-dir> [output-path] [clingo-variant]',
   );
   process.exit(1);
 }
@@ -24,6 +25,12 @@ const RUNS = 5; // number of Promise.all batches
 const WARMUP_RUNS = 3; // individual warm-up solves
 const CONCURRENCY = 64; // simultaneous solves per batch
 const FEATURE = 'threading';
+
+// Threading sweeps a single project at a small scale set: the curve shape
+// (peak speedup → diminishing → flatline → mild inversion) is fully captured
+// here, and running the full grid blows past 3h with no extra signal.
+const PROJECT_FILTER = 'cyberismo-docs';
+const SCALE_FILTER = new Set([10, 200, 1000, 5000, 25000]);
 
 async function main() {
   const root = resolve(fixturesDir);
@@ -36,9 +43,14 @@ async function main() {
   const allRuns: BenchmarkRun[] = [];
 
   for (const project of projects) {
-    const scales = await listScales(root, project);
+    if (project !== PROJECT_FILTER) {
+      console.error(`  project=${project}: skipped (threading runs only on ${PROJECT_FILTER})`);
+      continue;
+    }
+    const allScales = await listScales(root, project);
+    const scales = allScales.filter((s) => SCALE_FILTER.has(s));
     if (scales.length === 0) {
-      console.error(`  project=${project}: no scales found, skipping`);
+      console.error(`  project=${project}: no matching scales found, skipping`);
       continue;
     }
     for (const SCALE of scales) {
@@ -86,6 +98,7 @@ async function main() {
             solveUs: s.solve,
             totalUs: s.glue + s.add + s.ground + s.solve,
             cacheHit: s.cacheHit,
+            clingoVariant,
           });
         }
         allRuns.push({
@@ -103,6 +116,7 @@ async function main() {
           totalUs,
           cacheHit: false,
           wallClockMs,
+          clingoVariant,
         });
         console.error(
           `    concurrent run ${run}/${RUNS}: ${wallClockMs.toFixed(1)}ms for ${CONCURRENCY} solves`,
@@ -138,6 +152,7 @@ async function main() {
             solveUs: s.solve,
             totalUs: s.glue + s.add + s.ground + s.solve,
             cacheHit: s.cacheHit,
+            clingoVariant,
           });
         }
         allRuns.push({
@@ -155,6 +170,7 @@ async function main() {
           totalUs,
           cacheHit: false,
           wallClockMs,
+          clingoVariant,
         });
         console.error(
           `    sequential run ${run}/${RUNS}: ${wallClockMs.toFixed(1)}ms for ${CONCURRENCY} solves`,

@@ -136,14 +136,10 @@ async function getGitSha(): Promise<string | null> {
 export interface GenerateOptions {
   /** Absolute path to the shared fixtures root. */
   outputDir: string;
-  /**
-   * Optional list of project names (matching `PROJECTS[].name`) to limit
-   * generation. Default: all configured projects.
-   */
-  projects?: string[];
-  scaleMin: number;
-  scaleMax: number;
-  scaleStep: number;
+  /** Project name; must match one of `PROJECTS[].name`. */
+  project: string;
+  /** Card count to scale to. Positive integer. */
+  scale: number;
   /** Optional override of the repo root. Defaults to `<this-file>/../../..`. */
   repoRoot?: string;
 }
@@ -158,45 +154,36 @@ function progress(msg: string) {
 }
 
 /**
- * Generates fixtures for all selected projects across the requested scale range.
+ * Generate one fixture cell at <outputDir>/<project>/<scale>/.
  */
 export async function generateFixtures(
   options: GenerateOptions,
 ): Promise<void> {
-  const repoRoot = options.repoRoot ?? repoRootDefault();
-  const selected = options.projects
-    ? PROJECTS.filter((p) => options.projects!.includes(p.name))
-    : PROJECTS;
+  if (!Number.isInteger(options.scale) || options.scale <= 0) {
+    throw new Error(`scale must be a positive integer; got ${options.scale}`);
+  }
 
-  if (selected.length === 0) {
+  const project = PROJECTS.find((p) => p.name === options.project);
+  if (!project) {
     throw new Error(
-      `No matching projects. Configured: ${PROJECTS.map((p) => p.name).join(', ')}`,
+      `Unknown project '${options.project}'. Configured: ${PROJECTS.map((p) => p.name).join(', ')}`,
     );
   }
 
+  const repoRoot = options.repoRoot ?? repoRootDefault();
   await mkdir(options.outputDir, { recursive: true });
   const bf = await loadBaselineFiles();
   const gitSha = await getGitSha();
 
-  for (const project of selected) {
-    progress(`project: ${project.name}`);
-    const sourcePath = resolve(repoRoot, project.sourcePath);
-
-    for (
-      let scale = options.scaleMin;
-      scale <= options.scaleMax;
-      scale += options.scaleStep
-    ) {
-      await generateOne({
-        project,
-        scale,
-        sourcePath,
-        outputDir: options.outputDir,
-        baseline: bf,
-        gitSha,
-      });
-    }
-  }
+  progress(`project: ${project.name}`);
+  await generateOne({
+    project,
+    scale: options.scale,
+    sourcePath: resolve(repoRoot, project.sourcePath),
+    outputDir: options.outputDir,
+    baseline: bf,
+    gitSha,
+  });
 }
 
 interface GenerateOneArgs {
@@ -400,38 +387,24 @@ async function generateOne(args: GenerateOneArgs): Promise<void> {
 }
 
 // ── CLI ────────────────────────────────────────────────────────────────────
-interface CliArgs {
-  outputDir: string;
-  projects: string[] | undefined;
-  scaleMin: number;
-  scaleMax: number;
-  scaleStep: number;
-}
-
-function parseArgs(argv: string[]): CliArgs {
+function parseArgs(argv: string[]): GenerateOptions {
   if (argv.length === 0) {
     usage();
     process.exit(1);
   }
 
   let outputDir: string | null = null;
-  const projects: string[] = [];
-  let scaleMin = 1000;
-  let scaleMax = 50_000;
-  let scaleStep = 1000;
+  let project: string | null = null;
+  let scale: number | null = null;
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === '--project') {
       const value = argv[++i];
       if (!value) throw new Error('--project requires a value');
-      projects.push(value);
-    } else if (arg === '--scale-min') {
-      scaleMin = parseScale(argv[++i], '--scale-min');
-    } else if (arg === '--scale-max') {
-      scaleMax = parseScale(argv[++i], '--scale-max');
-    } else if (arg === '--scale-step') {
-      scaleStep = parseScale(argv[++i], '--scale-step');
+      project = value;
+    } else if (arg === '--scale') {
+      scale = parseScale(argv[++i], '--scale');
     } else if (arg === '--help' || arg === '-h') {
       usage();
       process.exit(0);
@@ -444,22 +417,14 @@ function parseArgs(argv: string[]): CliArgs {
     }
   }
 
-  if (!outputDir) {
-    throw new Error('output-dir is required');
-  }
-  if (scaleMin <= 0 || scaleMax <= 0 || scaleStep <= 0) {
-    throw new Error('scale values must be positive');
-  }
-  if (scaleMax < scaleMin) {
-    throw new Error('--scale-max must be >= --scale-min');
-  }
+  if (!outputDir) throw new Error('output-dir is required');
+  if (!project) throw new Error('--project is required');
+  if (scale === null) throw new Error('--scale is required');
 
   return {
     outputDir: resolve(outputDir),
-    projects: projects.length > 0 ? projects : undefined,
-    scaleMin,
-    scaleMax,
-    scaleStep,
+    project,
+    scale,
   };
 }
 
@@ -474,10 +439,7 @@ function parseScale(raw: string | undefined, flag: string): number {
 
 function usage() {
   console.error(
-    'Usage: tsx src/generate-fixtures.ts <output-dir> [--project <name>] [--scale-min 1000] [--scale-max 50000] [--scale-step 1000]',
-  );
-  console.error(
-    '  --project may be passed multiple times to limit generation.',
+    'Usage: tsx src/generate-fixtures.ts <output-dir> --project <name> --scale <N>',
   );
   console.error(
     `  Configured projects: ${PROJECTS.map((p) => p.name).join(', ')}`,

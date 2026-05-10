@@ -70,10 +70,8 @@ describe.skipIf(!hasGringo)('generateFixtures', () => {
         outputDir = await mkdtemp(join(tmpdir(), 'gen-fixtures-test-'));
         await generateFixtures({
           outputDir,
-          projects: [expectation.project],
-          scaleMin: TEST_SCALE,
-          scaleMax: TEST_SCALE,
-          scaleStep: TEST_SCALE,
+          project: expectation.project,
+          scale: TEST_SCALE,
         });
       }, 600_000);
 

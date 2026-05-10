@@ -60,9 +60,8 @@ describe.skipIf(!canRun)('bench-solver-stats (smoke)', () => {
     outputDir = await mkdtemp(join(tmpdir(), 'bench-solverstats-out-'));
     await generateFixtures({
       outputDir: fixturesDir,
-      projects: [SMOKE_PROJECT],
-      scaleMin: SCALE,
-      scaleMax: SCALE,
+      project: SMOKE_PROJECT,
+      scale: SCALE,
     });
   }, 600_000);
 

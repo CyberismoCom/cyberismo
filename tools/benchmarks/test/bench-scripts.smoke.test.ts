@@ -63,14 +63,14 @@ describe.skipIf(!hasGringo)('benchmark scripts (smoke)', () => {
     fixturesDir = await mkdtemp(join(tmpdir(), 'bench-smoke-fixtures-'));
     outputDir = await mkdtemp(join(tmpdir(), 'bench-smoke-out-'));
     // Generate both the main scale and the threading scale (200) for the
-    // threading test in a single pass.
-    await generateFixtures({
-      outputDir: fixturesDir,
-      projects: [SMOKE_PROJECT],
-      scaleMin: THREADING_SCALE,
-      scaleMax: MAIN_SCALE,
-      scaleStep: MAIN_SCALE - THREADING_SCALE, // emits 200 and 1000
-    });
+    // threading test.
+    for (const scale of [THREADING_SCALE, MAIN_SCALE]) {
+      await generateFixtures({
+        outputDir: fixturesDir,
+        project: SMOKE_PROJECT,
+        scale,
+      });
+    }
   }, 600_000);
 
   afterAll(async () => {
