@@ -264,9 +264,9 @@ def save_figure(fig: plt.Figure, out_path: Path) -> None:
 
 def plot_caching(results_dir: Path, output_dir: Path) -> list[Path]:
     """Three caching figures:
-      caching-scaling.pdf      — absolute time, all three variants vs scale
+      caching-scaling.pdf      — absolute total time, all three variants vs scale
       caching-hit-speedup.pdf  — miss/hit ratio vs scale (log-y)
-      caching-hash-overhead.pdf — (miss - disabled)/miss as % per scale
+      caching-glue-scaling.pdf — glue phase only (where hash + lookup live)
     """
     df = load_runs(results_dir / "caching.json")
     if df.empty:
@@ -339,37 +339,39 @@ def plot_caching(results_dir: Path, output_dir: Path) -> list[Path]:
     save_figure(fig, out)
     out_paths.append(out)
 
-    # ── caching-hash-overhead: (miss - disabled) / miss × 100 ───────────────
-    # Visualises that the cache machinery (hash compute + lookup + store) is
-    # a small fraction of total miss time at every scale.
+    # ── caching-glue-scaling: glue phase only, all variants ─────────────────
+    # Glue captures everything in the JS-thread part of solve() before the
+    # Clingo solve dispatches to the worker thread (binding.cc t1 → t2). The
+    # only operations that differ between cache-disabled and cache-miss live
+    # here: XXH3 over query string + 8 B per referenced program, plus an
+    # unordered_map lookup. The disabled and miss curves overlapping at every
+    # N is the empirical claim — the solve-time cache machinery is below the
+    # measurement noise floor of the rest of glue.
     fig, panels = project_panels(df, figsize=(5.5 * max(len(projects), 1), 4.0))
+    df_glue = df.assign(glueMs=df["glueUs"] / 1000.0)
     for project, ax in panels.items():
-        sub = df[df["project"] == project]
-        miss = sub[sub["variant"] == "cache-miss"].groupby("cardCount")["totalMs"].mean()
-        disabled = sub[sub["variant"] == "cache-disabled"].groupby("cardCount")["totalMs"].mean()
-        joined = pd.DataFrame({"miss": miss, "disabled": disabled}).dropna()
-        if joined.empty:
-            panel_title(ax, project, panels, suffix=" — no data")
-            continue
-        joined["overheadPct"] = (joined["miss"] - joined["disabled"]) / joined["miss"] * 100.0
-        scales = joined.index.to_numpy().astype(int)
-        positions = np.arange(len(scales))
-        ax.bar(
-            positions,
-            joined["overheadPct"].to_numpy(),
-            width=0.7,
-            color=variant_colour("cache-miss"),
-            edgecolor="black",
-            linewidth=0.3,
-        )
-        ax.axhline(0, color="black", linewidth=0.6)
-        ax.set_xticks(positions)
-        ax.set_xticklabels([str(s) for s in scales], rotation=45, ha="right")
+        sub = df_glue[df_glue["project"] == project]
+        for variant in variants_present:
+            cell = sub[sub["variant"] == variant]
+            if cell.empty:
+                continue
+            agg = aggregate_runs(cell, ["cardCount"], value_col="glueMs").sort_values("cardCount")
+            line_with_band(
+                ax,
+                agg["cardCount"].to_numpy(),
+                agg["mean"].to_numpy(),
+                agg["std"].to_numpy(),
+                label=variant,
+                colour=variant_colour(variant),
+            )
         panel_title(ax, project, panels)
         ax.set_xlabel("cards")
-        ax.set_ylabel("hash + lookup + store as % of miss")
+        ax.set_ylabel("glue time (ms)")
+        ax.set_xscale("log")
+        ax.set_yscale("log")
 
-    out = output_dir / "caching-hash-overhead.pdf"
+    place_legend_below(fig, panels.values(), ncol=min(len(variants_present), 4))
+    out = output_dir / "caching-glue-scaling.pdf"
     save_figure(fig, out)
     out_paths.append(out)
 
@@ -379,76 +381,159 @@ def plot_caching(results_dir: Path, output_dir: Path) -> list[Path]:
 # ── Threading ───────────────────────────────────────────────────────────────
 
 def plot_threading(results_dir: Path, output_dir: Path) -> list[Path]:
-    """threading-batch.pdf and threading-latency.pdf."""
+    """threading-batch.pdf, threading-speedup.pdf, threading-latency.pdf.
+
+    When `clingoVariant` is present and has more than one value (typically
+    "stock" + a patch variant like "mutexfix"), each scale gets one bar/box
+    per (sync|async × clingoVariant) so the patch's effect is visible
+    alongside stock. Hatching distinguishes non-stock variants; sync stays
+    grey and async stays blue across both. The speedup plot overlays one
+    curve per clingoVariant.
+    """
     df = load_runs(results_dir / "threading.json")
     if df.empty:
         raise SystemExit("threading.json contained no runs")
     df = df[df["feature"] == "threading"].copy()
 
+    if "clingoVariant" in df.columns:
+        df["clingoVariant"] = df["clingoVariant"].fillna("stock")
+    else:
+        df["clingoVariant"] = "stock"
+
+    # Stock first, then any other variants alphabetically — keeps the legend
+    # order stable and matches the thesis convention.
+    cv_present = sorted(df["clingoVariant"].unique(), key=lambda v: (v != "stock", v))
+
     out_paths: list[Path] = []
 
     # ── Batch wall-clock vs scale ───────────────────────────────────────
-    # Now multi-scale: bench-threading runs at several card counts to show
-    # whether the async/sync speedup holds at scale.
     batch = df[df["variant"].isin(["sync-batch", "async-batch"])].copy()
     if batch.empty:
         raise SystemExit("threading.json had no sync-batch / async-batch records")
     batch["batchMs"] = batch["wallClockMs"].fillna(batch["totalMs"])
 
     projects = sorted(batch["project"].unique())
-    fig, panels = project_panels(batch, figsize=(5.5 * max(len(projects), 1), 4.0))
-    for project, ax in panels.items():
-        sub = batch[batch["project"] == project]
-        scales = sorted(sub["cardCount"].unique())
-        positions = np.arange(len(scales))
-        bar_width = 0.4
-        for v_idx, variant in enumerate(["sync-batch", "async-batch"]):
-            means = []
-            stds = []
-            for s in scales:
-                cell = sub[(sub["variant"] == variant) & (sub["cardCount"] == s)]
-                means.append(cell["batchMs"].mean() if not cell.empty else 0.0)
-                stds.append(cell["batchMs"].std(ddof=1) if len(cell) > 1 else 0.0)
-            offset = (v_idx - 0.5) * bar_width
-            ax.bar(
-                positions + offset,
-                np.nan_to_num(means),
-                bar_width,
-                yerr=np.nan_to_num(stds),
-                capsize=3,
-                color=variant_colour(variant),
-                edgecolor="black",
-                linewidth=0.5,
-                label="sequential (sync)" if variant == "sync-batch" else "concurrent (async)",
-            )
-        ax.set_xticks(positions)
-        ax.set_xticklabels([str(s) for s in scales])
-        ax.set_xlabel("cards")
-        ax.set_ylabel("batch wall-clock (ms)")
-        panel_title(ax, project, panels)
+    non_stock = [v for v in cv_present if v != "stock"]
 
-    place_legend_below(fig, panels.values(), ncol=2)
+    fig, panels = project_panels(batch, figsize=(5.5 * max(len(projects), 1), 4.0))
+    if non_stock:
+        # Patch comparison: per-scale speedup (stock async / variant async).
+        # Absolute times span ~4 orders of magnitude across scales which made
+        # the earlier log-y absolute-bar plot hard to read; the ratio collapses
+        # that range to a 1–10× window per scale.
+        bar_width = 0.8 / len(non_stock)
+        for project, ax in panels.items():
+            sub = batch[batch["project"] == project]
+            scales = sorted(sub["cardCount"].unique())
+            positions = np.arange(len(scales))
+            for nv_idx, nv in enumerate(non_stock):
+                ratios = []
+                for s in scales:
+                    stock_async = sub[
+                        (sub["variant"] == "async-batch")
+                        & (sub["cardCount"] == s)
+                        & (sub["clingoVariant"] == "stock")
+                    ]["batchMs"].mean()
+                    variant_async = sub[
+                        (sub["variant"] == "async-batch")
+                        & (sub["cardCount"] == s)
+                        & (sub["clingoVariant"] == nv)
+                    ]["batchMs"].mean()
+                    ratios.append(
+                        stock_async / variant_async
+                        if variant_async and variant_async > 0
+                        else np.nan
+                    )
+                offset = (nv_idx - (len(non_stock) - 1) / 2) * bar_width
+                ax.bar(
+                    positions + offset,
+                    np.nan_to_num(ratios),
+                    bar_width,
+                    color=variant_colour("c-api+resultfield"),
+                    edgecolor="black",
+                    linewidth=0.5,
+                    hatch="///",
+                    label=nv,
+                )
+            ax.set_xticks(positions)
+            ax.set_xticklabels([str(s) for s in scales])
+            ax.set_xlabel("cards")
+            ax.set_ylabel("async speedup (stock / patched)")
+            ax.axhline(1.0, color="black", linewidth=0.6, linestyle="--", alpha=0.5)
+            panel_title(ax, project, panels)
+
+        if len(non_stock) > 1:
+            place_legend_below(fig, panels.values(), ncol=len(non_stock))
+    else:
+        # Stock only — keep the original absolute-time bars (sync vs async).
+        bar_kinds = ["sync-batch", "async-batch"]
+        bar_width = 0.4
+        for project, ax in panels.items():
+            sub = batch[batch["project"] == project]
+            scales = sorted(sub["cardCount"].unique())
+            positions = np.arange(len(scales))
+            for kind_idx, kind in enumerate(bar_kinds):
+                means = []
+                stds = []
+                for s in scales:
+                    cell = sub[(sub["variant"] == kind) & (sub["cardCount"] == s)]
+                    means.append(cell["batchMs"].mean() if not cell.empty else 0.0)
+                    stds.append(cell["batchMs"].std(ddof=1) if len(cell) > 1 else 0.0)
+                offset = (kind_idx - 0.5) * bar_width
+                ax.bar(
+                    positions + offset,
+                    np.nan_to_num(means),
+                    bar_width,
+                    yerr=np.nan_to_num(stds),
+                    capsize=3,
+                    color=variant_colour(kind),
+                    edgecolor="black",
+                    linewidth=0.5,
+                    label="sequential (sync)" if kind == "sync-batch" else "concurrent (async)",
+                )
+            ax.set_xticks(positions)
+            ax.set_xticklabels([str(s) for s in scales])
+            ax.set_xlabel("cards")
+            ax.set_ylabel("batch wall-clock (ms)")
+            panel_title(ax, project, panels)
+        place_legend_below(fig, panels.values(), ncol=2)
+
     out_batch = output_dir / "threading-batch.pdf"
     save_figure(fig, out_batch)
     out_paths.append(out_batch)
 
     # ── Speedup: sync-batch / async-batch vs scale ──────────────────────
+    # One curve per clingoVariant when multiple are present.
     fig, panels = project_panels(batch, figsize=(5.5 * max(len(projects), 1), 4.0))
+    speedup_styles = {"stock": ("o", "-"), }  # any non-stock gets dashed + square
     for project, ax in panels.items():
         sub = batch[batch["project"] == project]
         scales = sorted(sub["cardCount"].unique())
-        speedups = []
-        for s in scales:
-            sync_mean = sub[(sub["variant"] == "sync-batch") & (sub["cardCount"] == s)]["batchMs"].mean()
-            async_mean = sub[(sub["variant"] == "async-batch") & (sub["cardCount"] == s)]["batchMs"].mean()
-            speedups.append(sync_mean / async_mean if async_mean > 0 else np.nan)
-        ax.plot(scales, speedups, marker="o", color=variant_colour("async"), linewidth=1.5)
+        for cv in cv_present:
+            cv_sub = sub[sub["clingoVariant"] == cv]
+            speedups = []
+            for s in scales:
+                sync_mean = cv_sub[(cv_sub["variant"] == "sync-batch") & (cv_sub["cardCount"] == s)]["batchMs"].mean()
+                async_mean = cv_sub[(cv_sub["variant"] == "async-batch") & (cv_sub["cardCount"] == s)]["batchMs"].mean()
+                speedups.append(sync_mean / async_mean if async_mean > 0 else np.nan)
+            marker, linestyle = speedup_styles.get(cv, ("s", "--"))
+            ax.plot(
+                scales,
+                speedups,
+                marker=marker,
+                linestyle=linestyle,
+                color=variant_colour("async") if cv == "stock" else variant_colour("c-api+resultfield"),
+                linewidth=1.5,
+                label=cv,
+            )
         ax.set_xscale("log")
         ax.axhline(1.0, color="black", linewidth=0.6, linestyle="--", alpha=0.5)
         panel_title(ax, project, panels)
         ax.set_xlabel("cards")
         ax.set_ylabel("async speedup (sync / async)")
 
+    if len(cv_present) > 1:
+        place_legend_below(fig, panels.values(), ncol=len(cv_present))
     out_speedup = output_dir / "threading-speedup.pdf"
     save_figure(fig, out_speedup)
     out_paths.append(out_speedup)
@@ -464,12 +549,23 @@ def plot_threading(results_dir: Path, output_dir: Path) -> list[Path]:
     if n_scales == 1:
         axes = [axes]
 
+    box_kinds = ["sync", "async"]
     for ax, scale in zip(axes, scales):
-        cell_sync = solos[(solos["variant"] == "sync") & (solos["cardCount"] == scale)]
-        cell_async = solos[(solos["variant"] == "async") & (solos["cardCount"] == scale)]
-        boxes = [cell_sync["totalMs"].to_numpy(), cell_async["totalMs"].to_numpy()]
-        labels = ["sync", "async"]
-        colours_box = [variant_colour("sync"), variant_colour("async")]
+        boxes = []
+        labels = []
+        colours_box = []
+        hatches = []
+        for cv in cv_present:
+            for kind in box_kinds:
+                cell = solos[
+                    (solos["variant"] == kind)
+                    & (solos["cardCount"] == scale)
+                    & (solos["clingoVariant"] == cv)
+                ]
+                boxes.append(cell["totalMs"].to_numpy())
+                labels.append(kind if cv == "stock" else f"{kind}\n({cv})")
+                colours_box.append(variant_colour(kind))
+                hatches.append("" if cv == "stock" else "///")
         bp = ax.boxplot(
             boxes,
             tick_labels=labels,
@@ -479,11 +575,13 @@ def plot_threading(results_dir: Path, output_dir: Path) -> list[Path]:
             medianprops=dict(color="black", linewidth=1.2),
             flierprops=dict(marker=".", markersize=3, alpha=0.4),
         )
-        for patch, colour in zip(bp["boxes"], colours_box):
+        for patch, colour, hatch in zip(bp["boxes"], colours_box, hatches):
             patch.set_facecolor(colour)
             patch.set_alpha(0.55)
             patch.set_edgecolor("black")
             patch.set_linewidth(0.6)
+            if hatch:
+                patch.set_hatch(hatch)
         ax.set_title(f"{scale} cards")
         ax.set_yscale("log")
 
