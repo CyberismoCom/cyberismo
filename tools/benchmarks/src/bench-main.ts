@@ -32,6 +32,7 @@ import type { ClingoContext } from '@cyberismo/node-clingo';
 import { lpFiles } from '@cyberismo/assets';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import Handlebars from 'handlebars';
 import { solveBinary, solveAspifWithQuery } from './binary-baseline.js';
 import {
   loadBaselineFiles,
@@ -192,6 +193,23 @@ async function runFixture(
   );
 
   const bf = await loadBaselineFiles();
+
+  // Per-card queries compiled against the OLD card.lp template (from the
+  // pre-resultField snapshot), keyed by query name. Used by the c-api(old QL)
+  // variant so its workload matches the binary baseline. Without this, the
+  // c-api block would solve HEAD card.lp (which derives `resultField` atoms)
+  // against an old queryLanguage that doesn't consume them — different
+  // grounding work than `baseline (binary)`, which uses old card.lp.
+  // `tree` is unchanged across eras, so we reuse `bundle.queries.tree`.
+  const baselineQueries: Record<string, string> = {
+    tree: bundle.queries.tree,
+  };
+  for (const queryName of CARD_QUERIES) {
+    const cardKey = bundle.cards[QUERY_TO_CARD_KEY[queryName]];
+    if (typeof cardKey !== 'string') continue;
+    baselineQueries[queryName] = Handlebars.compile(bf.card)({ cardKey });
+  }
+
   const commands = await CommandManager.getInstance(projectDir);
   const projectId = commands.project.projectPrefix;
 
@@ -259,12 +277,12 @@ async function runFixture(
     try {
       // warmup discards the first VARIANT_WARMUP solves after the context
       // state change (replaceContext + swapToOldQL).
-      const warmupQuery = bundle.queries.tree;
+      const warmupQuery = baselineQueries.tree;
       for (let i = 0; i < VARIANT_WARMUP; i++) {
         await capiCtx.solve(warmupQuery, ['all'], { cache: false });
       }
       for (const queryName of queries) {
-        const query = bundle.queries[queryName];
+        const query = baselineQueries[queryName];
         if (!query) continue;
         for (let run = 1; run <= RUNS_PER_POINT; run++) {
           const r = await capiCtx.solve(query, ['all'], { cache: false });
