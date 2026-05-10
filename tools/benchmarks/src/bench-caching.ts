@@ -26,7 +26,7 @@ if (!fixturesDir) {
   process.exit(1);
 }
 
-const RUNS_PER_POINT = 5;
+const RUNS_PER_POINT = 3;
 const WARMUP_RUNS = 3;
 const FEATURE = 'caching';
 
