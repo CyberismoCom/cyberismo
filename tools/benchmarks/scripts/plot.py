@@ -233,10 +233,13 @@ def place_legend_below(fig: plt.Figure, axes: Iterable[plt.Axes], ncol: int) -> 
 
 
 def save_figure(fig: plt.Figure, out_path: Path) -> None:
-    """Save `fig` as both <out_path>.pdf and <out_path>.pgf.
+    """Save `fig` as <out_path>.pdf, .pgf, and a PNG mirror under png/.
 
     `out_path` is expected to use the `.pdf` suffix; the `.pgf` companion is
     derived via `with_suffix('.pgf')` so the thesis can `\\input` it directly.
+    The PNG mirror lives under `<out_path.parent>/png/<name>.png` (preserving
+    any per-category subdirectory layout) so `make-gallery.sh` and any
+    side-by-side review tooling can render figures in a browser.
 
     The PGF write uses matplotlib's `pgf` backend per-savefig so the global
     backend stays on `pdf`. If the PGF write fails (typically because
@@ -257,6 +260,19 @@ def save_figure(fig: plt.Figure, out_path: Path) -> None:
                 file=sys.stderr,
             )
             _PGF_WARNED = True
+    # PNG mirror: rooted at <plots-dir>/png/, with category subdirs preserved.
+    # We walk up to the first dir that has no png/ sibling and treat it as the
+    # plots root; in practice plot.py is always called with an explicit
+    # output_dir as the root, so out_path.parent is either that root or one
+    # subdir deep (phase-progression/, phase-breakdown/).
+    png_root = out_path.parent
+    rel = Path(out_path.name)
+    if png_root.name in ("phase-progression", "phase-breakdown"):
+        rel = Path(png_root.name) / out_path.name
+        png_root = png_root.parent
+    png_path = (png_root / "png" / rel).with_suffix(".png")
+    png_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(png_path, format="png", dpi=150, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -417,53 +433,68 @@ def plot_threading(results_dir: Path, output_dir: Path) -> list[Path]:
 
     fig, panels = project_panels(batch, figsize=(5.5 * max(len(projects), 1), 4.0))
     if non_stock:
-        # Patch comparison: per-scale speedup (stock async / variant async).
-        # Absolute times span ~4 orders of magnitude across scales which made
-        # the earlier log-y absolute-bar plot hard to read; the ratio collapses
-        # that range to a 1–10× window per scale.
-        bar_width = 0.8 / len(non_stock)
+        # Patch comparison: every bar is normalised by stock-sync at the same
+        # scale (so stock-sync would always be 1.0 — drawn as the y=1 reference
+        # line rather than a redundant bar). Per scale we emit:
+        #   stock-async       — async benefit without the patch
+        #   <variant>-sync    — should sit near 1.0; confirms the patch didn't
+        #                       regress sync (no contention without parallelism)
+        #   <variant>-async   — the headline; biggest bar
+        # Series carry the established colour/hatch convention: sync=grey,
+        # async=blue, stock=solid, non-stock=hatched.
+        series: list[tuple[str, str, str, str, str]] = []  # (label, kind, cv, colour, hatch)
+        series.append(("async (stock)", "async-batch", "stock", variant_colour("async-batch"), ""))
+        for nv in non_stock:
+            series.append((f"sync ({nv})", "sync-batch", nv, variant_colour("sync-batch"), "///"))
+            series.append((f"async ({nv})", "async-batch", nv, variant_colour("async-batch"), "///"))
+
+        bar_width = 0.8 / len(series)
         for project, ax in panels.items():
             sub = batch[batch["project"] == project]
             scales = sorted(sub["cardCount"].unique())
             positions = np.arange(len(scales))
-            for nv_idx, nv in enumerate(non_stock):
+            stock_sync_per_scale = {
+                s: sub[
+                    (sub["variant"] == "sync-batch")
+                    & (sub["cardCount"] == s)
+                    & (sub["clingoVariant"] == "stock")
+                ]["batchMs"].mean()
+                for s in scales
+            }
+            for s_idx, (label, kind, cv, colour, hatch) in enumerate(series):
                 ratios = []
                 for s in scales:
-                    stock_async = sub[
-                        (sub["variant"] == "async-batch")
+                    denom = stock_sync_per_scale.get(s)
+                    numerator_cell = sub[
+                        (sub["variant"] == kind)
                         & (sub["cardCount"] == s)
-                        & (sub["clingoVariant"] == "stock")
+                        & (sub["clingoVariant"] == cv)
                     ]["batchMs"].mean()
-                    variant_async = sub[
-                        (sub["variant"] == "async-batch")
-                        & (sub["cardCount"] == s)
-                        & (sub["clingoVariant"] == nv)
-                    ]["batchMs"].mean()
-                    ratios.append(
-                        stock_async / variant_async
-                        if variant_async and variant_async > 0
-                        else np.nan
-                    )
-                offset = (nv_idx - (len(non_stock) - 1) / 2) * bar_width
+                    if denom and denom > 0 and numerator_cell and numerator_cell > 0:
+                        # Larger ratio = faster, so divide the baseline by the
+                        # measurement.
+                        ratios.append(denom / numerator_cell)
+                    else:
+                        ratios.append(np.nan)
+                offset = (s_idx - (len(series) - 1) / 2) * bar_width
                 ax.bar(
                     positions + offset,
                     np.nan_to_num(ratios),
                     bar_width,
-                    color=variant_colour("c-api+resultfield"),
+                    color=colour,
                     edgecolor="black",
                     linewidth=0.5,
-                    hatch="///",
-                    label=nv,
+                    hatch=hatch,
+                    label=label,
                 )
             ax.set_xticks(positions)
             ax.set_xticklabels([str(s) for s in scales])
             ax.set_xlabel("cards")
-            ax.set_ylabel("async speedup (stock / patched)")
+            ax.set_ylabel("speedup vs stock sync")
             ax.axhline(1.0, color="black", linewidth=0.6, linestyle="--", alpha=0.5)
             panel_title(ax, project, panels)
 
-        if len(non_stock) > 1:
-            place_legend_below(fig, panels.values(), ncol=len(non_stock))
+        place_legend_below(fig, panels.values(), ncol=min(len(series), 4))
     else:
         # Stock only — keep the original absolute-time bars (sync vs async).
         bar_kinds = ["sync-batch", "async-batch"]
