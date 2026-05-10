@@ -4,3 +4,9 @@
 [submodule "tools/node-clingo/external/BS_thread_pool"]
 	path = tools/node-clingo/external/BS_thread_pool
 	url = https://github.com/bshoshany/thread-pool
+[submodule "cyberismo-docs"]
+	path = cyberismo-docs
+	url = https://github.com/CyberismoCom/cyberismo-docs.git
+[submodule "module-eu-cra"]
+	path = module-eu-cra
+	url = https://github.com/CyberismoCom/module-eu-cra.git
