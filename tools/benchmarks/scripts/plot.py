@@ -200,6 +200,17 @@ def project_panels(
     return fig, dict(zip(projects, axes[0]))
 
 
+def panel_title(ax: plt.Axes, project: str, panels: dict, suffix: str = "") -> None:
+    """Set the per-panel project title only when there are multiple panels.
+
+    On single-panel figures the project name is already implied by the LaTeX
+    caption, so the panel title is suppressed to avoid redundancy."""
+    if len(panels) > 1:
+        ax.set_title(project_pretty(project) + suffix)
+    elif suffix:
+        ax.set_title(suffix.lstrip(" —"))
+
+
 def place_legend_below(fig: plt.Figure, axes: Iterable[plt.Axes], ncol: int) -> None:
     """Collect handles/labels from the first non-empty axis, place legend below."""
     handles, labels = [], []
@@ -288,13 +299,12 @@ def plot_caching(results_dir: Path, output_dir: Path) -> list[Path]:
                 label=variant,
                 colour=variant_colour(variant),
             )
-        ax.set_title(project_pretty(project))
+        panel_title(ax, project, panels)
         ax.set_xlabel("cards")
         ax.set_ylabel("total time (ms)")
         ax.set_xscale("log")
 
     place_legend_below(fig, panels.values(), ncol=min(len(variants_present), 4))
-    fig.suptitle("Caching: total solve time vs. project size", y=1.02)
     out = output_dir / "caching-scaling.pdf"
     save_figure(fig, out)
     out_paths.append(out)
@@ -308,7 +318,7 @@ def plot_caching(results_dir: Path, output_dir: Path) -> list[Path]:
         hit = sub[sub["variant"] == "cache-hit"].groupby("cardCount")["totalMs"].mean()
         joined = pd.DataFrame({"miss": miss, "hit": hit}).dropna()
         if joined.empty:
-            ax.set_title(f"{project_pretty(project)} — no data")
+            panel_title(ax, project, panels, suffix=" — no data")
             continue
         joined["speedup"] = joined["miss"] / joined["hit"].replace(0, np.nan)
         joined = joined.dropna(subset=["speedup"])
@@ -319,13 +329,12 @@ def plot_caching(results_dir: Path, output_dir: Path) -> list[Path]:
             color=variant_colour("cache-hit"),
             linewidth=1.5,
         )
-        ax.set_title(project_pretty(project))
+        panel_title(ax, project, panels)
         ax.set_xlabel("cards")
         ax.set_ylabel("hit speedup (miss / hit)")
         ax.set_xscale("log")
         ax.set_yscale("log")
 
-    fig.suptitle("Caching: hit speedup grows with project size", y=1.02)
     out = output_dir / "caching-hit-speedup.pdf"
     save_figure(fig, out)
     out_paths.append(out)
@@ -340,7 +349,7 @@ def plot_caching(results_dir: Path, output_dir: Path) -> list[Path]:
         disabled = sub[sub["variant"] == "cache-disabled"].groupby("cardCount")["totalMs"].mean()
         joined = pd.DataFrame({"miss": miss, "disabled": disabled}).dropna()
         if joined.empty:
-            ax.set_title(f"{project_pretty(project)} — no data")
+            panel_title(ax, project, panels, suffix=" — no data")
             continue
         joined["overheadPct"] = (joined["miss"] - joined["disabled"]) / joined["miss"] * 100.0
         scales = joined.index.to_numpy().astype(int)
@@ -356,11 +365,10 @@ def plot_caching(results_dir: Path, output_dir: Path) -> list[Path]:
         ax.axhline(0, color="black", linewidth=0.6)
         ax.set_xticks(positions)
         ax.set_xticklabels([str(s) for s in scales], rotation=45, ha="right")
-        ax.set_title(project_pretty(project))
+        panel_title(ax, project, panels)
         ax.set_xlabel("cards")
         ax.set_ylabel("hash + lookup + store as % of miss")
 
-    fig.suptitle("Caching: cache-machinery overhead as fraction of cache-miss time", y=1.02)
     out = output_dir / "caching-hash-overhead.pdf"
     save_figure(fig, out)
     out_paths.append(out)
@@ -417,10 +425,9 @@ def plot_threading(results_dir: Path, output_dir: Path) -> list[Path]:
         ax.set_xticklabels([str(s) for s in scales])
         ax.set_xlabel("cards")
         ax.set_ylabel("batch wall-clock (ms)")
-        ax.set_title(project_pretty(project))
+        panel_title(ax, project, panels)
 
     place_legend_below(fig, panels.values(), ncol=2)
-    fig.suptitle("Threading: 64-solve batch wall-clock vs project size", y=1.02)
     out_batch = output_dir / "threading-batch.pdf"
     save_figure(fig, out_batch)
     out_paths.append(out_batch)
@@ -438,11 +445,10 @@ def plot_threading(results_dir: Path, output_dir: Path) -> list[Path]:
         ax.plot(scales, speedups, marker="o", color=variant_colour("async"), linewidth=1.5)
         ax.set_xscale("log")
         ax.axhline(1.0, color="black", linewidth=0.6, linestyle="--", alpha=0.5)
-        ax.set_title(project_pretty(project))
+        panel_title(ax, project, panels)
         ax.set_xlabel("cards")
         ax.set_ylabel("async speedup (sync / async)")
 
-    fig.suptitle("Threading: concurrent speedup vs project size", y=1.02)
     out_speedup = output_dir / "threading-speedup.pdf"
     save_figure(fig, out_speedup)
     out_paths.append(out_speedup)
@@ -482,7 +488,6 @@ def plot_threading(results_dir: Path, output_dir: Path) -> list[Path]:
         ax.set_yscale("log")
 
     axes[0].set_ylabel("per-solve total time (ms)")
-    fig.suptitle("Threading: per-solve latency distribution by project size", y=1.02)
     out_lat = output_dir / "threading-latency.pdf"
     save_figure(fig, out_lat)
     out_paths.append(out_lat)
@@ -526,7 +531,7 @@ def _plot_main_query_scaling(
                 colour=variant_colour(variant),
             )
             all_means.extend(agg["mean"].tolist())
-        ax.set_title(project_pretty(project))
+        panel_title(ax, project, panels)
         ax.set_xlabel("cards")
         ax.set_ylabel("total time (ms)")
 
@@ -537,7 +542,6 @@ def _plot_main_query_scaling(
         ax.set_xscale("log")
 
     place_legend_below(fig, panels.values(), ncol=3)
-    fig.suptitle(f"Main scaling: {query_name} query, total time vs. project size", y=1.02)
     out = output_dir / f"main-{slug}-scaling.pdf"
     save_figure(fig, out)
     return out
@@ -557,7 +561,7 @@ def _plot_main_query_speedup(
         psub = sub[sub["project"] == project]
         baseline = psub[psub["variant"] == "baseline"]
         if baseline.empty:
-            ax.set_title(f"{project_pretty(project)} — no baseline")
+            panel_title(ax, project, panels, suffix=" — no baseline")
             continue
         baseline_stats = (
             baseline.groupby("cardCount")["totalMs"]
@@ -590,13 +594,12 @@ def _plot_main_query_speedup(
                 colour=variant_colour(variant),
             )
         ax.axhline(1.0, color="black", linewidth=0.8, linestyle="--", alpha=0.5)
-        ax.set_title(project_pretty(project))
+        panel_title(ax, project, panels)
         ax.set_xlabel("cards")
         ax.set_ylabel("speedup vs. baseline (×)")
         ax.set_xscale("log")
 
     place_legend_below(fig, panels.values(), ncol=3)
-    fig.suptitle(f"Main scaling: {query_name} query speedup over baseline", y=1.02)
     out = output_dir / f"main-{slug}-speedup.pdf"
     save_figure(fig, out)
     return out
@@ -625,7 +628,7 @@ def plot_main_tree_scaling(df: pd.DataFrame, output_dir: Path) -> Path:
                 colour=variant_colour(variant),
             )
             all_means.extend(agg["mean"].tolist())
-        ax.set_title(project_pretty(project))
+        panel_title(ax, project, panels)
         ax.set_xlabel("cards")
         ax.set_ylabel("total time (ms)")
 
@@ -636,7 +639,6 @@ def plot_main_tree_scaling(df: pd.DataFrame, output_dir: Path) -> Path:
         ax.set_xscale("log")
 
     place_legend_below(fig, panels.values(), ncol=3)
-    fig.suptitle("Main scaling: tree query, total time vs. project size", y=1.02)
     out = output_dir / "main-tree-scaling.pdf"
     save_figure(fig, out)
     return out
@@ -654,7 +656,7 @@ def plot_main_tree_speedup(df: pd.DataFrame, output_dir: Path) -> Path:
         psub = sub[sub["project"] == project]
         baseline = psub[psub["variant"] == "baseline"]
         if baseline.empty:
-            ax.set_title(f"{project_pretty(project)} — no baseline")
+            panel_title(ax, project, panels, suffix=" — no baseline")
             continue
         baseline_stats = (
             baseline.groupby("cardCount")["totalMs"]
@@ -691,13 +693,12 @@ def plot_main_tree_speedup(df: pd.DataFrame, output_dir: Path) -> Path:
                 colour=variant_colour(variant),
             )
         ax.axhline(1.0, color="black", linewidth=0.8, linestyle="--", alpha=0.5)
-        ax.set_title(project_pretty(project))
+        panel_title(ax, project, panels)
         ax.set_xlabel("cards")
         ax.set_ylabel("speedup vs. baseline (×)")
         ax.set_xscale("log")
 
     place_legend_below(fig, panels.values(), ncol=3)
-    fig.suptitle("Main scaling: tree query speedup over baseline", y=1.02)
     out = output_dir / "main-tree-speedup.pdf"
     save_figure(fig, out)
     return out
@@ -804,11 +805,6 @@ def _plot_phase_progression(
 
     axes[0].set_ylabel("share of total time (%)" if normalised else "time (ms)")
     place_legend_below(fig, axes, ncol=4)
-    fig.suptitle(
-        f"Phase progression — {project_pretty(project)}, {query_name} query"
-        + (" (normalised)" if normalised else ""),
-        y=1.02,
-    )
     save_figure(fig, out_path)
 
 
@@ -913,15 +909,11 @@ def plot_main_incremental_decomp(df: pd.DataFrame, output_dir: Path) -> Path:
         )
         ax.set_xticks(positions)
         ax.set_xticklabels([str(s) for s in scales], rotation=45, ha="right")
-        ax.set_title(project_pretty(project))
+        panel_title(ax, project, panels)
         ax.set_xlabel("cards")
         ax.set_ylabel("per-query time (ms)")
 
     place_legend_below(fig, panels.values(), ncol=1)
-    fig.suptitle(
-        "Incremental: per-query clingo cost on prebuilt ASPIF (gringo amortised at fixture-build)",
-        y=1.02,
-    )
     out = output_dir / "main-incremental-decomp.pdf"
     save_figure(fig, out)
     return out
