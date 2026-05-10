@@ -13,10 +13,11 @@ set -euo pipefail
 #
 # Threading is run twice when [variant-node-path] is given: once with the
 # .node currently in tools/node-clingo/build/Release/ (tagged "stock"), then
-# again after copying [variant-node-path] into that location (tagged with
-# [variant-name], default "mutexfix"). The original .node is restored on
-# exit. The other benchmarks (main, caching, solver-stats) are
-# clingo-variant-independent and run once against the stock build.
+# again at the very end after copying [variant-node-path] into that location
+# (tagged with [variant-name], default "mutexfix"). The variant run is last
+# because the variant build is more likely to crash than stock — putting it
+# last ensures the variant-independent benchmarks (solver-stats, main, caching)
+# always complete on the stock build. The .node is restored on exit.
 
 FIXTURES_DIR="${1:?Usage: $0 <fixtures-dir> <output-dir> [variant-node-path] [variant-name]}"
 OUTPUT_DIR="${2:?Usage: $0 <fixtures-dir> <output-dir> [variant-node-path] [variant-name]}"
@@ -94,7 +95,8 @@ echo ""
 echo "--- bench-caching (cache-disabled, cache-miss, cache-hit) ---"
 "$TSX" "$BENCH_DIR/src/bench-caching.ts" "$FIXTURES_DIR" "$OUTPUT_DIR/caching-$HOST.json"
 
-# Variant threading run last so the .node swap doesn't affect the others.
+# Variant threading run last so the .node swap doesn't affect the others —
+# and so a variant crash leaves all variant-independent results intact.
 if [[ -n "$VARIANT_NODE" ]]; then
   STOCK_BACKUP="$(mktemp -t node-clingo-stock.XXXXXX.node)"
   cp -f "$CLINGO_NODE" "$STOCK_BACKUP"
