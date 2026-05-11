@@ -332,12 +332,7 @@ describe('Navigation', () => {
       cy.get('[data-cy="moreProjectsButton"]').click();
       cy.get('[role="dialog"]').should('be.visible');
 
-      // Open button should be disabled until a project is selected
-      cy.get('[role="dialog"]')
-        .contains(t.projectDialog['open'])
-        .should('be.disabled');
-
-      // Click a project card to select it
+      // Current project is pre-selected, so Open button should be enabled
       cy.get('[role="dialog"]').contains('Basic Acceptance Test').click();
       cy.get('[role="dialog"]')
         .contains(t.projectDialog['open'])

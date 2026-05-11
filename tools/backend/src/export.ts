@@ -149,6 +149,10 @@ export async function exportSite(
           if (url.pathname.startsWith('/mcp')) {
             return false;
           }
+          // Skip OIDC/well-known routes — not relevant for static export
+          if (url.pathname.startsWith('/.well-known')) {
+            return false;
+          }
           return req;
         },
         afterResponseHook: async (response) => {
