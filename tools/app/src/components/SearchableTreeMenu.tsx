@@ -120,7 +120,7 @@ export const SearchableTreeMenu = ({
   );
 
   return (
-    <Stack height="100%" width="100%" bgcolor="background.surface">
+    <Stack height="100%" width="100%" overflow="hidden" bgcolor="background.surface">
       {/* Recent projects - only takes natural height */}
       <Stack flexShrink={0}>
         {/* Recent projects header */}
