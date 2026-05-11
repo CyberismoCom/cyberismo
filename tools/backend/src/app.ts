@@ -41,6 +41,7 @@ import { createAuthMiddleware } from './middleware/auth.js';
 import type { AuthProvider } from './auth/types.js';
 import type { ProjectRegistry } from './project-registry.js';
 import { createProjectsRouter } from './domain/projects/index.js';
+import { simpleMcpAuthRouter } from '@hono/mcp';
 
 /**
  * Create a Hono sub-app with all project-scoped routes.
@@ -81,6 +82,20 @@ export function createApp(
   exportMode = false,
 ) {
   const app = new Hono<{ Variables: AppVars }>();
+
+  // Public — no auth middleware (MCP clients call this before they have a token)
+  // RFC 9728 resource metadata & OAuth authorization server metadata via @hono/mcp
+  const issuer = process.env.OIDC_ISSUER;
+  if (issuer) {
+    const origin = new URL(issuer).origin;
+    app.route(
+      '/',
+      simpleMcpAuthRouter({
+        issuer,
+        resourceServerUrl: new URL(`${origin}/mcp`),
+      }),
+    );
+  }
 
   app.use(treeMiddleware(opts));
   // Apply authentication middleware to all API and MCP routes
