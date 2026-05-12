@@ -1,4 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { getCardQueryResult, reset, exportSite } from '../src/export.js';
 import { ProjectRegistry } from '../src/project-registry.js';
 import type { CommandManager } from '@cyberismo/data-handler';
@@ -141,11 +144,21 @@ describe('export module', () => {
   });
 
   describe('exportSite validation', () => {
+    let tempDir: string;
+
+    beforeEach(async () => {
+      tempDir = await mkdtemp(join(tmpdir(), 'cyberismo-export-test-'));
+    });
+
+    afterEach(async () => {
+      await rm(tempDir, { recursive: true, force: true });
+    });
+
     test('should throw when defaultProject is not in the registry', async () => {
       const registry = new ProjectRegistry();
 
       await expect(
-        exportSite(registry, '/tmp/test-export', {
+        exportSite(registry, tempDir, {
           defaultProject: 'nonexistent',
         }),
       ).rejects.toThrow("Default project 'nonexistent' is not in the registry");
@@ -163,7 +176,7 @@ describe('export module', () => {
       const registry = ProjectRegistry.fromCommandManager(commands);
 
       await expect(
-        exportSite(registry, '/tmp/test-export', {
+        exportSite(registry, tempDir, {
           defaultProject: 'bar',
         }),
       ).rejects.toThrow('Available: foo');
