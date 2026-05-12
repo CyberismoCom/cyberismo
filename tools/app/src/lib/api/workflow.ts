@@ -12,7 +12,6 @@
 */
 
 import type { SWRConfiguration } from 'swr';
-import { apiPaths } from '../swr';
 import { callApi, projectApiPaths } from '../swr';
 import { mutate } from 'swr';
 import type { CreateWorkflowData } from '@/lib/definitions';
@@ -40,6 +39,7 @@ export const useWorkflowGraph = (
   cardKey?: string | null,
   options?: SWRConfiguration,
 ) => {
+  const apiPaths = projectApiPaths();
   const swrKey = resourceName
     ? apiPaths.workflowGraph(resourceName, cardKey ?? undefined)
     : null;

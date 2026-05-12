@@ -89,6 +89,8 @@ export function projectApiPaths(projectPrefix?: string) {
     presence: (cardKey: string, mode: string) =>
       `${base}/cards/${encodeURIComponent(cardKey)}/presence?mode=${mode}`,
     exportCard: () => `${base}/cards/export-pdf`,
+    workflowGraph: (resourceName: string, cardKey?: string) =>
+      `${base}/resources/${resourceName}/graph${cardKey ? `?card=${encodeURIComponent(cardKey)}` : ''}`,
   };
 }
 

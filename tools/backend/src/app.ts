@@ -134,7 +134,10 @@ export function createApp(
 
   // serve index.html for all other routes
   app.notFound(async (c) => {
-    if (c.req.path.startsWith('/api')) {
+    if (
+      c.req.path.startsWith('/api') ||
+      c.req.path.startsWith('/.well-known')
+    ) {
       return c.text('Not Found', 404);
     }
     const file = await readFile(
