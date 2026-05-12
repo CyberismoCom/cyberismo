@@ -1,6 +1,7 @@
 import { beforeEach, afterEach, describe, expect, test } from 'vitest';
 import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
+import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { cleanupTempTestData, createTempTestData } from './test-utils.js';
 
@@ -21,7 +22,10 @@ let tempTestDataPath: string;
 beforeEach(async () => {
   tempTestDataPath = await createTempTestData('module-test');
   const commands = await CommandManager.getInstance(tempTestDataPath);
-  app = createApp(new MockAuthProvider(), commands);
+  app = createApp(
+    new MockAuthProvider(),
+    ProjectRegistry.fromCommandManager(commands),
+  );
 });
 
 afterEach(async () => {
@@ -30,7 +34,7 @@ afterEach(async () => {
 
 describe('Project endpoints', () => {
   test('GET /api/project returns project info', async () => {
-    const response = await app.request('/api/project');
+    const response = await app.request('/api/projects/test/project');
     expect(response.status).toBe(200);
     const result = (await response.json()) as ProjectResponse;
 
@@ -40,7 +44,7 @@ describe('Project endpoints', () => {
   });
 
   test('PATCH /api/project updates name and prefix', async () => {
-    const response = await app.request('/api/project', {
+    const response = await app.request('/api/projects/test/project', {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -56,14 +60,16 @@ describe('Project endpoints', () => {
   });
 
   test('GET /api/project/modules/importable returns the importable modules', async () => {
-    const response = await app.request('/api/project/modules/importable');
+    const response = await app.request(
+      '/api/projects/test/project/modules/importable',
+    );
     expect(response.status).toBe(200);
     const result = await response.json();
     expect(result).toHaveLength(4);
   });
 
   test('POST /api/project/modules returns 400 for missing source', async () => {
-    const response = await app.request('/api/project/modules', {
+    const response = await app.request('/api/projects/test/project/modules', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({}),
@@ -72,7 +78,7 @@ describe('Project endpoints', () => {
   });
 
   test('POST /api/project/modules returns 400 for non-git source', async () => {
-    const response = await app.request('/api/project/modules', {
+    const response = await app.request('/api/projects/test/project/modules', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ source: 'not-a-git-url' }),

@@ -14,11 +14,17 @@ import { BrowserRouter } from 'react-router';
 
 // mock useAppRouter and useResizeObserver
 vi.mock('../src/lib/hooks', async () => {
+  const { selectRecentPrefixes } = await import('../src/lib/slices/project');
   let callCount = 0;
   return {
     useAppRouter: vi.fn(() => ({
       push: vi.fn(),
     })),
+    useAppSelector: vi.fn((selector) => {
+      if (selector === selectRecentPrefixes) return [];
+      return 'decision';
+    }),
+    useAppDispatch: vi.fn(() => vi.fn()),
     useResizeObserver: vi.fn(() => {
       if (callCount++ % 2 === 0) {
         return { width: 800, height: 2000, ref: vi.fn() }; // Main container height
@@ -33,6 +39,10 @@ vi.mock('../src/lib/hooks', async () => {
     })),
   };
 });
+
+vi.mock('../src/lib/api/projects', () => ({
+  useAvailableProjects: vi.fn(() => ({ data: [] })),
+}));
 
 vi.mock('@/lib/utils', async () => {
   const actual = await import('@/lib/utils');
@@ -459,7 +469,6 @@ describe('SearchableTreeMenu', () => {
     render(
       <BrowserRouter>
         <SearchableTreeMenu
-          title="Test Project"
           selectedCardKey={null}
           tree={treeQueryResult}
           onCardSelect={mockOnCardSelect}
@@ -478,7 +487,6 @@ describe('SearchableTreeMenu', () => {
     render(
       <BrowserRouter>
         <SearchableTreeMenu
-          title="Test Project"
           selectedCardKey={null}
           tree={treeQueryResult}
           onCardSelect={mockOnCardSelect}
@@ -502,7 +510,6 @@ describe('SearchableTreeMenu', () => {
     render(
       <BrowserRouter>
         <SearchableTreeMenu
-          title="Test Project"
           selectedCardKey={null}
           tree={treeQueryResult}
           onCardSelect={mockOnCardSelect}
@@ -529,7 +536,6 @@ describe('SearchableTreeMenu', () => {
     render(
       <BrowserRouter>
         <SearchableTreeMenu
-          title="Test Project"
           selectedCardKey={null}
           tree={treeQueryResult}
           onCardSelect={mockOnCardSelect}
@@ -548,7 +554,6 @@ describe('SearchableTreeMenu', () => {
     render(
       <BrowserRouter>
         <SearchableTreeMenu
-          title="Test Project"
           selectedCardKey={null}
           tree={treeQueryResult}
           onCardSelect={mockOnCardSelect}
@@ -571,7 +576,6 @@ describe('SearchableTreeMenu', () => {
     render(
       <BrowserRouter>
         <SearchableTreeMenu
-          title="Test Project"
           selectedCardKey={null}
           tree={treeQueryResult}
           onCardSelect={mockOnCardSelect}
@@ -598,7 +602,6 @@ describe('SearchableTreeMenu', () => {
     render(
       <BrowserRouter>
         <SearchableTreeMenu
-          title="Test Project"
           selectedCardKey={null}
           tree={treeQueryResult}
           onCardSelect={mockOnCardSelect}
@@ -618,7 +621,6 @@ describe('SearchableTreeMenu', () => {
     render(
       <BrowserRouter>
         <SearchableTreeMenu
-          title="Test Project"
           selectedCardKey={null}
           tree={treeQueryResult}
           onCardSelect={mockOnCardSelect}
@@ -637,7 +639,6 @@ describe('SearchableTreeMenu', () => {
     render(
       <BrowserRouter>
         <SearchableTreeMenu
-          title="Test Project"
           selectedCardKey="usdl_46"
           tree={treeQueryResult}
           onCardSelect={mockOnCardSelect}
@@ -654,7 +655,6 @@ describe('SearchableTreeMenu', () => {
     render(
       <BrowserRouter>
         <SearchableTreeMenu
-          title="Test Project"
           selectedCardKey={null}
           tree={treeQueryResult}
           onCardSelect={mockOnCardSelect}
@@ -675,7 +675,6 @@ describe('SearchableTreeMenu', () => {
     render(
       <BrowserRouter>
         <SearchableTreeMenu
-          title="Test Project"
           selectedCardKey={null}
           tree={treeQueryResult}
           onCardSelect={mockOnCardSelect}
@@ -696,7 +695,6 @@ describe('SearchableTreeMenu', () => {
     render(
       <BrowserRouter>
         <SearchableTreeMenu
-          title="Test Project"
           selectedCardKey={null}
           tree={treeQueryResult}
           onCardSelect={mockOnCardSelect}

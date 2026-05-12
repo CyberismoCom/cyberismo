@@ -1,6 +1,7 @@
 import { expect, test, beforeEach, afterEach } from 'vitest';
 import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
+import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
 
@@ -10,7 +11,10 @@ let tempTestDataPath: string;
 beforeEach(async () => {
   tempTestDataPath = await createTempTestData('decision-records');
   const commands = await CommandManager.getInstance(tempTestDataPath);
-  app = createApp(new MockAuthProvider(), commands);
+  app = createApp(
+    new MockAuthProvider(),
+    ProjectRegistry.fromCommandManager(commands),
+  );
 });
 
 afterEach(async () => {
@@ -18,7 +22,7 @@ afterEach(async () => {
 });
 
 test('POST /api/workflows creates a workflow successfully', async () => {
-  const response = await app.request('/api/workflows', {
+  const response = await app.request('/api/projects/decision/workflows', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -36,9 +40,9 @@ test('POST /api/workflows creates a workflow successfully', async () => {
   expect(result.message).toBe('Workflow created successfully');
 });
 
-test('GET /api/resources/:prefix/workflows/:identifier/graph renders the workflow graph', async () => {
+test('GET /api/projects/:prefix/resources/:prefix/workflows/:identifier/graph renders the workflow graph', async () => {
   const response = await app.request(
-    '/api/resources/decision/workflows/simple/graph',
+    '/api/projects/decision/resources/decision/workflows/simple/graph',
   );
 
   expect(response.status).toBe(200);
@@ -50,20 +54,20 @@ test('GET /api/resources/:prefix/workflows/:identifier/graph renders the workflo
   expect(decoded).toContain('Approved');
 }, 20000);
 
-test('GET /api/resources/:prefix/workflows/:identifier/graph returns 404 for unknown workflow', async () => {
+test('GET /api/projects/:prefix/resources/:prefix/workflows/:identifier/graph returns 404 for unknown workflow', async () => {
   const response = await app.request(
-    '/api/resources/decision/workflows/does-not-exist/graph',
+    '/api/projects/decision/resources/decision/workflows/does-not-exist/graph',
   );
 
   expect(response.status).toBe(404);
 });
 
-test('GET /api/resources/:prefix/workflows/:identifier/graph?card=... highlights the card state', async () => {
+test('GET /api/projects/:prefix/resources/:prefix/workflows/:identifier/graph?card=... highlights the card state', async () => {
   const plain = await app.request(
-    '/api/resources/decision/workflows/simple/graph',
+    '/api/projects/decision/resources/decision/workflows/simple/graph',
   );
   const highlighted = await app.request(
-    '/api/resources/decision/workflows/simple/graph?card=decision_5',
+    '/api/projects/decision/resources/decision/workflows/simple/graph?card=decision_5',
   );
 
   expect(plain.status).toBe(200);
@@ -73,9 +77,9 @@ test('GET /api/resources/:prefix/workflows/:identifier/graph?card=... highlights
   expect(plainSvg).not.toBe(highlightedSvg);
 }, 20000);
 
-test('GET /api/resources/:prefix/workflows/:identifier/graph?card=... returns 404 for unknown card', async () => {
+test('GET /api/projects/:prefix/resources/:prefix/workflows/:identifier/graph?card=... returns 404 for unknown card', async () => {
   const response = await app.request(
-    '/api/resources/decision/workflows/simple/graph?card=decision_999',
+    '/api/projects/decision/resources/decision/workflows/simple/graph?card=decision_999',
   );
   expect(response.status).toBe(404);
 });

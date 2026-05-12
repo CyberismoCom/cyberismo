@@ -11,6 +11,7 @@ describe('Navigation', () => {
 
   beforeEach(() => {
     cy.visit('');
+    cy.url().should('include', '/projects/');
   });
 
   it('delete page and verify empty project', () => {
@@ -73,8 +74,10 @@ describe('Navigation', () => {
     cy.get('p').contains('Untitled page content').click(); // Navigate to child card in tree menu
     cy.get('h1').contains('Untitled page content');
 
-    cy.get('[aria-level="2"]').should('not.exist');
-    cy.get('[aria-level="1"][data-cy="ExpandMoreIcon"]').should('not.exist'); // Verifies expand more icon does not exist in tree menu
+    cy.get('[role="tree"] [aria-level="2"]').should('not.exist');
+    cy.get('[role="tree"] [aria-level="1"] [data-cy="ExpandMoreIcon"]').should(
+      'not.be.visible',
+    ); // Verifies expand more icon is not visible in tree menu
 
     // moves child card under Untitled page card with move function
     cy.get('[data-cy="contextMenuButton"]').click();
@@ -293,6 +296,52 @@ describe('Navigation', () => {
       cy.contains(t['passedPolicyChecks']).click();
       cy.contains(t['policyCheckPass']); // PASS label
       cy.contains('Category 2 - Successful check title');
+    });
+  });
+
+  describe('Project selection modal', () => {
+    it('opens and shows the current project', () => {
+      cy.get('[data-cy="moreProjectsButton"]').click();
+      cy.get('[role="dialog"]').should('be.visible');
+      cy.get('[role="dialog"]').contains(t.projectDialog['title']); // Dialog title
+      cy.get('[role="dialog"]').contains('Basic Acceptance Test'); // Project name
+      cy.get('[role="dialog"]').contains('bat'); // Project prefix
+    });
+
+    it('can filter projects by name', () => {
+      cy.get('[data-cy="moreProjectsButton"]').click();
+      cy.get('[role="dialog"]').should('be.visible');
+
+      // Type a filter that matches
+      cy.get('[role="dialog"] input[type="text"]').type('Basic');
+      cy.get('[role="dialog"]').contains('Basic Acceptance Test');
+
+      // Type a filter that doesn't match
+      cy.get('[role="dialog"] input[type="text"]').clear().type('nonexistent');
+      cy.get('[role="dialog"]').contains(t.projectDialog['noProjectsFound']);
+    });
+
+    it('closes with cancel button', () => {
+      cy.get('[data-cy="moreProjectsButton"]').click();
+      cy.get('[role="dialog"]').should('be.visible');
+      cy.get('[role="dialog"]').contains(t['cancel']).click();
+      cy.get('[role="dialog"]').should('not.exist');
+    });
+
+    it('selects and opens a project', () => {
+      cy.get('[data-cy="moreProjectsButton"]').click();
+      cy.get('[role="dialog"]').should('be.visible');
+
+      // Current project is pre-selected, so Open button should be enabled
+      cy.get('[role="dialog"]').contains('Basic Acceptance Test').click();
+      cy.get('[role="dialog"]')
+        .contains(t.projectDialog['open'])
+        .should('not.be.disabled');
+
+      // Open the project
+      cy.get('[role="dialog"]').contains(t.projectDialog['open']).click();
+      cy.get('[role="dialog"]').should('not.exist');
+      cy.url().should('include', '/projects/bat/cards');
     });
   });
 });
