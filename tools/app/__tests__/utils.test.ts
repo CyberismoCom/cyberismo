@@ -771,8 +771,6 @@ describe('isSafeRedirectPath', () => {
     'cards.html',
     'cards/usdl_43',
     'cards/usdl_43.html',
-    'cards/usdl_43/edit',
-    'cards/usdl_43/edit.html',
     'configuration/',
     'configuration/general',
     'configuration/fieldTypes',

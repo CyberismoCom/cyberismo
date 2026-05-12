@@ -39,8 +39,6 @@ const VALID_REDIRECT_PATTERNS = [
   new RegExp(`^cards\\.html$`),
   new RegExp(`^cards/${defined}$`),
   new RegExp(`^cards/${defined}\\.html$`),
-  new RegExp(`^cards/${defined}/edit$`),
-  new RegExp(`^cards/${defined}/edit\\.html$`),
   new RegExp(`^configuration/?$`),
   new RegExp(`^configuration/general$`),
   new RegExp(`^configuration/${defined}$`),

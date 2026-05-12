@@ -11,24 +11,25 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { LinkFormState } from '@/components/LinkedCardsSection/LinkedCardsSection';
-import { ContentArea } from '@/components/ContentArea';
+import type { LinkFormState } from '@/components/card/linked-cards-section/LinkedCardsSection';
+import {
+  CardLayout,
+  type CardLayoutHandle,
+} from '@/components/card/CardLayout';
 import CardToolbar from '@/components/toolbar/CardToolbar';
 import LoadingGate from '@/components/LoadingGate';
 import { cardViewed } from '@/lib/actions';
 import { useCard, useConnectors, useLinkTypes, useTree } from '@/lib/api';
-import { CardMode } from '@/lib/definitions';
 import {
   useAppDispatch,
   useListCard,
   useAppRouter,
-  useKeyboardShortcut,
   useParentCard,
 } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
 import { expandLinkTypes } from '@/lib/utils';
 import { Box, Stack, Typography } from '@mui/joy';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useRequiredKeyParam } from '@/lib/hooks';
 
@@ -55,16 +56,12 @@ export default function Page() {
 
   const router = useAppRouter();
 
-  useKeyboardShortcut(
-    {
-      key: 'e',
-    },
-    () => router.safePush(`/cards/${key}/edit`),
-  );
-
   const { t } = useTranslation();
 
   const [linkFormState, setLinkFormState] = useState<LinkFormState>('hidden');
+  const [isEditing, setIsEditing] = useState(false);
+
+  const layoutRef = useRef<CardLayoutHandle>(null);
 
   useEffect(() => {
     setLinkFormState('hidden');
@@ -99,22 +96,33 @@ export default function Page() {
     <Stack height="100%">
       <CardToolbar
         cardKey={key}
-        mode={CardMode.VIEW}
-        onUpdate={() => {}}
         onInsertLink={() => setLinkFormState('add-from-toolbar')}
         afterDelete={() =>
           router.push(parent ? `/cards/${parent.key}` : '/cards')
         }
         linkButtonDisabled={expandedLinkTypes.length === 0}
+        onAttachmentAdded={() => layoutRef.current?.enterBodyEdit()}
+        presenceMode={isEditing ? 'editing' : 'viewing'}
       />
       <Box flexGrow={1} minHeight={0}>
         <LoadingGate values={[card, tree]}>
-          <ContentArea
+          <CardLayout
+            ref={layoutRef}
             cards={tree!}
             card={card!}
             connectors={connectors ?? []}
+            onEditingChange={setIsEditing}
             onMetadataUpdate={async (update) => {
               await updateCard(update);
+            }}
+            onContentSave={async (content) => {
+              await updateCard({ content });
+              dispatch(
+                addNotification({
+                  message: t('saveCard.success'),
+                  type: 'success',
+                }),
+              );
             }}
             linkTypes={expandedLinkTypes}
             onLinkFormSubmit={async (data) => {
@@ -187,6 +195,12 @@ export default function Page() {
                   data.direction,
                   data.linkType,
                   data.linkDescription,
+                );
+                dispatch(
+                  addNotification({
+                    message: t('deleteLinkSuccess'),
+                    type: 'success',
+                  }),
                 );
               } catch (error) {
                 dispatch(
