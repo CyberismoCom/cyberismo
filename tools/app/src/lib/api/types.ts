@@ -35,6 +35,7 @@ export type CardResponse = {
   parsedContent: string;
   rawContent: string;
   attachments: CardAttachment[];
+  path: string;
 } & QueryResult<'card'>;
 
 export type LogicProgramResponse = {

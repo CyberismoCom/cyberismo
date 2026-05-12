@@ -551,6 +551,20 @@ export class Project extends CardContainer {
   }
 
   /**
+   * Looks up a template object by its resource name.
+   * @param templateName Full resource name in the form `<prefix>/templates/<name>`
+   *   (e.g. 'decision/templates/decision').
+   * @returns Template object, or undefined if not found.
+   */
+  public templateObjectByName(templateName: string): Template | undefined {
+    try {
+      return this.resources.byType(templateName, 'templates').templateObject();
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
    * Cleanups project when it is being closed.
    */
   public dispose() {

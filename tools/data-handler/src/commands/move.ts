@@ -30,6 +30,7 @@ import {
 import {
   cardPathParts,
   isModuleCard,
+  isModulePath,
   isTemplateCard,
 } from '../utils/card-utils.js';
 
@@ -52,7 +53,9 @@ export class Move {
           this.project.projectPrefix,
           card.path,
         );
-        return this.project.templateCards(template);
+        return this.project
+          .templateCards(template)
+          .filter((item) => item.parent === ROOT || !item.parent);
       }
     }
 
@@ -65,6 +68,31 @@ export class Move {
     return this.project
       .showProjectCards()
       .filter((item) => item.parent === 'root' || item.parent === '');
+  }
+
+  // Returns `getRankBetween(siblings[loIndex], siblings[hiIndex])`. If the call
+  // throws because the two adjacent ranks are equal or inverted (data drift),
+  // rebalances the siblings to dedupe ranks and retries once.
+  private async safeRankBetween(
+    siblings: Card[],
+    loIndex: number,
+    hiIndex: number,
+  ): Promise<string> {
+    const lo = siblings[loIndex].metadata?.rank as string;
+    const hi = siblings[hiIndex].metadata?.rank as string;
+    try {
+      return getRankBetween(lo, hi);
+    } catch {
+      await this.rebalanceCards(siblings);
+      const refreshed = sortItems(
+        this.project.cardKeysToCards(siblings.map((c) => c.key)),
+        (c) => c.metadata?.rank || EMPTY_RANK,
+      );
+      return getRankBetween(
+        refreshed[loIndex].metadata?.rank as string,
+        refreshed[hiIndex].metadata?.rank as string,
+      );
+    }
   }
 
   // Rebalances cards
@@ -109,8 +137,31 @@ export class Move {
     if (source === destination) {
       throw new Error(`Card cannot be moved to itself`);
     }
-    const movingToRoot = destination === ROOT;
+
     const sourceCard = this.project.findCard(source);
+    const movingToRoot =
+      destination === ROOT || destination.startsWith('root:');
+    let targetTemplateName: string | undefined;
+    let movingToProjectRoot = false;
+
+    if (movingToRoot) {
+      if (destination === ROOT) {
+        if (isTemplateCard(sourceCard)) {
+          const { template } = cardPathParts(
+            this.project.projectPrefix,
+            sourceCard.path,
+          );
+          targetTemplateName = template;
+        } else {
+          movingToProjectRoot = true;
+        }
+      } else if (destination === 'root:project') {
+        movingToProjectRoot = true;
+      } else {
+        targetTemplateName = destination.slice('root:'.length);
+      }
+    }
+
     const destinationCard = !movingToRoot
       ? this.project.findCard(destination)
       : undefined;
@@ -134,29 +185,43 @@ export class Move {
       throw new Error(`Cannot modify imported module templates`);
     }
 
-    // Special handling for moving to root
-    if (movingToRoot) {
-      if (isTemplateCard(sourceCard)) {
-        throw new Error(`Template cards cannot be moved to project root`);
-      }
-    } else {
-      const bothTemplateCards =
-        isTemplateCard(sourceCard) &&
-        destinationCard &&
-        isTemplateCard(destinationCard);
-      const bothProjectCards =
-        this.project.hasProjectCard(sourceCard.key) &&
-        destinationCard &&
-        this.project.hasProjectCard(destinationCard.key);
-      if (!(bothTemplateCards || bothProjectCards)) {
+    // Resolve the target template (when moving to a template root) and its
+    // cards folder. Reject if the resolved template belongs to an imported
+    // module — those are read-only.
+    let templateCardsFolder: string | undefined;
+    if (targetTemplateName) {
+      const template = this.project.templateObjectByName(targetTemplateName);
+      if (!template) {
         throw new Error(
-          `Cards cannot be moved from project to template or vice versa`,
+          `Template ${targetTemplateName} not found in this project`,
         );
+      }
+      templateCardsFolder = template.templateCardsFolder();
+      if (isModulePath(templateCardsFolder)) {
+        throw new Error(`Cannot modify imported module templates`);
       }
     }
 
+    const sourceIsTemplate = isTemplateCard(sourceCard);
+    const destIsProject =
+      movingToProjectRoot ||
+      (destinationCard !== undefined && !isTemplateCard(destinationCard));
+    const destIsTemplate =
+      targetTemplateName !== undefined ||
+      (destinationCard !== undefined && isTemplateCard(destinationCard));
+    if (
+      (sourceIsTemplate && destIsProject) ||
+      (!sourceIsTemplate && destIsTemplate)
+    ) {
+      throw new Error(
+        `Cards cannot be moved from project to template or vice versa`,
+      );
+    }
+
     const destinationPath = movingToRoot
-      ? join(this.project.paths.cardRootFolder, sourceCard.key)
+      ? movingToProjectRoot
+        ? join(this.project.paths.cardRootFolder, sourceCard.key)
+        : join(templateCardsFolder!, sourceCard.key)
       : join(destinationCard!.path, 'c', sourceCard.key);
 
     // if the card is already in the destination, do nothing
@@ -164,7 +229,7 @@ export class Move {
       return;
     }
 
-    // if both are project cards, make sure source card can be moved
+    // make sure source card can be moved
     const actionGuard = new ActionGuard(this.project.calculationEngine);
     await actionGuard.checkPermission('move', source);
 
@@ -174,8 +239,14 @@ export class Move {
     if (!movingToRoot) {
       const parent = this.project.findCard(destination);
       children = this.project.cardKeysToCards(parent.children);
+    } else if (movingToProjectRoot) {
+      children = this.project
+        .showProjectCards()
+        .filter((item) => item.parent === ROOT || !item.parent);
     } else {
-      children = this.project.showProjectCards();
+      children = this.project
+        .templateCards(targetTemplateName!)
+        .filter((item) => item.parent === ROOT || !item.parent);
     }
 
     if (!children) {
@@ -313,14 +384,12 @@ export class Move {
         getRankAfter(beforeCard.metadata?.rank as string),
       );
     } else {
-      await this.project.updateCardMetadataKey(
-        cardKey,
-        'rank',
-        getRankBetween(
-          beforeCard.metadata?.rank as string,
-          children[beforeCardIndex + 1].metadata?.rank as string,
-        ),
+      const newRank = await this.safeRankBetween(
+        children,
+        beforeCardIndex,
+        beforeCardIndex + 1,
       );
+      await this.project.updateCardMetadataKey(cardKey, 'rank', newRank);
     }
   }
 
@@ -352,12 +421,12 @@ export class Move {
 
     // Set the rank to be the first one
     if (firstRank === FIRST_RANK) {
-      // if the first card is already at the first rank, we need to move the card to the next one
-      const secondRank = children[1].metadata?.rank;
-      if (!secondRank) {
+      // The first card is already at FIRST_RANK; demote it to a rank between
+      // itself and the second card to free FIRST_RANK for the target card.
+      if (!children[1]?.metadata?.rank) {
         throw new Error(`Second rank not found`);
       }
-      const rankBetween = getRankBetween(firstRank, secondRank);
+      const rankBetween = await this.safeRankBetween(children, 0, 1);
       await this.project.updateCardMetadataKey(
         children[0].key,
         'rank',

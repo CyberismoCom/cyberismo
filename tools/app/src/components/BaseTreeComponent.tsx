@@ -114,7 +114,17 @@ export function BaseTreeComponent<T>({
         ref={treeRef}
         data={data || []}
         openByDefault={openByDefault}
-        disableDrag={getConfig().staticMode || !onMove}
+        disableDrag={
+          getConfig().staticMode || !onMove
+            ? true
+            : (node: T) => (node as { readOnly?: boolean })?.readOnly === true
+        }
+        disableDrop={
+          getConfig().staticMode || !onMove
+            ? true
+            : ({ parentNode }) =>
+                (parentNode?.data as { readOnly?: boolean })?.readOnly === true
+        }
         idAccessor={idAccessor}
         childrenAccessor={childrenAccessor}
         indent={16}

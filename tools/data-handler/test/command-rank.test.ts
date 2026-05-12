@@ -155,6 +155,21 @@ describe('rank command', () => {
       const details = await new Show(project, fetchCmd).showCardDetails(key);
       expect(details.metadata!.rank).toBe('0|a');
     });
+
+    it('rank template root card first when a nested template card shares FIRST_RANK', async () => {
+      const key = 'decision_3';
+      const result = await commandHandler.command(
+        Cmd.rank,
+        ['card', key, 'first'],
+        options,
+      );
+      expect(result.statusCode).toBe(200);
+      const project = getTestProject(options.projectPath!);
+      await project.populateCaches();
+      const fetchCmd = new Fetch(project);
+      const details = await new Show(project, fetchCmd).showCardDetails(key);
+      expect(details.metadata!.rank).toBe('0|a');
+    });
   });
 
   describe('rank attempts - test data is not cleaned', () => {

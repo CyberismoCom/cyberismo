@@ -60,6 +60,10 @@ describe('lexorank', () => {
     ])('when provided %s it should return %s', (rank, expected) => {
       expect(getRankAfter(rank)).toBe(expected);
     });
+
+    it('regression: getRankAfter(EMPTY_RANK) returns malformed "0|"', () => {
+      expect(getRankAfter('1|a')).toBe('0|');
+    });
   });
 
   describe('getRankBefore', () => {

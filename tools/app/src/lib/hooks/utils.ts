@@ -373,7 +373,10 @@ export function useConfigTemplateCreationContext(): {
   };
 }
 
-function findTemplateForCard(nodes: AnyNode[], cardKey: string): string | null {
+export function findTemplateForCard(
+  nodes: AnyNode[],
+  cardKey: string,
+): string | null {
   function depthFirstSearch(
     node: AnyNode,
     ancestors: AnyNode[],
