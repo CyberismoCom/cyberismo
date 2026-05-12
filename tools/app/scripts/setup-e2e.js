@@ -1,4 +1,4 @@
-/* global console */
+/* global console, process */
 /**
  * Setup script for e2e tests.
  * Creates the test project before the backend starts, so that
@@ -46,12 +46,45 @@ execSync(
     `${cli} create graphModel test1`,
     `${cli} create graphView test1`,
     `${cli} create report test1`,
+    `${cli} create template page`,
+    `${cli} create template checks`,
   ].join(' && '),
   { stdio: 'inherit' },
 );
 
+// Add a card to bat/templates/page and capture its generated key so the e2e
+// test can navigate to it directly. A second sibling is added to the same
+// template so the move dialog keeps the source's parent template visible
+// (the dialog filters out empty templates when their only card is the
+// source being moved).
+const addCardOutput = execSync(
+  `${cli} add card bat/templates/page test/cardTypes/page`,
+  { cwd: batPath, encoding: 'utf8' },
+);
+process.stdout.write(addCardOutput);
+const cardKeyMatch = addCardOutput.match(/bat_[a-z0-9]+/);
+if (!cardKeyMatch) {
+  throw new Error(
+    `Could not parse template card key from CLI output: ${addCardOutput}`,
+  );
+}
+const localTemplateCardKey = cardKeyMatch[0];
+execSync(`${cli} add card bat/templates/page test/cardTypes/page`, {
+  cwd: batPath,
+  stdio: 'inherit',
+});
+execSync(`${cli} add card bat/templates/checks test/cardTypes/page`, {
+  cwd: batPath,
+  stdio: 'inherit',
+});
+
 writeFileSync(graphModelPath, graphModelContent);
 writeFileSync(graphViewPath, graphViewContent);
 writeFileSync(reportPath, reportContent);
+
+writeFileSync(
+  join(import.meta.dirname, '..', 'cypress', 'fixtures', 'e2e-keys.json'),
+  JSON.stringify({ localTemplateCardKey }, null, 2),
+);
 
 console.log('E2e test project created successfully.');

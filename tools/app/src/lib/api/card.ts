@@ -207,6 +207,8 @@ export async function updateCard(key: string, cardUpdate: CardUpdate) {
   mutate(apiPaths.rawCard(key));
 
   mutate(apiPaths.tree());
+  // Template-card moves/ranks also affect the configuration tree.
+  mutate(apiPaths.resourceTree());
 }
 
 export async function deleteCard(key: string) {

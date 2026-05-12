@@ -128,6 +128,7 @@ export async function getCardDetails(
           rawContent: cardDetailsResponse.content || '',
           parsedContent: htmlContent,
           attachments: cardDetailsResponse.attachments,
+          path: cardDetailsResponse.path,
         },
       };
     }
@@ -149,6 +150,7 @@ export async function getCardDetails(
         rawContent: cardDetailsResponse.content || '',
         parsedContent: htmlContent,
         attachments: cardDetailsResponse.attachments,
+        path: cardDetailsResponse.path,
       },
     };
   });
