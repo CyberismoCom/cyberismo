@@ -36,11 +36,13 @@ import { ExportCardModal } from '../modals/ExportCardModal';
 interface CardContextMenuProps {
   cardKey: string;
   afterDelete?: () => void;
+  onAttachmentAdded?: () => void;
 }
 
 export function CardContextMenu({
   cardKey,
   afterDelete,
+  onAttachmentAdded,
 }: CardContextMenuProps) {
   const { modalOpen, openModal, closeModal } = useModals({
     delete: false,
@@ -124,6 +126,7 @@ export function CardContextMenu({
         open={modalOpen.addAttachment}
         onClose={closeModal('addAttachment')}
         cardKey={cardKey}
+        onAttachmentAdded={onAttachmentAdded}
       />
       <LogicProgramModal
         open={modalOpen.logicProgram}

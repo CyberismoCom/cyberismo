@@ -71,31 +71,30 @@ export function AsciiDocToolbar({
   return (
     <Stack
       direction="row"
-      top={0}
-      zIndex={5}
       bgcolor="background.surface"
-      position="sticky"
-      justifyContent="flex-end"
       gap={1.5}
-      borderRadius={16}
+      borderRadius={6}
       padding={0.5}
+      flexWrap="nowrap"
+      minWidth={0}
+      sx={{
+        overflowX: 'auto',
+        scrollbarWidth: 'thin',
+        width: 'fit-content',
+        maxWidth: '100%',
+      }}
     >
       <Tooltip title={t('asciiDocEditor.toolbar.undo')}>
         <IconButton onClick={() => asciiDocToolbarActions.undo(view, readOnly)}>
-          <Undo color="action" />
+          <Undo color="inherit" />
         </IconButton>
       </Tooltip>
       <Tooltip title={t('asciiDocEditor.toolbar.redo')}>
         <IconButton onClick={() => asciiDocToolbarActions.redo(view, readOnly)}>
-          <Redo color="action" />
+          <Redo color="inherit" />
         </IconButton>
       </Tooltip>
-      <Divider
-        orientation="vertical"
-        sx={{
-          my: 1,
-        }}
-      />
+      <Divider orientation="vertical" sx={{ my: 1 }} />
       {[1, 2, 3].map((level) => (
         <Tooltip
           key={level}
@@ -112,77 +111,57 @@ export function AsciiDocToolbar({
           </IconButton>
         </Tooltip>
       ))}
-      <Divider
-        orientation="vertical"
-        sx={{
-          my: 1,
-        }}
-      />
+      <Divider orientation="vertical" sx={{ my: 1 }} />
       <Tooltip title={t('asciiDocEditor.toolbar.bulletedList')}>
         <IconButton
           onClick={() => asciiDocToolbarActions.bulletedList(view, readOnly)}
         >
-          <FormatListBulleted color="action" />
+          <FormatListBulleted color="inherit" />
         </IconButton>
       </Tooltip>
       <Tooltip title={t('asciiDocEditor.toolbar.numberedList')}>
         <IconButton
           onClick={() => asciiDocToolbarActions.numberedList(view, readOnly)}
         >
-          <FormatListNumbered color="action" />
+          <FormatListNumbered color="inherit" />
         </IconButton>
       </Tooltip>
-      <Divider
-        orientation="vertical"
-        sx={{
-          my: 1,
-        }}
-      />
+      <Divider orientation="vertical" sx={{ my: 1 }} />
       <Tooltip title={t('asciiDocEditor.toolbar.bold')}>
         <IconButton onClick={() => asciiDocToolbarActions.bold(view, readOnly)}>
-          <FormatBold color="action" />
+          <FormatBold color="inherit" />
         </IconButton>
       </Tooltip>
       <Tooltip title={t('asciiDocEditor.toolbar.italic')}>
         <IconButton
           onClick={() => asciiDocToolbarActions.italic(view, readOnly)}
         >
-          <FormatItalic color="action" />
+          <FormatItalic color="inherit" />
         </IconButton>
       </Tooltip>
       <Tooltip title={t('asciiDocEditor.toolbar.highlight')}>
         <IconButton
           onClick={() => asciiDocToolbarActions.highlight(view, readOnly)}
         >
-          <Highlight color="action" />
+          <Highlight color="inherit" />
         </IconButton>
       </Tooltip>
-      <Divider
-        orientation="vertical"
-        sx={{
-          my: 1,
-        }}
-      />
+      <Divider orientation="vertical" sx={{ my: 1 }} />
       <Tooltip title={t('asciiDocEditor.toolbar.insertTable')}>
         <IconButton
           onClick={() => asciiDocToolbarActions.table(view, readOnly)}
         >
-          <ViewList color="action" />
+          <ViewList color="inherit" />
         </IconButton>
       </Tooltip>
       <Tooltip title={t('asciiDocEditor.toolbar.mermaidDiagram')}>
         <IconButton
           onClick={() => asciiDocToolbarActions.mermaidDiagram(view, readOnly)}
         >
-          <Schema color="action" />
+          <Schema color="inherit" />
         </IconButton>
       </Tooltip>
-      <Divider
-        orientation="vertical"
-        sx={{
-          my: 1,
-        }}
-      />
+      <Divider orientation="vertical" sx={{ my: 1 }} />
       {showMacroHelpers && (
         <>
           <Dropdown>

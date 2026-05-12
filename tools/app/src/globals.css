@@ -99,7 +99,6 @@
   padding: 0.5rem 1rem;
 }
 .doc h2:not(.discrete) {
-  border-bottom: 1px solid var(--joy-palette-divider, #e1e1e1);
   margin-left: -1rem;
   margin-right: -1rem;
   padding: 0.4rem 1rem 0.1rem;
