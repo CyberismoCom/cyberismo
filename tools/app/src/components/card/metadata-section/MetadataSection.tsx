@@ -16,14 +16,14 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Box, Button, Stack } from '@mui/joy';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import type { MetadataValue } from '../../lib/definitions';
-import type { CardResponse } from '../../lib/api/types';
-import { getConfig, getDefaultValue } from '../../lib/utils';
+import type { MetadataValue } from '@/lib/definitions';
+import type { CardResponse } from '@/lib/api/types';
+import { getConfig, getDefaultValue } from '@/lib/utils';
 import { format } from 'date-fns';
 import { FieldRow } from './FieldRow';
-import { LABEL_SPLITTER } from '../../lib/constants';
-import { useAppDispatch } from '../../lib/hooks';
-import { addNotification } from '../../lib/slices/notifications';
+import { LABEL_SPLITTER } from '@/lib/constants';
+import { useAppDispatch } from '@/lib/hooks';
+import { addNotification } from '@/lib/slices/notifications';
 
 const FIELD_ROW_ID_PREFIX = 'metadata-field-';
 const fieldRowId = (key: string) => `${FIELD_ROW_ID_PREFIX}${key}`;
@@ -117,11 +117,10 @@ export default function MetadataSection({
       border="1px solid"
       borderColor="neutral.outlinedBorder"
       borderRadius={6}
-      padding={2}
-      display="flex"
-      flexDirection="row"
+      padding={1.5}
+      sx={{ position: 'relative', minHeight: 48 }}
     >
-      <Stack flexGrow={1}>
+      <Stack>
         {(card.fields ?? []).map(
           ({
             key,
@@ -199,30 +198,28 @@ export default function MetadataSection({
           disabled
         />
       </Stack>
-      <Stack flexShrink={0} paddingLeft={1}>
-        <Box flexGrow={1} />
-        <Button
-          data-cy="showMoreButton"
-          variant="plain"
-          color="primary"
-          size="sm"
-          disabled={expanded && editingFieldNeedsExpanded}
-          endDecorator={
-            <ExpandMoreIcon
-              sx={{
-                transition: 'transform 0.2s',
-                transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-              }}
-            />
-          }
-          onClick={(e) => {
-            e.stopPropagation();
-            setExpanded(!expanded);
-          }}
-        >
-          {expanded ? t('showLess') : t('showMore')}
-        </Button>
-      </Stack>
+      <Button
+        data-cy="showMoreButton"
+        variant="plain"
+        color="primary"
+        size="sm"
+        disabled={expanded && editingFieldNeedsExpanded}
+        endDecorator={
+          <ExpandMoreIcon
+            sx={{
+              transition: 'transform 0.2s',
+              transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+            }}
+          />
+        }
+        onClick={(e) => {
+          e.stopPropagation();
+          setExpanded(!expanded);
+        }}
+        sx={{ position: 'absolute', bottom: 8, right: 8 }}
+      >
+        {expanded ? t('showLess') : t('showMore')}
+      </Button>
     </Box>
   );
 }

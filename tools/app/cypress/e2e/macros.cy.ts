@@ -1,16 +1,29 @@
 /// <reference types="cypress" />
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const t = require('../../src/locales/en/translation.json');
-const openMacroMenu = () =>
-  cy.get('[role="tabpanel"] [aria-haspopup="menu"]').click();
+const openMacroMenu = () => cy.get('[aria-haspopup="menu"]').last().click();
 const selectMacro = (name: string) =>
   cy.get('[role="menuitem"]').contains(name).click();
+// Use the edit body button so empty cards (with a 0-height .doc) can still enter edit mode.
 const editPage = () =>
-  cy.get('[data-cy="editButton"]').contains(t['edit']).click();
+  cy.get('[data-cy="editBodyButton"]').click({ force: true });
 const selectDropdownMenuOption = (option: string) =>
   cy.get('[role="listbox"] [role="option"]').contains(option).click();
-const verifyNotificationMessage = (message: string) =>
-  cy.get('[role="presentation"]').contains(t.saveCard[message]);
+// A successful inline body save unmounts the CodeMirror editor and dispatches
+// a "Card saved successfully" toast. Assert both, then dismiss the toast so it
+// doesn't collide with toasts that follow (e.g. card-created), each of which
+// has its own notificationClose button.
+const verifyContentSaved = () => {
+  cy.get('.cm-editor').should('not.exist');
+  cy.get('[role="presentation"]')
+    .contains(t.saveCard['success'])
+    .closest('[role="presentation"]')
+    .find('[data-cy="notificationClose"]')
+    .click();
+  cy.get('[role="presentation"]')
+    .contains(t.saveCard['success'])
+    .should('not.exist');
+};
 const percentageMacro =
   '{{}{{}#percentage{moveToEnd}"title": "Work done","value": 2,"legend": "of Assets","colour": "blue"{{}{{}/percentage{moveToEnd}';
 const scoreCardMacro =
@@ -35,13 +48,13 @@ describe('Navigation', () => {
     cy.get('[data-cy="confirmCreateButton"]').click(); // confirm dialog
     cy.get('[role="presentation"]').contains(t.createCardModal['success']); // Verify text in popup infobox
     cy.get('h1').contains('Untitled page'); // Verify Title in content area
-    // Edit page
-    editPage(); // Click edit button
-    cy.get('.MuiTextarea-textarea')
-      .contains('Untitled page')
-      .click()
-      .clear()
-      .type('Create cards page'); // Change page title
+    // Rename the page via CardTitle inline edit (subsequent tests navigate to "Create cards page")
+    cy.get('[data-cy="cardTitle"]').click();
+    cy.get('[data-cy="cardTitleInput"]').clear().type('Create cards page');
+    cy.get('[data-cy="cardTitleSaveButton"]').click();
+    cy.get('h1').contains('Create cards page');
+    // Edit page content inline
+    editPage(); // Click edit button to enter body editing
     cy.get('.cm-activeLine').clear(); // clear the page
 
     // add create All data types card button macro to page from toolbar
@@ -108,12 +121,8 @@ describe('Navigation', () => {
     cy.get('[role="dialog"]').contains('Insert macro').click(); // Click Insert macro button
 
     // update page
-    cy.get('[data-cy="updateButton"]').click(); // Click update button
-    cy.get('[role="presentation"]').contains('Card saved successfully'); // Verify text in popup infobox
-    cy.get('[data-cy="notificationClose"]').click(); // closes popup infobox
-    cy.get('[role="presentation"]')
-      .contains('Card saved successfully')
-      .should('not.exist'); // Verify popup infobox closes
+    cy.get('[data-cy="contentSaveButton"]').click(); // Click save button
+    verifyContentSaved(); // Editor unmounts on successful inline save
     // verify macro
     cy.get('[class="doc"]')
       .get('[type="button"]')
@@ -157,10 +166,8 @@ describe('Navigation', () => {
       .click(); // select test1 graphView from dropdown menu
     cy.get('[role="dialog"]').contains('Insert macro').click(); // Click Insert macro button
     // verify macro
-    cy.get('[data-cy="updateButton"]').click(); // Click update button
-    verifyNotificationMessage('success'); // Verify text in popup infobox
-    cy.get('[data-cy="notificationClose"]').click(); // closes popup infobox
-    cy.get('[role="presentation"]').contains('success').should('not.exist'); // Verify popup infobox closes
+    cy.get('[data-cy="contentSaveButton"]').click(); // Click save button
+    verifyContentSaved();
     cy.get('[class="doc"]')
       .get('.cyberismo-svg-wrapper')
       .get('[aria-label="fullscreen"]'); // Verify graph has fullscreen button
@@ -198,7 +205,7 @@ describe('Navigation', () => {
     // Check that attachment side panel element exists and "hover" over it to show action buttons
     cy.get('span').contains('cyberismo.png').trigger('mouseover');
     cy.get('[data-cy="insertToContentButton"]').click();
-    cy.get('[data-cy="updateButton"]').click(); // Click update button
+    cy.get('[data-cy="contentSaveButton"]').click(); // Click update button
     cy.get('[class="doc"]')
       .get('[type="button"]')
       .contains('Create Test denied operations page')
@@ -215,8 +222,8 @@ describe('Navigation', () => {
             '"{{}{{}/image{moveToEnd}',
         );
     }); // Type image macro on the page
-    cy.get('[data-cy="updateButton"]').click(); // Click update button
-    cy.get('[role="presentation"]').contains('Card saved successfully'); // Verify text in popup infobox
+    cy.get('[data-cy="contentSaveButton"]').click(); // Click save button
+    verifyContentSaved();
     cy.get('.doc').get('img').get('[alt="cyberismo"]'); // Check that image is present in asciidoc content
   });
 
@@ -262,8 +269,8 @@ describe('Navigation', () => {
     selectDropdownMenuOption('Normal'); // select Normal from dropdown menu
     cy.get('[role="dialog"]').contains('Insert macro').click(); // Click Insert macro button
     // verify included card content
-    cy.get('[data-cy="updateButton"]').click(); // Click update button
-    verifyNotificationMessage('success'); // Verify text in popup infobox
+    cy.get('[data-cy="contentSaveButton"]').click(); // Click update button
+    verifyContentSaved();
     cy.get('h2').contains('Create cards page'); // Verify included card title in content area
     cy.get('[class="doc"]')
       .get('[type="button"]')
@@ -299,8 +306,8 @@ describe('Navigation', () => {
     selectDropdownMenuOption('Discrete'); // select Discrete from dropdown menu
     cy.get('[role="dialog"]').contains('Insert macro').click(); // Click Insert macro button
     // verify included card content
-    cy.get('[data-cy="updateButton"]').click(); // Click update button
-    verifyNotificationMessage('success'); // Verify text in popup infobox
+    cy.get('[data-cy="contentSaveButton"]').click(); // Click update button
+    verifyContentSaved();
     cy.get('h3').get('[class="discrete"]').contains('Create cards page'); // Verify Title in content area
     cy.get('[class="doc"]')
       .get('[type="button"]')
@@ -323,8 +330,8 @@ describe('Navigation', () => {
     selectDropdownMenuOption('Exclude'); // select Exclude from dropdown menu
     cy.get('[role="dialog"]').contains('Insert macro').click(); // Click Insert macro button
     // verify included card content
-    cy.get('[data-cy="updateButton"]').click(); // Click update button
-    verifyNotificationMessage('success'); // Verify text in popup infobox
+    cy.get('[data-cy="contentSaveButton"]').click(); // Click update button
+    verifyContentSaved();
     cy.get('h3').should('not.exist'); // Verify no title in content area
     cy.get('[class="doc"]')
       .get('[type="button"]')
@@ -347,8 +354,8 @@ describe('Navigation', () => {
 
     editPage(); // Click edit button
     cy.get('.cm-activeLine').clear().type(percentageMacro); // Type precentage macro on the page
-    cy.get('[data-cy="updateButton"]').click(); // Click update button
-    verifyNotificationMessage('success'); // Verify text in popup infobox
+    cy.get('[data-cy="contentSaveButton"]').click(); // Click update button
+    verifyContentSaved();
 
     cy.get('[class="doc"]').get('svg').contains('Work done'); // Verify Percentage macro has text
     cy.get('[class="doc"]').get('svg').contains('2%'); // Verify Percentage macro has text
@@ -379,8 +386,8 @@ describe('Navigation', () => {
       .contains('bat/reports/test1')
       .click();
     cy.get('[role="dialog"]').contains('Insert macro').click(); // Click Insert macro button
-    cy.get('[data-cy="updateButton"]').click(); // Click update button
-    verifyNotificationMessage('success'); // Verify text in popup infobox
+    cy.get('[data-cy="contentSaveButton"]').click(); // Click update button
+    verifyContentSaved();
     cy.get('[class="doc"]').get('[class="paragraph"]').contains('* * * *'); // Verify report macro has text
   });
 
@@ -400,8 +407,8 @@ describe('Navigation', () => {
 
     editPage(); // Click edit button
     cy.get('.cm-activeLine').clear().type(scoreCardMacro); // Type score macro on the page
-    cy.get('[data-cy="updateButton"]').click(); // Click update button
-    verifyNotificationMessage('success'); // Verify text in popup infobox
+    cy.get('[data-cy="contentSaveButton"]').click(); // Click update button
+    verifyContentSaved();
     cy.get('[class="doc"]')
       .get('[class="card"]')
       .contains('Security control adoption'); // Verify Score card macro has text
@@ -425,8 +432,8 @@ describe('Navigation', () => {
 
     editPage(); // Click edit button
     cy.get('.cm-activeLine').clear().type(vegaLiteMacro); // Type vega macro on the page
-    cy.get('[data-cy="updateButton"]').click(); // Click update button
-    verifyNotificationMessage('success'); // Verify text in popup infobox
+    cy.get('[data-cy="contentSaveButton"]').click(); // Click update button
+    verifyContentSaved();
     cy.get('[class="doc"]').get('[class="vega-embed"]'); // Verify vega macro
   });
 
@@ -463,8 +470,8 @@ describe('Navigation', () => {
     });
     cy.get('[role="dialog"]').contains('Insert macro').click(); // Click Insert macro button
 
-    cy.get('[data-cy="updateButton"]').click(); // Click update button
-    verifyNotificationMessage('success'); // Verify text in popup infobox
+    cy.get('[data-cy="contentSaveButton"]').click(); // Click update button
+    verifyContentSaved();
     cy.then(() => {
       cy.get('[class="doc"]')
         .get('[href="/cards/' + cardKey + '"]')
