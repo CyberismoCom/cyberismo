@@ -56,6 +56,10 @@ export function CardContextMenu({
   const { deleteCard } = useCard(cardKey);
   const recentlyCreated = useAppSelector((state) => state.card.recentlyCreated);
 
+  const isModuleCard = project?.prefix
+    ? cardKey.split('_')[0] !== project.prefix
+    : null;
+
   const handleDeleteClick = async () => {
     if (recentlyCreated.includes(cardKey)) {
       const success = await deleteCard();
@@ -81,9 +85,11 @@ export function CardContextMenu({
           </MenuButton>
         </Tooltip>
         <Menu>
-          <MenuItem id="moveCardButton" onClick={openModal('move')}>
-            <Typography>{t('move')}</Typography>
-          </MenuItem>
+          {isModuleCard === false && (
+            <MenuItem id="moveCardButton" onClick={openModal('move')}>
+              <Typography>{t('move')}</Typography>
+            </MenuItem>
+          )}
           <MenuItem
             data-cy="addAttachmentButton"
             onClick={openModal('addAttachment')}

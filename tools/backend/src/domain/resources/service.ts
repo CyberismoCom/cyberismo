@@ -372,6 +372,7 @@ async function processTemplates(
             'templates',
             template,
             projectPrefix,
+            [],
           ),
         );
       }
@@ -390,6 +391,7 @@ async function processTemplates(
             'templates',
             template,
             projectPrefix,
+            [],
           ),
         );
       }

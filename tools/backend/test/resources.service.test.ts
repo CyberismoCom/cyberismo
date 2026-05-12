@@ -419,6 +419,32 @@ describe('Resources Service', () => {
       );
     });
 
+    test('empty templates have children: [] so react-arborist treats them as drop targets', async () => {
+      const mockCommands = createMockCommandManager({
+        showCmd: {
+          showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
+          showResources: vi.fn().mockImplementation((type) => {
+            if (type === 'templates')
+              return Promise.resolve(['test/templates/empty']);
+            return Promise.resolve([]);
+          }),
+          showResource: vi.fn().mockResolvedValue(mockResourceData),
+          showAllTemplateCards: vi.fn().mockResolvedValue([]),
+        },
+      });
+
+      const result = (await buildResourceTree(
+        mockCommands,
+      )) as testObjectNode[];
+
+      expect(result[1].name).toBe('templates');
+      const projectNode = result[1].children[0];
+      const emptyTemplate = projectNode.children[0];
+      expect(emptyTemplate.name).toBe('test/templates/empty');
+      expect(emptyTemplate.type).toBe('templates');
+      expect(emptyTemplate.children).toEqual([]);
+    });
+
     test('should handle empty resource types gracefully', async () => {
       const mockCommands = createMockCommandManager({
         showCmd: {

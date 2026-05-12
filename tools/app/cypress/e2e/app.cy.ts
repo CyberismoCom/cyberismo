@@ -81,7 +81,12 @@ describe('Navigation', () => {
     cy.get('[id="moveCardButton"]').click(); // Select Move option
 
     cy.get('button').contains(t['all']).click(); // Select All in Move dialog
-    cy.get('[role="dialog"] >>>>>>>>> [role="treeitem"]')
+    // The project tree is wrapped under a synthetic "Project top level" root;
+    // expand it so "Untitled page" becomes visible/selectable.
+    cy.get('[role="dialog"] [role="treeitem"]')
+      .contains(t.moveCardModal['projectTopLevel'])
+      .click(); // Expand synthetic project root
+    cy.get('[role="dialog"] [role="treeitem"]')
       .contains('Untitled page')
       .click(); // Select Untitled page
     cy.get('[role="dialog"] >>> button').contains(t['cancel']);
@@ -262,6 +267,37 @@ describe('Navigation', () => {
     cy.get('[data-cy="confirmDeleteButton"]').click();
     cy.get('[role="presentation"]').contains(t['deleteCardSuccess']); // Verify text in popup infobox
   });
+  it('Move dialog for a template card lists templates and their cards', () => {
+    // The card lives in the local `bat/templates/page` template that
+    // setup-e2e.js creates. Imported-module templates are read-only and
+    // intentionally excluded from the move dialog, so we exercise this flow
+    // against a local template card whose key was captured at setup time.
+    cy.fixture('e2e-keys').then((keys) => {
+      cy.visit(`/configuration/bat/cards/${keys.localTemplateCardKey}`);
+
+      cy.get('[data-cy="contextMenuButton"]').click();
+      cy.get('[id="moveCardButton"]').click();
+
+      cy.get('[role="dialog"]').contains(t.moveCardModal['title']);
+      cy.get('button').contains(t['all']).click();
+
+      // The dialog must show local template groupings (not the project tree).
+      cy.get('[role="dialog"]').contains('bat/templates/page');
+      cy.get('[role="dialog"]').contains('bat/templates/checks');
+
+      // Template-container rows act as "move to template root" destinations.
+      // Clicking one (even an empty template) must enable the Move button.
+      cy.get('[role="dialog"] [role="treeitem"]')
+        .contains('bat/templates/checks')
+        .click();
+      cy.get('[role="dialog"] >>> button')
+        .contains(t['move'])
+        .should('not.be.disabled');
+
+      cy.get('[role="dialog"] >>> button').contains(t['cancel']).click();
+    });
+  });
+
   it('test notifications and policy checks', () => {
     // first create a card with notifications and policy checks
     cy.get('[data-cy="createNewButton"]').click();

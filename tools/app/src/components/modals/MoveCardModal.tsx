@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Modal,
   ModalDialog,
@@ -31,7 +31,7 @@ import {
   Stack,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
-import { useCard } from '../../lib/api';
+import { useCard, useResourceTree } from '../../lib/api';
 import { useAppSelector } from '../../lib/hooks';
 import {
   deepCopy,
@@ -44,6 +44,13 @@ import { TreeMenu } from '../TreeMenu';
 import { useDispatch } from 'react-redux';
 import { addNotification } from '@/lib/slices/notifications';
 import { useTree } from '@/lib/api/tree';
+import {
+  TEMPLATE_PREFIX,
+  buildProjectDestinationsTree,
+  buildTemplateMoveTree,
+  isProjectRootKey,
+  isTemplateContainerKey,
+} from '@/lib/templateMoveTree';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
 
 export interface MoveCardModalProps {
@@ -62,38 +69,72 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
 
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
-  const { tree, isLoading } = useTree();
+  const { tree, isLoading: isLoadingTree } = useTree();
+  const { resourceTree, isLoading: isLoadingResourceTree } = useResourceTree();
 
-  const { moveCard, isUpdating } = useCard(cardKey);
+  const {
+    card,
+    moveCard,
+    isUpdating,
+    isLoading: isLoadingCard,
+  } = useCard(cardKey);
   const recents = useAppSelector((state) => state.recentlyViewed.pages);
 
   const dispatch = useDispatch();
 
   const [currentTab, setCurrentTab] = useState(TabEnum.RECENTS);
 
+  const sourceIsTemplate =
+    card?.path != null
+      ? /[\\/](?:templates|modules)[\\/]/.test(card.path)
+      : null;
+
+  const destinationsTree = useMemo(() => {
+    if (sourceIsTemplate === null) return null;
+    if (sourceIsTemplate) {
+      return buildTemplateMoveTree(resourceTree);
+    }
+    const built = buildProjectDestinationsTree(tree);
+    if (built[0]) {
+      built[0].title = t('moveCardModal.projectTopLevel');
+    }
+    return built;
+  }, [sourceIsTemplate, resourceTree, tree, t]);
+
   const move = useCallback(async () => {
-    if (selected) {
-      try {
-        await moveCard(selected);
-        dispatch(
-          addNotification({
-            message: t('moveCardModal.success'),
-            type: 'success',
-          }),
-        );
-        onClose();
-      } catch (error) {
-        dispatch(
-          addNotification({
-            message: error instanceof Error ? error.message : '',
-            type: 'error',
-          }),
-        );
-      }
+    if (!selected) return;
+    let target = selected;
+    if (isProjectRootKey(selected)) {
+      target = 'root';
+    } else if (isTemplateContainerKey(selected)) {
+      target = `root:${selected.slice(TEMPLATE_PREFIX.length)}`;
+    }
+    try {
+      await moveCard(target);
+      dispatch(
+        addNotification({
+          message: t('moveCardModal.success'),
+          type: 'success',
+        }),
+      );
+      onClose();
+    } catch (error) {
+      dispatch(
+        addNotification({
+          message: error instanceof Error ? error.message : '',
+          type: 'error',
+        }),
+      );
     }
   }, [selected, moveCard, t, onClose, dispatch]);
 
-  if (isLoading || !tree) {
+  const isLoading =
+    isLoadingCard ||
+    sourceIsTemplate === null ||
+    (sourceIsTemplate ? isLoadingResourceTree : isLoadingTree);
+  const activeTree = destinationsTree;
+
+  if (isLoading || !activeTree) {
     return (
       <Box padding={2}>
         <CircularProgress size="md" color="primary" />
@@ -101,9 +142,9 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
     );
   }
 
-  const moveableCards = getMoveableCards(tree, cardKey);
+  const moveableCards = getMoveableCards(activeTree, cardKey);
 
-  const moveableTree = filterCards(deepCopy(tree) || [], (card) => {
+  const moveableTree = filterCards(deepCopy(activeTree) || [], (card) => {
     return moveableCards.some((moveableCard) => moveableCard.key === card.key);
   });
 
@@ -159,7 +200,7 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
               flexDirection="column"
               minHeight={0}
               sx={{
-                overflowY: 'scroll',
+                overflowY: 'auto',
               }}
             >
               {searchableCards
@@ -196,7 +237,7 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
                         <Stack>
                           <Typography level="title-sm">{page.title}</Typography>
                           <Typography level="body-sm">
-                            {findParentCard(tree || [], page.key)?.title ?? '-'}
+                            {findParentCard(activeTree, page.key)?.title ?? '-'}
                           </Typography>
                         </Stack>
                         <Typography
@@ -236,10 +277,9 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
                 value={TabEnum.RECENTS}
                 sx={{
                   flex: '1 1 auto',
-                  display: 'flex',
                   flexDirection: 'column',
-                  overflowY:
-                    currentTab === TabEnum.RECENTS ? 'scroll' : 'hidden',
+                  overflowY: 'auto',
+                  '&:not([hidden])': { display: 'flex' },
                 }}
               >
                 <>
@@ -271,7 +311,7 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
                               {page.title}
                             </Typography>
                             <Typography level="body-sm">
-                              {findParentCard(tree || [], page.key)?.title ??
+                              {findParentCard(activeTree, page.key)?.title ??
                                 '-'}
                               {' • '}
                               {t('viewedAgo', {
@@ -300,9 +340,10 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
                 value={TabEnum.ALL}
                 sx={{
                   flex: '1 1 auto',
-                  display: 'flex',
                   flexDirection: 'column',
-                  overflowY: currentTab === TabEnum.ALL ? 'scroll' : 'hidden',
+                  overflow: 'hidden',
+                  minHeight: 0,
+                  '&:not([hidden])': { display: 'flex' },
                 }}
               >
                 <TreeMenu
