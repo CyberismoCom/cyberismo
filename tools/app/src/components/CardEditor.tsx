@@ -13,25 +13,16 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { MetadataValue } from '@/lib/definitions';
-import { CardMode } from '@/lib/definitions';
 
 import {
   Box,
+  Button,
   Tab,
   Tabs,
   TabPanel,
   TabList,
   Stack,
   Textarea,
-  Typography,
-  Card,
-  CardContent,
-  CardOverflow,
-  AspectRatio,
-  Grid,
-  IconButton,
-  Link,
-  Tooltip,
 } from '@mui/joy';
 
 import type { EditorState, ReactCodeMirrorRef } from '@uiw/react-codemirror';
@@ -41,8 +32,8 @@ import { EditorView } from '@codemirror/view';
 import { asciidoc } from 'codemirror-asciidoc';
 
 import CardToolbar from '@/components/toolbar/CardToolbar';
-import { useSearchParams } from 'react-router';
-import { ContentArea } from '@/components/ContentArea';
+import { CardLayout } from '@/components/card/CardLayout';
+import { AttachmentPanel } from '@/components/card/AttachmentPanel';
 import {
   type CardData,
   useCardMutations,
@@ -60,33 +51,18 @@ import {
   useKeyboardShortcut,
 } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
-import MetadataView from '@/components/MetadataView';
-
-import AddLink from '@mui/icons-material/AddLink';
-import Delete from '@mui/icons-material/Delete';
-import Download from '@mui/icons-material/Download';
-import Edit from '@mui/icons-material/Edit';
-import InsertDriveFile from '@mui/icons-material/InsertDriveFile';
 
 import {
   addAttachment,
   findCurrentTitleFromADoc,
   findSection,
+  handleAttachmentDrop,
 } from '@/lib/codemirror';
-import { apiPaths } from '@/lib/swr';
-import { useAttachments } from '@/lib/api/attachments';
 import { isEdited, viewChanged } from '@/lib/slices/pageState';
 import LoadingGate from '@/components/LoadingGate';
-import { openAttachment } from '@/lib/api/actions';
 
 import AsciiDoctor from '@asciidoctor/core';
-import {
-  deepCopy,
-  expandLinkTypes,
-  getDefaultValue,
-  useModals,
-} from '@/lib/utils';
-import { AddAttachmentModal } from '@/components/modals';
+import { deepCopy, expandLinkTypes, getDefaultValue } from '@/lib/utils';
 import { parseContent } from '@/lib/api/actions/card';
 import {
   CODE_MIRROR_BASE_PROPS,
@@ -98,138 +74,6 @@ import AsciiDocToolbar from '@/components/AsciiDocToolbar';
 const asciiDoctor = AsciiDoctor();
 
 const extensions = [StreamLanguage.define(asciidoc), EditorView.lineWrapping];
-
-function AttachmentPreviewCard({
-  name,
-  children,
-  cardKey,
-  onInsert,
-}: {
-  name: string;
-  children?: React.ReactNode;
-  cardKey: string;
-  onInsert?: () => void;
-}) {
-  const { removeAttachment } = useAttachments(cardKey);
-  const [isUpdating, setIsUpdating] = React.useState(false);
-
-  const [isHovered, setIsHovered] = React.useState(false);
-
-  const dispatch = useAppDispatch();
-
-  const { t } = useTranslation();
-
-  return (
-    <Card
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      sx={{
-        width: '100%',
-        gap: 0,
-        overflow: 'hidden',
-      }}
-    >
-      <CardOverflow>
-        <Box
-          position="absolute"
-          top={isHovered ? 0 : -36}
-          right={0}
-          zIndex={1}
-          sx={{
-            transition: 'top 0.3s',
-          }}
-        >
-          <Tooltip title={t('delete')}>
-            <IconButton
-              color="danger"
-              variant="solid"
-              loading={isUpdating}
-              sx={{ marginRight: '3px' }}
-              onClick={async () => {
-                const confirmed = confirm(t('confirmDeleteAttachment'));
-
-                if (confirmed) {
-                  setIsUpdating(true);
-                  await removeAttachment(name);
-                  setIsUpdating(false);
-                }
-              }}
-            >
-              <Delete />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title={t('saveCopy')}>
-            <IconButton
-              variant="solid"
-              color="primary"
-              sx={{ marginRight: '3px' }}
-            >
-              <Link
-                endDecorator={<Download />}
-                href={apiPaths.attachment(cardKey, name)}
-                download
-                variant="solid"
-              />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title={t('openInEditor')}>
-            <IconButton
-              variant="solid"
-              color="primary"
-              sx={{ marginRight: '3px' }}
-              onClick={async (e) => {
-                e.stopPropagation();
-                try {
-                  await openAttachment(cardKey, name);
-                } catch (error) {
-                  dispatch(
-                    addNotification({
-                      message: error instanceof Error ? error.message : '',
-                      type: 'error',
-                    }),
-                  );
-                }
-              }}
-            >
-              <Edit />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title={t('insertToContent')}>
-            <IconButton
-              data-cy="insertToContentButton"
-              variant="solid"
-              color="primary"
-              sx={{ marginRight: '2px' }}
-              onClick={() => onInsert && onInsert()}
-            >
-              <AddLink />
-            </IconButton>
-          </Tooltip>
-        </Box>
-        <AspectRatio
-          ratio="1"
-          maxHeight={97}
-          variant="plain"
-          objectFit="contain"
-        >
-          {children}
-        </AspectRatio>
-      </CardOverflow>
-      <CardOverflow
-        variant="soft"
-        sx={{
-          bgcolor: 'neutral.softBg',
-        }}
-      >
-        <CardContent>
-          <Typography level="body-xs" noWrap>
-            {name}
-          </Typography>
-        </CardContent>
-      </CardOverflow>
-    </Card>
-  );
-}
 
 export default function CardEditor({
   cardKey,
@@ -249,13 +93,6 @@ export default function CardEditor({
   const { t } = useTranslation();
   const isDarkMode = useIsDarkMode();
 
-  const { modalOpen, openModal, closeModal } = useModals({
-    delete: false,
-    move: false,
-    metadata: false,
-    addAttachment: false,
-  });
-
   const { tree, isLoading: isLoadingTree, error: errorTree } = useTree();
 
   const { card, error: errorCard, isLoading: isLoadingCard } = cardData;
@@ -266,10 +103,6 @@ export default function CardEditor({
     isLoading: isLoadingLinkTypes,
     error: errorLinkTypes,
   } = useLinkTypes();
-
-  const [searchParams] = useSearchParams();
-
-  const focusField = searchParams.get('focusField') || undefined;
 
   const dispatch = useAppDispatch();
 
@@ -313,7 +146,7 @@ export default function CardEditor({
   const {
     handleSubmit,
     control,
-    formState: { isDirty },
+    formState: { isDirty, isSubmitting },
     getValues,
     reset,
   } = formMethods;
@@ -551,42 +384,6 @@ export default function CardEditor({
     }
   };
 
-  const handleDragDrop = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-
-    const { items } = event.dataTransfer;
-    if (items.length === 0) return;
-    if (items[0].kind !== 'string' && items[0].type !== 'text/uri-list') return;
-    items[0].getAsString((uri) => {
-      let decodedURI;
-      try {
-        decodedURI = decodeURI(uri);
-      } catch (e) {
-        console.log(e);
-        return;
-      }
-
-      // Find attachment with same filename and add link to editor
-      const attachment = card?.attachments?.find((attachment) =>
-        decodedURI.includes(attachment.fileName),
-      );
-      if (attachment && view && card && editor) {
-        // Move editor cursor to drop point
-        editor.focus();
-        const dropPosition =
-          view.posAtCoords({
-            x: event.pageX,
-            y: event.pageY,
-          }) ?? 0;
-        view.dispatch({
-          selection: { anchor: dropPosition, head: dropPosition },
-        });
-
-        addAttachment(view, attachment, card.key);
-      }
-    });
-  };
-
   const expandedLinkTypes = card.cardType
     ? expandLinkTypes(linkTypes, card.cardType)
     : [];
@@ -597,14 +394,40 @@ export default function CardEditor({
         <FormProvider {...formMethods}>
           <CardToolbar
             cardKey={cardKey}
-            mode={CardMode.EDIT}
-            onUpdate={() => handleSubmit(handleSave)()}
-            onCancel={handleCancel}
             afterDelete={afterDelete}
             linkButtonDisabled={true}
-            readOnly={readOnly}
+            presenceMode="editing"
           />
           <Stack flexGrow={1} minHeight={0} padding={3}>
+            <Stack
+              direction="row"
+              justifyContent="flex-end"
+              spacing={1}
+              sx={{ mb: 1 }}
+            >
+              <Button
+                id="cancelButton"
+                variant="plain"
+                aria-label="cancel"
+                size="sm"
+                color="neutral"
+                onClick={handleCancel}
+                disabled={readOnly || isSubmitting}
+              >
+                {t('cancel')}
+              </Button>
+              <Button
+                variant="solid"
+                size="sm"
+                aria-label="update"
+                data-cy="updateButton"
+                loading={isSubmitting}
+                onClick={() => handleSubmit(handleSave)()}
+                disabled={readOnly || !isEditedValue || isSubmitting}
+              >
+                {t('update')}
+              </Button>
+            </Stack>
             <Tabs
               value={tab}
               onChange={(_, newValue) =>
@@ -660,14 +483,6 @@ export default function CardEditor({
                         />
                       )}
                     />
-                    <Box marginBottom={1.2}>
-                      <MetadataView
-                        initialExpanded={searchParams.get('expand') === 'true'}
-                        editMode={true}
-                        card={card}
-                        focusField={focusField}
-                      />
-                    </Box>
                     <AsciiDocToolbar view={view} readOnly={readOnly} />
                     <CodeMirror
                       {...CODE_MIRROR_BASE_PROPS}
@@ -679,7 +494,15 @@ export default function CardEditor({
                       }
                       extensions={extensions}
                       value={contentRef.current}
-                      onDrop={handleDragDrop}
+                      onDrop={(e) =>
+                        handleAttachmentDrop(
+                          e,
+                          view,
+                          editor,
+                          card?.attachments,
+                          card?.key ?? '',
+                        )
+                      }
                       onChange={(value: string) => {
                         if (!isEditedValue) {
                           dispatch(isEdited(true));
@@ -701,72 +524,15 @@ export default function CardEditor({
                     alignItems="flex-start"
                     width="30%"
                   >
-                    <Stack
-                      direction="row"
-                      padding={4}
-                      paddingTop={0}
-                      alignItems="center"
-                    >
-                      <Typography
-                        level="body-xs"
-                        color="warning"
-                        variant="soft"
-                        width={24}
-                        height={24}
-                        alignContent="center"
-                        borderRadius={40}
-                        paddingX={1.1}
-                      >
-                        {card?.attachments?.length || 0}
-                      </Typography>
-                      <Typography level="body-xs" marginLeft={1.5}>
-                        {(card?.attachments?.length || 0) === 1
-                          ? t('attachment')
-                          : t('attachments')}
-                      </Typography>
-                      <Tooltip title={t('addAttachment')}>
-                        <IconButton onClick={openModal('addAttachment')}>
-                          <img
-                            alt="Add attachment"
-                            width={24}
-                            height={24}
-                            src="/images/attach_file_add.svg"
-                          />
-                        </IconButton>
-                      </Tooltip>
-                    </Stack>
-                    <Grid container gap={2} paddingLeft={3}>
-                      {card?.attachments?.map((attachment) => (
-                        <Grid
-                          key={attachment.fileName}
-                          display="flex"
-                          justifyContent="center"
-                          width={160}
-                        >
-                          <AttachmentPreviewCard
-                            name={attachment.fileName}
-                            cardKey={cardKey}
-                            onInsert={() => {
-                              if (view && card) {
-                                addAttachment(view, attachment, card.key);
-                              }
-                            }}
-                          >
-                            {attachment.mimeType?.startsWith('image') ? (
-                              <img
-                                src={apiPaths.attachment(
-                                  card.key,
-                                  attachment.fileName,
-                                )}
-                                alt=""
-                              />
-                            ) : (
-                              <InsertDriveFile />
-                            )}
-                          </AttachmentPreviewCard>
-                        </Grid>
-                      ))}
-                    </Grid>
+                    <AttachmentPanel
+                      cardKey={cardKey}
+                      attachments={card?.attachments ?? []}
+                      onInsert={(attachment) => {
+                        if (view && card) {
+                          addAttachment(view, attachment, card.key);
+                        }
+                      }}
+                    />
                   </Box>
                 </Stack>
               </TabPanel>
@@ -778,10 +544,10 @@ export default function CardEditor({
               >
                 <Box height="100%">
                   <LoadingGate values={[linkTypes, previewCard]}>
-                    {/* Note: It is very important that ContentArea is not rendered unless we have gotten the parsed response.
+                    {/* Note: It is very important that CardLayout is not rendered unless we have gotten the parsed response.
                         LoadingGate ensures that it will show up as loading until previewCard is not null*/}
 
-                    <ContentArea
+                    <CardLayout
                       card={previewCard!}
                       linkTypes={expandedLinkTypes}
                       preview={true}
@@ -796,11 +562,6 @@ export default function CardEditor({
           </Stack>
         </FormProvider>
       </Stack>
-      <AddAttachmentModal
-        open={modalOpen.addAttachment}
-        onClose={closeModal('addAttachment')}
-        cardKey={card.key}
-      />
     </>
   );
 }

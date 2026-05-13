@@ -28,18 +28,19 @@ import DnDFile from '../DnDFile';
 import { useAttachments } from '@/lib/api/attachments';
 import { useAppDispatch } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
-import { useAppRouter } from '@/lib/hooks';
 
 interface AddAttachmentModalProps {
   open: boolean;
   onClose: () => void;
   cardKey: string | null;
+  onAttachmentAdded?: () => void;
 }
 
 export function AddAttachmentModal({
   open,
   onClose,
   cardKey,
+  onAttachmentAdded,
 }: AddAttachmentModalProps) {
   const { t } = useTranslation();
 
@@ -48,8 +49,6 @@ export function AddAttachmentModal({
   const { addAttachments, isUpdating } = useAttachments(cardKey);
 
   const dispatch = useAppDispatch();
-
-  const router = useAppRouter();
 
   const addFiles = (newFiles: FileList) => {
     // find files that are not already in the list
@@ -141,8 +140,8 @@ export function AddAttachmentModal({
                       type: 'success',
                     }),
                   );
+                  onAttachmentAdded?.();
                   onClose();
-                  router.push(`/cards/${cardKey}/edit`);
                 } catch (error) {
                   dispatch(
                     addNotification({

@@ -135,4 +135,5 @@ dataType((Field, EnumValue), "index", "integer") :-
 
 order(2, "fields", 1, "visibility", "ASC").
 order(2, "fields", 2, "index", "ASC").
+order(2, "links", 1, "linkSource", "DESC").
 order(3, "enumValues", 1, "index", "ASC").

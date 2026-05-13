@@ -181,6 +181,7 @@
   "deleteEnumValueConfirm": "Are you sure you want to delete the enum value \"{{value}}\"?",
   "deleteLink": "Delete link",
   "deleteLinkConfirm": "Are you sure you want to delete this link?",
+  "deleteLinkSuccess": "Link deleted successfully",
   "deleteModuleModal": {
     "title": "Remove module",
     "content": "Are you sure you want to remove the module <bold>\"{{moduleName}}\"</bold>? This will delete all of its resources from the project.",
@@ -197,9 +198,6 @@
   "destinationCardTypes": "Destination card types",
   "displayName": "Display name",
   "edit": "Edit",
-  "editLinkModal": {
-    "title": "Edit link"
-  },
   "emptyProject": "Project is empty",
   "enableLinkDescription": "Enable link description",
   "enumDescriptionPlaceholder": "Optional description for this value",
@@ -256,9 +254,10 @@
     "searchExternalItem": "Search item",
     "enterExternalKey": "Enter item key",
     "writeDescription": "Write a link description",
+    "description": "Description",
     "button": "Add link",
     "buttonEdit": "Update",
-    "calculatedLink": "This is an automatic link that cannot be deleted",
+    "calculatedLink": "This is an automatic link that cannot be edited or deleted",
     "sourceCard": "Card"
   },
   "linkTooltip": "Link to another card",
@@ -327,6 +326,7 @@
   "no": "No",
   "noCustomFields": "No custom fields yet",
   "noEnumValues": "No enum values yet",
+  "noLinkedCards": "No linked items",
   "noModules": "Project does not contain any modules.",
   "none": "None",
   "notFound": {
@@ -389,6 +389,7 @@
     "templates": "Templates",
     "workflows": "Workflows"
   },
+  "save": "Save",
   "saveCard": {
     "success": "Card saved successfully"
   },
