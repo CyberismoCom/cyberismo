@@ -45,7 +45,12 @@ describe('move command', () => {
 
   beforeEach(async () => {
     const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
-    testDir = join(baseDir, `tmp-command-handler-move-tests`);
+    // Unique testDir per test so the CommandManager singleton (keyed on
+    // project path) is rebuilt and we don't see stale cache from a sibling test.
+    testDir = join(
+      baseDir,
+      `tmp-command-handler-move-tests-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     decisionRecordsPath = join(testDir, 'valid/decision-records');
     options = { projectPath: decisionRecordsPath };
 
@@ -200,24 +205,90 @@ describe('move command', () => {
     expect(result.statusCode).toBe(200);
   });
   it('try to move card from template to project', async () => {
-    const sourceId = 'decision_3';
-    const destination = 'decision_6';
     const result = await commandHandler.command(
       Cmd.move,
-      [sourceId, destination],
+      ['decision_3', createdCardKey],
       options,
     );
     expect(result.statusCode).toBe(400);
   });
   it('try to move card from project to template', async () => {
-    const sourceId = 'decision_6';
-    const destination = 'decision_3';
     const result = await commandHandler.command(
       Cmd.move,
-      [sourceId, destination],
+      [createdCardKey, 'decision_3'],
       options,
     );
     expect(result.statusCode).toBe(400);
+  });
+  it('cross-template move between local templates (success)', async () => {
+    // decision_4 lives in 'simplepage' template; decision_1 is root of 'decision' template.
+    const result = await commandHandler.command(
+      Cmd.move,
+      ['decision_4', 'decision_1'],
+      options,
+    );
+    expect(result.statusCode).toBe(200);
+    const verify = getTestProject(options.projectPath!);
+    await verify.populateCaches();
+    const after = verify.findCard('decision_4');
+    expect(after.parent).toBe('decision_1');
+    expect(after.path).toContain(
+      `templates${sep}decision${sep}c${sep}decision_1${sep}c${sep}decision_4`,
+    );
+  });
+  it('try to move template card to project root via sentinel (rejected)', async () => {
+    const result = await commandHandler.command(
+      Cmd.move,
+      ['decision_3', 'root:project'],
+      options,
+    );
+    expect(result.statusCode).toBe(400);
+  });
+  it('try to move project card to a template root via sentinel (rejected)', async () => {
+    const result = await commandHandler.command(
+      Cmd.move,
+      [createdCardKey, 'root:decision/templates/decision'],
+      options,
+    );
+    expect(result.statusCode).toBe(400);
+  });
+  it('move card to a different local template root via sentinel', async () => {
+    // decision_4 is in simplepage; move to root of 'decision' template via sentinel.
+    const result = await commandHandler.command(
+      Cmd.move,
+      ['decision_4', 'root:decision/templates/decision'],
+      options,
+    );
+    expect(result.statusCode).toBe(200);
+    const verify = getTestProject(options.projectPath!);
+    await verify.populateCaches();
+    const after = verify.findCard('decision_4');
+    expect(after.parent).toBe('root');
+    expect(after.path).toContain(
+      `templates${sep}decision${sep}c${sep}decision_4`,
+    );
+    expect(after.path).not.toContain('simplepage');
+  });
+  it('promote nested template card to its template root (success)', async () => {
+    // decision_4 is a child of decision_3 inside the 'simplepage' template.
+    // Moving it to 'root' should land it at simplepage's template root,
+    // not project root.
+    const result = await commandHandler.command(
+      Cmd.move,
+      ['decision_4', 'root'],
+      options,
+    );
+    expect(result.statusCode).toBe(200);
+
+    const verify = getTestProject(options.projectPath!);
+    await verify.populateCaches();
+    const after = verify.findCard('decision_4');
+    expect(after.parent).toBe('root');
+    // It now lives directly under simplepage/c, not under decision_3/c
+    expect(after.path).toContain(
+      `templates${sep}simplepage${sep}c${sep}decision_4`,
+    );
+    expect(after.path).not.toContain(`decision_3${sep}c${sep}decision_4`);
   });
 
   it('verify card cache after move operation', async () => {

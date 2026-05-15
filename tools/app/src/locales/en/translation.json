@@ -117,6 +117,10 @@
   "cardType": "Card type",
   "category": "Category",
   "close": "Close",
+  "configMove": {
+    "invalidTarget": "Cannot drop the card here.",
+    "moduleReadOnly": "Cards in imported modules cannot be moved."
+  },
   "configTree": {
     "files": {
       "calculation": "Calculation",
@@ -273,7 +277,8 @@
   "moveCardModal": {
     "title": "Move",
     "search": "Search or paste a link",
-    "success": "Card moved successfully"
+    "success": "Card moved successfully",
+    "projectTopLevel": "Project top level"
   },
   "moveDown": "Move down",
   "moveToHigherVisibility": "Move to higher visibility group",

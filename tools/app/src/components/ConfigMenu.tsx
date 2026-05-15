@@ -11,6 +11,9 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { useCallback } from 'react';
+import { useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { useResourceTree } from '@/lib/api';
 import { BaseTreeComponent } from './BaseTreeComponent';
 import { ConfigTreeNode } from './tree-nodes';
@@ -18,6 +21,8 @@ import { useProject } from '@/lib/api/project';
 import { useParams } from 'react-router';
 import { findResourceNodeByName } from '@/lib/utils';
 import { useAppRouter } from '@/lib/hooks';
+import { resolveConfigTreeMove } from '@/lib/configTreeMove';
+import { addNotification } from '@/lib/slices/notifications';
 import type { NodeApi } from 'react-arborist';
 import type { AnyNode } from '@/lib/api/types';
 import { RESOURCES } from '@/lib/constants';
@@ -35,7 +40,9 @@ function findAncestorResourceGroup(
 
 export default function ConfigMenu() {
   const { resourceTree } = useResourceTree();
-  const { project } = useProject();
+  const { project, updateCard } = useProject();
+  const { t } = useTranslation();
+  const dispatch = useDispatch();
 
   const { module, type, resource, file, resourceType } = useParams();
 
@@ -54,6 +61,39 @@ export default function ConfigMenu() {
       : undefined;
   const { safePush } = useAppRouter();
 
+  const handleMove = useCallback(
+    async (dragIds: string[], parentId: string | null, index: number) => {
+      if (dragIds.length !== 1) return;
+      const result = resolveConfigTreeMove(
+        resourceTree,
+        dragIds[0],
+        parentId,
+        index,
+      );
+      if (result.kind === 'noop') return;
+      if (result.kind === 'reject') {
+        dispatch(
+          addNotification({
+            message: t(`configMove.${result.reason}`),
+            type: 'error',
+          }),
+        );
+        return;
+      }
+      try {
+        await updateCard(result.cardKey, result.update);
+      } catch (error) {
+        dispatch(
+          addNotification({
+            message: error instanceof Error ? error.message : '',
+            type: 'error',
+          }),
+        );
+      }
+    },
+    [resourceTree, updateCard, dispatch, t],
+  );
+
   return (
     <BaseTreeComponent
       title={`Configuration - ${project?.name}`}
@@ -63,6 +103,7 @@ export default function ConfigMenu() {
       selectedId={selectedId}
       idAccessor="id"
       childrenAccessor="children"
+      onMove={handleMove}
       onNodeClick={(node) => {
         if (node.data.type === 'general') {
           safePush('/configuration/general');
