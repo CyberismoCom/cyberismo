@@ -324,7 +324,6 @@ export default function CardEditor({
   const preview = useWatch({ control });
 
   const resetFormToCard = useCallback(() => {
-    console.log(card);
     reset(buildDefaultFormValues());
     contentRef.current = card?.rawContent || '';
     dispatch(isEdited(false));
