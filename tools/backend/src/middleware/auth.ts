@@ -42,6 +42,16 @@ export function createAuthMiddleware(
     if (user) {
       c.set('user', user);
     } else {
+      // RFC 9728 §5.1: include resource_metadata in WWW-Authenticate
+      // only for MCP routes, where the metadata document applies.
+      const issuer = process.env.OIDC_ISSUER;
+      if (issuer && c.req.path.startsWith('/mcp')) {
+        const origin = new URL(issuer).origin;
+        const resourceUrl = `${origin}/.well-known/oauth-protected-resource/mcp`;
+        return c.json({ error: 'Unauthorized' }, 401, {
+          'WWW-Authenticate': `Bearer resource_metadata="${resourceUrl}"`,
+        });
+      }
       return c.json({ error: 'Unauthorized' }, 401);
     }
 

@@ -232,6 +232,9 @@ importers:
       '@cyberismo/mcp':
         specifier: workspace:*
         version: link:../mcp
+      '@hono/mcp':
+        specifier: ^0.2.5
+        version: 0.2.5(@modelcontextprotocol/sdk@1.29.0(zod@4.3.6))(hono-rate-limiter@0.4.2(hono@4.12.14))(hono@4.12.14)(zod@4.3.6)
       '@hono/node-server':
         specifier: ^1.19.13
         version: 1.19.13(hono@4.12.14)
@@ -272,9 +275,6 @@ importers:
       '@cyberismo/data-handler':
         specifier: workspace:*
         version: link:../data-handler
-      '@cyberismo/mcp':
-        specifier: workspace:*
-        version: link:../mcp
       '@inquirer/confirm':
         specifier: ^6.0.12
         version: 6.0.12(@types/node@22.19.17)
@@ -413,9 +413,6 @@ importers:
         specifier: ^4.3.6
         version: 4.3.6
     devDependencies:
-      tsx:
-        specifier: ^4.21.0
-        version: 4.21.0
       vitest:
         specifier: ^4.0.15
         version: 4.0.15(@types/node@22.19.17)(jsdom@29.0.1)(lightningcss@1.32.0)(terser@5.40.0)(tsx@4.21.0)
@@ -1135,6 +1132,14 @@ packages:
 
   '@hapi/topo@6.0.2':
     resolution: {integrity: sha512-KR3rD5inZbGMrHmgPxsJ9dbi6zEK+C3ZwUwTa+eMwWLz7oijWUTWD2pMSNNYJAU6Qq+65NkxXjqHr/7LM2Xkqg==}
+
+  '@hono/mcp@0.2.5':
+    resolution: {integrity: sha512-JsaJes7VlNvUrUQ9j2b9C13xjFLvyKQY515aWtsdJ9cwhBmWz5od2yUCbDu7cX38GeADmlLmpu4BKNNAV6G27w==}
+    peerDependencies:
+      '@modelcontextprotocol/sdk': ^1.25.1
+      hono: '*'
+      hono-rate-limiter: ^0.4.2
+      zod: ^3.25.0 || ^4.0.0
 
   '@hono/node-server@1.19.13':
     resolution: {integrity: sha512-TsQLe4i2gvoTtrHje625ngThGBySOgSK3Xo2XRYOdqGN1teR8+I7vchQC46uLJi8OF62YTYA3AhSpumtkhsaKQ==}
@@ -3488,6 +3493,11 @@ packages:
 
   hoist-non-react-statics@3.3.2:
     resolution: {integrity: sha512-/gGivxi8JPKWNm/W0jSmzcMPpfpPLc3dY/6GxhX2hQ9iGj3aDfklV4ET7NjKpSinLpJ5vafa9iiGIEZg10SfBw==}
+
+  hono-rate-limiter@0.4.2:
+    resolution: {integrity: sha512-AAtFqgADyrmbDijcRTT/HJfwqfvhalya2Zo+MgfdrMPas3zSMD8SU03cv+ZsYwRU1swv7zgVt0shwN059yzhjw==}
+    peerDependencies:
+      hono: ^4.1.1
 
   hono@4.12.14:
     resolution: {integrity: sha512-am5zfg3yu6sqn5yjKBNqhnTX7Cv+m00ox+7jbaKkrLMRJ4rAdldd1xPd/JzbBWspqaQv6RSTrgFN95EsfhC+7w==}
@@ -6298,6 +6308,14 @@ snapshots:
     dependencies:
       '@hapi/hoek': 11.0.7
 
+  '@hono/mcp@0.2.5(@modelcontextprotocol/sdk@1.29.0(zod@4.3.6))(hono-rate-limiter@0.4.2(hono@4.12.14))(hono@4.12.14)(zod@4.3.6)':
+    dependencies:
+      '@modelcontextprotocol/sdk': 1.29.0(zod@4.3.6)
+      hono: 4.12.14
+      hono-rate-limiter: 0.4.2(hono@4.12.14)
+      pkce-challenge: 5.0.1
+      zod: 4.3.6
+
   '@hono/node-server@1.19.13(hono@4.12.14)':
     dependencies:
       hono: 4.12.14
@@ -8781,6 +8799,10 @@ snapshots:
   hoist-non-react-statics@3.3.2:
     dependencies:
       react-is: 16.13.1
+
+  hono-rate-limiter@0.4.2(hono@4.12.14):
+    dependencies:
+      hono: 4.12.14
 
   hono@4.12.14: {}
 

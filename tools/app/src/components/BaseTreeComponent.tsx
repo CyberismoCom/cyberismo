@@ -119,7 +119,7 @@ export function BaseTreeComponent<T>({
         childrenAccessor={childrenAccessor}
         indent={16}
         width={width}
-        height={height && titleHeight ? height - titleHeight : undefined}
+        height={height ? height - (titleHeight ?? 0) : undefined}
         rowHeight={28}
         onMove={handleMove}
       >

@@ -17,7 +17,7 @@ import { beforeAll, afterAll, describe, expect, test } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { CommandManager } from '@cyberismo/data-handler';
-import { createMcpServer } from '../src/server.js';
+import { createMcpServer, singleProjectProvider } from '../src/server.js';
 import { testDataPath } from './test-utils.js';
 
 let commands: CommandManager;
@@ -28,7 +28,7 @@ beforeAll(async () => {
   process.argv = [];
   commands = await CommandManager.getInstance(testDataPath);
 
-  const server = createMcpServer(commands);
+  const server = createMcpServer(singleProjectProvider(commands));
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
 
@@ -43,19 +43,37 @@ afterAll(async () => {
   commands.project.dispose();
 });
 
+type TextContent = { type: string; text: string };
+const contentOf = (result: Record<string, unknown>) =>
+  result.content as TextContent[];
+
 describe('MCP Tools via Client', () => {
-  test('get_card returns rendered card data', async () => {
+  test('list_projects returns available projects', async () => {
     const result = await client.callTool({
-      name: 'get_card',
-      arguments: { cardKey: 'decision_5' },
+      name: 'list_projects',
+      arguments: {},
     });
 
     expect(result.isError).toBeFalsy();
-    expect(result.content).toHaveLength(1);
+    const parsed = JSON.parse(contentOf(result)[0].text);
+    expect(parsed.success).toBe(true);
+    expect(Array.isArray(parsed.projects)).toBe(true);
+    expect(parsed.projects.length).toBe(1);
+    expect(parsed.projects[0].prefix).toBe('decision');
+  });
 
-    const content = result.content[0];
+  test('get_card returns rendered card data', async () => {
+    const result = await client.callTool({
+      name: 'get_card',
+      arguments: { projectPrefix: 'decision', cardKey: 'decision_5' },
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(contentOf(result)).toHaveLength(1);
+
+    const content = contentOf(result)[0];
     expect(content).toHaveProperty('type', 'text');
-    const parsed = JSON.parse((content as { text: string }).text);
+    const parsed = JSON.parse(content.text);
 
     expect(parsed.success).toBe(true);
     expect(parsed.card.key).toBe('decision_5');
@@ -74,11 +92,15 @@ describe('MCP Tools via Client', () => {
   test('get_card with raw mode returns basic data', async () => {
     const result = await client.callTool({
       name: 'get_card',
-      arguments: { cardKey: 'decision_5', raw: true },
+      arguments: {
+        projectPrefix: 'decision',
+        cardKey: 'decision_5',
+        raw: true,
+      },
     });
 
     expect(result.isError).toBeFalsy();
-    const parsed = JSON.parse((result.content[0] as { text: string }).text);
+    const parsed = JSON.parse(contentOf(result)[0].text);
     expect(parsed.success).toBe(true);
     expect(parsed.card.key).toBe('decision_5');
   });
@@ -86,22 +108,22 @@ describe('MCP Tools via Client', () => {
   test('get_card returns error for invalid key', async () => {
     const result = await client.callTool({
       name: 'get_card',
-      arguments: { cardKey: 'nonexistent_key_999' },
+      arguments: { projectPrefix: 'decision', cardKey: 'nonexistent_key_999' },
     });
 
     expect(result.isError).toBe(true);
-    const text = (result.content[0] as { text: string }).text;
+    const text = contentOf(result)[0].text;
     expect(text).toContain('Error getting card');
   });
 
   test('list_cards returns card tree', async () => {
     const result = await client.callTool({
       name: 'list_cards',
-      arguments: {},
+      arguments: { projectPrefix: 'decision' },
     });
 
     expect(result.isError).toBeFalsy();
-    const parsed = JSON.parse((result.content[0] as { text: string }).text);
+    const parsed = JSON.parse(contentOf(result)[0].text);
     expect(parsed.success).toBe(true);
     expect(Array.isArray(parsed.cards)).toBe(true);
     expect(parsed.cards.length).toBeGreaterThan(0);
@@ -110,11 +132,11 @@ describe('MCP Tools via Client', () => {
   test('list_templates returns templates', async () => {
     const result = await client.callTool({
       name: 'list_templates',
-      arguments: {},
+      arguments: { projectPrefix: 'decision' },
     });
 
     expect(result.isError).toBeFalsy();
-    const parsed = JSON.parse((result.content[0] as { text: string }).text);
+    const parsed = JSON.parse(contentOf(result)[0].text);
     expect(parsed.success).toBe(true);
     expect(Array.isArray(parsed.templates)).toBe(true);
   });
@@ -122,11 +144,11 @@ describe('MCP Tools via Client', () => {
   test('list_labels returns labels array', async () => {
     const result = await client.callTool({
       name: 'list_labels',
-      arguments: {},
+      arguments: { projectPrefix: 'decision' },
     });
 
     expect(result.isError).toBeFalsy();
-    const parsed = JSON.parse((result.content[0] as { text: string }).text);
+    const parsed = JSON.parse(contentOf(result)[0].text);
     expect(parsed.success).toBe(true);
     expect(Array.isArray(parsed.labels)).toBe(true);
   });
@@ -134,11 +156,11 @@ describe('MCP Tools via Client', () => {
   test('run_query with tree returns results', async () => {
     const result = await client.callTool({
       name: 'run_query',
-      arguments: { queryName: 'tree' },
+      arguments: { projectPrefix: 'decision', queryName: 'tree' },
     });
 
     expect(result.isError).toBeFalsy();
-    const parsed = JSON.parse((result.content[0] as { text: string }).text);
+    const parsed = JSON.parse(contentOf(result)[0].text);
     expect(parsed.success).toBe(true);
     expect(Array.isArray(parsed.results)).toBe(true);
     expect(parsed.results.length).toBeGreaterThan(0);

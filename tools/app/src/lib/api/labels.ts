@@ -12,9 +12,14 @@
 */
 
 import { useSWRHook } from './common';
-import { apiPaths } from '../swr';
+import { projectApiPaths } from '../swr';
 
 import type { SWRConfiguration } from 'swr';
 
-export const useLabels = (options?: SWRConfiguration) =>
-  useSWRHook<'labels', string[]>(apiPaths.labels(), 'labels', [], options);
+export const useLabels = (options?: SWRConfiguration, projectPrefix?: string) =>
+  useSWRHook<'labels', string[]>(
+    projectApiPaths(projectPrefix).labels(),
+    'labels',
+    [],
+    options,
+  );

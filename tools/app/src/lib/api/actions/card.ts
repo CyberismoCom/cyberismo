@@ -10,11 +10,15 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { callApi } from '../../swr';
+import { callApi, projectApiPaths } from '../../swr';
 
-export async function parseContent(key: string, content: string) {
+export async function parseContent(
+  key: string,
+  content: string,
+  projectPrefix?: string,
+) {
   const result = await callApi<{ parsedContent: string }>(
-    `/api/cards/${key}/parse`,
+    projectApiPaths(projectPrefix).cardParse(key),
     'POST',
     { content },
   );

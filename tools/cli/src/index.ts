@@ -32,19 +32,19 @@ import type {
 } from '@cyberismo/data-handler';
 import {
   Cmd,
-  CommandManager,
   Commands,
   ExportFormats,
+  scanForProjects,
   validBumps,
   validContexts,
 } from '@cyberismo/data-handler';
 import { ResourceTypeParser as Parser } from './resource-type-parser.js';
-import { startMcpServer } from '@cyberismo/mcp';
 import {
   startServer,
   exportSite,
   previewSite,
   MockAuthProvider,
+  ProjectRegistry,
 } from '@cyberismo/backend';
 import type { MockUserConfig } from '@cyberismo/backend';
 import { simpleGit } from 'simple-git';
@@ -838,6 +838,10 @@ exportCmd
     '-m, --revremark [revremark]',
     'Revision remark of the exported document(pdf export only)',
   )
+  .option(
+    '--default-project <prefix>',
+    'Default project prefix for exported site (site export only)',
+  )
   .action(
     async (
       format: string,
@@ -852,18 +856,25 @@ exportCmd
         );
         // Should be in commandHandler, once it is moved under the CLI package
         try {
-          const projectPath = await commandHandler.getProjectPath(
-            options.projectPath,
-          );
-          const commands = await CommandManager.getInstance(projectPath, {
-            logLevel: options.logLevel,
-          });
+          const projectPath = options.projectPath
+            ? resolve(options.projectPath)
+            : process.cwd();
+          const projects = await scanForProjects(projectPath);
+          if (projects.length === 0) {
+            handleResponse({
+              statusCode: 400,
+              message: `No projects found in '${projectPath}'.`,
+            });
+            return;
+          }
+          const registry = await ProjectRegistry.fromScannedProjects(projects);
           const { errors } = await exportSite(
-            commands,
+            registry,
             output,
             {
               recursive: options.recursive,
               cardKey: cardKey,
+              defaultProject: options.defaultProject,
             },
             (current?: number, total?: number) => {
               if (!progress.isActive && total !== undefined) {
@@ -1580,45 +1591,72 @@ const appCmd = new CommandWithPath('app')
   .option('--autocommit', 'Enable git-backed transactional writes');
 program.addCommand(appCmd);
 appCmd.action(async (options: CommandOptions<'start'>) => {
-  // validate project
-  const result = await commandHandler.command(
-    Cmd.validate,
-    [],
-    Object.assign({}, options, program.opts()),
-  );
-  if (!result.message) {
-    program.error('Expected validation result, but got none');
+  const basePath = options.projectPath || process.cwd();
+  let projects: Awaited<ReturnType<typeof scanForProjects>>;
+  try {
+    projects = await scanForProjects(basePath);
+  } catch (error) {
+    program.error(
+      error instanceof Error
+        ? error.message
+        : `Failed to scan for projects in '${basePath}'`,
+    );
     return;
   }
-  if (result.message !== 'Project structure validated') {
-    truncateMessage(result.message).forEach((item) => console.error(item));
-    console.error('\n'); // The output looks nicer with one extra row.
-    result.message = '';
-    const userConfirmation = await confirm(
-      {
-        message: 'There are validation errors. Do you want to continue?',
-      },
-      { signal: AbortSignal.timeout(10000), clearPromptOnDone: true },
-    ).catch((error) => {
-      return error.name === 'AbortPromptError';
-    });
-    if (!userConfirmation) {
-      handleResponse(result);
+
+  if (projects.length === 0) {
+    console.log('No projects found. Starting with empty project collection.');
+  }
+
+  // Validate each discovered project
+  for (const project of projects) {
+    const result = await commandHandler.command(
+      Cmd.validate,
+      [],
+      Object.assign({}, options, program.opts(), {
+        projectPath: project.path,
+      }),
+    );
+    if (!result.message) {
+      program.error(
+        `Expected validation result for project '${project.name}', but got none`,
+      );
       return;
     }
+    if (result.message !== 'Project structure validated') {
+      console.error(`Validation errors in project '${project.name}':`);
+      truncateMessage(result.message).forEach((item) => console.error(item));
+      console.error('\n');
+      result.message = '';
+      const userConfirmation = await confirm(
+        {
+          message: `There are validation errors in '${project.name}'. Do you want to continue?`,
+        },
+        { signal: AbortSignal.timeout(10000), clearPromptOnDone: true },
+      ).catch((error) => {
+        return error.name === 'AbortPromptError';
+      });
+      if (!userConfirmation) {
+        handleResponse(result);
+        return;
+      }
+    }
   }
+
   const gitUser = await getGitUserConfig();
   if (!gitUser.name || !gitUser.email) {
     console.warn(
       'Warning: git user.name or user.email is not configured. Using defaults.',
     );
   }
-  const projectPath = await commandHandler.getProjectPath(options.projectPath);
-  const commands = await CommandManager.getInstance(projectPath, {
+
+  // Create a CommandManager for each discovered project
+  const registry = await ProjectRegistry.fromScannedProjects(projects, {
     autocommit: options.autocommit,
     watchResourceChanges: options.watchResourceChanges,
   });
-  await startServer(new MockAuthProvider(gitUser), commands);
+
+  await startServer(new MockAuthProvider(gitUser), registry);
 });
 
 // Publish command - creates a git tag from cardsConfig version and pushes
@@ -1634,28 +1672,6 @@ publishCmd.action(async (options: CommandOptions<'publish'>) => {
   const args = [options.dryRun ? 'true' : 'false', options.remote ?? ''];
   const result = await commandHandler.command(Cmd.publish, args, mergedOptions);
   handleResponse(result);
-});
-
-// MCP Server command
-const mcpCmd = new CommandWithPath('mcp').description(
-  'Starts the MCP (Model Context Protocol) server for AI assistant integration',
-);
-program.addCommand(mcpCmd);
-mcpCmd.action(async (options: CommandOptions<'start'>) => {
-  try {
-    const projectPath = await commandHandler.getProjectPath(
-      options.projectPath,
-    );
-    console.error(`Starting MCP server for project at: ${projectPath}`);
-    console.error(
-      'Connect via stdio transport (e.g., Claude Desktop, Claude Code)',
-    );
-    await startMcpServer(projectPath);
-  } catch (error) {
-    program.error(
-      `Failed to start MCP server: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
 });
 
 export default program;

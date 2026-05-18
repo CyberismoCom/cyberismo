@@ -12,6 +12,7 @@
 
 import React from 'react';
 import { Breadcrumbs, Link, styled } from '@mui/joy';
+import { Link as RouterLink } from 'react-router';
 import HomeIcon from '@mui/icons-material/Home';
 import { findPathTo } from '../lib/utils';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
@@ -41,7 +42,8 @@ export const ProjectBreadcrumbs: React.FC<ProjectBreadcrumbsProps> = ({
       {pathComponents.map((node, index) => (
         <Link
           key={node.key}
-          href={`/cards/${node.key}`}
+          component={RouterLink}
+          to={`/cards/${node.key}`}
           style={{
             textDecorationColor: 'grey',
             color: 'grey',

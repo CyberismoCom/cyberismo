@@ -11,24 +11,28 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { callApi } from '../swr';
-import { apiPaths } from '../swr';
+import { callApi, projectApiPaths } from '../swr';
 import { mutate } from 'swr';
 import type { CreateCalculationData } from '@/lib/definitions';
 import { useUpdating } from '../hooks';
 
-export const createCalculation = async (data: CreateCalculationData) => {
+export const createCalculation = async (
+  data: CreateCalculationData,
+  projectPrefix?: string,
+) => {
+  const apiPaths = projectApiPaths(projectPrefix);
   await callApi(apiPaths.calculations(), 'POST', data);
   mutate(apiPaths.calculations());
   mutate(apiPaths.resourceTree());
 };
 
-export const useCalculations = () => {
+export const useCalculations = (projectPrefix?: string) => {
+  const apiPaths = projectApiPaths(projectPrefix);
   const { call, isUpdating } = useUpdating(apiPaths.calculations());
 
   return {
     isUpdating: (action?: string) => isUpdating(action),
     createCalculation: async (data: CreateCalculationData) =>
-      await call(() => createCalculation(data), 'create'),
+      await call(() => createCalculation(data, projectPrefix), 'create'),
   };
 };

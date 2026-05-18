@@ -1,6 +1,7 @@
 import { expect, test, beforeAll, afterAll } from 'vitest';
 import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
+import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { cleanupTempTestData, createTempTestData } from './test-utils.js';
 
@@ -16,7 +17,10 @@ interface CardTypeResponse {
 beforeAll(async () => {
   tempTestDataPath = await createTempTestData('decision-records');
   const commands = await CommandManager.getInstance(tempTestDataPath);
-  app = createApp(new MockAuthProvider(), commands);
+  app = createApp(
+    new MockAuthProvider(),
+    ProjectRegistry.fromCommandManager(commands),
+  );
 });
 
 afterAll(async () => {
@@ -24,7 +28,7 @@ afterAll(async () => {
 });
 
 async function getCardTypeByName(name: string): Promise<CardTypeResponse> {
-  const response = await app.request('/api/cardTypes');
+  const response = await app.request('/api/projects/decision/cardTypes');
   expect(response).not.toBe(null);
   expect(response.status).toBe(200);
 
@@ -39,9 +43,9 @@ async function getCardTypeByName(name: string): Promise<CardTypeResponse> {
   return cardType;
 }
 
-test('/api/resources/decision/fieldTypes/admins/validate returns validation result for valid field type', async () => {
+test('/api/projects/decision/resources/decision/fieldTypes/admins/validate returns validation result for valid field type', async () => {
   const response = await app.request(
-    '/api/resources/decision/fieldTypes/admins/validate',
+    '/api/projects/decision/resources/decision/fieldTypes/admins/validate',
   );
   expect(response).not.toBe(null);
 
@@ -53,9 +57,9 @@ test('/api/resources/decision/fieldTypes/admins/validate returns validation resu
   expect(result.errors.every((error: string) => error === '')).toBe(true);
 });
 
-test('/api/resources/decision/cardTypes/decision/validate returns validation result for valid card type', async () => {
+test('/api/projects/decision/resources/decision/cardTypes/decision/validate returns validation result for valid card type', async () => {
   const response = await app.request(
-    '/api/resources/decision/cardTypes/decision/validate',
+    '/api/projects/decision/resources/decision/cardTypes/decision/validate',
   );
   expect(response).not.toBe(null);
 
@@ -65,7 +69,7 @@ test('/api/resources/decision/cardTypes/decision/validate returns validation res
   expect(result.errors).toEqual([]);
 });
 
-test('/api/resources/decision/cardTypes/decision/operation performs change operation successfully', async () => {
+test('/api/projects/decision/resources/decision/cardTypes/decision/operation performs change operation successfully', async () => {
   const cardTypeBefore = await getCardTypeByName('decision/cardTypes/decision');
   expect(cardTypeBefore.displayName).toBeDefined();
 
@@ -75,7 +79,7 @@ test('/api/resources/decision/cardTypes/decision/operation performs change opera
     : `${originalDisplayName} (test)`;
 
   const response = await app.request(
-    '/api/resources/decision/cardTypes/decision/operation',
+    '/api/projects/decision/resources/decision/cardTypes/decision/operation',
     {
       method: 'POST',
       headers: {
@@ -103,7 +107,7 @@ test('/api/resources/decision/cardTypes/decision/operation performs change opera
   expect(cardTypeAfter.displayName).toBe(updatedDisplayName);
 
   const revertResponse = await app.request(
-    '/api/resources/decision/cardTypes/decision/operation',
+    '/api/projects/decision/resources/decision/cardTypes/decision/operation',
     {
       method: 'POST',
       headers: {
@@ -131,7 +135,7 @@ test('/api/resources/decision/cardTypes/decision/operation performs change opera
   expect(cardTypeRestored.displayName).toBe(originalDisplayName);
 });
 
-test('/api/resources/decision/cardTypes/decision/operation performs add operation successfully', async () => {
+test('/api/projects/decision/resources/decision/cardTypes/decision/operation performs add operation successfully', async () => {
   const targetField = 'decision/fieldTypes/percentageReady';
   const cardTypeBefore = await getCardTypeByName('decision/cardTypes/decision');
   const beforeFields = [...(cardTypeBefore.alwaysVisibleFields ?? [])];
@@ -139,7 +143,7 @@ test('/api/resources/decision/cardTypes/decision/operation performs add operatio
   expect(beforeFields).not.toContain(targetField);
 
   const response = await app.request(
-    '/api/resources/decision/cardTypes/decision/operation',
+    '/api/projects/decision/resources/decision/cardTypes/decision/operation',
     {
       method: 'POST',
       headers: {
@@ -170,7 +174,7 @@ test('/api/resources/decision/cardTypes/decision/operation performs add operatio
   expect(afterFields).to.contain(targetField);
 });
 
-test('/api/resources/decision/cardTypes/decision/operation performs rank operation successfully', async () => {
+test('/api/projects/decision/resources/decision/cardTypes/decision/operation performs rank operation successfully', async () => {
   const targetField = 'decision/fieldTypes/commitDescription';
   const cardTypeBefore = await getCardTypeByName('decision/cardTypes/decision');
   const beforeFields = [...(cardTypeBefore.alwaysVisibleFields ?? [])];
@@ -179,7 +183,7 @@ test('/api/resources/decision/cardTypes/decision/operation performs rank operati
   expect(initialIndex).toBeGreaterThan(-1);
 
   const response = await app.request(
-    '/api/resources/decision/cardTypes/decision/operation',
+    '/api/projects/decision/resources/decision/cardTypes/decision/operation',
     {
       method: 'POST',
       headers: {
@@ -216,7 +220,7 @@ test('/api/resources/decision/cardTypes/decision/operation performs rank operati
   );
 });
 
-test('/api/resources/decision/cardTypes/decision/operation performs remove operation successfully', async () => {
+test('/api/projects/decision/resources/decision/cardTypes/decision/operation performs remove operation successfully', async () => {
   const targetField = 'decision/fieldTypes/commitDescription';
   const cardTypeBefore = await getCardTypeByName('decision/cardTypes/decision');
   const beforeFields = [...(cardTypeBefore.alwaysVisibleFields ?? [])];
@@ -224,7 +228,7 @@ test('/api/resources/decision/cardTypes/decision/operation performs remove opera
   expect(beforeFields).toContain(targetField);
 
   const response = await app.request(
-    '/api/resources/decision/cardTypes/decision/operation',
+    '/api/projects/decision/resources/decision/cardTypes/decision/operation',
     {
       method: 'POST',
       headers: {
@@ -259,9 +263,9 @@ test('/api/resources/decision/cardTypes/decision/operation performs remove opera
   );
 });
 
-test('/api/resources/decision/cardTypes/decision/operation returns 400 for invalid operation', async () => {
+test('/api/projects/decision/resources/decision/cardTypes/decision/operation returns 400 for invalid operation', async () => {
   const response = await app.request(
-    '/api/resources/decision/cardTypes/decision/operation',
+    '/api/projects/decision/resources/decision/cardTypes/decision/operation',
     {
       method: 'POST',
       headers: {
@@ -281,9 +285,9 @@ test('/api/resources/decision/cardTypes/decision/operation returns 400 for inval
   expect(response.status).toBe(400);
 });
 
-test('/api/resources/decision/cardTypes/decision/operation returns 500 for invalid key', async () => {
+test('/api/projects/decision/resources/decision/cardTypes/decision/operation returns 500 for invalid key', async () => {
   const response = await app.request(
-    '/api/resources/decision/cardTypes/decision/operation',
+    '/api/projects/decision/resources/decision/cardTypes/decision/operation',
     {
       method: 'POST',
       headers: {

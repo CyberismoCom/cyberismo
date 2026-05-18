@@ -10,12 +10,15 @@
   details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-import { callApi } from '../swr';
-import { apiPaths } from '../swr';
+import { callApi, projectApiPaths } from '../swr';
 import { mutate } from 'swr';
 import type { CreateGraphViewData } from '@/lib/definitions';
 
-export const createGraphView = async (data: CreateGraphViewData) => {
+export const createGraphView = async (
+  data: CreateGraphViewData,
+  projectPrefix?: string,
+) => {
+  const apiPaths = projectApiPaths(projectPrefix);
   await callApi(apiPaths.graphViews(), 'POST', data);
   mutate(apiPaths.graphViews());
   mutate(apiPaths.resourceTree());

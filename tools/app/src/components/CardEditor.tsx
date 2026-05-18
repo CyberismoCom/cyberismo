@@ -73,7 +73,7 @@ import {
   findCurrentTitleFromADoc,
   findSection,
 } from '@/lib/codemirror';
-import { apiPaths } from '@/lib/swr';
+import { projectApiPaths } from '@/lib/swr';
 import { useAttachments } from '@/lib/api/attachments';
 import { isEdited, viewChanged } from '@/lib/slices/pageState';
 import LoadingGate from '@/components/LoadingGate';
@@ -118,6 +118,8 @@ function AttachmentPreviewCard({
   const dispatch = useAppDispatch();
 
   const { t } = useTranslation();
+
+  const apiPaths = projectApiPaths();
 
   return (
     <Card
@@ -261,6 +263,8 @@ export default function CardEditor({
   const { card, error: errorCard, isLoading: isLoadingCard } = cardData;
   const { updateCard } = useCardMutations(cardKey);
 
+  const apiPaths = projectApiPaths();
+
   const {
     linkTypes,
     isLoading: isLoadingLinkTypes,
@@ -320,7 +324,6 @@ export default function CardEditor({
   const preview = useWatch({ control });
 
   const resetFormToCard = useCallback(() => {
-    console.log(card);
     reset(buildDefaultFormValues());
     contentRef.current = card?.rawContent || '';
     dispatch(isEdited(false));

@@ -332,7 +332,7 @@ export function useDocumentTitle(title: string) {
  */
 export function useIsInCards() {
   const location = useLocation();
-  return location.pathname.startsWith('/cards');
+  return location.pathname.includes('/cards');
 }
 
 /**

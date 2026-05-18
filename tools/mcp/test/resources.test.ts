@@ -17,7 +17,7 @@ import { beforeAll, afterAll, describe, expect, test } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { CommandManager } from '@cyberismo/data-handler';
-import { createMcpServer } from '../src/server.js';
+import { createMcpServer, singleProjectProvider } from '../src/server.js';
 import { testDataPath } from './test-utils.js';
 
 let commands: CommandManager;
@@ -28,7 +28,7 @@ beforeAll(async () => {
   process.argv = [];
   commands = await CommandManager.getInstance(testDataPath);
 
-  const server = createMcpServer(commands);
+  const server = createMcpServer(singleProjectProvider(commands));
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
 
@@ -44,9 +44,16 @@ afterAll(async () => {
 });
 
 describe('MCP Resources via Client', () => {
-  test('listResources returns all registered resources', async () => {
+  test('listResources returns static projects resource', async () => {
     const result = await client.listResources();
     const names = result.resources.map((r) => r.name);
+
+    expect(names).toContain('projects');
+  });
+
+  test('listResourceTemplates returns all project-scoped resources', async () => {
+    const result = await client.listResourceTemplates();
+    const names = result.resourceTemplates.map((r) => r.name);
 
     expect(names).toContain('project');
     expect(names).toContain('cards');
@@ -61,16 +68,28 @@ describe('MCP Resources via Client', () => {
     expect(names).toContain('graph-views');
   });
 
-  test('resources use cyberismo:// URI scheme', async () => {
-    const result = await client.listResources();
-    for (const resource of result.resources) {
-      expect(resource.uri).toMatch(/^cyberismo:\/\/\//);
+  test('resource templates use cyberismo:// URI scheme', async () => {
+    const result = await client.listResourceTemplates();
+    for (const template of result.resourceTemplates) {
+      expect(template.uriTemplate).toMatch(/^cyberismo:\/\/\//);
     }
+  });
+
+  test('projects resource returns project list', async () => {
+    const result = await client.readResource({
+      uri: 'cyberismo:///projects',
+    });
+
+    expect(result.contents).toHaveLength(1);
+    const parsed = JSON.parse((result.contents[0] as { text: string }).text);
+    expect(Array.isArray(parsed)).toBe(true);
+    expect(parsed.length).toBeGreaterThan(0);
+    expect(parsed[0].prefix).toBe('decision');
   });
 
   test('project resource returns valid JSON', async () => {
     const result = await client.readResource({
-      uri: 'cyberismo:///project',
+      uri: 'cyberismo:///projects/decision/project',
     });
 
     expect(result.contents).toHaveLength(1);
@@ -83,7 +102,7 @@ describe('MCP Resources via Client', () => {
 
   test('card-types resource returns array', async () => {
     const result = await client.readResource({
-      uri: 'cyberismo:///card-types',
+      uri: 'cyberismo:///projects/decision/card-types',
     });
 
     expect(result.contents).toHaveLength(1);
@@ -94,7 +113,7 @@ describe('MCP Resources via Client', () => {
 
   test('workflows resource returns array', async () => {
     const result = await client.readResource({
-      uri: 'cyberismo:///workflows',
+      uri: 'cyberismo:///projects/decision/workflows',
     });
 
     expect(result.contents).toHaveLength(1);
@@ -105,7 +124,7 @@ describe('MCP Resources via Client', () => {
 
   test('templates resource returns array', async () => {
     const result = await client.readResource({
-      uri: 'cyberismo:///templates',
+      uri: 'cyberismo:///projects/decision/templates',
     });
 
     expect(result.contents).toHaveLength(1);
@@ -115,7 +134,7 @@ describe('MCP Resources via Client', () => {
 
   test('field-types resource returns array', async () => {
     const result = await client.readResource({
-      uri: 'cyberismo:///field-types',
+      uri: 'cyberismo:///projects/decision/field-types',
     });
 
     expect(result.contents).toHaveLength(1);

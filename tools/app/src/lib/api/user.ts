@@ -12,14 +12,14 @@
 */
 
 import { useSWRHook } from './common';
-import { apiPaths } from '../swr';
+import { globalApiPaths } from '../swr';
 import { getConfig } from '../utils';
 
 import type { SWRConfiguration } from 'swr';
 
 export const useUser = (options?: SWRConfiguration) =>
   useSWRHook<'user'>(
-    getConfig().staticMode ? null : apiPaths.user(),
+    getConfig().staticMode ? null : globalApiPaths.user(),
     'user',
     null,
     options,

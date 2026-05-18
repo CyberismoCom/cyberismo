@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { callApi } from '../../swr';
+import { callApi, projectApiPaths } from '../../swr';
 
 export async function createLink(
   fromCard: string,
@@ -18,8 +18,10 @@ export async function createLink(
   linkType: string,
   linkDescription?: string,
   direction: 'outbound' | 'inbound' = 'outbound',
+  projectPrefix?: string,
 ) {
-  return callApi(`/api/cards/${fromCard}/links`, 'POST', {
+  const apiPaths = projectApiPaths(projectPrefix);
+  return callApi(apiPaths.cardLinks(fromCard), 'POST', {
     toCard,
     linkType,
     description: linkDescription,
@@ -33,8 +35,10 @@ export async function removeLink(
   linkType: string,
   linkDescription?: string,
   direction: 'outbound' | 'inbound' = 'outbound',
+  projectPrefix?: string,
 ) {
-  return callApi(`/api/cards/${fromCard}/links`, 'DELETE', {
+  const apiPaths = projectApiPaths(projectPrefix);
+  return callApi(apiPaths.cardLinks(fromCard), 'DELETE', {
     toCard,
     linkType,
     description: linkDescription,
@@ -52,8 +56,10 @@ export async function updateLink(
   previousDirection: 'outbound' | 'inbound' = 'outbound',
   linkDescription?: string,
   previousLinkDescription?: string,
+  projectPrefix?: string,
 ) {
-  return callApi(`/api/cards/${fromCard}/links`, 'PUT', {
+  const apiPaths = projectApiPaths(projectPrefix);
+  return callApi(apiPaths.cardLinks(fromCard), 'PUT', {
     toCard,
     linkType,
     description: linkDescription,

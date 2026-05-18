@@ -10,12 +10,15 @@
   details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-
-import { callApi, apiPaths } from '../swr';
+import { callApi, projectApiPaths } from '../swr';
 import { mutate } from 'swr';
 import type { CreateReportData } from '@/lib/definitions';
 
-export const createReport = async (data: CreateReportData) => {
+export const createReport = async (
+  data: CreateReportData,
+  projectPrefix?: string,
+) => {
+  const apiPaths = projectApiPaths(projectPrefix);
   await callApi(apiPaths.reports(), 'POST', data);
   mutate(apiPaths.reports());
   mutate(apiPaths.resourceTree());

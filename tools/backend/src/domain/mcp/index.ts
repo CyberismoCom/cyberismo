@@ -14,19 +14,21 @@
 import { Hono } from 'hono';
 import { randomUUID } from 'node:crypto';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
-import { createMcpServer } from '@cyberismo/mcp/server';
-import type { CommandManager } from '@cyberismo/data-handler';
+import { createMcpServer, type ProjectProvider } from '@cyberismo/mcp';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { requireRole } from '../../middleware/auth.js';
+import { UserRole, type AppVars } from '../../types.js';
 
 const MAX_SESSIONS = 100;
+const MAX_SESSIONS_PER_USER = 5;
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
 interface McpSession {
   transport: WebStandardStreamableHTTPServerTransport;
   server: McpServer;
-  commands: CommandManager;
   lastActivity: number;
+  userId: string;
 }
 
 const sessions = new Map<string, McpSession>();
@@ -71,89 +73,92 @@ const cleanupInterval = setInterval(() => {
 }, CLEANUP_INTERVAL_MS);
 cleanupInterval.unref();
 
-const router = new Hono();
-
 /**
- * MCP HTTP endpoint handler.
- * Supports GET (SSE streaming), POST (messages), and DELETE (session cleanup).
+ * Create an MCP HTTP router that serves all projects via the given provider.
  */
-router.all('/', async (c) => {
-  const commands = c.get('commands');
-  const sessionId = c.req.header('mcp-session-id');
+export function createMcpRouter(
+  provider: ProjectProvider,
+): Hono<{ Variables: AppVars }> {
+  const router = new Hono<{ Variables: AppVars }>();
 
-  // Handle DELETE before routing to existing session so it always runs cleanup
-  if (c.req.method === 'DELETE') {
-    if (sessionId) {
-      await destroySession(sessionId);
+  /**
+   * MCP HTTP endpoint handler.
+   * Supports POST (messages) and DELETE (session cleanup).
+   */
+  router.all('/', requireRole(UserRole.Editor), async (c) => {
+    const sessionId = c.req.header('mcp-session-id');
+
+    // Handle DELETE before routing to existing session so it always runs cleanup
+    if (c.req.method === 'DELETE') {
+      if (sessionId) {
+        await destroySession(sessionId);
+      }
+      return c.json({ message: 'Session closed' });
     }
-    return c.json({ message: 'Session closed' });
-  }
 
-  // Handle existing session
-  if (sessionId && sessions.has(sessionId)) {
-    const session = sessions.get(sessionId)!;
-    session.lastActivity = Date.now();
-    const response = await session.transport.handleRequest(c.req.raw);
+    // Handle existing session
+    if (sessionId && sessions.has(sessionId)) {
+      const session = sessions.get(sessionId)!;
+      session.lastActivity = Date.now();
+      const response = await session.transport.handleRequest(c.req.raw);
+      return response;
+    }
+
+    // Reject requests with an unknown session ID (e.g. after server restart)
+    if (sessionId) {
+      return c.json({ error: 'Unknown session ID' }, 404);
+    }
+
+    // Only allow POST to create new sessions (initialize)
+    if (c.req.method !== 'POST') {
+      return c.json(
+        { error: 'Method not allowed. Use POST to initialize a session.' },
+        405,
+      );
+    }
+
+    // Reject new sessions when at capacity
+    if (sessions.size >= MAX_SESSIONS) {
+      return c.json({ error: 'Too many active sessions' }, 503);
+    }
+
+    const user = c.get('user')!;
+    const userSessionCount = [...sessions.values()].filter(
+      (s) => s.userId === user.id,
+    ).length;
+    if (userSessionCount >= MAX_SESSIONS_PER_USER) {
+      return c.json({ error: 'Too many active sessions for this user' }, 503);
+    }
+
+    // Create new session for initialization
+    const transport = new WebStandardStreamableHTTPServerTransport({
+      sessionIdGenerator: () => randomUUID(),
+      onsessioninitialized: (newSessionId: string) => {
+        sessions.set(newSessionId, {
+          transport,
+          server,
+          lastActivity: Date.now(),
+          userId: user.id,
+        });
+      },
+      onsessionclosed: (closedSessionId: string) => {
+        void destroySession(closedSessionId, true);
+      },
+    });
+
+    transport.onclose = () => {
+      const sid = transport.sessionId;
+      if (sid) {
+        void destroySession(sid, true);
+      }
+    };
+
+    const server = createMcpServer(provider);
+    await server.connect(transport);
+
+    const response = await transport.handleRequest(c.req.raw);
     return response;
-  }
-
-  // Only allow POST to create new sessions (initialize)
-  if (c.req.method !== 'POST') {
-    return c.json(
-      { error: 'Method not allowed. Use POST to initialize a session.' },
-      405,
-    );
-  }
-
-  // Reject new sessions when at capacity
-  if (sessions.size >= MAX_SESSIONS) {
-    return c.json({ error: 'Too many active sessions' }, 503);
-  }
-
-  // Create new session for initialization
-  const transport = new WebStandardStreamableHTTPServerTransport({
-    sessionIdGenerator: () => randomUUID(),
-    onsessioninitialized: (newSessionId: string) => {
-      sessions.set(newSessionId, {
-        transport,
-        server,
-        commands,
-        lastActivity: Date.now(),
-      });
-    },
-    onsessionclosed: (closedSessionId: string) => {
-      void destroySession(closedSessionId, true);
-    },
   });
 
-  transport.onclose = () => {
-    const sid = transport.sessionId;
-    if (sid) {
-      void destroySession(sid, true);
-    }
-  };
-
-  const server = createMcpServer(commands);
-  await server.connect(transport);
-
-  const response = await transport.handleRequest(c.req.raw);
-  return response;
-});
-
-/**
- * SSE endpoint for server-to-client messages
- */
-router.get('/sse', async (c) => {
-  const sessionId = c.req.header('mcp-session-id');
-
-  if (!sessionId || !sessions.has(sessionId)) {
-    return c.json({ error: 'Invalid or missing session ID' }, 400);
-  }
-
-  const session = sessions.get(sessionId)!;
-  session.lastActivity = Date.now();
-  const response = await session.transport.handleRequest(c.req.raw);
-  return response;
-});
-
-export default router;
+  return router;
+}

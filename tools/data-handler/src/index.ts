@@ -21,6 +21,7 @@ import {
 import { Validate } from './commands/validate.js';
 export * from './interfaces/project-interfaces.js';
 export * from './interfaces/macros.js';
+export type { ProjectProvider } from './interfaces/project-provider.js';
 import { requestStatus } from './interfaces/request-status-interfaces.js';
 import { UpdateOperations } from './resources/resource-object.js';
 export type {
@@ -39,6 +40,7 @@ import {
   resourceNameToString,
 } from './utils/resource-utils.js';
 import { moduleNameFromCardKey } from './utils/card-utils.js';
+import { scanForProjects } from './project-scanner.js';
 
 export {
   Cmd,
@@ -52,6 +54,7 @@ export {
   requestStatus,
   resourceName,
   resourceNameToString,
+  scanForProjects,
   UpdateOperations,
   Validate,
   evaluateMacros,

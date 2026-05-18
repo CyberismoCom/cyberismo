@@ -11,7 +11,7 @@
 */
 
 import type { EditorView } from '@uiw/react-codemirror';
-import { apiPaths } from '../swr';
+import { projectApiPaths } from '../swr';
 import type { CardAttachment } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import type { Document, Section } from '@asciidoctor/core';
 
@@ -124,7 +124,9 @@ export function addAttachment(
   editor: EditorView,
   { fileName, mimeType }: CardAttachment,
   cardKey: string,
+  projectPrefix?: string,
 ) {
+  const apiPaths = projectApiPaths(projectPrefix);
   const target = editor.state.selection.main.to;
 
   if (mimeType?.startsWith('image')) {

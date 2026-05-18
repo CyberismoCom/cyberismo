@@ -10,14 +10,29 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { callApi } from '../../swr';
+import { callApi, projectApiPaths } from '../../swr';
 
-export async function addAttachments(key: string, formData: FormData) {
-  return callApi(`/api/cards/${key}/attachments`, 'POST', formData);
+export async function addAttachments(
+  key: string,
+  formData: FormData,
+  projectPrefix?: string,
+) {
+  return callApi(
+    projectApiPaths(projectPrefix).cardAttachments(key),
+    'POST',
+    formData,
+  );
 }
 
-export async function removeAttachment(key: string, filename: string) {
-  return callApi(`/api/cards/${key}/attachments/${filename}`, 'DELETE');
+export async function removeAttachment(
+  key: string,
+  filename: string,
+  projectPrefix?: string,
+) {
+  return callApi(
+    projectApiPaths(projectPrefix).cardAttachment(key, filename),
+    'DELETE',
+  );
 }
 
 /**
@@ -26,6 +41,13 @@ export async function removeAttachment(key: string, filename: string) {
  * @param filename
  * @returns
  */
-export async function openAttachment(key: string, filename: string) {
-  return callApi(`/api/cards/${key}/attachments/${filename}/open`, 'POST');
+export async function openAttachment(
+  key: string,
+  filename: string,
+  projectPrefix?: string,
+) {
+  return callApi(
+    projectApiPaths(projectPrefix).cardAttachmentOpen(key, filename),
+    'POST',
+  );
 }
