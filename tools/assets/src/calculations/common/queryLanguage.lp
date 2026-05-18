@@ -106,94 +106,49 @@ resultField(Key, Field, Value, DataType) :-
     showField(Key, Field).
 
 % list
-childResult(Key, (Key, Field, Value), Field) :-
-    DataType = "list",
-    resultField(Key, Field, Value, DataType).
+listField(Key, Field, Value) :-
+    resultField(Key, Field, Value, "list").
 
-resultField((Key, Field, Value), "value", Value, "shortText") :-
-    childResult(Key, (Key, Field, Value), Field),
-    resultField(Key, Field, Value, _).
-
-resultField((Key, Field, Value), "index", Index, "integer") :-
-    childResult(Key, (Key, Field, Value), Field),
-    resultField(Key, Field, Value, _),
-    field((Field, Value), "index", Index).
-
-resultField((Key, Field, Value), "displayName", EnumDisplayValue, "shortText") :-
-    childResult(Key, (Key, Field, Value), Field),
-    resultField(Key, Field, Value, _),
-    field((Field, Value), "enumDisplayValue", EnumDisplayValue).
-
-childResult(Key, (Key, Field, Value), Field) :-
+listField(Key, Field, Value) :-
     field(Key, Field, Value),
     dataType(Key, Field, "list"),
     showField(Key, Field).
 
+childResult(Key, (Key, Field, Value), Field) :-
+    listField(Key, Field, Value).
+
 resultField((Key, Field, Value), "value", Value, "shortText") :-
-    childResult(Key, (Key, Field, Value), Field),
-    field(Key, Field, Value),
-    not resultField(Key, Field, Value, "list"),
-    dataType(Key, Field, "list").
+    listField(Key, Field, Value).
 
 resultField((Key, Field, Value), "index", Index, "integer") :-
-    childResult(Key, (Key, Field, Value), Field),
-    field(Key, Field, Value),
-    dataType(Key, Field, "list"),
-    not resultField(Key, Field, Value, "list"),
+    listField(Key, Field, Value),
     field((Field, Value), "index", Index).
 
 resultField((Key, Field, Value), "displayName", EnumDisplayValue, "shortText") :-
-    childResult(Key, (Key, Field, Value), Field),
-    field(Key, Field, Value),
-    dataType(Key, Field, "list"),
-    not resultField(Key, Field, Value, "list"),
+    listField(Key, Field, Value),
     field((Field, Value), "enumDisplayValue", EnumDisplayValue).
 
 % enum
+enumField(Key, Field, Value) :-
+    resultField(Key, Field, Value, "enum").
 
-
-childObject(Key, (Key, Field), Field) :-
-    DataType = "enum",
-    resultField(Key, Field, _, DataType).
-
-resultField((Key, Field), "value", Value, "shortText") :-
-    childObject(Key, (Key, Field), Field),
-    resultField(Key, Field, Value, _).
-
-resultField((Key, Field), "index", Index, "integer") :-
-    childObject(Key, (Key, Field), Field),
-    resultField(Key, Field, Value, _),
-    field((Field, Value), "index", Index).
-
-resultField((Key, Field), "displayValue", EnumDisplayValue, "shortText") :-
-    childObject(Key, (Key, Field), Field),
-    resultField(Key, Field, Value, _),
-    field((Field, Value), "enumDisplayValue", EnumDisplayValue).
-
-
-childObject(Key, (Key, Field), Field) :-
-    field(Key, Field, _),
+enumField(Key, Field, Value) :-
+    field(Key, Field, Value),
     dataType(Key, Field, "enum"),
     showField(Key, Field).
 
+childObject(Key, (Key, Field), Field) :-
+    enumField(Key, Field, _).
+
 resultField((Key, Field), "value", Value, "shortText") :-
-    childObject(Key, (Key, Field), Field),
-    field(Key, Field, Value),
-    not resultField(Key, Field, Value, "enum"),
-    dataType(Key, Field, "enum").
+    enumField(Key, Field, Value).
 
 resultField((Key, Field), "index", Index, "integer") :-
-    childObject(Key, (Key, Field), Field),
-    field(Key, Field, Value),
-    dataType(Key, Field, "enum"),
-    not resultField(Key, Field, Value, "enum"),
+    enumField(Key, Field, Value),
     field((Field, Value), "index", Index).
 
 resultField((Key, Field), "displayValue", EnumDisplayValue, "shortText") :-
-    childObject(Key, (Key, Field), Field),
-    field(Key, Field, Value),
-    dataType(Key, Field, "enum"),
-    not resultField(Key, Field, Value, "enum"),
+    enumField(Key, Field, Value),
     field((Field, Value), "enumDisplayValue", EnumDisplayValue).
 
 % Allow specifying up to 3 fields at the same time
