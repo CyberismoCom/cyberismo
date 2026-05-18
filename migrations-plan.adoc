@@ -1,0 +1,302 @@
+= Migrations Plan
+
+== Possible Resource Changes and Migration Strategies
+
+The following table enumerates all possible changes to Cyberismo module resources and describes both a basic (automated) migration and a more complete (interactive) migration for each.
+
+[cols="1,2,2,2", options="header"]
+|===
+| Resource | Change | Basic Migration | Complete Migration
+
+4+h| **Field Types**
+
+| Field type
+| Rename (change `name`)
+| Find-and-replace old field name with new name in all card `index.json` files and card type `customFields` references
+| Same as basic — fully automatable
+
+| Field type
+| Change `dataType`
+| For changes between shortText and longText, no migration needed (data is compatible). Otherwise, warn the user that data will be lost and set the field to null.
+| Interactive: provide a value transformation function or mapping (e.g., convert string to number), validate and transform existing values
+
+| Field type
+| Add enum value
+| No migration needed (additive change)
+| No migration needed
+
+| Field type
+| Remove enum value
+| Warn the user and set the enum field to null for any cards that have the removed value (data loss)
+| Interactive: prompt for a replacement value to map removed enum values to
+
+| Field type
+| Rename enum value (`enumValue`)
+| Find-and-replace old enum value with new value in all card `index.json` files
+| Same as basic — fully automatable
+
+| Field type
+| Delete field type
+| Remove the field from all card `index.json` files
+| Interactive: optionally archive/export field values before removal
+
+| Field type
+| Change `displayName` or `description`
+| No migration needed (display-only change)
+| No migration needed
+
+4+h| **Card Types**
+
+| Card type
+| Rename (change `name`)
+| Find-and-replace old card type name with new name in all card `index.json` `cardType` fields, link type `sourceCardTypes`/`destinationCardTypes`, and template cards
+| Same as basic — fully automatable
+
+| Card type
+| Change `workflow` reference
+| Set the workflow state to the first state of the new workflow for all affected cards (data loss of original workflow state)
+| Interactive: prompt for a state mapping from old workflow states to new workflow states; apply mapping to all affected cards
+
+| Card type
+| Add custom field
+| Change the validation logic so that it does not require a value for the new field (since existing cards won't have a value for it)
+|
+
+| Card type
+| Remove custom field
+| Change the validation logic so that it accepts fields that are not included in the card type. Do not generate logic program facts for these fields as they are no longer part of the card type definition.
+| -
+
+
+| Card type
+| Change `displayName`, `description`, or `category`
+| No migration needed (display-only change)
+| No migration needed
+
+| Card type
+| Change `alwaysVisibleFields` or `optionallyVisibleFields`
+| No migration needed (UI configuration only)
+| No migration needed
+
+| Card type
+| Delete card type
+| Warn user that orphaned cards will be deleted. Delete all cards of this type.
+| Interactive: prompt for a replacement card type; re-assign cards and map fields/workflow states
+
+4+h| **Workflows**
+
+| Workflow
+| Rename (change `name`)
+| Find-and-replace old workflow name in all card type `workflow` references
+| Same as basic — fully automatable
+
+| Workflow
+| Add state
+| No migration needed (additive change)
+| No migration needed
+
+| Workflow
+| Remove state
+| Warn user about cards in the removed state. Set the workflow state to the first state of the workflow for affected cards (data loss of original workflow state)
+| Interactive: prompt for a replacement state; transition all affected cards to the replacement state
+
+| Workflow
+| Rename state (change `states[].name`)
+| Find-and-replace old state name with new in all card `index.json` `workflowState` fields and all transition `fromState`/`toState` references
+| Same as basic — fully automatable
+
+| Workflow
+| Change state category
+| No migration needed (metadata change)
+| No migration needed
+
+| Workflow
+| Add transition
+| No migration needed (additive change)
+| No migration needed
+
+| Workflow
+| Remove transition
+| No migration needed (cards stay in current state; fewer transitions available)
+| No migration needed
+
+| Workflow
+| Rename transition
+| No migration needed (transition names not stored in card data)
+| No migration needed
+
+| Workflow
+| Change `displayName` or `description`
+| No migration needed (display-only change)
+| No migration needed
+
+| Workflow
+| Delete workflow
+| Warn the user that card types using this workflow will be deleted, and any cards using the card type will be deleted. Delete all affected card types and cards.
+| Interactive: prompt for a replacement workflow and state mapping; re-assign card types and transition cards
+
+4+h| **Link Types**
+
+| Link type
+| Rename (change `name`)
+| Find-and-replace old link type name in all card `index.json` `links[].linkType` fields
+| Same as basic — fully automatable
+
+| Link type
+| Change `sourceCardTypes`
+| Do nothing (existing links remain, but new links must conform to new constraint)
+| Interactive: prompt user to remove or reassign invalid links
+
+| Link type
+| Change `destinationCardTypes`
+| Do nothing (existing links remain, but new links must conform to new constraint)
+| Interactive: prompt user to remove or reassign invalid links
+
+| Link type
+| Change `displayName`, `outboundDisplayName`, `inboundDisplayName`, or `description`
+| No migration needed (display-only change)
+| No migration needed
+
+| Link type
+| Change `enableLinkDescription`
+| No migration needed (if disabled, existing descriptions remain but are hidden and not included in logic program facts)
+| Interactive: optionally strip existing link descriptions if feature is disabled
+
+| Link type
+| Delete link type
+| Warn the user and remove all links of this type from all card `index.json` files
+| Interactive: prompt for a replacement link type to re-map existing links, or confirm deletion
+
+4+h| **Templates**
+
+| Template
+| Rename (change `name`)
+| Update references to template name in any index.adoc files or reports that reference it, for example, within the createCards macro
+| Same as basic — fully automatable
+
+| Template
+| Change template card structure (add/remove/modify cards within template)
+| No migration needed (only affects new cards created from template)
+| No migration needed
+
+| Template
+| Change `displayName`, `description`, or `category`
+| No migration needed (display-only change)
+| No migration needed
+
+| Template
+| Delete template
+| No migration needed (only affects future card creation)
+| No migration needed
+
+4+h| **Calculations**
+
+| Calculation
+| Rename (change `name`)
+| Update references to calculation name in card type `isCalculated` fields and any imports
+| Same as basic — fully automatable
+
+| Calculation
+| Change calculation logic (`calculation.lp`)
+| No migration needed (recalculation happens automatically)
+| No migration needed
+
+| Calculation
+| Delete calculation
+| No migration needed (recalculation happens automatically)
+| No migration needed (recalculation happens automatically)
+
+| Calculation
+| Change `displayName`, `description`, or `category`
+| No migration needed (display-only change)
+| No migration needed
+
+4+h| **Reports**
+
+| Report
+| Rename (change `name`)
+| Update any references to the report name in index.adoc files and other reports that reference it
+| Same as basic — fully automatable
+
+| Report
+| Change report query (`query.lp.hbs`) or template (`index.adoc.hbs`)
+| No migration needed (reports are generated dynamically)
+| No migration needed
+
+| Report
+| Change `parameterSchema.json`
+| No migration needed (affects report invocation, not stored data)
+| No migration needed
+
+| Report
+| Delete report
+| No migration needed. Existing references will be broken.
+| Iteractive: prompt to remove or replace broken references in index.adoc files and other reports with some other report
+
+| Report
+| Change `displayName`, `description`, or `category`
+| No migration needed (display-only change)
+| No migration needed
+
+4+h| **Graph Models**
+
+| Graph model
+| Rename (change `name`)
+| Update references in graph macro instances in index.adoc files and in any reports that reference it
+| Same as basic — fully automatable
+
+| Graph model
+| Change model logic (`model.lp`)
+| No migration needed (models are computed dynamically)
+| No migration needed
+
+| Graph model
+| Delete graph model
+| Warn that content may be broken, remove the model
+| Interactive: prompt for replacement model
+
+| Graph model
+| Change `displayName`, `description`, or `category`
+| No migration needed (display-only change)
+| No migration needed
+
+4+h| **Graph Views**
+
+| Graph view
+| Rename (change `name`)
+| Update any references to the graph view in configuration
+| Same as basic — fully automatable
+
+| Graph view
+| Change view template (`view.lp.hbs`)
+| No migration needed (views are rendered dynamically)
+| No migration needed
+
+| Graph view
+| Change `parameterSchema.json`
+| No migration, if there are new mandatory parameters or if parameters are deleted or renamed, then existing graph macros will be broken until updated
+| Interactive: prompt how graph macro instances should be updated to conform to new parameter schema (e.g., mapping old parameters to new parameters, providing default values for new parameters, etc.)
+
+| Graph view
+| Delete graph view
+| No migration. Existing graph macros will be broken
+| Interactive: prompt to remove or replace broken graph macro references in index.adoc files and reports with some other graph view
+
+| Graph view
+| Change `displayName`, `description`, or `category`
+| No migration needed (display-only change)
+| No migration needed
+
+4+h| **Module-level / Cross-cutting**
+
+| Module
+| Rename module
+| Update module references in `cardsConfig.json` and in all references to all resources and cards
+| Same as basic — fully automatable
+
+| Any resource
+| Move resource between modules (or from local to module)
+| Will be handled as delete + create, with associated migration steps for each
+| Same as basic
+
+|===
