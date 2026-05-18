@@ -7,12 +7,14 @@ result(X) :- projectCard(X).
 % a helper term for display names
 
 displayName(Card, (Card, Field), DisplayName) :-
+    result(Card),
     fieldType(Field),
     field(Field, "displayName", DisplayName),
     field(Card, "cardType", CardType),
     not field((CardType, Field), "displayName", _).
 
 displayName(Card, (Card, Field), DisplayName) :-
+    result(Card),
     field(Card, "cardType", CardType),
     fieldType(Field),
     field((CardType, Field), "displayName", DisplayName).
