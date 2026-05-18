@@ -123,7 +123,6 @@ export const SearchableTreeMenu = ({
     <Stack
       height="100%"
       width="100%"
-      overflow="hidden"
       bgcolor="background.surface"
     >
       {/* Recent projects - only takes natural height */}
