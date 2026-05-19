@@ -41,12 +41,15 @@ export function usePresence(
   projectPrefix?: string,
 ): PresenceEntry[] {
   const [editors, setEditors] = useState<PresenceEntry[]>([]);
-  const url = cardKey
-    ? projectApiPaths(projectPrefix).presence(cardKey, mode)
-    : null;
+  const config = getConfig();
+  const isEnabled = !config.staticMode && !!config.presenceEnabled;
+  const url =
+    cardKey && isEnabled
+      ? projectApiPaths(projectPrefix).presence(cardKey, mode)
+      : null;
 
   useEffect(() => {
-    if (!url || getConfig().staticMode) {
+    if (!url) {
       return;
     }
 
@@ -72,7 +75,7 @@ export function usePresence(
     };
   }, [url]);
 
-  if (!cardKey || getConfig().staticMode) return [];
+  if (!url) return [];
 
   return editors;
 }

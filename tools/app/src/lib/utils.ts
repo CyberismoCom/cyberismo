@@ -77,7 +77,7 @@ export function canCreateLinkToCard(
     return false;
   return true;
 }
-let _config: AppConfig = { staticMode: false };
+let _config: AppConfig = { staticMode: false, presenceEnabled: false };
 
 /**
  * Fetches config.json. Must be called once before the app renders.
@@ -87,7 +87,7 @@ export async function initConfig(): Promise<void> {
     const res = await fetch('/config.json');
     _config = await res.json();
   } catch {
-    _config = { staticMode: false };
+    _config = { staticMode: false, presenceEnabled: false };
   }
 }
 
