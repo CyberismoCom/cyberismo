@@ -106,6 +106,7 @@ export default class ImageMacro extends BaseMacro {
     const attributes = this.buildImageAttributes(options);
 
     // In inject mode, always use the API path for consistency
-    return `image::/api/cards/${cardKey}/a/${options.fileName}[${attributes}]`;
+    const projectPrefix = context.project.projectPrefix;
+    return `image::/api/projects/${projectPrefix}/cards/${cardKey}/a/${options.fileName}[${attributes}]`;
   };
 }

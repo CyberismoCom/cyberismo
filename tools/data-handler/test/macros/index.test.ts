@@ -997,7 +997,7 @@ Some content here`;
         });
 
         expect(result).toEqual(
-          'image::/api/cards/decision_1/a/the-needle.heic[]',
+          'image::/api/projects/decision/cards/decision_1/a/the-needle.heic[]',
         );
       });
 
@@ -1011,7 +1011,7 @@ Some content here`;
         });
 
         expect(result).toEqual(
-          'image::/api/cards/decision_1/a/the-needle.heic[]',
+          'image::/api/projects/decision/cards/decision_1/a/the-needle.heic[]',
         );
       });
 
@@ -1025,7 +1025,7 @@ Some content here`;
         });
 
         expect(result).toEqual(
-          'image::/api/cards/decision_1/a/the-needle.heic[]',
+          'image::/api/projects/decision/cards/decision_1/a/the-needle.heic[]',
         );
       });
 
@@ -1039,7 +1039,7 @@ Some content here`;
         });
 
         expect(result).toEqual(
-          'image::/api/cards/decision_1/a/the-needle.heic[alt="Test image",title="A test needle image"]',
+          'image::/api/projects/decision/cards/decision_1/a/the-needle.heic[alt="Test image",title="A test needle image"]',
         );
       });
       for (const mode of ['static', 'inject', 'staticSite'] as const) {

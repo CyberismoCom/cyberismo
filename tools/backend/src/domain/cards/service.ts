@@ -173,11 +173,12 @@ export async function parseContent(
     asciidocContent = preprocessMermaidBlocksForHtml(asciidocContent);
 
     const processor = Processor();
+    const projectPrefix = commands.project.projectPrefix;
     const parsedContent = processor
       .convert(asciidocContent, {
         safe: 'safe',
         attributes: {
-          imagesdir: `/api/cards/${key}/a`,
+          imagesdir: `/api/projects/${projectPrefix}/cards/${key}/a`,
           icons: 'font',
         },
       })

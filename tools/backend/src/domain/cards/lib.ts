@@ -61,11 +61,12 @@ export async function getCardDetails(
     // Convert [mermaid] AsciiDoc blocks to passthrough HTML before asciidoctor processes them
     asciidocContent = preprocessMermaidBlocksForHtml(asciidocContent);
 
+    const projectPrefix = commands.project.projectPrefix;
     const htmlContent = Processor()
       .convert(asciidocContent, {
         safe: 'safe',
         attributes: {
-          imagesdir: `/api/cards/${key}/a`,
+          imagesdir: `/api/projects/${projectPrefix}/cards/${key}/a`,
           icons: 'font',
         },
       })
