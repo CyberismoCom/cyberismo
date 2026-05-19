@@ -107,6 +107,7 @@ export default function MetadataSection({
   // Disable "Show Less" when the field being edited would be hidden by collapsing
   const editingFieldNeedsExpanded =
     editingFieldKey != null &&
+    editingFieldKey !== 'labels' &&
     !(card.fields ?? []).some(
       (f) => f.key === editingFieldKey && f.visibility === 'always',
     );
@@ -120,6 +121,32 @@ export default function MetadataSection({
       padding={1.5}
     >
       <Stack>
+        <FieldRow
+          expanded
+          value={
+            card.lastUpdated ? format(new Date(card.lastUpdated), 'PPp') : ''
+          }
+          label={t('lastUpdated')}
+          dataType="dateTime"
+          disabled
+        />
+        <FieldRow
+          id={fieldRowId('labels')}
+          expanded
+          value={card.labels}
+          label={t('labels')}
+          dataType="label"
+          disabled={!canEdit}
+          isEditing={editingFieldKey === 'labels'}
+          description={
+            editingFieldKey === 'labels'
+              ? t('labelEditor.splitterHint', { splitter: LABEL_SPLITTER })
+              : undefined
+          }
+          onStartEdit={() => setEditingFieldKey('labels')}
+          onAutoSave={handleAutoSaveLabels}
+          onCancel={() => setEditingFieldKey(null)}
+        />
         {(card.fields ?? []).map(
           ({
             key,
@@ -162,37 +189,11 @@ export default function MetadataSection({
           disabled
         />
         <FieldRow
-          id={fieldRowId('labels')}
-          expanded={expanded}
-          value={card.labels}
-          label={t('labels')}
-          dataType="label"
-          disabled={!canEdit}
-          isEditing={editingFieldKey === 'labels'}
-          description={
-            editingFieldKey === 'labels'
-              ? t('labelEditor.splitterHint', { splitter: LABEL_SPLITTER })
-              : undefined
-          }
-          onStartEdit={() => setEditingFieldKey('labels')}
-          onAutoSave={handleAutoSaveLabels}
-          onCancel={() => setEditingFieldKey(null)}
-        />
-        <FieldRow
           expanded={expanded}
           value={
             card.createdAt ? format(new Date(card.createdAt), 'PPp') : null
           }
           label={t('createdAt')}
-          dataType="dateTime"
-          disabled
-        />
-        <FieldRow
-          expanded={expanded}
-          value={
-            card.lastUpdated ? format(new Date(card.lastUpdated), 'PPp') : ''
-          }
-          label={t('lastUpdated')}
           dataType="dateTime"
           disabled
         />
