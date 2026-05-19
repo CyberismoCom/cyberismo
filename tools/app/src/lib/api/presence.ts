@@ -65,8 +65,13 @@ export function usePresence(
       // EventSource will auto-reconnect; clear state on error
       setEditors([]);
     });
+    const handlePageHide = () => {
+      eventSource.close();
+    };
+    window.addEventListener('pagehide', handlePageHide);
 
     return () => {
+      window.removeEventListener('pagehide', handlePageHide);
       eventSource.close();
       setEditors([]);
     };
