@@ -462,6 +462,29 @@ export function isAlreadyLinked(
 }
 
 /**
+ * Returns true if `href` should be handled by React Router (SPA navigation)
+ * rather than the browser's default link behavior.
+ *
+ * App URLs are same-origin http(s) paths that aren't backend API endpoints.
+ * External URLs, `mailto:`/`tel:`/`javascript:` schemes, anchor fragments, and
+ * `/api/*` paths fall through to the browser.
+ */
+export function isAppUrl(href: string): boolean {
+  if (href.startsWith('#')) return false;
+
+  try {
+    const url = new URL(href, window.location.origin);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
+    if (url.origin !== window.location.origin) return false;
+    if (url.pathname === '/api' || url.pathname.startsWith('/api/'))
+      return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Checks if a potential target card's type is permitted by the selected link type's rules.
  * @param selectedLinkType The link type defining compatibility rules.
  * @param potentialTargetCard The card to check.

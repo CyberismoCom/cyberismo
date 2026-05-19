@@ -52,6 +52,7 @@ import {
   createPredicate,
   findCard,
   flattenTree,
+  isAppUrl,
   useModals,
   parseDataAttributes,
 } from '../lib/utils';
@@ -70,7 +71,12 @@ import CheckBoxOutlineBlank from '@mui/icons-material/CheckBoxOutlineBlank';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import EditLinkModal from './modals/EditLinkModal';
 
-import { useAppDispatch, useAppSelector, useIsDarkMode } from '../lib/hooks';
+import {
+  useAppDispatch,
+  useAppRouter,
+  useAppSelector,
+  useIsDarkMode,
+} from '../lib/hooks';
 import { viewChanged } from '../lib/slices/pageState';
 
 import createDOMPurify from 'dompurify';
@@ -619,6 +625,8 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 
   const dispatch = useAppDispatch();
 
+  const router = useAppRouter();
+
   const { t } = useTranslation();
 
   const lastTitle = useAppSelector((state) => state.page.title);
@@ -745,9 +753,25 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     controls.appendChild(downloadBtn);
     wrapper.appendChild(controls);
 
+    // Intercept link clicks inside the SVG so they go through the SPA router if they point to app
+    // The SVG is inserted via innerHTML so its <a> elements are real browser links
+    const handleLinkClick = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0) return;
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const anchor = (e.target as Element | null)?.closest?.('a');
+      if (!anchor) return;
+      const href =
+        anchor.getAttribute('href') ?? anchor.getAttribute('xlink:href');
+      if (!href || !isAppUrl(href)) return;
+      e.preventDefault();
+      router.safePush(href);
+    };
+    wrapper.addEventListener('click', handleLinkClick);
+
     const cleanup = () => {
       fullScreenBtn.removeEventListener('click', handleFullScreenClick);
       downloadBtn.removeEventListener('click', handleDownloadClick);
+      wrapper.removeEventListener('click', handleLinkClick);
       wrapper.querySelector('[data-cy="svg-controls"]')?.remove();
     };
     (wrapper as HTMLElementWithCleanup).__cleanupSvgControls = cleanup;
@@ -905,7 +929,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
       if (node.type === 'tag') {
         if (node.name === 'a') {
           const href = node.attribs?.href;
-          if (href?.startsWith('/cards/')) {
+          if (href && isAppUrl(href)) {
             return (
               <SafeRouterLink to={href}>
                 {domToReact(node.children as DOMNode[])}
