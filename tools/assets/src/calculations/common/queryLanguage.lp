@@ -82,11 +82,6 @@ resultField(Key, Field, Value, DataType) :-
 % "field" of result/child result "key" has value "value",
 % data type of the field is included, if not specified, it is shortText
 % a field term like this is returned for all other fields except enum and list
-%
-% enumField(key, field, value, index, enum display value):
-% listField(key, field, value, index, enum display value):
-% otherwise the same as field, but for enum and list fields,
-% we also need the enum value index and enum display value
 
 #show field(Key, Field, Value, DataType) :
     field(Key, Field, Value),
