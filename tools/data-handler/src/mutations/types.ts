@@ -1,6 +1,6 @@
 // tools/data-handler/src/mutations/types.ts
 
-import type { Operation, UpdateOperations } from '../resources/resource-object.js';
+import type { Operation } from '../resources/resource-object.js';
 import type { UpdateKey } from '../interfaces/resource-interfaces.js';
 import type { ResourceName } from '../utils/resource-utils.js';
 

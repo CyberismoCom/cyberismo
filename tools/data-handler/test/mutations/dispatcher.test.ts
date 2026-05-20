@@ -4,11 +4,15 @@ import { describe, it, expect } from 'vitest';
 import { dispatch } from '../../src/mutations/dispatcher.js';
 import { DefaultNoCascadeHandler } from '../../src/mutations/handlers/default-no-cascade.js';
 import { resourceName } from '../../src/utils/resource-utils.js';
+import type { Project } from '../../src/containers/project.js';
+
+// dispatcher does not touch the Project; pass a stand-in.
+const stubProject = undefined as unknown as Project;
 
 describe('dispatcher', () => {
   it('routes display-name change to DefaultNoCascadeHandler', () => {
     const ctx = {
-      project: undefined as any, // dispatcher does not touch project
+      project: stubProject,
       input: {
         kind: 'edit' as const,
         target: resourceName('test/cardTypes/foo'),
@@ -22,7 +26,7 @@ describe('dispatcher', () => {
 
   it('throws when no handler matches', () => {
     const ctx = {
-      project: undefined as any,
+      project: stubProject,
       input: {
         kind: 'project_rename' as const,
         newPrefix: 'foo',

@@ -11,7 +11,7 @@ export class DefaultNoCascadeHandler implements Handler {
     return ctx.input.kind === 'edit';
   }
 
-  async preview(_ctx: MutationContext): Promise<CascadePreview> {
+  async preview(): Promise<CascadePreview> {
     return {
       affectedCardCount: 0,
       affectedLinkCount: 0,
@@ -40,7 +40,7 @@ export class DefaultNoCascadeHandler implements Handler {
     await resource.update(updateKey, operation);
   }
 
-  async affectedFilePaths(_ctx: MutationContext): Promise<string[]> {
+  async affectedFilePaths(): Promise<string[]> {
     return [];
   }
 }
