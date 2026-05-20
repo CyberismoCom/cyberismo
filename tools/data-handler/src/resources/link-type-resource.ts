@@ -37,33 +37,6 @@ export class LinkTypeResource extends FileResource<LinkType> {
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
   }
 
-  // Update card metadata links when link type is renamed
-  private async updateCardLinks(from: string, to: string) {
-    const cards = await this.collectCards(
-      from,
-      (card, linkTypeName) =>
-        card.metadata?.links?.some((link) => link.linkType === linkTypeName) ??
-        false,
-    );
-    if (cards.length === 0) {
-      return;
-    }
-
-    await Promise.all(
-      cards.map(async (card) => {
-        if (card.metadata?.links) {
-          card.metadata.links = card.metadata.links.map((link) => {
-            if (link.linkType === from) {
-              return { ...link, linkType: to };
-            }
-            return link;
-          });
-          await this.project.updateCardMetadata(card, card.metadata);
-        }
-      }),
-    );
-  }
-
   /**
    * When resource name changes.
    * @param existingName Current resource name.
@@ -85,7 +58,6 @@ export class LinkTypeResource extends FileResource<LinkType> {
       super.updateHandleBars(existingName, this.content.name),
       super.updateCalculations(existingName, this.content.name),
       super.updateCardContentReferences(existingName, this.content.name),
-      this.updateCardLinks(existingName, this.content.name),
     ]);
     // Finally, write updated content.
     await this.write();
