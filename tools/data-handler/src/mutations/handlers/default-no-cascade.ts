@@ -39,4 +39,8 @@ export class DefaultNoCascadeHandler implements Handler {
     }
     await resource.update(updateKey, operation);
   }
+
+  async affectedFilePaths(_ctx: MutationContext): Promise<string[]> {
+    return [];
+  }
 }

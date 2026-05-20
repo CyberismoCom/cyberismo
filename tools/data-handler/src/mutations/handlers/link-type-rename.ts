@@ -4,6 +4,7 @@ import type { Handler, MutationContext } from '../handler.js';
 import type { CascadePreview } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
+import { join } from 'node:path';
 
 export class LinkTypeRenameHandler implements Handler {
   readonly isBreaking = true;
@@ -61,6 +62,14 @@ export class LinkTypeRenameHandler implements Handler {
       target: oldName,
       to: newName,
     });
+  }
+
+  async affectedFilePaths(ctx: MutationContext): Promise<string[]> {
+    if (ctx.input.kind !== 'rename') return [];
+    const oldName = resourceNameToString(ctx.input.target);
+    return this.affectedCards(ctx, oldName).map((c) =>
+      join(c.path, 'index.json'),
+    );
   }
 
   private affectedCards(ctx: MutationContext, oldName: string): Card[] {

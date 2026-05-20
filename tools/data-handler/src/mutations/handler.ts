@@ -23,4 +23,7 @@ export interface Handler {
 
   /** Apply the resource-definition change and the cascade. */
   apply(ctx: MutationContext): Promise<void>;
+
+  /** Paths the cascade would read or write; fed into the fingerprint. */
+  affectedFilePaths(ctx: MutationContext): Promise<string[]>;
 }

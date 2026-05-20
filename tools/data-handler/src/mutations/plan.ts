@@ -60,12 +60,11 @@ export class ResourceMutations {
     return { success: true };
   }
 
-  /** Defaults to "no files touched" for the default handler; real handlers override via a separate method (next plan). */
   private async affectedFilePathsFor(
-    _ctx: MutationContext,
-    _handler: Handler,
+    ctx: MutationContext,
+    handler: Handler,
   ): Promise<string[]> {
-    return [];
+    return handler.affectedFilePaths(ctx);
   }
 
   private async recordLogEntry(input: MutationInput): Promise<void> {

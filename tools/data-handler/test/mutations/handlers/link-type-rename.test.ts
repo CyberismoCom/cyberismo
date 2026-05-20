@@ -104,4 +104,21 @@ describe('LinkTypeRenameHandler', () => {
     const handler = new LinkTypeRenameHandler();
     expect(handler.isBreaking).toBe(true);
   });
+
+  it('reports the affected card file paths for fingerprinting', async () => {
+    const handler = new LinkTypeRenameHandler();
+    const ctx = {
+      project,
+      input: {
+        kind: 'rename' as const,
+        target: resourceName(`${project.projectPrefix}/linkTypes/test`),
+        newIdentifier: 'is-caused-by',
+      },
+    };
+    const paths = await handler.affectedFilePaths(ctx);
+    expect(paths.length).toBeGreaterThan(0);
+    for (const p of paths) {
+      expect(p).toMatch(/index\.json$/);
+    }
+  });
 });
