@@ -48,6 +48,33 @@ export class Update {
     T extends UpdateOperations,
     K extends string,
   >(name: string, updateKey: UpdateKey<K>, operation: OperationFor<Type, T>) {
+    const isLinkTypeRename =
+      updateKey.key === 'name' &&
+      operation.name === 'change' &&
+      this.project.resources.extractType(name) === 'linkTypes';
+
+    if (isLinkTypeRename) {
+      const { resourceName: parseResourceName } = await import(
+        '../utils/resource-utils.js'
+      );
+      const { ResourceMutations } = await import('../mutations/plan.js');
+      const target = parseResourceName(name);
+      const newIdentifier = parseResourceName(
+        (operation as { to: string }).to,
+      ).identifier;
+      const mutations = new ResourceMutations(this.project);
+      const plan = await mutations.plan({
+        kind: 'rename',
+        target,
+        newIdentifier,
+      });
+      await mutations.apply(
+        { kind: 'rename', target, newIdentifier },
+        { fingerprint: plan.fingerprint },
+      );
+      return;
+    }
+
     const run = () =>
       this.project.lock.write(async () => {
         const type = this.project.resources.extractType(name);
