@@ -2,9 +2,10 @@
 
 import type { Handler, MutationContext } from './handler.js';
 import { DefaultNoCascadeHandler } from './handlers/default-no-cascade.js';
+import { LinkTypeRenameHandler } from './handlers/link-type-rename.js';
 
 const HANDLERS: Handler[] = [
-  // Specific handlers are inserted ahead of the default in later plans.
+  new LinkTypeRenameHandler(),
   new DefaultNoCascadeHandler(),
 ];
 

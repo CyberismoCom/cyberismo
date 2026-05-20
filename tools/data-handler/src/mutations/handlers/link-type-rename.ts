@@ -1,0 +1,75 @@
+// tools/data-handler/src/mutations/handlers/link-type-rename.ts
+
+import type { Handler, MutationContext } from '../handler.js';
+import type { CascadePreview } from '../types.js';
+import { resourceNameToString } from '../../utils/resource-utils.js';
+import type { Card } from '../../interfaces/project-interfaces.js';
+
+export class LinkTypeRenameHandler implements Handler {
+  readonly isBreaking = true;
+
+  matches(ctx: MutationContext): boolean {
+    return ctx.input.kind === 'rename' && ctx.input.target.type === 'linkTypes';
+  }
+
+  async preview(ctx: MutationContext): Promise<CascadePreview> {
+    if (ctx.input.kind !== 'rename') {
+      throw new Error('LinkTypeRenameHandler called with non-rename input');
+    }
+    const oldName = resourceNameToString(ctx.input.target);
+    const affected = this.affectedCards(ctx, oldName);
+    const affectedLinkCount = affected.reduce(
+      (n, c) =>
+        n +
+        (c.metadata?.links?.filter((l) => l.linkType === oldName).length ?? 0),
+      0,
+    );
+    return {
+      affectedCardCount: affected.length,
+      affectedLinkCount,
+      affectedCalculationCount: 0,
+      affectedHandlebarFileCount: 0,
+      dataLossExpected: false,
+      summary: `Renames ${affectedLinkCount} link references in ${affected.length} cards.`,
+    };
+  }
+
+  async apply(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'rename') {
+      throw new Error('LinkTypeRenameHandler called with non-rename input');
+    }
+    const oldName = resourceNameToString(ctx.input.target);
+    const newName = `${ctx.input.target.prefix}/linkTypes/${ctx.input.newIdentifier}`;
+
+    // 1. Rewrite card metadata references.
+    const cards = this.affectedCards(ctx, oldName);
+    for (const card of cards) {
+      const metadata = card.metadata!;
+      metadata.links = metadata.links!.map((l) =>
+        l.linkType === oldName ? { ...l, linkType: newName } : l,
+      );
+      await ctx.project.updateCardMetadata(card, metadata);
+    }
+
+    // 2. Rename the resource itself via the existing ResourceObject API.
+    const resource = ctx.project.resources.byType(oldName, 'linkTypes');
+    if (!resource) {
+      throw new Error(`Link type '${oldName}' not found`);
+    }
+    await resource.update({ key: 'name' }, {
+      name: 'change',
+      target: oldName,
+      to: newName,
+    });
+  }
+
+  private affectedCards(ctx: MutationContext, oldName: string): Card[] {
+    const all = [
+      ...ctx.project.cards(undefined),
+      ...ctx.project.allTemplateCards(),
+    ];
+    return all.filter((c) =>
+      c.metadata?.links?.some((l) => l.linkType === oldName),
+    );
+  }
+}
