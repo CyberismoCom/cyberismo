@@ -41,6 +41,7 @@ export type AppConfig = {
   staticMode: boolean;
   logoutUrl?: string;
   defaultProject?: string;
+  presenceEnabled?: boolean;
 };
 
 // Single card with metadata and children, but no content.
