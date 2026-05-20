@@ -114,10 +114,16 @@ cyberismo module update shared/security 2.0.0
 # >> applying; for purely mechanical majors the cascade may be complete.
 # >> Continue? [y/N]
 
-# Diverged hotfix (consumer on 1.5.1 hotfix, wants 2.0.0)
+# Diverged minor hotfix (consumer on 1.6.0 — a minor backport
+# released AFTER 2.0.0 — wants 2.0.0)
 cyberismo module update shared/security 2.0.0
-# >> Cannot update from 1.5.1 to 2.0.0: these versions are on diverged branches.
-# >> Move to common ancestor 1.5.0 first, or pick a newer 2.x that includes the 1.5.1 fix.
+# >> Cannot update from 1.6.0 to 2.0.0: these versions are on diverged branches.
+# >> (1.6.0 carries breaking changes that 2.0.0 wasn't built against.)
+# >> Move to common ancestor 1.5.0 first, or pick a newer 2.x that includes the 1.6.0 fix.
+
+# Patches are always safe to be on either side of an update:
+# a consumer at 1.5.2 (a patch on top of 1.5.0) can update to 2.0.0
+# normally, because patches carry no migration entries.
 
 # See what's pending across all imports
 cyberismo module update    # no args: show available updates
