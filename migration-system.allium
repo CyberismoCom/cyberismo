@@ -1,0 +1,1048 @@
+-- allium: 3
+-- migration-system.allium
+
+-- Scope: How Cyberismo records breaking edits to a module's resources so
+-- that consumers can apply them atomically when they update an imported
+-- module's version, and how authors interact with their own project to
+-- produce those records.
+--
+-- Includes:
+--   - The per-project migration log: a single ordered list of entries
+--     accumulating during author edits.
+--   - Versioning: on a version bump the current log is sealed under a
+--     version identifier and a fresh, empty current log begins.
+--   - Module updates: the consumer-facing entry point for advancing an
+--     imported module's version. Atomically pulls the new resource files
+--     and replays the corresponding migration log entries against the
+--     consumer's project, transitively for any dependent modules whose
+--     version moves as part of the same update.
+--   - Classification of edits as breaking or non-breaking, which decides
+--     whether an edit produces a log entry.
+--   - The preview/confirm contract: a destructive edit must be previewed
+--     and the resulting preview's fingerprint round-tripped to apply
+--     time, so that a web client (preview and apply are separate HTTP
+--     requests) cannot silently execute a stale plan.
+--
+-- Excludes:
+--   - The shape of each resource type (CardType, Workflow, FieldType,
+--     LinkType, Template, Calculation, Report, GraphModel, GraphView):
+--     governed by the wider Cyberismo specification.
+--   - Rollback. Cyberismo projects are git repositories; reversing an
+--     edit means a git operation, not a domain-level undo.
+--   - The Cyberismo tool's own schema-version migrations (the existing
+--     tools/migrations/ directory). Those evolve the tool's data format
+--     and ship with the tool. To avoid confusion the new feature uses
+--     "mutation" and "module update" terminology in user-facing CLI and
+--     HTTP surfaces; the entity names in this spec retain "Migration"
+--     for continuity with the existing ConfigurationLogger file format.
+--   - Per-entry timestamps, authorship, lifecycle state. Entries carry
+--     only what is needed to deterministically replay them; everything
+--     else lives in git history.
+--   - MCP integration. The MCP server is intentionally outside this
+--     specification's scope.
+--
+-- Non-goals (constraints on the implementation, declared up front):
+--   - Single-writer-process. Two concurrent backend or CLI processes
+--     against the same project produce undefined behaviour. The
+--     existing in-process RWLock at tools/data-handler/src/utils/rw-lock.ts
+--     is the contract; this spec does not require a cross-process file
+--     lock.
+--   - Best-effort durability of the migration log. The append model in
+--     tools/data-handler/src/utils/configuration-logger.ts is not
+--     crash-safe (no fsync, no rename-into-place). A power-loss between
+--     append and flush may drop the last entry. This is acceptable for
+--     a development-time tool whose source of truth is git.
+--   - No content-hash detection of out-of-band file changes. Project
+--     consistency is judged by version strings only. A maintainer who
+--     edits installed module files by hand is outside the system's
+--     responsibility.
+--
+-- Dependencies:
+--   - Project, Module, Resource, Card and Maintainer are external
+--     entities defined (or to be defined) by other Cyberismo
+--     specifications.
+--
+-- Code map (current and proposed paths within this repo):
+--   - Author-edit engine          tools/data-handler/src/mutations/plan.ts            (NEW)
+--   - Mutation dispatcher         tools/data-handler/src/mutations/dispatcher.ts       (NEW)
+--   - Mutation handlers           tools/data-handler/src/mutations/handlers/*.ts       (NEW)
+--   - Replay engine               tools/data-handler/src/mutations/replay.ts           (NEW)
+--   - Module update command       tools/data-handler/src/commands/module-update.ts     (NEW)
+--   - Existing log append/seal    tools/data-handler/src/utils/configuration-logger.ts (existing)
+--   - Existing module resolver    tools/data-handler/src/modules/resolver.ts           (existing; the source of dependency ordering)
+--   - Existing module applier     tools/data-handler/src/modules/applier.ts            (existing; file materialisation)
+--   - Existing Operation<T> model tools/data-handler/src/resources/resource-object.ts  (existing)
+--   - Existing per-resource code  tools/data-handler/src/resources/*.ts                (shrinks)
+--   - Existing CLI surface        tools/cli/src/index.ts                               (additions)
+--   - Existing HTTP backend       tools/backend/                                       (additions)
+
+------------------------------------------------------------
+-- External Entities
+------------------------------------------------------------
+
+-- A Cyberismo project. Holds local resources, imported modules and a
+-- single migration log. A project becomes a module when published; the
+-- two roles overlap.
+-- Code: tools/data-handler/src/containers/project.ts
+external entity Project {
+    prefix: String
+}
+
+-- A module is a published, versioned snapshot of a project that other
+-- projects may import. The sealed migration logs of past versions are
+-- what consumers replay during a module update.
+external entity Module {
+    prefix: String
+    available_versions: Set<String>
+}
+
+-- Anything declared in a project that participates in the migration
+-- system. Lifecycle governed elsewhere.
+-- Code: tools/data-handler/src/resources/*.ts
+external entity Resource {
+    name: String
+    type: ResourceType
+    project: Project
+}
+
+-- Project data created against a card type. Cards are the primary
+-- target of cascade effects when a breaking change is applied.
+external entity Card {
+    key: String
+    project: Project
+}
+
+-- The person performing an edit or running an update.
+external entity Maintainer {
+    id: String
+}
+
+------------------------------------------------------------
+-- Value Types
+------------------------------------------------------------
+
+-- A reference to a resource by module-qualified name.
+value ResourceReference {
+    prefix: String
+    type: ResourceType
+    identifier: String
+}
+
+-- The operation-specific payload carried by an entry. Shape varies by
+-- operation kind. The detailed schema lives with the cascade dispatcher.
+-- Code: see tools/data-handler/src/resources/resource-object.ts for the
+-- underlying Operation<T> shape today.
+value MutationPayload {
+    serialised: String
+}
+
+-- A summary of which project artefacts a prospective edit would touch.
+-- Computed before the edit fires; shown to the maintainer.
+value CascadePreview {
+    affected_card_count: Integer
+    affected_link_count: Integer
+    affected_calculation_count: Integer
+    affected_handlebar_file_count: Integer
+    data_loss_expected: Boolean
+    summary: String
+}
+
+-- A deterministic hash over (mutation input + the current state of every
+-- artefact the cascade would touch). Carried in PreviewResult so a
+-- client can re-present it at apply time. The engine recomputes the
+-- fingerprint at apply time and refuses to proceed if it has drifted.
+value MutationFingerprint {
+    digest: String
+}
+
+-- The result of previewing a mutation. PreviewResult is plain data and
+-- safe to serialise across an HTTP boundary; it is not a server-side
+-- handle.
+value PreviewResult {
+    input_target: ResourceReference
+    input_key: String
+    input_operation: OperationKind
+    is_breaking: Boolean
+    preview: CascadePreview
+    fingerprint: MutationFingerprint
+}
+
+-- One row in the dependency-resolved update plan. Produced by the
+-- existing module resolver. `from_version` is absent when the step
+-- introduces a new transitive dependency (a bootstrap step).
+--
+-- `crosses_major_boundary` is true when from_version and to_version
+-- differ in their major component (or when from_version is absent
+-- and to_version's major is not the project's earliest supported
+-- major — implementation discretion). The flag exists so that the
+-- editing surface, CLI and HTTP can render a single, structured
+-- "this is a major upgrade" warning without re-parsing the version
+-- strings.
+value ResolvedUpdateStep {
+    order: Integer
+    module: Module
+    from_version: String?
+    to_version: String
+    crosses_major_boundary: Boolean
+}
+
+-- A blocking condition discovered during PreviewModuleUpdate that
+-- would prevent a clean replay. UpdateModule refuses to enter
+-- `applying` while any conflict is present.
+--
+-- Kinds:
+--   - local_reference_unrewritable: a local calculation or handlebar
+--     references an imported resource that the cascade cannot safely
+--     rewrite.
+--   - migration_path_unreachable: the (from, to) pair lies on diverged
+--     branches in the version DAG (e.g. a minor hotfix released on
+--     an old major after a newer major shipped). The resolver cannot
+--     compute a linear chain between them. The consumer must move to
+--     a common ancestor first or pick a different target version.
+--   - other: a fallback for conflicts the dispatcher detects but does
+--     not yet categorise.
+value ReplayConflict {
+    kind: ReplayConflictKind
+    affected: ResourceReference
+    location: String
+    description: String
+
+    -- Recovery hints filled in by the conflict detector when the
+    -- conflict has a known resolution path. For
+    -- migration_path_unreachable, these typically name a common
+    -- ancestor the consumer can land on first, plus the chain of
+    -- versions to traverse from there. Empty for conflict kinds
+    -- whose resolution is not a version move (e.g.
+    -- local_reference_unrewritable, which requires the maintainer
+    -- to edit a calculation file).
+    suggested_target_version: String?
+    suggested_intermediate_versions: List<String>
+}
+
+enum ReplayConflictKind {
+    local_reference_unrewritable
+    | migration_path_unreachable
+    | other
+}
+
+------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+-- The four primitive shapes an edit can take. Mirrors the existing
+-- Operation<T> union in resource-object.ts.
+enum OperationKind { add | change | rank | remove }
+
+-- Resource families the migration system knows how to mutate.
+enum ResourceType {
+    field_type
+    | card_type
+    | workflow
+    | link_type
+    | template
+    | calculation
+    | report
+    | graph_model
+    | graph_view
+    | module
+}
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+-- One recorded breaking edit. Identity is position within its log's
+-- ordered `entries` list (the JSONL file is line-ordered). Entries
+-- carry only the data needed to replay; no timestamps, no status,
+-- no actor — git history is the authoritative record of those.
+--
+-- The migration system recognises four kinds of breaking change. They
+-- are distinct because their cascades and payloads differ enough to
+-- warrant separate handler classes:
+--   - ResourceEdit: an `add`/`change`/`rank`/`remove` operation on a
+--     sub-property of a resource (an enum value, a transition, a
+--     custom field, a workflow state, etc.).
+--   - ResourceDelete: removing a whole resource.
+--   - ResourceRename: changing a resource's identifier.
+--   - ProjectRename: changing the project's (module's) prefix.
+--
+-- Two kinds of configuration change are deliberately not entries:
+--   - Resource creation. New resources are additive; consumers pick
+--     them up when the new module files arrive, with no log entry to
+--     replay.
+--   - Module removal. The `cyberismo module remove B` command is a
+--     higher-level user action that the command layer decomposes into
+--     primitive entries: each reference from the project's own
+--     resources to one of B's resources becomes a ResourceEdit (to
+--     drop a customField, etc.), ResourceDelete (for a card type that
+--     is no longer viable), or ResourceRename, as appropriate. The
+--     maintainer sees one combined preview and one confirmation; the
+--     log ends up with N primitive entries, each reproducible in
+--     isolation. The final drop of B's line from cardsConfig.json is
+--     project-config, not resource state, and is not a log entry.
+--     This decomposition avoids the cross-tenant scoping problem that
+--     a single "ModuleRemove" entry would create on replay (a
+--     consumer who imports B directly would have their own B
+--     references erroneously cleaned up by a naive cascade).
+entity MigrationEntry {
+    log: MigrationLog
+    kind: ResourceEdit | ResourceDelete | ResourceRename | ProjectRename
+}
+
+-- A property-level edit: add/change/rank/remove on a key within a
+-- resource's content. This is the most common variant.
+variant ResourceEdit : MigrationEntry {
+    target: ResourceReference
+    key: String
+    operation: OperationKind
+    payload: MutationPayload
+}
+
+-- Whole-resource delete. Cascade: walk the project's cards, links and
+-- handlebar references to the resource and apply the resource-type's
+-- delete policy (clear field, drop card, etc.).
+variant ResourceDelete : MigrationEntry {
+    target: ResourceReference
+}
+
+-- Rename a resource. `target` carries the old identifier; `new_identifier`
+-- is the new one. Prefix and type are unchanged (resources cannot
+-- change type, and a prefix change is a ProjectRename).
+variant ResourceRename : MigrationEntry {
+    target: ResourceReference
+    new_identifier: String
+}
+
+-- Rename the project's own prefix. Every resource owned by the project
+-- and every reference to those resources (in cards, calculations,
+-- handlebar files, link types) is rewritten.
+variant ProjectRename : MigrationEntry {
+    old_prefix: String
+    new_prefix: String
+}
+
+-- The per-project log. A project always has exactly one current log
+-- (status = current). On a version bump the current log is sealed
+-- under a version identifier and a new current log begins. Sealed
+-- logs are immutable and are what consumers replay.
+-- Code: tools/data-handler/src/utils/configuration-logger.ts already
+-- maintains migrationLog.jsonl (current) and migrationLog_<v>.jsonl
+-- (sealed snapshots) via createVersion().
+entity MigrationLog {
+    project: Project
+
+    -- Present only on sealed logs. The `when` clause makes presence
+    -- structurally tied to the seal transition.
+    version: String when status = sealed
+
+    -- An ordered list of entries. Entry order is load-bearing for
+    -- replay; modelled as List so the spec carries the ordering.
+    entries: List<MigrationEntry>
+
+    status: current | sealed
+
+    transitions status {
+        current -> sealed
+        terminal: sealed
+    }
+}
+
+-- The applied-version record for an imported module within a project.
+-- A project carries one ModuleInstallation per imported module. The
+-- record names which sealed log version has been replayed against
+-- this project. Consistency is judged by version-string equality; this
+-- spec does not attempt to detect out-of-band file edits (see
+-- Non-goals).
+-- Code: a small appliedModules.json in the .cards directory, written
+-- atomically by ModuleUpdateSucceeds. There is no public way to write
+-- this file other than completing a successful ModuleUpdate.
+entity ModuleInstallation {
+    project: Project
+    module: Module
+    installed_version: String
+    applied_version: String
+
+    is_consistent: installed_version = applied_version
+}
+
+-- A consumer-facing module update operation. The user names a root
+-- module and target version; the existing resolver computes the
+-- transitive plan of resolved steps. Status spans the whole batch:
+-- success means every step succeeded, failure means at least one
+-- failed and the project requires `git restore` before retrying.
+-- Code: the resolver lives in tools/data-handler/src/modules/resolver.ts
+-- and produces ordering compatible with ResolvedUpdateStep.
+entity ModuleUpdate {
+    project: Project
+    root_module: Module
+    root_to_version: String
+
+    -- Dependency-ordered plan computed by the resolver. Includes the
+    -- root module and every transitive dependency whose version moves.
+    resolved_steps: List<ResolvedUpdateStep>
+
+    -- Conflicts detected during preview. UpdateModule refuses to
+    -- transition to applying while this is non-empty.
+    conflicts: List<ReplayConflict>
+
+    status: previewed | applying | succeeded | failed
+
+    failed_at_step: ResolvedUpdateStep when status = failed
+    failure_summary: String when status = failed
+
+    transitions status {
+        previewed -> applying
+        applying -> succeeded
+        applying -> failed
+        terminal: succeeded, failed
+    }
+}
+
+-- One step's worth of replay within a ModuleUpdate. Created when its
+-- parent step begins; tracks per-entry progress for diagnostics.
+-- Bootstrap steps (no `from_version`) skip replay and only record
+-- the installation.
+entity ModuleStepReplay {
+    update: ModuleUpdate
+    step_order: Integer
+
+    -- The ordered chain of sealed logs to apply for this step:
+    -- every sealed log strictly between from_version and to_version
+    -- (inclusive of to_version), in version order. Empty for a
+    -- bootstrap step.
+    chain: List<MigrationLog>
+
+    status: pending | applying | succeeded | failed
+
+    failed_at_entry: MigrationEntry when status = failed
+    failure_summary: String when status = failed
+
+    transitions status {
+        pending -> applying
+        applying -> succeeded
+        applying -> failed
+        terminal: succeeded, failed
+    }
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+-- Author-edit path -----------------------------------------------------
+--
+-- The path is split into preview + apply for every variant, because
+-- web clients run them as separate HTTP requests. Each preview returns
+-- a PreviewResult with a fingerprint; each apply requires that
+-- fingerprint when a cascade exists. A CLI caller may set the
+-- fingerprint to the matching value (or skip it for the rare
+-- ResourceEdit case that has no cascade) because plan and apply run
+-- within one process.
+
+-- ResourceEdit variant: sub-property add/change/rank/remove. The only
+-- variant that has a non-breaking sub-case.
+
+rule PreviewResourceEdit {
+    when: PreviewMutation(maintainer: Maintainer, project: Project,
+        target: ResourceReference, key: String,
+        operation: OperationKind, payload: MutationPayload)
+    requires: target.prefix = project.prefix
+    requires: payload_valid(target, key, operation, payload)
+    let cascade = preview_cascade_for_edit(target, key, operation, payload)
+    let breaking = classify_breaking(target.type, key, operation, payload)
+    ensures: PreviewProduced(
+        result: PreviewResult{
+            input_target: target,
+            input_key: key,
+            input_operation: operation,
+            is_breaking: breaking,
+            preview: cascade,
+            fingerprint: compute_fingerprint_for_edit(project, target, key, operation, payload, cascade)
+        }
+    )
+}
+
+rule ApplyNonBreakingEdit {
+    when: EditResource(maintainer: Maintainer, project: Project,
+        target: ResourceReference, key: String,
+        operation: OperationKind, payload: MutationPayload,
+        fingerprint: MutationFingerprint?)
+    requires: target.prefix = project.prefix
+    requires: payload_valid(target, key, operation, payload)
+    requires: not classify_breaking(target.type, key, operation, payload)
+    ensures: apply_cascade_for_edit(target, key, operation, payload)
+}
+
+rule ApplyBreakingEdit {
+    when: EditResource(maintainer: Maintainer, project: Project,
+        target: ResourceReference, key: String,
+        operation: OperationKind, payload: MutationPayload,
+        fingerprint: MutationFingerprint?)
+    requires: target.prefix = project.prefix
+    requires: payload_valid(target, key, operation, payload)
+    requires: classify_breaking(target.type, key, operation, payload)
+    let cascade = preview_cascade_for_edit(target, key, operation, payload)
+    let needs_confirmation =
+        cascade.affected_card_count > 0
+        or cascade.affected_link_count > 0
+        or cascade.data_loss_expected
+    requires:
+        not needs_confirmation
+        or (fingerprint != null
+            and fingerprint = compute_fingerprint_for_edit(project, target, key, operation, payload, cascade))
+    let log = current_log_for(project)
+    ensures:
+        apply_cascade_for_edit(target, key, operation, payload)
+        ResourceEdit.created(
+            log: log,
+            target: target,
+            key: key,
+            operation: operation,
+            payload: payload
+        )
+}
+
+-- ResourceDelete variant: whole-resource removal. Always breaking,
+-- always has a cascade (clears the resource from cards, drops links,
+-- etc. per the per-resource-type policy in migrations-plan.adoc).
+
+rule PreviewResourceDelete {
+    when: PreviewResourceDelete(maintainer: Maintainer, project: Project,
+        target: ResourceReference)
+    requires: target.prefix = project.prefix
+    let cascade = preview_cascade_for_delete(target)
+    ensures: PreviewProduced(
+        result: PreviewResult{
+            input_target: target,
+            input_key: "",
+            input_operation: remove,
+            is_breaking: true,
+            preview: cascade,
+            fingerprint: compute_fingerprint_for_delete(project, target, cascade)
+        }
+    )
+}
+
+rule ApplyResourceDelete {
+    when: DeleteResource(maintainer: Maintainer, project: Project,
+        target: ResourceReference, fingerprint: MutationFingerprint?)
+    requires: target.prefix = project.prefix
+    let cascade = preview_cascade_for_delete(target)
+    requires:
+        fingerprint != null
+        and fingerprint = compute_fingerprint_for_delete(project, target, cascade)
+    let log = current_log_for(project)
+    ensures:
+        apply_cascade_for_delete(target)
+        ResourceDelete.created(
+            log: log,
+            target: target
+        )
+}
+
+-- ResourceRename variant: change a resource's identifier. Cascade
+-- rewrites every reference to the old name (cards' index.json
+-- fields, link types' source/destination card-type lists, templates,
+-- calculation files, handlebar files).
+
+rule PreviewResourceRename {
+    when: PreviewResourceRename(maintainer: Maintainer, project: Project,
+        target: ResourceReference, new_identifier: String)
+    requires: target.prefix = project.prefix
+    requires: new_identifier != target.identifier
+    requires: new_identifier_is_valid(new_identifier)
+    let cascade = preview_cascade_for_rename(target, new_identifier)
+    ensures: PreviewProduced(
+        result: PreviewResult{
+            input_target: target,
+            input_key: "name",
+            input_operation: change,
+            is_breaking: true,
+            preview: cascade,
+            fingerprint: compute_fingerprint_for_rename(project, target, new_identifier, cascade)
+        }
+    )
+}
+
+rule ApplyResourceRename {
+    when: RenameResource(maintainer: Maintainer, project: Project,
+        target: ResourceReference, new_identifier: String,
+        fingerprint: MutationFingerprint?)
+    requires: target.prefix = project.prefix
+    requires: new_identifier != target.identifier
+    requires: new_identifier_is_valid(new_identifier)
+    let cascade = preview_cascade_for_rename(target, new_identifier)
+    requires:
+        fingerprint != null
+        and fingerprint = compute_fingerprint_for_rename(project, target, new_identifier, cascade)
+    let log = current_log_for(project)
+    ensures:
+        apply_cascade_for_rename(target, new_identifier)
+        ResourceRename.created(
+            log: log,
+            target: target,
+            new_identifier: new_identifier
+        )
+}
+
+-- ProjectRename variant: change the project's own prefix. Cascade
+-- rewrites every prefix-qualified reference across the entire project.
+
+rule PreviewProjectRename {
+    when: PreviewProjectRename(maintainer: Maintainer, project: Project,
+        new_prefix: String)
+    requires: new_prefix != project.prefix
+    requires: new_prefix_is_valid(new_prefix)
+    let cascade = preview_cascade_for_project_rename(project, new_prefix)
+    ensures: PreviewProduced(
+        result: PreviewResult{
+            input_target: ResourceReference{prefix: project.prefix, type: module, identifier: project.prefix},
+            input_key: "prefix",
+            input_operation: change,
+            is_breaking: true,
+            preview: cascade,
+            fingerprint: compute_fingerprint_for_project_rename(project, new_prefix, cascade)
+        }
+    )
+}
+
+rule ApplyProjectRename {
+    when: RenameProject(maintainer: Maintainer, project: Project,
+        new_prefix: String, fingerprint: MutationFingerprint?)
+    requires: new_prefix != project.prefix
+    requires: new_prefix_is_valid(new_prefix)
+    let cascade = preview_cascade_for_project_rename(project, new_prefix)
+    requires:
+        fingerprint != null
+        and fingerprint = compute_fingerprint_for_project_rename(project, new_prefix, cascade)
+    let log = current_log_for(project)
+    let old_prefix = project.prefix
+    ensures:
+        apply_cascade_for_project_rename(project, new_prefix)
+        ProjectRename.created(
+            log: log,
+            old_prefix: old_prefix,
+            new_prefix: new_prefix
+        )
+}
+
+-- Versioning --------------------------------------------------------
+
+-- On a version bump the current log is sealed under the new version,
+-- and a fresh current log opens to receive subsequent edits. The new
+-- log is created with status = current, so the OneCurrentLogPerProject
+-- invariant is maintained across the transition.
+--
+-- Empty bumps are allowed and produce an empty sealed log. The
+-- on-disk encoding of an empty sealed log is the absence of a
+-- migrationLog_<version>.jsonl file; replay against a missing file
+-- is a no-op success. This supports the patch-release case, where
+-- the maintainer is shipping non-breaking changes only.
+--
+-- A patch bump is refused when the current log contains breaking
+-- entries: patches must not carry migrations, by convention. The
+-- maintainer is directed to bump as a minor instead. The check
+-- relies on is_patch_bump comparing the new version to the previous
+-- sealed version under whatever versioning scheme the project
+-- adopts (semver in practice).
+--
+-- Code: tools/data-handler/src/utils/configuration-logger.ts
+--   ConfigurationLogger.createVersion(projectPath, version). The
+--   implementation must additionally skip the rename when the log
+--   is empty (today's createVersion throws on a missing source file).
+rule SealCurrentLog {
+    when: BumpVersion(maintainer: Maintainer, project: Project, version: String)
+    let log = current_log_for(project)
+    requires: log.status = current
+    requires: version_is_fresh(project, version)
+    requires:
+        log.entries.count = 0
+        or not is_patch_bump(previous_sealed_version(project), version)
+    ensures:
+        log.status = sealed
+        log.version = version
+        MigrationLog.created(
+            project: project,
+            status: current
+        )
+}
+
+-- Module-update path -------------------------------------------------
+
+-- Preview the consequences of advancing the root module to a target
+-- version. The existing module resolver computes the transitive set
+-- of modules whose versions move. For each step the engine computes
+-- the chain of sealed logs to apply and walks them to detect conflicts.
+rule PreviewModuleUpdate {
+    when: PreviewModuleUpdate(maintainer: Maintainer, project: Project,
+        root_module: Module, root_to_version: String)
+    requires: root_to_version in root_module.available_versions
+    let steps = resolve_update_plan(project, root_module, root_to_version)
+    let conflicts = detect_conflicts(project, steps)
+    requires: chain_is_contiguous_for_all(steps)
+    ensures: ModuleUpdate.created(
+        project: project,
+        root_module: root_module,
+        root_to_version: root_to_version,
+        resolved_steps: steps,
+        conflicts: conflicts,
+        status: previewed
+    )
+}
+
+-- Begin a module update. Requires the preview has no conflicts and
+-- that the maintainer's supplied fingerprint matches the current
+-- resolution. On entry into `applying` the first step's replay is
+-- scheduled.
+rule StartModuleUpdate {
+    when: UpdateModule(maintainer: Maintainer, update: ModuleUpdate,
+        confirmation: MutationFingerprint?)
+    requires: update.status = previewed
+    requires: update.conflicts.count = 0
+    let needs_confirmation = update.resolved_steps.count > 1
+        or any_step_replays_breaking_change(update.resolved_steps)
+    requires:
+        not needs_confirmation
+        or (confirmation != null
+            and confirmation = compute_update_fingerprint(update))
+    ensures:
+        update.status = applying
+        ModuleStepReplay.created(
+            update: update,
+            step_order: 1,
+            chain: log_chain_for_step(update.resolved_steps.first),
+            status: pending
+        )
+}
+
+-- Each freshly-created step replay enters `applying` on the next tick.
+-- Modelled with `becomes` (which fires on both creation and transition)
+-- so the rule applies uniformly to the first step and to any later
+-- step created by AdvanceToNextStep.
+rule BeginStepReplay {
+    when: replay: ModuleStepReplay.status becomes pending
+    ensures: replay.status = applying
+}
+
+-- The replay engine walks the chain. The black box apply_step performs
+-- the file pull for to_version and applies every entry in the chain,
+-- producing one of two outcomes. The spec models the outcomes as named
+-- triggers so the success / failure paths are handled by separate
+-- rules; the black box itself emits exactly one of them per call.
+rule RunStepReplay {
+    when: replay: ModuleStepReplay.status transitions_to applying
+    let step = step_at(replay.update, replay.step_order)
+    ensures: apply_step(replay, step)
+        -- apply_step either emits StepReplaySucceeded(replay) or
+        -- StepReplayFailed(replay, entry, summary). Exactly one event
+        -- is produced.
+}
+
+rule StepReplaySucceeds {
+    when: StepReplaySucceeded(replay: ModuleStepReplay)
+    ensures: replay.status = succeeded
+}
+
+rule StepReplayFails {
+    when: StepReplayFailed(replay: ModuleStepReplay,
+        entry: MigrationEntry, summary: String)
+    ensures:
+        replay.status = failed
+        replay.failed_at_entry = entry
+        replay.failure_summary = summary
+}
+
+-- After a step replay succeeds, advance to the next step, or mark the
+-- whole module update as succeeded when all steps are done.
+rule AdvanceToNextStep {
+    when: replay: ModuleStepReplay.status transitions_to succeeded
+    requires: replay.step_order < replay.update.resolved_steps.count
+    let next_step = step_at(replay.update, replay.step_order + 1)
+    ensures: ModuleStepReplay.created(
+        update: replay.update,
+        step_order: next_step.order,
+        chain: log_chain_for_step(next_step),
+        status: pending
+    )
+}
+
+-- A new transitive dependency (no from_version) bootstraps with an
+-- empty replay chain. The step still produces a ModuleStepReplay so
+-- the StepReplay path is uniform, but apply_step short-circuits the
+-- chain when from_version is null and just records the installation.
+-- A separate rule asserts the installation's initial state.
+rule BootstrapInstallation {
+    when: replay: ModuleStepReplay.status transitions_to succeeded
+    let step = step_at(replay.update, replay.step_order)
+    requires: step.from_version = null
+    ensures: ModuleInstallation.created(
+        project: replay.update.project,
+        module: step.module,
+        installed_version: step.to_version,
+        applied_version: step.to_version
+    )
+}
+
+-- When the last step's replay succeeds, the module update is complete
+-- and every step's installation is brought into agreement.
+rule ModuleUpdateSucceeds {
+    when: replay: ModuleStepReplay.status transitions_to succeeded
+    requires: replay.step_order = replay.update.resolved_steps.count
+    for step in replay.update.resolved_steps where step.from_version != null:
+        let installation = installation_of(replay.update.project, step.module)
+        ensures:
+            installation.installed_version = step.to_version
+            installation.applied_version = step.to_version
+    ensures: replay.update.status = succeeded
+}
+
+-- A failed step fails the whole update; recovery is `git restore`.
+-- The installation records are not advanced.
+rule ModuleUpdateFails {
+    when: replay: ModuleStepReplay.status transitions_to failed
+    let step = step_at(replay.update, replay.step_order)
+    ensures:
+        replay.update.status = failed
+        replay.update.failed_at_step = step
+        replay.update.failure_summary = replay.failure_summary
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+-- A project has exactly one current log at any time. The seal rule
+-- maintains this by creating a fresh `current` log atomically with
+-- the seal transition.
+invariant OneCurrentLogPerProject {
+    for project in Projects:
+        MigrationLogs.where(l => l.project = project and l.status = current).count = 1
+}
+
+-- Only breaking edits produce log entries. Structurally:
+--   - ResourceEdit entries are only created by ApplyBreakingEdit (the
+--     non-breaking apply rule has no ensures clause that creates one).
+--   - ResourceDelete, ResourceRename, ProjectRename are inherently
+--     breaking; each variant's apply rule unconditionally appends an
+--     entry.
+-- The invariant restates the property for ResourceEdit entries, where
+-- classify_breaking is the relevant filter.
+invariant OnlyBreakingResourceEditsLogged {
+    for entry in MigrationEntries where kind = ResourceEdit:
+        classify_breaking(entry.target.type, entry.key, entry.operation, entry.payload)
+}
+
+-- Cyberismo has no override mechanism: a project's local resources
+-- always have the project's own prefix, and module resources always
+-- have their module's prefix. The fact that prefixes are part of the
+-- resource name makes shadowing structurally impossible, but the
+-- invariant is recorded so the policy is explicit.
+invariant NoLocalShadowOfImportedResource {
+    for project in Projects:
+        for local_resource in Resources where project = project and prefix = project.prefix:
+            for installation in ModuleInstallations where installation.project = project:
+                Resources.where(r =>
+                    r.prefix = installation.module.prefix
+                    and r.type = local_resource.type
+                    and r.identifier = local_resource.identifier
+                ).count = 0
+}
+
+-- After a successful ModuleUpdate, every step's installation has
+-- matching installed and applied versions. After a failure, no
+-- installation has been advanced.
+invariant InstallationsAdvanceTogether {
+    for update in ModuleUpdates where status = succeeded:
+        for step in update.resolved_steps:
+            let installation = installation_of(update.project, step.module)
+            installation.installed_version = step.to_version
+                and installation.applied_version = step.to_version
+}
+
+------------------------------------------------------------
+-- Surfaces
+------------------------------------------------------------
+
+-- The editing surface. Preview and apply are separate provides so the
+-- web client can render the preview before invoking the destructive
+-- operation.
+-- Code:
+--   - CLI: tools/cli/src/index.ts (update, rename, remove subcommands)
+--   - Backend HTTP: tools/backend/ (proposed: POST /mutations/preview
+--     and POST /mutations/apply on the existing project-scoped router)
+surface ResourceEditing {
+    facing maintainer: Maintainer
+    context project: Project
+
+    let log = current_log_for(project)
+
+    exposes:
+        log.entries
+
+    provides:
+        PreviewMutation(maintainer, project, target, key, operation, payload)
+        EditResource(maintainer, project, target, key, operation, payload, fingerprint?)
+
+        PreviewResourceDelete(maintainer, project, target)
+        DeleteResource(maintainer, project, target, fingerprint?)
+
+        PreviewResourceRename(maintainer, project, target, new_identifier)
+        RenameResource(maintainer, project, target, new_identifier, fingerprint?)
+
+        PreviewProjectRename(maintainer, project, new_prefix)
+        RenameProject(maintainer, project, new_prefix, fingerprint?)
+
+        BumpVersion(maintainer, project, version)
+
+    @guarantee NoUnconfirmedDataLoss
+        -- EditResource is the only apply trigger that admits a no-cascade
+        -- shortcut. For it, at least one of the following must hold
+        -- before any project data changes:
+        --   (a) classify_breaking returns false; OR
+        --   (b) preview_cascade_for_edit reports no affected items and
+        --       no data loss; OR
+        --   (c) the fingerprint supplied matches the current
+        --       compute_fingerprint_for_edit for the same inputs.
+        -- A fingerprint mismatch under clause (c) is handled by
+        -- StalePlanRejected: the request fails and the client receives
+        -- a fresh PreviewResult to re-present. DeleteResource,
+        -- RenameResource and RenameProject always require the
+        -- fingerprint to be supplied and to match, because their
+        -- cascades are unconditional.
+
+    @guarantee StalePlanRejected
+        -- If a fingerprint is supplied but does not equal the variant's
+        -- current compute_fingerprint_for_* result, the request is
+        -- rejected. The rejection carries a fresh PreviewResult
+        -- computed against current state (i.e. a fresh fingerprint
+        -- and fresh CascadePreview). The client re-renders the
+        -- preview to the maintainer and may resubmit with the new
+        -- fingerprint after the maintainer re-confirms. No second
+        -- HTTP round-trip is needed to obtain the new preview.
+
+    @guidance
+        -- Preview computation is cheap: the cascade walks the in-memory
+        -- card and resource caches that the project already maintains.
+
+    @guidance VersioningDiscipline
+        -- SealCurrentLog enforces "no breaking entries in a patch
+        -- bump" at the rule level. The CLI should additionally
+        -- suggest the right next version on `cyberismo module bump`
+        -- invocation: empty log → patch; log present → minor (or
+        -- major, if the maintainer is restructuring templates).
+        -- Major version bumps are reserved for substantial
+        -- restructuring (template redesigns, calculation rewrites)
+        -- that the mechanical cascade cannot fully express; consumers
+        -- crossing a major boundary are expected to read release
+        -- notes in addition to the migration log.
+}
+
+-- The module-update surface. The maintainer points their project at a
+-- target version of a root module; the resolver computes the transitive
+-- plan. PreviewModuleUpdate is read-only and surfaces conflicts.
+-- UpdateModule is the atomic transaction over (pull files, replay
+-- entries, record applied_versions); there is no public way to do just
+-- one of these steps. Failure is recoverable via git only.
+-- Code:
+--   - CLI: tools/cli/src/index.ts (proposed: `cyberismo module update`)
+--   - Backend HTTP: tools/backend/ (proposed: POST /modules/update,
+--     served via SSE because the operation may take 30–90s)
+surface ModuleUpdating {
+    facing maintainer: Maintainer
+    context project: Project
+
+    exposes:
+        project.module_installations
+
+    provides:
+        PreviewModuleUpdate(maintainer, project, root_module, root_to_version)
+            when root_to_version in root_module.available_versions
+
+        UpdateModule(maintainer, update, confirmation?)
+            when update.status = previewed
+            and update.conflicts.count = 0
+
+    @guarantee NoSilentlyHalfDoneUpdate
+        -- A ModuleUpdate either advances every installation in its
+        -- resolved_steps to to_version, or advances none of them. A
+        -- partially-applied state may exist on disk transiently
+        -- between the file pull and the version record being written;
+        -- recovery is `git restore`.
+
+    @guarantee NoUserVisibleReplaySplit
+        -- ModuleStepReplay is created only as a side effect of
+        -- StartModuleUpdate or AdvanceToNextStep. A maintainer cannot
+        -- invoke replay directly; replay is an implementation step
+        -- of UpdateModule.
+
+    @guarantee MajorUpgradesMayExceedCascade
+        -- A major version bump is reserved by convention for
+        -- structural redesigns (template rewrites, calculation
+        -- changes) that the per-resource mechanical cascade may not
+        -- fully express. When ResolvedUpdateStep.crosses_major_boundary
+        -- is true, the implementation must print a visible warning
+        -- before applying the step and direct the consumer to the
+        -- module's release notes. The cascade itself still runs
+        -- atomically (succeeds end-to-end or rolls back via git),
+        -- and for majors composed entirely of mechanical changes
+        -- (renames, enum replacements) the cascade may in fact be
+        -- complete — the warning is a precaution, not a claim of
+        -- incompleteness.
+
+    @guidance
+        -- The resolver at tools/data-handler/src/modules/resolver.ts
+        -- already computes dependency-ordered updates and reports
+        -- diamond conflicts. This spec assumes resolve_update_plan
+        -- adopts the resolver's existing behaviour, lifting diamond
+        -- conflicts from warnings to ReplayConflict entries.
+}
+
+------------------------------------------------------------
+-- Deferred Specifications
+------------------------------------------------------------
+
+-- The cascade behaviour per (resource type, key, operation) — the
+-- table in migrations-plan.adoc — is deferred to a per-resource detail
+-- spec or to the cascade dispatcher's documentation. This spec treats
+-- the cascade family (apply_cascade_for_edit, _for_delete, _for_rename,
+-- _for_project_rename and their preview/fingerprint counterparts) as
+-- black boxes whose per-variant policy is defined there. classify_breaking
+-- likewise.
+
+-- "Complete migration" interactive prompts (workflow state remapping,
+-- enum replacement) are not in this version of the spec. The current
+-- surface contracts assume basic-migration semantics throughout.
+-- Adding interactive replay later will require new clauses on
+-- ModuleUpdating and a richer entry payload.
+
+-- The mechanics of dependency resolution (BFS order, diamond conflict
+-- detection, transitive-dep discovery) live in the existing module
+-- resolver. The spec invokes that resolver as a black box
+-- (resolve_update_plan, log_chain_for_step, chain_is_contiguous_for_all)
+-- and does not restate its rules.
+
+------------------------------------------------------------
+-- Open Questions
+------------------------------------------------------------
+
+-- "What does the system do when a replay's cascade would mutate a
+--   local calculation or handlebar file whose author intent the engine
+--   cannot infer (e.g. a hardcoded resource name in calculation.lp)?"
+--   Currently detect_conflicts is expected to surface these as
+--   ReplayConflict and prevent the update from running. Whether the
+--   detector is conservative enough to be useful is implementation
+--   work, not spec work, but the policy ("forbid until human resolves")
+--   is the spec's.
+
+-- "Are sealed logs identical for every consumer?"
+--   Yes by construction in this spec — entries are pure data and the
+--   black-box cascade dispatcher is deterministic. The implementation
+--   needs to ensure this for any non-deterministic helpers (e.g.
+--   ordering of unordered collections in the cascade).
+
+-- "Should ModuleUpdate be cancellable mid-flight?"
+--   Currently no. The transition graph offers no `applying -> aborted`
+--   edge. A maintainer who needs to stop must let the failure path
+--   trigger naturally (e.g. by killing the process) and then
+--   `git restore`. Worth revisiting if updates routinely exceed a
+--   tolerable interactive duration.
