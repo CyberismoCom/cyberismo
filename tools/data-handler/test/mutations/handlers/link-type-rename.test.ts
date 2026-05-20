@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdir, rm } from 'node:fs/promises';
+import { mkdir, rm, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
@@ -26,8 +26,23 @@ describe('LinkTypeRenameHandler', () => {
     projectPath = join(tmpDir, `proj-${Date.now()}`);
     await mkdir(projectPath, { recursive: true });
     await copyDir(FIXTURE_PATH, projectPath);
+
+    // Seed a card link that uses the 'test' link type so the cascade has
+    // something to rewrite.
+    const decision5Path = join(
+      projectPath,
+      'cardRoot',
+      'decision_5',
+      'index.json',
+    );
+    const decision5 = JSON.parse(await readFile(decision5Path, 'utf-8'));
+    decision5.links = [
+      { linkType: 'decision/linkTypes/test', cardKey: 'decision_6' },
+    ];
+    await writeFile(decision5Path, JSON.stringify(decision5, null, 4));
+
     project = new Project(projectPath);
-    await project.initialize();
+    await project.populateCaches();
   });
   afterEach(async () => {
     await rm(tmpDir, { recursive: true, force: true });
@@ -39,7 +54,7 @@ describe('LinkTypeRenameHandler', () => {
       project,
       input: {
         kind: 'rename' as const,
-        target: resourceName(`${project.projectPrefix}/linkTypes/causes`),
+        target: resourceName(`${project.projectPrefix}/linkTypes/test`),
         newIdentifier: 'is-caused-by',
       },
     };
@@ -52,7 +67,7 @@ describe('LinkTypeRenameHandler', () => {
       project,
       input: {
         kind: 'rename' as const,
-        target: resourceName(`${project.projectPrefix}/linkTypes/causes`),
+        target: resourceName(`${project.projectPrefix}/linkTypes/test`),
         newIdentifier: 'is-caused-by',
       },
     };
@@ -67,13 +82,13 @@ describe('LinkTypeRenameHandler', () => {
       project,
       input: {
         kind: 'rename' as const,
-        target: resourceName(`${project.projectPrefix}/linkTypes/causes`),
+        target: resourceName(`${project.projectPrefix}/linkTypes/test`),
         newIdentifier: 'is-caused-by',
       },
     };
     await handler.apply(ctx);
     const cards = project.cards(undefined);
-    const oldRef = `${project.projectPrefix}/linkTypes/causes`;
+    const oldRef = `${project.projectPrefix}/linkTypes/test`;
     const newRef = `${project.projectPrefix}/linkTypes/is-caused-by`;
     for (const card of cards) {
       for (const link of card.metadata?.links ?? []) {
