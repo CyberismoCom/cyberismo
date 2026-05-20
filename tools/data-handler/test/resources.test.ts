@@ -2745,7 +2745,7 @@ describe('resources', function () {
       await workflow.delete();
     });
 
-    it('should update card metadata links when renaming link types', async () => {
+    it('should not update card metadata links when renaming link types via resource class (cascade moved to handler)', async () => {
       const linkTypeName = 'decision/linkTypes/testLinkForMetadata';
       const linkTypeRenamed = 'decision/linkTypes/renamedLink';
       const linkType = project.resources.byType(linkTypeName, 'linkTypes');
@@ -2776,7 +2776,8 @@ describe('resources', function () {
       expect(linkType.data?.name).toBe(linkTypeRenamed);
       card1 = project.findCard(cardKey1);
       expect(card1.metadata?.links).to.have.lengthOf(1);
-      expect(card1.metadata?.links[0].linkType).toBe(linkTypeRenamed);
+      // The resource-level rename no longer cascades; the handler does.
+      expect(card1.metadata?.links[0].linkType).toBe(linkTypeName);
       expect(card1.metadata?.links[0].cardKey).toBe(cardKey2);
 
       await cleanup(cardKey1);
