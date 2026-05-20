@@ -93,7 +93,7 @@ export class ConfigurationLogger {
   public static async createVersion(
     projectPath: string,
     version: string,
-  ): Promise<string> {
+  ): Promise<string | null> {
     const paths = new ProjectPaths(projectPath);
     const currentLogPath = paths.configurationChangesLog;
     const versionedLogPath = join(
@@ -102,10 +102,14 @@ export class ConfigurationLogger {
     );
 
     if (!pathExists(currentLogPath)) {
-      throw new Error('No current migration log exists to version');
+      // Empty seal: no log file to rename; the version is sealed with no
+      // breaking changes. Per the spec, replay against a missing log is
+      // a no-op success.
+      const logger = getChildLogger({ module: 'ConfigurationLogger' });
+      logger.info(`Sealed empty migration log for version: ${version}`);
+      return null;
     }
 
-    // Rename current to versioned
     await rename(currentLogPath, versionedLogPath);
 
     const logger = getChildLogger({ module: 'ConfigurationLogger' });

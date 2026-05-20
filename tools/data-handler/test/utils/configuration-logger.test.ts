@@ -8,6 +8,7 @@ import {
   type ConfigurationLogEntry,
 } from '../../src/utils/configuration-logger.js';
 import { deleteDir, pathExists } from '../../src/utils/file-utils.js';
+import { ProjectPaths } from '../../src/containers/project/project-paths.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
@@ -203,12 +204,14 @@ describe('configuration logger', () => {
       expect(entries[0].target).toBe('valid');
       expect(entries[1].target).toBe('valid2');
     });
-    it('should throw when creating version from non-existent log', async () => {
+    it('should return null when creating version from non-existent log (empty seal)', async () => {
       await ConfigurationLogger.clearLog(testProjectPath);
 
-      await expect(
-        ConfigurationLogger.createVersion(testProjectPath, '1.0.0'),
-      ).rejects.toThrow('No current migration log exists to version');
+      const result = await ConfigurationLogger.createVersion(
+        testProjectPath,
+        '1.0.0',
+      );
+      expect(result).toBeNull();
     });
     it('should check log existence via static method', async () => {
       const testProjectPath2 = join(testDir, 'test-project-static');
@@ -224,5 +227,18 @@ describe('configuration logger', () => {
         true,
       );
     });
+  });
+
+  it('createVersion succeeds with no current log (empty seal)', async () => {
+    const projectPath = await freshProject('empty-seal');
+    // No entries have been logged; migrationLog.jsonl does not exist.
+    await ConfigurationLogger.createVersion(projectPath, '1.0.1');
+    // The versioned log file should also not exist (empty seal = no file).
+    const paths = new ProjectPaths(projectPath);
+    const versionedPath = join(
+      paths.migrationLogFolder,
+      'migrationLog_1.0.1.jsonl',
+    );
+    expect(await pathExists(versionedPath)).toBe(false);
   });
 });
