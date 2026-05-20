@@ -75,7 +75,5 @@ export function usePresence(
     };
   }, [url]);
 
-  if (!url) return [];
-
   return editors;
 }
