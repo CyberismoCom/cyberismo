@@ -16,10 +16,7 @@ import { isModuleCard, isExternalItemKey } from '../utils/card-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { declaredModules, installedModules } from '../modules/inventory.js';
 import { cleanOrphans } from '../modules/orphans.js';
-import {
-  ConfigurationLogger,
-  ConfigurationOperation,
-} from '../utils/configuration-logger.js';
+import { ConfigurationLogger } from '../utils/configuration-logger.js';
 import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
 import type { RemovableResourceTypes } from '../interfaces/project-interfaces.js';
@@ -347,10 +344,6 @@ export class Remove {
 
     // Delete the top-level declaration from cardsConfig.json.
     await this.project.configuration.removeModule(targetName);
-    await ConfigurationLogger.log(this.project.basePath, {
-      operation: ConfigurationOperation.MODULE_REMOVE,
-      target: targetName,
-    });
 
     // Removes this module's installation (now orphaned) plus any
     // transitives it owned that nothing else references.
