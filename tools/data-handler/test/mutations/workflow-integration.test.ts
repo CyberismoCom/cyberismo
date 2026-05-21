@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { Project } from '../../src/containers/project.js';
+import type { Project } from '../../src/containers/project.js';
 import { ResourceMutations } from '../../src/mutations/plan.js';
 import { ConfigurationLogger } from '../../src/utils/configuration-logger.js';
 import { resourceName } from '../../src/utils/resource-utils.js';
