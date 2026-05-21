@@ -12,6 +12,7 @@
 */
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
+import { z } from 'zod';
 import type { MutationInput } from '@cyberismo/data-handler/mutations/types';
 
 import type { AppVars } from '../../types.js';
@@ -32,7 +33,7 @@ mutations.post(
         errorResponse({
           code: 'validation_error',
           message: 'Invalid request body',
-          details: result.error.format(),
+          details: z.prettifyError(result.error),
         }),
         400,
       );
@@ -65,7 +66,7 @@ mutations.post(
         errorResponse({
           code: 'validation_error',
           message: 'Invalid request body',
-          details: result.error.format(),
+          details: z.prettifyError(result.error),
         }),
         400,
       );
