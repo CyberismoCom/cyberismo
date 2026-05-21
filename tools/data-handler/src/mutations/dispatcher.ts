@@ -13,6 +13,7 @@ import { WorkflowRenameHandler } from './handlers/workflow-rename.js';
 import { WorkflowAddStateHandler } from './handlers/workflow-add-state.js';
 import { WorkflowRemoveStateHandler } from './handlers/workflow-remove-state.js';
 import { WorkflowRenameStateHandler } from './handlers/workflow-rename-state.js';
+import { WorkflowTransitionHandler } from './handlers/workflow-transition.js';
 import { CardTypeAddCustomFieldHandler } from './handlers/card-type-add-custom-field.js';
 import { CardTypeRemoveCustomFieldHandler } from './handlers/card-type-remove-custom-field.js';
 import { CardTypeRenameHandler } from './handlers/card-type-rename.js';
@@ -25,6 +26,7 @@ const HANDLERS: Handler[] = [
   new WorkflowAddStateHandler(),
   new WorkflowRemoveStateHandler(),
   new WorkflowRenameStateHandler(),
+  new WorkflowTransitionHandler(),
   new CardTypeWorkflowChangeHandler(),
   new CardTypeAddCustomFieldHandler(),
   new CardTypeRemoveCustomFieldHandler(),
