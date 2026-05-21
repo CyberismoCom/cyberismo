@@ -2,10 +2,12 @@
 
 import type { Handler, MutationContext } from './handler.js';
 import { DefaultNoCascadeHandler } from './handlers/default-no-cascade.js';
+import { FieldTypeRenameHandler } from './handlers/field-type-rename.js';
 import { LinkTypeRenameHandler } from './handlers/link-type-rename.js';
 
 const HANDLERS: Handler[] = [
   new LinkTypeRenameHandler(),
+  new FieldTypeRenameHandler(),
   new DefaultNoCascadeHandler(),
 ];
 
