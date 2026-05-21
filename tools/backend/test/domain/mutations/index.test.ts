@@ -93,3 +93,99 @@ describe('POST /api/projects/:prefix/mutations/preview', () => {
     expect(body.code).toBe('validation_error');
   });
 });
+
+describe('POST /api/projects/:prefix/mutations/apply', () => {
+  let app: ReturnType<typeof createApp>;
+  let tempPath: string;
+
+  beforeEach(async () => {
+    tempPath = await createTempTestData('decision-records');
+
+    const decision5Path = join(tempPath, 'cardRoot', 'decision_5', 'index.json');
+    const decision5 = JSON.parse(await readFile(decision5Path, 'utf-8'));
+    decision5.links = [
+      { linkType: 'decision/linkTypes/test', cardKey: 'decision_6' },
+    ];
+    await writeFile(decision5Path, JSON.stringify(decision5, null, 4));
+
+    const commands = await CommandManager.getInstance(tempPath);
+    app = createApp(
+      new MockAuthProvider(),
+      ProjectRegistry.fromCommandManager(commands),
+    );
+  });
+
+  afterEach(async () => {
+    await cleanupTempTestData(tempPath);
+  });
+
+  it('returns 200 on successful apply', async () => {
+    // First preview to get a fingerprint.
+    const previewRes = await app.request(
+      '/api/projects/decision/mutations/preview',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          input: {
+            kind: 'rename',
+            target: {
+              prefix: 'decision',
+              type: 'linkTypes',
+              identifier: 'test',
+            },
+            newIdentifier: 'is-caused-by',
+          },
+        }),
+      },
+    );
+    const preview = (await previewRes.json()) as {
+      input: unknown;
+      fingerprint: { digest: string };
+    };
+
+    const applyRes = await app.request(
+      '/api/projects/decision/mutations/apply',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          input: preview.input,
+          fingerprint: preview.fingerprint,
+        }),
+      },
+    );
+    expect(applyRes.status).toBe(200);
+  });
+
+  it('returns 409 with fresh preview when fingerprint is stale', async () => {
+    const applyRes = await app.request(
+      '/api/projects/decision/mutations/apply',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          input: {
+            kind: 'rename',
+            target: {
+              prefix: 'decision',
+              type: 'linkTypes',
+              identifier: 'test',
+            },
+            newIdentifier: 'is-caused-by',
+          },
+          fingerprint: { digest: 'deadbeef'.repeat(8) }, // intentionally wrong
+        }),
+      },
+    );
+    expect(applyRes.status).toBe(409);
+    const body = (await applyRes.json()) as {
+      code: string;
+      details: { preview: { fingerprint: { digest: string } } };
+    };
+    expect(body.code).toBe('stale_fingerprint');
+    expect(body.details.preview.fingerprint.digest).not.toBe(
+      'deadbeef'.repeat(8),
+    );
+  });
+});

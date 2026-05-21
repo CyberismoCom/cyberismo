@@ -18,8 +18,8 @@ import type { AppVars } from '../../types.js';
 import { UserRole } from '../../types.js';
 import { requireRole } from '../../middleware/auth.js';
 import { errorResponse } from '../../common/errors.js';
-import { previewMutation } from './service.js';
-import { PreviewRequestSchema } from './schema.js';
+import { applyMutation, previewMutation } from './service.js';
+import { ApplyRequestSchema, PreviewRequestSchema } from './schema.js';
 
 const mutations = new Hono<{ Variables: AppVars }>();
 
@@ -50,6 +50,53 @@ mutations.post(
           code: 'validation_error',
           message: (err as Error).message,
         }),
+        400,
+      );
+    }
+  },
+);
+
+mutations.post(
+  '/apply',
+  requireRole(UserRole.Admin),
+  zValidator('json', ApplyRequestSchema, (result, c) => {
+    if (!result.success) {
+      return c.json(
+        errorResponse({
+          code: 'validation_error',
+          message: 'Invalid request body',
+          details: result.error.format(),
+        }),
+        400,
+      );
+    }
+  }),
+  async (c) => {
+    const { input, fingerprint } = c.req.valid('json');
+    const commands = c.get('commands');
+    try {
+      const result = await applyMutation(
+        commands,
+        input as MutationInput,
+        fingerprint,
+      );
+      return c.json(result);
+    } catch (err) {
+      const message = (err as Error).message;
+      if (/stale fingerprint/i.test(message)) {
+        // Compute a fresh preview for the client to re-render.
+        const fresh = await previewMutation(commands, input as MutationInput);
+        return c.json(
+          errorResponse({
+            code: 'stale_fingerprint',
+            message: 'Project state changed since preview; re-confirm.',
+            details: { preview: fresh },
+          }),
+          409,
+        );
+      }
+      return c.json(
+        errorResponse({ code: 'cascade_failed', message }),
         400,
       );
     }
