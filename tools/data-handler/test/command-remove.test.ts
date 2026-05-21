@@ -1007,3 +1007,36 @@ describe('remove workflow — ResourceMutations cascade', () => {
     ).toBe(true);
   });
 });
+
+describe('remove linkType — ResourceMutations cascade routing', () => {
+  const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
+  const testDir = join(baseDir, 'tmp-remove-linktype-routing');
+  const decisionRecordsPath = join(testDir, 'valid/decision-records');
+
+  beforeEach(async () => {
+    mkdirSync(testDir, { recursive: true });
+    await copyDir('test/test-data', testDir);
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('routes resource deletes through ResourceMutations and logs an entry', async () => {
+    const project = getTestProject(decisionRecordsPath);
+    await project.populateCaches();
+    const fetchCmd = new Fetch(project);
+    const removeCmd = new Remove(project, fetchCmd);
+
+    const linkTypeName = `${project.projectPrefix}/linkTypes/test`;
+    await removeCmd.remove('linkType', linkTypeName);
+
+    expect(project.resources.exists(linkTypeName)).toBe(false);
+    const entries = await ConfigurationLogger.entries(project.basePath);
+    expect(
+      entries.some(
+        (e) => e.kind === 'resource_delete' && e.target === linkTypeName,
+      ),
+    ).toBe(true);
+  });
+});

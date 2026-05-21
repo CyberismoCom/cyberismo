@@ -44,7 +44,6 @@ import type {
 } from '../interfaces/resource-interfaces.js';
 import type { Validate } from '../commands/validate.js';
 
-import { ConfigurationLogger } from '../utils/configuration-logger.js';
 
 // Possible operations to perform when doing "update"
 export type UpdateOperations = 'add' | 'change' | 'rank' | 'remove';
@@ -405,6 +404,13 @@ export abstract class ResourceObject<
     }
   }
 
+  /**
+   * Composes the (projectPath, target, type) tuple used by the legacy
+   * breaking-change classification helpers in ConfigurationLogger. The
+   * mutation engine no longer calls these helpers, but their logic
+   * remains exercised by the breaking-change-classification test until
+   * the rules move into recordLogEntry in a follow-on plan.
+   */
   protected logTarget(): [string, string, ResourceFolderType] {
     return [
       this.project.basePath,
@@ -455,12 +461,6 @@ export abstract class ResourceObject<
 
     this.content = content;
     await this.write();
-
-    await ConfigurationLogger.logResourceUpdate(
-      ...this.logTarget(),
-      op,
-      updateKey.key,
-    );
   }
 
   /**
@@ -512,12 +512,6 @@ export abstract class ResourceObject<
     this.resourceName = newName;
 
     this.project.resources.rename(oldName, newNameString);
-
-    await ConfigurationLogger.logResourceRename(...this.logTarget(), {
-      name: 'change',
-      target: oldName,
-      to: newNameString,
-    });
   }
 
   /**
@@ -783,8 +777,6 @@ export abstract class ResourceObject<
     await deleteFile(this.fileName);
     this.project.resources.remove(resourceNameToString(this.resourceName));
     this.fileName = '';
-
-    await ConfigurationLogger.logResourceDelete(...this.logTarget());
   }
 
   /**

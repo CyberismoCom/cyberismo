@@ -28,8 +28,11 @@ describe('dispatcher', () => {
     const ctx = {
       project: stubProject,
       input: {
-        kind: 'project_rename' as const,
-        newPrefix: 'foo',
+        // Unknown kind that no handler matches.
+        kind: 'no-such-kind' as unknown as 'edit',
+        target: resourceName('test/cardTypes/foo'),
+        updateKey: { key: 'displayName' },
+        operation: { name: 'change' as const, target: 'Old', to: 'New' },
       },
     };
     expect(() => dispatch(ctx)).toThrow(/no.*handler/i);

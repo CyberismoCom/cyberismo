@@ -12,6 +12,10 @@ import type {
 } from './types.js';
 import { ConfigurationLogger } from '../utils/configuration-logger.js';
 
+interface RecordContext {
+  oldPrefix?: string;
+}
+
 export class ResourceMutations {
   constructor(private project: Project) {}
 
@@ -51,10 +55,16 @@ export class ResourceMutations {
       }
     }
 
+    // Capture extras the log entry depends on BEFORE the cascade mutates state.
+    const recordContext: RecordContext = {};
+    if (input.kind === 'project_rename') {
+      recordContext.oldPrefix = this.project.projectPrefix;
+    }
+
     await this.project.lock.write(async () => {
       await handler.apply(ctx);
       if (handler.isBreaking) {
-        await this.recordLogEntry(input);
+        await this.recordLogEntry(input, recordContext);
       }
     });
     return { success: true };
@@ -67,7 +77,10 @@ export class ResourceMutations {
     return handler.affectedFilePaths(ctx);
   }
 
-  private async recordLogEntry(input: MutationInput): Promise<void> {
+  private async recordLogEntry(
+    input: MutationInput,
+    context: RecordContext = {},
+  ): Promise<void> {
     if (input.kind === 'edit') {
       await ConfigurationLogger.log(this.project.basePath, {
         kind: 'resource_edit',
@@ -86,7 +99,20 @@ export class ResourceMutations {
         target: `${input.target.prefix}/${input.target.type}/${input.target.identifier}`,
         payload: { type: input.target.type, newName: input.newIdentifier },
       });
+    } else if (input.kind === 'project_rename') {
+      if (!context.oldPrefix) {
+        throw new Error(
+          'project_rename log entry requires oldPrefix context',
+        );
+      }
+      await ConfigurationLogger.log(this.project.basePath, {
+        kind: 'project_rename',
+        target: input.newPrefix,
+        payload: {
+          oldPrefix: context.oldPrefix,
+          newPrefix: input.newPrefix,
+        },
+      });
     }
-    // project_rename is added in a later plan.
   }
 }

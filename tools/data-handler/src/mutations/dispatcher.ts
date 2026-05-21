@@ -8,7 +8,13 @@ import { FieldTypeEnumRemoveHandler } from './handlers/field-type-enum-remove.js
 import { FieldTypeDeleteHandler } from './handlers/field-type-delete.js';
 import { FieldTypeEnumRenameHandler } from './handlers/field-type-enum-rename.js';
 import { FieldTypeRenameHandler } from './handlers/field-type-rename.js';
+import { LinkTypeDeleteHandler } from './handlers/link-type-delete.js';
 import { LinkTypeRenameHandler } from './handlers/link-type-rename.js';
+import { TemplateDeleteHandler, TemplateRenameHandler } from './handlers/template.js';
+import { CalculationDeleteHandler, CalculationRenameHandler } from './handlers/calculation.js';
+import { ReportDeleteHandler, ReportRenameHandler } from './handlers/report.js';
+import { GraphModelDeleteHandler, GraphModelRenameHandler } from './handlers/graph-model.js';
+import { GraphViewDeleteHandler, GraphViewRenameHandler } from './handlers/graph-view.js';
 import { WorkflowRenameHandler } from './handlers/workflow-rename.js';
 import { WorkflowAddStateHandler } from './handlers/workflow-add-state.js';
 import { WorkflowRemoveStateHandler } from './handlers/workflow-remove-state.js';
@@ -20,9 +26,21 @@ import { CardTypeRemoveCustomFieldHandler } from './handlers/card-type-remove-cu
 import { CardTypeRenameHandler } from './handlers/card-type-rename.js';
 import { CardTypeWorkflowChangeHandler } from './handlers/card-type-workflow-change.js';
 import { CardTypeDeleteHandler } from './handlers/card-type-delete.js';
+import { ProjectRenameHandler } from './handlers/project-rename.js';
 
 const HANDLERS: Handler[] = [
   new LinkTypeRenameHandler(),
+  new LinkTypeDeleteHandler(),
+  new TemplateRenameHandler(),
+  new TemplateDeleteHandler(),
+  new CalculationRenameHandler(),
+  new CalculationDeleteHandler(),
+  new ReportRenameHandler(),
+  new ReportDeleteHandler(),
+  new GraphModelRenameHandler(),
+  new GraphModelDeleteHandler(),
+  new GraphViewRenameHandler(),
+  new GraphViewDeleteHandler(),
   new WorkflowRenameHandler(),
   new WorkflowAddStateHandler(),
   new WorkflowRemoveStateHandler(),
@@ -40,6 +58,7 @@ const HANDLERS: Handler[] = [
   new FieldTypeEnumRemoveHandler(),
   new FieldTypeEnumRenameHandler(),
   new FieldTypeDeleteHandler(),
+  new ProjectRenameHandler(),
   new DefaultNoCascadeHandler(),
 ];
 
