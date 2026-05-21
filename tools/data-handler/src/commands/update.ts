@@ -51,7 +51,7 @@ export class Update {
     const type = this.project.resources.extractType(name);
 
     // Resource families that are fully owned by the mutation engine.
-    const enginedTypes = new Set(['linkTypes', 'fieldTypes']);
+    const enginedTypes = new Set(['linkTypes', 'fieldTypes', 'workflows']);
 
     // Renames travel under the 'rename' MutationKind; everything else is 'edit'.
     const isRename =

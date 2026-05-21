@@ -595,14 +595,14 @@ describe('remove command', () => {
         removeCmd.remove('module', 'i-dont-exist'),
       ).rejects.toThrow();
     });
-    it('try to remove workflow that this is still used', async () => {
+    it('remove workflow that is in use cascades through ResourceMutations', async () => {
       const workflowName = `decision/workflows/decision`;
       const result = await commandHandler.command(
         Cmd.remove,
         ['workflow', workflowName],
         options,
       );
-      expect(result.statusCode).toBe(400);
+      expect(result.statusCode).toBe(200);
     });
     it('try to remove hub - not existing in the project', async () => {
       const hub = `https://example.com/nonExisting`;
@@ -970,6 +970,39 @@ describe('remove fieldType — ResourceMutations cascade', () => {
     expect(
       entries.some(
         (e) => e.kind === 'resource_delete' && e.target === fieldTypeName,
+      ),
+    ).toBe(true);
+  });
+});
+
+describe('remove workflow — ResourceMutations cascade', () => {
+  const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
+  const testDir = join(baseDir, 'tmp-remove-workflow-mutations');
+  const decisionRecordsPath = join(testDir, 'valid/decision-records');
+
+  beforeEach(async () => {
+    mkdirSync(testDir, { recursive: true });
+    await copyDir('test/test-data', testDir);
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('removing a workflow routes through the new mutation engine', async () => {
+    const project = getTestProject(decisionRecordsPath);
+    await project.populateCaches();
+    const fetchCmd = new Fetch(project);
+    const removeCmd = new Remove(project, fetchCmd);
+
+    const workflowName = `${project.projectPrefix}/workflows/decision`;
+    await removeCmd.remove('workflow', workflowName);
+
+    expect(project.resources.exists(workflowName)).toBe(false);
+    const entries = await ConfigurationLogger.entries(project.basePath);
+    expect(
+      entries.some(
+        (e) => e.kind === 'resource_delete' && e.target === workflowName,
       ),
     ).toBe(true);
   });

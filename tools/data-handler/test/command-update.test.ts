@@ -110,9 +110,7 @@ describe('update command', () => {
 
     await expect(
       update.updateValue(name, 'change', 'name', invalidName),
-    ).rejects.toThrow(
-      "Resource identifier must follow naming rules. Identifier 'newName-ÄÄÄ' is invalid",
-    );
+    ).rejects.toThrow(/does not match pattern/);
   });
 
   it('update card type workflow with complete state mapping (success)', async () => {
@@ -440,6 +438,43 @@ describe('update command - field-type ops through ResourceMutations', () => {
           e.kind === 'resource_edit' &&
           e.target === fieldTypeName &&
           (e.payload as { key?: string }).key === 'dataType',
+      ),
+    ).toBe(true);
+  });
+});
+
+describe('update command - workflow ops through ResourceMutations', () => {
+  let project: Project;
+  let projectPath: string;
+  let update: Update;
+
+  beforeEach(async () => {
+    projectPath = join(tmpDir, `proj-workflow-${Date.now()}`);
+    await mkdir(projectPath, { recursive: true });
+    await copyDir(FIXTURE_PATH, projectPath);
+    project = getTestProject(projectPath);
+    await project.populateCaches();
+    update = new Update(project);
+  });
+
+  afterEach(async () => {
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('routes workflow renames through the new mutation engine', async () => {
+    const workflowName = `${project.projectPrefix}/workflows/decision`;
+    const newName = `${project.projectPrefix}/workflows/decision-v2`;
+
+    await update.applyResourceOperation(
+      workflowName,
+      { key: 'name' },
+      { name: 'change', target: workflowName, to: newName },
+    );
+
+    const entries = await ConfigurationLogger.entries(project.basePath);
+    expect(
+      entries.some(
+        (e) => e.kind === 'resource_rename' && e.target === workflowName,
       ),
     ).toBe(true);
   });

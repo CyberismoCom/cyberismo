@@ -295,7 +295,11 @@ export class Remove {
     if (this.projectResource(type)) {
       const folderType =
         this.project.resources.resourceTypeFromSingularType(type);
-      if (folderType === 'fieldTypes' || folderType === 'cardTypes') {
+      if (
+        folderType === 'fieldTypes' ||
+        folderType === 'cardTypes' ||
+        folderType === 'workflows'
+      ) {
         const { resourceName: parseResourceName } = await import(
           '../utils/resource-utils.js'
         );

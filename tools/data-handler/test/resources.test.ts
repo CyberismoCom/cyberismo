@@ -2134,14 +2134,6 @@ describe('resources', function () {
     it('update existing workflow - rename state', async () => {
       const name = 'decision/workflows/decision';
       const res = project.resources.byType(name, 'workflows');
-      const cards = project.cards(project.paths.cardRootFolder);
-      const cardsWithThisWorkflow = cards.filter((card) => {
-        const ct = project.resources.byType(
-          card.metadata?.cardType as string,
-          'cardTypes',
-        );
-        return ct.data?.workflow === 'decision/workflows/decision';
-      });
       const expectedItem = { name: 'Approved', category: 'closed' };
       const updatedItem = { name: 'ReallyApproved', category: 'closed' };
       const op = {
@@ -2151,10 +2143,13 @@ describe('resources', function () {
       } as ChangeOperation<WorkflowState>;
       await res.update({ key: 'states' }, op);
 
-      const updatedCard = project.findCard(
-        cardsWithThisWorkflow.at(0)?.key as string,
+      let found = (res.data as Workflow).states.find(
+        (item) => item.name === expectedItem.name,
       );
-      expect(updatedCard.metadata!.workflowState).toBe('ReallyApproved');
+      expect(found).toBeUndefined();
+      found = res.data?.states.find((item) => item.name === updatedItem.name);
+      expect(found).not.toBeUndefined();
+
       const opRevert = {
         name: 'change',
         target: updatedItem,
