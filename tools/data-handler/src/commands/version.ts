@@ -46,12 +46,13 @@ export class Version {
 
     const currentVersion = this.project.configuration.version;
 
-    // Guard: breaking changes require a major bump.
+    // Guard: patches must not carry breaking configuration changes.
     // Skipped for the first version — there is no predecessor to break against.
-    if (currentVersion && bumpType !== 'major') {
+    // Minor and major bumps are allowed to ship migrations.
+    if (currentVersion && bumpType === 'patch') {
       if (ConfigurationLogger.hasBreakingChanges(this.project.basePath)) {
         throw new Error(
-          'Cannot publish a patch or minor version: breaking configuration changes detected. Use a major version bump.',
+          'Cannot publish a patch version: breaking configuration changes detected. Use a minor or major version bump.',
         );
       }
     }
