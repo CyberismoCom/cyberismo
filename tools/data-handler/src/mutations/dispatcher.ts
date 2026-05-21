@@ -9,9 +9,11 @@ import { FieldTypeDeleteHandler } from './handlers/field-type-delete.js';
 import { FieldTypeEnumRenameHandler } from './handlers/field-type-enum-rename.js';
 import { FieldTypeRenameHandler } from './handlers/field-type-rename.js';
 import { LinkTypeRenameHandler } from './handlers/link-type-rename.js';
+import { CardTypeRenameHandler } from './handlers/card-type-rename.js';
 
 const HANDLERS: Handler[] = [
   new LinkTypeRenameHandler(),
+  new CardTypeRenameHandler(),
   new FieldTypeRenameHandler(),
   new FieldTypeDataTypeHandler(),
   new FieldTypeEnumAddHandler(),
