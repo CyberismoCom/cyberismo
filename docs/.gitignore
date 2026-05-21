@@ -1,20 +1,13 @@
-.calc
+# Asciidoctor cache
+.asciidoctor
 
-        .asciidoctor
+# Local docs build outputs
+*.html
+*.pdf
+*.puml
 
-        .vscode
-
-        *.html
-
-        *.pdf
-
-        *.puml
-
-        **/.DS_Store
-
-        *-debug.log
-
-        *-error.log
+# CLI scratch dirs and logs
 .temp
-
 .logs
+*-debug.log
+*-error.log
