@@ -31,6 +31,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import resourcesRouter from './domain/resources/index.js';
 import logicProgramsRouter from './domain/logicPrograms/index.js';
+import mutationsRouter from './domain/mutations/index.js';
 import { isSSGContext } from 'hono/ssg';
 import type { AppVars, TreeOptions } from './types.js';
 import treeMiddleware from './middleware/tree.js';
@@ -67,6 +68,7 @@ function createProjectScopedRoutes(
   projectScoped.route('/logicPrograms', logicProgramsRouter);
   projectScoped.route('/labels', labelsRouter);
   projectScoped.route('/project', projectRouter);
+  projectScoped.route('/mutations', mutationsRouter);
   return projectScoped;
 }
 
