@@ -25,7 +25,7 @@ describe('WorkflowRemoveStateHandler', () => {
     await mkdir(projectPath, { recursive: true });
     await copyDir(FIXTURE_PATH, projectPath);
     project = new Project(projectPath);
-    await project.initialize();
+    await project.populateCaches();
   });
   afterEach(async () => {
     await rm(tmpDir, { recursive: true, force: true });
@@ -71,7 +71,10 @@ describe('WorkflowRemoveStateHandler', () => {
     // move one into it before applying). Use the existing project APIs to do
     // so without depending on a specific fixture layout.
     const allCards = project.cards(undefined);
-    const target = allCards[0];
+    const target =
+      allCards.find(
+        (c) => c.metadata?.cardType === 'decision/cardTypes/decision',
+      ) || allCards[0];
     if (target?.metadata) {
       target.metadata.workflowState = 'Rejected';
       await project.updateCardMetadata(target, target.metadata);
@@ -102,7 +105,10 @@ describe('WorkflowRemoveStateHandler', () => {
 
   it('apply with explicit replacementValue uses that state', async () => {
     const allCards = project.cards(undefined);
-    const target = allCards[0];
+    const target =
+      allCards.find(
+        (c) => c.metadata?.cardType === 'decision/cardTypes/decision',
+      ) || allCards[0];
     if (target?.metadata) {
       target.metadata.workflowState = 'Rejected';
       await project.updateCardMetadata(target, target.metadata);
