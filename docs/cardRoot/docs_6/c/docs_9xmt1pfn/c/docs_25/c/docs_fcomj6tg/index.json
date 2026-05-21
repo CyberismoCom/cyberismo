@@ -1,0 +1,12 @@
+{
+    "title": "field(FieldType, \"displayName\", DisplayName)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|d",
+    "lastUpdated": "2025-07-07T18:49:56.323Z",
+    "base/fieldTypes/briefDescription": "Defines a display name for a field type",
+    "base/fieldTypes/category": "Field types",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-07T18:49:56.323Z"
+}

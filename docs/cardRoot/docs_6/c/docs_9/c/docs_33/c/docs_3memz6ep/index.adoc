@@ -1,0 +1,9 @@
+== Parameters
+
+This predicate has no parameters.
+
+== Description
+
+`selectAll` is used in queries as a fact to declare that all fields of all result objects shall be included in the query results in all collections and on all levels of hierarchy.
+
+NOTE: For performance reasons, avoid using `selectAll` and use more specific `select` facts instead.

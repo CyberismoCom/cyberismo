@@ -1,0 +1,89 @@
+The MCP server runs as part of the Cyberismo backend. Start it with:
+
+[source,bash]
+----
+cyberismo app
+----
+
+The MCP endpoint is then available at `http://localhost:3000/mcp`. To use a different port:
+
+[source,bash]
+----
+PORT=4000 cyberismo app
+----
+
+== Claude Code
+
+Add the following to `~/.claude/claude_desktop_config.json`:
+
+[source,json]
+----
+{
+  "mcpServers": {
+    "cyberismo": {
+      "type": "http",
+      "url": "http://localhost:3000/mcp"
+    }
+  }
+}
+----
+
+Restart Claude Code after saving. Ensure `cyberismo app` is running before starting Claude Code.
+
+== VS Code
+
+Add the following to `.vscode/mcp.json` in your project:
+
+[source,json]
+----
+{
+  "servers": {
+    "cyberismo": {
+      "type": "http",
+      "url": "http://localhost:3000/mcp"
+    }
+  }
+}
+----
+
+Reload VS Code after saving. Copilot Chat will then have access to Cyberismo tools.
+
+== stdio mode (alternative)
+
+If the HTTP server is not available, the MCP server can run as a subprocess communicating over stdin/stdout.
+
+*Claude Code* — add to `~/.claude/claude_desktop_config.json`:
+
+[source,json]
+----
+{
+  "mcpServers": {
+    "cyberismo": {
+      "command": "cyberismo",
+      "args": ["mcp", "--project-path=/path/to/your/project"]
+    }
+  }
+}
+----
+
+*VS Code* — add to `.vscode/mcp.json`:
+
+[source,json]
+----
+{
+  "servers": {
+    "cyberismo": {
+      "command": "cyberismo",
+      "args": ["mcp", "--project-path=${workspaceFolder}"]
+    }
+  }
+}
+----
+
+== Troubleshooting
+
+*Tools not appearing* — restart Claude Code or VS Code after configuration changes and verify the backend is running.
+
+*HTTP endpoint not responding* — check that port 3000 is not in use by another process and that the URL in your config matches the running server.
+
+*stdio server not starting* — ensure `cyberismo` is installed and in your PATH, and that the project path contains a `.cards` directory. Run `cyberismo mcp` manually to see error output.

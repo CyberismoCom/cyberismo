@@ -1,0 +1,12 @@
+{
+    "title": "notification(CardKey, Category, Title, Message)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|b",
+    "lastUpdated": "2025-07-01T12:33:59.067Z",
+    "base/fieldTypes/briefDescription": "Advice or tips related to a card",
+    "base/fieldTypes/category": "Notifications",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-01T06:28:11.331Z"
+}

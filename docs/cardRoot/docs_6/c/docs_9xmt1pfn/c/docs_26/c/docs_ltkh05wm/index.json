@@ -1,0 +1,12 @@
+{
+    "title": "workflow(Workflow)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|b",
+    "lastUpdated": "2025-07-07T18:34:08.178Z",
+    "base/fieldTypes/briefDescription": "Defines the name of a workflow",
+    "base/fieldTypes/category": "Workflow",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-07T17:41:41.882Z"
+}

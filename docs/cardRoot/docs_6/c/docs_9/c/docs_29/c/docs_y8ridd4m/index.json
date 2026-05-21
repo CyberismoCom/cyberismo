@@ -1,0 +1,12 @@
+{
+    "title": "card(CardKey)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|b",
+    "lastUpdated": "2025-07-01T14:37:46.544Z",
+    "base/fieldTypes/briefDescription": "The parameter is a card",
+    "base/fieldTypes/category": "Cards",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-01T06:42:12.700Z"
+}

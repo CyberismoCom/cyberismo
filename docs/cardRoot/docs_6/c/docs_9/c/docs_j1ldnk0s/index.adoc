@@ -1,0 +1,471 @@
+== Introduction
+
+This page is a tutorial on implementing reports. Before reading this tutorial, familiarise yourself with the following topics:
+
+* xref:docs_28.adoc[Introduction to Answer Set Programming]
+* xref:docs_chclhxsk.adoc[Structure and execution of logic programs]
+* xref:docs_33.adoc[Query language]
+* https://handlebarsjs.com/guide/[Introduction to the Handlebars templating engine]
+* xref:docs_byr4iof0.adoc[Managing reports]
+* xref:docs_r0brt7n1.adoc[Report macro]
+
+== Example 1: Empty report
+
+The first piece of advice for writing a Cyberismo report is to develop it incrementally. We also recommend using the Handlebars `log` helper to understand the structure of the result object. Using `log` produces debug output to the console.
+
+Start with an empty report. The query of this report is a single comment line (as otherwise Cyberismo produces an error), and the report template is the following:
+
+```
+{{#raw}}
+
+{{log "This is the output of an empty query:"}}
+{{log this}}
+
+{{/raw}}
+```
+
+In the `log` parameters, `this` refers to the current Handlebars context.
+
+We have implemented the empty report as `docs/reports/example1` in this documentation project, so you can instantiate the report on a card as follows:
+
+```
+{{#raw}}
+
+{{#report}}
+
+  "name": "docs/reports/example1"
+{{/report}}
+
+
+{{/raw}}
+```
+
+{{#report}}
+  "name": "docs/reports/example1"
+{{/report}}
+
+The report will not produce anything on the page, but Cyberismo produces the following log on the console:
+
+----
+This is the output of an empty query:
+{
+  cardKey: 'docs_j1ldnk0s',
+  name: 'docs/reports/example1',
+  results: [],
+  error: null
+}
+----
+
+The most important part of the context object is the empty `results` array.
+
+== Example 2: Hard-coded results
+
+The second example illustrates how we can define the results of the query using logic program terms. The query of `docs/reports/example2` defines two hard-coded result objects as follows:
+
+----
+select("title").
+
+result(result1).
+field(result1, "title", "First result").
+
+result(result2).
+field(result2, "title", "Second result").
+
+orderBy("title", "DESC").
+----
+
+The report template has been implemented as follows. Note that we are logging the `results` array instead of the full report context.
+
+```
+{{#raw}}
+
+{{log "The results of Example 2:"}}
+{{log results}}
+
+{{#each results}}
+* {{this.title}}
+{{/each}}
+
+{{/raw}}
+```
+
+The `each` block iterates over the results array and produces the title of each result as an AsciiDoc bullet point.
+
+This example has been implemented as `docs/reports/example2`, so the following report macro produces its results:
+
+```
+{{#raw}}
+
+{{#report}}
+
+  "name": "docs/reports/example2"
+{{/report}}
+
+
+{{/raw}}
+```
+
+Cyberismo produces the following log on the console:
+
+----
+The results of Example 2:
+[
+  { key: 'result2', title: 'Second result' },
+  { key: 'result1', title: 'First result' }
+]
+----
+
+NOTE: The parameter of the logic program term `result` will be included as the `key` property in the result object. It is possible to override the value of the `key` property by defining a `field` term for the `"key"` field.
+
+The AsciiDoc output of the macro looks like this:
+
+----
+{{#report}}
+  "name": "docs/reports/example2"
+{{/report}}
+----
+
+Finally, a rendered version of the output is this:
+
+{{#report}}
+  "name": "docs/reports/example2"
+{{/report}}
+
+== Example 3: Structured results
+
+The third example illustrates how `childResult` and `childObject` can be used to sculpt a more complex result object. The query of `docs/reports/example3` extends the previous example and adds a child result and a child object. The difference between these two concepts is that child results are an array of result objects, and a child object is a property that holds a single object.
+
+----
+selectAll.
+
+result(result1).
+field(result1, "title", "First result").
+
+childResult(result1, child1, "children").
+field(child1, "title", "Child result").
+
+result(result2).
+field(result2, "title", "Second result").
+
+childObject(result2, child2, "child").
+field(child2, "title", "Child object").
+
+orderBy("title", "DESC").
+
+----
+
+CAUTION: Child objects and child results are identified by a key, which is the second parameter of the `childObject` or `childResult` term. Note that `field` terms for `child1` and `child2` do not include any context about the parent object. That is why you must use unique identifiers (keys) for child objects and child results, as otherwise their `field` terms would be mixed up.
+
+The report template has been implemented as follows. Note that logging is again slightly different from the previous example, as we are logging each member of the `results` array separately.
+
+```
+{{#raw}}
+
+{{log "The results of Example 3:"}}
+
+{{#each results}}
+{{log this}}
+* {{this.title}}
+{{#if this.child}}
+** {{this.title}} has a child object {{this.child.title}}
+{{/if}}
+{{#if this.children}}
+** {{this.title}} has an array of children:
+{{#each this.children}}
+*** {{this.title}}
+{{/each}}
+{{/if}}
+{{/each}}
+
+{{/raw}}
+```
+
+The `each` block iterates over the `results` array and produces a hierarchical AsciiDoc list.
+
+Cyberismo produces the following log on the console:
+
+----
+The results of Example 3:
+{
+  key: 'result2',
+  title: 'Second result',
+  child: { key: 'child2', title: 'Child object' }
+}
+{
+  key: 'result1',
+  title: 'First result',
+  children: [ { key: 'child1', title: 'Child result' } ]
+}
+----
+
+NOTE: The second parameter of the `childResult` and `childObject` logic program terms is included as the `key` property in the result objects. The key must be unique. It is possible to override the value of the `key` property for these result objects by defining a `field` term for the `"key"` field. This is useful, for example, if you want many results to have child objects with the same name but different contents.
+
+The AsciiDoc output of the macro looks like this:
+
+----
+{{#report}}
+  "name": "docs/reports/example3"
+{{/report}}
+----
+
+A rendered version of the output is this:
+
+{{#report}}
+  "name": "docs/reports/example3"
+{{/report}}
+
+== Example 4: A table report that takes parameters
+
+This example examines the report `base/reports/childrenTable`. This report shows a table of the child cards of a card, optionally limited to a certain card type, in the same order as the cards are shown in the navigation tree. You can optionally give the table a caption.
+
+Before looking into the report, here is a recap of the table notation in AsciiDoc. The following AsciiDoc snippet defines a table with a caption and three columns, where the width of the third column is twice the width of the first two columns.
+
+----
+.Table caption
+[cols="1,1,2"]
+|===
+|Column 1 |Column 2| Column 3
+
+|Cell in column 1, row 1
+|Cell in column 2, row 1
+|Cell in column 3, row 1
+
+|Cell in column 1, row 2
+|Cell in column 2, row 2
+|Cell in column 3, row 2
+
+|===
+----
+
+The table looks like this:
+
+.Table caption
+[cols="1,1,2"]
+|===
+|Column 1 |Column 2| Column 3
+
+|Cell in column 1, row 1
+|Cell in column 2, row 1
+|Cell in column 3, row 1
+
+|Cell in column 1, row 2
+|Cell in column 2, row 2
+|Cell in column 3, row 2
+
+|===
+
+Because we want this report to take parameters, we need to add the `cardType` and `tableCaption` parameters in the parameters schema file:
+
+----
+{
+  "title": "Report",
+  "$id": "reportMacroDefaultSchema",
+  "description": "A report object provides supplemental information about a report",
+  "type": "object",
+  "properties": {
+    "name": {
+      "description": "The name of the report",
+      "type": "string"
+    },
+    "cardKey": {
+      "description": "Used to override the default cardKey, which is the cardKey of the card, in which the report macro is used",
+      "type": "string"
+    },
+    "cardType": {
+      "description": "Optionally, limit the results to cards of a certain card type only.",
+      "type": "string"
+    },
+    "tableCaption": {
+      "description": "Optionally, show a caption in the table",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": ["name"]
+}
+----
+
+The `name` parameter is the only required parameter in the report macro. There will always be a `cardKey` parameter in the report context object, as Cyberismo automatically adds the card key of the current card if the user did not include a card key in the report macro.
+
+The query of the `childrenTable` macro is the following. We can make the following observations:
+
+* The query has two alternative rules, depending on whether a card type parameter was given.
+* As card keys are symbolic constants, we do not need to enclose them in double quotes.
+* Card types are strings in the logic program, so you need to enclose their Handlebars expression within double quotes.
+
+```
+{{#raw}}
+
+selectAll.
+{{#if cardType}}
+result(Card) :- card(Card), parent(Card, {{cardKey}}), field(Card, "cardType", "{{cardType}}").
+{{else}}
+result(Card) :- card(Card), parent(Card, {{cardKey}}).
+{{/if}}
+orderBy("rank", "ASC").
+
+{{/raw}}
+```
+
+The report has the following template. Note the following features:
+
+* We can add hyperlinks to cards using the notation ``xref:``__card key__``.adoc[``__title__``]``.
+* The names of custom fields must be enclosed in square brackets. For example, `this.[base/fieldTypes/owner]`.
+
+```
+{{#raw}}
+
+{{#if results}}
+
+{{#if tableCaption}}.{{tableCaption}}{ {/if}}
+[cols="5,5,2"]
+|===
+| Title | Owner | State
+
+{{#each results}}
+|xref:{ {this.key}}.adoc[{{this.title}}]
+|{{this.[base/fieldTypes/owner]}}
+|{{this.workflowState}}
+{{/each}}
+
+|===
+
+{{/if}}
+
+{{/raw}}
+```
+
+For example, we can show the child cards of xref:docs_17.adoc[Installing Cyberismo] with the following report macro:
+
+```
+{{#raw}}
+
+{{#report}}
+  "name": "base/reports/childrenTable",
+  "cardKey": "docs_17",
+  "tableCaption": "Cyberismo installation methods"
+{{/report}}
+{{/raw}}
+```
+
+The raw AsciiDoc output of the report is the following:
+
+----
+{{#report}}
+  "name": "base/reports/childrenTable",
+  "cardKey": "docs_17",
+  "tableCaption": "Cyberismo installation methods"
+{{/report}}
+----
+
+The resulting table:
+
+{{#report}}
+  "name": "base/reports/childrenTable",
+  "cardKey": "docs_17",
+  "tableCaption": "Cyberismo installation methods"
+{{/report}}
+
+== Example 5: Summary query
+
+The results of a query are not always cards. This example shows a summary of the card types used in the current project, along with a percentage of the total cards that are of the given card type.
+
+The query is the following. Note the usage of the `fields` term to set multiple calculated fields `percentage`, `count`, and `total` with a single rule.
+
+----
+selectAll.
+
+result(CardType) :-
+    projectCard(Card),
+    field(Card, "cardType", CardType).
+
+fields(
+    CardType,
+    "percentage", 100 * Count / Total,
+    "count", Count,
+    "total", Total
+    ) :-
+        projectCard(Card),
+        field(Card, "cardType", CardType),
+        Count = #count { X : projectCard(X), field(X, "cardType", CardType) },
+        Total = #count { X : projectCard(X)}.
+
+orderBy("percentage", "DESC").
+----
+
+The report template has been implemented as follows.
+
+```
+{{#raw}}
+
+{{log "The results of Example 5:"}}
+{{log results}}
+
+{{#if results}}
+
+[cols="3,1"]
+|===
+| Card type | Usage
+
+{{#each results}}
+|{{this.key}}
+|{{this.percentage}}%
+{{/each}}
+
+|===
+
+{{/if}}
+
+
+{{/raw}}
+```
+
+At the time of writing this documentation topic, Cyberismo produced the following log on the console. Note that due to the rounding errors of integer division, the percentages do not necessarily add up to 100%.
+
+----
+The results of Example 5:
+[
+  {
+    key: 'base/cardTypes/predicate',
+    percentage: '54',
+    workflow: 'base/workflows/page',
+    total: '152',
+    count: '83'
+  },
+  {
+    key: 'base/cardTypes/page',
+    percentage: '41',
+    workflow: 'base/workflows/page',
+    total: '152',
+    count: '63'
+  },
+  {
+    key: 'base/cardTypes/externalFunction',
+    percentage: '2',
+    workflow: 'base/workflows/page',
+    total: '152',
+    count: '4'
+  },
+  {
+    key: 'base/cardTypes/task',
+    percentage: '1',
+    workflow: 'base/workflows/task',
+    total: '152',
+    count: '2'
+  }
+]
+----
+
+The AsciiDoc output of the macro looks like this:
+
+----
+{{#report}}
+  "name": "docs/reports/example5"
+{{/report}}
+----
+
+A rendered version of the output is this:
+
+{{#report}}
+  "name": "docs/reports/example5"
+{{/report}}

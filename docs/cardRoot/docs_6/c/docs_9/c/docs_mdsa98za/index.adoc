@@ -1,0 +1,21 @@
+User programs can define _calculated links_. A calculated link is implemented using the same `link` predicate that is used when generating the logic program from the Cyberismo content.
+
+== Example 1: A simple calculated link
+
+The logic program of this documentation project includes the following fact, which produces an automatic link to another card that you can see on this page. In real use, you would typically not use `link` facts in user-defined code, but the `link` predicate would be used in the heads of rules to produce automatic links if certain conditions are met.
+
+----
+link(docs_mdsa98za, docs_30, "base/linkTypes/relatesTo").
+----
+
+== Example 2: A rule that creates an automatic link
+
+Consider an example where we would like to create an automatic "presents risk" link between an asset card and a risk card, if the asset is the parent of the risk in the card hierarchy. The following logic program adds a calculated link in these cases.
+
+[source]
+----
+link(Asset, Risk, "myModule/linkTypes/presentsRisk") :-
+    parent(Risk, Asset),
+    field(Risk, "cardType", "myModule/cardTypes/risk"),
+    field(Risk, "cardType", "myModule/cardTypes/asset").
+----

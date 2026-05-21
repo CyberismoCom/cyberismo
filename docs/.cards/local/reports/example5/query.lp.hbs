@@ -1,0 +1,18 @@
+selectAll.
+
+result(CardType) :-
+    projectCard(Card),
+    field(Card, "cardType", CardType).
+
+fields(
+    CardType,
+    "percentage", 100 * Count / Total,
+    "count", Count,
+    "total", Total
+    ) :-
+        projectCard(Card),
+        field(Card, "cardType", CardType),
+        Count = #count { X : projectCard(X), field(X, "cardType", CardType) },
+        Total = #count { X : projectCard(X)}.
+
+orderBy("percentage", "DESC").

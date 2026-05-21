@@ -1,0 +1,12 @@
+{
+    "title": "select(FieldName)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|b",
+    "lastUpdated": "2025-07-01T06:03:10.992Z",
+    "base/fieldTypes/briefDescription": "Include a field in query results.",
+    "base/fieldTypes/category": "Query language",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-01T06:02:51.593Z"
+}

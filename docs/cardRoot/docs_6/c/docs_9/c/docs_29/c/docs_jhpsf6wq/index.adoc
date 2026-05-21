@@ -1,0 +1,9 @@
+== Parameters
+
+* `CardKey`: the card key of a project card
+
+== Description
+
+The parameter of the predicate `CardKey` is a card in the local project. `CardKey` is not a template card. This predicate is useful for limiting the search space in rules.
+
+See also xref:docs_y8ridd4m.adoc[`card`] and xref:docs_99t3a4bk.adoc[`templateCard`].

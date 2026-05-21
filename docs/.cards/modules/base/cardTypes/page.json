@@ -1,0 +1,22 @@
+{
+    "name": "base/cardTypes/page",
+    "workflow": "base/workflows/page",
+    "customFields": [
+        {
+            "name": "base/fieldTypes/owner",
+            "isCalculated": false
+        },
+        {
+            "name": "base/fieldTypes/informationClassification",
+            "isCalculated": false
+        }
+    ],
+    "alwaysVisibleFields": [
+        "base/fieldTypes/owner"
+    ],
+    "optionallyVisibleFields": [
+        "base/fieldTypes/informationClassification"
+    ],
+    "displayName": "Page",
+    "description": "A general-purpose content page"
+}

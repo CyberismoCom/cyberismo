@@ -1,0 +1,12 @@
+{
+    "title": "workflowTransition(Workflow, Transition, FromState, ToState)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|d",
+    "lastUpdated": "2025-07-07T17:47:41.550Z",
+    "base/fieldTypes/briefDescription": "Defines a workflow transition",
+    "base/fieldTypes/category": "Workflow",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-07T17:47:41.550Z"
+}

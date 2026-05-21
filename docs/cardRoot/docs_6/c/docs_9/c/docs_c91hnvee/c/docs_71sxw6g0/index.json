@@ -1,0 +1,12 @@
+{
+    "title": "exportedSite",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|c",
+    "lastUpdated": "2026-02-14T17:06:26.598Z",
+    "base/fieldTypes/briefDescription": "This fact is defined when the logic program is run when exporting the content as a static web site.",
+    "base/fieldTypes/category": "Execution context",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2026-02-14T17:06:26.598Z"
+}

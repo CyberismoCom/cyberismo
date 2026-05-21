@@ -1,0 +1,221 @@
+== Introduction
+
+A report consists of a query and a Handlebars template for showing the results of the query. Users can include reports in the contents of cards with the xref:docs_r0brt7n1.adoc[`report` macro].
+
+Reports are versatile: you can use them to show data from your Cyberismo project, for example, as a table, a list, a JSON document, or an XML document. The fact that Cyberismo internally implements the graph macro as a report illustrates the power of Cyberismo reports.
+
+See xref:docs_chclhxsk.adoc[Structure and execution of logic programs] for a detailed description of how Cyberismo executes logic programs to produce reports, and xref:docs_j1ldnk0s.adoc[Implementing reports] for a longer tutorial on how to implement queries and report templates.
+
+== Managing reports using the configuration editor
+
+Use the configuration editor to manage reports.
+
+=== Creating a report
+
+To create a new report:
+
+1. Open the **configuration editor** in the Cyberismo app by setting the path part of the URL to `/configuration`.
+2. Select **Reports** from the tree menu on the left, or use the **New Resource** menu in the toolbar.
+3. Click **Create new** on the Reports overview page.
+4. Enter an identifier for the new report and confirm.
+
+The new report will be created with default files and the editor will open.
+
+When choosing a name for your report, see xref:docs_8.adoc[Naming conventions].
+
+=== Editing report metadata
+
+In the report editor, you can edit the following properties:
+
+* **Identifier**: The technical name of the report. Renaming is supported.
+* **Display name**: The name shown in user interfaces (e.g., "Children list").
+* **Description**: A description of the report (e.g., "A list of child cards.").
+* **Category**: The category of the report (e.g., "General").
+
+Each field has individual save and cancel buttons that appear when you make changes.
+
+=== Editing report files
+
+A report consists of several files that can be edited using the built-in text editor in the configuration editor. In the tree menu, expand the report to see its files:
+
+* **Query file** (`query.lp.hbs`): The Handlebars template for the logic program query.
+* **Parameter schema** (`parameterSchema.json`): The JSON schema for validating report macro parameters.
+* **Content template** (`index.adoc.hbs`): The Handlebars template that formats the query results.
+
+Click on any file in the tree to open it in the text editor.
+
+=== Deleting a report
+
+To delete a report, open it in the editor and use the context menu (three-dot button) in the toolbar to select **Delete Resource**.
+
+== Managing reports using the command-line tool
+
+You can also manage reports using the Cyberismo command-line tool.
+
+To see a list of the available reports, use the following command:
+
+  $ cyberismo show reports
+
+To see the help for how to create a report, use the following command:
+
+  $ cyberismo create report --help
+
+To create a new report, for example `myReport`, use the following command:
+
+  $ cyberismo create report myReport
+
+Cyberismo will create the following files:
+
+* Report metadata file `.cards/local/reports/myReport.json`
+* Directory `.cards/local/reports/myReport/`
+* Query file `.cards/local/reports/myReport/query.lp.hbs`
+* Parameters schema file `.cards/local/reports/myReport/parameterSchema.json`
+* AsciiDoc template `.cards/local/reports/myReport/index.adoc.hbs`
+
+If the card prefix of your Cyberismo project is `example`, then the full name of the new report will be `example/reports/myReport`.
+
+== Report macro parameter schema
+
+The parameter schema file `parameterSchema.json` defines a https://json-schema.org/[JSON schema] for the report macro parameters.
+
+NOTE: If your report does not require custom parameters to the report macro, then you can leave this file as it is by default. You only need to edit this file if your report takes additional parameters.
+
+The report macro that can be included in card contents has the following format:
+
+```
+{{#raw}}
+
+{{#report}}
+    "name": "myModule/reports/myReport"
+{{/report}}
+
+{{/raw}}
+
+```
+
+The parameters that are enclosed within the report macro form technically a JSON object, even though the leading `{` and trailing `}` characters have been omitted for improved readability. Cyberismo validates the parameters of the report macro using JSON schema validation.
+
+The card key of the card in which the macro was included is always included in the `cardKey` property of the parameters object. The user can override this by setting a `cardKey` property to some other card key.
+
+Sometimes, it is useful to define additional parameters for a report. For example, you might want a report macro to take an array of labels as an additional report-specific parameter. In these cases, you need to edit the parameters schema file and add a definition of your additional parameters.
+
+For example, the following parameters schema file defines the parameters for a report that requires the `labels` parameter to contain an array of strings. The `name` and `cardKey` parameters are included in the parameters schema by default:
+
+----
+{
+  "title": "Report",
+  "$id": "myReportMacroSchema",
+  "description": "Parameters for the myReport report",
+  "type": "object",
+  "properties": {
+    "name": {
+      "description": "The name of the report",
+      "type": "string"
+    },
+    "cardKey": {
+      "description": "Used to override the default cardKey, which is the cardKey of the card, in which the report macro is used",
+      "type": "string"
+    },
+    "labels": {
+      "description": "An array of labels that this report requires",
+      "type": "array",
+      "items": {
+        "description": "A label",
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": ["name", "labels"]
+}
+
+----
+
+== Query
+
+The query (`index.lp.hbs` file) is a https://handlebarsjs.com/[Handlebars] template of a xref:docs_33.adoc[Cyberismo query]. Handlebars is a templating engine that applies a context object to a template to produce its output. In the case of a query of a Cyberismo report, the parameters of the `report` macro are the context object.
+
+Using a Handlebars template as the query is Cyberismo's way of parameterising queries. For example, the default query of a newly created report is as follows:
+
+```
+{{#raw}}
+
+select("title").
+result(Card) :- parent(Card, {{cardKey}}).
+
+{{/raw}}
+
+```
+
+As the query is parameterised with the `cardKey` property of the report macro, the query yields the child cards of the current card.
+
+== Content template
+
+The content template defines the output format of the report. Since Cyberismo cards are rendered from AsciiDoc, you can use all the features of AsciiDoc in the results of your reports. You can even use nested Cyberismo macros.
+
+When rendering a report, the execution of the query yields a result object, which is given as the context for another Handlebars template defined in the content template file.
+
+For example, the default query results in an object that has a property `results` which is an array of query result objects. Each result object has a `title` property. When this context is rendered with the content template that a new report gets by default, the output is a list of bullet points showing the titles of the child cards. The default content template is the following:
+
+```
+{{#raw}}
+
+{{#each results}}
+* {{this.title}}
+{{/each}}
+
+{{/raw}}
+
+```
+
+=== Handlebars helpers available in content templates
+
+In addition to the built-in Handlebars helpers (such as `each`, `if`, and `log`), the following helpers are available in report content templates:
+
+* `formatValue` -- formats a value from a logic program for use in templates. Arrays are rendered as comma-separated lists of formatted values. For objects, a string `displayValue` property is used if present; otherwise a string `value` property is used; otherwise the object is rendered as formatted JSON. Boolean values are rendered as `Yes` or `No`. Other values are converted using their string representation.
+* `jsonEscape` -- escapes a string for safe inclusion inside a JSON string value. Escapes double quotes, backslashes, newlines, and other control characters. For example, `{{jsonEscape this.description}}` produces a string that can be safely placed inside JSON double quotes.
+* `csvEscape` -- escapes a string for safe inclusion as a CSV field. Doubles any double quote characters in the string. The caller is responsible for wrapping the result in quotes if needed. For example, `{{csvEscape this.title}}` produces a string suitable for use in a CSV field.
+
+== Report JSON file format
+
+Basic metadata for a report is defined in a JSON file that follows the https://github.com/CyberismoCom/cyberismo/blob/main/tools/assets/src/schema/resources/reportSchema.json[report schema], as described in the following table.
+
+NOTE: Do not edit the JSON files directly. The configuration editor provides a graphical interface for managing report metadata and a built-in text editor for the query, parameter schema, and content template files.
+
+.The properties of a report JSON file
+|===
+|Property|Type|Description|Required
+
+|**name**
+|`string`
+|The technical name of the report
+| &#10003; Yes
+
+|**displayName**
+|`string`
+|The name of the report as it should be displayed in the user interface. For example, 'Children list'.
+| &#10003; Yes
+
+|**description**
+|`string`
+|A description of the report. For example, 'A list of child cards.'.
+| No
+
+|**category**
+|`string`
+| The category of the report. For example, 'General'.
+| &#10003; Yes
+
+|===
+
+Additional properties are not allowed.
+
+== Mapping to a logic program
+
+Reports are mapped to logic program facts using the following function terms:
+
+{{#report}}
+    "name": "base/reports/predicates",
+    "category": "Reports",
+    "orderBy": "rank"
+{{/report}}

@@ -1,0 +1,12 @@
+{
+    "title": "NPM registry (recommended)",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Ready",
+    "base/fieldTypes/owner": "sami.lempinen@cyberismo.com",
+    "base/fieldTypes/informationClassification": "public",
+    "rank": "0|a",
+    "lastUpdated": "2026-02-15T17:48:11.809Z",
+    "links": [],
+    "templateCardKey": "base_2",
+    "lastTransitioned": "2026-02-14T17:05:17.654Z"
+}

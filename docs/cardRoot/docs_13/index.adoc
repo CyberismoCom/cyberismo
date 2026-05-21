@@ -1,0 +1,11 @@
+This section covers how to install, update, and uninstall the Cyberismo tool. Several installation methods are available to suit different environments and preferences:
+
+* *NPM registry* — the recommended method for most users. Install the Cyberismo CLI directly from the public NPM registry.
+* *Docker or Podman* — run Cyberismo as a container without installing dependencies on your host system.
+* *Build from source* — clone the repository and build locally on Windows, Linux, or macOS.
+
+For more information, see:
+
+{{#report}}
+  "name": "base/reports/childrenList"
+{{/report}}

@@ -1,0 +1,63 @@
+{{#image}}"fileName": "cyberismo-architecture-website.svg" {{/image}}
+
+== Architectural principles
+
+The Cyberismo solution architecture is based on the following principles:
+
+* *Security-as-code* — all content is stored as plain text files (AsciiDoc and JSON) in the file system and managed in software version control (Git).
+* *Local-first* — the Cyberismo tool is installed on users' computers. No cloud service or network connection is required for day-to-day work.
+* *CI/CD integration* — the same Cyberismo tool can be run in CI/CD pipelines for automated checks, report generation, and static site publishing.
+* *Modular content* — reusable content modules provide ready-made card types, workflows, templates, and logic programs that can be imported into any project.
+
+== Main components
+
+The Cyberismo solution consists of the following main components:
+
+Cyberismo content project:: A directory structure containing cards (`cardRoot/`), project configuration (`.cards/`), and imported modules. The project is typically managed in a Git repository. The content format is based on AsciiDoc for card content, JSON for metadata, and JSON Schema for validation.
+
+Cyberismo tool:: The tool that reads, writes, and processes Cyberismo content projects. It includes a command-line interface, a local web application, and a static site generator. Internally, the tool integrates the https://potassco.org/[Clingo] Answer Set Programming engine for queries, calculations, policy checks, and graph visualisations.
+
+Content modules:: Reusable packages of configuration and templates. The most common is the _base_ module, which provides basic card types, workflows, and field types. Other modules include the _ISMS essentials_ module for information security management and the _Secure development essentials_ module for secure development practices and threat modelling.
+
+== User interfaces
+
+The Cyberismo tool provides three interaction modes. All three operate on the same underlying content project.
+
+=== Command-line interface (CLI)
+
+The CLI is used for project management tasks such as creating projects, importing modules, creating cards, running calculations, transitioning card states, and exporting content. It is also the interface used by CI/CD pipelines for automated operations.
+
+Example:
+[source,console]
+----
+$ cyberismo create card base/templates/page
+$ cyberismo transition docs_1 "Content ready"
+$ cyberismo export site ./output
+----
+
+=== Cyberismo App (local web application)
+
+The Cyberismo App is a local web application started with `cyberismo app`. It provides:
+
+* A navigation tree for browsing the card hierarchy
+* A card viewer and editor with AsciiDoc support
+* Workflow state transitions
+* Card creation from templates
+* Rendering of macros — reports, graphs, score cards, and other dynamic content
+* Link management between cards
+
+The app runs locally at http://localhost:3000/ and is designed for single-user use. It communicates with a local backend server that reads and writes the content project directly on the file system.
+
+=== Static website export
+
+The `cyberismo export site` command generates a set of static HTML pages from the content project. This is useful for publishing documentation to a wider audience without requiring them to install the Cyberismo tool. The static site renders all card content, reports, and graphs, but does not support editing.
+
+== Data flow
+
+The following describes how data flows through the Cyberismo architecture:
+
+. *Content authoring*: Users create and edit cards using the Cyberismo App or the CLI. Changes are written directly to the file system as AsciiDoc and JSON files.
+. *Version control*: Users commit changes to Git, enabling collaboration, change reviews (pull requests), and history tracking.
+. *Logic program execution*: When the Cyberismo tool needs to evaluate queries, produce reports, calculate fields, check policies, or generate graphs, it generates a logic program from the project content and configuration, and invokes the Clingo ASP solver. The results are used to render reports, populate calculated fields, evaluate policy checks, and produce graph visualisations.
+. *Static site generation*: The `export site` command processes all cards and logic programs, renders AsciiDoc to HTML, and produces a self-contained static website.
+. *CI/CD automation*: In a CI/CD pipeline, the CLI can validate the project (`cyberismo validate`), run calculations, generate reports, export a static site, and publish it — all without user interaction.

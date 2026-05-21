@@ -1,0 +1,53 @@
+The `graph` macro shows a graph that visualises data using a graph model and a graph view.  
+
+To see a list of the available graph models, use the following command:
+
+  $ cyberismo show graphModels
+
+For example, the graph model `base/graphModels/workflow` creates state machines for the workflows that have been defined in the project or in the imported modules. 
+
+To see a list of the available graph views, use the following command:
+
+  $ cyberismo show graphViews
+
+The graph view `base/graphViews/workflow` selects a workflow for which a state machine diagram will be shown.
+
+== Parameters
+
+The `graph` macro supports the following parameters:
+
+* `"model"`: The model that defines the graph structure (required).
+* `"view"`: The view that defines how the graph is displayed (required).
+* `"cardKey"`: The card to use as context for the graph (optional). If not specified, the card containing this macro is used as context.
+
+Graph views may define additional view-specific parameters. For example, the workflow graph view uses a `"workflow"` parameter to specify which workflow to visualise.
+
+== Example
+
+To use a graph model and a graph view with the `graph` macro, use the following notation:
+
+
+```
+{{#raw}}
+
+{{#graph}}
+    "model": "base/graphModels/workflow",
+    "view": "base/graphViews/workflow",
+    "workflow": "base/workflows/page"
+{{/graph}}
+
+{{/raw}}
+
+```
+
+This graph macro produces the following graph:
+
+{{#graph}}
+    "model": "base/graphModels/workflow",
+    "view": "base/graphViews/workflow",
+    "workflow": "base/workflows/page"
+{{/graph}}
+
+NOTE: In the example above, the `"workflow"` parameter is a view-specific parameter defined by the workflow graph view.
+
+To learn how to define new graphs, see xref:docs_wp769ee4.adoc[Managing graph models] and xref:docs_4ha2rf9l.adoc[Managing graph views].

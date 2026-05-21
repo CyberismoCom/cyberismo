@@ -1,0 +1,12 @@
+{
+    "title": "movingCardDenied(CardKey, Message)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|c",
+    "lastUpdated": "2025-07-01T06:03:45.553Z",
+    "base/fieldTypes/briefDescription": "Moving a card under a different parent card has been denied",
+    "base/fieldTypes/category": "Denied operations",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-01T06:03:45.553Z"
+}

@@ -1,0 +1,36 @@
+== Definition of Done
+
+* All new code has been thoroughly tested via unit, BAT, and Cypress tests.
+* New and existing tests still pass.
+* Documentation has been updated, or at least a PR or JIRA ticket has been created for the documentation change.
+* New code follows the coding style^1^ and is understandable.
+* New implementation works in Linux, Mac, and Windows.
+* Pull Request completed and passed.
+* Acceptance criteria in JIRA ticket met.
+* Non-functional requirements have been considered:
+    ** Performance
+    ** Maintainability
+    ** Installation
+
+^1^ We do not have coding style documentation at the moment. For now, this means that new code looks similar to existing code.
+
+=== Special cases
+
+==== Adding new node module dependencies
+
+* New modules should be checked to be still in use by the community.
+* New module should not have open critical vulnerabilities.
+* Licence of the new module has been checked.
+
+==== Adding new (non-node module) dependencies
+
+* Architecture images and documentation have been updated.
+* Installation is possible on all supported platforms (Linux, Mac, and Windows).
+* Module has been considered to be strictly necessary.
+* CI/CD has been updated so that cyberismo and cyberismo-docs builds succeed.
+
+==== Adding new resource types to the Cyberismo application
+
+* Add support for "create", "show", and "remove" operations in the CLI.
+* New resource type needs to be supported in calculations, if feasible.
+* New resource type needs to be supported in "rename" operations.

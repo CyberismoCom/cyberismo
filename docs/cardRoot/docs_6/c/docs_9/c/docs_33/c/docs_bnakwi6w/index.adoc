@@ -1,0 +1,17 @@
+== Parameters
+
+* `Key`: An identifier of an object. For example, a card key.
+* `Field`: A name of a field
+* `Value`: The value of the field
+* `DataType`: The data type of the field. See xref:docs_25.adoc[Fields and field types] for more information
+
+== Description
+
+The `field` predicate with 4 parameters is a helper that enables a single rule in a query to define a field and its data type. This is useful, for example, in queries that define new fields of query results, for which there is no field type configuration.
+
+This predicate has been implemented with the following rules.
+
+----
+field(Key, Field, Value) :- field(Key, Field, Value, _).
+dataType(Key, Field, DataType) :- field(Key, Field, _, DataType).
+----

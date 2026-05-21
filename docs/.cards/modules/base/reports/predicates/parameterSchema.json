@@ -1,0 +1,26 @@
+{
+  "title": "Report",
+  "$id": "reportMacroDefaultSchema",
+  "description": "A report object provides supplemental information about a report",
+  "type": "object",
+  "properties": {
+    "name": {
+      "description": "The name of the report",
+      "type": "string"
+    },
+    "cardKey": {
+      "description": "Used to override the default cardKey, which is the cardKey of the card, in which the report macro is used",
+      "type": "string"
+    },
+    "category": {
+      "description": "Include only predicates that have a specific category",
+      "type": "string"
+    },
+    "orderBy": {
+      "description": "Order the results by this field. If not given, results are ordered by title",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": ["name"]
+}

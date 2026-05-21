@@ -1,0 +1,12 @@
+{
+    "title": "editingFieldDenied(CardKey, FieldName, Message)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|an",
+    "lastUpdated": "2025-07-01T06:03:38.982Z",
+    "base/fieldTypes/briefDescription": "Editing a field of a card has been denied",
+    "base/fieldTypes/category": "Denied operations",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-01T06:03:38.982Z"
+}

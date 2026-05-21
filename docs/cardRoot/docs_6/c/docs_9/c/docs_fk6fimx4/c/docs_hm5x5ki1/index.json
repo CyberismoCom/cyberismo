@@ -1,0 +1,12 @@
+{
+    "title": "@wrap(String)",
+    "cardType": "base/cardTypes/externalFunction",
+    "workflowState": "Ready",
+    "rank": "0|d",
+    "lastUpdated": "2025-07-01T05:59:34.258Z",
+    "base/fieldTypes/briefDescription": "Wraps and HTML encodes a string for usage as a title in a graph",
+    "base/fieldTypes/category": "String handling",
+    "links": [],
+    "templateCardKey": "base_nz5cw2n5",
+    "lastTransitioned": "2025-07-01T05:59:34.258Z"
+}

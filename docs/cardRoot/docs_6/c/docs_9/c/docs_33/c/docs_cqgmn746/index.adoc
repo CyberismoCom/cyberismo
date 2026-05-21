@@ -1,0 +1,7 @@
+== Parameters
+
+* `FieldName`: the name of the field that shall be included in query results
+
+== Description
+
+The `select(FieldName)` predicate declares that `FieldName` shall be included in query results on all levels of hierarchy and in all collections.

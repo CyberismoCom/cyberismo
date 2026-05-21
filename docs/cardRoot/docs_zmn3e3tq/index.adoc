@@ -1,0 +1,4 @@
+== Introduction
+
+The Cyberismo application is an open source project. The source code is available here: https://github.com/CyberismoCom/cyberismo. The repository contains documentation on how to contribute to the application.
+

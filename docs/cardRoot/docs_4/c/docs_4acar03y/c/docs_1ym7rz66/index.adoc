@@ -1,0 +1,19 @@
+The `xref` macro adds a reference to another card, which is given in the `"cardKey"` parameter.
+
+NOTE: Cyberismo has partial support for https://docs.asciidoctor.org/pdf-converter/latest/interdocument-xrefs/[AsciiDoc's built-in xref macro], but as there are some limitations, we recommend using the Cyberismo `xref` macro instead.
+
+== Example
+
+Consider the following AsciiDoc snippet:
+
+```
+{{#raw}}
+
+To give us feedback, see {{#xref}} "cardKey": "docs_i13qzif0" {{/xref}}.
+
+{{/raw}}
+```
+
+This is rendered as:
+
+To give us feedback, see {{#xref}} "cardKey": "docs_i13qzif0" {{/xref}}.

@@ -1,0 +1,12 @@
+{
+    "title": "Include macro",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Ready",
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "public",
+    "rank": "0|bn",
+    "lastUpdated": "2026-02-14T17:08:10.885Z",
+    "links": [],
+    "templateCardKey": "base_2",
+    "lastTransitioned": "2026-02-14T17:06:13.237Z"
+}

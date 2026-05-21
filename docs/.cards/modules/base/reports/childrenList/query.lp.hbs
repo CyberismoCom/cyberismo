@@ -1,0 +1,3 @@
+select("title";"rank").
+result(Card) :- card(Card), parent(Card, {{cardKey}}).
+orderBy("rank", "ASC").

@@ -1,0 +1,17 @@
+{{log "The results of Example 5:"}}
+{{log results}}
+
+{{#if results}}
+
+[cols="3,1"]
+|===
+| Card type | Usage
+
+{{#each results}}
+|{{this.key}}
+|{{this.percentage}}%
+{{/each}}
+
+|===
+
+{{/if}}

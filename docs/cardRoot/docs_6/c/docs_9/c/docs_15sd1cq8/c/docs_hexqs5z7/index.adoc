@@ -1,0 +1,10 @@
+== Parameters
+
+This predicate has a single parameter, which is a tuple `(Connector, ItemKey)`.
+
+* `Connector`: an identifier of a connector
+* `ItemKey`: an identifier of an item. Must be unique among the items of the connector
+
+== Description
+
+The parameter is a tuple that uniquely identifies an external item that originates from a connector.

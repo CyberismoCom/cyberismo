@@ -1,0 +1,7 @@
+== Parameters
+
+* `Graph`: the identifier of a graph. Typically a symbolic constant or a string
+
+== Description
+
+The parameter is a graph on the top level.

@@ -1,0 +1,41 @@
+== Introduction
+
+Cyberismo projects require some configuration to run. As an administrator of a Cyberismo project, you can either create local project-specific content configuration or import a content module. Most projects import at least the Cyberismo base module to get some basic configuration to work with.
+
+This section of the documentation discusses Cyberismo configuration concepts. All of these concepts can be used either in local project-specific configuration or in a reusable content module.
+
+The configuration of a Cyberismo project consists of the following resource types:
+
+* *Workflows* — define the states and transitions for cards (e.g. Draft → Ready → Deprecated)
+* *Field types* — define custom metadata fields such as dates, enumerations, or person fields
+* *Card types* — associate a workflow and a set of custom fields with a category of cards
+* *Link types* — define relationship types between cards (e.g. _mitigates_, _causes_)
+* *Templates* — provide reusable card structures that users can instantiate
+* *Reports* — define data queries that produce structured output for display
+* *Graph models and views* — define how to visualise card data and data from connectors as graphs
+* *Calculations* — logic programs that compute derived values, policy checks, and metrics
+
+For details on each resource type, see xref:docs_9xmt1pfn.adoc[Configuring resources]. For information on how logic programs power queries, reports, and graphs, see xref:docs_9.adoc[Queries, reasoning, and visualisations].
+
+== Cyberismo content modules
+
+A Cyberismo module is a reusable collection of templates, card types, workflows, field types, link types, reports, and logic program calculations. When a user imports a module as a dependency to their Cyberismo project, a read-only copy of the module is included in the project directory structure.
+
+The most common module is the base module, which defines some commonly used basic card types and their workflows and field types for custom fields. Before designing your own modules, you should familiarise yourself with the base module so that you are able to avoid defining new resources when an existing resource in the base module is sufficient.
+
+Technically, a module is a Cyberismo project just like any other project, but it is intended to be reused in other projects.
+
+== How to design a Cyberismo module
+
+To develop a new Cyberismo module, follow these steps:
+
+. Create a new Cyberismo project. See xref:docs_7.adoc[Creating a new project] tutorial for more information.
+. Import the base module. Avoid defining redundant configurations to the base module in your new module, unless necessary. The steps to import the base module are explained in the xref:docs_7.adoc[Creating a new project] tutorial.
+. If you need new workflows, create them first. See xref:docs_26.adoc[Managing workflows] for more information. Note that you can use the workflows from the base module if they apply to your use case.
+. If you need new types of custom fields, create and design field types. See xref:docs_25.adoc[Managing field types] for more information. Note that you can use the custom fields from the base module if they apply to your use case.
+. If you need new card types, create and design card types. A card type selects one of the available workflows and a set of custom fields. See xref:docs_27.adoc[Managing card types] for more information.
+. If you need new link types, create and design link types. See xref:docs_qp3vhh4t.adoc[Managing link types] for more information.
+. Design any new templates. See xref:docs_7n7gqu93.adoc[Managing templates] for more information.
+. Develop any new module-specific logic programs. See xref:docs_9.adoc[Queries, reasoning, and visualisations] for more information.
+. Design any new reports; see xref:docs_byr4iof0.adoc[Managing reports] for more information.
+. Design any new graph models and graph views; see xref:docs_wp769ee4.adoc[Managing graph models] and xref:docs_4ha2rf9l.adoc[Managing graph views].

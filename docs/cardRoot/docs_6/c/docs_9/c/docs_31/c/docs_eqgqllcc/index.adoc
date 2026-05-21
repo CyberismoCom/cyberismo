@@ -1,0 +1,10 @@
+## Parameters
+
+* `CardKey`: The card key of the card for which this operation has been denied
+* `FieldName`: The name of the field that cannot be edited
+* `Message`: A message that is shown to the user, if they try to edit this field
+
+
+## Description
+
+Editing the field `FieldName` of the card `CardKey` has been denied.

@@ -1,0 +1,12 @@
+{
+    "title": "editingContentDenied(CardKey, Message)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|a",
+    "lastUpdated": "2025-07-01T06:03:35.640Z",
+    "base/fieldTypes/briefDescription": "Editing the AsciiDoc content of a card has been denied",
+    "base/fieldTypes/category": "Denied operations",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-01T06:03:35.640Z"
+}

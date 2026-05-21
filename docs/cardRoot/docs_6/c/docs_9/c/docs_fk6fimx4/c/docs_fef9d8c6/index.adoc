@@ -1,0 +1,11 @@
+## Parameters
+
+* `Date`: A date or date time
+
+## Return value
+
+The number of days since `Date`.
+
+## Description
+
+The `@daysSince(Date)` external function calculates the number of days that have passed since the date `Date`.

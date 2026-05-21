@@ -1,0 +1,9 @@
+== Parameters
+
+* `Report`: the name of a report
+* `"displayName"`: the string `"displayName"` that denotes the displayName field
+* `DisplayName`: a display name of the report
+
+== Description
+
+A report has a display name.

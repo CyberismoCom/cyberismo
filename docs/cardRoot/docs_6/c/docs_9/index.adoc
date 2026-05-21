@@ -1,0 +1,15 @@
+The Cyberismo solution is based on maintaining a plain text representation of an information model. To make the information model useful, we need to be able to visualise the information, query the information to produce various reports and publications, and reason based on the information. In Cyberismo, these capabilities are based on a form of logic programming called Answer Set Programming (ASP). The Cyberismo tool can generate a logic program based on a Cyberismo project, and the configuration can include user-defined logic programs. Cyberismo integrates the clingo ASP system from the https://potassco.org/[Potassco collection].
+
+NOTE: The syntax of logic programming may seem unconventional at first, but the underlying concepts are straightforward.
+
+Logic programs are included either in the local project configuration or as part of the content modules, so that the users of Cyberismo modules do not need to be concerned about the details of how queries, reasoning, and graph visualisations have been implemented.
+
+To learn the basics of Answer Set Programming, see xref:docs_28.adoc[Introduction to Answer Set Programming].
+
+For an introduction to the Cyberismo query language, see xref:docs_33.adoc[Query language].
+
+To understand the logic program that Cyberismo generates from cards, see xref:docs_29.adoc[Mapping cards and fields to a logic program]. All the resources of Cyberismo configuration are also mapped to a logic program, and the logic program terms are introduced as part of each resource under xref:docs_9xmt1pfn.adoc[Configuring resources].
+
+{{#report}}
+  "name": "base/reports/childrenList"
+{{/report}}

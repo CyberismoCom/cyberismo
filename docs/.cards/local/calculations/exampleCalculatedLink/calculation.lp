@@ -1,0 +1,1 @@
+link(docs_mdsa98za, docs_30, "base/linkTypes/relatesTo").

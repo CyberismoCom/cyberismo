@@ -1,0 +1,21 @@
+{
+    "title": "field(Key, Field, Value, DataType)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|ap",
+    "lastUpdated": "2025-11-10T18:58:09.304Z",
+    "base/fieldTypes/briefDescription": "A field of an object has a specific value and data type",
+    "base/fieldTypes/category": "Query language",
+    "links": [
+        {
+            "linkType": "base/linkTypes/relatesTo",
+            "cardKey": "docs_aozy8cfm"
+        },
+        {
+            "linkType": "base/linkTypes/relatesTo",
+            "cardKey": "docs_8mg8p068"
+        }
+    ],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-01T09:34:20.729Z"
+}

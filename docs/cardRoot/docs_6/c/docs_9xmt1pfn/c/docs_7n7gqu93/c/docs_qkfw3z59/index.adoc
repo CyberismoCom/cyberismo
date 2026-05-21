@@ -1,0 +1,9 @@
+== Parameters
+
+* `Template`: the name of a template
+* `"description"`: the string `"description"` that denotes the description field
+* `Description`: a description of the template
+
+== Description
+
+A template has a description.

@@ -1,0 +1,48 @@
+== Docker image from Docker Hub
+
+=== Prerequisites
+
+See {{#xref}}"cardKey":"docs_17"{{/xref}} for information about common prerequisites for all installation methods.
+
+The system must have Docker or a similar container environment installed, capable of running Linux-based images. The simplest way to install a container environment is to install https://www.docker.com[Docker Desktop].
+
+=== Downloading image from Docker Hub
+
+The latest image can be downloaded with the following command:
+
+  $ docker pull cyberismo/cyberismo
+
+=== Running
+
+*Linux & macOS*
+
+To simplify running the image, you can use the following alias:
+
+  $ alias cyberismo='docker run --init --rm -it --user $(id -u):$(id -g) -e HOME=/tmp -v $(pwd):/project:Z -p 127.0.0.1:3000:3000 cyberismo/cyberismo:latest cyberismo'
+
+.Explanation of alias
+[%collapsible]
+====
+The alias command allows you to execute the configured Docker environment with a single command.
+
+Flags in command:
+
+* `--init` ensures proper signal handling and zombie process reaping in the container.
+* `--rm` removes the container automatically after it exits.
+* `-it` runs the container in interactive mode.
+* `--user` sets the container user to the same user ID as the user executing the command, preventing file ownership problems.
+* `-e HOME=/tmp` sets the HOME environment variable so tools like Antora can write to user-specific directories without permission errors.
+* `-v` maps the current execution directory to the /project directory inside the container, sharing files between host and container.
+* To support *Security-Enhanced Linux (SELinux)*, the volume mount includes the `:Z` option and uses an absolute path to the present working directory (`-v $(pwd):/project:Z`).
+* `-p` forwards the port from the container to the host machine, enabling access to the hosted web service.
+====
+
+Afterward, you can run the application using the following command:
+
+  $ cyberismo --help
+
+*Windows*
+
+The Windows environment does not support aliases like Linux and macOS do, so the command to use Docker is:
+
+  $ docker run --rm -it --user $(id -u):$(id -g) -v .:/project -p 127.0.0.1:3000:3000 cyberismo/cyberismo cyberismo --help

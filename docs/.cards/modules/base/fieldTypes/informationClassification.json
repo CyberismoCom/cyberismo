@@ -1,0 +1,20 @@
+{
+    "name": "base/fieldTypes/informationClassification",
+    "displayName": "Information classification",
+    "dataType": "enum",
+    "enumValues": [
+        {
+            "enumValue": "confidential",
+            "enumDisplayValue": "Confidential"
+        },
+        {
+            "enumValue": "internal",
+            "enumDisplayValue": "Internal"
+        },
+        {
+            "enumValue": "public",
+            "enumDisplayValue": "Public"
+        }
+    ],
+    "description": "Sensitivity level: public, internal, or confidential"
+}

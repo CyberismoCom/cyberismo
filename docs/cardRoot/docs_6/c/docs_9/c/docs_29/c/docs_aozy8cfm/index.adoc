@@ -1,0 +1,17 @@
+== Parameters
+
+* `Key`: an object, such as a card
+* `Field`: a fiel of the object `Key`
+* `DataType`: the data type of the field `Field` of `Key`
+
+== Description
+
+The `dataType` predicate declares that a field of an object has a specific data type. For a list of available data types, see {{#xref}}"cardKey":"docs_25"{{/xref}}.
+
+When you define values of fields with facts or rules using {{#xref}}"cardKey":"docs_8mg8p068"{{/xref}}, the logic program also needs to include information about the data type of the field. If the field is a calculated field of a card, where the field is defined with a field type configuration and included in the card type, then the data type is available automatically from the field type.
+
+However, if the field is not associated with a field type configuration, for example because it is a temporary calculated field of a query result, then you need to define a data type for the field using the `dataType` predicate. In queries, you can alternatively use the {{#xref}}"cardKey":"docs_bnakwi6w"{{/xref}} predicate.
+
+
+
+

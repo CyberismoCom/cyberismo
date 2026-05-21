@@ -1,0 +1,5 @@
+Whether viewing or editing a card, you can change a card's status using the *Status* menu on the app toolbar:
+
+image::cyberismo-change-card-status.png[]
+
+NOTE: The workflow states for Cyberismo data types are entirely configurable. See {{#xref}}"cardKey":"docs_26"{{/xref}} for more information.

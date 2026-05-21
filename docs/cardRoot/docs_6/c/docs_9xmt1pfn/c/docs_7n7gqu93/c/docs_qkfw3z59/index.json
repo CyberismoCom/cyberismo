@@ -1,0 +1,12 @@
+{
+    "title": "field(Template, \"description\", Description)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|c",
+    "lastUpdated": "2025-07-07T18:48:40.063Z",
+    "base/fieldTypes/briefDescription": "Defines a description for a template",
+    "base/fieldTypes/category": "Templates",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-07T18:48:40.063Z"
+}

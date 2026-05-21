@@ -1,0 +1,12 @@
+{
+    "title": "Managing links between cards",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Ready",
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "public",
+    "rank": "0|d",
+    "lastUpdated": "2026-02-14T19:41:57.985Z",
+    "links": [],
+    "templateCardKey": "base_2",
+    "lastTransitioned": "2026-02-14T17:44:49.993Z"
+}

@@ -1,0 +1,10 @@
+== Parameters
+
+* `FieldType`: the name of a field type
+* `EnumValue`: the name of an enum value.
+* `"index"`: a string that denotes the index or the ordinal number of an enum value
+* `Index`: an integer ordinal number that defines the position of this enum value in the drop down list of this field type
+
+== Description
+
+Defines the index or the ordinal number of an enum value for positioning the enum value in the drop down list of the user interface, and when ordering query results by this field.

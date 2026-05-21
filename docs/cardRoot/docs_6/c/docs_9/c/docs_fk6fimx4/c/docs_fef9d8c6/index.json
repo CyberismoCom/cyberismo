@@ -1,0 +1,12 @@
+{
+    "title": "@daysSince(Date)",
+    "cardType": "base/cardTypes/externalFunction",
+    "workflowState": "Ready",
+    "rank": "0|a",
+    "lastUpdated": "2025-07-01T05:59:23.430Z",
+    "base/fieldTypes/briefDescription": "Calculates the number of days between a date and today's date.",
+    "base/fieldTypes/category": "Time and date",
+    "links": [],
+    "templateCardKey": "base_nz5cw2n5",
+    "lastTransitioned": "2025-07-01T05:59:23.430Z"
+}

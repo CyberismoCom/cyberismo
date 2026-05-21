@@ -1,0 +1,12 @@
+{
+    "title": "Hiding cards in the navigation tree",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Ready",
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "public",
+    "rank": "0|n",
+    "lastUpdated": "2026-02-14T17:08:22.414Z",
+    "links": [],
+    "templateCardKey": "base_2",
+    "lastTransitioned": "2025-07-01T14:29:15.382Z"
+}

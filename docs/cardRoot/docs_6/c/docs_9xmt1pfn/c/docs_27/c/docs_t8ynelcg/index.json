@@ -1,0 +1,12 @@
+{
+    "title": "calculatedField(CardType, FieldType)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|dn",
+    "lastUpdated": "2025-07-07T19:25:51.258Z",
+    "base/fieldTypes/briefDescription": "A field type is a calculated field in the context of a card type",
+    "base/fieldTypes/category": "Card types",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-07T19:25:00.465Z"
+}

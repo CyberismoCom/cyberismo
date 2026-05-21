@@ -1,0 +1,91 @@
+name: Build and Export Cyberismo Site
+
+on:
+  push:
+    branches:
+      - main
+      - feature/*
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x]
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    permissions:
+      contents: read
+      packages: write
+      pages: write
+      id-token: write
+
+    concurrency:
+      group: "pages"
+      cancel-in-progress: false
+
+    defaults:
+      run:
+        shell: bash -el {0}
+
+    steps:
+      - name: Checkout cyberismo-docs repository
+        uses: actions/checkout@v4
+        with:
+          repository: CyberismoCom/cyberismo-docs
+          path: cyberismo-docs
+
+      - name: Clone cyberismo repository
+        uses: actions/checkout@v4
+        with:
+          repository: CyberismoCom/cyberismo
+          path: cyberismo
+          ref: main
+
+      - name: Install clingo
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gringo
+
+      - name: Check Clingo Availability
+        run: which clingo
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install the Cyberismo application
+        run: |
+          cd cyberismo
+          pnpm install
+          pnpm build
+          pnpm link -g
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Export the site
+        run: |
+          cyberismo export site -p cyberismo-docs build/site
+          touch build/site/.nojekyll
+          find build/site
+          cp cyberismo-docs/.github/404.html build/site/404.html
+
+      - name: Upload artifacts
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

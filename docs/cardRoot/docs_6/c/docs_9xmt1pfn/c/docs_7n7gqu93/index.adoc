@@ -1,0 +1,142 @@
+== Introduction
+
+A template contains a card or a set of cards in a directory hierarchy that is used as a template for new user content. When the user creates a new card or a set of cards from a template, a new copy of the template card(s) is made with new unique card key(s). Note that cards in a template may form a deep hierarchy, enabling the definition of complex templates with multiple cards, such as a template for a software project.
+
+== Prerequisites
+
+Because a template consists of cards, you must define the required card types before you can define a template.
+
+== Managing templates using the configuration editor
+
+Use the *configuration editor* to manage templates.
+
+=== Creating a template
+
+To create a new template:
+
+1. Open the **configuration editor** in the Cyberismo app by setting the path part of the URL to `/configuration`.
+2. Select **Templates** from the tree menu on the left, or use the **New Resource** menu in the toolbar.
+3. Click **Create new** on the Templates overview page.
+4. Enter an identifier for the new template and confirm.
+
+The new template will be created and the editor will open.
+
+When choosing a name for your template, see xref:docs_8.adoc[Naming conventions].
+
+=== Editing template metadata
+
+In the template editor, you can edit the following properties:
+
+* **Identifier**: The technical name of the template. Renaming is supported.
+* **Display name**: The name shown to users when creating new cards (e.g., "Decision").
+* **Description**: A description of the template (e.g., "A decision is a choice between two or more options.").
+
+Each field has individual save and cancel buttons that appear when you make changes.
+
+=== Adding cards to a template
+
+You can add cards to a template using the configuration editor:
+
+1. In the tree menu, expand the template to see its card hierarchy.
+2. Use the **New Resource** menu or right-click on the template to add a new card.
+3. Select the card type for the new template card.
+
+Template cards can be arranged in a hierarchy by adding child cards to existing template cards.
+
+=== Editing template cards
+
+Template cards can be edited directly in the configuration editor. When you select a template card in the tree menu, the card editor opens, allowing you to edit both the card content (AsciiDoc) and card metadata (title, fields, etc.) just as you would edit any regular card.
+
+=== Deleting a template
+
+To delete a template, open it in the editor and use the context menu (three-dot button) in the toolbar to select **Delete Resource**.
+
+== Managing templates using the command-line tool
+
+You can also manage templates using the Cyberismo command-line tool.
+
+=== Showing available templates
+
+To see a list of the available templates, use the following command:
+
+  $ cyberismo show templates
+
+The names of templates are of the format `_module_/templates/_template_`, for example `base/templates/decision`.
+
+=== Creating a new template
+
+To see the help for how to create a template, use the following command:
+
+  $ cyberismo create template --help
+
+To create a new template, for example `myTemplate`, use the following command:
+
+  $ cyberismo create template myTemplate
+
+Cyberismo will create a new directory called `.cards/local/templates/myTemplate/`. The directory will contain a file called `template.json`. If the card prefix of your Cyberismo project is `example`, then the full name of the new template will be `example/templates/myTemplate`.
+
+=== Adding cards to a template using the command-line tool
+
+To see the help for how to add a card to a template, use the following command:
+
+  $ cyberismo add --help
+
+A template may contain several cards, which can be arranged in a hierarchy. It is also possible to add several cards on the top level of the template.
+
+To add a new card of the card type `example/cardTypes/myCardType` on the top level of the template `example/templates/myTemplate`, use the following command:
+
+  $ cyberismo add example/templates/myTemplate example/cardTypes/myCardType
+
+If the template `example/templates/myTemplate` contains a card with the card key `example_d9rj4nab`, then you can add a new card of the type `base/cardTypes/decision` as a child of `example_d9rj4nab` with the following command:
+
+  $ cyberismo add example/templates/myTemplate base/cardTypes/decision example_d9rj4nab
+
+=== Changing the rank of template cards
+
+The rank of cards determines the order in which the cards at the same level of hierarchy will be shown in the Cyberismo app and in exported documentation sites. When users make instances of a template, the instantiated cards will have the same order as the cards in the original template.
+
+To change the rank of a card in a template, use the `cyberismo rank` command. You can see the help for this command by typing:
+
+  $ cyberismo rank --help
+
+== Template file format
+
+The `template.json` file contains basic information about the template, which will be shown to the user when the user is creating new cards. The file follows the https://github.com/CyberismoCom/cyberismo/blob/main/tools/assets/src/schema/resources/templateSchema.json[template schema].
+
+NOTE: Do not edit the JSON files directly. The configuration editor provides a graphical interface for managing template properties and cards.
+
+.The properties of a `template.json` file
+|===
+|Property|Type|Description|Required
+
+|**name**
+|`string`
+|The technical name of the template
+| No
+
+|**displayName**
+|`string`
+|The name of the template as it should be displayed in the user interface. For example, 'Decision'.
+| No
+
+|**description**
+|`string`
+|A description of the template. For example, 'A decision is a choice between two or more options.'.
+| No
+
+|**category**
+|`string`
+| The category of the template. For example, 'Decision'.
+| No
+
+|===
+
+== Mapping to a logic program
+
+Templates are mapped to logic program facts using the following function terms:
+
+{{#report}}
+    "name": "base/reports/predicates",
+    "category": "Templates",
+    "orderBy": "rank"
+{{/report}}

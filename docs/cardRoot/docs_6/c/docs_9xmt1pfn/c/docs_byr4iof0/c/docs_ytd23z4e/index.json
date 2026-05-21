@@ -1,0 +1,12 @@
+{
+    "title": "field(Report, \"category\", Category)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|e",
+    "lastUpdated": "2025-07-07T18:57:27.710Z",
+    "base/fieldTypes/briefDescription": "Defines the category of a report",
+    "base/fieldTypes/category": "Reports",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-07T18:57:27.710Z"
+}

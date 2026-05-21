@@ -1,0 +1,46 @@
+== Introduction
+
+Cyberismo content modules and projects may define their own logic programs by defining calculation resources. The logic programs in the calculation resources are automatically included as part of the Cyberismo main logic program.
+
+== Managing calculations using the configuration editor
+
+Use the configuration editor to manage calculations.
+
+=== Creating a calculation
+
+To create a new calculation:
+
+1. Open the **configuration editor** in the Cyberismo app by setting the path part of the URL to `/configuration`.
+2. Select **Calculations** from the tree menu on the left, or use the **New Resource** menu in the toolbar.
+3. Click **Create new** on the Calculations overview page.
+4. Enter an identifier for the new calculation and confirm.
+
+The new calculation will be created and the editor will open.
+
+=== Editing a calculation
+
+In the calculation editor, you can edit the following metadata properties:
+
+* **Identifier**: The technical name of the calculation. Renaming is supported.
+* **Display name**: The name shown in user interfaces.
+* **Description**: A description of the calculation.
+
+The logic program can be edited using the built-in text editor. In the tree menu, expand the calculation to see its files and click on the logic program file to open it.
+
+=== Deleting a calculation
+
+To delete a calculation, open it in the editor and use the context menu (three-dot button) in the toolbar to select **Delete Resource**.
+
+== Use cases for calculations
+
+Use a logic program to implement the following use cases:
+
+* xref:docs_30.adoc[Calculated fields]
+* xref:docs_mdsa98za.adoc[Calculated links]
+* xref:docs_e8165l0x.adoc[Hiding cards in the navigation tree]
+* xref:docs_o0e06g1d.adoc[Showing progress metric in the navigation tree]
+* xref:docs_7927l1u5.adoc[Controlling the status indicator in the navigation tree]
+* xref:docs_31.adoc[Denying operations]
+* xref:docs_32.adoc[Automated policy checks]
+* xref:docs_4nd9wctm.adoc[Notifications]
+* xref:docs_9pl4td1v.adoc[Side effects of operations]

@@ -1,0 +1,12 @@
+{
+    "title": "@concatenate(...)",
+    "cardType": "base/cardTypes/externalFunction",
+    "workflowState": "Ready",
+    "rank": "0|e",
+    "lastUpdated": "2025-07-01T05:59:30.982Z",
+    "base/fieldTypes/briefDescription": "Concatenates arguments",
+    "base/fieldTypes/category": "String handling",
+    "links": [],
+    "templateCardKey": "base_nz5cw2n5",
+    "lastTransitioned": "2025-07-01T05:59:30.982Z"
+}

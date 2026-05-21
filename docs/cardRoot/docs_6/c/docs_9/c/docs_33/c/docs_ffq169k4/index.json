@@ -1,0 +1,12 @@
+{
+    "title": "childObject(Key, Child, Property)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|a",
+    "lastUpdated": "2025-07-01T09:26:55.783Z",
+    "base/fieldTypes/briefDescription": "A query result has a property that is an object",
+    "base/fieldTypes/category": "Query language",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-01T09:22:14.613Z"
+}

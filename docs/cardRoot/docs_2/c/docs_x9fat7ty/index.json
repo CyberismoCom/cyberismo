@@ -1,0 +1,11 @@
+{
+    "title": "Change the card status",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Ready",
+    "rank": "0|c",
+    "lastUpdated": "2026-02-14T20:03:50.282Z",
+    "lastTransitioned": "2024-10-21T10:44:18.692Z",
+    "links": [],
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "public"
+}

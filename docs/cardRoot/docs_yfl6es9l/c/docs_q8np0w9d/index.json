@@ -1,0 +1,11 @@
+{
+    "title": "Setup",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Draft",
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "internal",
+    "rank": "0|a",
+    "lastUpdated": "2026-03-24T10:26:04.109Z",
+    "links": [],
+    "templateCardKey": "base_2"
+}

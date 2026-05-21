@@ -1,0 +1,22 @@
+{
+    "name": "base/cardTypes/roleAssignment",
+    "workflow": "base/workflows/roleAssignment",
+    "customFields": [
+        {
+            "name": "base/fieldTypes/owner",
+            "isCalculated": false
+        },
+        {
+            "name": "base/fieldTypes/informationClassification",
+            "isCalculated": false
+        }
+    ],
+    "alwaysVisibleFields": [
+        "base/fieldTypes/owner"
+    ],
+    "optionallyVisibleFields": [
+        "base/fieldTypes/informationClassification"
+    ],
+    "displayName": "Role assignment",
+    "description": "Assigns a person to a specific role"
+}

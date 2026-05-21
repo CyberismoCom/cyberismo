@@ -1,0 +1,27 @@
+{
+    "name": "base/cardTypes/decision",
+    "workflow": "base/workflows/decision",
+    "customFields": [
+        {
+            "name": "base/fieldTypes/owner",
+            "isCalculated": false
+        },
+        {
+            "name": "base/fieldTypes/informationClassification",
+            "isCalculated": false
+        },
+        {
+            "name": "base/fieldTypes/decisionDate",
+            "isCalculated": false
+        }
+    ],
+    "alwaysVisibleFields": [
+        "base/fieldTypes/owner",
+        "base/fieldTypes/decisionDate"
+    ],
+    "optionallyVisibleFields": [
+        "base/fieldTypes/informationClassification"
+    ],
+    "displayName": "Decision",
+    "description": "Records a decision and its rationale"
+}

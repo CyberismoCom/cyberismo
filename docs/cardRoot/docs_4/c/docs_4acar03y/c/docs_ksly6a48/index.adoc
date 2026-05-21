@@ -1,0 +1,38 @@
+The `percentage` macro shows a percentage value, such as a key performance indicator. 
+
+== Parameters
+
+* `"title"`: Title text on top of the widget.
+* `"value"`: Percentage value (0-100).
+* `"legend"`: Description text shown below the value.
+* `"colour"`: The colour of the progress arc (optional). One of `"blue"`, `"green"`, `"yellow"`, `"red"`, `"orange"`, or `"purple"`.
+
+== Example
+
+For example, consider the following macro:
+
+```
+{{#raw}}
+
+{{#percentage}}
+    "title": "Risk management completed",
+    "value": 85,
+    "legend": "of Assets",
+    "colour": "red"
+{{/percentage}}
+
+{{/raw}}
+```
+
+The macro is rendered as follows.
+
+{{#percentage}}
+    "title": "Risk management completed",
+    "value": 85,
+    "legend": "of Assets",
+    "colour": "red"
+{{/percentage}}
+
+
+TIP: To show calculated values dynamically, you can use the `percentage` macro within a report template.
+

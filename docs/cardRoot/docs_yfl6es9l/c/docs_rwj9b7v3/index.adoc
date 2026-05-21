@@ -1,0 +1,19 @@
+Resources are read-only data endpoints accessible via `ReadMcpResourceTool`. All return `application/json`.
+
+[cols="1,1,3", options="header"]
+|===
+| URI | Name | Description
+| `cyberismo:///project` | project | Project information and settings
+| `cyberismo:///cards` | cards | Full card tree with hierarchy
+| `cyberismo:///card-types` | card-types | All card type definitions
+| `cyberismo:///workflows` | workflows | All workflow definitions
+| `cyberismo:///templates` | templates | All template definitions
+| `cyberismo:///calculations` | calculations | All calculation definitions
+| `cyberismo:///field-types` | field-types | All field type definitions
+| `cyberismo:///graph-models` | graph-models | All graph model definitions
+| `cyberismo:///graph-views` | graph-views | All graph view definitions
+| `cyberismo:///link-types` | link-types | All link type definitions
+| `cyberismo:///reports` | reports | All report definitions
+|===
+
+Resources provide a snapshot of current project state. For live operations or mutations, use the tools described in the Tools section.

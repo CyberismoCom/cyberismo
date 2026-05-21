@@ -1,0 +1,12 @@
+{
+    "title": "enumValue(FieldType, EnumValue)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|g",
+    "lastUpdated": "2025-07-07T19:36:58.307Z",
+    "base/fieldTypes/briefDescription": "A field type of the type enum or list has an enum value",
+    "base/fieldTypes/category": "Field types",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-07T19:36:58.307Z"
+}

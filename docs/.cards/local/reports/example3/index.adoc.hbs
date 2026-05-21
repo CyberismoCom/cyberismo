@@ -1,0 +1,15 @@
+{{log "The results of Example 3:"}}
+
+{{#each results}}
+{{log this}}
+* {{this.title}}
+{{#if this.child}}
+** {{this.title}} has a child object {{this.child.title}}
+{{/if}}
+{{#if this.children}}
+** {{this.title}} has an array of children:
+{{#each this.children}}
+*** {{this.title}}
+{{/each}}
+{{/if}}
+{{/each}}

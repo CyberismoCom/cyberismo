@@ -1,0 +1,12 @@
+{
+    "title": "field(FieldType, \"dataType\", DataType)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|f",
+    "lastUpdated": "2025-07-07T19:34:37.300Z",
+    "base/fieldTypes/briefDescription": "Defines the data type of a field type",
+    "base/fieldTypes/category": "Field types",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-07T19:34:37.300Z"
+}

@@ -1,0 +1,179 @@
+== Introduction
+
+The configuration of a graph consists of a graph model and a graph view, allowing several different graph views to be created based on a single graph model.
+
+See xref:docs_hbskjelr.adoc[Implementing graphs] for a longer introduction to graphs.
+
+== Prerequisites
+
+Before defining a graph view, you must define a graph model or use an existing graph model.
+
+== Managing graph views using the configuration editor
+
+Use the configuration editor to manage graph views.
+
+=== Creating a graph view
+
+To create a new graph view:
+
+1. Open the **configuration editor** in the Cyberismo app by setting the path part of the URL to `/configuration`.
+2. Select **Graph Views** from the tree menu on the left, or use the **New Resource** menu in the toolbar.
+3. Click **Create new** on the Graph Views overview page.
+4. Enter an identifier for the new graph view and confirm.
+
+The new graph view will be created with default files and the editor will open.
+
+When choosing a name for your graph view, see xref:docs_8.adoc[Naming conventions].
+
+=== Editing graph view metadata
+
+In the graph view editor, you can edit the following properties:
+
+* **Identifier**: The technical name of the graph view. Renaming is supported.
+* **Display name**: The name shown in user interfaces (e.g., "Workflow").
+* **Description**: A description of the graph view (e.g., "A diagram of the state machine of a workflow").
+* **Category**: The category of the graph view (e.g., "General").
+
+Each field has individual save and cancel buttons that appear when you make changes.
+
+=== Editing graph view files
+
+A graph view consists of several files that can be edited using the built-in text editor in the configuration editor. In the tree menu, expand the graph view to see its files:
+
+* **View template** (`view.lp.hbs`): The Handlebars template for the graph view logic program.
+* **Parameter schema** (`parameterSchema.json`): The JSON schema for validating graph macro parameters.
+
+Click on any file in the tree to open it in the text editor with syntax highlighting.
+
+=== Deleting a graph view
+
+To delete a graph view, open it in the editor and use the context menu (three-dot button) in the toolbar to select **Delete Resource**.
+
+== Managing graph views using the command-line tool
+
+You can also manage graph views using the Cyberismo command-line tool.
+
+To see a list of the available graph views, use the following command:
+
+  $ cyberismo show graphViews
+
+To see the help for how to create a graph view, use the following command:
+
+  $ cyberismo create graphView --help
+
+To create a new graph view, for example `myGraphView`, use the following command:
+
+  $ cyberismo create graphView myGraphView
+
+Cyberismo will create the following files:
+
+* Graph view metadata file `.cards/local/graphViews/myGraphView.json`
+* Directory `.cards/local/graphViews/myGraphView/`
+* View file `.cards/local/graphViews/myGraphView/view.lp.hbs`
+
+If the card prefix of your Cyberismo project is `example`, then the full name of the new graph view will be `example/graphViews/myGraphView`.
+
+== Graph view JSON file format
+
+Basic metadata for a graph view is defined in a JSON file that follows the https://github.com/CyberismoCom/cyberismo/blob/main/tools/assets/src/schema/resources/graphViewSchema.json[graph view schema], as described in the following table.
+
+NOTE: Do not edit the JSON files directly. The configuration editor provides a graphical interface for managing graph view metadata and a built-in text editor for the view and parameter schema files.
+
+.The properties of a graph view JSON file
+|===
+|Property|Type|Description|Required
+
+|**name**
+|`string`
+|The technical name of the graph view
+| &#10003; Yes
+
+|**displayName**
+|`string`
+|The name of the graph view as it should be displayed in the user interface. For example, 'Workflow'.
+| &#10003; Yes
+
+|**description**
+|`string`
+|A description of the graph view. For example, "A diagram of the state machine of a workflow".
+| No
+
+|**category**
+|`string`
+| The category of the graph view. For example, 'General'.
+| &#10003; Yes
+
+|===
+
+Additional properties are not allowed.
+
+== Graph macro parameter schema
+
+The parameter schema file `parameterSchema.json` defines a https://json-schema.org/[JSON schema] for the graph macro parameters.
+
+NOTE: If your graph view does not require custom parameters to the graph macro, then you can leave this file as it is by default. You only need to edit this file if your graph view takes additional parameters.
+
+The graph macro that can be included in card contents has the following format. In this case, the `workflow` parameter is an additional, graph-specific parameter.
+
+```
+{{#raw}}
+
+{{#graph}}
+    "model": "base/graphModels/workflow",
+    "view": "base/graphViews/workflow", 
+    "workflow": "base/workflows/page"
+{{/graph}}
+
+{{/raw}}
+
+```
+
+The parameters that are enclosed within the graph macro form technically a JSON object, even though the leading `{` and trailing `}` characters have been omitted for improved readability. Cyberismo validates the parameters of the graph macro using JSON schema validation.
+
+The card key of the card in which the macro was included is always included in the `cardKey` property of the parameters object. The user can override this by setting a `cardKey` property to some other card key.
+
+Sometimes, it is useful to define additional parameters for a graph view. In the example above, the workflow graph is rendered only for the given workflow. In these cases, you need to edit the `parameterSchema.json` file and add a definition of your additional parameters.
+
+For example, the following parameters schema defines the parameters for a graph view that requires the `workflow` parameter to contain a string. The `model`, `view`, and `cardKey` parameters are included in the parameterSchema.json file by default:
+
+----
+{
+  "title": "Graph view",
+  "$id": "workflowGraphViewSchema",
+  "description": "Parameters for the workflow graph view",
+  "type": "object",
+  "properties": {
+    "model": {
+      "description": "The name of the graph model",
+      "type": "string"
+    },
+    "view": {
+      "description": "The name of the graph view",
+      "type": "string"
+    },
+    "cardKey": {
+      "description": "Used to override the default cardKey, which is the cardKey of the card, in which the report macro is used",
+      "type": "string"
+    },
+    "workflow": {
+      "description": "The name of the workflow for which a graph will be generated",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": ["model", "view", "workflow"]
+----
+
+
+== Graph view implementation
+
+The graph view implementation is a Handlebars template for a logic program. When a graph macro is rendered, Cyberismo first runs Handlebars on the graph view, using the parameters of the graph macro as the Handlebars context. This allows the view to be customised, for example, based on the card that included the graph macro or based on parameters that were given to the graph macro.
+
+After running Handlebars on the view, Cyberismo combines the graph model and the graph view with the global Cyberismo logic program to produce a Clingraph-like description of a graph based on your data.
+
+There is no strict rule for what a graph view implementation should include, as this depends on how the model has been implemented.
+
+
+== Mapping to a logic program
+
+Cyberismo does not currently generate logic program facts for graph views.

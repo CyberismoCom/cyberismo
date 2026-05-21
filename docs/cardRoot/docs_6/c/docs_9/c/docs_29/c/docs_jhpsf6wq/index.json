@@ -1,0 +1,12 @@
+{
+    "title": "projectCard(CardKey)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|i",
+    "lastUpdated": "2025-07-01T14:38:55.796Z",
+    "base/fieldTypes/briefDescription": "The parameter is a card in the local project",
+    "base/fieldTypes/category": "Cards",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-01T14:36:50.010Z"
+}

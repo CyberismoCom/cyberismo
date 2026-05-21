@@ -1,0 +1,43 @@
+== Prerequisites
+
+Before installing Cyberismo using one of the supported installation methods, install the following prerequisites.
+
+=== Git
+
+Install Git. While Cyberismo does not directly depend on Git, you will need it to manage Cyberismo content, such as when installing Cyberismo modules. See https://git-scm.com/book/en/v2/Getting-Started-Installing-Git[Git installation guide].
+
+=== Asciidoctor PDF (optional, for PDF export)
+
+Install Asciidoctor PDF, if you need to export content as PDF.
+
+NOTE: If you are using Docker or Podman to run Cyberismo, you do not need to install Asciidoctor PDF.
+
+==== Installing Asciidoctor PDF on macOS
+
+  $ brew install ruby && gem install --no-document asciidoctor-pdf rouge
+
+==== Installing Asciidoctor PDF on Ubuntu/Debian
+
+  $ sudo apt-get install -y ruby-full build-essential && sudo gem install --no-document asciidoctor-pdf rouge
+
+==== Installing Asciidoctor PDF on Windows
+
+See https://www.ruby-lang.org/en/documentation/installation/ and run:
+
+  $ gem install --no-document asciidoctor-pdf rouge
+
+==== Verifying Asciidoctor PDF installation
+
+To verify the installation, run:
+
+  $ asciidoctor-pdf -v
+
+== Cyberismo installation options
+
+Several installation methods are available, depending on your operating system or preferred platform:
+
+{{#report}}
+  "name": "base/reports/childrenList"
+{{/report}}
+
+Select your platform from the list above to view detailed installation instructions.

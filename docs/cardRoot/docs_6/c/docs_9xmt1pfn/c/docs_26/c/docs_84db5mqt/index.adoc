@@ -1,0 +1,9 @@
+== Parameters
+
+* `Workflow`: the name of a workflow
+* `State`: the name of a workflow state
+* `WorkflowStateCategory`: the category of the workflow state, one of `initial`, `active`, or `closed`
+
+== Description
+
+`State` is a workflow state of `Workflow` and it belongs to `WorkflowStateGategory`.

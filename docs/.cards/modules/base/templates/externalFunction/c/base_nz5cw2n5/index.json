@@ -1,0 +1,9 @@
+{
+    "title": "@externalFunction(Parameter1, Parameter2)",
+    "cardType": "base/cardTypes/externalFunction",
+    "workflowState": "",
+    "rank": "0|b",
+    "lastUpdated": "2025-06-30T09:38:16.530Z",
+    "base/fieldTypes/briefDescription": null,
+    "base/fieldTypes/category": null
+}

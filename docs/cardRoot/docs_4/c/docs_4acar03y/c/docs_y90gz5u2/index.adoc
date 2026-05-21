@@ -1,0 +1,36 @@
+The `scoreCard` macro shows a key performance indicator or another metric value as a scorecard. 
+
+== Parameters
+
+* `"title"`: Title text on top of the scorecard (optional).
+* `"value"`: The main value shown in the centre.
+* `"unit"`: A unit shown after the value (optional).
+* `"legend"`: Description text shown below the value (optional).
+
+== Example
+
+For example, consider the following macro:
+
+```
+{{#raw}}
+
+{{#scoreCard}}
+    "title": "Security control adoption",
+    "value": 30,
+    "unit": "%",
+    "legend": "In progress"
+{{/scoreCard}}
+
+{{/raw}}
+```
+
+The macro is rendered as the following scorecard.
+
+{{#scoreCard}}
+    "title": "Security control adoption",
+    "value": 30,
+    "unit": "%",
+    "legend": "In progress"
+{{/scoreCard}}
+
+TIP: To show calculated values dynamically, you can use the `scoreCard` macro within a report template.

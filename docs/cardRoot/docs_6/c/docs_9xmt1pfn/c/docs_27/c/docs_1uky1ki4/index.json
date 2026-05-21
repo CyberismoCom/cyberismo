@@ -1,0 +1,12 @@
+{
+    "title": "field((CardType, FieldType), \"displayName\", DisplayName)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|e",
+    "lastUpdated": "2025-07-07T19:03:31.665Z",
+    "base/fieldTypes/briefDescription": "Defines the display name of a custom field for a card type",
+    "base/fieldTypes/category": "Card types",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-07T19:03:31.665Z"
+}

@@ -1,0 +1,12 @@
+{
+    "title": "hiddenInTreeView(CardKey)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|b",
+    "lastUpdated": "2025-07-10T09:58:20.480Z",
+    "base/fieldTypes/briefDescription": "A card is not included in the navigation tree",
+    "base/fieldTypes/category": "User interface",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-01T14:30:57.412Z"
+}

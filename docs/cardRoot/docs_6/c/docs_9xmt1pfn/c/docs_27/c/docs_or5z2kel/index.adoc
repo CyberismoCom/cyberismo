@@ -1,0 +1,8 @@
+== Parameters
+
+* `CardType`: the name of a card type
+* `FieldType`: the name of a field type
+
+== Description
+
+Defines that `FieldType` is a custom field of `CardType`.

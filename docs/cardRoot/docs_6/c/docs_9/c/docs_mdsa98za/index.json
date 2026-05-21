@@ -1,0 +1,12 @@
+{
+    "title": "Calculated links",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Ready",
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "public",
+    "rank": "0|mn",
+    "lastUpdated": "2026-02-14T17:08:22.444Z",
+    "links": [],
+    "templateCardKey": "base_2",
+    "lastTransitioned": "2025-07-01T12:03:19.258Z"
+}

@@ -1,0 +1,12 @@
+{
+    "title": "edge(Edge)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|d",
+    "lastUpdated": "2025-07-09T13:51:54.062Z",
+    "base/fieldTypes/briefDescription": "The parameter is an edge in the default graph",
+    "base/fieldTypes/category": "Graph implementation",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-09T13:51:54.062Z"
+}

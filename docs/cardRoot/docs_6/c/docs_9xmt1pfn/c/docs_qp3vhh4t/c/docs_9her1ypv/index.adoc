@@ -1,0 +1,9 @@
+== Parameters
+
+* `LinkType`: the name of a link type
+* `"outboundDisplayName"`: a string that denotes the outbound displayname field
+* `OutboundDisplayName`: the outbound displayname of a link type. The outbound display name is the name of the link from the point of view of the source card.
+
+== Description
+
+Defines the outbound display name of a link type.

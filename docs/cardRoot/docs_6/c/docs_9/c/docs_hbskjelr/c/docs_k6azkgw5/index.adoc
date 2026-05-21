@@ -1,0 +1,10 @@
+== Parameters
+
+* `ElementType`: either `graph`, `node`, or `edge`
+* `Element`: the identifier of a graph, node, or an edge
+* `Attribute`: The name of a Graphviz attribute
+* `Value`: the value of a Graphviz attribute 
+
+== Description
+
+Graphviz supports a number of attributes for graphs, nodes, and edges, which can be set using the `attr` function term. Please find the documentation for Graphviz attributes https://graphviz.org/doc/info/attrs.html[here].

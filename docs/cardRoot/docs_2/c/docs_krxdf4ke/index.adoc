@@ -1,0 +1,68 @@
+:sectnums:
+
+== Introduction
+
+This tutorial shows how to install the Cyberismo secure development essentials module. The module contains configuration for getting started with secure development.
+
+This module includes a threat modelling tool that enables the modelling of processes, data stores, trust boundaries, external entities, users, and data flows.
+
+
+== Prerequisites
+
+xref:docs_13.adoc[Install Cyberismo].
+
+== Create a project
+
+Create a new project called, for example, "Secure development tutorial" that has the card key prefix `mysecdev` in the directory `secdev-tutorial` with the following command:
+
+[source,console]
+----
+$ cyberismo create project "Secure development tutorial" mysecdev secdev-tutorial
+----
+
+== Select modules for your new project
+
+When you create a new project, Cyberismo prompts you whether you want to import some of the available content modules from the Cyberismo module hub. Select at least the secure development essentials module.
+
+After pressing Enter, wait for the import to complete.
+
+[source,console]
+----
+$ cyberismo create project 'Secure development tutorial' mysecdev secdev-tutorial
+? Select modules to import (Press <space> to select, <a> to toggle all, <i> to invert selection, and <enter> to proceed)
+❯◉ Base module
+ ◯ Cyberismo EU Cyber Resilience Act
+ ◉ ISMS Essentials
+ ◉ Secure development essentials
+----
+
+== Start the Cyberismo app
+
+Change to the `secdev-tutorial` directory:
+
+[source,console]
+----
+$ cd secdev-tutorial
+----
+
+Continue using the Cyberismo secure development essentials module with the Cyberismo app. To start the app, execute the following command:
+
+[source,console]
+----
+$ cyberismo app
+----
+
+Then open a browser and navigate to http://localhost:3000/.
+
+== Create and explore your secure development workspace
+
+Using the Cyberismo app, click *Create* at the top right. You will see a list of available content templates. Type "Start" in the search box, select *Development project*, and click *Create*.
+
+video::1070274454/d4a3a2b5a4[vimeo]
+
+You are now ready to explore your new secure development workspace. Consider trying the following:
+
+* Expand the navigation tree on the left to see the structure of the documentation.
+* See progress key performance indicators both in the navigation tree and on the home page.
+* You can find a more detailed report of the current status in *Periodic reviews*.
+* Select *Design* / *Manage threat models* and follow the instructions to get started with threat modelling. There is xref:docs_8mywsysm.adoc[another tutorial about threat modelling].

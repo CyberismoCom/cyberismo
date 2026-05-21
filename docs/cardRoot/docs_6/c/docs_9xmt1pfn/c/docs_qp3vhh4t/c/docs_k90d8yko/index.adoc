@@ -1,0 +1,9 @@
+== Parameters
+
+* `LinkType`: the name of a link type
+* `"inboundDisplayName"`: a string that denotes the inbound displayname field
+* `InboundDisplayName`: the inbound displayname of a link type. The inbound display name is the name of the link from the point of view of the destination card.
+
+== Description
+
+Defines the inbound display name of a link type.

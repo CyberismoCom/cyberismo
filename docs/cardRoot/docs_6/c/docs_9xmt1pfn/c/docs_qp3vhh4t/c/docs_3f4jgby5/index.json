@@ -1,0 +1,12 @@
+{
+    "title": "field(LinkType, \"description\", Description)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|bn",
+    "lastUpdated": "2025-07-07T18:48:13.692Z",
+    "base/fieldTypes/briefDescription": "Defines a description for a link type",
+    "base/fieldTypes/category": "Link types",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-07T18:48:13.692Z"
+}

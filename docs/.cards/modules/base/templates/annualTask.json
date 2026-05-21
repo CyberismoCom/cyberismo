@@ -1,0 +1,6 @@
+{
+    "displayName": "Annual task",
+    "description": "A task that must be revisited annually",
+    "category": "General",
+    "name": "base/templates/annualTask"
+}

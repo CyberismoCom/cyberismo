@@ -1,0 +1,11 @@
+{
+    "title": "Give feedback",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Ready",
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "public",
+    "rank": "0|m",
+    "lastUpdated": "2026-02-14T15:22:21.037Z",
+    "links": [],
+    "lastTransitioned": "2025-02-28T12:49:47.915Z"
+}

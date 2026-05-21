@@ -1,0 +1,18 @@
+== Parameters
+
+* `CardKey`: The card key of the card that is associated with a failing policy check
+* `Category`: The category of the policy check, a string identifier for organising policy checks
+* `Title`: The title of the policy check, a string identifier for organising policy checks
+* `Message`: A message that explains the failed policy check
+
+== Description
+
+A policy check has failed on a card. Use this version of `policyCheckFailure`, if the check is not related to a particular field of the card.
+
+== Example
+
+The logic program of this documentation project includes the following fact, which produces the failed policy check that you can see on this page on the right. In real use, `policyCheckFailure` would not be used in a fact, but they would be used in the heads of rules to produce a policy check failure, if certain conditions are met.
+
+----
+policyCheckFailure(docs_rrcftwkc, "Example", "A check failed", "This is a failed check.").
+----

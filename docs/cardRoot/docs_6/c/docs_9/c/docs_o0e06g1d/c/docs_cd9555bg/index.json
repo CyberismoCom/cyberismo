@@ -1,0 +1,16 @@
+{
+    "title": "Example task 1",
+    "cardType": "base/cardTypes/task",
+    "workflowState": "Closed as done",
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "public",
+    "base/fieldTypes/justification": null,
+    "base/fieldTypes/dueDate": null,
+    "base/fieldTypes/identifier": null,
+    "base/fieldTypes/adoptionStep": null,
+    "rank": "0|b",
+    "lastUpdated": "2026-02-14T17:08:22.354Z",
+    "links": [],
+    "templateCardKey": "base_3",
+    "lastTransitioned": "2025-07-07T11:15:05.658Z"
+}

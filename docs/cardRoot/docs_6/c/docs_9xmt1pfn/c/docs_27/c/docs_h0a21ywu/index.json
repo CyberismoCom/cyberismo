@@ -1,0 +1,12 @@
+{
+    "title": "cardType(CardType)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|b",
+    "lastUpdated": "2025-07-07T18:34:56.038Z",
+    "base/fieldTypes/briefDescription": "Defines a card type",
+    "base/fieldTypes/category": "Card types",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-07T18:34:56.038Z"
+}

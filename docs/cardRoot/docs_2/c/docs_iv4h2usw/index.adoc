@@ -1,0 +1,9 @@
+After launching the Cyberismo app, use the table of contents on the left-hand side to navigate to the card (page) you created on the command line.
+
+Click the *Edit* button in the top-right corner of the browser window. The card editor opens:
+
+image::cyberismo-edit-card.png[]
+
+The card editor uses the https://asciidoc.org/[AsciiDoc] notation. AsciiDoc is similar to the more widely used Markdown, but AsciiDoc is more feature-rich and better suited for complex content. For more information, see xref:docs_x6k819z6.adoc[Editing cards].
+
+When you have finished editing, click the *Update* button to save your changes to the local filesystem.

@@ -1,0 +1,7 @@
+== Parameters
+
+* `Workflow`: the name of a workflow, such as `"base/workflows/page"`
+
+== Description
+
+The parameter of `workflow(Workflow)` is the name of a workflow.

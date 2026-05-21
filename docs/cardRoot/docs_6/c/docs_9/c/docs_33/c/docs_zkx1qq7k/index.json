@@ -1,0 +1,12 @@
+{
+    "title": "result(Key)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|e",
+    "lastUpdated": "2025-07-01T06:53:56.542Z",
+    "base/fieldTypes/briefDescription": "A top-level query result",
+    "base/fieldTypes/category": "Query language",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-01T06:03:24.011Z"
+}

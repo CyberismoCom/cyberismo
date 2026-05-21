@@ -1,0 +1,9 @@
+== Parameters
+
+* `Report`: the name of a report
+* `"category"`: the string `"category"` that denotes the category field
+* `Category`: the category of the report
+
+== Description
+
+A report has a category.

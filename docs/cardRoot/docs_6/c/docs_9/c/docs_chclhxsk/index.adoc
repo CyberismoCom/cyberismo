@@ -1,0 +1,63 @@
+This page describes the structure of Cyberismo logic programs and how Cyberismo executes logic programs to produce reports and graphs. This information is provided as background for the developers of reports and graphs.
+
+== Main logic program
+
+Whenever logic programs are run in Cyberismo, the main program is included in the evaluation. The main program is illustrated below. It consists of the following parts:
+
+* Basic definitions, such as rules for implementing the xref:docs_1rjzox9b.adoc[`ancestor`] term and the built-in `workflowStateCategory` calculated field.
+* Facts generated from the cards of the local project; see xref:docs_29.adoc[Mapping cards and fields to a logic program].
+* User-defined logic programs from the local calculations folder; see xref:docs_o9qt6t0j.adoc[Managing calculations].
+* Facts generated from the resources of the current project, such as workflows, card types, field types, link types, and templates. You can see a description of how the resources are mapped to logic program facts under each resource type at xref:docs_9xmt1pfn.adoc[Configuring resources].
+* For each imported module, the user-defined logic programs from the calculations folder of the module and the facts generated from the resources of the module.
+
+NOTE: External integrations produce logic programs into the calculations folder of a module, which integrates the facts from the external integration into the main logic program.
+
+.Main logic program
+image::Global_logic_program.svg[]
+
+== How Cyberismo queries the main logic program internally
+
+Cyberismo frequently runs queries based on the main logic program internally whenever it shows the navigation tree or a card. The logic program is run for the following purposes:
+
+* To determine whether cards should be hidden in the navigation tree
+* To show progress percentages in the navigation tree
+* To determine the status indicators in the navigation tree
+* To determine possible calculated fields and links for cards
+* To determine whether a card is associated with policy check results or notifications
+* To deny the user from performing certain operations
+
+== Executing a query
+
+The execution of a query is illustrated below. A query produces its results as a JavaScript Object Notation (JSON) object.
+
+The query is usually formed with https://handlebarsjs.com/[Handlebars], which is a templating engine. Handlebars takes a query template and a context JSON object and turns the template into a concrete instance of the query. You can think of this Handlebars templating of a query as a form of query parameterisation.
+
+When a query is executed in the context of a xref:docs_r0brt7n1.adoc[report macro], the query template comes from the configuration of the xref:docs_byr4iof0.adoc[report], and the context of the query is a JSON object that comes from the parameters of the report macro.
+
+.Execution of a Cyberismo query
+image::Query.svg[]
+
+== Producing a report
+
+In user-defined content, the JSON objects that result from queries are rendered as a report. When a xref:docs_r0brt7n1.adoc[report macro] is included in a card, the outcome of the report is rendered as AsciiDoc.
+
+You can also run reports from the command line with the `cyberismo report` command. In these cases, the outcome of the report can be, for example, an XML file or a JSON file.
+
+A xref:docs_byr4iof0.adoc[report] consists of a query template and an actual report template. The report is produced by using the query results JSON object as the context for Handlebars, which uses the context object to turn the report template into a concrete instance of the report.
+
+.Producing a report from query results
+image::Report.svg[]
+
+== Producing a graph
+
+A graph is implemented as a report that produces a DOT language input file for the Graphviz graph visualisation software.
+
+The Graphviz query combines a xref:docs_wp769ee4.adoc[graph model], a xref:docs_4ha2rf9l.adoc[graph view], the context from the parameters of the xref:docs_t5gkijm4.adoc[graph macro], and a specific Cyberismo-internal Graphviz query to produce a JSON object that matches the structure of a Graphviz DOT file. This is illustrated below.
+
+.Graphviz query
+image::Graphviz query.svg[]
+
+The final step of producing a graph image is to turn the Graphviz query result object into a DOT file for Graphviz:
+
+.Producing a graph
+image::Graph.svg[]

@@ -1,0 +1,31 @@
+## Parameters
+
+* `String`: A string title
+
+## Return value
+
+An encoded and line-wrapped string 
+
+## Description
+
+The `@wrap(String)` function is used in graph models to format various titles for nodes and edges of the graph. The function adds line breaks, with the HTML `<br/>` tag to long titles, and encodes special characters using HTML encoding.
+
+The following table shows some examples of the results of the `@wrap` function.
+
+|===
+| Parameter | Result
+
+| `"A short string"`
+| `"A short string"`
+
+| `"This is a long string that would be too long as a title of a node in a graph"`
+| `"This is a long string that<br/>would be too long as a<br/>title of a node in a graph"`
+
+| `"this & that"`
+| `"this +&amp;+ that"`
+
+| `"this < that"`
+| `"this +&lt;+ that"`
+
+|===
+

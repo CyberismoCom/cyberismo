@@ -1,0 +1,9 @@
+== Parameters
+
+* (`CardType`, `FieldType`): a tuple of a card type name and a field type name
+* `"displayName"`: a string that denotes the display name field
+* `DisplayName`: the display name of the field type in the context of this card type
+
+== Description
+
+Defines the display name of a custom field in the context of a card type.

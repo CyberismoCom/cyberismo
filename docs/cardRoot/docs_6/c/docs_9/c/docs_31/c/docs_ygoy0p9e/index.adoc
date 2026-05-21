@@ -1,0 +1,8 @@
+## Parameters
+
+* `CardKey`: The card key of the card for which this operation has been denied
+* `Message`: A message that is shown to the user, if they try to move this card
+
+## Description
+
+Moving the card `CardKey` under a different parent card has been denied.

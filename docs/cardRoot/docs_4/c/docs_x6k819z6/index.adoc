@@ -1,0 +1,95 @@
+== Entering edit mode
+
+To edit a card, click the *Edit* button in the card toolbar, or press *E*. The card view switches to the editor.
+
+== The editor layout
+
+The editor has two tabs:
+
+* *Edit* — where you write and modify content
+* *Preview* — shows a live rendered preview of the card as it will appear
+
+The Edit tab is split into two panes:
+
+* *Left pane* — the title field, metadata fields, and AsciiDoc source editor
+* *Right pane* — the attachments panel
+
+== Editing the title and metadata
+
+At the top of the editor, a *title field* lets you change the card's title directly.
+
+Below it, an expandable *metadata section* shows all editable fields for the card. The available fields depend on the card type and may include text fields, dates, enumerations, and person fields.
+
+== The AsciiDoc editor
+
+The main editor area is a *CodeMirror-based source editor* with syntax highlighting and line wrapping. You write card content using https://docs.asciidoctor.org/asciidoc/latest/syntax-quick-reference/[AsciiDoc notation].
+
+AsciiDoc is a lightweight markup language primarily designed for writing technical documentation. It has a rich notation that supports, for example, headings, tables, lists, admonitions, footnotes, and links. Cyberismo extends the AsciiDoc notation with macros; see xref:docs_4acar03y.adoc[Macros].
+
+Above the editor, a *formatting toolbar* provides quick access to common operations:
+
+[cols="1,2"]
+|===
+| Button | Action
+
+| Undo / Redo
+| Undo or redo the last edit
+
+| H1, H2, H3
+| Insert a heading at the selected level
+
+| Bulleted list
+| Insert an unordered list
+
+| Numbered list
+| Insert an ordered list
+
+| Bold
+| Make selected text bold
+
+| Italic
+| Make selected text italic
+
+| Highlight
+| Highlight selected text
+
+| Table
+| Insert a table structure
+
+| + (Macros)
+| Insert a macro: Include, Xref, Create Cards, Report, or Graph
+|===
+
+== Managing attachments
+
+The attachments panel on the right side of the editor shows all files attached to the card. From here you can:
+
+* *Add an attachment* — click the "Add attachment" button and select a file
+* *Delete an attachment* — hover over an attachment and click the delete icon
+* *Download an attachment* — hover and click the download icon
+* *Insert into content* — hover and click the insert icon to add an AsciiDoc reference to the attachment at the cursor position
+* *Drag and drop* — drag an attachment from the panel into the editor to insert a reference
+
+Image attachments display a thumbnail preview; other file types show a file icon.
+
+You can also add attachments via the card toolbar's context menu (⋯ → *Add attachment*).
+
+== Saving and cancelling
+
+* Click *Update* to save your changes. The button is disabled until you make a change.
+* Click *Cancel* or press *Escape* to discard changes and return to view mode.
+
+== Moving a card
+
+You can move a card to a different position in the hierarchy:
+
+. Click the *context menu* (⋯) in the card toolbar
+. Select *Move card*
+. In the dialog, search for or browse to the target parent card
+. Confirm the move
+
+You can also *drag and drop* cards directly in the navigation tree to reorder or reparent them.
+
+== Deleting a card
+
+To delete a card, click the context menu (⋯) in the card toolbar and select *Delete card*. A confirmation dialog appears before the card is removed.

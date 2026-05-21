@@ -1,0 +1,6 @@
+{
+    "displayName": "Meeting memo",
+    "description": "Notes about a meeting",
+    "category": "General",
+    "name": "base/templates/meetingMemo"
+}

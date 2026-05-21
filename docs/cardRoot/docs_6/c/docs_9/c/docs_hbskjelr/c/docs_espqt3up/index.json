@@ -1,0 +1,12 @@
+{
+    "title": "node(Node, Graph)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|c",
+    "lastUpdated": "2025-07-09T13:47:47.964Z",
+    "base/fieldTypes/briefDescription": "The first parameter is a node in a graph",
+    "base/fieldTypes/category": "Graph implementation",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-09T13:47:47.964Z"
+}

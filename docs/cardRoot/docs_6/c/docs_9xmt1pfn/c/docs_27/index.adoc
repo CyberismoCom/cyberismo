@@ -1,0 +1,147 @@
+== Introduction
+
+In Cyberismo, each card is of a specific card type, which defines the workflow being used and optionally a set of custom fields. Separate card types may be defined, for example, for controlled documents, risks, threats, security requirements, architecture decisions, or tasks.
+
+Custom fields may be defined, for example, for various dates such as deadlines or timestamps, enumerations such as the likelihood or the impact of a risk, or a person such as an assignee of a task.
+
+== Prerequisites
+
+Before you can define a card type, you must define or choose an existing workflow and define the required field types.
+
+== Managing card types using the configuration editor
+
+Use the *configuration editor* to manage card types.
+
+=== Creating a card type
+
+To create a new card type:
+
+1. Open the **configuration editor** in the Cyberismo app by setting the path part of the URL to `/configuration`.
+2. Select **Card Types** from the tree menu on the left, or use the **New Resource** menu in the toolbar.
+3. Click **Create new** on the Card Types overview page.
+4. Enter an identifier for the new card type and select a workflow.
+
+The new card type will be created and the editor will open.
+
+When choosing a name for your card type, see xref:docs_8.adoc[Naming conventions].
+
+=== Editing a card type
+
+In the card type editor, you can edit the following properties:
+
+* **Identifier**: The technical name of the card type. Renaming is supported.
+* **Display name**: The name shown in user interfaces.
+* **Description**: A longer description of the card type.
+* **Workflow**: Select which workflow cards of this type will use.
+
+Each field has individual save and cancel buttons that appear when you make changes.
+
+=== Managing custom fields
+
+The **Custom Fields** section in the card type editor allows you to manage the fields available on cards of this type:
+
+* **Add a field**: Click the add button to select a field type from the existing field types. Set the display name (optionally overriding the field type's display name) and whether the field is a calculated field.
+* **Edit a field**: Click on a field to edit its display name or calculated flag inline.
+* **Change field visibility**: Each field can be set to one of three visibility levels:
+  - _Always visible_ — the field is shown whenever card metadata is displayed.
+  - _Optionally visible_ — the field can be shown when the user expands optional fields.
+  - _Hidden_ — the field is not shown in the user interface.
+* **Reorder fields**: Use the up/down buttons to change the display order of fields within each visibility group.
+* **Remove a field**: Click the delete button on a field to remove it from the card type (with confirmation).
+
+=== Deleting a card type
+
+To delete a card type, open it in the editor and use the context menu (three-dot button) in the toolbar to select **Delete Resource**.
+
+== Managing card types using the command-line tool
+
+You can also manage card types using the Cyberismo command-line tool.
+
+To see a list of the available card types, use the following command:
+
+  $ cyberismo show cardTypes
+
+To see the help for how to create a card type, use the following command:
+
+  $ cyberismo create cardType --help
+
+To create a new card type, for example `myCardType`, using the workflow `example/workflows/myWorkflow`, use the following command:
+
+  $ cyberismo create cardType myCardType example/workflows/myWorkflow
+
+Cyberismo will create a new file called `myCardType.json` in `.cards/local/cardTypes/myCardType.json`. If the card prefix of your Cyberismo project is `example`, then the full name of the new card type will be `example/cardTypes/myCardType`.
+
+== Card type file format
+
+Card types are defined in JSON files that follow the https://github.com/CyberismoCom/cyberismo/blob/main/tools/assets/src/schema/resources/cardTypeSchema.json[card type schema], as described in the following tables.
+
+NOTE: Do not edit the JSON files directly. The configuration editor provides a graphical interface for managing all card type properties.
+
+.The properties of a card type
+|===
+|Property|Type|Description|Required
+
+|**name**
+|`string`
+|The name of the card type
+| &#10003; Yes
+
+|**workflow**
+|`string`
+|The name of the workflow
+| &#10003; Yes
+
+|**customFields**
+|`object` `[]`
+|An array of custom fields
+|No
+
+|**alwaysVisibleFields**
+|`string` `[]`
+|An array that lists the names of fields that should be shown whenever metadata fields are being shown. The array is given in the order in which the fields should be shown.
+|No
+
+|**optionallyVisibleFields**
+|`string` `[]`
+|An array that lists the names of fields that may optionally be shown when metadata fields are being shown. The array is given in the order in which the optional fields should be shown.
+|No
+
+|===
+
+Additional properties are not allowed.
+
+=== The custom fields definition of a card type
+
+The `customFields` property of a card type is an array of objects that have the following properties:
+
+.Properties of the items in the `customFields` array
+|===
+|Property|Type|Description|Required
+
+|**name**
+|`string`
+|A name of a field type.
+| &#10003; Yes
+
+|**displayName**
+|`string`
+|A display name for user interfaces. Optional. If given, overrides the display name that may have been defined in the field type.
+| No
+
+|**isCalculated**
+|`boolean`
+|Defines whether the field value is a calculated field that the user cannot modify. Optional. Defaults to false: the field is considered editable and not a calculated field if this property is omitted.
+| No
+
+|===
+
+
+== Mapping to a logic program
+
+Card types are mapped to logic program facts using the following function terms:
+
+{{#report}}
+    "name": "base/reports/predicates",
+    "category": "Card types",
+    "orderBy": "rank"
+{{/report}}

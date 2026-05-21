@@ -1,0 +1,196 @@
+== Introduction
+
+In Cyberismo, a card consists of an AsciiDoc document, stored technically in a text file `index.adoc`, and metadata stored in a JSON file `index.json`.
+
+The metadata consists of standard metadata, such as built-in fields, links, and labels, and optional custom fields.
+
+A _field type_ defines a name, a display name, and a data type for a custom field of a card.
+
+== Standard card metadata fields
+
+The following table documents the standard built-in metadata that can be included in the `index.json` file of any card regardless of the card type. Note that you should not edit the `index.json` files directly but should use the Cyberismo app or CLI whenever applicable.
+
+.Common metadata fields of cards
+|===
+|Property|Type|Description|Required
+
+|**cardType**
+|`string`
+|The name of the card type
+| &#10003; Yes
+
+|**title**
+|`string`
+|A short title of the card
+| &#10003; Yes
+
+|**workflowState**
+|`string`
+|The name of the card's current state in the workflow
+| &#10003; Yes
+
+|**labels**
+|`string` `[]`
+|Labels or tags that can be used for organising cards
+|No
+
+|**links**
+|`object` `[]`
+|Links to or from this card to other cards
+|No
+
+|===
+
+To enable card type specific custom fields, additional properties are allowed. The custom fields are card metadata properties whose name is a name of a field type.
+
+== Managing field types using the configuration editor
+
+Use the configuration editor to manage field types.
+
+=== Creating a field type
+
+To create a new field type:
+
+1. Open the **configuration editor** in the Cyberismo app by setting the path part of the URL to `/configuration`.
+2. Select **Field Types** from the tree menu on the left, or use the **New Resource** menu in the toolbar.
+3. Click **Create new** on the Field Types overview page.
+4. Enter an identifier for the new field type and select a data type.
+
+The new field type will be created and the editor will open.
+
+When choosing a name for your field type, see xref:docs_8.adoc[Naming conventions].
+
+=== Editing a field type
+
+In the field type editor, you can edit the following properties:
+
+* **Identifier**: The technical name of the field type. Renaming is supported.
+* **Display name**: The name shown in user interfaces.
+* **Description**: A longer description of the field type.
+* **Data type**: The data type of the field (see <<Data types of custom fields>> below).
+
+Each field has individual save and cancel buttons that appear when you make changes.
+
+=== Managing enum values
+
+For field types with the `enum` or `list` data type, the editor shows an **Enum Values** section where you can:
+
+* **Add** new enum values with a value, display value, and description.
+* **Edit** existing enum values inline.
+* **Delete** enum values (with confirmation).
+* **Reorder** enum values using up/down buttons.
+
+=== Deleting a field type
+
+To delete a field type, open it in the editor and use the context menu (three-dot button) in the toolbar to select **Delete Resource**.
+
+== Managing field types using the command-line tool
+
+You can also manage field types using the Cyberismo command-line tool.
+
+To see a list of the available field types, use the following command:
+
+  $ cyberismo show fieldTypes
+
+The names of field types are of the format `_module_/fieldTypes/_fieldType_`, for example `base/fieldTypes/owner`.
+
+To see the help for how to create a field type, use the following command:
+
+  $ cyberismo create fieldType --help
+
+To create a new field type, for example a text field `myField`, use the following command:
+
+  $ cyberismo create fieldType myField shortText
+
+In this case, the data type of the new field is `shortText`.
+
+Cyberismo will create a new file called `myField.json` in `.cards/local/fieldTypes/myField.json`. If the card prefix of your Cyberismo project is `example`, then the full name of the new field type will be `example/fieldTypes/myField`.
+
+== Data types of custom fields
+
+The data type of a custom field must be one of the following values:
+
+* **`shortText`**: A string that contains a single line of text.
+* **`longText`**: A string that contains a longer text that may have multiple lines.
+* **`number`**: A number that may be a floating point number or an integer (a standard JSON type).
+* **`integer`**: An integral number (a standard JSON type).
+* **`boolean`**: Either true or false (a standard JSON type). In user interfaces, boolean values may be presented by the display names Yes and No.
+* **`enum`**: An enumeration. A string that has one of the values defined in a separate `enumValues` array. In user interfaces, an enum is represented as a selection component (drop-down list).
+* **`list`**: An array that contains zero or more strings, where the allowed values are defined in a separate `enumValues` array. In user interfaces, a list data type is represented as a multiple selection component, where the user can select zero or more of the available options.
+* **`date`**: A date. A date is stored in the `index.json` file as a string in the ISO 8601 format. For example "2024-01-01".
+* **`dateTime`**: A combination of a date and a time. A dateTime is stored in the `index.json` file as a string in UTC in the ISO 8601 format. For example "2024-06-09T08:43:25Z".
+* **`person`**: A string that is an email address of a person.
+
+== Field type file format
+
+Field types are defined in JSON files that follow the https://github.com/CyberismoCom/cyberismo/blob/main/tools/assets/src/schema/resources/fieldTypeSchema.json[field type schema], as described in the following table.
+
+NOTE: Do not edit the JSON files directly. The configuration editor provides a graphical interface for managing all field type properties.
+
+.Properties of a field type
+|===
+|Property|Type|Description|Required
+
+|**name**
+|`string`
+|The technical name by which the field is referred to.
+| &#10003; Yes
+
+|**displayName**
+|`string`
+|A name by which the field is referred to in the user interface.
+|No
+
+|**description**
+|`string`
+|A longer description of the field type.
+|No
+
+|**dataType**
+|`string`
+|The data type of the field.
+| &#10003; Yes
+
+|**enumValues**
+|`object` `[]`
+|An array of available enum values. Used for the enum and list data types only.
+|No
+
+|===
+
+
+===  Enum values of a field type
+
+The `enumValues` property of a field type is an array of available values in selection data types. This property is used for the enum and list data types only. The items of the array are objects that have the following properties:
+
+.Properties of the items in the enumValues array
+|===
+|Property|Type|Description|Required
+
+|**enumValue**
+|`string`
+|A string that represents a possible value for an enum field or for an item in a list array.
+| &#10003; Yes
+
+|**enumDisplayValue**
+|`string`
+|A display name for the enum value for user interfaces.
+| No
+
+|**enumDescription**
+|`string`
+|A longer description of the enum value.
+| No
+
+|===
+
+
+== Mapping to a logic program
+
+Field types are mapped to logic program facts using the following function terms:
+
+{{#report}}
+    "name": "base/reports/predicates",
+    "category": "Field types",
+    "orderBy": "rank"
+{{/report}}

@@ -1,0 +1,7 @@
+== Parameters
+
+* `Node`: the identifier of a node. Typically a symbolic constant or a string
+
+== Description
+
+The parameter `Node` is a node in the default graph.

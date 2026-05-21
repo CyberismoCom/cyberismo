@@ -1,0 +1,5 @@
+Clingo, the implementation of Answer Set Programming used in Cyberismo, enables language extensions through external functions. Cyberismo includes a set of built-in external functions that are documented in the table below. Users cannot define external functions in Cyberismo.
+
+{{#report}}
+    "name": "base/reports/externalFunctions"
+{{/report}}

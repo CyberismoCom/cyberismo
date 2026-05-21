@@ -1,0 +1,42 @@
+{
+    "name": "base/cardTypes/task",
+    "workflow": "base/workflows/task",
+    "customFields": [
+        {
+            "name": "base/fieldTypes/owner",
+            "isCalculated": false
+        },
+        {
+            "name": "base/fieldTypes/informationClassification",
+            "isCalculated": false
+        },
+        {
+            "name": "base/fieldTypes/justification",
+            "isCalculated": false
+        },
+        {
+            "name": "base/fieldTypes/dueDate",
+            "isCalculated": false
+        },
+        {
+            "name": "base/fieldTypes/adoptionStep",
+            "isCalculated": false
+        },
+        {
+            "name": "base/fieldTypes/identifier",
+            "isCalculated": false
+        }
+    ],
+    "alwaysVisibleFields": [
+        "base/fieldTypes/owner",
+        "base/fieldTypes/dueDate"
+    ],
+    "optionallyVisibleFields": [
+        "base/fieldTypes/justification",
+        "base/fieldTypes/informationClassification",
+        "base/fieldTypes/adoptionStep",
+        "base/fieldTypes/identifier"
+    ],
+    "displayName": "Task",
+    "description": "A one-time task with a due date"
+}

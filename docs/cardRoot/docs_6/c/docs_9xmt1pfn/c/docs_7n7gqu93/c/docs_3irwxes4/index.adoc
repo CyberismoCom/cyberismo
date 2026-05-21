@@ -1,0 +1,7 @@
+== Parameters
+
+* `Template`: the name of a template. For example `"base/templates/decision"`
+
+== Description
+
+The parameter of `template(Template)` is a template.

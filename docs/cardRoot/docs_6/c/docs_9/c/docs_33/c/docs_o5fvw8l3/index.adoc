@@ -1,0 +1,20 @@
+== Parameters
+
+* `Collection`: The name of the child result collection or child object for which the field should be included
+* `Field`: The name of the field that should be included in the query results
+
+== Description
+
+The `selectCollectionField(Collection, Field)` predicate is used to select a specific field for a named collection across all levels of hierarchy in query results. This is useful when you have custom collections (not the default `"results"` collection) and want to include specific fields from those collections without having to specify the hierarchy level explicitly.
+
+This predicate is particularly helpful when working with hierarchical queries that use named collections via `childResult(Key, Child, Collection)` or `childObject(Key, Child, Collection)`.
+
+For example, if your query produces child results in a collection called `"items"`, you can use:
+
+[source]
+----
+selectCollectionField("items", "title").
+selectCollectionField("items", "status").
+----
+
+This will ensure that the `title` and `status` fields are included for all results in the `"items"` collection, regardless of which hierarchy level they appear on.

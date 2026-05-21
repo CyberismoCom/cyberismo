@@ -1,0 +1,12 @@
+{
+    "title": "template(Template)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|b",
+    "lastUpdated": "2025-07-07T18:35:22.147Z",
+    "base/fieldTypes/briefDescription": "Defines the name of a template",
+    "base/fieldTypes/category": "Templates",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-07T18:35:22.147Z"
+}

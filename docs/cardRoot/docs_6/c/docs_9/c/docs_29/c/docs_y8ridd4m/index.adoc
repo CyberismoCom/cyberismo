@@ -1,0 +1,9 @@
+== Parameters
+
+* `CardKey`: A card key
+
+== Description
+
+The parameter of the predicate is a card. This predicate is useful for limiting the search space in rules. Notice that this predicate is true for both cards that are a part of the project and template cards that have not been instantiated into the project.
+
+See also xref:docs_jhpsf6wq.adoc[`projectCard`] and xref:docs_99t3a4bk.adoc[`templateCard`].

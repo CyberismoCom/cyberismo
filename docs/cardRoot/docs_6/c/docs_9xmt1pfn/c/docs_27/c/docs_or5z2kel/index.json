@@ -1,0 +1,12 @@
+{
+    "title": "customField(CardType, FieldType)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|d",
+    "lastUpdated": "2025-07-07T19:01:34.031Z",
+    "base/fieldTypes/briefDescription": "Defines the field type of a custom field of a card type",
+    "base/fieldTypes/category": "Card types",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-07T19:01:34.031Z"
+}

@@ -1,0 +1,8 @@
+Notifications enable logic programs to communicate messages to the user based on the state of the fields and the relationships of the cards. Unlike xref:docs_32.adoc[automated policy checks], notifications do not communicate failure or success. Use notifications to give advice or helpful tips.
+
+Notifications can be defined in user-configured logic programs with the following term:
+
+{{#report}}
+    "name": "base/reports/predicates",
+    "category": "Notifications"
+{{/report}}

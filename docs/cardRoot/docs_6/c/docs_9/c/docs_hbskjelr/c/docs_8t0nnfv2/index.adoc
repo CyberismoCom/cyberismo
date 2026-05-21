@@ -1,0 +1,8 @@
+== Parameters
+
+* `Subgraph`: the identifier of a subgraph
+* `Graph`: the identifier of the parent graph
+
+== Description
+
+The parameter `Subgraph` is a subgraph of `Graph`.

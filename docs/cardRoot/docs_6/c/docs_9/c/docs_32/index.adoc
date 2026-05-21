@@ -1,0 +1,8 @@
+Automated policy checks enable logic programs to verify that the fields and the relationships of the cards meet certain logical conditions. If you need to communicate advice or tips, use a xref:docs_4nd9wctm.adoc[notification] instead of an automated policy check.
+
+Automated policy checks can be incorporated by user-configured logic programs with the following terms:
+
+{{#report}}
+    "name": "base/reports/predicates",
+    "category": "Automated checks"
+{{/report}}

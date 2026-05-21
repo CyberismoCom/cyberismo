@@ -1,0 +1,11 @@
+== Parameters
+
+* `HierarchyLevel`: The level of hierarchy of the results that will be sorted. When the query is not hierarchical, this is 1.
+* `Collection`: The name of the child result collection that should be sorted. For the default collection, use `"results"`
+* `Index`: The index of the field by which to sort. For example, the index 1 means that you should first order by the field given in this occurrence of the order term
+* `Field`: The field by which the results should be ordered
+* `Direction`: The direction of the ordering. Either `"ASC"` for ascending or `"DESC"` for descending
+
+== Description
+
+The `order` predicate is the most fine-grained and flexible way to define the ordering of query results. Use this predicate if you need to order by more than three fields, if your query produces a complex result object with multiple collections, or if you need to order different collections differently.

@@ -1,0 +1,9 @@
+== Parameters
+
+* `Template`: the name of a template
+* `"displayName"`: the string `"displayName"` that denotes the displayName field
+* `DisplayName`: a display name of the template
+
+== Description
+
+A template has a display name.

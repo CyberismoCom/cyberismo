@@ -1,0 +1,12 @@
+{
+    "title": "alwaysVisibleField(CardType, FieldType)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|f",
+    "lastUpdated": "2025-07-07T19:07:12.809Z",
+    "base/fieldTypes/briefDescription": "Defines that a custom field of a card type is always visible in the user interface",
+    "base/fieldTypes/category": "Card types",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-07T19:06:04.958Z"
+}

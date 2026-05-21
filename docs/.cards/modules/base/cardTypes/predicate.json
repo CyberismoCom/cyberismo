@@ -1,0 +1,21 @@
+{
+    "name": "base/cardTypes/predicate",
+    "displayName": "Predicate",
+    "workflow": "base/workflows/page",
+    "customFields": [
+        {
+            "name": "base/fieldTypes/briefDescription",
+            "isCalculated": false
+        },
+        {
+            "name": "base/fieldTypes/category",
+            "isCalculated": false
+        }
+    ],
+    "alwaysVisibleFields": [
+        "base/fieldTypes/briefDescription",
+        "base/fieldTypes/category"
+    ],
+    "optionallyVisibleFields": [],
+    "description": "Documents a predicate used in logic programs"
+}

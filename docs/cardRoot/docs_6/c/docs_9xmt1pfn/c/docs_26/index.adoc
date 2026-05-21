@@ -1,0 +1,152 @@
+== Introduction
+
+A workflow defines the states and state transitions that cards move through during their lifecycle.
+
+For example, a task workflow could consist of the states and transitions *Open* → *In Progress* → *Done*, and a document workflow could be defined as *Draft* → *Approved* → *Archived*.
+
+== Managing workflows using the configuration editor
+
+Use configuration editor to manage workflows.
+
+=== Creating a workflow
+
+To create a new workflow:
+
+1. Open the **configuration editor** in the Cyberismo app by setting the path part of the URL to `/configuration`.
+2. Select **Workflows** from the tree menu on the left, or use the **New Resource** menu in the toolbar.
+3. Click **Create new** on the Workflows overview page.
+4. Enter an identifier for the new workflow and confirm.
+
+The new workflow will be created and the editor will open.
+
+When choosing a name for your workflow, see xref:docs_8.adoc[Naming conventions].
+
+=== Editing workflow states
+
+In the workflow editor, the **States** section allows you to manage the states of the workflow:
+
+* **Add a state**: Click the add button to create a new state. Enter a name and select a category (_initial_, _active_, or _closed_).
+* **Edit a state**: Click on a state to edit its name or category inline.
+* **Reorder states**: Use the up/down buttons to change the order of states.
+* **Delete a state**: Click the delete button on a state. You will be prompted to select a replacement state for any cards that are currently in the deleted state.
+
+=== Editing workflow transitions
+
+In the **Transitions** section:
+
+* **Add a transition**: Click the add button to create a new transition. Enter a name, select one or more source states (including the special options "any state" for wildcard), and select the target state. The source state "new card" is used for the initial creation transition, and a workflow must have exactly one such transition.
+* **Edit a transition**: Click on a transition to edit its properties inline.
+* **Delete a transition**: Click the delete button to remove a transition.
+
+=== Deleting a workflow
+
+To delete a workflow, open the workflow in the editor and use the context menu (three-dot button) in the toolbar to select **Delete Resource**.
+
+== Managing workflows using the command-line tool
+
+You can also manage workflows using the Cyberismo command-line tool.
+
+To see a list of the available workflows, use the following command:
+
+  $ cyberismo show workflows
+
+The names of workflows are of the format `_module_/workflows/_workflow_`, for example `base/workflows/decision`.
+
+To see the help for how to create a workflow, use the following command:
+
+  $ cyberismo create workflow --help
+
+To create a new workflow, for example `myWorkflow`, use the following command:
+
+  $ cyberismo create workflow myWorkflow
+
+Cyberismo will create a new file called `myWorkflow.json` in `.cards/local/workflows/myWorkflow.json`. If the card prefix of your Cyberismo project is `example`, then the full name of the new workflow will be `example/workflows/myWorkflow`.
+
+== Workflow file format
+
+Workflows are defined in JSON files that follow the https://github.com/CyberismoCom/cyberismo/blob/main/tools/assets/src/schema/resources/workflowSchema.json[workflow schema], as described in the following tables.
+
+NOTE: You do not need to edit the JSON files directly. The configuration editor provides a graphical interface for managing all workflow properties.
+
+=== Basic structure of a workflow definition
+
+.The properties of a workflow
+|===
+|Property|Type|Description|Required
+
+|**name**
+|`string`
+|The name of this workflow
+| &#10003; Yes
+
+|**states**
+|`object` `[]`
+|The states of the workflow, see below.
+| &#10003; Yes
+
+|**transitions**
+|`object` `[]`
+|The state transitions of the workflow, see below.
+| &#10003; Yes
+
+|===
+
+Additional properties are not allowed.
+
+=== Workflow states
+
+The `states` property of a workflow is an array of objects that have the following properties:
+
+.Properties of the items in the states array
+|===
+|Property|Type|Description|Required
+
+|**name**
+|`string`
+|A string that identifies the workflow state.
+| &#10003; Yes
+
+|**category**
+|`string`
+|One of the following values: "initial", "active", or "closed". The category of the workflow state is used for visualising the state of the card on broad terms.
+| &#10003; Yes
+
+|===
+
+=== Workflow transitions
+
+The `transitions` property of a workflow is an array of objects that have the following properties:
+
+* `name`: A name that identifies the workflow transition. Required.
+* `fromState`: An array of state names from which this transition can start. Each item of the array is a name of the starting state of the transition. The wildcard '*' denotes any state, and an empty value denotes the transition to create a new card with this workflow. Required.
+* `toState`: A string that is the name of the end state of the transition. Required.
+
+.Properties of the items in the transitions array
+|===
+|Property|Type|Description|Required
+
+|**name**
+|`string`
+|A string that identifies the workflow transition.
+| &#10003; Yes
+
+|**fromState**
+|`string []`
+|An array of state names from which this transition can start. Each item of the array is a name of the starting state of the transition. The wildcard '*' denotes any state, and an empty string denotes the transition to create a new card with this workflow.
+| &#10003; Yes
+
+|**toState**
+|`string`
+|A string that is the name of the end state of the transition.
+| &#10003; Yes
+
+|===
+
+== Mapping to a logic program
+
+Workflows are mapped to logic program facts using the following function terms:
+{{#report}}
+    "name": "base/reports/predicates",
+    "category": "Workflow",
+    "orderBy": "rank"
+{{/report}}

@@ -1,0 +1,11 @@
+{
+    "title": "Creating a new project",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Ready",
+    "rank": "0|an",
+    "lastUpdated": "2026-02-14T14:49:29.067Z",
+    "lastTransitioned": "2024-10-21T10:44:12.554Z",
+    "links": [],
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "public"
+}

@@ -1,0 +1,12 @@
+== Parameters
+
+* `Parameter1`: #TODO: add a description of Parameter1#
+* `Parameter2`: #TODO: add a description of Parameter2#
+
+== Return value
+
+#TODO: Describe the return value of the function#
+
+== Description
+
+#TODO: Add a description#

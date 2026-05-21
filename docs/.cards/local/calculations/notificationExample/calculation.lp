@@ -1,0 +1,1 @@
+notification(docs_u03fekik, "Example", "An example notification", "Here is a piece of advice.").

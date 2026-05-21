@@ -1,0 +1,9 @@
+== Parameters
+
+* `LinkType`: the name of a link type
+* `"enableLinkDescription"`: a string that denotes the `enableLinkDescription`  field
+* `EnableLinkDescription`: Either symbolic constant `true` or `false`.
+
+== Description
+
+Defines whether a link type uses link descriptions. If link descriptions are enabled for a link type, then the user interface will let the user enter a description for links, and `link` facts in logic programs will include the link description. If the user does not provide a link description, then the `link` facts in logic programs will use an empty string `""` as the link description. 

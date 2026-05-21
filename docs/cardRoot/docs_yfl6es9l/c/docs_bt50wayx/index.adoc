@@ -1,0 +1,94 @@
+The MCP server exposes the following tools, grouped by category.
+
+== Card Operations
+
+[cols="1,3,2", options="header"]
+|===
+| Tool | Description | Required parameters
+| `get_card` | Get full card detail including fields, transitions, policy checks, and rendered content | `cardKey`
+| `list_cards` | List all cards with hierarchy | —
+| `create_card` | Create a new card from a template | `template`
+| `edit_card_content` | Update a card's AsciiDoc content | `cardKey`, `content`
+| `edit_card_metadata` | Update a single metadata field | `cardKey`, `field`, `value`
+| `remove_card` | Delete a card and all its children | `cardKey`
+| `move_card` | Move a card to a new parent (use `root` for top level) | `cardKey`, `destinationKey`
+| `transition_card` | Move a card to a new workflow state | `cardKey`, `transition`
+|===
+
+== Card Ranking
+
+[cols="1,3,2", options="header"]
+|===
+| Tool | Description | Required parameters
+| `rank_card_first` | Move a card to first position among siblings | `cardKey`
+| `rank_card_after` | Position a card after a specific sibling | `cardKey`, `afterCardKey`
+| `rank_card_by_index` | Position a card at a zero-based index among siblings | `cardKey`, `index`
+|===
+
+== Attachments
+
+[cols="1,3,2", options="header"]
+|===
+| Tool | Description | Required parameters
+| `create_attachment` | Add a base64-encoded file to a card (max 10 MB) | `cardKey`, `filename`, `content`
+| `remove_attachment` | Remove an attachment from a card | `cardKey`, `filename`
+|===
+
+== Labels
+
+[cols="1,3,2", options="header"]
+|===
+| Tool | Description | Required parameters
+| `list_labels` | List all unique labels in the project | —
+| `create_label` | Add a label to a card | `cardKey`, `label`
+| `remove_label` | Remove a label from a card | `cardKey`, `label`
+|===
+
+== Links
+
+[cols="1,3,2", options="header"]
+|===
+| Tool | Description | Required parameters
+| `create_link` | Create a directed link between two cards | `sourceKey`, `destinationKey`, `linkType`
+| `remove_link` | Remove a link between two cards | `sourceKey`, `destinationKey`, `linkType`
+|===
+
+== Templates
+
+[cols="1,3,2", options="header"]
+|===
+| Tool | Description | Required parameters
+| `list_templates` | List all available templates | —
+| `create_template` | Create a new template | `name`
+| `add_template_cards` | Add cards to an existing template | `templateName`, `cardTypeName`
+|===
+
+== Schema and Resource Management
+
+[cols="1,3,2", options="header"]
+|===
+| Tool | Description | Required parameters
+| `create_card_type` | Create a new card type | `name`, `workflowName`
+| `create_field_type` | Create a new field type | `name`, `dataType`
+| `create_workflow` | Create a new workflow | `name`
+| `create_link_type` | Create a new link type | `name`
+| `create_calculation` | Create a new calculation | `name`
+| `create_graph_model` | Create a new graph model | `name`
+| `create_graph_view` | Create a new graph view | `name`
+| `create_report` | Create a new report | `name`
+| `delete_resource` | Delete a resource by type and name | `resourceType`, `name`
+| `update_file_resource` | Update a file-based resource (card types, field types, workflows, link types) | —
+| `update_folder_resource` | Update a folder-based resource (calculations, graph models/views, reports, templates) | `resource`, `query`
+| `validate_resource` | Validate a resource definition and return errors | `name`
+|===
+
+== Queries and Computation
+
+[cols="1,3,2", options="header"]
+|===
+| Tool | Description | Required parameters
+| `run_query` | Run a predefined query (`card`, `onCreation`, `onTransition`, `tree`) | `queryName`
+| `run_report` | Execute a named report with a card as context | `reportName`, `cardKey`
+| `run_graph` | Generate a graph visualization from a model and view | `model`, `view`
+| `run_logic_program` | Execute a custom Clingo/ASP logic program | `query`
+|===

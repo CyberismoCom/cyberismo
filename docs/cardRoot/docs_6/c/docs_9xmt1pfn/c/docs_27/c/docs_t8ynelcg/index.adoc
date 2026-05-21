@@ -1,0 +1,12 @@
+== Parameters
+
+* `CardType`: the name of a card type
+* `FieldType`: the name of a field type
+
+== Description
+
+`FieldType` is a calculated field in the cards of the type `CardType`, so the user interface will not allow the user to set them.
+
+There should be a logic program in the `calculations` folder of the project or of one of the modules, or otherwise this field will not have any value.
+
+Cyberismo will generate the `customField` fact for calculated fields, too.

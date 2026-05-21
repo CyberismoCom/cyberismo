@@ -1,0 +1,6 @@
+One way to enforce cybersecurity processes automatically is to define constraints that must be met before a specific operation, such as a workflow state transition, is allowed. Cyberismo logic programs can define the following predicates to deny workflow transitions, moving cards, removing cards, or editing a field of a card.
+
+{{#report}}
+    "name": "base/reports/predicates",
+    "category": "Denied operations"
+{{/report}}

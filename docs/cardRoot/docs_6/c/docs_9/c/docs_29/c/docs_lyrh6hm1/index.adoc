@@ -1,0 +1,11 @@
+== Parameters
+
+* `Source`: The card key of the source of the link
+* `Destination`: The card key of the destination of the link
+* `LinkType`: The name of the link type
+
+== Description
+
+The `link` predicate declares a link between cards. Use this variant of the link predicate, if the link type does not use link descriptions.
+
+Cyberismo generates `link` facts for user-defined links. Logic programs can use `link` in the heads of rules to define calculated links.

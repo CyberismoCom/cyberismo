@@ -1,0 +1,6 @@
+{
+    "name": "base/fieldTypes/approvalDate",
+    "displayName": "Approval date",
+    "dataType": "date",
+    "description": "Date when the document was approved"
+}

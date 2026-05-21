@@ -1,0 +1,7 @@
+== Parameters
+
+* `CardKey`: the card key of a template card
+
+== Description
+
+The parameter `CardKey` of `templateCard(CardKey)` is a template card.

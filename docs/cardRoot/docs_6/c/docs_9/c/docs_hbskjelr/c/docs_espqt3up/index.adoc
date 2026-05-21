@@ -1,0 +1,8 @@
+== Parameters
+
+* `Node`: the identifier of a node
+* `Graph`: the identifier of a Graph
+
+== Description
+
+The parameter `Node` is a node in the graph `Graph`.

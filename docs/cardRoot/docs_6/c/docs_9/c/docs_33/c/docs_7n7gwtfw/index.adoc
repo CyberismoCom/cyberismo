@@ -1,0 +1,9 @@
+== Parameters
+
+* `HierarchyLevel`: The level of hierarchy that this select predicate concerns. The top level of hierarchy is 1.
+* `Collection`: The name of the child result collection or child object that should include the field
+* `Field`: the name of the field that should be included in the query results
+
+== Description
+
+The `select(HierarchyLevel, Collection, Field)` predicate is the most fine-grained and flexible way to define the which fields should be included in the query results.

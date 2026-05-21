@@ -1,0 +1,12 @@
+{
+    "title": "link(Source, Destination, LinkType)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|f",
+    "lastUpdated": "2025-07-01T06:50:05.599Z",
+    "base/fieldTypes/briefDescription": "A card is linked to another card",
+    "base/fieldTypes/category": "Cards",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-01T06:50:05.599Z"
+}

@@ -1,0 +1,10 @@
+{
+    "name": "base/linkTypes/relatesTo",
+    "outboundDisplayName": "relates to",
+    "inboundDisplayName": "is related to",
+    "sourceCardTypes": [],
+    "destinationCardTypes": [],
+    "enableLinkDescription": false,
+    "displayName": "Relates to",
+    "description": "General-purpose relationship between two items"
+}

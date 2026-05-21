@@ -1,0 +1,22 @@
+The configuration of Cyberismo projects and content modules consists of resources. Cyberismo generates logic program facts about the available resources, so reports and graphs can access the available configuration.
+
+== Configuration editor
+
+To manage resources, open the **configuration editor** in the Cyberismo app by setting the path part of the URL to `/configuration`. The configuration editor presents a tree menu of all resource types on the left and an editor panel on the right.
+
+In the configuration editor, you can:
+
+* Create, edit, and delete resources of all types
+* Edit resource metadata such as names, display names, and descriptions
+* Manage other properties such as workflow states and transitions, card type custom fields, and field type enum values
+* Edit logic program files, queries, and templates using the built-in text editor
+
+Resources that belong to imported modules are shown as read-only. You can only edit resources in your own project.
+
+== Resource types
+
+The following pages explain how to manage each resource type and how the resource configuration for each resource type is mapped into logic program facts.
+
+{{#report}}
+  "name": "base/reports/childrenList"
+{{/report}}

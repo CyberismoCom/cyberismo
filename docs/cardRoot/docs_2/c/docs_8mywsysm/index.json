@@ -1,0 +1,11 @@
+{
+    "title": "Threat modelling",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Ready",
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "public",
+    "rank": "0|d",
+    "lastUpdated": "2026-02-14T14:50:24.225Z",
+    "links": [],
+    "lastTransitioned": "2025-01-18T12:27:00.367Z"
+}

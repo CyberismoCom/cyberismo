@@ -1,0 +1,6 @@
+{
+    "name": "base/fieldTypes/owner",
+    "displayName": "Owner",
+    "dataType": "person",
+    "description": "Person responsible for the item"
+}

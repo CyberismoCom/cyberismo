@@ -1,0 +1,12 @@
+{
+    "title": "field(LinkType, \"category\", Category)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|bw",
+    "lastUpdated": "2025-07-07T18:56:44.145Z",
+    "base/fieldTypes/briefDescription": "Defines a category for a link type",
+    "base/fieldTypes/category": "Link types",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-07T18:56:44.145Z"
+}

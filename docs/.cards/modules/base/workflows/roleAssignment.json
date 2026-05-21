@@ -1,0 +1,42 @@
+{
+    "name": "base/workflows/roleAssignment",
+    "states": [
+        {
+            "name": "Draft",
+            "category": "initial"
+        },
+        {
+            "name": "Assigned",
+            "category": "closed"
+        },
+        {
+            "name": "Archived",
+            "category": "closed"
+        }
+    ],
+    "transitions": [
+        {
+            "name": "Create",
+            "fromState": [
+                ""
+            ],
+            "toState": "Draft"
+        },
+        {
+            "name": "Assign",
+            "fromState": [
+                "Draft"
+            ],
+            "toState": "Assigned"
+        },
+        {
+            "name": "Archive",
+            "fromState": [
+                "*"
+            ],
+            "toState": "Archived"
+        }
+    ],
+    "displayName": "Role assignment",
+    "description": "Draft → Assigned → Archived lifecycle for role assignments"
+}

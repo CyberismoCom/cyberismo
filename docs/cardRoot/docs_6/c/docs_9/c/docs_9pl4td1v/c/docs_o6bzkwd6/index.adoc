@@ -1,0 +1,13 @@
+== Parameters
+
+* `CardKey`: The card key of the card, whose workflow state transition shall have a side effect
+* `Transition`: The name of a workflow transition
+* `AffectedCard`: The card key of the card, whose field will be set
+* `Field`: The name of the field that will be set
+* `NewValue`: The new value of the field 
+
+== Description
+
+If `onTransitionSetField(CardKey, Transition, AffectedCard, Field, NewValue)` is true, and if the workflow transition `Transition` is executed on `CardKey`, then the field `Field` of `AffectedCard` shall be set to `NewValue`.
+
+Notice that creating a card is also a workflow transition. This enables logic programs to define side effects upon creating a new card. For example, the title of the new card can be set by the logic program.

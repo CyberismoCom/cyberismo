@@ -1,0 +1,45 @@
+This page contains security guidance about the Cyberismo solution. The goal is to help users and administrators use the Cyberismo solution securely.
+
+== Security recommendations when using Cyberismo
+
+* Keep Cyberismo and its dependencies up to date.
+* Familiarise yourself with the known security risks and their recommended mitigations, documented below.
+* If you are providing the Cyberismo solution to a group of users, plan the deployment environment carefully and make sure that the users understand the security model of the solution.
+
+== Known security risks
+
+[cols="1,2"]
+|===
+|Known risk | Mitigation
+
+|Unauthorised access to a Cyberismo content repository
+|Cyberismo content is typically managed in version control. If you store Cyberismo content in version control, then it is your responsibility to manage the access rights so that only authorised users are granted access to your repositories.
+
+|Unauthorised access to a static website generated with Cyberismo
+|When you export Cyberismo content as a static website, you get a set of HTML pages and web resources. As usual for static websites, the site includes no form of access control. If you publish the website to users, then it is your responsibility to arrange suitable access control to prevent unauthorised access.
+
+|Injecting malicious or invalid Cyberismo content
+|As Cyberismo is a security-as-code solution, users have full access to the plain text representation of the content. A malicious or careless user may attempt to inject malicious attachments, AsciiDoc markup, or logic programs into a Cyberismo content project. You can mitigate this risk by implementing proper access control to the project repository, conducting change reviews such as pull requests, and using the `cyberismo validate` command-line command to ensure that the content is technically valid.
+
+|Data loss because of a corrupt Cyberismo content project
+|It is recommended to use version control to store the history of Cyberismo content, and to implement backups of the version control system. At the moment, using the version history of a version control system is the only supported mechanism for undoing changes to the content.
+
+|Sensitive cards are readable by all users of a Cyberismo content project
+|As Cyberismo is a security-as-code solution, all content in a project is readable by anyone who has access to the source code repository. If you need to store sensitive information as Cyberismo content, then you should design the content project structure so that there is a separate content project stored in a separate access-controlled version control repository.
+
+|Spoofing usernames or user activities
+|Some cards in a Cyberismo content project may store information about users. As the content can be modified by any user with access to the content, verify the change originator via version control history rather than relying solely on user-provided content.
+
+|===
+
+== Software bill of materials (SBOM)
+
+The Software Bill of Materials (SBOM) for the Cyberismo tool is available in GitHub at link:https://github.com/CyberismoCom/cyberismo/network/dependencies[Cyberismo dependency graph].
+
+== How to report vulnerabilities
+
+See https://cyberismo.com/vulnerability-disclosure-policy/[Cyberismo vulnerability disclosure policy].
+
+== Technical security support
+
+Commercial technical support is available from the Cyberismo company. See the link:https://cyberismo.com[Cyberismo company website] for contact information.

@@ -1,0 +1,34 @@
+The `include` macro includes the contents of another card in a card.
+
+NOTE: As Cyberismo cards have a title, metadata fields, and links in addition to the AsciiDoc contents, we need to include more than just the AsciiDoc document. Therefore, Cyberismo does not support https://docs.asciidoctor.org/asciidoc/latest/directives/include/[the native AsciiDoc include directive]. 
+
+== Parameters
+
+The `include` macro supports the following parameters:
+
+* `"cardKey"` : The key of the card to include
+* `"levelOffset"`: An optional offset to adjust the heading levels of the included content. Should be a number as string, such as `"+1"`, `"+2"` or `"-1"`.
+* `"title"`: Optional parameter. Whether to include the title of the card in the included content. The value must be `"include"` to include the title, `"exclude"` to exclude the title, or `"only"` to include the title only and exclude all other content. If the parameter is omitted, then the title will be included 
+* `"pageTitles"`: Optional, either `"normal"` or `"discrete"` to control whether page titles will be included as discrete headings or normal headings. If this parameter is omitted, then normal headings will be included. See https://docs.asciidoctor.org/asciidoc/latest/blocks/discrete-headings/[AsciiDoc documentation] for more information
+* `"whitespace"`: Optional parameter to control whitespace handling in the included content. The value can be `"keep"` (default) to preserve all initial and final whitespace and newlines, or `"trim"` to remove them. The `"trim"` option is particularly useful when including content that should be used as non-AsciiDoc data, such as JSON or other structured formats
+* `"escape"`: Optional parameter to apply escaping to the included content. The value can be `"json"` to escape the content for use inside a JSON string (escaping double quotes, backslashes, newlines, and other control characters) or `"csv"` to escape the content for use as a CSV field (doubling double quotes). This option can only be used together with `"title": "exclude"`, as escaping is meant for embedding raw content in JSON or CSV documents, not for generating AsciiDoc output
+
+== Example
+
+For example, consider the following macro:
+
+```
+{{#raw}}
+
+{{#include}}
+  "cardKey": "docs_i13qzif0"
+{{/include}}
+
+{{/raw}}
+```
+
+This macro includes the contents of {{#xref}}"cardKey": "docs_i13qzif0"{{/xref}} in the card, as follows:
+
+{{#include}}
+  "cardKey": "docs_i13qzif0"
+{{/include}}

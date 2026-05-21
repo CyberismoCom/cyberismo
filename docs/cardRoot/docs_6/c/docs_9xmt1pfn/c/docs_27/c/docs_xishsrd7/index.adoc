@@ -1,0 +1,9 @@
+== Parameters
+
+* `CardType`: the name of a card type
+* `"displayName"`: the string `"displayName"` that denotes the displayName field
+* `DisplayName`: a display name of the card type
+
+== Description
+
+A card type has a display name.
