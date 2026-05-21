@@ -1,13 +1,13 @@
 import { expect, it, describe, beforeEach, afterEach } from 'vitest';
-
 import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
-
+import { mkdir, readFile, writeFile, rm } from 'node:fs/promises';
 import type { CardType } from '../src/interfaces/resource-interfaces.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import type { Project } from '../src/containers/project.js';
 import { Fetch, Show, Update } from '../src/commands/index.js';
 import { getTestProject } from './helpers/test-utils.js';
+import { ConfigurationLogger } from '../src/utils/configuration-logger.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-update-tests');
@@ -267,5 +267,67 @@ describe('update command', () => {
 
     const report = await project.resources.byType(name, 'reports').show();
     expect(report.content.queryTemplate).toBe('new query content');
+  });
+});
+
+// Reuse the existing decision-records fixture.
+const FIXTURE_PATH = join(
+  import.meta.dirname,
+  'test-data',
+  'valid',
+  'decision-records',
+);
+const tmpDir = join(import.meta.dirname, 'tmp-command-update-link-type');
+
+describe('update command - link-type renames through ResourceMutations', () => {
+  let project: Project;
+  let projectPath: string;
+  let update: Update;
+
+  beforeEach(async () => {
+    projectPath = join(tmpDir, `proj-${Date.now()}`);
+    await mkdir(projectPath, { recursive: true });
+    await copyDir(FIXTURE_PATH, projectPath);
+
+    // Seed a card link that uses the 'test' link type so the cascade has
+    // something to rewrite.
+    const decision5Path = join(
+      projectPath,
+      'cardRoot',
+      'decision_5',
+      'index.json',
+    );
+    const decision5 = JSON.parse(await readFile(decision5Path, 'utf-8'));
+    decision5.links = [
+      { linkType: 'decision/linkTypes/test', cardKey: 'decision_6' },
+    ];
+    await writeFile(decision5Path, JSON.stringify(decision5, null, 4));
+
+    project = getTestProject(projectPath);
+    await project.populateCaches();
+    update = new Update(project);
+  });
+
+  afterEach(async () => {
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('routes link-type renames through the new mutation engine', async () => {
+    const linkTypeName = `${project.projectPrefix}/linkTypes/test`;
+    const newName = `${project.projectPrefix}/linkTypes/is-caused-by`;
+
+    await update.applyResourceOperation(
+      linkTypeName,
+      { key: 'name' },
+      { name: 'change', target: linkTypeName, to: newName },
+    );
+
+    // Confirm the rename happened and a log entry was written via the new engine.
+    const logEntries = await ConfigurationLogger.entries(project.basePath);
+    expect(
+      logEntries.some(
+        (e) => e.kind === 'resource_rename' && e.target === linkTypeName,
+      ),
+    ).toBe(true);
   });
 });
