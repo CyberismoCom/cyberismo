@@ -97,8 +97,8 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
     <Modal open={open} onClose={handleClose}>
       <ModalDialog
         sx={{
-          height: '90%',
-          width: '60%',
+          height: { xs: '95vh', sm: '90%' },
+          width: { xs: '95vw', sm: '60%' },
         }}
       >
         <ModalClose />

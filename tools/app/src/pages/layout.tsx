@@ -39,7 +39,12 @@ import { NewTemplateCardModal } from '../components/modals/resource-forms/NewTem
 import { useConfigTemplateCreationContext } from '@/lib/hooks';
 import { AppModalsProvider } from '@/lib/contexts/AppModalsProvider';
 import type { ResourceName } from '@/lib/constants';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
+
+export type AppLayoutOutletContext = {
+  drawerOpen: boolean;
+  setDrawerOpen: (open: boolean) => void;
+};
 
 const Main = styled('main')(() => ({
   height: 'calc(100vh - 44px)', // 44px is the height of the toolbar
@@ -77,6 +82,8 @@ export default function Layout() {
   });
   const key = useOptionalKeyParam();
 
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
   const dispatch = useAppDispatch();
 
   const notifications = useAppSelector(
@@ -106,6 +113,7 @@ export default function Layout() {
             openModal(resourceType)();
           }
         }}
+        onMenuClick={() => setDrawerOpen(true)}
       />
       <AppModalsProvider
         value={{
@@ -113,7 +121,11 @@ export default function Layout() {
         }}
       >
         <Main>
-          <Outlet />
+          <Outlet
+            context={
+              { drawerOpen, setDrawerOpen } satisfies AppLayoutOutletContext
+            }
+          />
         </Main>
       </AppModalsProvider>
       <NewCardModal

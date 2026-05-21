@@ -452,7 +452,12 @@
   "toolbar": {
     "newCard": "Create",
     "newResource": "Create",
-    "importModules": "Import Modules"
+    "importModules": "Import Modules",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "switchToSystem": "Switch to system mode",
+    "switchToLight": "Switch to light mode",
+    "switchToDark": "Switch to dark mode"
   },
   "true": "True",
   "unknownError": "An unknown error occurred",

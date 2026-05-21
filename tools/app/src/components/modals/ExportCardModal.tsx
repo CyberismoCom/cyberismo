@@ -78,7 +78,13 @@ const ExportModal = ({
 
   return (
     <Modal open={open} onClose={handleClose} disableEscapeKeyDown>
-      <ModalDialog size="md" sx={{ minWidth: 480 }}>
+      <ModalDialog
+        size="md"
+        sx={{
+          width: { xs: '95vw', sm: 'auto' },
+          minWidth: { sm: 480 },
+        }}
+      >
         <DialogTitle>{heading}</DialogTitle>
         <DialogContent sx={{ overflow: 'hidden' }}>
           <FormControl>

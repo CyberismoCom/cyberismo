@@ -15,8 +15,10 @@ import {
   Avatar,
   Dropdown,
   IconButton,
+  ListDivider,
   Menu,
   MenuButton,
+  MenuItem,
   Tooltip,
   Typography,
   Box,
@@ -25,17 +27,25 @@ import LogoutOutlined from '@mui/icons-material/LogoutOutlined';
 import { useUser } from '@/lib/api';
 import { getConfig, getInitials } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
+import { useThemeCycle } from '@/lib/hooks';
+
+const mobileOnlyDisplay = { xs: 'flex', sm: 'none' } as const;
 
 export default function UserMenu() {
   const { user } = useUser();
   const { t } = useTranslation();
+  const { cycle: cycleTheme, icon: themeIcon, switchLabel } = useThemeCycle();
 
   if (!user) return null;
 
   const initials = getInitials(user.name) || '?';
+  const logoutUrl = getConfig().logoutUrl;
+  const handleLogout = () => {
+    if (logoutUrl) window.location.href = logoutUrl;
+  };
 
   return (
-    <Box display="flex" alignItems="center" gap={0.5}>
+    <Box display="flex" alignItems="center" gap={0.5} mr={1}>
       <Dropdown>
         <MenuButton
           slots={{ root: Avatar }}
@@ -61,21 +71,35 @@ export default function UserMenu() {
               {user.email}
             </Typography>
           </Box>
+          <ListDivider sx={{ display: mobileOnlyDisplay }} />
+          <MenuItem onClick={cycleTheme} sx={{ display: mobileOnlyDisplay }}>
+            {themeIcon}
+            {switchLabel}
+          </MenuItem>
+          {logoutUrl && (
+            <MenuItem
+              onClick={handleLogout}
+              sx={{ display: mobileOnlyDisplay }}
+            >
+              <LogoutOutlined />
+              {t('logOut')}
+            </MenuItem>
+          )}
         </Menu>
       </Dropdown>
-      {getConfig().logoutUrl && (
-        <Tooltip title={t('logOut')}>
-          <IconButton
-            size="sm"
-            variant="plain"
-            sx={{ color: 'white' }}
-            onClick={() => {
-              window.location.href = getConfig().logoutUrl!;
-            }}
-          >
-            <LogoutOutlined />
-          </IconButton>
-        </Tooltip>
+      {logoutUrl && (
+        <Box sx={{ display: { xs: 'none', sm: 'inline-flex' } }}>
+          <Tooltip title={t('logOut')}>
+            <IconButton
+              size="sm"
+              variant="plain"
+              sx={{ color: 'white' }}
+              onClick={handleLogout}
+            >
+              <LogoutOutlined />
+            </IconButton>
+          </Tooltip>
+        </Box>
       )}
     </Box>
   );

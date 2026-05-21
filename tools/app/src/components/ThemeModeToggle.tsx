@@ -12,64 +12,27 @@
 */
 
 import { IconButton } from '@mui/joy';
-import { useColorScheme } from '@mui/joy/styles';
-import DarkModeIcon from '@mui/icons-material/DarkMode';
-import LightModeIcon from '@mui/icons-material/LightMode';
-import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightness';
+import { useThemeCycle } from '@/lib/hooks';
 
 /**
  * Toggle button for cycling between system, light, and dark color schemes.
- * Cycles: system → light → dark → system
  */
 export function ThemeModeToggle() {
-  const { mode, setMode } = useColorScheme();
-
-  const handleToggle = () => {
-    // Cycle: system → light → dark → system
-    if (mode === 'system') {
-      setMode('light');
-    } else if (mode === 'light') {
-      setMode('dark');
-    } else {
-      setMode('system');
-    }
-  };
-
-  const getIcon = () => {
-    switch (mode) {
-      case 'light':
-        return <LightModeIcon />;
-      case 'dark':
-        return <DarkModeIcon />;
-      default:
-        return <SettingsBrightnessIcon />;
-    }
-  };
-
-  const getNextModeLabel = () => {
-    switch (mode) {
-      case 'system':
-        return 'light';
-      case 'light':
-        return 'dark';
-      default:
-        return 'system';
-    }
-  };
+  const { cycle, icon, switchLabel } = useThemeCycle();
 
   return (
     <IconButton
       variant="plain"
       color="neutral"
-      onClick={handleToggle}
-      aria-label={`Switch to ${getNextModeLabel()} mode`}
+      onClick={cycle}
+      aria-label={switchLabel}
       sx={{
         '--IconButton-size': '32px',
         marginRight: '6px',
         color: 'common.white',
       }}
     >
-      {getIcon()}
+      {icon}
     </IconButton>
   );
 }

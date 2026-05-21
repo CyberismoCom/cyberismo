@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { Fragment } from 'react';
 import AddIcon from '@mui/icons-material/Add';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import MenuIcon from '@mui/icons-material/Menu';
 import { Link } from 'react-router';
 
 import {
@@ -21,6 +22,7 @@ import {
   Button,
   Box,
   Dropdown,
+  IconButton,
   Menu,
   MenuButton,
   MenuItem,
@@ -39,6 +41,7 @@ import UserMenu from './UserMenu';
 
 interface AppToolbarProps {
   onCreate: (resourceType?: ResourceName) => void;
+  onMenuClick?: () => void;
 }
 
 export function CreateButton({
@@ -59,10 +62,16 @@ export function CreateButton({
         data-cy="createNewButton"
         size="sm"
         startDecorator={<AddIcon />}
-        sx={{ marginRight: '16px' }}
+        aria-label={t('toolbar.newCard')}
+        sx={{
+          marginRight: '16px',
+          '--Button-gap': { xs: 0, sm: '0.375rem' },
+        }}
         onClick={() => onClick()}
       >
-        {t('toolbar.newCard')}
+        <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+          {t('toolbar.newCard')}
+        </Box>
       </Button>
     );
   }
@@ -114,7 +123,8 @@ export function CreateButton({
   );
 }
 
-export default function AppToolbar({ onCreate }: AppToolbarProps) {
+export default function AppToolbar({ onCreate, onMenuClick }: AppToolbarProps) {
+  const { t } = useTranslation();
   const inCards = useIsInCards();
   useKeyboardShortcut(
     {
@@ -137,6 +147,18 @@ export default function AppToolbar({ onCreate }: AppToolbarProps) {
         borderColor: 'divider',
       }}
     >
+      {inCards && onMenuClick && (
+        <IconButton
+          variant="plain"
+          color="neutral"
+          size="sm"
+          onClick={onMenuClick}
+          aria-label={t('toolbar.openMenu')}
+          sx={{ display: { xs: 'inline-flex', md: 'none' }, ml: 1 }}
+        >
+          <MenuIcon />
+        </IconButton>
+      )}
       <Box marginLeft={2} height="19px">
         <Link to="/cards">
           <img
@@ -148,7 +170,9 @@ export default function AppToolbar({ onCreate }: AppToolbarProps) {
         </Link>
       </Box>
       <Box sx={{ flexGrow: 1 }} />
-      <ThemeModeToggle />
+      <Box sx={{ display: { xs: 'none', sm: 'inline-flex' } }}>
+        <ThemeModeToggle />
+      </Box>
       {!getConfig().staticMode && (
         <CreateButton type={inCards ? 'Card' : 'Resource'} onClick={onCreate} />
       )}
