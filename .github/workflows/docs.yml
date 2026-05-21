@@ -1,0 +1,74 @@
+name: Docs
+
+on:
+  pull_request:
+    paths:
+      - 'docs/**'
+      - '.github/workflows/docs.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - '.github/workflows/docs.yml'
+  workflow_dispatch: {}
+
+env:
+  CLI_VERSION: 0.0.23
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ vars.NODE_VERSION }}
+
+      - name: Install Cyberismo CLI
+        run: npm install -g "@cyberismo/cli@${CLI_VERSION}"
+
+      - name: Validate docs project
+        run: cyberismo validate -p docs
+
+      - name: Build site
+        run: |
+          cyberismo export site -p docs build/site
+          touch build/site/.nojekyll
+          cp .github/pages/404.html build/site/404.html
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rendered-site
+          path: build/site
+          retention-days: 7
+
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: rendered-site
+          path: build/site
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
