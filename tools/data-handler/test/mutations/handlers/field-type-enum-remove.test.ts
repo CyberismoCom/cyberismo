@@ -57,7 +57,7 @@ describe('FieldTypeEnumRemoveHandler', () => {
     );
 
     project = new Project(projectPath);
-    await project.initialize();
+    await project.populateCaches();
 
     // Ensure at least one card carries the soon-to-be-removed enum value.
     const cards = project.cards(undefined);
