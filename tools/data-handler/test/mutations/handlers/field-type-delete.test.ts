@@ -88,7 +88,7 @@ describe('FieldTypeDeleteHandler', () => {
       if (!card.metadata) continue;
       expect(Object.keys(card.metadata)).not.toContain(target);
     }
-    expect(project.resources.byType(target, 'fieldTypes')).toBeUndefined();
+    expect(project.resources.exists(target)).toBe(false);
   });
 
   it('isBreaking is true', () => {
