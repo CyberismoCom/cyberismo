@@ -132,7 +132,7 @@ export class FieldTypeDataTypeHandler implements Handler {
       return fromString(value, to);
     }
     if (to === 'shortText' || to === 'longText') {
-      let str = String(value).replace(/(\\")/g, '');
+      const str = String(value).replace(/(\\")/g, '');
       if (to === 'shortText' && str.length > SHORT_TEXT_MAX_LENGTH) {
         return null;
       }
