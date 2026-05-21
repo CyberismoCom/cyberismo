@@ -13,6 +13,7 @@ import { CardTypeAddCustomFieldHandler } from './handlers/card-type-add-custom-f
 import { CardTypeRemoveCustomFieldHandler } from './handlers/card-type-remove-custom-field.js';
 import { CardTypeRenameHandler } from './handlers/card-type-rename.js';
 import { CardTypeWorkflowChangeHandler } from './handlers/card-type-workflow-change.js';
+import { CardTypeDeleteHandler } from './handlers/card-type-delete.js';
 
 const HANDLERS: Handler[] = [
   new LinkTypeRenameHandler(),
@@ -20,6 +21,7 @@ const HANDLERS: Handler[] = [
   new CardTypeAddCustomFieldHandler(),
   new CardTypeRemoveCustomFieldHandler(),
   new CardTypeRenameHandler(),
+  new CardTypeDeleteHandler(),
   new FieldTypeRenameHandler(),
   new FieldTypeDataTypeHandler(),
   new FieldTypeEnumAddHandler(),
