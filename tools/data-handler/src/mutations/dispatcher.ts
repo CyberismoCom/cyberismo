@@ -5,6 +5,7 @@ import { DefaultNoCascadeHandler } from './handlers/default-no-cascade.js';
 import { FieldTypeDataTypeHandler } from './handlers/field-type-data-type.js';
 import { FieldTypeEnumAddHandler } from './handlers/field-type-enum-add.js';
 import { FieldTypeEnumRemoveHandler } from './handlers/field-type-enum-remove.js';
+import { FieldTypeEnumRenameHandler } from './handlers/field-type-enum-rename.js';
 import { FieldTypeRenameHandler } from './handlers/field-type-rename.js';
 import { LinkTypeRenameHandler } from './handlers/link-type-rename.js';
 
@@ -14,6 +15,7 @@ const HANDLERS: Handler[] = [
   new FieldTypeDataTypeHandler(),
   new FieldTypeEnumAddHandler(),
   new FieldTypeEnumRemoveHandler(),
+  new FieldTypeEnumRenameHandler(),
   new DefaultNoCascadeHandler(),
 ];
 
