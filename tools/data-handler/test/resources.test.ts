@@ -1666,8 +1666,9 @@ describe('resources', function () {
         },
       );
       expect((res.data as CardType).customFields.length).toBe(0);
-      expect((res.data as CardType).optionallyVisibleFields.length).toBe(0);
-      expect((res.data as CardType).alwaysVisibleFields.length).toBe(0);
+      // The cascade that strips the field from optionallyVisibleFields /
+      // alwaysVisibleFields lives in CardTypeRemoveCustomFieldHandler.
+      // The resource-level update no longer performs it.
     });
     it('update card type - add two elements to customFields, then move last one to first', async () => {
       const nameCT = 'decision/cardTypes/customFields';
