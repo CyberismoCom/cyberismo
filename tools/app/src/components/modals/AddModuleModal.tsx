@@ -108,7 +108,13 @@ export function AddModuleModal({ open, onClose, onAdd }: AddModuleModalProps) {
       onClose={() => (isImporting ? null : handleClose())}
       disableEscapeKeyDown
     >
-      <ModalDialog size="md" sx={{ minWidth: 480 }}>
+      <ModalDialog
+        size="md"
+        sx={{
+          width: { xs: '95vw', sm: 'auto' },
+          minWidth: { sm: 480 },
+        }}
+      >
         <ModalClose disabled={isImporting} />
         <DialogTitle>
           <Stack>

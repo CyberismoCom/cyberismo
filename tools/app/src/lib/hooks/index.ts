@@ -15,5 +15,6 @@ export * from './redux';
 export * from './utils';
 export * from './configurationEditor';
 export * from './theme';
+export * from './themeCycle';
 export * from './useListItemEditing';
 export * from './useTreeNodeVisualState';

@@ -80,9 +80,9 @@ export function ProjectSelectionModal({
     <Modal open={open} onClose={dismissable ? handleClose : undefined}>
       <ModalDialog
         sx={{
-          height: '90%',
-          width: '60%',
-          minWidth: 400,
+          height: { xs: '95vh', sm: '90%' },
+          width: { xs: '95vw', sm: '60%' },
+          minWidth: { sm: 400 },
         }}
       >
         {dismissable && <ModalClose />}

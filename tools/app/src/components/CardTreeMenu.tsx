@@ -26,7 +26,10 @@ export const CardTreeMenu = () => {
     <>
       <Dropdown>
         <MenuButton variant="plain" size="sm" endDecorator={<MoreHoriz />} />
-        <Menu placement="bottom-end">
+        <Menu
+          placement="bottom-end"
+          sx={{ zIndex: 'calc(var(--joy-zIndex-modal) + 1)' }}
+        >
           <MenuItem onClick={() => setIsOpen(true)}>
             {t('exportProject')}
           </MenuItem>

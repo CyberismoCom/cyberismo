@@ -133,8 +133,9 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
       }}
     >
       <ModalDialog
-        minWidth={620}
         sx={{
+          width: { xs: '95vw', sm: 'auto' },
+          minWidth: { sm: 620 },
           height: '100%',
         }}
       >

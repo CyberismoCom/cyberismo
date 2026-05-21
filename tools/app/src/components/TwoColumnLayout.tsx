@@ -13,7 +13,9 @@
 
 import type { ReactNode } from 'react';
 import { Group, Panel, Separator } from 'react-resizable-panels';
-import { Box } from '@mui/joy';
+import { Box, Drawer } from '@mui/joy';
+import { useTheme } from '@mui/material/styles';
+import { useMediaQuery } from '@mui/material';
 
 interface TwoColumnLayoutProps {
   leftPanel: ReactNode;
@@ -21,6 +23,9 @@ interface TwoColumnLayoutProps {
   leftPanelDefaultSize?: string;
   leftPanelMinSize?: string;
   leftPanelMaxSize?: string;
+  collapseBelow?: 'sm' | 'md' | 'lg';
+  drawerOpen?: boolean;
+  onDrawerClose?: () => void;
 }
 
 export default function TwoColumnLayout({
@@ -29,7 +34,38 @@ export default function TwoColumnLayout({
   leftPanelDefaultSize = '20%',
   leftPanelMinSize = '12%',
   leftPanelMaxSize = '40%',
+  collapseBelow,
+  drawerOpen = false,
+  onDrawerClose,
 }: TwoColumnLayoutProps) {
+  const theme = useTheme();
+  const collapsed = useMediaQuery(
+    theme.breakpoints.down(collapseBelow ?? 'xs'),
+    { defaultMatches: false, noSsr: true },
+  );
+
+  if (collapseBelow && collapsed) {
+    return (
+      <Box height="100%" display="flex">
+        <Drawer
+          open={drawerOpen}
+          onClose={onDrawerClose}
+          anchor="left"
+          sx={{
+            '--Drawer-horizontalSize': { xs: '100vw', sm: '420px' },
+          }}
+        >
+          <Box height="100%" sx={{ overflowY: 'auto' }}>
+            {leftPanel}
+          </Box>
+        </Drawer>
+        <Box flexGrow={1} height="100%" overflow="hidden">
+          {rightPanel}
+        </Box>
+      </Box>
+    );
+  }
+
   return (
     <Box height="100%">
       <Group orientation="horizontal">

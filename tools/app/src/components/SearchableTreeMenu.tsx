@@ -46,6 +46,7 @@ type SearchableTreeMenuProps = {
   selectedCardKey: string | null;
   onCardSelect?: (node: NodeApi<QueryResult<'tree'>>) => void;
   onMove?: (card: string, newParent: string, index: number) => void;
+  onClose?: () => void;
   tree: QueryResult<'tree'>[];
 };
 
@@ -85,6 +86,7 @@ export const SearchableTreeMenu = ({
   titleRightSlot,
   onMove,
   onCardSelect,
+  onClose,
   tree,
 }: SearchableTreeMenuProps) => {
   const { t } = useTranslation();
@@ -124,16 +126,33 @@ export const SearchableTreeMenu = ({
       {/* Recent projects - only takes natural height */}
       <Stack flexShrink={0}>
         {/* Recent projects header */}
-        <Typography
-          level="body-xs"
-          textTransform="uppercase"
-          fontWeight="lg"
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
           px={2}
           pt={2}
           pb={0.5}
+          sx={{
+            bgcolor: 'background.surface',
+          }}
         >
-          {t('projectDialog.recentProjects')}
-        </Typography>
+          <Typography level="body-xs" textTransform="uppercase" fontWeight="lg">
+            {t('projectDialog.recentProjects')}
+          </Typography>
+          {onClose && (
+            <IconButton
+              variant="plain"
+              color="neutral"
+              size="sm"
+              onClick={onClose}
+              aria-label={t('toolbar.closeMenu')}
+              sx={{ display: { xs: 'inline-flex', md: 'none' }, ml: 1 }}
+            >
+              <CloseIcon />
+            </IconButton>
+          )}
+        </Stack>
 
         <List size="sm" sx={{ px: 1, py: 0 }}>
           {/* Current project */}

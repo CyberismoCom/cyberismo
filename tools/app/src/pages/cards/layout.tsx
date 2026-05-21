@@ -12,7 +12,7 @@
 */
 import { SearchableTreeMenu } from '../../components/SearchableTreeMenu';
 import TwoColumnLayout from '../../components/TwoColumnLayout';
-import { Outlet } from 'react-router';
+import { Outlet, useOutletContext } from 'react-router';
 
 import { Box, CircularProgress, Typography, Container } from '@mui/joy';
 import { useProject } from '../../lib/api';
@@ -26,6 +26,7 @@ import { findParentCard } from '../../lib/utils';
 import { useTree } from '../../lib/api/tree';
 import { useCard } from '../../lib/api/card';
 import { CardTreeMenu } from '@/components/CardTreeMenu';
+import type { AppLayoutOutletContext } from '../layout';
 
 /**
  * Delay in milliseconds before hiding the loading overlay after a move operation.
@@ -38,6 +39,8 @@ export default function AppLayout() {
   const { tree, isLoading: isLoadingTree, error: treeError } = useTree();
   const { card } = useCard(key);
   const router = useAppRouter();
+  const { drawerOpen, setDrawerOpen } =
+    useOutletContext<AppLayoutOutletContext>();
 
   // Set document title based on current card and project
   const title =
@@ -79,11 +82,15 @@ export default function AppLayout() {
   }
   return (
     <TwoColumnLayout
+      collapseBelow="md"
+      drawerOpen={drawerOpen}
+      onDrawerClose={() => setDrawerOpen(false)}
       leftPanel={
         <SearchableTreeMenu
           titleRightSlot={<CardTreeMenu />}
           tree={tree}
           selectedCardKey={key ?? null}
+          onClose={() => setDrawerOpen(false)}
           onMove={async (cardKey: string, newParent: string, index: number) => {
             const parent = findParentCard(tree, cardKey);
             await updateCard(cardKey, {
@@ -94,6 +101,7 @@ export default function AppLayout() {
           onCardSelect={(node) => {
             if (node.data.key) {
               router.safePush(`/cards/${node.data.key}`);
+              setDrawerOpen(false);
             }
           }}
         />

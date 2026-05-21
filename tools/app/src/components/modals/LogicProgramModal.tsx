@@ -43,7 +43,14 @@ export function LogicProgramModal({
 
   return (
     <Modal open={open} onClose={onClose}>
-      <ModalDialog size="lg" sx={{ maxWidth: '80vw', maxHeight: '80vh' }}>
+      <ModalDialog
+        size="lg"
+        sx={{
+          width: { xs: '95vw', sm: 'auto' },
+          maxWidth: '80vw',
+          maxHeight: '80vh',
+        }}
+      >
         <ModalClose />
         <DialogTitle>{title}</DialogTitle>
         <DialogContent>
