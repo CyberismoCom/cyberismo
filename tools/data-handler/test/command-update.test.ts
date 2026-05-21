@@ -14,6 +14,7 @@ const testDir = join(baseDir, 'tmp-update-tests');
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
 let project: Project;
 let update: Update;
+let fetch: Fetch;
 
 describe('update command', () => {
   afterEach(() => {
@@ -26,6 +27,7 @@ describe('update command', () => {
     project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     update = new Update(project);
+    fetch = new Fetch(project);
   });
 
   it('update file resource', async () => {
@@ -267,6 +269,57 @@ describe('update command', () => {
 
     const report = await project.resources.byType(name, 'reports').show();
     expect(report.content.queryTemplate).toBe('new query content');
+  });
+
+  it('routes CardType workflow change through the mutation engine', async () => {
+    const { ConfigurationLogger } = await import(
+      '../src/utils/configuration-logger.js'
+    );
+    const name = `${project.projectPrefix}/cardTypes/decision`;
+    const currentWorkflow = `${project.projectPrefix}/workflows/decision`;
+    const newWorkflow = `${project.projectPrefix}/workflows/simple`;
+    const stateMap = {
+      stateMapping: {
+        Draft: 'Created',
+        Approved: 'Approved',
+        Rejected: 'Deprecated',
+        Rerejected: 'Deprecated',
+        Deprecated: 'Deprecated',
+      },
+    };
+
+    await update.updateValue(
+      name,
+      'change',
+      'workflow',
+      currentWorkflow,
+      newWorkflow,
+      stateMap,
+    );
+
+    const entries = await ConfigurationLogger.entries(project.basePath);
+    expect(
+      entries.some(
+        (e) => e.kind === 'resource_edit' && e.target === name,
+      ),
+    ).toBe(true);
+  });
+
+  it('routes CardType delete through the mutation engine', async () => {
+    const { ConfigurationLogger } = await import(
+      '../src/utils/configuration-logger.js'
+    );
+    const { Remove } = await import('../src/commands/remove.js');
+    const remove = new Remove(project, fetch);
+    const name = `${project.projectPrefix}/cardTypes/decision`;
+
+    await remove.remove('cardType', name);
+
+    expect(project.resources.exists(name)).toBe(false);
+    const entries = await ConfigurationLogger.entries(project.basePath);
+    expect(
+      entries.some((e) => e.kind === 'resource_delete' && e.target === name),
+    ).toBe(true);
   });
 });
 

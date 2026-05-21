@@ -81,7 +81,6 @@ describe('CardTypeRenameHandler', () => {
   it('rewrites occurrences in link-type sourceCardTypes/destinationCardTypes', async () => {
     const handler = new CardTypeRenameHandler();
     const oldName = `${project.projectPrefix}/cardTypes/decision`;
-    const newName = `${project.projectPrefix}/cardTypes/choice`;
     await handler.apply({
       project,
       input: {

@@ -53,18 +53,30 @@ export class Update {
     // Resource families that are fully owned by the mutation engine.
     const enginedTypes = new Set(['linkTypes', 'fieldTypes']);
 
-    if (enginedTypes.has(type)) {
+    // Renames travel under the 'rename' MutationKind; everything else is 'edit'.
+    const isRename =
+      updateKey.key === 'name' &&
+      (operation as { name: string }).name === 'change';
+
+    // CardType has a mix of engined and legacy edits; only routed ones go through.
+    const isCardTypeRoutedEdit =
+      type === 'cardTypes' &&
+      ((updateKey.key === 'workflow' &&
+        (operation as { name: string }).name === 'change') ||
+        (updateKey.key === 'customFields' &&
+          ((operation as { name: string }).name === 'add' ||
+            (operation as { name: string }).name === 'remove')));
+
+    if (
+      enginedTypes.has(type) ||
+      (type === 'cardTypes' && (isRename || isCardTypeRoutedEdit))
+    ) {
       const { resourceName: parseResourceName } = await import(
         '../utils/resource-utils.js'
       );
       const { ResourceMutations } = await import('../mutations/plan.js');
       const target = parseResourceName(name);
       const mutations = new ResourceMutations(this.project);
-
-      // Renames travel under the 'rename' MutationKind; everything else is 'edit'.
-      const isRename =
-        updateKey.key === 'name' &&
-        (operation as { name: string }).name === 'change';
 
       if (isRename) {
         const newIdentifier = parseResourceName(
