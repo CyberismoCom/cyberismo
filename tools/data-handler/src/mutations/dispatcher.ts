@@ -10,6 +10,7 @@ import { FieldTypeEnumRenameHandler } from './handlers/field-type-enum-rename.js
 import { FieldTypeRenameHandler } from './handlers/field-type-rename.js';
 import { LinkTypeDeleteHandler } from './handlers/link-type-delete.js';
 import { LinkTypeRenameHandler } from './handlers/link-type-rename.js';
+import { TemplateDeleteHandler, TemplateRenameHandler } from './handlers/template.js';
 import { WorkflowRenameHandler } from './handlers/workflow-rename.js';
 import { WorkflowAddStateHandler } from './handlers/workflow-add-state.js';
 import { WorkflowRemoveStateHandler } from './handlers/workflow-remove-state.js';
@@ -25,6 +26,8 @@ import { CardTypeDeleteHandler } from './handlers/card-type-delete.js';
 const HANDLERS: Handler[] = [
   new LinkTypeRenameHandler(),
   new LinkTypeDeleteHandler(),
+  new TemplateRenameHandler(),
+  new TemplateDeleteHandler(),
   new WorkflowRenameHandler(),
   new WorkflowAddStateHandler(),
   new WorkflowRemoveStateHandler(),
