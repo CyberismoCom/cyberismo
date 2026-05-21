@@ -12,8 +12,10 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { readFile, rename, unlink } from 'node:fs/promises';
+import { readFile, readdir, rename, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
+
+import semver from 'semver';
 
 import { getChildLogger } from './log-utils.js';
 import { ProjectPaths } from '../containers/project/project-paths.js';
@@ -155,6 +157,42 @@ export class ConfigurationLogger {
       logger.error({ error }, `Failed to read configuration log`);
       return [];
     }
+  }
+
+  /**
+   * Return the highest semver among the existing sealed migration log files
+   * for the given project, or null if there are none.
+   * @param projectPath Path to the project root
+   */
+  public static async previousSealedVersion(
+    projectPath: string,
+  ): Promise<string | null> {
+    const folder = new ProjectPaths(projectPath).migrationLogFolder;
+    let files: string[];
+    try {
+      files = await readdir(folder);
+    } catch {
+      return null;
+    }
+    const versions = files
+      .map((f) => /^migrationLog_(.+)\.jsonl$/.exec(f)?.[1])
+      .filter((v): v is string => !!v && semver.valid(v) !== null);
+    if (versions.length === 0) return null;
+    return versions.sort(semver.compare).at(-1) ?? null;
+  }
+
+  /**
+   * Determine whether the move from `previousVersion` to `newVersion` is a
+   * semver patch bump. Returns false when either argument is null or invalid.
+   */
+  public static isPatchBump(
+    previousVersion: string | null,
+    newVersion: string,
+  ): boolean {
+    if (!previousVersion) return false;
+    if (!semver.valid(previousVersion) || !semver.valid(newVersion))
+      return false;
+    return semver.diff(previousVersion, newVersion) === 'patch';
   }
 
   /**
