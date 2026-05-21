@@ -48,36 +48,56 @@ export class Update {
     T extends UpdateOperations,
     K extends string,
   >(name: string, updateKey: UpdateKey<K>, operation: OperationFor<Type, T>) {
-    const isLinkTypeRename =
-      updateKey.key === 'name' &&
-      operation.name === 'change' &&
-      this.project.resources.extractType(name) === 'linkTypes';
+    const type = this.project.resources.extractType(name);
 
-    if (isLinkTypeRename) {
+    // Resource families that are fully owned by the mutation engine.
+    const enginedTypes = new Set(['linkTypes', 'fieldTypes']);
+
+    if (enginedTypes.has(type)) {
       const { resourceName: parseResourceName } = await import(
         '../utils/resource-utils.js'
       );
       const { ResourceMutations } = await import('../mutations/plan.js');
       const target = parseResourceName(name);
-      const newIdentifier = parseResourceName(
-        (operation as { to: string }).to,
-      ).identifier;
       const mutations = new ResourceMutations(this.project);
-      const plan = await mutations.plan({
-        kind: 'rename',
+
+      // Renames travel under the 'rename' MutationKind; everything else is 'edit'.
+      const isRename =
+        updateKey.key === 'name' &&
+        (operation as { name: string }).name === 'change';
+
+      if (isRename) {
+        const newIdentifier = parseResourceName(
+          (operation as { to: string }).to,
+        ).identifier;
+        const plan = await mutations.plan({
+          kind: 'rename',
+          target,
+          newIdentifier,
+        });
+        await mutations.apply(
+          { kind: 'rename', target, newIdentifier },
+          { fingerprint: plan.fingerprint },
+        );
+        return;
+      }
+
+      const editInput = {
+        kind: 'edit' as const,
         target,
-        newIdentifier,
-      });
-      await mutations.apply(
-        { kind: 'rename', target, newIdentifier },
-        { fingerprint: plan.fingerprint },
-      );
+        updateKey,
+        operation,
+      };
+      const plan = await mutations.plan(editInput);
+      await mutations.apply(editInput, { fingerprint: plan.fingerprint });
       return;
     }
 
+    // Legacy path for resource types whose cascades have not yet moved to
+    // the engine. Follow-on plans (CardType, Workflow, etc.) keep emptying
+    // this branch.
     const run = () =>
       this.project.lock.write(async () => {
-        const type = this.project.resources.extractType(name);
         const resource = this.project.resources.byType(name, type);
         await resource?.update(updateKey, operation);
       });
