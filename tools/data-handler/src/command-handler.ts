@@ -74,6 +74,7 @@ export const Cmd = {
   fetch: 'fetch',
   import: 'import',
   migrate: 'migrate',
+  module: 'module',
   move: 'move',
   publish: 'publish',
   rank: 'rank',
@@ -338,6 +339,35 @@ export class Commands {
           toVersion ? parseInt(toVersion, 10) : undefined,
           options as MigrateCommandOptions,
         );
+      } else if (command === Cmd.module) {
+        const [subcommand, modulePrefix, targetVersion] = args;
+        if (subcommand !== 'update') {
+          return {
+            statusCode: 400,
+            message: `Unknown module subcommand: '${subcommand}'`,
+          };
+        }
+        if (!modulePrefix || !targetVersion) {
+          return {
+            statusCode: 400,
+            message:
+              'module update requires both a module prefix and a target version',
+          };
+        }
+        const preview =
+          await this.commands?.moduleUpdateCmd.preview(
+            modulePrefix,
+            targetVersion,
+          );
+        if (preview && preview.conflicts.length > 0) {
+          return {
+            statusCode: 409,
+            payload: preview,
+            message: `Cannot update: ${preview.conflicts.length} conflict(s)`,
+          };
+        }
+        const result = await this.commands?.moduleUpdateCmd.apply(preview!);
+        return { statusCode: 200, payload: result };
       } else if (command === Cmd.move) {
         const [source, destination] = args;
         await this.commands?.moveCmd.moveCard(source, destination);

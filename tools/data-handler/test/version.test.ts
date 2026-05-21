@@ -166,20 +166,20 @@ describe('Version', () => {
       hasBreakingChangesStub.returns(true);
 
       await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
-        'breaking configuration changes',
+        /patch.*breaking configuration changes/,
       );
     });
 
-    it('should throw when minor bump attempted with breaking changes', async () => {
+    it('should allow minor bump when breaking changes exist', async () => {
       configuration.version = '1.0.0';
       await configuration.setVersion('1.0.0');
       await git.commit('set version');
 
       hasBreakingChangesStub.returns(true);
+      sinon.stub(ConfigurationLogger, 'createVersion').resolves('dummy');
 
-      await expect(versionCmd.bumpVersion('minor')).rejects.toThrow(
-        'breaking configuration changes',
-      );
+      const result = await versionCmd.bumpVersion('minor');
+      expect(result.newVersion).toBe('1.1.0');
     });
 
     it('should allow major bump when breaking changes exist', async () => {

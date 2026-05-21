@@ -256,4 +256,31 @@ describe('configuration logger', () => {
       newPrefix: 'new-prefix',
     });
   });
+
+  it('previousSealedVersion returns the highest semver from existing sealed logs', async () => {
+    const projectPath = await freshProject('prev-version');
+    const folder = new ProjectPaths(projectPath).migrationLogFolder;
+    await mkdir(folder, { recursive: true });
+    // Seed three sealed logs of different versions.
+    await writeFile(join(folder, 'migrationLog_1.0.0.jsonl'), '');
+    await writeFile(join(folder, 'migrationLog_1.5.0.jsonl'), '');
+    await writeFile(join(folder, 'migrationLog_1.2.0.jsonl'), '');
+    expect(
+      await ConfigurationLogger.previousSealedVersion(projectPath),
+    ).toBe('1.5.0');
+  });
+
+  it('previousSealedVersion returns null when no sealed logs exist', async () => {
+    const projectPath = await freshProject('no-version');
+    expect(
+      await ConfigurationLogger.previousSealedVersion(projectPath),
+    ).toBeNull();
+  });
+
+  it('isPatchBump correctly identifies semver patch increments', () => {
+    expect(ConfigurationLogger.isPatchBump(null, '1.0.0')).toBe(false);
+    expect(ConfigurationLogger.isPatchBump('1.0.0', '1.0.1')).toBe(true);
+    expect(ConfigurationLogger.isPatchBump('1.0.0', '1.1.0')).toBe(false);
+    expect(ConfigurationLogger.isPatchBump('1.0.0', '2.0.0')).toBe(false);
+  });
 });
