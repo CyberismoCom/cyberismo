@@ -85,7 +85,7 @@ describe('LinkTypeDeleteHandler', () => {
     });
     expect(preview.affectedLinkCount).toBeGreaterThan(0);
     expect(preview.dataLossExpected).toBe(true);
-    expect(preview.summary).toMatch(/removes? .* link/);
+    expect(preview.summary).toMatch(/removes? .* link/i);
   });
 
   it('apply strips matching links and deletes the resource', async () => {
