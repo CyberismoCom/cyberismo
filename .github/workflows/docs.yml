@@ -11,7 +11,17 @@ on:
     paths:
       - 'docs/**'
       - '.github/workflows/docs.yml'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      deploy:
+        type: boolean
+        description: 'Deploy to Pages after building'
+        default: true
+  workflow_call:
+    inputs:
+      deploy:
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -49,7 +59,7 @@ jobs:
 
   deploy:
     needs: build
-    if: github.event_name != 'pull_request'
+    if: inputs.deploy
     runs-on: ubuntu-latest
     permissions:
       contents: read

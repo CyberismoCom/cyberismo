@@ -337,6 +337,21 @@ jobs:
             -t "${REPO}:${MAJOR}" \
             ${DIGEST_REFS}
 
+  # Builds docs/ with the pinned renderer and ships them to GitHub Pages.
+  # Gated on publish-npm and push-image-merge so the docs only go live
+  # when the underlying release artifacts actually shipped. Skipped on
+  # the pull_request dry-run.
+  deploy-docs:
+    needs: [publish-npm, push-image-merge]
+    if: github.event_name != 'pull_request'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/docs.yml
+    with:
+      deploy: true
+
   # Validates CHANGELOG.md and renders the GitHub Release body. Runs in
   # both modes: on PR it surfaces the rendered notes as a step summary +
   # artifact (so the maintainer sees exactly what will ship before merging
