@@ -331,3 +331,63 @@ describe('update command - link-type renames through ResourceMutations', () => {
     ).toBe(true);
   });
 });
+
+describe('update command - field-type ops through ResourceMutations', () => {
+  let project: Project;
+  let projectPath: string;
+  let update: Update;
+
+  beforeEach(async () => {
+    projectPath = join(tmpDir, `proj-field-${Date.now()}`);
+    await mkdir(projectPath, { recursive: true });
+    await copyDir(FIXTURE_PATH, projectPath);
+
+    project = getTestProject(projectPath);
+    await project.populateCaches();
+    update = new Update(project);
+  });
+
+  afterEach(async () => {
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('routes field-type renames through the new mutation engine', async () => {
+    const fieldTypeName = `${project.projectPrefix}/fieldTypes/finished`;
+    const newName = `${project.projectPrefix}/fieldTypes/completed`;
+
+    await update.applyResourceOperation(
+      fieldTypeName,
+      { key: 'name' },
+      { name: 'change', target: fieldTypeName, to: newName },
+    );
+
+    const entries = await ConfigurationLogger.entries(project.basePath);
+    expect(
+      entries.some(
+        (e) => e.kind === 'resource_rename' && e.target === fieldTypeName,
+      ),
+    ).toBe(true);
+  });
+
+  it('routes field-type dataType changes through the new mutation engine', async () => {
+    // commitDescription is already longText in the fixture;
+    // use obsoletedBy (shortText) for a shortText→longText change.
+    const fieldTypeName = `${project.projectPrefix}/fieldTypes/obsoletedBy`;
+
+    await update.applyResourceOperation(
+      fieldTypeName,
+      { key: 'dataType' },
+      { name: 'change', target: 'shortText', to: 'longText' },
+    );
+
+    const entries = await ConfigurationLogger.entries(project.basePath);
+    expect(
+      entries.some(
+        (e) =>
+          e.kind === 'resource_edit' &&
+          e.target === fieldTypeName &&
+          (e.payload as { key?: string }).key === 'dataType',
+      ),
+    ).toBe(true);
+  });
+});

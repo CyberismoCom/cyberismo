@@ -293,10 +293,26 @@ export class Remove {
       );
     }
     if (this.projectResource(type)) {
-      const resource = this.project.resources.byType(
-        targetName,
-        this.project.resources.resourceTypeFromSingularType(type),
-      );
+      const folderType =
+        this.project.resources.resourceTypeFromSingularType(type);
+      if (folderType === 'fieldTypes') {
+        const { resourceName: parseResourceName } = await import(
+          '../utils/resource-utils.js'
+        );
+        const { ResourceMutations } = await import('../mutations/plan.js');
+        const target = parseResourceName(targetName);
+        const mutations = new ResourceMutations(this.project);
+        const plan = await mutations.plan({ kind: 'delete', target });
+        await mutations.apply(
+          { kind: 'delete', target },
+          { fingerprint: plan.fingerprint },
+        );
+        return;
+      }
+
+      // Legacy path for resource types whose deletes have not yet moved to
+      // the engine.
+      const resource = this.project.resources.byType(targetName, folderType);
       return resource?.delete();
     } else {
       // Something else than resources...

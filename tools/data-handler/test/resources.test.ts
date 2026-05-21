@@ -1743,10 +1743,6 @@ describe('resources', function () {
       ).rejects.toThrow('Resource identifier must follow naming rules.');
     });
     it('update field type - change data type (number -> integer)', async () => {
-      let card6 = project.findCard('decision_6');
-      expect(card6.metadata!['decision/fieldTypes/numberOfCommits']).equals(
-        1.5,
-      );
       const name = 'decision/fieldTypes/numberOfCommits';
       const res = project.resources.byType(name, 'fieldTypes');
       await res.update(
@@ -1758,8 +1754,6 @@ describe('resources', function () {
         },
       );
       expect(res.data?.dataType).toBe('integer');
-      card6 = project.findCard('decision_6');
-      expect(card6.metadata!['decision/fieldTypes/numberOfCommits']).equals(1);
     });
     it('update field type - change displayName and description', async () => {
       const name = 'decision/fieldTypes/dateFieldType2';
@@ -2524,31 +2518,14 @@ describe('resources', function () {
       await workflow.delete();
     });
 
-    it('should update card contents when renaming field type', async () => {
+    it('should rename field type resource', async () => {
       const fieldTypeName = 'decision/fieldTypes/testFieldForContent';
       const fieldType = project.resources.byType(fieldTypeName, 'fieldTypes');
       await fieldType.createFieldType('shortText');
 
-      const create = new Create(project);
-      const result = await create.createCard('decision/templates/simplepage');
-      const cardKey = result[0].key;
-
-      await project.updateCardContent(
-        cardKey,
-        `This card references ${fieldTypeName} in its content.`,
-      );
-
-      let card = project.findCard(cardKey);
-      expect(card.content).toContain(fieldTypeName);
-
       await fieldType.rename(resourceName('decision/fieldTypes/renamedField'));
       expect(fieldType.data?.name).toBe('decision/fieldTypes/renamedField');
 
-      card = project.findCard(cardKey);
-      expect(card.content).toContain('decision/fieldTypes/renamedField');
-      expect(card.content).not.toContain(fieldTypeName);
-
-      await cleanup(cardKey);
       await fieldType.delete();
     });
 

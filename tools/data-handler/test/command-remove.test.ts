@@ -14,6 +14,7 @@ import { makeFakeModuleFixture } from './helpers/module-fixtures.js';
 import type { Card } from '../src/interfaces/project-interfaces.js';
 import type { requestStatus } from '../src/interfaces/request-status-interfaces.js';
 import { CardNotFoundError } from '../src/exceptions/index.js';
+import { ConfigurationLogger } from '../src/utils/configuration-logger.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
@@ -933,5 +934,43 @@ describe('remove module — spec behaviours', () => {
     expect(commands.project.allModulePrefixes()).not.toContain('drpa');
     expect(commands.project.allModulePrefixes()).not.toContain('drpb');
     expect(commands.project.allModulePrefixes()).not.toContain('drpc');
+  });
+});
+
+describe('remove fieldType — ResourceMutations cascade', () => {
+  const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
+  const testDir = join(baseDir, 'tmp-remove-fieldtype-mutations');
+  const decisionRecordsPath = join(testDir, 'valid/decision-records');
+
+  beforeEach(async () => {
+    mkdirSync(testDir, { recursive: true });
+    await copyDir('test/test-data', testDir);
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('removing a field-type cascades through the new engine', async () => {
+    const project = getTestProject(decisionRecordsPath);
+    await project.populateCaches();
+    const fetchCmd = new Fetch(project);
+    const removeCmd = new Remove(project, fetchCmd);
+
+    const fieldTypeName = `${project.projectPrefix}/fieldTypes/finished`;
+    await removeCmd.remove('fieldType', fieldTypeName);
+
+    expect(project.resources.exists(fieldTypeName)).toBe(false);
+    for (const cardType of project.resources.cardTypes()) {
+      expect(
+        cardType.data?.customFields?.some((cf) => cf.name === fieldTypeName),
+      ).toBe(false);
+    }
+    const entries = await ConfigurationLogger.entries(project.basePath);
+    expect(
+      entries.some(
+        (e) => e.kind === 'resource_delete' && e.target === fieldTypeName,
+      ),
+    ).toBe(true);
   });
 });
