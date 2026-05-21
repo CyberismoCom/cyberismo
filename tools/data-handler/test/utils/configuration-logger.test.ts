@@ -241,4 +241,19 @@ describe('configuration logger', () => {
     );
     expect(await pathExists(versionedPath)).toBe(false);
   });
+  it('accepts and reads project_rename entries', async () => {
+    const projectPath = await freshProject('project-rename-log');
+    await ConfigurationLogger.log(projectPath, {
+      kind: 'project_rename',
+      target: 'new-prefix',
+      payload: { oldPrefix: 'old-prefix', newPrefix: 'new-prefix' },
+    });
+    const entries = await ConfigurationLogger.entries(projectPath);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].kind).toBe('project_rename');
+    expect(entries[0].payload).toEqual({
+      oldPrefix: 'old-prefix',
+      newPrefix: 'new-prefix',
+    });
+  });
 });

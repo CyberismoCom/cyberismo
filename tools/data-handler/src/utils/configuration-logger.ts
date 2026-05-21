@@ -27,8 +27,8 @@ import type { ResourceFolderType } from '../interfaces/project-interfaces.js';
 export type MigrationEntryKind =
   | 'resource_edit'
   | 'resource_delete'
-  | 'resource_rename';
-// Note: project_rename comes in a later plan.
+  | 'resource_rename'
+  | 'project_rename';
 
 export interface ConfigurationLogEntry {
   timestamp: string;
