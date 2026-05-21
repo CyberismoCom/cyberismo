@@ -9,9 +9,19 @@ import { FieldTypeDeleteHandler } from './handlers/field-type-delete.js';
 import { FieldTypeEnumRenameHandler } from './handlers/field-type-enum-rename.js';
 import { FieldTypeRenameHandler } from './handlers/field-type-rename.js';
 import { LinkTypeRenameHandler } from './handlers/link-type-rename.js';
+import { CardTypeAddCustomFieldHandler } from './handlers/card-type-add-custom-field.js';
+import { CardTypeRemoveCustomFieldHandler } from './handlers/card-type-remove-custom-field.js';
+import { CardTypeRenameHandler } from './handlers/card-type-rename.js';
+import { CardTypeWorkflowChangeHandler } from './handlers/card-type-workflow-change.js';
+import { CardTypeDeleteHandler } from './handlers/card-type-delete.js';
 
 const HANDLERS: Handler[] = [
   new LinkTypeRenameHandler(),
+  new CardTypeWorkflowChangeHandler(),
+  new CardTypeAddCustomFieldHandler(),
+  new CardTypeRemoveCustomFieldHandler(),
+  new CardTypeRenameHandler(),
+  new CardTypeDeleteHandler(),
   new FieldTypeRenameHandler(),
   new FieldTypeDataTypeHandler(),
   new FieldTypeEnumAddHandler(),
