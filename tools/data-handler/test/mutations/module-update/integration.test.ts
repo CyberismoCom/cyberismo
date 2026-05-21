@@ -5,7 +5,10 @@ import { join } from 'node:path';
 import { Project } from '../../../src/containers/project.js';
 import { ModuleUpdater } from '../../../src/mutations/module-update/plan.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
-import { writeAppliedModules } from '../../../src/mutations/module-update/applied-modules.js';
+import {
+  readAppliedModules,
+  writeAppliedModules,
+} from '../../../src/mutations/module-update/applied-modules.js';
 
 const FIXTURE_PATH = join(
   import.meta.dirname,
@@ -96,5 +99,71 @@ describe('ModuleUpdater.previewUpdate', () => {
     expect(preview.steps[0].logChain).toEqual(['1.1.0', '1.2.0']);
     expect(preview.steps[0].crossesMajorBoundary).toBe(false);
     expect(preview.conflicts).toHaveLength(0);
+  });
+});
+
+describe('ModuleUpdater.applyUpdate', () => {
+  let project: Project;
+  let projectPath: string;
+
+  beforeEach(async () => {
+    projectPath = join(tmpDir, `proj-${Date.now()}`);
+    await mkdir(projectPath, { recursive: true });
+    await copyDir(FIXTURE_PATH, projectPath);
+    project = new Project(projectPath);
+    await project.populateCaches();
+  });
+  afterEach(async () => {
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('applies a real upgrade end-to-end', async () => {
+    await seedInstalledModule(projectPath, 'shared/foo', [
+      '1.0.0',
+      '1.1.0',
+      '1.2.0',
+    ]);
+    await writeAppliedModules(projectPath, [
+      {
+        prefix: 'shared/foo',
+        installedVersion: '1.0.0',
+        appliedVersion: '1.0.0',
+      },
+    ]);
+
+    const updater = new ModuleUpdater(project);
+    const preview = await updater.previewUpdate('shared/foo', '1.2.0');
+    expect(preview.conflicts).toHaveLength(0);
+
+    const result = await updater.applyUpdate(preview);
+    expect(result.status).toBe('succeeded');
+
+    // Verify appliedModules was updated.
+    const applied = await readAppliedModules(project.basePath);
+    expect(
+      applied.find((m) => m.prefix === 'shared/foo')?.appliedVersion,
+    ).toBe('1.2.0');
+  });
+
+  it('refuses to apply when conflicts present', async () => {
+    // From 1.6.0 (top of major 1) to 2.0.0 with no higher 1.x sealed log
+    // → diverged branch → migration_path_unreachable conflict.
+    await seedInstalledModule(projectPath, 'shared/foo', [
+      '1.5.0',
+      '1.6.0',
+      '2.0.0',
+    ]);
+    await writeAppliedModules(projectPath, [
+      {
+        prefix: 'shared/foo',
+        installedVersion: '1.6.0',
+        appliedVersion: '1.6.0',
+      },
+    ]);
+
+    const updater = new ModuleUpdater(project);
+    const preview = await updater.previewUpdate('shared/foo', '2.0.0');
+    expect(preview.conflicts.length).toBeGreaterThan(0);
+    await expect(updater.applyUpdate(preview)).rejects.toThrow(/conflict/i);
   });
 });
