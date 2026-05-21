@@ -62,12 +62,15 @@ describe('Workflow cascade — end-to-end', () => {
       (e) => e.kind === 'resource_delete' && e.target === wfName,
     );
     expect(workflowEntry).toBeDefined();
+    // Cascade-internal card-type deletes are subsumed by the single
+    // workflow_delete entry; the engine's recordLogEntry only writes
+    // the top-level mutation's log entry.
     for (const ctName of dependentCardTypeNames) {
       expect(
         entries.some(
           (e) => e.kind === 'resource_delete' && e.target === ctName,
         ),
-      ).toBe(true);
+      ).toBe(false);
     }
   });
 
