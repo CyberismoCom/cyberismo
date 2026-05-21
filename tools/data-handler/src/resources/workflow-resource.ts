@@ -27,7 +27,6 @@ import type { Card } from '../interfaces/project-interfaces.js';
 import type {
   ChangeOperation,
   Operation,
-  RemoveOperation,
 } from './resource-object.js';
 import type { Project } from '../containers/project.js';
 import type { ResourceName } from '../utils/resource-utils.js';
@@ -48,104 +47,11 @@ export class WorkflowResource extends FileResource<Workflow> {
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
   }
 
-  // Collect all cards that use this workflow.
-  private async collectCardsUsingWorkflow(): Promise<Card[]> {
-    const cardTypes = this.project.resources.cardTypes();
-    const promises: Promise<Card[]>[] = [];
-    for (const cardType of cardTypes) {
-      if (cardType.data?.workflow === resourceNameToString(this.resourceName)) {
-        promises.push(
-          this.collectCards(
-            cardType.data.name,
-            (card, cardTypeName) => card.metadata?.cardType === cardTypeName,
-          ),
-        );
-      }
-    }
-    return (await Promise.all(promises)).flat();
-  }
-
-  // When resource name changes.
-  protected async onNameChange(existingName: string) {
-    await Promise.all([
-      super.updateHandleBars(existingName, this.content.name),
-      super.updateCalculations(existingName, this.content.name),
-      super.updateCardContentReferences(existingName, this.content.name),
-      this.updateCardTypes(existingName),
-    ]);
-    // Finally, write updated content.
+  // Cascade lives in WorkflowRenameHandler; no-op here so the abstract
+  // base class is satisfied.
+  protected async onNameChange(_existingName: string) {
+    void _existingName;
     await this.write();
-  }
-
-  // Handle change of workflow state.
-  private async handleStateChange(
-    content: Workflow,
-    op: ChangeOperation<WorkflowState>,
-  ) {
-    const stateName = this.targetName(op) as string;
-    // validate that new state contains 'name' and 'category'
-    if (op.to.name === undefined || op.to.category === undefined) {
-      throw new Error(
-        `Cannot change state '${stateName}' for workflow '${this.content.name}'.
-         Updated state must have 'name' and 'category' properties.`,
-      );
-    }
-    // Rename transitions to use the new state name
-    const toStateName = op.to.name;
-    content.transitions.forEach((t) => {
-      if (t.toState === stateName) {
-        t.toState = toStateName;
-      }
-      t.fromState = t.fromState.map((state) =>
-        state === stateName ? toStateName : state,
-      );
-    });
-    // Update all cards that use this state.
-    await this.updateCardStates(stateName, toStateName);
-  }
-
-  // Handle removal of workflow state.
-  // State can be removed with or without replacement.
-  private async handleStateRemoval(
-    content: Workflow,
-    op: RemoveOperation<WorkflowState>,
-  ) {
-    const stateName = this.targetName(op) as string;
-
-    // If there is no replacement value, remove all transitions "to" and "from" this state.
-    if (!op.replacementValue) {
-      content.transitions = content.transitions.filter(
-        (t) => t.toState !== stateName,
-      );
-      content.transitions.forEach((t) => {
-        t.fromState = t.fromState.filter((state) => state !== stateName);
-      });
-    } else {
-      // Replace transitions "to" the removed state with the replacement state.
-      const replacementState = op.replacementValue;
-      const stateExists = content.states.some(
-        (state) => state.name === replacementState.name,
-      );
-      if (!stateExists) {
-        throw new Error(
-          `Cannot change to unknown state '${replacementState.name}' for Workflow`,
-        );
-      }
-
-      content.transitions.forEach((t) => {
-        if (t.toState === stateName) {
-          t.toState = replacementState.name;
-        }
-      });
-      // Replace transitions "from" the removed state with the replacement state.
-      content.transitions.forEach((t) => {
-        t.fromState = t.fromState.map((state) =>
-          state === stateName ? replacementState.name : state,
-        );
-      });
-      // Update all cards that use this state.
-      await this.updateCardStates(stateName, replacementState.name);
-    }
   }
 
   // Check if operation is a string operation.
@@ -187,39 +93,6 @@ export class WorkflowResource extends FileResource<Workflow> {
       );
     }
     return op.to;
-  }
-
-  // Update card states when state is changed
-  private async updateCardStates(oldState: string, newState: string) {
-    const cards = await this.collectCardsUsingWorkflow();
-    const promises = cards
-      .filter((card) => card.metadata?.workflowState === oldState)
-      .map(async (card) => {
-        card.metadata!.workflowState = newState;
-        await this.project.updateCardMetadata(card, card.metadata!);
-      });
-    await Promise.all(promises);
-  }
-
-  // Update dependant card types.
-  private async updateCardTypes(oldName: string) {
-    const cardTypes = this.project.resources.cardTypes();
-    const op = {
-      name: 'change',
-      target: oldName,
-      to: this.content.name,
-    } as ChangeOperation<string>;
-    for (const cardType of cardTypes) {
-      // Only update card types that use this workflow
-      if (cardType.data?.workflow === oldName) {
-        await cardType.update(
-          {
-            key: 'workflow',
-          },
-          op,
-        );
-      }
-    }
   }
 
   /**
@@ -266,7 +139,14 @@ export class WorkflowResource extends FileResource<Workflow> {
   public async rename(newName: ResourceName) {
     const existingName = this.content.name;
     await super.rename(newName);
-    return this.onNameChange(existingName);
+    // Cascade lives in WorkflowRenameHandler; the base class's rename
+    // handles the on-disk file move. Nothing else to do here.
+    await Promise.all([
+      super.updateHandleBars(existingName, this.content.name),
+      super.updateCalculations(existingName, this.content.name),
+      super.updateCardContentReferences(existingName, this.content.name),
+    ]);
+    await this.write();
   }
 
   /**
@@ -283,56 +163,50 @@ export class WorkflowResource extends FileResource<Workflow> {
 
     if (this.isBaseProperty(key)) {
       await super.update(updateKey, op);
-    } else {
-      const content = structuredClone(this.content) as Workflow;
+      return;
+    }
 
-      // Validate state change operations before processing
-      if (key === 'states' && op.name === 'change') {
-        const changeOp = op as ChangeOperation<WorkflowState>;
-        if (
-          changeOp.to.name === undefined ||
-          changeOp.to.category === undefined
-        ) {
-          const stateName =
-            changeOp.target['name' as keyof typeof changeOp.target] ||
-            changeOp.target;
-          throw new Error(
-            `Cannot change state '${stateName}' for workflow '${this.content.name}'.
+    const content = structuredClone(this.content) as Workflow;
+
+    if (key === 'states' && op.name === 'change') {
+      const changeOp = op as ChangeOperation<WorkflowState>;
+      if (
+        changeOp.to.name === undefined ||
+        changeOp.to.category === undefined
+      ) {
+        throw new Error(
+          `Cannot change state '${this.targetName(changeOp)}' for workflow '${this.content.name}'.
          Updated state must have 'name' and 'category' properties.`,
-          );
-        }
+        );
       }
+    }
 
-      if (key === 'states') {
-        content.states = super.handleArray(
-          op,
-          key,
-          content.states as Type[],
-        ) as WorkflowState[];
-      } else if (key === 'transitions') {
-        content.transitions = super.handleArray(
-          op,
-          key,
-          content.transitions as WorkflowTransition[] as Type[],
-        ) as WorkflowTransition[];
-      } else {
-        throw new Error(`Unknown property '${key}' for Workflow`);
-      }
+    if (key === 'states') {
+      content.states = super.handleArray(
+        op,
+        key,
+        content.states as Type[],
+      ) as WorkflowState[];
+    } else if (key === 'transitions') {
+      content.transitions = super.handleArray(
+        op,
+        key,
+        content.transitions as WorkflowTransition[] as Type[],
+      ) as WorkflowTransition[];
 
-      // If workflow transition is removed, then above call to 'handleArray' is all that is needed.
-
-      if (key === 'transitions' && op.name === 'change') {
-        // If workflow transition is changed, update to full object and change the content.
+      if (op.name === 'change') {
+        // Existing transition-validation path; keep transitionObject and
+        // re-apply the validated change.
         let changeOp: ChangeOperation<WorkflowTransition>;
         if (this.isStringOperation(op)) {
           const targetTransition = (this.content as Workflow).transitions.find(
-            (transition) => transition.name === op.target,
+            (t) => t.name === op.target,
           )!;
           changeOp = {
             name: 'change',
-            target: targetTransition as WorkflowTransition,
+            target: targetTransition,
             to: {
-              name: op.to,
+              name: op.to as unknown as string,
               toState: targetTransition.toState,
               fromState: targetTransition.fromState,
             },
@@ -341,48 +215,15 @@ export class WorkflowResource extends FileResource<Workflow> {
           changeOp = op as ChangeOperation<WorkflowTransition>;
         }
         const newTransition = await this.transitionObject(changeOp);
-        content.transitions = content.transitions.map((item) =>
-          item.name == newTransition.name ? newTransition : item,
+        content.transitions = content.transitions.map((t) =>
+          t.name === newTransition.name ? newTransition : t,
         );
       }
-
-      if (key === 'states' && op.name === 'remove') {
-        // If workflow state is removed, remove all transitions "to" and "from" this state.
-        let removeOp: RemoveOperation<WorkflowState>;
-        if (this.isStringOperation(op)) {
-          const toBeRemovedState = this.content.states.find(
-            (state) => state.name === op.target,
-          );
-          removeOp = {
-            name: 'remove',
-            target: toBeRemovedState as WorkflowState,
-            replacementValue: (op as RemoveOperation<unknown>)
-              .replacementValue as WorkflowState,
-          };
-        } else {
-          removeOp = op as RemoveOperation<WorkflowState>;
-        }
-        await this.handleStateRemoval(content, removeOp);
-      } else if (key === 'states' && op.name === 'change') {
-        // If workflow state is renamed, replace all transitions "to" and "from" the old state with new state.
-        let changeOp: ChangeOperation<WorkflowState>;
-        if (this.isStringOperation(op)) {
-          const toBeChangedState = this.content.states.find(
-            (state) => state.name === op.target,
-          );
-          changeOp = {
-            name: 'change',
-            target: toBeChangedState as WorkflowState,
-            to: { name: op.to },
-          };
-        } else {
-          changeOp = op as ChangeOperation<WorkflowState>;
-        }
-        await this.handleStateChange(content, changeOp);
-      }
-
-      await super.postUpdate(content, updateKey, op);
+    } else {
+      throw new Error(`Unknown property '${key}' for Workflow`);
     }
+
+    await super.postUpdate(content, updateKey, op);
   }
 
   /**
