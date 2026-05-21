@@ -3,6 +3,7 @@
 import type { Handler, MutationContext } from './handler.js';
 import { DefaultNoCascadeHandler } from './handlers/default-no-cascade.js';
 import { FieldTypeDataTypeHandler } from './handlers/field-type-data-type.js';
+import { FieldTypeEnumAddHandler } from './handlers/field-type-enum-add.js';
 import { FieldTypeRenameHandler } from './handlers/field-type-rename.js';
 import { LinkTypeRenameHandler } from './handlers/link-type-rename.js';
 
@@ -10,6 +11,7 @@ const HANDLERS: Handler[] = [
   new LinkTypeRenameHandler(),
   new FieldTypeRenameHandler(),
   new FieldTypeDataTypeHandler(),
+  new FieldTypeEnumAddHandler(),
   new DefaultNoCascadeHandler(),
 ];
 
