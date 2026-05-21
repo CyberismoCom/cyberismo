@@ -382,6 +382,29 @@ export class Import {
     });
 
     await cleanOrphans(this.project);
+
+    // Replay the module's sealed migration logs against the consuming project.
+    // The resolver picked a concrete version for the named module; ask the
+    // updater to walk the log chain from the previously-applied version (if
+    // any) up to and including the new version. The applier above has already
+    // staged the new module files, so the updater here only orchestrates
+    // replay + appliedModules bookkeeping.
+    const appliedForModule = resolved.find(
+      (r) => r.declaration.name === moduleName,
+    );
+    const targetVersion = version ?? appliedForModule?.version ?? undefined;
+    if (targetVersion) {
+      const { ModuleUpdate } = await import('./module-update.js');
+      const moduleUpdate = new ModuleUpdate(this.project);
+      const preview = await moduleUpdate.preview(moduleName, targetVersion);
+      if (preview.conflicts.length > 0) {
+        throw new Error(
+          `Cannot update ${moduleName}: ` +
+            preview.conflicts.map((c) => c.description).join('; '),
+        );
+      }
+      await moduleUpdate.apply(preview);
+    }
   }
 
   /**
