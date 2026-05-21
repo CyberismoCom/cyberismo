@@ -101,6 +101,45 @@ describe('POST /api/projects/:prefix/modules/update/preview', () => {
     expect(body.conflicts).toHaveLength(0);
   });
 
+  it('streams progress events and completes', async () => {
+    await seedInstalledModule(tempPath, 'shared/foo', ['1.0.0', '1.6.0']);
+    await writeAppliedModulesFile(tempPath, [
+      {
+        prefix: 'shared/foo',
+        installedVersion: '1.0.0',
+        appliedVersion: '1.0.0',
+      },
+    ]);
+
+    const commands = await CommandManager.getInstance(tempPath);
+    app = createApp(
+      new MockAuthProvider(),
+      ProjectRegistry.fromCommandManager(commands),
+    );
+
+    const res = await app.request('/api/projects/decision/modules/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ module: 'shared/foo', toVersion: '1.6.0' }),
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toMatch(/text\/event-stream/);
+
+    // Consume the stream.
+    const reader = res.body!.getReader();
+    const decoder = new TextDecoder();
+    let payload = '';
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      payload += decoder.decode(value);
+    }
+
+    expect(payload).toMatch(/event: step\.started/);
+    expect(payload).toMatch(/event: step\.completed/);
+    expect(payload).toMatch(/event: complete/);
+  });
+
   it('returns 200 with conflicts populated when the path is unreachable', async () => {
     // From 1.6.0 (top of major 1) to 2.0.0 — diverged-branch conflict.
     await seedInstalledModule(tempPath, 'shared/foo', [
