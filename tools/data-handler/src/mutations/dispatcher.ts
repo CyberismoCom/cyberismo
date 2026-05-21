@@ -11,6 +11,7 @@ import { FieldTypeRenameHandler } from './handlers/field-type-rename.js';
 import { LinkTypeDeleteHandler } from './handlers/link-type-delete.js';
 import { LinkTypeRenameHandler } from './handlers/link-type-rename.js';
 import { TemplateDeleteHandler, TemplateRenameHandler } from './handlers/template.js';
+import { CalculationDeleteHandler, CalculationRenameHandler } from './handlers/calculation.js';
 import { WorkflowRenameHandler } from './handlers/workflow-rename.js';
 import { WorkflowAddStateHandler } from './handlers/workflow-add-state.js';
 import { WorkflowRemoveStateHandler } from './handlers/workflow-remove-state.js';
@@ -28,6 +29,8 @@ const HANDLERS: Handler[] = [
   new LinkTypeDeleteHandler(),
   new TemplateRenameHandler(),
   new TemplateDeleteHandler(),
+  new CalculationRenameHandler(),
+  new CalculationDeleteHandler(),
   new WorkflowRenameHandler(),
   new WorkflowAddStateHandler(),
   new WorkflowRemoveStateHandler(),
