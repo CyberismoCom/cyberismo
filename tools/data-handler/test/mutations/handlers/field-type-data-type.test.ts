@@ -26,7 +26,14 @@ describe('FieldTypeDataTypeHandler', () => {
     await mkdir(projectPath, { recursive: true });
     await copyDir(FIXTURE_PATH, projectPath);
     project = new Project(projectPath);
-    await project.initialize();
+    await project.populateCaches();
+
+    // Ensure at least one card carries the 'finished' field with a non-null boolean value.
+    const cards = project.cards(undefined);
+    if (cards.length > 0 && cards[0].metadata) {
+      cards[0].metadata[`${project.projectPrefix}/fieldTypes/finished`] = true;
+      await project.updateCardMetadata(cards[0], cards[0].metadata);
+    }
   });
   afterEach(async () => {
     await rm(tmpDir, { recursive: true, force: true });
