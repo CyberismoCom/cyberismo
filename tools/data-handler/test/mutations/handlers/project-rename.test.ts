@@ -94,7 +94,7 @@ describe('ProjectRenameHandler', () => {
 
     for (const card of project.cards(undefined)) {
       const adoc = join(card.path, 'index.adoc');
-      let content = '';
+      let content: string;
       try {
         content = await readFile(adoc, 'utf-8');
       } catch {
