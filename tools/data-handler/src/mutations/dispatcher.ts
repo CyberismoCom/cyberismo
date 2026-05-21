@@ -26,6 +26,7 @@ import { CardTypeRemoveCustomFieldHandler } from './handlers/card-type-remove-cu
 import { CardTypeRenameHandler } from './handlers/card-type-rename.js';
 import { CardTypeWorkflowChangeHandler } from './handlers/card-type-workflow-change.js';
 import { CardTypeDeleteHandler } from './handlers/card-type-delete.js';
+import { ProjectRenameHandler } from './handlers/project-rename.js';
 
 const HANDLERS: Handler[] = [
   new LinkTypeRenameHandler(),
@@ -57,6 +58,7 @@ const HANDLERS: Handler[] = [
   new FieldTypeEnumRemoveHandler(),
   new FieldTypeEnumRenameHandler(),
   new FieldTypeDeleteHandler(),
+  new ProjectRenameHandler(),
   new DefaultNoCascadeHandler(),
 ];
 
