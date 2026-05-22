@@ -17,8 +17,8 @@ import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import type { Project } from '../../containers/project.js';
 
 /**
- * Default list of handlebar files for a project.
- * Mirrors ResourceObject.reportHandlerBarFiles(ResourcesFrom.localOnly).
+ * Default list of handlebar files for a project: every handlebar file
+ * referenced by any local report resource.
  */
 async function defaultHandlebarFiles(project: Project): Promise<string[]> {
   const files = await Promise.all(

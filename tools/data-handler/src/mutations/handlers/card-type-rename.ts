@@ -31,8 +31,8 @@ export class CardTypeRenameHandler implements Handler {
     return {
       affectedCardCount: cards.length,
       affectedLinkCount: linkTypeRefs,
-      affectedCalculationCount: 0, // updated via ResourceObject.updateCalculations
-      affectedHandlebarFileCount: 0, // updated via ResourceObject.updateHandleBars
+      affectedCalculationCount: 0, // updated via mutations/cascades/rewrite-refs
+      affectedHandlebarFileCount: 0, // updated via mutations/cascades/rewrite-refs
       dataLossExpected: false,
       summary: `Renames cardType in ${cards.length} cards and ${linkTypeRefs} link-type references.`,
     };

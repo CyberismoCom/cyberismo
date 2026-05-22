@@ -30,12 +30,6 @@ import {
   resourceNameToString,
   type ResourceName,
 } from '../utils/resource-utils.js';
-import {
-  rewriteCalculationRefs,
-  rewriteHandlebarRefs,
-  rewriteCardContentRefs,
-} from '../mutations/cascades/rewrite-refs.js';
-
 import type {
   Card,
   ResourceFolderType,
@@ -553,25 +547,6 @@ export abstract class ResourceObject<
     if (key.key === '' || key === undefined) {
       throw new Error(`Cannot update empty key`);
     }
-  }
-
-  /** Delegates to rewriteCalculationRefs. */
-  protected async updateCalculations(from: string, to: string) {
-    return rewriteCalculationRefs(this.project, from, to);
-  }
-
-  /** Delegates to rewriteHandlebarRefs. */
-  protected async updateHandleBars(
-    from: string,
-    to: string,
-    handleBarFiles?: string[],
-  ) {
-    return rewriteHandlebarRefs(this.project, from, to, handleBarFiles);
-  }
-
-  /** Delegates to rewriteCardContentRefs. */
-  protected async updateCardContentReferences(from: string, to: string) {
-    return rewriteCardContentRefs(this.project, from, to);
   }
 
   /**

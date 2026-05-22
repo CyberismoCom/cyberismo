@@ -103,7 +103,7 @@ export class WorkflowRenameHandler implements Handler {
   /**
    * Scan every calculation file under the project for occurrences of the old
    * workflow name. Returns absolute paths. The actual text rewrite lives in
-   * the base `ResourceObject.updateCalculations` invoked by `resource.rename`.
+   * `rewriteCalculationRefs` (mutations/cascades/rewrite-refs).
    */
   private async calculationFilesReferencing(
     ctx: MutationContext,

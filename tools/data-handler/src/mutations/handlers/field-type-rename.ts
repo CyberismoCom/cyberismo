@@ -57,11 +57,9 @@ export class FieldTypeRenameHandler implements Handler {
       );
     }
 
-    // 3. Perform the resource-level rename. ResourceObject.rename() also
-    //    triggers updateCalculations / updateHandleBars / updateCardContentReferences
-    //    via onNameChange. We intentionally leave the parent class's rename
-    //    machinery in place during this plan — Task 9 removes the FieldType
-    //    override (`onNameChange`) so the parent does the right thing.
+    // 3. Perform the resource-level rename. FieldType has no cascade beyond
+    //    the customFields[] rewrite handled in step 2, so this just moves the
+    //    resource file and updates its internal `name` field.
     const resource = ctx.project.resources.byType(oldName, 'fieldTypes');
     if (!resource) {
       throw new Error(`Field type '${oldName}' not found`);
