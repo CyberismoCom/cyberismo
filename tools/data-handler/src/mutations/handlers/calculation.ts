@@ -63,8 +63,8 @@ export class CalculationRenameHandler implements Handler {
     }
     const newName = `${ctx.input.target.prefix}/calculations/${ctx.input.newIdentifier}`;
     // Run the cascade before the rename so the scan still finds the old
-    // name on disk. Mirrors CalculationResource.onNameChange (no handlebar
-    // pass — calculations don't have handlebar references).
+    // name on disk. No handlebar pass — calculations don't have handlebar
+    // references.
     // TODO: compute accurate counts now that cascade is explicit
     await rewriteCalculationRefs(ctx.project, oldName, newName);
     await rewriteCardContentRefs(ctx.project, oldName, newName);

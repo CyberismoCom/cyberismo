@@ -15,8 +15,8 @@ import {
  *
  * The handler owns the cascade explicitly: it rewrites references in
  * calculations, handlebar files and card content before delegating the
- * actual rename to TemplateResource. TemplateResource.onNameChange no
- * longer fires the cascade; it only persists metadata after rename.
+ * actual rename to TemplateResource, which persists metadata after the
+ * file move.
  */
 export class TemplateRenameHandler implements Handler {
   readonly isBreaking = true;

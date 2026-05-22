@@ -38,15 +38,6 @@ export class LinkTypeResource extends FileResource<LinkType> {
   }
 
   /**
-   * When resource name changes.
-   * @param _existingName Previous resource name (unused).
-   */
-  protected async onNameChange(_existingName: string) {
-    void _existingName;
-    await this.write();
-  }
-
-  /**
    * Creates a new link type object. Base class writes the object to disk automatically.
    * @param newContent Content for the link type.
    */

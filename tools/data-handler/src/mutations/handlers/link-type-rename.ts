@@ -65,8 +65,8 @@ export class LinkTypeRenameHandler implements Handler {
     await rewriteHandlebarRefs(ctx.project, oldName, newName);
     await rewriteCardContentRefs(ctx.project, oldName, newName);
 
-    // 3. Rename the resource itself. LinkTypeResource.onNameChange now only
-    //    handles self-only prefix rewrites for sourceCardTypes /
+    // 3. Rename the resource itself. LinkTypeResource.rename handles
+    //    self-only prefix rewrites for sourceCardTypes /
     //    destinationCardTypes.
     const resource = ctx.project.resources.byType(oldName, 'linkTypes');
     if (!resource) {

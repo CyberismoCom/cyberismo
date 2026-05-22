@@ -101,14 +101,6 @@ export class FieldTypeResource extends FileResource<FieldType> {
   }
 
   /**
-   * When resource name changes.
-   */
-  protected async onNameChange(_existingName: string) {
-    void _existingName;
-    await this.write();
-  }
-
-  /**
    * Creates a new field type object. Base class writes the object to disk automatically.
    * @param dataType Type for the new field type.
    * @throws if called with unknown data type
@@ -194,9 +186,8 @@ export class FieldTypeResource extends FileResource<FieldType> {
    * @param newName New name for the resource.
    */
   public async rename(newName: ResourceName) {
-    const existingName = this.content.name;
     await super.rename(newName);
-    return this.onNameChange(existingName);
+    await this.write();
   }
 
   /**

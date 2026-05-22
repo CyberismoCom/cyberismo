@@ -58,18 +58,6 @@ export class ReportResource extends FolderResource<
   }
 
   /**
-   * Handle name changes for reports. The cross-resource cascade
-   * (handlebar / calculation / card-content rewrites) is now owned by
-   * ReportRenameHandler, which runs it before invoking
-   * `resource.update({key:'name'}, …)`. This hook only persists the
-   * renamed metadata to disk.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  protected async onNameChange(existingName: string): Promise<void> {
-    await this.write();
-  }
-
-  /**
    * Sets new metadata into the report object.
    */
   public async createReport() {
@@ -105,9 +93,8 @@ export class ReportResource extends FolderResource<
    * @param newName New name for the resource.
    */
   public async rename(newName: ResourceName) {
-    const existingName = this.content.name;
     await super.rename(newName);
-    return this.onNameChange(existingName);
+    await this.write();
   }
 
   /**

@@ -82,12 +82,6 @@ export abstract class FolderResource<
   }
 
   /**
-   * For handling name changes.
-   * @param previousName The previous name before the change
-   */
-  protected abstract onNameChange?(previousName: string): Promise<void>;
-
-  /**
    * Set content files. Should not be called by others than resource cache.
    */
   public setContentFiles(contentFiles: Map<string, string>) {

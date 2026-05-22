@@ -47,18 +47,6 @@ export class GraphModelResource extends FolderResource<
   }
 
   /**
-   * Handle name changes for graph models. The cross-resource cascade
-   * (handlebar / calculation / card-content rewrites) is now owned by
-   * GraphModelRenameHandler, which runs it before invoking
-   * `resource.update({key:'name'}, …)`. This hook only persists the
-   * renamed metadata to disk.
-   */
-  protected async onNameChange(_existingName: string): Promise<void> {
-    void _existingName;
-    await this.write();
-  }
-
-  /**
    * Sets new metadata into the graph model object graph model.
    * @param newContent metadata content for the graph model.
    * @throws if 'newContent' is not valid.
@@ -90,9 +78,8 @@ export class GraphModelResource extends FolderResource<
    * @param newName New name for the resource.
    */
   public async rename(newName: ResourceName) {
-    const existingName = this.content.name;
     await super.rename(newName);
-    return this.onNameChange(existingName);
+    await this.write();
   }
 
   /**

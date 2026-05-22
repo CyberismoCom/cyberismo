@@ -59,18 +59,6 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
   }
 
   /**
-   * Handle name changes for templates.
-   *
-   * Cross-resource cascade (handlebar/calculation/card-content rewrites) lives
-   * in TemplateRenameHandler. The hook just persists the renamed metadata.
-   * @param _existingName Previous name before the change (unused).
-   */
-  protected async onNameChange(_existingName: string): Promise<void> {
-    void _existingName;
-    await this.write();
-  }
-
-  /**
    * Sets new metadata into the template object.
    * @param newContent metadata content for the template.
    */
@@ -102,9 +90,8 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
    * @param newName New name for the resource.
    */
   public async rename(newName: ResourceName) {
-    const existingName = this.content.name;
     await super.rename(newName);
-    return this.onNameChange(existingName);
+    await this.write();
   }
 
   /**

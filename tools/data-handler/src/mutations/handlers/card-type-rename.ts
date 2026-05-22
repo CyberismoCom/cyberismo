@@ -61,9 +61,9 @@ export class CardTypeRenameHandler implements Handler {
     await rewriteHandlebarRefs(ctx.project, oldName, newName);
     await rewriteCardContentRefs(ctx.project, oldName, newName);
 
-    // 3. Rename the resource itself. CardTypeResource.onNameChange now only
-    //    handles self-only prefix rewrites for customFields /
-    //    alwaysVisibleFields / optionallyVisibleFields / workflow.
+    // 3. Rename the resource itself. CardTypeResource.rename handles
+    //    self-only prefix rewrites for customFields / alwaysVisibleFields /
+    //    optionallyVisibleFields / workflow.
     const resource = ctx.project.resources.byType(oldName, 'cardTypes');
     if (!resource) {
       throw new Error(`CardType '${oldName}' not found`);

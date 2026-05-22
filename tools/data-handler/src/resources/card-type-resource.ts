@@ -143,15 +143,6 @@ export class CardTypeResource extends FileResource<CardType> {
   }
 
   /**
-   * When resource name changes.
-   * @param _existingName Previous resource name (unused).
-   */
-  protected async onNameChange(_existingName: string) {
-    void _existingName;
-    await this.write();
-  }
-
-  /**
    * Creates a new card type object. Base class writes the object to disk automatically.
    * @param workflowName Workflow name that this card type uses.
    * @throws when workflow is empty, or

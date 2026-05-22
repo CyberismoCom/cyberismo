@@ -50,9 +50,8 @@ export class ReportRenameHandler implements Handler {
     }
     const newName = `${ctx.input.target.prefix}/reports/${ctx.input.newIdentifier}`;
     // Run the cascade before the rename so the scan still finds the old
-    // name on disk. Mirrors ReportResource.onNameChange — handlebar scope
-    // is limited to this report's own .hbs files (same construction the
-    // subclass previously used).
+    // name on disk. Handlebar scope is limited to this report's own .hbs
+    // files.
     // TODO: compute accurate counts now that cascade is explicit
     const handleBarFiles = await resource.handleBarFiles();
     await rewriteHandlebarRefs(ctx.project, oldName, newName, handleBarFiles);

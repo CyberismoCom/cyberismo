@@ -74,12 +74,6 @@ export abstract class FileResource<
   }
 
   /**
-   * For handling name changes.
-   * @param previousName The previous name before the change
-   */
-  protected abstract onNameChange?(previousName: string): Promise<void>;
-
-  /**
    * Updates resource key to a new prefix
    * @param name Resource name
    * @param prefixes list of prefixes in the project

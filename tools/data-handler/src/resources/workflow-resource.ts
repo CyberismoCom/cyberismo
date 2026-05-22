@@ -47,13 +47,6 @@ export class WorkflowResource extends FileResource<Workflow> {
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
   }
 
-  // Cascade lives in WorkflowRenameHandler; no-op here so the abstract
-  // base class is satisfied.
-  protected async onNameChange(_existingName: string) {
-    void _existingName;
-    await this.write();
-  }
-
   // Check if operation is a string operation.
   private isStringOperation(op: Operation<unknown>): op is Operation<string> {
     return typeof op.target === 'string';
@@ -139,13 +132,12 @@ export class WorkflowResource extends FileResource<Workflow> {
    * reference rewrites) lives in `WorkflowRenameHandler.apply`, which calls
    * the cascade helpers before invoking this method so the old name is
    * still findable on disk. This override therefore just delegates to the
-   * base class and persists the new in-memory name via `onNameChange`.
+   * base class and persists the new in-memory name to disk.
    * @param newName New name for the resource.
    */
   public async rename(newName: ResourceName) {
-    const existingName = this.content.name;
     await super.rename(newName);
-    return this.onNameChange(existingName);
+    await this.write();
   }
 
   /**
