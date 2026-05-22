@@ -2,7 +2,7 @@
 
 import type { Handler, MutationContext } from '../handler.js';
 import type { CascadePreview } from '../types.js';
-import { resourceNameToString } from '../../utils/resource-utils.js';
+import { resourceName, resourceNameToString } from '../../utils/resource-utils.js';
 import {
   rewriteCalculationRefs,
   rewriteCardContentRefs,
@@ -72,11 +72,7 @@ export class LinkTypeRenameHandler implements Handler {
     if (!resource) {
       throw new Error(`Link type '${oldName}' not found`);
     }
-    await resource.update({ key: 'name' }, {
-      name: 'change',
-      target: oldName,
-      to: newName,
-    });
+    await resource.rename(resourceName(newName));
   }
 
   async affectedFilePaths(ctx: MutationContext): Promise<string[]> {

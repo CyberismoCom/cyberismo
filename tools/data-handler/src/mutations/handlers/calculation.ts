@@ -2,7 +2,7 @@
 
 import type { Handler, MutationContext } from '../handler.js';
 import type { CascadePreview } from '../types.js';
-import { resourceNameToString } from '../../utils/resource-utils.js';
+import { resourceName, resourceNameToString } from '../../utils/resource-utils.js';
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import {
   rewriteCalculationRefs,
@@ -68,10 +68,7 @@ export class CalculationRenameHandler implements Handler {
     // TODO: compute accurate counts now that cascade is explicit
     await rewriteCalculationRefs(ctx.project, oldName, newName);
     await rewriteCardContentRefs(ctx.project, oldName, newName);
-    await resource.update(
-      { key: 'name' },
-      { name: 'change', target: oldName, to: newName },
-    );
+    await resource.rename(resourceName(newName));
   }
 
   async affectedFilePaths(ctx: MutationContext): Promise<string[]> {

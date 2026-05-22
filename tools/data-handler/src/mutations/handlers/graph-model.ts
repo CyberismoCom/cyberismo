@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import type { Handler, MutationContext } from '../handler.js';
 import type { CascadePreview } from '../types.js';
-import { resourceNameToString } from '../../utils/resource-utils.js';
+import { resourceName, resourceNameToString } from '../../utils/resource-utils.js';
 import { CONTENT_FILES } from '../../interfaces/folder-content-interfaces.js';
 import {
   rewriteCalculationRefs,
@@ -62,10 +62,7 @@ export class GraphModelRenameHandler implements Handler {
     await rewriteHandlebarRefs(ctx.project, oldName, newName, handleBarFiles);
     await rewriteCalculationRefs(ctx.project, oldName, newName);
     await rewriteCardContentRefs(ctx.project, oldName, newName);
-    await resource.update(
-      { key: 'name' },
-      { name: 'change', target: oldName, to: newName },
-    );
+    await resource.rename(resourceName(newName));
   }
 
   async affectedFilePaths(ctx: MutationContext): Promise<string[]> {
