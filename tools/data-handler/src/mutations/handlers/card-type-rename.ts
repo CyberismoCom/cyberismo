@@ -4,6 +4,11 @@ import type { Handler, MutationContext } from '../handler.js';
 import type { CascadePreview } from '../types.js';
 import { resourceName, resourceNameToString } from '../../utils/resource-utils.js';
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
+import {
+  rewriteCalculationRefs,
+  rewriteCardContentRefs,
+  rewriteHandlebarRefs,
+} from '../cascades/rewrite-refs.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
 import type { ChangeOperation } from '../../resources/resource-object.js';
 
@@ -48,18 +53,24 @@ export class CardTypeRenameHandler implements Handler {
       await ctx.project.updateCardMetadata(card, metadata);
     }
 
-    // 2. Rename the resource itself. ResourceObject.rename() invokes onNameChange,
-    //    which (per card-type-resource.ts) handles handlebar/calculation/content
-    //    rewrites and link-type updates. After this plan trims the resource class,
-    //    only handlebar/calculation/content rewrites remain in onNameChange; the
-    //    link-type rewrite below replaces the removed updateLinkTypes call.
+    // 2. Rewrite cascading references BEFORE renaming the resource on disk.
+    //    Order matters: cascade scanners look for the old name, and the
+    //    resource file (with that name) must still exist when they run.
+    // TODO: compute accurate counts now that cascade is explicit
+    await rewriteCalculationRefs(ctx.project, oldName, newName);
+    await rewriteHandlebarRefs(ctx.project, oldName, newName);
+    await rewriteCardContentRefs(ctx.project, oldName, newName);
+
+    // 3. Rename the resource itself. CardTypeResource.onNameChange now only
+    //    handles self-only prefix rewrites for customFields /
+    //    alwaysVisibleFields / optionallyVisibleFields / workflow.
     const resource = ctx.project.resources.byType(oldName, 'cardTypes');
     if (!resource) {
       throw new Error(`CardType '${oldName}' not found`);
     }
     await resource.rename(resourceName(newName));
 
-    // 3. Rewrite link-type sourceCardTypes/destinationCardTypes references.
+    // 4. Rewrite link-type sourceCardTypes/destinationCardTypes references.
     const linkTypes = ctx.project.resources.linkTypes(ResourcesFrom.localOnly);
     for (const lt of linkTypes) {
       const data = lt.data;

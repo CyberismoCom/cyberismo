@@ -39,9 +39,13 @@ export class LinkTypeResource extends FileResource<LinkType> {
 
   /**
    * When resource name changes.
-   * @param existingName Current resource name.
+   *
+   * Cross-resource cascade (handlebar/calculation/card-content rewrites) lives
+   * in LinkTypeRenameHandler. Only the self-only prefix rewrites for
+   * sourceCardTypes / destinationCardTypes remain here.
+   * @param _existingName Previous resource name (unused).
    */
-  protected async onNameChange(existingName: string) {
+  protected async onNameChange(_existingName: string) {
     const current = this.content;
     const prefixes = this.project.projectPrefixes();
     if (current.sourceCardTypes) {
@@ -54,11 +58,6 @@ export class LinkTypeResource extends FileResource<LinkType> {
         this.updatePrefixInResourceName(item, prefixes),
       );
     }
-    await Promise.all([
-      super.updateHandleBars(existingName, this.content.name),
-      super.updateCalculations(existingName, this.content.name),
-      super.updateCardContentReferences(existingName, this.content.name),
-    ]);
     // Finally, write updated content.
     await this.write();
   }

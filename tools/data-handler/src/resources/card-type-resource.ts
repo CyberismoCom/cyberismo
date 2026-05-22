@@ -143,10 +143,15 @@ export class CardTypeResource extends FileResource<CardType> {
   }
 
   /**
-   * When resource name changes
-   * @param existingName Current resource name
+   * When resource name changes.
+   *
+   * Cross-resource cascade (handlebar/calculation/card-content rewrites) lives
+   * in CardTypeRenameHandler. Only the self-only prefix rewrites for the
+   * card type's own metadata (customFields / alwaysVisibleFields /
+   * optionallyVisibleFields / workflow) remain here.
+   * @param _existingName Previous resource name (unused).
    */
-  protected async onNameChange(existingName: string) {
+  protected async onNameChange(_existingName: string) {
     const current = this.content;
     const prefixes = this.project.projectPrefixes();
     if (current.customFields) {
@@ -169,11 +174,6 @@ export class CardTypeResource extends FileResource<CardType> {
       current.workflow,
       prefixes,
     );
-    await Promise.all([
-      super.updateHandleBars(existingName, this.content.name),
-      super.updateCalculations(existingName, this.content.name),
-      super.updateCardContentReferences(existingName, this.content.name),
-    ]);
 
     await this.write();
   }

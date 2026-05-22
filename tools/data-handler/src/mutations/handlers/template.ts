@@ -3,16 +3,20 @@
 import type { Handler, MutationContext } from '../handler.js';
 import type { CascadePreview } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
+import {
+  rewriteCalculationRefs,
+  rewriteCardContentRefs,
+  rewriteHandlebarRefs,
+} from '../cascades/rewrite-refs.js';
 
 /**
  * Rename a template. Cascade: rewrite references in card index.adoc
  * files (createCards macro), reports, and calculations.
  *
- * The cascade body delegates to TemplateResource.rename(), which calls
- * updateHandleBars / updateCalculations / updateCardContentReferences
- * via its onNameChange override. This handler is the orchestrator and
- * the source of the log entry; the resource subclass keeps the per-file
- * rewrite mechanics.
+ * The handler owns the cascade explicitly: it rewrites references in
+ * calculations, handlebar files and card content before delegating the
+ * actual rename to TemplateResource. TemplateResource.onNameChange no
+ * longer fires the cascade; it only persists metadata after rename.
  */
 export class TemplateRenameHandler implements Handler {
   readonly isBreaking = true;
@@ -54,6 +58,15 @@ export class TemplateRenameHandler implements Handler {
       throw new Error(`Template '${oldName}' not found`);
     }
     const newName = `${ctx.input.target.prefix}/templates/${ctx.input.newIdentifier}`;
+
+    // Rewrite cascading references BEFORE renaming the resource on disk.
+    // Order matters: cascade scanners look for the old name, and the
+    // resource file (with that name) must still exist when they run.
+    // TODO: compute accurate counts now that cascade is explicit
+    await rewriteCalculationRefs(ctx.project, oldName, newName);
+    await rewriteHandlebarRefs(ctx.project, oldName, newName);
+    await rewriteCardContentRefs(ctx.project, oldName, newName);
+
     await resource.update(
       { key: 'name' },
       { name: 'change', target: oldName, to: newName },

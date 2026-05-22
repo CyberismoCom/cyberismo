@@ -2450,7 +2450,7 @@ describe('resources', function () {
       await remove.remove('card', cardKey);
     }
 
-    it('should update card contents when renaming template', async () => {
+    it('should not update card contents when renaming template via resource class (cascade moved to handler)', async () => {
       const cardKey = 'decision_5';
       const card = project.findCard(cardKey);
       expect(card.content).toContain('decision/templates/simplepage');
@@ -2461,9 +2461,10 @@ describe('resources', function () {
       const updatedCard = project.findCard(cardKey);
 
       expect(template.data?.name).toBe('decision/templates/renamedpage');
-      expect(updatedCard.content).toContain('decision/templates/renamedpage');
+      // The resource-level rename no longer cascades; TemplateRenameHandler does.
+      expect(updatedCard.content).toContain('decision/templates/simplepage');
       expect(updatedCard.content).not.toContain(
-        'decision/templates/simplepage',
+        'decision/templates/renamedpage',
       );
 
       await template.rename(resourceName('decision/templates/simplepage'));

@@ -3,6 +3,11 @@
 import type { Handler, MutationContext } from '../handler.js';
 import type { CascadePreview } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
+import {
+  rewriteCalculationRefs,
+  rewriteCardContentRefs,
+  rewriteHandlebarRefs,
+} from '../cascades/rewrite-refs.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
 import { join } from 'node:path';
 
@@ -52,7 +57,17 @@ export class LinkTypeRenameHandler implements Handler {
       await ctx.project.updateCardMetadata(card, metadata);
     }
 
-    // 2. Rename the resource itself via the existing ResourceObject API.
+    // 2. Rewrite cascading references BEFORE renaming the resource on disk.
+    //    Order matters: cascade scanners look for the old name, and the
+    //    resource file (with that name) must still exist when they run.
+    // TODO: compute accurate counts now that cascade is explicit
+    await rewriteCalculationRefs(ctx.project, oldName, newName);
+    await rewriteHandlebarRefs(ctx.project, oldName, newName);
+    await rewriteCardContentRefs(ctx.project, oldName, newName);
+
+    // 3. Rename the resource itself. LinkTypeResource.onNameChange now only
+    //    handles self-only prefix rewrites for sourceCardTypes /
+    //    destinationCardTypes.
     const resource = ctx.project.resources.byType(oldName, 'linkTypes');
     if (!resource) {
       throw new Error(`Link type '${oldName}' not found`);
