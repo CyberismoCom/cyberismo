@@ -643,7 +643,7 @@ createCmd
           const choices = await importableModules(commandOptions);
           const selectedModules = await checkbox({
             message: 'Select modules to import',
-            theme: { helpMode: 'always' },
+            theme: { style: { keysHelpTip: (tip: string) => tip } },
             choices,
           });
 
