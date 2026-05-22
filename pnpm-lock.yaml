@@ -276,8 +276,8 @@ importers:
         specifier: workspace:*
         version: link:../data-handler
       '@inquirer/confirm':
-        specifier: ^6.0.12
-        version: 6.0.12(@types/node@22.19.17)
+        specifier: ^6.0.13
+        version: 6.0.13(@types/node@22.19.17)
       '@inquirer/prompts':
         specifier: ^8.4.3
         version: 8.4.3(@types/node@22.19.17)
@@ -1193,15 +1193,6 @@ packages:
       '@types/node':
         optional: true
 
-  '@inquirer/confirm@6.0.12':
-    resolution: {integrity: sha512-h9FgGun3QwVYNj5TWIZZ+slii73bMoBFjPfVIGtnFuL4t8gBiNDV9PcSfIzkuxvgquJKt9nr1QzszpBzTbH8Og==}
-    engines: {node: '>=23.5.0 || ^22.13.0 || ^21.7.0 || ^20.12.0'}
-    peerDependencies:
-      '@types/node': ^22.18.1
-    peerDependenciesMeta:
-      '@types/node':
-        optional: true
-
   '@inquirer/confirm@6.0.13':
     resolution: {integrity: sha512-wkGPC7yJ5WJk1DJ5SX7fzk+gfj4BM8cf5dDDi71B/551xHrdsZVRJOC0WyikXd0pEsb/9cLniuE4atbsMqmFkw==}
     engines: {node: '>=23.5.0 || ^22.13.0 || ^21.7.0 || ^20.12.0'}
@@ -1213,15 +1204,6 @@ packages:
 
   '@inquirer/core@11.1.10':
     resolution: {integrity: sha512-a4Q5BXHQAHa9eO202sTaFCHFYVB3x5fauDuThEAdZ9gfn76pSxiKU7wWcEH0N1O0XmQvNfQNU6QXpiRxmYQx+A==}
-    engines: {node: '>=23.5.0 || ^22.13.0 || ^21.7.0 || ^20.12.0'}
-    peerDependencies:
-      '@types/node': ^22.18.1
-    peerDependenciesMeta:
-      '@types/node':
-        optional: true
-
-  '@inquirer/core@11.1.9':
-    resolution: {integrity: sha512-BDE4fG22uYh1bGSifcj7JSx119TVYNViMhMu85usp4Fswrzh6M0DV3yld64jA98uOAa2GSQ4Bg4bZRm2d2cwSg==}
     engines: {node: '>=23.5.0 || ^22.13.0 || ^21.7.0 || ^20.12.0'}
     peerDependencies:
       '@types/node': ^22.18.1
@@ -3238,9 +3220,6 @@ packages:
 
   fast-uri@3.1.2:
     resolution: {integrity: sha512-rVjf7ArG3LTk+FS6Yw81V1DLuZl1bRbNrev6Tmd/9RaroeeRRJhAt7jg/6YFxbvAQXUCavSoZhPPj6oOx+5KjQ==}
-
-  fast-wrap-ansi@0.2.0:
-    resolution: {integrity: sha512-rLV8JHxTyhVmFYhBJuMujcrHqOT2cnO5Zxj37qROj23CP39GXubJRBUFF0z8KFK77Uc0SukZUf7JZhsVEQ6n8w==}
 
   fast-wrap-ansi@0.2.2:
     resolution: {integrity: sha512-7F2Fl+TjRSenLqlU3UjSH0iyqopqoZIu7eZVpEirP2g1GtWa2G/ecEmBdgz31+Mxr+ELclgg6sokpSFIQiZ02Q==}
@@ -6331,13 +6310,6 @@ snapshots:
     optionalDependencies:
       '@types/node': 22.19.17
 
-  '@inquirer/confirm@6.0.12(@types/node@22.19.17)':
-    dependencies:
-      '@inquirer/core': 11.1.9(@types/node@22.19.17)
-      '@inquirer/type': 4.0.5(@types/node@22.19.17)
-    optionalDependencies:
-      '@types/node': 22.19.17
-
   '@inquirer/confirm@6.0.13(@types/node@22.19.17)':
     dependencies:
       '@inquirer/core': 11.1.10(@types/node@22.19.17)
@@ -6352,18 +6324,6 @@ snapshots:
       '@inquirer/type': 4.0.5(@types/node@22.19.17)
       cli-width: 4.1.0
       fast-wrap-ansi: 0.2.2
-      mute-stream: 3.0.0
-      signal-exit: 4.1.0
-    optionalDependencies:
-      '@types/node': 22.19.17
-
-  '@inquirer/core@11.1.9(@types/node@22.19.17)':
-    dependencies:
-      '@inquirer/ansi': 2.0.5
-      '@inquirer/figures': 2.0.5
-      '@inquirer/type': 4.0.5(@types/node@22.19.17)
-      cli-width: 4.1.0
-      fast-wrap-ansi: 0.2.0
       mute-stream: 3.0.0
       signal-exit: 4.1.0
     optionalDependencies:
@@ -8527,10 +8487,6 @@ snapshots:
   fast-uri@3.0.3: {}
 
   fast-uri@3.1.2: {}
-
-  fast-wrap-ansi@0.2.0:
-    dependencies:
-      fast-string-width: 3.0.2
 
   fast-wrap-ansi@0.2.2:
     dependencies:
