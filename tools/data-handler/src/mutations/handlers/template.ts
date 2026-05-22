@@ -122,6 +122,11 @@ export class TemplateDeleteHandler implements Handler {
     if (!resource) {
       throw new Error(`Template '${name}' not found`);
     }
+    // Flush the project-level cards cache before the resource is deleted.
+    // After resource.delete() runs, resourceNameToString(this.resourceName)
+    // inside the resource would no longer match a live template, so the
+    // cache flush has to happen here while the name is still meaningful.
+    ctx.project.cardsCache.deleteCardsFromTemplate(name);
     await resource.delete();
   }
 

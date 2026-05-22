@@ -87,11 +87,12 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
 
   /**
    * Deletes file and folder that this resource is based on.
-   * Also removes template cards from the project's card cache.
+   *
+   * The project-level cardsCache flush (deleteCardsFromTemplate) lives in
+   * TemplateDeleteHandler, which calls it before this method so the
+   * resource name is still meaningful.
    */
   public async delete() {
-    const templateName = resourceNameToString(this.resourceName);
-    this.project.cardsCache.deleteCardsFromTemplate(templateName);
     return super.delete();
   }
 
