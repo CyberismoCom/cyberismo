@@ -395,21 +395,6 @@ export abstract class ResourceObject<
   }
 
   /**
-   * Composes the (projectPath, target, type) tuple used by the legacy
-   * breaking-change classification helpers in ConfigurationLogger. The
-   * mutation engine no longer calls these helpers, but their logic
-   * remains exercised by the breaking-change-classification test until
-   * the rules move into recordLogEntry in a follow-on plan.
-   */
-  protected logTarget(): [string, string, ResourceFolderType] {
-    return [
-      this.project.basePath,
-      resourceNameToString(this.resourceName),
-      this.type,
-    ];
-  }
-
-  /**
    * Called after inherited class has finished 'update' operation.
    * @param content New content for resource
    * @param updateKey Which property to change

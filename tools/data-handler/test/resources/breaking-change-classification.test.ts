@@ -41,7 +41,11 @@ class TestableResourceObject extends ResourceObject<
     op?: Operation<Type>,
     key?: string,
   ): Promise<void> {
-    const args = this.logTarget();
+    const args: [string, string, ResourceFolderType] = [
+      this.project.basePath,
+      resourceNameToString(this.resourceName),
+      this.type,
+    ];
     switch (operationType) {
       case 'create':
         return;
