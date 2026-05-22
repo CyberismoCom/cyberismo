@@ -56,10 +56,6 @@
     "create-migration": "node scripts/create-migration.mjs"
   },
   "pnpm": {
-    "overrides": {
-      "@types/node": "^22.18.1",
-      "rollup": "^4.45.1"
-    },
     "ignoredOptionalDependencies": [
       "@cyberismo/node-clingo-darwin-arm64",
       "@cyberismo/node-clingo-darwin-x64",
