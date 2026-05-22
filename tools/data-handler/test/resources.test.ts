@@ -1290,17 +1290,6 @@ describe('resources', function () {
       await res.createCardType('decision/workflows/decision');
       await res.rename(resourceName('decision/cardTypes/newnameWithNumber2'));
       expect(res.data?.name).equals('decision/cardTypes/newnameWithNumber2');
-      await res.update(
-        {
-          key: 'name',
-        },
-        {
-          name: 'change',
-          to: 'decision/cardTypes/newnameWithNumber3',
-          target: 'name',
-        },
-      );
-      expect(res.data?.name).equals('decision/cardTypes/newnameWithNumber3');
       await res.delete();
     });
     it('try to rename workflow - attempt to change prefix', async () => {
@@ -1330,27 +1319,13 @@ describe('resources', function () {
       ).rejects.toThrow('Resource identifier must follow naming');
       await res.delete();
     });
-    it('update card type - name', async () => {
-      const name = 'decision/cardTypes/forRename';
-      const res = project.resources.byType(name, 'cardTypes');
-      await res.createCardType('decision/workflows/decision');
-      await res.update(
-        { key: 'name' },
-        {
-          name: 'change',
-          target: '',
-          to: 'decision/cardTypes/afterUpdate',
-        },
-      );
-      expect(res.data?.name).toBe('decision/cardTypes/afterUpdate');
-    });
-    it('update card type - try to "rank" scalar "name"', async () => {
+    it('update card type - try to "rank" scalar "displayName"', async () => {
       const name = 'decision/cardTypes/tryForUpdate';
       const res = project.resources.byType(name, 'cardTypes');
       await res.createCardType('decision/workflows/decision');
       await expect(
         res.update(
-          { key: 'name' },
+          { key: 'displayName' },
           {
             name: 'rank',
             target: '',
@@ -1359,12 +1334,12 @@ describe('resources', function () {
         ),
       ).rejects.toThrow('Cannot do operation rank on scalar value');
     });
-    it('update card type - try to "add" scalar "name"', async () => {
+    it('update card type - try to "add" scalar "displayName"', async () => {
       const name = 'decision/cardTypes/tryForUpdate';
       const res = project.resources.byType(name, 'cardTypes');
       await expect(
         res.update(
-          { key: 'name' },
+          { key: 'displayName' },
           {
             name: 'add',
             target: '',
@@ -1372,12 +1347,12 @@ describe('resources', function () {
         ),
       ).rejects.toThrow('Cannot do operation add on scalar value');
     });
-    it('update card type - try to "remove" scalar "name"', async () => {
+    it('update card type - try to "remove" scalar "displayName"', async () => {
       const name = 'decision/cardTypes/tryForUpdate';
       const res = project.resources.byType(name, 'cardTypes');
       await expect(
         res.update(
-          { key: 'name' },
+          { key: 'displayName' },
           {
             name: 'remove',
             target: '',
@@ -1714,35 +1689,6 @@ describe('resources', function () {
         'decision/fieldTypes/secondNewOne',
       );
     });
-    it('update field type', async () => {
-      const name = 'decision/fieldTypes/dateFieldType';
-      const res = project.resources.byType(name, 'fieldTypes');
-      await res.createFieldType('dateTime');
-      await res.update(
-        { key: 'name' },
-        {
-          name: 'change',
-          target: '',
-          to: 'decision/fieldTypes/afterUpdate',
-        },
-      );
-      expect(res.data?.name).toBe('decision/fieldTypes/afterUpdate');
-    });
-    it('try to update field type with invalid name', async () => {
-      const name = 'decision/fieldTypes/dateFieldType1';
-      const res = project.resources.byType(name, 'fieldTypes');
-      await res.createFieldType('dateTime');
-      await expect(
-        res.update(
-          { key: 'name' },
-          {
-            name: 'change',
-            target: '',
-            to: 'decision/fieldTypes/afterUpdate-öööö',
-          },
-        ),
-      ).rejects.toThrow('Resource identifier must follow naming rules.');
-    });
     it('update field type - change data type (number -> integer)', async () => {
       const name = 'decision/fieldTypes/numberOfCommits';
       const res = project.resources.byType(name, 'fieldTypes');
@@ -1857,20 +1803,6 @@ describe('resources', function () {
       );
       const data = await res.show();
       expect(data.content.calculation).toBe(newCalculationContent);
-    });
-    it('update calculation - name', async () => {
-      const name = 'decision/calculations/calcForRename';
-      const res = project.resources.byType(name, 'calculations');
-      await res.create();
-      await res.update(
-        { key: 'name' },
-        {
-          name: 'change',
-          target: '',
-          to: 'decision/calculations/afterCalcUpdate',
-        },
-      );
-      expect(res.data?.name).toBe('decision/calculations/afterCalcUpdate');
     });
     it('update link type scalar values', async () => {
       const name = 'decision/linkTypes/newLinkType';

@@ -107,14 +107,10 @@ export abstract class FileResource<
   ) {
     const { key } = updateKey;
 
-    const nameChange = key === 'name';
-    const existingName = this.content.name;
     await super.update(updateKey, op);
     const content = structuredClone(this.content);
 
-    if (key === 'name') {
-      content.name = super.handleScalar(op) as string;
-    } else if (key === 'displayName') {
+    if (key === 'displayName') {
       content.displayName = super.handleScalar(op) as string;
     } else if (key === 'description') {
       content.description = super.handleScalar(op) as string;
@@ -125,10 +121,6 @@ export abstract class FileResource<
     }
 
     await super.postUpdate(content, updateKey, op);
-
-    if (nameChange) {
-      await this.onNameChange?.(existingName);
-    }
   }
 
   /**
