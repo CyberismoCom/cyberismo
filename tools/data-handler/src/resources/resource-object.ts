@@ -14,7 +14,7 @@
 
 // node
 import { mkdir, rename } from 'node:fs/promises';
-import { basename, join } from 'node:path';
+import { join } from 'node:path';
 
 import { ArrayHandler } from './array-handler.js';
 import { deleteFile, pathExists } from '../utils/file-utils.js';
@@ -604,18 +604,6 @@ export abstract class ResourceObject<
         flag: 'wx',
       },
     );
-    // Check if "name" has changed. Changing "name" means renaming the file.
-    const nameInContent = resourceName(this.content.name).identifier + '.json';
-    const currentFileName = basename(this.fileName);
-    const resourceString = resourceNameToString(this.resourceName);
-
-    if (nameInContent !== currentFileName) {
-      const newFileName = join(this.resourceFolder, nameInContent);
-      await rename(this.fileName, newFileName);
-      this.fileName = newFileName;
-      this.resourceName = resourceName(this.content.name);
-      this.project.resources.rename(resourceString, this.content.name);
-    }
     await writeJsonFile(this.fileName, this.content);
   }
 
