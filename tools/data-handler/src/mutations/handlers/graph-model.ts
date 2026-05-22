@@ -1,8 +1,16 @@
 // tools/data-handler/src/mutations/handlers/graph-model.ts
 
+import { join } from 'node:path';
+
 import type { Handler, MutationContext } from '../handler.js';
 import type { CascadePreview } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
+import { CONTENT_FILES } from '../../interfaces/folder-content-interfaces.js';
+import {
+  rewriteCalculationRefs,
+  rewriteCardContentRefs,
+  rewriteHandlebarRefs,
+} from '../cascades/rewrite-refs.js';
 
 export class GraphModelRenameHandler implements Handler {
   readonly isBreaking = true;
@@ -41,6 +49,19 @@ export class GraphModelRenameHandler implements Handler {
       throw new Error(`Graph model '${oldName}' not found`);
     }
     const newName = `${ctx.input.target.prefix}/graphModels/${ctx.input.newIdentifier}`;
+    // Run the cascade before the rename so the scan still finds the old
+    // name on disk. Mirrors GraphModelResource.onNameChange — handlebar
+    // scope is limited to this graph model's model.hbs file (same
+    // construction the subclass previously used).
+    // TODO: compute accurate counts now that cascade is explicit
+    const internalFolder = join(
+      ctx.project.paths.resourcePath('graphModels'),
+      ctx.input.target.identifier,
+    );
+    const handleBarFiles = [join(internalFolder, CONTENT_FILES.model)];
+    await rewriteHandlebarRefs(ctx.project, oldName, newName, handleBarFiles);
+    await rewriteCalculationRefs(ctx.project, oldName, newName);
+    await rewriteCardContentRefs(ctx.project, oldName, newName);
     await resource.update(
       { key: 'name' },
       { name: 'change', target: oldName, to: newName },
