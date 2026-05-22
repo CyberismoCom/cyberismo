@@ -12,13 +12,13 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import semver from 'semver';
 
 import type { Project } from '../../containers/project.js';
 import { ProjectPaths } from '../../containers/project/project-paths.js';
+import { sealedMigrationVersions } from '../../modules/inventory.js';
 import { detectMigrationPathConflicts } from './conflicts.js';
 import { replayLog } from './replay.js';
 import type {
@@ -199,15 +199,6 @@ export class ModuleUpdater {
       modulePrefix === this.project.projectPrefix
         ? paths.migrationLogFolder
         : join(paths.modulesFolder, modulePrefix, 'migrations');
-
-    let files: string[];
-    try {
-      files = await readdir(folder);
-    } catch {
-      return [];
-    }
-    return files
-      .map((f) => /^migrationLog_(.+)\.jsonl$/.exec(f)?.[1])
-      .filter((v): v is string => !!v && semver.valid(v) !== null);
+    return sealedMigrationVersions(folder);
   }
 }

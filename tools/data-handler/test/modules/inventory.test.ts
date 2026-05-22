@@ -7,6 +7,7 @@ import {
   declaredModules,
   installedModules,
   installedVersion,
+  sealedMigrationVersions,
 } from '../../src/modules/inventory.js';
 import { makeProjectStub } from '../helpers/module-fixtures.js';
 import type { ModuleSetting } from '../../src/interfaces/project-interfaces.js';
@@ -204,5 +205,25 @@ describe('modules/inventory', () => {
       version: 123,
     });
     expect(await installedVersion(project, 'foo')).toBeNull();
+  });
+
+  it('sealedMigrationVersions returns [] when folder is missing', async () => {
+    expect(await sealedMigrationVersions(join(projectDir, 'nope'))).toEqual([]);
+  });
+
+  it('sealedMigrationVersions picks up valid-semver log filenames only', async () => {
+    const folder = join(projectDir, 'migrations');
+    await mkdir(folder, { recursive: true });
+    for (const name of [
+      'migrationLog_1.0.0.jsonl',
+      'migrationLog_1.2.3.jsonl',
+      'migrationLog_not-semver.jsonl',
+      'unrelated.jsonl',
+      'migrationLog_2.0.0.jsonl.tmp',
+    ]) {
+      await writeFile(join(folder, name), '');
+    }
+    const versions = await sealedMigrationVersions(folder);
+    expect(versions.sort()).toEqual(['1.0.0', '1.2.3']);
   });
 });

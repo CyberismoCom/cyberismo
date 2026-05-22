@@ -67,6 +67,30 @@ export async function installedVersion(
   return typeof config.version === 'string' ? config.version : null;
 }
 
+/**
+ * List the valid-semver versions for which `folder` holds a sealed
+ * migration log (`migrationLog_<ver>.jsonl`). Returns `[]` when the
+ * folder doesn't exist. Order is *not* sorted; callers that need an
+ * order (chronological, latest-first) must sort with `semver.compare`.
+ *
+ * Single source of truth for "which sealed transitions are on disk" —
+ * used by both the project-own log (`ConfigurationLogger`) and the
+ * per-module update flow (`ModuleUpdater`).
+ */
+export async function sealedMigrationVersions(
+  folder: string,
+): Promise<string[]> {
+  let files: string[];
+  try {
+    files = await readdir(folder);
+  } catch {
+    return [];
+  }
+  return files
+    .map((f) => /^migrationLog_(.+)\.jsonl$/.exec(f)?.[1])
+    .filter((v): v is string => !!v && semver.valid(v) !== null);
+}
+
 export async function installedModules(
   project: Project,
 ): Promise<ModuleInstallation[]> {

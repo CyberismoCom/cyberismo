@@ -12,7 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { readFile, readdir, rename, unlink } from 'node:fs/promises';
+import { readFile, rename, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import semver from 'semver';
@@ -20,6 +20,7 @@ import semver from 'semver';
 import { getChildLogger } from './log-utils.js';
 import { ProjectPaths } from '../containers/project/project-paths.js';
 import { writeFileSafe, pathExists } from './file-utils.js';
+import { sealedMigrationVersions } from '../modules/inventory.js';
 import type {
   Operation,
   ChangeOperation,
@@ -168,15 +169,7 @@ export class ConfigurationLogger {
     projectPath: string,
   ): Promise<string | null> {
     const folder = new ProjectPaths(projectPath).migrationLogFolder;
-    let files: string[];
-    try {
-      files = await readdir(folder);
-    } catch {
-      return null;
-    }
-    const versions = files
-      .map((f) => /^migrationLog_(.+)\.jsonl$/.exec(f)?.[1])
-      .filter((v): v is string => !!v && semver.valid(v) !== null);
+    const versions = await sealedMigrationVersions(folder);
     if (versions.length === 0) return null;
     return versions.sort(semver.compare).at(-1) ?? null;
   }
