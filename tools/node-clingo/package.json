@@ -48,7 +48,7 @@
     "@cyberismo/node-clingo-win32-x64": "1.6.0"
   },
   "devDependencies": {
-    "node-gyp": "^12.2.0",
+    "node-gyp": "^12.3.0",
     "semver": "^7.7.0"
   },
   "type": "module",
