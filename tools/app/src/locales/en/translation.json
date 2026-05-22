@@ -198,6 +198,7 @@
   "destinationCardTypes": "Destination card types",
   "displayName": "Display name",
   "edit": "Edit",
+  "emptyCardBody": "No content yet.",
   "emptyProject": "Project is empty",
   "enableLinkDescription": "Enable link description",
   "enumDescriptionPlaceholder": "Optional description for this value",
