@@ -2526,7 +2526,7 @@ describe('resources', function () {
       await fieldType.delete();
     });
 
-    it('should update card contents when renaming card type', async () => {
+    it('should not update card contents when renaming card type via resource class (cascade moved to handler)', async () => {
       const cardTypeName = 'decision/cardTypes/testTypeForContent';
       const cardType = project.resources.byType(cardTypeName, 'cardTypes');
       await cardType.createCardType('decision/workflows/decision');
@@ -2546,15 +2546,16 @@ describe('resources', function () {
       await cardType.rename(resourceName('decision/cardTypes/renamedType'));
       expect(cardType.data?.name).toBe('decision/cardTypes/renamedType');
 
+      // The resource-level rename no longer cascades; CardTypeRenameHandler does.
       card = project.findCard(cardKey);
-      expect(card.content).toContain('decision/cardTypes/renamedType');
-      expect(card.content).not.toContain(cardTypeName);
+      expect(card.content).toContain(cardTypeName);
+      expect(card.content).not.toContain('decision/cardTypes/renamedType');
 
       await cleanup(cardKey);
       await cardType.delete();
     });
 
-    it('should update card contents when renaming link type', async () => {
+    it('should not update card contents when renaming link type via resource class (cascade moved to handler)', async () => {
       const linkTypeName = 'decision/linkTypes/testLinkForContent';
       const linkType = project.resources.byType(linkTypeName, 'linkTypes');
       await linkType.create();
@@ -2574,9 +2575,10 @@ describe('resources', function () {
       await linkType.rename(resourceName('decision/linkTypes/renamedLink'));
       expect(linkType.data?.name).toBe('decision/linkTypes/renamedLink');
 
+      // The resource-level rename no longer cascades; LinkTypeRenameHandler does.
       card = project.findCard(cardKey);
-      expect(card.content).toContain('decision/linkTypes/renamedLink');
-      expect(card.content).not.toContain(linkTypeName);
+      expect(card.content).toContain(linkTypeName);
+      expect(card.content).not.toContain('decision/linkTypes/renamedLink');
 
       await cleanup(cardKey);
       await linkType.delete();
