@@ -2675,7 +2675,7 @@ describe('resources', function () {
       await graphView.delete();
     });
 
-    it('should rename all card content references', async () => {
+    it('should not rename card content references via resource class (cascade moved to handler)', async () => {
       const templateName = 'decision/templates/multiRefTemplate';
       const template = project.resources.byType(templateName, 'templates');
       await template.create();
@@ -2695,10 +2695,11 @@ describe('resources', function () {
 
       await template.rename(resourceName('decision/templates/renamedMultiRef'));
 
+      // The resource-level rename no longer cascades; TemplateRenameHandler does.
       for (const cardKey of cardKeys) {
         const card = project.findCard(cardKey);
-        expect(card.content).toContain('decision/templates/renamedMultiRef');
-        expect(card.content).not.toContain(templateName);
+        expect(card.content).toContain(templateName);
+        expect(card.content).not.toContain('decision/templates/renamedMultiRef');
       }
 
       // Cleanup
