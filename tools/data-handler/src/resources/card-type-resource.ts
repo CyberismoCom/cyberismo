@@ -152,6 +152,7 @@ export class CardTypeResource extends FileResource<CardType> {
    * @param _existingName Previous resource name (unused).
    */
   protected async onNameChange(_existingName: string) {
+    void _existingName;
     const current = this.content;
     const prefixes = this.project.projectPrefixes();
     if (current.customFields) {

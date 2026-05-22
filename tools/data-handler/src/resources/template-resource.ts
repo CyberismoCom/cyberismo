@@ -66,6 +66,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
    * @param _existingName Previous name before the change (unused).
    */
   protected async onNameChange(_existingName: string): Promise<void> {
+    void _existingName;
     await this.write();
   }
 
