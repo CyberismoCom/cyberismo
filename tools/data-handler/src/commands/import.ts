@@ -36,7 +36,7 @@ import {
 } from '../modules/index.js';
 import { cleanOrphans } from '../modules/orphans.js';
 import { ModuleUpdater } from '../mutations/module-update/plan.js';
-import { read, write } from '../utils/rw-lock.js';
+import { write } from '../utils/rw-lock.js';
 
 import type { Create } from './create.js';
 import type {
@@ -47,7 +47,7 @@ import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
 import type { ModuleDeclaration } from '../modules/types.js';
 import type { UpdateRequest } from '../mutations/module-update/plan.js';
-import type { ModuleUpdatePreview } from '../mutations/module-update/types.js';
+import type { ModuleUpdateResult } from '../mutations/module-update/types.js';
 
 /**
  * Coerce a caller-supplied source into the canonical form used by the
@@ -319,33 +319,13 @@ export class Import {
   }
 
   /**
-   * Build a migration-replay preview for upgrading `moduleName` to
-   * `toVersion`. Captures the currently-installed version from disk and
-   * runs the previewer; performs no filesystem mutations. The result
-   * lists the steps the actual `updateModule` call would run, plus any
-   * blocking conflicts.
-   *
-   * Reports the root module's plan only. The transitive plan a real
-   * `updateModule` call would run depends on the resolver's output and
-   * is only computable post-fetch — `updateModule` builds it inline.
-   */
-  @read
-  public async previewUpdate(
-    moduleName: string,
-    toVersion: string,
-  ): Promise<ModuleUpdatePreview> {
-    const fromVersion = await installedVersion(this.project, moduleName);
-    const updater = new ModuleUpdater(this.project);
-    return updater.previewUpdate([
-      { prefix: moduleName, fromVersion, toVersion },
-    ]);
-  }
-
-  /**
    * Updates a specific imported module.
    * @param moduleName Name (prefix) of module to update.
    * @param credentials Optional credentials for a private module.
    * @param version Optional target version to update to.
+   * @returns the per-step replay result, or `null` when nothing required
+   *   replay (no resolved module changed version — typically a no-op
+   *   re-resolution of the current state).
    * @throws if module is not part of the project
    */
   @write((moduleName) => `Update module ${moduleName}`)
@@ -353,7 +333,7 @@ export class Import {
     moduleName: string,
     credentials?: Credentials,
     version?: string,
-  ) {
+  ): Promise<ModuleUpdateResult | null> {
     // Ensure module list is up to date before updating
     await this.fetchCmd.ensureModuleListUpToDate();
 
@@ -439,7 +419,7 @@ export class Import {
         toVersion: r.version,
       }));
 
-    if (updateRequests.length === 0) return;
+    if (updateRequests.length === 0) return null;
 
     const updater = new ModuleUpdater(this.project);
     const preview = await updater.previewUpdate(updateRequests);
@@ -449,7 +429,7 @@ export class Import {
           preview.conflicts.map((c) => c.description).join('; '),
       );
     }
-    await updater.applyUpdate(preview);
+    return updater.applyUpdate(preview);
   }
 
   /**

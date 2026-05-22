@@ -12,42 +12,7 @@
 */
 import { z } from 'zod';
 
-export const PreviewUpdateRequestSchema = z.object({
-  module: z.string(),
-  toVersion: z.string(),
-});
-
 export const ApplyUpdateRequestSchema = z.object({
   module: z.string(),
   toVersion: z.string(),
-});
-
-const ReplayConflictSchema = z.object({
-  kind: z.enum([
-    'local_reference_unrewritable',
-    'migration_path_unreachable',
-    'other',
-  ]),
-  affected: z.string(),
-  location: z.string(),
-  description: z.string(),
-  suggestedTargetVersion: z.string().optional(),
-  suggestedIntermediateVersions: z.array(z.string()),
-});
-
-const ResolvedUpdateStepSchema = z.object({
-  order: z.number(),
-  modulePrefix: z.string(),
-  fromVersion: z.string().nullable(),
-  toVersion: z.string(),
-  logChain: z.array(z.string()),
-  crossesMajorBoundary: z.boolean(),
-});
-
-export const ModuleUpdatePreviewSchema = z.object({
-  steps: z.array(ResolvedUpdateStepSchema),
-  conflicts: z.array(ReplayConflictSchema),
-  totalEntryCount: z.number(),
-  affectedCardCount: z.number(),
-  dataLossExpected: z.boolean(),
 });

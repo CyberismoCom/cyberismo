@@ -11,44 +11,22 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import type { CommandManager } from '@cyberismo/data-handler';
-import type {
-  ModuleUpdatePreview,
-  ModuleUpdateResult,
-} from '@cyberismo/data-handler/mutations/module-update/types';
-
-export async function previewModuleUpdate(
-  commands: CommandManager,
-  modulePrefix: string,
-  toVersion: string,
-): Promise<ModuleUpdatePreview> {
-  return commands.importCmd.previewUpdate(modulePrefix, toVersion);
-}
+import type { ModuleUpdateResult } from '@cyberismo/data-handler/mutations/module-update/types';
 
 /**
- * Run install+replay for `modulePrefix` up to `toVersion`. Routes through
- * `Import.updateModule`, which owns the install half (resolveModules +
- * applyModules) and then invokes the replay. `Import.updateModule`
- * captures `fromVersion` in-memory before install, so the migration plan
- * stays correct even after the on-disk version is overwritten.
+ * Run install + migration replay for `modulePrefix` up to `toVersion`.
+ * Delegates to `Import.updateModule`, which owns the install half
+ * (resolveModules + applyModules) and then drives the replay batch for
+ * every module whose version changed.
  *
- * Returns a single-step `ModuleUpdateResult`-shaped value synthesized from
- * the caller's preview so the SSE consumer keeps its current event shape;
- * on conflict, `Import.updateModule` throws and the caller surfaces it.
+ * Returns `null` when the resolver produced no version changes (no-op).
+ * On a replay conflict `Import.updateModule` throws; the caller surfaces
+ * the error.
  */
 export async function applyModuleUpdate(
   commands: CommandManager,
-  preview: ModuleUpdatePreview,
   modulePrefix: string,
   toVersion: string,
-): Promise<ModuleUpdateResult> {
-  await commands.importCmd.updateModule(modulePrefix, undefined, toVersion);
-  return {
-    status: 'succeeded',
-    steps: preview.steps.map((step) => ({
-      modulePrefix: step.modulePrefix,
-      fromVersion: step.fromVersion,
-      toVersion: step.toVersion,
-      status: 'succeeded' as const,
-    })),
-  };
+): Promise<ModuleUpdateResult | null> {
+  return commands.importCmd.updateModule(modulePrefix, undefined, toVersion);
 }
