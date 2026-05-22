@@ -134,19 +134,18 @@ export class WorkflowResource extends FileResource<Workflow> {
 
   /**
    * Renames the object and the file.
+   *
+   * The cross-resource cascade (handlebar / calculation / card-content
+   * reference rewrites) lives in `WorkflowRenameHandler.apply`, which calls
+   * the cascade helpers before invoking this method so the old name is
+   * still findable on disk. This override therefore just delegates to the
+   * base class and persists the new in-memory name via `onNameChange`.
    * @param newName New name for the resource.
    */
   public async rename(newName: ResourceName) {
     const existingName = this.content.name;
     await super.rename(newName);
-    // Cascade lives in WorkflowRenameHandler; the base class's rename
-    // handles the on-disk file move. Nothing else to do here.
-    await Promise.all([
-      super.updateHandleBars(existingName, this.content.name),
-      super.updateCalculations(existingName, this.content.name),
-      super.updateCardContentReferences(existingName, this.content.name),
-    ]);
-    await this.write();
+    return this.onNameChange(existingName);
   }
 
   /**

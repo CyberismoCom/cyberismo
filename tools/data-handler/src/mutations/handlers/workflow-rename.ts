@@ -10,6 +10,11 @@ import {
   resourceNameToString,
 } from '../../utils/resource-utils.js';
 import type { ChangeOperation } from '../../resources/resource-object.js';
+import {
+  rewriteCalculationRefs,
+  rewriteHandlebarRefs,
+  rewriteCardContentRefs,
+} from '../cascades/rewrite-refs.js';
 
 export class WorkflowRenameHandler implements Handler {
   readonly isBreaking = true;
@@ -64,10 +69,16 @@ export class WorkflowRenameHandler implements Handler {
       await ct.update({ key: 'workflow' }, op);
     }
 
-    // 2. Rename the resource itself; the base class's rename machinery
-    //    rewrites handlebars / calculations / card content references via
-    //    onNameChange (which we hollow out in Task 11 — by that point this
-    //    handler owns the cascade).
+    // 2. Rewrite cross-resource references while the old name is still on
+    //    disk. Order matters: these helpers scan files/cards for the old
+    //    name, so they must run before the resource is renamed.
+    await rewriteCalculationRefs(ctx.project, oldName, newName);
+    await rewriteHandlebarRefs(ctx.project, oldName, newName);
+    await rewriteCardContentRefs(ctx.project, oldName, newName);
+
+    // 3. Rename the resource itself. The base class only moves the file and
+    //    updates in-memory state; the cascade above has already rewritten
+    //    every other reference.
     await resource.rename(resourceName(newName));
   }
 
