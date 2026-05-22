@@ -48,17 +48,14 @@ export class GraphViewResource extends FolderResource<
   }
 
   /**
-   * Handle name changes for graph views
-   * @param existingName The previous name before the change
+   * Handle name changes for graph views. The cross-resource cascade
+   * (handlebar / calculation / card-content rewrites) is now owned by
+   * GraphViewRenameHandler, which runs it before invoking
+   * `resource.update({key:'name'}, …)`. This hook only persists the
+   * renamed metadata to disk.
    */
-  protected async onNameChange(existingName: string): Promise<void> {
-    await Promise.all([
-      super.updateHandleBars(existingName, this.content.name, [
-        await this.handleBarFile(),
-      ]),
-      super.updateCalculations(existingName, this.content.name),
-      super.updateCardContentReferences(existingName, this.content.name),
-    ]);
+  protected async onNameChange(_existingName: string): Promise<void> {
+    void _existingName;
     await this.write();
   }
 
