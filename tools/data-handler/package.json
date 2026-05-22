@@ -44,6 +44,7 @@
     "@cyberismo/node-clingo": "workspace:*",
     "@types/mime-types": "^3.0.1",
     "@viz-js/viz": "^3.26.0",
+    "ajv": "^8.18.0",
     "csv-parse": "^6.2.1",
     "directory-schema-validator": "^1.0.17",
     "dompurify": "^3.4.0",
