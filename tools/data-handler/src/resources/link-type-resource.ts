@@ -39,27 +39,10 @@ export class LinkTypeResource extends FileResource<LinkType> {
 
   /**
    * When resource name changes.
-   *
-   * Cross-resource cascade (handlebar/calculation/card-content rewrites) lives
-   * in LinkTypeRenameHandler. Only the self-only prefix rewrites for
-   * sourceCardTypes / destinationCardTypes remain here.
    * @param _existingName Previous resource name (unused).
    */
   protected async onNameChange(_existingName: string) {
     void _existingName;
-    const current = this.content;
-    const prefixes = this.project.projectPrefixes();
-    if (current.sourceCardTypes) {
-      current.sourceCardTypes = current.sourceCardTypes.map((item) =>
-        this.updatePrefixInResourceName(item, prefixes),
-      );
-    }
-    if (current.destinationCardTypes) {
-      current.destinationCardTypes = current.destinationCardTypes.map((item) =>
-        this.updatePrefixInResourceName(item, prefixes),
-      );
-    }
-    // Finally, write updated content.
     await this.write();
   }
 
@@ -83,9 +66,20 @@ export class LinkTypeResource extends FileResource<LinkType> {
    * @param newName New name for the resource.
    */
   public async rename(newName: ResourceName) {
-    const existingName = this.content.name;
     await super.rename(newName);
-    return this.onNameChange(existingName);
+    const current = this.content;
+    const prefixes = this.project.projectPrefixes();
+    if (current.sourceCardTypes) {
+      current.sourceCardTypes = current.sourceCardTypes.map((item) =>
+        this.updatePrefixInResourceName(item, prefixes),
+      );
+    }
+    if (current.destinationCardTypes) {
+      current.destinationCardTypes = current.destinationCardTypes.map((item) =>
+        this.updatePrefixInResourceName(item, prefixes),
+      );
+    }
+    await this.write();
   }
 
   /**

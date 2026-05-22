@@ -144,38 +144,10 @@ export class CardTypeResource extends FileResource<CardType> {
 
   /**
    * When resource name changes.
-   *
-   * Cross-resource cascade (handlebar/calculation/card-content rewrites) lives
-   * in CardTypeRenameHandler. Only the self-only prefix rewrites for the
-   * card type's own metadata (customFields / alwaysVisibleFields /
-   * optionallyVisibleFields / workflow) remain here.
    * @param _existingName Previous resource name (unused).
    */
   protected async onNameChange(_existingName: string) {
     void _existingName;
-    const current = this.content;
-    const prefixes = this.project.projectPrefixes();
-    if (current.customFields) {
-      current.customFields.map(
-        (field) =>
-          (field.name = this.updatePrefixInResourceName(field.name, prefixes)),
-      );
-    }
-    if (current.alwaysVisibleFields) {
-      current.alwaysVisibleFields = current.alwaysVisibleFields.map((item) =>
-        this.updatePrefixInResourceName(item, prefixes),
-      );
-    }
-    if (current.optionallyVisibleFields) {
-      current.optionallyVisibleFields = current.optionallyVisibleFields.map(
-        (item) => this.updatePrefixInResourceName(item, prefixes),
-      );
-    }
-    current.workflow = this.updatePrefixInResourceName(
-      current.workflow,
-      prefixes,
-    );
-
     await this.write();
   }
 
@@ -216,9 +188,30 @@ export class CardTypeResource extends FileResource<CardType> {
    * @param newName New name for the resource.
    */
   public async rename(newName: ResourceName) {
-    const existingName = this.content.name;
     await super.rename(newName);
-    return this.onNameChange(existingName);
+    const current = this.content;
+    const prefixes = this.project.projectPrefixes();
+    if (current.customFields) {
+      current.customFields.map(
+        (field) =>
+          (field.name = this.updatePrefixInResourceName(field.name, prefixes)),
+      );
+    }
+    if (current.alwaysVisibleFields) {
+      current.alwaysVisibleFields = current.alwaysVisibleFields.map((item) =>
+        this.updatePrefixInResourceName(item, prefixes),
+      );
+    }
+    if (current.optionallyVisibleFields) {
+      current.optionallyVisibleFields = current.optionallyVisibleFields.map(
+        (item) => this.updatePrefixInResourceName(item, prefixes),
+      );
+    }
+    current.workflow = this.updatePrefixInResourceName(
+      current.workflow,
+      prefixes,
+    );
+    await this.write();
   }
 
   /**
