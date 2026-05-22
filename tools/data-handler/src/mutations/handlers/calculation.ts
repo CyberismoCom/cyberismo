@@ -4,6 +4,10 @@ import type { Handler, MutationContext } from '../handler.js';
 import type { CascadePreview } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
+import {
+  rewriteCalculationRefs,
+  rewriteCardContentRefs,
+} from '../cascades/rewrite-refs.js';
 
 export class CalculationRenameHandler implements Handler {
   readonly isBreaking = true;
@@ -58,6 +62,12 @@ export class CalculationRenameHandler implements Handler {
       throw new Error(`Calculation '${oldName}' not found`);
     }
     const newName = `${ctx.input.target.prefix}/calculations/${ctx.input.newIdentifier}`;
+    // Run the cascade before the rename so the scan still finds the old
+    // name on disk. Mirrors CalculationResource.onNameChange (no handlebar
+    // pass — calculations don't have handlebar references).
+    // TODO: compute accurate counts now that cascade is explicit
+    await rewriteCalculationRefs(ctx.project, oldName, newName);
+    await rewriteCardContentRefs(ctx.project, oldName, newName);
     await resource.update(
       { key: 'name' },
       { name: 'change', target: oldName, to: newName },

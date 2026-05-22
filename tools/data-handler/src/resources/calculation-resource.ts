@@ -47,14 +47,14 @@ export class CalculationResource extends FolderResource<
   }
 
   /**
-   * When resource name changes
-   * @param existingName Current resource name
+   * When resource name changes. The cross-resource cascade
+   * (calculation / card-content rewrites) is now owned by
+   * CalculationRenameHandler, which runs it before invoking
+   * `resource.update({key:'name'}, …)`. This hook only persists the
+   * renamed metadata to disk.
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected async onNameChange(existingName: string) {
-    await Promise.all([
-      super.updateCalculations(existingName, this.content.name),
-      super.updateCardContentReferences(existingName, this.content.name),
-    ]);
     await this.write();
   }
 
