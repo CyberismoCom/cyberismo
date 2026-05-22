@@ -29,6 +29,7 @@ import {
   IconButton,
   Stack,
   Tooltip,
+  Typography,
 } from '@mui/joy';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { getConfig, isAppUrl, parseDataAttributes } from '@/lib/utils';
@@ -549,6 +550,7 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
       });
 
     const parsedContent = renderHtml(htmlContent);
+    const isEmpty = !htmlContent.trim();
 
     return (
       <>
@@ -677,6 +679,7 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
             borderRadius={6}
             padding={1.5}
             position="relative"
+            minHeight={56}
             sx={
               canEdit
                 ? {
@@ -707,7 +710,7 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
                     position: 'absolute',
                     top: 0,
                     right: 0,
-                    opacity: { xs: 1, md: 0 },
+                    opacity: isEmpty ? 1 : { xs: 1, md: 0 },
                     transition: 'opacity 0.15s',
                   }}
                 >
@@ -715,9 +718,15 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
                 </IconButton>
               </Box>
             )}
-            <div className="doc" ref={setRef}>
-              {parsedContent}
-            </div>
+            {isEmpty ? (
+              <Typography level="body-sm" sx={{ color: 'text.tertiary' }}>
+                {t('emptyCardBody')}
+              </Typography>
+            ) : (
+              <div className="doc" ref={setRef}>
+                {parsedContent}
+              </div>
+            )}
           </Box>
         )}
       </>
