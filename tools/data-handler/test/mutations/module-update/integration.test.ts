@@ -1,9 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdir, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
-import { ModuleUpdate } from '../../../src/commands/module-update.js';
 import { ModuleUpdater } from '../../../src/mutations/module-update/plan.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
 
@@ -59,7 +58,9 @@ describe('ModuleUpdater.previewUpdate', () => {
     await seedInstalledModule(projectPath, 'shared/foo', ['1.0.0']);
 
     const updater = new ModuleUpdater(project);
-    const preview = await updater.previewUpdate('shared/foo', '1.0.0', '1.0.0');
+    const preview = await updater.previewUpdate([
+      { prefix: 'shared/foo', fromVersion: '1.0.0', toVersion: '1.0.0' },
+    ]);
     expect(preview.steps).toHaveLength(0);
     expect(preview.conflicts).toHaveLength(0);
   });
@@ -72,7 +73,9 @@ describe('ModuleUpdater.previewUpdate', () => {
     ]);
 
     const updater = new ModuleUpdater(project);
-    const preview = await updater.previewUpdate('shared/foo', '1.0.0', '1.2.0');
+    const preview = await updater.previewUpdate([
+      { prefix: 'shared/foo', fromVersion: '1.0.0', toVersion: '1.2.0' },
+    ]);
     expect(preview.steps.length).toBe(1);
     expect(preview.steps[0].modulePrefix).toBe('shared/foo');
     expect(preview.steps[0].toVersion).toBe('1.2.0');
@@ -80,6 +83,39 @@ describe('ModuleUpdater.previewUpdate', () => {
     expect(preview.steps[0].logChain).toEqual(['1.1.0', '1.2.0']);
     expect(preview.steps[0].crossesMajorBoundary).toBe(false);
     expect(preview.conflicts).toHaveLength(0);
+  });
+
+  it('emits one step per request, with sequential order', async () => {
+    await seedInstalledModule(projectPath, 'shared/foo', ['1.0.0', '1.1.0']);
+    await seedInstalledModule(projectPath, 'shared/bar', ['2.0.0', '2.1.0']);
+
+    const updater = new ModuleUpdater(project);
+    const preview = await updater.previewUpdate([
+      { prefix: 'shared/foo', fromVersion: '1.0.0', toVersion: '1.1.0' },
+      { prefix: 'shared/bar', fromVersion: '2.0.0', toVersion: '2.1.0' },
+    ]);
+    expect(preview.steps).toHaveLength(2);
+    expect(preview.steps[0]).toMatchObject({
+      order: 1,
+      modulePrefix: 'shared/foo',
+    });
+    expect(preview.steps[1]).toMatchObject({
+      order: 2,
+      modulePrefix: 'shared/bar',
+    });
+  });
+
+  it('skips requests where fromVersion === toVersion', async () => {
+    await seedInstalledModule(projectPath, 'shared/foo', ['1.0.0', '1.1.0']);
+    await seedInstalledModule(projectPath, 'shared/bar', ['2.0.0']);
+
+    const updater = new ModuleUpdater(project);
+    const preview = await updater.previewUpdate([
+      { prefix: 'shared/foo', fromVersion: '1.0.0', toVersion: '1.1.0' },
+      { prefix: 'shared/bar', fromVersion: '2.0.0', toVersion: '2.0.0' },
+    ]);
+    expect(preview.steps).toHaveLength(1);
+    expect(preview.steps[0].modulePrefix).toBe('shared/foo');
   });
 });
 
@@ -106,7 +142,9 @@ describe('ModuleUpdater.applyUpdate', () => {
     ]);
 
     const updater = new ModuleUpdater(project);
-    const preview = await updater.previewUpdate('shared/foo', '1.0.0', '1.2.0');
+    const preview = await updater.previewUpdate([
+      { prefix: 'shared/foo', fromVersion: '1.0.0', toVersion: '1.2.0' },
+    ]);
     expect(preview.conflicts).toHaveLength(0);
 
     const result = await updater.applyUpdate(preview);
@@ -125,129 +163,28 @@ describe('ModuleUpdater.applyUpdate', () => {
     ]);
 
     const updater = new ModuleUpdater(project);
-    const preview = await updater.previewUpdate('shared/foo', '1.6.0', '2.0.0');
+    const preview = await updater.previewUpdate([
+      { prefix: 'shared/foo', fromVersion: '1.6.0', toVersion: '2.0.0' },
+    ]);
     expect(preview.conflicts.length).toBeGreaterThan(0);
     await expect(updater.applyUpdate(preview)).rejects.toThrow(/conflict/i);
   });
-});
 
-describe('ModuleUpdate end-to-end', () => {
-  let project: Project;
-  let projectPath: string;
+  it('applies a transitive batch in input order', async () => {
+    await seedInstalledModule(projectPath, 'shared/foo', ['1.0.0', '1.1.0']);
+    await seedInstalledModule(projectPath, 'shared/bar', ['2.0.0', '2.1.0']);
 
-  beforeEach(async () => {
-    projectPath = join(tmpDir, `proj-${Date.now()}`);
-    await mkdir(projectPath, { recursive: true });
-    await copyDir(FIXTURE_PATH, projectPath);
-  });
-  afterEach(async () => {
-    await rm(tmpDir, { recursive: true, force: true });
-  });
+    const updater = new ModuleUpdater(project);
+    const preview = await updater.previewUpdate([
+      { prefix: 'shared/foo', fromVersion: '1.0.0', toVersion: '1.1.0' },
+      { prefix: 'shared/bar', fromVersion: '2.0.0', toVersion: '2.1.0' },
+    ]);
 
-  /**
-   * Seed an installed module `foo` with an empty sealed migration log at the
-   * target version. Then declare `foo` in the host project's cardsConfig.json
-   * so Project picks it up.
-   *
-   * Note: the consumer's existing `ResourceObject` guards refuse to mutate
-   * module-owned resources, so this test exercises the no-op replay path
-   * (empty log lines). The bookkeeping side (preview steps, conflict
-   * detection) is what matters end-to-end here.
-   *
-   * `fromVersion` is what the caller would have captured before
-   * `applyModules` overwrote the module's cardsConfig.json (now seeded at
-   * `toVersion`).
-   */
-  async function seedFooModuleAndDeclare(opts: {
-    toVersion: string;
-  }): Promise<void> {
-    const moduleRoot = join(projectPath, '.cards', 'modules', 'foo');
-    await mkdir(join(moduleRoot, 'migrations'), { recursive: true });
-    await writeFile(
-      join(moduleRoot, 'cardsConfig.json'),
-      JSON.stringify(
-        {
-          schemaVersion: 4,
-          cardKeyPrefix: 'foo',
-          name: 'foo',
-          modules: [],
-          hubs: [],
-          version: opts.toVersion,
-        },
-        null,
-        2,
-      ),
-    );
-
-    // Empty sealed log: replay treats it as a no-op success.
-    await writeFile(
-      join(moduleRoot, 'migrations', `migrationLog_${opts.toVersion}.jsonl`),
-      '',
-    );
-
-    // Declare the module in the consuming project's cardsConfig.json.
-    const hostConfigPath = join(
-      projectPath,
-      '.cards',
-      'local',
-      'cardsConfig.json',
-    );
-    const { readFile } = await import('node:fs/promises');
-    const hostConfig = JSON.parse(await readFile(hostConfigPath, 'utf-8'));
-    hostConfig.modules = [{ name: 'foo', version: `^${opts.toVersion}` }];
-    await writeFile(hostConfigPath, JSON.stringify(hostConfig, null, 4));
-  }
-
-  it('end-to-end: previews and applies a noop-log update', async () => {
-    await seedFooModuleAndDeclare({ toVersion: '1.6.0' });
-
-    // Open project after seeding so the module is discovered.
-    project = new Project(projectPath);
-    await project.populateCaches();
-
-    const moduleUpdate = new ModuleUpdate(project);
-    const preview = await moduleUpdate.preview('foo', '1.0.0', '1.6.0');
-    expect(preview.steps).toHaveLength(1);
-    expect(preview.steps[0].logChain).toEqual(['1.6.0']);
-    expect(preview.conflicts).toHaveLength(0);
-
-    const result = await moduleUpdate.apply(preview);
-    expect(
-      result.status,
-      `apply failure: ${JSON.stringify(result, null, 2)}`,
-    ).toBe('succeeded');
-
-    // Sealed log is still present on disk (replay is read-only).
-    const logPath = join(
-      projectPath,
-      '.cards',
-      'modules',
-      'foo',
-      'migrations',
-      'migrationLog_1.6.0.jsonl',
-    );
-    await expect(stat(logPath)).resolves.not.toThrow();
-  });
-
-  it('end-to-end: refuses to apply when conflicts present', async () => {
-    // Same module skeleton, but the captured `fromVersion` sits at the tip
-    // of a major (1.6.0) with no higher 1.x available — diverged-branch
-    // conflict when we try to cross to 2.0.0.
-    const moduleRoot = join(projectPath, '.cards', 'modules', 'foo');
-    await mkdir(join(moduleRoot, 'migrations'), { recursive: true });
-    for (const v of ['1.5.0', '1.6.0', '2.0.0']) {
-      await writeFile(
-        join(moduleRoot, 'migrations', `migrationLog_${v}.jsonl`),
-        '',
-      );
-    }
-
-    project = new Project(projectPath);
-    await project.populateCaches();
-
-    const moduleUpdate = new ModuleUpdate(project);
-    const preview = await moduleUpdate.preview('foo', '1.6.0', '2.0.0');
-    expect(preview.conflicts.length).toBeGreaterThan(0);
-    await expect(moduleUpdate.apply(preview)).rejects.toThrow(/conflict/i);
+    const result = await updater.applyUpdate(preview);
+    expect(result.status).toBe('succeeded');
+    expect(result.steps.map((s) => s.modulePrefix)).toEqual([
+      'shared/foo',
+      'shared/bar',
+    ]);
   });
 });

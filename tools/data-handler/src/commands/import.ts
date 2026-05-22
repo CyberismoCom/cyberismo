@@ -16,7 +16,6 @@ import { join, resolve as pathResolve } from 'node:path';
 import { pathExists } from '../utils/file-utils.js';
 import { readCsvFile } from '../utils/csv.js';
 import { Validate } from './validate.js';
-import { write } from '../utils/rw-lock.js';
 
 import {
   applyModules,
@@ -36,7 +35,8 @@ import {
   validateVersionAgainstConstraints,
 } from '../modules/index.js';
 import { cleanOrphans } from '../modules/orphans.js';
-import { ModuleUpdate } from './module-update.js';
+import { ModuleUpdater } from '../mutations/module-update/plan.js';
+import { read, write } from '../utils/rw-lock.js';
 
 import type { Create } from './create.js';
 import type {
@@ -46,6 +46,7 @@ import type {
 import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
 import type { ModuleDeclaration } from '../modules/types.js';
+import type { UpdateRequest } from '../mutations/module-update/plan.js';
 import type { ModuleUpdatePreview } from '../mutations/module-update/types.js';
 
 /**
@@ -323,14 +324,21 @@ export class Import {
    * runs the previewer; performs no filesystem mutations. The result
    * lists the steps the actual `updateModule` call would run, plus any
    * blocking conflicts.
+   *
+   * Reports the root module's plan only. The transitive plan a real
+   * `updateModule` call would run depends on the resolver's output and
+   * is only computable post-fetch — `updateModule` builds it inline.
    */
+  @read
   public async previewUpdate(
     moduleName: string,
     toVersion: string,
   ): Promise<ModuleUpdatePreview> {
     const fromVersion = await installedVersion(this.project, moduleName);
-    const moduleUpdate = new ModuleUpdate(this.project);
-    return moduleUpdate.preview(moduleName, fromVersion, toVersion);
+    const updater = new ModuleUpdater(this.project);
+    return updater.previewUpdate([
+      { prefix: moduleName, fromVersion, toVersion },
+    ]);
   }
 
   /**
@@ -396,10 +404,22 @@ export class Import {
       tempDir: this.tempModulesDir,
     });
 
-    // Capture the previously-installed version BEFORE applyModules overwrites
-    // the module's own cardsConfig.json. `null` means bootstrap — the module
-    // has never been installed before, so no replay is needed.
-    const fromVersion = await installedVersion(this.project, moduleName);
+    // Snapshot the currently-installed version of every module BEFORE
+    // applyModules overwrites their cardsConfig.json. The resolver may
+    // bump dependencies of the named module transitively; each of those
+    // also needs its migration log replayed against the host project,
+    // and we need their pre-install versions to compute the chain.
+    // Absent entries (bootstrap installs) map to `null` and contribute
+    // no replay steps.
+    const priorInstalled = await Promise.all(
+      resolved.map(async (r) => ({
+        prefix: r.declaration.name,
+        fromVersion: await installedVersion(this.project, r.declaration.name),
+      })),
+    );
+    const fromVersionByPrefix = new Map(
+      priorInstalled.map((p) => [p.prefix, p.fromVersion]),
+    );
 
     await applyModules(this.project, resolved, {
       tempDir: this.tempModulesDir,
@@ -407,29 +427,29 @@ export class Import {
 
     await cleanOrphans(this.project);
 
-    // Replay the module's sealed migration logs against the consuming
-    // project. The resolver picked a concrete version for the named module;
-    // walk the log chain from `fromVersion` (captured before install) up to
-    // and including the new version.
-    const appliedForModule = resolved.find(
-      (r) => r.declaration.name === moduleName,
-    );
-    const targetVersion = version ?? appliedForModule?.version ?? undefined;
-    if (targetVersion) {
-      const moduleUpdate = new ModuleUpdate(this.project);
-      const preview = await moduleUpdate.preview(
-        moduleName,
-        fromVersion,
-        targetVersion,
+    // Build the transitive replay batch: one request per resolved entry
+    // whose version actually changed. Resolved order preserves the
+    // dependency graph, which becomes the replay order. The previewer
+    // skips no-ops where fromVersion === toVersion.
+    const updateRequests: UpdateRequest[] = resolved
+      .filter((r): r is typeof r & { version: string } => r.version !== undefined)
+      .map((r) => ({
+        prefix: r.declaration.name,
+        fromVersion: fromVersionByPrefix.get(r.declaration.name) ?? null,
+        toVersion: r.version,
+      }));
+
+    if (updateRequests.length === 0) return;
+
+    const updater = new ModuleUpdater(this.project);
+    const preview = await updater.previewUpdate(updateRequests);
+    if (preview.conflicts.length > 0) {
+      throw new Error(
+        `Cannot update ${moduleName}: ` +
+          preview.conflicts.map((c) => c.description).join('; '),
       );
-      if (preview.conflicts.length > 0) {
-        throw new Error(
-          `Cannot update ${moduleName}: ` +
-            preview.conflicts.map((c) => c.description).join('; '),
-        );
-      }
-      await moduleUpdate.apply(preview);
     }
+    await updater.applyUpdate(preview);
   }
 
   /**

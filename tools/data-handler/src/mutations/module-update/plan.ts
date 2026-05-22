@@ -30,11 +30,23 @@ import type {
 } from './types.js';
 
 /**
- * Coordinates the per-module update flow on top of the existing mutation
- * dispatcher. `previewUpdate` reports the planned steps and any blocking
- * conflicts; `applyUpdate` runs the replay.
+ * One pending migration replay: walks `prefix` from `fromVersion` to
+ * `toVersion`. `fromVersion === null` is a bootstrap install (no prior
+ * version, no logs to replay).
+ */
+export interface UpdateRequest {
+  prefix: string;
+  fromVersion: string | null;
+  toVersion: string;
+}
+
+/**
+ * Coordinates module-update migration replay on top of the existing
+ * mutation dispatcher. `previewUpdate` reports the planned steps for a
+ * batch (one step per module whose version is changing) and any blocking
+ * conflicts; `applyUpdate` runs the replay in step order.
  *
- * `fromVersion` is supplied by the caller; it must be captured *before*
+ * Each request's `fromVersion` must be captured by the caller *before*
  * `applyModules` overwrites the installed module's `cardsConfig.json`.
  * `installedVersion` from `src/modules/inventory.ts` is the standard
  * capture primitive.
@@ -43,57 +55,50 @@ export class ModuleUpdater {
   constructor(private project: Project) {}
 
   /**
-   * Build a preview for upgrading `rootModulePrefix` from `fromVersion` to
-   * `rootToVersion`. The preview is empty when those two are equal.
-   * `fromVersion` is `null` for a bootstrap install (no prior version).
+   * Build a preview for a batch of module updates. Each request becomes
+   * one `ResolvedUpdateStep` (in input order); conflicts from every step
+   * are aggregated into a single `conflicts` array. Requests whose
+   * `fromVersion === toVersion` are skipped (no-op).
    */
   async previewUpdate(
-    rootModulePrefix: string,
-    fromVersion: string | null,
-    rootToVersion: string,
+    requests: UpdateRequest[],
   ): Promise<ModuleUpdatePreview> {
     const steps: ResolvedUpdateStep[] = [];
     const conflicts: ReplayConflict[] = [];
 
-    if (fromVersion === rootToVersion) {
-      return {
-        steps,
-        conflicts,
-        totalEntryCount: 0,
-        affectedCardCount: 0,
-        dataLossExpected: false,
-      };
+    let order = 0;
+    for (const req of requests) {
+      if (req.fromVersion === req.toVersion) continue;
+
+      const availableSealed = await this.availableSealedVersions(req.prefix);
+      const logChain = this.computeLogChain(
+        req.fromVersion,
+        req.toVersion,
+        availableSealed,
+      );
+      const crossesMajorBoundary =
+        req.fromVersion !== null &&
+        semver.major(req.fromVersion) !== semver.major(req.toVersion);
+
+      order += 1;
+      steps.push({
+        order,
+        modulePrefix: req.prefix,
+        fromVersion: req.fromVersion,
+        toVersion: req.toVersion,
+        logChain,
+        crossesMajorBoundary,
+      });
+
+      conflicts.push(
+        ...detectMigrationPathConflicts({
+          modulePrefix: req.prefix,
+          fromVersion: req.fromVersion,
+          toVersion: req.toVersion,
+          availableSealedVersions: availableSealed,
+        }),
+      );
     }
-
-    const availableSealed = await this.availableSealedVersions(
-      rootModulePrefix,
-    );
-    const logChain = this.computeLogChain(
-      fromVersion,
-      rootToVersion,
-      availableSealed,
-    );
-    const crossesMajorBoundary =
-      fromVersion !== null &&
-      semver.major(fromVersion) !== semver.major(rootToVersion);
-
-    steps.push({
-      order: 1,
-      modulePrefix: rootModulePrefix,
-      fromVersion,
-      toVersion: rootToVersion,
-      logChain,
-      crossesMajorBoundary,
-    });
-
-    conflicts.push(
-      ...detectMigrationPathConflicts({
-        modulePrefix: rootModulePrefix,
-        fromVersion,
-        toVersion: rootToVersion,
-        availableSealedVersions: availableSealed,
-      }),
-    );
 
     return {
       steps,

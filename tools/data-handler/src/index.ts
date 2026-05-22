@@ -18,7 +18,6 @@ import {
   CommandManager,
   ExportFormats,
 } from './command-handler.js';
-import { ModuleUpdate } from './commands/module-update.js';
 import { Validate } from './commands/validate.js';
 export * from './interfaces/project-interfaces.js';
 export * from './interfaces/macros.js';
@@ -52,7 +51,6 @@ export {
   ExportFormats,
   isResourceFolderType,
   moduleNameFromCardKey,
-  ModuleUpdate,
   requestStatus,
   resourceName,
   resourceNameToString,
