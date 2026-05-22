@@ -350,19 +350,19 @@ entity MigrationLog {
 -- The applied-version record for an imported module within a project.
 -- A project carries one ModuleInstallation per imported module. The
 -- record names which sealed log version has been replayed against
--- this project. Consistency is judged by version-string equality; this
--- spec does not attempt to detect out-of-band file edits (see
--- Non-goals).
--- Code: a small appliedModules.json in the .cards directory, written
--- atomically by ModuleUpdateSucceeds. There is no public way to write
--- this file other than completing a successful ModuleUpdate.
+-- this project.
+--
+-- Code: there is no separate bookkeeping file. The installed module's
+-- own `.cards/modules/<prefix>/cardsConfig.json#version` is the
+-- source of truth. Install and replay run atomically inside the
+-- single `Import.updateModule` writer (recovery on partial failure is
+-- `git restore`), so an installed version on disk implies a replayed
+-- version. `fromVersion` for any subsequent update is captured from
+-- this file *before* `applyModules` overwrites it.
 entity ModuleInstallation {
     project: Project
     module: Module
-    installed_version: String
-    applied_version: String
-
-    is_consistent: installed_version = applied_version
+    version: String
 }
 
 -- A consumer-facing module update operation. The user names a root

@@ -6,10 +6,6 @@ import { Project } from '../../../src/containers/project.js';
 import { ModuleUpdate } from '../../../src/commands/module-update.js';
 import { ModuleUpdater } from '../../../src/mutations/module-update/plan.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
-import {
-  readAppliedModules,
-  writeAppliedModules,
-} from '../../../src/mutations/module-update/applied-modules.js';
 
 const FIXTURE_PATH = join(
   import.meta.dirname,
@@ -60,19 +56,10 @@ describe('ModuleUpdater.previewUpdate', () => {
   });
 
   it('returns an empty preview when the module is up to date', async () => {
-    await seedInstalledModule(projectPath, 'shared/foo', [
-      '1.0.0',
-    ]);
-    await writeAppliedModules(projectPath, [
-      {
-        prefix: 'shared/foo',
-        installedVersion: '1.0.0',
-        appliedVersion: '1.0.0',
-      },
-    ]);
+    await seedInstalledModule(projectPath, 'shared/foo', ['1.0.0']);
 
     const updater = new ModuleUpdater(project);
-    const preview = await updater.previewUpdate('shared/foo', '1.0.0');
+    const preview = await updater.previewUpdate('shared/foo', '1.0.0', '1.0.0');
     expect(preview.steps).toHaveLength(0);
     expect(preview.conflicts).toHaveLength(0);
   });
@@ -83,16 +70,9 @@ describe('ModuleUpdater.previewUpdate', () => {
       '1.1.0',
       '1.2.0',
     ]);
-    await writeAppliedModules(projectPath, [
-      {
-        prefix: 'shared/foo',
-        installedVersion: '1.0.0',
-        appliedVersion: '1.0.0',
-      },
-    ]);
 
     const updater = new ModuleUpdater(project);
-    const preview = await updater.previewUpdate('shared/foo', '1.2.0');
+    const preview = await updater.previewUpdate('shared/foo', '1.0.0', '1.2.0');
     expect(preview.steps.length).toBe(1);
     expect(preview.steps[0].modulePrefix).toBe('shared/foo');
     expect(preview.steps[0].toVersion).toBe('1.2.0');
@@ -124,26 +104,15 @@ describe('ModuleUpdater.applyUpdate', () => {
       '1.1.0',
       '1.2.0',
     ]);
-    await writeAppliedModules(projectPath, [
-      {
-        prefix: 'shared/foo',
-        installedVersion: '1.0.0',
-        appliedVersion: '1.0.0',
-      },
-    ]);
 
     const updater = new ModuleUpdater(project);
-    const preview = await updater.previewUpdate('shared/foo', '1.2.0');
+    const preview = await updater.previewUpdate('shared/foo', '1.0.0', '1.2.0');
     expect(preview.conflicts).toHaveLength(0);
 
     const result = await updater.applyUpdate(preview);
     expect(result.status).toBe('succeeded');
-
-    // Verify appliedModules was updated.
-    const applied = await readAppliedModules(project.basePath);
-    expect(
-      applied.find((m) => m.prefix === 'shared/foo')?.appliedVersion,
-    ).toBe('1.2.0');
+    expect(result.steps).toHaveLength(1);
+    expect(result.steps[0].toVersion).toBe('1.2.0');
   });
 
   it('refuses to apply when conflicts present', async () => {
@@ -154,16 +123,9 @@ describe('ModuleUpdater.applyUpdate', () => {
       '1.6.0',
       '2.0.0',
     ]);
-    await writeAppliedModules(projectPath, [
-      {
-        prefix: 'shared/foo',
-        installedVersion: '1.6.0',
-        appliedVersion: '1.6.0',
-      },
-    ]);
 
     const updater = new ModuleUpdater(project);
-    const preview = await updater.previewUpdate('shared/foo', '2.0.0');
+    const preview = await updater.previewUpdate('shared/foo', '1.6.0', '2.0.0');
     expect(preview.conflicts.length).toBeGreaterThan(0);
     await expect(updater.applyUpdate(preview)).rejects.toThrow(/conflict/i);
   });
@@ -190,12 +152,13 @@ describe('ModuleUpdate end-to-end', () => {
    * Note: the consumer's existing `ResourceObject` guards refuse to mutate
    * module-owned resources, so this test exercises the no-op replay path
    * (empty log lines). The bookkeeping side (preview steps, conflict
-   * detection, appliedModules.json bump) is what matters end-to-end here.
-   * A future task will need to add a "replay mode" affordance to relax that
-   * guard for foreign-prefix log entries.
+   * detection) is what matters end-to-end here.
+   *
+   * `fromVersion` is what the caller would have captured before
+   * `applyModules` overwrote the module's cardsConfig.json (now seeded at
+   * `toVersion`).
    */
   async function seedFooModuleAndDeclare(opts: {
-    fromVersion: string;
     toVersion: string;
   }): Promise<void> {
     const moduleRoot = join(projectPath, '.cards', 'modules', 'foo');
@@ -233,29 +196,17 @@ describe('ModuleUpdate end-to-end', () => {
     const hostConfig = JSON.parse(await readFile(hostConfigPath, 'utf-8'));
     hostConfig.modules = [{ name: 'foo', version: `^${opts.toVersion}` }];
     await writeFile(hostConfigPath, JSON.stringify(hostConfig, null, 4));
-
-    // Record the applied version (the from side).
-    await writeAppliedModules(projectPath, [
-      {
-        prefix: 'foo',
-        installedVersion: opts.toVersion,
-        appliedVersion: opts.fromVersion,
-      },
-    ]);
   }
 
-  it('end-to-end: previews and applies a noop-log update, bumps appliedModules', async () => {
-    await seedFooModuleAndDeclare({ fromVersion: '1.0.0', toVersion: '1.6.0' });
+  it('end-to-end: previews and applies a noop-log update', async () => {
+    await seedFooModuleAndDeclare({ toVersion: '1.6.0' });
 
     // Open project after seeding so the module is discovered.
     project = new Project(projectPath);
     await project.populateCaches();
 
-    const initialApplied = await readAppliedModules(projectPath);
-    expect(initialApplied[0].appliedVersion).toBe('1.0.0');
-
     const moduleUpdate = new ModuleUpdate(project);
-    const preview = await moduleUpdate.preview('foo', '1.6.0');
+    const preview = await moduleUpdate.preview('foo', '1.0.0', '1.6.0');
     expect(preview.steps).toHaveLength(1);
     expect(preview.steps[0].logChain).toEqual(['1.6.0']);
     expect(preview.conflicts).toHaveLength(0);
@@ -265,12 +216,6 @@ describe('ModuleUpdate end-to-end', () => {
       result.status,
       `apply failure: ${JSON.stringify(result, null, 2)}`,
     ).toBe('succeeded');
-
-    // appliedModules.json bumped to the new version.
-    const finalApplied = await readAppliedModules(projectPath);
-    expect(finalApplied.find((m) => m.prefix === 'foo')?.appliedVersion).toBe(
-      '1.6.0',
-    );
 
     // Sealed log is still present on disk (replay is read-only).
     const logPath = join(
@@ -285,9 +230,9 @@ describe('ModuleUpdate end-to-end', () => {
   });
 
   it('end-to-end: refuses to apply when conflicts present', async () => {
-    // Same module skeleton, but applied version sits at the tip of a major
-    // (1.6.0) with no higher 1.x available — diverged-branch conflict when
-    // we try to cross to 2.0.0.
+    // Same module skeleton, but the captured `fromVersion` sits at the tip
+    // of a major (1.6.0) with no higher 1.x available — diverged-branch
+    // conflict when we try to cross to 2.0.0.
     const moduleRoot = join(projectPath, '.cards', 'modules', 'foo');
     await mkdir(join(moduleRoot, 'migrations'), { recursive: true });
     for (const v of ['1.5.0', '1.6.0', '2.0.0']) {
@@ -296,19 +241,12 @@ describe('ModuleUpdate end-to-end', () => {
         '',
       );
     }
-    await writeAppliedModules(projectPath, [
-      {
-        prefix: 'foo',
-        installedVersion: '1.6.0',
-        appliedVersion: '1.6.0',
-      },
-    ]);
 
     project = new Project(projectPath);
     await project.populateCaches();
 
     const moduleUpdate = new ModuleUpdate(project);
-    const preview = await moduleUpdate.preview('foo', '2.0.0');
+    const preview = await moduleUpdate.preview('foo', '1.6.0', '2.0.0');
     expect(preview.conflicts.length).toBeGreaterThan(0);
     await expect(moduleUpdate.apply(preview)).rejects.toThrow(/conflict/i);
   });

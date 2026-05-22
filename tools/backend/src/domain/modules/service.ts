@@ -10,7 +10,6 @@
   details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-import { ModuleUpdate } from '@cyberismo/data-handler';
 import type { CommandManager } from '@cyberismo/data-handler';
 import type {
   ModuleUpdatePreview,
@@ -22,14 +21,34 @@ export async function previewModuleUpdate(
   modulePrefix: string,
   toVersion: string,
 ): Promise<ModuleUpdatePreview> {
-  const updater = new ModuleUpdate(commands.project);
-  return updater.preview(modulePrefix, toVersion);
+  return commands.importCmd.previewUpdate(modulePrefix, toVersion);
 }
 
+/**
+ * Run install+replay for `modulePrefix` up to `toVersion`. Routes through
+ * `Import.updateModule`, which owns the install half (resolveModules +
+ * applyModules) and then invokes the replay. `Import.updateModule`
+ * captures `fromVersion` in-memory before install, so the migration plan
+ * stays correct even after the on-disk version is overwritten.
+ *
+ * Returns a single-step `ModuleUpdateResult`-shaped value synthesized from
+ * the caller's preview so the SSE consumer keeps its current event shape;
+ * on conflict, `Import.updateModule` throws and the caller surfaces it.
+ */
 export async function applyModuleUpdate(
   commands: CommandManager,
   preview: ModuleUpdatePreview,
+  modulePrefix: string,
+  toVersion: string,
 ): Promise<ModuleUpdateResult> {
-  const updater = new ModuleUpdate(commands.project);
-  return updater.apply(preview);
+  await commands.importCmd.updateModule(modulePrefix, undefined, toVersion);
+  return {
+    status: 'succeeded',
+    steps: preview.steps.map((step) => ({
+      modulePrefix: step.modulePrefix,
+      fromVersion: step.fromVersion,
+      toVersion: step.toVersion,
+      status: 'succeeded' as const,
+    })),
+  };
 }

@@ -19,7 +19,6 @@ import semver from 'semver';
 
 import type { Project } from '../../containers/project.js';
 import { ProjectPaths } from '../../containers/project/project-paths.js';
-import { readAppliedModules, recordModuleApplied } from './applied-modules.js';
 import { detectMigrationPathConflicts } from './conflicts.js';
 import { replayLog } from './replay.js';
 import type {
@@ -33,25 +32,26 @@ import type {
 /**
  * Coordinates the per-module update flow on top of the existing mutation
  * dispatcher. `previewUpdate` reports the planned steps and any blocking
- * conflicts; `applyUpdate` (added in a later task) runs the replay.
+ * conflicts; `applyUpdate` runs the replay.
+ *
+ * `fromVersion` is supplied by the caller; it must be captured *before*
+ * `applyModules` overwrites the installed module's `cardsConfig.json`.
+ * `installedVersion` from `src/modules/inventory.ts` is the standard
+ * capture primitive.
  */
 export class ModuleUpdater {
   constructor(private project: Project) {}
 
   /**
-   * Build a preview for upgrading `rootModulePrefix` to `rootToVersion` from
-   * the project's currently-applied state. The preview is empty when the
-   * module is already at the requested version.
+   * Build a preview for upgrading `rootModulePrefix` from `fromVersion` to
+   * `rootToVersion`. The preview is empty when those two are equal.
+   * `fromVersion` is `null` for a bootstrap install (no prior version).
    */
   async previewUpdate(
     rootModulePrefix: string,
+    fromVersion: string | null,
     rootToVersion: string,
   ): Promise<ModuleUpdatePreview> {
-    const applied = await readAppliedModules(this.project.basePath);
-    const fromVersion =
-      applied.find((m) => m.prefix === rootModulePrefix)?.appliedVersion ??
-      null;
-
     const steps: ResolvedUpdateStep[] = [];
     const conflicts: ReplayConflict[] = [];
 
@@ -106,9 +106,11 @@ export class ModuleUpdater {
 
   /**
    * Apply a previously-built preview. Walks each step's log chain through
-   * `replayLog`, then records the new applied version. Refuses to start
-   * when the preview reports conflicts; on the first per-step failure the
-   * partial state remains on disk (recovery is `git restore`).
+   * `replayLog`. Refuses to start when the preview reports conflicts; on
+   * the first per-step failure the partial state remains on disk (recovery
+   * is `git restore`). Success leaves no bookkeeping on disk — the
+   * installed module's own `cardsConfig.json` (written by `applyModules`)
+   * is the source of truth for the new state.
    */
   async applyUpdate(
     preview: ModuleUpdatePreview,
@@ -141,11 +143,6 @@ export class ModuleUpdater {
         }
       }
 
-      await recordModuleApplied(
-        this.project.basePath,
-        step.modulePrefix,
-        step.toVersion,
-      );
       stepResults.push({
         modulePrefix: step.modulePrefix,
         fromVersion: step.fromVersion,

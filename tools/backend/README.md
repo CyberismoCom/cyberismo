@@ -29,11 +29,16 @@ json.dump(d, open(p, 'w'), indent=4)
 mkdir -p "$SMOKE_DIR/project/.cards/modules/shared/foo/migrations"
 touch "$SMOKE_DIR/project/.cards/modules/shared/foo/migrations/migrationLog_1.0.0.jsonl"
 touch "$SMOKE_DIR/project/.cards/modules/shared/foo/migrations/migrationLog_1.6.0.jsonl"
-cat > "$SMOKE_DIR/project/.cards/local/appliedModules.json" <<'EOF'
+# The currently-installed version is read from the module's own cardsConfig.json
+# (`previewUpdate` captures it as `fromVersion`; no separate bookkeeping file).
+cat > "$SMOKE_DIR/project/.cards/modules/shared/foo/cardsConfig.json" <<'EOF'
 {
-  "modules": [
-    { "prefix": "shared/foo", "installedVersion": "1.0.0", "appliedVersion": "1.0.0" }
-  ]
+  "schemaVersion": 4,
+  "cardKeyPrefix": "shared/foo",
+  "name": "shared/foo",
+  "modules": [],
+  "hubs": [],
+  "version": "1.0.0"
 }
 EOF
 

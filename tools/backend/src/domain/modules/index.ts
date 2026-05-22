@@ -108,7 +108,12 @@ modules.post(
           });
         }
 
-        const result = await applyModuleUpdate(commands, preview);
+        const result = await applyModuleUpdate(
+          commands,
+          preview,
+          modulePrefix,
+          toVersion,
+        );
 
         // Emit step.completed / step.failed per result.
         for (const stepResult of result.steps) {

@@ -40,6 +40,33 @@ export function declaredModules(project: Project): ModuleDeclaration[] {
   return settings.map((setting) => toDeclaration(project, setting));
 }
 
+/**
+ * Resolve the currently-installed version of `modulePrefix` by reading
+ * the module's own `cardsConfig.json`. Returns `null` when the module
+ * folder is absent, the config is unreadable, or the `version` field is
+ * missing or not a string — i.e. when there is no prior version to carry
+ * forward into a migration replay (bootstrap install).
+ *
+ * Callers that need this for a module update must capture the value
+ * *before* `applyModules` overwrites the module's `cardsConfig.json`.
+ */
+export async function installedVersion(
+  project: Project,
+  modulePrefix: string,
+): Promise<string | null> {
+  const configPath = project.paths.moduleConfigurationFile(modulePrefix);
+  let config: InstallationConfig | undefined;
+  try {
+    config = await readJsonFile(configPath);
+  } catch {
+    return null;
+  }
+  if (!config) {
+    return null;
+  }
+  return typeof config.version === 'string' ? config.version : null;
+}
+
 export async function installedModules(
   project: Project,
 ): Promise<ModuleInstallation[]> {

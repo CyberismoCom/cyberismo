@@ -354,20 +354,20 @@ export class Commands {
               'module update requires both a module prefix and a target version',
           };
         }
-        const preview =
-          await this.commands?.moduleUpdateCmd.preview(
+        try {
+          await this.commands?.importCmd.updateModule(
             modulePrefix,
+            credentials,
             targetVersion,
           );
-        if (preview && preview.conflicts.length > 0) {
-          return {
-            statusCode: 409,
-            payload: preview,
-            message: `Cannot update: ${preview.conflicts.length} conflict(s)`,
-          };
+          return { statusCode: 200 };
+        } catch (err) {
+          const message = (err as Error).message;
+          if (message.startsWith(`Cannot update ${modulePrefix}:`)) {
+            return { statusCode: 409, message };
+          }
+          throw err;
         }
-        const result = await this.commands?.moduleUpdateCmd.apply(preview!);
-        return { statusCode: 200, payload: result };
       } else if (command === Cmd.move) {
         const [source, destination] = args;
         await this.commands?.moveCmd.moveCard(source, destination);

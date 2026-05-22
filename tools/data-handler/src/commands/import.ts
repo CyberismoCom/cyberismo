@@ -23,6 +23,7 @@ import {
   buildRemoteUrl,
   declaredModules,
   installedModules,
+  installedVersion,
   resolveModules,
   createSourceLayer,
   FILE_PROTOCOL,
@@ -35,6 +36,7 @@ import {
   validateVersionAgainstConstraints,
 } from '../modules/index.js';
 import { cleanOrphans } from '../modules/orphans.js';
+import { ModuleUpdate } from './module-update.js';
 
 import type { Create } from './create.js';
 import type {
@@ -44,6 +46,7 @@ import type {
 import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
 import type { ModuleDeclaration } from '../modules/types.js';
+import type { ModuleUpdatePreview } from '../mutations/module-update/types.js';
 
 /**
  * Coerce a caller-supplied source into the canonical form used by the
@@ -315,6 +318,22 @@ export class Import {
   }
 
   /**
+   * Build a migration-replay preview for upgrading `moduleName` to
+   * `toVersion`. Captures the currently-installed version from disk and
+   * runs the previewer; performs no filesystem mutations. The result
+   * lists the steps the actual `updateModule` call would run, plus any
+   * blocking conflicts.
+   */
+  public async previewUpdate(
+    moduleName: string,
+    toVersion: string,
+  ): Promise<ModuleUpdatePreview> {
+    const fromVersion = await installedVersion(this.project, moduleName);
+    const moduleUpdate = new ModuleUpdate(this.project);
+    return moduleUpdate.preview(moduleName, fromVersion, toVersion);
+  }
+
+  /**
    * Updates a specific imported module.
    * @param moduleName Name (prefix) of module to update.
    * @param credentials Optional credentials for a private module.
@@ -377,26 +396,32 @@ export class Import {
       tempDir: this.tempModulesDir,
     });
 
+    // Capture the previously-installed version BEFORE applyModules overwrites
+    // the module's own cardsConfig.json. `null` means bootstrap — the module
+    // has never been installed before, so no replay is needed.
+    const fromVersion = await installedVersion(this.project, moduleName);
+
     await applyModules(this.project, resolved, {
       tempDir: this.tempModulesDir,
     });
 
     await cleanOrphans(this.project);
 
-    // Replay the module's sealed migration logs against the consuming project.
-    // The resolver picked a concrete version for the named module; ask the
-    // updater to walk the log chain from the previously-applied version (if
-    // any) up to and including the new version. The applier above has already
-    // staged the new module files, so the updater here only orchestrates
-    // replay + appliedModules bookkeeping.
+    // Replay the module's sealed migration logs against the consuming
+    // project. The resolver picked a concrete version for the named module;
+    // walk the log chain from `fromVersion` (captured before install) up to
+    // and including the new version.
     const appliedForModule = resolved.find(
       (r) => r.declaration.name === moduleName,
     );
     const targetVersion = version ?? appliedForModule?.version ?? undefined;
     if (targetVersion) {
-      const { ModuleUpdate } = await import('./module-update.js');
       const moduleUpdate = new ModuleUpdate(this.project);
-      const preview = await moduleUpdate.preview(moduleName, targetVersion);
+      const preview = await moduleUpdate.preview(
+        moduleName,
+        fromVersion,
+        targetVersion,
+      );
       if (preview.conflicts.length > 0) {
         throw new Error(
           `Cannot update ${moduleName}: ` +

@@ -33,9 +33,10 @@ export class ModuleUpdate {
 
   async preview(
     modulePrefix: string,
+    fromVersion: string | null,
     toVersion: string,
   ): Promise<ModuleUpdatePreview> {
-    return this.updater.previewUpdate(modulePrefix, toVersion);
+    return this.updater.previewUpdate(modulePrefix, fromVersion, toVersion);
   }
 
   async apply(preview: ModuleUpdatePreview): Promise<ModuleUpdateResult> {

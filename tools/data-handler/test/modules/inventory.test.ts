@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import {
   declaredModules,
   installedModules,
+  installedVersion,
 } from '../../src/modules/inventory.js';
 import { makeProjectStub } from '../helpers/module-fixtures.js';
 import type { ModuleSetting } from '../../src/interfaces/project-interfaces.js';
@@ -169,5 +170,39 @@ describe('modules/inventory', () => {
     expect(installations).toHaveLength(1);
     expect(installations[0].source.location).toBe('');
     expect(installations[0].version).toBe('1.0.0');
+  });
+
+  it('installedVersion returns the version string from the installed config', async () => {
+    const project = makeStub(projectDir, []);
+    await writeInstalledModule(projectDir, 'foo', {
+      cardKeyPrefix: 'foo',
+      name: 'foo',
+      version: '1.2.3',
+    });
+    expect(await installedVersion(project, 'foo')).toBe('1.2.3');
+  });
+
+  it('installedVersion returns null when the module folder is absent', async () => {
+    const project = makeStub(projectDir, []);
+    expect(await installedVersion(project, 'never-installed')).toBeNull();
+  });
+
+  it('installedVersion returns null when the config is missing the version field', async () => {
+    const project = makeStub(projectDir, []);
+    await writeInstalledModule(projectDir, 'foo', {
+      cardKeyPrefix: 'foo',
+      name: 'foo',
+    });
+    expect(await installedVersion(project, 'foo')).toBeNull();
+  });
+
+  it('installedVersion returns null when version is not a string', async () => {
+    const project = makeStub(projectDir, []);
+    await writeInstalledModule(projectDir, 'foo', {
+      cardKeyPrefix: 'foo',
+      name: 'foo',
+      version: 123,
+    });
+    expect(await installedVersion(project, 'foo')).toBeNull();
   });
 });
