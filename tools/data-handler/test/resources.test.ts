@@ -2470,7 +2470,7 @@ describe('resources', function () {
       await template.rename(resourceName('decision/templates/simplepage'));
     });
 
-    it('should update card contents when renaming report', async () => {
+    it('should not update card contents when renaming report via resource class (cascade moved to handler)', async () => {
       const cardKey = 'decision_5';
       const card = project.findCard(cardKey);
       expect(card.content).toContain('decision/reports/testReport');
@@ -2481,13 +2481,16 @@ describe('resources', function () {
       const updatedCard = project.findCard(cardKey);
 
       expect(report.data?.name).toBe('decision/reports/renamedReport');
-      expect(updatedCard.content).toContain('decision/reports/renamedReport');
-      expect(updatedCard.content).not.toContain('decision/reports/testReport');
+      // The resource-level rename no longer cascades; ReportRenameHandler does.
+      expect(updatedCard.content).toContain('decision/reports/testReport');
+      expect(updatedCard.content).not.toContain(
+        'decision/reports/renamedReport',
+      );
 
       await report.rename(resourceName('decision/reports/testReport'));
     });
 
-    it('should update card contents when renaming workflow', async () => {
+    it('should not update card contents when renaming workflow via resource class (cascade moved to handler)', async () => {
       const workflowName = 'decision/workflows/testWorkflowForContent';
       const workflow = project.resources.byType(workflowName, 'workflows');
       await workflow.create();
@@ -2507,9 +2510,10 @@ describe('resources', function () {
 
       expect(workflow.data?.name).toBe('decision/workflows/renamedWorkflow');
 
+      // The resource-level rename no longer cascades; WorkflowRenameHandler does.
       card = project.findCard(cardKey);
-      expect(card.content).toContain('decision/workflows/renamedWorkflow');
-      expect(card.content).not.toContain(workflowName);
+      expect(card.content).toContain(workflowName);
+      expect(card.content).not.toContain('decision/workflows/renamedWorkflow');
 
       await cleanup(cardKey);
       await workflow.delete();
@@ -2584,7 +2588,7 @@ describe('resources', function () {
       await linkType.delete();
     });
 
-    it('should update card contents when renaming calculations', async () => {
+    it('should not update card contents when renaming calculations via resource class (cascade moved to handler)', async () => {
       const calculationName = 'decision/calculations/testCalcForContent';
       const calculation = project.resources.byType(
         calculationName,
@@ -2608,15 +2612,16 @@ describe('resources', function () {
 
       expect(calculation.data?.name).toBe('decision/calculations/renamedCalc');
 
+      // The resource-level rename no longer cascades; CalculationRenameHandler does.
       card = project.findCard(cardKey);
-      expect(card.content).toContain('decision/calculations/renamedCalc');
-      expect(card.content).not.toContain(calculationName);
+      expect(card.content).toContain(calculationName);
+      expect(card.content).not.toContain('decision/calculations/renamedCalc');
 
       await cleanup(cardKey);
       await calculation.delete();
     });
 
-    it('should update card contents when renaming graph models', async () => {
+    it('should not update card contents when renaming graph models via resource class (cascade moved to handler)', async () => {
       const graphModelName = 'decision/graphModels/testGraphForContent';
       const graphModel = project.resources.byType(
         graphModelName,
@@ -2640,15 +2645,16 @@ describe('resources', function () {
       );
       expect(graphModel.data?.name).toBe('decision/graphModels/renamedGraph');
 
+      // The resource-level rename no longer cascades; GraphModelRenameHandler does.
       card = project.findCard(cardKey);
-      expect(card.content).toContain('decision/graphModels/renamedGraph');
-      expect(card.content).not.toContain(graphModelName);
+      expect(card.content).toContain(graphModelName);
+      expect(card.content).not.toContain('decision/graphModels/renamedGraph');
 
       await cleanup(cardKey);
       await graphModel.delete();
     });
 
-    it('should update card contents when renaming graph views', async () => {
+    it('should not update card contents when renaming graph views via resource class (cascade moved to handler)', async () => {
       const graphViewName = 'decision/graphViews/testViewForContent';
       const graphView = project.resources.byType(graphViewName, 'graphViews');
       await graphView.create();
@@ -2667,9 +2673,10 @@ describe('resources', function () {
       await graphView.rename(resourceName('decision/graphViews/renamedView'));
       expect(graphView.data?.name).toBe('decision/graphViews/renamedView');
 
+      // The resource-level rename no longer cascades; GraphViewRenameHandler does.
       card = project.findCard(cardKey);
-      expect(card.content).toContain('decision/graphViews/renamedView');
-      expect(card.content).not.toContain(graphViewName);
+      expect(card.content).toContain(graphViewName);
+      expect(card.content).not.toContain('decision/graphViews/renamedView');
 
       await cleanup(cardKey);
       await graphView.delete();
