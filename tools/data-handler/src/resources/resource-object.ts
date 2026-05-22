@@ -13,7 +13,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 // node
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { mkdir, rename } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 
 import { ArrayHandler } from './array-handler.js';
@@ -30,7 +30,11 @@ import {
   resourceNameToString,
   type ResourceName,
 } from '../utils/resource-utils.js';
-import { ResourcesFrom } from '../containers/project/resources-from.js';
+import {
+  rewriteCalculationRefs,
+  rewriteHandlebarRefs,
+  rewriteCardContentRefs,
+} from '../mutations/cascades/rewrite-refs.js';
 
 import type {
   Card,
@@ -184,14 +188,6 @@ export abstract class ResourceObject<
       );
     }
     return this.validateInstancePromise;
-  }
-
-  // Gets handlebar files.
-  private async reportHandlerBarFiles(from: ResourcesFrom = ResourcesFrom.all) {
-    const files = await Promise.all(
-      this.project.resources.reports(from).map((r) => r.handleBarFiles()),
-    );
-    return files.flat();
   }
 
   // Type of resource.
@@ -559,99 +555,23 @@ export abstract class ResourceObject<
     }
   }
 
-  /**
-   * Update calculation files.
-   * @param from Resource name to update
-   * @param to New name for resource
-   * @throws if 'from' or 'to' is empty string
-   */
+  /** Delegates to rewriteCalculationRefs. */
   protected async updateCalculations(from: string, to: string) {
-    if (!from.trim() || !to.trim()) {
-      throw new Error(
-        'updateCalculations: "from" and "to" parameters must not be empty',
-      );
-    }
-
-    const calculations = this.project.resources.calculations(
-      ResourcesFrom.localOnly,
-    );
-
-    await Promise.all(
-      calculations.map(async (calculation) => {
-        const content = calculation.contentData();
-        if (content.calculation) {
-          const updatedContent = content.calculation.replaceAll(from, to);
-          await calculation.updateFile('calculation.lp', updatedContent);
-        }
-      }),
-    );
+    return rewriteCalculationRefs(this.project, from, to);
   }
 
-  /**
-   * Update references in handlebars.
-   * @param from Resource name to update
-   * @param to New name for resource
-   * @param handleBarFiles Optional. List of handlebar files. If omitted, affects all handlebar files in the project.
-   * @throws if 'from' or 'to' is empty string
-   */
+  /** Delegates to rewriteHandlebarRefs. */
   protected async updateHandleBars(
     from: string,
     to: string,
     handleBarFiles?: string[],
   ) {
-    if (!from.trim() || !to.trim()) {
-      throw new Error(
-        'updateHandleBars: "from" and "to" parameters must not be empty',
-      );
-    }
-
-    if (!handleBarFiles) {
-      handleBarFiles = await this.reportHandlerBarFiles(
-        ResourcesFrom.localOnly,
-      );
-    }
-
-    // Process all files in parallel.
-    await Promise.all(
-      handleBarFiles.map(async (handleBarFile) => {
-        const content = await readFile(handleBarFile);
-        const updatedContent = content.toString().replaceAll(from, to);
-        await writeFile(handleBarFile, Buffer.from(updatedContent));
-      }),
-    );
+    return rewriteHandlebarRefs(this.project, from, to, handleBarFiles);
   }
 
-  /**
-   * Update references in card content.
-   * Searches through all card content in the cache and replaces references to the old resource name.
-   * @param from Resource name to update
-   * @param to New name for resource
-   * @throws if 'from' or 'to' is empty string
-   */
+  /** Delegates to rewriteCardContentRefs. */
   protected async updateCardContentReferences(from: string, to: string) {
-    if (!from.trim() || !to.trim()) {
-      throw new Error(
-        'updateCardContentReferences: "from" and "to" parameters must not be empty',
-      );
-    }
-
-    const allCards = this.cards();
-    const cardsToUpdate = allCards.filter(
-      (card) => card.content && card.content.includes(from),
-    );
-
-    if (cardsToUpdate.length === 0) {
-      return;
-    }
-
-    await Promise.all(
-      cardsToUpdate.map(async (card) => {
-        if (card.content) {
-          const updatedContent = card.content.replaceAll(from, to);
-          await this.project.updateCardContent(card.key, updatedContent);
-        }
-      }),
-    );
+    return rewriteCardContentRefs(this.project, from, to);
   }
 
   /**
