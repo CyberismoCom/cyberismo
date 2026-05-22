@@ -83,6 +83,12 @@ export default function Layout() {
   const key = useOptionalKeyParam();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [prevInCards, setPrevInCards] = useState(inCards);
+
+  if (prevInCards !== inCards) {
+    setPrevInCards(inCards);
+    if (!inCards) setDrawerOpen(false);
+  }
 
   const dispatch = useAppDispatch();
 
