@@ -7,7 +7,6 @@ settings:
 overrides:
   '@types/node': ^22.18.1
   rollup: ^4.45.1
-  vega-selections: ^6.1.2
 
 importers:
 
