@@ -1443,35 +1443,6 @@ updateCmd
     },
   );
 
-// Module command group (currently only `module update`).
-const moduleCmd = new CommandWithPath('module').description(
-  'Manage imported modules',
-);
-program.addCommand(moduleCmd);
-
-moduleCmd
-  .command('update')
-  .description(
-    'Update an imported module to a target version (replays the module\'s sealed migration log).',
-  )
-  .argument('<module>', 'Module prefix (e.g. shared/security)')
-  .argument('<version>', 'Target version (semver)')
-  .action(
-    async (
-      modulePrefix: string,
-      targetVersion: string,
-      options: CommandOptions<'module'>,
-    ) => {
-      const result = await commandHandler.command(
-        Cmd.module,
-        ['update', modulePrefix, targetVersion],
-        Object.assign({}, options, program.opts()),
-        credentials(),
-      );
-      handleResponse(result);
-    },
-  );
-
 // Updates all modules, or specific named module in the project.
 const updateModulesCmd = new CommandWithPath('update-modules')
   .description(

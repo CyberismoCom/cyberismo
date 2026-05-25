@@ -72,7 +72,6 @@ export type {
   ExportCommandOptions,
   FetchCommandOptions,
   ImportCommandOptions,
-  ModuleCommandOptions,
   MoveCommandOptions,
   PublishCommandOptions,
   RankCommandOptions,

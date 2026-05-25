@@ -117,9 +117,6 @@ export type CheckUpdatesCommandOptions = BaseCommandOptions;
 // Options for 'updateModules' command
 export type UpdateModulesCommandOptions = BaseCommandOptions;
 
-// Options for 'module' command (e.g. `module update`).
-export type ModuleCommandOptions = BaseCommandOptions;
-
 // Options for 'validate' command
 export type ValidateCommandOptions = BaseCommandOptions;
 
@@ -146,8 +143,7 @@ export type AllCommandOptions =
   | UpdateCommandOptions
   | UpdateModulesCommandOptions
   | ValidateCommandOptions
-  | VersionCommandOptions
-  | ModuleCommandOptions;
+  | VersionCommandOptions;
 
 // Map command keys to their option types
 export type CommandOptions<T extends CmdKey> = {
@@ -160,7 +156,6 @@ export type CommandOptions<T extends CmdKey> = {
   fetch: FetchCommandOptions;
   import: ImportCommandOptions;
   migrate: MigrateCommandOptions;
-  module: ModuleCommandOptions;
   move: MoveCommandOptions;
   publish: PublishCommandOptions;
   rank: RankCommandOptions;
