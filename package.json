@@ -58,8 +58,7 @@
   "pnpm": {
     "overrides": {
       "@types/node": "^22.18.1",
-      "rollup": "^4.45.1",
-      "tar": "^7.5.11"
+      "rollup": "^4.45.1"
     },
     "ignoredOptionalDependencies": [
       "@cyberismo/node-clingo-darwin-arm64",
