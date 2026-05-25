@@ -18,6 +18,9 @@
     "url": "git+https://github.com/CyberismoCom/cyberismo.git"
   },
   "bugs": "https://github.com/CyberismoCom/cyberismo/issues",
+  "engines": {
+    "node": ">=22"
+  },
   "type": "module",
   "devDependencies": {
     "esbuild": "^0.28.0",

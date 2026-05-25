@@ -10,6 +10,9 @@
     "url": "git+https://github.com/CyberismoCom/cyberismo.git"
   },
   "bugs": "https://github.com/CyberismoCom/cyberismo/issues",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "clean": "rm -rf node_modules",
