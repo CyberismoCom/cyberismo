@@ -441,10 +441,17 @@ export class Import {
       tempDir: this.tempModulesDir,
     });
 
+    const fromVersionByPrefix = await snapshotInstalledVersions(
+      this.project,
+      resolved,
+    );
+
     await applyModules(this.project, resolved, {
       tempDir: this.tempModulesDir,
     });
 
     await cleanOrphans(this.project);
+
+    return replayResolvedUpdates(this.project, resolved, fromVersionByPrefix);
   }
 }
