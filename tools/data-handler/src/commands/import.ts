@@ -288,12 +288,29 @@ export class Import {
       tempDir: this.tempModulesDir,
     });
 
+    // Snapshot installed versions BEFORE applyModules rewrites them.
+    // For a re-import that bumps an existing module's version (the
+    // "install outside the declared range" path), this is the only
+    // place we can read the previous version.
+    const fromVersionByPrefix = await snapshotInstalledVersions(
+      this.project,
+      resolved,
+    );
+
     await applyModules(this.project, resolved, {
       tempDir: this.tempModulesDir,
     });
 
     // Clean up any installations orphaned by this import.
     await cleanOrphans(this.project);
+
+    // Replay the migration log against consumer cards/links/calculations
+    // for every entry whose version actually changed. A first-time
+    // install (fromVersion === null) has no chain to replay, so this is
+    // a no-op for bootstrap imports.
+    await replayResolvedUpdates(this.project, resolved, fromVersionByPrefix, {
+      module: resolvedName,
+    });
 
     // Validate the project after module has been imported.
     const afterImportValidateErrors = await Validate.getInstance().validate(
