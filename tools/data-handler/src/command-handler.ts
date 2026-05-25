@@ -55,6 +55,7 @@ import { Project } from './containers/project.js';
 
 import { pathExists, resolveTilde } from './utils/file-utils.js';
 import { errorFunction } from './utils/error-utils.js';
+import { ModuleReplayConflictError } from './modules/index.js';
 import { readJsonFile } from './utils/json.js';
 import { resourceName } from './utils/resource-utils.js';
 
@@ -354,20 +355,13 @@ export class Commands {
               'module update requires both a module prefix and a target version',
           };
         }
-        try {
-          await this.commands?.importCmd.updateModule(
-            modulePrefix,
-            credentials,
-            targetVersion,
-          );
-          return { statusCode: 200 };
-        } catch (err) {
-          const message = (err as Error).message;
-          if (message.startsWith(`Cannot update ${modulePrefix}:`)) {
-            return { statusCode: 409, message };
-          }
-          throw err;
-        }
+        // ModuleReplayConflictError is mapped to 409 by the outer catch.
+        await this.commands?.importCmd.updateModule(
+          modulePrefix,
+          credentials,
+          targetVersion,
+        );
+        return { statusCode: 200 };
       } else if (command === Cmd.move) {
         const [source, destination] = args;
         await this.commands?.moveCmd.moveCard(source, destination);
@@ -511,6 +505,13 @@ export class Commands {
         return { statusCode: 500, message: 'Unknown command' };
       }
     } catch (e) {
+      if (e instanceof ModuleReplayConflictError) {
+        return {
+          statusCode: 409,
+          message: e.message,
+          payload: { conflicts: e.conflicts, module: e.module },
+        };
+      }
       return { statusCode: 400, message: errorFunction(e) };
     }
     return { statusCode: 200 };

@@ -22,7 +22,6 @@ import {
   buildRemoteUrl,
   declaredModules,
   installedModules,
-  installedVersion,
   resolveModules,
   createSourceLayer,
   FILE_PROTOCOL,
@@ -31,11 +30,12 @@ import {
   stripFileProtocol,
   pickVersion,
   readModuleConfig,
+  replayResolvedUpdates,
+  snapshotInstalledVersions,
   toVersionRange,
   validateVersionAgainstConstraints,
 } from '../modules/index.js';
 import { cleanOrphans } from '../modules/orphans.js';
-import { ModuleUpdater } from '../mutations/module-update/plan.js';
 import { write } from '../utils/rw-lock.js';
 
 import type { Create } from './create.js';
@@ -46,7 +46,6 @@ import type {
 import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
 import type { ModuleDeclaration } from '../modules/types.js';
-import type { UpdateRequest } from '../mutations/module-update/plan.js';
 import type { ModuleUpdateResult } from '../mutations/module-update/types.js';
 
 /**
@@ -384,21 +383,12 @@ export class Import {
       tempDir: this.tempModulesDir,
     });
 
-    // Snapshot the currently-installed version of every module BEFORE
-    // applyModules overwrites their cardsConfig.json. The resolver may
-    // bump dependencies of the named module transitively; each of those
-    // also needs its migration log replayed against the host project,
-    // and we need their pre-install versions to compute the chain.
-    // Absent entries (bootstrap installs) map to `null` and contribute
-    // no replay steps.
-    const priorInstalled = await Promise.all(
-      resolved.map(async (r) => ({
-        prefix: r.declaration.name,
-        fromVersion: await installedVersion(this.project, r.declaration.name),
-      })),
-    );
-    const fromVersionByPrefix = new Map(
-      priorInstalled.map((p) => [p.prefix, p.fromVersion]),
+    // Snapshot installed versions BEFORE applyModules rewrites them — the
+    // resolver may also bump transitive deps, so every entry contributes
+    // a replay step keyed off its pre-install version.
+    const fromVersionByPrefix = await snapshotInstalledVersions(
+      this.project,
+      resolved,
     );
 
     await applyModules(this.project, resolved, {
@@ -407,29 +397,9 @@ export class Import {
 
     await cleanOrphans(this.project);
 
-    // Build the transitive replay batch: one request per resolved entry
-    // whose version actually changed. Resolved order preserves the
-    // dependency graph, which becomes the replay order. The previewer
-    // skips no-ops where fromVersion === toVersion.
-    const updateRequests: UpdateRequest[] = resolved
-      .filter((r): r is typeof r & { version: string } => r.version !== undefined)
-      .map((r) => ({
-        prefix: r.declaration.name,
-        fromVersion: fromVersionByPrefix.get(r.declaration.name) ?? null,
-        toVersion: r.version,
-      }));
-
-    if (updateRequests.length === 0) return null;
-
-    const updater = new ModuleUpdater(this.project);
-    const preview = await updater.previewUpdate(updateRequests);
-    if (preview.conflicts.length > 0) {
-      throw new Error(
-        `Cannot update ${moduleName}: ` +
-          preview.conflicts.map((c) => c.description).join('; '),
-      );
-    }
-    return updater.applyUpdate(preview);
+    return replayResolvedUpdates(this.project, resolved, fromVersionByPrefix, {
+      module: moduleName,
+    });
   }
 
   /**
