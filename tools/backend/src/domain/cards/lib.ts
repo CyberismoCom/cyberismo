@@ -62,7 +62,8 @@ export async function getCardDetails(
     // Convert [mermaid] AsciiDoc blocks to passthrough HTML before asciidoctor processes them
     asciidocContent = preprocessMermaidBlocksForHtml(asciidocContent);
 
-    // Rewrite native AsciiDoc xrefs that target other cards into /cards/<key> links.
+    // Rewrite native AsciiDoc xrefs that target other cards into
+    // /projects/<prefix>/cards/<key> links.
     asciidocContent = rewriteAsciidocCardXrefs(
       asciidocContent,
       commands.project,

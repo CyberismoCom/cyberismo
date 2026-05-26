@@ -23,7 +23,15 @@ function makeCard(key: string, title: string): Card {
 }
 
 function makeProject(byKey: Record<string, Card>): Project {
-  const lookup = (k: string) => byKey[k];
+  // Mirror the real Project.findCard contract: throw when the key is unknown,
+  // never return undefined.
+  const lookup = (k: string) => {
+    const card = byKey[k];
+    if (!card) {
+      throw new Error(`Card not found: ${k}`);
+    }
+    return card;
+  };
   return { findCard: lookup } as unknown as Project;
 }
 

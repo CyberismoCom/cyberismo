@@ -53,7 +53,14 @@ export function rewriteAsciidocCardXrefs(
   return content.replace(
     NATIVE_CARD_XREF,
     (match, cardKey: string, anchor: string | undefined, label: string) => {
-      const card = project.findCard(cardKey);
+      let card;
+
+      try {
+        card = project.findCard(cardKey);
+      } catch {
+        card = undefined;
+      }
+
       if (!card) {
         if (!warned.has(cardKey)) {
           warned.add(cardKey);

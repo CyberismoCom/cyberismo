@@ -166,7 +166,8 @@ export async function renderCard(
           cardKey: cardKey,
         });
 
-        // Rewrite native AsciiDoc xrefs that target other cards into /cards/<key> links.
+        // Rewrite native AsciiDoc xrefs that target other cards into
+        // /projects/<prefix>/cards/<key> links.
         asciidocContent = rewriteAsciidocCardXrefs(
           asciidocContent,
           commands.project,
