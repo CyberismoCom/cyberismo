@@ -2,9 +2,9 @@
 
 === Prerequisites
 
-See {{#xref}}"cardKey":"docs_17"{{/xref}} for information about common prerequisites for all installation methods.
-
 The system must have Docker or a similar container environment installed, capable of running Linux-based images. The simplest way to install a container environment is to install https://www.docker.com[Docker Desktop].
+
+The image bundles Node.js, the Clingo runtime, Asciidoctor PDF, and the Mermaid CLI, so no host-side installation of those is needed. Git on the host is recommended for managing your Cyberismo project — see {{#xref}}"cardKey":"docs_17"{{/xref}}.
 
 === Downloading image from Docker Hub
 

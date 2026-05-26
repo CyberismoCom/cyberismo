@@ -4,24 +4,35 @@
 
 See {{#xref}}"cardKey":"docs_17"{{/xref}} for information about common prerequisites for all installation methods.
 
-Install Node.js. The currently supported Node.js version is the latest LTS, v20.10.0 or later. Node.js is downloadable from https://nodejs.org/.
+Install the following:
 
-When building Cyberismo on macOS, a utility script installs Miniconda and the required dependencies into the `vendor` directory in the Cyberismo main directory. Instructions are provided below.
+* Node.js v22 LTS or later, downloadable from https://nodejs.org/.
+* The Xcode Command Line Tools, which provide a C++20 toolchain and GNU Make:
+
+  $ xcode-select --install
+
+* CMake 3.x and Python 3. With https://brew.sh[Homebrew]:
+
+  $ brew install cmake python
+
+These tools are used to build the bundled Clingo answer set programming runtime from source as part of `pnpm install`.
 
 === Building
 
 Take the following steps:
 
-. Clone the source repository:
+. Clone the source repository, including the Clingo submodule:
 
-  $ git clone https://github.com/CyberismoCom/cyberismo.git
+  $ git clone --recurse-submodules https://github.com/CyberismoCom/cyberismo.git
 
-. Change to the source directory. If you previously cloned the repository, pull the latest changes:
++
+If you previously cloned the repository, change to the source directory and pull the latest changes:
 
   $ cd cyberismo
-  $ git pull origin main # Optional
+  $ git pull origin main
+  $ git submodule update --init --recursive
 
-. Install pnpm with npm command:
+. Install pnpm with the npm command:
 
   $ npm install -g pnpm
 
@@ -32,9 +43,7 @@ Take the following steps:
   $ pnpm build
   $ pnpm link -g
 
-. On macOS, install the dependencies (Clingo) with:
-
-  $ pnpm install-dev-packages
+`pnpm install` builds the bundled Clingo runtime as part of installing the `@cyberismo/node-clingo` workspace package.
 
 === Running
 

@@ -1,24 +1,62 @@
 == Prerequisites
 
-Before installing Cyberismo using one of the supported installation methods, install the following prerequisites.
+What you need to install before Cyberismo depends on which installation method you choose:
+
+[cols="2,1,1,1",options="header"]
+|===
+| Prerequisite | NPM install | Docker / Podman | Build from source
+
+| Git
+| recommended
+| recommended
+| required
+
+| Asciidoctor PDF (for PDF export)
+| optional
+| not needed (bundled in image)
+| optional
+
+| Mermaid CLI (for rendering mermaid diagrams in PDF exports and the mermaid macro)
+| optional
+| not needed (bundled in image)
+| optional
+
+| Node.js v22 LTS or later
+| required
+| not needed (bundled in image)
+| required
+
+| C++ toolchain, CMake, Make, Python 3
+| not needed (prebuilt Clingo binary)
+| not needed
+| required (to build the bundled Clingo runtime)
+|===
+
+Method-specific details (Docker daemon, build tools, etc.) are listed on each installation method's page below. The Git and Asciidoctor PDF instructions on this page apply to all methods that mark them as "required" or "optional".
 
 === Git
 
-Install Git. While Cyberismo does not directly depend on Git, you will need it to manage Cyberismo content, such as when installing Cyberismo modules. See https://git-scm.com/book/en/v2/Getting-Started-Installing-Git[Git installation guide].
+Install Git so that you can version-control your Cyberismo project and install Cyberismo modules from Git URLs. See https://git-scm.com/book/en/v2/Getting-Started-Installing-Git[Git installation guide].
 
 === Asciidoctor PDF (optional, for PDF export)
 
-Install Asciidoctor PDF, if you need to export content as PDF.
-
-NOTE: If you are using Docker or Podman to run Cyberismo, you do not need to install Asciidoctor PDF.
+Install Asciidoctor PDF if you need to export content as PDF. This is only needed when running Cyberismo directly on your host (NPM install or build from source) — the Docker and Podman images already include it.
 
 ==== Installing Asciidoctor PDF on macOS
 
   $ brew install ruby && gem install --no-document asciidoctor-pdf rouge
 
-==== Installing Asciidoctor PDF on Ubuntu/Debian
+==== Installing Asciidoctor PDF on Linux
 
-  $ sudo apt-get install -y ruby-full build-essential && sudo gem install --no-document asciidoctor-pdf rouge
+Install Ruby and a build toolchain using your distribution's package manager:
+
+  $ sudo apt-get install -y ruby-full build-essential       # Ubuntu/Debian
+  $ sudo dnf install -y ruby ruby-devel @development-tools  # Fedora/RHEL
+  $ sudo pacman -S --needed ruby base-devel                 # Arch Linux
+
+Then install the gems:
+
+  $ sudo gem install --no-document asciidoctor-pdf rouge
 
 ==== Installing Asciidoctor PDF on Windows
 
@@ -31,6 +69,20 @@ See https://www.ruby-lang.org/en/documentation/installation/ and run:
 To verify the installation, run:
 
   $ asciidoctor-pdf -v
+
+=== Mermaid CLI (optional, for mermaid diagram rendering)
+
+Install the https://github.com/mermaid-js/mermaid-cli[Mermaid CLI] (`mmdc`) if you want mermaid diagrams to render as images in PDF exports and via the mermaid macro. Without it, mermaid blocks fall back to plain code listings. This is only needed when running Cyberismo directly on your host (NPM install or build from source) — the Docker and Podman images already include it.
+
+On all platforms with Node.js installed:
+
+  $ npm install -g @mermaid-js/mermaid-cli
+
+The `mmdc` CLI uses a headless Chromium for rendering; npm downloads a matching Chromium automatically as part of the install.
+
+To verify the installation, run:
+
+  $ mmdc --version
 
 == Cyberismo installation options
 
