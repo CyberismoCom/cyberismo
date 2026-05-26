@@ -175,9 +175,7 @@ describe('Navigation', () => {
     cy.get('.doc')
       .get('.cyberismo-svg-wrapper')
       .get('[aria-label="fullscreen"]'); // Verify graph has fullscreen button
-    cy.get('.doc')
-      .get('.cyberismo-svg-wrapper')
-      .get('[aria-label="download"]'); // Verify graph has download
+    cy.get('.doc').get('.cyberismo-svg-wrapper').get('[aria-label="download"]'); // Verify graph has download
     cy.get('.doc')
       .get('.cyberismo-svg-wrapper')
       .contains('Test notifications and policy checks'); // Verify graph text
@@ -240,10 +238,7 @@ describe('Navigation', () => {
       cardKey = url.split('/cards/')[1];
     }); // Extract card key from URL
 
-    cy.get('.doc')
-      .get('[type="button"]')
-      .contains('Create empty page')
-      .click(); // Create card for include macro with create card button
+    cy.get('.doc').get('[type="button"]').contains('Create empty page').click(); // Create card for include macro with create card button
     cy.get('[role="presentation"]').contains('Card created successfully'); // Verify text in popup infobox
     cy.get('h1').contains('Untitled page'); // Verify Title in content area
     // included card macro
@@ -276,9 +271,7 @@ describe('Navigation', () => {
     cy.get('[data-cy="contentSaveButton"]').click(); // Click update button
     verifyContentSaved();
     cy.get('h2').contains('Create cards page'); // Verify included card title in content area
-    cy.get('.doc')
-      .get('[type="button"]')
-      .contains('Create empty page');
+    cy.get('.doc').get('[type="button"]').contains('Create empty page');
     cy.get('.doc')
       .get('[type="button"]')
       .contains('Create Test denied operations page');
@@ -288,9 +281,7 @@ describe('Navigation', () => {
     cy.get('.doc')
       .get('[type="button"]')
       .contains('Test Create All data types page');
-    cy.get('.doc')
-      .get('[type="button"]')
-      .contains('Create page content');
+    cy.get('.doc').get('[type="button"]').contains('Create page content');
 
     // included card macro
     editPage(); // Click edit button
@@ -337,9 +328,7 @@ describe('Navigation', () => {
     cy.get('[data-cy="contentSaveButton"]').click(); // Click update button
     verifyContentSaved();
     cy.get('h3').should('not.exist'); // Verify no title in content area
-    cy.get('.doc')
-      .get('[type="button"]')
-      .contains('Create empty page');
+    cy.get('.doc').get('[type="button"]').contains('Create empty page');
   });
 
   it('Percentage macro', () => {
@@ -370,10 +359,7 @@ describe('Navigation', () => {
   it('Report macro', () => {
     cy.get('[role="tree"]').contains('Create cards page').click(); // Navigate to Create cards page in tree menu
     cy.get('h1').contains('Create cards page'); // Verify Title in content area
-    cy.get('.doc')
-      .get('[type="button"]')
-      .contains('Create empty page')
-      .click(); // Create card for report macro with create card button
+    cy.get('.doc').get('[type="button"]').contains('Create empty page').click(); // Create card for report macro with create card button
     cy.get('[role="presentation"]').contains('Card created successfully'); // Verify text in popup infobox
     cy.get('[data-cy="notificationClose"]').click(); // closes popup infobox
     cy.get('[role="presentation"]')
@@ -398,10 +384,7 @@ describe('Navigation', () => {
   it('Score card macro', () => {
     cy.get('[role="tree"]').contains('Create cards page').click(); // Navigate to Create cards page in tree menu
     cy.get('h1').contains('Create cards page'); // Verify Title in content area
-    cy.get('.doc')
-      .get('[type="button"]')
-      .contains('Create empty page')
-      .click();
+    cy.get('.doc').get('[type="button"]').contains('Create empty page').click();
     cy.get('[role="presentation"]').contains('Card created successfully'); // Verify text in popup infobox
     cy.get('[data-cy="notificationClose"]').click(); // closes popup infobox
     cy.get('[role="presentation"]')
@@ -413,9 +396,7 @@ describe('Navigation', () => {
     cy.get('.cm-activeLine').clear().type(scoreCardMacro); // Type score macro on the page
     cy.get('[data-cy="contentSaveButton"]').click(); // Click update button
     verifyContentSaved();
-    cy.get('.doc')
-      .get('[class="card"]')
-      .contains('Security control adoption'); // Verify Score card macro has text
+    cy.get('.doc').get('[class="card"]').contains('Security control adoption'); // Verify Score card macro has text
     cy.get('.doc').get('[class="card"]').contains('30').contains('%'); // Verify Score card macro has text
     cy.get('.doc').get('[class="card"]').contains('In progress'); // Verify Score card macro has text
   });
@@ -423,10 +404,7 @@ describe('Navigation', () => {
   it('Vega-Lite and Vega macros', () => {
     cy.get('[role="tree"]').contains('Create cards page').click(); // Navigate to Create cards page in tree menu
     cy.get('h1').contains('Create cards page'); // Verify Title in content area
-    cy.get('.doc')
-      .get('[type="button"]')
-      .contains('Create empty page')
-      .click(); // Create card for vega macro with create card button
+    cy.get('.doc').get('[type="button"]').contains('Create empty page').click(); // Create card for vega macro with create card button
     cy.get('[role="presentation"]').contains('Card created successfully'); // Verify text in popup infobox
     cy.get('[data-cy="notificationClose"]').click(); // closes popup infobox
     cy.get('[role="presentation"]')
@@ -449,10 +427,7 @@ describe('Navigation', () => {
     cy.url().then((url) => {
       cardKey = url.split('/cards/')[1];
     }); // Extract card key from URL
-    cy.get('.doc')
-      .get('[type="button"]')
-      .contains('Create empty page')
-      .click(); // Create card for xref macro with create card button
+    cy.get('.doc').get('[type="button"]').contains('Create empty page').click(); // Create card for xref macro with create card button
     cy.get('[role="presentation"]').contains('Card created successfully'); // Verify text in popup infobox
     cy.get('[data-cy="notificationClose"]').click(); // closes popup infobox
     cy.get('[role="presentation"]')
