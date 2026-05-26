@@ -43,6 +43,30 @@ export class ModuleReplayConflictError extends Error {
 }
 
 /**
+ * Thrown by {@link replayResolvedUpdates} when {@link ModuleUpdater.applyUpdate}
+ * returns `status: 'failed'` — i.e. one of the replay's log entries threw
+ * mid-cascade. The on-disk state is partially mutated; recovery is `git
+ * restore`. Carrying the structured result lets the dispatcher surface a
+ * non-200 status and the CLI print the failure summary instead of reporting
+ * a phantom success.
+ */
+export class ModuleReplayFailedError extends Error {
+  constructor(
+    public readonly result: ModuleUpdateResult,
+    /** Module that triggered the user-facing call, for error context. */
+    public readonly module?: string,
+  ) {
+    const summary =
+      result.failureSummary ?? 'Replay failed at step ' + result.failedAtStep;
+    const prefix = module
+      ? `Module update for ${module} failed: `
+      : 'Module update failed: ';
+    super(prefix + summary);
+    this.name = 'ModuleReplayFailedError';
+  }
+}
+
+/**
  * Snapshot each resolved module's currently-installed version *before*
  * `applyModules` overwrites its `cardsConfig.json`. Bootstrap installs
  * (no prior version on disk) map to `null` and contribute no replay step.
@@ -96,5 +120,9 @@ export async function replayResolvedUpdates(
   if (preview.conflicts.length > 0) {
     throw new ModuleReplayConflictError(preview.conflicts, options?.module);
   }
-  return updater.applyUpdate(preview);
+  const result = await updater.applyUpdate(preview);
+  if (result.status === 'failed') {
+    throw new ModuleReplayFailedError(result, options?.module);
+  }
+  return result;
 }

@@ -55,7 +55,10 @@ import { Project } from './containers/project.js';
 
 import { pathExists, resolveTilde } from './utils/file-utils.js';
 import { errorFunction } from './utils/error-utils.js';
-import { ModuleReplayConflictError } from './modules/index.js';
+import {
+  ModuleReplayConflictError,
+  ModuleReplayFailedError,
+} from './modules/index.js';
 import { readJsonFile } from './utils/json.js';
 import { resourceName } from './utils/resource-utils.js';
 
@@ -487,6 +490,13 @@ export class Commands {
           statusCode: 409,
           message: e.message,
           payload: { conflicts: e.conflicts, module: e.module },
+        };
+      }
+      if (e instanceof ModuleReplayFailedError) {
+        return {
+          statusCode: 500,
+          message: e.message,
+          payload: { result: e.result, module: e.module },
         };
       }
       return { statusCode: 400, message: errorFunction(e) };
