@@ -5243,8 +5243,8 @@ packages:
   vega-schema-url-parser@1.1.0:
     resolution: {integrity: sha512-Tc85J2ofMZZOsxiqDM9sbvfsa+Vdo3GwNLjEEsPOsCDeYqsUHKAlc1IpbbhPLZ6jusyM9Lk0e1izF64GGklFDg==}
 
-  vega-selections@6.1.0:
-    resolution: {integrity: sha512-WaHM7D7ghHceEfMsgFeaZnDToWL0mgCFtStVOobNh/OJLh0CL7yNKeKQBqRXJv2Lx74dPNf6nj08+52ytWfW7g==}
+  vega-selections@6.1.2:
+    resolution: {integrity: sha512-xJ+V4qdd46nk2RBdwIRrQm2iSTMHdlu/omhLz1pqRL3jZDrkqNBXimrisci2kIKpH2WBpA1YVagwuZEKBmF2Qw==}
 
   vega-statistics@2.0.0:
     resolution: {integrity: sha512-dGPfDXnBlgXbZF3oxtkb8JfeRXd5TYHx25Z/tIoaa9jWua4Vf/AoW2wwh8J1qmMy8J03/29aowkp1yk4DOPazQ==}
@@ -10459,7 +10459,7 @@ snapshots:
       vega-expression: 6.1.0
       vega-scale: 8.1.0
       vega-scenegraph: 5.1.0
-      vega-selections: 6.1.0
+      vega-selections: 6.1.2
       vega-statistics: 2.0.0
       vega-time: 3.1.0
       vega-util: 2.1.0
@@ -10551,7 +10551,7 @@ snapshots:
 
   vega-schema-url-parser@1.1.0: {}
 
-  vega-selections@6.1.0:
+  vega-selections@6.1.2:
     dependencies:
       d3-array: 3.2.4
       vega-expression: 6.1.0
