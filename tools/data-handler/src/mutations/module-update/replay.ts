@@ -72,9 +72,10 @@ export async function replayLog(
     }
 
     try {
-      // No fingerprint: replay is unconditional; consumer's state may differ
-      // from the author's, and the cascade is tolerant by design.
-      await mutations.apply(input);
+      // Bypass the fingerprint guard: replay is unconditional. The consumer's
+      // state may legitimately differ from the author's, and the cascade is
+      // tolerant by design.
+      await mutations.apply(input, { bypassFingerprint: true });
     } catch (err) {
       return {
         modulePrefix: '',

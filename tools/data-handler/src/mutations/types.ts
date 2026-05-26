@@ -56,6 +56,13 @@ export interface ApplyOptions {
   fingerprint?: MutationFingerprint;
   /** Commit message used by runWithDefaultCommitMessage; optional. */
   commitMessage?: string;
+  /**
+   * Skip the fingerprint requirement entirely. Set by the module-update
+   * replay path: the consumer's state may legitimately differ from the
+   * author's, so the drift check that protects interactive edits would
+   * just abort every replay. Cascade still runs tolerantly.
+   */
+  bypassFingerprint?: boolean;
 }
 
 /** Result of apply(). */

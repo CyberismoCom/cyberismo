@@ -40,6 +40,7 @@ export class ResourceMutations {
     const preview = await handler.preview(ctx);
     const needsConfirm =
       handler.isBreaking &&
+      !options.bypassFingerprint &&
       (preview.affectedCardCount > 0 ||
         preview.affectedLinkCount > 0 ||
         preview.dataLossExpected);
