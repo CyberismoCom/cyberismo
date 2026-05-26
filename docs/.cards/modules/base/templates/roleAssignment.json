@@ -1,0 +1,6 @@
+{
+    "name": "base/templates/roleAssignment",
+    "displayName": "Role assignment",
+    "description": "An assignment of a person to a role",
+    "category": "General"
+}

@@ -1,0 +1,12 @@
+{
+    "title": "field((FieldType, EnumValue), \"index\", Index)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|h",
+    "lastUpdated": "2025-07-07T19:42:11.838Z",
+    "base/fieldTypes/briefDescription": "Defines the index of an enum value",
+    "base/fieldTypes/category": "Field types",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-07T19:42:11.838Z"
+}

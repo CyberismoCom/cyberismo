@@ -1,0 +1,6 @@
+{
+    "name": "base/fieldTypes/approver",
+    "displayName": "Approver",
+    "dataType": "person",
+    "description": "Person responsible for approving the document"
+}

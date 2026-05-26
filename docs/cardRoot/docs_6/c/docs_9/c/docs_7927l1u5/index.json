@@ -1,0 +1,12 @@
+{
+    "title": "Controlling the status indicator in the navigation tree",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Ready",
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "public",
+    "rank": "0|on",
+    "lastUpdated": "2026-02-14T17:08:22.474Z",
+    "links": [],
+    "templateCardKey": "base_2",
+    "lastTransitioned": "2026-02-14T17:06:26.478Z"
+}

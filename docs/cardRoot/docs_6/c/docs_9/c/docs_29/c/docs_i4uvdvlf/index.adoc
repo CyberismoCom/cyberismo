@@ -1,0 +1,8 @@
+== Parameters
+
+* `Key`: A key, typically a card key
+* `Label`: A string label
+
+== Description
+
+This predicate denotes that a label is associated with an object. Labels are free-form text tags for organising, categorising, and searching items, typically cards.

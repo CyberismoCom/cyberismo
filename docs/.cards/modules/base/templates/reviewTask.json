@@ -1,0 +1,6 @@
+{
+    "name": "base/templates/reviewTask",
+    "displayName": "Review task",
+    "description": "A task that tracks the review of a document",
+    "category": "General"
+}

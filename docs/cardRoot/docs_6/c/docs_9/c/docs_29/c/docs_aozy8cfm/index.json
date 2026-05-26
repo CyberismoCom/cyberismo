@@ -1,0 +1,11 @@
+{
+    "title": "dataType(Key, Field, DataType)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Draft",
+    "rank": "0|j",
+    "lastUpdated": "2025-11-10T18:52:10.250Z",
+    "base/fieldTypes/briefDescription": "A field of an object has a specific data type",
+    "base/fieldTypes/category": "Cards",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz"
+}

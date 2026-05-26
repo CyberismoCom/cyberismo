@@ -1,0 +1,112 @@
+== Introduction
+
+A link is a relationship between cards. Each link is of a specific _link type_, which defines a name such as _causes_, an outbound display name (_Causes_), an inbound display name (_Caused by_), and the allowed card types for the source and destination of a link.
+
+Links may be used, for example, to represent that an asset presents a risk, a control mitigates a risk, a control implements a compliance requirement, a threat is related to another threat, or that a test verifies a requirement.
+
+== Managing link types using the configuration editor
+
+Manage link types with the *configuration editor*.
+
+=== Creating a link type
+
+To create a new link type:
+
+1. Open the **configuration editor** in the Cyberismo app by setting the path part of the URL to `/configuration`.
+2. Select **Link Types** from the tree menu on the left, or use the **New Resource** menu in the toolbar.
+3. Click **Create new** on the Link Types overview page.
+4. Enter an identifier for the new link type and confirm.
+
+The new link type will be created and the editor will open.
+
+When choosing a name for your link type, see xref:docs_8.adoc[Naming conventions].
+
+=== Editing a link type
+
+In the link type editor, you can edit the following properties:
+
+* **Identifier**: The technical name of the link type. Renaming is supported.
+* **Outbound display name**: The name shown in the user interface for the from-to direction of the link (e.g., "Causes").
+* **Inbound display name**: The name shown in the user interface for the to-from direction of the link (e.g., "Caused by").
+* **Enable link description**: A toggle that controls whether users can add a description to links of this type.
+* **Source card types**: Select which card types can be the source of links of this type. If left empty, all card types are allowed.
+* **Destination card types**: Select which card types can be the destination of links of this type. If left empty, all card types are allowed.
+
+Each field has individual save and cancel buttons that appear when you make changes.
+
+=== Deleting a link type
+
+To delete a link type, open it in the editor and use the context menu (three-dot button) in the toolbar to select **Delete Resource**.
+
+== Managing link types using the command-line tool
+
+You can also manage link types using the Cyberismo command-line tool.
+
+To see a list of the available link types, use the following command:
+
+  $ cyberismo show linkTypes
+
+The names of link types are of the format `_module_/linkTypes/_linkType_`, for example `base/linkTypes/causes`.
+
+To see the help for how to create a link type, use the following command:
+
+  $ cyberismo create linkType --help
+
+To create a new link type, for example `myLinkType`, use the following command:
+
+  $ cyberismo create linkType myLinkType
+
+Cyberismo will create a new file called `myLinkType.json` in `.cards/local/linkTypes/myLinkType.json`. If the card prefix of your Cyberismo project is `example`, then the full name of the new link type will be `example/linkTypes/myLinkType`.
+
+== Link type file format
+
+Link types are defined in JSON files that follow the https://github.com/CyberismoCom/cyberismo/blob/main/tools/assets/src/schema/resources/linkTypeSchema.json[link type schema], as described in the table below.
+
+NOTE: Do not edit the JSON files directly. The configuration editor provides a graphical interface for managing all link type properties.
+
+.The properties of a link type
+|===
+|Property|Type|Description|Required
+
+|**name**
+|`string`
+|The name of the link type
+| &#10003; Yes
+
+|**outboundDisplayName**
+|`string`
+|A name by which the link is referred to in the user interface (from-to).
+| &#10003; Yes
+
+|**inboundDisplayName**
+|`string`
+|A name by which the link is referred to in the user interface (to-from).
+| &#10003; Yes
+
+|**sourceCardTypes**
+|`string` `[]`
+|The names of the card types that can be the source of this link type. If empty, all card types are allowed.
+|&#10003; Yes
+
+|**destinationCardTypes**
+|`string` `[]`
+|The names of the card types that can be the destination of this link type. If empty, all card types are allowed.
+|&#10003; Yes
+
+|**enableLinkDescription**
+|`boolean`
+|If true, the user can add a description to the link.
+|&#10003; Yes
+
+|===
+
+
+== Mapping to a logic program
+
+Link types are mapped to logic program facts using the following function terms:
+
+{{#report}}
+    "name": "base/reports/predicates",
+    "category": "Link types",
+    "orderBy": "rank"
+{{/report}}

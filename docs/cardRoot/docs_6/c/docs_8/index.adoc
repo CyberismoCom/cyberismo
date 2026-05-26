@@ -1,0 +1,73 @@
+This page describes the naming conventions when developing new Cyberismo solution modules.
+
+== General principle: use camelCase
+
+In general, the user-configurable names in Cyberismo content format use the so-called `camelCase` notation, except labels, which use the so-called `kebab-case`.
+
+Cyberismo _modules_ have a separately configurable name, which is defined in the `cardsConfig.json` file by convention in `camelCase`. Similarly by convention, the source code repository of a module is named in kebab-case and it should begin with `module-`, for example `module-my-example`.
+
+Other types of Cyberismo configuration do not have separately configurable names, but their name is the file or directory name in which they are declared. Card types, workflows, field types, link types, templates, and other basic concepts of the Cyberismo content format are named in `camelCase`. For example, a `securityIssue` card type would be defined in a JSON file `securityIssue.json`.
+
+All other types of files in the Cyberismo content format are also named in `camelCase`. This includes logic program file names that have the file extension `.lp`, such as `riskLevelCalculation.lp`.
+
+CAUTION: Do not choose names that differ in their case only, such as `example.json` and `Example.json`, because they may be confused as the same file in case-insensitive file systems.
+
+== References to configuration
+
+When referring to these concepts in the configuration, the references always include the module prefix and the type of the concept, for example `modulea/templates/decision`.
+
+Do not include the type of the item in the name. For example, if you need a workflow for decisions, it should be called `decision` rather than `decisionWorkflow`. It will be referred to as `modulea/workflows/decision`.
+
+The following table shows how the main Cyberismo concepts are referred to in Cyberismo modules.
+
+.Naming of Cyberismo concepts
+[%autowidth]
+|===
+|Concept  |Example name
+
+|Workflow
+|`modulea/workflows/example`
+|Card type
+|`modulea/cardTypes/example`
+|Field type
+|`modulea/fieldTypes/example`
+|Link type
+|`module1/linkTypes/example`
+|Template
+|`modulea/templates/example`
+|===
+
+== Naming in logic programs
+
+Naming of terms in logic programs follows the same `camelCase` convention as other naming in the Cyberismo solution. As required by the syntax rules of Answer Set Programming, the names of atoms and constants begin with a lowercase character, and variable names begin with an uppercase character.
+
+NOTE: If a Cyberismo content module needs to define a new global name, such as a new constant or a new complex term, for the main logic program, then the name should begin with the module prefix and an underscore.
+
+For example, if a module with the prefix `example` needs to use a new global logic program term, say `mySpecialTerm`, then the term should be called `example_mySpecialTerm`.
+
+== Names of Cyberismo concepts in `field` terms
+
+User-configured field types and built-in fields of cards are used in `field` terms of logic programs. Consistently with other cases where configuration is referred to, these names are in `camelCase`.
+
+.Cyberismo concepts in `field` terms
+[%autowidth]
+|===
+|Field  |Name in `field` terms
+
+|Card type
+|`cardType`
+|Last modified
+|`lastModified`
+|Last transitioned
+|`lastTransitioned`
+|Title
+|`title`
+|Workflow state
+|`workflowState`
+|User-configured field
+|`prefix/fieldTypes/example`
+|===
+
+== Labels
+
+Labels should be used sparingly. Consider using a custom field instead of a label whenever possible. Labels should be named according to the `kebab-case` convention.

@@ -1,0 +1,12 @@
+{
+    "title": "Image macro",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Ready",
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "public",
+    "rank": "0|ba",
+    "lastUpdated": "2026-02-14T17:08:10.945Z",
+    "links": [],
+    "templateCardKey": "base_2",
+    "lastTransitioned": "2026-02-14T17:06:15.003Z"
+}

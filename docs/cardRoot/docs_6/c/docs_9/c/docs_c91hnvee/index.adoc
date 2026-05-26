@@ -1,0 +1,8 @@
+Sometimes, it is useful for a logic program to work differently depending on the _execution context_, or whether the content is being rendered for the Cyberismo app, a static website, or a document. For example, you could define a rule that hides any cards where information classification is not set to "Public" when exporting the project content as a static website or as a PDF document.
+
+Cyberismo defines one of the following facts in the main logic program.
+
+{{#report}}
+    "name": "base/reports/predicates",
+    "category": "Execution context"
+{{/report}}

@@ -1,0 +1,8 @@
+{
+    "title": "Untitled role",
+    "cardType": "base/cardTypes/roleAssignment",
+    "workflowState": "",
+    "rank": "0|b",
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "internal"
+}

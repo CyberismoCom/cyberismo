@@ -1,0 +1,12 @@
+{
+    "title": "childResultCollection(Key, Collection)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|ao",
+    "lastUpdated": "2025-07-01T09:26:19.909Z",
+    "base/fieldTypes/briefDescription": "A query result shall have an array property of a certain name",
+    "base/fieldTypes/category": "Query language",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-01T09:26:19.909Z"
+}

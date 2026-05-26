@@ -1,0 +1,7 @@
+== Parameters
+
+* `FieldType`: the name of a field type. For example, `"base/fieldTypes/owner"`
+
+== Description
+
+`FieldType` is the name of a field type.

@@ -1,0 +1,12 @@
+{
+    "title": "parent(Child, Parent)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|h",
+    "lastUpdated": "2025-07-01T06:56:41.740Z",
+    "base/fieldTypes/briefDescription": "Hierarchical relationship",
+    "base/fieldTypes/category": "Cards",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-01T06:56:41.740Z"
+}

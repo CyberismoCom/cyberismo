@@ -1,0 +1,7 @@
+== Cyberismo documentation
+
+Copyright © Cyberismo Ltd and contributors 2026
+
+This is free content: you can redistribute it and/or modify it under the terms of the link:https://github.com/CyberismoCom/cyberismo-docs/blob/main/LICENSE[Creative Commons Attribution-ShareAlike 4.0 International Public License]. The use of the Cyberismo trademark is governed by the link:https://staging.cyberismo.com/trademark-policy/[Cyberismo open source trademark policy].
+
+This content is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the Creative Commons Attribution-ShareAlike 4.0 International Public License for more details.

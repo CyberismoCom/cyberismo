@@ -1,0 +1,7 @@
+== Parameters
+
+* `Connector`: an identifier of a connector
+
+== Description
+
+The parameter is a connector.

@@ -1,0 +1,10 @@
+== Parameters
+
+* `FieldType`: the name of a field type
+* `EnumValue`: the name of an enum value.
+* `"enumDisplayValue"`: a string that denotes the display value of an enum value
+* `EnumDisplayValue`: the display value of an enum value. The user interface shows the display value instead of the enum value, if available.
+
+== Description
+
+Defines the display value of an enum value for showing the value in the user interface.

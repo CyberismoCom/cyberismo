@@ -1,0 +1,10 @@
+== Parameters
+
+* `Key`: A result of a query
+* `Collection`: The name of an array property of `Key`
+
+== Description
+
+Sometimes it is useful to ensure that a result will have an array property for child results even when no child results are found. In this case, the array property will be an empty array. The `childResultCollection(Key, Collection)` declares that a query result `Key` shall always have a property which is an array of objects and which is called `Collection`. 
+
+Notice that it is not mandatory to use this predicate to declare child result arrays. It is only necessary, if you want the array to be included in the result even when it would be empty.

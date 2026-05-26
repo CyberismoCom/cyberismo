@@ -1,0 +1,5 @@
+{
+    "name": "base/calculations/policyCheckFailure",
+    "displayName": "Policy check failure",
+    "description": "Unifies policy check failures with and without field references into a single helper predicate"
+}

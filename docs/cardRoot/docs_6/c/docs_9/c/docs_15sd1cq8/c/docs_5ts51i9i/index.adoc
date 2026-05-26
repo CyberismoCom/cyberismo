@@ -1,0 +1,11 @@
+== Parameters
+
+* `(Connector, Source)`: a tuple that identifies the source item of an external link 
+* `(Connector, Destination)`: a tuple that identifies the destination item of an external link
+* `ExternalLinkType`: an identifier of the external link type 
+* `OutboundDisplayName`: a display name of the link from the point of view of the source
+* `InboundDisplayName`: a display name of the link from the point of view of the destination
+
+== Description
+
+The parameters of `externalLink` identify and describe a link between two external items. 

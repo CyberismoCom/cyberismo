@@ -1,0 +1,21 @@
+== Parameters
+
+* `CardKey`: The card key of the card that is associated with a failing policy check
+* `Category`: The category of the policy check, a string identifier for organising policy checks
+* `Title`: The title of the policy check, a string identifier for organising policy checks
+* `Message`: A message that explains the failed policy check
+* `Field`: The name of the field that this check is related to.
+
+== Description
+
+A policy check has failed on a card. Use this version of `policyCheckFailure`, if the check is related to a particular field of the card. When the policy check failure is shown in the user interface, it will include a link to go to the field. If the user clicks the link, Cyberismo will put the card in edit mode and put the field on focus.
+
+== Example
+
+The logic program of this documentation project includes the following fact, which produces the failed policy check that you can see on this page on the right. In real use, `policyCheckFailure` would not be used in a fact, but they would be used in the heads of rules to produce a policy check failure, if certain conditions are met.
+
+To test the *Go to field* feature, you can clone this documentation project and run it on your own computer.
+
+----
+policyCheckFailure(docs_wyz3pgjq, "Example", "A check failed", "This is a failed check.", "base/fieldTypes/category").
+----

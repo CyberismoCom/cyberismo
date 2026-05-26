@@ -1,0 +1,12 @@
+{
+    "title": "localApp",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|b",
+    "lastUpdated": "2026-02-14T17:06:26.654Z",
+    "base/fieldTypes/briefDescription": "This fact is defined when the logic program is run in the context of the Cyberismo app",
+    "base/fieldTypes/category": "Execution context",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2026-02-14T17:06:26.654Z"
+}

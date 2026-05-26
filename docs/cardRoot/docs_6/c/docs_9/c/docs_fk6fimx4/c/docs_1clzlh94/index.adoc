@@ -1,0 +1,11 @@
+== Parameters
+
+This function takes a variable number of parameters, which can be strings, constants, or numbers.
+
+== Return value
+
+The function converts its parameters as strings and returns a concatenated string.
+
+== Description
+
+The `@concatenate` function concatenates its parameters into a single string.

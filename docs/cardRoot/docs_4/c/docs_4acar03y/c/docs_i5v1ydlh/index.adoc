@@ -1,0 +1,78 @@
+You can create new cards in your Cyberismo project by clicking **Create** at the top right of the app. The app will show a dialog for selecting a template from which the new card or cards will be created.
+
+The `createCards` macro provides another way to create content: the macro produces a button for creating new cards from a certain template.
+
+== Available templates
+
+To see a list of the available templates, use the following command:
+
+  $ cyberismo show templates
+
+You can see some details of a template, such as `base/templates/page`, with the following command:
+
+  $ cyberismo show template base/templates/page
+
+To learn how to create new templates, see xref:docs_7n7gqu93.adoc[Templates].
+
+== Basic `createCards` macro
+
+For example, to produce a button that creates a new card from the template `base/templates/page`, the ``createCards`` macro has the following notation:
+```
+{{#raw}}
+
+{{#createCards}}
+    "template": "base/templates/page",
+    "buttonLabel": "Create a new page"
+{{/createCards}}
+
+{{/raw}}
+```
+
+In the app, this macro produces a button to create a new page as a child card of the page where the macro was used.
+
+{{#createCards}}
+    "template": "base/templates/page",
+    "buttonLabel": "Create a new page"
+{{/createCards}}
+
+NOTE: When you export content as a documentation site or in some other format, the ``createCards`` macro does not produce anything. Take this into account when writing any instructions along with this macro.
+
+== Creating a link to the newly created card
+
+Sometimes it is useful to link the newly created cards automatically to an existing card. The `createCards` macro supports this with an optional `link` parameter.
+
+NOTE: This form of the `createCards` macro is especially useful when `createCards` is used as a part of the output of a report. This makes it possible to calculate the card key of the parent of the new cards and the card key of the end point of the link with a query. For example, you can have a button to create a risk on an asset card. The risk will be created under a risk register card, but it will be linked to the asset, under which the user clicked the button to create the risk. 
+
+To create a link to the newly created card(s), include a link object in the parameters of the `createCards` macro. If a link object is included in the macro, then a link is created between the given card key of the link object and all top-level new cards. Usually, this feature is used with templates that include just one top-level card, but if there are many top-level cards, then the macro links all of them.
+
+The full notation of the `createCards` macro is as follows.
+
+```
+{{#raw}}
+
+
+{{#createCards}}
+  "template": <the name of the template>,
+  "buttonLabel": <the label on the button>,
+  "cardKey": <the card under which the new card(s) will be created>,
+  "link": {
+    "linkType": <the name of the link type that will be created>,
+    "direction": <"inbound" or "outbound" from the point of view of the new card(s)>,
+    "cardKey": <the source of an inbound link or the destination of an outbound link>
+  }
+{{/createCards}}
+
+{{/raw}}
+```
+
+The parameters for the `createCards` macro must meet these criteria: 
+
+* `link` object is optional.
+* If a link object is included, then it must include `linkType`, `direction`, and `cardKey`.
+* The `linkType` must exist.
+* `direction` must be `inbound` or `outbound`.
+* The `cardKey` of the link object must exist.
+
+If validation fails, then the macro results in a macro error admonition that explains what the problem is.
+
+The link(s) are created after the new card(s) have been successfully created. Even if creating the link(s) fails for any reason, the cards are not removed.

@@ -1,0 +1,15 @@
+== Task description
+
+This is a review task of a controlled document. Controlled documents must be reviewed before they can be approved.
+
+To review the controlled document, first assign this task to the reviewer by setting the Owner field of this card.
+
+NOTE: The reviewer cannot be the same person as the owner or the approver of the document.
+
+If the document is ready to be approved, transition this task to the *Closed as done* state.
+
+If the document needs to be changed before approval, transition this task to the *Changes required* state.
+
+== Review notes
+
+#TODO: Add any review notes here.#

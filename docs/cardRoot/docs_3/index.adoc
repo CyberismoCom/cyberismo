@@ -1,0 +1,79 @@
+The best way to learn how to use the Cyberismo command-line interface is the built-in help. To see the top-level help, execute the following command:
+
+[source,console]
+----
+$ cyberismo help
+----
+
+The help command prints an overview of the available commands:
+
+[source,console]
+----
+Usage: cyberismo [options] [command]
+
+CLI tool to handle tasks.
+
+Options:
+  -v, --version                                                            Output the version information
+  -L, --log-level <level>                                                  Set the log level (choices: "trace", "debug", "info", "warn", "error", "fatal", default: "fatal")
+  -h, --help                                                               Display help for command
+
+Commands:
+  add [options]                                                            Add items to the project
+  calc [options]                                                           Used for running logic programs
+  create [options]                                                         Create cards, resources and other project items
+  edit [options] <cardKey>                                                 Edit a card
+  export [options] <format> <output> [cardKey]                             Export a project or a card
+  fetch [options]                                                          Retrieve external data to local file system.
+  import [options]                                                         Import modules and data into the project
+  migrate [options] [version]                                              Migrate project schema to a newer version.
+  move [options] [source] [destination]                                    Moves a card from root to under another card, from under another card to root, or from under a one card to another.
+  preview [dir]                                                            Preview the exported site
+  rank [options]                                                           Manage card ranking and ordering
+  remove [options] <type> [parameter1] [parameter2] [parameter3]           Remove cards, resources and other project items
+  rename [options] <to>                                                    Change project prefix and rename all the content with the new prefix
+  report [options] <parameters> [output]                                   Runs a report
+  show [options] <type> [typeDetail]                                       Shows details from a project
+  transition [options] <cardKey> <transition>                              Transition a card to the specified state
+  update [options] <resourceName> <operation> <key> <value> [newValue]     Update resource details
+  update-modules [options] [moduleName]                                    Updates to latest versions either all modules or a specific module
+  validate [options]                                                       Validate project structure
+  app [options]                                                            Starts the cyberismo app, accessible with a web browser at http://localhost:3000
+  help [command]                                                           display help for command
+----
+
+Many commands have subcommands. For example, `create` has subcommands for each resource type:
+
+[source,console]
+----
+$ cyberismo create help
+
+Usage: cyberismo create [options] [command]
+
+Create cards, resources and other project items
+
+Commands:
+  attachment <cardKey> <filename>                   Create an attachment for a card
+  card <template> [parentCardKey]                   Create a card from a template
+  cardType <name> <workflow>                        Create a new card type
+  fieldType <name> <dataType>                       Create a new field type
+  graphModel <name>                                 Create a new graph model
+  graphView <name>                                  Create a new graph view
+  calculation <name>                                Create a new calculation
+  label <cardKey> <labelName>                       Create a label on a card
+  link <source> <destination> <linkType> [desc]     Create a link between two cards
+  linkType <name>                                   Create a new link type
+  project <name> <prefix> <path> [cat] [desc]       Create a new project
+  report <name>                                     Create a new report
+  template <name> [content]                         Create a new template
+  workflow <name> [content]                         Create a new workflow
+  resource <resourceName> [content]                 Create a new resource
+  help [command]                                    display help for command
+----
+
+To get detailed help for any command, add `help` after the command name:
+
+[source,console]
+----
+$ cyberismo show help
+----

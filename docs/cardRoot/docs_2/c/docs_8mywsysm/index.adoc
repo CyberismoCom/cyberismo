@@ -1,0 +1,88 @@
+:sectnums:
+
+== Introduction
+
+This tutorial shows how to get started with threat modelling and data flow diagrams using the Cyberismo secure development essentials module.
+
+video::1073088804/f5483297d3[vimeo]
+
+The secure development essentials module includes extensive resources for secure development. If you only need the module for threat modelling, you can set it in a mode that hides all unnecessary details and lets you focus on threat modelling.
+
+The Cyberismo secure development essentials module defines card types and link types for creating data flow models with processes, external entities, data storages, trust boundaries, and data flows. This enables you to model your software systems using cards and links in Cyberismo.
+
+The module uses graph macros that translate the model into graphical views. You can generate different views from the same data. For example, a high-level context diagram for an internet banking systemfootnote:[This example is based on an example from https://c4model.com[C4 model].] could look like this:
+
+image::context-diagram.png[]
+
+If you draw a diagram that includes all the details of the model, the diagram might appear as follows:
+
+image::diagram-example.png[]
+
+== Prerequisites
+
+xref:docs_13.adoc[Install Cyberismo].
+
+xref:docs_krxdf4ke.adoc[Set up a project with the Secure development essentials module].
+
+== Start the Cyberismo app
+
+Change to the directory of your Cyberismo project and start the Cyberismo app:
+
+[source,console]
+----
+$ cyberismo app
+----
+
+Then open a browser and navigate to http://localhost:3000/.
+
+== Set the target adoption step as None
+
+To configure your project so that you can focus on threat modelling:
+
+. Navigate to the development project that you created in the previous tutorial.
+. Click *Edit* and change the *Target adoption step* metadata field as *None*.
+
+The Cyberismo app will now hide all content that has been marked for Adoption step 1, step 2, or step 3, so you can focus on threat modelling and on a high-level risk assessment.
+
+== Create a threat model
+
+To create a threat model:
+
+. Navigate to *Design* / *Manage threat models*
+. Click *Create a threat model*
+
+== Add entities and trust boundaries
+
+The threat model includes a starting point for a data flow model, with a *User* and a *Solution trust boundary* components.
+
+Here are some steps you can try out:
+
+. Edit the *Solution trust boundary* and rename it as *Backend trust boundary*.
+. Create a process called *Web front end* at the top level.
+. Under the trust boundary, create a process *Web backend* and a datastore called *Database*.
+. You can enter descriptions and technologies, which will be used in the diagrams.
+
+Each card shows a graph that illustrates the entity, and the top-level data flow model shows a context view and a detailed view:
+
+image::components.png[]
+
+== Add data flows
+
+Data flows are entered as links between cards. To add a link, click the link icon at the top of the view:
+
+image::link-1.png[]
+
+Fill in the details of the data flow:
+
+. Select *dataflow to* or *dataflow from* as the link type.
+. Select the other end of the data flow.
+. Write a short description of the data flow.
+. Click *Add link*.
+
+image::link-3.png[]
+
+== Top-level diagrams
+
+After adding data flows between cards, the top-level data flow model could look as follows:
+
+image::lr-layout.png[]

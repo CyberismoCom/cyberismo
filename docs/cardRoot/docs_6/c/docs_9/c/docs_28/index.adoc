@@ -1,0 +1,357 @@
+== Why logic programming?
+
+In Cyberismo, queries, reasoning, and visualisation are based on Answer Set Programming (ASP). ASP is a form of logic programming, which is a programming, database, and knowledge representation paradigm based on formal logic. In this context, "formal" means clear, not hard.
+
+ASP is declarative programming, where programs consist of facts and rules. The order of lines in a logic program is not significant.
+
+Using ASP gives you, as a Cyberismo content developer, a flexible and expressive tool for querying and reasoning about your information model. The underlying idea in the Cyberismo solution is that we manage the information model for cybersecurity or compliance, and the solution maps this information model to a logic program. A query is also a set of logic program facts and rules, and its results are the basis for producing reports, creating visualisations, making automated checks, and enforcing policies.
+
+Cyberismo uses the clingo ASP system from the https://potassco.org/[Potassco collection] as its logic engine.
+
+image::lp-intro.png[]
+
+This page provides a short introduction to the essentials of Answer Set Programming, covering the ASP features that are needed when creating content for Cyberismo.
+
+== Simple terms
+
+Simple terms are the basic building blocks of ASP programs: integers, strings, constants, and variables.
+
+.Simple terms
+[cols="3,6,9"]
+|===
+|Term |Examples |Notes
+
+|Integer
+a|
+
+* `0`
+* `12837`
+* `-32`
+|Note that ASP does not support floating point numbers.
+
+|String
+a|
+
+* `"base/cardTypes/page"`
+* `"Untitled document"`
+* `"2025-07-02"`
+* `"2025-07-02T06:47:37.027Z"`
+* `+"firstname.lastname@example.com"+`
+| As ASP does not have a rich system of data types, strings are used to represent many kinds of data, including dates, date times, and persons.  
+
+|Constant
+a|
+
+* `docs_ywfgc20s`
+* `selectAll`
+* `#sup`
+* `#inf`
+* `#true`
+* `#false`
+
+| A symbolic constant begins with a
+lowercase character. In Cyberismo, symbolic constants are used especially to represent card keys such as `docs_ywfgc20s`. The symbolic constant `selectAll` is used as a fact in queries.
+
+The built-in constants `#sup` and `#inf` are not typically needed in Cyberismo logic programs. They represent the greatest
+and smallest element among all variable-free terms.
+
+The built-in Boolean constants `#true` and `#false` are normally not used in Cyberismo, as we use the symbolic constants `true` and `false` instead.
+
+|Variable
+a|
+
+* `CardKey`
+* `Field`
+* `Value`
+* `_`
+| A variable is a placeholder for all variable-free terms in a logic program rule.
+A variable begins with an uppercase character. The
+underscore `_` as a separate token represents an
+anonymous variable, which is used when we do not care about the value of an argument of a term.
+
+|===
+
+== Data types of Cyberismo fields
+
+The fields of cards can be of different data types, which are mapped in logic programs to strings, integers, and symbolic constants as follows. This mapping is used in `field` terms, which are discussed below. For a description of the data types of Cyberismo fields, see xref:docs_25.adoc[Fields, field types, and data types].
+
+.Representing the data types of fields in logic programs
+[cols="1,2,4"]
+|===
+|Data type |Logic program term |Notes
+
+|**`shortText`**
+| String
+| 
+
+|**`longText`**
+| String
+| 
+
+| **`number`**
+| String
+| ASP does not support floating point numbers, so we represent them as strings.
+
+|**`integer`**
+| Integer
+| ASP uses 32-bit integers, so larger integer values are floored to the maximum or minimum that can be represented with 32 bits.
+
+| **`boolean`**
+| Symbolic constants `true` and `false`
+| ASP does have built-in Boolean constants `#true` and `#false`, but as they are not allowed as arguments to function terms, we use symbolic constants `true` and `false` instead.
+
+|**`enum`**
+|String
+|One of the strings in the `enumValues` array of the field type definition.
+
+|**`list`**
+|String
+|One of the strings in the `enumValues` array of the field type definition. As a `list` field may have several values, Cyberismo may generate multiple `field` facts for a single `list` field.
+
+|**`date`**
+|String
+|A string in the ISO 8601 format for UTC (Coordinated Universal Time). For example `"2024-01-01"`.
+
+|**`dateTime`**
+|String
+|A string in the ISO 8601 format for UTC (Coordinated Universal Time). For example `"2024-06-09T08:43:25Z"`.
+
+|**`person`**
+|String
+|A string that is an email address of a person. For example, `+"firstname.lastname@example.com"+`
+
+|===
+
+What about representing objects that have properties in logic programs, such as cards and their fields? ASP does not natively support such data structures, but we can express objects with function terms, which are explained below. In Cyberismo, the `field` function `field`(`Key`, `Field`, `Value`) means that the field `Field` of the object `Key` has the value `Value`.
+
+== Comments
+
+Single line comments start with `%`. Any text between `%` and the end of the line will be ignored.
+
+Multi line comments start with `+++%*+++` and end with `+++*%+++`. Any text between `+++%*+++` and `+++*%+++` will be ignored.
+
+== Tuples
+
+A tuple term is an ordered sequence of terms in parentheses. For example:
+
+----
+(1, 2)
+("first", "second", base_3fdf9fg)
+----
+
+== Functions
+
+A function term consists of a name and one or more terms as arguments. The argument terms can be simple terms, expressions that yield simple terms, function terms, or tuples.
+
+For example:
+
+----
+parent(base_3fdf9fg, base_fku9enkd)
+----
+
+The function terms may require you to calibrate your intuition a bit if you are familiar with mainstream programming languages. A function term does not mean that there is a definition or an implementation of a function somewhere in the logic program. It is merely a term that can be used in the facts and the rules of the program. The closest thing to an implementation of a function in ASP are rules, where the function term occurs in the head of the rule; see below.
+
+In other programming languages, functions may return integers or strings, but in ASP, function terms can only be considered true or false. As you can see in the case of the `parent` function above, instead of having a function that would compute and return the parent of a card, the "return value" of an ASP function is one of the arguments, typically the last argument of a function term.
+
+== Facts
+
+A fact is a true declarative statement. Facts are written as symbolic constants or variable-free function terms. They end with a period.
+
+For example, a query may define the following constant fact to indicate that all fields of the resulting objects should be included in the results:
+
+----
+selectAll.
+----
+
+The following function term fact states that the parent of the card `base_3fdf9fg` is `base_fku9enkd`.
+
+----
+parent(base_3fdf9fg, base_fku9enkd).
+----
+
+Cyberismo generates a `field` fact for all such fields of cards that have values. For example, the following fact states that the workflow state of the card `docs_ffq169k4` is `"Ready"`.
+
+----
+field(docs_ffq169k4, "workflowState", "Ready").
+----
+
+== Rules
+
+A rule is an expression that uses logical implication (`:-`) to describe a relationship among facts. A rule has the following format:
+
+__head__``:-``__body__``.``
+
+Intuitively, the rule means that _head_ is true if _body_ is true.
+
+In the rule definition, _head_ is a constant or a function term,footnote:[ASP supports other types of _head_ constructs, but we do not typically need them in Cyberismo.] and _body_ is a comma-separated list of body conditions:
+
+__head__``:-``__condition ~1~__``,`` __condition ~2~__``,`` ...``,``__condition ~n~__``.``
+
+In basic cases, the conditions are constants or functions, or they can be constants or functions that are preceded by `not`. We can call these positive body conditions and negative body conditions, respectively.
+
+More specifically, the _head_ constant or function holds if all of the positive body conditions can be inferred by some other rules or facts in the logic program, while none of the negative body conditions can.
+
+You can write simple rules based on constants. For example, the following logic program states that `a` is a fact, and that if `a` holds, then also `b` holds. This program will have an _answer set_ that consists of `a` and `b`.
+
+----
+a.
+b :- a.
+----
+
+The real power of rules lies in the usage of variables. As we already noted above, a variable represents any variable-free terms in the logic program. For example, the former of the two following rules reads that if variable `C` is a parent of variable `A`, then variable `C` is an ancestor of variable `A`. The latter rule reads that if `B` is the parent of `A` and if `C` is also an ancestor of `B`, then `C` is an ancestor of `A`. Note that the names of the variables are interpreted in the context of a single rule only; it is not significant that the same variable `A` or `C` occurs in both of these rules.
+
+----
+ancestor(A, C) :- parent(A, C).
+ancestor(A, C) :- parent(A, B), ancestor (B, C).
+----
+
+The previous example also illustrates that you can express the logical AND operator in your rules with a `,` character, and the logical OR operator is expressed by writing multiple rules.
+
+== Grounding, solving answer sets, and showing results
+
+When ASP programs are run, the ASP implementation will first _ground_ the program by substituting all variables in all possible ways with variable-free (or _ground_) terms from the logic program. After grounding, an _answer set_ is computed. Intuitively, an answer set of a program contains all constants and ground functions that are true.
+
+If you are using ASP outside the context of Cyberismo, you can use `#show` directives to select a subset of the answer set that you are interested in seeing. In Cyberismo, we use the built-in xref:docs_33.adoc[query language] to define the results we are interested in.
+
+In general, as a Cyberismo user or Cyberismo content developer, you do not need to worry about the technicalities of grounding, solving, or displaying results with `#show` directives.
+
+== Default negation using `not`
+
+The not literal denotes _default negation_: The expression `not` _term_ is assumed to hold unless _term_ is derived to be true.
+
+Consider the following example:
+
+----
+myModule_rootCard(Card) :- card(Card), not parent(Card, _).
+----
+
+This rule reads intuitively as follows: if variable `Card` is a card and if there is no such term in the logic program that would be a parent of `Card`, then Card is on the root level of the card tree.
+
+This example also illustrates the use of the anonymous variable `_`. In this case, we do not need to give this variable a name, as we are only interested in whether such a term exists or not.
+
+Note that we are using the module name `myModule` as a prefix in the name of our module-specific function, to avoid naming clashes.
+
+Many programming languages and query languages use a concept of null or empty to indicate that a value has not been given. In Cyberismo logic programs, we do not have `field` facts for values that have not been defined. The following negative body condition tests whether the field `base/fieldTypes/category` of the card `docs_ffq169k4` has not been defined:
+
+----
+not field(docs_ffq169k4, "base/fieldTypes/category", _)
+----
+
+== Arithmetic functions
+
+Logic programs can use the following arithmetic functions on integers:
+
+* `+` (addition)
+* `-` (subtraction)
+* `*` (multiplication)
+* `/` (integer division)
+* `\` (modulo)
+* `**` (exponentiation)
+* `|X|` (absolute value)
+* `&` (bitwise AND)
+* `?` (bitwise OR)
+* `ˆ` (bitwise exclusive OR)
+* `˜` (bitwise complement)
+
+For example, the following rule shows how an arithmetic expression can be used as a function argument when calculating a risk level field from the integer fields likelihood and impact using multiplication.
+
+----
+field(Card, "myModule/fieldTypes/riskLevel", Likelihood * Impact) :-
+    card(Card),
+    field(Card, "cardType", "myModule/cardTypes/risk"),
+    field(Card, "myModule/fieldTypes/likelihood", Likelihood),
+    field(Card, "myModule/fieldTypes/impact", Impact).
+----
+
+== Comparisons
+
+You can compare integers, strings, or even constants in the body conditions of rules with the following symbols:
+
+* `=` (equal)
+* `!=` (not equal)
+* `<` (less than)
+* `\<=` (less than or equal)
+* `>` (greater than)
+* `>=` (greater than or equal).
+
+== Aggregates `#count`, `#sum`, `#min`, and `#max`
+
+The `#count` aggregate counts the number of elements. For example, the following rule adds a calculated field that contains the number of child cards.
+
+----
+field(Card, "myModule/fieldTypes/childrenCount", Count) :-
+    card(Card),
+    Count = #count { card(Card): parent(_, Card) }.
+----
+
+There is a similar `#sum` aggregate that you can use to calculate a sum of integers, a `#min` aggregate to find a minimum of a set, and a `#max` aggregate to find the maximum of a set.
+
+== Nested rules
+
+Sometimes you need to express a condition that must hold for all occurrences of a certain set, or none of the occurrences of a certain set. This is an example use case for a nested rule (also known as a _conditional literal_), where a body condition of a rule consists of a nested rule of the form
+
+__nested head__``:``__condition ~1~__``,`` __condition ~2~__``,`` ...``,``__condition ~n~__
+
+A nested rule can be understood so that it holds if its head holds whenever all its conditions hold. The conditions are separated by a `,` character. If the main rule has more regular conditions after a nested rule, the nested rule must be terminated with a `;` character.
+
+Consider the following rule:
+
+----
+a :- b, c : d ; e.
+----
+
+In this rule, `b` and `e` are simple positive body conditions and `c : d` is a nested rule. If `b` and `e` are true, then this rule will yield `a` if also the nested rule `c : d` holds. The nested rule holds if `c` holds whenever `d` holds, in other words when either both `c` and `d` are true, or whenever `d` is false.
+
+In the following example, `myModule_allDescendantsClosed(Card)` is true for all such cards whose descendants are all in a closed workflow state. The `workflowStateCategory` field is a built-in calculated field that is either `"open"`, `"active"`, or `"closed"`.
+
+----
+myModule_allDescendantsClosed(Card) :-
+    card(Card),
+    field(Descendant, "workflowStateCategory", "closed") :
+    ancestor(Card, Descendant).
+----
+
+You can also use `not` in the head of a nested rule. In the following rule, `myModule_allDescendantsNotOpen(Card)` is true for all such cards where none of the descendants are in an open workflow state.
+
+----
+myModule_allDescendantsNotOpen(Card) :-
+    card(Card),
+    not field(Descendant, "workflowStateCategory", "open") :
+    ancestor(Card, Descendant).
+----
+
+Using `#false` as the head of a nested rule may be one of the rare use cases for the built-in Boolean constants in Cyberismo. You can use a nested rule with `#false` as its head to "disable" the rule if all of the conditions of the nested rule hold.
+
+== Abbreviation for alternative terms using `;`
+
+You can use the character `;` in the arguments of a function to represent alternative terms more briefly.
+
+For example, the following line
+
+----
+select("title"; "workflowstate").
+----
+
+is equivalent to
+
+----
+select("title").
+select("workflowstate").
+----
+
+== External functions
+
+Cyberismo logic programs can use the built-in xref:docs_fk6fimx4.adoc[external functions] for working with dates and strings. External functions are similar to functions in mainstream programming languages, as they process their arguments and return a string or an integer.
+
+== Naming conventions
+
+Cyberismo uses a `camelCase` naming convention in logic programs. See xref:docs_8.adoc[Naming conventions] for more information.
+
+== Answer Set Programming resources
+
+For more introductory material about Answer Set Programming, see the following references:
+
+* G. Brewka, T. Eiter, and M. Truszczynski. 2011. Answer set programming at a
+glance. Commun. ACM 54, 12 (2011), 92–103.
+* M.Gebser, R.Kaminski, B.Kaufmann, M.Lindauer, M.Ostrowski, J.Romero, T. Schaub, S. Thiele, and P. Wanko. 2019. Potassco User Guide, 2nd edition, version 2.2.0. Technical Report. University of Potsdam. https://github.com/potassco/guide/releases/tag/v2.2.0
+* Tomi Janhunen and Ilkka Niemelä. 2016. The Answer Set Programming Paradigm. AI Magazine 37, 3 (2016), 13–24.

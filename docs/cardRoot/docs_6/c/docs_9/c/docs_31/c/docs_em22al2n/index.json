@@ -1,0 +1,12 @@
+{
+    "title": "deletingCardDenied(CardKey, Message)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|at",
+    "lastUpdated": "2025-07-01T06:03:42.312Z",
+    "base/fieldTypes/briefDescription": "Deleting a card has been denied",
+    "base/fieldTypes/category": "Denied operations",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-01T06:03:42.312Z"
+}

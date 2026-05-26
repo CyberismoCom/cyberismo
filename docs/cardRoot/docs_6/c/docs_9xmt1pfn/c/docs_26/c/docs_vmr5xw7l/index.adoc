@@ -1,0 +1,10 @@
+== Parameters
+
+* `Workflow`: the name of a workflow
+* `Transition`: the name of a workflow state transition
+* `FromState`: the name of the source state. Empty string `""` is used in the create transition, and `"*"` denotes any state. 
+* `ToState`: the name of the destination state
+
+== Description
+
+In the workflow `Workflow`, `Transition` is a state transition from `FromState` to `ToState`.

@@ -1,0 +1,9 @@
+== Parameters
+
+* `FieldType`: the name of a field type
+* `"description"`: the string `"description"` that denotes the description field
+* `Description`: a description of the field type
+
+== Description
+
+A field type has a description.

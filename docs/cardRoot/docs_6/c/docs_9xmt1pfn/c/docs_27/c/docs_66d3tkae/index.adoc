@@ -1,0 +1,8 @@
+== Parameters
+
+* `CardType`: the name of a card type
+* `FieldType`: the name of a field type
+
+== Description
+
+Defines that the custom field `FieldType` is an optionally visible metadata field in the user interface when showing cards of the card type `CardType`. The user has to click *Show more* to see this field.

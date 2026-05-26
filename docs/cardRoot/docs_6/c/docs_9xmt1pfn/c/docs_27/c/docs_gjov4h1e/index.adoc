@@ -1,0 +1,9 @@
+== Parameters
+
+* `CardType`: the name of a card type
+* `"category"`: the string `"category"` that denotes the category field
+* `Category`: the category of the card type
+
+== Description
+
+A card type has a category.

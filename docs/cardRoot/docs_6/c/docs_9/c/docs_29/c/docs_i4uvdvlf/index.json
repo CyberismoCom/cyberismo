@@ -1,0 +1,12 @@
+{
+    "title": "label(Key, Label)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|cn",
+    "lastUpdated": "2025-07-01T06:44:18.307Z",
+    "base/fieldTypes/briefDescription": "A key is associated with a label",
+    "base/fieldTypes/category": "Cards",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-01T06:44:18.307Z"
+}

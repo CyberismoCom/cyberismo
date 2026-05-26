@@ -1,0 +1,11 @@
+select("title"; "base/fieldTypes/category"; "base/fieldTypes/briefDescription").
+
+result(Card) :-
+{{#if category}}
+    field(Card, "base/fieldTypes/category", "{{category}}"),
+{{/if}}
+    field(Card, "cardType", "base/cardTypes/externalFunction"),
+    not template(Parent) :
+    parent(Card, Parent).
+
+orderBy("title", "ASC").

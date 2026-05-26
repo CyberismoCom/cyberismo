@@ -1,0 +1,76 @@
+== Introduction
+
+https://vega.github.io/vega-lite/[Vega-Lite] is a high-level grammar for producing graphics. It provides a declarative JSON notation to create an expressive range of visualisations for data analysis and presentation. Vega-Lite builds on https://vega.github.io/vega/[Vega], which is a more verbose lower-level JSON notation that gives the user more control over the visualisation.   
+
+In Cyberismo, you can use the `vegaLite` and `vega` macros to insert a Vega-Lite or a Vega visualisation, respectively, within the contents of a card. 
+
+== Parameters
+
+Both macros work similarly: you need to include a `spec` macro parameter that contains the JSON object in Vega-Lite or Vega format. 
+
+== Implementing visualisations
+
+TIP: In general, we recommend starting with Vega-Lite, and resorting to Vega only if the capabilities of Vega-Lite are not sufficient for your use case.
+
+See https://vega.github.io/vega-lite/docs/[Vega-Lite documentation] and https://vega.github.io/vega/docs/[Vega documentation] for more information about the notation of these two visualisation languages. 
+
+== Example
+
+Consider the https://vega.github.io/editor/#/examples/vega-lite/arc_pie[Arc pie chart example] from Vega-Lite. To include this chart in a Cyberismo card with the `vegaLite` macro, include the Vega-Lite definition within the `spec` property of a `vegaLite` macro:
+
+```
+{{#raw}}
+
+{{#vegaLite}}
+"spec":
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+  "description": "A simple pie chart with embedded data.",
+  "data": {
+    "values": [
+      {"category": 1, "value": 4},
+      {"category": 2, "value": 6},
+      {"category": 3, "value": 10},
+      {"category": 4, "value": 3},
+      {"category": 5, "value": 7},
+      {"category": 6, "value": 8}
+    ]
+  },
+  "mark": "arc",
+  "encoding": {
+    "theta": {"field": "value", "type": "quantitative"},
+    "color": {"field": "category", "type": "nominal"}
+  }
+}
+{{/vegaLite}}
+
+{{/raw}}
+```
+
+This macro produces the following output:
+
+
+{{#vegaLite}}
+"spec":
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+  "description": "A simple pie chart with embedded data.",
+  "data": {
+    "values": [
+      {"category": 1, "value": 4},
+      {"category": 2, "value": 6},
+      {"category": 3, "value": 10},
+      {"category": 4, "value": 3},
+      {"category": 5, "value": 7},
+      {"category": 6, "value": 8}
+    ]
+  },
+  "mark": "arc",
+  "encoding": {
+    "theta": {"field": "value", "type": "quantitative"},
+    "color": {"field": "category", "type": "nominal"}
+  }
+}
+{{/vegaLite}}
+
+TIP: To visualise calculated values dynamically, you can use the `vegaLite` or `vega` macro within a report template.

@@ -1,0 +1,6 @@
+{
+    "name": "base/fieldTypes/meetingDate",
+    "displayName": "Meeting date",
+    "dataType": "date",
+    "description": "Date when the meeting took place"
+}

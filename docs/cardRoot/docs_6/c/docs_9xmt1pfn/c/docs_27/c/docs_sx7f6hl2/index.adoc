@@ -1,0 +1,9 @@
+== Parameters
+
+* (`CardType`, `FieldType`): a tuple of a card type name and a field type name
+* `"index"`: a string that denotes the index field
+* `Index`: an integer ordinal number that defines the position of this custom field in the list of custom fields
+
+== Description
+
+Defines the index or the ordinal number of a visible custom field for positioning the field in the user interface.

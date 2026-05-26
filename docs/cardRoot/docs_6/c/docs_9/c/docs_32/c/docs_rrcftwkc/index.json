@@ -1,0 +1,12 @@
+{
+    "title": "policyCheckFailure(CardKey, Category, Title, Message)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|b",
+    "lastUpdated": "2025-07-01T14:20:32.982Z",
+    "base/fieldTypes/briefDescription": "A policy check has failed",
+    "base/fieldTypes/category": "Automated checks",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-01T06:20:00.804Z"
+}

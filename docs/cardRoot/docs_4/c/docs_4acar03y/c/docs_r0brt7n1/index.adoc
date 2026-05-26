@@ -1,0 +1,34 @@
+The `report` macro shows a report based on the results of a query. 
+
+To see a list of the available reports, use the following command:
+
+  $ cyberismo show reports
+
+== Parameters
+
+The `report` macro supports the following parameters:
+
+* `"name"`: The name of the report (required).
+* `"cardKey"`: The card to use as context for the report (optional). If not specified, the card containing this macro is used as context.
+
+Reports may define additional report-specific parameters.
+
+== Defining new reports
+
+To learn how to define new reports, see xref:docs_byr4iof0.adoc[Managing reports].
+
+== Example
+
+For example, the report `base/reports/childrenList` shows a list of child cards. To use this report, use the following notation:
+
+```
+{{#raw}}
+
+{{#report}}
+    "name": "base/reports/childrenList"
+{{/report}}
+
+{{/raw}}
+
+```
+

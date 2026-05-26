@@ -1,0 +1,7 @@
+== Parameters
+
+* `Key`: A query result. 
+
+== Description
+
+The `result(Key)` predicate declares that `Key` is a result of a query. This predicate declares top-level results, or results that are not child results of other results.

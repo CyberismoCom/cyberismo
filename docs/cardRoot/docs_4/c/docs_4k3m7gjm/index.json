@@ -1,0 +1,12 @@
+{
+    "title": "Navigation",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Ready",
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "public",
+    "rank": "0|a",
+    "lastUpdated": "2026-02-14T19:43:32.451Z",
+    "links": [],
+    "templateCardKey": "base_2",
+    "lastTransitioned": "2026-02-14T17:44:49.932Z"
+}

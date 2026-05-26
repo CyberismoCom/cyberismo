@@ -1,0 +1,11 @@
+{
+    "title": "Managing card types",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Ready",
+    "rank": "0|aaag",
+    "lastUpdated": "2026-02-16T05:39:56.258Z",
+    "links": [],
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "public",
+    "lastTransitioned": "2025-01-17T14:30:52.126Z"
+}

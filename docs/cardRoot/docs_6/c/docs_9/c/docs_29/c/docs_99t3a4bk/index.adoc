@@ -1,0 +1,7 @@
+== Parameters
+
+* `CardKey`: the card key of a template card
+
+== Description
+
+The parameter of the predicate is a card in a template. See also xref:docs_y8ridd4m.adoc[`card`] and xref:docs_jhpsf6wq.adoc[`projectCard`].

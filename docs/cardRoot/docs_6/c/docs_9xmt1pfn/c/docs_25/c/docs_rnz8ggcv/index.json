@@ -1,0 +1,12 @@
+{
+    "title": "field((FieldType, EnumValue), \"enumDisplayValue\", EnumDisplayValue)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|i",
+    "lastUpdated": "2025-07-07T19:45:10.211Z",
+    "base/fieldTypes/briefDescription": "Defines the display value of an enum value",
+    "base/fieldTypes/category": "Field types",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-07T19:44:03.231Z"
+}

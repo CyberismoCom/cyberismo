@@ -1,0 +1,6 @@
+The following predicate can be used to hide a card in the navigation tree.
+
+{{#report}}
+    "name": "base/reports/predicates",
+    "category": "User interface"
+{{/report}}

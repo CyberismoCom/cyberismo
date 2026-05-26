@@ -1,0 +1,50 @@
+Links connect related cards to each other. Each link has a *link type* that defines the nature of the relationship, a *source card*, a *destination card*, and an optional *description*.
+
+== Viewing links
+
+Links are displayed in the *Linked cards* section below the card metadata. This section is a collapsible accordion that shows a badge with the total number of links. Each link entry displays:
+
+* The *link type* display name
+* The *card key* of the linked card (clickable — navigates to that card)
+* The *card title*
+* An optional *link description*
+
+There are two kinds of links:
+
+* *User-created links* — created manually, and can be edited or deleted
+* *Calculated links* — generated automatically by logic programs, shown with an info icon, and cannot be edited or deleted
+
+== Adding a link
+
+You can add a link in two ways:
+
+. Click the *link icon* (chain) in the card toolbar
+. Click the *+ (Add)* button in the Linked cards section
+
+Both open an inline link creation form with the following fields:
+
+* *Link type* — a dropdown listing the available link types. The available types depend on the card types of the source and destination cards.
+* *Target card* — a searchable autocomplete field. Start typing a card title or key to find the target card. Cards that cannot be linked (due to link type constraints or because a link already exists) are filtered out automatically.
+* *Description* — an optional text field for additional context about the relationship.
+
+Click *Save* to create the link, or *Cancel* to discard.
+
+== Editing a link
+
+To edit an existing user-created link, hover over the link entry and click the *edit icon* (pencil). A dialog opens where you can change:
+
+* The link type
+* The target card
+* The link description
+
+Click *Save* to apply the changes.
+
+== Deleting a link
+
+To delete a user-created link, hover over the link entry and click the *delete icon* (trash). A confirmation dialog asks you to confirm the deletion.
+
+== Link types
+
+Link types define what kinds of cards can be linked together. They are configured at the project level and may restrict which card types can serve as source and destination. Link types also define display names for the outbound and inbound directions of the relationship.
+
+For information on configuring link types, see xref:docs_qp3vhh4t.adoc[Managing link types].

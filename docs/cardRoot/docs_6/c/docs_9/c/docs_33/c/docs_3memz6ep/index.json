@@ -1,0 +1,12 @@
+{
+    "title": "selectAll",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|at",
+    "lastUpdated": "2025-07-07T13:09:04.922Z",
+    "base/fieldTypes/briefDescription": "All fields of result objects shall be included in the query results",
+    "base/fieldTypes/category": "Query language",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-01T06:02:48.345Z"
+}

@@ -1,0 +1,23 @@
+== Cyberismo documentation
+
+This directory holds the source code for link:https://docs.cyberismo.com[Cyberismo documentation].
+
+== Copyright
+
+Copyright © Cyberismo Ltd and contributors 2025
+
+== License and trademark policy
+
+This is free content: you can redistribute it and/or modify it under the terms of the Creative Commons Attribution-ShareAlike 4.0 International Public License.
+
+The use of Cyberismo trademark is governed by the Cyberismo open source trademark policy. See link:../TRADEMARK.adoc[TRADEMARK.adoc] at the repository root.
+
+This content is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+See the Creative Commons Attribution-ShareAlike 4.0 International Public License in the separate link:LICENSE[LICENSE] file for more details.
+
+Notice that while Cyberismo Ltd enforces the license of this content, the license does not affect the content produced by Cyberismo tool users. Users can be confident that the resulting documents and resources produced with Cyberismo tools and software are not affected by the licenses that Cyberismo Ltd uses to distribute the software and the content.
+
+== Contributing
+
+See link:../CONTRIBUTING[CONTRIBUTING] at the repository root.

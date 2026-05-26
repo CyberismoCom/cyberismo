@@ -1,0 +1,5 @@
+{
+    "name": "base/calculations/meetingMemoTitle",
+    "displayName": "Meeting memo title",
+    "description": "Sets a default title with today's date when a meeting memo is created"
+}

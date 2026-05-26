@@ -1,0 +1,8 @@
+== Parameters
+
+* `LinkType`: the name of a link type
+* `CardType`: the name of a card type
+
+== Description
+
+This predicate means that `LinkType` does not allow all types of cards as the source card, but cards of the type `CardType` are allowed. If there are no facts of this form for a link type, then all card types are allowed.

@@ -1,0 +1,12 @@
+{
+    "title": "field((CardType, FieldType), \"index\", Index)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|g",
+    "lastUpdated": "2025-07-07T19:04:47.728Z",
+    "base/fieldTypes/briefDescription": "Defines the index of a visible custom field for positioning the field in the user interface",
+    "base/fieldTypes/category": "Card types",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-07T19:04:47.728Z"
+}

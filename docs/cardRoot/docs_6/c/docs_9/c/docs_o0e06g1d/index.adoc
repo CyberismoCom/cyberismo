@@ -1,0 +1,22 @@
+If a card is visible in the navigation tree, and if it has a value in the calculated field `progress`, then the navigation tree shows the progress value as a percentage.
+
+== Example
+
+The logic program in this project has the following rule. This rule sets the progress value on cards with the label `task-progress` based on the workflow state category of descendant cards: the progress is calculated as the percentage of closed descendant cards. As this card has two descendants, of which one is closed, the progress is set to 50%.
+
+Note that since arithmetic expressions in ASP operate on integers, it is important to first multiply by 100. The mathematically equivalent and more conventional version of this formula `Closed / Total * 100` would not work. 
+
+----
+field(Card, "progress", 100 * Closed / Total) :-
+    label(Card, "task-progress"),
+    Closed = #count {
+        card(Descendant) :
+        ancestor(Descendant, Card),
+        field(Descendant, "workflowStateCategory", "closed")
+    },
+    Total = #count {
+        card(Descendant) :
+        ancestor(Descendant, Card)
+    },
+    Total != 0.
+----

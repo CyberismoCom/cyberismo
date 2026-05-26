@@ -1,0 +1,12 @@
+{
+    "title": "Managing reports",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Ready",
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "public",
+    "rank": "0|aaam",
+    "lastUpdated": "2026-02-16T06:18:03.477Z",
+    "links": [],
+    "templateCardKey": "base_2",
+    "lastTransitioned": "2025-07-07T13:17:51.364Z"
+}

@@ -1,0 +1,7 @@
+== Parameters
+
+* `LinkType`: the name of a link type
+
+== Description
+
+The parameter is the name of a link type.

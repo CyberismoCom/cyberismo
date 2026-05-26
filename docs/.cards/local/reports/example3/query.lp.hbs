@@ -1,0 +1,15 @@
+selectAll.
+
+result(result1).
+field(result1, "title", "First result").
+
+childResult(result1, child1, "children").
+field(child1, "title", "Child result").
+
+result(result2).
+field(result2, "title", "Second result").
+
+childObject(result2, child2, "child").
+field(child2, "title", "Child object").
+
+orderBy("title", "DESC").

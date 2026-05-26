@@ -1,0 +1,15 @@
+{
+    "title": "Showing progress metric in the navigation tree",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Ready",
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "public",
+    "rank": "0|o",
+    "lastUpdated": "2026-02-14T17:08:22.295Z",
+    "links": [],
+    "templateCardKey": "base_2",
+    "labels": [
+        "task-progress"
+    ],
+    "lastTransitioned": "2025-07-07T11:26:56.382Z"
+}

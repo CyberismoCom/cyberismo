@@ -1,0 +1,32 @@
+== Navigation tree
+
+The left panel of the app displays a hierarchical tree of all cards in the project. Each item in the tree shows:
+
+* An *expand/collapse arrow* for cards that have children
+* An optional *coloured status dot* indicating the card's current status
+* An optional *error indicator* for cards that include failed policy checks
+* The *card title*
+* An optional *progress indicator* (e.g. "75%") for cards that track completion
+
+Click a card in the tree to view it in the right panel. Click the arrow or double-click to expand or collapse a branch.
+
+The project name appears as a clickable heading above the tree. Clicking it navigates to the project root.
+
+== Searching for cards
+
+A *search input* is located at the top of the navigation tree. As you type, the tree filters in real time:
+
+* Matching is *case-insensitive* and based on the card title
+* If a card matches the search query, it and all its ancestors are shown
+* If a descendant matches, all cards in the path from root to that descendant are preserved
+* Matching branches are *automatically expanded*
+
+Press *Escape* or click the *X* button to clear the search and restore the full tree.
+
+== Breadcrumbs
+
+Above the card content, a *breadcrumb trail* shows the path from the project root to the currently viewed card. Each breadcrumb is clickable, allowing you to quickly navigate to any ancestor card. A home icon represents the project root.
+
+== Resizing the navigation panel
+
+The left panel can be resized by dragging the divider between the navigation tree and the content area.

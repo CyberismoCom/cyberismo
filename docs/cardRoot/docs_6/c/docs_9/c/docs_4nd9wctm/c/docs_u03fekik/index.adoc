@@ -1,0 +1,18 @@
+== Parameters
+
+* `CardKey`: The card key of the card that is associated with a notification
+* `Category`: The category of the notification, a string identifier for organising notifications
+* `Title`: The title of the notification, a string identifier for organising notifications
+* `Message`: A notification message
+
+== Description
+
+There is a notification message, typically advice or helpful tips, is associated with a card.
+
+== Example
+
+The logic program of this documentation project includes the following fact, which produces the notification that you can see on this page. In real use, `notification` would probably not be used in a fact, but it woudl be used in the head of a rule to show the notification, if certain conditions are met.
+
+----
+notification(docs_u03fekik, "Example", "An example notification", "Here is a piece of advice.").
+----

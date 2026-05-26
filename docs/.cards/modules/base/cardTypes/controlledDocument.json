@@ -1,0 +1,32 @@
+{
+    "name": "base/cardTypes/controlledDocument",
+    "workflow": "base/workflows/controlledDocument",
+    "customFields": [
+        {
+            "name": "base/fieldTypes/owner",
+            "isCalculated": false
+        },
+        {
+            "name": "base/fieldTypes/informationClassification",
+            "isCalculated": false
+        },
+        {
+            "name": "base/fieldTypes/approver",
+            "isCalculated": false
+        },
+        {
+            "name": "base/fieldTypes/approvalDate",
+            "isCalculated": false
+        }
+    ],
+    "alwaysVisibleFields": [
+        "base/fieldTypes/owner",
+        "base/fieldTypes/approver",
+        "base/fieldTypes/approvalDate"
+    ],
+    "optionallyVisibleFields": [
+        "base/fieldTypes/informationClassification"
+    ],
+    "displayName": "Controlled document",
+    "description": "A formal document with an approval workflow"
+}

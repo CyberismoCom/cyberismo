@@ -1,0 +1,6 @@
+Logic programs may define side effects that are executed on certain operations using the following predicate: 
+
+{{#report}}
+    "name": "base/reports/predicates",
+    "category": "Side effects"
+{{/report}}

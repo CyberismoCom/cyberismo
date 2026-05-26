@@ -1,0 +1,5 @@
+The following table summarises the built-in logic program predicates in Cyberismo.
+
+{{#report}}
+    "name": "base/reports/predicates"
+{{/report}}

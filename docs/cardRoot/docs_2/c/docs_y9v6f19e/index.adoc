@@ -1,0 +1,78 @@
+:sectnums:
+
+== Introduction
+
+This tutorial shows how to get started with the Cyberismo Information Security Management System (ISMS) essentials module. The module contains the basic building blocks for establishing an information security management system. This includes example processes for
+
+* Asset management
+* Risk management
+* Incident management
+
+along with the needed field types, link types, templates, workflows, registers, policy checks, and progress metrics.
+
+== Prerequisites
+
+xref:docs_13.adoc[Install Cyberismo].
+
+== Create a project
+
+Create a new project called, for example, "ISMS tutorial" that has the card key prefix `myisms` in the directory `isms-tutorial` with the following command:
+
+[source,console]
+----
+$ cyberismo create project "ISMS tutorial" myisms isms-tutorial
+----
+
+== Select modules for your project
+
+Select the "ISMS Essentials" from the provided list and press Enter.
+
+After pressing Enter, wait for the import to complete.
+
+[source,console]
+----
+$ cyberismo create project "ISMS tutorial" myisms isms-tutorial
+? Select modules to import (Press <space> to select, <a> to toggle all, <i> to invert selection, and <enter> to proceed)
+ ◉ Base module
+ ◯ Cyberismo EU Cyber Resilience Act
+❯◉ ISMS Essentials
+ ◯ Secure development essentials
+----
+
+== Create a home page for your project
+
+Change to the `isms-tutorial` directory:
+
+[source,console]
+----
+$ cd isms-tutorial
+----
+
+Execute the following command to create a home page for your ISMS project:
+
+[source,console]
+----
+$ cyberismo create card ismsa/templates/moduleHome
+----
+
+== Start the Cyberismo app
+
+Continue using the Cyberismo ISMS essentials module with the Cyberismo app. To start the app, execute the following command:
+
+[source,console]
+----
+$ cyberismo app
+----
+
+Then open a browser and navigate to http://localhost:3000/.
+
+== Explore your new ISMS workspace
+
+You are now ready to explore your new ISMS workspace.
+
+* Expand the navigation tree on the left to see the structure of the documentation.
+* See progress key performance indicators both in the navigation tree and on the home page.
+* You can find an example asset that has three example risks under *Asset register* / *Supporting assets* / *Devices* / *Employee devices*.
+* Try creating a new incident under Incident register.
+
+image::ISMS-home.png[]

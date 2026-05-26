@@ -1,0 +1,12 @@
+{
+    "title": "field(LinkType, \"inboundDisplayName\", InboundDisplayName)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|d",
+    "lastUpdated": "2025-07-07T19:11:01.496Z",
+    "base/fieldTypes/briefDescription": "Defines the inbound display name of a link type",
+    "base/fieldTypes/category": "Link types",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-07T19:11:01.496Z"
+}

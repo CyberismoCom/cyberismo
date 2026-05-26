@@ -1,0 +1,5 @@
+{
+    "name": "base/calculations/documentControl",
+    "displayName": "Document control",
+    "description": "Enforces approval rules, required fields, and review constraints for controlled documents"
+}

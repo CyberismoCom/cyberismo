@@ -1,0 +1,10 @@
+For instructions on connecting an AI assistant to the MCP server, see xref:docs_q8np0w9d.adoc[Setup].
+
+The Cyberismo MCP (Model Context Protocol) server exposes a Cyberismo project to AI assistants and other MCP-compatible clients. It enables programmatic access to cards, schema resources, and project operations without direct filesystem access.
+
+The server provides two types of interfaces:
+
+* xref:docs_bt50wayx.adoc[*Tools*] — callable operations that create, update, delete, query, and run computations against the project
+* xref:docs_rwj9b7v3.adoc[*Resources*] — read-only data endpoints that return JSON snapshots of project state (cards, card types, workflows, etc.)
+
+The MCP server is part of the `mcp` package in the Cyberismo monorepo and communicates over the standard MCP transport layer.

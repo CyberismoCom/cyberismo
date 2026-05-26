@@ -1,0 +1,12 @@
+{
+    "title": "transitionDenied(CardKey, Transition, Message)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|d",
+    "lastUpdated": "2025-07-01T06:03:49.060Z",
+    "base/fieldTypes/briefDescription": "A workflow transition of a card has been denied",
+    "base/fieldTypes/category": "Denied operations",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-01T06:03:49.060Z"
+}

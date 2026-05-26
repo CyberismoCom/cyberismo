@@ -1,0 +1,7 @@
+== Parameters
+
+* `CardType`: the name of a card type, such as `"base/cardTypes/decision"`
+
+== Description
+
+The parameter of `cardType(CardType)` is a card type.

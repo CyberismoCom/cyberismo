@@ -1,0 +1,8 @@
+== Parameters
+
+* `Child`: A key of a child object, typically a card key
+* `Parent`: A key of a parent object, typically a card key
+
+== Description
+
+The `parent` predicate declares that the parent of `Child` is `Parent`. 

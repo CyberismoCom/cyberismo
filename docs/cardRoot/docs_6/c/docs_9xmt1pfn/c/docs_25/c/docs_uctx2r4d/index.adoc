@@ -1,0 +1,8 @@
+== Parameters
+
+* `FieldType`: the name of a field type
+* `EnumValue`: the name of an enum value. By convention, the names of enum values are given in `camelCase`.
+
+== Description
+
+Defines an enum value for a field type that is of the data type type `enum` or `list`.

@@ -1,0 +1,179 @@
+== Introduction
+
+This page is a tutorial on implementing graphs. Before reading this tutorial, familiarise yourself with the following topics:
+
+* xref:docs_28.adoc[Introduction to Answer Set Programming]
+* xref:docs_chclhxsk.adoc[Structure and execution of logic programs]
+* xref:docs_33.adoc[Query language]
+* xref:docs_wp769ee4.adoc[Managing graph models]
+* xref:docs_4ha2rf9l.adoc[Managing graph views]
+* xref:docs_t5gkijm4.adoc[Graph macro]
+
+Graphs visualise data. The configuration of a Cyberismo graph consists of a xref:docs_wp769ee4.adoc[graph model] and a xref:docs_4ha2rf9l.adoc[graph view], allowing several different graph views to be created based on a single graph model. A graph is displayed as part of the contents of a card with the xref:docs_t5gkijm4.adoc[graph macro].
+
+See xref:docs_chclhxsk.adoc[Structure and execution of logic programs] for a detailed description of how Cyberismo executes logic programs and Graphviz to produce a graph.
+
+As both the graph model and the graph view are implemented as logic programs that are combined with the main logic program to create the graph, in theory it does not matter much how you split the graph implementation between the model and the view. By convention, the graph model is where all the action happens, and graph views are usually a single line of code or a couple of lines long, to parameterise the graph model to the specific context of a graph macro instance.
+
+A graph view defines a concrete view of a graph model. A graph view can even be defined in a different module from the original graph model, so you can use a graph model from a content module in your Cyberismo project with a custom view that you have defined.
+
+Cyberismo's graph support is based on the concepts and the notation of the https://github.com/potassco/clingraph[Clingraph] graph visualiser, even though Cyberismo comes with its own implementation. Both the original Clingraph implementation and Cyberismo graph support run on the https://graphviz.org/[Graphviz] graph visualisation software.
+
+== Basic concepts
+
+A _graph_ is a structure of _nodes_ and _edges_ that connect the nodes together. In Cyberismo, graphs are directed graphs or digraphs, where the edges have a direction and they are drawn as arrows.
+
+A subgraph is a Graphviz concept that indicates that certain nodes and edges should be drawn together. Cyberismo follows the example of Clingraph and automatically makes subgraphs so-called clusters with a bounding rectangle.
+
+Graphs are described with four simple logic program function terms:
+
+* `graph` for defining graphs and subgraphs,
+* `node` for defining nodes,
+* `edge` for defining edges, and
+* `attr` for defining Graphviz attributes for graphs, nodes, or edges.
+
+Cyberismo executes a query that translates the true graph-related function terms into a DOT language graph description, which Graphviz then renders into an image.
+
+== The default graph, top-level graph, and subgraphs
+
+If you define nodes and edges with one parameter using xref:docs_8ybjvnft.adoc[`node(Node)`] and xref:docs_1i04tpi3.adoc[`edge(Edge)`], then the nodes and edges are assigned to a default graph called `default`.
+
+Alternatively, you may give your top-level graph another name by defining the top-level graph with xref:docs_wupn6y0y.adoc[`graph(Graph)`], and by defining the top-level nodes and edges with two parameters, where the second parameter is the identifier of the top-level graph: xref:docs_espqt3up.adoc[`node(Node, Graph)`] and xref:docs_1nqk63vb[`edge(Edge, Graph)`].
+
+The original Clingraph allows defining multiple drawings to produce multiple image files at once, by defining multiple top-level graphs. Cyberismo graph support has been designed to produce one graph that is embedded on the page, so do not define multiple top-level graphs. Instead, you should either use the `default` graph or a single top-level graph with some other name.
+
+To define a subgraph, use xref:docs_8t0nnfv2.adoc[`graph(Subgraph, Graph)`]. In Cyberismo, subgraphs are automatically so-called clusters with a bounding rectangle, so Cyberismo adds the string `cluster_` as a prefix to the names of subgraphs to request the Graphviz DOT layout engine to draw them within a bounding rectangle.
+
+== Nodes
+
+To define a node in the default top-level graph, use xref:docs_8ybjvnft.adoc[`node(Node)`].
+
+To define a node in your custom-named top-level graph or as a part of a subgraph, use xref:docs_espqt3up.adoc[`node(Node, Graph)`].
+
+== Edges
+
+An edge is identified by a tuple of either 2 elements `(Source, Destination)` or 3 elements `(Source, Destination, Identifier)`, where `Source` and `Destination` are identifiers of nodes or subgraphs. Use a tuple of 3 elements if you need to draw multiple edges between the same source and destination, and choose an `Identifier` that tells these edges apart.
+
+To define an edge in the default top-level graph, use xref:docs_1i04tpi3.adoc[`edge(Edge)`].
+
+Edges also belong to a graph. In practice, it is usually best to place edges in the top-level graph. If you are using the default graph, use xref:docs_1i04tpi3.adoc[`edge(Edge)`], and if you have a custom-named top-level graph, use xref:docs_1nqk63vb[`edge(Edge, Graph)`].
+
+== Attributes
+
+Graphviz supports a number of attributes for graphs, nodes, and edges, which can be set using the xref:docs_k6azkgw5.adoc[`attr`] term. The documentation for Graphviz attributes is available https://graphviz.org/doc/info/attrs.html[here].
+
+== Example 1: Simple graph
+
+The graph model `"docs/graphModels/example1"` has been implemented as follows:
+
+----
+node(node1).
+attr(node, node1, "label", "Node 1").
+
+node(node2).
+attr(node, node2, "label", "Node 2").
+
+edge((node1, node2)).
+
+attr(graph, default, "rankdir", "LR").
+----
+
+The model implementation declares two nodes and sets the `label` attribute for both of them. There is also an edge between the nodes. Finally, the Graphviz `rankdir` attribute defines that the graph should be drawn from left to right, instead of the default direction top to bottom.
+
+As this model does not require any parameterisation, we do not need a graph view, but since the graph macro always expects a view, we have created an empty graph view `"docs/graphViews/empty"`. Together, they yield the following result.
+
+{{#graph}}
+  "model": "docs/graphModels/example1",
+  "view": "docs/graphViews/empty"
+{{/graph}}
+
+== Example 2: Card tree
+
+Consider `docs/graphModels/example2`, which visualises the card hierarchy. The model has been implemented as follows:
+
+----
+view(Child) :- view(Parent), parent(Child, Parent).
+
+node(Card) :- card(Card), view(Card).
+attr(node, Card, "label", Title) :- 
+    node(Card), field(Card, "title", Title).
+attr(node, Card, "shape", "Box") :- node(Card).
+
+edge((Parent, Child)) :- 
+    parent(Child, Parent), view(Child), view(Parent).
+----
+
+This model defines nodes for all such cards for which `view(Card)` holds. The nodes have a box shape, and the card title is used as the label of the node. Edges are drawn from parent cards to their children.
+
+The graph view `docs/graphViews/example2` defines a single fact as follows:
+
+----
+{{#raw}}
+view({{cardKey}}).
+{{/raw}}
+----
+
+This view parameterises the model based on the card key. By default, the `cardKey` is the card key of the card that includes the graph macro. In the case of this card, the graph model and view can be used in a graph macro like this:
+
+----
+{{#raw}}
+{{#graph}}
+  "model": "docs/graphModels/example2",
+  "view": "docs/graphViews/example2"
+{{/graph}}
+{{/raw}}
+----
+
+When used on this page, the result looks like this:
+
+{{#graph}}
+  "model": "docs/graphModels/example2",
+  "view": "docs/graphViews/example2"
+{{/graph}}
+
+We can override the default card key by defining another card key in the parameters of the graph macro. For example, the following graph macro sets the card key to xref:docs_13.adoc[Installing, updating, and uninstalling].
+
+----
+{{#raw}}
+{{#graph}}
+  "model": "docs/graphModels/example2",
+  "view": "docs/graphViews/example2",
+  "cardKey": "docs_13"
+{{/graph}}
+{{/raw}}
+----
+
+It results in the following diagram:
+
+{{#graph}}
+  "model": "docs/graphModels/example2",
+  "view": "docs/graphViews/example2",
+  "cardKey": "docs_13"
+{{/graph}}
+
+== Using the `rank` field
+
+The order of lines in the Graphviz DOT format is sometimes significant to the ordering of elements in the final drawing. Cyberismo uses its query language and a report to produce the DOT format file, and it orders the results based on the `rank` field.
+
+Cyberismo keeps track of the ordering of cards in the navigation tree with the built-in `rank` field. The Cyberismo main logic program includes `field` facts for the rank field.
+
+If you generate your graph so that nodes and subgraphs are cards, then these elements will automatically have a `rank` field. Otherwise, if you want to influence the ordering of the DOT file, you can define terms of the format `field(Element, "rank", Rank)` to set a rank. The exact format of the rank does not matter, as long as the elements can be ordered by their rank.
+
+== Comparison with Clingraph
+
+Cyberismo's graph support is based on https://github.com/potassco/clingraph[Clingraph], the graph visualiser from the Potassco collection. However, Cyberismo does not use the Python implementation of Clingraph but includes its own implementation, which is internally a Cyberismo report that produces Graphviz DOT format. If you are familiar with Clingraph, it is useful to understand the following differences:
+
+* When generating graphs, Cyberismo automatically includes its main logic program.
+* Cyberismo graphs produce a single graph, whereas Clingraph can produce multiple graphs from the same logic program. Do not define multiple top-level graphs in your graph models.
+* Cyberismo does not allow any user-defined Python functions or other external functions.
+* Cyberismo does not currently implement Clingraph's `@svg` external function for interactive SVG images.
+* To format strings for the labels in Cyberismo, use the xref:docs_1clzlh94.adoc[`@concatenate`] and xref:docs_hm5x5ki1.adoc[`@wrap`] external functions, instead of the Jinja templates that Clingraph supports.
+* Instead of a Clingraph-like `@cluster` external function to form strings with a `cluster_` prefix, use the xref:docs_1clzlh94.adoc[`@concatenate`] function.
+* Clingraph does not have a similar model and view concept as Cyberismo.
+
+== Summary of logic program terms for implementing graphs
+
+{{#report}}
+    "name": "base/reports/predicates",
+    "category": "Graph implementation"
+{{/report}}

@@ -1,0 +1,5 @@
+{
+    "name": "base/calculations/task",
+    "displayName": "Task",
+    "description": "Enforces task rules: justification for not-applicable, review expiry, and overdue due dates"
+}

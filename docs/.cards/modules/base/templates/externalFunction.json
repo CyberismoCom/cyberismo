@@ -1,0 +1,6 @@
+{
+    "name": "base/templates/externalFunction",
+    "displayName": "External function",
+    "category": "Documentation",
+    "description": "Documentation for an external function in logic programs"
+}

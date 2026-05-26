@@ -1,0 +1,12 @@
+{
+    "title": "Score card macro",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Ready",
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "public",
+    "rank": "0|d",
+    "lastUpdated": "2026-02-14T17:08:10.822Z",
+    "links": [],
+    "templateCardKey": "base_2",
+    "lastTransitioned": "2026-02-14T17:06:06.207Z"
+}

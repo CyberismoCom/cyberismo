@@ -1,0 +1,6 @@
+{
+    "name": "base/reports/externalFunctions",
+    "displayName": "External functions",
+    "category": "Documentation",
+    "description": "Shows a table of documented logic program external functions"
+}

@@ -1,0 +1,8 @@
+== Parameters
+
+* `Descendant`: A key of a descendant object, typically a card key
+* `Ancesctor`: A key of an ancestor object, typically a card key 
+
+== Description
+
+The `ancestor` predicate declares that an ancestor of `Descendant` is `Ancestor`. 

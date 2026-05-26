@@ -1,0 +1,32 @@
+The `image` macro includes an image from a card attachment in the card content.
+
+NOTE: We recommend using the Cyberismo `image` macro instead of https://docs.asciidoctor.org/asciidoc/latest/macros/images/[AsciiDoc's built-in image macro], as there are some limitations in Cyberismo's support for the AsciiDoc native image macro.
+
+== Parameters
+
+* `"fileName"`: The filename of the image attachment to include
+* `"cardKey"`: The key of the card containing the image attachment. Optional, if not specified, uses the current card
+* `"alt"`: Alternative text for the image (optional)
+* `"title"`: Title attribute for the image (optional)
+
+== Example
+
+Consider the following `image` macro:
+
+```
+{{#raw}}
+
+{{#image}}
+  "fileName": "cyberismo-architecture-website.svg",
+  "cardKey": "docs_11"
+{{/image}}
+
+{{/raw}}
+```
+
+This macro will include an image from {{#xref}}"cardKey": "docs_11"{{/xref}} as follows:
+
+{{#image}}
+  "fileName": "cyberismo-architecture-website.svg",
+  "cardKey": "docs_11"
+{{/image}}

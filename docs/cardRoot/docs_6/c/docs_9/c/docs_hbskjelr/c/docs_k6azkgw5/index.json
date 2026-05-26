@@ -1,0 +1,12 @@
+{
+    "title": "attr(ElementType, Element, Attribute, Value)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|f",
+    "lastUpdated": "2025-07-10T06:42:01.511Z",
+    "base/fieldTypes/briefDescription": "A Graphviz attribute of a graph element has a specific value",
+    "base/fieldTypes/category": "Graph implementation",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-09T13:52:53.580Z"
+}

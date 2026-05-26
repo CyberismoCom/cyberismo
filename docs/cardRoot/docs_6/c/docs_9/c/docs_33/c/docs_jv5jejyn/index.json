@@ -1,0 +1,12 @@
+{
+    "title": "childResult(Key, Child, Collection)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|an",
+    "lastUpdated": "2025-07-01T09:20:11.315Z",
+    "base/fieldTypes/briefDescription": "A query result has a child result that belongs to a named collection",
+    "base/fieldTypes/category": "Query language",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-01T06:02:13.564Z"
+}

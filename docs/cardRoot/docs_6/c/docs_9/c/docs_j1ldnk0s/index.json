@@ -1,0 +1,12 @@
+{
+    "title": "Implementing reports",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Ready",
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "public",
+    "rank": "0|g",
+    "lastUpdated": "2026-02-14T17:08:22.504Z",
+    "links": [],
+    "templateCardKey": "base_2",
+    "lastTransitioned": "2026-02-14T17:06:26.513Z"
+}

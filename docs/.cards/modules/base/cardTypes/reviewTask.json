@@ -1,0 +1,47 @@
+{
+    "name": "base/cardTypes/reviewTask",
+    "workflow": "base/workflows/reviewTask",
+    "customFields": [
+        {
+            "name": "base/fieldTypes/owner",
+            "isCalculated": false
+        },
+        {
+            "name": "base/fieldTypes/informationClassification",
+            "isCalculated": false
+        },
+        {
+            "name": "base/fieldTypes/reviewPeriod",
+            "isCalculated": false
+        },
+        {
+            "name": "base/fieldTypes/lastReviewed",
+            "isCalculated": false
+        },
+        {
+            "name": "base/fieldTypes/justification",
+            "isCalculated": false
+        },
+        {
+            "name": "base/fieldTypes/adoptionStep",
+            "isCalculated": false
+        },
+        {
+            "name": "base/fieldTypes/identifier",
+            "isCalculated": false
+        }
+    ],
+    "alwaysVisibleFields": [
+        "base/fieldTypes/owner",
+        "base/fieldTypes/lastReviewed"
+    ],
+    "optionallyVisibleFields": [
+        "base/fieldTypes/justification",
+        "base/fieldTypes/reviewPeriod",
+        "base/fieldTypes/informationClassification",
+        "base/fieldTypes/adoptionStep",
+        "base/fieldTypes/identifier"
+    ],
+    "displayName": "Review task",
+    "description": "A task that tracks the review of a document"
+}

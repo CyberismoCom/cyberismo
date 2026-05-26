@@ -1,0 +1,9 @@
+== Parameters
+
+* `CardType`: the name of a card type
+* `"workflow"`: a string that denotes the workflow field
+* `Workflow`: the name of the workflow of the card type
+
+== Description
+
+Defines the name of the workflow for a card type.

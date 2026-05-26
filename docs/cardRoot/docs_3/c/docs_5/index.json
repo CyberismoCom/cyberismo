@@ -1,0 +1,11 @@
+{
+    "title": "Exporting a static documentation site",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Ready",
+    "rank": "0|a",
+    "lastUpdated": "2026-02-14T14:54:57.563Z",
+    "lastTransitioned": "2024-10-21T10:44:28.014Z",
+    "links": [],
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "public"
+}

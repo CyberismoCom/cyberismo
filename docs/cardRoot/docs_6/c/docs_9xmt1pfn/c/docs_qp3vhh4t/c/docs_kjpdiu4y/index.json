@@ -1,0 +1,12 @@
+{
+    "title": "linkSourceCardType(LinkType, CardType)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|bg",
+    "lastUpdated": "2025-07-07T19:20:43.566Z",
+    "base/fieldTypes/briefDescription": "A card type is allowed for the source card of links of a link type",
+    "base/fieldTypes/category": "Link types",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-07T19:20:43.566Z"
+}

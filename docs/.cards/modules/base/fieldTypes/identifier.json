@@ -1,0 +1,6 @@
+{
+    "name": "base/fieldTypes/identifier",
+    "displayName": "Identifier",
+    "dataType": "shortText",
+    "description": "An identifier for creating various mappings between cards"
+}

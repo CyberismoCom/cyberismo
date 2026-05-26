@@ -1,0 +1,12 @@
+{
+    "title": "field((FieldType, EnumValue), \"enumDescription\", EnumDescription)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|j",
+    "lastUpdated": "2025-07-07T20:00:38.820Z",
+    "base/fieldTypes/briefDescription": "Defines a description for an enum value",
+    "base/fieldTypes/category": "Field types",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-07T19:45:00.581Z"
+}

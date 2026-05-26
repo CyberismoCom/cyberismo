@@ -1,0 +1,11 @@
+{
+    "title": "Report macro",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Ready",
+    "rank": "0|ct",
+    "lastUpdated": "2026-02-14T17:08:10.974Z",
+    "links": [],
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "public",
+    "lastTransitioned": "2025-07-07T13:58:13.619Z"
+}

@@ -1,0 +1,21 @@
+== Parameters
+
+* `Key`: An identifier of an object. For example, a card key.
+* `Field1`: A name of a first field of the object
+* `Value1`: The value of the first field
+* `Field2`: A name of a second field of the object
+* `Value2`: The value of the second field
+
+== Description
+
+The `fields` predicate is a helper that enables a single rule in a query to define values for two (or three) fields.
+
+This predicate has been implemented with the following rules:
+
+----
+field(Key, Field, Value) :-
+    fields(Key, Field, Value, _, _).
+
+field(Key, Field, Value) :-
+    fields(Key, _, _, Field, Value).
+----

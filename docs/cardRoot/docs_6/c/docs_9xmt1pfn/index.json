@@ -1,0 +1,12 @@
+{
+    "title": "Configuring resources",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Ready",
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "public",
+    "rank": "0|a",
+    "lastUpdated": "2026-02-16T06:23:51.722Z",
+    "links": [],
+    "templateCardKey": "base_2",
+    "lastTransitioned": "2025-12-16T10:14:01.548Z"
+}

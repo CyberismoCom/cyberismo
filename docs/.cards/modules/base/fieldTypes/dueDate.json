@@ -1,0 +1,6 @@
+{
+    "name": "base/fieldTypes/dueDate",
+    "displayName": "Due date",
+    "dataType": "date",
+    "description": "Deadline for completing the task"
+}

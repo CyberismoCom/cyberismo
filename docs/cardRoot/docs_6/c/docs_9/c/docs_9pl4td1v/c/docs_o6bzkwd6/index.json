@@ -1,0 +1,12 @@
+{
+    "title": "onTransitionSetField(CardKey, Transition, AffectedCard, Field, NewValue)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|b",
+    "lastUpdated": "2025-07-01T11:50:25.262Z",
+    "base/fieldTypes/briefDescription": "A field of a card shall be updated as a side effect of a workflow state transition",
+    "base/fieldTypes/category": "Side effects",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-01T11:50:25.262Z"
+}

@@ -1,0 +1,9 @@
+== Parameters
+
+* `FieldType`: the name of a field type
+* `"displayName"`: the string `"displayName"` that denotes the displayName field
+* `DisplayName`: a display name of the field type
+
+== Description
+
+A field type has a display name.

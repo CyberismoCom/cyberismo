@@ -1,0 +1,70 @@
+The Cyberismo app is a local web application for viewing and editing the contents of a Cyberismo project. It runs in a web browser at http://localhost:3000/.
+
+== Starting the app
+
+To start the app, execute the following command in the Cyberismo project directory:
+
+[source,console]
+----
+$ cyberismo app
+----
+
+Then open a browser and navigate to http://localhost:3000/.
+
+CAUTION: The Cyberismo app has been designed for local use by a single user only. Do not expose this web application over the network or to multiple users.
+
+== App layout
+
+The app uses a two-column layout:
+
+* The *left panel* contains a searchable navigation tree for browsing cards. The panel is resizable.
+* The *right panel* displays the selected card's content, metadata, and related information.
+
+Above the content area, a *toolbar* provides contextual actions for the selected card.
+
+At the very top, the *application bar* shows the Cyberismo logo, a theme toggle (system / light / dark), and a "New Card" button.
+
+== Viewing a card
+
+When you select a card from the navigation tree, the right panel shows:
+
+* *Card title* — displayed as a heading at the top
+* *Metadata section* — a collapsible panel showing the card key, card type, last updated date, labels, and custom fields. Some fields are always visible; others can be revealed with a "Show more" toggle.
+* *Linked cards section* — a collapsible accordion showing all links to and from the card, with link type, target card, and optional description
+* *Rendered content* — the card's AsciiDoc content, rendered as formatted HTML with support for macros
+* *Sidebar* — on the right side, showing a table of contents (auto-generated from headings), notifications, and policy check results
+
+== Workflow transitions
+
+The card toolbar shows the current workflow state as a coloured dropdown button. Clicking it reveals the available transitions from the current state. Selecting a transition changes the card's state immediately.
+
+== Creating new cards
+
+Click the *"New Card"* button in the application bar or press *C* to open the card creation dialog. Templates are displayed as visual cards organised by category. Select a template and click *Create*. The new card is created as a child of the currently selected card.
+
+== Keyboard shortcuts
+
+[cols="1,2"]
+|===
+| Shortcut | Action
+
+| *C*
+| Open the "New Card" dialog
+
+| *E*
+| Enter edit mode for the current card
+
+| *Escape*
+| Cancel editing / clear search
+
+| *Home*
+| Navigate to the first card in the tree
+|===
+
+NOTE: Keyboard shortcuts are disabled when focus is in a text input or editor.
+
+== Learn more
+
+{{#report}}
+  "name": "base/reports/childrenList"
+{{/report}}

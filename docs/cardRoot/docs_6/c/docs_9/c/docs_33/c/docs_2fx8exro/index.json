@@ -1,0 +1,12 @@
+{
+    "title": "fields(Key, Field1, Value1, Field2, Value2, Field3, Value3)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|ar",
+    "lastUpdated": "2025-07-01T09:01:15.272Z",
+    "base/fieldTypes/briefDescription": "Three fields of an object have specific values",
+    "base/fieldTypes/category": "Query language",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2025-07-01T09:01:15.272Z"
+}

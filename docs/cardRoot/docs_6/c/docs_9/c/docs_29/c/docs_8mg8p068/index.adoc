@@ -1,0 +1,13 @@
+== Parameters
+
+* `Key`: An identifier of an object. For example, a card key.
+* `Field`: A name of a field
+* `Value`: The value of the field
+
+== Description
+
+The `field` predicate declares that a field of an object has a specific value.
+
+Cyberismo generates `field` facts for the properties of cards and other resources. Logic programs can use `field` in the heads of rules to define calculated fields.
+
+When you define values of fields with facts or rules, the logic program also needs to include information about the data type of the field. If the field is based on a field type configuration, then the data type is available automatically from the field type, but in other cases, you should also define a data type for the field using `{{#xref}}"cardKey":"docs_aozy8cfm"{{/xref}}`.

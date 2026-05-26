@@ -1,0 +1,56 @@
+{
+    "name": "base/fieldTypes/reviewMonth",
+    "displayName": "Review month",
+    "dataType": "enum",
+    "enumValues": [
+        {
+            "enumValue": "january",
+            "enumDisplayValue": "January"
+        },
+        {
+            "enumValue": "february",
+            "enumDisplayValue": "February"
+        },
+        {
+            "enumValue": "march",
+            "enumDisplayValue": "March"
+        },
+        {
+            "enumValue": "april",
+            "enumDisplayValue": "April"
+        },
+        {
+            "enumValue": "may",
+            "enumDisplayValue": "May"
+        },
+        {
+            "enumValue": "june",
+            "enumDisplayValue": "June"
+        },
+        {
+            "enumValue": "july",
+            "enumDisplayValue": "July"
+        },
+        {
+            "enumValue": "august",
+            "enumDisplayValue": "August"
+        },
+        {
+            "enumValue": "september",
+            "enumDisplayValue": "September"
+        },
+        {
+            "enumValue": "october",
+            "enumDisplayValue": "October"
+        },
+        {
+            "enumValue": "november",
+            "enumDisplayValue": "November"
+        },
+        {
+            "enumValue": "december",
+            "enumDisplayValue": "December"
+        }
+    ],
+    "description": "The month in which this task should be revisited."
+}

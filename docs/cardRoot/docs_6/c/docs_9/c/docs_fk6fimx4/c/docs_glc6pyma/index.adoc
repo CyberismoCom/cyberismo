@@ -1,0 +1,11 @@
+== Parameters
+
+This function does not have any parameters
+
+== Return value
+
+Today's date.
+
+== Description
+
+The `@today()` function returns today's date.

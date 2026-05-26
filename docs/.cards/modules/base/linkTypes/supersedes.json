@@ -1,0 +1,14 @@
+{
+    "name": "base/linkTypes/supersedes",
+    "outboundDisplayName": "supersedes",
+    "inboundDisplayName": "is superseded by",
+    "sourceCardTypes": [
+        "base/cardTypes/decision"
+    ],
+    "destinationCardTypes": [
+        "base/cardTypes/decision"
+    ],
+    "enableLinkDescription": false,
+    "displayName": "Supersedes",
+    "description": "Indicates a decision replaces a previous one"
+}

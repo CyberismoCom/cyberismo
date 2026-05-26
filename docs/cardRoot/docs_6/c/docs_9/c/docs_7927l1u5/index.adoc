@@ -1,0 +1,55 @@
+Cyberismo uses the calculated field `statusIndicator` to determine the indicator that is shown in front of the titles of cards in the navigation tree. The following values are supported:
+
+* `initial`: a grey dot
+* `active`: a yellow dot
+* `closed`: a green dot
+* `error`: an error icon
+
+Note that the values `initial`, `active`, and `closed` are also used as workflow state categories.
+
+== Default indicator in the base module
+
+If your project is using the base module, then the following rules from the base module determine the status indicators by default. The rules mean that unless the default status indicator logic has been disabled, policy check failures cause the error indicator to be shown, and otherwise the workflow state category determines the status indicator.
+
+----
+field(Card, "statusIndicator", "error") :-
+    base_policyCheckFailure(Card, _, _, _),
+    not base_disableDefaultStatusIndicator.
+
+field(Card, "statusIndicator", StatusIndicator) :-
+    not base_policyCheckFailure(Card, _, _, _),
+    not field(Card, "progress", _),
+    workflowState(Workflow, State, StatusIndicator),
+    field(Card, "cardType", CardType),
+    field(Card, "workflowState", State),
+    field(CardType, "workflow", Workflow),
+    not base_disableDefaultStatusIndicator.
+----
+
+== The status indicator in Cyberismo docs
+
+This documentation project defines the status indicator as follows:
+
+* If a card has a policy check failure, then the error indicator is shown, else
+* If the card or one of its descendants has been updated within 45 days, then show the `active` status indicator.
+* Otherwise, do not show a status indicator.
+
+This is implemented with the following logic program:
+
+----
+base_disableDefaultStatusIndicator.
+
+field(Card, "statusIndicator", "error") :-
+    base_policyCheckFailure(Card, _, _, _).
+
+field(Card, "statusIndicator", "active") :-
+    not base_policyCheckFailure(Card, _, _, _),
+    not field(Card, "progress", _),
+    field(Card, "lastUpdated", LastUpdated),
+    @daysSince(LastUpdated) < 45.
+
+field(Card, "statusIndicator", "active") :-
+    not base_policyCheckFailure(Card, _, _, _),
+    ancestor(Descendant, Card),
+    field(Descendant, "statusIndicator", "active").
+----

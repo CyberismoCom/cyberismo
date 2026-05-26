@@ -1,0 +1,72 @@
+[.lead]
+*Cyberismo* is an open-source solution for cybersecurity management in software projects. It makes adopting compliant cybersecurity processes easy. The solution is modular and tailorable, ensuring it fits each organisation's needs. With Cyberismo, you can automate secure development implementation, compliance validation, and evidence archiving.
+
+* link:https://cyberismo.com/solution[Solution introduction]
+* xref:docs_12.adoc[Demo]
+* xref:docs_11.adoc[Solution architecture]
+* xref:docs_13.adoc[Installation]
+* xref:docs_2.adoc[Getting started tutorial]
+
+== Why cybersecurity compliance is important
+
+As the cybersecurity threat landscape grows more serious, customers of digital product manufacturers and digital service providers increasingly require their suppliers to comply with standards, such as ISO 27001 for information security management systems, IEC 62443-4-1 for secure development life cycle requirements in industrial product development, IEC 62304 for life cycle requirements of medical software, or ISO/SAE 21434 for engineering cybersecurity requirements in road vehicle development. These organisations also face increasing regulation, such as the EU NIS2 directive and the EU Cyber Resilience Act.
+
+Compliance is complex and hard to articulate. It requires executing procedures across multiple disciplines, such as human resources, premises management, software development, technical writing, and Information Technology (IT) operations. Compliance may also require specific technical or functional capabilities, and correct interpretation of what needs to be done requires understanding of the technical architecture.
+
+The Cyberismo solution emphasises the importance of managing the information model that describes the cybersecurity process and the evidence of practising it. In terms of the information model, compliance reduces to the status of the units of information and their relationships. The Cyberismo solution allows defining compliance as logical rules based on the attributes and relationships of the information units.
+
+== The goals of the Cyberismo solution
+
+The goals of the _Cyberismo_ solution are facilitating the adoption of compliance and cybersecurity management, automating many aspects of it, and improving collaboration on the cybersecurity and compliance content.
+
+With Cyberismo, you can get cyber risks under control faster, and save time and money in your cybersecurity management and compliance efforts.
+
+=== Make it easier to adopt cybersecurity and compliance
+
+Making the adoption of cybersecurity and compliance smooth is the key goal for the Cyberismo solution. With Cyberismo, a software development team can:
+
+* Get started with cybersecurity management immediately,
+* See the current status and what should be done next clearly, and
+* Handle the complete cybersecurity process, including various technical and architecture documents, threat models, risk management, checklists and reviews, and the gathering and archiving of evidence.
+
+=== Save time and money by automating
+
+Cyberismo includes an integrated logic-based artificial intelligence (AI) engine _Clingo_, which enables automatic tracking of compliance and production of various metrics and reports.
+
+The Cyberismo solution is based on a simple plain text information model representation format that can be managed by automated CI/CD tool chains. This makes the solution an instance of the _Everything as Code_ and _Security as Code_ paradigms.
+
+=== Improve collaboration thanks to open content format
+
+The open plain-text Cyberismo content format makes it possible to collaborate on cybersecurity material both internally and with other organisations, using familiar tools such as Git and Git hosting services.
+
+The content format is based on basic file types such as AsciiDoc and JSON, so it is easy to convert to other file formats.
+
+As Cyberismo supports packaging the content into reusable content modules, it is possible to share the blueprints for cybersecurity and compliance management with development teams conveniently.
+
+== The main components of the Cyberismo solution
+
+The main components of the solution are the Cyberismo content modules, the Cyberismo tool, and commercial services and support.
+
+Cyberismo content modules:: To implement the security-as-code paradigm, the Cyberismo solution uses a plain text content format that can be managed in software version control. The content format is based on AsciiDoc, JavaScript Object Notation (JSON), and JSON Schema. The AsciiDoc format is a plain text markup language that supports rich semantic elements and that has strong tool support for conversions to other file formats and for publications. While JSON is a common text-based data format for representing structured data, JSON Schema is a vocabulary for annotating and validating JSON documents. Cyberismo content can be packaged into reusable content modules.
+Cyberismo tool:: The Cyberismo tool provides three user interfaces: a command-line interface (CLI), a local web application interface, and a static website interface. The tool invokes Clingo, a state-of-the-art implementation of the Answer Set Programming (ASP) paradigm, to perform queries and calculations. The same Cyberismo tool can be installed in the CI/CD tool chain, to perform automated checks and validations, to integrate with an issue tracker, and to generate and archive publications. The CI/CD tool chain invokes the tool using the command-line interface.
+Services and support:: The Cyberismo company provides commercial services to support you with the solution: cybersecurity consulting, solution integration, Cyberismo content development, training, and technical support. Visit https://cyberismo.com[Cyberismo] for more information.
+
+== Terms
+
+The following are the key terms and concepts in the Cyberismo solution.
+
+Cyberismo project:: A project is a top-level container for the Cyberismo content format. A project can contain cards, copies of imported modules, and various kinds of configuration such as custom workflows, field types, link types, templates, and calculations. A project is typically managed in a version control system. In the file system, the cards of a project are stored in a directory called `cardRoot`, and the other elements of the project are stored in a hidden directory called `.cards`.
+
+Card:: A card is the main information unit in the Cyberismo content format. Conceptually, a card is similar to a ticket in an issue tracker or a document in an enterprise wiki. Technically, a card is a directory that contains an AsciiDoc document `index.adoc`, associated metadata in a JSON file `index.json`, and optional file attachments in a subdirectory named `a`. Cards are organised in a directory structure, where a card may have one or more child cards in a subdirectory named `c`.
+
+Card key:: Each card is uniquely identified with a card key. The card key begins with a Cyberismo project-specific prefix.
+
+Card type:: Each card is of a specific card type, which defines the workflow being used and optionally a set of custom fields. Separate card types may be defined, for example, for controlled documents, risks, threats, security requirements, architecture decisions, or tasks. Custom fields may be defined, for example, for various dates such as deadlines or time stamps, enumerations such as the likelihood or the impact of a risk, or a person, such as an assignee of a task.
+
+Workflow:: A workflow is a state machine that defines a set of states and state transitions for cards, such as Open → In Progress → Done or Draft → Approved → Archived.
+
+Links:: A link is a relationship between cards. Each link is of a specific link type, such as _causes_ or _mitigates_. Links may be used, for example, to represent that an asset bears a risk, a control mitigates a risk, a control implements a compliance requirement, a threat is related to another threat, or that a test verifies a requirement. When cards are used to represent the technical building blocks of a software solution, such as the data flow diagram that consists of processes, trust boundaries, or data stores, then links can be used to represent data flows between the building blocks.
+
+Template:: A template contains a card or a set of cards in a hierarchy that is used as a template for user content. When the user creates new card(s) from a template, a new copy of the template card(s) is made with new unique card keys. Note that cards in a template may form a deep hierarchy, enabling the definition of complex templates with multiple cards, such as a template for a software project.
+
+Module:: A module is a reusable collection of templates, card types, workflows, field types, link types, and calculations. When a user imports a module as a dependency to their Cyberismo project, a read-only copy of the module is included in the project directory structure. The most common module is the _base_ module, which defines commonly used basic card types and their workflows.

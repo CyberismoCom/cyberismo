@@ -1,0 +1,13 @@
+# Asciidoctor cache
+.asciidoctor
+
+# Local docs build outputs
+*.html
+*.pdf
+*.puml
+
+# CLI scratch dirs and logs
+.temp
+.logs
+*-debug.log
+*-error.log

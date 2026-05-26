@@ -1,0 +1,22 @@
+{
+  "title": "Report",
+  "$id": "reportMacroDefaultSchema",
+  "description": "A report object provides supplemental information about a report",
+  "type": "object",
+  "properties": {
+    "name": {
+      "description": "The name of the report",
+      "type": "string"
+    },
+    "cardKey": {
+      "description": "Used to override the default cardKey, which is the cardKey of the card, in which the report macro is used",
+      "type": "string"
+    },
+    "category": {
+      "description": "Include only external functions that have a specific category",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": ["name"]
+}

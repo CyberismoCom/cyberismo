@@ -1,0 +1,6 @@
+{
+    "name": "base/fieldTypes/reviewPeriod",
+    "displayName": "Review period (days)",
+    "dataType": "integer",
+    "description": "Number of days between reviews"
+}

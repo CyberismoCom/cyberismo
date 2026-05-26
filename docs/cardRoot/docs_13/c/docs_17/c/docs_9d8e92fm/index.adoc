@@ -1,0 +1,43 @@
+== Building and running Cyberismo locally from source
+
+=== Prerequisites
+
+See {{#xref}}"cardKey":"docs_17"{{/xref}} for information about common prerequisites for all installation methods.
+
+Install Node.js. The currently supported Node.js version is the latest LTS, v20.10.0 or later. Node.js is downloadable from https://nodejs.org/.
+
+*Ubuntu 20.04* and newer support automatic dependency installation via a post-install script. The post-install script downloads a working clingo binary into the project directory and verifies the presence of graphviz, which must be installed manually if it is not already present. Graphviz can be installed with the following command:
+
+  $ sudo apt-get update && sudo apt-get install -y graphviz
+
+*Other Linux distributions*: Automatic dependency installation is currently a work in progress. In the meantime, follow these steps to manually install the required dependencies:
+
+. The currently supported Clingo version is 5.7.1. We recommend installing a Python-enabled build using Anaconda or Miniconda, following the instructions provided at: https://github.com/potassco/clingo/releases/.
+
+=== Building
+
+Take the following steps:
+
+. Clone the source repository:
+
+  $ git clone https://github.com/CyberismoCom/cyberismo.git
+
+. Change to the source directory. If you previously cloned the repository, pull the latest changes:
+
+  $ cd cyberismo
+  $ git pull origin main # Optional
+
+. Install pnpm with npm command:
+
+  $ npm install -g pnpm
+
+. Execute the following commands:
+
+  $ pnpm setup
+  $ pnpm install
+  $ pnpm build
+  $ pnpm link -g
+
+=== Running
+
+After building and installing, run `cyberismo --help` to see the command-line help.

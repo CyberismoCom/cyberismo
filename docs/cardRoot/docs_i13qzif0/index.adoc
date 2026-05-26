@@ -1,0 +1,14 @@
+The following are ways you can give feedback on the Cyberismo solution and content modules.
+
+== Give a thumbs up
+
+* Follow link:https://www.linkedin.com/company/cyberismo[Cyberismo] on LinkedIn.
+* Star the link:https://github.com/CyberismoCom/cyberismo[Cyberismo repository] on GitHub.
+
+== Discuss
+
+Join link:https://github.com/CyberismoCom/cyberismo/discussions[Cyberismo Discussions] on GitHub.
+
+== Report a bug or suggest an improvement
+
+Create an link:https://github.com/CyberismoCom/cyberismo/issues[issue in GitHub].

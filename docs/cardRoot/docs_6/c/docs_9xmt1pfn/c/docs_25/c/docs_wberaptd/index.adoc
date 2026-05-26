@@ -1,0 +1,9 @@
+== Parameters
+
+* `FieldType`: the name of a field type
+* `"dataType"`: a string that denotes the dataType of a field 
+* `DataType`: the data type of the field type
+
+== Description
+
+The data type of the field type. One of the following values: `shortText`, `longText`, `number`, `integer`, `boolean`, `enum`, `list`, `date`, `dateTime`, or `person`.

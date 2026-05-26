@@ -1,0 +1,78 @@
+== Introduction
+
+Cyberismo provides a demo environment for you to explore. The demo environment includes a welcome page that helps you navigate the project contents, as well as an example secure development project for an imaginary IoT device.
+
+This demo project showcases the capabilities of Cyberismo, including:
+
+- automatic process metrics
+- interconnected tasks
+- a threat modelling tool
+
+You can learn more about these features on the welcome page.
+
+== How to run the demo
+
+There are three methods to run the demo:
+
+* https://demo.cyberismo.com[Online demo], where you can start a personal demo environment for a quick try. Each online demo instance is automatically deleted after an hour, so if you want to explore the demo further, use one of the following options to run the demo locally on your own computer.
+* Demo container image which you can run with either Docker or Podman, available in https://hub.docker.com/repository/docker/cyberismo/cyberismo-demo[Docker Hub]
+* Demo Git Project available in https://github.com/CyberismoCom/cyberismo-demo[GitHub]
+
+Further instructions are provided below.
+
+=== Container image demo environment with Docker
+
+Follow these steps to run the demo container with Docker.
+
+* Verify that you have Docker installed by running the command:
+
+  $ docker --version
+
+If you do not see a version number, you may need to https://www.docker.com[install Docker] or use another demo option.
+
+* Use the following command to start the environment. The image downloads on the first run:
+
+  $ docker run --init --rm -it -p 3000:3000 cyberismo/cyberismo-demo
+
+Once running, the demo environment is accessible in your browser at:
+http://localhost:3000
+
+* To update the demo environment to the latest image, run:
+
+  $ docker pull cyberismo/cyberismo-demo:latest
+
+=== Container image demo environment with Podman
+
+Follow these steps to run the demo container with Podman.
+
+* Verify that you have Podman installed by running the command:
+
+  $ podman --version
+
+If you do not see a version number, you may need to https://podman.io/docs/installation[install Podman] or use another demo option.
+
+* Use the following command to start the environment. The image downloads on the first run:
+
+  $ podman run --init --rm -it -p 3000:3000 docker.io/cyberismo/cyberismo-demo
+
+Once running, the demo environment is accessible in your browser at:
+http://localhost:3000
+
+* To update the demo environment to the latest image, run:
+
+  $ podman pull cyberismo/cyberismo-demo:latest
+
+=== Demo project in a local Cyberismo application
+
+* If you have not already installed Cyberismo, follow the installation instructions in link:/cards/docs_17[Installing Cyberismo] under **Building and running Cyberismo from source**.
+
+* Download the demo project using the following command:
+
+  $ git clone https://github.com/CyberismoCom/cyberismo-demo.git
+
+* Navigate to the downloaded directory and run:
+
+  $ cyberismo app
+
+Once running, the demo environment is accessible in your browser at:
+http://localhost:3000

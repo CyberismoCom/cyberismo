@@ -1,0 +1,9 @@
+== Parameters
+
+* `Report`: the name of a report
+* `"description"`: the string `"description"` that denotes the description field
+* `Description`: a description of the report
+
+== Description
+
+A report has a description.

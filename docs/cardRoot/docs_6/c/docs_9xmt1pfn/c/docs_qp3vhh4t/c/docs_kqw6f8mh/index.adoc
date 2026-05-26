@@ -1,0 +1,9 @@
+== Parameters
+
+* `LinkType`: the name of a link type
+* `"category"`: the string `"category"` that denotes the category field
+* `Category`: the category of the link type
+
+== Description
+
+A link type has a category.

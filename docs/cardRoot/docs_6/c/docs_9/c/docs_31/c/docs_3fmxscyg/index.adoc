@@ -1,0 +1,23 @@
+== Parameters
+
+* `CardKey`: The card key of the card for which this operation has been denied
+* `Transition`: The name of the workflow transition that is denied
+* `Message`: A message that is shown to the user, if they try to execute this transition
+
+== Description
+
+Executing the workflow transition `Transition` for the card `CardKey` has been denied.
+
+== Example
+
+For example, the requirement SM-5 of IEC 62443-4-1 requires that there must be a process to review security requirements by representatives of architects, testers, customer advocates, and security advisors. Let us assume that we represent security requirements as cards, and that the security requirement template includes four child cards that track the reviews of the requirement by these four roles, so all security requirements will automatically include these child cards. We can deny a workflow transition to accept a security requirement unless all review subtasks have been completed with the following logic program:
+
+[source]
+----
+transitionDenied(X, "approve",
+    "Cannot approve this requirement, because not all review subtasks have been closed.") :-
+    field(X, "cardType", "moduleName/cardTypes/securityRequirement"),
+    parent(Y, X),
+    field(Y, "cardType", "moduleName/cardTypes/task"),
+    not field(Y, "workflowState", "Closed").
+----

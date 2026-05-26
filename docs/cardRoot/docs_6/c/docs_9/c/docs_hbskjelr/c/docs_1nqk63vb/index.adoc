@@ -1,0 +1,16 @@
+== Parameters
+
+* `Edge`: either a tuple `(Source, Destination)`, or a tuple `(Source, Destination, Identifier)`
+* `Graph`: the identifier of a graph 
+
+Edges are identified with a tuple that has either 2 or 3 members. The members of the tuple are:
+
+* `Source`: the identifier of the source node or subgraph. 
+* `Destination`: the identifier of the destination node or subgraph
+* `Identifier`: an identifier that tells apart edges that have the same source and destination.
+
+NOTE: If you want to draw edges that have a subgraph (cluster) as its source or destination, then you need to manually preprend `cluster_` to the identifier of the subgraph, using the `@concatenate` external function.
+
+== Description
+
+The parameter is an edge in the graph `Graph`.

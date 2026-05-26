@@ -1,0 +1,15 @@
+select("title"; "base/fieldTypes/category"; "base/fieldTypes/briefDescription").
+
+result(Card) :-
+{{#if category}}
+    field(Card, "base/fieldTypes/category", "{{category}}"),
+{{/if}}
+    field(Card, "cardType", "base/cardTypes/predicate"),
+    not template(Parent) :
+    parent(Card, Parent).
+
+{{#if orderBy}}
+orderBy("{{orderBy}}", "ASC").
+{{else}}
+orderBy("title", "ASC").
+{{/if}}

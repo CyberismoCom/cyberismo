@@ -1,0 +1,18 @@
+Not all users are able to install the Cyberismo tools or keep an up-to-date version of the content on their computers. Sometimes you want to view the latest versions of the cybersecurity documentation with a browser. The Cyberismo tool enables this with its static documentation site export functionality.
+
+You can export a Cyberismo project as a static documentation site by entering the following command in the Cyberismo project directory:
+
+[source,console]
+----
+$ cyberismo export site /path/to/target/directory
+----
+
+When complete, the script outputs:
+[source,console]
+----
+Site generation complete!
+Open file:///tmp/site/index.html in a browser to view your site.
+Done
+----
+
+CAUTION:  If you host the static documentation site for your users, then it is your responsibility to ensure that access to the documentation site is appropriately controlled.

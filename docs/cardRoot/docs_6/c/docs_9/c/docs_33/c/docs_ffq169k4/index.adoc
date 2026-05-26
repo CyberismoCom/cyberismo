@@ -1,0 +1,9 @@
+== Parameters
+
+* `Key`: A result of a query
+* `Child`: A child object of `Key`
+* `Property`: The name of the property of `Key` that will hold the `Child` object
+
+== Description
+
+This predicate is used to declare a hierarchical query result. The `childObject(Key, Child, Property)` predicate declares that the result `Key` will have a property called `Property` that will hold the `Child` object. 

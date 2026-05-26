@@ -1,0 +1,77 @@
+:sectnums:
+This tutorial shows how to create a new Cyberismo project with the base module.
+
+Prerequisites: xref:docs_13.adoc[Install Cyberismo].
+
+== Create a project
+
+First, check the command-line help for creating a project by executing the following command:
+
+[source,console]
+----
+$ cyberismo create project --help
+Usage: cyberismo create project [options] <name> <prefix> <path>
+
+Create a project
+
+Arguments:
+  name        Name for project.
+              Name can contain letters (a-z|A-Z), spaces, underscores or hyphens.
+  prefix      Prefix that will be part of each card's card key. Prefix can be 3-10 characters (A-Z)
+  path        Path where project is created.
+              Note that folder is automatically created.
+
+Options:
+  -h, --help  display help for command
+----
+
+Create a new project called "Cyberismo tutorial" that has the card key prefix tutorial in the directory `cyberismo-tutorial` with the following command:
+
+[source,console]
+----
+$ cyberismo create project "Cyberismo tutorial" tutorial cyberismo-tutorial
+----
+
+When Cyberismo creates a new project, it asks which of the default modules you want to import. Press Space to select 'Base module', then press Enter:
+
+[source,console]
+----
+$ cyberismo create project "Cyberismo tutorial" tutorial cyberismo-tutorial
+? Select modules to import (Press <space> to select, <a> to toggle all, <i> to invert selection, and <enter> to proceed)
+❯◉ Base module
+ ◯ Cyberismo EU Cyber Resilience Act
+ ◯ ISMS Essentials
+ ◯ Secure development essentials
+----
+
+After pressing Enter, wait for the import to complete.
+
+=== Import the base module later
+
+If you did not import the 'base' module while creating the project, you can still do it with the following command:
+
+[source,console]
+----
+$ cyberismo import module base -p cyberismo-tutorial
+----
+
+== Create a page
+
+The base module includes a page template. To create the first card in the new project, execute the following command:
+
+[source,console]
+----
+$ cd cyberismo-tutorial
+$ cyberismo create card base/templates/page
+----
+
+== Start the Cyberismo app
+
+You can view and edit the new project and its first card with the Cyberismo app. To start the app, execute the following command:
+
+[source,console]
+----
+$ cyberismo app
+----
+
+Then open a browser and navigate to http://localhost:3000/.

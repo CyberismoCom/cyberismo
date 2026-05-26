@@ -1,0 +1,6 @@
+{
+    "name": "base/fieldTypes/briefDescription",
+    "displayName": "Brief description",
+    "dataType": "longText",
+    "description": "Short summary of the item"
+}

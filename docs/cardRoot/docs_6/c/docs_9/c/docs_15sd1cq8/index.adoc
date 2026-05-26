@@ -1,0 +1,55 @@
+== Representing data from an external system
+
+A connector is a tool that fetches data from an external system and generates logic program facts from the data. 
+
+== Connector
+
+Each connector generates a `{{#xref}}"cardKey":"docs_4w2qcyj3"{{/xref}}` fact to declare itself.
+
+The connector tool should generate `{{#xref}}"cardKey":"docs_8mg8p068"{{/xref}}` facts about the connector object for the following fields:
+
+* `displayName`: the name of the connector (`shortText`)
+* `lastSynchronised`: a time stamp of when the connector generated the facts (`dateTime`)
+
+== External items
+
+External data should be described using `{{#xref}}"cardKey":"docs_hexqs5z7"{{/xref}}` facts. An `externalItem` can represent, for example, a ticket, an issue, a risk, or a vulnerability. Note that the unique key of an external item is a tuple `(Connector, ItemKey)`.
+
+For each external item, the connector should generate `{{#xref}}"cardKey":"docs_8mg8p068"{{/xref}}` facts for at least the following fields:
+
+* `url`: a URL of the external item (`shortText`)
+* `title`: the title of the external item (`shortText`)
+
+The connector should generate additional `field` facts to describe other properties of its external items, as needed. For these additional properties, the connector should also generate facts about the data type of the fields using a `dataType` fact.
+
+== Composition
+
+If an external item contains other external items, the connector can generate `{{#xref}}"cardKey":"docs_ti38h9et"{{/xref}}` facts. Since external items are identified by a tuple `(Connector, ItemKey)`, the format of a `parent` fact is:
+
+```
+parent((<Connector>, <ChildItemKey>), (<Connector>, <ParentItemKey>)).
+```
+
+NOTE: An item must not have more than one parent. To express relationships to multiple items, the connector should generate `externalLink` facts instead; see below.
+
+== Links between external items
+
+If the external system of a connector supports linking or associating external items with each other, or if there are other relationships between external items, then the connector should generate `externalLink` facts about these links; see `{{#xref}}"cardKey":"docs_5ts51i9i"{{/xref}}`.
+
+== Labels of external items
+
+If the external system supports labelling or tagging its items, then the connector should generate `{{#xref}}"cardKey":"docs_i4uvdvlf"{{/xref}}` facts. Since external items are identified by a tuple `(Connector, ItemKey)`, the format of a `label` fact is:
+
+```
+label((<Connector>, <ItemKey>), <Label>).
+```
+
+== Predicates
+
+To sum up, the following terms have been defined for describing external data.
+
+{{#report}}
+    "name": "base/reports/predicates",
+    "category": "Connectors"
+{{/report}}
+

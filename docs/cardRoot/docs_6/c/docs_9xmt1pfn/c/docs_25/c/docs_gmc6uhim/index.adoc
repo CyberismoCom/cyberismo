@@ -1,0 +1,10 @@
+== Parameters
+
+* `FieldType`: the name of a field type
+* `EnumValue`: the name of an enum value
+* `"enumDescription"`: a string that denotes the description of an enum value
+* `EnumDescription`: a description of an enum value
+
+== Description
+
+Defines a descriptionof an enum value.

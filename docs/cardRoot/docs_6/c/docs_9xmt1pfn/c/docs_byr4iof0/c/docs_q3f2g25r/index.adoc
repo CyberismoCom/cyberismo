@@ -1,0 +1,7 @@
+== Parameters
+
+* `Report`: the name of a report, such as `"base/reports/childrenList"`
+
+== Description
+
+The parameter of `report(Report)` is the name of a report.

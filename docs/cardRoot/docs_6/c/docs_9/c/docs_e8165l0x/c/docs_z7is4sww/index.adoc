@@ -1,0 +1,9 @@
+== Parameters
+
+* `CardKey`: The card key of a card that shall not be included in the navigation tree view
+
+== Description
+
+A logic program use `hiddenInTreeView(CardKey)` to exclude `CardKey` and all the descendants of `CardKey` from the navigation tree view.
+
+A typical use case for this predicate is to hide cards that are not yet relevant for the user, but may be later included, once the adoption of the process has been progressing further.

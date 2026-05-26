@@ -1,0 +1,25 @@
+The method of updating Cyberismo to the latest version depends on the installation method.
+
+== NPM registry
+If you installed Cyberismo from the NPM registry, you can update it to the latest version with the following command:
+
+  $ npm update -g @cyberismo/cli
+
+== Docker image from Docker Hub
+The latest image version can be pulled with the following command:
+
+  $ docker pull cyberismo/cyberismo:latest
+
+Or with Podman:
+
+  $ podman pull docker.io/cyberismo/cyberismo:latest
+
+== Local installation
+If you installed Cyberismo by building it locally from source, you can update it to the latest version by running the following commands. This pulls the latest changes from the upstream repository and rebuilds the software:
+
+  $ cd cyberismo
+  $ git pull
+  $ pnpm install
+  $ pnpm build
+
+Cyberismo is now updated to the latest version.

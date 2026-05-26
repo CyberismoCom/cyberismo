@@ -1,0 +1,117 @@
+Cyberismo stores all project content — cards, metadata, configuration, and modules — as plain files in a directory structure. This makes Cyberismo projects a natural fit for https://git-scm.com/[Git] version control. Using Git with Cyberismo enables collaboration, change tracking, branching, and backup of your project content.
+
+== Prerequisites
+
+* https://git-scm.com/[Git] installed on your system
+* A Cyberismo project (see xref:docs_7.adoc[Creating a new project])
+
+== Initialising a Git repository
+
+When you create a new Cyberismo project, the project directory already contains a `.gitignore` file with sensible defaults. To start tracking the project with Git:
+
+[source,console]
+----
+$ cd my-project
+$ git init
+$ git add .
+$ git commit -m "Initial commit"
+----
+
+The `.gitignore` file excludes generated files such as `.calc`, `.asciidoctor`, `.vscode`, exported HTML/PDF files, and temporary caches. This ensures that only source content is tracked.
+
+== Typical Git workflow
+
+The day-to-day workflow with Git and Cyberismo follows standard Git practices:
+
+[source,console]
+----
+$ cyberismo app                          # Work on your project in the app
+$ git status                             # See what changed
+$ git diff                               # Review changes
+$ git add .                              # Stage all changes
+$ git commit -m "Describe your changes"  # Commit
+----
+
+When working in a team, push and pull from a shared remote repository:
+
+[source,console]
+----
+$ git remote add origin <repository-url>
+$ git push -u origin main
+----
+
+== What Git tracks in a Cyberismo project
+
+A Cyberismo project has the following structure, all of which is tracked by Git:
+
+[cols="1,3"]
+|===
+| Path | Contents
+
+| `cardRoot/`
+| All cards, organised in a hierarchy of directories. Each card directory contains `index.adoc` (content), `index.json` (metadata), and optionally `a/` (attachments) and `c/` (child cards).
+
+| `.cards/`
+| Project configuration including locally defined workflows, card types, field types, link types, templates, reports, calculations, and graph models.
+
+| `.cards/modules/`
+| Imported modules. These are managed by Cyberismo (`cyberismo import module`) and should generally not be edited manually.
+
+| `.gitignore`
+| Auto-generated ignore rules for files that do not need to be tracked by Git.
+|===
+
+== Branching for parallel work
+
+Git branches are useful when multiple people work on the same project or when you want to make changes without affecting the main content:
+
+[source,console]
+----
+$ git checkout -b feature/add-threat-model
+$ # ... make changes using cyberismo app or CLI ...
+$ git add . && git commit -m "Add threat model cards"
+$ git checkout main
+$ git merge feature/add-threat-model
+----
+
+== Handling merge conflicts
+
+Since Cyberismo content is stored as plain text (AsciiDoc) and JSON, Git can merge most changes automatically. Conflicts may occur when two people edit the same card simultaneously. In that case:
+
+. Git will mark the conflicting files with standard conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`)
+. For `index.adoc` files, resolve conflicts as you would with any text file
+. For `index.json` metadata files, ensure the result is valid JSON — pay attention to commas and brackets
+. After resolving, follow the instructions that Git gives to stage and commit the change.
+
+TIP: The `lastUpdated` field in `index.json` frequently causes trivial merge conflicts because it changes on every edit. When both sides updated the same card, simply pick the more recent timestamp.
+
+== Hosting on GitHub, GitLab, or other platforms
+
+Cyberismo projects work with any Git hosting platform. To share a project:
+
+. Create a repository on your preferred platform (GitHub, GitLab, Bitbucket, etc.)
+. Add it as a remote and push:
+
+[source,console]
+----
+$ git remote add origin https://github.com/your-org/your-project.git
+$ git push -u origin main
+----
+
+Other team members can then clone and start working:
+
+[source,console]
+----
+$ git clone https://github.com/your-org/your-project.git
+$ cd your-project
+$ cyberismo app
+----
+
+== Best practices
+
+* **Commit often** — Make small, focused commits. For example, commit after completing a set of related card edits rather than after a full day of work.
+* **Write meaningful commit messages** — Describe _what_ changed and _why_, not just "Update cards".
+* **Use branches** — Keep the `main` branch stable. Use feature branches for larger changes.
+* **Pull before you push** — Always `git pull` before `git push` to avoid unnecessary merge conflicts.
+* **Do not edit modules manually** — Imported modules in `.cards/modules/` are managed by `cyberismo import module` and `cyberismo update-modules`. Manual edits will be overwritten on the next update.
+* **Review diffs before committing** — Use `git diff` to verify your changes, especially for metadata files.

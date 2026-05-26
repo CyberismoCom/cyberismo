@@ -1,0 +1,5 @@
+{
+    "name": "base/calculations/lastReviewed",
+    "displayName": "Last reviewed",
+    "description": "Automatically sets the last reviewed date on review-related workflow transitions"
+}

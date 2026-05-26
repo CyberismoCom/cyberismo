@@ -1,0 +1,245 @@
+== Introduction
+
+This page introduces the Cyberismo query language. For a detailed tutorial on using Cyberismo queries in reports, see xref:docs_j1ldnk0s.adoc[Implementing reports].
+
+A Cyberismo query uses logic programming facts and rules to "sculpt" its result as a JavaScript Object Notation (JSON) query result object.
+
+If you only need a simple list of results, the queries are short and straightforward. The query language is flexible, and you can use it to describe complex results easily. On the top level, the result of a Cyberismo query is an array of objects, each declared with the `result` predicate. The result objects on any level of hierarchy can have the following kinds of properties:
+
+* Scalar properties, described with the `field` predicate. Fields can come from the main logic program, or they can be fields that are introduced in the query.
+* Properties that are objects, described with the `childObject` predicate.
+* Properties that are arrays or objects, described with the `childResult` predicate.
+
+See xref:docs_chclhxsk.adoc[Structure and execution of logic programs] for a detailed description of the structure of Cyberismo logic programs and how queries are executed.
+
+== Basic example
+
+The following is a simple example that returns the title of all cards of the card type `base/cardTypes/page` in alphabetical order:
+
+[source]
+----
+select("title"). <1>
+result(Card) :- card(Card), field(Card, "cardType", "base/cardTypes/page"). <2>
+orderBy("title", "ASC"). <3>
+----
+<1> Return the title field. Note the period at the end of each line.
+<2> Include `Card` in the results if the card type field equals `base/cardTypes/page`.
+<3> Sort the results by the title field in ascending order.
+
+== Selecting the fields and other properties of the results
+
+The results of the queries are identified by a _key_, which is typically a card key. To return selected attributes of a key, use the `select` or `selectAll` term.
+
+For example, to include the fields `title` and `workflowState`, you can use:
+
+[source]
+----
+select("title"; "workflowState").
+----
+
+Which is equivalent to:
+
+[source]
+----
+select("title").
+select("workflowState").
+----
+
+To select a field for a specific collection across all hierarchy levels, you can use:
+
+[source]
+----
+selectCollectionField("myCollection", "fieldName").
+----
+
+To select all fields in the results, use:
+
+[source]
+----
+selectAll.
+----
+
+NOTE: While `selectAll` is handy especially as you are developing a new query, it is better to use more specific `select` facts in your final query for performance reasons.
+
+The following special cases are supported:
+
+[%header]
+|===
+| Select term | Meaning
+| `select("labels").`
+| Include labels in the results
+
+| `select("links").`
+| Include links in the results
+
+| `select("policyChecks").`
+| Include information about successful and failed policy checks in the results
+
+| `select("deniedOperations").`
+| Include information about denied operations such as denied workflow transitions, denied moving, etc.
+
+|===
+
+== Determining the results
+
+The `result(Key)` term denotes that `Key` will be included in the results of the query. The following query returns all fields of the entity (most likely a card) that has the key `docs_33`:
+
+[source]
+----
+selectAll.
+result(docs_33).
+----
+
+Logic program rules are used to select results that match a condition. For example, the following query returns all cards that are in the workflow state `Open`:
+
+
+[source]
+----
+selectAll.
+result(Card) :- card(Card), field(Card, "workflowState", "Open").
+----
+
+The `card(Card)` term is included to make sure that all returned entities are cards.
+
+=== Conjunction (logical and)
+
+A logic program rule can include several conditions that are separated by a comma. Such a rule is a _conjunction_, as it requires all conditions to be true, so it corresponds to the logical _and_ operator. For example, the following query returns all cards that are of the card type `base/page` _and_ have the workflow state `Open`.
+
+[source]
+----
+selectAll.
+result(Card) :-
+    card(Card),
+    field(Card, "cardType", "base/cardTypes/page"),
+    field(Card, "workflowState", "Open").
+----
+
+=== Disjunction (logical or)
+
+To implement a _disjunction_, which returns results for which at least one of the conditions is true, use multiple rules. The following query returns all cards that are either of the card type `base/page` _or_ have the workflow state `Open`, corresponding to the logical _or_ operator.
+
+[source]
+----
+selectAll.
+result(Card) :-
+    card(Card),
+    field(Card, "cardType", "base/cardTypes/page").
+result(Card) :-
+    card(Card),
+    field(Card, "workflowState", "Open").
+----
+
+== Ordering the results
+
+The results of the query can be ordered by one or more fields in ascending or descending order.
+
+There is no default order, but the Cyberismo query language requires you to explicitly include either the ascending (`"ASC"`) or descending (`"DESC"`) direction.
+
+To order by one, two, or three fields, you can use the `orderBy` term. For example:
+
+[source]
+----
+orderBy("title", "ASC").
+----
+
+Or:
+
+[source]
+----
+orderBy("workflowState", "ASC", "title", "DESC").
+----
+
+Or:
+
+[source]
+----
+orderBy(
+    "workflowState", "DESC",
+    "rank", "ASC",
+    "title", "ASC").
+----
+
+These `orderBy` terms apply to the default `"results"` collection on all levels of hierarchy. To order a specific hierarchy level only, you can include the level as the first parameter:
+
+[source]
+----
+orderBy(1, "title", "ASC").
+----
+
+Or for ordering by multiple fields on a specific level:
+
+[source]
+----
+orderBy(2, "workflowState", "ASC", "title", "DESC").
+----
+
+If you need to order by more than three fields, or if you need to order different collections separately, then use the `order` term. The previous example can be written equivalently with three order terms as follows:
+
+[source]
+----
+order(1, "results", 1, "workflowState", "DESC").
+order(1, "results", 2, "rank", "ASC").
+order(1, "results", 3, "title", "ASC").
+----
+
+The parameters of the xref:docs_1he7fa9g.adoc[`order`] predicate are:
+
+1. The level of hierarchy of the results that will be sorted. When the query is not hierarchical, this is 1.
+1. The name of the collection to sort. Use `"results"` for the default collection.
+1. The index of the field by which to sort. For example, the index 1 means that you should first order by the field given in this occurrence of the `order` term.
+1. The field by which the results should be ordered.
+1. Either `"ASC"` or `"DESC"`.
+
+== Summary queries
+
+The _key_ of the results does not always have to be a card key. For example, the following summary query works similarly to an SQL query that uses "GROUP BY", as it returns the different workflow states of the cards that are descendants of `docs_9`, and for each workflow state, it calculates a `count` attribute that contains the number of cards in the given state. Note that it is this query that introduces the `count` attribute, rather than selecting a pre-existing attribute.
+
+
+[source]
+----
+selectAll.
+result(State) :-
+    ancestor(Card, docs_9),
+    field(Card, "workflowState", State).
+
+field(State, "count", Count) :-
+    result(State),
+    Count = #count { card(X) :
+        ancestor(X, docs_9),
+        field(X, "workflowState", State)
+    }.
+----
+
+== Hierarchical queries
+
+So far, the results of our queries have formed a flat list. A hierarchical query returns a tree structure: each result may have a list of child results, which in turn may have child results.
+
+For example, say we would like to query the children and grandchildren of `docs_9` according to the card tree hierarchy. We would like the direct children to form the first level of hierarchy, and each child would have their children as child results. This can be done with the following query:
+
+[source]
+----
+select("title"). <1>
+result(Card) :- parent(Card, docs_9).
+childResult(Child, Grandchild) :- parent(Grandchild, Child), result(Child). <2>
+orderBy("title", "ASC"). <3>
+----
+<1> `select` with one parameter and `selectAll` without parameters refer to all levels of hierarchy.
+<2> Child results are returned with the `childResult` term.
+<3> When `orderBy` has an even number of parameters, it refers to the results on all levels of hierarchy.
+
+To select different fields on different levels of hierarchy, or to order the results differently on different levels of hierarchy, include the level of hierarchy (1, 2, etc.) as the first parameter to `select`, `selectAll`, or `orderBy`:
+
+[source]
+----
+select(2,  "title"). <1>
+orderBy(2, "title", "ASC"). <2>
+----
+<1> The first parameter indicates the level of hierarchy and the second parameter indicates which field to select on the given level.
+<2> When `orderBy` has an odd number of parameters, the first parameter denotes the level of hierarchy.
+
+== Summary of query language predicates
+
+{{#report}}
+    "name": "base/reports/predicates",
+    "category": "Query language"
+{{/report}}

@@ -1,0 +1,12 @@
+{
+    "title": "@today()",
+    "cardType": "base/cardTypes/externalFunction",
+    "workflowState": "Ready",
+    "rank": "0|b",
+    "lastUpdated": "2025-07-01T05:59:26.936Z",
+    "base/fieldTypes/briefDescription": "Current date",
+    "base/fieldTypes/category": "Time and date",
+    "links": [],
+    "templateCardKey": "base_nz5cw2n5",
+    "lastTransitioned": "2025-07-01T05:59:26.936Z"
+}
