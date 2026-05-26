@@ -19,6 +19,7 @@ import type {
 import type { attachmentPayload } from '@cyberismo/data-handler/interfaces/request-status-interfaces';
 import { type CommandManager, evaluateMacros } from '@cyberismo/data-handler';
 import { preprocessMermaidBlocksForHtml } from '@cyberismo/data-handler/utils/mermaid-renderer';
+import { rewriteAsciidocCardXrefs } from '@cyberismo/data-handler/utils/asciidoc-xref';
 import { allCards } from './lib.js';
 import type { TreeOptions } from '../../types.js';
 
@@ -171,6 +172,13 @@ export async function parseContent(
 
     // Convert [mermaid] AsciiDoc blocks to passthrough HTML before asciidoctor processes them
     asciidocContent = preprocessMermaidBlocksForHtml(asciidocContent);
+
+    // Rewrite native AsciiDoc xrefs that target other cards into /cards/<key> links.
+    asciidocContent = rewriteAsciidocCardXrefs(
+      asciidocContent,
+      commands.project,
+      'inject',
+    );
 
     const processor = Processor();
     const projectPrefix = commands.project.projectPrefix;
