@@ -128,7 +128,7 @@ describe('Navigation', () => {
     cy.get('[data-cy="contentSaveButton"]').click(); // Click save button
     verifyContentSaved(); // Editor unmounts on successful inline save
     // verify macro
-    cy.get('[class="doc"]')
+    cy.get('.doc')
       .get('[type="button"]')
       .contains('Test Create All data types page')
       .click(); // Create test card with the button
@@ -142,7 +142,7 @@ describe('Navigation', () => {
 
   it('Graph macro', () => {
     cy.get('[role="tree"]').contains('Create cards page').click(); // Navigate to Create cards page in tree menu
-    cy.get('[class="doc"]')
+    cy.get('.doc')
       .get('[type="button"]')
       .contains('Create Policy checks and notifications page')
       .click(); // Create card for graph macro with create card button
@@ -172,13 +172,13 @@ describe('Navigation', () => {
     // verify macro
     cy.get('[data-cy="contentSaveButton"]').click(); // Click save button
     verifyContentSaved();
-    cy.get('[class="doc"]')
+    cy.get('.doc')
       .get('.cyberismo-svg-wrapper')
       .get('[aria-label="fullscreen"]'); // Verify graph has fullscreen button
-    cy.get('[class="doc"]')
+    cy.get('.doc')
       .get('.cyberismo-svg-wrapper')
       .get('[aria-label="download"]'); // Verify graph has download
-    cy.get('[class="doc"]')
+    cy.get('.doc')
       .get('.cyberismo-svg-wrapper')
       .contains('Test notifications and policy checks'); // Verify graph text
   });
@@ -210,7 +210,7 @@ describe('Navigation', () => {
     cy.get('span').contains('cyberismo.png').trigger('mouseover');
     cy.get('[data-cy="insertToContentButton"]').click();
     cy.get('[data-cy="contentSaveButton"]').click(); // Click update button
-    cy.get('[class="doc"]')
+    cy.get('.doc')
       .get('[type="button"]')
       .contains('Create Test denied operations page')
       .click(); // Create card for image macro with create card button
@@ -240,7 +240,7 @@ describe('Navigation', () => {
       cardKey = url.split('/cards/')[1];
     }); // Extract card key from URL
 
-    cy.get('[class="doc"]')
+    cy.get('.doc')
       .get('[type="button"]')
       .contains('Create empty page')
       .click(); // Create card for include macro with create card button
@@ -276,19 +276,19 @@ describe('Navigation', () => {
     cy.get('[data-cy="contentSaveButton"]').click(); // Click update button
     verifyContentSaved();
     cy.get('h2').contains('Create cards page'); // Verify included card title in content area
-    cy.get('[class="doc"]')
+    cy.get('.doc')
       .get('[type="button"]')
       .contains('Create empty page');
-    cy.get('[class="doc"]')
+    cy.get('.doc')
       .get('[type="button"]')
       .contains('Create Test denied operations page');
-    cy.get('[class="doc"]')
+    cy.get('.doc')
       .get('[type="button"]')
       .contains('Create Policy checks and notifications page');
-    cy.get('[class="doc"]')
+    cy.get('.doc')
       .get('[type="button"]')
       .contains('Test Create All data types page');
-    cy.get('[class="doc"]')
+    cy.get('.doc')
       .get('[type="button"]')
       .contains('Create page content');
 
@@ -313,7 +313,7 @@ describe('Navigation', () => {
     cy.get('[data-cy="contentSaveButton"]').click(); // Click update button
     verifyContentSaved();
     cy.get('h3').get('[class="discrete"]').contains('Create cards page'); // Verify Title in content area
-    cy.get('[class="doc"]')
+    cy.get('.doc')
       .get('[type="button"]')
       .contains('Create empty page')
       .should('not.exist'); // Verify page does not contain create buttons
@@ -337,7 +337,7 @@ describe('Navigation', () => {
     cy.get('[data-cy="contentSaveButton"]').click(); // Click update button
     verifyContentSaved();
     cy.get('h3').should('not.exist'); // Verify no title in content area
-    cy.get('[class="doc"]')
+    cy.get('.doc')
       .get('[type="button"]')
       .contains('Create empty page');
   });
@@ -345,7 +345,7 @@ describe('Navigation', () => {
   it('Percentage macro', () => {
     cy.get('[role="tree"]').contains('Create cards page').click(); // Navigate to Create cards page in tree menu
     cy.get('h1').contains('Create cards page'); // Verify Title in content area
-    cy.get('[class="doc"]')
+    cy.get('.doc')
       .get('[type="button"]')
       .contains('Create page content')
       .click(); // Create card for precentage macro with create card button
@@ -361,16 +361,16 @@ describe('Navigation', () => {
     cy.get('[data-cy="contentSaveButton"]').click(); // Click update button
     verifyContentSaved();
 
-    cy.get('[class="doc"]').get('svg').contains('Work done'); // Verify Percentage macro has text
-    cy.get('[class="doc"]').get('svg').contains('2%'); // Verify Percentage macro has text
-    cy.get('[class="doc"]').get('svg').contains('of Assets'); // Verify Percentage macro has text
-    cy.get('[class="doc"]').get('svg').get('[stroke="blue"]'); // Verify Percentage macro color is blue
+    cy.get('.doc').get('svg').contains('Work done'); // Verify Percentage macro has text
+    cy.get('.doc').get('svg').contains('2%'); // Verify Percentage macro has text
+    cy.get('.doc').get('svg').contains('of Assets'); // Verify Percentage macro has text
+    cy.get('.doc').get('svg').get('[stroke="blue"]'); // Verify Percentage macro color is blue
   });
 
   it('Report macro', () => {
     cy.get('[role="tree"]').contains('Create cards page').click(); // Navigate to Create cards page in tree menu
     cy.get('h1').contains('Create cards page'); // Verify Title in content area
-    cy.get('[class="doc"]')
+    cy.get('.doc')
       .get('[type="button"]')
       .contains('Create empty page')
       .click(); // Create card for report macro with create card button
@@ -392,13 +392,13 @@ describe('Navigation', () => {
     cy.get('[role="dialog"]').contains('Insert macro').click(); // Click Insert macro button
     cy.get('[data-cy="contentSaveButton"]').click(); // Click update button
     verifyContentSaved();
-    cy.get('[class="doc"]').get('[class="paragraph"]').contains('* * * *'); // Verify report macro has text
+    cy.get('.doc').get('[class="paragraph"]').contains('* * * *'); // Verify report macro has text
   });
 
   it('Score card macro', () => {
     cy.get('[role="tree"]').contains('Create cards page').click(); // Navigate to Create cards page in tree menu
     cy.get('h1').contains('Create cards page'); // Verify Title in content area
-    cy.get('[class="doc"]')
+    cy.get('.doc')
       .get('[type="button"]')
       .contains('Create empty page')
       .click();
@@ -413,17 +413,17 @@ describe('Navigation', () => {
     cy.get('.cm-activeLine').clear().type(scoreCardMacro); // Type score macro on the page
     cy.get('[data-cy="contentSaveButton"]').click(); // Click update button
     verifyContentSaved();
-    cy.get('[class="doc"]')
+    cy.get('.doc')
       .get('[class="card"]')
       .contains('Security control adoption'); // Verify Score card macro has text
-    cy.get('[class="doc"]').get('[class="card"]').contains('30').contains('%'); // Verify Score card macro has text
-    cy.get('[class="doc"]').get('[class="card"]').contains('In progress'); // Verify Score card macro has text
+    cy.get('.doc').get('[class="card"]').contains('30').contains('%'); // Verify Score card macro has text
+    cy.get('.doc').get('[class="card"]').contains('In progress'); // Verify Score card macro has text
   });
 
   it('Vega-Lite and Vega macros', () => {
     cy.get('[role="tree"]').contains('Create cards page').click(); // Navigate to Create cards page in tree menu
     cy.get('h1').contains('Create cards page'); // Verify Title in content area
-    cy.get('[class="doc"]')
+    cy.get('.doc')
       .get('[type="button"]')
       .contains('Create empty page')
       .click(); // Create card for vega macro with create card button
@@ -438,7 +438,7 @@ describe('Navigation', () => {
     cy.get('.cm-activeLine').clear().type(vegaLiteMacro); // Type vega macro on the page
     cy.get('[data-cy="contentSaveButton"]').click(); // Click update button
     verifyContentSaved();
-    cy.get('[class="doc"]').get('[class="vega-embed"]'); // Verify vega macro
+    cy.get('.doc').get('[class="vega-embed"]'); // Verify vega macro
   });
 
   it('Xref macro', () => {
@@ -449,7 +449,7 @@ describe('Navigation', () => {
     cy.url().then((url) => {
       cardKey = url.split('/cards/')[1];
     }); // Extract card key from URL
-    cy.get('[class="doc"]')
+    cy.get('.doc')
       .get('[type="button"]')
       .contains('Create empty page')
       .click(); // Create card for xref macro with create card button
@@ -477,7 +477,7 @@ describe('Navigation', () => {
     cy.get('[data-cy="contentSaveButton"]').click(); // Click update button
     verifyContentSaved();
     cy.then(() => {
-      cy.get('[class="doc"]')
+      cy.get('.doc')
         .get('[href="/cards/' + cardKey + '"]')
         .contains('Create cards page'); // Verify Xref macro
     });
