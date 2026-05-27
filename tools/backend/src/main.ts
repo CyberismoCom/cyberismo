@@ -97,7 +97,10 @@ if (args.export) {
     );
     process.exit(1);
   }
-  const registry = await ProjectRegistry.fromScannedProjects(projects);
+  const autocommit = process.env.CYBERISMO_AUTOCOMMIT === 'true';
+  const registry = await ProjectRegistry.fromScannedProjects(projects, {
+    autocommit,
+  });
   const authProvider = createAuthProvider();
   await startServer(authProvider, registry);
 }
