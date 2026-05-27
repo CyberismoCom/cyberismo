@@ -7,19 +7,38 @@ If you installed Cyberismo from the NPM registry, you can uninstall it with the 
   $ npm uninstall -g @cyberismo/cli
 
 == Docker image from Docker Hub
-The Docker image can be removed from the system with the following command:
+
+If you set up the `cyberismo` shell alias suggested in the Docker installation instructions, remove it first:
+
+* *Linux & macOS*: remove the `alias cyberismo='docker run ...'` line from your shell startup file (e.g. `~/.bashrc`, `~/.zshrc`) and reload your shell. For the current session, you can also run:
+
+  $ unalias cyberismo
+
+* *Windows*: remove any `cyberismo` function or alias you added to your PowerShell profile.
+
+Then remove the Docker image:
 
   $ docker rmi cyberismo/cyberismo:latest
 
-Or with Podman:
+== Podman image from Docker Hub
 
-  $ podman rmi cyberismo/cyberismo:latest
+If you set up the `cyberismo` shell alias suggested in the Podman installation instructions, remove it first:
+
+* *Linux & macOS*: remove the `alias cyberismo='podman run ...'` line from your shell startup file (e.g. `~/.bashrc`, `~/.zshrc`) and reload your shell. For the current session, you can also run:
+
+  $ unalias cyberismo
+
+* *Windows*: remove any `cyberismo` function or alias you added to your PowerShell profile.
+
+Then remove the Podman image:
+
+  $ podman rmi docker.io/cyberismo/cyberismo:latest
 
 == Local installation
 To uninstall Cyberismo that you have built locally from source, take the following steps:
 
 * Uninstall the global Cyberismo executable:
 
-  $ pnpm remove -g @cyberismocom/cyberismo
+  $ pnpm remove -g @cyberismo/cyberismo
 
 * Remove the repository directory containing the cloned Cyberismo source code.

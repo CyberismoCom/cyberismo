@@ -4,24 +4,31 @@
 
 See {{#xref}}"cardKey":"docs_17"{{/xref}} for information about common prerequisites for all installation methods.
 
-Install Node.js. The currently supported Node.js version is the latest LTS, v20.10.0 or later. Node.js is downloadable from https://nodejs.org/.
+Install the following:
 
-When building Cyberismo on Windows, the build process automatically installs the required dependencies (Clingo and libraries) using a prebuilt package by Cyberismo.
+* Node.js v22 LTS or later, downloadable from https://nodejs.org/.
+* Visual Studio Build Tools 2022 with the "Desktop development with C++" workload (provides MSVC and Windows SDK).
+* CMake 3.x, downloadable from https://cmake.org/.
+* Python 3, downloadable from https://www.python.org/.
+
+These tools are used to build the bundled Clingo answer set programming runtime from source as part of `pnpm install`.
 
 === Building
 
 Take the following steps:
 
-. Clone the source repository:
+. Clone the source repository, including the Clingo submodule:
 
-  $ git clone https://github.com/CyberismoCom/cyberismo.git
+  $ git clone --recurse-submodules https://github.com/CyberismoCom/cyberismo.git
 
-. Change to the source directory. If you previously cloned the repository, pull the latest changes:
++
+If you previously cloned the repository, change to the source directory and pull the latest changes:
 
   $ cd cyberismo
-  $ git pull origin main # Optional
+  $ git pull origin main
+  $ git submodule update --init --recursive
 
-. Install pnpm with npm command:
+. Install pnpm with the npm command:
 
   $ npm install -g pnpm
 
@@ -32,6 +39,7 @@ Take the following steps:
   $ pnpm build
   $ pnpm link -g
 
+`pnpm install` builds the bundled Clingo runtime as part of installing the `@cyberismo/node-clingo` workspace package.
 
 === Running
 
