@@ -1,5 +1,46 @@
 # Changelog
 
+## [0.0.25] — 2026-05-27
+
+### Highlights
+
+Inline editing for card metadata, links, and content transforms the card editing experience, while full multi-project support now lets you work across multiple projects in a single application instance. Node.js 22 is now the minimum required version.
+
+### Breaking changes
+
+- Node.js >=22 is now required by all published packages. Upgrade to Node.js 22 LTS before updating (#1377).
+
+### Features
+
+- Inline editing for card metadata, links, and content — edit fields, links, and markdown directly in the card view without opening a separate editor (#1355).
+- Multi-project support: project selection modal, per-project navigation, and multi-project API and MCP server (#1352).
+- Allow autocommit for SaaS deployments (#1381).
+- Make static sites usable on mobile (#1367).
+- Allow template card moves (#1356).
+- Set `lastupdated` and `labels` as the default always-visible card fields (#1361).
+
+### Fixes
+
+- Fix HTML injection vulnerability in Mermaid `classDef` (upgrade to 11.15.0) (#1376).
+- Fix postcss XSS vulnerability in Vite (upgrade to 8.0.14, GHSA-qx2v-qp2m-jg93) (#1374).
+- Fix prototype pollution vulnerability in axios (upgrade to v1.16.1) (#1368).
+- Fix application becoming unresponsive (jam) (#1360).
+- Fix static API paths to support multiproject (#1359).
+- Remove presence indicator from local environment (#1362).
+
+### Dependencies
+
+- Bump `hono` from 4.12.14 to 4.12.18 (#1366).
+
+### Internal
+
+- Move docs under main repo (#1365).
+- Update docs installation guide (#1379).
+- Remove vega-selections override and rely on standard resolution (#1370).
+- Scope card logic program helper to results for improved Clingo grounder performance (#1358).
+- Simplify enum and list definitions in the query language for improved performance (#1357).
+- Fix GitHub release job missing repo context (#1350).
+
 ## [0.0.24] — 2026-05-07
 
 ### Highlights
