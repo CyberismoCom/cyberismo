@@ -109,6 +109,10 @@ export async function replayResolvedUpdates(
     if (r.version === undefined) continue;
     const prefix = r.declaration.name;
     const fromVersion = fromVersionByPrefix.get(prefix) ?? null;
+    // Bootstrap install: the freshly-applied module's resources already
+    // reflect `toVersion`'s post-migration state, so replaying its log
+    // chain would double-apply. Skip — see `snapshotInstalledVersions`.
+    if (fromVersion === null) continue;
     if (fromVersion === r.version) continue;
     requests.push({ prefix, fromVersion, toVersion: r.version });
   }

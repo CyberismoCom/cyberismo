@@ -138,6 +138,24 @@ describe('replayResolvedUpdates', () => {
     expect(result).toBeNull();
   });
 
+  it('skips bootstrap entries (no prior version on disk) — installed state already reflects the target version', async () => {
+    // A freshly-installed module's resources already reflect the post-
+    // migration state of `toVersion`; replaying the v1.0.0 log against it
+    // would double-apply (e.g. re-adding a customField that's already
+    // there). Bootstrap entries must contribute no replay step.
+    await seedInstalledModule(projectPath, 'shared/foo', {
+      sealedVersions: ['1.0.0'],
+    });
+
+    const result = await replayResolvedUpdates(
+      project,
+      [fakeResolved('shared/foo', '1.0.0')],
+      new Map([['shared/foo', null]]),
+    );
+
+    expect(result).toBeNull();
+  });
+
   it('runs preview + apply for entries whose version changed (empty seals succeed)', async () => {
     await seedInstalledModule(projectPath, 'shared/foo', {
       version: '1.0.0',
