@@ -729,6 +729,18 @@ rule BeginStepReplay {
 -- producing one of two outcomes. The spec models the outcomes as named
 -- triggers so the success / failure paths are handled by separate
 -- rules; the black box itself emits exactly one of them per call.
+--
+-- apply_step rewrites only the consumer's own resources and cards (those
+-- whose prefix is the project's). Module-owned resources are delivered by
+-- the file pull and are never rewritten here — see the
+-- ReplayMutatesOnlyLocalState guarantee. Crucially, apply_step does NOT
+-- judge referential validity: it mutates state and may pass through
+-- intermediate inconsistencies (a local card briefly referencing a
+-- resource a later entry will rename). Whether the result is consistent
+-- is decided once, after every step, by the project_content_valid gate
+-- (see ModuleUpdateSucceeds). StepReplayFailed is reserved for entries
+-- that cannot be applied at all (e.g. a malformed payload), not for
+-- referential conflicts.
 rule RunStepReplay {
     when: replay: ModuleStepReplay.status transitions_to applying
     let step = step_at(replay.update, replay.step_order)
@@ -783,11 +795,18 @@ rule BootstrapInstallation {
     )
 }
 
--- When the last step's replay succeeds, the module update is complete
--- and every step's installation is brought into agreement.
+-- When the last step's replay succeeds, the content-validation gate
+-- decides the outcome. The update completes only if the resulting
+-- project content is referentially valid (project_content_valid): every
+-- reference in the consumer's local resources and cards resolves against
+-- the freshly-installed module trees. This is the single authoritative
+-- check — operations applied mechanically during replay, and validity is
+-- evaluated once, here, on the result. On success every installation is
+-- brought into agreement.
 rule ModuleUpdateSucceeds {
     when: replay: ModuleStepReplay.status transitions_to succeeded
     requires: replay.step_order = replay.update.resolved_steps.count
+    requires: project_content_valid(replay.update.project)
     for step in replay.update.resolved_steps where step.from_version != null:
         let installation = installation_of(replay.update.project, step.module)
         ensures:
@@ -796,8 +815,26 @@ rule ModuleUpdateSucceeds {
     ensures: replay.update.status = succeeded
 }
 
--- A failed step fails the whole update; recovery is `git restore`.
--- The installation records are not advanced.
+-- Every step applied, but the resulting project content is invalid (a
+-- reference no longer resolves — typically because a module shipped an
+-- internally-inconsistent version). The update fails as a whole;
+-- recovery is `git restore`. failed_at_step names the last step applied
+-- before the gate rejected the result; failure_summary carries the
+-- validation errors.
+rule ModuleUpdateFailsValidation {
+    when: replay: ModuleStepReplay.status transitions_to succeeded
+    requires: replay.step_order = replay.update.resolved_steps.count
+    requires: not project_content_valid(replay.update.project)
+    let step = step_at(replay.update, replay.step_order)
+    ensures:
+        replay.update.status = failed
+        replay.update.failed_at_step = step
+        replay.update.failure_summary = validation_summary(replay.update.project)
+}
+
+-- A step that could not be applied at all (malformed entry) fails the
+-- whole update; recovery is `git restore`. The installation records are
+-- not advanced.
 rule ModuleUpdateFails {
     when: replay: ModuleStepReplay.status transitions_to failed
     let step = step_at(replay.update, replay.step_order)
@@ -969,6 +1006,26 @@ surface ModuleUpdating {
         -- between the file pull and the version record being written;
         -- recovery is `git restore`.
 
+    @guarantee ReplayMutatesOnlyLocalState
+        -- Replay rewrites only resources and cards owned by the consumer
+        -- project (those whose prefix is the project's own). Module-owned
+        -- resources arrive via the file pull and are never modified by
+        -- replay. Keeping a module internally consistent across its own
+        -- dependencies' renames — e.g. updating a card type that
+        -- references a renamed field of a module it depends on — is the
+        -- module author's responsibility, discharged before publication,
+        -- not the consumer's. The consumer's replay neither needs write
+        -- access to module files nor attempts it.
+
+    @guarantee SuccessImpliesValidProject
+        -- A ModuleUpdate reaches `succeeded` only when the resulting
+        -- project content is referentially valid. Replay applies entries
+        -- mechanically and may pass through intermediate inconsistencies;
+        -- the single project_content_valid gate after the last step is
+        -- what distinguishes success from failure. An update that would
+        -- leave a dangling reference fails (recovery `git restore`)
+        -- rather than reporting success over an invalid project.
+
     @guarantee NoUserVisibleReplaySplit
         -- ModuleStepReplay is created only as a side effect of
         -- StartModuleUpdate or AdvanceToNextStep. A maintainer cannot
@@ -1008,6 +1065,24 @@ surface ModuleUpdating {
 -- _for_project_rename and their preview/fingerprint counterparts) as
 -- black boxes whose per-variant policy is defined there. classify_breaking
 -- likewise.
+
+-- Content validation is a black box: project_content_valid(project)
+-- returns true when every reference in the project's own resources and
+-- cards resolves to an existing resource (across local and installed
+-- module trees), and validation_summary(project) renders the failures
+-- when it does not. This is the same referential check the project-wide
+-- validate already performs; the migration system reuses it as the
+-- module-update gate rather than re-checking per operation. The
+-- per-resource content rules it enforces live with the wider Cyberismo
+-- specification.
+--
+-- A deliberate boundary: referential validity is judged on resulting
+-- content, never on the operation that produced it. The same principle
+-- governs the author-edit path — `payload_valid` checks only that an
+-- operation is well-formed (a valid add/change/rank/remove with a valid
+-- payload), not that the values it references exist. Existence and other
+-- referential constraints are content checks, evaluated after the edit
+-- applies, by the same validation the module-update gate uses.
 
 -- "Complete migration" interactive prompts (workflow state remapping,
 -- enum replacement) are not in this version of the spec. The current
