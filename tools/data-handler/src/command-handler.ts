@@ -58,6 +58,7 @@ import { errorFunction } from './utils/error-utils.js';
 import {
   ModuleReplayConflictError,
   ModuleReplayFailedError,
+  ModuleValidationFailedError,
 } from './modules/index.js';
 import { readJsonFile } from './utils/json.js';
 import { resourceName } from './utils/resource-utils.js';
@@ -497,6 +498,13 @@ export class Commands {
           statusCode: 500,
           message: e.message,
           payload: { result: e.result, module: e.module },
+        };
+      }
+      if (e instanceof ModuleValidationFailedError) {
+        return {
+          statusCode: 422,
+          message: e.message,
+          payload: { validationErrors: e.validationErrors, module: e.module },
         };
       }
       return { statusCode: 400, message: errorFunction(e) };
