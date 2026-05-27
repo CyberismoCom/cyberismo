@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { Project } from '../../src/containers/project.js';
 import {
   ModuleReplayConflictError,
+  ModuleValidationFailedError,
   replayResolvedUpdates,
   snapshotInstalledVersions,
 } from '../../src/modules/replay-updates.js';
@@ -203,5 +204,21 @@ describe('replayResolvedUpdates', () => {
     expect(err.module).toBe('shared/foo');
     expect(err.conflicts.length).toBeGreaterThan(0);
     expect(err.message).toMatch(/Cannot update shared\/foo:/);
+  });
+});
+
+describe('ModuleValidationFailedError', () => {
+  it('carries the error lines and module, and renders them in the message', () => {
+    const err = new ModuleValidationFailedError(['problem A', 'problem B'], 'shared/foo');
+    expect(err).toBeInstanceOf(Error);
+    expect(err.name).toBe('ModuleValidationFailedError');
+    expect(err.validationErrors).toEqual(['problem A', 'problem B']);
+    expect(err.module).toBe('shared/foo');
+    expect(err.message).toMatch(/Module update for shared\/foo left the project invalid: problem A; problem B/);
+  });
+
+  it('omits the module name when none is given', () => {
+    const err = new ModuleValidationFailedError(['x']);
+    expect(err.message).toMatch(/^Module update left the project invalid: x$/);
   });
 });

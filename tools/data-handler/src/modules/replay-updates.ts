@@ -67,6 +67,32 @@ export class ModuleReplayFailedError extends Error {
 }
 
 /**
+ * Thrown when a module update leaves the project with referential
+ * validation errors. This is the implementation of the spec's
+ * `project_content_valid` gate (see migration-system.allium,
+ * `SuccessImpliesValidProject`): replay applies entries mechanically and the
+ * resulting content is judged once, as the update's last step. The project
+ * is assumed valid going in, so any error afterward fails the update.
+ *
+ * Recovery: under `--autocommit` the write transaction's onWriteError hook
+ * rolls the project back to the last commit when this throws; otherwise the
+ * partial state remains on disk and the user runs `git restore`.
+ */
+export class ModuleValidationFailedError extends Error {
+  constructor(
+    public readonly validationErrors: string[],
+    /** Module that triggered the user-facing call, for error context. */
+    public readonly module?: string,
+  ) {
+    const prefix = module
+      ? `Module update for ${module} left the project invalid: `
+      : 'Module update left the project invalid: ';
+    super(prefix + validationErrors.join('; '));
+    this.name = 'ModuleValidationFailedError';
+  }
+}
+
+/**
  * Snapshot each resolved module's currently-installed version *before*
  * `applyModules` overwrites its `cardsConfig.json`. Bootstrap installs
  * (no prior version on disk) map to `null` and contribute no replay step.
