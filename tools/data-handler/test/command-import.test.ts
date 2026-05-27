@@ -16,6 +16,7 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
+import { readFile, writeFile } from 'node:fs/promises';
 import { join, resolve as pathResolve } from 'node:path';
 
 import { CommandManager } from '../src/command-manager.js';
@@ -32,6 +33,7 @@ import {
   mockEnsureModuleListUpToDate,
 } from './helpers/test-utils.js';
 import { toVersionRange } from '../src/modules/types.js';
+import { ModuleValidationFailedError } from '../src/modules/replay-updates.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
@@ -820,4 +822,47 @@ describe('module update — spec behaviours', () => {
       "Cannot update module 'tupdep' because it is required by 'tuphost'. Update the parent module(s) instead.",
     );
   });
+
+  it('rejects an update that leaves the project invalid', async () => {
+    // decision-records consumer is valid except for a planted dangling
+    // field reference on one card. Any module update runs the validation
+    // gate as its last step and rejects the invalid result (the project
+    // is judged on its outcome; it is assumed valid going in).
+    const consumerDir = join(moduleTestDir, 'valid', 'decision-records');
+    const cardIndex = join(consumerDir, 'cardRoot', 'decision_5', 'index.json');
+    const meta = JSON.parse(await readFile(cardIndex, 'utf-8')) as Record<
+      string,
+      unknown
+    >;
+    meta['decision/fieldTypes/ghostField'] = null; // not a real field type
+    await writeFile(cardIndex, JSON.stringify(meta));
+
+    const modRoot = join(moduleTestDir, 'fake-ok-mod');
+    makeFakeModuleFixture(modRoot, { cardKeyPrefix: 'okmod' });
+
+    const commands = new CommandManager(consumerDir, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+
+    await expect(commands.importCmd.importModule(modRoot)).rejects.toThrow(
+      ModuleValidationFailedError,
+    );
+  });
+
+  it('allows an update that leaves the project valid', async () => {
+    const consumerDir = join(moduleTestDir, 'valid', 'decision-records');
+    const modRoot = join(moduleTestDir, 'fake-ok-mod-b');
+    makeFakeModuleFixture(modRoot, { cardKeyPrefix: 'okmodalpha' });
+
+    const commands = new CommandManager(consumerDir, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+
+    await expect(
+      commands.importCmd.importModule(modRoot),
+    ).resolves.not.toThrow();
+  });
 });
+

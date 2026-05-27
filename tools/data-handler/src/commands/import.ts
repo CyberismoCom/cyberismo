@@ -36,6 +36,10 @@ import {
   validateVersionAgainstConstraints,
 } from '../modules/index.js';
 import { cleanOrphans } from '../modules/orphans.js';
+import {
+  ModuleValidationFailedError,
+} from '../modules/replay-updates.js';
+import type { ResolvedModule } from '../modules/resolver.js';
 import { write } from '../utils/rw-lock.js';
 
 import type { Create } from './create.js';
@@ -94,6 +98,52 @@ export class Import {
   /** Temp directory shared between the resolver and the applier. */
   private get tempModulesDir(): string {
     return join(this.project.paths.tempFolder, 'modules');
+  }
+
+  /**
+   * Apply a resolved set of modules and migrate the consumer to match.
+   * Shared by importModule / updateModule / updateAllModules — the only
+   * update transaction in this class. Snapshots installed versions before
+   * applyModules overwrites them, materialises the new files, cleans
+   * orphans, replays migration logs, then validates: the project must be
+   * referentially valid afterwards or the whole update fails
+   * (ModuleValidationFailedError). The project is assumed valid going in.
+   */
+  private async applyResolvedUpdate(
+    resolved: ResolvedModule[],
+    options?: { module?: string },
+  ): Promise<ModuleUpdateResult | null> {
+    const fromVersionByPrefix = await snapshotInstalledVersions(
+      this.project,
+      resolved,
+    );
+
+    await applyModules(this.project, resolved, {
+      tempDir: this.tempModulesDir,
+    });
+
+    await cleanOrphans(this.project);
+
+    const result = await replayResolvedUpdates(
+      this.project,
+      resolved,
+      fromVersionByPrefix,
+      options,
+    );
+
+    const validationErrors = await Validate.getInstance().validate(
+      this.project.basePath,
+      () => this.project,
+    );
+    const errors = validationErrors
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+    if (errors.length > 0) {
+      throw new ModuleValidationFailedError(errors, options?.module);
+    }
+
+    return result;
   }
 
   /**
@@ -194,11 +244,6 @@ export class Import {
     // Ensure module list is up to date before importing.
     await this.fetchCmd.ensureModuleListUpToDate();
 
-    const beforeImportValidateErrors = await Validate.getInstance().validate(
-      this.project.basePath,
-      () => this.project,
-    );
-
     const location = normaliseLocation(source);
 
     // Early precondition check for file sources: catch bad folder names and
@@ -288,40 +333,7 @@ export class Import {
       tempDir: this.tempModulesDir,
     });
 
-    // Snapshot installed versions BEFORE applyModules rewrites them.
-    // For a re-import that bumps an existing module's version (the
-    // "install outside the declared range" path), this is the only
-    // place we can read the previous version.
-    const fromVersionByPrefix = await snapshotInstalledVersions(
-      this.project,
-      resolved,
-    );
-
-    await applyModules(this.project, resolved, {
-      tempDir: this.tempModulesDir,
-    });
-
-    // Clean up any installations orphaned by this import.
-    await cleanOrphans(this.project);
-
-    // Replay the migration log against consumer cards/links/calculations
-    // for every entry whose version actually changed. A first-time
-    // install (fromVersion === null) has no chain to replay, so this is
-    // a no-op for bootstrap imports.
-    await replayResolvedUpdates(this.project, resolved, fromVersionByPrefix, {
-      module: resolvedName,
-    });
-
-    // Validate the project after module has been imported.
-    const afterImportValidateErrors = await Validate.getInstance().validate(
-      this.project.basePath,
-      () => this.project,
-    );
-    if (afterImportValidateErrors.length > beforeImportValidateErrors.length) {
-      console.error(
-        `There are new validations errors after importing the module. Check the project`,
-      );
-    }
+    await this.applyResolvedUpdate(resolved, { module: resolvedName });
   }
 
   private collectConstraints(moduleName: string) {
@@ -400,23 +412,7 @@ export class Import {
       tempDir: this.tempModulesDir,
     });
 
-    // Snapshot installed versions BEFORE applyModules rewrites them — the
-    // resolver may also bump transitive deps, so every entry contributes
-    // a replay step keyed off its pre-install version.
-    const fromVersionByPrefix = await snapshotInstalledVersions(
-      this.project,
-      resolved,
-    );
-
-    await applyModules(this.project, resolved, {
-      tempDir: this.tempModulesDir,
-    });
-
-    await cleanOrphans(this.project);
-
-    return replayResolvedUpdates(this.project, resolved, fromVersionByPrefix, {
-      module: moduleName,
-    });
+    return this.applyResolvedUpdate(resolved, { module: moduleName });
   }
 
   /**
@@ -441,17 +437,6 @@ export class Import {
       tempDir: this.tempModulesDir,
     });
 
-    const fromVersionByPrefix = await snapshotInstalledVersions(
-      this.project,
-      resolved,
-    );
-
-    await applyModules(this.project, resolved, {
-      tempDir: this.tempModulesDir,
-    });
-
-    await cleanOrphans(this.project);
-
-    return replayResolvedUpdates(this.project, resolved, fromVersionByPrefix);
+    return this.applyResolvedUpdate(resolved);
   }
 }

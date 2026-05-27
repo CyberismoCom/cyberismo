@@ -58,6 +58,13 @@ export function makeFakeModuleFixture(
     join(localDir, 'cardsConfig.json'),
     JSON.stringify(buildConfigPayload(config), null, 2),
   );
+  // The directory schema requires a .schema file alongside cardsConfig.json
+  // in the module installation root; without it the post-install validator
+  // rejects the installed module with "must have file '.schema'".
+  writeFileSync(
+    join(localDir, '.schema'),
+    JSON.stringify([{ id: 'cardsConfigSchema', version: 1 }], null, 2),
+  );
   return root;
 }
 
