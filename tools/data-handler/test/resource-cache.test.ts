@@ -1,7 +1,7 @@
 import { expect, describe, it, beforeEach, afterEach } from 'vitest';
 
 import { join } from 'node:path';
-import { mkdirSync, rmSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 
 import { CommandManager } from '../src/command-manager.js';
 import { copyDir, pathExists } from '../src/utils/file-utils.js';
@@ -540,6 +540,72 @@ describe('Resource cache', () => {
       cardTypes.forEach((cardType) => {
         expect(cardType.data!.name).toContain('/cardTypes/');
       });
+    });
+  });
+
+  describe('cache invalidation on module change', () => {
+    let project: Project;
+
+    beforeEach(async () => {
+      mkdirSync(testDir, { recursive: true });
+      await copyDir('test/test-data/', testDir);
+      project = getTestProject(testProjectPath);
+      await project.populateCaches();
+    });
+
+    afterEach(() => {
+      rmSync(testDir, { recursive: true, force: true });
+    });
+
+    it('changedModules drops cached module resource instances so the next read sees the new disk state', () => {
+      // Synthesise a tiny module on disk for this project. The registry
+      // re-scan in `changedModules()` picks it up; the question this test
+      // pins down is whether the *instance cache* tracks the disk state
+      // when the underlying file is rewritten between reads.
+      const modulesFolder = project.paths.modulesFolder;
+      const moduleDir = join(modulesFolder, 'extmod');
+      const fieldTypesDir = join(moduleDir, 'fieldTypes');
+      mkdirSync(fieldTypesDir, { recursive: true });
+      writeFileSync(
+        join(moduleDir, 'cardsConfig.json'),
+        JSON.stringify({ cardKeyPrefix: 'extmod', name: 'extmod', modules: [] }),
+      );
+      writeFileSync(
+        join(fieldTypesDir, 'sample.json'),
+        JSON.stringify({
+          name: 'extmod/fieldTypes/sample',
+          displayName: '',
+          dataType: 'shortText',
+        }),
+      );
+
+      project.resources.changedModules();
+
+      // Prime the instance cache.
+      const before = project.resources.byType(
+        'extmod/fieldTypes/sample',
+        'fieldTypes',
+      );
+      expect(before.data?.dataType).toBe('shortText');
+
+      // Rewrite the on-disk file with new content — analogous to
+      // `applyModules` replacing a staged module wholesale.
+      writeFileSync(
+        join(fieldTypesDir, 'sample.json'),
+        JSON.stringify({
+          name: 'extmod/fieldTypes/sample',
+          displayName: '',
+          dataType: 'longText',
+        }),
+      );
+
+      project.resources.changedModules();
+
+      const after = project.resources.byType(
+        'extmod/fieldTypes/sample',
+        'fieldTypes',
+      );
+      expect(after.data?.dataType).toBe('longText');
     });
   });
 });

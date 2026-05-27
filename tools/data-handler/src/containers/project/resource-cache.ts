@@ -371,6 +371,9 @@ export class ResourceCache {
     for (const [key, metadata] of this.resourceRegistry) {
       if (metadata.source === 'local') {
         this.resourceRegistry.delete(key);
+        // Instances carry their own loaded content snapshot; drop them so
+        // the next read constructs a fresh instance from current disk state.
+        this.instanceCache.delete(key);
       }
     }
     this.collectLocalResources();
@@ -387,6 +390,11 @@ export class ResourceCache {
         (metadata.moduleName === moduleName || !moduleName)
       ) {
         this.resourceRegistry.delete(key);
+        // Instances carry their own loaded content snapshot; drop them so
+        // the next read constructs a fresh instance from current disk state.
+        // Module replacement by `applyModules` produces a new file tree that
+        // existing instances would otherwise silently mask.
+        this.instanceCache.delete(key);
       }
     }
     this.collectModuleResources();
