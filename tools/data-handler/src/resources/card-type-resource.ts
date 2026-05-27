@@ -120,12 +120,23 @@ export class CardTypeResource extends FileResource<CardType> {
     key: string,
     op: Operation<Type>,
   ): Promise<void> {
-    const field =
-      typeof op.target === 'object'
-        ? (op.target as CustomField)
-        : { name: op.target as string };
+    const toField = (value: unknown): Partial<CustomField> =>
+      typeof value === 'object' && value !== null
+        ? (value as CustomField)
+        : { name: value as string };
+    const field = toField(op.target);
     // Check that field type exists in the project.
-    const exists = await this.fieldTypeExists(field);
+    let exists = await this.fieldTypeExists(field);
+    if (!exists && op.name === 'change') {
+      // A `change` renames a reference from `target` (old) to `to` (new).
+      // The rename is in-flight, and which endpoint is on disk depends on
+      // the flow: the old name for a local rename (the resource file moves
+      // last), the new name for a foreign-module replay (the install was
+      // already advanced to post-rename by `applyModules`). The old name
+      // failed above, so fall back to the destination; only a dangling
+      // rename — neither endpoint present — is a real error.
+      exists = await this.fieldTypeExists(toField(op.to));
+    }
     if (!exists) {
       throw new Error(
         `Field type '${field.name}' does not exist in the project`,

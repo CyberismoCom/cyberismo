@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import type { Handler, MutationContext } from '../handler.js';
 import type { CascadePreview } from '../types.js';
 import { resourceName, resourceNameToString } from '../../utils/resource-utils.js';
+import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
 
 export class FieldTypeRenameHandler implements Handler {
@@ -60,6 +61,12 @@ export class FieldTypeRenameHandler implements Handler {
     // 3. Perform the resource-level rename. FieldType has no cascade beyond
     //    the customFields[] rewrite handled in step 2, so this just moves the
     //    resource file and updates its internal `name` field.
+    //    Skip for foreign-prefixed targets: replay against a consumer only
+    //    migrates consumer-side state; the module's installed file tree is
+    //    the post-rename outcome already, placed by `applyModules`.
+    if (ctx.input.target.prefix !== ctx.project.projectPrefix) {
+      return;
+    }
     const resource = ctx.project.resources.byType(oldName, 'fieldTypes');
     if (!resource) {
       throw new Error(`Field type '${oldName}' not found`);
@@ -88,8 +95,11 @@ export class FieldTypeRenameHandler implements Handler {
   }
 
   private cardTypesReferencing(ctx: MutationContext, oldName: string) {
+    // Local card types only: module-owned card types are immutable from the
+    // consumer side (write() throws), and a foreign card type's references
+    // are the owning module's responsibility to migrate, not ours.
     return ctx.project.resources
-      .cardTypes()
+      .cardTypes(ResourcesFrom.localOnly)
       .filter((ct) =>
         ct.data?.customFields?.some((cf) => cf.name === oldName),
       );

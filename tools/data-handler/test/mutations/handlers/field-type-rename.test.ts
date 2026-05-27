@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdir, rm } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
@@ -106,5 +107,211 @@ describe('FieldTypeRenameHandler', () => {
 
   it('isBreaking is true', () => {
     expect(new FieldTypeRenameHandler().isBreaking).toBe(true);
+  });
+
+  it('rewrites a card type customField referencing a module-owned field whose install is already post-rename', async () => {
+    // Replay scenario: module `ext` shipped the post-rename state on disk
+    // (urgency present, priority absent — placed by `applyModules`). A
+    // consumer card type still lists the *old* foreign field in customFields.
+    // Step 2 of the cascade must rewrite that reference. The validation must
+    // not reject because the *old* foreign name no longer exists on disk —
+    // for a foreign replay the install is already at the new name.
+    const dedicatedPath = join(tmpDir, `proj-ct-${Date.now()}`);
+    await mkdir(dedicatedPath, { recursive: true });
+    await copyDir(FIXTURE_PATH, dedicatedPath);
+
+    const moduleDir = join(dedicatedPath, '.cards', 'modules', 'ext');
+    const fieldTypesDir = join(moduleDir, 'fieldTypes');
+    await mkdir(fieldTypesDir, { recursive: true });
+    await writeFile(
+      join(moduleDir, 'cardsConfig.json'),
+      JSON.stringify({ cardKeyPrefix: 'ext', name: 'ext', modules: [] }),
+    );
+    await writeFile(
+      join(fieldTypesDir, 'urgency.json'),
+      JSON.stringify({
+        name: 'ext/fieldTypes/urgency',
+        displayName: '',
+        dataType: 'shortText',
+      }),
+    );
+
+    // Local card type references the *old* foreign field in customFields.
+    const cardTypePath = join(
+      dedicatedPath,
+      '.cards',
+      'local',
+      'cardTypes',
+      'decision.json',
+    );
+    const cardType = JSON.parse(await readFile(cardTypePath, 'utf-8')) as {
+      customFields: { name: string }[];
+    };
+    cardType.customFields.push({ name: 'ext/fieldTypes/priority' });
+    await writeFile(cardTypePath, JSON.stringify(cardType));
+
+    const dedicatedProject = new Project(dedicatedPath);
+    await dedicatedProject.populateCaches();
+
+    const handler = new FieldTypeRenameHandler();
+    await handler.apply({
+      project: dedicatedProject,
+      input: {
+        kind: 'rename' as const,
+        target: resourceName('ext/fieldTypes/priority'),
+        newIdentifier: 'urgency',
+      },
+    });
+
+    const updated = dedicatedProject.resources
+      .cardTypes()
+      .find((ct) => ct.data?.name === 'decision/cardTypes/decision');
+    const names = (updated?.data?.customFields ?? []).map((cf) => cf.name);
+    expect(names).toContain('ext/fieldTypes/urgency');
+    expect(names).not.toContain('ext/fieldTypes/priority');
+  });
+
+  it('skips module-owned card types in the customFields cascade (their files are immutable)', async () => {
+    // A *second* module owns a card type that still references the field
+    // being renamed. Module resources are immutable from the consumer side
+    // (write() throws "Cannot change module resources"), and a foreign card
+    // type's references are the owning module's responsibility — so the
+    // cascade must skip module-owned card types rather than try to rewrite
+    // them.
+    const dedicatedPath = join(tmpDir, `proj-modct-${Date.now()}`);
+    await mkdir(dedicatedPath, { recursive: true });
+    await copyDir(FIXTURE_PATH, dedicatedPath);
+
+    // ext: post-rename install (urgency present, priority gone).
+    const extFieldTypes = join(
+      dedicatedPath,
+      '.cards',
+      'modules',
+      'ext',
+      'fieldTypes',
+    );
+    await mkdir(extFieldTypes, { recursive: true });
+    await writeFile(
+      join(dedicatedPath, '.cards', 'modules', 'ext', 'cardsConfig.json'),
+      JSON.stringify({ cardKeyPrefix: 'ext', name: 'ext', modules: [] }),
+    );
+    await writeFile(
+      join(extFieldTypes, 'urgency.json'),
+      JSON.stringify({
+        name: 'ext/fieldTypes/urgency',
+        displayName: '',
+        dataType: 'shortText',
+      }),
+    );
+
+    // mod: owns a card type still referencing the OLD foreign field name.
+    const modCardTypes = join(
+      dedicatedPath,
+      '.cards',
+      'modules',
+      'mod',
+      'cardTypes',
+    );
+    await mkdir(modCardTypes, { recursive: true });
+    await writeFile(
+      join(dedicatedPath, '.cards', 'modules', 'mod', 'cardsConfig.json'),
+      JSON.stringify({ cardKeyPrefix: 'mod', name: 'mod', modules: [] }),
+    );
+    await writeFile(
+      join(modCardTypes, 'thing.json'),
+      JSON.stringify({
+        name: 'mod/cardTypes/thing',
+        displayName: '',
+        workflow: 'mod/workflows/w',
+        customFields: [{ name: 'ext/fieldTypes/priority' }],
+        alwaysVisibleFields: [],
+        optionallyVisibleFields: [],
+      }),
+    );
+
+    const dedicatedProject = new Project(dedicatedPath);
+    await dedicatedProject.populateCaches();
+
+    const handler = new FieldTypeRenameHandler();
+    await handler.apply({
+      project: dedicatedProject,
+      input: {
+        kind: 'rename' as const,
+        target: resourceName('ext/fieldTypes/priority'),
+        newIdentifier: 'urgency',
+      },
+    });
+
+    // Module-owned card type left untouched — still references the old name.
+    const modCt = dedicatedProject.resources
+      .cardTypes()
+      .find((ct) => ct.data?.name === 'mod/cardTypes/thing');
+    const names = (modCt?.data?.customFields ?? []).map((cf) => cf.name);
+    expect(names).toContain('ext/fieldTypes/priority');
+  });
+
+  it('skips the resource-file step when target is module-owned (managed by applyModules)', async () => {
+    // Simulate a replay scenario: an upstream module has already shipped
+    // the post-rename state on disk (urgency present, priority absent —
+    // `applyModules` placed it). The consumer's own card still carries
+    // the *old* metadata key. Replay must rewrite the card and leave the
+    // module's filesystem alone.
+
+    // Fresh project: this test seeds disk state before the first cache
+    // populate. The `beforeEach` already built `project`, but populating
+    // again is idempotent and would miss the synthetic module — build a
+    // new Project so caches load with the synthesised tree in place.
+    const dedicatedPath = join(tmpDir, `proj-skip-${Date.now()}`);
+    await mkdir(dedicatedPath, { recursive: true });
+    await copyDir(FIXTURE_PATH, dedicatedPath);
+
+    const moduleDir = join(dedicatedPath, '.cards', 'modules', 'ext');
+    const fieldTypesDir = join(moduleDir, 'fieldTypes');
+    await mkdir(fieldTypesDir, { recursive: true });
+    await writeFile(
+      join(moduleDir, 'cardsConfig.json'),
+      JSON.stringify({ cardKeyPrefix: 'ext', name: 'ext', modules: [] }),
+    );
+    const urgencyPath = join(fieldTypesDir, 'urgency.json');
+    await writeFile(
+      urgencyPath,
+      JSON.stringify({
+        name: 'ext/fieldTypes/urgency',
+        displayName: '',
+        dataType: 'shortText',
+      }),
+    );
+
+    const cardKey = 'decision_5';
+    const cardIndex = join(dedicatedPath, 'cardRoot', cardKey, 'index.json');
+    const metadata = JSON.parse(await readFile(cardIndex, 'utf-8')) as Record<
+      string,
+      unknown
+    >;
+    metadata['ext/fieldTypes/priority'] = null;
+    await writeFile(cardIndex, JSON.stringify(metadata));
+
+    const dedicatedProject = new Project(dedicatedPath);
+    await dedicatedProject.populateCaches();
+
+    const handler = new FieldTypeRenameHandler();
+    await handler.apply({
+      project: dedicatedProject,
+      input: {
+        kind: 'rename' as const,
+        target: resourceName('ext/fieldTypes/priority'),
+        newIdentifier: 'urgency',
+      },
+    });
+
+    // Card metadata key was rewritten (cascade did its job).
+    const updated = dedicatedProject.findCard(cardKey);
+    expect(updated.metadata).toBeDefined();
+    expect('ext/fieldTypes/urgency' in updated.metadata!).toBe(true);
+    expect('ext/fieldTypes/priority' in updated.metadata!).toBe(false);
+
+    // Module-owned file was not deleted, renamed, or otherwise disturbed.
+    expect(existsSync(urgencyPath)).toBe(true);
+    expect(existsSync(join(fieldTypesDir, 'priority.json'))).toBe(false);
   });
 });
