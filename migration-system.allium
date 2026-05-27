@@ -1076,13 +1076,30 @@ surface ModuleUpdating {
 -- per-resource content rules it enforces live with the wider Cyberismo
 -- specification.
 --
--- A deliberate boundary: referential validity is judged on resulting
--- content, never on the operation that produced it. The same principle
--- governs the author-edit path — `payload_valid` checks only that an
--- operation is well-formed (a valid add/change/rank/remove with a valid
--- payload), not that the values it references exist. Existence and other
--- referential constraints are content checks, evaluated after the edit
--- applies, by the same validation the module-update gate uses.
+-- Two validation modes, chosen by the nature of the operation:
+--
+--   Author edits (own-project mutations) validate as a PRECONDITION — the
+--   operation is checked before it applies, and a bad edit is rejected with
+--   nothing written. `payload_valid` covers operation well-formedness; the
+--   referential precondition covers "the resource this operation introduces
+--   a reference to resolves" (e.g. a custom field's field type exists). Both
+--   are inspections of the operation, not a recomputation of resulting
+--   content. A rename is a reference-in-flight: exactly one endpoint is on
+--   disk depending on the path (the old name for a local rename, where the
+--   resource file is moved after the reference cascade; the new name for a
+--   foreign-module replay, where `applyModules` placed the post-rename
+--   install), so the precondition accepts either endpoint and only "neither
+--   present" is an error.
+--
+--   Module-update replay validates the RESULT, once, after the whole replay
+--   (project_content_valid — the gate). Replay applies a trusted,
+--   author-sealed sequence and does NOT enforce per-step validity:
+--   intermediate states are legitimately inconsistent mid-cascade, and
+--   guaranteeing each one validates would require strict dependency-ordered
+--   application whose edge cases (transient mid-cascade states, modules that
+--   are both direct and transitive, multi-project ordering) make it
+--   unreliable. So replay stays relaxed; the gate decides success on the end
+--   result, and failure recovers via autocommit rollback or `git restore`.
 
 -- "Complete migration" interactive prompts (workflow state remapping,
 -- enum replacement) are not in this version of the spec. The current
