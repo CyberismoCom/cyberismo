@@ -770,24 +770,25 @@ describe('resources', function () {
       );
       expect(found).toBeUndefined();
 
-      // Create new reports
-      const reportDataWithCategory = {
-        name: withCategoryReportName,
-        displayName: 'Test report with category',
-        category: 'Analytics',
-      } as Report;
-
-      const reportDataWithoutCategory = {
-        name: withoutCategoryReportName,
-        displayName: 'Test report without category',
-      } as Report;
-
+      // Create new reports via createReport() so the full report scaffold
+      // (the reports/<name>/ directory with its .schema and handlebar files,
+      // copied from the defaultReport asset) is materialised. The bare
+      // resource .create() only writes <name>.json plus an empty subdir — a
+      // structurally invalid report that the project validator (and the
+      // module-import gate) rightly rejects. createReport() takes no
+      // metadata, so the category is set with a follow-up update.
       await project.resources
         .byType(withCategoryReportName, 'reports')
-        .create(reportDataWithCategory);
+        .createReport();
+      await project.resources
+        .byType(withCategoryReportName, 'reports')
+        .update({ key: 'category' }, {
+          name: 'change',
+          to: 'Analytics',
+        } as ChangeOperation<string>);
       await project.resources
         .byType(withoutCategoryReportName, 'reports')
-        .create(reportDataWithoutCategory);
+        .createReport();
 
       // Verify created reports
       const afterCreation = project.resources.reports();
