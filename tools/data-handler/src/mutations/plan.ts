@@ -57,13 +57,15 @@ export class ResourceMutations {
       }
     }
 
-    // Guard: destructive mutations on foreign (module-owned) resources are
-    // only allowed during replay (bypassFingerprint). Direct user-initiated
-    // delete/rename of a module resource is rejected here.
+    // Guard: any mutation on a foreign (module-owned) resource is only
+    // allowed during replay (bypassFingerprint). Direct user-initiated
+    // edit / delete / rename of a module resource is rejected here, in one
+    // place — applyResourceOp would otherwise silently skip for foreign
+    // targets, and the historical resource-layer module-write guards no
+    // longer fire because applyResourceOp itself is gated out.
     if (
       !options.bypassFingerprint &&
       'target' in input &&
-      (input.kind === 'delete' || input.kind === 'rename') &&
       input.target.prefix !== this.project.projectPrefix
     ) {
       throw new Error(

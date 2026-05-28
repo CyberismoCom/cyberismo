@@ -178,7 +178,10 @@ describe('Handler split sequencing (validate / applyCascade / applyResourceOp)',
         updateKey: { key: SENTINEL_KEY },
         operation: { name: 'change' as const, target: 'x', to: 'y' },
       };
-      await mutations.apply(input);
+      // bypassFingerprint: true marks this as a replay — the only legitimate
+      // context for a foreign-target mutation. The interactive guard rejects
+      // foreign mutations otherwise.
+      await mutations.apply(input, { bypassFingerprint: true });
       expect(cascadeSpy).toHaveBeenCalledOnce();
     } finally {
       deregister();
@@ -222,7 +225,8 @@ describe('Handler split sequencing (validate / applyCascade / applyResourceOp)',
         updateKey: { key: SENTINEL_KEY },
         operation: { name: 'change' as const, target: 'x', to: 'y' },
       };
-      await mutations.apply(input);
+      // Replay path — foreign mutations are only allowed during replay.
+      await mutations.apply(input, { bypassFingerprint: true });
       expect(resourceOpSpy).not.toHaveBeenCalled();
     } finally {
       deregister();
