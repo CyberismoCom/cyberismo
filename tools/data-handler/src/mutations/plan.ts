@@ -66,7 +66,14 @@ export class ResourceMutations {
     await this.project.lock.write(async () => {
       if (handler.applyCascade || handler.applyResourceOp) {
         await handler.applyCascade?.(ctx);
-        if ('target' in input && input.target.prefix === this.project.projectPrefix) {
+        // project_rename has no `target` field but is always local by
+        // construction — the consumer renames its own project, never a
+        // module's.  All other target-bearing inputs gate on prefix equality.
+        const isLocalTarget =
+          ('target' in input &&
+            input.target.prefix === this.project.projectPrefix) ||
+          input.kind === 'project_rename';
+        if (isLocalTarget) {
           await handler.applyResourceOp?.(ctx);
         }
       } else {

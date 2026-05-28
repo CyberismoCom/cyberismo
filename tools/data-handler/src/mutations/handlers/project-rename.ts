@@ -58,7 +58,17 @@ export class ProjectRenameHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  /**
+   * No-op cascade: project_rename has no module-target case. The entire
+   * operation runs in applyResourceOp, which plan.ts gates on isLocalTarget
+   * (always true for project_rename via the kind === 'project_rename' clause).
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async applyCascade(_ctx: MutationContext): Promise<void> {
+    // nothing — all work is in applyResourceOp
+  }
+
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'project_rename') {
       throw new Error('ProjectRenameHandler: non-project_rename input');
     }
