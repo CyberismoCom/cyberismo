@@ -38,14 +38,14 @@ export class CardTypeRenameHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  async applyCascade(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'rename') {
       throw new Error('CardTypeRenameHandler called with non-rename input');
     }
     const oldName = resourceNameToString(ctx.input.target);
     const newName = `${ctx.input.target.prefix}/cardTypes/${ctx.input.newIdentifier}`;
 
-    // 1. Rewrite card metadata.cardType for every affected card (project + templates).
+    // 1. Rewrite card metadata.cardType for every affected local card and template card.
     const cards = this.affectedCards(ctx, oldName);
     for (const card of cards) {
       const metadata = card.metadata!;
@@ -53,24 +53,12 @@ export class CardTypeRenameHandler implements Handler {
       await ctx.project.updateCardMetadata(card, metadata);
     }
 
-    // 2. Rewrite cascading references BEFORE renaming the resource on disk.
-    //    Order matters: cascade scanners look for the old name, and the
-    //    resource file (with that name) must still exist when they run.
-    // TODO: compute accurate counts now that cascade is explicit
+    // 2. Rewrite cascading references (calculations, handlebars, card content).
     await rewriteCalculationRefs(ctx.project, oldName, newName);
     await rewriteHandlebarRefs(ctx.project, oldName, newName);
     await rewriteCardContentRefs(ctx.project, oldName, newName);
 
-    // 3. Rename the resource itself. CardTypeResource.rename handles
-    //    self-only prefix rewrites for customFields / alwaysVisibleFields /
-    //    optionallyVisibleFields / workflow.
-    const resource = ctx.project.resources.byType(oldName, 'cardTypes');
-    if (!resource) {
-      throw new Error(`CardType '${oldName}' not found`);
-    }
-    await resource.rename(resourceName(newName));
-
-    // 4. Rewrite link-type sourceCardTypes/destinationCardTypes references.
+    // 3. Rewrite link-type sourceCardTypes/destinationCardTypes references (local only).
     const linkTypes = ctx.project.resources.linkTypes(ResourcesFrom.localOnly);
     for (const lt of linkTypes) {
       const data = lt.data;
@@ -86,6 +74,23 @@ export class CardTypeRenameHandler implements Handler {
         }
       }
     }
+  }
+
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'rename') {
+      throw new Error('CardTypeRenameHandler called with non-rename input');
+    }
+    const oldName = resourceNameToString(ctx.input.target);
+    const newName = `${ctx.input.target.prefix}/cardTypes/${ctx.input.newIdentifier}`;
+
+    // Rename the resource itself. CardTypeResource.rename handles
+    // self-only prefix rewrites for customFields / alwaysVisibleFields /
+    // optionallyVisibleFields / workflow.
+    const resource = ctx.project.resources.byType(oldName, 'cardTypes');
+    if (!resource) {
+      throw new Error(`CardType '${oldName}' not found`);
+    }
+    await resource.rename(resourceName(newName));
   }
 
   async affectedFilePaths(ctx: MutationContext): Promise<string[]> {
