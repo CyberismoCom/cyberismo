@@ -6,6 +6,7 @@ import { Project } from '../../../src/containers/project.js';
 import { LinkTypeDeleteHandler } from '../../../src/mutations/handlers/link-type-delete.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
+import { ResourceMutations } from '../../../src/mutations/plan.js';
 
 // Reuse the existing decision-records fixture.
 const FIXTURE_PATH = join(
@@ -89,12 +90,12 @@ describe('LinkTypeDeleteHandler', () => {
   });
 
   it('apply strips matching links and deletes the resource', async () => {
-    const handler = new LinkTypeDeleteHandler();
     const linkTypeName = `${project.projectPrefix}/linkTypes/test`;
-    await handler.apply({
-      project,
-      input: { kind: 'delete', target: resourceName(linkTypeName) },
-    });
+    const mutations = new ResourceMutations(project);
+    await mutations.apply(
+      { kind: 'delete', target: resourceName(linkTypeName) },
+      { bypassFingerprint: true },
+    );
 
     for (const card of project.cards(undefined)) {
       const links = card.metadata?.links ?? [];
@@ -116,5 +117,95 @@ describe('LinkTypeDeleteHandler', () => {
     for (const p of paths) {
       expect(p).toMatch(/index\.json$/);
     }
+  });
+
+  it('applyCascade and applyResourceOp exist (split interface)', () => {
+    const handler = new LinkTypeDeleteHandler();
+    expect(typeof handler.applyCascade).toBe('function');
+    expect(typeof handler.applyResourceOp).toBe('function');
+    expect(handler.apply).toBeUndefined();
+  });
+
+  it('validate rejects foreign-target interactive deletion', async () => {
+    const handler = new LinkTypeDeleteHandler();
+    await expect(
+      handler.validate!({
+        project,
+        input: {
+          kind: 'delete',
+          target: resourceName('foreignmodule/linkTypes/test'),
+        },
+      }),
+    ).rejects.toThrow(/module resource/i);
+  });
+});
+
+describe('LinkTypeDeleteHandler — foreign-module replay', () => {
+  const tmpForeign = join(import.meta.dirname, 'tmp-link-type-delete-foreign');
+
+  afterEach(async () => {
+    await rm(tmpForeign, { recursive: true, force: true });
+  });
+
+  it('strips local card link block referencing foreign link type; leaves module file untouched', async () => {
+    const projPath = join(tmpForeign, `proj-${Date.now()}`);
+    await mkdir(projPath, { recursive: true });
+    await copyDir(FIXTURE_PATH, projPath);
+
+    // Seed module "foo" with a link type already in post-delete state (file absent).
+    // We only need the cardsConfig so the project loads as a module.
+    const moduleDir = join(projPath, '.cards', 'modules', 'foo');
+    const moduleLinkTypesDir = join(moduleDir, 'linkTypes');
+    await mkdir(moduleLinkTypesDir, { recursive: true });
+    await writeFile(
+      join(moduleDir, 'cardsConfig.json'),
+      JSON.stringify({ cardKeyPrefix: 'foo', name: 'foo', modules: [] }),
+    );
+    // Seed a "surviving" link type file that must NOT be deleted.
+    const survivorContent = JSON.stringify({
+      name: 'foo/linkTypes/keeps',
+      displayName: 'Keeps',
+      outboundDisplayName: 'keeps',
+      inboundDisplayName: 'kept by',
+      sourceCardTypes: [],
+      destinationCardTypes: [],
+      enableLinkDescription: false,
+    });
+    const survivorPath = join(moduleLinkTypesDir, 'keeps.json');
+    await writeFile(survivorPath, survivorContent);
+
+    // Seed a LOCAL card with a link referencing the OLD (to-be-deleted) foreign link type.
+    const cardIndexPath = join(projPath, 'cardRoot', 'decision_5', 'index.json');
+    const cardMeta = JSON.parse(await readFile(cardIndexPath, 'utf-8')) as Record<string, unknown>;
+    cardMeta['links'] = [
+      { linkType: 'foo/linkTypes/gone', cardKey: 'decision_6' },
+      { linkType: 'decision/linkTypes/test', cardKey: 'decision_6' },
+    ];
+    await writeFile(cardIndexPath, JSON.stringify(cardMeta));
+
+    const foreignProject = new Project(projPath);
+    await foreignProject.populateCaches();
+
+    // Apply with foreign target (replay scenario) — must not throw.
+    const mutations = new ResourceMutations(foreignProject);
+    await mutations.apply(
+      {
+        kind: 'delete',
+        target: resourceName('foo/linkTypes/gone'),
+      },
+      { bypassFingerprint: true },
+    );
+
+    // Local card's link to the deleted type was stripped.
+    await foreignProject.populateCaches();
+    const updatedCard = foreignProject.findCard('decision_5');
+    const links = updatedCard.metadata?.links ?? [];
+    expect(links.some((l) => l.linkType === 'foo/linkTypes/gone')).toBe(false);
+    // The local link type was NOT stripped.
+    expect(links.some((l) => l.linkType === 'decision/linkTypes/test')).toBe(true);
+
+    // The surviving module file was NOT touched.
+    const survivorBytes = await readFile(survivorPath, 'utf-8');
+    expect(survivorBytes).toBe(survivorContent);
   });
 });
