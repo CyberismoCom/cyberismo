@@ -22,6 +22,7 @@ export class ResourceMutations {
   async plan(input: MutationInput): Promise<PreviewResult> {
     const ctx: MutationContext = { project: this.project, input };
     const handler = dispatch(ctx);
+    await handler.validate?.(ctx);
     const preview = await handler.preview(ctx);
     const affectedPaths = await this.affectedFilePathsFor(ctx, handler);
     const fingerprint = await computeFingerprint(input, affectedPaths);
@@ -63,7 +64,14 @@ export class ResourceMutations {
     }
 
     await this.project.lock.write(async () => {
-      await handler.apply(ctx);
+      if (handler.applyCascade || handler.applyResourceOp) {
+        await handler.applyCascade?.(ctx);
+        if (input.kind !== 'project_rename' && input.target.prefix === this.project.projectPrefix) {
+          await handler.applyResourceOp?.(ctx);
+        }
+      } else {
+        await handler.apply!(ctx);
+      }
       if (handler.isBreaking) {
         await this.recordLogEntry(input, recordContext);
       }
