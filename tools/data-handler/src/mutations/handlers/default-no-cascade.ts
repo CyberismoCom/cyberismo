@@ -22,7 +22,9 @@ export class DefaultNoCascadeHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  async applyCascade(_ctx: MutationContext): Promise<void> {}
+
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'edit') {
       throw new Error('DefaultNoCascadeHandler only supports edits');
     }

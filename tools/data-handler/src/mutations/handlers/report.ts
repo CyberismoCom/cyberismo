@@ -39,7 +39,7 @@ export class ReportRenameHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  async applyCascade(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'rename') {
       throw new Error('ReportRenameHandler: non-rename input');
     }
@@ -57,6 +57,18 @@ export class ReportRenameHandler implements Handler {
     await rewriteHandlebarRefs(ctx.project, oldName, newName, handleBarFiles);
     await rewriteCalculationRefs(ctx.project, oldName, newName);
     await rewriteCardContentRefs(ctx.project, oldName, newName);
+  }
+
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'rename') {
+      throw new Error('ReportRenameHandler: non-rename input');
+    }
+    const oldName = resourceNameToString(ctx.input.target);
+    const resource = ctx.project.resources.byType(oldName, 'reports');
+    if (!resource) {
+      throw new Error(`Report '${oldName}' not found`);
+    }
+    const newName = `${ctx.input.target.prefix}/reports/${ctx.input.newIdentifier}`;
     await resource.rename(resourceName(newName));
   }
 
@@ -99,7 +111,9 @@ export class ReportDeleteHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  async applyCascade(_ctx: MutationContext): Promise<void> {}
+
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'delete') {
       throw new Error('ReportDeleteHandler: non-delete input');
     }

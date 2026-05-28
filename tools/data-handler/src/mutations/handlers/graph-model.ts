@@ -39,15 +39,11 @@ export class GraphModelRenameHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  async applyCascade(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'rename') {
       throw new Error('GraphModelRenameHandler: non-rename input');
     }
     const oldName = resourceNameToString(ctx.input.target);
-    const resource = ctx.project.resources.byType(oldName, 'graphModels');
-    if (!resource) {
-      throw new Error(`Graph model '${oldName}' not found`);
-    }
     const newName = `${ctx.input.target.prefix}/graphModels/${ctx.input.newIdentifier}`;
     // Run the cascade before the rename so the scan still finds the old
     // name on disk. Handlebar scope is limited to this graph model's
@@ -61,6 +57,18 @@ export class GraphModelRenameHandler implements Handler {
     await rewriteHandlebarRefs(ctx.project, oldName, newName, handleBarFiles);
     await rewriteCalculationRefs(ctx.project, oldName, newName);
     await rewriteCardContentRefs(ctx.project, oldName, newName);
+  }
+
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'rename') {
+      throw new Error('GraphModelRenameHandler: non-rename input');
+    }
+    const oldName = resourceNameToString(ctx.input.target);
+    const resource = ctx.project.resources.byType(oldName, 'graphModels');
+    if (!resource) {
+      throw new Error(`Graph model '${oldName}' not found`);
+    }
+    const newName = `${ctx.input.target.prefix}/graphModels/${ctx.input.newIdentifier}`;
     await resource.rename(resourceName(newName));
   }
 
@@ -106,7 +114,9 @@ export class GraphModelDeleteHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  async applyCascade(_ctx: MutationContext): Promise<void> {}
+
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'delete') {
       throw new Error('GraphModelDeleteHandler: non-delete input');
     }

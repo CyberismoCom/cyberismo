@@ -36,7 +36,7 @@ export class GraphViewRenameHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  async applyCascade(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'rename') {
       throw new Error('GraphViewRenameHandler: non-rename input');
     }
@@ -54,6 +54,18 @@ export class GraphViewRenameHandler implements Handler {
     await rewriteHandlebarRefs(ctx.project, oldName, newName, handleBarFiles);
     await rewriteCalculationRefs(ctx.project, oldName, newName);
     await rewriteCardContentRefs(ctx.project, oldName, newName);
+  }
+
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'rename') {
+      throw new Error('GraphViewRenameHandler: non-rename input');
+    }
+    const oldName = resourceNameToString(ctx.input.target);
+    const resource = ctx.project.resources.byType(oldName, 'graphViews');
+    if (!resource) {
+      throw new Error(`Graph view '${oldName}' not found`);
+    }
+    const newName = `${ctx.input.target.prefix}/graphViews/${ctx.input.newIdentifier}`;
     await resource.rename(resourceName(newName));
   }
 
@@ -99,7 +111,9 @@ export class GraphViewDeleteHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  async applyCascade(_ctx: MutationContext): Promise<void> {}
+
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'delete') {
       throw new Error('GraphViewDeleteHandler: non-delete input');
     }

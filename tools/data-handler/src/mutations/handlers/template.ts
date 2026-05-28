@@ -48,15 +48,11 @@ export class TemplateRenameHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  async applyCascade(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'rename') {
       throw new Error('TemplateRenameHandler: non-rename input');
     }
     const oldName = resourceNameToString(ctx.input.target);
-    const resource = ctx.project.resources.byType(oldName, 'templates');
-    if (!resource) {
-      throw new Error(`Template '${oldName}' not found`);
-    }
     const newName = `${ctx.input.target.prefix}/templates/${ctx.input.newIdentifier}`;
 
     // Rewrite cascading references BEFORE renaming the resource on disk.
@@ -66,7 +62,18 @@ export class TemplateRenameHandler implements Handler {
     await rewriteCalculationRefs(ctx.project, oldName, newName);
     await rewriteHandlebarRefs(ctx.project, oldName, newName);
     await rewriteCardContentRefs(ctx.project, oldName, newName);
+  }
 
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'rename') {
+      throw new Error('TemplateRenameHandler: non-rename input');
+    }
+    const oldName = resourceNameToString(ctx.input.target);
+    const resource = ctx.project.resources.byType(oldName, 'templates');
+    if (!resource) {
+      throw new Error(`Template '${oldName}' not found`);
+    }
+    const newName = `${ctx.input.target.prefix}/templates/${ctx.input.newIdentifier}`;
     await resource.rename(resourceName(newName));
   }
 
@@ -110,7 +117,9 @@ export class TemplateDeleteHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  async applyCascade(_ctx: MutationContext): Promise<void> {}
+
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'delete') {
       throw new Error('TemplateDeleteHandler: non-delete input');
     }

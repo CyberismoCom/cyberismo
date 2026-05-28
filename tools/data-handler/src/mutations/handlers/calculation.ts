@@ -52,7 +52,21 @@ export class CalculationRenameHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  async applyCascade(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'rename') {
+      throw new Error('CalculationRenameHandler: non-rename input');
+    }
+    const oldName = resourceNameToString(ctx.input.target);
+    const newName = `${ctx.input.target.prefix}/calculations/${ctx.input.newIdentifier}`;
+    // Run the cascade before the rename so the scan still finds the old
+    // name on disk. No handlebar pass — calculations don't have handlebar
+    // references.
+    // TODO: compute accurate counts now that cascade is explicit
+    await rewriteCalculationRefs(ctx.project, oldName, newName);
+    await rewriteCardContentRefs(ctx.project, oldName, newName);
+  }
+
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'rename') {
       throw new Error('CalculationRenameHandler: non-rename input');
     }
@@ -62,12 +76,6 @@ export class CalculationRenameHandler implements Handler {
       throw new Error(`Calculation '${oldName}' not found`);
     }
     const newName = `${ctx.input.target.prefix}/calculations/${ctx.input.newIdentifier}`;
-    // Run the cascade before the rename so the scan still finds the old
-    // name on disk. No handlebar pass — calculations don't have handlebar
-    // references.
-    // TODO: compute accurate counts now that cascade is explicit
-    await rewriteCalculationRefs(ctx.project, oldName, newName);
-    await rewriteCardContentRefs(ctx.project, oldName, newName);
     await resource.rename(resourceName(newName));
   }
 
@@ -112,7 +120,9 @@ export class CalculationDeleteHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  async applyCascade(_ctx: MutationContext): Promise<void> {}
+
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'delete') {
       throw new Error('CalculationDeleteHandler: non-delete input');
     }
