@@ -9,6 +9,7 @@ import type {
   Workflow,
   WorkflowState,
 } from '../../interfaces/resource-interfaces.js';
+import { ResourcesFrom } from '../../containers/project/resources-from.js';
 
 export class WorkflowRenameStateHandler implements Handler {
   readonly isBreaking = true;
@@ -45,7 +46,26 @@ export class WorkflowRenameStateHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  async applyCascade(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'edit') {
+      throw new Error('WorkflowRenameStateHandler: non-edit input');
+    }
+    const wfName = resourceNameToString(ctx.input.target);
+    const op = ctx.input.operation as ChangeOperation<WorkflowState>;
+    const oldName = (op.target as { name: string }).name;
+    const newName = op.to.name;
+
+    // Rewrite workflowState on every local card in the old state.
+    const affected = await this.cardsInState(ctx, wfName, oldName);
+    for (const card of affected) {
+      if (card.metadata) {
+        card.metadata.workflowState = newName;
+        await ctx.project.updateCardMetadata(card, card.metadata);
+      }
+    }
+  }
+
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'edit') {
       throw new Error('WorkflowRenameStateHandler: non-edit input');
     }
@@ -61,14 +81,10 @@ export class WorkflowRenameStateHandler implements Handler {
       );
     }
 
-    // 1. Rename the state itself via the resource's existing array-handling
-    //    path. handleArray treats `change` on `states` as an in-place
-    //    replacement of the matched entry.
+    // Rename the state itself via the resource's existing array-handling path.
     await resource.update({ key: 'states' }, ctx.input.operation as Operation<WorkflowState>);
 
-    // 2. Rewrite every transition's fromState / toState. The resource's
-    //    transitions array is updated through a change operation per
-    //    transition that contains the renamed state.
+    // Rewrite every transition's fromState / toState.
     const wf = resource.data as Workflow;
     for (const transition of [...wf.transitions]) {
       const touchesOld =
@@ -83,15 +99,6 @@ export class WorkflowRenameStateHandler implements Handler {
         { key: 'transitions' },
         { name: 'change', target: transition, to: updated },
       );
-    }
-
-    // 3. Rewrite workflowState on every affected card.
-    const affected = await this.cardsInState(ctx, wfName, oldName);
-    for (const card of affected) {
-      if (card.metadata) {
-        card.metadata.workflowState = newName;
-        await ctx.project.updateCardMetadata(card, card.metadata);
-      }
     }
   }
 
@@ -110,7 +117,7 @@ export class WorkflowRenameStateHandler implements Handler {
     stateName: string,
   ) {
     const cardTypes = ctx.project.resources
-      .cardTypes()
+      .cardTypes(ResourcesFrom.localOnly)
       .filter((ct) => ct.data?.workflow === workflowName);
     const cardTypeNames = new Set(cardTypes.map((ct) => ct.data!.name));
     return ctx.project
