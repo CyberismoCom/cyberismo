@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import type { Handler, MutationContext } from '../handler.js';
 import type { CascadePreview } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
+import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
 import type { ChangeOperation } from '../../resources/resource-object.js';
 
@@ -34,31 +35,28 @@ export class CardTypeWorkflowChangeHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  async validate(ctx: MutationContext): Promise<void> {
+    const { newWorkflowName } = this.deconstruct(ctx);
+    // New workflow must exist locally or in any installed module.
+    const exists = ctx.project.resources.exists(newWorkflowName);
+    if (!exists) {
+      throw new Error(`Workflow '${newWorkflowName}' does not exist in the project`);
+    }
+  }
+
+  async applyCascade(ctx: MutationContext): Promise<void> {
     const { op, mapping, newWorkflowName, cardTypeName } = this.deconstruct(ctx);
 
-    // 1. Validate mapping when provided.
+    // Validate mapping when provided. This is a cascade-time concern:
+    // it validates source/target states against the old and new workflows.
     if (Object.keys(mapping).length > 0) {
       this.verifyStateMapping(ctx, mapping, op);
     }
 
-    // 2. Update the card type's workflow reference via the existing resource update.
-    const resource = ctx.project.resources.byType(cardTypeName, 'cardTypes');
-    if (!resource) throw new Error(`CardType '${cardTypeName}' not found`);
-    // Pass through with mapping stripped so the existing card-type-resource.update
-    // (post-trim) doesn't double-fire the cascade. We rewrite cards here.
-    const updateOp: ChangeOperation<string> = {
-      name: 'change',
-      target: op.target as string,
-      to: op.to as string,
-    } as ChangeOperation<string>;
-    await resource.update({ key: 'workflow' }, updateOp);
-
-    // 3. Walk the affected cards.
+    // Walk the affected cards (local project cards only).
     const cards = this.affectedCards(ctx);
-    const newWorkflow = ctx.project.resources
-      .byType(newWorkflowName, 'workflows')
-      .show();
+    const newWorkflowResource = ctx.project.resources.byType(newWorkflowName, 'workflows');
+    const newWorkflow = newWorkflowResource.show();
     if (!newWorkflow) {
       throw new Error(`Workflow '${newWorkflowName}' does not exist`);
     }
@@ -78,6 +76,39 @@ export class CardTypeWorkflowChangeHandler implements Handler {
         await ctx.project.updateCardMetadata(card, metadata);
       }
     }
+
+    // Also rewrite local template cards of this card type.
+    const templateCards = ctx.project.resources
+      .templates(ResourcesFrom.localOnly)
+      .flatMap((t) => t.templateObject().cards())
+      .filter((c) => c.metadata?.cardType === cardTypeName);
+    for (const card of templateCards) {
+      const metadata = card.metadata;
+      if (!metadata) continue;
+      const current = metadata.workflowState;
+      const next =
+        Object.keys(mapping).length > 0 ? mapping[current] ?? firstState : firstState;
+      if (next !== current) {
+        metadata.workflowState = next;
+        await ctx.project.updateCardMetadata(card, metadata);
+      }
+    }
+  }
+
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
+    const { op, cardTypeName } = this.deconstruct(ctx);
+
+    // Update the card type's workflow reference via the existing resource update.
+    const resource = ctx.project.resources.byType(cardTypeName, 'cardTypes');
+    if (!resource) throw new Error(`CardType '${cardTypeName}' not found`);
+    // Pass through with mapping stripped so the existing card-type-resource.update
+    // (post-trim) doesn't double-fire the cascade. We rewrite cards in applyCascade.
+    const updateOp: ChangeOperation<string> = {
+      name: 'change',
+      target: op.target as string,
+      to: op.to as string,
+    } as ChangeOperation<string>;
+    await resource.update({ key: 'workflow' }, updateOp);
   }
 
   async affectedFilePaths(ctx: MutationContext): Promise<string[]> {
