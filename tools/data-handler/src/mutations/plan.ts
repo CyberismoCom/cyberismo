@@ -66,7 +66,7 @@ export class ResourceMutations {
     await this.project.lock.write(async () => {
       if (handler.applyCascade || handler.applyResourceOp) {
         await handler.applyCascade?.(ctx);
-        if (input.kind !== 'project_rename' && input.target.prefix === this.project.projectPrefix) {
+        if ('target' in input && input.target.prefix === this.project.projectPrefix) {
           await handler.applyResourceOp?.(ctx);
         }
       } else {
