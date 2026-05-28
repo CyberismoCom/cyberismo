@@ -27,7 +27,12 @@ export class WorkflowAddStateHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  /** No cascade — adding a state affects no consumers. */
+  async applyCascade(_ctx: MutationContext): Promise<void> {
+    // Nothing to cascade.
+  }
+
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'edit') {
       throw new Error('WorkflowAddStateHandler called with non-edit input');
     }
