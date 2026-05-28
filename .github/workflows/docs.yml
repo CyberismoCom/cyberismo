@@ -27,7 +27,7 @@ permissions:
   contents: read
 
 env:
-  CLI_VERSION: 0.0.25
+  CLI_VERSION: 0.0.26
 
 jobs:
   build:
