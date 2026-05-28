@@ -5,7 +5,7 @@ import { mkdirSync, rmSync } from 'node:fs';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { getTestProject } from './helpers/test-utils.js';
-import { Create, Fetch, Import, Remove } from '../src/commands/index.js';
+import { Create, Fetch, Import, Remove, Update } from '../src/commands/index.js';
 import type { Project } from '../src/containers/project.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 
@@ -2581,6 +2581,9 @@ describe('resources', function () {
     });
 
     it('should update card contents when renaming link type', async () => {
+      // PR1 routes linkType renames through the mutation engine via
+      // Update.applyResourceOperation; the cascade (card content rewrite)
+      // lives in LinkTypeRenameHandler, not LinkTypeResource.rename().
       const linkTypeName = 'decision/linkTypes/testLinkForContent';
       const linkType = project.resources.byType(linkTypeName, 'linkTypes');
       await linkType.create();
@@ -2597,15 +2600,28 @@ describe('resources', function () {
       let card = project.findCard(cardKey);
       expect(card.content).toContain(linkTypeName);
 
-      await linkType.rename(resourceName('decision/linkTypes/renamedLink'));
-      expect(linkType.data?.name).toBe('decision/linkTypes/renamedLink');
+      const update = new Update(project);
+      await update.applyResourceOperation(
+        linkTypeName,
+        { key: 'name' },
+        {
+          name: 'change',
+          target: linkTypeName,
+          to: 'decision/linkTypes/renamedLink',
+        } as ChangeOperation<string>,
+      );
+      const renamed = project.resources.byType(
+        'decision/linkTypes/renamedLink',
+        'linkTypes',
+      );
+      expect(renamed.data?.name).toBe('decision/linkTypes/renamedLink');
 
       card = project.findCard(cardKey);
       expect(card.content).toContain('decision/linkTypes/renamedLink');
       expect(card.content).not.toContain(linkTypeName);
 
       await cleanup(cardKey);
-      await linkType.delete();
+      await renamed.delete();
     });
 
     it('should update card contents when renaming calculations', async () => {
@@ -2746,6 +2762,9 @@ describe('resources', function () {
     });
 
     it('should update card metadata links when renaming link types', async () => {
+      // PR1 routes linkType renames through the mutation engine via
+      // Update.applyResourceOperation; the cascade (card metadata link
+      // rewrite) lives in LinkTypeRenameHandler, not LinkTypeResource.rename().
       const linkTypeName = 'decision/linkTypes/testLinkForMetadata';
       const linkTypeRenamed = 'decision/linkTypes/renamedLink';
       const linkType = project.resources.byType(linkTypeName, 'linkTypes');
@@ -2772,8 +2791,18 @@ describe('resources', function () {
       expect(card1.metadata?.links).to.have.lengthOf(1);
       expect(card1.metadata?.links[0].linkType).toBe(linkTypeName);
 
-      await linkType.rename(resourceName(linkTypeRenamed));
-      expect(linkType.data?.name).toBe(linkTypeRenamed);
+      const update = new Update(project);
+      await update.applyResourceOperation(
+        linkTypeName,
+        { key: 'name' },
+        {
+          name: 'change',
+          target: linkTypeName,
+          to: linkTypeRenamed,
+        } as ChangeOperation<string>,
+      );
+      const renamed = project.resources.byType(linkTypeRenamed, 'linkTypes');
+      expect(renamed.data?.name).toBe(linkTypeRenamed);
       card1 = project.findCard(cardKey1);
       expect(card1.metadata?.links).to.have.lengthOf(1);
       expect(card1.metadata?.links[0].linkType).toBe(linkTypeRenamed);
@@ -2781,7 +2810,7 @@ describe('resources', function () {
 
       await cleanup(cardKey1);
       await cleanup(cardKey2);
-      await linkType.delete();
+      await renamed.delete();
     });
   });
 });
