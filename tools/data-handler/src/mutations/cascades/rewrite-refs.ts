@@ -15,6 +15,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
 
 import type { Project } from '../../containers/project.js';
+import type { Card } from '../../interfaces/project-interfaces.js';
 
 /**
  * Default list of handlebar files for a project: every handlebar file
@@ -114,9 +115,12 @@ export async function rewriteCardContentRefs(
     );
   }
 
+  const localTemplateCards: Card[] = project.resources
+    .templates(ResourcesFrom.localOnly)
+    .flatMap((t) => t.templateObject().cards());
   const allCards = [
     ...project.cards(undefined),
-    ...project.allTemplateCards(),
+    ...localTemplateCards,
   ];
   const cardsToUpdate = allCards.filter(
     (card) => card.content && card.content.includes(from),
