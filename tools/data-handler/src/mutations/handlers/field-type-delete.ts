@@ -17,6 +17,18 @@ export class FieldTypeDeleteHandler implements Handler {
     );
   }
 
+  async validate(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'delete') return;
+    const fieldName = resourceNameToString(ctx.input.target);
+    // Interactive deletion of a module-owned field type is not allowed.
+    // Replay (which skips validate) is allowed and will only run the cascade.
+    if (ctx.input.target.prefix !== ctx.project.projectPrefix) {
+      throw new Error(
+        `Cannot delete resource ${fieldName}: It is a module resource`,
+      );
+    }
+  }
+
   async preview(ctx: MutationContext): Promise<CascadePreview> {
     if (ctx.input.kind !== 'delete') {
       throw new Error('FieldTypeDeleteHandler: non-delete input');

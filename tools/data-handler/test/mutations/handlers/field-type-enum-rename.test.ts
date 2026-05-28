@@ -1,11 +1,12 @@
 // tools/data-handler/test/mutations/handlers/field-type-enum-rename.test.ts
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
 import { FieldTypeEnumRenameHandler } from '../../../src/mutations/handlers/field-type-enum-rename.js';
+import { ResourceMutations } from '../../../src/mutations/plan.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
 
@@ -109,17 +110,15 @@ describe('FieldTypeEnumRenameHandler', () => {
   });
 
   it('applying find-and-replaces the enum value on every affected card', async () => {
-    const handler = new FieldTypeEnumRenameHandler();
-    const ctx = {
-      project,
-      input: {
-        kind: 'edit' as const,
+    await new ResourceMutations(project).apply(
+      {
+        kind: 'edit',
         target: resourceName(fieldName()),
         updateKey: { key: 'enumValues' as const },
         operation: renameOp,
       },
-    };
-    await handler.apply(ctx);
+      { bypassFingerprint: true },
+    );
     for (const card of project.cards(undefined)) {
       expect(card.metadata?.[fieldName()]).not.toBe('low');
     }
@@ -127,5 +126,62 @@ describe('FieldTypeEnumRenameHandler', () => {
 
   it('isBreaking is true', () => {
     expect(new FieldTypeEnumRenameHandler().isBreaking).toBe(true);
+  });
+
+  describe('foreign-module replay (apply only, foreign target)', () => {
+    it('rewrites local cards holding the old enum value without touching the module file', async () => {
+      const dedicatedPath = join(tmpDir, `proj-foreign-enum-rn-${Date.now()}`);
+      await mkdir(dedicatedPath, { recursive: true });
+      await copyDir(FIXTURE_PATH, dedicatedPath);
+
+      // Seed module 'foo' with field already at post-rename state (minor present, low absent).
+      const fooModuleDir = join(dedicatedPath, '.cards', 'modules', 'foo');
+      const fooFieldTypesDir = join(fooModuleDir, 'fieldTypes');
+      await mkdir(fooFieldTypesDir, { recursive: true });
+      await writeFile(
+        join(fooModuleDir, 'cardsConfig.json'),
+        JSON.stringify({ cardKeyPrefix: 'foo', name: 'foo', modules: [] }),
+      );
+      const moduleFilePath = join(fooFieldTypesDir, 'priority.json');
+      const moduleFileContent = JSON.stringify({
+        name: 'foo/fieldTypes/priority',
+        displayName: '',
+        dataType: 'enum',
+        enumValues: [{ enumValue: 'minor' }, { enumValue: 'high' }],
+      });
+      await writeFile(moduleFilePath, moduleFileContent);
+
+      // Seed a local card still carrying the OLD enum value 'low'.
+      const cardIndexPath = join(dedicatedPath, 'cardRoot', 'decision_5', 'index.json');
+      const cardData = JSON.parse(await readFile(cardIndexPath, 'utf-8')) as Record<string, unknown>;
+      cardData['foo/fieldTypes/priority'] = 'low';
+      await writeFile(cardIndexPath, JSON.stringify(cardData));
+
+      const foreignProject = new Project(dedicatedPath);
+      await foreignProject.populateCaches();
+
+      // Replay: rename 'low' → 'minor' (module already at new state).
+      await new ResourceMutations(foreignProject).apply(
+        {
+          kind: 'edit',
+          target: resourceName('foo/fieldTypes/priority'),
+          updateKey: { key: 'enumValues' as const },
+          operation: {
+            name: 'change' as const,
+            target: { enumValue: 'low' },
+            to: { enumValue: 'minor' },
+          },
+        },
+        { bypassFingerprint: true },
+      );
+
+      // Local card value rewritten to new enum value.
+      const updatedCard = foreignProject.findCard('decision_5');
+      expect(updatedCard.metadata?.['foo/fieldTypes/priority']).toBe('minor');
+
+      // Module file byte-identical to seed (untouched).
+      const moduleFileAfter = await readFile(moduleFilePath, 'utf-8');
+      expect(moduleFileAfter).toBe(moduleFileContent);
+    });
   });
 });
