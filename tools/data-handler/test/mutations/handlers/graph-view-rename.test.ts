@@ -50,21 +50,23 @@ describe('GraphViewRenameHandler', () => {
     expect(new GraphViewRenameHandler().isBreaking).toBe(true);
   });
 
-  it('apply renames the resource', async () => {
+  it('applyCascade + applyResourceOp renames the resource', async () => {
     const views = project.resources.graphViews(/* localOnly */);
     if (views.length === 0) return;
     const view = views[0];
     const oldName = view.data!.name;
     const newIdent = `${view.resourceName.identifier}-renamed`;
     const handler = new GraphViewRenameHandler();
-    await handler.apply({
+    const ctx = {
       project,
       input: {
-        kind: 'rename',
+        kind: 'rename' as const,
         target: resourceName(oldName),
         newIdentifier: newIdent,
       },
-    });
+    };
+    await handler.applyCascade(ctx);
+    await handler.applyResourceOp(ctx);
     expect(
       project.resources.byType(
         `${view.resourceName.prefix}/graphViews/${newIdent}`,

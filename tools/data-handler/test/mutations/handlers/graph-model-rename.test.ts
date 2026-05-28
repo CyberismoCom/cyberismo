@@ -52,21 +52,23 @@ describe('GraphModelRenameHandler', () => {
     expect(new GraphModelRenameHandler().isBreaking).toBe(true);
   });
 
-  it('apply renames the resource', async () => {
+  it('applyCascade + applyResourceOp renames the resource', async () => {
     const models = project.resources.graphModels(/* localOnly */);
     if (models.length === 0) return;
     const model = models[0];
     const oldName = model.data!.name;
     const newIdent = `${model.resourceName.identifier}-renamed`;
     const handler = new GraphModelRenameHandler();
-    await handler.apply({
+    const ctx = {
       project,
       input: {
-        kind: 'rename',
+        kind: 'rename' as const,
         target: resourceName(oldName),
         newIdentifier: newIdent,
       },
-    });
+    };
+    await handler.applyCascade(ctx);
+    await handler.applyResourceOp(ctx);
     expect(
       project.resources.byType(
         `${model.resourceName.prefix}/graphModels/${newIdent}`,

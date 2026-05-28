@@ -67,19 +67,21 @@ describe('TemplateRenameHandler', () => {
     expect(preview.dataLossExpected).toBe(false);
   });
 
-  it('apply rewrites createCards references in index.adoc files', async () => {
+  it('applyCascade + applyResourceOp rewrites createCards references in index.adoc files', async () => {
     const handler = new TemplateRenameHandler();
     const oldName = `${project.projectPrefix}/templates/decision`;
     const newName = `${project.projectPrefix}/templates/decision-record`;
-
-    await handler.apply({
+    const ctx = {
       project,
       input: {
         kind: 'rename' as const,
         target: resourceName(oldName),
         newIdentifier: 'decision-record',
       },
-    });
+    };
+
+    await handler.applyCascade(ctx);
+    await handler.applyResourceOp(ctx);
 
     for (const card of project.cards(undefined)) {
       const adocPath = join(card.path, 'index.adoc');

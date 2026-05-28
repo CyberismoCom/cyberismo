@@ -51,7 +51,7 @@ describe('CalculationRenameHandler', () => {
     expect(new CalculationRenameHandler().isBreaking).toBe(true);
   });
 
-  it('apply rewrites references in calculation files', async () => {
+  it('applyCascade + applyResourceOp rewrites references in calculation files', async () => {
     // Use the first calculation in the fixture; fall back if none.
     const calculations = project.resources.calculations(/* localOnly */);
     if (calculations.length === 0) return; // skip if fixture has none
@@ -59,15 +59,17 @@ describe('CalculationRenameHandler', () => {
     const oldName = calc.data!.name;
     const newIdent = `${calc.resourceName.identifier}-renamed`;
     const handler = new CalculationRenameHandler();
-
-    await handler.apply({
+    const ctx = {
       project,
       input: {
         kind: 'rename' as const,
         target: resourceName(oldName),
         newIdentifier: newIdent,
       },
-    });
+    };
+
+    await handler.applyCascade(ctx);
+    await handler.applyResourceOp(ctx);
 
     const renamed = project.resources.byType(
       `${calc.resourceName.prefix}/calculations/${newIdent}`,

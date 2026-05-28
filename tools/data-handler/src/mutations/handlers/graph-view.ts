@@ -111,7 +111,7 @@ export class GraphViewDeleteHandler implements Handler {
     };
   }
 
-  async applyCascade(_ctx: MutationContext): Promise<void> {}
+  async applyCascade(): Promise<void> {}
 
   async applyResourceOp(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'delete') {

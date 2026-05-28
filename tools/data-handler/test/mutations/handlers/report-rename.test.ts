@@ -49,22 +49,24 @@ describe('ReportRenameHandler', () => {
     expect(new ReportRenameHandler().isBreaking).toBe(true);
   });
 
-  it('apply renames the resource', async () => {
+  it('applyCascade + applyResourceOp renames the resource', async () => {
     const reports = project.resources.reports(/* localOnly */);
     if (reports.length === 0) return; // skip if fixture has none
     const report = reports[0];
     const oldName = report.data!.name;
     const newIdent = `${report.resourceName.identifier}-renamed`;
     const handler = new ReportRenameHandler();
-
-    await handler.apply({
+    const ctx = {
       project,
       input: {
         kind: 'rename' as const,
         target: resourceName(oldName),
         newIdentifier: newIdent,
       },
-    });
+    };
+
+    await handler.applyCascade(ctx);
+    await handler.applyResourceOp(ctx);
 
     const renamed = project.resources.byType(
       `${report.resourceName.prefix}/reports/${newIdent}`,

@@ -46,6 +46,8 @@ export class LinkTypeEditCardTypesHandler implements Handler {
     };
   }
 
+  async applyCascade(): Promise<void> {}
+
   async applyResourceOp(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'edit') {
       throw new Error('LinkTypeEditCardTypesHandler called with non-edit input');
