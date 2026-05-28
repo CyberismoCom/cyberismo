@@ -173,8 +173,8 @@ For example, the default query results in an object that has a property `results
 In addition to the built-in Handlebars helpers (such as `each`, `if`, and `log`), the following helpers are available in report content templates:
 
 * `formatValue` -- formats a value from a logic program for use in templates. Arrays are rendered as comma-separated lists of formatted values. For objects, a string `displayValue` property is used if present; otherwise a string `value` property is used; otherwise the object is rendered as formatted JSON. Boolean values are rendered as `Yes` or `No`. Other values are converted using their string representation.
-* `jsonEscape` -- escapes a string for safe inclusion inside a JSON string value. Escapes double quotes, backslashes, newlines, and other control characters. For example, `{{jsonEscape this.description}}` produces a string that can be safely placed inside JSON double quotes.
-* `csvEscape` -- escapes a string for safe inclusion as a CSV field. Doubles any double quote characters in the string. The caller is responsible for wrapping the result in quotes if needed. For example, `{{csvEscape this.title}}` produces a string suitable for use in a CSV field.
+* `jsonEscape` -- escapes a string for safe inclusion inside a JSON string value. Escapes double quotes, backslashes, newlines, and other control characters. For example, `{{#raw}}{{jsonEscape this.description}}{{/raw}}` produces a string that can be safely placed inside JSON double quotes.
+* `csvEscape` -- escapes a string for safe inclusion as a CSV field. Doubles any double quote characters in the string. The caller is responsible for wrapping the result in quotes if needed. For example, `{{#raw}}{{csvEscape this.title}}{{/raw}}` produces a string suitable for use in a CSV field.
 
 == Report JSON file format
 
