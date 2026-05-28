@@ -9,6 +9,7 @@ import type {
   Workflow,
   WorkflowState,
 } from '../../interfaces/resource-interfaces.js';
+import { ResourcesFrom } from '../../containers/project/resources-from.js';
 
 export class WorkflowRemoveStateHandler implements Handler {
   readonly isBreaking = true;
@@ -46,7 +47,50 @@ export class WorkflowRemoveStateHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  async applyCascade(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'edit') {
+      throw new Error('WorkflowRemoveStateHandler: non-edit input');
+    }
+    const wfName = resourceNameToString(ctx.input.target);
+    const stateName = this.targetStateName(ctx.input.operation);
+    const removeOp = ctx.input.operation as RemoveOperation<WorkflowState>;
+
+    // Determine the replacement state name from the operation.
+    // Note: for foreign workflows, the workflow resource may not be locally
+    // available; we fall back gracefully using the operation's replacementValue.
+    const explicit = removeOp.replacementValue?.name;
+
+    // Try to get remaining states from local workflow resource.
+    const resource = ctx.project.resources.byType(wfName, 'workflows');
+    let replacementName: string | undefined;
+    if (explicit) {
+      replacementName = explicit;
+    } else if (resource) {
+      const wf = resource.data as Workflow | undefined;
+      if (wf) {
+        const remainingStates = wf.states.filter((s) => s.name !== stateName);
+        if (remainingStates.length > 0) {
+          replacementName = remainingStates[0].name;
+        }
+      }
+    }
+
+    if (!replacementName) {
+      // Can't migrate cards without a target state; skip silently in cascade-only path.
+      return;
+    }
+
+    // Move every local card currently in the removed state.
+    const affectedCards = await this.cardsInState(ctx, wfName, stateName);
+    for (const card of affectedCards) {
+      if (card.metadata) {
+        card.metadata.workflowState = replacementName;
+        await ctx.project.updateCardMetadata(card, card.metadata);
+      }
+    }
+  }
+
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'edit') {
       throw new Error('WorkflowRemoveStateHandler: non-edit input');
     }
@@ -58,7 +102,7 @@ export class WorkflowRemoveStateHandler implements Handler {
     const stateName = this.targetStateName(ctx.input.operation);
     const removeOp = ctx.input.operation as RemoveOperation<WorkflowState>;
 
-    // 1. Determine the effective replacement state.
+    // Validate that we're not removing the only remaining state.
     const wf = resource.data as Workflow | undefined;
     if (!wf) throw new Error(`Workflow '${wfName}' has no data`);
     const remainingStates = wf.states.filter((s) => s.name !== stateName);
@@ -73,24 +117,11 @@ export class WorkflowRemoveStateHandler implements Handler {
         `Replacement state '${explicit}' is not a state of workflow '${wfName}'.`,
       );
     }
-    const replacementName = explicit ?? remainingStates[0].name;
 
-    // 2. Move every card currently in the removed state.
-    const affectedCards = await this.cardsInState(ctx, wfName, stateName);
-    for (const card of affectedCards) {
-      if (card.metadata) {
-        card.metadata.workflowState = replacementName;
-        await ctx.project.updateCardMetadata(card, card.metadata);
-      }
-    }
-
-    // 3. Perform the actual `states` remove. WorkflowResource.update
-    //    internally rewrites transitions (removes or substitutes references
-    //    depending on whether a replacementValue is present) and removes
-    //    the state. We drive the resource update with the original operation
-    //    so the built-in cascade is exercised; the card moves above cover
-    //    the behavioural change of also moving cards when no replacement
-    //    is supplied.
+    // Perform the actual `states` remove. WorkflowResource.update
+    // internally rewrites transitions (removes or substitutes references
+    // depending on whether a replacementValue is present) and removes
+    // the state.
     await resource.update(
       { key: 'states' },
       ctx.input.operation as Operation<WorkflowState>,
@@ -118,7 +149,7 @@ export class WorkflowRemoveStateHandler implements Handler {
     stateName: string,
   ) {
     const cardTypes = ctx.project.resources
-      .cardTypes()
+      .cardTypes(ResourcesFrom.localOnly)
       .filter((ct) => ct.data?.workflow === workflowName);
     const cardTypeNames = new Set(cardTypes.map((ct) => ct.data!.name));
     const allCards = ctx.project.cards(undefined);

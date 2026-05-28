@@ -1,11 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdir, rm } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
 import { WorkflowRemoveStateHandler } from '../../../src/mutations/handlers/workflow-remove-state.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
+import { ResourceMutations } from '../../../src/mutations/plan.js';
 
 const FIXTURE_PATH = join(
   import.meta.dirname,
@@ -67,9 +68,7 @@ describe('WorkflowRemoveStateHandler', () => {
   });
 
   it('apply moves cards in the removed state to the first remaining state', async () => {
-    // Pre-condition: pick a card in the fixture currently in 'Rejected' (or
-    // move one into it before applying). Use the existing project APIs to do
-    // so without depending on a specific fixture layout.
+    // Pre-condition: place a card in 'Rejected'.
     const allCards = project.cards(undefined);
     const target =
       allCards.find(
@@ -80,10 +79,9 @@ describe('WorkflowRemoveStateHandler', () => {
       await project.updateCardMetadata(target, target.metadata);
     }
 
-    const handler = new WorkflowRemoveStateHandler();
-    await handler.apply({
-      project,
-      input: {
+    const mutations = new ResourceMutations(project);
+    await mutations.apply(
+      {
         kind: 'edit',
         target: resourceName('decision/workflows/decision'),
         updateKey: { key: 'states' },
@@ -92,10 +90,9 @@ describe('WorkflowRemoveStateHandler', () => {
           target: { name: 'Rejected', category: 'closed' },
         },
       },
-    });
+      { bypassFingerprint: true },
+    );
     const refetched = project.cards(undefined).find((c) => c.key === target!.key)!;
-    // The workflow's first remaining state. From the fixture, 'Draft' is
-    // first; verify against the workflow file after removal.
     const wf = project.resources.byType(
       'decision/workflows/decision',
       'workflows',
@@ -114,10 +111,9 @@ describe('WorkflowRemoveStateHandler', () => {
       await project.updateCardMetadata(target, target.metadata);
     }
 
-    const handler = new WorkflowRemoveStateHandler();
-    await handler.apply({
-      project,
-      input: {
+    const mutations = new ResourceMutations(project);
+    await mutations.apply(
+      {
         kind: 'edit',
         target: resourceName('decision/workflows/decision'),
         updateKey: { key: 'states' },
@@ -127,12 +123,89 @@ describe('WorkflowRemoveStateHandler', () => {
           replacementValue: { name: 'Approved', category: 'closed' },
         },
       },
-    });
+      { bypassFingerprint: true },
+    );
     const refetched = project.cards(undefined).find((c) => c.key === target!.key)!;
     expect(refetched.metadata?.workflowState).toBe('Approved');
   });
 
   it('isBreaking is true', () => {
     expect(new WorkflowRemoveStateHandler().isBreaking).toBe(true);
+  });
+});
+
+describe('foreign-module replay (apply only, foreign target)', () => {
+  it('moves local cards out of removed state; leaves foreign workflow file untouched', async () => {
+    const projPath = join(tmpDir, `proj-foreign-wf-rm-${Date.now()}`);
+    await mkdir(projPath, { recursive: true });
+    await copyDir(FIXTURE_PATH, projPath);
+
+    // Seed module "foo" with a workflow that has "Rejected" already removed.
+    const moduleDir = join(projPath, '.cards', 'modules', 'foo');
+    const moduleWorkflowsDir = join(moduleDir, 'workflows');
+    await mkdir(moduleWorkflowsDir, { recursive: true });
+    await writeFile(
+      join(moduleDir, 'cardsConfig.json'),
+      JSON.stringify({ cardKeyPrefix: 'foo', name: 'foo', modules: [] }),
+    );
+    const moduleWfContent = JSON.stringify({
+      name: 'foo/workflows/wf',
+      displayName: 'Foo Workflow',
+      states: [
+        { name: 'Open', category: 'initial' },
+        { name: 'Approved', category: 'closed' },
+      ],
+      transitions: [{ name: 'Create', fromState: [''], toState: 'Open' }],
+    });
+    const moduleWfPath = join(moduleWorkflowsDir, 'wf.json');
+    await writeFile(moduleWfPath, moduleWfContent);
+
+    // Seed local card type pointing at foreign workflow.
+    const localCardTypePath = join(
+      projPath,
+      '.cards',
+      'local',
+      'cardTypes',
+      'decision.json',
+    );
+    const localCT = JSON.parse(await readFile(localCardTypePath, 'utf-8')) as Record<string, unknown>;
+    localCT['workflow'] = 'foo/workflows/wf';
+    await writeFile(localCardTypePath, JSON.stringify(localCT));
+
+    // Seed local card in the (now-removed) "Rejected" state.
+    const cardKey = 'decision_5';
+    const cardIndexPath = join(projPath, 'cardRoot', cardKey, 'index.json');
+    const cardMeta = JSON.parse(await readFile(cardIndexPath, 'utf-8')) as Record<string, unknown>;
+    cardMeta['cardType'] = 'decision/cardTypes/decision';
+    cardMeta['workflowState'] = 'Rejected';
+    await writeFile(cardIndexPath, JSON.stringify(cardMeta));
+
+    const foreignProject = new Project(projPath);
+    await foreignProject.populateCaches();
+
+    // Apply with foreign target (replay).
+    const mutations = new ResourceMutations(foreignProject);
+    await mutations.apply(
+      {
+        kind: 'edit',
+        target: resourceName('foo/workflows/wf'),
+        updateKey: { key: 'states' },
+        operation: {
+          name: 'remove',
+          target: { name: 'Rejected', category: 'closed' },
+          replacementValue: { name: 'Approved', category: 'closed' },
+        },
+      },
+      { bypassFingerprint: true },
+    );
+
+    // Local card moved to replacement state.
+    await foreignProject.populateCaches();
+    const updatedCard = foreignProject.cards(undefined).find((c) => c.key === cardKey);
+    expect(updatedCard?.metadata?.workflowState).toBe('Approved');
+
+    // Module workflow file is byte-equal to seed.
+    const moduleFileBytes = await readFile(moduleWfPath, 'utf-8');
+    expect(moduleFileBytes).toBe(moduleWfContent);
   });
 });
