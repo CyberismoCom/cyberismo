@@ -48,9 +48,49 @@ export class Update {
     T extends UpdateOperations,
     K extends string,
   >(name: string, updateKey: UpdateKey<K>, operation: OperationFor<Type, T>) {
+    const type = this.project.resources.extractType(name);
+
+    // A rename is encoded as a 'change' on the 'name' updateKey.
+    const isRename =
+      updateKey.key === 'name' &&
+      (operation as { name: string }).name === 'change';
+
+    // PR1 routes ONLY linkTypes through the engine. Other resource families
+    // keep their legacy in-class cascade path until their own handler PR
+    // lands. (Do not generalise this to a Set of types — PR1's dispatcher
+    // would route unhandled types to DefaultNoCascadeHandler and silently
+    // drop their cascade.)
+    if (type === 'linkTypes') {
+      const { ResourceMutations } = await import('../mutations/plan.js');
+      const { resourceName: parseResourceName } = await import(
+        '../utils/resource-utils.js'
+      );
+      const target = parseResourceName(name);
+      const mutations = new ResourceMutations(this.project);
+
+      if (isRename) {
+        const newIdentifier = parseResourceName(
+          (operation as { to: string }).to,
+        ).identifier;
+        const input = { kind: 'rename' as const, target, newIdentifier };
+        const plan = await mutations.plan(input);
+        await mutations.apply(input, { fingerprint: plan.fingerprint });
+        return;
+      }
+
+      const input = {
+        kind: 'edit' as const,
+        target,
+        updateKey,
+        operation,
+      };
+      const plan = await mutations.plan(input);
+      await mutations.apply(input, { fingerprint: plan.fingerprint });
+      return;
+    }
+
     const run = () =>
       this.project.lock.write(async () => {
-        const type = this.project.resources.extractType(name);
         const resource = this.project.resources.byType(name, type);
         await resource?.update(updateKey, operation);
       });
