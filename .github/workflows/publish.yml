@@ -329,6 +329,11 @@ jobs:
           MAJOR: ${{ steps.docker.outputs.major }}
           MINOR: ${{ steps.docker.outputs.minor }}
         run: |
+          if docker buildx imagetools inspect "${REPO}:${VERSION}" >/dev/null 2>&1; then
+            echo "Tag ${REPO}:${VERSION} already exists; leaving it and the floating tags untouched."
+            exit 0
+          fi
+
           DIGEST_REFS=$(printf "${REPO}@sha256:%s " *)
           docker buildx imagetools create \
             -t "${REPO}:latest" \
