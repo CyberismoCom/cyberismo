@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import type { Handler, MutationContext } from '../handler.js';
 import type { CascadePreview } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
+import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
 import type {
   Operation,
@@ -34,7 +35,37 @@ export class CardTypeRemoveCustomFieldHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  async applyCascade(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'edit') return;
+    const fieldName = this.fieldName(
+      ctx.input.operation as RemoveOperation<CustomField | string>,
+    );
+
+    // Clear the field from every local card of this type.
+    for (const card of this.affectedCards(ctx)) {
+      if (!card.metadata) continue;
+      if (Object.prototype.hasOwnProperty.call(card.metadata, fieldName)) {
+        delete card.metadata[fieldName];
+        await ctx.project.updateCardMetadata(card, card.metadata);
+      }
+    }
+
+    // Also clear from local template cards of this card type.
+    const cardTypeName = resourceNameToString(ctx.input.target);
+    const templateCards = ctx.project.resources
+      .templates(ResourcesFrom.localOnly)
+      .flatMap((t) => t.templateObject().cards())
+      .filter((c) => c.metadata?.cardType === cardTypeName);
+    for (const card of templateCards) {
+      if (!card.metadata) continue;
+      if (Object.prototype.hasOwnProperty.call(card.metadata, fieldName)) {
+        delete card.metadata[fieldName];
+        await ctx.project.updateCardMetadata(card, card.metadata);
+      }
+    }
+  }
+
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'edit') {
       throw new Error('CardTypeRemoveCustomFieldHandler called with non-edit input');
     }
@@ -68,15 +99,6 @@ export class CardTypeRemoveCustomFieldHandler implements Handler {
         { key: 'optionallyVisibleFields' },
         { name: 'remove', target: fieldName } as RemoveOperation<string>,
       );
-    }
-
-    // Clear the field from every card of this type.
-    for (const card of this.affectedCards(ctx)) {
-      if (!card.metadata) continue;
-      if (Object.prototype.hasOwnProperty.call(card.metadata, fieldName)) {
-        delete card.metadata[fieldName];
-        await ctx.project.updateCardMetadata(card, card.metadata);
-      }
     }
   }
 
