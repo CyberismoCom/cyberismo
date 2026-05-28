@@ -99,23 +99,6 @@ describe('CardTypeWorkflowChangeHandler', () => {
   });
 
   it('rejects incomplete mappings the same way verifyStateMapping does', async () => {
-    const handler = new CardTypeWorkflowChangeHandler();
-    const ctx = {
-      project,
-      input: {
-        kind: 'edit' as const,
-        target: resourceName(cardTypeName()),
-        updateKey: { key: 'workflow' },
-        operation: {
-          name: 'change' as const,
-          target: fromWorkflow(),
-          to: toWorkflow(),
-          mappingTable: {
-            stateMapping: { Draft: 'Created', Approved: 'Approved' },
-          },
-        },
-      },
-    };
     // verifyStateMapping is now in applyCascade, which plan.ts calls via apply().
     const mutations = new ResourceMutations(project);
     await expect(

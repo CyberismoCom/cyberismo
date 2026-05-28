@@ -38,13 +38,25 @@ export class CardTypeDeleteHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  async validate(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'delete') return;
+    const cardTypeName = resourceNameToString(ctx.input.target);
+    // Interactive deletion of a module-owned card type is not allowed.
+    // Replay (which skips validate) is allowed and will only run the cascade.
+    if (ctx.input.target.prefix !== ctx.project.projectPrefix) {
+      throw new Error(
+        `Cannot delete resource ${cardTypeName}: It is a module resource`,
+      );
+    }
+  }
+
+  async applyCascade(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'delete') {
       throw new Error('CardTypeDeleteHandler called with non-delete input');
     }
     const cardTypeName = resourceNameToString(ctx.input.target);
 
-    // 1. Strip the card type from every link type.
+    // 1. Strip the card type from every local link type.
     const linkTypes = ctx.project.resources.linkTypes(ResourcesFrom.localOnly);
     for (const lt of linkTypes) {
       const data = lt.data;
@@ -59,7 +71,7 @@ export class CardTypeDeleteHandler implements Handler {
       }
     }
 
-    // 2. Delete every card of this type. Uses Remove.remove which already
+    // 2. Delete every local card of this type. Uses Remove.remove which already
     //    handles child cascades and link cleanup.
     const remove = new Remove(ctx.project, new Fetch(ctx.project));
     const cards = this.affectedCards(ctx, cardTypeName);
@@ -78,8 +90,15 @@ export class CardTypeDeleteHandler implements Handler {
         // already removed via parent cascade
       }
     }
+  }
 
-    // 3. Delete the card type resource itself. By now usage() returns [].
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'delete') {
+      throw new Error('CardTypeDeleteHandler called with non-delete input');
+    }
+    const cardTypeName = resourceNameToString(ctx.input.target);
+
+    // Delete the card type resource itself. By now usage() returns [].
     const resource = ctx.project.resources.byType(cardTypeName, 'cardTypes');
     if (!resource) throw new Error(`CardType '${cardTypeName}' not found`);
     await resource.delete();
@@ -96,7 +115,9 @@ export class CardTypeDeleteHandler implements Handler {
   private affectedCards(ctx: MutationContext, cardTypeName: string): Card[] {
     return [
       ...ctx.project.cards(undefined),
-      ...ctx.project.allTemplateCards(),
+      ...ctx.project.resources
+        .templates(ResourcesFrom.localOnly)
+        .flatMap((t) => t.templateObject().cards()),
     ].filter(
       (c) => c.metadata?.cardType === cardTypeName,
     );

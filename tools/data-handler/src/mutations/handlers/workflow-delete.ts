@@ -65,13 +65,15 @@ export class WorkflowDeleteHandler implements Handler {
       .filter((ct) => ct.data?.workflow === wfName);
     const inner = new CardTypeDeleteHandler();
     for (const ct of dependentCardTypes) {
-      await inner.apply({
+      const innerCtx = {
         project: ctx.project,
         input: {
-          kind: 'delete',
+          kind: 'delete' as const,
           target: resourceName(ct.data!.name),
         },
-      });
+      };
+      await inner.applyCascade(innerCtx);
+      await inner.applyResourceOp(innerCtx);
     }
 
     // 2. Delete the workflow resource itself. `usage()` is now empty.
