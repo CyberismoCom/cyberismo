@@ -25,7 +25,12 @@ export class WorkflowTransitionHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  /** No consumer cascade — transitions are workflow-internal. */
+  async applyCascade(_ctx: MutationContext): Promise<void> {
+    // Nothing to cascade.
+  }
+
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'edit') {
       throw new Error('WorkflowTransitionHandler: non-edit input');
     }
