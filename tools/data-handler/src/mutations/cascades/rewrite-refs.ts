@@ -114,10 +114,7 @@ export async function rewriteCardContentRefs(
     );
   }
 
-  const allCards = [
-    ...project.cards(undefined),
-    ...project.allTemplateCards(),
-  ];
+  const allCards = [...project.cards(undefined), ...project.allTemplateCards()];
   const cardsToUpdate = allCards.filter(
     (card) => card.content && card.content.includes(from),
   );

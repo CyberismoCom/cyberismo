@@ -11,9 +11,7 @@ export class LinkTypeDeleteHandler implements Handler {
   readonly isBreaking = true;
 
   matches(ctx: MutationContext): boolean {
-    return (
-      ctx.input.kind === 'delete' && ctx.input.target.type === 'linkTypes'
-    );
+    return ctx.input.kind === 'delete' && ctx.input.target.type === 'linkTypes';
   }
 
   async preview(ctx: MutationContext): Promise<CascadePreview> {
@@ -24,8 +22,7 @@ export class LinkTypeDeleteHandler implements Handler {
     const affected = this.affectedCards(ctx, name);
     const affectedLinkCount = affected.reduce(
       (n, c) =>
-        n +
-        (c.metadata?.links?.filter((l) => l.linkType === name).length ?? 0),
+        n + (c.metadata?.links?.filter((l) => l.linkType === name).length ?? 0),
       0,
     );
     return {
@@ -64,17 +61,13 @@ export class LinkTypeDeleteHandler implements Handler {
   async affectedFilePaths(ctx: MutationContext): Promise<string[]> {
     if (ctx.input.kind !== 'delete') return [];
     const name = resourceNameToString(ctx.input.target);
-    return this.affectedCards(ctx, name).map((c) =>
-      join(c.path, 'index.json'),
-    );
+    return this.affectedCards(ctx, name).map((c) => join(c.path, 'index.json'));
   }
 
   private affectedCards(ctx: MutationContext, name: string): Card[] {
     return [
       ...ctx.project.cards(undefined),
       ...ctx.project.allTemplateCards(),
-    ].filter((c) =>
-      c.metadata?.links?.some((l) => l.linkType === name),
-    );
+    ].filter((c) => c.metadata?.links?.some((l) => l.linkType === name));
   }
 }

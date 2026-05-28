@@ -2,7 +2,10 @@
 
 import type { Handler, MutationContext } from '../handler.js';
 import type { CascadePreview } from '../types.js';
-import { resourceName, resourceNameToString } from '../../utils/resource-utils.js';
+import {
+  resourceName,
+  resourceNameToString,
+} from '../../utils/resource-utils.js';
 import {
   rewriteCalculationRefs,
   rewriteCardContentRefs,

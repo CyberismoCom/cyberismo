@@ -51,8 +51,7 @@ export class Update {
     const type = this.project.resources.extractType(name);
 
     // A rename is encoded as a 'change' on the 'name' updateKey.
-    const isRename =
-      updateKey.key === 'name' && operation.name === 'change';
+    const isRename = updateKey.key === 'name' && operation.name === 'change';
 
     // PR1 routes ONLY linkTypes through the engine. Other resource families
     // keep their legacy in-class cascade path until their own handler PR
@@ -61,9 +60,8 @@ export class Update {
     // drop their cascade.)
     if (type === 'linkTypes') {
       const { ResourceMutations } = await import('../mutations/plan.js');
-      const { resourceName: parseResourceName } = await import(
-        '../utils/resource-utils.js'
-      );
+      const { resourceName: parseResourceName } =
+        await import('../utils/resource-utils.js');
       const target = parseResourceName(name);
       const mutations = new ResourceMutations(this.project);
 

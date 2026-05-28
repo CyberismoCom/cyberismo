@@ -32,7 +32,11 @@ describe('ResourceMutations.plan + apply', () => {
       kind: 'edit' as const,
       target: resourceName(`${project.projectPrefix}/cardTypes/decision`),
       updateKey: { key: 'displayName' },
-      operation: { name: 'change' as const, target: 'Decision card type', to: 'New' },
+      operation: {
+        name: 'change' as const,
+        target: 'Decision card type',
+        to: 'New',
+      },
     };
     const result = await mutations.plan(input);
     expect(result.isBreaking).toBe(false);
@@ -46,7 +50,11 @@ describe('ResourceMutations.plan + apply', () => {
       kind: 'edit' as const,
       target: resourceName(`${project.projectPrefix}/cardTypes/decision`),
       updateKey: { key: 'displayName' },
-      operation: { name: 'change' as const, target: 'Decision card type', to: 'New' },
+      operation: {
+        name: 'change' as const,
+        target: 'Decision card type',
+        to: 'New',
+      },
     };
     await expect(mutations.apply(input)).resolves.toEqual({ success: true });
   });
@@ -61,9 +69,14 @@ describe('ResourceMutations.plan + apply', () => {
       newPrefix: 'renamed',
     };
     // Use the private recordLogEntry directly via a small accessor.
-    await (mutations as unknown as {
-      recordLogEntry: (i: typeof input, ctx: { oldPrefix: string }) => Promise<void>;
-    }).recordLogEntry(input, { oldPrefix });
+    await (
+      mutations as unknown as {
+        recordLogEntry: (
+          i: typeof input,
+          ctx: { oldPrefix: string },
+        ) => Promise<void>;
+      }
+    ).recordLogEntry(input, { oldPrefix });
     const entries = await ConfigurationLogger.entries(project.basePath);
     const last = entries[entries.length - 1];
     expect(last.kind).toBe('project_rename');

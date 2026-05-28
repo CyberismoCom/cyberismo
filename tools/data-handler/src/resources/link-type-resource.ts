@@ -62,7 +62,7 @@ export class LinkTypeResource extends FileResource<LinkType> {
    * hook, so the stub is unreachable at runtime. Delete this stub once
    * the abstract declaration is removed from FileResource in a later PR.
    */
-  protected async onNameChange(_previousName: string): Promise<void> {
+  protected async onNameChange(): Promise<void> {
     return;
   }
 

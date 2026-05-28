@@ -65,13 +65,9 @@ describe('mutation engine end-to-end', () => {
     await mutations.apply(input, { fingerprint: plan.fingerprint });
 
     const entries = await ConfigurationLogger.entries(project.basePath);
-    const renameEntry = entries.find(
-      (e) => e.kind === 'resource_rename',
-    );
+    const renameEntry = entries.find((e) => e.kind === 'resource_rename');
     expect(renameEntry).toBeDefined();
-    expect(renameEntry!.target).toBe(
-      `${project.projectPrefix}/linkTypes/test`,
-    );
+    expect(renameEntry!.target).toBe(`${project.projectPrefix}/linkTypes/test`);
   });
 
   it('refuses stale fingerprint after the project state changes', async () => {

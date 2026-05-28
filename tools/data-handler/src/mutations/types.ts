@@ -6,9 +6,9 @@ import type { ResourceName } from '../utils/resource-utils.js';
 
 /** The four kinds of breaking change recorded in the migration log. */
 export type MutationKind =
-  | 'edit'         // sub-property add/change/rank/remove
-  | 'delete'       // whole-resource delete
-  | 'rename'       // whole-resource rename
+  | 'edit' // sub-property add/change/rank/remove
+  | 'delete' // whole-resource delete
+  | 'rename' // whole-resource rename
   | 'project_rename';
 
 /** Discriminated input describing the change a maintainer wants to make. */

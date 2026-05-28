@@ -43,7 +43,10 @@ describe('configuration logger', () => {
     await ConfigurationLogger.log(projectPath, {
       kind: 'resource_edit',
       target: 'foo/cardTypes/bar',
-      payload: { key: 'customFields', operation: { name: 'remove', target: 'priority' } },
+      payload: {
+        key: 'customFields',
+        operation: { name: 'remove', target: 'priority' },
+      },
     });
     const entries = await ConfigurationLogger.entries(projectPath);
     expect(entries).toHaveLength(1);
@@ -78,9 +81,7 @@ describe('configuration logger', () => {
       });
 
       const entries = await ConfigurationLogger.entries(testProjectPath);
-      const renameEntry = entries.find(
-        (e) => e.kind === 'resource_rename',
-      );
+      const renameEntry = entries.find((e) => e.kind === 'resource_rename');
       expect(renameEntry).toBeDefined();
       expect(renameEntry!.target).toBe('renamed-resource');
       expect(renameEntry!.payload).toBeDefined();
@@ -256,5 +257,4 @@ describe('configuration logger', () => {
       newPrefix: 'new-prefix',
     });
   });
-
 });

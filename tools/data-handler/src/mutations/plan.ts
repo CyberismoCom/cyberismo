@@ -34,7 +34,10 @@ export class ResourceMutations {
     };
   }
 
-  async apply(input: MutationInput, options: ApplyOptions = {}): Promise<ApplyResult> {
+  async apply(
+    input: MutationInput,
+    options: ApplyOptions = {},
+  ): Promise<ApplyResult> {
     const ctx: MutationContext = { project: this.project, input };
     const handler = dispatch(ctx);
     const preview = await handler.preview(ctx);
@@ -102,9 +105,7 @@ export class ResourceMutations {
       });
     } else if (input.kind === 'project_rename') {
       if (!context.oldPrefix) {
-        throw new Error(
-          'project_rename log entry requires oldPrefix context',
-        );
+        throw new Error('project_rename log entry requires oldPrefix context');
       }
       await ConfigurationLogger.log(this.project.basePath, {
         kind: 'project_rename',

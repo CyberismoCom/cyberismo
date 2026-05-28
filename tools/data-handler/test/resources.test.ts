@@ -5,7 +5,13 @@ import { mkdirSync, rmSync } from 'node:fs';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { getTestProject } from './helpers/test-utils.js';
-import { Create, Fetch, Import, Remove, Update } from '../src/commands/index.js';
+import {
+  Create,
+  Fetch,
+  Import,
+  Remove,
+  Update,
+} from '../src/commands/index.js';
 import type { Project } from '../src/containers/project.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 
@@ -2601,15 +2607,11 @@ describe('resources', function () {
       expect(card.content).toContain(linkTypeName);
 
       const update = new Update(project);
-      await update.applyResourceOperation(
-        linkTypeName,
-        { key: 'name' },
-        {
-          name: 'change',
-          target: linkTypeName,
-          to: 'decision/linkTypes/renamedLink',
-        } as ChangeOperation<string>,
-      );
+      await update.applyResourceOperation(linkTypeName, { key: 'name' }, {
+        name: 'change',
+        target: linkTypeName,
+        to: 'decision/linkTypes/renamedLink',
+      } as ChangeOperation<string>);
       const renamed = project.resources.byType(
         'decision/linkTypes/renamedLink',
         'linkTypes',
@@ -2792,15 +2794,11 @@ describe('resources', function () {
       expect(card1.metadata?.links[0].linkType).toBe(linkTypeName);
 
       const update = new Update(project);
-      await update.applyResourceOperation(
-        linkTypeName,
-        { key: 'name' },
-        {
-          name: 'change',
-          target: linkTypeName,
-          to: linkTypeRenamed,
-        } as ChangeOperation<string>,
-      );
+      await update.applyResourceOperation(linkTypeName, { key: 'name' }, {
+        name: 'change',
+        target: linkTypeName,
+        to: linkTypeRenamed,
+      } as ChangeOperation<string>);
       const renamed = project.resources.byType(linkTypeRenamed, 'linkTypes');
       expect(renamed.data?.name).toBe(linkTypeRenamed);
       card1 = project.findCard(cardKey1);

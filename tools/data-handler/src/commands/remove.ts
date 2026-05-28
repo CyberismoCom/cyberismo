@@ -295,9 +295,8 @@ export class Remove {
     if (this.projectResource(type)) {
       if (type === 'linkType') {
         const { ResourceMutations } = await import('../mutations/plan.js');
-        const { resourceName: parseResourceName } = await import(
-          '../utils/resource-utils.js'
-        );
+        const { resourceName: parseResourceName } =
+          await import('../utils/resource-utils.js');
         const target = parseResourceName(targetName);
         const mutations = new ResourceMutations(this.project);
         const input = { kind: 'delete' as const, target };

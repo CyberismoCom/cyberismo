@@ -1,10 +1,7 @@
 // tools/data-handler/src/mutations/handler.ts
 
 import type { Project } from '../containers/project.js';
-import type {
-  CascadePreview,
-  MutationInput,
-} from './types.js';
+import type { CascadePreview, MutationInput } from './types.js';
 
 export interface MutationContext {
   project: Project;
