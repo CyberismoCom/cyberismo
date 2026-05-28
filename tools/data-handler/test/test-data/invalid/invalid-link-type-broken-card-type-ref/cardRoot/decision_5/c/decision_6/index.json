@@ -1,0 +1,15 @@
+{
+    "cardType": "decision/cardTypes/decision",
+    "title": "Document Decisions with Decision Records",
+    "workflowState": "Approved",
+    "rank": "0|a",
+    "lastUpdated": "2024-09-30T14:17:52.214Z",
+    "decision/fieldTypes/admins": null,
+    "decision/fieldTypes/commitDescription": null,
+    "decision/fieldTypes/finished": null,
+    "decision/fieldTypes/lastChangedDate": null,
+    "decision/fieldTypes/lastChangedTimestamp": null,
+    "decision/fieldTypes/numberOfCommits": 1.5,
+    "decision/fieldTypes/percentageReady": null,
+    "decision/fieldTypes/responsible": null
+}

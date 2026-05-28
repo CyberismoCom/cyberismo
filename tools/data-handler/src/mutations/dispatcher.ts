@@ -9,6 +9,7 @@ import { FieldTypeDeleteHandler } from './handlers/field-type-delete.js';
 import { FieldTypeEnumRenameHandler } from './handlers/field-type-enum-rename.js';
 import { FieldTypeRenameHandler } from './handlers/field-type-rename.js';
 import { LinkTypeDeleteHandler } from './handlers/link-type-delete.js';
+import { LinkTypeEditCardTypesHandler } from './handlers/link-type-edit-card-types.js';
 import { LinkTypeRenameHandler } from './handlers/link-type-rename.js';
 import { TemplateDeleteHandler, TemplateRenameHandler } from './handlers/template.js';
 import { CalculationDeleteHandler, CalculationRenameHandler } from './handlers/calculation.js';
@@ -31,6 +32,7 @@ import { ProjectRenameHandler } from './handlers/project-rename.js';
 const HANDLERS: Handler[] = [
   new LinkTypeRenameHandler(),
   new LinkTypeDeleteHandler(),
+  new LinkTypeEditCardTypesHandler(),
   new TemplateRenameHandler(),
   new TemplateDeleteHandler(),
   new CalculationRenameHandler(),

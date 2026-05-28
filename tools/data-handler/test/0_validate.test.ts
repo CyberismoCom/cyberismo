@@ -287,6 +287,28 @@ describe('validate cmd tests', () => {
       "Card 'decision_5' has field 'decision/fieldTypes/nonExistentField' that does not exist in the project",
     );
   });
+  it('validateLinkTypeReferences (success - valid project)', () => {
+    const errors = validateCmd.validateLinkTypeReferences(validProject);
+    expect(errors).toHaveLength(0);
+  });
+
+  it('validateLinkTypeReferences - detects dangling sourceCardType', async () => {
+    const path = 'test/test-data/invalid/invalid-link-type-broken-card-type-ref';
+    const project = getTestProject(path);
+    await project.populateCaches();
+    const errors = validateCmd.validateLinkTypeReferences(project);
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors.join('\n')).to.include('nonExistentCardType');
+    expect(errors.join('\n')).to.include('sourceCardType');
+  });
+
+  it('validate() - broken link-type reference is caught by project gate', async () => {
+    const path = 'test/test-data/invalid/invalid-link-type-broken-card-type-ref';
+    const valid = await validateCmd.validate(path, () => getTestProject(path));
+    expect(valid.length).toBeGreaterThan(0);
+    expect(valid).to.include('nonExistentCardType');
+  });
+
   it('try to validate invalid projects', async () => {
     const pathToInvalidProject = resolve('test/test-data/invalid');
     const invalidProjects = (

@@ -1,0 +1,10 @@
+{
+    "name": "decision/linkTypes/testTypes",
+    "displayName": "Another link type test",
+    "outboundDisplayName": "test",
+    "inboundDisplayName": "test",
+    "sourceCardTypes": ["decision/cardTypes/nonExistentCardType"],
+    "destinationCardTypes": ["decision/cardTypes/simplepage"],
+    "destinationConnectors": ["jira", "github"],
+    "enableLinkDescription": false
+}

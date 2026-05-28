@@ -549,6 +549,12 @@ export class Validate {
           errorMsg.push(...result);
         }
 
+        // Validate link-type source/destination card-type references.
+        const linkTypeErrors = this.validateLinkTypeReferences(project);
+        if (linkTypeErrors.length > 0) {
+          errorMsg.push(...linkTypeErrors);
+        }
+
         // Finally, validate that each card is correct
         const cards = project.cards();
         cards.push(...project.allTemplateCards());
@@ -703,6 +709,36 @@ export class Validate {
     const contentValidated = validPrefix.test(prefix);
     const lengthValidated = prefix.length > 2 && prefix.length < 11;
     return contentValidated && lengthValidated;
+  }
+
+  /**
+   * Validates that every link type's `sourceCardTypes` and `destinationCardTypes`
+   * entries resolve to an existing card type (local or any installed module).
+   * @param project currently used Project
+   * @returns array of validation error strings (empty when valid).
+   */
+  public validateLinkTypeReferences(project: Project): string[] {
+    const errors: string[] = [];
+    for (const lt of project.resources.linkTypes()) {
+      const data = lt.data;
+      if (!data) continue;
+      const linkTypeName = data.name;
+      for (const cardTypeName of data.sourceCardTypes) {
+        if (!project.resources.exists(cardTypeName)) {
+          errors.push(
+            `Link type '${linkTypeName}' has invalid reference to unknown sourceCardType '${cardTypeName}'`,
+          );
+        }
+      }
+      for (const cardTypeName of data.destinationCardTypes) {
+        if (!project.resources.exists(cardTypeName)) {
+          errors.push(
+            `Link type '${linkTypeName}' has invalid reference to unknown destinationCardType '${cardTypeName}'`,
+          );
+        }
+      }
+    }
+    return errors;
   }
 
   /**

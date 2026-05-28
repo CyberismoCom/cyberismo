@@ -1,0 +1,6 @@
+{
+    "name": "decision/fieldTypes/commitDescription",
+    "displayName": "Commit Description",
+    "description": "In long format describe how source code was changed",
+    "dataType": "longText"
+}

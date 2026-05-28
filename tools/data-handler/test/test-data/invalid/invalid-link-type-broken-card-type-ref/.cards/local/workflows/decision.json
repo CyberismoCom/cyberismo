@@ -1,0 +1,43 @@
+{
+    "name": "decision/workflows/decision",
+    "displayName": "Decision based workflow",
+    "states": [
+        { "name": "Draft", "category": "initial" },
+        { "name": "Approved", "category": "closed" },
+        { "name": "Rejected", "category": "closed" },
+        { "name": "Rerejected", "category": "closed" },
+        { "name": "Deprecated", "category": "closed" }
+    ],
+    "transitions": [
+        {
+            "name": "Create",
+            "fromState": [""],
+            "toState": "Draft"
+        },
+        {
+            "name": "Approve",
+            "fromState": ["Draft"],
+            "toState": "Approved"
+        },
+        {
+            "name": "Reject",
+            "fromState": ["Draft", "Approved", "Rejected"],
+            "toState": "Rejected"
+        },
+        {
+            "name": "Rereject",
+            "fromState": ["Rejected"],
+            "toState": "Rejected"
+        },
+        {
+            "name": "Reopen",
+            "fromState": ["*"],
+            "toState": "Draft"
+        },
+        {
+            "name": "Deprecate",
+            "fromState": ["Approved"],
+            "toState": "Deprecated"
+        }
+    ]
+}

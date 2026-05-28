@@ -1,0 +1,4 @@
+{{#each results}}
+{{#if (eq this.title "Document Decisions with Decision Records")}}EQ_MATCH:{{this.key}}{{/if}}
+{{#if (ne this.title "Document Decisions with Decision Records")}}NE_MATCH:{{this.key}}{{/if}}
+{{/each}}

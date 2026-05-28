@@ -1,0 +1,6 @@
+{
+    "name": "decision/fieldTypes/lastChangedTimestamp",
+    "displayName": "Last changed timestamp",
+    "description": "Date and time when the task was last time updated",
+    "dataType": "dateTime"
+}

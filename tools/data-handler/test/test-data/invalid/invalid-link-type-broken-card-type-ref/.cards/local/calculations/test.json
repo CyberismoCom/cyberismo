@@ -1,0 +1,6 @@
+{
+    "description": "A test calculation metadata",
+    "name": "decision/calculations/test",
+    "displayName": "TestCalculation",
+    "calculation": ""
+}

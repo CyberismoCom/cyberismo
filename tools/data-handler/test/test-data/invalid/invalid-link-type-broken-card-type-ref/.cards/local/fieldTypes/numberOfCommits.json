@@ -1,0 +1,6 @@
+{
+    "name": "decision/fieldTypes/numberOfCommits",
+    "displayName": "Number of commits",
+    "description": "How many commits have been done related to this task",
+    "dataType": "number"
+}
