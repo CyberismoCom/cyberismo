@@ -315,6 +315,14 @@ describe('FieldTypeRenameHandler', () => {
       expect(cfNames).toContain('foo/fieldTypes/priority');
       expect(cfNames).not.toContain('foo/fieldTypes/urgency');
 
+      // Local card metadata key rewritten from old name to new name.
+      if (cards.length > 0) {
+        const cardIndex = join(dedicatedPath, 'cardRoot', cards[0].key, 'index.json');
+        const metadataAfter = JSON.parse(await readFile(cardIndex, 'utf-8')) as Record<string, unknown>;
+        expect(metadataAfter['foo/fieldTypes/priority']).toBe('someValue');
+        expect(metadataAfter).not.toHaveProperty('foo/fieldTypes/urgency');
+      }
+
       // Module file is byte-identical to the seed (untouched).
       const moduleFileAfter = await readFile(moduleFilePath, 'utf-8');
       expect(moduleFileAfter).toBe(moduleFileContent);
