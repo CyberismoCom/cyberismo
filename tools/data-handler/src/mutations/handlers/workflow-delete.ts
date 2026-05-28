@@ -22,7 +22,7 @@ export class WorkflowDeleteHandler implements Handler {
     }
     const wfName = resourceNameToString(ctx.input.target);
     const dependentCardTypes = ctx.project.resources
-      .cardTypes()
+      .cardTypes(ResourcesFrom.localOnly)
       .filter((ct) => ct.data?.workflow === wfName);
 
     // Sum cards from every dependent card type's delete preview so we
@@ -116,7 +116,7 @@ export class WorkflowDeleteHandler implements Handler {
     if (ctx.input.kind !== 'delete') return [];
     const wfName = resourceNameToString(ctx.input.target);
     const dependentCardTypes = ctx.project.resources
-      .cardTypes()
+      .cardTypes(ResourcesFrom.localOnly)
       .filter((ct) => ct.data?.workflow === wfName);
     const paths: string[] = [];
     const inner = new CardTypeDeleteHandler();
