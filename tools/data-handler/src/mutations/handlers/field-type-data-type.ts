@@ -11,6 +11,7 @@ import {
   fromNumber,
   fromString,
 } from '../../utils/value-utils.js';
+import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import type {
   DataType,
   FieldType,
@@ -67,17 +68,16 @@ export class FieldTypeDataTypeHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  async applyCascade(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'edit') {
       throw new Error('FieldTypeDataTypeHandler: non-edit input');
     }
     const fieldName = resourceNameToString(ctx.input.target);
-    const resource = ctx.project.resources.byType(fieldName, 'fieldTypes');
-    if (!resource) {
-      throw new Error(`Field type '${fieldName}' not found`);
-    }
-    const from = (resource.data as FieldType).dataType;
-    const to = (ctx.input.operation as { to: DataType }).to;
+    // Use the operation's target as `from` — valid both for local (resource
+    // not yet updated) and foreign replay (resource already at new state).
+    const op = ctx.input.operation as { target: DataType; to: DataType };
+    const from = op.target;
+    const to = op.to;
 
     if (!allowed(from, to)) {
       throw new Error(
@@ -85,7 +85,7 @@ export class FieldTypeDataTypeHandler implements Handler {
       );
     }
 
-    // 1. Convert every card's value.
+    // Convert every local card's and local template card's value.
     for (const card of this.cardsWithField(ctx, fieldName)) {
       const metadata = card.metadata!;
       const value = metadata[fieldName];
@@ -94,8 +94,24 @@ export class FieldTypeDataTypeHandler implements Handler {
       metadata[fieldName] = converted as MetadataContent;
       await ctx.project.updateCardMetadata(card, metadata);
     }
+  }
 
-    // 2. Apply the resource-definition change.
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'edit') {
+      throw new Error('FieldTypeDataTypeHandler: non-edit input');
+    }
+    const fieldName = resourceNameToString(ctx.input.target);
+    const resource = ctx.project.resources.byType(fieldName, 'fieldTypes');
+    if (!resource) {
+      throw new Error(`Field type '${fieldName}' not found`);
+    }
+    // Validate conversion is allowed before writing.
+    const op = ctx.input.operation as { target: DataType; to: DataType };
+    if (!allowed(op.target, op.to)) {
+      throw new Error(
+        `Cannot change data type from '${op.target}' to '${op.to}' (no conversion allowed)`,
+      );
+    }
     await resource.update(ctx.input.updateKey, ctx.input.operation);
   }
 
@@ -108,11 +124,13 @@ export class FieldTypeDataTypeHandler implements Handler {
   }
 
   private cardsWithField(ctx: MutationContext, fieldName: string): Card[] {
-    const all = [
-      ...ctx.project.cards(undefined),
-      ...ctx.project.allTemplateCards(),
-    ];
-    return all.filter((c) => c.metadata && fieldName in c.metadata);
+    const rootCards = ctx.project.cards(undefined);
+    const templateCards = ctx.project.resources
+      .templates(ResourcesFrom.localOnly)
+      .flatMap((t) => t.templateObject().cards());
+    return [...rootCards, ...templateCards].filter(
+      (c) => c.metadata && fieldName in c.metadata,
+    );
   }
 
   /**
