@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import type { Handler, MutationContext } from '../handler.js';
 import type { CascadePreview } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
+import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
 
 export class FieldTypeDeleteHandler implements Handler {
@@ -33,13 +34,16 @@ export class FieldTypeDeleteHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  async applyCascade(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'delete') {
       throw new Error('FieldTypeDeleteHandler: non-delete input');
     }
     const fieldName = resourceNameToString(ctx.input.target);
 
-    // 1. Remove the field from every card type that references it.
+    // 1. Remove the field from every local card type that references it.
+    //    Module-owned card types are immutable from the consumer side.
+    //    CardTypeResource.validateFieldType allows remove of absent fields
+    //    (safe for foreign-replay where the module field is already deleted).
     for (const cardType of this.cardTypesReferencing(ctx, fieldName)) {
       await cardType.update(
         { key: 'customFields' },
@@ -47,14 +51,21 @@ export class FieldTypeDeleteHandler implements Handler {
       );
     }
 
-    // 2. Strip the field from every card carrying it.
+    // 2. Strip the field from every local card and local template card.
     for (const card of this.cardsWithField(ctx, fieldName)) {
       const metadata = card.metadata!;
       delete metadata[fieldName];
       await ctx.project.updateCardMetadata(card, metadata);
     }
+  }
 
-    // 3. Delete the resource itself.
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'delete') {
+      throw new Error('FieldTypeDeleteHandler: non-delete input');
+    }
+    const fieldName = resourceNameToString(ctx.input.target);
+
+    // Delete the resource itself.
     const resource = ctx.project.resources.byType(fieldName, 'fieldTypes');
     if (!resource) {
       throw new Error(`Field type '${fieldName}' not found`);
@@ -75,16 +86,20 @@ export class FieldTypeDeleteHandler implements Handler {
   }
 
   private cardsWithField(ctx: MutationContext, fieldName: string): Card[] {
-    const all = [
-      ...ctx.project.cards(undefined),
-      ...ctx.project.allTemplateCards(),
-    ];
-    return all.filter((c) => c.metadata && fieldName in c.metadata);
+    const rootCards = ctx.project.cards(undefined);
+    const templateCards = ctx.project.resources
+      .templates(ResourcesFrom.localOnly)
+      .flatMap((t) => t.templateObject().cards());
+    return [...rootCards, ...templateCards].filter(
+      (c) => c.metadata && fieldName in c.metadata,
+    );
   }
 
   private cardTypesReferencing(ctx: MutationContext, fieldName: string) {
+    // Local card types only: module-owned card types are immutable from the
+    // consumer side and are the owning module's responsibility to clean up.
     return ctx.project.resources
-      .cardTypes()
+      .cardTypes(ResourcesFrom.localOnly)
       .filter((ct) =>
         ct.data?.customFields?.some((cf) => cf.name === fieldName),
       );

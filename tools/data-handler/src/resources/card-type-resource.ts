@@ -137,6 +137,13 @@ export class CardTypeResource extends FileResource<CardType> {
       // rename — neither endpoint present — is a real error.
       exists = await this.fieldTypeExists(toField(op.to));
     }
+    if (!exists && op.name === 'remove') {
+      // A `remove` strips a reference to a field type. If the field type
+      // no longer exists (e.g. foreign-module replay where the module's
+      // field was already deleted), removing the dangling reference is
+      // always safe — skip the existence guard.
+      return;
+    }
     if (!exists) {
       throw new Error(
         `Field type '${field.name}' does not exist in the project`,
