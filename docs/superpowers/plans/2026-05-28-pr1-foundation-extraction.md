@@ -20,7 +20,6 @@
 - LinkType-only engine routing branches in `commands/update.ts` and `commands/remove.ts`
 - Full test suite for the foundation engine and LinkType handlers
 - Updates to existing tests broken by the configuration-logger reshape
-- Design docs at repo root: `migration-system.allium`, `migration-system.md`, `migrations-plan.adoc`, `AGENT_CONTEXT.md`
 
 **Out of scope (later PRs):**
 - Any handler for CardType/FieldType/Workflow/Template/Calc/Report/GraphModel/GraphView/ProjectRename
@@ -29,7 +28,7 @@
 - HTTP routes (`tools/backend/src/domain/mutations/`)
 - "Handlers own cascade" cleanup (delete `onNameChange` from non-LinkType resources)
 - Validation gate, local-only scoping fixes
-- Deleting the migration plan docs from `docs/superpowers/plans/2026-05-20-*.md` — that's a separate PR0 against `main`, or skip entirely if `main` doesn't have them yet (they only exist on `migration-imp`)
+- All migration-imp-only docs (`docs/superpowers/plans/2026-05-20-*.md`, `docs/superpowers/migration-system-executor-prompt.md`, repo-root `migration-system.allium`, `migration-system.md`, `migrations-plan.adoc`, `AGENT_CONTEXT.md`). None of these exist on `main`; PR1 simply does not pull them, which is the same as dropping them.
 
 ---
 
@@ -57,10 +56,6 @@
 | `tools/data-handler/test/mutations/handlers/link-type-rename.test.ts` | LinkType rename handler unit tests |
 | `tools/data-handler/test/mutations/handlers/link-type-delete.test.ts` | LinkType delete handler unit tests |
 | `tools/data-handler/test/mutations/integration-link-type-delete.test.ts` | LinkType delete end-to-end |
-| `migration-system.allium` (repo root) | Formal product spec for the migration system |
-| `migration-system.md` (repo root) | Plain-English companion to `.allium` |
-| `migrations-plan.adoc` (repo root) | Table of resource changes + migration strategies |
-| `AGENT_CONTEXT.md` (repo root) | LLM-agent helper context for the monorepo |
 
 **Modified files (substantive changes from main):**
 
@@ -110,51 +105,11 @@
   Run: `pnpm install`
   Expected: lockfile is in sync with `main`'s `package.json` files; no changes to commit.
 
-- [ ] **Step 6: No commit yet** — first commit comes after Task 2.
+- [ ] **Step 6: No commit yet** — commits happen at the end of cohesive task groups (Task 7 commits the foundation engine + LinkType handlers, Task 13 commits the wiring + logger reshape, etc.).
 
 ---
 
-### Task 2: Pull design docs from migration-imp
-
-**Files:**
-- Create: `migration-system.allium`
-- Create: `migration-system.md`
-- Create: `migrations-plan.adoc`
-- Create: `AGENT_CONTEXT.md`
-
-- [ ] **Step 1: Checkout the four design docs from migration-imp**
-
-  Run:
-  ```bash
-  git checkout migration-imp -- \
-    migration-system.allium \
-    migration-system.md \
-    migrations-plan.adoc \
-    AGENT_CONTEXT.md
-  ```
-
-- [ ] **Step 2: Verify the files arrived and are staged**
-
-  Run: `git status`
-  Expected: four new files in the index, no other changes.
-
-- [ ] **Step 3: Commit**
-
-  Run:
-  ```bash
-  git commit -m "docs: migration system spec + agent context
-
-Pulled from migration-imp. The .allium file is the formal product
-spec; the .md is a plain-English companion; the .adoc enumerates
-the breaking-change rows. AGENT_CONTEXT.md is monorepo context for
-LLM-driven development.
-
-Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
-  ```
-
----
-
-### Task 3: Pull the new mutations engine files (types, handler interface, fingerprint)
+### Task 2: Pull the new mutations engine files (types, handler interface, fingerprint)
 
 **Files:**
 - Create: `tools/data-handler/src/mutations/handler.ts`
@@ -187,7 +142,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
   grep -E "^import " tools/data-handler/src/mutations/types.ts
   grep -E "^import " tools/data-handler/src/mutations/fingerprint.ts
   ```
-  For each `from '../xxx.js'` import, confirm `xxx.ts` exists on main (use `ls` or check explicitly). If an import references e.g. `'./plan.js'` — that's fine, plan.ts lands in Task 5. If it references something only on `migration-imp` outside this PR's scope (e.g. a util in `utils/` that was renamed), flag it for resolution.
+  For each `from '../xxx.js'` import, confirm `xxx.ts` exists on main (use `ls` or check explicitly). If an import references e.g. `'./plan.js'` — that's fine, plan.ts lands in Task 4. If it references something only on `migration-imp` outside this PR's scope (e.g. a util in `utils/` that was renamed), flag it for resolution.
 
 - [ ] **Step 3: Build check (expected to fail — that's OK at this stage)**
 
@@ -196,7 +151,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 4: Pull the cascade-rewrite utilities
+### Task 3: Pull the cascade-rewrite utilities
 
 **Files:**
 - Create: `tools/data-handler/src/mutations/cascades/rewrite-refs.ts`
@@ -222,7 +177,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 5: Pull the ResourceMutations class (plan.ts)
+### Task 4: Pull the ResourceMutations class (plan.ts)
 
 **Files:**
 - Create: `tools/data-handler/src/mutations/plan.ts`
@@ -237,17 +192,17 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 - [ ] **Step 2: Inspect for cross-file dependencies**
 
   Read `tools/data-handler/src/mutations/plan.ts`. It will reference:
-  - `./dispatcher.js` — lands in Task 7
+  - `./dispatcher.js` — lands in Task 6
   - `./fingerprint.js` — landed in Task 3
   - `./types.js` — landed in Task 3
   - `./handler.js` — landed in Task 3
-  - `../utils/configuration-logger.js` — reshape lands in Task 9
+  - `../utils/configuration-logger.js` — reshape lands in Task 8
 
   Verify every other import resolves against `main`. Cross-reference each `from '../xxx.js'` with `ls tools/data-handler/src/...`.
 
 ---
 
-### Task 6: Pull the DefaultNoCascadeHandler
+### Task 5: Pull the DefaultNoCascadeHandler
 
 **Files:**
 - Create: `tools/data-handler/src/mutations/handlers/default-no-cascade.ts`
@@ -266,7 +221,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 7: Pull the dispatcher and trim the HANDLERS list
+### Task 6: Pull the dispatcher and trim the HANDLERS list
 
 **Files:**
 - Create: `tools/data-handler/src/mutations/dispatcher.ts`
@@ -317,7 +272,7 @@ This is the only file in PR1 that requires hand-editing during extraction. Its e
 
 ---
 
-### Task 8: Pull the LinkType handler files
+### Task 7: Pull the LinkType handler files
 
 **Files:**
 - Create: `tools/data-handler/src/mutations/handlers/link-type-rename.ts`
@@ -345,7 +300,7 @@ This is the only file in PR1 that requires hand-editing during extraction. Its e
 - [ ] **Step 3: Build check**
 
   Run: `pnpm --filter=@cyberismo/data-handler tsc --noEmit 2>&1 | head -50`
-  Expected: remaining errors are limited to the configuration-logger shape mismatch (the engine writes the new shape but the file on main has the old shape). That's resolved in Task 9.
+  Expected: remaining errors are limited to the configuration-logger shape mismatch (the engine writes the new shape but the file on main has the old shape). That's resolved in Task 8.
 
 - [ ] **Step 4: Commit the foundation engine + LinkType handlers**
 
@@ -360,14 +315,12 @@ ResourceMutations.plan/apply, cascade rewrite utilities, and
 LinkType rename + delete handlers.
 
 Build is not yet green — configuration-logger reshape lands in the
-next commit.
-
-Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
+next commit."
   ```
 
 ---
 
-### Task 9: Reshape configuration-logger to the kind discriminator
+### Task 8: Reshape configuration-logger to the kind discriminator
 
 **Files:**
 - Modify: `tools/data-handler/src/utils/configuration-logger.ts`
@@ -407,7 +360,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 10: Migrate commands/remove.ts MODULE_REMOVE callsite + add LinkType engine routing
+### Task 9: Migrate commands/remove.ts MODULE_REMOVE callsite + add LinkType engine routing
 
 **Files:**
 - Modify: `tools/data-handler/src/commands/remove.ts`
@@ -490,7 +443,7 @@ This task does two things to one file: (a) update the existing `MODULE_REMOVE` l
 
 ---
 
-### Task 11: Migrate commands/rename.ts PROJECT_RENAME callsite
+### Task 10: Migrate commands/rename.ts PROJECT_RENAME callsite
 
 **Files:**
 - Modify: `tools/data-handler/src/commands/rename.ts`
@@ -531,7 +484,7 @@ PR1 does **not** add ProjectRename engine routing — that's PR6. But the existi
 
 ---
 
-### Task 12: Add LinkType-only engine routing to commands/update.ts
+### Task 11: Add LinkType-only engine routing to commands/update.ts
 
 **Files:**
 - Modify: `tools/data-handler/src/commands/update.ts`
@@ -595,7 +548,7 @@ The end-state of `update.ts` on migration-imp has a `Set` named `enginedEditType
 
 ---
 
-### Task 13: Remove the onNameChange hook from LinkTypeResource
+### Task 12: Remove the onNameChange hook from LinkTypeResource
 
 **Files:**
 - Modify: `tools/data-handler/src/resources/link-type-resource.ts`
@@ -624,11 +577,11 @@ The cascade that `onNameChange` used to do (rewrite calculations, handlebars, ca
   ```bash
   git grep -n "onNameChange\b" -- tools/data-handler/src
   ```
-  Expected: zero hits in `tools/data-handler/src` (the hook was only on the LinkType subclass; we just removed it). If hits remain in tests, they're addressed in Task 16.
+  Expected: zero hits in `tools/data-handler/src` (the hook was only on the LinkType subclass; we just removed it). If hits remain in tests, they're addressed in Task 15.
 
 ---
 
-### Task 14: Build the data-handler package
+### Task 13: Build the data-handler package
 
 **Files:** none
 
@@ -658,14 +611,12 @@ The cascade that `onNameChange` used to do (rewrite calculations, handlebars, ca
   ResourceMutations; other types unchanged (their dedicated PRs
   will widen the routing).
 - resources/link-type-resource.ts: onNameChange hook removed; the
-  cascade now lives in LinkTypeRenameHandler.
-
-Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
+  cascade now lives in LinkTypeRenameHandler."
   ```
 
 ---
 
-### Task 15: Pull foundation + LinkType tests
+### Task 14: Pull foundation + LinkType tests
 
 **Files:**
 - Create: `tools/data-handler/test/mutations/fingerprint.test.ts`
@@ -734,7 +685,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 16: Update existing tests broken by the configuration-logger reshape
+### Task 15: Update existing tests broken by the configuration-logger reshape
 
 **Files:**
 - Modify: `tools/data-handler/test/utils/configuration-logger.test.ts`
@@ -768,14 +719,12 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
   Run:
   ```bash
   git add tools/data-handler/test/
-  git commit -m "test: foundation + LinkType handler tests; update existing tests for new logger shape
-
-Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
+  git commit -m "test: foundation + LinkType handler tests; update existing tests for new logger shape"
   ```
 
 ---
 
-### Task 17: Full repo build + lint
+### Task 16: Full repo build + lint
 
 **Files:** none
 
@@ -812,14 +761,12 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
   # logger-shape fixups or downstream-import updates. Anything else needs
   # a second look before committing.
   git add -A
-  git commit -m "chore: downstream fixups for logger reshape
-
-Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
+  git commit -m "chore: downstream fixups for logger reshape"
   ```
 
 ---
 
-### Task 18: Manual smoke test of the LinkType engine path
+### Task 17: Manual smoke test of the LinkType engine path
 
 **Files:** none
 
@@ -864,7 +811,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 19: Push the branch and open the PR
+### Task 18: Push the branch and open the PR
 
 **Files:** none
 
@@ -932,14 +879,14 @@ If at any point a task leaves the working tree in a bad state:
 - `git reset --hard HEAD` discards uncommitted changes
 - `git restore <path>` restores a single file
 - `git checkout origin/main -- <path>` resets a file to main's state
-- The PR1 branch can be deleted and recreated from `origin/main` at any time before push — nothing is shared until Task 19 pushes the branch.
+- The PR1 branch can be deleted and recreated from `origin/main` at any time before push — nothing is shared until Task 18 pushes the branch.
 
 ## Open questions to resolve during execution
 
-1. **Vitest config.** If `tools/data-handler` doesn't already have a Vitest config on main, Task 15 must pull `vitest.config.ts` (or equivalent) and any `package.json` script additions from migration-imp.
+1. **Vitest config.** If `tools/data-handler` doesn't already have a Vitest config on main, Task 14 must pull `vitest.config.ts` (or equivalent) and any `package.json` script additions from migration-imp.
 2. **Helper files used by foundation tests.** If a test imports e.g. `tools/data-handler/test/helpers/mutation-helpers.ts` that doesn't exist on main, pull it.
-3. **Module-remove log shape.** Task 10 needs to know how migration-imp models a module-removal log entry now that `MODULE_REMOVE` is gone — verify by inspecting the configuration-logger and the matching test on migration-imp.
-4. **Downstream package consumers of `ConfigurationOperation`.** Task 17 will surface them. The CLI / MCP / backend may import `ConfigurationOperation` or the old `ConfigurationLogEntry` from `@cyberismo/data-handler` exports — if so, migrate them in PR1.
+3. **Module-remove log shape.** Task 9 needs to know how migration-imp models a module-removal log entry now that `MODULE_REMOVE` is gone — verify by inspecting the configuration-logger and the matching test on migration-imp.
+4. **Downstream package consumers of `ConfigurationOperation`.** Task 16 will surface them. The CLI / MCP / backend may import `ConfigurationOperation` or the old `ConfigurationLogEntry` from `@cyberismo/data-handler` exports — if so, migrate them in PR1.
 
 ## Anti-goals
 

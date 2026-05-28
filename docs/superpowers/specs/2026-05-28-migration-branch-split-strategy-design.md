@@ -14,7 +14,7 @@ Land the resource-migration work from `migration-imp` into `main` as a sequence 
 - **Risk isolation.** Each landed piece must leave `main` in a working state and be revertable in isolation.
 - **Speed matters.** Not at the cost of the above, but a 6-month review chain is not acceptable.
 - **End-state per file.** The existing commits on `migration-imp` include intermediate refactors that were superseded by later commits. Each new PR should reflect the *final* shape of the files it owns, not replay the noisy commit history.
-- **Plan docs dropped, design docs kept.** The `docs/superpowers/plans/2026-05-20-*.md` files and `docs/superpowers/migration-system-executor-prompt.md` were work-execution scaffolding; they do not land. The product-spec files at repo root — `migration-system.allium`, `migration-system.md`, `migrations-plan.adoc` — *do* land, with PR1, since they describe the system the code implements. `AGENT_CONTEXT.md` also lands with PR1 (it's LLM-helper context, not migration-specific).
+- **All migration-imp-only docs dropped.** The `docs/superpowers/plans/2026-05-20-*.md` files, `docs/superpowers/migration-system-executor-prompt.md`, and the repo-root files `migration-system.allium`, `migration-system.md`, `migrations-plan.adoc`, `AGENT_CONTEXT.md` are all migration-imp additions and none land in main. The system is documented by the code itself plus this split-strategy spec.
 
 ## Approach: Option B — Foundation to main, rest via integration branch
 
@@ -30,8 +30,6 @@ Serializes review turnaround across 10+ PRs. Every in-flight PR has to keep reba
 
 ```
 main
- │
- ├─► PR0: drop migration plan docs (tiny, against main)
  │
  ├─► PR1: foundation + LinkType (against main)
  │       │
@@ -57,8 +55,7 @@ main
 
 | # | Target | Title | Scope | Rough size |
 |---|---|---|---|---|
-| 0 | `main` | drop migration plan-scaffolding docs | Skip if not needed: PR0 only exists if we want `main` clean before PR1. Otherwise PR1 deletes them inline. Files: `docs/superpowers/plans/2026-05-20-*.md` and `docs/superpowers/migration-system-executor-prompt.md`. | docs only |
-| 1 | `main` | mutation engine foundation + LinkType | `mutations/{handler,dispatcher,fingerprint,plan,types}.ts`, `mutations/handlers/{default-no-cascade,link-type-rename,link-type-delete}.ts`, `mutations/cascades/rewrite-refs.ts`, `configuration-logger` `kind` discriminator, reroute LinkType through engine in `commands/{update,remove,rename}.ts`, full test suite for foundation + LinkType. Plus design docs: `migration-system.allium`, `migration-system.md`, `migrations-plan.adoc`, `AGENT_CONTEXT.md`. | ~4–6k LOC + ~1.8k lines docs |
+| 1 | `main` | mutation engine foundation + LinkType | `mutations/{handler,dispatcher,fingerprint,plan,types}.ts`, `mutations/handlers/{default-no-cascade,link-type-rename,link-type-delete}.ts`, `mutations/cascades/rewrite-refs.ts`, `configuration-logger` `kind` discriminator, reroute LinkType through engine in `commands/{update,remove,rename}.ts`, full test suite for foundation + LinkType. | ~4–6k LOC |
 | 2 | `integration` | CardType handlers | 5 handlers (rename, delete, add-custom-field, remove-custom-field, workflow-change) + tests + dispatcher entries + reroute CardType in `commands/*` | ~2.5–3.5k LOC |
 | 3 | `integration` | FieldType handlers | 6 handlers (rename, delete, data-type, enum-add, enum-remove, enum-rename) + tests + dispatcher + commands reroute | ~2.5–3.5k LOC |
 | 4 | `integration` | Workflow handlers | 6 handlers (rename, delete, add-state, remove-state, rename-state, transition) + tests + dispatcher + reroute | ~3–4k LOC |
