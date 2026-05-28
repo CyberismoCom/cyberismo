@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import type { Handler, MutationContext } from '../handler.js';
 import type { CascadePreview } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
+import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
 import type {
   AddOperation,
@@ -34,7 +35,41 @@ export class CardTypeAddCustomFieldHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  async validate(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'edit') return;
+    const fieldName = this.fieldName(ctx.input.operation as AddOperation<CustomField | string>);
+    // Field type must exist locally OR in any installed module.
+    const exists = ctx.project.resources.exists(fieldName);
+    if (!exists) {
+      throw new Error(`Field type '${fieldName}' does not exist in the project`);
+    }
+  }
+
+  async applyCascade(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'edit') return;
+    const fieldName = this.fieldName(ctx.input.operation as AddOperation<CustomField | string>);
+
+    // Add null for the new field on every local card of this card type.
+    for (const card of this.affectedCards(ctx)) {
+      if (!card.metadata) continue;
+      card.metadata[fieldName] = null;
+      await ctx.project.updateCardMetadata(card, card.metadata);
+    }
+
+    // Also add null on local template cards of this card type.
+    const cardTypeName = resourceNameToString(ctx.input.target);
+    const templateCards = ctx.project.resources
+      .templates(ResourcesFrom.localOnly)
+      .flatMap((t) => t.templateObject().cards())
+      .filter((c) => c.metadata?.cardType === cardTypeName);
+    for (const card of templateCards) {
+      if (!card.metadata) continue;
+      card.metadata[fieldName] = null;
+      await ctx.project.updateCardMetadata(card, card.metadata);
+    }
+  }
+
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'edit') {
       throw new Error('CardTypeAddCustomFieldHandler called with non-edit input');
     }
@@ -42,14 +77,6 @@ export class CardTypeAddCustomFieldHandler implements Handler {
     const resource = ctx.project.resources.byType(cardTypeName, 'cardTypes');
     if (!resource) throw new Error(`CardType '${cardTypeName}' not found`);
     await resource.update(ctx.input.updateKey, ctx.input.operation as Operation<unknown>);
-
-    const fieldName = this.fieldName(ctx.input.operation as AddOperation<CustomField | string>);
-    const cards = this.affectedCards(ctx);
-    for (const card of cards) {
-      if (!card.metadata) continue;
-      card.metadata[fieldName] = null;
-      await ctx.project.updateCardMetadata(card, card.metadata);
-    }
   }
 
   async affectedFilePaths(ctx: MutationContext): Promise<string[]> {
