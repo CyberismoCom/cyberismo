@@ -4,7 +4,7 @@
 
 **Goal:** Extract PR1 of the `migration-imp` branch split (per `docs/superpowers/specs/2026-05-28-migration-branch-split-strategy-design.md`) into a clean branch off `main`. PR1 ships the new `tools/data-handler/src/mutations/` engine (handler interface, dispatcher, fingerprint, plan, types, cascade-rewrite utilities) plus one resource (LinkType) wired through it end-to-end. After PR1 lands, LinkType rename and delete flow through the new engine and produce migration log entries; every other resource still uses its existing in-class code path on `main`.
 
-**Architecture:** Curated extraction from `migration-imp`. New files are taken at end-state via `git checkout migration-imp -- <path>`. Two files require **trimming** at extraction (their end-state assumes handlers that don't exist yet in PR1): `tools/data-handler/src/mutations/dispatcher.ts` (HANDLERS list reduced to LinkType + DefaultNoCascade) and `tools/data-handler/src/utils/configuration-logger.ts` (kind-discriminator reshape — full reshape lands, but existing on-main callers in `commands/remove.ts` and `commands/rename.ts` must be migrated to the new shape in this PR). Two **hand-edits** add LinkType-only engine routing to `commands/update.ts` and `commands/remove.ts` without touching the code paths for other resource types — those keep their `main` behavior until their own handler PR lands. The `link-type-resource.ts` cascade hook (`onNameChange`) is removed because its replacement (`LinkTypeRenameHandler`) ships in this PR; the equivalent hooks on every other resource subclass stay intact.
+**Architecture:** Curated extraction from `migration-imp`. New files are taken at end-state via `git checkout migration-imp -- <path>`. One file requires **trimming** at extraction (its end-state assumes handlers that don't exist yet in PR1): `tools/data-handler/src/mutations/dispatcher.ts` (HANDLERS list reduced to LinkType + DefaultNoCascade). `tools/data-handler/src/utils/configuration-logger.ts` is taken verbatim from `migration-imp` (kind-discriminator reshape). The on-main callsites for the old `ConfigurationOperation` enum need adjusting: `commands/remove.ts` loses its `MODULE_REMOVE` log call entirely (the new `MigrationEntryKind` union has no equivalent — `migration-imp` simply deletes the call), and `commands/rename.ts` re-emits the project rename entry in the new `{kind: 'project_rename', target, payload}` shape (PR1 keeps the legacy implementation of `rename.ts` otherwise — engine routing lands in PR6). Two **hand-edits** add LinkType-only engine routing to `commands/update.ts` and `commands/remove.ts` without touching the code paths for other resource types — those keep their `main` behavior until their own handler PR lands. The `link-type-resource.ts` cascade hook (`onNameChange`) is removed because its replacement (`LinkTypeRenameHandler`) ships in this PR; the equivalent hooks on every other resource subclass stay intact.
 
 **Tech Stack:** TypeScript NodeNext ESM (relative imports use `.js` extension); pnpm workspaces; `tools/data-handler` runs Mocha + Chai for existing tests and Vitest for new `test/mutations/` tests (they coexist in the same package). Node 22 LTS. `node:crypto` for fingerprints. `git`, `pnpm`, `gh` for the workflow.
 
@@ -15,7 +15,7 @@
 **In scope:**
 - New folder `tools/data-handler/src/mutations/` with engine + LinkType handlers + cascade rewrite utilities
 - `tools/data-handler/src/utils/configuration-logger.ts` reshape (operation enum → kind union, parameters → payload)
-- Migration of two existing callsites to the new logger shape (`commands/remove.ts` MODULE_REMOVE, `commands/rename.ts` PROJECT_RENAME)
+- Logger-callsite adjustments: delete the now-orphaned `MODULE_REMOVE` log call in `commands/remove.ts`; re-emit the project rename log entry in `commands/rename.ts` in the new `{kind, payload}` shape
 - `tools/data-handler/src/resources/link-type-resource.ts` cascade hook removal (replaced by `LinkTypeRenameHandler`)
 - LinkType-only engine routing branches in `commands/update.ts` and `commands/remove.ts`
 - Full test suite for the foundation engine and LinkType handlers
@@ -63,11 +63,11 @@
 |---|---|
 | `tools/data-handler/src/utils/configuration-logger.ts` | `ConfigurationOperation` enum → `MigrationEntryKind` union; `parameters` → `payload`; helper method signatures adjusted. Take end-state from `migration-imp` verbatim. |
 | `tools/data-handler/src/resources/link-type-resource.ts` | Remove `onNameChange` hook (the cascade now lives in `LinkTypeRenameHandler`). Take end-state from `migration-imp` verbatim. |
-| `tools/data-handler/src/commands/remove.ts` | (a) Add LinkType-only engine routing branch. (b) Update existing `MODULE_REMOVE` log entry to new `kind/payload` shape. Other resource-delete paths unchanged. |
-| `tools/data-handler/src/commands/rename.ts` | Update existing `PROJECT_RENAME` log entry to new `kind/payload` shape. No engine routing here in PR1. |
+| `tools/data-handler/src/commands/remove.ts` | (a) Add LinkType-only engine routing branch. (b) Delete the now-orphaned `MODULE_REMOVE` log call (the new `MigrationEntryKind` union has no equivalent; `migration-imp` drops the call). Other resource-delete paths unchanged. |
+| `tools/data-handler/src/commands/rename.ts` | Re-emit the project rename log entry in the new `{kind: 'project_rename', target, payload: {oldPrefix, newPrefix}}` shape (the only callsite for this kind in PR1; `migration-imp` later moves this into `ProjectRenameHandler`, but that's PR6). No engine routing here in PR1. |
 | `tools/data-handler/src/commands/update.ts` | Add LinkType-only engine routing branch for both rename (`isRename && type === 'linkType'`) and edit (`type === 'linkType' && !isRename`). Other types unchanged. |
 | `tools/data-handler/test/utils/configuration-logger.test.ts` | Migrate assertions from `.operation` / `ConfigurationOperation.X` to `.kind` / string literals; `.parameters` → `.payload`. Take end-state from `migration-imp`. |
-| `tools/data-handler/test/utils/breaking-change-classification.test.ts` | Adjust enum imports and entry-shape assertions to new logger shape. Take end-state from `migration-imp`. |
+| `tools/data-handler/test/resources/breaking-change-classification.test.ts` | Adjust enum imports and entry-shape assertions to new logger shape. Take end-state from `migration-imp`. |
 
 ---
 
@@ -351,51 +351,45 @@ next commit."
   ```
 
   Expected hits (these are the callers PR1 must update):
-  - `tools/data-handler/src/commands/remove.ts` — writes a `MODULE_REMOVE` entry
-  - `tools/data-handler/src/commands/rename.ts` — writes a `PROJECT_RENAME` entry
+  - `tools/data-handler/src/commands/remove.ts` — writes a `MODULE_REMOVE` entry (PR1 **deletes** the call — see Task 9)
+  - `tools/data-handler/src/commands/rename.ts` — writes a `PROJECT_RENAME` entry (PR1 **re-emits** in the new shape — see Task 10)
 
-  Other resource-class callers (`logResourceDelete`, `logResourceRename`, `logResourceUpdate`) call the **helper methods**, whose signatures change but whose callsites should be source-compatible if the helper accepts the same args. Confirm by reading the helper signatures on migration-imp vs callsites on main.
+  Other resource-class callers (`logResourceDelete`, `logResourceRename`, `logResourceUpdate` from `resources/resource-object.ts`) call the **helper methods**, whose internal payload shape changes but whose call signatures stay source-compatible — confirmed by diffing `tools/data-handler/src/utils/configuration-logger.ts` between `main` and `migration-imp`. No edits needed at those callsites.
 
 - [ ] **Step 4: Don't commit yet** — fix the two callsites in the next two tasks first so the build goes green.
 
 ---
 
-### Task 9: Migrate commands/remove.ts MODULE_REMOVE callsite + add LinkType engine routing
+### Task 9: Delete MODULE_REMOVE callsite + add LinkType engine routing in commands/remove.ts
 
 **Files:**
 - Modify: `tools/data-handler/src/commands/remove.ts`
 
-This task does two things to one file: (a) update the existing `MODULE_REMOVE` logger call to the new shape, (b) add a LinkType-only branch that routes through `ResourceMutations`.
+This task does two things to one file: (a) delete the now-orphaned `MODULE_REMOVE` log call (the new `MigrationEntryKind` union has no module kind; `migration-imp` simply drops the call), (b) add a LinkType-only branch that routes through `ResourceMutations`.
+
+> **Why not route every `projectResource(type)` through the engine like `migration-imp` does?** Because PR1's dispatcher only has `LinkTypeRenameHandler`, `LinkTypeDeleteHandler`, and `DefaultNoCascadeHandler`. Routing e.g. a CardType delete would land on `DefaultNoCascadeHandler` and produce no cascade — that's silently wrong. We must hard-gate on `type === 'linkType'` (the singular CLI argument) until other resource handlers land in their own PRs.
 
 - [ ] **Step 1: Read main's `commands/remove.ts`**
 
   It's currently on disk (we haven't checked out the migration-imp version). Identify:
-  - The `ConfigurationOperation.MODULE_REMOVE` callsite (~line 350 based on earlier exploration). Note the arguments passed.
-  - The `if (this.projectResource(type))` block that currently calls `resource?.delete()`. This is where the LinkType branch goes.
+  - The `ConfigurationOperation.MODULE_REMOVE` callsite inside `removeModule()` (around line 350). Whole `await ConfigurationLogger.log(...)` block.
+  - The top-of-file `import { ConfigurationLogger, ConfigurationOperation } from '../utils/configuration-logger.js';` block.
+  - The `if (this.projectResource(type)) { ... return resource?.delete(); }` block (around line 297) — where the LinkType branch goes.
 
-- [ ] **Step 2: Update the MODULE_REMOVE callsite**
+- [ ] **Step 2: Delete the MODULE_REMOVE log call**
 
-  Replace the existing call. Where the file currently does something like:
+  Remove the whole block:
   ```typescript
-  await ConfigurationLogger.log({
-    timestamp: new Date().toISOString(),
+  await ConfigurationLogger.log(this.project.basePath, {
     operation: ConfigurationOperation.MODULE_REMOVE,
-    target: moduleName,
-    parameters: { ... },
+    target: targetName,
   });
   ```
-  Change to:
-  ```typescript
-  // MODULE_REMOVE is now a 'resource_delete' entry with module-shape payload
-  // (or whatever shape the migration-imp end-state uses for module removals —
-  // read tools/data-handler/src/utils/configuration-logger.ts on migration-imp
-  // to find the helper or write the entry in the new {kind, target, payload}
-  // shape directly).
-  ```
+  (Confirm against `git show migration-imp:tools/data-handler/src/commands/remove.ts` — the call is gone there too.)
 
-  **Investigation step:** read how migration-imp models module removal in the log. Check `git show migration-imp:tools/data-handler/src/commands/remove.ts` near the `MODULE_REMOVE` callsite (search for `module` in the file). Copy the migration-imp pattern verbatim. If migration-imp no longer writes a module-remove entry at this callsite (because that work moved to module-update PR8), keep the entry but rewrite it to the new shape.
-
-  Remove the `ConfigurationOperation` import from the top of the file.
+  Adjust the import:
+  - Remove `ConfigurationOperation` from the import list.
+  - If `ConfigurationLogger` is no longer referenced anywhere else in this file (likely true after the deletion), remove the whole import line.
 
 - [ ] **Step 3: Add the LinkType-only engine routing**
 
@@ -404,19 +398,20 @@ This task does two things to one file: (a) update the existing `MODULE_REMOVE` l
   if (this.projectResource(type)) {
     const resource = this.project.resources.byType(
       targetName,
-      this.project.resources.resourceTypeFromSingularType(type)
+      this.project.resources.resourceTypeFromSingularType(type),
     );
     return resource?.delete();
   }
   ```
-  (Exact shape on main may differ; preserve what's there.)
 
-  Insert a LinkType branch **before** the existing logic:
+  Insert a LinkType branch **before** the existing logic. Note the CLI passes the **singular** type name (`'linkType'`), not the folder name:
   ```typescript
   if (this.projectResource(type)) {
     if (type === 'linkType') {
       const { ResourceMutations } = await import('../mutations/plan.js');
-      const { resourceName: parseResourceName } = await import('../utils/resource-utils.js');
+      const { resourceName: parseResourceName } = await import(
+        '../utils/resource-utils.js'
+      );
       const target = parseResourceName(targetName);
       const mutations = new ResourceMutations(this.project);
       const plan = await mutations.plan({ kind: 'delete', target });
@@ -428,13 +423,13 @@ This task does two things to one file: (a) update the existing `MODULE_REMOVE` l
     }
     const resource = this.project.resources.byType(
       targetName,
-      this.project.resources.resourceTypeFromSingularType(type)
+      this.project.resources.resourceTypeFromSingularType(type),
     );
     return resource?.delete();
   }
   ```
 
-  Cross-check against migration-imp's version of `remove.ts` — the dynamic-import pattern is what migration-imp uses; if it does static imports at the top, switch to that. Match the existing style.
+  Use dynamic imports (as shown) — `migration-imp` uses dynamic imports here, presumably to avoid an import cycle with the engine.
 
 - [ ] **Step 4: Verify build for this file**
 
@@ -443,39 +438,40 @@ This task does two things to one file: (a) update the existing `MODULE_REMOVE` l
 
 ---
 
-### Task 10: Migrate commands/rename.ts PROJECT_RENAME callsite
+### Task 10: Re-emit PROJECT_RENAME log entry in commands/rename.ts in the new shape
 
 **Files:**
 - Modify: `tools/data-handler/src/commands/rename.ts`
 
-PR1 does **not** add ProjectRename engine routing — that's PR6. But the existing `PROJECT_RENAME` log entry on main uses the old shape and must be updated so the file compiles.
+PR1 does **not** add ProjectRename engine routing — that's PR6 (and `migration-imp` ends up gutting most of `commands/rename.ts` once `ProjectRenameHandler` lands). For PR1, leave the file's project-prefix cascade logic intact and only re-emit the log entry in the new shape so the file compiles against the reshaped logger.
+
+The target shape matches what `ResourceMutations.recordLogEntry` writes for `project_rename` on `migration-imp`, so PR1 stays log-shape-compatible with what PR6 will emit later.
 
 - [ ] **Step 1: Locate the PROJECT_RENAME callsite**
 
-  Read `tools/data-handler/src/commands/rename.ts`. Find:
+  Open `tools/data-handler/src/commands/rename.ts`. Find the block around line 290:
   ```typescript
-  await ConfigurationLogger.log({
-    timestamp: new Date().toISOString(),
+  await ConfigurationLogger.log(this.project.basePath, {
     operation: ConfigurationOperation.PROJECT_RENAME,
     target: ...,
-    parameters: { ... },
+    ...
   });
   ```
-  (or `ConfigurationLogger.logProjectRename(...)` if there's a helper.)
+  Note which local variables hold the old and new prefix (`this.from`, `this.to`, or similar — capture before the cascade mutates state).
 
-- [ ] **Step 2: Convert to new shape**
+- [ ] **Step 2: Rewrite the call in the new shape**
 
-  Either call the helper that migration-imp uses (read `git show migration-imp:tools/data-handler/src/utils/configuration-logger.ts | grep -A 5 "logProjectRename\|project_rename"`), or write the entry directly:
+  Replace with:
   ```typescript
-  await ConfigurationLogger.log({
-    timestamp: new Date().toISOString(),
+  await ConfigurationLogger.log(this.project.basePath, {
     kind: 'project_rename',
-    target: oldProjectName,
-    payload: { newName: newProjectName /* etc. — match migration-imp */ },
+    target: newPrefix,
+    payload: { oldPrefix, newPrefix },
   });
   ```
+  Use whatever local variable names the file already uses for the old/new prefix; the literal property names (`oldPrefix`, `newPrefix`) and `kind: 'project_rename'` are fixed because they must match `ResourceMutations.recordLogEntry`'s shape for `project_rename` (see `tools/data-handler/src/mutations/plan.ts` on `migration-imp`).
 
-  Remove the `ConfigurationOperation` import from the top of the file.
+  Update the import: remove `ConfigurationOperation` from the import list at the top of the file. `ConfigurationLogger` itself is still used and must remain imported.
 
 - [ ] **Step 3: Verify**
 
@@ -489,39 +485,49 @@ PR1 does **not** add ProjectRename engine routing — that's PR6. But the existi
 **Files:**
 - Modify: `tools/data-handler/src/commands/update.ts`
 
-The end-state of `update.ts` on migration-imp has a `Set` named `enginedEditTypes` that includes `'linkTypes'`, `'fieldTypes'`, `'workflows'`. PR1 routes only LinkType through the engine; FieldType and Workflow stay on their main paths.
+The end-state of `update.ts` on `migration-imp` routes four resource families through the engine (`linkTypes`, `fieldTypes`, `workflows`, plus selective `cardTypes` edits) and routes **all** renames through the engine, letting `DefaultNoCascadeHandler` catch types without a dedicated handler. **PR1 cannot copy that pattern**: PR1's dispatcher only has LinkType handlers + DefaultNoCascade, so a CardType / FieldType / Workflow rename would land on DefaultNoCascade and skip the cascade entirely — silently wrong. PR1 must hard-gate on `type === 'linkTypes'` (plural — this is what `extractType()` returns for `commands/update.ts`).
 
-- [ ] **Step 1: Read migration-imp's update.ts to find the routing block**
+- [ ] **Step 1: Read migration-imp's update.ts for the MutationInput shapes**
 
   Run:
   ```bash
-  git show migration-imp:tools/data-handler/src/commands/update.ts | head -120
+  git show migration-imp:tools/data-handler/src/commands/update.ts | sed -n '40,120p'
   ```
-  Identify the engine-routing section (look for `ResourceMutations`, `enginedEditTypes`, or `isRename`).
+  Capture the exact MutationInput construction for `rename` (uses `newIdentifier: string`, **not** a `ResourceName`) and for `edit` (passes `updateKey`, `operation` straight through).
 
 - [ ] **Step 2: Read main's update.ts**
 
-  Open `tools/data-handler/src/commands/update.ts`. Identify the equivalent control-flow location where the LinkType update / rename is dispatched today.
+  Open `tools/data-handler/src/commands/update.ts`. Identify the entry of the update method, the `isRename` detection, and where the legacy `resource?.update(updateKey, operation)` call lives.
 
-- [ ] **Step 3: Add a LinkType-only engine branch**
+- [ ] **Step 3: Add LinkType-only engine branches**
 
-  Add a branch near the entry of the update method (after argument validation but before the existing type dispatch). The shape:
+  Wedge the LinkType-only routing into the update method, after argument validation and before the existing legacy dispatch. Note the type literal is **`'linkTypes'` (plural)** — `extractType()` returns the folder name, not the singular CLI form.
+
   ```typescript
-  // LinkType updates and renames flow through the mutation engine.
-  // Other resource types still use the in-class code path below until
-  // their dedicated handler PR lands.
-  if (type === 'linkType') {
+  const type = this.project.resources.extractType(name);
+
+  // A rename is encoded as a 'change' on the 'name' updateKey.
+  const isRename =
+    updateKey.key === 'name' &&
+    (operation as { name: string }).name === 'change';
+
+  // PR1 routes ONLY linkTypes through the engine. Other resource families
+  // keep their legacy in-class cascade path until their own handler PR lands.
+  // (Do not generalise this to a Set of types — PR1's dispatcher would route
+  // unhandled types to DefaultNoCascadeHandler and silently drop their cascade.)
+  if (type === 'linkTypes') {
     const { ResourceMutations } = await import('../mutations/plan.js');
-    const { resourceName: parseResourceName } = await import('../utils/resource-utils.js');
-    const target = parseResourceName(targetName);
+    const { resourceName: parseResourceName } = await import(
+      '../utils/resource-utils.js'
+    );
+    const target = parseResourceName(name);
     const mutations = new ResourceMutations(this.project);
 
     if (isRename) {
-      const input = {
-        kind: 'rename' as const,
-        target,
-        newName: parseResourceName(newName),
-      };
+      const newIdentifier = parseResourceName(
+        (operation as { to: string }).to,
+      ).identifier;
+      const input = { kind: 'rename' as const, target, newIdentifier };
       const plan = await mutations.plan(input);
       await mutations.apply(input, { fingerprint: plan.fingerprint });
       return;
@@ -539,7 +545,7 @@ The end-state of `update.ts` on migration-imp has a `Set` named `enginedEditType
   }
   ```
 
-  Match the migration-imp argument shape — the variable names (`isRename`, `targetName`, `newName`, `updateKey`, `operation`) above are guesses based on the exploration. Inspect migration-imp's update.ts and copy the exact MutationInput construction for the LinkType case. Do **not** include `enginedEditTypes` as a Set — PR1 routes only `linkType`; future PRs widen the routing.
+  Cross-check the MutationInput field names against `tools/data-handler/src/mutations/types.ts` on `migration-imp` (already extracted in Task 2) — for `rename` it's `newIdentifier: string`, not a `ResourceName`.
 
 - [ ] **Step 4: Verify**
 
@@ -603,8 +609,10 @@ The cascade that `onNameChange` used to do (rewrite calculations, handlebars, ca
   git commit -m "feat(mutations): wire LinkType through the engine; logger reshape
 
 - configuration-logger: operation enum -> kind discriminator,
-  parameters -> payload; existing MODULE_REMOVE and PROJECT_RENAME
-  callsites migrated.
+  parameters -> payload. MODULE_REMOVE log call deleted in
+  commands/remove.ts (the new union has no module kind);
+  PROJECT_RENAME callsite in commands/rename.ts re-emitted in
+  the new shape.
 - commands/remove.ts: LinkType deletes route to ResourceMutations;
   other resource types unchanged.
 - commands/update.ts: LinkType edits + renames route to
@@ -654,25 +662,24 @@ The cascade that `onNameChange` used to do (rewrite calculations, handlebars, ca
 
   If a test imports something only on migration-imp outside PR1's scope (e.g., a new fixture or helper added by a later PR), pull that file too.
 
-- [ ] **Step 3: Check vitest config**
+- [ ] **Step 3: package.json cherry-pick (mutations export only)**
 
-  Run: `ls tools/data-handler/vitest.config*`
-  Expected: there's a Vitest config that picks up `test/mutations/**/*.test.ts`. If not, check `git show migration-imp:tools/data-handler/vitest.config.ts` (or `.mjs`/`.js`) — pull it if it's new on migration-imp.
+  Vitest is already on `main` (`tools/data-handler/package.json` has `"test": "vitest"`) — no Vitest config or dev-dependency migration needed.
 
-  Also check `tools/data-handler/package.json` — migration-imp may have added a `test:vitest` script or Vitest dev dependency. If yes, pull `package.json` (carefully, manual merge) and `pnpm-lock.yaml`.
+  The only PR1-relevant change in `migration-imp`'s `package.json` is the new `mutations` export. Add it by hand-edit (do **not** `git checkout migration-imp -- tools/data-handler/package.json` — that branch also has a stale version downgrade and a regression that removes the `engines.node >=22` block; neither belongs in PR1):
 
-  Run:
-  ```bash
-  git diff main..migration-imp -- tools/data-handler/package.json tools/data-handler/vitest.config*
+  ```json
+  "exports": {
+    ".": "./dist/index.js",
+    "./interfaces/*": "./dist/interfaces/*.js",
+    "./types/*": "./dist/types/*.js",
+    "./mutations/*": "./dist/mutations/*.js",
+    "./macros/*": "./dist/macros/*.js",
+    "./utils/*": "./dist/utils/*.js"
+  }
   ```
-  If there are changes:
-  ```bash
-  git checkout migration-imp -- tools/data-handler/package.json tools/data-handler/vitest.config.ts
-  # Lockfile likely also changed (Vitest may have been added)
-  git checkout migration-imp -- pnpm-lock.yaml
-  pnpm install --frozen-lockfile
-  ```
-  If `pnpm install --frozen-lockfile` errors because the lockfile references packages that conflict with main's manifests, drop `--frozen-lockfile` and let pnpm rewrite it, then commit the resulting lockfile change alongside the test files.
+
+  No lockfile change is needed for this edit.
 
 - [ ] **Step 4: Run the new tests**
 
@@ -689,7 +696,7 @@ The cascade that `onNameChange` used to do (rewrite calculations, handlebars, ca
 
 **Files:**
 - Modify: `tools/data-handler/test/utils/configuration-logger.test.ts`
-- Modify: `tools/data-handler/test/utils/breaking-change-classification.test.ts`
+- Modify: `tools/data-handler/test/resources/breaking-change-classification.test.ts`
 
 - [ ] **Step 1: Take migration-imp's end-state for both**
 
@@ -697,7 +704,7 @@ The cascade that `onNameChange` used to do (rewrite calculations, handlebars, ca
   ```bash
   git checkout migration-imp -- \
     tools/data-handler/test/utils/configuration-logger.test.ts \
-    tools/data-handler/test/utils/breaking-change-classification.test.ts
+    tools/data-handler/test/resources/breaking-change-classification.test.ts
   ```
 
 - [ ] **Step 2: Verify these tests use the new shape**
@@ -792,13 +799,12 @@ The cascade that `onNameChange` used to do (rewrite calculations, handlebars, ca
   pnpm --filter=@cyberismo/cli exec cyberismo remove linkType smoke/renamedLink
   ```
 
-  Expected: each command succeeds. After the rename, the configuration log under `.cards/local/configuration.log.json` (or wherever migration-imp puts it) shows an entry with `kind: 'resource_rename'` and the LinkType payload. After the delete, an entry with `kind: 'resource_delete'`.
+  Expected: each command succeeds. The migration log is JSONL at `.cards/local/resources/migrations/current/migrationLog.jsonl` (see `ProjectPaths.configurationChangesLog` if the structure ever changes). After the rename, the log has an entry with `kind: 'resource_rename'`; after the delete, an entry with `kind: 'resource_delete'`. Both have `target` matching the LinkType resource name and a non-empty `payload`.
 
   Inspect:
   ```bash
-  cat /tmp/cyberismo-pr1-smoke/.cards/local/configuration.log.json
+  cat /tmp/cyberismo-pr1-smoke/.cards/local/resources/migrations/current/migrationLog.jsonl
   ```
-  (Adjust path to wherever the migration-imp logger writes — read `ConfigurationLogger` source if unsure.)
 
 - [ ] **Step 4: Cleanup**
 
@@ -818,7 +824,7 @@ The cascade that `onNameChange` used to do (rewrite calculations, handlebars, ca
 - [ ] **Step 1: Final git status check**
 
   Run: `git status && git log --oneline origin/main..HEAD`
-  Expected: clean working tree; commits visible — roughly 4 commits (design docs / foundation engine / wiring + logger / tests).
+  Expected: clean working tree; commits visible — roughly 3 commits (foundation engine + LinkType handlers / wiring + logger / tests). A 4th commit may exist if Task 16 needed downstream fixups.
 
 - [ ] **Step 2: Push the branch**
 
@@ -832,20 +838,19 @@ The cascade that `onNameChange` used to do (rewrite calculations, handlebars, ca
   gh pr create --base main --title "PR1: Mutation engine foundation + LinkType end-to-end" --body "$(cat <<'EOF'
 ## Summary
 
-First of ten PRs splitting the `migration-imp` branch (see `docs/superpowers/specs/2026-05-28-migration-branch-split-strategy-design.md`).
+First of ten PRs splitting the `migration-imp` branch.
 
 - Adds `tools/data-handler/src/mutations/` — new mutation engine: handler interface, dispatcher, fingerprint, ResourceMutations (plan/apply), cascade rewrite utilities, default no-cascade handler.
 - Wires **LinkType** rename and delete through the engine end-to-end. Other resource types still use their existing in-class code paths and will be migrated in subsequent PRs.
-- Reshapes `ConfigurationLogger` entry shape: `operation` enum → `kind` discriminator, `parameters` → `payload`. Existing `MODULE_REMOVE` and `PROJECT_RENAME` callsites migrated.
+- Reshapes `ConfigurationLogger` entry shape: `operation` enum → `kind` discriminator, `parameters` → `payload`. The orphaned `MODULE_REMOVE` log call in `commands/remove.ts` is removed (the new `MigrationEntryKind` union has no equivalent); the `PROJECT_RENAME` callsite in `commands/rename.ts` is re-emitted in the new shape.
 - Removes the `onNameChange` cascade hook from `LinkTypeResource` — its cascade now lives in `LinkTypeRenameHandler`. Hooks on other resource subclasses are untouched (they're load-bearing until their handler PR lands).
-- Lands repo-root design docs: `migration-system.allium`, `migration-system.md`, `migrations-plan.adoc`, `AGENT_CONTEXT.md`.
 
 ## Test plan
 
 - [ ] pnpm build is green across all packages
 - [ ] pnpm test is green
 - [ ] pnpm lint is green
-- [ ] Manual: create a LinkType, rename it, delete it via the CLI; verify entries in the configuration log under `.cards/local/`
+- [ ] Manual: create a LinkType, rename it, delete it via the CLI; verify entries in the migration log at `.cards/local/resources/migrations/current/migrationLog.jsonl`
 - [ ] Manual: confirm no other resource type's CLI behavior changed (CardType update/rename/delete, Workflow, FieldType all still work via the old paths)
 
 ## Follow-up PRs
@@ -883,10 +888,8 @@ If at any point a task leaves the working tree in a bad state:
 
 ## Open questions to resolve during execution
 
-1. **Vitest config.** If `tools/data-handler` doesn't already have a Vitest config on main, Task 14 must pull `vitest.config.ts` (or equivalent) and any `package.json` script additions from migration-imp.
-2. **Helper files used by foundation tests.** If a test imports e.g. `tools/data-handler/test/helpers/mutation-helpers.ts` that doesn't exist on main, pull it.
-3. **Module-remove log shape.** Task 9 needs to know how migration-imp models a module-removal log entry now that `MODULE_REMOVE` is gone — verify by inspecting the configuration-logger and the matching test on migration-imp.
-4. **Downstream package consumers of `ConfigurationOperation`.** Task 16 will surface them. The CLI / MCP / backend may import `ConfigurationOperation` or the old `ConfigurationLogEntry` from `@cyberismo/data-handler` exports — if so, migrate them in PR1.
+1. **Helper files used by foundation tests.** If a test imports e.g. `tools/data-handler/test/helpers/mutation-helpers.ts` that doesn't exist on main, pull it. (Inspection at plan time found no such helpers — the foundation tests only import from `src/` and `vitest`. Re-check during execution in case `migration-imp` drifts.)
+2. **Downstream package consumers of `ConfigurationOperation`.** Task 16 will surface them. The CLI / MCP / backend may import `ConfigurationOperation` or the old `ConfigurationLogEntry` from `@cyberismo/data-handler` exports — if so, migrate them in PR1.
 
 ## Anti-goals
 
