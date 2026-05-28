@@ -15,6 +15,7 @@
 
 import Processor from '@asciidoctor/core';
 import { type CommandManager, evaluateMacros } from '@cyberismo/data-handler';
+import { rewriteAsciidocCardXrefs } from '@cyberismo/data-handler/utils/asciidoc-xref';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
 
 // Special constant for transitions that work from any state
@@ -158,12 +159,20 @@ export async function renderCard(
     if (!options.raw) {
       // Evaluate macros (Clingo, graphs, reports)
       try {
-        const asciidocContent = await evaluateMacros(rawContent, {
+        let asciidocContent = await evaluateMacros(rawContent, {
           context: 'localApp',
           mode: 'inject',
           project: commands.project,
           cardKey: cardKey,
         });
+
+        // Rewrite native AsciiDoc xrefs that target other cards into
+        // /projects/<prefix>/cards/<key> links.
+        asciidocContent = rewriteAsciidocCardXrefs(
+          asciidocContent,
+          commands.project,
+          'inject',
+        );
 
         // Convert AsciiDoc to HTML
         const processor = Processor();

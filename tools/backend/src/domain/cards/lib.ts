@@ -15,6 +15,7 @@ import Processor from '@asciidoctor/core';
 import type { Card } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import { type CommandManager, evaluateMacros } from '@cyberismo/data-handler';
 import { preprocessMermaidBlocksForHtml } from '@cyberismo/data-handler/utils/mermaid-renderer';
+import { rewriteAsciidocCardXrefs } from '@cyberismo/data-handler/utils/asciidoc-xref';
 import { getCardQueryResult } from '../../export.js';
 import type { TreeOptions } from '../../types.js';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
@@ -60,6 +61,14 @@ export async function getCardDetails(
 
     // Convert [mermaid] AsciiDoc blocks to passthrough HTML before asciidoctor processes them
     asciidocContent = preprocessMermaidBlocksForHtml(asciidocContent);
+
+    // Rewrite native AsciiDoc xrefs that target other cards into
+    // /projects/<prefix>/cards/<key> links.
+    asciidocContent = rewriteAsciidocCardXrefs(
+      asciidocContent,
+      commands.project,
+      staticMode ? 'staticSite' : 'inject',
+    );
 
     const projectPrefix = commands.project.projectPrefix;
     const htmlContent = Processor()

@@ -29,6 +29,7 @@ import { evaluateMacros } from '../macros/index.js';
 import type { ExportPdfOptions } from '../interfaces/project-interfaces.js';
 import { generateReportContent } from '../utils/report.js';
 import { preprocessMermaidBlocksForPdf } from '../utils/mermaid-renderer.js';
+import { rewriteAsciidocCardXrefs } from '../utils/asciidoc-xref.js';
 import { getStaticDirectoryPath, pdfReport } from '@cyberismo/assets';
 import { Project } from '../containers/project.js';
 import type { QueryResult } from '../types/queries.js';
@@ -306,6 +307,19 @@ export class Export {
   }
 
   /**
+   * Assembles the AsciiDoc source that will be handed to asciidoctor-pdf.
+   * Runs macro evaluation, mermaid preprocessing, and native-xref rewriting in
+   * the order Asciidoctor expects.
+   */
+  protected async buildPdfAsciidocSource(
+    options: ExportPdfOptions,
+  ): Promise<string> {
+    const evaluated = await this.evaluateExportContent(options);
+    const withMermaid = await preprocessMermaidBlocksForPdf(evaluated);
+    return rewriteAsciidocCardXrefs(withMermaid, this.project, 'static');
+  }
+
+  /**
    * Exports the card(s) to pdf.
    * @param destination Path to where the resulting file(s) will be created.
    * @param options Export options.
@@ -316,9 +330,8 @@ export class Export {
     destination: string,
     options: ExportPdfOptions,
   ): Promise<string> {
-    const evaluated = await this.evaluateExportContent(options);
-    const withMermaid = await preprocessMermaidBlocksForPdf(evaluated);
-    const pdf = await this.runAsciidoctorPdf(withMermaid);
+    const source = await this.buildPdfAsciidocSource(options);
+    const pdf = await this.runAsciidoctorPdf(source);
     await writeFile(destination, pdf);
     return `Content exported as PDF to ${destination}`;
   }
@@ -330,8 +343,8 @@ export class Export {
    */
   @read
   public async exportPdfBuffer(options: ExportPdfOptions): Promise<Buffer> {
-    const evaluated = await this.evaluateExportContent(options);
-    return this.runAsciidoctorPdf(evaluated);
+    const source = await this.buildPdfAsciidocSource(options);
+    return this.runAsciidoctorPdf(source);
   }
 
   /**
