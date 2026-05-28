@@ -1,6 +1,6 @@
 {
   "name": "@cyberismo/cli",
-  "version": "0.0.25",
+  "version": "0.0.26",
   "description": "CLI tool to handle tasks.",
   "main": "dist/index.js",
   "bin": {

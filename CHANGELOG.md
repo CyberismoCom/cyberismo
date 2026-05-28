@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.0.26] — 2026-05-28
+
+### Highlights
+
+Fixes native AsciiDoc cross-reference link resolution across card rendering, PDF export, and the MCP server.
+
+### Fixes
+
+- Fix native AsciiDoc xref links in card rendering, PDF export, and MCP render (#1380).
+
 ## [0.0.25] — 2026-05-27
 
 ### Highlights
