@@ -1,11 +1,12 @@
 // tools/data-handler/test/mutations/handlers/field-type-enum-add.test.ts
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdir, rm } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
 import { FieldTypeEnumAddHandler } from '../../../src/mutations/handlers/field-type-enum-add.js';
+import { ResourceMutations } from '../../../src/mutations/plan.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
 
@@ -82,5 +83,50 @@ describe('FieldTypeEnumAddHandler', () => {
     const preview = await handler.preview(ctx);
     expect(preview.affectedCardCount).toBe(0);
     expect(preview.dataLossExpected).toBe(false);
+  });
+
+  describe('foreign-module replay (apply only, foreign target)', () => {
+    it('completes without throwing and does not modify the module file', async () => {
+      const dedicatedPath = join(tmpDir, `proj-foreign-enum-add-${Date.now()}`);
+      await mkdir(dedicatedPath, { recursive: true });
+      await copyDir(FIXTURE_PATH, dedicatedPath);
+
+      // Seed module 'foo' with the field already at post-op state
+      // (new enum value already present in the module's installed file).
+      const fooModuleDir = join(dedicatedPath, '.cards', 'modules', 'foo');
+      const fooFieldTypesDir = join(fooModuleDir, 'fieldTypes');
+      await mkdir(fooFieldTypesDir, { recursive: true });
+      await writeFile(
+        join(fooModuleDir, 'cardsConfig.json'),
+        JSON.stringify({ cardKeyPrefix: 'foo', name: 'foo', modules: [] }),
+      );
+      const moduleFilePath = join(fooFieldTypesDir, 'priority.json');
+      const moduleFileContent = JSON.stringify({
+        name: 'foo/fieldTypes/priority',
+        displayName: '',
+        dataType: 'enum',
+        enumValues: [{ enumValue: 'low' }, { enumValue: 'high' }, { enumValue: 'critical' }],
+      });
+      await writeFile(moduleFilePath, moduleFileContent);
+
+      const foreignProject = new Project(dedicatedPath);
+      await foreignProject.populateCaches();
+
+      // Replay: add 'critical' to module's enum (already present on disk).
+      // No consumer cascade needed; should succeed without touching the module file.
+      await new ResourceMutations(foreignProject).apply(
+        {
+          kind: 'edit',
+          target: resourceName('foo/fieldTypes/priority'),
+          updateKey: { key: 'enumValues' as const },
+          operation: { name: 'add' as const, target: { enumValue: 'critical' } },
+        },
+        { bypassFingerprint: true },
+      );
+
+      // Module file byte-identical to seed (untouched).
+      const moduleFileAfter = await readFile(moduleFilePath, 'utf-8');
+      expect(moduleFileAfter).toBe(moduleFileContent);
+    });
   });
 });

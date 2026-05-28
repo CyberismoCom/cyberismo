@@ -27,7 +27,15 @@ export class FieldTypeEnumAddHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  /**
+   * Adding an enum value has no consumer-side cascade: existing cards keep
+   * their current values and are unaffected by the new option.
+   */
+  async applyCascade(): Promise<void> {
+    // No-op: no consumer references to rewrite.
+  }
+
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'edit') {
       throw new Error('FieldTypeEnumAddHandler: non-edit input');
     }
