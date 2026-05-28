@@ -57,6 +57,20 @@ export class ResourceMutations {
       }
     }
 
+    // Guard: destructive mutations on foreign (module-owned) resources are
+    // only allowed during replay (bypassFingerprint). Direct user-initiated
+    // delete/rename of a module resource is rejected here.
+    if (
+      !options.bypassFingerprint &&
+      'target' in input &&
+      (input.kind === 'delete' || input.kind === 'rename') &&
+      input.target.prefix !== this.project.projectPrefix
+    ) {
+      throw new Error(
+        `Cannot modify module resource '${input.target.prefix}/${input.target.type}/${input.target.identifier}'`,
+      );
+    }
+
     // Capture extras the log entry depends on BEFORE the cascade mutates state.
     const recordContext: RecordContext = {};
     if (input.kind === 'project_rename') {
