@@ -1553,25 +1553,12 @@ describe('resources', function () {
       );
       expect((res.data as CardType).customFields.length).toBe(1);
     });
-    it('update card type - try to add non-existing element to customFields', async () => {
-      const name = 'decision/cardTypes/checkNonExistingItems';
+    it('update card type - try to add non-existing element to alwaysVisibleFields', async () => {
+      const name = 'decision/cardTypes/checkNonExistingAlwaysVisible';
       const res = project.resources.byType(name, 'cardTypes');
       await res.createCardType('decision/workflows/decision');
       expect(res.data?.customFields.length).toBe(0);
-      await expect(
-        res.update(
-          { key: 'customFields' },
-          {
-            name: 'add',
-            target: { name: 'decision/fieldTypes/doesNotExist' },
-          },
-        ),
-      ).rejects.toThrow();
-    });
-    it('update card type - try to add non-existing element to alwaysVisibleFields', async () => {
-      const name = 'decision/cardTypes/checkNonExistingItems';
-      const res = project.resources.byType(name, 'cardTypes');
-      expect(res.data?.customFields.length).toBe(0);
+      // doesNotExist is not in customFields → internal-consistency check throws.
       await expect(
         res.update(
           { key: 'alwaysVisibleFields' },
@@ -1581,6 +1568,8 @@ describe('resources', function () {
           },
         ),
       ).rejects.toThrow();
+      // newOne exists as a field type resource but is not in this card type's
+      // customFields → internal-consistency check throws.
       await expect(
         res.update(
           { key: 'alwaysVisibleFields' },
@@ -1592,9 +1581,11 @@ describe('resources', function () {
       ).rejects.toThrow();
     });
     it('update card type - try to add non-existing element to optionallyVisibleFields', async () => {
-      const name = 'decision/cardTypes/checkNonExistingItems';
+      const name = 'decision/cardTypes/checkNonExistingOptionallyVisible';
       const res = project.resources.byType(name, 'cardTypes');
+      await res.createCardType('decision/workflows/decision');
       expect(res.data?.customFields.length).toBe(0);
+      // doesNotExist is not in customFields → internal-consistency check throws.
       await expect(
         res.update(
           { key: 'optionallyVisibleFields' },
@@ -1604,6 +1595,8 @@ describe('resources', function () {
           },
         ),
       ).rejects.toThrow();
+      // newOne exists as a field type resource but is not in this card type's
+      // customFields → internal-consistency check throws.
       await expect(
         res.update(
           { key: 'optionallyVisibleFields' },

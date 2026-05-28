@@ -54,8 +54,8 @@ export class FieldTypeDeleteHandler implements Handler {
 
     // 1. Remove the field from every local card type that references it.
     //    Module-owned card types are immutable from the consumer side.
-    //    CardTypeResource.validateFieldType allows remove of absent fields
-    //    (safe for foreign-replay where the module field is already deleted).
+    //    The resource layer no longer checks field-type existence, so removing
+    //    a reference to an already-deleted field type is safe.
     for (const cardType of this.cardTypesReferencing(ctx, fieldName)) {
       await cardType.update(
         { key: 'customFields' },

@@ -54,13 +54,6 @@ export class CardTypeResource extends FileResource<CardType> {
       .map((card) => card.key);
   }
 
-  // Checks if field type exists in the project.
-  private async fieldTypeExists(field: Partial<CustomField>) {
-    return field && field.name
-      ? this.project.resources.exists(field.name)
-      : false;
-  }
-
   // Checks if field type exists in this card type.
   private hasFieldType(field: Partial<CustomField>): boolean {
     return (
@@ -115,40 +108,16 @@ export class CardTypeResource extends FileResource<CardType> {
     this.content = content;
   }
 
-  // Checks that field type exists in the project and is defined in this card type.
-  private async validateFieldType<Type>(
-    key: string,
-    op: Operation<Type>,
-  ): Promise<void> {
+  // Checks that field type is defined in this card type (internal-consistency
+  // check for alwaysVisibleFields / optionallyVisibleFields).
+  // Referential existence ("does this field type exist in the project?") is
+  // checked in the handler layer (CardTypeAddCustomFieldHandler.validate).
+  private validateFieldType<Type>(key: string, op: Operation<Type>): void {
     const toField = (value: unknown): Partial<CustomField> =>
       typeof value === 'object' && value !== null
         ? (value as CustomField)
         : { name: value as string };
     const field = toField(op.target);
-    // Check that field type exists in the project.
-    let exists = await this.fieldTypeExists(field);
-    if (!exists && op.name === 'change') {
-      // A `change` renames a reference from `target` (old) to `to` (new).
-      // The rename is in-flight, and which endpoint is on disk depends on
-      // the flow: the old name for a local rename (the resource file moves
-      // last), the new name for a foreign-module replay (the install was
-      // already advanced to post-rename by `applyModules`). The old name
-      // failed above, so fall back to the destination; only a dangling
-      // rename — neither endpoint present — is a real error.
-      exists = await this.fieldTypeExists(toField(op.to));
-    }
-    if (!exists && op.name === 'remove') {
-      // A `remove` strips a reference to a field type. If the field type
-      // no longer exists (e.g. foreign-module replay where the module's
-      // field was already deleted), removing the dangling reference is
-      // always safe — skip the existence guard.
-      return;
-    }
-    if (!exists) {
-      throw new Error(
-        `Field type '${field.name}' does not exist in the project`,
-      );
-    }
     // Check that field type is defined in card type.
     if (key === 'alwaysVisibleFields' || key === 'optionallyVisibleFields') {
       const hasField = this.hasFieldType(field);
@@ -239,14 +208,14 @@ export class CardTypeResource extends FileResource<CardType> {
     }
     const content = structuredClone(this.content);
     if (key === 'alwaysVisibleFields') {
-      await this.validateFieldType(key, op);
+      this.validateFieldType(key, op);
       content.alwaysVisibleFields = super.handleArray(
         op,
         key,
         content.alwaysVisibleFields as Type[],
       ) as string[];
     } else if (key === 'optionallyVisibleFields') {
-      await this.validateFieldType(key, op);
+      this.validateFieldType(key, op);
       content.optionallyVisibleFields = super.handleArray(
         op,
         key,
@@ -256,7 +225,7 @@ export class CardTypeResource extends FileResource<CardType> {
       content.workflow = super.handleScalar(op) as string;
       // Cascade lives in CardTypeWorkflowChangeHandler.
     } else if (key === 'customFields') {
-      await this.validateFieldType(key, op);
+      this.validateFieldType(key, op);
       content.customFields = super.handleArray(
         op,
         key,
