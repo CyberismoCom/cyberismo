@@ -34,14 +34,15 @@ export class FieldTypeRenameHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  async applyCascade(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'rename') {
       throw new Error('FieldTypeRenameHandler called with non-rename input');
     }
     const oldName = resourceNameToString(ctx.input.target);
     const newName = `${ctx.input.target.prefix}/fieldTypes/${ctx.input.newIdentifier}`;
 
-    // 1. Rewrite the metadata key on every card carrying the field.
+    // 1. Rewrite the metadata key on every local card and local template card
+    //    carrying the field.
     for (const card of this.cardsWithField(ctx, oldName)) {
       const metadata = card.metadata!;
       const value = metadata[oldName];
@@ -50,23 +51,24 @@ export class FieldTypeRenameHandler implements Handler {
       await ctx.project.updateCardMetadata(card, metadata);
     }
 
-    // 2. Rewrite customFields[].name entries on every card type.
+    // 2. Rewrite customFields[].name entries on every local card type.
+    //    Module-owned card types are immutable from the consumer side; their
+    //    references are the owning module's responsibility to migrate.
     for (const cardType of this.cardTypesReferencing(ctx, oldName)) {
       await cardType.update(
         { key: 'customFields' },
         { name: 'change', target: { name: oldName }, to: { name: newName } } as never,
       );
     }
+  }
 
-    // 3. Perform the resource-level rename. FieldType has no cascade beyond
-    //    the customFields[] rewrite handled in step 2, so this just moves the
-    //    resource file and updates its internal `name` field.
-    //    Skip for foreign-prefixed targets: replay against a consumer only
-    //    migrates consumer-side state; the module's installed file tree is
-    //    the post-rename outcome already, placed by `applyModules`.
-    if (ctx.input.target.prefix !== ctx.project.projectPrefix) {
-      return;
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'rename') {
+      throw new Error('FieldTypeRenameHandler called with non-rename input');
     }
+    const oldName = resourceNameToString(ctx.input.target);
+    const newName = `${ctx.input.target.prefix}/fieldTypes/${ctx.input.newIdentifier}`;
+
     const resource = ctx.project.resources.byType(oldName, 'fieldTypes');
     if (!resource) {
       throw new Error(`Field type '${oldName}' not found`);
@@ -87,11 +89,13 @@ export class FieldTypeRenameHandler implements Handler {
   }
 
   private cardsWithField(ctx: MutationContext, oldName: string): Card[] {
-    const all = [
-      ...ctx.project.cards(undefined),
-      ...ctx.project.allTemplateCards(),
-    ];
-    return all.filter((c) => c.metadata && oldName in c.metadata);
+    const rootCards = ctx.project.cards(undefined);
+    const templateCards = ctx.project.resources
+      .templates(ResourcesFrom.localOnly)
+      .flatMap((t) => t.templateObject().cards());
+    return [...rootCards, ...templateCards].filter(
+      (c) => c.metadata && oldName in c.metadata,
+    );
   }
 
   private cardTypesReferencing(ctx: MutationContext, oldName: string) {

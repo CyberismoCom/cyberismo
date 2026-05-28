@@ -5,6 +5,7 @@ import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
 import { FieldTypeRenameHandler } from '../../../src/mutations/handlers/field-type-rename.js';
+import { ResourceMutations } from '../../../src/mutations/plan.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
 
@@ -77,18 +78,14 @@ describe('FieldTypeRenameHandler', () => {
   });
 
   it('applying rewrites every card metadata key and every card type customFields entry', async () => {
-    const handler = new FieldTypeRenameHandler();
     const oldName = `${project.projectPrefix}/fieldTypes/finished`;
     const newName = `${project.projectPrefix}/fieldTypes/completed`;
-    const ctx = {
-      project,
-      input: {
-        kind: 'rename' as const,
-        target: resourceName(oldName),
-        newIdentifier: 'completed',
-      },
+    const input = {
+      kind: 'rename' as const,
+      target: resourceName(oldName),
+      newIdentifier: 'completed',
     };
-    await handler.apply(ctx);
+    await new ResourceMutations(project).apply(input, { bypassFingerprint: true });
 
     for (const card of project.cards(undefined)) {
       if (!card.metadata) continue;
@@ -153,15 +150,14 @@ describe('FieldTypeRenameHandler', () => {
     const dedicatedProject = new Project(dedicatedPath);
     await dedicatedProject.populateCaches();
 
-    const handler = new FieldTypeRenameHandler();
-    await handler.apply({
-      project: dedicatedProject,
-      input: {
+    await new ResourceMutations(dedicatedProject).apply(
+      {
         kind: 'rename' as const,
         target: resourceName('ext/fieldTypes/priority'),
         newIdentifier: 'urgency',
       },
-    });
+      { bypassFingerprint: true },
+    );
 
     const updated = dedicatedProject.resources
       .cardTypes()
@@ -232,15 +228,14 @@ describe('FieldTypeRenameHandler', () => {
     const dedicatedProject = new Project(dedicatedPath);
     await dedicatedProject.populateCaches();
 
-    const handler = new FieldTypeRenameHandler();
-    await handler.apply({
-      project: dedicatedProject,
-      input: {
+    await new ResourceMutations(dedicatedProject).apply(
+      {
         kind: 'rename' as const,
         target: resourceName('ext/fieldTypes/priority'),
         newIdentifier: 'urgency',
       },
-    });
+      { bypassFingerprint: true },
+    );
 
     // Module-owned card type left untouched — still references the old name.
     const modCt = dedicatedProject.resources
@@ -248,6 +243,82 @@ describe('FieldTypeRenameHandler', () => {
       .find((ct) => ct.data?.name === 'mod/cardTypes/thing');
     const names = (modCt?.data?.customFields ?? []).map((cf) => cf.name);
     expect(names).toContain('ext/fieldTypes/priority');
+  });
+
+  describe('foreign-module replay (apply only, foreign target)', () => {
+    it('rewrites local card type customFields and card metadata without touching module file', async () => {
+      const dedicatedPath = join(tmpDir, `proj-foreign-replay-${Date.now()}`);
+      await mkdir(dedicatedPath, { recursive: true });
+      await copyDir(FIXTURE_PATH, dedicatedPath);
+
+      // Seed module 'foo' with the field already in post-rename state (renamed).
+      const fooModuleDir = join(dedicatedPath, '.cards', 'modules', 'foo');
+      const fooFieldTypesDir = join(fooModuleDir, 'fieldTypes');
+      await mkdir(fooFieldTypesDir, { recursive: true });
+      await writeFile(
+        join(fooModuleDir, 'cardsConfig.json'),
+        JSON.stringify({ cardKeyPrefix: 'foo', name: 'foo', modules: [] }),
+      );
+      const moduleFilePath = join(fooFieldTypesDir, 'priority.json');
+      const moduleFileContent = JSON.stringify({
+        name: 'foo/fieldTypes/priority',
+        displayName: '',
+        dataType: 'shortText',
+      });
+      await writeFile(moduleFilePath, moduleFileContent);
+
+      // Seed a local card type referencing the OLD field name (pre-rename).
+      const cardTypePath = join(
+        dedicatedPath,
+        '.cards',
+        'local',
+        'cardTypes',
+        'decision.json',
+      );
+      const cardType = JSON.parse(await readFile(cardTypePath, 'utf-8')) as {
+        customFields: { name: string }[];
+      };
+      cardType.customFields.push({ name: 'foo/fieldTypes/urgency' });
+      await writeFile(cardTypePath, JSON.stringify(cardType));
+
+      // Seed a local card carrying the OLD metadata key.
+      const cards = project.cards(undefined);
+      if (cards.length > 0) {
+        const cardIndex = join(dedicatedPath, 'cardRoot', cards[0].key, 'index.json');
+        const metadata = JSON.parse(await readFile(cardIndex, 'utf-8')) as Record<string, unknown>;
+        metadata['foo/fieldTypes/urgency'] = 'someValue';
+        await writeFile(cardIndex, JSON.stringify(metadata));
+      }
+
+      const foreignProject = new Project(dedicatedPath);
+      await foreignProject.populateCaches();
+
+      // Apply: target prefix is 'foo' (foreign). Should rewrite local consumer
+      // references and NOT throw even though the old name 'urgency' was the
+      // name before rename (now it IS 'priority'). Wait — the rename is from
+      // 'urgency' -> 'priority'. The module file already has 'priority'.
+      // We seeded local refs with 'urgency' (the old name).
+      await new ResourceMutations(foreignProject).apply(
+        {
+          kind: 'rename',
+          target: resourceName('foo/fieldTypes/urgency'),
+          newIdentifier: 'priority',
+        },
+        { bypassFingerprint: true },
+      );
+
+      // Local card type now references the new name.
+      const updatedCardType = foreignProject.resources
+        .cardTypes()
+        .find((ct) => ct.data?.name?.endsWith('/cardTypes/decision'));
+      const cfNames = (updatedCardType?.data?.customFields ?? []).map((cf) => cf.name);
+      expect(cfNames).toContain('foo/fieldTypes/priority');
+      expect(cfNames).not.toContain('foo/fieldTypes/urgency');
+
+      // Module file is byte-identical to the seed (untouched).
+      const moduleFileAfter = await readFile(moduleFilePath, 'utf-8');
+      expect(moduleFileAfter).toBe(moduleFileContent);
+    });
   });
 
   it('skips the resource-file step when target is module-owned (managed by applyModules)', async () => {
@@ -294,15 +365,14 @@ describe('FieldTypeRenameHandler', () => {
     const dedicatedProject = new Project(dedicatedPath);
     await dedicatedProject.populateCaches();
 
-    const handler = new FieldTypeRenameHandler();
-    await handler.apply({
-      project: dedicatedProject,
-      input: {
+    await new ResourceMutations(dedicatedProject).apply(
+      {
         kind: 'rename' as const,
         target: resourceName('ext/fieldTypes/priority'),
         newIdentifier: 'urgency',
       },
-    });
+      { bypassFingerprint: true },
+    );
 
     // Card metadata key was rewritten (cascade did its job).
     const updated = dedicatedProject.findCard(cardKey);
