@@ -15,6 +15,7 @@ import {
   rewriteHandlebarRefs,
   rewriteCardContentRefs,
 } from '../cascades/rewrite-refs.js';
+import { ResourcesFrom } from '../../containers/project/resources-from.js';
 
 export class WorkflowRenameHandler implements Handler {
   readonly isBreaking = true;
@@ -46,19 +47,14 @@ export class WorkflowRenameHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  async applyCascade(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'rename') {
       throw new Error('WorkflowRenameHandler called with non-rename input');
     }
     const oldName = resourceNameToString(ctx.input.target);
     const newName = `${ctx.input.target.prefix}/workflows/${ctx.input.newIdentifier}`;
 
-    const resource = ctx.project.resources.byType(oldName, 'workflows');
-    if (!resource) {
-      throw new Error(`Workflow '${oldName}' not found`);
-    }
-
-    // 1. Update dependent card types' workflow field.
+    // Rewrite local card types' workflow reference.
     const dependentCardTypes = this.dependentCardTypes(ctx, oldName);
     for (const ct of dependentCardTypes) {
       const op: ChangeOperation<string> = {
@@ -69,16 +65,23 @@ export class WorkflowRenameHandler implements Handler {
       await ct.update({ key: 'workflow' }, op);
     }
 
-    // 2. Rewrite cross-resource references while the old name is still on
-    //    disk. Order matters: these helpers scan files/cards for the old
-    //    name, so they must run before the resource is renamed.
+    // Rewrite cross-resource references (calculations, handlebars, card content).
     await rewriteCalculationRefs(ctx.project, oldName, newName);
     await rewriteHandlebarRefs(ctx.project, oldName, newName);
     await rewriteCardContentRefs(ctx.project, oldName, newName);
+  }
 
-    // 3. Rename the resource itself. The base class only moves the file and
-    //    updates in-memory state; the cascade above has already rewritten
-    //    every other reference.
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'rename') {
+      throw new Error('WorkflowRenameHandler called with non-rename input');
+    }
+    const oldName = resourceNameToString(ctx.input.target);
+    const newName = `${ctx.input.target.prefix}/workflows/${ctx.input.newIdentifier}`;
+
+    const resource = ctx.project.resources.byType(oldName, 'workflows');
+    if (!resource) {
+      throw new Error(`Workflow '${oldName}' not found`);
+    }
     await resource.rename(resourceName(newName));
   }
 
@@ -96,7 +99,7 @@ export class WorkflowRenameHandler implements Handler {
 
   private dependentCardTypes(ctx: MutationContext, workflowName: string) {
     return ctx.project.resources
-      .cardTypes()
+      .cardTypes(ResourcesFrom.localOnly)
       .filter((ct) => ct.data?.workflow === workflowName);
   }
 
