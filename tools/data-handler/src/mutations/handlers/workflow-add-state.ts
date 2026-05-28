@@ -28,7 +28,7 @@ export class WorkflowAddStateHandler implements Handler {
   }
 
   /** No cascade — adding a state affects no consumers. */
-  async applyCascade(_ctx: MutationContext): Promise<void> {
+  async applyCascade(): Promise<void> {
     // Nothing to cascade.
   }
 

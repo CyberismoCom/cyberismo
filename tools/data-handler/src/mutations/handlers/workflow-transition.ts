@@ -26,7 +26,7 @@ export class WorkflowTransitionHandler implements Handler {
   }
 
   /** No consumer cascade — transitions are workflow-internal. */
-  async applyCascade(_ctx: MutationContext): Promise<void> {
+  async applyCascade(): Promise<void> {
     // Nothing to cascade.
   }
 
