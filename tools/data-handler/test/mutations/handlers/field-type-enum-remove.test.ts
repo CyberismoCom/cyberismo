@@ -1,11 +1,12 @@
 // tools/data-handler/test/mutations/handlers/field-type-enum-remove.test.ts
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
 import { FieldTypeEnumRemoveHandler } from '../../../src/mutations/handlers/field-type-enum-remove.js';
+import { ResourceMutations } from '../../../src/mutations/plan.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
 
@@ -120,28 +121,24 @@ describe('FieldTypeEnumRemoveHandler', () => {
   });
 
   it('applying without replacement nulls the field on every affected card', async () => {
-    const handler = new FieldTypeEnumRemoveHandler();
-    const ctx = {
-      project,
-      input: {
-        kind: 'edit' as const,
+    await new ResourceMutations(project).apply(
+      {
+        kind: 'edit',
         target: resourceName(fieldName()),
         updateKey: { key: 'enumValues' as const },
         operation: { name: 'remove' as const, target: { enumValue: 'low' } },
       },
-    };
-    await handler.apply(ctx);
+      { bypassFingerprint: true },
+    );
     for (const card of project.cards(undefined)) {
       expect(card.metadata?.[fieldName()]).not.toBe('low');
     }
   });
 
   it('applying with replacementValue rewrites instead of nulling', async () => {
-    const handler = new FieldTypeEnumRemoveHandler();
-    const ctx = {
-      project,
-      input: {
-        kind: 'edit' as const,
+    await new ResourceMutations(project).apply(
+      {
+        kind: 'edit',
         target: resourceName(fieldName()),
         updateKey: { key: 'enumValues' as const },
         operation: {
@@ -150,8 +147,8 @@ describe('FieldTypeEnumRemoveHandler', () => {
           replacementValue: { enumValue: 'medium' },
         },
       },
-    };
-    await handler.apply(ctx);
+      { bypassFingerprint: true },
+    );
     let anyCardHasMedium = false;
     for (const card of project.cards(undefined)) {
       if (card.metadata?.[fieldName()] === 'medium') anyCardHasMedium = true;
@@ -162,5 +159,58 @@ describe('FieldTypeEnumRemoveHandler', () => {
 
   it('isBreaking is true', () => {
     expect(new FieldTypeEnumRemoveHandler().isBreaking).toBe(true);
+  });
+
+  describe('foreign-module replay (apply only, foreign target)', () => {
+    it('nulls local cards holding the removed enum value without touching the module file', async () => {
+      const dedicatedPath = join(tmpDir, `proj-foreign-enum-rm-${Date.now()}`);
+      await mkdir(dedicatedPath, { recursive: true });
+      await copyDir(FIXTURE_PATH, dedicatedPath);
+
+      // Seed module 'foo' with the enum value already removed (post-op state).
+      const fooModuleDir = join(dedicatedPath, '.cards', 'modules', 'foo');
+      const fooFieldTypesDir = join(fooModuleDir, 'fieldTypes');
+      await mkdir(fooFieldTypesDir, { recursive: true });
+      await writeFile(
+        join(fooModuleDir, 'cardsConfig.json'),
+        JSON.stringify({ cardKeyPrefix: 'foo', name: 'foo', modules: [] }),
+      );
+      const moduleFilePath = join(fooFieldTypesDir, 'priority.json');
+      const moduleFileContent = JSON.stringify({
+        name: 'foo/fieldTypes/priority',
+        displayName: '',
+        dataType: 'enum',
+        enumValues: [{ enumValue: 'high' }],
+      });
+      await writeFile(moduleFilePath, moduleFileContent);
+
+      // Seed a local card still carrying the removed enum value 'low'.
+      const cardIndexPath = join(dedicatedPath, 'cardRoot', 'decision_5', 'index.json');
+      const cardData = JSON.parse(await readFile(cardIndexPath, 'utf-8')) as Record<string, unknown>;
+      cardData['foo/fieldTypes/priority'] = 'low';
+      await writeFile(cardIndexPath, JSON.stringify(cardData));
+
+      const foreignProject = new Project(dedicatedPath);
+      await foreignProject.populateCaches();
+
+      // Replay: remove 'low' from module enum (already gone from module file).
+      await new ResourceMutations(foreignProject).apply(
+        {
+          kind: 'edit',
+          target: resourceName('foo/fieldTypes/priority'),
+          updateKey: { key: 'enumValues' as const },
+          operation: { name: 'remove' as const, target: { enumValue: 'low' } },
+        },
+        { bypassFingerprint: true },
+      );
+
+      // Local card value was nulled.
+      const updatedCard = foreignProject.findCard('decision_5');
+      expect(updatedCard.metadata?.['foo/fieldTypes/priority']).toBeNull();
+
+      // Module file byte-identical to seed (untouched).
+      const moduleFileAfter = await readFile(moduleFilePath, 'utf-8');
+      expect(moduleFileAfter).toBe(moduleFileContent);
+    });
   });
 });

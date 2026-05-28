@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import type { Handler, MutationContext } from '../handler.js';
 import type { CascadePreview } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
+import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import type {
   EnumDefinition,
 } from '../../interfaces/resource-interfaces.js';
@@ -45,7 +46,7 @@ export class FieldTypeEnumRemoveHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  async applyCascade(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'edit') {
       throw new Error('FieldTypeEnumRemoveHandler: non-edit input');
     }
@@ -55,14 +56,21 @@ export class FieldTypeEnumRemoveHandler implements Handler {
     const replacement = (op.replacementValue as EnumDefinition | undefined)
       ?.enumValue;
 
-    // 1. Cascade: rewrite or null the value on every affected card.
+    // Rewrite or null the value on every local card and local template card.
     for (const card of this.affectedCards(ctx, fieldName, removed)) {
       const metadata = card.metadata!;
       metadata[fieldName] = replacement ?? null;
       await ctx.project.updateCardMetadata(card, metadata);
     }
+  }
 
-    // 2. Remove the enum entry from the field type definition.
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'edit') {
+      throw new Error('FieldTypeEnumRemoveHandler: non-edit input');
+    }
+    const fieldName = resourceNameToString(ctx.input.target);
+
+    // Remove the enum entry from the field type definition.
     const resource = ctx.project.resources.byType(fieldName, 'fieldTypes');
     if (!resource) {
       throw new Error(`Field type '${fieldName}' not found`);
@@ -85,10 +93,12 @@ export class FieldTypeEnumRemoveHandler implements Handler {
     fieldName: string,
     removed: string,
   ): Card[] {
-    const all = [
-      ...ctx.project.cards(undefined),
-      ...ctx.project.allTemplateCards(),
-    ];
-    return all.filter((c) => c.metadata?.[fieldName] === removed);
+    const rootCards = ctx.project.cards(undefined);
+    const templateCards = ctx.project.resources
+      .templates(ResourcesFrom.localOnly)
+      .flatMap((t) => t.templateObject().cards());
+    return [...rootCards, ...templateCards].filter(
+      (c) => c.metadata?.[fieldName] === removed,
+    );
   }
 }
