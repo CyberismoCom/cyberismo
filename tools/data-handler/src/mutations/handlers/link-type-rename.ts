@@ -8,6 +8,7 @@ import {
   rewriteCardContentRefs,
   rewriteHandlebarRefs,
 } from '../cascades/rewrite-refs.js';
+import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
 import { join } from 'node:path';
 
@@ -40,14 +41,14 @@ export class LinkTypeRenameHandler implements Handler {
     };
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
+  async applyCascade(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'rename') {
       throw new Error('LinkTypeRenameHandler called with non-rename input');
     }
     const oldName = resourceNameToString(ctx.input.target);
     const newName = `${ctx.input.target.prefix}/linkTypes/${ctx.input.newIdentifier}`;
 
-    // 1. Rewrite card metadata references.
+    // 1. Rewrite card metadata link references (local cards + local template cards).
     const cards = this.affectedCards(ctx, oldName);
     for (const card of cards) {
       const metadata = card.metadata!;
@@ -57,17 +58,21 @@ export class LinkTypeRenameHandler implements Handler {
       await ctx.project.updateCardMetadata(card, metadata);
     }
 
-    // 2. Rewrite cascading references BEFORE renaming the resource on disk.
-    //    Order matters: cascade scanners look for the old name, and the
-    //    resource file (with that name) must still exist when they run.
-    // TODO: compute accurate counts now that cascade is explicit
+    // 2. Rewrite cascading references (calculations, handlebars, card content).
     await rewriteCalculationRefs(ctx.project, oldName, newName);
     await rewriteHandlebarRefs(ctx.project, oldName, newName);
     await rewriteCardContentRefs(ctx.project, oldName, newName);
+  }
 
-    // 3. Rename the resource itself. LinkTypeResource.rename handles
-    //    self-only prefix rewrites for sourceCardTypes /
-    //    destinationCardTypes.
+  async applyResourceOp(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'rename') {
+      throw new Error('LinkTypeRenameHandler called with non-rename input');
+    }
+    const oldName = resourceNameToString(ctx.input.target);
+    const newName = `${ctx.input.target.prefix}/linkTypes/${ctx.input.newIdentifier}`;
+
+    // Rename the resource itself. LinkTypeResource.rename handles
+    // self-only prefix rewrites for sourceCardTypes / destinationCardTypes.
     const resource = ctx.project.resources.byType(oldName, 'linkTypes');
     if (!resource) {
       throw new Error(`Link type '${oldName}' not found`);
@@ -84,12 +89,11 @@ export class LinkTypeRenameHandler implements Handler {
   }
 
   private affectedCards(ctx: MutationContext, oldName: string): Card[] {
-    const all = [
-      ...ctx.project.cards(undefined),
-      ...ctx.project.allTemplateCards(),
-    ];
-    return all.filter((c) =>
-      c.metadata?.links?.some((l) => l.linkType === oldName),
+    const localTemplateCards = ctx.project.resources
+      .templates(ResourcesFrom.localOnly)
+      .flatMap((t) => t.templateObject().cards());
+    return [...ctx.project.cards(undefined), ...localTemplateCards].filter(
+      (c) => c.metadata?.links?.some((l) => l.linkType === oldName),
     );
   }
 }
