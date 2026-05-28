@@ -300,11 +300,9 @@ export class Remove {
         );
         const target = parseResourceName(targetName);
         const mutations = new ResourceMutations(this.project);
-        const plan = await mutations.plan({ kind: 'delete', target });
-        await mutations.apply(
-          { kind: 'delete', target },
-          { fingerprint: plan.fingerprint },
-        );
+        const input = { kind: 'delete' as const, target };
+        const plan = await mutations.plan(input);
+        await mutations.apply(input, { fingerprint: plan.fingerprint });
         return;
       }
       const resource = this.project.resources.byType(

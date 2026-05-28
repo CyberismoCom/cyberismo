@@ -53,11 +53,14 @@ export class LinkTypeResource extends FileResource<LinkType> {
   }
 
   /**
-   * No-op cascade: LinkType renames are routed through the mutation engine
-   * (LinkTypeRenameHandler) before reaching the resource's update() path,
-   * so this hook is intentionally a no-op. The base class still declares
-   * onNameChange abstract; this stub satisfies that contract for PR1
-   * until the abstract is removed in a later split (PR7).
+   * No-op stub: FileResource declares onNameChange as an abstract member
+   * (the `?` modifier makes the call site in FileResource.update() use
+   * optional chaining, but TS2515 still requires a concrete subclass to
+   * declare the method). The LinkType rename cascade has moved into
+   * LinkTypeRenameHandler — engine routing in commands/update.ts
+   * intercepts the rename before FileResource.update() would invoke this
+   * hook, so the stub is unreachable at runtime. Delete this stub once
+   * the abstract declaration is removed from FileResource in a later PR.
    */
   protected async onNameChange(_previousName: string): Promise<void> {
     return;

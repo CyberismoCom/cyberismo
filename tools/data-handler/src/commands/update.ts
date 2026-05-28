@@ -52,8 +52,7 @@ export class Update {
 
     // A rename is encoded as a 'change' on the 'name' updateKey.
     const isRename =
-      updateKey.key === 'name' &&
-      (operation as { name: string }).name === 'change';
+      updateKey.key === 'name' && operation.name === 'change';
 
     // PR1 routes ONLY linkTypes through the engine. Other resource families
     // keep their legacy in-class cascade path until their own handler PR
@@ -70,7 +69,7 @@ export class Update {
 
       if (isRename) {
         const newIdentifier = parseResourceName(
-          (operation as { to: string }).to,
+          (operation as ChangeOperation<string>).to,
         ).identifier;
         const input = { kind: 'rename' as const, target, newIdentifier };
         const plan = await mutations.plan(input);
