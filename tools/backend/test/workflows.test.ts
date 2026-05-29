@@ -4,13 +4,15 @@ import { createApp } from '../src/app.js';
 import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
+import { listWorkflowGraphParams } from '../src/domain/resources/service.js';
 
 let app: ReturnType<typeof createApp>;
 let tempTestDataPath: string;
+let commands: CommandManager;
 
 beforeEach(async () => {
   tempTestDataPath = await createTempTestData('decision-records');
-  const commands = await CommandManager.getInstance(tempTestDataPath);
+  commands = await CommandManager.getInstance(tempTestDataPath);
   app = createApp(
     new MockAuthProvider(),
     ProjectRegistry.fromCommandManager(commands),
@@ -83,3 +85,25 @@ test('GET /api/projects/:prefix/resources/:prefix/workflows/:identifier/graph?ca
   );
   expect(response.status).toBe(404);
 });
+
+// Regression test for INTDEV-1302: the static site version of the workflow
+// editor showed an error in place of the workflow graph because the graph
+// endpoint was not enumerated for static site generation (no ssgParams), so
+// the pre-rendered JSON the static frontend requests was never produced.
+// listWorkflowGraphParams supplies that enumeration; every entry it returns
+// must resolve to a route that actually renders a graph.
+test('listWorkflowGraphParams enumerates renderable workflow graph routes (INTDEV-1302)', async () => {
+  const params = await listWorkflowGraphParams(commands);
+
+  expect(params.length).toBeGreaterThan(0);
+  expect(params).toContainEqual({ prefix: 'decision', identifier: 'simple' });
+
+  for (const { prefix, identifier } of params) {
+    const response = await app.request(
+      `/api/projects/decision/resources/${prefix}/workflows/${identifier}/graph`,
+    );
+    expect(response.status).toBe(200);
+    const result = (await response.json()) as { svg: string };
+    expect(result.svg).toBeTruthy();
+  }
+}, 20000);
