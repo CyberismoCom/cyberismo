@@ -1,3 +1,12 @@
+/*
+ * Breakpoint convention used throughout this file:
+ *   900px        = Joy UI `md` breakpoint (theme.breakpoints.values.md)
+ *   899.95px     = MUI's "just below md" value — the 0.05px gap avoids a
+ *                  1px no-man's-land between paired min/max-width queries
+ *                  under fractional device-pixel scaling.
+ *   1200px       = Joy UI `lg` breakpoint.
+ */
+
 @media (max-width: 899.95px) {
   .breadcrumbs {
     display: none;
@@ -26,6 +35,18 @@
 
 .cyberismo-svg-wrapper svg {
   max-height: 100vh;
+}
+
+@media (min-width: 900px) {
+  .doc--editable > [data-type='cyberismo-svg-wrapper']:first-child {
+    margin-top: 40px;
+  }
+}
+
+@media (max-width: 899.95px) {
+  .doc.doc--editable {
+    padding-top: 32px;
+  }
 }
 
 /* Add margin for inline macro buttons */

@@ -723,7 +723,10 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
                 {t('emptyCardBody')}
               </Typography>
             ) : (
-              <div className="doc" ref={setRef}>
+              <div
+                className={canEdit ? 'doc doc--editable' : 'doc'}
+                ref={setRef}
+              >
                 {parsedContent}
               </div>
             )}
