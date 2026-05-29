@@ -22,9 +22,11 @@ import type { PolicyCheckCollection } from '@cyberismo/data-handler/types/querie
 export const CardPolicyChecks = ({
   policyChecks,
   onGoToField,
+  collapsible = true,
 }: {
   policyChecks: PolicyCheckCollection;
   onGoToField?: (fieldName: string) => void;
+  collapsible?: boolean;
 }) => {
   const { t } = useTranslation();
 
@@ -45,6 +47,7 @@ export const CardPolicyChecks = ({
       initialSuccessesExpanded={false}
       initialFailuresExpanded={true}
       onGoToField={onGoToField}
+      collapsible={collapsible}
     />
   );
 };

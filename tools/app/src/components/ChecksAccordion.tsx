@@ -25,6 +25,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import { getConfig } from '@/lib/utils';
+import { CountBadge } from './CountBadge';
 
 // Generic types for check items
 export interface CheckItem {
@@ -54,6 +55,7 @@ interface ChecksAccordionProps {
   initialFailuresExpanded?: boolean;
   goToFieldText?: string;
   onGoToField?: (fieldName: string) => void;
+  collapsible?: boolean;
 }
 
 export function ChecksAccordion({
@@ -66,6 +68,7 @@ export function ChecksAccordion({
   initialFailuresExpanded = true,
   goToFieldText,
   onGoToField,
+  collapsible = true,
 }: ChecksAccordionProps) {
   const { t } = useTranslation();
   const [successesExpanded, setSuccessesExpanded] = useState(
@@ -77,6 +80,105 @@ export function ChecksAccordion({
 
   if (checks.successes.length === 0 && checks.failures.length === 0) {
     return null;
+  }
+
+  const renderBadge = (count: number) => <CountBadge count={count} />;
+
+  const renderTitle = (title: string) => (
+    <Typography level="title-sm" fontWeight="bold" sx={{ flexGrow: 1 }}>
+      {title}
+    </Typography>
+  );
+
+  const successItems = (
+    <Stack spacing={1}>
+      {checks.successes.map((success, index) => (
+        <Alert
+          key={index}
+          color="success"
+          variant="soft"
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <Box>
+            <Typography level="title-sm" fontWeight="bold">
+              {success.category} - {success.title}
+            </Typography>
+          </Box>
+          <Typography level="title-sm" fontWeight="bold">
+            {successPassText}
+          </Typography>
+        </Alert>
+      ))}
+    </Stack>
+  );
+
+  const failureItems = (
+    <Stack spacing={1}>
+      {checks.failures.map((failure, index) => (
+        <Alert
+          key={index}
+          color="danger"
+          variant="soft"
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <Box>
+            <Typography level="title-sm" fontWeight="bold">
+              {failure.category}
+              {failure.category && failure.title ? ' - ' : ''}
+              {failure.title}
+            </Typography>
+            <Typography fontSize="xs">{failure.errorMessage}</Typography>
+            {onGoToField && !getConfig().staticMode && failure.fieldName && (
+              <Link
+                data-cy="goToFieldLink"
+                level="body-sm"
+                component="button"
+                onClick={() => onGoToField(failure.fieldName!)}
+                sx={{ mt: 1 }}
+              >
+                {goToFieldText || t('goToField')}
+              </Link>
+            )}
+          </Box>
+          <Typography level="title-sm" fontWeight="bold">
+            {failureFailText}
+          </Typography>
+        </Alert>
+      ))}
+    </Stack>
+  );
+
+  if (!collapsible) {
+    return (
+      <>
+        {checks.successes.length > 0 && (
+          <Stack spacing={1}>
+            <Stack direction="row" alignItems="center" spacing={2}>
+              {renderBadge(checks.successes.length)}
+              {renderTitle(successTitle)}
+            </Stack>
+            {successItems}
+          </Stack>
+        )}
+        {checks.failures.length > 0 && (
+          <Stack spacing={1}>
+            <Stack direction="row" alignItems="center" spacing={2}>
+              {renderBadge(checks.failures.length)}
+              {renderTitle(failureTitle)}
+            </Stack>
+            {failureItems}
+          </Stack>
+        )}
+      </>
+    );
   }
 
   return (
@@ -93,52 +195,10 @@ export function ChecksAccordion({
                 marginBottom: 1,
               }}
             >
-              <Typography
-                level="body-xs"
-                color="primary"
-                variant="soft"
-                width={24}
-                height={24}
-                alignContent="center"
-                borderRadius={40}
-                marginLeft={0}
-                paddingX={1.1}
-              >
-                {checks.successes.length}
-              </Typography>
-              <Typography
-                level="title-sm"
-                fontWeight="bold"
-                sx={{ width: '100%' }}
-              >
-                {successTitle}
-              </Typography>
+              {renderBadge(checks.successes.length)}
+              {renderTitle(successTitle)}
             </AccordionSummary>
-            <AccordionDetails>
-              <Stack spacing={1}>
-                {checks.successes.map((success, index) => (
-                  <Alert
-                    key={index}
-                    color="success"
-                    variant="soft"
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <Box>
-                      <Typography level="title-sm" fontWeight="bold">
-                        {success.category} - {success.title}
-                      </Typography>
-                    </Box>
-                    <Typography level="title-sm" fontWeight="bold">
-                      {successPassText}
-                    </Typography>
-                  </Alert>
-                ))}
-              </Stack>
-            </AccordionDetails>
+            <AccordionDetails>{successItems}</AccordionDetails>
           </Accordion>
         </Box>
       )}
@@ -155,70 +215,10 @@ export function ChecksAccordion({
                 marginBottom: 1,
               }}
             >
-              <Typography
-                level="body-xs"
-                color="primary"
-                variant="soft"
-                width={24}
-                height={24}
-                alignContent="center"
-                borderRadius={40}
-                marginLeft={0}
-                paddingX={1.1}
-              >
-                {checks.failures.length}
-              </Typography>
-              <Typography
-                level="title-sm"
-                fontWeight="bold"
-                sx={{ width: '100%' }}
-              >
-                {failureTitle}
-              </Typography>
+              {renderBadge(checks.failures.length)}
+              {renderTitle(failureTitle)}
             </AccordionSummary>
-            <AccordionDetails>
-              <Stack spacing={1}>
-                {checks.failures.map((failure, index) => (
-                  <Alert
-                    key={index}
-                    color="danger"
-                    variant="soft"
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <Box>
-                      <Typography level="title-sm" fontWeight="bold">
-                        {failure.category}
-                        {failure.category && failure.title ? ' - ' : ''}
-                        {failure.title}
-                      </Typography>
-                      <Typography fontSize="xs">
-                        {failure.errorMessage}
-                      </Typography>
-                      {onGoToField &&
-                        !getConfig().staticMode &&
-                        failure.fieldName && (
-                          <Link
-                            data-cy="goToFieldLink"
-                            level="body-sm"
-                            component="button"
-                            onClick={() => onGoToField(failure.fieldName!)}
-                            sx={{ mt: 1 }}
-                          >
-                            {goToFieldText || t('goToField')}
-                          </Link>
-                        )}
-                    </Box>
-                    <Typography level="title-sm" fontWeight="bold">
-                      {failureFailText}
-                    </Typography>
-                  </Alert>
-                ))}
-              </Stack>
-            </AccordionDetails>
+            <AccordionDetails>{failureItems}</AccordionDetails>
           </Accordion>
         </Box>
       )}

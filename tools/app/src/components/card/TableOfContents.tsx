@@ -19,11 +19,13 @@ import { useTranslation } from 'react-i18next';
 type TableOfContentsProps = {
   htmlContent: string;
   visibleHeaderIds?: string[] | null;
+  inline?: boolean;
 };
 
 export const TableOfContents = ({
   htmlContent,
   visibleHeaderIds = null,
+  inline = false,
 }: TableOfContentsProps) => {
   const { t } = useTranslation();
 
@@ -36,38 +38,43 @@ export const TableOfContents = ({
     level: parseInt(header.tagName[1]),
   }));
 
+  if (headers.length === 0) {
+    return null;
+  }
+
   // Hack for first render: mark first header as visible, after this updates via handleScroll
   const highlightedHeaders = visibleHeaderIds ?? [headers[0]?.id ?? ''];
 
   return (
-    <aside className="contentSidebar toc sidebar">
+    <aside
+      className={inline ? 'contentSidebar toc' : 'contentSidebar toc sidebar'}
+    >
       <div className="toc-menu" style={{ marginLeft: 2 }}>
-        {headers.length > 0 && (
-          <Typography level="title-sm" fontWeight="bold">
+        {!inline && (
+          <Typography
+            level="title-sm"
+            fontWeight="bold"
+            sx={{ marginBottom: 1 }}
+          >
             {t('tableOfContents')}
           </Typography>
         )}
         <ul>
-          {headers.map(
-            (
-              header: { id: string; text: string; level: number },
-              index: number,
-            ) => (
-              <li key={index} data-level={header.level - 1}>
-                <a
-                  id={`toc_${header.id}`}
-                  className={
-                    highlightedHeaders.includes(header.id)
-                      ? 'is-active'
-                      : undefined
-                  }
-                  href={`#${header.id}`}
-                >
-                  {header.text}
-                </a>
-              </li>
-            ),
-          )}
+          {headers.map((header, index) => (
+            <li key={index} data-level={header.level - 1}>
+              <a
+                id={`toc_${header.id}`}
+                className={
+                  highlightedHeaders.includes(header.id)
+                    ? 'is-active'
+                    : undefined
+                }
+                href={`#${header.id}`}
+              >
+                {header.text}
+              </a>
+            </li>
+          ))}
         </ul>
       </div>
     </aside>
