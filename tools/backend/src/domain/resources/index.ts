@@ -12,8 +12,9 @@
 */
 
 import { Hono } from 'hono';
+import { ssgParams } from 'hono/ssg';
 import * as resourceService from './service.js';
-import type { ResourceValidationResponse } from '../../types.js';
+import type { AppContext, ResourceValidationResponse } from '../../types.js';
 import { UserRole } from '../../types.js';
 import { resourceParamsSchema } from '../../common/validationSchemas.js';
 import { zValidator } from '../../middleware/zvalidator.js';
@@ -183,6 +184,10 @@ router.delete(
 router.get(
   '/:prefix/workflows/:identifier/graph',
   requireRole(UserRole.Reader),
+  ssgParams(async (c: AppContext) => {
+    const commands = c.get('commands');
+    return resourceService.listWorkflowGraphParams(commands);
+  }),
   zValidator('param', workflowGraphParamsSchema),
   zValidator('query', workflowGraphQuerySchema),
   async (c) => {
