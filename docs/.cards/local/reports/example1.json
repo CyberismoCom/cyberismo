@@ -1,5 +1,6 @@
 {
     "name": "docs/reports/example1",
     "displayName": "Example 1: empty report",
-    "category": "Examples"
+    "category": "Examples",
+    "description": "An empty report that logs query output without rendering any results"
 }

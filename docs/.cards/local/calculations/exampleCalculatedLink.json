@@ -1,5 +1,5 @@
 {
-  "name": "docs/calculations/exampleCalculatedLink",
-  "displayName": "Example calculated link",
-  "description": ""
+    "name": "docs/calculations/exampleCalculatedLink",
+    "displayName": "Example calculated link",
+    "description": "Creates a calculated link between two cards using the relatesTo link type"
 }

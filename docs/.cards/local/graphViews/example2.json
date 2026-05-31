@@ -1,4 +1,5 @@
 {
     "name": "docs/graphViews/example2",
-    "displayName": "Example 2 Graph view"
+    "displayName": "Example 2 Graph view",
+    "description": "A view scoped to a single card using the card key parameter"
 }

@@ -1,4 +1,5 @@
 {
     "name": "docs/graphModels/example1",
-    "displayName": "Example 1 Graph model"
+    "displayName": "Example 1 Graph model",
+    "description": "A model with two hardcoded nodes connected by a single directed edge"
 }

@@ -2,7 +2,7 @@
     "schemaVersion": 4,
     "cardKeyPrefix": "docs",
     "name": "Cyberismo documentation",
-    "description": "",
+    "description": "Documentation for the Cyberismo solution",
     "modules": [
         {
             "name": "base",

@@ -1,5 +1,5 @@
 {
-  "name": "docs/calculations/progressExample",
-  "displayName": "Progress example",
-  "description": ""
+    "name": "docs/calculations/progressExample",
+    "displayName": "Progress example",
+    "description": "Calculates progress as a percentage of closed descendant cards for task containers"
 }

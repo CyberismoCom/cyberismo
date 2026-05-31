@@ -1,5 +1,5 @@
 {
-  "name": "docs/calculations/statusIndicator",
-  "displayName": "Status indicator",
-  "description": ""
+    "name": "docs/calculations/statusIndicator",
+    "displayName": "Status indicator",
+    "description": "Overrides the default status indicator based on policy failures, activity recency, and descendant status"
 }

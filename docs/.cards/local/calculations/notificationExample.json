@@ -1,5 +1,5 @@
 {
-  "name": "docs/calculations/notificationExample",
-  "displayName": "Notification example",
-  "description": ""
+    "name": "docs/calculations/notificationExample",
+    "displayName": "Notification example",
+    "description": "Produces a sample notification with a title, summary, and advice message"
 }
