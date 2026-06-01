@@ -6,7 +6,7 @@
  */
 
 import { execSync } from 'node:child_process';
-import { existsSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, rmSync, mkdirSync, writeFileSync, cpSync } from 'node:fs';
 import { join } from 'node:path';
 
 const tmpPath = join(import.meta.dirname, '..', '..', '..', '.tmp');
@@ -88,3 +88,13 @@ writeFileSync(
 );
 
 console.log('E2e test project created successfully.');
+
+const goldenPath = `${batPath}.golden`;
+rmSync(goldenPath, {
+  recursive: true,
+  force: true,
+  maxRetries: 3,
+  retryDelay: 100,
+});
+cpSync(batPath, goldenPath, { recursive: true });
+console.log(`Golden snapshot written to ${goldenPath}.`);
