@@ -1,8 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import {
-  ProjectRegistry,
-  type ProjectRegistryEntry,
-} from '../src/project-registry.js';
+import { ProjectRegistry } from '../src/project-registry.js';
 import type { CommandManager } from '@cyberismo/data-handler';
 
 function fakeCommands(prefix: string): CommandManager {
