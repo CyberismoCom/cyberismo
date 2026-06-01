@@ -1,5 +1,5 @@
 {
-  "name": "docs/calculations/policyCheckExamples",
-  "displayName": "Policy check examples",
-  "description": ""
+    "name": "docs/calculations/policyCheckExamples",
+    "displayName": "Policy check examples",
+    "description": "Demonstrates policy check failures and successes with and without field references"
 }

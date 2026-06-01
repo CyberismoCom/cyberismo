@@ -1,4 +1,5 @@
 {
     "name": "docs/graphModels/example2",
-    "displayName": "Example 2 Graph model"
+    "displayName": "Example 2 Graph model",
+    "description": "A model that renders a card and its descendants as a labeled box hierarchy"
 }
