@@ -137,7 +137,9 @@ export function createApp(
         resolvedProject === os.homedir()
       ) {
         return c.json(
-          { error: `Refusing to reset suspicious project path: ${resolvedProject}` },
+          {
+            error: `Refusing to reset suspicious project path: ${resolvedProject}`,
+          },
           400,
         );
       }
