@@ -1,6 +1,6 @@
 import { type Page, expect } from '@playwright/test';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const t = require('../src/locales/en/translation.json');
+import { createRequire } from 'node:module';
+const t = createRequire(import.meta.url)('../src/locales/en/translation.json');
 
 /** Click the "Edit body" button (force-clickable even when .doc has 0 height). */
 export async function editPage(page: Page) {
