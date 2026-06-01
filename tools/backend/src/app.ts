@@ -30,6 +30,7 @@ import labelsRouter from './domain/labels/index.js';
 import * as fs from 'node:fs/promises';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import os from 'node:os';
 import resourcesRouter from './domain/resources/index.js';
 import logicProgramsRouter from './domain/logicPrograms/index.js';
 import { isSSGContext } from 'hono/ssg';
@@ -126,12 +127,27 @@ export function createApp(
           500,
         );
       }
-      await fs.rm(projectPath, { recursive: true, force: true });
-      await fs.cp(goldenPath, projectPath, { recursive: true });
-      const projects = await scanForProjects(projectPath);
+      // Defense-in-depth: refuse to operate on suspicious paths. NODE_ENV gates
+      // route registration, but a misconfigured CI shouldn't be one typo away
+      // from wiping a developer's $HOME.
+      const resolvedProject = path.resolve(projectPath);
+      if (
+        resolvedProject === '/' ||
+        resolvedProject === '' ||
+        resolvedProject === os.homedir()
+      ) {
+        return c.json(
+          { error: `Refusing to reset suspicious project path: ${resolvedProject}` },
+          400,
+        );
+      }
+      await fs.rm(resolvedProject, { recursive: true, force: true });
+      await fs.cp(goldenPath, resolvedProject, { recursive: true });
+      const autocommit = process.env.CYBERISMO_AUTOCOMMIT === 'true';
+      const projects = await scanForProjects(resolvedProject);
       const entries = [];
       for (const project of projects) {
-        const commands = new CommandManager(project.path);
+        const commands = new CommandManager(project.path, { autocommit });
         await commands.initialize();
         entries.push({ prefix: project.prefix, commands });
       }

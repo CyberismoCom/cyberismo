@@ -60,4 +60,14 @@ describe('POST /api/test/reset', () => {
     expect(res.status).toBe(404);
     process.env.NODE_ENV = prev;
   });
+
+  it('refuses to reset when projectPath is "/" (defense in depth)', async () => {
+    const prev = process.env.npm_config_project_path;
+    process.env.npm_config_project_path = '/';
+    const res = await app.request('/api/test/reset', { method: 'POST' });
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toMatch(/suspicious project path/i);
+    process.env.npm_config_project_path = prev;
+  });
 });

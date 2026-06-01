@@ -4,7 +4,7 @@
 
 **Goal:** Replace Cypress with Playwright for `tools/app` end-to-end tests, restoring spec-level filesystem isolation via a backend reset endpoint, enabling cross-spec parallelism via workers, and enabling cross-browser coverage on the Ubuntu CI pipeline.
 
-**Architecture:** The backend gains a single test-mode-only endpoint (`POST /test/reset`) that wipes the project directory, restores it from a golden snapshot, disposes the old `CommandManager`(s), and re-initializes the `ProjectRegistry` in-place. Playwright runs N parallel workers, each owning its own backend process on its own port + its own project directory copied from the golden snapshot. Each spec file calls `resetProject()` once in `test.beforeAll`, preserving today's spec-level isolation contract while removing the slow per-spec backend boot/teardown cycle.
+**Architecture:** The backend gains a single test-mode-only endpoint (`POST /api/test/reset`) that wipes the project directory, restores it from a golden snapshot, disposes the old `CommandManager`(s), and re-initializes the `ProjectRegistry` in-place. Playwright runs N parallel workers, each owning its own backend process on its own port + its own project directory copied from the golden snapshot. Each spec file calls `resetProject()` once in `test.beforeAll`, preserving today's spec-level isolation contract while removing the slow per-spec backend boot/teardown cycle.
 
 **Tech Stack:** Playwright (latest), Hono, Vitest (backend unit tests), pnpm workspaces, Node 22, GitHub Actions.
 
@@ -14,7 +14,7 @@
 
 ## Scope summary
 
-- Backend gets a small test-only API surface (`POST /test/reset`) + a `ProjectRegistry.replace()` helper.
+- Backend gets a small test-only API surface (`POST /api/test/reset`) + a `ProjectRegistry.replace()` helper.
 - `tools/app` gets a `playwright.config.ts`, an `e2e/` directory with global setup + worker fixtures + four spec files.
 - All four existing Cypress specs are ported (faithfully where possible; `macros.cy.ts` requires rewriting CodeMirror typing into Playwright `keyboard` calls).
 - The `cypress/` directory, `cypress.config.ts`, and `cypress` devDependency are removed.
@@ -37,7 +37,7 @@
 
 **Modify:**
 - `tools/backend/src/project-registry.ts` — Add `async replace(entries)`.
-- `tools/backend/src/app.ts` — Mount `POST /test/reset` when `NODE_ENV === 'test'`.
+- `tools/backend/src/app.ts` — Mount `POST /api/test/reset` when `NODE_ENV === 'test'`.
 - `tools/app/package.json` — Add Playwright deps, replace e2e scripts, drop Cypress dep.
 - `tools/app/scripts/setup-e2e.js` — After building the project, snapshot to `cyberismo-bat.golden`.
 - `tools/app/eslint.config.mjs` — Allow `tests/**` Playwright globals (`test`, `expect`) via node globals.
@@ -174,7 +174,7 @@ git commit -m "feat(backend): ProjectRegistry.replace() for in-place project swa
 
 ---
 
-## Task 2: Add `POST /test/reset` endpoint (NODE_ENV=test only)
+## Task 2: Add `POST /api/test/reset` endpoint (NODE_ENV=test only)
 
 The Playwright fixture POSTs here at the start of each spec file. The handler:
 1. Removes the live project directory.
@@ -203,7 +203,7 @@ import { execSync } from 'node:child_process';
 // drive the reset endpoint and observe that mutations made through the
 // live filesystem are rolled back.
 
-describe('POST /test/reset', () => {
+describe('POST /api/test/reset', () => {
   let workDir: string;
   let projectPath: string;
   let goldenPath: string;
@@ -243,7 +243,7 @@ describe('POST /test/reset', () => {
     const marker = join(projectPath, 'cardRoot', 'MUTATION_MARKER.txt');
     await writeFile(marker, 'mutated');
 
-    const res = await app.request('/test/reset', { method: 'POST' });
+    const res = await app.request('/api/test/reset', { method: 'POST' });
     expect(res.status).toBe(204);
 
     // Marker file should be gone after restore
@@ -264,7 +264,7 @@ describe('POST /test/reset', () => {
     const { createApp } = await import('../src/app.js');
     const { MockAuthProvider } = await import('../src/auth/mock.js');
     const prodApp = createApp(new MockAuthProvider(), registry);
-    const res = await prodApp.request('/test/reset', { method: 'POST' });
+    const res = await prodApp.request('/api/test/reset', { method: 'POST' });
     expect(res.status).toBe(404);
     process.env.NODE_ENV = prev;
   });
@@ -277,7 +277,7 @@ describe('POST /test/reset', () => {
 pnpm --filter backend build  # builds CLI dependency indirectly via workspace
 pnpm --filter backend exec vitest run test/test-reset.test.ts
 ```
-Expected: FAIL — either 404 on `/test/reset` or the marker file persists.
+Expected: FAIL — either 404 on `/api/test/reset` or the marker file persists.
 
 - [ ] **Step 3: Implement the route**
 
@@ -289,12 +289,12 @@ Edit `tools/backend/src/app.ts`. After the `app.route('/api/projects', createPro
   // ships in production. The Playwright e2e harness calls this at the
   // start of each spec file.
   if (process.env.NODE_ENV === 'test') {
-    app.post('/test/reset', async (c) => {
+    app.post('/api/test/reset', async (c) => {
       const projectPath = process.env.npm_config_project_path;
       const goldenPath = process.env.CYBERISMO_GOLDEN_PATH;
       if (!projectPath || !goldenPath) {
         return c.json(
-          { error: 'npm_config_project_path and CYBERISMO_GOLDEN_PATH are required for /test/reset' },
+          { error: 'npm_config_project_path and CYBERISMO_GOLDEN_PATH are required for /api/test/reset' },
           500,
         );
       }
@@ -316,7 +316,7 @@ Edit `tools/backend/src/app.ts`. After the `app.route('/api/projects', createPro
   }
 ```
 
-Note: this route is mounted *before* `app.use('/api/*', createAuthMiddleware(...))`, so it isn't gated by auth. It also lives outside `/api/*` to keep the production API surface clean.
+Note: this route is mounted under `/api/test/reset`. The `MockAuthProvider` used by `start-e2e` lets the request through with no token, and `notFound` handles `/api/*` paths with a clean 404, so the route returns 404 in production mode.
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -329,14 +329,14 @@ Expected: PASS (all 3 cases).
 
 ```bash
 git add tools/backend/src/app.ts tools/backend/test/test-reset.test.ts
-git commit -m "feat(backend): test-mode POST /test/reset for e2e fixture isolation"
+git commit -m "feat(backend): test-mode POST /api/test/reset for e2e fixture isolation"
 ```
 
 ---
 
 ## Task 3: Extend `setup-e2e.js` to produce a golden snapshot
 
-`globalSetup` will invoke `setup-e2e.js`. After it builds `cyberismo-bat`, we additionally copy the directory to `cyberismo-bat.golden`. This is what `/test/reset` restores from.
+`globalSetup` will invoke `setup-e2e.js`. After it builds `cyberismo-bat`, we additionally copy the directory to `cyberismo-bat.golden`. This is what `/api/test/reset` restores from.
 
 **Files:**
 - Modify: `tools/app/scripts/setup-e2e.js`
@@ -675,7 +675,7 @@ export const test = base.extend<{}, WorkerFixtures>({
   resetProject: [
     async ({ backend }, use) => {
       await use(async () => {
-        const res = await fetch(`${backend.baseURL}/test/reset`, { method: 'POST' });
+        const res = await fetch(`${backend.baseURL}/api/test/reset`, { method: 'POST' });
         if (!res.ok) throw new Error(`reset failed: ${res.status} ${await res.text()}`);
       });
     },
@@ -1605,7 +1605,7 @@ git push -u origin e2e/playwright-migration
 gh pr create --title "e2e: migrate from Cypress to Playwright" --body "$(cat <<'EOF'
 ## Summary
 - Replace Cypress with Playwright across `tools/app/e2e/`.
-- Add `POST /test/reset` (test-mode only) + `ProjectRegistry.replace()` so each Playwright spec restores from a golden snapshot without restarting the backend.
+- Add `POST /api/test/reset` (test-mode only) + `ProjectRegistry.replace()` so each Playwright spec restores from a golden snapshot without restarting the backend.
 - Workers spawn per-worker backends + project dirs; spec files call `resetProject()` once in `beforeAll`.
 - Ubuntu CI runs cross-browser (chromium + firefox + webkit). Windows + macOS CI run chromium only.
 
@@ -1641,4 +1641,4 @@ EOF
 
 - **Placeholder scan:** Tasks 12 and 13 say "port remaining tests mechanically using the same patterns" rather than enumerating every single `it` block individually. This is a calculated trade-off: enumerating ~25 individual tests inflates the plan without adding signal — the translation pattern is the same for each. The translation cheatsheet in Task 12 is the actual content the engineer needs. If the executor wants step-by-step granularity per test, they can split Task 12 into sub-tasks per `describe` block at execution time.
 
-- **Type consistency:** `resetProject` is consistently `() => Promise<void>` across fixtures + spec usage. `backend` is consistently `{ baseURL: string; projectPath: string }`. The reset endpoint contract (POST /test/reset → 204 No Content on success; 500 on missing env) is consistent across the backend route, tests, and fixture call site.
+- **Type consistency:** `resetProject` is consistently `() => Promise<void>` across fixtures + spec usage. `backend` is consistently `{ baseURL: string; projectPath: string }`. The reset endpoint contract (POST /api/test/reset → 204 No Content on success; 500 on missing env) is consistent across the backend route, tests, and fixture call site.
