@@ -23,7 +23,7 @@ export class ResourceMutations {
     const ctx: MutationContext = { project: this.project, input };
     const handler = dispatch(ctx);
     const preview = await handler.preview(ctx);
-    const affectedPaths = await this.affectedFilePathsFor(ctx, handler);
+    const affectedPaths = await handler.affectedFilePaths(ctx);
     const fingerprint = await computeFingerprint(input, affectedPaths);
 
     return {
@@ -52,7 +52,7 @@ export class ResourceMutations {
       if (!options.fingerprint) {
         throw new Error('Mutation has cascade effects; fingerprint required');
       }
-      const affectedPaths = await this.affectedFilePathsFor(ctx, handler);
+      const affectedPaths = await handler.affectedFilePaths(ctx);
       const current = await computeFingerprint(input, affectedPaths);
       if (current.digest !== options.fingerprint.digest) {
         throw new Error('Stale fingerprint; re-preview before retrying');
@@ -72,13 +72,6 @@ export class ResourceMutations {
       }
     });
     return { success: true };
-  }
-
-  private async affectedFilePathsFor(
-    ctx: MutationContext,
-    handler: Handler,
-  ): Promise<string[]> {
-    return handler.affectedFilePaths(ctx);
   }
 
   private async recordLogEntry(
