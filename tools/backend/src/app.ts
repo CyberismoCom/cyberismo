@@ -27,6 +27,7 @@ import templatesRouter from './domain/templates/index.js';
 import treeRouter from './domain/tree/index.js';
 import workflowsRouter from './domain/workflows/index.js';
 import labelsRouter from './domain/labels/index.js';
+import * as fs from 'node:fs/promises';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import resourcesRouter from './domain/resources/index.js';
@@ -40,6 +41,7 @@ import { createAuthRouter } from './domain/auth/index.js';
 import { createAuthMiddleware } from './middleware/auth.js';
 import type { AuthProvider } from './auth/types.js';
 import type { ProjectRegistry } from './project-registry.js';
+import { CommandManager, scanForProjects } from '@cyberismo/data-handler';
 import { createProjectsRouter } from './domain/projects/index.js';
 import { simpleMcpAuthRouter } from '@hono/mcp';
 
@@ -106,6 +108,37 @@ export function createApp(
   // Global routes (no project-specific CommandManager needed)
   app.route('/api/auth', createAuthRouter());
   app.route('/api/projects', createProjectsRouter(registry));
+
+  // Test-mode reset endpoint: wipes the project dir, restores it from the
+  // golden snapshot, and rebuilds the registry in place. Used by the
+  // Playwright e2e harness to restore the project between spec files.
+  // Gated by NODE_ENV so it never ships in production.
+  if (process.env.NODE_ENV === 'test') {
+    app.post('/api/test/reset', async (c) => {
+      const projectPath = process.env.npm_config_project_path;
+      const goldenPath = process.env.CYBERISMO_GOLDEN_PATH;
+      if (!projectPath || !goldenPath) {
+        return c.json(
+          {
+            error:
+              'npm_config_project_path and CYBERISMO_GOLDEN_PATH are required for /api/test/reset',
+          },
+          500,
+        );
+      }
+      await fs.rm(projectPath, { recursive: true, force: true });
+      await fs.cp(goldenPath, projectPath, { recursive: true });
+      const projects = await scanForProjects(projectPath);
+      const entries = [];
+      for (const project of projects) {
+        const commands = new CommandManager(project.path);
+        await commands.initialize();
+        entries.push({ prefix: project.prefix, commands });
+      }
+      await registry.replace(entries);
+      return c.body(null, 204);
+    });
+  }
 
   if (exportMode) {
     // Export mode: mount at each concrete prefix so SSG sees
