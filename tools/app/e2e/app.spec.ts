@@ -439,7 +439,7 @@ test.describe('Navigation', () => {
     await page
       .getByTestId('fileUploadButton')
       .locator('input[type="file"]')
-      .setInputFiles('./cypress/fixtures/cyberismo.png');
+      .setInputFiles('./e2e/fixtures/cyberismo.png');
     await page.getByRole('dialog').getByRole('button', { name: t.add }).click();
 
     const attachToast = page
@@ -654,7 +654,7 @@ test.describe('Navigation', () => {
   test('Move dialog for a template card lists templates and their cards', async ({
     page,
   }) => {
-    const keys = require('../cypress/fixtures/e2e-keys.json');
+    const keys = require('../e2e/fixtures/e2e-keys.json');
     const url = page.url();
     const projectPrefix = url.split('/projects/')[1].split('/')[0];
     await page.goto(

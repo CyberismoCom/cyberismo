@@ -81,8 +81,12 @@ writeFileSync(graphModelPath, graphModelContent);
 writeFileSync(graphViewPath, graphViewContent);
 writeFileSync(reportPath, reportContent);
 
+const e2eFixturesDir = join(import.meta.dirname, '..', 'e2e', 'fixtures');
+if (!existsSync(e2eFixturesDir)) {
+  mkdirSync(e2eFixturesDir, { recursive: true });
+}
 writeFileSync(
-  join(import.meta.dirname, '..', 'cypress', 'fixtures', 'e2e-keys.json'),
+  join(e2eFixturesDir, 'e2e-keys.json'),
   JSON.stringify({ localTemplateCardKey }, null, 2),
 );
 

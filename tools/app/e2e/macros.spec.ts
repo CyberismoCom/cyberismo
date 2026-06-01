@@ -335,7 +335,7 @@ test.describe('Navigation', () => {
     await page
       .getByTestId('fileUploadButton')
       .locator('input[type="file"]')
-      .setInputFiles('./cypress/fixtures/cyberismo.png');
+      .setInputFiles('./e2e/fixtures/cyberismo.png');
     await page.getByRole('dialog').getByRole('button', { name: t.add }).click();
 
     const attachToast = page
