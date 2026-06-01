@@ -27,8 +27,10 @@ function resolveProjectPrefix(projectPrefix?: string): string {
 
 /** Global API paths that are not project-scoped. */
 export const globalApiPaths = {
+  config: () => '/api/config',
   projects: () => '/api/projects',
   user: () => '/api/auth/me',
+  publicKey: () => '/api/public-key',
 };
 
 /**

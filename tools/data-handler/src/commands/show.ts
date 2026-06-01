@@ -624,4 +624,17 @@ export class Show {
     }
     return workflows;
   }
+
+  /**
+   * Shows the git remote URL for the project.
+   * @returns the remote URL (possibly empty string if no remote is configured),
+   *          or null if the project is not a git repo.
+   */
+  @read
+  public async showGitRemoteUrl(): Promise<string | null> {
+    if (!(await this.project.git.isRepo())) {
+      return null;
+    }
+    return (await this.project.git.getRemoteUrl()) ?? '';
+  }
 }

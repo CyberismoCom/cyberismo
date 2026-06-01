@@ -115,4 +115,13 @@ export class Edit {
       await this.project.updateCardMetadataKey(cardKey, changedKey, newValue);
     }
   }
+
+  /**
+   * Sets the git remote URL for the project.
+   * @param url The remote URL to set.
+   */
+  @write(() => 'Set git remote URL')
+  public async setGitRemoteUrl(url: string): Promise<void> {
+    await this.project.git.setRemoteUrl(url);
+  }
 }

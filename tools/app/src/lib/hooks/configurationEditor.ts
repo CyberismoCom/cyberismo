@@ -42,6 +42,8 @@ export function useEditableField({
   isUpdating,
 }: EditableFieldOptions) {
   const [value, setValue] = useState(initialValue);
+  const dispatch = useAppDispatch();
+  const { t } = useTranslation();
 
   useEffect(() => {
     setValue(initialValue);
@@ -53,7 +55,16 @@ export function useEditableField({
 
   const save = async () => {
     if (!dirty || disabled) return;
-    await saveValue(value);
+    try {
+      await saveValue(value);
+    } catch (error) {
+      dispatch(
+        addNotification({
+          message: error instanceof Error ? error.message : t('failedToLoad'),
+          type: 'error',
+        }),
+      );
+    }
   };
 
   const cancel = () => setValue(initialValue);

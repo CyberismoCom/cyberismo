@@ -118,7 +118,49 @@ export class GitManager {
     return !status.isClean();
   }
 
+  /** Check whether the project directory is a git repository. */
+  async isRepo(): Promise<boolean> {
+    try {
+      return await this.git.checkIsRepo();
+    } catch {
+      return false;
+    }
+  }
+
   static readonly DEFAULT_REMOTE = 'origin';
+
+  /** Get the URL of a named remote. Returns null if the remote does not exist or the directory is not a git repo. */
+  async getRemoteUrl(
+    remoteName: string = GitManager.DEFAULT_REMOTE,
+  ): Promise<string | null> {
+    try {
+      const remotes = await this.git.getRemotes(true);
+      const remote = remotes.find((r) => r.name === remoteName);
+      return remote?.refs?.push ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Set (or add) the URL of a named remote. Throws if the directory is not a git repo. */
+  async setRemoteUrl(
+    url: string,
+    remoteName: string = GitManager.DEFAULT_REMOTE,
+  ): Promise<void> {
+    if (!(await this.isRepo())) {
+      throw new Error(
+        'Cannot set remote URL: directory is not a git repository',
+      );
+    }
+    const remotes = await this.git.getRemotes(true);
+    const exists = remotes.some((r) => r.name === remoteName);
+    if (exists) {
+      await this.git.remote(['set-url', remoteName, url]);
+    } else {
+      await this.git.addRemote(remoteName, url);
+    }
+    this.logger.info({ remoteName, url }, 'Remote URL updated');
+  }
 
   /** Push current branch and optionally tags to remote. */
   async push(options: { tags?: boolean; remote: string }): Promise<void> {

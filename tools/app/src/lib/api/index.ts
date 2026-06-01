@@ -32,4 +32,5 @@ export * from './labels';
 export * from './user';
 export * from './projects';
 export * from './presence';
+export * from './publicKey';
 export type { CardUpdate };

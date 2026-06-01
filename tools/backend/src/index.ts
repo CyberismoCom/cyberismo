@@ -64,6 +64,7 @@ export async function startServer(
   authProvider: AuthProvider,
   registry: ProjectRegistry,
   findPort: boolean = true,
+  rootPath?: string,
 ) {
   const useOsAssigned = process.env.CYBERISMO_E2E_OSPORT === 'true';
   let port = useOsAssigned
@@ -72,7 +73,7 @@ export async function startServer(
   if (findPort && !useOsAssigned) {
     port = await findFreePort(port, DEFAULT_MAX_PORT);
   }
-  const app = createApp(authProvider, registry);
+  const app = createApp(authProvider, registry, undefined, false, rootPath);
   startApp(app, port);
 }
 

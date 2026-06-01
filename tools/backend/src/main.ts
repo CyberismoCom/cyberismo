@@ -102,5 +102,5 @@ if (args.export) {
     autocommit,
   });
   const authProvider = createAuthProvider();
-  await startServer(authProvider, registry);
+  await startServer(authProvider, registry, true, projectPath);
 }

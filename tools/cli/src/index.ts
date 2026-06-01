@@ -1656,7 +1656,7 @@ appCmd.action(async (options: CommandOptions<'start'>) => {
     watchResourceChanges: options.watchResourceChanges,
   });
 
-  await startServer(new MockAuthProvider(gitUser), registry);
+  await startServer(new MockAuthProvider(gitUser), registry, true, basePath);
 });
 
 // Publish command - creates a git tag from cardsConfig version and pushes

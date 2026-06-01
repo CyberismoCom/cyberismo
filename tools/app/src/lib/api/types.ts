@@ -127,6 +127,7 @@ export interface GeneralSettings {
     name: string;
     cardKeyPrefix: string;
   }[];
+  gitRemoteUrl: string | null;
 }
 
 interface GeneralNode extends BaseResourceNode {

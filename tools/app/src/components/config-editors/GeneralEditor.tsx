@@ -17,11 +17,19 @@ import {
   CardContent,
   CardActions,
   Button,
+  Textarea,
+  IconButton,
+  Tooltip,
 } from '@mui/joy';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import type { GenericNode } from '@/lib/api/types';
-import { useProjectSettings, useProjectSettingsMutations } from '@/lib/api';
+import {
+  useProjectSettings,
+  useProjectSettingsMutations,
+  usePublicKey,
+} from '@/lib/api';
 import { useEditableField, useAppDispatch } from '@/lib/hooks';
 import { useModals } from '@/lib/utils';
 import { ModuleDeleteModal, AddModuleModal } from '@/components/modals';
@@ -38,6 +46,7 @@ type GeneralEditorProps = {
 export function GeneralEditor({ node }: GeneralEditorProps) {
   const { t } = useTranslation();
   const { general, isLoading } = useProjectSettings(undefined);
+  const { publicKey } = usePublicKey();
   const {
     updateModule,
     deleteModule,
@@ -76,6 +85,28 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
     saveValue: (value) =>
       updateProject({ cardKeyPrefix: value }, 'update-cardKeyPrefix'),
   });
+
+  const isGitRepo = general != null && general.gitRemoteUrl !== null;
+
+  const gitRemoteUrlField = useEditableField({
+    initialValue: general?.gitRemoteUrl ?? '',
+    actionKey: 'update-gitRemoteUrl',
+    readOnly: isDisabled || !isGitRepo,
+    isLoading,
+    isUpdating,
+    saveValue: (value) =>
+      updateProject({ gitRemoteUrl: value }, 'update-gitRemoteUrl'),
+  });
+
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyPublicKey = async () => {
+    if (publicKey) {
+      await navigator.clipboard.writeText(publicKey);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   const handleModuleDelete = async (moduleToDelete: {
     name: string;
@@ -130,6 +161,55 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
             disabled={cardKeyPrefixField.disabled}
           />
         </FieldRow>
+
+        <Stack spacing={2}>
+          <FieldRow
+            dirty={gitRemoteUrlField.dirty}
+            onSave={() => gitRemoteUrlField.save()}
+            onCancel={() => gitRemoteUrlField.cancel()}
+          >
+            <TextInput
+              label={t('general.gitRemoteUrl')}
+              value={
+                isGitRepo ? gitRemoteUrlField.value : t('general.notAGitRepo')
+              }
+              onChange={(value) => gitRemoteUrlField.setValue(value)}
+              disabled={gitRemoteUrlField.disabled}
+            />
+          </FieldRow>
+
+          {isGitRepo && publicKey && (
+            <Stack spacing={0.5}>
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Typography level="title-md">
+                  {t('general.gitPushPublicKey')}
+                </Typography>
+                <Tooltip
+                  title={
+                    copied
+                      ? t('general.copiedToClipboard')
+                      : t('general.copyToClipboard')
+                  }
+                >
+                  <IconButton
+                    size="sm"
+                    variant="plain"
+                    onClick={handleCopyPublicKey}
+                  >
+                    <ContentCopyIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Stack>
+              <Textarea
+                readOnly
+                minRows={2}
+                maxRows={4}
+                value={publicKey}
+                sx={{ fontFamily: 'monospace', fontSize: 'sm' }}
+              />
+            </Stack>
+          )}
+        </Stack>
 
         <Stack spacing={1}>
           <Stack direction="row" alignItems="center" spacing={1}>
