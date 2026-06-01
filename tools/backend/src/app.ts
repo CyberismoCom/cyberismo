@@ -132,8 +132,7 @@ export function createApp(
       // from wiping a developer's $HOME.
       const resolvedProject = path.resolve(projectPath);
       if (
-        resolvedProject === '/' ||
-        resolvedProject === '' ||
+        path.dirname(resolvedProject) === resolvedProject ||
         resolvedProject === os.homedir()
       ) {
         return c.json(
