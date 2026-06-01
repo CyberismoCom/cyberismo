@@ -1,12 +1,10 @@
 import { test as base, expect } from '@playwright/test';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { cp, rm } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import net from 'node:net';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const TMP = join(__dirname, '..', '..', '..', '.tmp');
+const TMP = join(import.meta.dirname, '..', '..', '..', '.tmp');
 const GOLDEN = join(TMP, 'cyberismo-bat.golden');
 
 type Backend = { baseURL: string; projectPath: string };
@@ -17,11 +15,24 @@ type WorkerFixtures = {
 
 async function waitForServer(
   baseURL: string,
+  proc: ChildProcess,
   timeoutMs = 60_000,
 ): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   let lastErr: unknown;
+
+  let earlyExit: { code: number | null; signal: NodeJS.Signals | null } | null =
+    null;
+  proc.once('exit', (code, signal) => {
+    earlyExit = { code, signal };
+  });
+
   while (Date.now() < deadline) {
+    if (earlyExit) {
+      throw new Error(
+        `Backend exited during startup (code=${earlyExit.code} signal=${earlyExit.signal})`,
+      );
+    }
     try {
       const res = await fetch(`${baseURL}/api/projects`, {
         redirect: 'manual',
@@ -54,7 +65,7 @@ async function freePort(start: number): Promise<number> {
 
 export const test = base.extend<{ baseURL: string }, WorkerFixtures>({
   backend: [
-    async (_fixtures, use, workerInfo) => {
+    async ({}, use, workerInfo) => {
       const projectPath = join(TMP, `cyberismo-bat-w${workerInfo.workerIndex}`);
       await rm(projectPath, { recursive: true, force: true });
       await cp(GOLDEN, projectPath, { recursive: true });
@@ -85,7 +96,7 @@ export const test = base.extend<{ baseURL: string }, WorkerFixtures>({
       );
 
       try {
-        await waitForServer(baseURL);
+        await waitForServer(baseURL, proc);
       } catch (err) {
         proc.kill('SIGTERM');
         throw err;
@@ -118,7 +129,7 @@ export const test = base.extend<{ baseURL: string }, WorkerFixtures>({
   // is preconfigured with this worker's backend URL — `await page.goto('/')`
   // hits the right place automatically.
   baseURL: async ({ backend }, use) => {
-    await use(backend.baseURL); // eslint-disable-line react-hooks/rules-of-hooks
+    await use(backend.baseURL);
   },
 });
 
