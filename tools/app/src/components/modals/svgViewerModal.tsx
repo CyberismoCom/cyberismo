@@ -344,6 +344,11 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
     setZoom(newZoom);
   };
 
+  const applyZoomRef = useRef(applyZoom);
+  useEffect(() => {
+    applyZoomRef.current = applyZoom;
+  });
+
   const zoomIn = () => applyZoom(ZOOM_STEP);
   const zoomOut = () => applyZoom(1 / ZOOM_STEP);
   const resetZoom = () => {
@@ -366,10 +371,12 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
     applyZoom(factor, e.clientX - rect.left, e.clientY - rect.top);
   };
 
-  /* ---------- drag to pan ---------- */
+  /* ---------- drag to pan (1 pointer) + pinch to zoom (2 pointers) ---------- */
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
+
+    const pointers = new Map<number, { x: number; y: number }>();
 
     let startX = 0,
       startY = 0,
@@ -377,6 +384,7 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
       st = 0;
     let dragging = false;
     let moved = false;
+    let pinchDistance = 0;
 
     const clickBlocker = (e: MouseEvent) => {
       if (moved) {
@@ -385,8 +393,29 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
       }
     };
 
+    // Distance between the two active pointers and their midpoint, expressed
+    // in coordinates local to the scroll element.
+    const pinchInfo = () => {
+      const [a, b] = [...pointers.values()];
+      const rect = el.getBoundingClientRect();
+      return {
+        distance: Math.hypot(a.x - b.x, a.y - b.y),
+        midX: (a.x + b.x) / 2 - rect.left,
+        midY: (a.y + b.y) / 2 - rect.top,
+      };
+    };
+
     const down = (e: PointerEvent) => {
       if (e.button !== 0) return;
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (pointers.size === 2) {
+        // Entering pinch mode: stop panning, seed the reference distance.
+        dragging = false;
+        pinchDistance = pinchInfo().distance;
+        return;
+      }
+
       dragging = true;
       moved = false;
       startX = e.clientX;
@@ -398,6 +427,20 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
     };
 
     const move = (e: PointerEvent) => {
+      if (pointers.has(e.pointerId)) {
+        pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      }
+
+      if (pointers.size >= 2) {
+        const { distance, midX, midY } = pinchInfo();
+        if (pinchDistance > 0 && distance > 0) {
+          applyZoomRef.current(distance / pinchDistance, midX, midY);
+        }
+        pinchDistance = distance;
+        moved = true;
+        return;
+      }
+
       if (!dragging) return;
       el.setPointerCapture(e.pointerId);
       const dx = e.clientX - startX;
@@ -407,17 +450,23 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
       el.scrollTop = st - dy;
     };
 
-    const endDrag = (e: PointerEvent) => {
-      if (!dragging) return;
-      dragging = false;
-      el.releasePointerCapture(e.pointerId);
-      (el.style as CSSStyleDeclaration).cursor = 'grab';
+    const up = (e: PointerEvent) => {
+      pointers.delete(e.pointerId);
+      if (pointers.size < 2) pinchDistance = 0;
+      if (dragging) {
+        dragging = false;
+        if (el.hasPointerCapture(e.pointerId)) {
+          el.releasePointerCapture(e.pointerId);
+        }
+        (el.style as CSSStyleDeclaration).cursor = 'grab';
+      }
     };
 
     el.addEventListener('pointerdown', down);
     el.addEventListener('pointermove', move);
-    el.addEventListener('pointerup', endDrag);
-    el.addEventListener('pointerleave', endDrag);
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+    el.addEventListener('pointerleave', up);
 
     (el.style as CSSStyleDeclaration).cursor = 'grab';
     (el.style as CSSStyleDeclaration).userSelect = 'none';
@@ -426,8 +475,9 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
     return () => {
       el.removeEventListener('pointerdown', down);
       el.removeEventListener('pointermove', move);
-      el.removeEventListener('pointerup', endDrag);
-      el.removeEventListener('pointerleave', endDrag);
+      el.removeEventListener('pointerup', up);
+      el.removeEventListener('pointercancel', up);
+      el.removeEventListener('pointerleave', up);
       el.removeEventListener('click', clickBlocker);
       (el.style as CSSStyleDeclaration).cursor = 'auto';
     };
@@ -508,9 +558,12 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
           {open && (
             <Box
               sx={{
-                position: 'absolute',
-                left: '50%',
-                transform: 'translateX(-50%)',
+                // Centered on desktop; right-aligned in-flow on small screens
+                // so the button group never overlaps the logo.
+                position: { xs: 'static', sm: 'absolute' },
+                left: { sm: '50%' },
+                transform: { sm: 'translateX(-50%)' },
+                marginLeft: { xs: 'auto', sm: 0 },
                 display: 'flex',
                 alignItems: 'center',
                 gap: 1, // nice even spacing
