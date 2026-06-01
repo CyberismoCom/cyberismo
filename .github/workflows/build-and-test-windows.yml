@@ -78,9 +78,19 @@ jobs:
       if: steps.cache-binding.outputs.cache-hit != 'true'
       shell: bash
       run: pnpm --filter @cyberismo/node-clingo run build:binding
-    - run: pnpm --filter=app exec cypress install
+    - name: Install Playwright (chromium only)
+      shell: bash
+      run: pnpm --filter=app exec playwright install --with-deps chromium
     - run: pnpm build
     - run: pnpm test
       env:
         CYBERISMO_GIT_USER: ${{ secrets.CYBERISMO_GIT_USER }}
         CYBERISMO_GIT_TOKEN: ${{ secrets.CYBERISMO_GIT_TOKEN }}
+        PLAYWRIGHT_BROWSERS: chromium
+    - name: Upload Playwright report
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: playwright-report-windows
+        path: tools/app/playwright-report/
+        retention-days: 7
