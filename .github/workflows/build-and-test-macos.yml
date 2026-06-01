@@ -77,7 +77,17 @@ jobs:
     - name: Build node-clingo native binding
       if: steps.cache-binding.outputs.cache-hit != 'true'
       run: pnpm --filter @cyberismo/node-clingo run build:binding
-    - run: pnpm --filter=app exec cypress install
+    - name: Install Playwright (chromium only)
+      run: pnpm --filter=app exec playwright install --with-deps chromium
     - run: pnpm prettier-check
     - run: pnpm build
     - run: pnpm test
+      env:
+        PLAYWRIGHT_BROWSERS: chromium
+    - name: Upload Playwright report
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: playwright-report-macos
+        path: tools/app/playwright-report/
+        retention-days: 7
