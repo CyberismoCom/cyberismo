@@ -1,4 +1,3 @@
-/* global console, process */
 /**
  * Setup script for e2e tests.
  * Creates the test project before the backend starts, so that
