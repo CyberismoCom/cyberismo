@@ -26,7 +26,7 @@ describe('POST /api/test/reset', () => {
     const commands = await CommandManager.getInstance(projectPath);
     registry = ProjectRegistry.fromCommandManager(commands);
     app = createApp(new MockAuthProvider(), registry);
-  });
+  }, 60_000);
 
   afterAll(async () => {
     registry.dispose();
@@ -34,7 +34,7 @@ describe('POST /api/test/reset', () => {
     await rm(goldenPath, { recursive: true, force: true });
     delete process.env.npm_config_project_path;
     delete process.env.CYBERISMO_GOLDEN_PATH;
-  });
+  }, 60_000);
 
   it('restores the project from the golden snapshot', async () => {
     const marker = join(projectPath, 'MUTATION_MARKER.txt');
