@@ -22,3 +22,8 @@ tools/app/cypress/fixtures/e2e-keys.json
 
 # docs
 docs
+
+# Playwright artifacts (also in .gitignore but prettier walks regardless)
+tools/app/test-results/
+tools/app/playwright-report/
+tools/app/playwright/.cache/
