@@ -2,10 +2,17 @@ import { test as base, expect } from '@playwright/test';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { cp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import net from 'node:net';
 
 const TMP = join(import.meta.dirname, '..', '..', '..', '.tmp');
 const GOLDEN = join(TMP, 'cyberismo-bat.golden');
+const BACKEND_ENTRY = join(
+  import.meta.dirname,
+  '..',
+  '..',
+  'backend',
+  'dist',
+  'main.js',
+);
 
 type Backend = { baseURL: string; projectPath: string };
 type WorkerFixtures = {
@@ -13,54 +20,44 @@ type WorkerFixtures = {
   resetProject: () => Promise<void>;
 };
 
-async function waitForServer(
-  baseURL: string,
+async function waitForListening(
   proc: ChildProcess,
   timeoutMs = 60_000,
-): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
-  let lastErr: unknown;
-
-  let earlyExit: { code: number | null; signal: NodeJS.Signals | null } | null =
-    null;
-  proc.once('exit', (code, signal) => {
-    earlyExit = { code, signal };
-  });
-
-  while (Date.now() < deadline) {
-    if (earlyExit) {
-      throw new Error(
-        `Backend exited during startup (code=${earlyExit.code} signal=${earlyExit.signal})`,
+): Promise<number> {
+  return new Promise<number>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(
+        new Error(`Backend did not report listening within ${timeoutMs}ms`),
       );
+    }, timeoutMs);
+    const onMessage = (m: unknown) => {
+      if (
+        m &&
+        typeof m === 'object' &&
+        (m as { type?: unknown }).type === 'listening' &&
+        typeof (m as { port?: unknown }).port === 'number'
+      ) {
+        cleanup();
+        resolve((m as { port: number }).port);
+      }
+    };
+    const onExit = (code: number | null, signal: NodeJS.Signals | null) => {
+      cleanup();
+      reject(
+        new Error(
+          `Backend exited before listening (code=${code} signal=${signal})`,
+        ),
+      );
+    };
+    function cleanup() {
+      clearTimeout(timer);
+      proc.off('message', onMessage);
+      proc.off('exit', onExit);
     }
-    try {
-      const res = await fetch(`${baseURL}/api/projects`, {
-        redirect: 'manual',
-      });
-      // Auth may reject (401) but that proves the server is up.
-      if (res.status < 500) return;
-      lastErr = new Error(`status ${res.status}`);
-    } catch (err) {
-      lastErr = err;
-    }
-    await new Promise((r) => setTimeout(r, 200));
-  }
-  throw new Error(
-    `Server at ${baseURL} did not become ready within ${timeoutMs}ms (last: ${lastErr})`,
-  );
-}
-
-async function freePort(start: number): Promise<number> {
-  for (let p = start; p < start + 100; p++) {
-    const ok = await new Promise<boolean>((resolve) => {
-      const srv = net.createServer();
-      srv.once('error', () => resolve(false));
-      srv.once('listening', () => srv.close(() => resolve(true)));
-      srv.listen(p, '127.0.0.1');
-    });
-    if (ok) return p;
-  }
-  throw new Error(`No free port found near ${start}`);
+    proc.on('message', onMessage);
+    proc.once('exit', onExit);
+  });
 }
 
 export const test = base.extend<{ baseURL: string }, WorkerFixtures>({
@@ -70,24 +67,17 @@ export const test = base.extend<{ baseURL: string }, WorkerFixtures>({
       await rm(projectPath, { recursive: true, force: true });
       await cp(GOLDEN, projectPath, { recursive: true });
 
-      const port = await freePort(3010 + workerInfo.workerIndex * 10);
-      const baseURL = `http://127.0.0.1:${port}`;
-
-      const proc: ChildProcess = spawn(
-        'pnpm',
-        ['--filter', 'backend', 'start-e2e'],
-        {
-          env: {
-            ...process.env,
-            NODE_ENV: 'test',
-            AUTH_MODE: 'mock',
-            PORT: String(port),
-            npm_config_project_path: projectPath,
-            CYBERISMO_GOLDEN_PATH: GOLDEN,
-          },
-          stdio: ['ignore', 'pipe', 'pipe'],
+      const proc: ChildProcess = spawn(process.execPath, [BACKEND_ENTRY], {
+        env: {
+          ...process.env,
+          NODE_ENV: 'test',
+          AUTH_MODE: 'mock',
+          CYBERISMO_E2E_OSPORT: 'true',
+          npm_config_project_path: projectPath,
+          CYBERISMO_GOLDEN_PATH: GOLDEN,
         },
-      );
+        stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
+      });
       proc.stdout?.on('data', (b: Buffer) =>
         process.stdout.write(`[w${workerInfo.workerIndex}] ${b}`),
       );
@@ -95,12 +85,14 @@ export const test = base.extend<{ baseURL: string }, WorkerFixtures>({
         process.stderr.write(`[w${workerInfo.workerIndex}] ${b}`),
       );
 
+      let port: number;
       try {
-        await waitForServer(baseURL, proc);
+        port = await waitForListening(proc);
       } catch (err) {
         proc.kill('SIGTERM');
         throw err;
       }
+      const baseURL = `http://127.0.0.1:${port}`;
 
       await use({ baseURL, projectPath });
 
