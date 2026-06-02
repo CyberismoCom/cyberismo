@@ -32,7 +32,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "vitest": "^4.0.15"
+    "vitest": "^4.1.8"
   },
   "types": "dist/index.d.ts",
   "exports": {
