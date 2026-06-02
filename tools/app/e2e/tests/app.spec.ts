@@ -1,7 +1,6 @@
 import { test, expect } from '../fixtures.js';
 import { editPage, dismissSaveToast } from '../helpers.js';
 import t from '../../src/locales/en/translation.json' with { type: 'json' };
-import keys from '../assets/e2e-keys.json' with { type: 'json' };
 
 test.describe.configure({ mode: 'serial' });
 
@@ -651,7 +650,10 @@ test.describe('Navigation', () => {
 
   test('Move dialog for a template card lists templates and their cards', async ({
     page,
-  }) => {
+  }) => {.
+    const keys = (
+      await import('../assets/e2e-keys.json', { with: { type: 'json' } })
+    ).default;
     const url = page.url();
     const projectPrefix = url.split('/projects/')[1].split('/')[0];
     await page.goto(
