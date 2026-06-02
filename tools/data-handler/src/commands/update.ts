@@ -22,16 +22,22 @@ import type {
 import type { Project } from '../containers/project.js';
 import type { UpdateKey } from '../interfaces/resource-interfaces.js';
 import { runWithDefaultCommitMessage } from '../utils/commit-context.js';
+import { ResourceMutations } from '../mutations/plan.js';
+import { resourceName as parseResourceName } from '../utils/resource-utils.js';
 
 /**
  * Class that handles 'update' commands.
  */
 export class Update {
+  private readonly mutations: ResourceMutations;
+
   /**
    * Creates an instance of Update command.
    * @param project Project to use.
    */
-  constructor(private project: Project) {}
+  constructor(private project: Project) {
+    this.mutations = new ResourceMutations(project);
+  }
 
   /**
    * Update single resource property
@@ -59,19 +65,15 @@ export class Update {
     // would route unhandled types to DefaultNoCascadeHandler and silently
     // drop their cascade.)
     if (type === 'linkTypes') {
-      const { ResourceMutations } = await import('../mutations/plan.js');
-      const { resourceName: parseResourceName } =
-        await import('../utils/resource-utils.js');
       const target = parseResourceName(name);
-      const mutations = new ResourceMutations(this.project);
 
       if (isRename) {
         const newIdentifier = parseResourceName(
           (operation as ChangeOperation<string>).to,
         ).identifier;
         const input = { kind: 'rename' as const, target, newIdentifier };
-        const plan = await mutations.plan(input);
-        await mutations.apply(input, { fingerprint: plan.fingerprint });
+        const plan = await this.mutations.plan(input);
+        await this.mutations.apply(input, { fingerprint: plan.fingerprint });
         return;
       }
 
@@ -81,8 +83,8 @@ export class Update {
         updateKey,
         operation,
       };
-      const plan = await mutations.plan(input);
-      await mutations.apply(input, { fingerprint: plan.fingerprint });
+      const plan = await this.mutations.plan(input);
+      await this.mutations.apply(input, { fingerprint: plan.fingerprint });
       return;
     }
 

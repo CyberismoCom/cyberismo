@@ -16,6 +16,8 @@ import { isModuleCard, isExternalItemKey } from '../utils/card-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { declaredModules, installedModules } from '../modules/inventory.js';
 import { cleanOrphans } from '../modules/orphans.js';
+import { ResourceMutations } from '../mutations/plan.js';
+import { resourceName as parseResourceName } from '../utils/resource-utils.js';
 import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
 import type { RemovableResourceTypes } from '../interfaces/project-interfaces.js';
@@ -33,10 +35,14 @@ export class Remove {
    * Creates a new instance of Remove command.
    * @param project Project instance to use
    */
+  private readonly mutations: ResourceMutations;
+
   constructor(
     private project: Project,
     private fetchCmd: Fetch,
-  ) {}
+  ) {
+    this.mutations = new ResourceMutations(project);
+  }
 
   // True, if resource is a project resource
   private projectResource(type: RemovableResourceTypes): boolean {
@@ -294,14 +300,10 @@ export class Remove {
     }
     if (this.projectResource(type)) {
       if (type === 'linkType') {
-        const { ResourceMutations } = await import('../mutations/plan.js');
-        const { resourceName: parseResourceName } =
-          await import('../utils/resource-utils.js');
         const target = parseResourceName(targetName);
-        const mutations = new ResourceMutations(this.project);
         const input = { kind: 'delete' as const, target };
-        const plan = await mutations.plan(input);
-        await mutations.apply(input, { fingerprint: plan.fingerprint });
+        const plan = await this.mutations.plan(input);
+        await this.mutations.apply(input, { fingerprint: plan.fingerprint });
         return;
       }
       const resource = this.project.resources.byType(
