@@ -59,9 +59,3 @@ export async function typeIntoCodeMirror(
     }
   }
 }
-
-/** Click the contextMenu then a specific test-id item. */
-export async function clickContextMenuItem(page: Page, testId: string) {
-  await page.getByTestId('contextMenuButton').click();
-  await page.getByTestId(testId).click();
-}
