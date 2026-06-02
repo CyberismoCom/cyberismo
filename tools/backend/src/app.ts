@@ -27,8 +27,10 @@ import templatesRouter from './domain/templates/index.js';
 import treeRouter from './domain/tree/index.js';
 import workflowsRouter from './domain/workflows/index.js';
 import labelsRouter from './domain/labels/index.js';
+import * as fs from 'node:fs/promises';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import os from 'node:os';
 import resourcesRouter from './domain/resources/index.js';
 import logicProgramsRouter from './domain/logicPrograms/index.js';
 import { isSSGContext } from 'hono/ssg';
@@ -40,6 +42,7 @@ import { createAuthRouter } from './domain/auth/index.js';
 import { createAuthMiddleware } from './middleware/auth.js';
 import type { AuthProvider } from './auth/types.js';
 import type { ProjectRegistry } from './project-registry.js';
+import { CommandManager, scanForProjects } from '@cyberismo/data-handler';
 import { createProjectsRouter } from './domain/projects/index.js';
 import { simpleMcpAuthRouter } from '@hono/mcp';
 
@@ -106,6 +109,62 @@ export function createApp(
   // Global routes (no project-specific CommandManager needed)
   app.route('/api/auth', createAuthRouter());
   app.route('/api/projects', createProjectsRouter(registry));
+
+  // Test-mode reset endpoint: wipes the project dir, restores it from the
+  // golden snapshot, and rebuilds the registry in place. Used by the
+  // Playwright e2e harness to restore the project between spec files.
+  // Gated by NODE_ENV so it never ships in production.
+  if (process.env.NODE_ENV === 'test') {
+    app.post('/api/test/reset', async (c) => {
+      const projectPath = process.env.npm_config_project_path;
+      const goldenPath = process.env.CYBERISMO_GOLDEN_PATH;
+      if (!projectPath || !goldenPath) {
+        return c.json(
+          {
+            error:
+              'npm_config_project_path and CYBERISMO_GOLDEN_PATH are required for /api/test/reset',
+          },
+          500,
+        );
+      }
+      // Defense-in-depth: refuse to operate on suspicious paths. NODE_ENV gates
+      // route registration, but a misconfigured CI shouldn't be one typo away
+      // from wiping a developer's $HOME.
+      const resolvedProject = path.resolve(projectPath);
+      if (
+        path.dirname(resolvedProject) === resolvedProject ||
+        resolvedProject === os.homedir()
+      ) {
+        return c.json(
+          {
+            error: `Refusing to reset suspicious project path: ${resolvedProject}`,
+          },
+          400,
+        );
+      }
+      await fs.rm(resolvedProject, { recursive: true, force: true });
+      await fs.cp(goldenPath, resolvedProject, { recursive: true });
+      const autocommit = process.env.CYBERISMO_AUTOCOMMIT === 'true';
+      const projects = await scanForProjects(resolvedProject);
+
+      if (projects.length === 0) {
+        return c.json(
+          {
+            error: `reset scan found no projects at ${resolvedProject}`,
+          },
+          500,
+        );
+      }
+      const entries = [];
+      for (const project of projects) {
+        const commands = new CommandManager(project.path, { autocommit });
+        await commands.initialize();
+        entries.push({ prefix: project.prefix, commands });
+      }
+      await registry.replace(entries);
+      return c.body(null, 204);
+    });
+  }
 
   if (exportMode) {
     // Export mode: mount at each concrete prefix so SSG sees

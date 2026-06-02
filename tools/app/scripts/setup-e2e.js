@@ -1,4 +1,3 @@
-/* global console, process */
 /**
  * Setup script for e2e tests.
  * Creates the test project before the backend starts, so that
@@ -6,7 +5,7 @@
  */
 
 import { execSync } from 'node:child_process';
-import { existsSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, rmSync, mkdirSync, writeFileSync, cpSync } from 'node:fs';
 import { join } from 'node:path';
 
 const tmpPath = join(import.meta.dirname, '..', '..', '..', '.tmp');
@@ -82,9 +81,23 @@ writeFileSync(graphModelPath, graphModelContent);
 writeFileSync(graphViewPath, graphViewContent);
 writeFileSync(reportPath, reportContent);
 
+const e2eFixturesDir = join(import.meta.dirname, '..', 'e2e', 'assets');
+if (!existsSync(e2eFixturesDir)) {
+  mkdirSync(e2eFixturesDir, { recursive: true });
+}
 writeFileSync(
-  join(import.meta.dirname, '..', 'cypress', 'fixtures', 'e2e-keys.json'),
+  join(e2eFixturesDir, 'e2e-keys.json'),
   JSON.stringify({ localTemplateCardKey }, null, 2),
 );
 
 console.log('E2e test project created successfully.');
+
+const goldenPath = `${batPath}.golden`;
+rmSync(goldenPath, {
+  recursive: true,
+  force: true,
+  maxRetries: 3,
+  retryDelay: 100,
+});
+cpSync(batPath, goldenPath, { recursive: true });
+console.log(`Golden snapshot written to ${goldenPath}.`);

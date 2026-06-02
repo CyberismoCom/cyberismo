@@ -83,6 +83,21 @@ export class ProjectRegistry implements ProjectProvider {
   }
 
   /**
+   * Replace all registered projects atomically. Disposes existing
+   * CommandManagers, then installs the new entries. Used by the test-mode
+   * reset endpoint to swap project state without restarting the Hono app.
+   */
+  async replace(entries: ProjectRegistryEntry[]): Promise<void> {
+    for (const commands of this.projects.values()) {
+      commands.project.dispose();
+    }
+    this.projects.clear();
+    for (const entry of entries) {
+      this.projects.set(entry.prefix, entry.commands);
+    }
+  }
+
+  /**
    * Create a single-project registry from a CommandManager.
    * Used by export mode and tests where only one project is needed.
    */

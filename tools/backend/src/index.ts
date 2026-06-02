@@ -65,9 +65,11 @@ export async function startServer(
   registry: ProjectRegistry,
   findPort: boolean = true,
 ) {
-  let port = parseInt(process.env.PORT || DEFAULT_PORT.toString(), 10);
-
-  if (findPort) {
+  const useOsAssigned = process.env.CYBERISMO_E2E_OSPORT === 'true';
+  let port = useOsAssigned
+    ? 0
+    : parseInt(process.env.PORT || DEFAULT_PORT.toString(), 10);
+  if (findPort && !useOsAssigned) {
     port = await findFreePort(port, DEFAULT_MAX_PORT);
   }
   const app = createApp(authProvider, registry);
@@ -87,6 +89,9 @@ function startApp<E extends Env, S extends Schema, P extends string>(
     (info) => {
       console.log(`Running Cyberismo app on http://localhost:${info.port}`);
       console.log('Press Control+C to stop.');
+      // When spawned with stdio: [..., 'ipc'], publish the bound port to the parent.
+      // No-op in normal startup (process.send is undefined without an IPC channel).
+      process.send?.({ type: 'listening', port: info.port });
     },
   );
 }
