@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
-import { cp, rm, writeFile, readFile, access } from 'node:fs/promises';
+import { cp, rm, writeFile, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
@@ -39,7 +39,6 @@ describe('POST /api/test/reset', () => {
   it('restores the project from the golden snapshot', async () => {
     const marker = join(projectPath, 'MUTATION_MARKER.txt');
     await writeFile(marker, 'mutated');
-    await access(marker); // sanity: marker exists
 
     const res = await app.request('/api/test/reset', { method: 'POST' });
     expect(res.status).toBe(204);
