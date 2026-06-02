@@ -34,8 +34,13 @@ export interface ScannedProject {
 
 export class ProjectRegistry implements ProjectProvider {
   private projects: Map<string, CommandManager> = new Map();
+  readonly options: ConstructorParameters<typeof CommandManager>[1];
 
-  constructor(entries: ProjectRegistryEntry[] = []) {
+  constructor(
+    entries: ProjectRegistryEntry[] = [],
+    options?: ConstructorParameters<typeof CommandManager>[1],
+  ) {
+    this.options = options;
     for (const entry of entries) {
       this.add(entry.prefix, entry.commands);
     }
@@ -120,6 +125,6 @@ export class ProjectRegistry implements ProjectProvider {
       await commands.initialize();
       entries.push({ prefix: project.prefix, commands });
     }
-    return new ProjectRegistry(entries);
+    return new ProjectRegistry(entries, options);
   }
 }

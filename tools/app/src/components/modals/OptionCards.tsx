@@ -17,12 +17,14 @@ import {
   Box,
   Card,
   CardOverflow,
+  Checkbox,
   Radio,
   Stack,
 } from '@mui/joy';
 
 interface CategoryOptionProps {
   category?: string;
+  multiSelect?: boolean;
   onOptionSelect: (optionName: string) => void;
   options: {
     name: string;
@@ -35,6 +37,7 @@ interface CategoryOptionProps {
 
 export const CategoryOption = ({
   category,
+  multiSelect,
   options,
   onOptionSelect,
 }: CategoryOptionProps) => (
@@ -54,6 +57,7 @@ export const CategoryOption = ({
       marginBottom={4}
       marginLeft={0}
       paddingRight={1}
+      paddingBottom={1}
     >
       {options.map((option) => (
         <Card
@@ -65,7 +69,6 @@ export const CategoryOption = ({
             boxShadow: '0px 2px 2px 0px rgba(0, 0, 0, 0.5)',
             cursor: option.disabled ? 'not-allowed' : 'pointer',
             padding: 0,
-            overflow: 'hidden',
             gap: 0,
             borderRadius: 16,
           }}
@@ -95,15 +98,25 @@ export const CategoryOption = ({
               {option.displayName ?? option.name}
             </Typography>
             <Box padding={1} height="100%">
-              <Radio checked={option.isChosen} variant="soft" />
+              {multiSelect ? (
+                <Checkbox checked={option.isChosen} variant="soft" />
+              ) : (
+                <Radio checked={option.isChosen} variant="soft" />
+              )}
             </Box>
           </Stack>
           <CardOverflow
             sx={{
               height: '50%',
+              borderBottomLeftRadius: 16,
+              borderBottomRightRadius: 16,
             }}
           >
-            <Box bgcolor="neutral.softBg" height="100%">
+            <Box
+              bgcolor="neutral.softBg"
+              height="100%"
+              sx={{ borderBottomLeftRadius: 16, borderBottomRightRadius: 16 }}
+            >
               <Typography
                 level="body-xs"
                 fontWeight="bold"

@@ -91,12 +91,6 @@ if (args.export) {
         : undefined,
   });
 } else {
-  if (projects.length === 0) {
-    console.error(
-      `No projects found in "${projectPath}". Cannot start the server without at least one project.`,
-    );
-    process.exit(1);
-  }
   const autocommit = process.env.CYBERISMO_AUTOCOMMIT === 'true';
   const registry = await ProjectRegistry.fromScannedProjects(projects, {
     autocommit,

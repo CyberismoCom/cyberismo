@@ -12,7 +12,8 @@
 */
 
 import type { SWRConfiguration } from 'swr';
-import { mutate } from 'swr';
+import useSWR, { mutate } from 'swr';
+import type { ModuleSettingFromHub } from '@cyberismo/data-handler';
 import { projectApiPaths, callApi } from '../swr';
 import { useSWRHook } from './common';
 import type { GeneralSettings } from './types';
@@ -48,6 +49,13 @@ export const updateProjectModule = async (
   mutate(apiPaths.project());
   mutate(apiPaths.resourceTree());
 };
+
+export const useProjectModulesImportable = (projectPrefix?: string) =>
+  useSWR<ModuleSettingFromHub[]>(
+    projectPrefix
+      ? projectApiPaths(projectPrefix).projectModulesImportable()
+      : null,
+  );
 
 export const deleteProjectModule = async (
   moduleName: string,

@@ -1,5 +1,8 @@
 export * from './schemas.js';
 
+export const DEFAULT_HUB =
+  'https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/';
+
 // Manually import each resource
 // They rarely change and we get 100% type safety this way
 import commonBase from './calculations/common/base.lp';

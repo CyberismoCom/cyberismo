@@ -51,8 +51,7 @@ import { simpleGit } from 'simple-git';
 
 // How many validation errors are shown when staring app, if any.
 const VALIDATION_ERROR_ROW_LIMIT = 10;
-const DEFAULT_HUB =
-  'https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/';
+import { DEFAULT_HUB } from '@cyberismo/assets';
 
 // To avoid duplication, fetch description and version from package.json file.
 // Importing dynamically allows filtering of warnings in cli/bin/run.
@@ -1651,9 +1650,10 @@ appCmd.action(async (options: CommandOptions<'start'>) => {
   }
 
   // Create a CommandManager for each discovered project
+  const mergedOptions = Object.assign({}, options, program.opts());
   const registry = await ProjectRegistry.fromScannedProjects(projects, {
-    autocommit: options.autocommit,
-    watchResourceChanges: options.watchResourceChanges,
+    autocommit: mergedOptions.autocommit,
+    watchResourceChanges: mergedOptions.watchResourceChanges,
   });
 
   await startServer(new MockAuthProvider(gitUser), registry, true, basePath);

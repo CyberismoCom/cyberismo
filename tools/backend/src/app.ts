@@ -127,7 +127,7 @@ export function createApp(
 
   // Global routes (no project-specific CommandManager needed)
   app.route('/api/auth', createAuthRouter());
-  app.route('/api/projects', createProjectsRouter(registry));
+  app.route('/api/projects', createProjectsRouter(registry, rootPath));
 
   // Test-mode reset endpoint: wipes the project dir, restores it from the
   // golden snapshot, and rebuilds the registry in place. Used by the
