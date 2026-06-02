@@ -55,7 +55,9 @@ test.describe('Native AsciiDoc xref', () => {
 
     // Click the link and confirm SPA navigation to card B.
     await page.locator('.doc').getByRole('link', { name: 'Go to B' }).click();
-    await expect(page).toHaveURL((url) => new URL(url).pathname === expectedHref);
+    await expect(page).toHaveURL(
+      (url) => new URL(url).pathname === expectedHref,
+    );
     await expect(
       page.getByRole('heading', { level: 1, name: /^Untitled page$/ }),
     ).toBeVisible();
