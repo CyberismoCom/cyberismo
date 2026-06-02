@@ -650,7 +650,7 @@ test.describe('Navigation', () => {
 
   test('Move dialog for a template card lists templates and their cards', async ({
     page,
-  }) => {.
+  }) => {
     const keys = (
       await import('../assets/e2e-keys.json', { with: { type: 'json' } })
     ).default;
