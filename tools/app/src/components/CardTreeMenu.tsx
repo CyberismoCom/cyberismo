@@ -13,6 +13,7 @@
 
 import React from 'react';
 import { useAppRouter } from '@/lib/hooks';
+import { getConfig } from '@/lib/utils';
 import { MoreHoriz } from '@mui/icons-material';
 import { Dropdown, MenuButton, Menu, MenuItem } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
@@ -30,9 +31,11 @@ export const CardTreeMenu = () => {
           placement="bottom-end"
           sx={{ zIndex: 'calc(var(--joy-zIndex-modal) + 1)' }}
         >
-          <MenuItem onClick={() => setIsOpen(true)}>
-            {t('exportProject')}
-          </MenuItem>
+          {!getConfig().staticMode && (
+            <MenuItem onClick={() => setIsOpen(true)}>
+              {t('exportProject')}
+            </MenuItem>
+          )}
           <MenuItem onClick={() => router.safePush('/configuration')}>
             {t('configuration')}
           </MenuItem>
