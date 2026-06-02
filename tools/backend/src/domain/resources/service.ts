@@ -470,6 +470,21 @@ export async function validateResource(
 }
 
 /**
+ * Lists the path params for every workflow resource in the project.
+ * @param commands Command manager.
+ * @returns One `{ prefix, identifier }` entry per workflow resource.
+ */
+export async function listWorkflowGraphParams(
+  commands: CommandManager,
+): Promise<{ prefix: string; identifier: string }[]> {
+  const workflows = await commands.showCmd.showResources('workflows');
+  return workflows.map((name) => {
+    const { prefix, identifier } = resourceName(name);
+    return { prefix, identifier };
+  });
+}
+
+/**
  * Renders the built-in state-machine graph for a single workflow.
  * When `cardKey` is provided, the card's current workflowState is
  * highlighted in the diagram. The workflow lookup, card lookup and
