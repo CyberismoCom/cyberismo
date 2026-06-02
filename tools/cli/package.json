@@ -36,7 +36,7 @@
     "@inquirer/prompts": "^8.4.3",
     "cli-progress": "^3.12.0",
     "commander": "^14.0.2",
-    "dotenv": "^17.3.1",
+    "dotenv": "^17.4.2",
     "simple-git": "^3.36.0"
   },
   "types": "dist/index.d.ts",
