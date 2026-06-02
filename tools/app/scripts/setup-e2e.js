@@ -81,7 +81,7 @@ writeFileSync(graphModelPath, graphModelContent);
 writeFileSync(graphViewPath, graphViewContent);
 writeFileSync(reportPath, reportContent);
 
-const e2eFixturesDir = join(import.meta.dirname, '..', 'e2e', 'fixtures');
+const e2eFixturesDir = join(import.meta.dirname, '..', 'e2e', 'assets');
 if (!existsSync(e2eFixturesDir)) {
   mkdirSync(e2eFixturesDir, { recursive: true });
 }

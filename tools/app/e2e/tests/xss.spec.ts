@@ -1,5 +1,5 @@
 import { type APIRequestContext, type Page } from '@playwright/test';
-import { test as base, expect } from './fixtures.js';
+import { test as base, expect } from '../fixtures.js';
 
 const createPageCard = async (page: Page) => {
   await page.getByTestId('createNewButton').click();

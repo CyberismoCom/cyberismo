@@ -1,9 +1,7 @@
-import { createRequire } from 'node:module';
-import { test, expect, type Page } from './fixtures.js';
-import { editPage, dismissSaveToast, typeIntoCodeMirror } from './helpers.js';
-
-const require = createRequire(import.meta.url);
-const t = require('../src/locales/en/translation.json');
+import { test, expect } from '../fixtures.js';
+import type { Page } from '@playwright/test';
+import { editPage, dismissSaveToast, typeIntoCodeMirror } from '../helpers.js';
+import t from '../../src/locales/en/translation.json' with { type: 'json' };
 
 test.describe.configure({ mode: 'serial' });
 
@@ -335,7 +333,7 @@ test.describe('Navigation', () => {
     await page
       .getByTestId('fileUploadButton')
       .locator('input[type="file"]')
-      .setInputFiles('./e2e/fixtures/cyberismo.png');
+      .setInputFiles('./e2e/assets/cyberismo.png');
     await page.getByRole('dialog').getByRole('button', { name: t.add }).click();
 
     const attachToast = page

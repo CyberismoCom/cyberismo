@@ -15,7 +15,7 @@ const deviceFor: Record<BrowserName, keyof typeof devices> = {
 };
 
 export default defineConfig({
-  testDir: './e2e',
+  testDir: './e2e/tests',
   globalSetup: './e2e/global-setup.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,

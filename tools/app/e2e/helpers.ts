@@ -1,6 +1,5 @@
 import { type Page, expect } from '@playwright/test';
-import { createRequire } from 'node:module';
-const t = createRequire(import.meta.url)('../src/locales/en/translation.json');
+import t from '../src/locales/en/translation.json' with { type: 'json' };
 
 /** Click the "Edit body" button (force-clickable even when .doc has 0 height). */
 export async function editPage(page: Page) {

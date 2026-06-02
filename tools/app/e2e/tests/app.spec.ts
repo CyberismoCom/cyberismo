@@ -1,9 +1,7 @@
-import { createRequire } from 'node:module';
-import { test, expect } from './fixtures.js';
-import { editPage, dismissSaveToast } from './helpers.js';
-
-const require = createRequire(import.meta.url);
-const t = require('../src/locales/en/translation.json');
+import { test, expect } from '../fixtures.js';
+import { editPage, dismissSaveToast } from '../helpers.js';
+import t from '../../src/locales/en/translation.json' with { type: 'json' };
+import keys from '../assets/e2e-keys.json' with { type: 'json' };
 
 test.describe.configure({ mode: 'serial' });
 
@@ -439,7 +437,7 @@ test.describe('Navigation', () => {
     await page
       .getByTestId('fileUploadButton')
       .locator('input[type="file"]')
-      .setInputFiles('./e2e/fixtures/cyberismo.png');
+      .setInputFiles('./e2e/assets/cyberismo.png');
     await page.getByRole('dialog').getByRole('button', { name: t.add }).click();
 
     const attachToast = page
@@ -654,7 +652,6 @@ test.describe('Navigation', () => {
   test('Move dialog for a template card lists templates and their cards', async ({
     page,
   }) => {
-    const keys = require('../e2e/fixtures/e2e-keys.json');
     const url = page.url();
     const projectPrefix = url.split('/projects/')[1].split('/')[0];
     await page.goto(
@@ -772,7 +769,9 @@ test.describe('Navigation', () => {
         );
         await route.fulfill({
           status: response.status(),
-          headers: Object.fromEntries(response.headersArray()),
+          headers: Object.fromEntries(
+            response.headersArray().map((h) => [h.name, h.value]),
+          ),
           body: JSON.stringify(body),
         });
       } else {

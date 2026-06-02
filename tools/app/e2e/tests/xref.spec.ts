@@ -1,5 +1,5 @@
-import { test, expect } from './fixtures.js';
-import { editPage, createPage, dismissSaveToast } from './helpers.js';
+import { test, expect } from '../fixtures.js';
+import { editPage, createPage, dismissSaveToast } from '../helpers.js';
 
 test.describe('Native AsciiDoc xref', () => {
   test.beforeAll(async ({ resetProject }) => {
