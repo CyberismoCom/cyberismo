@@ -29,7 +29,7 @@
     "@codemirror/state": "^6.5.4",
     "@codemirror/view": "^6.41.1",
     "@cyberismo/data-handler": "workspace:*",
-    "@hookform/resolvers": "^5.2.2",
+    "@hookform/resolvers": "^5.4.0",
     "@mui/icons-material": "^7.3.7",
     "@mui/joy": "5.0.0-beta.52",
     "@mui/material": "^7.3.8",
