@@ -146,6 +146,15 @@ export function createApp(
       await fs.cp(goldenPath, resolvedProject, { recursive: true });
       const autocommit = process.env.CYBERISMO_AUTOCOMMIT === 'true';
       const projects = await scanForProjects(resolvedProject);
+
+      if (projects.length === 0) {
+        return c.json(
+          {
+            error: `reset scan found no projects at ${resolvedProject}`,
+          },
+          500,
+        );
+      }
       const entries = [];
       for (const project of projects) {
         const commands = new CommandManager(project.path, { autocommit });
