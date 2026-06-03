@@ -1,5 +1,3 @@
-// tools/data-handler/test/mutations/plan.test.ts
-
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';

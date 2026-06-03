@@ -1,5 +1,3 @@
-// tools/data-handler/test/mutations/integration-link-type-delete.test.ts
-
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { mkdir, rm, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';

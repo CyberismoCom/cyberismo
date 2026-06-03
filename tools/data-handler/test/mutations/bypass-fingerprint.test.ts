@@ -1,5 +1,3 @@
-// tools/data-handler/test/mutations/bypass-fingerprint.test.ts
-
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdir, rm, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';

@@ -1,5 +1,3 @@
-// tools/data-handler/test/mutations/cascades/rewrite-refs.test.ts
-
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';

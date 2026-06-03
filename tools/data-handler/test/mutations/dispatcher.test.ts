@@ -1,5 +1,3 @@
-// tools/data-handler/test/mutations/dispatcher.test.ts
-
 import { describe, it, expect } from 'vitest';
 import { dispatch } from '../../src/mutations/dispatcher.js';
 import { DefaultNoCascadeHandler } from '../../src/mutations/handlers/default-no-cascade.js';
