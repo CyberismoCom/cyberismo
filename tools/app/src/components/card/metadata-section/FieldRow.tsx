@@ -219,7 +219,7 @@ export function FieldRow({
             data-cy="editableFieldRow"
           >
             <EditableField
-              value={value ?? ''}
+              value={value ?? null}
               label={label}
               dataType={dataType}
               description={description}
