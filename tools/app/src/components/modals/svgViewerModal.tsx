@@ -6,14 +6,7 @@ import React, {
   useLayoutEffect,
   useRef,
 } from 'react';
-import {
-  Modal,
-  Box,
-  Stack,
-  IconButton,
-  Typography,
-  Backdrop,
-} from '@mui/material';
+import { Modal, Box, Stack, IconButton, Typography } from '@mui/joy';
 import { Add, Remove, Autorenew, Close } from '@mui/icons-material';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
@@ -493,7 +486,6 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
       open={open}
       onClose={onClose}
       keepMounted
-      slots={{ backdrop: Backdrop }}
       slotProps={{
         backdrop: {
           sx: {
@@ -509,14 +501,14 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
           inset: 0,
           display: 'flex',
           flexDirection: 'column',
-          bgcolor: 'background.paper',
+          bgcolor: 'background.surface',
           zIndex: 1301,
           pointerEvents: 'auto',
         }}
       >
         {/* help text */}
         <Typography
-          variant="caption"
+          level="body-xs"
           sx={{
             position: 'absolute',
             bottom: 4,
@@ -535,17 +527,19 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
 
         {/* control bar */}
         <Stack
-          bgcolor="black"
-          height="44px"
           direction="row"
           alignItems="center"
-          position="fixed"
-          top={0}
-          left={0}
-          right={0}
-          zIndex={1400}
+          sx={{
+            bgcolor: 'black',
+            height: '44px',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 1400,
+          }}
         >
-          <Box marginLeft={2} height="19px">
+          <Box sx={{ marginLeft: 2, height: '19px' }}>
             <Link to="/cards">
               <img
                 src="/images/cyberismo.png"
