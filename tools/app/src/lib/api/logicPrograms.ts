@@ -17,12 +17,14 @@ import { projectApiPaths } from '../swr';
 import type { SWRConfiguration } from 'swr';
 
 export const useLogicPrograms = (
-  resourceName: string,
+  resourceName: string | null,
   options?: SWRConfiguration,
   projectPrefix?: string,
 ) =>
   useSWRHook<'logicPrograms'>(
-    projectApiPaths(projectPrefix).logicPrograms(resourceName),
+    resourceName
+      ? projectApiPaths(projectPrefix).logicPrograms(resourceName)
+      : null,
     'logicPrograms',
     null,
     options,
