@@ -42,8 +42,10 @@ export const TableOfContents = ({
     return null;
   }
 
-  // Hack for first render: mark first header as visible, after this updates via handleScroll
-  const highlightedHeaders = visibleHeaderIds ?? [headers[0]?.id ?? ''];
+  // Hack for first render: mark first header as visible, after this updates via handleScroll.
+  const highlightedHeaders = inline
+    ? []
+    : (visibleHeaderIds ?? [headers[0]?.id ?? '']);
 
   return (
     <aside

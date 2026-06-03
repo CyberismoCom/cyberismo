@@ -44,7 +44,11 @@ export const CardNotifications = ({
   const badge = <CountBadge count={notifications.length} />;
 
   const title = (
-    <Typography level="title-sm" fontWeight="bold" sx={{ flexGrow: 1 }}>
+    <Typography
+      level={collapsible ? 'title-sm' : 'body-xs'}
+      fontWeight={collapsible ? 'bold' : 'lg'}
+      sx={{ flexGrow: 1 }}
+    >
       {t('notifications')}
     </Typography>
   );
