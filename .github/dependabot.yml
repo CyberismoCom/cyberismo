@@ -11,6 +11,9 @@ updates:
       interval: "monthly"
     rebase-strategy: "auto"
     open-pull-requests-limit: 20 # Increase from default of 5 to 20 (maximum allowed)
+    ignore:
+      - dependency-name: "@types/node" # Major version must match the minimum Node version in "engines"
+        update-types: ["version-update:semver-major"]
     groups:
       react-dependencies: # Update all React dependencies in one PR
         patterns:
