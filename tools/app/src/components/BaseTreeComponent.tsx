@@ -57,6 +57,7 @@ export function BaseTreeComponent<T>({
     if (selectedId && tree && !tree.selectedIds.has(selectedId)) {
       tree.openParents(selectedId);
       tree.open(selectedId);
+      tree.update(tree.props);
       tree.select(selectedId);
     }
   }, [selectedId]);
