@@ -12,11 +12,31 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { forwardRef, useImperativeHandle, useState, useRef } from 'react';
+import {
+  forwardRef,
+  useImperativeHandle,
+  useState,
+  useRef,
+  type ReactNode,
+} from 'react';
 import type { ExpandedLinkType, MetadataValue } from '@/lib/definitions';
 
-import { Box, Stack } from '@mui/joy';
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Box,
+  Button,
+  Stack,
+  Typography,
+} from '@mui/joy';
+import { useTheme } from '@mui/material/styles';
+import { useMediaQuery } from '@mui/material';
+import ExpandMore from '@mui/icons-material/ExpandMore';
+import Toc from '@mui/icons-material/Toc';
+import { useTranslation } from 'react-i18next';
 import MetadataView from '@/components/card/metadata-section/MetadataSection';
+import { CountBadge, LeadingSlot } from '@/components/CountBadge';
 
 import { useAppDispatch, useAppSelector } from '@/lib/hooks';
 import { viewChanged } from '@/lib/slices/pageState';
@@ -36,6 +56,91 @@ import { TableOfContents } from './TableOfContents';
 import { CardBody, type CardBodyHandle } from './CardBody';
 import { CardTitle } from './CardTitle';
 import { AttachmentPanel } from './AttachmentPanel';
+
+function SidebarPanelAccordion({
+  expanded,
+  onToggle,
+  leading,
+  title,
+  children,
+  dataCy,
+}: {
+  expanded: boolean;
+  onToggle: () => void;
+  leading: ReactNode;
+  title: string;
+  children: ReactNode;
+  dataCy?: string;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Box
+      border="1px solid"
+      borderColor="neutral.outlinedBorder"
+      borderRadius={6}
+    >
+      <Accordion expanded={expanded} data-cy={dataCy}>
+        <AccordionSummary
+          onClick={onToggle}
+          sx={{ borderRadius: 6 }}
+          slotProps={{
+            button: {
+              sx: {
+                padding: { xs: 1, sm: 1.5 },
+                gap: 2,
+                borderRadius: 'inherit',
+              },
+            },
+            indicator: { sx: { display: 'none' } },
+          }}
+        >
+          {leading}
+          <Typography level="title-sm" fontWeight="bold" sx={{ flexGrow: 1 }}>
+            {title}
+          </Typography>
+          <Button
+            component="span"
+            variant="plain"
+            color="primary"
+            size="sm"
+            endDecorator={
+              <ExpandMore
+                sx={{
+                  transition: 'transform 0.2s',
+                  transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                }}
+              />
+            }
+            sx={(theme) => ({
+              [theme.breakpoints.down('sm')]: {
+                paddingBlock: 0,
+                minHeight: 'auto',
+              },
+            })}
+          >
+            <Box
+              component="span"
+              sx={{ display: { xs: 'none', sm: 'inline' } }}
+            >
+              {expanded ? t('showLess') : t('showMore')}
+            </Box>
+          </Button>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Box
+            sx={{
+              paddingX: { xs: 1, sm: 1.5 },
+              paddingBottom: { xs: 1, sm: 1.5 },
+              paddingTop: 1,
+            }}
+          >
+            {children}
+          </Box>
+        </AccordionDetails>
+      </Accordion>
+    </Box>
+  );
+}
 
 type CardLayoutProps = {
   cards: QueryResult<'tree'>[];
@@ -83,7 +188,15 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
     const [focusFieldKey, setFocusFieldKey] = useState<string | null>(null);
 
     const [editingBody, setEditingBody] = useState(false);
+    const [tocExpanded, setTocExpanded] = useState(false);
+    const [notificationsExpanded, setNotificationsExpanded] = useState(false);
     const bodyRef = useRef<CardBodyHandle>(null);
+
+    const { t } = useTranslation();
+    const theme = useTheme();
+    const isNarrow = useMediaQuery(theme.breakpoints.down('lg'), {
+      noSsr: true,
+    });
 
     useImperativeHandle(
       ref,
@@ -94,8 +207,6 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
       }),
       [],
     );
-
-    const boxRef = useRef<HTMLDivElement>(null);
 
     const dispatch = useAppDispatch();
 
@@ -151,6 +262,38 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
       }
     };
 
+    const hasHeaders = /<h[123]\b/i.test(htmlContent);
+    const hasNotifications = card.notifications.length > 0;
+    const hasPolicyChecks =
+      card.policyChecks.successes.length > 0 ||
+      card.policyChecks.failures.length > 0;
+    const notificationsBadgeCount =
+      card.notifications.length + card.policyChecks.failures.length;
+
+    const attachmentPanel = (
+      <AttachmentPanel
+        cardKey={card.key}
+        attachments={card.attachments ?? []}
+        onInsert={(attachment) => bodyRef.current?.insertAttachment(attachment)}
+      />
+    );
+
+    const viewSidebarContent = (
+      <>
+        <Box sx={{ marginBottom: 1 }}>
+          <TableOfContents
+            htmlContent={htmlContent}
+            visibleHeaderIds={visibleHeaderIds}
+          />
+        </Box>
+        <CardNotifications notifications={card.notifications} />
+        <CardPolicyChecks
+          policyChecks={card.policyChecks}
+          onGoToField={onMetadataUpdate ? setFocusFieldKey : undefined}
+        />
+      </>
+    );
+
     return (
       <Stack
         direction={{ xs: 'column', lg: 'row' }}
@@ -160,11 +303,10 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
           scrollbarWidth: 'thin',
         }}
         onScroll={handleScroll}
-        ref={boxRef}
       >
         <Box
           width="100%"
-          padding={3}
+          padding={{ xs: 2, sm: 3 }}
           flexGrow={1}
           onScroll={handleScroll}
           sx={{
@@ -206,6 +348,53 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
               onLinkFormSubmit={onLinkFormSubmit}
               onDeleteLink={onDeleteLink}
             />
+            {isNarrow && editingBody && attachmentPanel}
+            {isNarrow &&
+              !editingBody &&
+              (hasNotifications || hasPolicyChecks) && (
+                <SidebarPanelAccordion
+                  expanded={notificationsExpanded}
+                  onToggle={() =>
+                    setNotificationsExpanded(!notificationsExpanded)
+                  }
+                  leading={<CountBadge count={notificationsBadgeCount} />}
+                  title={t('notificationsAndChecks')}
+                  dataCy="cardNotificationsPanel"
+                >
+                  <Stack spacing={2}>
+                    <CardNotifications
+                      notifications={card.notifications}
+                      collapsible={false}
+                    />
+                    <CardPolicyChecks
+                      policyChecks={card.policyChecks}
+                      onGoToField={
+                        onMetadataUpdate ? setFocusFieldKey : undefined
+                      }
+                      collapsible={false}
+                    />
+                  </Stack>
+                </SidebarPanelAccordion>
+              )}
+            {isNarrow && !editingBody && hasHeaders && (
+              <SidebarPanelAccordion
+                expanded={tocExpanded}
+                onToggle={() => setTocExpanded(!tocExpanded)}
+                leading={
+                  <LeadingSlot>
+                    <Toc fontSize="small" />
+                  </LeadingSlot>
+                }
+                title={t('tableOfContents')}
+                dataCy="cardTocPanel"
+              >
+                <TableOfContents
+                  htmlContent={htmlContent}
+                  visibleHeaderIds={visibleHeaderIds}
+                  inline
+                />
+              </SidebarPanelAccordion>
+            )}
             <CardBody
               ref={bodyRef}
               card={card}
@@ -218,42 +407,22 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
             />
           </Stack>
         </Box>
-        <Stack
-          sx={{
-            overflowY: { lg: 'auto' },
-            scrollbarWidth: 'thin',
-            width: { xs: '100%', lg: 250 },
-            minWidth: { lg: 250 },
-            flexShrink: 0,
-            my: { lg: 2 },
-            mr: { lg: 3 },
-            px: { xs: 3, lg: 0 },
-            pb: { xs: 3, lg: 0 },
-          }}
-          data-cy="cardSidebar"
-        >
-          <Box sx={{ marginBottom: 1 }}>
-            {editingBody ? (
-              <AttachmentPanel
-                cardKey={card.key}
-                attachments={card.attachments ?? []}
-                onInsert={(attachment) =>
-                  bodyRef.current?.insertAttachment(attachment)
-                }
-              />
-            ) : (
-              <TableOfContents
-                htmlContent={htmlContent}
-                visibleHeaderIds={visibleHeaderIds}
-              />
-            )}
-          </Box>
-          <CardNotifications notifications={card.notifications} />
-          <CardPolicyChecks
-            policyChecks={card.policyChecks}
-            onGoToField={onMetadataUpdate ? setFocusFieldKey : undefined}
-          />
-        </Stack>
+        {!isNarrow && (
+          <Stack
+            sx={{
+              overflowY: 'auto',
+              scrollbarWidth: 'thin',
+              width: 250,
+              minWidth: 250,
+              flexShrink: 0,
+              my: 2,
+              mr: 3,
+            }}
+            data-cy="cardSidebar"
+          >
+            {editingBody ? attachmentPanel : viewSidebarContent}
+          </Stack>
+        )}
       </Stack>
     );
   },

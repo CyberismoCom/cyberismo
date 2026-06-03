@@ -564,7 +564,7 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
             border="1px solid"
             borderColor="primary.outlinedBorder"
             borderRadius={6}
-            padding={1.5}
+            padding={{ xs: 1, sm: 1.5 }}
             sx={{
               '& .cm-gutters': {
                 bgcolor: 'background.level1',
@@ -677,7 +677,7 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
             border="1px solid"
             borderColor="neutral.outlinedBorder"
             borderRadius={6}
-            padding={1.5}
+            padding={{ xs: 1, sm: 1.5 }}
             position="relative"
             minHeight={56}
             sx={

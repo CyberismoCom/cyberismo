@@ -118,7 +118,7 @@ export default function MetadataSection({
       border="1px solid"
       borderColor="neutral.outlinedBorder"
       borderRadius={6}
-      padding={1.5}
+      padding={{ xs: 1, sm: 1.5 }}
     >
       <Stack>
         <FieldRow
@@ -215,7 +215,13 @@ export default function MetadataSection({
             e.stopPropagation();
             setExpanded(!expanded);
           }}
-          sx={{ alignSelf: 'flex-end' }}
+          sx={(theme) => ({
+            alignSelf: 'flex-end',
+            [theme.breakpoints.down('sm')]: {
+              paddingBlock: 0,
+              minHeight: 'auto',
+            },
+          })}
         >
           {expanded ? t('showLess') : t('showMore')}
         </Button>

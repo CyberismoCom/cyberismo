@@ -14,7 +14,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Box, Button, Chip, IconButton, Stack, Typography } from '@mui/joy';
+import { Box, Button, IconButton, Stack, Typography } from '@mui/joy';
+import { CountBadge } from '@/components/CountBadge';
 import Edit from '@mui/icons-material/Edit';
 import AddLink from '@mui/icons-material/AddLink';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -102,7 +103,7 @@ export default function LinkedCardsSection({
           editing ? 'primary.outlinedBorder' : 'neutral.outlinedBorder'
         }
         borderRadius={6}
-        padding={1.5}
+        padding={{ xs: 1, sm: 1.5 }}
         onClick={
           headerClickable
             ? () => dispatch(setLinkedCardsExpanded(true))
@@ -125,24 +126,9 @@ export default function LinkedCardsSection({
           marginBottom={editing || (expanded && linkCount > 0) ? 1 : 0}
         >
           {linkCount > 0 && (
-            <Chip
-              size="sm"
-              variant="soft"
-              color="primary"
-              sx={{
-                borderRadius: '50%',
-                minWidth: 24,
-                height: 24,
-                mr: 1,
-                '& .MuiChip-label': {
-                  px: 0,
-                  width: '100%',
-                  textAlign: 'center',
-                },
-              }}
-            >
-              {linkCount}
-            </Chip>
+            <Box sx={{ mr: 2 }}>
+              <CountBadge count={linkCount} />
+            </Box>
           )}
           <Typography
             level="title-sm"
@@ -230,8 +216,19 @@ export default function LinkedCardsSection({
                 e.stopPropagation();
                 dispatch(setLinkedCardsExpanded(true));
               }}
+              sx={(theme) => ({
+                [theme.breakpoints.down('sm')]: {
+                  paddingBlock: 0,
+                  minHeight: 'auto',
+                },
+              })}
             >
-              {t('showMore')}
+              <Box
+                component="span"
+                sx={{ display: { xs: 'none', sm: 'inline' } }}
+              >
+                {t('showMore')}
+              </Box>
             </Button>
           )}
         </Stack>
@@ -287,6 +284,12 @@ export default function LinkedCardsSection({
                   e.stopPropagation();
                   dispatch(setLinkedCardsExpanded(false));
                 }}
+                sx={(theme) => ({
+                  [theme.breakpoints.down('sm')]: {
+                    paddingBlock: 0,
+                    minHeight: 'auto',
+                  },
+                })}
               >
                 {t('showLess')}
               </Button>
