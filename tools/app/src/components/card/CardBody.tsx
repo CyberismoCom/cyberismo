@@ -696,7 +696,7 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
                   position: 'sticky',
                   top: 8,
                   height: 0,
-                  zIndex: 1,
+                  zIndex: 20,
                 }}
               >
                 <IconButton

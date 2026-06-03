@@ -38,7 +38,12 @@
 }
 
 @media (min-width: 900px) {
-  .doc--editable > [data-type='cyberismo-svg-wrapper']:first-child {
+  /*
+   * Push the first child down so its overlay controls (fullscreen, download)
+   * don't collide with the sticky edit button at the top-right of the card body.
+   */
+  .doc--editable > [data-type='cyberismo-svg-wrapper']:first-child,
+  .doc--editable > .mermaid-block:first-child {
     margin-top: 40px;
   }
 }
