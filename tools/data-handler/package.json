@@ -31,6 +31,8 @@
     "./utils/*": "./dist/utils/*.js"
   },
   "devDependencies": {
+    "@babel/plugin-proposal-decorators": "^7.29.7",
+    "@rolldown/plugin-babel": "^0.2.3",
     "@types/js-yaml": "^4.0.9",
     "@types/jsdom": "^21.1.7",
     "@types/json-schema": "^7.0.15",
