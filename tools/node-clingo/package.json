@@ -36,7 +36,7 @@
     "provenance": true
   },
   "dependencies": {
-    "node-addon-api": "^8.7.0"
+    "node-addon-api": "^8.8.0"
   },
   "optionalDependencies": {
     "@cyberismo/node-clingo-linux-x64-gnu": "1.6.0",

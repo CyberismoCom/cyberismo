@@ -139,7 +139,7 @@ export async function executeStep(
         await terminate(false);
         resolve({
           success: false,
-          error,
+          error: error instanceof Error ? error : new Error(String(error)),
         });
       })();
     });
