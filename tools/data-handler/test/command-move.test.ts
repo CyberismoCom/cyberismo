@@ -26,7 +26,7 @@ async function createSimilarCard(
   while (!descendant && attempts < maxAttempts) {
     const done = await commandHandler.command(
       Cmd.create,
-      ['card', template, parent || ''],
+      ['card', template, parent ?? ''],
       options,
     );
     const createdKey = done.affectsCards?.at(0);
