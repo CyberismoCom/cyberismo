@@ -13,7 +13,7 @@
 */
 
 import type { Project } from '../containers/project.js';
-import type { CascadePreview, MutationInput } from './types.js';
+import type { MutationInput } from './types.js';
 
 export interface MutationContext {
   project: Project;
@@ -27,12 +27,6 @@ export interface Handler {
   /** Whether matching inputs are classified as breaking changes. */
   readonly isBreaking: boolean;
 
-  /** Compute the cascade preview. Does not mutate any state. */
-  preview(ctx: MutationContext): Promise<CascadePreview>;
-
   /** Apply the resource-definition change and the cascade. */
   apply(ctx: MutationContext): Promise<void>;
-
-  /** Paths the cascade would read or write; fed into the fingerprint. */
-  affectedFilePaths(ctx: MutationContext): Promise<string[]>;
 }

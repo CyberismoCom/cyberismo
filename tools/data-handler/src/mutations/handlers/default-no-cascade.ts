@@ -13,7 +13,6 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
-import type { CascadePreview } from '../types.js';
 
 export class DefaultNoCascadeHandler implements Handler {
   readonly isBreaking = false;
@@ -21,17 +20,6 @@ export class DefaultNoCascadeHandler implements Handler {
   matches(ctx: MutationContext): boolean {
     // Catch-all: dispatcher consults specific handlers first.
     return ctx.input.kind === 'edit';
-  }
-
-  async preview(): Promise<CascadePreview> {
-    return {
-      affectedCardCount: 0,
-      affectedLinkCount: 0,
-      affectedCalculationCount: 0,
-      affectedHandlebarFileCount: 0,
-      dataLossExpected: false,
-      summary: '(no cascade effects)',
-    };
   }
 
   async apply(ctx: MutationContext): Promise<void> {
@@ -50,9 +38,5 @@ export class DefaultNoCascadeHandler implements Handler {
       throw new Error('Resource not found');
     }
     await resource.update(updateKey, operation);
-  }
-
-  async affectedFilePaths(): Promise<string[]> {
-    return [];
   }
 }

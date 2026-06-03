@@ -13,15 +13,9 @@
 */
 
 import type { Project } from '../containers/project.js';
-import { computeFingerprint } from './fingerprint.js';
 import { dispatch } from './dispatcher.js';
 import type { MutationContext } from './handler.js';
-import type {
-  ApplyOptions,
-  ApplyResult,
-  MutationInput,
-  PreviewResult,
-} from './types.js';
+import type { MutationInput } from './types.js';
 import { ConfigurationLogger } from '../utils/configuration-logger.js';
 
 interface RecordContext {
@@ -31,45 +25,9 @@ interface RecordContext {
 export class ResourceMutations {
   constructor(private project: Project) {}
 
-  async plan(input: MutationInput): Promise<PreviewResult> {
+  async apply(input: MutationInput): Promise<void> {
     const ctx: MutationContext = { project: this.project, input };
     const handler = dispatch(ctx);
-    const preview = await handler.preview(ctx);
-    const affectedPaths = await handler.affectedFilePaths(ctx);
-    const fingerprint = await computeFingerprint(input, affectedPaths);
-
-    return {
-      input,
-      isBreaking: handler.isBreaking,
-      preview,
-      fingerprint,
-    };
-  }
-
-  async apply(
-    input: MutationInput,
-    options: ApplyOptions = {},
-  ): Promise<ApplyResult> {
-    const ctx: MutationContext = { project: this.project, input };
-    const handler = dispatch(ctx);
-    const preview = await handler.preview(ctx);
-    const needsConfirm =
-      handler.isBreaking &&
-      !options.bypassFingerprint &&
-      (preview.affectedCardCount > 0 ||
-        preview.affectedLinkCount > 0 ||
-        preview.dataLossExpected);
-
-    if (needsConfirm) {
-      if (!options.fingerprint) {
-        throw new Error('Mutation has cascade effects; fingerprint required');
-      }
-      const affectedPaths = await handler.affectedFilePaths(ctx);
-      const current = await computeFingerprint(input, affectedPaths);
-      if (current.digest !== options.fingerprint.digest) {
-        throw new Error('Stale fingerprint; re-preview before retrying');
-      }
-    }
 
     // Capture extras the log entry depends on BEFORE the cascade mutates state.
     const recordContext: RecordContext = {};
@@ -83,7 +41,6 @@ export class ResourceMutations {
         await this.recordLogEntry(input, recordContext);
       }
     });
-    return { success: true };
   }
 
   private async recordLogEntry(

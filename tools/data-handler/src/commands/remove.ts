@@ -16,7 +16,7 @@ import { isModuleCard, isExternalItemKey } from '../utils/card-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { declaredModules, installedModules } from '../modules/inventory.js';
 import { cleanOrphans } from '../modules/orphans.js';
-import { ResourceMutations } from '../mutations/plan.js';
+import { ResourceMutations } from '../mutations/resource-mutations.js';
 import { resourceName as parseResourceName } from '../utils/resource-utils.js';
 import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
@@ -302,8 +302,7 @@ export class Remove {
       if (type === 'linkType') {
         const target = parseResourceName(targetName);
         const input = { kind: 'delete' as const, target };
-        const plan = await this.mutations.plan(input);
-        await this.mutations.apply(input, { fingerprint: plan.fingerprint });
+        await this.mutations.apply(input);
         return;
       }
       const resource = this.project.resources.byType(

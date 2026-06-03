@@ -13,7 +13,6 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
-import type { CascadePreview } from '../types.js';
 import {
   resourceName,
   resourceNameToString,
@@ -24,35 +23,12 @@ import {
   rewriteHandlebarRefs,
 } from '../cascades/rewrite-refs.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
-import { join } from 'node:path';
 
 export class LinkTypeRenameHandler implements Handler {
   readonly isBreaking = true;
 
   matches(ctx: MutationContext): boolean {
     return ctx.input.kind === 'rename' && ctx.input.target.type === 'linkTypes';
-  }
-
-  async preview(ctx: MutationContext): Promise<CascadePreview> {
-    if (ctx.input.kind !== 'rename') {
-      throw new Error('LinkTypeRenameHandler called with non-rename input');
-    }
-    const oldName = resourceNameToString(ctx.input.target);
-    const affected = this.affectedCards(ctx, oldName);
-    const affectedLinkCount = affected.reduce(
-      (n, c) =>
-        n +
-        (c.metadata?.links?.filter((l) => l.linkType === oldName).length ?? 0),
-      0,
-    );
-    return {
-      affectedCardCount: affected.length,
-      affectedLinkCount,
-      affectedCalculationCount: 0,
-      affectedHandlebarFileCount: 0,
-      dataLossExpected: false,
-      summary: `Renames ${affectedLinkCount} link references in ${affected.length} cards.`,
-    };
   }
 
   async apply(ctx: MutationContext): Promise<void> {
@@ -75,7 +51,6 @@ export class LinkTypeRenameHandler implements Handler {
     // 2. Rewrite cascading references BEFORE renaming the resource on disk.
     //    Order matters: cascade scanners look for the old name, and the
     //    resource file (with that name) must still exist when they run.
-    // TODO: compute accurate counts now that cascade is explicit
     await rewriteCalculationRefs(ctx.project, oldName, newName);
     await rewriteHandlebarRefs(ctx.project, oldName, newName);
     await rewriteCardContentRefs(ctx.project, oldName, newName);
@@ -88,14 +63,6 @@ export class LinkTypeRenameHandler implements Handler {
       throw new Error(`Link type '${oldName}' not found`);
     }
     await resource.rename(resourceName(newName));
-  }
-
-  async affectedFilePaths(ctx: MutationContext): Promise<string[]> {
-    if (ctx.input.kind !== 'rename') return [];
-    const oldName = resourceNameToString(ctx.input.target);
-    return this.affectedCards(ctx, oldName).map((c) =>
-      join(c.path, 'index.json'),
-    );
   }
 
   private affectedCards(ctx: MutationContext, oldName: string): Card[] {

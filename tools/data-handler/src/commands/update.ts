@@ -22,7 +22,7 @@ import type {
 import type { Project } from '../containers/project.js';
 import type { UpdateKey } from '../interfaces/resource-interfaces.js';
 import { runWithDefaultCommitMessage } from '../utils/commit-context.js';
-import { ResourceMutations } from '../mutations/plan.js';
+import { ResourceMutations } from '../mutations/resource-mutations.js';
 import { resourceName as parseResourceName } from '../utils/resource-utils.js';
 
 /**
@@ -72,8 +72,7 @@ export class Update {
           (operation as ChangeOperation<string>).to,
         ).identifier;
         const input = { kind: 'rename' as const, target, newIdentifier };
-        const plan = await this.mutations.plan(input);
-        await this.mutations.apply(input, { fingerprint: plan.fingerprint });
+        await this.mutations.apply(input);
         return;
       }
 
@@ -83,8 +82,7 @@ export class Update {
         updateKey,
         operation,
       };
-      const plan = await this.mutations.plan(input);
-      await this.mutations.apply(input, { fingerprint: plan.fingerprint });
+      await this.mutations.apply(input);
       return;
     }
 
