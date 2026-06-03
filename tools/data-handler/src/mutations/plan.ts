@@ -15,7 +15,7 @@
 import type { Project } from '../containers/project.js';
 import { computeFingerprint } from './fingerprint.js';
 import { dispatch } from './dispatcher.js';
-import type { Handler, MutationContext } from './handler.js';
+import type { MutationContext } from './handler.js';
 import type {
   ApplyOptions,
   ApplyResult,
