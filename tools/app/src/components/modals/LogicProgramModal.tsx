@@ -39,8 +39,7 @@ export function LogicProgramModal({
   resourceName,
 }: LogicProgramModalProps) {
   const { t } = useTranslation();
-  // Fetch only while the modal is open so that each open shows up-to-date
-  // facts instead of a logic program cached at page load (INTDEV-1308)
+  // Conditional ensures logic program is refetched after the modal is opened
   const { logicPrograms, error } = useLogicPrograms(open ? resourceName : null);
 
   return (
