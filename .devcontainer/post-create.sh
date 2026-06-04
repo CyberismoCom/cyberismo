@@ -32,8 +32,8 @@ pnpm build
 echo "=== Linking packages globally ==="
 pnpm link -g
 
-echo "=== Installing Cypress binary ==="
-pnpm --filter=app exec cypress install
+echo "=== Installing Playwright browsers ==="
+pnpm --filter=app exec playwright install --with-deps
 
 echo "=== Dev environment ready! ==="
 echo "Run 'pnpm dev' to start development servers"
