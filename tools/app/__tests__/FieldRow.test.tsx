@@ -1,22 +1,10 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { FieldRow } from '@/components/card/metadata-section/FieldRow';
 
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string) => {
-      const translations: Record<string, string> = {
-        yes: 'Yes',
-        no: 'No',
-      };
-      return translations[key] || key;
-    },
-  }),
-}));
-
 describe('FieldRow', () => {
-  it('renders an empty value for a null boolean field (INTDEV-1307)', () => {
+  it('renders an empty value for a null boolean field', () => {
     render(<FieldRow value={null} label="Boolean field" dataType="boolean" />);
 
     expect(screen.getByText('Boolean field')).toBeInTheDocument();
