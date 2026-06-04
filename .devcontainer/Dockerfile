@@ -8,6 +8,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     make \
     cmake \
+    # Compiler cache so node-gyp rebuilds of node-clingo are near-instant
+    ccache \
     # Ruby for PDF export via asciidoctor-pdf
     ruby-full \
     # C++ formatting (for node-clingo contributions)
