@@ -16,7 +16,7 @@ import { useTranslation } from 'react-i18next';
 import type { AnyNode } from '../../lib/api/types';
 import BaseToolbar from './BaseToolbar';
 import { ConfigContextMenu } from '../context-menus';
-import { getConfig } from '@/lib/utils';
+import { UserRole, useHasMinRole } from '@/lib/auth';
 
 interface ConfigToolbarProps {
   node: AnyNode;
@@ -38,6 +38,7 @@ export function ConfigToolbar({
   enabled,
 }: ConfigToolbarProps) {
   const { t } = useTranslation();
+  const isAdmin = useHasMinRole(UserRole.Admin);
 
   // Create breadcrumbs from the node path
   const breadcrumbs = (() => {
@@ -90,7 +91,7 @@ export function ConfigToolbar({
           {t('cancel')}
         </Button>
       )}
-      {onUpdate && !node.readOnly && !getConfig().staticMode && (
+      {onUpdate && !node.readOnly && isAdmin && (
         <Button
           variant="solid"
           size="sm"
@@ -115,8 +116,7 @@ export function ConfigToolbar({
           node={node}
           enabled={{
             ...enabled,
-            delete:
-              enabled?.delete && !node.readOnly && !getConfig().staticMode,
+            delete: enabled?.delete && !node.readOnly && isAdmin,
           }}
         />
       }

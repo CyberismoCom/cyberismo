@@ -15,14 +15,16 @@ import { useRawCard, useResourceTree } from '@/lib/api';
 import CardEditor from '../CardEditor';
 import type { AnyNode } from '@/lib/api/types';
 import { useTranslation } from 'react-i18next';
-import { findCardParentInResourceTree, getConfig } from '@/lib/utils';
+import { findCardParentInResourceTree } from '@/lib/utils';
 import { useAppRouter } from '@/lib/hooks';
+import { UserRole, useHasMinRole } from '@/lib/auth';
 
 export function ConfigCardEditor({ node }: { node: AnyNode }) {
   const card = useRawCard(node.id);
   const { resourceTree } = useResourceTree();
   const router = useAppRouter();
   const { t } = useTranslation();
+  const isAdmin = useHasMinRole(UserRole.Admin);
   if (card.isLoading) {
     return <div>{t('loading')}</div>;
   }
@@ -40,7 +42,7 @@ export function ConfigCardEditor({ node }: { node: AnyNode }) {
       afterDelete={() =>
         router.push(parent ? `/configuration/${parent.name}` : '/configuration')
       }
-      readOnly={node?.readOnly || getConfig().staticMode}
+      readOnly={node?.readOnly || !isAdmin}
     />
   );
 }

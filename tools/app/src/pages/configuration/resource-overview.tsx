@@ -27,7 +27,7 @@ import {
   ResourceModuleSection,
   ResourceOverviewCard,
 } from '@/components/resource-overview';
-import { getConfig } from '@/lib/utils';
+import { UserRole, useHasMinRole } from '@/lib/auth';
 
 function identifier(name: string) {
   const parts = name.split('/');
@@ -83,6 +83,7 @@ function ResourceOverviewContent({
 }) {
   const { t } = useTranslation();
   const { openCreateResourceModal } = useAppModals();
+  const isAdmin = useHasMinRole(UserRole.Admin);
   const [expandedModules, setExpandedModules] = useState<
     Record<string, boolean>
   >({});
@@ -154,7 +155,7 @@ function ResourceOverviewContent({
                   gap: 2,
                 }}
               >
-                {isProject && !getConfig().staticMode && (
+                {isProject && isAdmin && (
                   <CreateResourceCard
                     title={t('overview.createNew', {
                       resourceType: t(

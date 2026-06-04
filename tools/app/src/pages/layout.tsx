@@ -38,6 +38,7 @@ import { useModals } from '@/lib/utils';
 import { NewTemplateCardModal } from '../components/modals/resource-forms/NewTemplateCardModal';
 import { useConfigTemplateCreationContext } from '@/lib/hooks';
 import { AppModalsProvider } from '@/lib/contexts/AppModalsProvider';
+import { UserRole, useHasMinRole } from '@/lib/auth';
 import type { ResourceName } from '@/lib/constants';
 import { useCallback, useState } from 'react';
 
@@ -65,6 +66,8 @@ const notificationDurationMap = {
 
 export default function Layout() {
   const inCards = useIsInCards();
+  const canEdit = useHasMinRole(UserRole.Editor);
+  const isAdmin = useHasMinRole(UserRole.Admin);
   const { templateResource, parentCardKey } =
     useConfigTemplateCreationContext();
   const { modalOpen, openModal, closeModal } = useModals({
@@ -108,8 +111,10 @@ export default function Layout() {
       <AppToolbar
         onCreate={(resourceType) => {
           if (inCards) {
+            if (!canEdit) return;
             openModal('card')();
           } else {
+            if (!isAdmin) return;
             if (!resourceType) {
               console.warn(
                 'No resource type provided when creating a new resource',

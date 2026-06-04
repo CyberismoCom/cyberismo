@@ -28,12 +28,12 @@ import {
   MenuItem,
   Tooltip,
 } from '@mui/joy';
-import { getConfig } from '@/lib/utils';
 import {
   useIsInCards,
   useKeyboardShortcut,
   useConfigTemplateCreationContext,
 } from '@/lib/hooks';
+import { UserRole, useHasMinRole } from '@/lib/auth';
 import type { ResourceName } from '@/lib/constants';
 import { RESOURCES } from '@/lib/constants';
 import { ThemeModeToggle } from './ThemeModeToggle';
@@ -126,12 +126,15 @@ export function CreateButton({
 export default function AppToolbar({ onCreate, onMenuClick }: AppToolbarProps) {
   const { t } = useTranslation();
   const inCards = useIsInCards();
+  const canEdit = useHasMinRole(UserRole.Editor);
+  const isAdmin = useHasMinRole(UserRole.Admin);
+  const canCreate = inCards ? canEdit : isAdmin;
   useKeyboardShortcut(
     {
       key: 'c',
     },
     () => {
-      if (!getConfig().staticMode) {
+      if (canCreate) {
         onCreate();
       }
     },
@@ -173,7 +176,7 @@ export default function AppToolbar({ onCreate, onMenuClick }: AppToolbarProps) {
       <Box sx={{ display: { xs: 'none', sm: 'inline-flex' } }}>
         <ThemeModeToggle />
       </Box>
-      {!getConfig().staticMode && (
+      {canCreate && (
         <CreateButton type={inCards ? 'Card' : 'Resource'} onClick={onCreate} />
       )}
       <UserMenu />

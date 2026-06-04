@@ -14,6 +14,7 @@
 import { useEffect, useState } from 'react';
 import { getConfig } from '@/lib/utils';
 import { projectApiPaths } from '@/lib/swr.js';
+import { UserRole, useHasMinRole } from '@/lib/auth';
 import { z } from 'zod';
 
 const presenceEntrySchema = z.object({
@@ -40,11 +41,12 @@ export function usePresence(
   mode: 'viewing' | 'editing' = 'viewing',
   projectPrefix?: string,
 ): PresenceEntry[] {
+  const canEdit = useHasMinRole(UserRole.Editor);
   const [editors, setEditors] = useState<PresenceEntry[]>([]);
   const config = getConfig();
   const isEnabled = !config.staticMode && !!config.presenceEnabled;
   const url =
-    cardKey && isEnabled
+    cardKey && isEnabled && canEdit
       ? projectApiPaths(projectPrefix).presence(cardKey, mode)
       : null;
 

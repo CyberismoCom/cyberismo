@@ -37,7 +37,7 @@ import { addNotification } from '@/lib/slices/notifications';
 import BaseEditor from './BaseEditor';
 import FieldRow from './fields/FieldRow';
 import TextInput from './fields/TextInput';
-import { getConfig } from '@/lib/utils';
+import { UserRole, useHasMinRole } from '@/lib/auth';
 
 type GeneralEditorProps = {
   node: GenericNode<'general'>;
@@ -64,8 +64,9 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
     cardKeyPrefix: string;
   } | null>(null);
   const dispatch = useAppDispatch();
+  const isAdmin = useHasMinRole(UserRole.Admin);
 
-  const isDisabled = Boolean(node.readOnly) || getConfig().staticMode;
+  const isDisabled = Boolean(node.readOnly) || !isAdmin;
 
   const nameField = useEditableField({
     initialValue: general?.name ?? node.data.name ?? '',

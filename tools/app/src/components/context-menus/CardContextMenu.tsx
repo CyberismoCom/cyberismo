@@ -32,6 +32,7 @@ import {
 import { useAppSelector } from '@/lib/hooks';
 import { useCard, useProject } from '@/lib/api';
 import { ExportCardModal } from '../modals/ExportCardModal';
+import { Gate, UserRole } from '@/lib/auth';
 
 interface CardContextMenuProps {
   cardKey: string;
@@ -87,18 +88,20 @@ export function CardContextMenu({
           </MenuButton>
         </Tooltip>
         <Menu>
-          {isModuleCard === false && (
-            <MenuItem id="moveCardButton" onClick={openModal('move')}>
-              <Typography>{t('move')}</Typography>
+          <Gate minRole={UserRole.Editor}>
+            {isModuleCard === false && (
+              <MenuItem id="moveCardButton" onClick={openModal('move')}>
+                <Typography>{t('move')}</Typography>
+              </MenuItem>
+            )}
+            <MenuItem
+              data-cy="addAttachmentButton"
+              onClick={openModal('addAttachment')}
+            >
+              <Typography>{t('addAttachment')}</Typography>
             </MenuItem>
-          )}
-          <MenuItem
-            data-cy="addAttachmentButton"
-            onClick={openModal('addAttachment')}
-          >
-            <Typography>{t('addAttachment')}</Typography>
-          </MenuItem>
-          <Divider />
+            <Divider />
+          </Gate>
           <MenuItem onClick={openModal('logicProgram')}>
             <Typography>{t('viewLogicProgram')}</Typography>
           </MenuItem>
@@ -110,10 +113,12 @@ export function CardContextMenu({
               </MenuItem>
             </>
           )}
-          <Divider />
-          <MenuItem data-cy="deleteCardButton" onClick={handleDeleteClick}>
-            <Typography color="danger">{t('deleteCard')}</Typography>
-          </MenuItem>
+          <Gate minRole={UserRole.Editor}>
+            <Divider />
+            <MenuItem data-cy="deleteCardButton" onClick={handleDeleteClick}>
+              <Typography color="danger">{t('deleteCard')}</Typography>
+            </MenuItem>
+          </Gate>
         </Menu>
       </Dropdown>
 
