@@ -4,12 +4,6 @@ import { test, expect } from '../fixtures.js';
 import { editPage, dismissSaveToast } from '../helpers.js';
 import t from '../../src/locales/en/translation.json' with { type: 'json' };
 
-// Attachment tests are independent: each test restores the golden project
-// (cheap, ~35 ms) in beforeEach and starts from the same pristine root card,
-// so tests can run in any order and across parallel workers — no
-// `mode: 'serial'` in this file. New attachment tests should follow the same
-// pattern: rely only on golden-project state, never on a previous test.
-
 // Open the golden project's root card (the only card after a reset).
 async function openRootCard(page: Page) {
   await page
@@ -90,9 +84,6 @@ test.describe('Attachments', () => {
   test('removes the attachment', async ({ page }) => {
     await openRootCard(page);
 
-    // Setup via API, not UI: adding through the modal is covered by the add
-    // tests. Upload the attachment directly through the backend, then reload
-    // so the UI starts from a card that already has an attachment.
     const urlMatch = page.url().match(/\/projects\/([^/]+)\/cards\/([^/?#]+)/);
     if (!urlMatch) {
       throw new Error(`expected /projects/<prefix>/cards/<key>: ${page.url()}`);
