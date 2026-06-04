@@ -17,14 +17,14 @@ import type { AnyNode } from '@/lib/api/types';
 import { useTranslation } from 'react-i18next';
 import { findCardParentInResourceTree } from '@/lib/utils';
 import { useAppRouter } from '@/lib/hooks';
-import { useCanAdmin } from '@/lib/auth';
+import { useIsAdmin } from '@/lib/auth';
 
 export function ConfigCardEditor({ node }: { node: AnyNode }) {
   const card = useRawCard(node.id);
   const { resourceTree } = useResourceTree();
   const router = useAppRouter();
   const { t } = useTranslation();
-  const canAdmin = useCanAdmin();
+  const isAdmin = useIsAdmin();
   if (card.isLoading) {
     return <div>{t('loading')}</div>;
   }
@@ -42,7 +42,7 @@ export function ConfigCardEditor({ node }: { node: AnyNode }) {
       afterDelete={() =>
         router.push(parent ? `/configuration/${parent.name}` : '/configuration')
       }
-      readOnly={node?.readOnly || !canAdmin}
+      readOnly={node?.readOnly || !isAdmin}
     />
   );
 }

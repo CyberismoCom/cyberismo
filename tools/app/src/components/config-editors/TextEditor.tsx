@@ -22,13 +22,13 @@ import { useTranslation } from 'react-i18next';
 import { CODE_MIRROR_CONFIG_PROPS, CODE_MIRROR_THEMES } from '@/lib/constants';
 import { useResource } from '@/lib/api';
 import { useIsDarkMode } from '@/lib/hooks';
-import { useCanAdmin } from '@/lib/auth';
+import { useIsAdmin } from '@/lib/auth';
 
 export function TextEditor({ node }: { node: FileNode }) {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const isDarkMode = useIsDarkMode();
-  const canAdmin = useCanAdmin();
+  const isAdmin = useIsAdmin();
   const [content, setContent] = useState(node.data.content);
 
   const { update, isUpdating } = useResource(node.resourceName);
@@ -90,7 +90,7 @@ export function TextEditor({ node }: { node: FileNode }) {
       <CodeMirror
         {...CODE_MIRROR_CONFIG_PROPS}
         theme={isDarkMode ? CODE_MIRROR_THEMES.dark : CODE_MIRROR_THEMES.light}
-        readOnly={node.readOnly || !canAdmin}
+        readOnly={node.readOnly || !isAdmin}
         value={content}
         onChange={(value: string) => setContent(value)}
       />

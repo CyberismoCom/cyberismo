@@ -38,7 +38,7 @@ import { useModals } from '@/lib/utils';
 import { NewTemplateCardModal } from '../components/modals/resource-forms/NewTemplateCardModal';
 import { useConfigTemplateCreationContext } from '@/lib/hooks';
 import { AppModalsProvider } from '@/lib/contexts/AppModalsProvider';
-import { useCanEdit, useCanAdmin } from '@/lib/auth';
+import { useCanEdit, useIsAdmin } from '@/lib/auth';
 import type { ResourceName } from '@/lib/constants';
 import { useCallback, useState } from 'react';
 
@@ -67,7 +67,7 @@ const notificationDurationMap = {
 export default function Layout() {
   const inCards = useIsInCards();
   const canEdit = useCanEdit();
-  const canAdmin = useCanAdmin();
+  const isAdmin = useIsAdmin();
   const { templateResource, parentCardKey } =
     useConfigTemplateCreationContext();
   const { modalOpen, openModal, closeModal } = useModals({
@@ -114,7 +114,7 @@ export default function Layout() {
             if (!canEdit) return;
             openModal('card')();
           } else {
-            if (!canAdmin) return;
+            if (!isAdmin) return;
             if (!resourceType) {
               console.warn(
                 'No resource type provided when creating a new resource',

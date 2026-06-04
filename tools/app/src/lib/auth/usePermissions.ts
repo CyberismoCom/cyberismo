@@ -21,4 +21,4 @@ export function useHasRole(minRole: UserRole): boolean {
 }
 
 export const useCanEdit = () => useHasRole(UserRole.Editor);
-export const useCanAdmin = () => useHasRole(UserRole.Admin);
+export const useIsAdmin = () => useHasRole(UserRole.Admin);

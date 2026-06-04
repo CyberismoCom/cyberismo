@@ -33,7 +33,7 @@ import {
   useKeyboardShortcut,
   useConfigTemplateCreationContext,
 } from '@/lib/hooks';
-import { useCanEdit, useCanAdmin } from '@/lib/auth';
+import { useCanEdit, useIsAdmin } from '@/lib/auth';
 import type { ResourceName } from '@/lib/constants';
 import { RESOURCES } from '@/lib/constants';
 import { ThemeModeToggle } from './ThemeModeToggle';
@@ -127,8 +127,8 @@ export default function AppToolbar({ onCreate, onMenuClick }: AppToolbarProps) {
   const { t } = useTranslation();
   const inCards = useIsInCards();
   const canEdit = useCanEdit();
-  const canAdmin = useCanAdmin();
-  const canCreate = inCards ? canEdit : canAdmin;
+  const isAdmin = useIsAdmin();
+  const canCreate = inCards ? canEdit : isAdmin;
   useKeyboardShortcut(
     {
       key: 'c',
