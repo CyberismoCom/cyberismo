@@ -22,16 +22,22 @@ import type {
 import type { Project } from '../containers/project.js';
 import type { UpdateKey } from '../interfaces/resource-interfaces.js';
 import { runWithDefaultCommitMessage } from '../utils/commit-context.js';
+import { ResourceMutations } from '../mutations/resource-mutations.js';
+import { resourceName as parseResourceName } from '../utils/resource-utils.js';
 
 /**
  * Class that handles 'update' commands.
  */
 export class Update {
+  private readonly mutations: ResourceMutations;
+
   /**
    * Creates an instance of Update command.
    * @param project Project to use.
    */
-  constructor(private project: Project) {}
+  constructor(private project: Project) {
+    this.mutations = new ResourceMutations(project);
+  }
 
   /**
    * Update single resource property
@@ -48,9 +54,40 @@ export class Update {
     T extends UpdateOperations,
     K extends string,
   >(name: string, updateKey: UpdateKey<K>, operation: OperationFor<Type, T>) {
+    const type = this.project.resources.extractType(name);
+
+    // A rename is encoded as a 'change' on the 'name' updateKey.
+    const isRename = updateKey.key === 'name' && operation.name === 'change';
+
+    // PR1 routes ONLY linkTypes through the engine. Other resource families
+    // keep their legacy in-class cascade path until their own handler PR
+    // lands. (Do not generalise this to a Set of types — PR1's dispatcher
+    // would route unhandled types to DefaultNoCascadeHandler and silently
+    // drop their cascade.)
+    if (type === 'linkTypes') {
+      const target = parseResourceName(name);
+
+      if (isRename) {
+        const newIdentifier = parseResourceName(
+          (operation as ChangeOperation<string>).to,
+        ).identifier;
+        const input = { kind: 'rename' as const, target, newIdentifier };
+        await this.mutations.apply(input);
+        return;
+      }
+
+      const input = {
+        kind: 'edit' as const,
+        target,
+        updateKey,
+        operation,
+      };
+      await this.mutations.apply(input);
+      return;
+    }
+
     const run = () =>
       this.project.lock.write(async () => {
-        const type = this.project.resources.extractType(name);
         const resource = this.project.resources.byType(name, type);
         await resource?.update(updateKey, operation);
       });

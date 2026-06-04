@@ -1,0 +1,42 @@
+/**
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2026
+
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
+*/
+
+import type { Handler, MutationContext } from './handler.js';
+import { DefaultNoCascadeHandler } from './handlers/default-no-cascade.js';
+import { LinkTypeDeleteHandler } from './handlers/link-type-delete.js';
+import { LinkTypeRenameHandler } from './handlers/link-type-rename.js';
+
+const HANDLERS: Handler[] = [
+  new LinkTypeRenameHandler(),
+  new LinkTypeDeleteHandler(),
+  new DefaultNoCascadeHandler(),
+];
+
+export function dispatch(ctx: MutationContext): Handler {
+  for (const handler of HANDLERS) {
+    if (handler.matches(ctx)) return handler;
+  }
+  throw new Error(
+    `No mutation handler for input: ${JSON.stringify(ctx.input)}`,
+  );
+}
+
+/** Test-only escape hatch for registering a handler ahead of the default. */
+export function _registerHandlerForTest(handler: Handler): () => void {
+  HANDLERS.unshift(handler);
+  return () => {
+    const idx = HANDLERS.indexOf(handler);
+    if (idx >= 0) HANDLERS.splice(idx, 1);
+  };
+}

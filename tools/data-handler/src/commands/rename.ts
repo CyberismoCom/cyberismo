@@ -17,10 +17,7 @@ import { join } from 'node:path';
 import { rename, readdir, readFile, writeFile } from 'node:fs/promises';
 
 import type { Card } from '../interfaces/project-interfaces.js';
-import {
-  ConfigurationLogger,
-  ConfigurationOperation,
-} from '../utils/configuration-logger.js';
+import { ConfigurationLogger } from '../utils/configuration-logger.js';
 import { isTemplateCard } from '../utils/card-utils.js';
 import { type Project } from '../containers/project.js';
 import { ResourcesFrom } from '../containers/project/resources-from.js';
@@ -288,8 +285,9 @@ export class Rename {
     await this.project.populateCaches();
 
     await ConfigurationLogger.log(this.project.basePath, {
-      operation: ConfigurationOperation.PROJECT_RENAME,
+      kind: 'project_rename',
       target: this.to,
+      payload: { oldPrefix: this.from, newPrefix: this.to },
     });
   }
 }

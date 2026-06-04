@@ -37,60 +37,6 @@ export class LinkTypeResource extends FileResource<LinkType> {
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
   }
 
-  // Update card metadata links when link type is renamed
-  private async updateCardLinks(from: string, to: string) {
-    const cards = await this.collectCards(
-      from,
-      (card, linkTypeName) =>
-        card.metadata?.links?.some((link) => link.linkType === linkTypeName) ??
-        false,
-    );
-    if (cards.length === 0) {
-      return;
-    }
-
-    await Promise.all(
-      cards.map(async (card) => {
-        if (card.metadata?.links) {
-          card.metadata.links = card.metadata.links.map((link) => {
-            if (link.linkType === from) {
-              return { ...link, linkType: to };
-            }
-            return link;
-          });
-          await this.project.updateCardMetadata(card, card.metadata);
-        }
-      }),
-    );
-  }
-
-  /**
-   * When resource name changes.
-   * @param existingName Current resource name.
-   */
-  protected async onNameChange(existingName: string) {
-    const current = this.content;
-    const prefixes = this.project.projectPrefixes();
-    if (current.sourceCardTypes) {
-      current.sourceCardTypes = current.sourceCardTypes.map((item) =>
-        this.updatePrefixInResourceName(item, prefixes),
-      );
-    }
-    if (current.destinationCardTypes) {
-      current.destinationCardTypes = current.destinationCardTypes.map((item) =>
-        this.updatePrefixInResourceName(item, prefixes),
-      );
-    }
-    await Promise.all([
-      super.updateHandleBars(existingName, this.content.name),
-      super.updateCalculations(existingName, this.content.name),
-      super.updateCardContentReferences(existingName, this.content.name),
-      this.updateCardLinks(existingName, this.content.name),
-    ]);
-    // Finally, write updated content.
-    await this.write();
-  }
-
   /**
    * Creates a new link type object. Base class writes the object to disk automatically.
    * @param newContent Content for the link type.
@@ -107,13 +53,38 @@ export class LinkTypeResource extends FileResource<LinkType> {
   }
 
   /**
+   * No-op stub: FileResource declares onNameChange as an abstract member
+   * (the `?` modifier makes the call site in FileResource.update() use
+   * optional chaining, but TS2515 still requires a concrete subclass to
+   * declare the method). The LinkType rename cascade has moved into
+   * LinkTypeRenameHandler — engine routing in commands/update.ts
+   * intercepts the rename before FileResource.update() would invoke this
+   * hook, so the stub is unreachable at runtime. Delete this stub once
+   * the abstract declaration is removed from FileResource in a later PR.
+   */
+  protected async onNameChange(): Promise<void> {
+    return;
+  }
+
+  /**
    * Renames resource metadata file and renames memory resident object 'name'.
    * @param newName New name for the resource.
    */
   public async rename(newName: ResourceName) {
-    const existingName = this.content.name;
     await super.rename(newName);
-    return this.onNameChange(existingName);
+    const current = this.content;
+    const prefixes = this.project.projectPrefixes();
+    if (current.sourceCardTypes) {
+      current.sourceCardTypes = current.sourceCardTypes.map((item) =>
+        this.updatePrefixInResourceName(item, prefixes),
+      );
+    }
+    if (current.destinationCardTypes) {
+      current.destinationCardTypes = current.destinationCardTypes.map((item) =>
+        this.updatePrefixInResourceName(item, prefixes),
+      );
+    }
+    await this.write();
   }
 
   /**
