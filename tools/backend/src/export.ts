@@ -11,15 +11,13 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import path from 'node:path';
-
-import fs, { readFile } from 'node:fs/promises';
+import fs from 'node:fs/promises';
 
 import type { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from './app.js';
 import { MockAuthProvider } from './auth/mock.js';
 import type { ProjectRegistry } from './project-registry.js';
-import { cp, writeFile } from 'node:fs/promises';
+import { cp } from 'node:fs/promises';
 import { staticFrontendDirRelative } from './utils.js';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
 import { toSSG } from 'hono/ssg';
@@ -108,21 +106,14 @@ export async function exportSite(
     );
   }
 
+  if (defaultProject) {
+    process.env.CYBERISMO_DEFAULT_PROJECT = defaultProject;
+  }
+
   const app = createApp(new MockAuthProvider(), registry, opts, true);
 
   // copy whole frontend to the same directory
   await cp(staticFrontendDirRelative, exportDir, { recursive: true });
-  // read config file and change export to true
-  const config = await readFile(path.join(exportDir, 'config.json'), 'utf-8');
-  const configJson = JSON.parse(config);
-  configJson.staticMode = true;
-  if (defaultProject) {
-    configJson.defaultProject = defaultProject;
-  }
-  await writeFile(
-    path.join(exportDir, 'config.json'),
-    JSON.stringify(configJson),
-  );
 
   reset();
 

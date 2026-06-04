@@ -234,7 +234,12 @@
     "modulesSection": "Modules",
     "updateAllModules": "Update all modules",
     "updateAllModulesSuccess": "All modules updated successfully",
-    "addModule": "Add module"
+    "addModule": "Add module",
+    "gitRemoteUrl": "Git remote URL",
+    "gitPushPublicKey": "SSH public key",
+    "copyToClipboard": "Copy",
+    "copiedToClipboard": "Copied!",
+    "notAGitRepo": "Not a git repository"
   },
   "goToField": "Go to field",
   "identifier": "Identifier",

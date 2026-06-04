@@ -31,6 +31,7 @@ import type {
 import type { AnyNode } from './api/types';
 import type { CardResponse } from './api/types';
 import type { AppConfig } from './definitions';
+import { globalApiPaths } from './swr';
 
 const defined = '[A-Za-z0-9._-]+';
 
@@ -81,12 +82,22 @@ let _config: AppConfig = { staticMode: false, presenceEnabled: false };
  * Fetches config.json. Must be called once before the app renders.
  */
 export async function initConfig(): Promise<void> {
-  try {
-    const res = await fetch('/config.json');
-    _config = await res.json();
-  } catch {
-    _config = { staticMode: false, presenceEnabled: false };
+  // Try without extension first (live server), then with .json (static export)
+  for (const url of [
+    globalApiPaths.config(),
+    `${globalApiPaths.config()}.json`,
+  ]) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        _config = await res.json();
+        return;
+      }
+    } catch {
+      // try next
+    }
   }
+  _config = { staticMode: false, presenceEnabled: false };
 }
 
 /**

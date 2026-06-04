@@ -25,11 +25,13 @@ export interface ProjectInfo {
   name: string;
   cardKeyPrefix: string;
   modules: ProjectModule[];
+  gitRemoteUrl: string | null;
 }
 
 export interface ProjectUpdatePayload {
   name?: string;
   cardKeyPrefix?: string;
+  gitRemoteUrl?: string;
 }
 
 async function toModuleInfo(
@@ -60,10 +62,13 @@ export async function getProject(
       modules.map((mod) => toModuleInfo(commands, mod.name)),
     );
 
+    const gitRemoteUrl = (await commands.showCmd.showGitRemoteUrl()) ?? null;
+
     return {
       name: project.name,
       cardKeyPrefix: project.prefix,
       modules: moduleDetails,
+      gitRemoteUrl,
     };
   });
 }
@@ -72,7 +77,7 @@ export async function updateProject(
   commands: CommandManager,
   updates: ProjectUpdatePayload,
 ): Promise<ProjectInfo> {
-  const { name, cardKeyPrefix } = updates;
+  const { name, cardKeyPrefix, gitRemoteUrl } = updates;
 
   await commands.atomic(async () => {
     if (cardKeyPrefix) {
@@ -82,6 +87,10 @@ export async function updateProject(
       await commands.project.configuration.setProjectName(name);
     }
   }, 'Update project settings');
+
+  if (gitRemoteUrl !== undefined) {
+    await commands.editCmd.setGitRemoteUrl(gitRemoteUrl);
+  }
 
   return getProject(commands);
 }

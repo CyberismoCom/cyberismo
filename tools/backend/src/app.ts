@@ -29,8 +29,8 @@ import workflowsRouter from './domain/workflows/index.js';
 import labelsRouter from './domain/labels/index.js';
 import * as fs from 'node:fs/promises';
 import { readFile } from 'node:fs/promises';
-import path from 'node:path';
 import os from 'node:os';
+import path, { join } from 'node:path';
 import resourcesRouter from './domain/resources/index.js';
 import logicProgramsRouter from './domain/logicPrograms/index.js';
 import { isSSGContext } from 'hono/ssg';
@@ -83,6 +83,7 @@ export function createApp(
   registry: ProjectRegistry,
   opts?: TreeOptions,
   exportMode = false,
+  rootPath?: string,
 ) {
   const app = new Hono<{ Variables: AppVars }>();
 
@@ -101,6 +102,17 @@ export function createApp(
   }
 
   app.use(treeMiddleware(opts));
+
+  // Public app configuration
+  app.get('/api/config', (c) => {
+    return c.json({
+      staticMode: exportMode,
+      logoutUrl: process.env.APP_LOGOUT_URL || '',
+      presenceEnabled: process.env.APP_PRESENCE_ENABLED === 'true',
+      defaultProject: process.env.CYBERISMO_DEFAULT_PROJECT || undefined,
+    });
+  });
+
   // Apply authentication middleware to all API and MCP routes
   app.use('/api/*', createAuthMiddleware(authProvider));
   app.use('/mcp', createAuthMiddleware(authProvider));
@@ -165,6 +177,19 @@ export function createApp(
       return c.body(null, 204);
     });
   }
+  // Tenant-level SSH public key
+  app.get('/api/public-key', async (c) => {
+    if (!rootPath) return c.json({ publicKey: null });
+    try {
+      const content = await readFile(
+        join(rootPath, '.git-push', 'id_rsa.pub'),
+        'utf-8',
+      );
+      return c.json({ publicKey: content.trim() });
+    } catch {
+      return c.json({ publicKey: null });
+    }
+  });
 
   if (exportMode) {
     // Export mode: mount at each concrete prefix so SSG sees

@@ -75,7 +75,6 @@ COPY --from=builder /app/tools/node-clingo/dist ./tools/node-clingo/dist
 RUN mkdir -p ./tools/backend
 COPY --from=builder /app/tools/backend/package.json ./tools/backend/package.json
 COPY --from=builder /app/tools/backend/dist ./tools/backend/dist
-RUN chmod 666 ./tools/backend/dist/public/config.json
 
 # cli
 RUN mkdir -p ./tools/cli
@@ -112,10 +111,5 @@ COPY --from=builder /app/tools/node-clingo/build ./tools/node-clingo/build
 # setup bin
 RUN pnpm setup
 RUN pnpm link -g
-
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-ENTRYPOINT ["/entrypoint.sh"]
 
 WORKDIR /project

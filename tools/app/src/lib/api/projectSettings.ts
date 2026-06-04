@@ -30,7 +30,7 @@ export const useProjectSettings = (
   );
 
 export const updateProjectSettings = async (
-  body: Partial<Pick<GeneralSettings, 'cardKeyPrefix'>>,
+  body: Partial<Pick<GeneralSettings, 'cardKeyPrefix' | 'gitRemoteUrl'>>,
   projectPrefix?: string,
 ) => {
   const apiPaths = projectApiPaths(projectPrefix);
@@ -82,7 +82,9 @@ export const useProjectSettingsMutations = (projectPrefix?: string) => {
   const mutations = {
     isUpdating: (action?: string) => isUpdating(action),
     updateProject: (
-      body: Partial<Pick<GeneralSettings, 'name' | 'cardKeyPrefix'>>,
+      body: Partial<
+        Pick<GeneralSettings, 'name' | 'cardKeyPrefix' | 'gitRemoteUrl'>
+      >,
       action: string = 'update',
     ) => call(() => updateProjectSettings(body, projectPrefix), action),
     updateModule: (moduleName: string) =>
