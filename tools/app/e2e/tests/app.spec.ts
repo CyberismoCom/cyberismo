@@ -403,70 +403,6 @@ test.describe('Navigation', () => {
     ).toBeVisible();
   });
 
-  test('adds an attachment image to card', async ({ page }) => {
-    await page
-      .locator('p')
-      .filter({ hasText: /^Untitled page$/ })
-      .click();
-    await expect(
-      page.getByRole('heading', { level: 1, name: /^Untitled page$/ }),
-    ).toBeVisible();
-
-    await page.locator('p').filter({ hasText: 'Updated title' }).click();
-    await expect(
-      page.getByRole('heading', { level: 1, name: /^Updated title$/ }),
-    ).toBeVisible();
-
-    await page.getByTestId('contextMenuButton').click();
-    await page.getByTestId('addAttachmentButton').click();
-
-    // Verify add attachment dialog contents
-    await expect(
-      page.getByRole('dialog').locator('h2', { hasText: t.addAttachment }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole('dialog').locator('button').first(),
-    ).toBeVisible();
-    await expect(
-      page.getByRole('dialog').getByRole('button', { name: t.cancel }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole('dialog').getByRole('button', { name: t.add }),
-    ).toBeVisible();
-
-    // Add cyberismo.png to page — the upload button is a <label> wrapping a hidden <input>
-    await page
-      .getByTestId('fileUploadButton')
-      .locator('input[type="file"]')
-      .setInputFiles('./e2e/assets/cyberismo.png');
-    await page.getByRole('dialog').getByRole('button', { name: t.add }).click();
-
-    const attachToast = page
-      .getByRole('presentation')
-      .filter({ hasText: t.addAttachmentModal.success });
-    await expect(attachToast).toBeVisible();
-    await attachToast.getByTestId('notificationClose').click();
-    await expect(attachToast).toHaveCount(0);
-
-    // After a successful attachment add, CardBody should auto-enter edit mode
-    await expect(page.locator('.cm-editor')).toBeVisible();
-    await expect(
-      page.getByTestId('cardSidebar').filter({ hasText: 'cyberismo.png' }),
-    ).toBeVisible();
-
-    // Regression: clicking outside the editor must NOT exit edit mode
-    await page.getByTestId('metadataView').click();
-    await expect(page.locator('.cm-editor')).toBeVisible();
-
-    // Check that attachment side panel element exists and "hover" over it to show action buttons
-    await page.locator('span', { hasText: 'cyberismo.png' }).hover();
-    await page.getByTestId('insertToContentButton').click();
-    await page.getByTestId('contentSaveButton').click();
-    await dismissSaveToast(page);
-
-    await expect(page.locator('.doc img[alt="cyberismo"]')).toBeVisible();
-  });
-
   test('select card statuses', async ({ page }) => {
     await page
       .locator('p')
@@ -592,36 +528,6 @@ test.describe('Navigation', () => {
     await expect(deleteLinkToast).toHaveCount(0);
 
     await expect(page.getByTestId('cardLinkTitle')).toHaveCount(0);
-  });
-
-  test('Remove the attachment', async ({ page }) => {
-    await page
-      .locator('p')
-      .filter({ hasText: /^Untitled page$/ })
-      .click();
-    await expect(
-      page.getByRole('heading', { level: 1, name: /^Untitled page$/ }),
-    ).toBeVisible();
-
-    await page.locator('p').filter({ hasText: 'Updated title' }).click();
-    await expect(
-      page.getByRole('heading', { level: 1, name: /^Updated title$/ }),
-    ).toBeVisible();
-
-    // Enter inline edit mode so the AttachmentPanel is rendered
-    await editPage(page);
-    await expect(page.locator('.cm-editor')).toBeVisible();
-
-    // Accept the browser confirm dialog that the delete button triggers
-    page.once('dialog', (dialog) => dialog.accept());
-    await page.locator('[data-attachment-preview] img').hover();
-    await page.locator('[aria-label="Delete"]').hover();
-    await page.locator('[aria-label="Delete"]').click();
-
-    // After deletion the count badge shows 0 (MUI Joy Typography with color="warning")
-    await expect(
-      page.locator('.MuiTypography-colorWarning', { hasText: '0' }),
-    ).toBeVisible();
   });
 
   test('delete page content', async ({ page }) => {

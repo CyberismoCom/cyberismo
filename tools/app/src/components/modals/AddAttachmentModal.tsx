@@ -59,14 +59,13 @@ export function AddAttachmentModal({
     setFiles([...files, ...filteredFiles]);
   };
 
+  const handleClose = () => {
+    setFiles([]);
+    onClose();
+  };
+
   return (
-    <Modal
-      open={open}
-      onClose={() => {
-        setFiles([]);
-        onClose();
-      }}
-    >
+    <Modal open={open} onClose={handleClose}>
       <ModalDialog>
         <ModalClose />
         <DialogTitle>{t('addAttachmentModal.title')}</DialogTitle>
@@ -141,7 +140,7 @@ export function AddAttachmentModal({
                     }),
                   );
                   onAttachmentAdded?.();
-                  onClose();
+                  handleClose();
                 } catch (error) {
                   dispatch(
                     addNotification({
@@ -156,7 +155,7 @@ export function AddAttachmentModal({
             >
               {t('add')}
             </Button>
-            <Button onClick={onClose} variant="plain" color="neutral">
+            <Button onClick={handleClose} variant="plain" color="neutral">
               {t('cancel')}
             </Button>
           </DialogActions>

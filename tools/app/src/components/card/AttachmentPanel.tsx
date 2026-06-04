@@ -179,6 +179,7 @@ export const AttachmentPanel: React.FC<AttachmentPanelProps> = ({
       <Stack spacing={1}>
         <Stack direction="row" alignItems="center" spacing={1}>
           <Typography
+            data-cy="attachmentCountBadge"
             level="body-xs"
             color="warning"
             variant="soft"
