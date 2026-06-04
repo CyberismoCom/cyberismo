@@ -30,6 +30,7 @@
   "name": "Cyberismo Dev",
   "postCreateCommand": "bash .devcontainer/post-create.sh",
   "remoteEnv": {
+    "PATH": "/usr/lib/ccache:${containerEnv:PATH}",
     "VITE_HOST": "true"
   }
 }
