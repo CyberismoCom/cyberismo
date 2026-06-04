@@ -9,7 +9,7 @@
     "unit": "vitest run",
     "unit:watch": "vitest",
     "e2e": "playwright test",
-    "e2e:ui": "playwright test --ui",
+    "e2e:ui": "playwright test --ui-host=0.0.0.0 --ui-port=8080",
     "e2e:chromium": "playwright test --project=chromium",
     "test-env-dev": "cross-env NODE_ENV=test npm_config_project_path=../../.tmp/cyberismo-bat pnpm --filter backend start-e2e",
     "dev": "vite",
