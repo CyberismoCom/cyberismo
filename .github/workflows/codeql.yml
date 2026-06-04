@@ -104,3 +104,22 @@ jobs:
       uses: github/codeql-action/analyze@v4
       with:
         category: "/language:${{matrix.language}}"
+        upload: ${{ matrix.language == 'c-cpp' && 'failure-only' || 'always' }}
+        output: sarif-results
+
+    - name: Filter third-party paths from SARIF
+      if: matrix.language == 'c-cpp'
+      uses: advanced-security/filter-sarif@83be8931196fc98d9c506ff10e17763fed75bd1b # v1
+      with:
+        patterns: |
+          -node_modules/**
+          -tools/node-clingo/external/**
+        input: sarif-results/cpp.sarif
+        output: sarif-results/cpp.sarif
+
+    - name: Upload filtered SARIF
+      if: matrix.language == 'c-cpp'
+      uses: github/codeql-action/upload-sarif@v4
+      with:
+        sarif_file: sarif-results/cpp.sarif
+        category: "/language:${{matrix.language}}"
