@@ -33,7 +33,7 @@ import {
 } from '@mui/joy';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { isAppUrl, parseDataAttributes } from '@/lib/utils';
-import { useCanEdit } from '@/lib/auth';
+import { UserRole, useHasMinRole } from '@/lib/auth';
 import { useLocation } from 'react-router';
 import DownloadIcon from '@mui/icons-material/Download';
 import OpenInFullIcon from '@mui/icons-material/OpenInFull';
@@ -118,7 +118,7 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
     const router = useAppRouter();
     const { t } = useTranslation();
     const isDarkMode = useIsDarkMode();
-    const canEditRole = useCanEdit();
+    const canEditRole = useHasMinRole(UserRole.Editor);
     const location = useLocation();
 
     // Inline editing state

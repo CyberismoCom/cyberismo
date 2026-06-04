@@ -33,7 +33,7 @@ import {
   useKeyboardShortcut,
   useConfigTemplateCreationContext,
 } from '@/lib/hooks';
-import { useCanEdit, useIsAdmin } from '@/lib/auth';
+import { UserRole, useHasMinRole } from '@/lib/auth';
 import type { ResourceName } from '@/lib/constants';
 import { RESOURCES } from '@/lib/constants';
 import { ThemeModeToggle } from './ThemeModeToggle';
@@ -126,8 +126,8 @@ export function CreateButton({
 export default function AppToolbar({ onCreate, onMenuClick }: AppToolbarProps) {
   const { t } = useTranslation();
   const inCards = useIsInCards();
-  const canEdit = useCanEdit();
-  const isAdmin = useIsAdmin();
+  const canEdit = useHasMinRole(UserRole.Editor);
+  const isAdmin = useHasMinRole(UserRole.Admin);
   const canCreate = inCards ? canEdit : isAdmin;
   useKeyboardShortcut(
     {

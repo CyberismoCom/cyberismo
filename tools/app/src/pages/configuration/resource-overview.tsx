@@ -27,7 +27,7 @@ import {
   ResourceModuleSection,
   ResourceOverviewCard,
 } from '@/components/resource-overview';
-import { useIsAdmin } from '@/lib/auth';
+import { UserRole, useHasMinRole } from '@/lib/auth';
 
 function identifier(name: string) {
   const parts = name.split('/');
@@ -83,7 +83,7 @@ function ResourceOverviewContent({
 }) {
   const { t } = useTranslation();
   const { openCreateResourceModal } = useAppModals();
-  const isAdmin = useIsAdmin();
+  const isAdmin = useHasMinRole(UserRole.Admin);
   const [expandedModules, setExpandedModules] = useState<
     Record<string, boolean>
   >({});

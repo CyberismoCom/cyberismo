@@ -26,7 +26,7 @@ import type {
   QueryResult,
 } from '@cyberismo/data-handler/types/queries';
 import { useModals } from '@/lib/utils';
-import { useCanEdit } from '@/lib/auth';
+import { UserRole, useHasMinRole } from '@/lib/auth';
 import { useCard } from '@/lib/api';
 import { useAppDispatch, useAppSelector } from '@/lib/hooks/redux';
 import { setLinkedCardsExpanded } from '@/lib/slices/pageState';
@@ -64,7 +64,7 @@ export default function LinkedCardsSection({
   const { t } = useTranslation();
   const { isUpdating } = useCard(card.key);
   const dispatch = useAppDispatch();
-  const canEdit = useCanEdit();
+  const canEdit = useHasMinRole(UserRole.Editor);
   const expanded = useAppSelector((state) => state.page.linkedCardsExpanded);
   const [editing, setEditing] = useState(false);
   const [deleteLinkData, setDeleteLinkData] = useState<CalculationLink | null>(

@@ -27,7 +27,7 @@ import { useTree } from '../../lib/api/tree';
 import { useCard } from '../../lib/api/card';
 import { CardTreeMenu } from '@/components/CardTreeMenu';
 import type { AppLayoutOutletContext } from '../layout';
-import { useCanEdit } from '@/lib/auth';
+import { UserRole, useHasMinRole } from '@/lib/auth';
 
 /**
  * Delay in milliseconds before hiding the loading overlay after a move operation.
@@ -39,7 +39,7 @@ export default function AppLayout() {
   const { project, error, isLoading, updateCard } = useProject();
   const { tree, isLoading: isLoadingTree, error: treeError } = useTree();
   const { card } = useCard(key);
-  const canEdit = useCanEdit();
+  const canEdit = useHasMinRole(UserRole.Editor);
   const router = useAppRouter();
   const { drawerOpen, setDrawerOpen } =
     useOutletContext<AppLayoutOutletContext>();

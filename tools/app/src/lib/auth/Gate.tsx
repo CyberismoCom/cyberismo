@@ -13,14 +13,14 @@
 
 import type { ReactNode } from 'react';
 import type { UserRole } from './roles';
-import { useHasRole } from './usePermissions';
+import { useHasMinRole } from './usePermissions';
 
 interface GateProps {
-  role: UserRole;
+  minRole: UserRole;
   fallback?: ReactNode;
   children: ReactNode;
 }
 
-export function Gate({ role, fallback = null, children }: GateProps) {
-  return useHasRole(role) ? <>{children}</> : <>{fallback}</>;
+export function Gate({ minRole, fallback = null, children }: GateProps) {
+  return useHasMinRole(minRole) ? <>{children}</> : <>{fallback}</>;
 }

@@ -38,7 +38,7 @@ import { useModals } from '@/lib/utils';
 import { NewTemplateCardModal } from '../components/modals/resource-forms/NewTemplateCardModal';
 import { useConfigTemplateCreationContext } from '@/lib/hooks';
 import { AppModalsProvider } from '@/lib/contexts/AppModalsProvider';
-import { useCanEdit, useIsAdmin } from '@/lib/auth';
+import { UserRole, useHasMinRole } from '@/lib/auth';
 import type { ResourceName } from '@/lib/constants';
 import { useCallback, useState } from 'react';
 
@@ -66,8 +66,8 @@ const notificationDurationMap = {
 
 export default function Layout() {
   const inCards = useIsInCards();
-  const canEdit = useCanEdit();
-  const isAdmin = useIsAdmin();
+  const canEdit = useHasMinRole(UserRole.Editor);
+  const isAdmin = useHasMinRole(UserRole.Admin);
   const { templateResource, parentCardKey } =
     useConfigTemplateCreationContext();
   const { modalOpen, openModal, closeModal } = useModals({

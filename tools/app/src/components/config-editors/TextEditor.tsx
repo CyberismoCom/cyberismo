@@ -22,13 +22,13 @@ import { useTranslation } from 'react-i18next';
 import { CODE_MIRROR_CONFIG_PROPS, CODE_MIRROR_THEMES } from '@/lib/constants';
 import { useResource } from '@/lib/api';
 import { useIsDarkMode } from '@/lib/hooks';
-import { useIsAdmin } from '@/lib/auth';
+import { UserRole, useHasMinRole } from '@/lib/auth';
 
 export function TextEditor({ node }: { node: FileNode }) {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const isDarkMode = useIsDarkMode();
-  const isAdmin = useIsAdmin();
+  const isAdmin = useHasMinRole(UserRole.Admin);
   const [content, setContent] = useState(node.data.content);
 
   const { update, isUpdating } = useResource(node.resourceName);

@@ -25,7 +25,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import { CountBadge } from './CountBadge';
-import { useCanEdit } from '@/lib/auth';
+import { UserRole, useHasMinRole } from '@/lib/auth';
 
 // Generic types for check items
 export interface CheckItem {
@@ -77,7 +77,7 @@ export function ChecksAccordion({
   const [failuresExpanded, setFailuresExpanded] = useState(
     initialFailuresExpanded,
   );
-  const canEdit = useCanEdit();
+  const canEdit = useHasMinRole(UserRole.Editor);
 
   if (checks.successes.length === 0 && checks.failures.length === 0) {
     return null;

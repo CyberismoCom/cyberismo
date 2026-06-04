@@ -16,7 +16,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
 import { parseRole, roleSatisfies, UserRole } from '@/lib/auth/roles';
-import { useHasRole } from '@/lib/auth/usePermissions';
+import { useHasMinRole } from '@/lib/auth/usePermissions';
 import { Gate } from '@/lib/auth/Gate';
 
 const useUserMock = vi.fn(() => ({ user: null as unknown }));
@@ -90,7 +90,7 @@ describe('parseRole', () => {
 });
 
 function Probe({ role }: { role: UserRole }) {
-  const allowed = useHasRole(role);
+  const allowed = useHasMinRole(role);
   return <span>{allowed ? 'yes' : 'no'}</span>;
 }
 
@@ -101,7 +101,7 @@ function renderProbe(role: UserRole) {
   return text === 'yes';
 }
 
-describe('useHasRole', () => {
+describe('useHasMinRole', () => {
   it('treats a synthetic reader user (static mode) as reader-only', () => {
     useUserMock.mockReturnValue({
       user: { id: 'static-reader', email: '', name: '', role: 'reader' },
@@ -158,7 +158,7 @@ describe('<Gate>', () => {
     });
 
     render(
-      <Gate role={UserRole.Editor} fallback={<span>blocked</span>}>
+      <Gate minRole={UserRole.Editor} fallback={<span>blocked</span>}>
         <span>allowed</span>
       </Gate>,
     );
@@ -173,7 +173,7 @@ describe('<Gate>', () => {
     });
 
     render(
-      <Gate role={UserRole.Editor} fallback={<span>blocked</span>}>
+      <Gate minRole={UserRole.Editor} fallback={<span>blocked</span>}>
         <span>allowed</span>
       </Gate>,
     );
@@ -188,7 +188,7 @@ describe('<Gate>', () => {
     });
 
     const { container } = render(
-      <Gate role={UserRole.Admin}>
+      <Gate minRole={UserRole.Admin}>
         <span>allowed</span>
       </Gate>,
     );

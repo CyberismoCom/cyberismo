@@ -19,7 +19,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import type { MetadataValue } from '@/lib/definitions';
 import type { CardResponse } from '@/lib/api/types';
 import { getDefaultValue } from '@/lib/utils';
-import { useCanEdit } from '@/lib/auth';
+import { UserRole, useHasMinRole } from '@/lib/auth';
 import { format } from 'date-fns';
 import { FieldRow } from './FieldRow';
 import { LABEL_SPLITTER } from '@/lib/constants';
@@ -50,7 +50,7 @@ export default function MetadataSection({
   const [expanded, setExpanded] = useState(initialExpanded);
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
-  const canEditRole = useCanEdit();
+  const canEditRole = useHasMinRole(UserRole.Editor);
 
   useEffect(() => {
     setEditingFieldKey(null);

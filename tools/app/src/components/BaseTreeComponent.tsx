@@ -17,7 +17,7 @@ import type { NodeRendererProps, NodeApi, TreeApi } from 'react-arborist';
 import { Tree } from 'react-arborist';
 import { Link } from 'react-router';
 import { useResizeObserver } from '../lib/hooks';
-import { useCanEdit } from '@/lib/auth';
+import { UserRole, useHasMinRole } from '@/lib/auth';
 
 export interface BaseTreeProps<T> {
   title?: string;
@@ -54,7 +54,7 @@ export function BaseTreeComponent<T>({
   const treeRef = useRef(null);
   const { width, height, ref } = useResizeObserver();
   const { height: titleHeight, ref: titleRef } = useResizeObserver();
-  const canEdit = useCanEdit() && !readOnly;
+  const canEdit = useHasMinRole(UserRole.Editor) && !readOnly;
 
   useEffect(() => {
     const tree = treeRef.current as unknown as TreeApi<T> | null;

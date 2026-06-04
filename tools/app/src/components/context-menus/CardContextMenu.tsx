@@ -88,7 +88,7 @@ export function CardContextMenu({
           </MenuButton>
         </Tooltip>
         <Menu>
-          <Gate role={UserRole.Editor}>
+          <Gate minRole={UserRole.Editor}>
             {isModuleCard === false && (
               <MenuItem id="moveCardButton" onClick={openModal('move')}>
                 <Typography>{t('move')}</Typography>
@@ -113,7 +113,7 @@ export function CardContextMenu({
               </MenuItem>
             </>
           )}
-          <Gate role={UserRole.Editor}>
+          <Gate minRole={UserRole.Editor}>
             <Divider />
             <MenuItem data-cy="deleteCardButton" onClick={handleDeleteClick}>
               <Typography color="danger">{t('deleteCard')}</Typography>

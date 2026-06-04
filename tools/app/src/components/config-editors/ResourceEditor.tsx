@@ -38,13 +38,13 @@ import type {
 import FieldRow from './fields/FieldRow';
 import { resourceFieldConfigs, type FieldConfig } from './resourceFieldConfigs';
 import { FORM_FIELD_MAX_WIDTH } from '@/lib/constants';
-import { useIsAdmin } from '@/lib/auth';
+import { UserRole, useHasMinRole } from '@/lib/auth';
 
 export function ResourceEditor({ node }: { node: ResourceNode }) {
   const { t } = useTranslation();
   const { validateResource } = useValidateResource(node.name);
   const editor = useResourceEditorHelpers(node);
-  const isAdmin = useIsAdmin();
+  const isAdmin = useHasMinRole(UserRole.Admin);
 
   if (!isResourceNode(node) || !('data' in node)) {
     return (

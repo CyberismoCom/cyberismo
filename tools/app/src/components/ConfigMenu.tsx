@@ -23,7 +23,7 @@ import { findResourceNodeByName } from '@/lib/utils';
 import { useAppRouter } from '@/lib/hooks';
 import { resolveConfigTreeMove } from '@/lib/configTreeMove';
 import { addNotification } from '@/lib/slices/notifications';
-import { useIsAdmin } from '@/lib/auth';
+import { UserRole, useHasMinRole } from '@/lib/auth';
 import type { NodeApi } from 'react-arborist';
 import type { AnyNode } from '@/lib/api/types';
 import { RESOURCES } from '@/lib/constants';
@@ -61,7 +61,7 @@ export default function ConfigMenu() {
       ? findResourceNodeByName(resourceTree, selectedName)?.id
       : undefined;
   const { safePush } = useAppRouter();
-  const isAdmin = useIsAdmin();
+  const isAdmin = useHasMinRole(UserRole.Admin);
 
   const handleMove = useCallback(
     async (dragIds: string[], parentId: string | null, index: number) => {

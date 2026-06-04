@@ -12,13 +12,10 @@
 */
 
 import { useUser } from '@/lib/api';
-import { UserRole, parseRole, roleSatisfies } from './roles';
+import { type UserRole, parseRole, roleSatisfies } from './roles';
 
-export function useHasRole(minRole: UserRole): boolean {
+export function useHasMinRole(minRole: UserRole): boolean {
   const { user } = useUser();
   if (!user) return false;
   return roleSatisfies(parseRole(user.role), minRole);
 }
-
-export const useCanEdit = () => useHasRole(UserRole.Editor);
-export const useIsAdmin = () => useHasRole(UserRole.Admin);

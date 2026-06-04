@@ -12,5 +12,5 @@
 */
 
 export { UserRole, parseRole, roleSatisfies } from './roles';
-export { useHasRole, useCanEdit, useIsAdmin } from './usePermissions';
+export { useHasMinRole } from './usePermissions';
 export { Gate } from './Gate';

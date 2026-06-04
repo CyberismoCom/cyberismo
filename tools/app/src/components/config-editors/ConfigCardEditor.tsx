@@ -17,14 +17,14 @@ import type { AnyNode } from '@/lib/api/types';
 import { useTranslation } from 'react-i18next';
 import { findCardParentInResourceTree } from '@/lib/utils';
 import { useAppRouter } from '@/lib/hooks';
-import { useIsAdmin } from '@/lib/auth';
+import { UserRole, useHasMinRole } from '@/lib/auth';
 
 export function ConfigCardEditor({ node }: { node: AnyNode }) {
   const card = useRawCard(node.id);
   const { resourceTree } = useResourceTree();
   const router = useAppRouter();
   const { t } = useTranslation();
-  const isAdmin = useIsAdmin();
+  const isAdmin = useHasMinRole(UserRole.Admin);
   if (card.isLoading) {
     return <div>{t('loading')}</div>;
   }

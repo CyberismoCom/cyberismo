@@ -20,7 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { useAppDispatch } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
 import { isEdited } from '@/lib/slices/pageState';
-import { useCanEdit } from '@/lib/auth';
+import { UserRole, useHasMinRole } from '@/lib/auth';
 import type { MetadataValue } from '@/lib/definitions';
 
 type CardTitleProps = {
@@ -40,7 +40,7 @@ export const CardTitle: React.FC<CardTitleProps> = ({
 }) => {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
-  const canEditRole = useCanEdit();
+  const canEditRole = useHasMinRole(UserRole.Editor);
 
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(title);

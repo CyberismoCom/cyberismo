@@ -33,7 +33,7 @@ import BaseToolbar from './BaseToolbar';
 import { CardContextMenu } from '@/components/context-menus';
 import PresenceIndicator from '@/components/PresenceIndicator';
 import SvgViewerModal from '@/components/modals/svgViewerModal';
-import { useCanEdit } from '@/lib/auth';
+import { UserRole, useHasMinRole } from '@/lib/auth';
 
 interface CardToolbarProps {
   cardKey: string;
@@ -61,7 +61,7 @@ export function CardToolbar({
   const presence = usePresence(cardKey, presenceMode);
 
   const dispatch = useAppDispatch();
-  const canEdit = useCanEdit();
+  const canEdit = useHasMinRole(UserRole.Editor);
 
   const workflow =
     project && card ? findWorkflowForCardType(card.cardType, project) : null;

@@ -16,7 +16,7 @@ import { useTranslation } from 'react-i18next';
 import type { AnyNode } from '../../lib/api/types';
 import BaseToolbar from './BaseToolbar';
 import { ConfigContextMenu } from '../context-menus';
-import { useIsAdmin } from '@/lib/auth';
+import { UserRole, useHasMinRole } from '@/lib/auth';
 
 interface ConfigToolbarProps {
   node: AnyNode;
@@ -38,7 +38,7 @@ export function ConfigToolbar({
   enabled,
 }: ConfigToolbarProps) {
   const { t } = useTranslation();
-  const isAdmin = useIsAdmin();
+  const isAdmin = useHasMinRole(UserRole.Admin);
 
   // Create breadcrumbs from the node path
   const breadcrumbs = (() => {
