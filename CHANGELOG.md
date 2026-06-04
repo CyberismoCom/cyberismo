@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.0.27] — 2026-06-04
+
+### Highlights
+
+This release adds the first version of `git push` directly from the CLI, includes workflow state in PDF exports, and fixes several UI layout issues on narrow screens and mobile.
+
+### Features
+
+- Add first version of git push functionality (#1397)
+- Add workflow state to PDF export (#1395)
+- Improve TOC and notifications & checks responsivity (#1425)
+- Improve SVG viewer controls on mobile (#1383)
+
+### Fixes
+
+- Fix image overlay buttons overlap (#1430)
+- Hide export project option in exported static site (#1393)
+- Pre-render workflow graphs for static site export (#1391)
+- Prevent card content edit button overlap on narrow screens (#1378)
+
+### Dependencies
+
+- Security: update `tar` to patch CVE-2026-29786 (hardlink path traversal, high severity) (#1369)
+- 8 dependency updates (#1334, #1399, #1419, #1421, #1422, #1426, #1427, #1428)
+
+### Internal
+
+- Replace Cypress with Playwright for E2E tests (#1398)
+- Add CODEOWNERS file (#1394)
+- Skip Docker build if already published (#1384)
+- Improve Dependabot grouping (#1418)
+- Add descriptions for docs project resources (#1396)
+- Update docs to application version 0.0.26 (#1388, #1389)
+
 ## [0.0.26] — 2026-05-28
 
 ### Highlights
