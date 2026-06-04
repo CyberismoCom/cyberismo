@@ -16,10 +16,8 @@ import { isModuleCard, isExternalItemKey } from '../utils/card-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { declaredModules, installedModules } from '../modules/inventory.js';
 import { cleanOrphans } from '../modules/orphans.js';
-import {
-  ConfigurationLogger,
-  ConfigurationOperation,
-} from '../utils/configuration-logger.js';
+import { ResourceMutations } from '../mutations/resource-mutations.js';
+import { resourceName as parseResourceName } from '../utils/resource-utils.js';
 import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
 import type { RemovableResourceTypes } from '../interfaces/project-interfaces.js';
@@ -37,10 +35,14 @@ export class Remove {
    * Creates a new instance of Remove command.
    * @param project Project instance to use
    */
+  private readonly mutations: ResourceMutations;
+
   constructor(
     private project: Project,
     private fetchCmd: Fetch,
-  ) {}
+  ) {
+    this.mutations = new ResourceMutations(project);
+  }
 
   // True, if resource is a project resource
   private projectResource(type: RemovableResourceTypes): boolean {
@@ -297,6 +299,12 @@ export class Remove {
       );
     }
     if (this.projectResource(type)) {
+      if (type === 'linkType') {
+        const target = parseResourceName(targetName);
+        const input = { kind: 'delete' as const, target };
+        await this.mutations.apply(input);
+        return;
+      }
       const resource = this.project.resources.byType(
         targetName,
         this.project.resources.resourceTypeFromSingularType(type),
@@ -347,10 +355,6 @@ export class Remove {
 
     // Delete the top-level declaration from cardsConfig.json.
     await this.project.configuration.removeModule(targetName);
-    await ConfigurationLogger.log(this.project.basePath, {
-      operation: ConfigurationOperation.MODULE_REMOVE,
-      target: targetName,
-    });
 
     // Removes this module's installation (now orphaned) plus any
     // transitives it owned that nothing else references.

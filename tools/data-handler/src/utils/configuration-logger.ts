@@ -24,29 +24,17 @@ import type {
 } from '../resources/resource-object.js';
 import type { ResourceFolderType } from '../interfaces/project-interfaces.js';
 
-/**
- * Enum for configuration change operation types.
- */
-export enum ConfigurationOperation {
-  MODULE_REMOVE = 'module_remove',
-  PROJECT_RENAME = 'project_rename',
-  RESOURCE_DELETE = 'resource_delete',
-  RESOURCE_RENAME = 'resource_rename',
-  RESOURCE_UPDATE = 'resource_update',
-}
+export type MigrationEntryKind =
+  | 'resource_edit'
+  | 'resource_delete'
+  | 'resource_rename'
+  | 'project_rename';
 
-/**
- * Individual log entry representing a single configuration change.
- * @param timestamp Timestamp when the operation occurred (ISO string)
- * @param operation Type of operation performed
- * @param target Target of the operation
- * @param parameters Additional parameters specific to the operation
- */
 export interface ConfigurationLogEntry {
   timestamp: string;
-  operation: ConfigurationOperation;
+  kind: MigrationEntryKind;
   target: string;
-  parameters?: Record<string, unknown>;
+  payload: Record<string, unknown>;
 }
 
 /** Keys where ALL operations (including remove) are non-breaking. */
@@ -105,7 +93,7 @@ export class ConfigurationLogger {
   public static async createVersion(
     projectPath: string,
     version: string,
-  ): Promise<string> {
+  ): Promise<string | null> {
     const paths = new ProjectPaths(projectPath);
     const currentLogPath = paths.configurationChangesLog;
     const versionedLogPath = join(
@@ -114,10 +102,14 @@ export class ConfigurationLogger {
     );
 
     if (!pathExists(currentLogPath)) {
-      throw new Error('No current migration log exists to version');
+      // Empty seal: no log file to rename; the version is sealed with no
+      // breaking changes. Per the spec, replay against a missing log is
+      // a no-op success.
+      const logger = getChildLogger({ module: 'ConfigurationLogger' });
+      logger.info(`Sealed empty migration log for version: ${version}`);
+      return null;
     }
 
-    // Rename current to versioned
     await rename(currentLogPath, versionedLogPath);
 
     const logger = getChildLogger({ module: 'ConfigurationLogger' });
@@ -150,7 +142,7 @@ export class ConfigurationLogger {
       for (const line of lines) {
         try {
           const entry = JSON.parse(line) as ConfigurationLogEntry;
-          if (entry.timestamp && entry.operation && entry.target) {
+          if (entry.timestamp && entry.kind && entry.target) {
             entries.push(entry);
           }
         } catch {
@@ -197,7 +189,7 @@ export class ConfigurationLogger {
       });
 
       logger.debug(
-        `Logged ${entry.operation} operation for target: ${entry.target}`,
+        `Logged ${entry.kind} operation for target: ${entry.target}`,
       );
     } catch (error) {
       logger.error({ error, ...entry }, `Configuration logging failed`);
@@ -228,31 +220,6 @@ export class ConfigurationLogger {
     );
   }
 
-  public static async logResourceDelete(
-    projectPath: string,
-    target: string,
-    resourceType: ResourceFolderType,
-  ): Promise<void> {
-    await ConfigurationLogger.log(projectPath, {
-      operation: ConfigurationOperation.RESOURCE_DELETE,
-      target,
-      parameters: { type: resourceType },
-    });
-  }
-
-  public static async logResourceRename(
-    projectPath: string,
-    target: string,
-    resourceType: ResourceFolderType,
-    op: ChangeOperation<string>,
-  ): Promise<void> {
-    await ConfigurationLogger.log(projectPath, {
-      operation: ConfigurationOperation.RESOURCE_RENAME,
-      target,
-      parameters: { type: resourceType, operation: op },
-    });
-  }
-
   public static async logResourceUpdate<T>(
     projectPath: string,
     target: string,
@@ -267,9 +234,34 @@ export class ConfigurationLogger {
       if (ConfigurationLogger.isNonBreakingArrayChange(key, op)) return;
     }
     await ConfigurationLogger.log(projectPath, {
-      operation: ConfigurationOperation.RESOURCE_UPDATE,
+      kind: 'resource_edit',
       target,
-      parameters: { type: resourceType, operation: op, key },
+      payload: { type: resourceType, operation: op, key },
+    });
+  }
+
+  public static async logResourceRename(
+    projectPath: string,
+    target: string,
+    resourceType: ResourceFolderType,
+    op: ChangeOperation<string>,
+  ): Promise<void> {
+    await ConfigurationLogger.log(projectPath, {
+      kind: 'resource_rename',
+      target,
+      payload: { type: resourceType, newName: op.to },
+    });
+  }
+
+  public static async logResourceDelete(
+    projectPath: string,
+    target: string,
+    resourceType: ResourceFolderType,
+  ): Promise<void> {
+    await ConfigurationLogger.log(projectPath, {
+      kind: 'resource_delete',
+      target,
+      payload: { type: resourceType },
     });
   }
 }

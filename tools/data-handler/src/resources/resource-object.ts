@@ -44,8 +44,6 @@ import type {
 } from '../interfaces/resource-interfaces.js';
 import type { Validate } from '../commands/validate.js';
 
-import { ConfigurationLogger } from '../utils/configuration-logger.js';
-
 // Possible operations to perform when doing "update"
 export type UpdateOperations = 'add' | 'change' | 'rank' | 'remove';
 
@@ -405,14 +403,6 @@ export abstract class ResourceObject<
     }
   }
 
-  protected logTarget(): [string, string, ResourceFolderType] {
-    return [
-      this.project.basePath,
-      resourceNameToString(this.resourceName),
-      this.type,
-    ];
-  }
-
   /**
    * Called after inherited class has finished 'update' operation.
    * @param content New content for resource
@@ -455,12 +445,6 @@ export abstract class ResourceObject<
 
     this.content = content;
     await this.write();
-
-    await ConfigurationLogger.logResourceUpdate(
-      ...this.logTarget(),
-      op,
-      updateKey.key,
-    );
   }
 
   /**
@@ -512,12 +496,6 @@ export abstract class ResourceObject<
     this.resourceName = newName;
 
     this.project.resources.rename(oldName, newNameString);
-
-    await ConfigurationLogger.logResourceRename(...this.logTarget(), {
-      name: 'change',
-      target: oldName,
-      to: newNameString,
-    });
   }
 
   /**
@@ -783,8 +761,6 @@ export abstract class ResourceObject<
     await deleteFile(this.fileName);
     this.project.resources.remove(resourceNameToString(this.resourceName));
     this.fileName = '';
-
-    await ConfigurationLogger.logResourceDelete(...this.logTarget());
   }
 
   /**
