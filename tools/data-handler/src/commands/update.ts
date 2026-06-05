@@ -66,7 +66,12 @@ export class Update {
     // drop their cascade.)
     const target = parseResourceName(name);
 
-    if (type === 'linkTypes') {
+    // linkTypes + fieldTypes route every edit through the engine: dataType /
+    // enumValues ops have dedicated handlers, and the remaining shapes (e.g.
+    // displayName) fall through to DefaultNoCascadeHandler, which calls
+    // resource.update() — exactly what the legacy path did, with no cascade
+    // and no log entry.
+    if (type === 'linkTypes' || type === 'fieldTypes') {
       if (isRename) {
         const newIdentifier = parseResourceName(
           (operation as ChangeOperation<string>).to,

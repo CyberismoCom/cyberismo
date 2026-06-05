@@ -21,6 +21,12 @@ import { CardTypeDeleteHandler } from './handlers/card-type-delete.js';
 import { CardTypeAddCustomFieldHandler } from './handlers/card-type-add-custom-field.js';
 import { CardTypeRemoveCustomFieldHandler } from './handlers/card-type-remove-custom-field.js';
 import { CardTypeWorkflowChangeHandler } from './handlers/card-type-workflow-change.js';
+import { FieldTypeRenameHandler } from './handlers/field-type-rename.js';
+import { FieldTypeDataTypeHandler } from './handlers/field-type-data-type.js';
+import { FieldTypeEnumAddHandler } from './handlers/field-type-enum-add.js';
+import { FieldTypeEnumRemoveHandler } from './handlers/field-type-enum-remove.js';
+import { FieldTypeEnumRenameHandler } from './handlers/field-type-enum-rename.js';
+import { FieldTypeDeleteHandler } from './handlers/field-type-delete.js';
 
 const HANDLERS: Handler[] = [
   new LinkTypeRenameHandler(),
@@ -32,6 +38,15 @@ const HANDLERS: Handler[] = [
   new CardTypeAddCustomFieldHandler(),
   new CardTypeRemoveCustomFieldHandler(),
   new CardTypeWorkflowChangeHandler(),
+  // The field-type handlers below are near-identical thin routers on
+  // purpose: each absorbs its own cascade from FieldTypeResource when the
+  // legacy path is removed, so don't merge them into a shared base.
+  new FieldTypeRenameHandler(),
+  new FieldTypeDataTypeHandler(),
+  new FieldTypeEnumAddHandler(),
+  new FieldTypeEnumRemoveHandler(),
+  new FieldTypeEnumRenameHandler(),
+  new FieldTypeDeleteHandler(),
   new DefaultNoCascadeHandler(),
 ];
 
