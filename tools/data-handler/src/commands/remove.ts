@@ -299,7 +299,7 @@ export class Remove {
       );
     }
     if (this.projectResource(type)) {
-      if (type === 'linkType') {
+      if (type === 'linkType' || type === 'cardType') {
         const target = parseResourceName(targetName);
         const input = { kind: 'delete' as const, target };
         await this.mutations.apply(input);

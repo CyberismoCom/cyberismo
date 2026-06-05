@@ -16,10 +16,23 @@ import type { Handler, MutationContext } from './handler.js';
 import { DefaultNoCascadeHandler } from './handlers/default-no-cascade.js';
 import { LinkTypeDeleteHandler } from './handlers/link-type-delete.js';
 import { LinkTypeRenameHandler } from './handlers/link-type-rename.js';
+import { CardTypeRenameHandler } from './handlers/card-type-rename.js';
+import { CardTypeDeleteHandler } from './handlers/card-type-delete.js';
+import { CardTypeAddCustomFieldHandler } from './handlers/card-type-add-custom-field.js';
+import { CardTypeRemoveCustomFieldHandler } from './handlers/card-type-remove-custom-field.js';
+import { CardTypeWorkflowChangeHandler } from './handlers/card-type-workflow-change.js';
 
 const HANDLERS: Handler[] = [
   new LinkTypeRenameHandler(),
   new LinkTypeDeleteHandler(),
+  new CardTypeRenameHandler(),
+  new CardTypeDeleteHandler(),
+  // The three card-type edit handlers below are near-identical thin routers
+  // on purpose: each absorbs its own cascade from CardTypeResource when the
+  // legacy path is removed, so don't merge them into a shared base.
+  new CardTypeAddCustomFieldHandler(),
+  new CardTypeRemoveCustomFieldHandler(),
+  new CardTypeWorkflowChangeHandler(),
   new DefaultNoCascadeHandler(),
 ];
 
