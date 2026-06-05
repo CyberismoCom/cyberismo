@@ -16,14 +16,8 @@ import { ResourceMutations } from '../mutations/resource-mutations.js';
 import { write } from '../utils/rw-lock.js';
 
 /**
- * Class that handles the 'rename' command. The project-prefix rename cascade
- * is owned by ProjectRenameHandler; this command is a thin wrapper that routes
- * the request through ResourceMutations.apply.
- *
- * The cascade (resource renames, card-key/reference rewrites, attachments,
- * metadata) and the `project_rename` ConfigurationLogger entry are both
- * produced by the mutations engine, so this command no longer logs — that
- * keeps the log entry written exactly once.
+ * Handles the 'rename' command: routes a project-prefix rename through the
+ * mutations engine, which performs the cascade and records the log entry.
  */
 export class Rename {
   /**

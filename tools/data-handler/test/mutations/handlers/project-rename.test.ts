@@ -42,8 +42,8 @@ describe('ProjectRenameHandler', () => {
     expect(
       handler.matches({
         project,
-        // @ts-expect-error wrong input kind on purpose
-        input: { kind: 'rename', newPrefix: 'renamed' },
+        // @ts-expect-error matches() must reject inputs whose kind is not 'project_rename'
+        input: { kind: 'rename' },
       }),
     ).toBe(false);
   });

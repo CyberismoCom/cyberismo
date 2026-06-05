@@ -34,18 +34,11 @@ const FILE_TYPES_WITH_PREFIX_REFERENCES = ['adoc', 'hbs', 'json', 'lp'];
  * reference, every `<oldPrefix>_*` card key, card metadata, attachments, and
  * file contents (adoc/hbs/json/lp).
  *
- * This is the largest cascade in the system. It was previously owned by
- * `commands/rename.ts:Rename.rename(to)`; that command is now a thin wrapper
- * that routes through `ResourceMutations.apply({ kind: 'project_rename' })`,
- * so this handler is the single owner of the cascade. The whole operation
- * runs inside `apply`; there is no module-target / local-target split because
- * a project rename only ever touches the local project.
+ * The whole operation runs in apply(); there is no module-target/local-target
+ * split because a project rename only ever touches the local project.
  *
- * `isBreaking` is true: a prefix change rewrites resource names and card keys
- * across the project, so `ResourceMutations` records a `project_rename`
- * ConfigurationLogger entry afterwards. The handler itself does NOT log — the
- * old `Rename` command's `ConfigurationLogger.log` call has been removed so
- * the entry is written exactly once, by the engine.
+ * isBreaking is true: the engine records the project_rename log entry after
+ * apply() succeeds; this handler must not log it itself.
  */
 export class ProjectRenameHandler implements Handler {
   readonly isBreaking = true;
@@ -131,7 +124,7 @@ export class ProjectRenameHandler implements Handler {
   }
 }
 
-// ---- Helpers extracted from commands/rename.ts (formerly private methods) ----
+// ---- Cascade helpers ----
 
 async function renameCards(
   ctx: MutationContext,
@@ -143,8 +136,7 @@ async function renameCards(
   const sortedCards = [...cards].sort((a, b) => b.path.length - a.path.length);
 
   // Negative lookahead so only the last occurrence in the path is replaced;
-  // the path may contain project prefixes that must not be touched. Matches
-  // the original rename logic in commands/rename.ts.
+  // the path may contain project prefixes that must not be touched.
   const re = new RegExp(`${from}(?!.*${from})`);
 
   // Cannot run in parallel: deeper cards must be renamed before their parents.

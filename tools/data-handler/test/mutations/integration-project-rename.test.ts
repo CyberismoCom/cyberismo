@@ -47,8 +47,7 @@ describe('ProjectRename end-to-end', () => {
 
     expect(project.projectPrefix).toBe('renamed');
 
-    // The engine records the project_rename ConfigurationLogger entry exactly
-    // once. The Rename command no longer logs, so there is no double entry.
+    // Exactly one project_rename entry is recorded per rename.
     const entries = await ConfigurationLogger.entries(project.basePath);
     const projectRenameEntries = entries.filter(
       (e) => e.kind === 'project_rename',
