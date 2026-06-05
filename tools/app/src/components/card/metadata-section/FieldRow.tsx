@@ -22,6 +22,7 @@ import type { DataType, MetadataValue } from '@/lib/definitions';
 import type { EnumDefinition } from '@cyberismo/data-handler/types/queries';
 import EditableField, { FieldLabel } from '@/components/EditableField';
 import FieldEditor from '@/components/FieldEditor';
+import { coerceMetadataValue } from '@/lib/utils';
 
 export interface FieldRowProps {
   id?: string;
@@ -37,30 +38,6 @@ export interface FieldRowProps {
   onSave?: (value: MetadataValue) => void;
   onAutoSave?: (value: MetadataValue) => void;
   onCancel?: () => void;
-}
-
-function coerceValue(
-  rawValue: string | string[] | null,
-  dataType: DataType | 'label',
-): MetadataValue {
-  switch (dataType) {
-    case 'number':
-    case 'integer':
-      return rawValue ? parseFloat(rawValue as string) : null;
-    case 'boolean':
-      return rawValue === 'true' ? true : rawValue === 'false' ? false : null;
-    case 'list':
-      return Array.isArray(rawValue) ? rawValue : [];
-    case 'shortText':
-    case 'longText':
-    case 'date':
-    case 'dateTime':
-    case 'person':
-    case 'enum':
-      return rawValue === '' ? null : rawValue;
-    default:
-      return rawValue;
-  }
 }
 
 export function FieldRow({
@@ -97,7 +74,7 @@ export function FieldRow({
     rawValue: string | string[] | null,
     onChange: (v: MetadataValue) => void,
   ) => {
-    const coerced = coerceValue(rawValue, dataType);
+    const coerced = coerceMetadataValue(rawValue, dataType);
     onChange(coerced);
     onAutoSave?.(coerced);
   };

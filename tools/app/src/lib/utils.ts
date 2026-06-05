@@ -400,10 +400,49 @@ export function getDefaultValue(
     return null;
   }
   if (Array.isArray(value)) {
-    return value.map((listValue) => listValue.value);
+    // List values come either as query-shaped items ({ value }) or, from the
+    // raw card endpoint, as plain primitives — normalise both to their value.
+    return (value as Array<string | { value: string }>).map((item) =>
+      typeof item === 'object' && item !== null ? item.value : item,
+    );
   }
   return value.value;
 }
+
+/**
+ * Coerce a raw field-editor value (string | string[] | null) into a typed
+ * metadata value. Shared by the metadata field rows and editors.
+ */
+export function coerceMetadataValue(
+  rawValue: string | string[] | null,
+  dataType: DataType | 'label',
+): MetadataValue {
+  switch (dataType) {
+    case 'number':
+    case 'integer':
+      return rawValue ? parseFloat(rawValue as string) : null;
+    case 'boolean':
+      return rawValue === 'true' ? true : rawValue === 'false' ? false : null;
+    case 'list':
+      return Array.isArray(rawValue) ? rawValue : [];
+    case 'shortText':
+    case 'longText':
+    case 'date':
+    case 'dateTime':
+    case 'person':
+    case 'enum':
+      return rawValue === '' ? null : rawValue;
+    default:
+      return rawValue;
+  }
+}
+
+/** Stable equality for metadata values (handles arrays/objects). */
+export const metadataValuesEqual = (a: MetadataValue, b: MetadataValue) =>
+  JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+
+/** DOM id for a metadata field row (shared by the metadata view and editors). */
+export const metadataFieldRowId = (key: string) => `metadata-field-${key}`;
 
 /**
  * Returns all cards, to which it is possible to move the card

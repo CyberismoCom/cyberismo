@@ -603,6 +603,77 @@ test.describe('Navigation', () => {
       .click();
   });
 
+  // Regression test for INTDEV-1312: the template card editor is edit-first —
+  // every section opens already in edit mode and saves independently, instead
+  // of showing metadata fields read-only with a lock icon.
+  test('edits custom metadata fields in the template card editor', async ({
+    page,
+  }) => {
+    const keys = JSON.parse(
+      readFileSync(
+        join(import.meta.dirname, '..', 'assets', 'e2e-keys.json'),
+        'utf8',
+      ),
+    ) as { localTemplateCardKey: string };
+    const url = page.url();
+    const projectPrefix = url.split('/projects/')[1].split('/')[0];
+    await page.goto(
+      `/configuration/${projectPrefix}/cards/${keys.localTemplateCardKey}`,
+    );
+
+    // Every section is in edit mode by default: the metadata editors and the
+    // content editor are visible on load without any click.
+    await expect(page.getByTestId('contentSaveButton')).toBeVisible();
+    const metadata = page.getByTestId('metadataView');
+    await expect(metadata).toBeVisible();
+
+    // The attachment panel lives in the right sidebar.
+    await expect(
+      page.getByTestId('cardSidebar').getByTestId('addAttachmentButton'),
+    ).toBeVisible();
+
+    // A custom field is already an open editor and saves on its own.
+    const row = metadata.locator(
+      '[id="metadata-field-test/fieldTypes/shortText"]',
+    );
+    const input = row.getByRole('textbox');
+    await expect(input).toBeVisible();
+    await input.fill('edited via config editor');
+    await row.getByTestId('fieldSaveButton').click();
+    // After saving, the row re-syncs and its Save button is no longer dirty.
+    await expect(row.getByTestId('fieldSaveButton')).toBeDisabled();
+    await expect(input).toHaveValue('edited via config editor');
+
+    // The title is a separate, edit-first editor (not a metadata row): it is an
+    // open input on load. An unsaved title edit shows in Preview and toggling
+    // back keeps it.
+    await expect(
+      metadata.locator('[id="metadata-field-__title__"]'),
+    ).toHaveCount(0);
+    const titleInput = page.locator('#card-title-editor').getByRole('textbox');
+    await expect(titleInput).toBeVisible();
+    await titleInput.fill('Unsaved title edit'); // not saved
+    await page.getByTestId('previewTab').click();
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Unsaved title edit' }),
+    ).toBeVisible();
+    await page.getByTestId('editTab').click();
+    await expect(titleInput).toHaveValue('Unsaved title edit');
+
+    // Cancel must keep Preview in sync: an unsaved field edit shows in Preview,
+    // then Cancel reverts it and Preview no longer shows it.
+    await input.fill('WILL CANCEL');
+    await page.getByTestId('previewTab').click();
+    await expect(page.getByTestId('metadataView')).toContainText('WILL CANCEL');
+    await page.getByTestId('editTab').click();
+    await row.getByTestId('fieldCancelButton').click();
+    await expect(input).toHaveValue('edited via config editor');
+    await page.getByTestId('previewTab').click();
+    await expect(page.getByTestId('metadataView')).not.toContainText(
+      'WILL CANCEL',
+    );
+  });
+
   test('test notifications and policy checks', async ({ page }) => {
     await page.getByTestId('createNewButton').click();
     await page
