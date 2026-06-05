@@ -168,7 +168,7 @@ describe('useConfigTemplateCreationContext', () => {
 
   test('returns template context on templates route', () => {
     mockedResourceTree = [];
-    renderAt('/configuration/test/templates/mytemplate');
+    renderAt('/projects/test/configuration/test/templates/mytemplate');
 
     expect(screen.getByTestId('show').textContent).toBe('true');
     expect(screen.getByTestId('template').textContent).toBe(
@@ -194,7 +194,7 @@ describe('useConfigTemplateCreationContext', () => {
       } as unknown as AnyNode,
     ];
 
-    renderAt('/configuration/test/cards/test_ic2n3e7w');
+    renderAt('/projects/test/configuration/test/cards/test_ic2n3e7w');
 
     expect(screen.getByTestId('show').textContent).toBe('true');
     expect(screen.getByTestId('template').textContent).toBe(
@@ -205,7 +205,7 @@ describe('useConfigTemplateCreationContext', () => {
 
   test('returns false outside configuration', () => {
     mockedResourceTree = [];
-    renderAt('/cards');
+    renderAt('/projects/test/cards');
     expect(screen.getByTestId('show').textContent).toBe('false');
     expect(screen.getByTestId('template').textContent).toBe('');
     expect(screen.getByTestId('parent').textContent).toBe('');
@@ -213,7 +213,7 @@ describe('useConfigTemplateCreationContext', () => {
 
   test('returns false in other resources', () => {
     mockedResourceTree = [];
-    renderAt('/configuration/test/fieldTypes/myfieldtype');
+    renderAt('/projects/test/configuration/test/fieldTypes/myfieldtype');
     expect(screen.getByTestId('show').textContent).toBe('false');
     expect(screen.getByTestId('template').textContent).toBe('');
     expect(screen.getByTestId('parent').textContent).toBe('');
@@ -243,7 +243,7 @@ describe('useConfigTemplateCreationContext', () => {
       } as unknown as AnyNode,
     ];
 
-    renderAt('/configuration/test/cards/nested_card');
+    renderAt('/projects/test/configuration/test/cards/nested_card');
 
     expect(screen.getByTestId('show').textContent).toBe('true');
     expect(screen.getByTestId('template').textContent).toBe(

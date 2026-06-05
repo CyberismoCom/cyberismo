@@ -348,18 +348,27 @@ export function useConfigTemplateCreationContext(): {
   const parts = location.pathname.split('/');
   const { resourceTree } = useResourceTree();
 
-  const inConfiguration = parts.length >= 3 && parts[1] === 'configuration';
+  // Routes are nested under /projects/:projectPrefix/, so locate the
+  // configuration segment instead of relying on a fixed index
+  const configIndex = parts.indexOf('configuration');
+  const inConfiguration = configIndex !== -1;
   const isTemplates =
-    inConfiguration && parts.length >= 5 && parts[3] === 'templates';
+    inConfiguration &&
+    parts.length >= configIndex + 4 &&
+    parts[configIndex + 2] === 'templates';
   const isTemplateCard =
-    inConfiguration && parts.length >= 5 && parts[3] === 'cards';
+    inConfiguration &&
+    parts.length >= configIndex + 4 &&
+    parts[configIndex + 2] === 'cards';
 
-  let templateResource = isTemplates ? parts.slice(2, 5).join('/') : '';
-  const parentCardKey = isTemplateCard ? parts[4] : undefined;
+  let templateResource = isTemplates
+    ? parts.slice(configIndex + 1, configIndex + 4).join('/')
+    : '';
+  const parentCardKey = isTemplateCard ? parts[configIndex + 3] : undefined;
 
   // If inside a template card route, try to resolve the owning template from the resource tree
   if (!templateResource && isTemplateCard && resourceTree) {
-    const cardKey = parts[4];
+    const cardKey = parts[configIndex + 3];
     const found = findTemplateForCard(resourceTree, cardKey);
     if (found) {
       templateResource = found;
