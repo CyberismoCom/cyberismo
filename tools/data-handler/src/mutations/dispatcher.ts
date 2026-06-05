@@ -27,6 +27,12 @@ import { FieldTypeEnumAddHandler } from './handlers/field-type-enum-add.js';
 import { FieldTypeEnumRemoveHandler } from './handlers/field-type-enum-remove.js';
 import { FieldTypeEnumRenameHandler } from './handlers/field-type-enum-rename.js';
 import { FieldTypeDeleteHandler } from './handlers/field-type-delete.js';
+import { WorkflowRenameHandler } from './handlers/workflow-rename.js';
+import { WorkflowAddStateHandler } from './handlers/workflow-add-state.js';
+import { WorkflowRemoveStateHandler } from './handlers/workflow-remove-state.js';
+import { WorkflowRenameStateHandler } from './handlers/workflow-rename-state.js';
+import { WorkflowTransitionHandler } from './handlers/workflow-transition.js';
+import { WorkflowDeleteHandler } from './handlers/workflow-delete.js';
 
 const HANDLERS: Handler[] = [
   new LinkTypeRenameHandler(),
@@ -46,6 +52,15 @@ const HANDLERS: Handler[] = [
   new FieldTypeEnumRemoveHandler(),
   new FieldTypeEnumRenameHandler(),
   new FieldTypeDeleteHandler(),
+  // The workflow handlers below are near-identical thin routers on purpose:
+  // each absorbs its own cascade from WorkflowResource when the legacy path
+  // is removed, so don't merge them into a shared base.
+  new WorkflowRenameHandler(),
+  new WorkflowAddStateHandler(),
+  new WorkflowRemoveStateHandler(),
+  new WorkflowRenameStateHandler(),
+  new WorkflowTransitionHandler(),
+  new WorkflowDeleteHandler(),
   new DefaultNoCascadeHandler(),
 ];
 
