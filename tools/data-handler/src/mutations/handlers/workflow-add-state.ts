@@ -17,10 +17,9 @@ import { resourceNameToString } from '../../utils/resource-utils.js';
 
 /**
  * Adding a state to a workflow is a NON-breaking change: it affects no
- * existing cards (no card is in the new state yet). The state insertion lives
- * in WorkflowResource.update (handleArray), so this handler only routes the
- * operation. isBreaking is false, so the engine records no log entry — matching
- * the legacy ConfigurationLogger classification (add is never breaking).
+ * existing cards (no card can be in the new state yet). The state insertion is
+ * performed by WorkflowResource.update; this handler routes the operation.
+ * isBreaking is false, so the engine records no log entry.
  */
 export class WorkflowAddStateHandler implements Handler {
   readonly isBreaking = false;

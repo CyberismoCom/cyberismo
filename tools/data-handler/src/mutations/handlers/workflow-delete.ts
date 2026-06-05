@@ -16,12 +16,11 @@ import type { Handler, MutationContext } from '../handler.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 
 /**
- * Deleting a workflow is a breaking change. The legacy path does NOT cascade:
- * WorkflowResource.delete refuses to delete a workflow that is still in use
- * (its usage() includes dependent card types and cards). This handler matches
- * that behavior — it is a thin router that delegates to `resource.delete()`
- * (which throws if the workflow is still used) and marks the change breaking
- * so the engine records a log entry.
+ * Deleting a workflow is a breaking change. WorkflowResource.delete refuses to
+ * delete a workflow that is still in use (its usage() includes dependent card
+ * types and cards). This handler delegates to `resource.delete()` (which throws
+ * if the workflow is still used) and marks the change breaking so the engine
+ * records a log entry.
  */
 export class WorkflowDeleteHandler implements Handler {
   readonly isBreaking = true;

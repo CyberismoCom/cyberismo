@@ -20,10 +20,8 @@ import {
 
 /**
  * Renaming a workflow is a breaking change: dependent card types' workflow
- * reference and all cross-resource references must be rewritten. The whole
- * cascade still lives in WorkflowResource.rename (onNameChange →
- * updateHandleBars / updateCalculations / updateCardContentReferences /
- * updateCardTypes), so this handler is a thin router: it delegates to
+ * reference and all cross-resource references must be rewritten. The cascade
+ * is performed by WorkflowResource.rename; this handler delegates to
  * `resource.rename()` and marks the change breaking so the engine records a
  * log entry.
  */

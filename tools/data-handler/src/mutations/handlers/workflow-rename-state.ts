@@ -20,14 +20,13 @@ import type { ChangeOperation } from '../../resources/resource-object.js';
  * Renaming a workflow state (a 'change' on 'states' whose target name differs
  * from the new name) is a breaking change: the state name is the array
  * identity, so every transition referencing it and every card in that state
- * must be rewritten. The whole cascade still lives in WorkflowResource.update
- * (handleStateChange → updateCardStates), so this handler is a thin router that
- * delegates to `resource.update()` and marks the change breaking.
+ * must be rewritten. The cascade is performed by WorkflowResource.update: it
+ * rewrites referencing transitions and card states. This handler delegates to
+ * `resource.update()` and marks the change breaking.
  *
  * A 'change' that only edits non-identity state properties (e.g. category) is
  * NOT matched here; it falls through to DefaultNoCascadeHandler, which runs the
- * same legacy update without recording a (non-breaking) log entry — matching
- * the legacy ConfigurationLogger classification.
+ * same update without recording a (non-breaking) log entry.
  */
 export class WorkflowRenameStateHandler implements Handler {
   readonly isBreaking = true;

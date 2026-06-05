@@ -84,7 +84,7 @@ describe('WorkflowRemoveStateHandler', () => {
     }
   });
 
-  it('apply with explicit replacementValue migrates cards to that state (legacy behavior)', async () => {
+  it('apply with explicit replacementValue migrates cards to that state', async () => {
     const cardKey = await seedCardInState('Rejected');
 
     const mutations = new ResourceMutations(project);
@@ -103,7 +103,7 @@ describe('WorkflowRemoveStateHandler', () => {
     expect(refetched.metadata?.workflowState).toBe('Approved');
   });
 
-  it('apply without replacementValue does NOT migrate cards (legacy behavior)', async () => {
+  it('apply without replacementValue does NOT migrate cards', async () => {
     const cardKey = await seedCardInState('Rejected');
 
     const mutations = new ResourceMutations(project);
@@ -117,8 +117,8 @@ describe('WorkflowRemoveStateHandler', () => {
       },
     });
 
-    // Legacy handleStateRemoval only migrates cards when a replacementValue is
-    // given; without one, the card keeps its (now-removed) state value.
+    // Cards are only migrated when a replacementValue is given; without one,
+    // the card keeps its (now-removed) state value.
     const refetched = project.cards(undefined).find((c) => c.key === cardKey)!;
     expect(refetched.metadata?.workflowState).toBe('Rejected');
   });

@@ -16,12 +16,12 @@ import type { Handler, MutationContext } from '../handler.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 
 /**
- * Removing a state from a workflow is a breaking change: transitions that
- * reference the state are rewritten (removed, or re-pointed at the replacement
- * state) and every card in the removed state is migrated. That whole cascade
- * still lives in WorkflowResource.update (handleStateRemoval → updateCardStates),
- * so this handler is a thin router: it delegates to `resource.update()` and
- * marks the change breaking so the engine records a log entry.
+ * Removing a state from a workflow is a breaking change. The cascade is
+ * performed by WorkflowResource.update: transitions that reference the state
+ * are rewritten (removed, or re-pointed at the replacementValue) and every
+ * card in the removed state is migrated. This handler delegates to
+ * `resource.update()` and marks the change breaking so the engine records a
+ * log entry.
  */
 export class WorkflowRemoveStateHandler implements Handler {
   readonly isBreaking = true;

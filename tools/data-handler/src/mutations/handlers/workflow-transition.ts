@@ -18,10 +18,8 @@ import { resourceNameToString } from '../../utils/resource-utils.js';
 /**
  * Changing a workflow's transitions (add/remove/change) is a NON-breaking
  * change: transitions are workflow-internal and no card data references them.
- * The transition handling lives in WorkflowResource.update (handleArray and
- * transitionObject), so this handler only routes the operation. isBreaking is
- * false, so the engine records no log entry — matching the legacy
- * ConfigurationLogger classification ('transitions' is a NON_BREAKING_KEY).
+ * The transition handling is performed by WorkflowResource.update; this handler
+ * routes the operation. isBreaking is false, so the engine records no log entry.
  */
 export class WorkflowTransitionHandler implements Handler {
   readonly isBreaking = false;

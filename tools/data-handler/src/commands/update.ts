@@ -131,12 +131,11 @@ export class Update {
       }
 
       // ALL workflow edits route through the engine. The dispatched handlers
-      // (add/remove/rename state, transition) are thin routers that delegate
-      // back to WorkflowResource.update — preserving the legacy in-class
-      // cascade — while recording a log entry for the breaking ones. Edit
-      // shapes without a dedicated handler (e.g. displayName change) fall to
-      // DefaultNoCascadeHandler, which runs the same `resource.update` without
-      // a log entry, matching the legacy non-breaking behavior.
+      // (add/remove/rename state, transition) delegate the cascade to
+      // WorkflowResource.update while recording a log entry for the breaking
+      // ones. Edit shapes without a dedicated handler (e.g. displayName change)
+      // fall to DefaultNoCascadeHandler, which runs the same `resource.update`
+      // with no log entry.
       const input = {
         kind: 'edit' as const,
         target,

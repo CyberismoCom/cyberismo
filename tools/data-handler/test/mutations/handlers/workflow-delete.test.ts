@@ -48,9 +48,9 @@ describe('WorkflowDeleteHandler', () => {
     expect(new WorkflowDeleteHandler().isBreaking).toBe(true);
   });
 
-  // OLD behavior: deleting a workflow that is still used (by card types / cards)
-  // is refused. The legacy WorkflowResource.delete throws when usage() is
-  // non-empty; no cascade deletion of dependents takes place.
+  // Deleting a workflow that is still used (by card types / cards) is refused.
+  // WorkflowResource.delete throws when usage() is non-empty; no cascade
+  // deletion of dependents takes place.
   it('refuses to delete a workflow that is still in use', async () => {
     const mutations = new ResourceMutations(project);
     await expect(
