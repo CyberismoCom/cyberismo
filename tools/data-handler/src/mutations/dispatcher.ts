@@ -35,6 +35,7 @@ import { WorkflowRenameStateHandler } from './handlers/workflow-rename-state.js'
 import { WorkflowTransitionHandler } from './handlers/workflow-transition.js';
 import { WorkflowDeleteHandler } from './handlers/workflow-delete.js';
 import { LeafResourceRenameHandler } from './handlers/leaf-resource-rename.js';
+import { ProjectRenameHandler } from './handlers/project-rename.js';
 
 const HANDLERS: Handler[] = [
   new LinkTypeRenameHandler(),
@@ -68,6 +69,7 @@ const HANDLERS: Handler[] = [
   new LeafResourceRenameHandler('reports', 'Report'),
   new LeafResourceRenameHandler('graphModels', 'Graph model'),
   new LeafResourceRenameHandler('graphViews', 'Graph view'),
+  new ProjectRenameHandler(),
   new DefaultNoCascadeHandler(),
 ];
 
