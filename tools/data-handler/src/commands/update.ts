@@ -147,7 +147,7 @@ export class Update {
     }
 
     // Renames for these leaf resource families are routed through the engine;
-    // their other edits fall through to the legacy path below.
+    // their other edits fall through to the in-class path below.
     if (
       isRename &&
       (type === 'calculations' ||

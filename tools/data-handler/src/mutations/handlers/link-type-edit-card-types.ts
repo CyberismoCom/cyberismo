@@ -17,15 +17,9 @@ import { resourceNameToString } from '../../utils/resource-utils.js';
 
 /**
  * Handles edits to a link type's `sourceCardTypes` / `destinationCardTypes`
- * arrays. Updating these arrays does not rewrite any card data, so the change
- * is non-breaking (isBreaking = false) and emits no cascade.
- *
- * This is a thin router: it delegates the array mutation to
- * LinkTypeResource.update, matching the legacy in-class behavior exactly. The
- * legacy update path performs no card-type existence check on 'add' (the only
- * guard is ArrayHandler's duplicate check), so this handler intentionally does
- * NOT validate that an added card type exists. See the PR report for the
- * parity rationale.
+ * arrays. This does not rewrite card data, so it is non-breaking and emits no
+ * cascade. Adding a card type is not validated for existence — only duplicates
+ * are rejected (by ArrayHandler).
  */
 export class LinkTypeEditCardTypesHandler implements Handler {
   readonly isBreaking = false;

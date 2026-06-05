@@ -97,11 +97,9 @@ describe('LinkTypeEditCardTypesHandler', () => {
     expect(lt!.sourceCardTypes).toContain('decision/cardTypes/decision');
   });
 
-  it('apply adds a card type that does not exist (matches legacy: no existence validation)', async () => {
+  it('apply adds a card type that does not exist (only duplicates are rejected)', async () => {
     const mutations = new ResourceMutations(project);
-    // Legacy LinkTypeResource.update performs no card-type existence check on
-    // 'add'; the handler intentionally preserves that behavior, so adding a
-    // non-existent card type succeeds.
+    // Adding a non-existent card type is allowed; only duplicates are rejected.
     await mutations.apply({
       kind: 'edit',
       target: resourceName(LT),
