@@ -15,6 +15,7 @@
 import type { Handler, MutationContext } from './handler.js';
 import { DefaultNoCascadeHandler } from './handlers/default-no-cascade.js';
 import { LinkTypeDeleteHandler } from './handlers/link-type-delete.js';
+import { LinkTypeEditCardTypesHandler } from './handlers/link-type-edit-card-types.js';
 import { LinkTypeRenameHandler } from './handlers/link-type-rename.js';
 import { CardTypeRenameHandler } from './handlers/card-type-rename.js';
 import { CardTypeDeleteHandler } from './handlers/card-type-delete.js';
@@ -33,10 +34,16 @@ import { WorkflowRemoveStateHandler } from './handlers/workflow-remove-state.js'
 import { WorkflowRenameStateHandler } from './handlers/workflow-rename-state.js';
 import { WorkflowTransitionHandler } from './handlers/workflow-transition.js';
 import { WorkflowDeleteHandler } from './handlers/workflow-delete.js';
+import { TemplateRenameHandler } from './handlers/template.js';
+import { CalculationRenameHandler } from './handlers/calculation.js';
+import { ReportRenameHandler } from './handlers/report.js';
+import { GraphModelRenameHandler } from './handlers/graph-model.js';
+import { GraphViewRenameHandler } from './handlers/graph-view.js';
 
 const HANDLERS: Handler[] = [
   new LinkTypeRenameHandler(),
   new LinkTypeDeleteHandler(),
+  new LinkTypeEditCardTypesHandler(),
   new CardTypeRenameHandler(),
   new CardTypeDeleteHandler(),
   // Cascades are operation-specific — keep one handler per edit operation;
@@ -60,6 +67,14 @@ const HANDLERS: Handler[] = [
   new WorkflowRenameStateHandler(),
   new WorkflowTransitionHandler(),
   new WorkflowDeleteHandler(),
+  // The leaf-resource rename handlers below are near-identical thin routers on
+  // purpose: each absorbs its own cascade from its resource class when the
+  // legacy path is removed, so don't merge them into a shared base.
+  new TemplateRenameHandler(),
+  new CalculationRenameHandler(),
+  new ReportRenameHandler(),
+  new GraphModelRenameHandler(),
+  new GraphViewRenameHandler(),
   new DefaultNoCascadeHandler(),
 ];
 
