@@ -17,10 +17,9 @@ import { resourceNameToString } from '../../utils/resource-utils.js';
 
 /**
  * Adding an enum value has no consumer-side cascade: existing cards keep their
- * current values and are unaffected by the new option. On the legacy path this
- * is a pure resource edit with no card rewrite, so it is NON-breaking and the
- * engine records no log entry. This handler routes the operation to
- * FieldTypeResource.update.
+ * current values and are unaffected by the new option. This is a pure resource
+ * edit with no card rewrite, so it is NON-breaking and the engine records no
+ * log entry. This handler routes the operation to FieldTypeResource.update.
  */
 export class FieldTypeEnumAddHandler implements Handler {
   readonly isBreaking = false;

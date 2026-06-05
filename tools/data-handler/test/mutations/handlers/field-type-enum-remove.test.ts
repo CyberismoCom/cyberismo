@@ -8,7 +8,6 @@ import { getTestProject } from '../../helpers/test-utils.js';
 import { FieldTypeEnumRemoveHandler } from '../../../src/mutations/handlers/field-type-enum-remove.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
-import type { Operation } from '../../../src/resources/resource-object.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-field-type-enum-remove');
@@ -45,17 +44,18 @@ function seedEnumField() {
   );
 }
 
-// Register the enum field on the decision card type so the legacy replacement
-// cascade (which only touches cards of card types declaring the field) has a
-// reference to follow, then seed the value 'low' onto those cards.
+// Register the enum field on the decision card type so the replacement cascade
+// (which only touches cards of card types declaring the field) has a reference
+// to follow, then seed the value 'low' onto those cards.
 async function seedCardTypeAndCardValues() {
   const cardTypeName = `${project.projectPrefix}/cardTypes/decision`;
-  await project.resources
-    .byType(cardTypeName, 'cardTypes')
-    .update({ key: 'customFields' }, {
-      name: 'add',
+  await project.resources.byType(cardTypeName, 'cardTypes').update(
+    { key: 'customFields' },
+    {
+      name: 'add' as const,
       target: { name: fieldName() },
-    } as Operation<{ name: string }>);
+    },
+  );
   const cards = project
     .cards(undefined)
     .filter((c) => c.metadata?.cardType === cardTypeName);
@@ -128,7 +128,7 @@ describe('FieldTypeEnumRemoveHandler', () => {
     expect(anyMedium).toBe(true);
   });
 
-  it('leaves card values untouched when no replacement is given (legacy behavior)', async () => {
+  it('leaves card values untouched when no replacement is given', async () => {
     const mutations = new ResourceMutations(project);
     await mutations.apply({
       kind: 'edit' as const,
@@ -136,8 +136,8 @@ describe('FieldTypeEnumRemoveHandler', () => {
       updateKey: { key: 'enumValues' as const },
       operation: { name: 'remove' as const, target: { enumValue: 'low' } },
     });
-    // The legacy path only replaces values when a replacementValue is given;
-    // with none, cards keep their now-orphaned value (they are NOT nulled).
+    // Values are only replaced when a replacementValue is given; with none,
+    // cards keep their orphaned value (they are NOT nulled).
     const cards = project
       .cards(undefined)
       .filter((c) => c.metadata?.[fieldName()] !== undefined);

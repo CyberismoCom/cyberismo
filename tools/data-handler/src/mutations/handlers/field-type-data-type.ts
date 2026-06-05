@@ -18,9 +18,8 @@ import { resourceNameToString } from '../../utils/resource-utils.js';
 /**
  * Changing a field type's data type is a breaking change: every card carrying
  * the field has its value converted to the new type. Conversion validation and
- * the per-card value rewrite still live in FieldTypeResource.update
- * (isConversionValid + dataTypeChanged), so this handler only routes the
- * operation and marks it breaking.
+ * the per-card value rewrite are performed by FieldTypeResource.update, so this
+ * handler only routes the operation and marks it breaking.
  */
 export class FieldTypeDataTypeHandler implements Handler {
   readonly isBreaking = true;

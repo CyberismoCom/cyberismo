@@ -60,7 +60,7 @@ export class Update {
     const isRename = updateKey.key === 'name' && operation.name === 'change';
 
     // Only resource families with a dedicated handler are routed through the
-    // engine; the rest use the in-class cascade path. (Do not generalise this
+    // engine; the rest apply their cascade in-class. (Do not generalise this
     // to a blanket Set of types — the dispatcher would route unhandled
     // (type, key, operation) tuples to DefaultNoCascadeHandler and silently
     // drop their cascade.)
@@ -69,8 +69,7 @@ export class Update {
     // linkTypes + fieldTypes route every edit through the engine: dataType /
     // enumValues ops have dedicated handlers, and the remaining shapes (e.g.
     // displayName) fall through to DefaultNoCascadeHandler, which calls
-    // resource.update() — exactly what the legacy path did, with no cascade
-    // and no log entry.
+    // resource.update() with no cascade and no log entry.
     if (type === 'linkTypes' || type === 'fieldTypes') {
       if (isRename) {
         const newIdentifier = parseResourceName(

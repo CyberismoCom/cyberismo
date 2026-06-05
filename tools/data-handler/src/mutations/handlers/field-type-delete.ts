@@ -16,12 +16,11 @@ import type { Handler, MutationContext } from '../handler.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 
 /**
- * Deleting a field type is a breaking change. On the legacy path a field type
- * has no consumer-side cascade: ResourceObject.delete() refuses (throws) while
- * the field is still referenced by any card or resource (usage() non-empty), so
- * deletion only succeeds once the field is unused. This handler preserves that
- * behavior by delegating to resource.delete(); it only marks the operation
- * breaking so the engine records a log entry.
+ * Deleting a field type is a breaking change. A field type has no consumer-side
+ * cascade: ResourceObject.delete() throws while the field is referenced by any
+ * card or resource (usage() non-empty), so deletion only succeeds once the
+ * field is unused. This handler delegates to resource.delete(); it only marks
+ * the operation breaking so the engine records a log entry.
  */
 export class FieldTypeDeleteHandler implements Handler {
   readonly isBreaking = true;

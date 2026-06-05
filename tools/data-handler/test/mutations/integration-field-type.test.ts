@@ -42,8 +42,8 @@ describe('FieldType mutation engine end-to-end', () => {
   });
 
   it('apply → log entry for a FieldType rename (unused field)', async () => {
-    // Renaming a field referenced by a card type is unsupported on the legacy
-    // path (see field-type-rename.test.ts), so rename an unused field.
+    // Renaming a field still referenced by a card type is rejected, so rename
+    // an unused field.
     const name = `${project.projectPrefix}/fieldTypes/spare`;
     await project.resources
       .byType(name, 'fieldTypes')

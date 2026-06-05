@@ -52,12 +52,11 @@ describe('FieldTypeRenameHandler', () => {
     expect(handler.matches(ctx)).toBe(false);
   });
 
-  it('renames the resource on disk via the legacy cascade', async () => {
+  it('renames the resource on disk via the cascade', async () => {
     // Rename an unused field type. (Renaming a field referenced by a card type
-    // is not supported on the legacy path: FieldTypeResource.rename's
-    // updateCardTypes cascade re-validates the now-removed old field name and
-    // throws — see the rejection test below. The handler faithfully preserves
-    // that behavior, so the happy path renames an unreferenced field.)
+    // is rejected: FieldTypeResource.rename's updateCardTypes cascade
+    // re-validates the now-removed old field name and throws, so the happy path
+    // renames an unreferenced field.)
     const oldName = `${project.projectPrefix}/fieldTypes/spare`;
     const newName = `${project.projectPrefix}/fieldTypes/spareRenamed`;
     await project.resources
@@ -76,10 +75,10 @@ describe('FieldTypeRenameHandler', () => {
     expect(project.resources.exists(oldName)).toBe(false);
   });
 
-  it('reproduces the legacy rejection when renaming a field referenced by a card type', async () => {
+  it('rejects renaming a field referenced by a card type', async () => {
     // 'finished' is referenced by the decision card type's customFields. The
-    // legacy updateCardTypes cascade re-validates the old name after the
-    // resource is renamed and throws. The handler must not mask this.
+    // updateCardTypes cascade re-validates the old name after the resource is
+    // renamed and throws. The handler must not mask this.
     const oldName = `${project.projectPrefix}/fieldTypes/finished`;
     const mutations = new ResourceMutations(project);
     await expect(

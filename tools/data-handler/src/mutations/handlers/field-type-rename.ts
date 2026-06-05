@@ -21,11 +21,9 @@ import {
 /**
  * Renaming a field type is a breaking change: card-content references,
  * calculations, handlebars and the customFields[].name entries on every
- * referencing card type are rewritten. The whole cascade still lives in
- * FieldTypeResource.rename → onNameChange (updateCardTypes +
- * updateCardContentReferences + updateCalculations + updateHandleBars), so this
- * handler is a thin router: it delegates to resource.rename() and only marks the
- * operation breaking so the engine records a log entry.
+ * referencing card type are rewritten. The cascade is performed by
+ * FieldTypeResource.rename; this handler delegates to resource.rename() and
+ * marks the operation breaking so the engine records a log entry.
  */
 export class FieldTypeRenameHandler implements Handler {
   readonly isBreaking = true;

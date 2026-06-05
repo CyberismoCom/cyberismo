@@ -52,7 +52,7 @@ describe('FieldTypeDeleteHandler', () => {
     expect(project.resources.exists(name)).toBe(false);
   });
 
-  it('refuses to delete a field type still used by a card type (legacy usage guard)', async () => {
+  it('refuses to delete a field type used by a card type', async () => {
     // 'finished' is referenced by the decision card type's customFields.
     const name = `${project.projectPrefix}/fieldTypes/finished`;
     const mutations = new ResourceMutations(project);

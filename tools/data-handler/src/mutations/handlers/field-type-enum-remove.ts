@@ -16,13 +16,12 @@ import type { Handler, MutationContext } from '../handler.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 
 /**
- * Removing an enum value is a breaking change. The legacy cascade lives in
- * FieldTypeResource.update → handleEnumValueReplacements: when the operation
- * carries a replacementValue, every card holding the removed value is rewritten
- * to the replacement; with no replacement the value is dropped from the enum
- * definition only (cards keep their now-orphaned value — the legacy path does
- * NOT null them). This handler routes the operation unchanged and marks it
- * breaking.
+ * Removing an enum value is a breaking change. The cascade is performed by
+ * FieldTypeResource.update: with a replacementValue, every card holding the
+ * removed value is rewritten to the replacement; without one, the value is
+ * removed from the enum definition only and cards keep their orphaned value
+ * (they are NOT nulled). This handler routes the operation unchanged and marks
+ * it breaking.
  */
 export class FieldTypeEnumRemoveHandler implements Handler {
   readonly isBreaking = true;

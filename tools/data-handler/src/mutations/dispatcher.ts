@@ -38,9 +38,8 @@ const HANDLERS: Handler[] = [
   new CardTypeAddCustomFieldHandler(),
   new CardTypeRemoveCustomFieldHandler(),
   new CardTypeWorkflowChangeHandler(),
-  // The field-type handlers below are near-identical thin routers on
-  // purpose: each absorbs its own cascade from FieldTypeResource when the
-  // legacy path is removed, so don't merge them into a shared base.
+  // Cascades are operation-specific — keep one handler per edit operation;
+  // don't merge these into a shared base.
   new FieldTypeRenameHandler(),
   new FieldTypeDataTypeHandler(),
   new FieldTypeEnumAddHandler(),

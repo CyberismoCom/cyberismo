@@ -122,7 +122,7 @@ describe('FieldTypeEnumRenameHandler', () => {
     expect(values).not.toContain('low');
   });
 
-  it('leaves card values untouched (legacy definition-only behavior)', async () => {
+  it('leaves card values untouched', async () => {
     const mutations = new ResourceMutations(project);
     await mutations.apply({
       kind: 'edit' as const,
@@ -134,8 +134,7 @@ describe('FieldTypeEnumRenameHandler', () => {
         to: { enumValue: 'minor' },
       },
     });
-    // The legacy path updates the enum definition only; existing cards keep
-    // their old value.
+    // The enum definition is updated only; existing cards keep their old value.
     const anyStillLow = project
       .cards(undefined)
       .some((c) => c.metadata?.[fieldName()] === 'low');

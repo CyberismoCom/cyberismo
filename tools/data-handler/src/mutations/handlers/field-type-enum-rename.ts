@@ -19,12 +19,12 @@ import type { EnumDefinition } from '../../interfaces/resource-interfaces.js';
 
 /**
  * Renaming an enum value (a 'change' on enumValues where the enumValue itself
- * differs) is a breaking change. On the legacy path FieldTypeResource.update
- * applies the change to the enum definition array only; it does NOT rewrite the
- * value carried by existing cards, so cards keep their old value. This handler
- * routes the operation unchanged and marks it breaking. A change that only edits
+ * differs) is a breaking change. FieldTypeResource.update applies the change to
+ * the enum definition array only; it does NOT rewrite the value carried by
+ * existing cards, so cards keep their old value. This handler routes the
+ * operation unchanged and marks it breaking. A change that only edits
  * enumDisplayValue (same enumValue) is not a rename and falls through to the
- * default no-cascade handler, matching the legacy definition-only update.
+ * default no-cascade handler, which updates the definition only.
  */
 export class FieldTypeEnumRenameHandler implements Handler {
   readonly isBreaking = true;
