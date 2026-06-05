@@ -18,33 +18,45 @@ import {
   resourceNameToString,
 } from '../../utils/resource-utils.js';
 
+/** Plural resource-folder types whose rename cascade lives in the resource. */
+type LeafResourceType =
+  | 'calculations'
+  | 'reports'
+  | 'graphModels'
+  | 'graphViews'
+  | 'templates';
+
 /**
- * Renaming a graph view is a breaking change: the view's own handlebar file,
- * calculations and card content references to the old name are rewritten. The
- * whole cascade still lives in GraphViewResource.rename → onNameChange
- * (updateHandleBars + updateCalculations + updateCardContentReferences), so
- * this handler is a thin router: it delegates to resource.rename() and only
- * marks the operation breaking so the engine records a log entry.
+ * Renames a leaf resource (calculation, report, graph model, graph view or
+ * template). The resource class's rename performs the cascade, rewriting
+ * references to the old name. The operation is marked breaking so a log entry
+ * is recorded.
+ *
+ * Renaming a template does not flush the template-card cache (only deletion
+ * does).
  */
-export class GraphViewRenameHandler implements Handler {
+export class LeafResourceRenameHandler implements Handler {
   readonly isBreaking = true;
 
+  constructor(
+    private readonly type: LeafResourceType,
+    private readonly label: string,
+  ) {}
+
   matches(ctx: MutationContext): boolean {
-    return (
-      ctx.input.kind === 'rename' && ctx.input.target.type === 'graphViews'
-    );
+    return ctx.input.kind === 'rename' && ctx.input.target.type === this.type;
   }
 
   async apply(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'rename') {
-      throw new Error('GraphViewRenameHandler called with non-rename input');
+      throw new Error('LeafResourceRenameHandler called with non-rename input');
     }
     const oldName = resourceNameToString(ctx.input.target);
-    const newName = `${ctx.input.target.prefix}/graphViews/${ctx.input.newIdentifier}`;
+    const newName = `${ctx.input.target.prefix}/${this.type}/${ctx.input.newIdentifier}`;
 
-    const resource = ctx.project.resources.byType(oldName, 'graphViews');
+    const resource = ctx.project.resources.byType(oldName, this.type);
     if (!resource) {
-      throw new Error(`Graph view '${oldName}' not found`);
+      throw new Error(`${this.label} '${oldName}' not found`);
     }
     await resource.rename(resourceName(newName));
   }

@@ -34,11 +34,7 @@ import { WorkflowRemoveStateHandler } from './handlers/workflow-remove-state.js'
 import { WorkflowRenameStateHandler } from './handlers/workflow-rename-state.js';
 import { WorkflowTransitionHandler } from './handlers/workflow-transition.js';
 import { WorkflowDeleteHandler } from './handlers/workflow-delete.js';
-import { TemplateRenameHandler } from './handlers/template.js';
-import { CalculationRenameHandler } from './handlers/calculation.js';
-import { ReportRenameHandler } from './handlers/report.js';
-import { GraphModelRenameHandler } from './handlers/graph-model.js';
-import { GraphViewRenameHandler } from './handlers/graph-view.js';
+import { LeafResourceRenameHandler } from './handlers/leaf-resource-rename.js';
 
 const HANDLERS: Handler[] = [
   new LinkTypeRenameHandler(),
@@ -67,14 +63,11 @@ const HANDLERS: Handler[] = [
   new WorkflowRenameStateHandler(),
   new WorkflowTransitionHandler(),
   new WorkflowDeleteHandler(),
-  // The leaf-resource rename handlers below are near-identical thin routers on
-  // purpose: each absorbs its own cascade from its resource class when the
-  // legacy path is removed, so don't merge them into a shared base.
-  new TemplateRenameHandler(),
-  new CalculationRenameHandler(),
-  new ReportRenameHandler(),
-  new GraphModelRenameHandler(),
-  new GraphViewRenameHandler(),
+  new LeafResourceRenameHandler('templates', 'Template'),
+  new LeafResourceRenameHandler('calculations', 'Calculation'),
+  new LeafResourceRenameHandler('reports', 'Report'),
+  new LeafResourceRenameHandler('graphModels', 'Graph model'),
+  new LeafResourceRenameHandler('graphViews', 'Graph view'),
   new DefaultNoCascadeHandler(),
 ];
 
