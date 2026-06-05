@@ -27,9 +27,8 @@ const HANDLERS: Handler[] = [
   new LinkTypeDeleteHandler(),
   new CardTypeRenameHandler(),
   new CardTypeDeleteHandler(),
-  // The three card-type edit handlers below are near-identical thin routers
-  // on purpose: each absorbs its own cascade from CardTypeResource when the
-  // legacy path is removed, so don't merge them into a shared base.
+  // Cascades are operation-specific — keep one handler per edit operation;
+  // don't merge these into a shared base.
   new CardTypeAddCustomFieldHandler(),
   new CardTypeRemoveCustomFieldHandler(),
   new CardTypeWorkflowChangeHandler(),

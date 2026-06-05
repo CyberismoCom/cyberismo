@@ -125,7 +125,7 @@ describe('CardTypeWorkflowChangeHandler', () => {
       .byType(cardTypeName(), 'cardTypes')
       .show();
     expect(updated.workflow).toBe(toWorkflow());
-    // Legacy behavior: with no state mapping, card workflowState is untouched.
+    // With no state mapping, card workflowState is untouched.
     for (const card of project.cards(undefined)) {
       if (card.metadata?.cardType === cardTypeName()) {
         expect(card.metadata.workflowState).toBe(before.get(card.key));

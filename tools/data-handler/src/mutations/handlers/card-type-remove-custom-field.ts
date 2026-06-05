@@ -19,9 +19,8 @@ import type { Operation } from '../../resources/resource-object.js';
 /**
  * Removing a custom field from a card type is a breaking change (data loss):
  * the field key is dropped from every card of the type and from the card type's
- * alwaysVisibleFields / optionallyVisibleFields. The cascade itself still lives
- * in CardTypeResource.update (removeValueFromOtherArrays + handleCustomFieldsChange
- * → handleRemoveField), so this handler only routes the operation and marks it
+ * alwaysVisibleFields / optionallyVisibleFields. The cascade is performed by
+ * CardTypeResource.update; this handler routes the operation and marks it
  * breaking.
  */
 export class CardTypeRemoveCustomFieldHandler implements Handler {

@@ -83,7 +83,7 @@ export class CardTypeDeleteHandler implements Handler {
   }
 
   // Cards using this card type: local project cards plus local template cards
-  // (matches the legacy CardTypeResource collectCards scoping).
+  // (matches CardTypeResource's collectCards scoping).
   private affectedCards(ctx: MutationContext, cardTypeName: string): Card[] {
     return [
       ...ctx.project.cards(undefined),

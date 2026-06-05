@@ -18,9 +18,9 @@ import type { Operation } from '../../resources/resource-object.js';
 
 /**
  * Adding a custom field to a card type is a breaking change: every card of the
- * type gains the new field (as null). The cascade itself still lives in
- * CardTypeResource.update (handleCustomFieldsChange → handleAddNewField), so
- * this handler only routes the operation and marks it breaking.
+ * type gains the new field (as null). The cascade is performed by
+ * CardTypeResource.update; this handler routes the operation and marks it
+ * breaking.
  */
 export class CardTypeAddCustomFieldHandler implements Handler {
   readonly isBreaking = true;

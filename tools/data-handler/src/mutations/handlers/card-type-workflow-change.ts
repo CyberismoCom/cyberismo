@@ -18,10 +18,9 @@ import type { Operation } from '../../resources/resource-object.js';
 
 /**
  * Changing a card type's workflow is a breaking change: cards of the type get
- * their workflowState re-mapped to the new workflow. State-mapping validation
- * and the per-card state rewrite still live in CardTypeResource.update
- * (handleWorkflowChange → verifyStateMapping), so this handler only routes the
- * operation (mapping intact) and marks it breaking.
+ * their workflowState re-mapped to the new workflow. The cascade is performed
+ * by CardTypeResource.update; this handler routes the operation and marks it
+ * breaking.
  */
 export class CardTypeWorkflowChangeHandler implements Handler {
   readonly isBreaking = true;

@@ -59,11 +59,11 @@ export class Update {
     // A rename is encoded as a 'change' on the 'name' updateKey.
     const isRename = updateKey.key === 'name' && operation.name === 'change';
 
-    // linkTypes + cardTypes are routed through the engine. Other resource
-    // families keep their legacy in-class cascade path until their own handler
-    // PR lands. (Do not generalise this to a blanket Set of types — the
-    // dispatcher would route unhandled (type, key, operation) tuples to
-    // DefaultNoCascadeHandler and silently drop their cascade.)
+    // Only resource families with a dedicated handler are routed through the
+    // engine; the rest use the in-class cascade path. (Do not generalise this
+    // to a blanket Set of types — the dispatcher would route unhandled
+    // (type, key, operation) tuples to DefaultNoCascadeHandler and silently
+    // drop their cascade.)
     const target = parseResourceName(name);
 
     if (type === 'linkTypes') {
@@ -97,8 +97,8 @@ export class Update {
       }
 
       // Only the cardType edits with a dedicated handler are routed; all other
-      // cardType edits (e.g. rank, alwaysVisibleFields, displayName) stay on the
-      // legacy path.
+      // cardType edits (e.g. rank, alwaysVisibleFields, displayName) use the
+      // in-class cascade path.
       const routedEdit =
         (updateKey.key === 'workflow' && operation.name === 'change') ||
         (updateKey.key === 'customFields' &&

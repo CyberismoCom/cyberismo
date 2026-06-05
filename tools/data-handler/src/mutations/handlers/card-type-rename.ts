@@ -57,7 +57,7 @@ export class CardTypeRenameHandler implements Handler {
   }
 
   // Cards using this card type: local project cards plus local template cards
-  // (matches the legacy CardTypeResource collectCards scoping).
+  // (matches CardTypeResource's collectCards scoping).
   private affectedCards(ctx: MutationContext, oldName: string): Card[] {
     const project = [...ctx.project.cards(undefined)];
     const templates = ctx.project.resources
