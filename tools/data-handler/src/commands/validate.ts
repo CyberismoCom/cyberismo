@@ -811,6 +811,17 @@ export class Validate {
           );
           continue;
         }
+        if (
+          fieldType.dataType === 'shortText' &&
+          typeOfValue === 'string' &&
+          this.length(card.metadata[field.name] as string) >
+            SHORT_TEXT_MAX_LENGTH
+        ) {
+          validationErrors.push(
+            `In card '${card.key}' field '${field.name}' value exceeds the maximum length for 'shortText': ${SHORT_TEXT_MAX_LENGTH} characters allowed, but value has ${this.length(card.metadata[field.name] as string)} characters\n`,
+          );
+          continue;
+        }
         validationErrors.push(
           `In card '${card.key}' field '${field.name}' is defined as '${fieldType.dataType}', but it is '${typeOfValue}' with value of ${fieldValue}\n`,
         );
