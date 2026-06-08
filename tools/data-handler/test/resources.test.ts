@@ -2146,7 +2146,7 @@ describe('resources', function () {
       found = res.data?.states.find((item) => item.name === updatedItem.name);
       expect(found).not.toBeUndefined();
     });
-    it('update existing workflow - rename state', async () => {
+    it('update existing workflow - rename state (resource-level does NOT migrate cards)', async () => {
       const name = 'decision/workflows/decision';
       const res = project.resources.byType(name, 'workflows');
       const cards = project.cards(project.paths.cardRootFolder);
@@ -2159,6 +2159,13 @@ describe('resources', function () {
       });
       const expectedItem = { name: 'Approved', category: 'closed' };
       const updatedItem = { name: 'ReallyApproved', category: 'closed' };
+
+      // Put a card into the 'Approved' state so we can observe (the lack of)
+      // card migration.
+      const target = cardsWithThisWorkflow.at(0)!;
+      target.metadata!.workflowState = 'Approved';
+      await project.updateCardMetadata(target, target.metadata!);
+
       const op = {
         name: 'change',
         target: expectedItem,
@@ -2166,10 +2173,19 @@ describe('resources', function () {
       } as ChangeOperation<WorkflowState>;
       await res.update({ key: 'states' }, op);
 
-      const updatedCard = project.findCard(
-        cardsWithThisWorkflow.at(0)?.key as string,
+      // The state is renamed in the workflow definition and the workflow's own
+      // transitions are rewritten, but the card-state migration cascade has
+      // moved to WorkflowRenameStateHandler: a resource-level update no longer
+      // touches card metadata.
+      expect((res.data as Workflow).states.map((s) => s.name)).toContain(
+        'ReallyApproved',
       );
-      expect(updatedCard.metadata!.workflowState).toBe('ReallyApproved');
+      expect((res.data as Workflow).states.map((s) => s.name)).not.toContain(
+        'Approved',
+      );
+      const updatedCard = project.findCard(target.key);
+      expect(updatedCard.metadata!.workflowState).toBe('Approved');
+
       const opRevert = {
         name: 'change',
         target: updatedItem,
@@ -2571,7 +2587,7 @@ describe('resources', function () {
       await report.rename(resourceName('decision/reports/testReport'));
     });
 
-    it('should update card contents when renaming workflow', async () => {
+    it('should not update card contents when renaming workflow via resource class (cascade moved to handler)', async () => {
       const workflowName = 'decision/workflows/testWorkflowForContent';
       const workflow = project.resources.byType(workflowName, 'workflows');
       await workflow.create();
@@ -2591,9 +2607,10 @@ describe('resources', function () {
 
       expect(workflow.data?.name).toBe('decision/workflows/renamedWorkflow');
 
+      // The resource-level rename no longer cascades; WorkflowRenameHandler does.
       card = project.findCard(cardKey);
-      expect(card.content).toContain('decision/workflows/renamedWorkflow');
-      expect(card.content).not.toContain(workflowName);
+      expect(card.content).toContain(workflowName);
+      expect(card.content).not.toContain('decision/workflows/renamedWorkflow');
 
       await cleanup(cardKey);
       await workflow.delete();

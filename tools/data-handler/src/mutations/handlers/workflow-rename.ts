@@ -17,13 +17,20 @@ import {
   resourceName,
   resourceNameToString,
 } from '../../utils/resource-utils.js';
+import {
+  rewriteCalculationRefs,
+  rewriteCardContentRefs,
+  rewriteHandlebarRefs,
+} from '../cascades/rewrite-refs.js';
+import type { ChangeOperation } from '../../resources/resource-object.js';
 
 /**
  * Renaming a workflow is a breaking change: dependent card types' workflow
- * reference and all cross-resource references must be rewritten. The cascade
- * is performed by WorkflowResource.rename; this handler delegates to
- * `resource.rename()` and marks the change breaking so the engine records a
- * log entry.
+ * reference and all cross-resource references (calculations, report handlebars
+ * and card content) must be rewritten. The cascade used to live in
+ * WorkflowResource.rename / onNameChange; it now lives here, mirroring
+ * CardTypeRenameHandler / FieldTypeRenameHandler. The operation is marked
+ * breaking so the engine records a log entry.
  */
 export class WorkflowRenameHandler implements Handler {
   readonly isBreaking = true;
@@ -43,6 +50,43 @@ export class WorkflowRenameHandler implements Handler {
     if (!resource) {
       throw new Error(`Workflow '${oldName}' not found`);
     }
+
+    // Rename the resource itself first. WorkflowResource.rename only renames
+    // the metadata file and the in-memory name (and validates the new
+    // identifier); it no longer cascades.
     await resource.rename(resourceName(newName));
+
+    // Cascade the rename across the project. These rewrites previously ran in
+    // WorkflowResource.onNameChange (after the resource file was renamed), so
+    // they run after resource.rename() here too: the cascade scanners look for
+    // the old name in card content / calculations / handlebars and in card
+    // types' `workflow` reference, none of which the file rename touched.
+    await Promise.all([
+      rewriteCalculationRefs(ctx.project, oldName, newName),
+      rewriteHandlebarRefs(ctx.project, oldName, newName),
+      rewriteCardContentRefs(ctx.project, oldName, newName),
+      this.updateCardTypes(ctx, oldName, newName),
+    ]);
+  }
+
+  // Rewrite the `workflow` reference on every card type that points at the
+  // renamed workflow. Mirrors WorkflowResource's former updateCardTypes
+  // cascade.
+  private async updateCardTypes(
+    ctx: MutationContext,
+    oldName: string,
+    newName: string,
+  ): Promise<void> {
+    const cardTypes = ctx.project.resources.cardTypes();
+    const op = {
+      name: 'change',
+      target: oldName,
+      to: newName,
+    } as ChangeOperation<string>;
+    for (const cardType of cardTypes) {
+      if (cardType.data?.workflow === oldName) {
+        await cardType.update({ key: 'workflow' }, op);
+      }
+    }
   }
 }

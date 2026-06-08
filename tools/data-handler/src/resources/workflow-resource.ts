@@ -48,33 +48,18 @@ export class WorkflowResource extends FileResource<Workflow> {
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
   }
 
-  // Collect all cards that use this workflow.
-  private async collectCardsUsingWorkflow(): Promise<Card[]> {
-    const cardTypes = this.project.resources.cardTypes();
-    const promises: Promise<Card[]>[] = [];
-    for (const cardType of cardTypes) {
-      if (cardType.data?.workflow === resourceNameToString(this.resourceName)) {
-        promises.push(
-          this.collectCards(
-            cardType.data.name,
-            (card, cardTypeName) => card.metadata?.cardType === cardTypeName,
-          ),
-        );
-      }
-    }
-    return (await Promise.all(promises)).flat();
-  }
-
-  // When resource name changes.
-  protected async onNameChange(existingName: string) {
-    await Promise.all([
-      super.updateHandleBars(existingName, this.content.name),
-      super.updateCalculations(existingName, this.content.name),
-      super.updateCardContentReferences(existingName, this.content.name),
-      this.updateCardTypes(existingName),
-    ]);
-    // Finally, write updated content.
-    await this.write();
+  /**
+   * No-op stub: FileResource declares onNameChange as an abstract member
+   * (the `?` modifier makes the call site in FileResource.update() use
+   * optional chaining, but TS2515 still requires a concrete subclass to
+   * declare the method). The Workflow rename cascade (cross-resource ref
+   * rewrites + the `workflow` reference on dependent card types) has moved
+   * into WorkflowRenameHandler, which drives resource.rename() directly. Delete
+   * this stub once the abstract declaration is removed from FileResource in a
+   * later PR.
+   */
+  protected async onNameChange(): Promise<void> {
+    return;
   }
 
   // Handle change of workflow state.
@@ -90,7 +75,9 @@ export class WorkflowResource extends FileResource<Workflow> {
          Updated state must have 'name' and 'category' properties.`,
       );
     }
-    // Rename transitions to use the new state name
+    // Rename transitions to use the new state name. Card-state migration
+    // (remapping cards' workflowState) is a cross-resource cascade and now
+    // lives in WorkflowRenameStateHandler.
     const toStateName = op.to.name;
     content.transitions.forEach((t) => {
       if (t.toState === stateName) {
@@ -100,8 +87,6 @@ export class WorkflowResource extends FileResource<Workflow> {
         state === stateName ? toStateName : state,
       );
     });
-    // Update all cards that use this state.
-    await this.updateCardStates(stateName, toStateName);
   }
 
   // Handle removal of workflow state.
@@ -143,8 +128,9 @@ export class WorkflowResource extends FileResource<Workflow> {
           state === stateName ? replacementState.name : state,
         );
       });
-      // Update all cards that use this state.
-      await this.updateCardStates(stateName, replacementState.name);
+      // Card-state migration (remapping cards' workflowState to the
+      // replacement) is a cross-resource cascade and now lives in
+      // WorkflowRemoveStateHandler.
     }
   }
 
@@ -187,39 +173,6 @@ export class WorkflowResource extends FileResource<Workflow> {
       );
     }
     return op.to;
-  }
-
-  // Update card states when state is changed
-  private async updateCardStates(oldState: string, newState: string) {
-    const cards = await this.collectCardsUsingWorkflow();
-    const promises = cards
-      .filter((card) => card.metadata?.workflowState === oldState)
-      .map(async (card) => {
-        card.metadata!.workflowState = newState;
-        await this.project.updateCardMetadata(card, card.metadata!);
-      });
-    await Promise.all(promises);
-  }
-
-  // Update dependant card types.
-  private async updateCardTypes(oldName: string) {
-    const cardTypes = this.project.resources.cardTypes();
-    const op = {
-      name: 'change',
-      target: oldName,
-      to: this.content.name,
-    } as ChangeOperation<string>;
-    for (const cardType of cardTypes) {
-      // Only update card types that use this workflow
-      if (cardType.data?.workflow === oldName) {
-        await cardType.update(
-          {
-            key: 'workflow',
-          },
-          op,
-        );
-      }
-    }
   }
 
   /**
@@ -275,13 +228,16 @@ export class WorkflowResource extends FileResource<Workflow> {
   }
 
   /**
-   * Renames the object and the file.
+   * Renames resource metadata file and renames memory resident object 'name'.
+   *
+   * Only the file rename and in-memory name change happen here; the rename
+   * cascade (calculations, report handlebars, card content and the `workflow`
+   * reference on dependent card types) has moved to WorkflowRenameHandler.
+   * Exposed publicly so the handler can drive it.
    * @param newName New name for the resource.
    */
   public async rename(newName: ResourceName) {
-    const existingName = this.content.name;
     await super.rename(newName);
-    return this.onNameChange(existingName);
   }
 
   /**
