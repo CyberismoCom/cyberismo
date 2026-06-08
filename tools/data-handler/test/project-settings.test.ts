@@ -258,6 +258,45 @@ describe('project settings', () => {
     ).rejects.toThrow('is not valid prefix');
   });
 
+  it('should set and persist category', async () => {
+    const configPath = createTestConfig('test-config-set-category.json');
+    const projectSettings = new ProjectConfiguration(configPath, false);
+    await projectSettings.setCategory('Security');
+    expect(projectSettings.category).toBe('Security');
+
+    const savedConfig = readJsonFileSync(configPath);
+    expect(savedConfig.category).toBe('Security');
+  });
+
+  it('should set and persist description', async () => {
+    const configPath = createTestConfig('test-config-set-description.json');
+    const projectSettings = new ProjectConfiguration(configPath, false);
+    await projectSettings.setDescription('A detailed project description');
+    expect(projectSettings.description).toBe('A detailed project description');
+
+    const savedConfig = readJsonFileSync(configPath);
+    expect(savedConfig.description).toBe('A detailed project description');
+  });
+
+  it('should clear category and description with empty string', async () => {
+    const configPath = createTestConfig(
+      'test-config-clear-category-desc.json',
+      {
+        category: 'Development',
+        description: 'Some description',
+      },
+    );
+    const projectSettings = new ProjectConfiguration(configPath, false);
+    await projectSettings.setCategory('');
+    await projectSettings.setDescription('');
+    expect(projectSettings.category).toBe('');
+    expect(projectSettings.description).toBe('');
+
+    const savedConfig = readJsonFileSync(configPath);
+    expect(savedConfig.category).toBe('');
+    expect(savedConfig.description).toBe('');
+  });
+
   it('should report compatible when schema versions match', () => {
     const configPath = createTestConfig('test-config-schema-match.json');
     const projectSettings = new ProjectConfiguration(configPath, false);

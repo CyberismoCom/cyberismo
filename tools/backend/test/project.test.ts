@@ -8,6 +8,8 @@ import { cleanupTempTestData, createTempTestData } from './test-utils.js';
 type ProjectResponse = {
   name: string;
   cardKeyPrefix: string;
+  description: string;
+  category: string;
   modules: {
     name: string;
     cardKeyPrefix: string;
@@ -57,6 +59,41 @@ describe('Project endpoints', () => {
     const result = (await response.json()) as ProjectResponse;
     expect(result.name).toBe('Updated Project Name');
     expect(result.cardKeyPrefix).toBe('projtest');
+  });
+
+  test('PATCH /api/project updates description and category', async () => {
+    const response = await app.request('/api/projects/test/project', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        description: 'A project for testing',
+        category: 'Testing',
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    const result = (await response.json()) as ProjectResponse;
+    expect(result.description).toBe('A project for testing');
+    expect(result.category).toBe('Testing');
+  });
+
+  test('PATCH /api/project clears description and category with empty string', async () => {
+    await app.request('/api/projects/test/project', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ description: 'set', category: 'set' }),
+    });
+
+    const response = await app.request('/api/projects/test/project', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ description: '', category: '' }),
+    });
+
+    expect(response.status).toBe(200);
+    const result = (await response.json()) as ProjectResponse;
+    expect(result.description).toBe('');
+    expect(result.category).toBe('');
   });
 
   test('GET /api/project/modules/importable returns the importable modules', async () => {

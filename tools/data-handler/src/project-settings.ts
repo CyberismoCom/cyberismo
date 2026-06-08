@@ -315,4 +315,22 @@ export class ProjectConfiguration implements ProjectSettings {
     }
     throw new Error(`Project name '${newName}' is not valid.`);
   }
+
+  /**
+   * Sets the project category. An empty string clears the category.
+   * @param newCategory New project category
+   */
+  public async setCategory(newCategory: string) {
+    this.category = newCategory;
+    return this.save();
+  }
+
+  /**
+   * Sets the project description. An empty string clears the description.
+   * @param newDescription New project description
+   */
+  public async setDescription(newDescription: string) {
+    this.description = newDescription;
+    return this.save();
+  }
 }

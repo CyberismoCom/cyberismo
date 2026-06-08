@@ -20,6 +20,8 @@ export const moduleParamSchema = z.object({
 export const updateProjectSchema = z.object({
   name: z.string().optional(),
   cardKeyPrefix: z.string().optional(),
+  description: z.string().optional(),
+  category: z.string().optional(),
   gitRemoteUrl: z
     .string()
     .refine((s) => s.startsWith('https://') || s.startsWith('git@'), {

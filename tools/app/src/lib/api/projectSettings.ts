@@ -15,7 +15,7 @@ import type { SWRConfiguration } from 'swr';
 import { mutate } from 'swr';
 import { projectApiPaths, callApi } from '../swr';
 import { useSWRHook } from './common';
-import type { GeneralSettings } from './types';
+import type { ProjectSettingsUpdate } from './types';
 import { useUpdating } from '../hooks';
 
 export const useProjectSettings = (
@@ -30,7 +30,7 @@ export const useProjectSettings = (
   );
 
 export const updateProjectSettings = async (
-  body: Partial<Pick<GeneralSettings, 'cardKeyPrefix' | 'gitRemoteUrl'>>,
+  body: ProjectSettingsUpdate,
   projectPrefix?: string,
 ) => {
   const apiPaths = projectApiPaths(projectPrefix);
@@ -81,12 +81,8 @@ export const useProjectSettingsMutations = (projectPrefix?: string) => {
   const { call, isUpdating } = useUpdating(apiPaths.project());
   const mutations = {
     isUpdating: (action?: string) => isUpdating(action),
-    updateProject: (
-      body: Partial<
-        Pick<GeneralSettings, 'name' | 'cardKeyPrefix' | 'gitRemoteUrl'>
-      >,
-      action: string = 'update',
-    ) => call(() => updateProjectSettings(body, projectPrefix), action),
+    updateProject: (body: ProjectSettingsUpdate, action: string = 'update') =>
+      call(() => updateProjectSettings(body, projectPrefix), action),
     updateModule: (moduleName: string) =>
       call(
         () => updateProjectModule(moduleName, projectPrefix),

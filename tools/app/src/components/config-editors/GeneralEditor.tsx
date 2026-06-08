@@ -37,6 +37,7 @@ import { addNotification } from '@/lib/slices/notifications';
 import BaseEditor from './BaseEditor';
 import FieldRow from './fields/FieldRow';
 import TextInput from './fields/TextInput';
+import TextareaInput from './fields/TextareaInput';
 import { UserRole, useHasMinRole } from '@/lib/auth';
 
 type GeneralEditorProps = {
@@ -85,6 +86,25 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
     isUpdating,
     saveValue: (value) =>
       updateProject({ cardKeyPrefix: value }, 'update-cardKeyPrefix'),
+  });
+
+  const categoryField = useEditableField({
+    initialValue: general?.category ?? node.data.category ?? '',
+    actionKey: 'update-category',
+    readOnly: isDisabled,
+    isLoading,
+    isUpdating,
+    saveValue: (value) => updateProject({ category: value }, 'update-category'),
+  });
+
+  const descriptionField = useEditableField({
+    initialValue: general?.description ?? node.data.description ?? '',
+    actionKey: 'update-description',
+    readOnly: isDisabled,
+    isLoading,
+    isUpdating,
+    saveValue: (value) =>
+      updateProject({ description: value }, 'update-description'),
   });
 
   const isGitRepo = general != null && general.gitRemoteUrl !== null;
@@ -137,7 +157,7 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
 
   return (
     <BaseEditor node={node}>
-      <Stack spacing={2}>
+      <Stack>
         <FieldRow
           dirty={nameField.dirty}
           onSave={() => nameField.save()}
@@ -162,55 +182,77 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
             disabled={cardKeyPrefixField.disabled}
           />
         </FieldRow>
+        <FieldRow
+          dirty={categoryField.dirty}
+          onSave={() => categoryField.save()}
+          onCancel={() => categoryField.cancel()}
+        >
+          <TextInput
+            label={t('general.projectCategory')}
+            value={categoryField.value}
+            onChange={(value) => categoryField.setValue(value)}
+            disabled={categoryField.disabled}
+          />
+        </FieldRow>
+        <FieldRow
+          dirty={descriptionField.dirty}
+          onSave={() => descriptionField.save()}
+          onCancel={() => descriptionField.cancel()}
+        >
+          <TextareaInput
+            label={t('general.projectDescription')}
+            value={descriptionField.value}
+            onChange={(value) => descriptionField.setValue(value)}
+            disabled={descriptionField.disabled}
+          />
+        </FieldRow>
 
-        <Stack spacing={2}>
-          <FieldRow
-            dirty={gitRemoteUrlField.dirty}
-            onSave={() => gitRemoteUrlField.save()}
-            onCancel={() => gitRemoteUrlField.cancel()}
-          >
-            <TextInput
-              label={t('general.gitRemoteUrl')}
-              value={
-                isGitRepo ? gitRemoteUrlField.value : t('general.notAGitRepo')
-              }
-              onChange={(value) => gitRemoteUrlField.setValue(value)}
-              disabled={gitRemoteUrlField.disabled}
-            />
-          </FieldRow>
+        <FieldRow
+          dirty={gitRemoteUrlField.dirty}
+          onSave={() => gitRemoteUrlField.save()}
+          onCancel={() => gitRemoteUrlField.cancel()}
+        >
+          <TextInput
+            label={t('general.gitRemoteUrl')}
+            value={
+              isGitRepo ? gitRemoteUrlField.value : t('general.notAGitRepo')
+            }
+            onChange={(value) => gitRemoteUrlField.setValue(value)}
+            disabled={gitRemoteUrlField.disabled}
+          />
+        </FieldRow>
 
-          {isGitRepo && publicKey && (
-            <Stack spacing={0.5}>
-              <Stack direction="row" alignItems="center" spacing={1}>
-                <Typography level="title-md">
-                  {t('general.gitPushPublicKey')}
-                </Typography>
-                <Tooltip
-                  title={
-                    copied
-                      ? t('general.copiedToClipboard')
-                      : t('general.copyToClipboard')
-                  }
+        {isGitRepo && publicKey && (
+          <Stack spacing={0.5} mb={4.5}>
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <Typography level="title-md">
+                {t('general.gitPushPublicKey')}
+              </Typography>
+              <Tooltip
+                title={
+                  copied
+                    ? t('general.copiedToClipboard')
+                    : t('general.copyToClipboard')
+                }
+              >
+                <IconButton
+                  size="sm"
+                  variant="plain"
+                  onClick={handleCopyPublicKey}
                 >
-                  <IconButton
-                    size="sm"
-                    variant="plain"
-                    onClick={handleCopyPublicKey}
-                  >
-                    <ContentCopyIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </Stack>
-              <Textarea
-                readOnly
-                minRows={2}
-                maxRows={4}
-                value={publicKey}
-                sx={{ fontFamily: 'monospace', fontSize: 'sm' }}
-              />
+                  <ContentCopyIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
             </Stack>
-          )}
-        </Stack>
+            <Textarea
+              readOnly
+              minRows={2}
+              maxRows={4}
+              value={publicKey}
+              sx={{ fontFamily: 'monospace', fontSize: 'sm' }}
+            />
+          </Stack>
+        )}
 
         <Stack spacing={1}>
           <Stack direction="row" alignItems="center" spacing={1}>

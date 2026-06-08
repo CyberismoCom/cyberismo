@@ -229,6 +229,8 @@
     "title": "General",
     "projectName": "Project name",
     "cardKeyPrefix": "Card key prefix",
+    "projectCategory": "Project category",
+    "projectDescription": "Project description",
     "save": "Save",
     "readOnly": "This module is read-only. Update it in the source module.",
     "modulesSection": "Modules",
