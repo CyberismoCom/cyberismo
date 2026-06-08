@@ -53,20 +53,6 @@ export class LinkTypeResource extends FileResource<LinkType> {
   }
 
   /**
-   * No-op stub: FileResource declares onNameChange as an abstract member
-   * (the `?` modifier makes the call site in FileResource.update() use
-   * optional chaining, but TS2515 still requires a concrete subclass to
-   * declare the method). The LinkType rename cascade has moved into
-   * LinkTypeRenameHandler — engine routing in commands/update.ts
-   * intercepts the rename before FileResource.update() would invoke this
-   * hook, so the stub is unreachable at runtime. Delete this stub once
-   * the abstract declaration is removed from FileResource in a later PR.
-   */
-  protected async onNameChange(): Promise<void> {
-    return;
-  }
-
-  /**
    * Renames resource metadata file and renames memory resident object 'name'.
    * @param newName New name for the resource.
    */

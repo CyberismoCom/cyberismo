@@ -48,20 +48,6 @@ export class WorkflowResource extends FileResource<Workflow> {
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
   }
 
-  /**
-   * No-op stub: FileResource declares onNameChange as an abstract member
-   * (the `?` modifier makes the call site in FileResource.update() use
-   * optional chaining, but TS2515 still requires a concrete subclass to
-   * declare the method). The Workflow rename cascade (cross-resource ref
-   * rewrites + the `workflow` reference on dependent card types) has moved
-   * into WorkflowRenameHandler, which drives resource.rename() directly. Delete
-   * this stub once the abstract declaration is removed from FileResource in a
-   * later PR.
-   */
-  protected async onNameChange(): Promise<void> {
-    return;
-  }
-
   // Handle change of workflow state.
   private async handleStateChange(
     content: Workflow,

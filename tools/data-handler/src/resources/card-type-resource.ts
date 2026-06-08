@@ -161,21 +161,17 @@ export class CardTypeResource extends FileResource<CardType> {
   }
 
   /**
-   * When resource name changes, rewrite the card type's own self-prefixed
+   * When the resource name changes, rewrite the card type's own self-prefixed
    * references (its customFields / visible-fields / workflow) to the new
    * prefix and persist.
    *
    * The cross-resource cascade — rewriting calculations, report handlebars,
    * card content, each card's metadata.cardType and the source/destination
-   * card-type lists of dependent link types — has moved to
-   * CardTypeRenameHandler. This hook is now invoked only when something calls
-   * the resource's rename() directly (engine routing intercepts the rename
-   * before FileResource.update() would reach this hook).
-   * @param previousName Current resource name (unused; kept for the
-   *   FileResource.onNameChange signature).
+   * card-type lists of dependent link types — lives in CardTypeRenameHandler.
+   * This only handles the card type's own self-prefixed references, and runs
+   * from rename() below.
    */
-  protected async onNameChange(previousName: string) {
-    void previousName;
+  private async rewriteSelfPrefixes() {
     const current = this.content;
     const prefixes = this.project.projectPrefixes();
     if (current.customFields) {
@@ -239,9 +235,8 @@ export class CardTypeResource extends FileResource<CardType> {
    * @param newName New name for the resource.
    */
   public async rename(newName: ResourceName) {
-    const existingName = this.content.name;
     await super.rename(newName);
-    return this.onNameChange(existingName);
+    return this.rewriteSelfPrefixes();
   }
 
   /**

@@ -54,20 +54,6 @@ export class FieldTypeResource extends FileResource<FieldType> {
       .map((card) => card.key);
   }
 
-  /**
-   * No-op stub: FileResource declares onNameChange as an abstract member
-   * (the `?` modifier makes the call site in FileResource.update() use
-   * optional chaining, but TS2515 still requires a concrete subclass to
-   * declare the method). The FieldType rename cascade has moved into
-   * FieldTypeRenameHandler — engine routing intercepts the rename before
-   * FileResource.update() would invoke this hook, so the stub is unreachable
-   * at runtime. Delete this stub once the abstract declaration is removed from
-   * FileResource in a later PR.
-   */
-  protected async onNameChange(): Promise<void> {
-    return;
-  }
-
   // Checks that enum with 'enumValue' exists.
   private enumValueExists<Type>(op: Operation<Type>, values: Type[]) {
     const targetValue = (op as Operation<EnumDefinition>).target;

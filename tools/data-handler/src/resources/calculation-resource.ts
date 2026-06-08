@@ -47,20 +47,6 @@ export class CalculationResource extends FolderResource<
   }
 
   /**
-   * No-op stub: FolderResource declares onNameChange as an abstract member
-   * (the `?` modifier makes the call site in FolderResource.update() use
-   * optional chaining, but TS2515 still requires a concrete subclass to
-   * declare the method). The rename cascade has moved into
-   * LeafResourceRenameHandler — engine routing intercepts the rename before
-   * FolderResource.update() would invoke this hook, so the stub is
-   * unreachable at runtime. Delete this stub once the abstract declaration is
-   * removed from FolderResource in a later PR.
-   */
-  protected async onNameChange(): Promise<void> {
-    return;
-  }
-
-  /**
    * Creates a new calculation object and file.
    * @param newContent Content for the calculation.
    */
