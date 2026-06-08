@@ -94,6 +94,7 @@ const StateSelector: React.FC<StateSelectorProps> = ({
         variant="soft"
         color="neutral"
         endDecorator={!isLoading && statusDot}
+        data-testid="stateSelectorButton"
       >
         {isLoading ? (
           <CircularProgress size="sm" />
