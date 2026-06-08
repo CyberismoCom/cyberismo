@@ -451,9 +451,6 @@
   "showLess": "Show less",
   "showMore": "Show more",
   "sourceCardTypes": "Source card types",
-  "stateSelector": {
-    "status": "Status: {{state}}"
-  },
   "svgViewerHelpWindow": "Pinch or Shift+Wheel = Zoom • Scroll/Drag = Pan",
   "tableOfContents": "Table of contents",
   "templateCard": "Template card",

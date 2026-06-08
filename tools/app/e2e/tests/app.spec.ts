@@ -419,25 +419,23 @@ test.describe('Navigation', () => {
 
     // Click status button showing "Draft" and verify menu
     await page
-      .locator('.MuiMenuButton-variantSoft', { hasText: 'Status: Draft' })
+      .getByTestId('stateSelectorButton')
+      .filter({ hasText: 'Draft' })
       .click();
     await expect(page.getByRole('menu').getByText('Archive')).toBeVisible();
     await page.getByRole('menu').getByText('Approve', { exact: true }).click();
 
     await expect(
-      page.locator('.MuiMenuButton-variantSoft', {
-        hasText: 'Status: Approved',
-      }),
+      page.getByTestId('stateSelectorButton').filter({ hasText: 'Approved' }),
     ).toBeVisible();
     await page
-      .locator('.MuiMenuButton-variantSoft', { hasText: 'Status: Approved' })
+      .getByTestId('stateSelectorButton')
+      .filter({ hasText: 'Approved' })
       .click();
     await page.getByRole('menu').getByText('Archive').click();
 
     await expect(
-      page.locator('.MuiMenuButton-variantSoft', {
-        hasText: 'Status: Deprecated',
-      }),
+      page.getByTestId('stateSelectorButton').filter({ hasText: 'Deprecated' }),
     ).toBeVisible();
   });
 

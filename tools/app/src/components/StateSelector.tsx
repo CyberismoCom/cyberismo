@@ -94,15 +94,12 @@ const StateSelector: React.FC<StateSelectorProps> = ({
         variant="soft"
         color="neutral"
         endDecorator={!isLoading && statusDot}
+        data-cy="stateSelectorButton"
       >
         {isLoading ? (
           <CircularProgress size="sm" />
         ) : (
-          <div style={{ whiteSpace: 'nowrap' }}>
-            {t('stateSelector.status', {
-              state: currentState.name,
-            })}
-          </div>
+          <div style={{ whiteSpace: 'nowrap' }}>{currentState.name}</div>
         )}
       </MenuButton>
       <Menu>

@@ -120,7 +120,7 @@ describe('StateSelector', () => {
         onTransition={() => null}
       />,
     );
-    const node = screen.getByText('stateSelector.status {"state":"Approved"}');
+    const node = screen.getByText('Approved');
     expect(node).toBeVisible();
 
     render(
@@ -130,7 +130,7 @@ describe('StateSelector', () => {
         onTransition={() => null}
       />,
     );
-    const node2 = screen.getByText('stateSelector.status {"state":"Not OK"}');
+    const node2 = screen.getByText('Not OK');
     expect(node2).toBeVisible();
   });
 
