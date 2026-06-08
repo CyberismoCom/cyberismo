@@ -54,7 +54,9 @@ export function ProjectSelectionModal({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { projectPrefix: currentPrefix } = useParams();
-  const { data: projects, isLoading } = useAvailableProjects();
+  const { data, isLoading } = useAvailableProjects();
+  const projects = data?.projects;
+  const canCreateProjects = data?.canCreateProjects ?? false;
 
   const [filter, setFilter] = useState('');
   const [selectedProject, setSelectedProject] = useState<string | null>(
@@ -237,7 +239,7 @@ export function ProjectSelectionModal({
               >
                 {t('projectDialog.open')}
               </Button>
-              {!getConfig().staticMode && (
+              {!getConfig().staticMode && canCreateProjects && (
                 <Button
                   variant="outlined"
                   color="primary"

@@ -16,8 +16,13 @@ import { globalApiPaths, callApi } from '../swr';
 import type { AvailableProject } from '../projectUtils';
 import { useUpdating } from '../hooks';
 
+export interface ProjectsResponse {
+  projects: AvailableProject[];
+  canCreateProjects: boolean;
+}
+
 export const useAvailableProjects = () =>
-  useSWR<AvailableProject[]>(globalApiPaths.projects());
+  useSWR<ProjectsResponse>(globalApiPaths.projects());
 
 export interface CreateProjectParams {
   name: string;

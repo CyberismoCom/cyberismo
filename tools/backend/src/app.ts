@@ -84,7 +84,7 @@ export function createApp(
   registry: ProjectRegistry,
   opts?: TreeOptions,
   exportMode = false,
-  rootPath?: string,
+  multiProjectRoot?: string,
 ) {
   const app = new Hono<{ Variables: AppVars }>();
 
@@ -127,7 +127,7 @@ export function createApp(
 
   // Global routes (no project-specific CommandManager needed)
   app.route('/api/auth', createAuthRouter());
-  app.route('/api/projects', createProjectsRouter(registry, rootPath));
+  app.route('/api/projects', createProjectsRouter(registry, multiProjectRoot));
 
   // Test-mode reset endpoint: wipes the project dir, restores it from the
   // golden snapshot, and rebuilds the registry in place. Used by the
@@ -186,10 +186,10 @@ export function createApp(
   }
   // Tenant-level SSH public key
   app.get('/api/public-key', async (c) => {
-    if (!rootPath) return c.json({ publicKey: null });
+    if (!multiProjectRoot) return c.json({ publicKey: null });
     try {
       const content = await readFile(
-        join(rootPath, '.git-push', 'id_rsa.pub'),
+        join(multiProjectRoot, '.git-push', 'id_rsa.pub'),
         'utf-8',
       );
       return c.json({ publicKey: content.trim() });

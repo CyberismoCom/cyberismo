@@ -1603,6 +1603,10 @@ appCmd.action(async (options: CommandOptions<'start'>) => {
     return;
   }
 
+  // Single-project mode: basePath is itself a project (not a collection)
+  const isSingleProject =
+    projects.length === 1 && projects[0].path === resolve(basePath);
+
   if (projects.length === 0) {
     console.log('No projects found. Starting with empty project collection.');
   }
@@ -1656,7 +1660,13 @@ appCmd.action(async (options: CommandOptions<'start'>) => {
     watchResourceChanges: mergedOptions.watchResourceChanges,
   });
 
-  await startServer(new MockAuthProvider(gitUser), registry, true, basePath);
+  // Pass multiProjectRoot only in multi-project mode (enables project creation)
+  await startServer(
+    new MockAuthProvider(gitUser),
+    registry,
+    true,
+    isSingleProject ? undefined : basePath,
+  );
 });
 
 // Publish command - creates a git tag from cardsConfig version and pushes

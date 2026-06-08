@@ -21,7 +21,7 @@ import * as projectsService from './service.js';
 
 export function createProjectsRouter(
   registry: ProjectRegistry,
-  rootPath?: string,
+  multiProjectRoot?: string,
 ) {
   const router = new Hono();
 
@@ -38,7 +38,10 @@ export function createProjectsRouter(
    *         description: Unauthorized
    */
   router.get('/', requireRole(UserRole.Reader), (c) => {
-    return c.json(registry.list());
+    return c.json({
+      projects: registry.list(),
+      canCreateProjects: !!multiProjectRoot,
+    });
   });
 
   /**
@@ -53,8 +56,11 @@ export function createProjectsRouter(
     requireRole(UserRole.Editor),
     zValidator('json', createProjectSchema),
     async (c) => {
-      if (!rootPath) {
-        return c.json({ error: 'Project creation is not available' }, 500);
+      if (!multiProjectRoot) {
+        return c.json(
+          { error: 'Project creation is not available in single-project mode' },
+          403,
+        );
       }
 
       const params = c.req.valid('json');
@@ -69,7 +75,7 @@ export function createProjectsRouter(
       try {
         const result = await projectsService.createProject(
           registry,
-          rootPath,
+          multiProjectRoot,
           params,
           getCurrentUser(c),
         );
@@ -100,8 +106,11 @@ export function createProjectsRouter(
     requireRole(UserRole.Editor),
     zValidator('json', cloneProjectSchema),
     async (c) => {
-      if (!rootPath) {
-        return c.json({ error: 'Project cloning is not available' }, 500);
+      if (!multiProjectRoot) {
+        return c.json(
+          { error: 'Project cloning is not available in single-project mode' },
+          403,
+        );
       }
 
       const { url } = c.req.valid('json');
@@ -109,7 +118,7 @@ export function createProjectsRouter(
       try {
         const result = await projectsService.cloneProject(
           registry,
-          rootPath,
+          multiProjectRoot,
           url,
         );
 
