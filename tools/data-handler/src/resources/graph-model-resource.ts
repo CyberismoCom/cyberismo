@@ -74,6 +74,17 @@ export class GraphModelResource extends FolderResource<
   }
 
   /**
+   * Returns the template file that this graph model owns (its `model.lp`),
+   * so the rename cascade scans it for references to the old name. Mirrors
+   * `GraphViewResource.handleBarFile()`; without it the cascade would miss
+   * the graph model's own template file.
+   * @returns absolute path to this graph model's `model.lp`.
+   */
+  public async handleBarFile(): Promise<string> {
+    return join(this.internalFolder, CONTENT_FILES.model);
+  }
+
+  /**
    * Renames the object and the file.
    * @param newName New name for the resource.
    */
