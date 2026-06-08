@@ -14,13 +14,19 @@
 
 import type { Handler, MutationContext } from '../handler.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
-import type { Operation } from '../../resources/resource-object.js';
+import { ResourcesFrom } from '../../containers/project/resources-from.js';
+import type { Card } from '../../interfaces/project-interfaces.js';
+import type {
+  AddOperation,
+  Operation,
+} from '../../resources/resource-object.js';
+import type { CustomField } from '../../interfaces/resource-interfaces.js';
 
 /**
  * Adding a custom field to a card type is a breaking change: every card of the
- * type gains the new field (as null). The cascade is performed by
- * CardTypeResource.update; this handler routes the operation and marks it
- * breaking.
+ * type gains the new field (as null). The handler owns the cascade: it lets
+ * CardTypeResource.update validate the field and persist it on the card type,
+ * then writes the new field (as null) on each affected card.
  */
 export class CardTypeAddCustomFieldHandler implements Handler {
   readonly isBreaking = true;
@@ -43,9 +49,35 @@ export class CardTypeAddCustomFieldHandler implements Handler {
     const cardTypeName = resourceNameToString(ctx.input.target);
     const resource = ctx.project.resources.byType(cardTypeName, 'cardTypes');
     if (!resource) throw new Error(`CardType '${cardTypeName}' not found`);
+
+    // Validate + persist the field on the card type (CardTypeResource.update
+    // no longer cascades to cards).
     await resource.update(
       ctx.input.updateKey,
       ctx.input.operation as Operation<unknown>,
+    );
+
+    // Cascade: add the new field as null on every affected card.
+    const item = (ctx.input.operation as AddOperation<CustomField>)
+      .target as CustomField;
+    const cards = this.affectedCards(ctx, cardTypeName);
+    for (const card of cards) {
+      if (card.metadata) {
+        card.metadata[item.name] = null;
+        await ctx.project.updateCardMetadata(card, card.metadata);
+      }
+    }
+  }
+
+  // Cards using this card type: local project cards plus local template cards
+  // (matches CardTypeResource's collectCards scoping).
+  private affectedCards(ctx: MutationContext, cardTypeName: string): Card[] {
+    const project = [...ctx.project.cards(undefined)];
+    const templates = ctx.project.resources
+      .templates(ResourcesFrom.localOnly)
+      .flatMap((t) => t.templateObject().cards());
+    return [...project, ...templates].filter(
+      (c) => c.metadata?.cardType === cardTypeName,
     );
   }
 }

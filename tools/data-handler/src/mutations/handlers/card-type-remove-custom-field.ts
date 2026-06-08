@@ -14,14 +14,20 @@
 
 import type { Handler, MutationContext } from '../handler.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
-import type { Operation } from '../../resources/resource-object.js';
+import { ResourcesFrom } from '../../containers/project/resources-from.js';
+import type { Card } from '../../interfaces/project-interfaces.js';
+import type {
+  Operation,
+  RemoveOperation,
+} from '../../resources/resource-object.js';
+import type { CustomField } from '../../interfaces/resource-interfaces.js';
 
 /**
  * Removing a custom field from a card type is a breaking change (data loss):
- * the field key is dropped from every card of the type and from the card type's
- * alwaysVisibleFields / optionallyVisibleFields. The cascade is performed by
- * CardTypeResource.update; this handler routes the operation and marks it
- * breaking.
+ * the field key is dropped from every card of the type. The handler owns the
+ * cascade: CardTypeResource.update removes the field from the card type's
+ * customFields / alwaysVisibleFields / optionallyVisibleFields and persists it,
+ * then the handler drops the field key from each affected card.
  */
 export class CardTypeRemoveCustomFieldHandler implements Handler {
   readonly isBreaking = true;
@@ -44,9 +50,35 @@ export class CardTypeRemoveCustomFieldHandler implements Handler {
     const cardTypeName = resourceNameToString(ctx.input.target);
     const resource = ctx.project.resources.byType(cardTypeName, 'cardTypes');
     if (!resource) throw new Error(`CardType '${cardTypeName}' not found`);
+
+    // Remove the field from the card type (and its visible-fields arrays) and
+    // persist it (CardTypeResource.update no longer cascades to cards).
     await resource.update(
       ctx.input.updateKey,
       ctx.input.operation as Operation<unknown>,
+    );
+
+    // Cascade: drop the field key from every affected card.
+    const item = (ctx.input.operation as RemoveOperation<CustomField>)
+      .target as CustomField;
+    const cards = this.affectedCards(ctx, cardTypeName);
+    for (const card of cards) {
+      if (card.metadata) {
+        delete card.metadata[item.name];
+        await ctx.project.updateCardMetadata(card, card.metadata);
+      }
+    }
+  }
+
+  // Cards using this card type: local project cards plus local template cards
+  // (matches CardTypeResource's collectCards scoping).
+  private affectedCards(ctx: MutationContext, cardTypeName: string): Card[] {
+    const project = [...ctx.project.cards(undefined)];
+    const templates = ctx.project.resources
+      .templates(ResourcesFrom.localOnly)
+      .flatMap((t) => t.templateObject().cards());
+    return [...project, ...templates].filter(
+      (c) => c.metadata?.cardType === cardTypeName,
     );
   }
 }

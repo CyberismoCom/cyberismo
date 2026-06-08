@@ -2623,7 +2623,7 @@ describe('resources', function () {
       await fieldType.delete();
     });
 
-    it('should update card contents when renaming card type', async () => {
+    it('should not update card contents when renaming card type via resource class (cascade moved to handler)', async () => {
       const cardTypeName = 'decision/cardTypes/testTypeForContent';
       const cardType = project.resources.byType(cardTypeName, 'cardTypes');
       await cardType.createCardType('decision/workflows/decision');
@@ -2643,9 +2643,10 @@ describe('resources', function () {
       await cardType.rename(resourceName('decision/cardTypes/renamedType'));
       expect(cardType.data?.name).toBe('decision/cardTypes/renamedType');
 
+      // The resource-level rename no longer cascades; CardTypeRenameHandler does.
       card = project.findCard(cardKey);
-      expect(card.content).toContain('decision/cardTypes/renamedType');
-      expect(card.content).not.toContain(cardTypeName);
+      expect(card.content).toContain(cardTypeName);
+      expect(card.content).not.toContain('decision/cardTypes/renamedType');
 
       await cleanup(cardKey);
       await cardType.delete();
