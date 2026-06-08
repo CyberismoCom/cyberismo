@@ -2527,7 +2527,7 @@ describe('resources', function () {
       await remove.remove('card', cardKey);
     }
 
-    it('should update card contents when renaming template', async () => {
+    it('should not update card contents when renaming template via resource class (cascade moved to handler)', async () => {
       const cardKey = 'decision_5';
       const card = project.findCard(cardKey);
       expect(card.content).toContain('decision/templates/simplepage');
@@ -2538,15 +2538,16 @@ describe('resources', function () {
       const updatedCard = project.findCard(cardKey);
 
       expect(template.data?.name).toBe('decision/templates/renamedpage');
-      expect(updatedCard.content).toContain('decision/templates/renamedpage');
+      // The resource-level rename no longer cascades; LeafResourceRenameHandler does.
+      expect(updatedCard.content).toContain('decision/templates/simplepage');
       expect(updatedCard.content).not.toContain(
-        'decision/templates/simplepage',
+        'decision/templates/renamedpage',
       );
 
       await template.rename(resourceName('decision/templates/simplepage'));
     });
 
-    it('should update card contents when renaming report', async () => {
+    it('should not update card contents when renaming report via resource class (cascade moved to handler)', async () => {
       const cardKey = 'decision_5';
       const card = project.findCard(cardKey);
       expect(card.content).toContain('decision/reports/testReport');
@@ -2557,8 +2558,11 @@ describe('resources', function () {
       const updatedCard = project.findCard(cardKey);
 
       expect(report.data?.name).toBe('decision/reports/renamedReport');
-      expect(updatedCard.content).toContain('decision/reports/renamedReport');
-      expect(updatedCard.content).not.toContain('decision/reports/testReport');
+      // The resource-level rename no longer cascades; LeafResourceRenameHandler does.
+      expect(updatedCard.content).toContain('decision/reports/testReport');
+      expect(updatedCard.content).not.toContain(
+        'decision/reports/renamedReport',
+      );
 
       await report.rename(resourceName('decision/reports/testReport'));
     });
@@ -2687,7 +2691,7 @@ describe('resources', function () {
       await renamed.delete();
     });
 
-    it('should update card contents when renaming calculations', async () => {
+    it('should not update card contents when renaming calculations via resource class (cascade moved to handler)', async () => {
       const calculationName = 'decision/calculations/testCalcForContent';
       const calculation = project.resources.byType(
         calculationName,
@@ -2711,15 +2715,16 @@ describe('resources', function () {
 
       expect(calculation.data?.name).toBe('decision/calculations/renamedCalc');
 
+      // The resource-level rename no longer cascades; LeafResourceRenameHandler does.
       card = project.findCard(cardKey);
-      expect(card.content).toContain('decision/calculations/renamedCalc');
-      expect(card.content).not.toContain(calculationName);
+      expect(card.content).toContain(calculationName);
+      expect(card.content).not.toContain('decision/calculations/renamedCalc');
 
       await cleanup(cardKey);
       await calculation.delete();
     });
 
-    it('should update card contents when renaming graph models', async () => {
+    it('should not update card contents when renaming graph models via resource class (cascade moved to handler)', async () => {
       const graphModelName = 'decision/graphModels/testGraphForContent';
       const graphModel = project.resources.byType(
         graphModelName,
@@ -2743,15 +2748,16 @@ describe('resources', function () {
       );
       expect(graphModel.data?.name).toBe('decision/graphModels/renamedGraph');
 
+      // The resource-level rename no longer cascades; LeafResourceRenameHandler does.
       card = project.findCard(cardKey);
-      expect(card.content).toContain('decision/graphModels/renamedGraph');
-      expect(card.content).not.toContain(graphModelName);
+      expect(card.content).toContain(graphModelName);
+      expect(card.content).not.toContain('decision/graphModels/renamedGraph');
 
       await cleanup(cardKey);
       await graphModel.delete();
     });
 
-    it('should update card contents when renaming graph views', async () => {
+    it('should not update card contents when renaming graph views via resource class (cascade moved to handler)', async () => {
       const graphViewName = 'decision/graphViews/testViewForContent';
       const graphView = project.resources.byType(graphViewName, 'graphViews');
       await graphView.create();
@@ -2770,15 +2776,16 @@ describe('resources', function () {
       await graphView.rename(resourceName('decision/graphViews/renamedView'));
       expect(graphView.data?.name).toBe('decision/graphViews/renamedView');
 
+      // The resource-level rename no longer cascades; LeafResourceRenameHandler does.
       card = project.findCard(cardKey);
-      expect(card.content).toContain('decision/graphViews/renamedView');
-      expect(card.content).not.toContain(graphViewName);
+      expect(card.content).toContain(graphViewName);
+      expect(card.content).not.toContain('decision/graphViews/renamedView');
 
       await cleanup(cardKey);
       await graphView.delete();
     });
 
-    it('should rename all card content references', async () => {
+    it('should not rename card content references via resource class (cascade moved to handler)', async () => {
       const templateName = 'decision/templates/multiRefTemplate';
       const template = project.resources.byType(templateName, 'templates');
       await template.create();
@@ -2798,10 +2805,13 @@ describe('resources', function () {
 
       await template.rename(resourceName('decision/templates/renamedMultiRef'));
 
+      // The resource-level rename no longer cascades; LeafResourceRenameHandler does.
       for (const cardKey of cardKeys) {
         const card = project.findCard(cardKey);
-        expect(card.content).toContain('decision/templates/renamedMultiRef');
-        expect(card.content).not.toContain(templateName);
+        expect(card.content).toContain(templateName);
+        expect(card.content).not.toContain(
+          'decision/templates/renamedMultiRef',
+        );
       }
 
       // Cleanup

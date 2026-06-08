@@ -48,18 +48,17 @@ export class GraphViewResource extends FolderResource<
   }
 
   /**
-   * Handle name changes for graph views
-   * @param existingName The previous name before the change
+   * No-op stub: FolderResource declares onNameChange as an abstract member
+   * (the `?` modifier makes the call site in FolderResource.update() use
+   * optional chaining, but TS2515 still requires a concrete subclass to
+   * declare the method). The rename cascade has moved into
+   * LeafResourceRenameHandler — engine routing intercepts the rename before
+   * FolderResource.update() would invoke this hook, so the stub is
+   * unreachable at runtime. Delete this stub once the abstract declaration is
+   * removed from FolderResource in a later PR.
    */
-  protected async onNameChange(existingName: string): Promise<void> {
-    await Promise.all([
-      super.updateHandleBars(existingName, this.content.name, [
-        await this.handleBarFile(),
-      ]),
-      super.updateCalculations(existingName, this.content.name),
-      super.updateCardContentReferences(existingName, this.content.name),
-    ]);
-    await this.write();
+  protected async onNameChange(): Promise<void> {
+    return;
   }
 
   /**
@@ -106,9 +105,10 @@ export class GraphViewResource extends FolderResource<
    * @param newName New name for the resource.
    */
   public async rename(newName: ResourceName) {
-    const existingName = this.content.name;
     await super.rename(newName);
-    return this.onNameChange(existingName);
+    // Persist the renamed metadata and rename the content folder on disk.
+    // The reference cascade lives in LeafResourceRenameHandler.
+    await this.write();
   }
 
   /**
