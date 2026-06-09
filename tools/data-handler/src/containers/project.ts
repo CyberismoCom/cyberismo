@@ -651,6 +651,73 @@ export class Project extends CardContainer {
   }
 
   /**
+   * Deletes the given cards together with their descendant subtrees, and
+   * removes any links from surviving cards that point at a deleted card.
+   *
+   * This is the structural card-deletion primitive shared by the `remove`
+   * command and the resource mutation handlers. It performs no permission
+   * checks and assumes the caller already holds the write lock.
+   * @param cards Root cards to delete. Descendants are removed via cascade, so
+   *   passing a card whose ancestor is also in the list is safe.
+   */
+  public async deleteCards(cards: Card[]) {
+    if (cards.length === 0) {
+      return;
+    }
+
+    // Collect every key that will be removed (each card plus its subtree) so
+    // link cleanup can drop links pointing anywhere into the deleted set.
+    const deletedKeys = new Set<string>();
+    const collectDescendants = (cardKey: string) => {
+      if (deletedKeys.has(cardKey)) {
+        return;
+      }
+      let card: Card;
+      try {
+        card = this.findCard(cardKey);
+      } catch {
+        this.logger.debug({ cardKey }, 'Card to delete not found, skipping');
+        return;
+      }
+      deletedKeys.add(cardKey);
+      for (const childKey of card.children) {
+        collectDescendants(childKey);
+      }
+    };
+    for (const card of cards) {
+      collectDescendants(card.key);
+    }
+
+    // Strip links from surviving cards that point at any card being removed.
+    const linkUpdates: Promise<void>[] = [];
+    for (const item of this.cards(this.paths.cardRootFolder)) {
+      if (deletedKeys.has(item.key) || !item.metadata) {
+        continue;
+      }
+      const links = item.metadata.links;
+      const preservedLinks = links.filter((l) => !deletedKeys.has(l.cardKey));
+      if (preservedLinks.length !== links.length) {
+        linkUpdates.push(
+          this.updateCardMetadataKey(item.key, 'links', preservedLinks),
+        );
+      }
+    }
+    await Promise.all(linkUpdates);
+
+    // Remove the subtrees. handleCardDeleted cascades children, so any card
+    // already removed as part of an earlier subtree is skipped here.
+    for (const card of cards) {
+      let fresh: Card;
+      try {
+        fresh = this.findCard(card.key);
+      } catch {
+        continue;
+      }
+      await this.handleCardDeleted(fresh);
+    }
+  }
+
+  /**
    * When card is moved.
    * @param movedCard Card that moved
    * @param newParentCard New parent for the 'movedCard'
