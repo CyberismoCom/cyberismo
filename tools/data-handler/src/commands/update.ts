@@ -59,14 +59,14 @@ export class Update {
     // A rename is encoded as a 'change' on the 'name' updateKey.
     const isRename = updateKey.key === 'name' && operation.name === 'change';
 
-    // PR1 routes ONLY linkTypes through the engine. Other resource families
-    // keep their legacy in-class cascade path until their own handler PR
-    // lands. (Do not generalise this to a Set of types — PR1's dispatcher
-    // would route unhandled types to DefaultNoCascadeHandler and silently
+    // Only resource families with a dedicated handler are routed through the
+    // engine; the rest use the in-class cascade path. (Do not generalise this
+    // to a blanket Set of types — the dispatcher would route unhandled
+    // (type, key, operation) tuples to DefaultNoCascadeHandler and silently
     // drop their cascade.)
-    if (type === 'linkTypes') {
-      const target = parseResourceName(name);
+    const target = parseResourceName(name);
 
+    if (type === 'linkTypes') {
       if (isRename) {
         const newIdentifier = parseResourceName(
           (operation as ChangeOperation<string>).to,
@@ -84,6 +84,36 @@ export class Update {
       };
       await this.mutations.apply(input);
       return;
+    }
+
+    if (type === 'cardTypes') {
+      if (isRename) {
+        const newIdentifier = parseResourceName(
+          (operation as ChangeOperation<string>).to,
+        ).identifier;
+        const input = { kind: 'rename' as const, target, newIdentifier };
+        await this.mutations.apply(input);
+        return;
+      }
+
+      // Only the cardType edits with a dedicated handler are routed; all other
+      // cardType edits (e.g. rank, alwaysVisibleFields, displayName) use the
+      // in-class cascade path.
+      const routedEdit =
+        (updateKey.key === 'workflow' && operation.name === 'change') ||
+        (updateKey.key === 'customFields' &&
+          (operation.name === 'add' || operation.name === 'remove'));
+
+      if (routedEdit) {
+        const input = {
+          kind: 'edit' as const,
+          target,
+          updateKey,
+          operation,
+        };
+        await this.mutations.apply(input);
+        return;
+      }
     }
 
     const run = () =>
