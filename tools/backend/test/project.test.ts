@@ -61,7 +61,7 @@ describe('Project endpoints', () => {
     expect(result.cardKeyPrefix).toBe('projtest');
   });
 
-  test('PATCH /api/project updates description and category', async () => {
+  test('PATCH /api/projects/:projectPrefix/project updates description and category', async () => {
     const response = await app.request('/api/projects/test/project', {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
