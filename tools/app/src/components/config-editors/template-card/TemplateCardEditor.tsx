@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next';
 import { useCardMutations, useResourceTree } from '@/lib/api';
 import CardToolbar from '@/components/toolbar/CardToolbar';
 import { AttachmentPanel } from '@/components/card/AttachmentPanel';
+import { CardLayout } from '@/components/card/CardLayout';
 import type { AnyNode, CardResponse } from '@/lib/api/types';
 import type { MetadataValue } from '@/lib/definitions';
 import { findCardParentInResourceTree, metadataValuesEqual } from '@/lib/utils';
@@ -34,7 +35,6 @@ import { TITLE_KEY, LABELS_KEY, buildDraft } from './draft';
 import { TitleEditor } from './TitleEditor';
 import { MetadataFields } from './MetadataFields';
 import { ContentEditor, type ContentEditorHandle } from './ContentEditor';
-import { TemplateCardPreview } from './TemplateCardPreview';
 import { PreviewToggle } from './PreviewToggle';
 
 /**
@@ -173,11 +173,16 @@ export function TemplateCardEditor({
       />
       <Box flexGrow={1} minHeight={0} display="flex" flexDirection="column">
         {isPreview ? (
-          <TemplateCardPreview
+          <CardLayout
             card={previewCard}
+            preview
+            hideLinks
             header={
               <PreviewToggle isPreview={isPreview} onToggle={togglePreview} />
             }
+            cards={[]}
+            linkTypes={[]}
+            linkFormState="hidden"
           />
         ) : (
           <Stack

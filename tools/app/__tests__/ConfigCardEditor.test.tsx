@@ -31,22 +31,19 @@ vi.mock('@/components/card/AttachmentPanel', () => ({
   AttachmentPanel: () => null,
 }));
 
-// Preview-only components: capture the previewCard they receive.
+// Preview renders through the shared CardLayout (read-only). Mock it and
+// capture the previewCard it receives.
 let previewTitle: unknown;
 let previewCardArg: { fields?: { key: string; value: unknown }[] } | undefined;
-vi.mock('@/components/card/CardTitle', () => ({
-  CardTitle: (props: { title: unknown }) => {
-    previewTitle = props.title;
-    return null;
-  },
-}));
-vi.mock('@/components/card/metadata-section/MetadataSection', () => ({
-  default: (props: { card: typeof previewCardArg }) => {
+vi.mock('@/components/card/CardLayout', () => ({
+  CardLayout: (props: {
+    card: { title: unknown; fields?: { key: string; value: unknown }[] };
+  }) => {
+    previewTitle = props.card.title;
     previewCardArg = props.card;
     return null;
   },
 }));
-vi.mock('@/components/card/CardBody', () => ({ CardBody: () => null }));
 
 const updateCard = vi.fn().mockResolvedValue(undefined);
 const useRawCard = vi.fn();

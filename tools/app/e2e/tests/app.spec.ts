@@ -657,6 +657,10 @@ test.describe('Navigation', () => {
     await expect(
       page.getByRole('heading', { level: 1, name: 'Unsaved title edit' }),
     ).toBeVisible();
+    // Preview reuses the normal card layout (same width as edit mode, so the
+    // Edit/Preview toggle does not jump) but hides the links section, which is
+    // not applicable to template cards.
+    await expect(page.getByText(t.noLinkedCards)).toHaveCount(0);
     await page.getByTestId('editTab').click();
     await expect(titleInput).toHaveValue('Unsaved title edit');
 
