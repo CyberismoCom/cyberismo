@@ -622,7 +622,7 @@ export class Create {
 
     await Promise.all(
       // Deep clone to avoid mutating the static template
-      JSON.parse(JSON.stringify(Create.JSONFileContent)).map(
+      structuredClone(Create.JSONFileContent).map(
         async (entry: ProjectFile) => {
           if ('cardKeyPrefix' in entry.content) {
             if (entry.content.cardKeyPrefix.includes('$PROJECT-PREFIX')) {
