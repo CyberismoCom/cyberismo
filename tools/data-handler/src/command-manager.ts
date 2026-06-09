@@ -32,6 +32,7 @@ import { runWithCommitContext } from './utils/commit-context.js';
 import { type Level } from 'pino';
 import { join } from 'node:path';
 import { initLogger } from './utils/log-utils.js';
+import { DEFAULT_HUB } from '@cyberismo/assets';
 
 export interface CommandManagerOptions {
   watchResourceChanges?: boolean;
@@ -171,5 +172,53 @@ export class CommandManager {
     }
 
     return CommandManager.instance;
+  }
+
+  /**
+   * Creates a new project with default configuration.
+   * Sets up the project files, initializes git, and adds the default hub.
+   * @param projectPath Path where the project will be created
+   * @param params Project parameters (name, prefix, category, description)
+   * @param options Optional settings for the command manager and git user
+   * @returns Initialized CommandManager for the new project
+   */
+  public static async createProjectWithDefaults(
+    projectPath: string,
+    params: {
+      name: string;
+      prefix: string;
+      category?: string;
+      description?: string;
+    },
+    options?: CommandManagerOptions & {
+      gitUser?: { name: string; email: string };
+    },
+  ): Promise<CommandManager> {
+    await Create.createProject(
+      projectPath,
+      params.prefix,
+      params.name,
+      params.category ?? '',
+      params.description ?? '',
+    );
+
+    const commands = new CommandManager(projectPath, options);
+    await commands.initialize();
+
+    await commands.project.git.initialize(
+      options?.gitUser
+        ? { name: options.gitUser.name, email: options.gitUser.email }
+        : undefined,
+    );
+
+    // Add default hub and fetch module data
+    try {
+      await commands.createCmd.addHubLocation(DEFAULT_HUB);
+      await commands.fetchCmd.fetchHubs();
+    } catch {
+      // Hub setup is non-critical; project is still usable
+    }
+
+    return commands;
   }
 }

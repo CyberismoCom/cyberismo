@@ -26,8 +26,9 @@ export type AvailableProject = {
  */
 export async function fetchAvailableProjects(): Promise<AvailableProject[]> {
   const { fetcher } = getSwrConfig();
-  const projects = (await fetcher!(
-    globalApiPaths.projects(),
-  )) as AvailableProject[];
-  return projects ?? [];
+  const response = (await fetcher!(globalApiPaths.projects())) as {
+    projects: AvailableProject[];
+    canCreateProjects: boolean;
+  };
+  return response?.projects ?? [];
 }

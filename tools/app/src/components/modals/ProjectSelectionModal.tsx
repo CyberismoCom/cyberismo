@@ -31,10 +31,13 @@ import {
   Stack,
   Typography,
 } from '@mui/joy';
+import AddIcon from '@mui/icons-material/Add';
 import ClearIcon from '@mui/icons-material/Clear';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
 import { useAvailableProjects } from '@/lib/api/projects';
+import { getConfig } from '@/lib/utils';
+import { CreateProjectModal } from './CreateProjectModal';
 
 interface ProjectSelectionModalProps {
   open: boolean;
@@ -51,12 +54,15 @@ export function ProjectSelectionModal({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { projectPrefix: currentPrefix } = useParams();
-  const { data: projects, isLoading } = useAvailableProjects();
+  const { data, isLoading } = useAvailableProjects();
+  const projects = data?.projects;
+  const canCreateProjects = data?.canCreateProjects ?? false;
 
   const [filter, setFilter] = useState('');
   const [selectedProject, setSelectedProject] = useState<string | null>(
     currentPrefix ?? null,
   );
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
   const filteredProjects = (projects ?? []).filter(
     (p) =>
@@ -77,163 +83,184 @@ export function ProjectSelectionModal({
   };
 
   return (
-    <Modal open={open} onClose={dismissable ? handleClose : undefined}>
-      <ModalDialog
-        sx={{
-          height: { xs: '95vh', sm: '90%' },
-          width: { xs: '95vw', sm: '60%' },
-          minWidth: { sm: 400 },
-        }}
-      >
-        {dismissable && <ModalClose />}
-
-        <DialogTitle>{t('projectDialog.title')}</DialogTitle>
-        <Input
-          type="text"
-          autoFocus
-          value={filter}
-          onChange={(e) => {
-            setFilter(e.target.value);
-            setSelectedProject(null);
+    <>
+      <Modal open={open} onClose={dismissable ? handleClose : undefined}>
+        <ModalDialog
+          sx={{
+            height: { xs: '95vh', sm: '90%' },
+            width: { xs: '95vw', sm: '60%' },
+            minWidth: { sm: 400 },
           }}
-          placeholder={t('projectDialog.searchProjects')}
-          endDecorator={
-            filter && (
-              <IconButton
-                variant="plain"
-                size="sm"
-                onClick={() => {
-                  setFilter('');
-                  setSelectedProject(null);
-                }}
-                aria-label="Clear"
-              >
-                <ClearIcon />
-              </IconButton>
-            )
-          }
-        />
-        <DialogContent sx={{ padding: 2 }}>
-          <Box sx={{ overflowY: 'auto', overflowX: 'hidden' }}>
-            {isLoading ? (
-              <Stack alignItems="center" py={4}>
-                <CircularProgress size="md" />
-              </Stack>
-            ) : filteredProjects.length === 0 ? (
-              <Typography level="body-xs" color="neutral">
-                {t('projectDialog.noProjectsFound')}
-              </Typography>
-            ) : (
-              <Grid
-                container
-                gap={2}
-                justifyContent="flex-start"
-                marginTop={2}
-                marginBottom={4}
-                marginLeft={0}
-                paddingRight={1}
-              >
-                {filteredProjects.map((p) => (
-                  <Card
-                    key={p.prefix}
-                    variant="outlined"
-                    sx={{
-                      height: '200px',
-                      width: '200px',
-                      boxShadow: '0px 2px 2px 0px rgba(0, 0, 0, 0.5)',
-                      cursor: 'pointer',
-                      padding: 0,
-                      overflow: 'hidden',
-                      gap: 0,
-                      borderRadius: 16,
-                      ...(p.prefix === currentPrefix && {
-                        borderColor: 'primary.500',
-                        borderWidth: 2,
-                      }),
-                    }}
-                    onClick={() => setSelectedProject(p.prefix)}
-                    onDoubleClick={() => handleProjectSelect(p.prefix)}
-                  >
-                    <Stack
-                      direction="row"
-                      padding={0}
-                      sx={{ justifyContent: 'space-between' }}
+        >
+          {dismissable && <ModalClose />}
+
+          <DialogTitle>{t('projectDialog.title')}</DialogTitle>
+          <Input
+            type="text"
+            autoFocus
+            value={filter}
+            onChange={(e) => {
+              setFilter(e.target.value);
+              setSelectedProject(null);
+            }}
+            placeholder={t('projectDialog.searchProjects')}
+            endDecorator={
+              filter && (
+                <IconButton
+                  variant="plain"
+                  size="sm"
+                  onClick={() => {
+                    setFilter('');
+                    setSelectedProject(null);
+                  }}
+                  aria-label="Clear"
+                >
+                  <ClearIcon />
+                </IconButton>
+              )
+            }
+          />
+          <DialogContent sx={{ padding: 2 }}>
+            <Box sx={{ overflowY: 'auto', overflowX: 'hidden' }}>
+              {isLoading ? (
+                <Stack alignItems="center" py={4}>
+                  <CircularProgress size="md" />
+                </Stack>
+              ) : filteredProjects.length === 0 ? (
+                <Typography level="body-xs" color="neutral">
+                  {t('projectDialog.noProjectsFound')}
+                </Typography>
+              ) : (
+                <Grid
+                  container
+                  gap={2}
+                  justifyContent="flex-start"
+                  marginTop={2}
+                  marginBottom={4}
+                  marginLeft={0}
+                  paddingRight={1}
+                >
+                  {filteredProjects.map((p) => (
+                    <Card
+                      key={p.prefix}
+                      variant="outlined"
+                      sx={{
+                        height: '200px',
+                        width: '200px',
+                        boxShadow: '0px 2px 2px 0px rgba(0, 0, 0, 0.5)',
+                        cursor: 'pointer',
+                        padding: 0,
+                        overflow: 'hidden',
+                        gap: 0,
+                        borderRadius: 16,
+                        ...(p.prefix === currentPrefix && {
+                          borderColor: 'primary.500',
+                          borderWidth: 2,
+                        }),
+                      }}
+                      onClick={() => setSelectedProject(p.prefix)}
+                      onDoubleClick={() => handleProjectSelect(p.prefix)}
                     >
-                      <Typography
-                        level="title-sm"
-                        paddingLeft={2}
-                        fontWeight="bold"
-                        textOverflow="clip"
-                        marginTop="auto"
-                        marginBottom={0.5}
+                      <Stack
+                        direction="row"
+                        padding={0}
+                        sx={{ justifyContent: 'space-between' }}
                       >
-                        {p.name}
-                      </Typography>
-                      <Box padding={1}>
-                        <Radio
-                          checked={selectedProject === p.prefix}
-                          variant="soft"
-                          tabIndex={-1}
-                          sx={{ pointerEvents: 'none' }}
-                        />
-                      </Box>
-                    </Stack>
-                    <CardOverflow sx={{ flexGrow: 1 }}>
-                      <Box bgcolor="neutral.softBg" height="100%" px={2} py={1}>
                         <Typography
-                          level="body-xs"
+                          level="title-sm"
+                          paddingLeft={2}
                           fontWeight="bold"
-                          sx={{ wordBreak: 'break-word' }}
+                          textOverflow="clip"
+                          marginTop="auto"
+                          marginBottom={0.5}
                         >
-                          {p.prefix}
+                          {p.name}
                         </Typography>
-                        {p.category && (
-                          <Typography level="body-xs" sx={{ mt: 0.5 }}>
-                            {p.category}
-                          </Typography>
-                        )}
-                        {p.description && (
+                        <Box padding={1}>
+                          <Radio
+                            checked={selectedProject === p.prefix}
+                            variant="soft"
+                            tabIndex={-1}
+                            sx={{ pointerEvents: 'none' }}
+                          />
+                        </Box>
+                      </Stack>
+                      <CardOverflow sx={{ flexGrow: 1 }}>
+                        <Box
+                          bgcolor="neutral.softBg"
+                          height="100%"
+                          px={2}
+                          py={1}
+                        >
                           <Typography
                             level="body-xs"
-                            color="neutral"
-                            sx={{
-                              mt: 0.5,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              display: '-webkit-box',
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: 'vertical',
-                            }}
+                            fontWeight="bold"
+                            sx={{ wordBreak: 'break-word' }}
                           >
-                            {p.description}
+                            {p.prefix}
                           </Typography>
-                        )}
-                      </Box>
-                    </CardOverflow>
-                  </Card>
-                ))}
-              </Grid>
-            )}
-          </Box>
-          <DialogActions sx={{ marginTop: 'auto' }}>
-            <Button
-              disabled={selectedProject === null}
-              onClick={() => {
-                if (selectedProject) {
-                  handleProjectSelect(selectedProject);
-                }
-              }}
-              color="primary"
-            >
-              {t('projectDialog.open')}
-            </Button>
-            <Button onClick={handleClose} variant="plain" color="neutral">
-              {t('cancel')}
-            </Button>
-          </DialogActions>
-        </DialogContent>
-      </ModalDialog>
-    </Modal>
+                          {p.category && (
+                            <Typography level="body-xs" sx={{ mt: 0.5 }}>
+                              {p.category}
+                            </Typography>
+                          )}
+                          {p.description && (
+                            <Typography
+                              level="body-xs"
+                              color="neutral"
+                              sx={{
+                                mt: 0.5,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                              }}
+                            >
+                              {p.description}
+                            </Typography>
+                          )}
+                        </Box>
+                      </CardOverflow>
+                    </Card>
+                  ))}
+                </Grid>
+              )}
+            </Box>
+            <DialogActions sx={{ marginTop: 'auto' }}>
+              <Button
+                disabled={selectedProject === null}
+                onClick={() => {
+                  if (selectedProject) {
+                    handleProjectSelect(selectedProject);
+                  }
+                }}
+                color="primary"
+              >
+                {t('projectDialog.open')}
+              </Button>
+              {!getConfig().staticMode && canCreateProjects && (
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  startDecorator={<AddIcon />}
+                  onClick={() => setCreateModalOpen(true)}
+                >
+                  {t('projectDialog.createNew')}
+                </Button>
+              )}
+              <Button onClick={handleClose} variant="plain" color="neutral">
+                {t('cancel')}
+              </Button>
+            </DialogActions>
+          </DialogContent>
+        </ModalDialog>
+      </Modal>
+      <CreateProjectModal
+        open={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+      />
+    </>
   );
 }
 

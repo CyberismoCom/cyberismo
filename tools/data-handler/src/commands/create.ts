@@ -12,11 +12,16 @@
 */
 
 // node
-import { join, resolve } from 'node:path';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { basename, join, resolve } from 'node:path';
+import { mkdir, mkdtemp, rename, rm, writeFile } from 'node:fs/promises';
+
+import { simpleGit } from 'simple-git';
 
 import { SCHEMA_VERSION } from '@cyberismo/assets';
+import { scanForProjects } from '../project-scanner.js';
 import { errorFunction } from '../utils/error-utils.js';
+import { NON_INTERACTIVE_GIT_ENV, gitTimeout } from '../utils/git-config.js';
+import { pathExists } from '../utils/file-utils.js';
 import { Project } from '../containers/project.js';
 import { Validate } from './validate.js';
 
@@ -616,26 +621,29 @@ export class Create {
     });
 
     await Promise.all(
-      Create.JSONFileContent.map(async (entry) => {
-        if ('cardKeyPrefix' in entry.content) {
-          if (entry.content.cardKeyPrefix.includes('$PROJECT-PREFIX')) {
-            entry.content.cardKeyPrefix = projectPrefix.toLowerCase();
+      // Deep clone to avoid mutating the static template
+      structuredClone(Create.JSONFileContent).map(
+        async (entry: ProjectFile) => {
+          if ('cardKeyPrefix' in entry.content) {
+            if (entry.content.cardKeyPrefix.includes('$PROJECT-PREFIX')) {
+              entry.content.cardKeyPrefix = projectPrefix.toLowerCase();
+            }
+            if (entry.content.name.includes('$PROJECT-NAME')) {
+              entry.content.name = projectName;
+            }
+            if (projectCategory) {
+              entry.content.category = projectCategory;
+            }
+            if (projectDescription) {
+              entry.content.description = projectDescription;
+            }
           }
-          if (entry.content.name.includes('$PROJECT-NAME')) {
-            entry.content.name = projectName;
-          }
-          if (projectCategory) {
-            entry.content.category = projectCategory;
-          }
-          if (projectDescription) {
-            entry.content.description = projectDescription;
-          }
-        }
-        await writeJsonFile(
-          join(projectPath, entry.path, entry.name),
-          entry.content,
-        );
-      }),
+          await writeJsonFile(
+            join(projectPath, entry.path, entry.name),
+            entry.content,
+          );
+        },
+      ),
     );
 
     try {
@@ -646,6 +654,63 @@ export class Create {
     } catch {
       console.error('Failed to create project');
     }
+  }
+
+  /**
+   * Clones a git repository into the given destination directory.
+   * Clones to a temporary location first, validates that the repository
+   * contains at least one Cyberismo project, then moves it to the final path.
+   * @param url Git URL to clone (https:// or git@)
+   * @param destPath Parent directory where the repo will be cloned into
+   * @returns The path to the cloned repository
+   */
+  public static async cloneProject(
+    url: string,
+    destPath: string,
+  ): Promise<string> {
+    const repoName = basename(url, '.git').replace(/[^\w.-]/g, '_');
+    const finalPath = join(destPath, repoName);
+
+    if (pathExists(finalPath)) {
+      throw new Error(`Destination '${repoName}' already exists`);
+    }
+
+    // Clone to a temp directory in destPath so rename works (same filesystem)
+    await mkdir(destPath, { recursive: true });
+    const tempDir = await mkdtemp(join(destPath, '.cyberismo-clone-'));
+    const tempClonePath = join(tempDir, repoName);
+
+    const git = simpleGit({
+      timeout: { block: gitTimeout() },
+    });
+
+    try {
+      await git.env({ ...NON_INTERACTIVE_GIT_ENV }).clone(url, tempClonePath);
+
+      // Validate that the cloned repo contains Cyberismo projects
+      const projects = await scanForProjects(tempClonePath);
+      if (projects.length === 0) {
+        throw new Error(
+          'Cloned repository does not contain any Cyberismo projects',
+        );
+      }
+
+      // Move to the final destination
+      await rename(tempClonePath, finalPath);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(
+          `Failed to clone repository '${url}': ${error.message}`,
+          { cause: error },
+        );
+      }
+      throw error;
+    } finally {
+      // Clean up temp directory (contains leftovers on failure, empty wrapper on success)
+      await rm(tempDir, { recursive: true, force: true }).catch(() => {});
+    }
+
+    return finalPath;
   }
 
   /**

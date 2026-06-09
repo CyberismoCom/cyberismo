@@ -4,6 +4,7 @@ import { createApp } from '../src/app.js';
 import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
+import { dirname } from 'node:path';
 
 describe('multi-project routing', () => {
   let app: ReturnType<typeof createApp>;
@@ -29,7 +30,15 @@ describe('multi-project routing', () => {
       },
     ]);
 
-    app = createApp(new MockAuthProvider(), registry);
+    // Use parent of temp path as multiProjectRoot to enable project creation
+    const multiProjectRoot = dirname(tempDecisionPath);
+    app = createApp(
+      new MockAuthProvider(),
+      registry,
+      undefined,
+      false,
+      multiProjectRoot,
+    );
   });
 
   afterAll(async () => {
@@ -41,13 +50,14 @@ describe('multi-project routing', () => {
     const response = await app.request('/api/projects');
     expect(response.status).toBe(200);
     const result = (await response.json()) as {
-      prefix: string;
-      name: string;
-    }[];
-    expect(result).toHaveLength(2);
-    const prefixes = result.map((p) => p.prefix).sort();
+      projects: { prefix: string; name: string }[];
+      canCreateProjects: boolean;
+    };
+    expect(result.projects).toHaveLength(2);
+    const prefixes = result.projects.map((p) => p.prefix).sort();
     expect(prefixes).toContain('decision');
     expect(prefixes).toContain('mini');
+    expect(result.canCreateProjects).toBe(true);
   });
 
   test('GET /api/projects/:prefix/cards works for each project', async () => {

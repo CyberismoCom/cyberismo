@@ -41,6 +41,7 @@ import {
 } from './utils/resource-utils.js';
 import { moduleNameFromCardKey } from './utils/card-utils.js';
 import { scanForProjects } from './project-scanner.js';
+import { Create } from './commands/create.js';
 
 export {
   Cmd,
@@ -48,6 +49,7 @@ export {
   CmdValue,
   CommandManager,
   Commands,
+  Create,
   ExportFormats,
   isResourceFolderType,
   moduleNameFromCardKey,

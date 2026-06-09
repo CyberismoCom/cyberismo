@@ -1,5 +1,6 @@
 import { beforeEach, describe, it } from 'vitest';
 import type * as libHooksModule from '../src/lib/hooks';
+import type * as reactRouterModule from 'react-router';
 import { TreeMenu } from '../src/components/TreeMenu';
 import { SearchableTreeMenu } from '../src/components/SearchableTreeMenu';
 import { LabelEditorField } from '@/components/LabelEditor';
@@ -12,6 +13,15 @@ import { expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router';
+
+vi.mock('react-router', async (importOriginal) => {
+  const actual = await importOriginal<typeof reactRouterModule>();
+  return {
+    ...actual,
+    useParams: vi.fn(() => ({ projectPrefix: 'decision' })),
+    useNavigate: vi.fn(() => vi.fn()),
+  };
+});
 
 // mock useAppRouter and useResizeObserver
 vi.mock('../src/lib/hooks', async (importOriginal) => {
@@ -44,7 +54,12 @@ vi.mock('../src/lib/hooks', async (importOriginal) => {
 });
 
 vi.mock('../src/lib/api/projects', () => ({
-  useAvailableProjects: vi.fn(() => ({ data: [] })),
+  useAvailableProjects: vi.fn(() => ({
+    data: {
+      projects: [{ prefix: 'decision', name: 'Decision Records' }],
+      canCreateProjects: false,
+    },
+  })),
 }));
 
 vi.mock('@/lib/api', () => ({

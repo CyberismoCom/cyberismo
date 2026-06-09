@@ -225,6 +225,9 @@ importers:
       '@asciidoctor/core':
         specifier: ^3.0.4
         version: 3.0.4
+      '@cyberismo/assets':
+        specifier: workspace:*
+        version: link:../assets
       '@cyberismo/data-handler':
         specifier: workspace:*
         version: link:../data-handler
@@ -268,6 +271,9 @@ importers:
 
   tools/cli:
     dependencies:
+      '@cyberismo/assets':
+        specifier: workspace:*
+        version: link:../assets
       '@cyberismo/backend':
         specifier: workspace:*
         version: link:../backend

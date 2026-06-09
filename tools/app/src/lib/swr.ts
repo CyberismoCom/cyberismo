@@ -29,6 +29,8 @@ function resolveProjectPrefix(projectPrefix?: string): string {
 export const globalApiPaths = {
   config: () => '/api/config',
   projects: () => '/api/projects',
+  createProject: () => '/api/projects',
+  cloneProject: () => '/api/projects/clone',
   user: () => '/api/auth/me',
   publicKey: () => '/api/public-key',
 };

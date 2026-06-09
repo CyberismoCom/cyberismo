@@ -30,6 +30,7 @@
     "node": ">=22"
   },
   "dependencies": {
+    "@cyberismo/assets": "workspace:*",
     "@cyberismo/backend": "workspace:*",
     "@cyberismo/data-handler": "workspace:*",
     "@inquirer/confirm": "^6.1.1",

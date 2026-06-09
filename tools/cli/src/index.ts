@@ -51,8 +51,7 @@ import { simpleGit } from 'simple-git';
 
 // How many validation errors are shown when staring app, if any.
 const VALIDATION_ERROR_ROW_LIMIT = 10;
-const DEFAULT_HUB =
-  'https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/';
+import { DEFAULT_HUB } from '@cyberismo/assets';
 
 // To avoid duplication, fetch description and version from package.json file.
 // Importing dynamically allows filtering of warnings in cli/bin/run.
@@ -1604,6 +1603,10 @@ appCmd.action(async (options: CommandOptions<'start'>) => {
     return;
   }
 
+  // Single-project mode: basePath is itself a project (not a collection)
+  const isSingleProject =
+    projects.length === 1 && projects[0].path === resolve(basePath);
+
   if (projects.length === 0) {
     console.log('No projects found. Starting with empty project collection.');
   }
@@ -1651,12 +1654,19 @@ appCmd.action(async (options: CommandOptions<'start'>) => {
   }
 
   // Create a CommandManager for each discovered project
+  const mergedOptions = Object.assign({}, options, program.opts());
   const registry = await ProjectRegistry.fromScannedProjects(projects, {
-    autocommit: options.autocommit,
-    watchResourceChanges: options.watchResourceChanges,
+    autocommit: mergedOptions.autocommit,
+    watchResourceChanges: mergedOptions.watchResourceChanges,
   });
 
-  await startServer(new MockAuthProvider(gitUser), registry, true, basePath);
+  // Pass multiProjectRoot only in multi-project mode (enables project creation)
+  await startServer(
+    new MockAuthProvider(gitUser),
+    registry,
+    true,
+    isSingleProject ? undefined : basePath,
+  );
 });
 
 // Publish command - creates a git tag from cardsConfig version and pushes

@@ -94,8 +94,13 @@ export const SearchableTreeMenu = ({
   const [projectModalOpen, setProjectModalOpen] = useState(false);
   const navigate = useNavigate();
   const { projectPrefix: currentPrefix } = useParams();
-  const { data: projects } = useAvailableProjects();
+  const { data } = useAvailableProjects();
+  const projects = data?.projects;
+  const canCreateProjects = data?.canCreateProjects ?? false;
   const recentPrefixes = useAppSelector(selectRecentPrefixes);
+
+  // Single-project mode: only one project and can't create more
+  const isSingleProject = projects?.length === 1 && !canCreateProjects;
 
   // Recent projects: resolve prefixes to full project objects, exclude current
   const recentProjects = recentPrefixes
@@ -123,102 +128,93 @@ export const SearchableTreeMenu = ({
 
   return (
     <Stack height="100%" width="100%" bgcolor="background.surface">
-      {/* Recent projects - only takes natural height */}
-      <Stack flexShrink={0}>
-        {/* Recent projects header */}
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="space-between"
-          px={2}
-          pt={2}
-          pb={0.5}
-          sx={{
-            bgcolor: 'background.surface',
-          }}
-        >
-          <Typography level="body-xs" textTransform="uppercase" fontWeight="lg">
-            {t('projectDialog.recentProjects')}
-          </Typography>
-          {onClose && (
-            <IconButton
-              variant="plain"
-              color="neutral"
-              size="sm"
-              onClick={onClose}
-              aria-label={t('toolbar.closeMenu')}
-              sx={{ display: { xs: 'inline-flex', md: 'none' }, ml: 1 }}
+      {/* Recent projects section (hidden in single-project mode) */}
+      {!isSingleProject && (
+        <Stack flexShrink={0}>
+          {/* Recent projects header */}
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+            px={2}
+            pt={2}
+            pb={0.5}
+            sx={{
+              bgcolor: 'background.surface',
+            }}
+          >
+            <Typography
+              level="body-xs"
+              textTransform="uppercase"
+              fontWeight="lg"
             >
-              <CloseIcon />
-            </IconButton>
-          )}
-        </Stack>
+              {t('projectDialog.recentProjects')}
+            </Typography>
+          </Stack>
 
-        <List size="sm" sx={{ px: 1, py: 0 }}>
-          {/* Current project */}
-          <ListItem>
-            <ListItemButton
-              selected
-              variant="soft"
-              sx={{ borderRadius: 'sm' }}
-              onClick={() => navigate(`/projects/${currentPrefix}/cards`)}
-            >
-              <ListItemDecorator>
-                <FolderOpenOutlined sx={{ fontSize: '1.1rem' }} />
-              </ListItemDecorator>
-              <ListItemContent>
-                <Typography level="body-sm" fontWeight="lg" noWrap>
-                  {currentProject?.name ?? currentPrefix}
-                </Typography>
-              </ListItemContent>
-            </ListItemButton>
-          </ListItem>
-
-          {/* Other recent projects */}
-          {recentProjects.map((p) => (
-            <ListItem key={p.prefix}>
+          <List size="sm" sx={{ px: 1, py: 0 }}>
+            {/* Current project */}
+            <ListItem>
               <ListItemButton
+                selected
+                variant="soft"
                 sx={{ borderRadius: 'sm' }}
-                onClick={() => navigate(`/projects/${p.prefix}/cards`)}
+                onClick={() => navigate(`/projects/${currentPrefix}/cards`)}
               >
                 <ListItemDecorator>
                   <FolderOpenOutlined sx={{ fontSize: '1.1rem' }} />
                 </ListItemDecorator>
                 <ListItemContent>
-                  <Typography level="body-sm" noWrap>
-                    {p.name}
+                  <Typography level="body-sm" fontWeight="lg" noWrap>
+                    {currentProject?.name ?? currentPrefix}
                   </Typography>
                 </ListItemContent>
               </ListItemButton>
             </ListItem>
-          ))}
 
-          {/* More projects */}
-          <ListItem>
-            <ListItemButton
-              data-cy="moreProjectsButton"
-              sx={{ borderRadius: 'sm' }}
-              onClick={() => setProjectModalOpen(true)}
-            >
-              <ListItemDecorator>
-                <MoreHorizIcon sx={{ fontSize: '1.1rem' }} />
-              </ListItemDecorator>
-              <ListItemContent>
-                <Typography level="body-sm">
-                  {t('projectDialog.moreProjects')}
-                </Typography>
-              </ListItemContent>
-            </ListItemButton>
-          </ListItem>
-        </List>
-      </Stack>
+            {recentProjects.map((p) => (
+              <ListItem key={p.prefix}>
+                <ListItemButton
+                  sx={{ borderRadius: 'sm' }}
+                  onClick={() => navigate(`/projects/${p.prefix}/cards`)}
+                >
+                  <ListItemDecorator>
+                    <FolderOpenOutlined sx={{ fontSize: '1.1rem' }} />
+                  </ListItemDecorator>
+                  <ListItemContent>
+                    <Typography level="body-sm" noWrap>
+                      {p.name}
+                    </Typography>
+                  </ListItemContent>
+                </ListItemButton>
+              </ListItem>
+            ))}
+            <ListItem>
+              <ListItemButton
+                data-cy="moreProjectsButton"
+                sx={{ borderRadius: 'sm' }}
+                onClick={() => setProjectModalOpen(true)}
+              >
+                <ListItemDecorator>
+                  <MoreHorizIcon sx={{ fontSize: '1.1rem' }} />
+                </ListItemDecorator>
+                <ListItemContent>
+                  <Typography level="body-sm">
+                    {t('projectDialog.moreProjects')}
+                  </Typography>
+                </ListItemContent>
+              </ListItemButton>
+            </ListItem>
+          </List>
 
-      <ProjectSelectionModal
-        open={projectModalOpen}
-        onClose={() => setProjectModalOpen(false)}
-      />
+          <ProjectSelectionModal
+            open={projectModalOpen}
+            onClose={() => setProjectModalOpen(false)}
+          />
 
-      <Divider sx={{ my: 1 }} />
+          <Divider sx={{ my: 1 }} />
+        </Stack>
+      )}
 
       {/* Current project name as tree header */}
       <Stack
@@ -226,12 +222,27 @@ export const SearchableTreeMenu = ({
         alignItems="center"
         justifyContent="space-between"
         px={2}
+        pt={isSingleProject ? 2 : 0}
         pb={0.5}
       >
         <Typography level="h4">
           {currentProject?.name ?? currentPrefix}
         </Typography>
-        {titleRightSlot}
+        <Stack direction="row" alignItems="center" gap={0.5}>
+          {titleRightSlot}
+          {onClose && (
+            <IconButton
+              variant="plain"
+              color="neutral"
+              size="sm"
+              onClick={onClose}
+              aria-label={t('toolbar.closeMenu')}
+              sx={{ display: { xs: 'inline-flex', md: 'none' } }}
+            >
+              <CloseIcon />
+            </IconButton>
+          )}
+        </Stack>
       </Stack>
 
       {/* Search input */}

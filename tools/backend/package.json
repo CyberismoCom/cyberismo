@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@asciidoctor/core": "^3.0.4",
+    "@cyberismo/assets": "workspace:*",
     "@cyberismo/data-handler": "workspace:*",
     "@cyberismo/mcp": "workspace:*",
     "@hono/mcp": "^0.3.0",

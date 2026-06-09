@@ -1215,3 +1215,62 @@ describe('create command', () => {
     expect(defaultCard.workflowState).toBe('');
   });
 });
+
+describe('CommandManager.createProjectWithDefaults', () => {
+  const testRoot = join(import.meta.dirname, 'tmp-createWithDefaults-tests');
+  const projectPath = join(testRoot, 'createWithDefaults-test');
+
+  beforeAll(async () => {
+    // Create test directory
+    mkdirSync(testRoot, { recursive: true });
+    // Clean up from any previous test runs
+    await deleteDir(projectPath);
+  });
+
+  afterAll(async () => {
+    rmSync(testRoot, { recursive: true, force: true });
+  });
+
+  it('creates a project with correct configuration', async () => {
+    const commands = await CommandManager.createProjectWithDefaults(
+      projectPath,
+      {
+        name: 'Test Defaults',
+        prefix: 'testdef',
+        category: 'Test',
+        description: 'A test',
+      },
+    );
+
+    expect(commands).toBeInstanceOf(CommandManager);
+    expect(commands.project.configuration.name).toBe('Test Defaults');
+    expect(commands.project.configuration.cardKeyPrefix).toBe('testdef');
+    expect(commands.project.configuration.category).toBe('Test');
+    expect(commands.project.configuration.description).toBe('A test');
+
+    // Check project structure exists
+    await expect(access(projectPath, fsConstants.F_OK)).resolves.not.toThrow();
+    await expect(
+      access(join(projectPath, '.cards', 'local'), fsConstants.F_OK),
+    ).resolves.not.toThrow();
+    await expect(
+      access(join(projectPath, 'cardRoot'), fsConstants.F_OK),
+    ).resolves.not.toThrow();
+  });
+
+  it('accepts git user option', async () => {
+    const userProjectPath = join(testRoot, 'createWithDefaults-user-test');
+    try {
+      const commands = await CommandManager.createProjectWithDefaults(
+        userProjectPath,
+        { name: 'User Project', prefix: 'userproj' },
+        { gitUser: { name: 'Test User', email: 'test@example.com' } },
+      );
+
+      expect(commands).toBeInstanceOf(CommandManager);
+      expect(commands.project.configuration.name).toBe('User Project');
+    } finally {
+      await deleteDir(userProjectPath);
+    }
+  });
+});
