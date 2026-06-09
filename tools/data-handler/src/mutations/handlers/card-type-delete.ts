@@ -17,8 +17,6 @@ import { resourceNameToString } from '../../utils/resource-utils.js';
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
 import type { Operation } from '../../resources/resource-object.js';
-import { Remove } from '../../commands/remove.js';
-import { Fetch } from '../../commands/fetch.js';
 
 export class CardTypeDeleteHandler implements Handler {
   readonly isBreaking = true;
@@ -58,23 +56,11 @@ export class CardTypeDeleteHandler implements Handler {
       }
     }
 
-    // 2. Delete every local card of this type. Remove.remove already handles
-    //    child cascades and link cleanup.
-    const remove = new Remove(ctx.project, new Fetch(ctx.project));
+    // 2. Delete every local card of this type, along with their subtrees and
+    //    any links pointing at them. deleteCards handles the cascade; no
+    //    per-card permission check applies to a structural cardType deletion.
     const cards = this.affectedCards(ctx, cardTypeName);
-    // Ensure the calculation engine is ready so ActionGuard can check permissions.
-    await ctx.project.calculationEngine.generate();
-    // Remove cards deeper in the tree first to avoid double-removal attempts.
-    const sorted = [...cards].sort(
-      (a, b) => b.path.split('/').length - a.path.split('/').length,
-    );
-    for (const card of sorted) {
-      try {
-        await remove.remove('card', card.key);
-      } catch {
-        // Some descendants may already be gone via a parent cascade; ignore.
-      }
-    }
+    await ctx.project.deleteCards(cards);
 
     // 3. Delete the card type resource itself. By now usage() is empty.
     const resource = ctx.project.resources.byType(cardTypeName, 'cardTypes');

@@ -83,41 +83,8 @@ export class Remove {
       await actionGuard.checkPermission('delete', cardKey);
     }
 
-    // Collect all card keys that will be deleted (the card itself and all descendants).
-    const cardsToDelete = new Set<string>();
-    const collectDescendants = (c: typeof card) => {
-      cardsToDelete.add(c.key);
-      for (const childKey of c.children) {
-        try {
-          const childCard = this.project.findCard(childKey);
-          collectDescendants(childCard);
-        } catch {
-          this.logger.debug({ childKey }, 'Child card not found, skipping');
-        }
-      }
-    };
-    collectDescendants(card);
-
-    // If any of the cards to be deleted is a destination of a link, remove the link.
-    const allCards = this.project.cards(this.project.paths.cardRootFolder);
-    const promiseContainer: Promise<void>[] = [];
-
-    for (const item of allCards) {
-      if (cardsToDelete.has(item.key) || !item.metadata) continue;
-      const links = item.metadata.links;
-      const preservedLinks = links.filter((l) => !cardsToDelete.has(l.cardKey));
-      if (preservedLinks.length !== links.length) {
-        promiseContainer.push(
-          this.project.updateCardMetadataKey(item.key, 'links', preservedLinks),
-        );
-      }
-    }
-
-    await Promise.all(promiseContainer);
-
-    if (card) {
-      await this.project.handleCardDeleted(card);
-    }
+    // Descendant cascade and link cleanup live in the project-level primitive.
+    await this.project.deleteCards([card]);
   }
 
   // removes label from project
