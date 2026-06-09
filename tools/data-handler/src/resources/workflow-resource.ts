@@ -257,6 +257,21 @@ export class WorkflowResource extends FileResource<Workflow> {
         `Workflow '${workflowContent.name}' must have exactly one transition from "New Card" (empty fromState), found ${newCardTransitions.length}.`,
       );
     }
+
+    // A transition name identifies one action with a single target state,
+    // though it may be available from several states. Names must therefore be
+    // unique within a workflow: transitions are referenced by name (by the
+    // card transition command, automations and permissions), so a reused name
+    // would make those references ambiguous.
+    const seen = new Set<string>();
+    for (const transition of workflowContent.transitions) {
+      if (seen.has(transition.name)) {
+        throw new Error(
+          `Workflow '${workflowContent.name}' has several transitions named '${transition.name}'; transition names must be unique within a workflow.`,
+        );
+      }
+      seen.add(transition.name);
+    }
   }
 
   /**

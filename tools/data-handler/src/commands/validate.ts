@@ -549,6 +549,16 @@ export class Validate {
           errorMsg.push(...result);
         }
 
+        // Validate workflow-specific rules; files on disk may have been
+        // edited by hand and bypassed validation at creation or update time.
+        for (const workflow of project.resources.workflows()) {
+          try {
+            await workflow.validate();
+          } catch (error) {
+            errorMsg.push(errorFunction(error));
+          }
+        }
+
         // Finally, validate that each card is correct
         const cards = project.cards();
         cards.push(...project.allTemplateCards());

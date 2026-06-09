@@ -14,7 +14,6 @@
 import { ActionGuard } from '../permissions/action-guard.js';
 import { CardMetadataUpdater } from '../card-metadata-updater.js';
 import type { Project } from '../containers/project.js';
-import type { WorkflowState } from '../interfaces/resource-interfaces.js';
 import { write } from '../utils/rw-lock.js';
 
 /**
@@ -39,10 +38,10 @@ export class Transition {
   /**
    * Transitions a card from its current state to a new state.
    * @param cardKey card key
-   * @param transition which transition to do
+   * @param transitionName name of the transition to do
    */
   @write((cardKey) => `Transition card ${cardKey}`)
-  public async cardTransition(cardKey: string, transition: WorkflowState) {
+  public async cardTransition(cardKey: string, transitionName: string) {
     const card = this.project.findCard(cardKey);
 
     if (!card.metadata?.cardType) {
@@ -58,43 +57,33 @@ export class Transition {
       .byType(cardType.workflow, 'workflows')
       .show();
 
-    // Check that the state transition can be made "from".
-    const foundFrom = workflow.transitions.find(
-      (item) =>
-        (card.metadata &&
-          item.fromState.includes(card.metadata?.workflowState)) ||
-        item.fromState.includes('*'),
-    );
-    if (!foundFrom) {
-      throw new Error(
-        `Card's workflow '${cardType.workflow}' does not contain transition from card's current state '${card.metadata?.workflowState}'`,
-      );
-    }
+    const currentState = card.metadata.workflowState;
 
-    // Check that the state transition can be made "to".
-    const found = workflow.transitions.find(
-      (item) => item.name === transition.name,
+    // A transition is identified by its (unique) name and leads to a single
+    // target state, though it may be available from several states or all
+    // states ('*'). Find it by name, then check it can be made from the
+    // card's current state.
+    const byName = workflow.transitions.filter(
+      (item) => item.name === transitionName,
     );
-    if (!found) {
+    if (byName.length === 0) {
       const transitionNames = workflow.transitions.map((item) => item.name);
-      throw new Error(`Card's workflow '${cardType.workflow}' does not contain state transition '${transition.name}'.
+      throw new Error(`Card's workflow '${cardType.workflow}' does not contain state transition '${transitionName}'.
                           \nThe available transitions are: ${transitionNames.join(', ')}`);
     }
 
-    if (
-      !(
-        (card.metadata?.workflowState &&
-          found.fromState.includes(card.metadata.workflowState)) ||
-        found.fromState.includes('*')
-      )
-    ) {
+    const found = byName.find(
+      (item) =>
+        item.fromState.includes(currentState) || item.fromState.includes('*'),
+    );
+    if (!found) {
       throw new Error(
-        `Card's workflow '${cardType.workflow}' does not contain state transition from state '${card.metadata?.workflowState}' for '${transition.name}`,
+        `Card's workflow '${cardType.workflow}' does not contain state transition from state '${currentState}' for '${transitionName}'`,
       );
     }
 
     const actionGuard = new ActionGuard(this.project.calculationEngine);
-    await actionGuard.checkPermission('transition', cardKey, transition.name);
+    await actionGuard.checkPermission('transition', cardKey, transitionName);
 
     if (card.metadata) {
       card.metadata.workflowState = found.toState;
@@ -102,7 +91,7 @@ export class Transition {
       card.metadata.lastTransitioned = new Date().toISOString();
       return this.project
         .updateCardMetadata(card, card.metadata)
-        .then(async () => this.transitionChangesQuery(cardKey, transition.name))
+        .then(async () => this.transitionChangesQuery(cardKey, transitionName))
         .then(async (queryResult) => {
           if (
             !queryResult ||
