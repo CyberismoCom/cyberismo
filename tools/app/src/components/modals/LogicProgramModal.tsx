@@ -39,7 +39,8 @@ export function LogicProgramModal({
   resourceName,
 }: LogicProgramModalProps) {
   const { t } = useTranslation();
-  const { logicPrograms, error } = useLogicPrograms(resourceName);
+  // Conditional ensures logic program is refetched after the modal is opened
+  const { logicPrograms, error } = useLogicPrograms(open ? resourceName : null);
 
   return (
     <Modal open={open} onClose={onClose}>
