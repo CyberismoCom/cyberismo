@@ -133,11 +133,8 @@ export interface GeneralSettings {
 }
 
 export type ProjectSettingsUpdate = Partial<
-  Pick<
-    GeneralSettings,
-    'name' | 'cardKeyPrefix' | 'gitRemoteUrl' | 'description' | 'category'
-  >
->;
+  Pick<GeneralSettings, 'name' | 'cardKeyPrefix' | 'description' | 'category'>
+> & { gitRemoteUrl?: string };
 
 interface GeneralNode extends BaseResourceNode {
   type: 'general';
