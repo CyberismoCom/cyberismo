@@ -77,7 +77,7 @@ describe('Project endpoints', () => {
     expect(result.category).toBe('Testing');
   });
 
-  test('PATCH /api/project clears description and category with empty string', async () => {
+  test('PATCH /api/projects/:projectPrefix/project clears description and category with empty string', async () => {
     await app.request('/api/projects/test/project', {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
