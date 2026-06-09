@@ -391,9 +391,7 @@ export class Commands {
         return this.startApp((options as StartCommandOptions).forceStart);
       } else if (command === Cmd.transition) {
         const [cardKey, state] = args;
-        await this.commands?.transitionCmd.cardTransition(cardKey, {
-          name: state,
-        });
+        await this.commands?.transitionCmd.cardTransition(cardKey, state);
       } else if (command === Cmd.update) {
         const [resource, operation, key, value, newValue] = args;
         let parsedValue = '';

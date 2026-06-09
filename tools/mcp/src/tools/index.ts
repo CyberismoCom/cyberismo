@@ -159,9 +159,7 @@ export function registerTools(
     async ({ projectPrefix, cardKey, transition }) => {
       try {
         const commands = resolveCommands(provider, projectPrefix);
-        await commands.transitionCmd.cardTransition(cardKey, {
-          name: transition,
-        });
+        await commands.transitionCmd.cardTransition(cardKey, transition);
         return toolResult({ cardKey, transition });
       } catch (error) {
         return toolError('transitioning card', error);

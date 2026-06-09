@@ -118,7 +118,7 @@ export const useCardMutations = (
         (await call(
           () =>
             updateCard(key, {
-              state: { name: state },
+              state,
             }),
           'updateState',
         ))) ||

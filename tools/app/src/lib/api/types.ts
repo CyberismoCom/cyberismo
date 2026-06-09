@@ -105,7 +105,7 @@ export type SwrResult<T extends ResourceName, InitialData = null> = {
 export type FullCardUpdate = {
   content: string;
   metadata: Record<string, MetadataValue>;
-  state: { name: string };
+  state: string;
   parent: string;
   index: number;
 };

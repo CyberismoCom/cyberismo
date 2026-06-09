@@ -2324,6 +2324,67 @@ describe('resources', function () {
         `Workflow '${name}' must have exactly one transition from "New Card" (empty fromState), found 2.`,
       );
     });
+    it('try to create workflow with duplicate transition names', async () => {
+      const name = 'decision/workflows/duplicateNames';
+      const workflowData = {
+        name: name,
+        displayName: name,
+        states: [
+          { name: 'Draft', category: 'initial' },
+          { name: 'Done', category: 'closed' },
+          { name: 'Gone', category: 'closed' },
+        ],
+        transitions: [
+          { name: 'Create', fromState: [''], toState: 'Draft' },
+          { name: 'Finish', fromState: ['Draft'], toState: 'Done' },
+          { name: 'Finish', fromState: ['Draft'], toState: 'Gone' },
+        ],
+      } as Workflow;
+      const res = project.resources.byType(name, 'workflows');
+      await expect(res.create(workflowData)).rejects.toThrow(
+        `Workflow '${name}' has several transitions named 'Finish'; transition names must be unique`,
+      );
+    });
+    it('try to create workflow with a duplicate name across different states', async () => {
+      const name = 'decision/workflows/duplicateAcrossStates';
+      const workflowData = {
+        name: name,
+        displayName: name,
+        states: [
+          { name: 'Draft', category: 'initial' },
+          { name: 'Approved', category: 'closed' },
+          { name: 'Rejected', category: 'closed' },
+          { name: 'Deprecated', category: 'closed' },
+        ],
+        transitions: [
+          { name: 'Create', fromState: [''], toState: 'Draft' },
+          { name: 'Resolve', fromState: ['Draft'], toState: 'Rejected' },
+          { name: 'Resolve', fromState: ['Approved'], toState: 'Deprecated' },
+        ],
+      } as Workflow;
+      const res = project.resources.byType(name, 'workflows');
+      await expect(res.create(workflowData)).rejects.toThrow(
+        `Workflow '${name}' has several transitions named 'Resolve'; transition names must be unique`,
+      );
+    });
+    it('create workflow with a transition available from several states', async () => {
+      const name = 'decision/workflows/transitionFromManyStates';
+      const workflowData = {
+        name: name,
+        displayName: name,
+        states: [
+          { name: 'Draft', category: 'initial' },
+          { name: 'InReview', category: 'active' },
+          { name: 'Done', category: 'closed' },
+        ],
+        transitions: [
+          { name: 'Create', fromState: [''], toState: 'Draft' },
+          { name: 'Finish', fromState: ['Draft', 'InReview'], toState: 'Done' },
+        ],
+      } as Workflow;
+      const res = project.resources.byType(name, 'workflows');
+      await expect(res.create(workflowData)).resolves.not.toThrow();
+    });
     it('try to remove the only new card transition from workflow', async () => {
       const name = 'decision/workflows/removeNewCardTransition';
       const workflowData = {
