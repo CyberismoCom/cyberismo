@@ -13,6 +13,7 @@
 */
 
 import type { Handler, MutationContext } from './handler.js';
+import { DefaultDeleteHandler } from './handlers/default-delete.js';
 import { DefaultNoCascadeHandler } from './handlers/default-no-cascade.js';
 import { LinkTypeDeleteHandler } from './handlers/link-type-delete.js';
 import { LinkTypeEditCardTypesHandler } from './handlers/link-type-edit-card-types.js';
@@ -70,6 +71,7 @@ const HANDLERS: Handler[] = [
   new LeafResourceRenameHandler('graphModels', 'Graph model'),
   new LeafResourceRenameHandler('graphViews', 'Graph view'),
   new ProjectRenameHandler(),
+  new DefaultDeleteHandler(),
   new DefaultNoCascadeHandler(),
 ];
 
