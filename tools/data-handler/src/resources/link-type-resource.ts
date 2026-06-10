@@ -12,10 +12,7 @@
 
 import { DefaultContent } from './create-defaults.js';
 import { FileResource } from './file-resource.js';
-import {
-  resourceName,
-  resourceNameToString,
-} from '../utils/resource-utils.js';
+import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 import { sortCards } from '../utils/card-utils.js';
 
 import type { Card } from '../interfaces/project-interfaces.js';

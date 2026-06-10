@@ -204,8 +204,7 @@ export class CardTypeResource extends FileResource<CardType> {
     const from = resourceName(this.content.name).prefix;
     const content = this.content;
     content.customFields.forEach(
-      (field) =>
-        (field.name = this.replacePrefix(field.name, from, newPrefix)),
+      (field) => (field.name = this.replacePrefix(field.name, from, newPrefix)),
     );
     content.alwaysVisibleFields = content.alwaysVisibleFields.map((item) =>
       this.replacePrefix(item, from, newPrefix),

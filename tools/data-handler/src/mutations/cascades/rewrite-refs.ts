@@ -51,10 +51,7 @@ export async function rewriteContentFileRefs(
       const content = resource.contentData() as Record<string, unknown>;
       for (const [key, value] of Object.entries(content)) {
         if (typeof value === 'string' && value.includes(from)) {
-          await resource.updateFile(
-            filename(key)!,
-            value.replaceAll(from, to),
-          );
+          await resource.updateFile(filename(key)!, value.replaceAll(from, to));
         }
       }
     }),
