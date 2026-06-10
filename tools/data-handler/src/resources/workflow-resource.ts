@@ -127,7 +127,7 @@ export class WorkflowResource extends FileResource<Workflow> {
 
   // Returns target name irregardless of the type
   private targetName(op: Operation<WorkflowState | WorkflowTransition>) {
-    const name = op.target.name ? op.target.name : op.target;
+    const name = op.target?.name ? op.target.name : op.target;
     return name;
   }
 
@@ -238,7 +238,7 @@ export class WorkflowResource extends FileResource<Workflow> {
           changeOp.to.category === undefined
         ) {
           const stateName =
-            changeOp.target['name' as keyof typeof changeOp.target] ||
+            changeOp.target?.['name' as keyof typeof changeOp.target] ||
             changeOp.target;
           throw new Error(
             `Cannot change state '${stateName}' for workflow '${this.content.name}'.

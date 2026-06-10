@@ -57,8 +57,11 @@ export type AddOperation<T> = BaseOperation<T> & {
 };
 
 // Change item in an array or property in an object or rename a scalar.
-export type ChangeOperation<T> = BaseOperation<T> & {
+// 'target' is the item to change and is required for array changes; scalar
+// changes carry no old value, so it may be omitted.
+export type ChangeOperation<T> = Omit<BaseOperation<T>, 'target'> & {
   name: 'change';
+  target?: T;
   to: T;
   mappingTable?: { stateMapping: Record<string, string> }; // Optional state mapping for workflow changes
 };

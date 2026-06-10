@@ -57,6 +57,11 @@ export class FieldTypeResource extends FileResource<FieldType> {
   // Checks that enum with 'enumValue' exists.
   private enumValueExists<Type>(op: Operation<Type>, values: Type[]) {
     const targetValue = (op as Operation<EnumDefinition>).target;
+    if (targetValue === undefined) {
+      throw new Error(
+        `Cannot perform operation on 'enumValues'. Operation requires 'target'`,
+      );
+    }
     const foundTarget = values.find(
       (item) => (item as EnumDefinition).enumValue === targetValue.enumValue,
     );
