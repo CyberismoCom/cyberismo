@@ -18,11 +18,6 @@ import { join } from 'node:path';
 import { getChildLogger } from './log-utils.js';
 import { ProjectPaths } from '../containers/project/project-paths.js';
 import { writeFileSafe, pathExists } from './file-utils.js';
-import type {
-  Operation,
-  ChangeOperation,
-} from '../resources/resource-object.js';
-import type { ResourceFolderType } from '../interfaces/project-interfaces.js';
 
 export type MigrationEntryKind =
   | 'resource_edit'
@@ -36,22 +31,6 @@ export interface ConfigurationLogEntry {
   target: string;
   payload: Record<string, unknown>;
 }
-
-/** Keys where ALL operations (including remove) are non-breaking. */
-export const NON_BREAKING_KEYS = [
-  'alwaysVisibleFields',
-  'optionallyVisibleFields',
-  'transitions',
-];
-
-/** Keys where only 'change' is non-breaking — display-only scalars. */
-export const NON_BREAKING_CHANGE_KEYS = [
-  'displayName',
-  'description',
-  'category',
-  'outboundDisplayName',
-  'inboundDisplayName',
-];
 
 /**
  * Logger for tracking configuration changes that affect project structure.
@@ -194,74 +173,5 @@ export class ConfigurationLogger {
     } catch (error) {
       logger.error({ error, ...entry }, `Configuration logging failed`);
     }
-  }
-
-  /**
-   * For array-of-objects keys: which properties are "identity" (breaking if changed).
-   * If a 'change' op only modifies non-identity properties, it's non-breaking.
-   * Keys not listed here → all changes are breaking by default.
-   */
-  private static readonly IDENTITY_PROPERTIES: Record<string, string[]> = {
-    enumValues: ['enumValue'],
-    states: ['name'],
-    customFields: ['name', 'isCalculated'],
-  };
-
-  private static isNonBreakingArrayChange<T>(
-    key: string,
-    op: ChangeOperation<T>,
-  ): boolean {
-    const identityProps = ConfigurationLogger.IDENTITY_PROPERTIES[key];
-    if (!identityProps) return false;
-    const target = op.target as Record<string, unknown>;
-    const to = op.to as Record<string, unknown>;
-    return !identityProps.some(
-      (prop) => JSON.stringify(target[prop]) !== JSON.stringify(to[prop]),
-    );
-  }
-
-  public static async logResourceUpdate<T>(
-    projectPath: string,
-    target: string,
-    resourceType: ResourceFolderType,
-    op: Operation<T>,
-    key: string,
-  ): Promise<void> {
-    if (op.name === 'add' || op.name === 'rank') return;
-    if (NON_BREAKING_KEYS.includes(key)) return;
-    if (op.name === 'change') {
-      if (NON_BREAKING_CHANGE_KEYS.includes(key)) return;
-      if (ConfigurationLogger.isNonBreakingArrayChange(key, op)) return;
-    }
-    await ConfigurationLogger.log(projectPath, {
-      kind: 'resource_edit',
-      target,
-      payload: { type: resourceType, operation: op, key },
-    });
-  }
-
-  public static async logResourceRename(
-    projectPath: string,
-    target: string,
-    resourceType: ResourceFolderType,
-    op: ChangeOperation<string>,
-  ): Promise<void> {
-    await ConfigurationLogger.log(projectPath, {
-      kind: 'resource_rename',
-      target,
-      payload: { type: resourceType, newName: op.to },
-    });
-  }
-
-  public static async logResourceDelete(
-    projectPath: string,
-    target: string,
-    resourceType: ResourceFolderType,
-  ): Promise<void> {
-    await ConfigurationLogger.log(projectPath, {
-      kind: 'resource_delete',
-      target,
-      payload: { type: resourceType },
-    });
   }
 }
