@@ -74,6 +74,8 @@ $ cyberismo import module <https git URL> [branch name]
 
 If the Git service requires authentication, you must provide access token credentials in the environment variables `CYBERISMO_GIT_USER` and `CYBERISMO_GIT_TOKEN` or in a `.env` file that defines these variables.
 
+If your deployment uses a dedicated git-service container, set `GIT_SERVICE_URL` (for example `http://git-service:8080`). When set, Cyberismo delegates git clone and remote tag operations to git-service instead of making network git calls directly.
+
 Alternatively, if you have Git with SSH configured, you can use the Git protocol for module locations. In these cases, the `private` information from the module is not used.
 
 To import a private module, use the following command:

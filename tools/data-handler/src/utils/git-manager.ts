@@ -14,6 +14,7 @@
 import semver from 'semver';
 import { simpleGit, type SimpleGit } from 'simple-git';
 import { NON_INTERACTIVE_GIT_ENV, gitTimeout } from './git-config.js';
+import { fetchTags, isGitServiceEnabled } from './git-service-client.js';
 import { getChildLogger } from './log-utils.js';
 import { stripTagPrefix, versionToTag } from '../modules/version.js';
 
@@ -181,6 +182,14 @@ export class GitManager {
    * @returns Semver version strings sorted descending (e.g. ["2.1.0", "1.0.0"])
    */
   static async listRemoteVersionTags(remoteUrl: string): Promise<string[]> {
+    if (isGitServiceEnabled()) {
+      const tags = await fetchTags(remoteUrl);
+      const versions = tags
+        .map((tag) => stripTagPrefix(tag))
+        .filter((tag): tag is string => semver.valid(tag) !== null);
+      return versions.sort(semver.rcompare);
+    }
+
     const git = simpleGit({ timeout: { block: gitTimeout() } });
     const output = await git
       .env({ ...NON_INTERACTIVE_GIT_ENV })

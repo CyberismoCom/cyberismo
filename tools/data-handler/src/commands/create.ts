@@ -21,6 +21,11 @@ import { SCHEMA_VERSION } from '@cyberismo/assets';
 import { scanForProjects } from '../project-scanner.js';
 import { errorFunction } from '../utils/error-utils.js';
 import { NON_INTERACTIVE_GIT_ENV, gitTimeout } from '../utils/git-config.js';
+import {
+  clone as cloneFromGitService,
+  isGitServiceEnabled,
+  resolveGitServiceClonePath,
+} from '../utils/git-service-client.js';
 import { pathExists } from '../utils/file-utils.js';
 import { Project } from '../containers/project.js';
 import { Validate } from './validate.js';
@@ -677,15 +682,24 @@ export class Create {
 
     // Clone to a temp directory in destPath so rename works (same filesystem)
     await mkdir(destPath, { recursive: true });
-    const tempDir = await mkdtemp(join(destPath, '.cyberismo-clone-'));
-    const tempClonePath = join(tempDir, repoName);
-
-    const git = simpleGit({
-      timeout: { block: gitTimeout() },
-    });
+    let tempDir: string | undefined;
+    let tempClonePath!: string;
 
     try {
-      await git.env({ ...NON_INTERACTIVE_GIT_ENV }).clone(url, tempClonePath);
+      if (isGitServiceEnabled()) {
+        const clonePath = await cloneFromGitService({
+          url,
+          shallow: false,
+        });
+        tempClonePath = resolveGitServiceClonePath(clonePath);
+      } else {
+        tempDir = await mkdtemp(join(destPath, '.cyberismo-clone-'));
+        tempClonePath = join(tempDir, repoName);
+        const git = simpleGit({
+          timeout: { block: gitTimeout() },
+        });
+        await git.env({ ...NON_INTERACTIVE_GIT_ENV }).clone(url, tempClonePath);
+      }
 
       // Validate that the cloned repo contains Cyberismo projects
       const projects = await scanForProjects(tempClonePath);
@@ -707,7 +721,9 @@ export class Create {
       throw error;
     } finally {
       // Clean up temp directory (contains leftovers on failure, empty wrapper on success)
-      await rm(tempDir, { recursive: true, force: true }).catch(() => {});
+      if (tempDir) {
+        await rm(tempDir, { recursive: true, force: true }).catch(() => {});
+      }
     }
 
     return finalPath;
