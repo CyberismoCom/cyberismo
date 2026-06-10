@@ -24,6 +24,7 @@ import {
 import { CssVarsProvider as JoyCssVarsProvider } from '@mui/joy/styles';
 import StoreProvider from './providers/StoreProvider';
 import SessionExpiredBanner from './components/SessionExpiredBanner';
+import { Notifications } from './components/Notifications';
 import './lib/i18n';
 import { createAppRouter } from './routes';
 
@@ -42,6 +43,7 @@ function App() {
         <CssBaseline />
         <StoreProvider>
           <SessionExpiredBanner />
+          <Notifications />
           <SWRConfig value={getSwrConfig()}>
             <RouterProvider router={router} />
           </SWRConfig>

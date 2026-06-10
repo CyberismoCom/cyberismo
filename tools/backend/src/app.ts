@@ -189,7 +189,7 @@ export function createApp(
     if (!multiProjectRoot) return c.json({ publicKey: null });
     try {
       const content = await readFile(
-        join(multiProjectRoot, '.git-push', 'id_rsa.pub'),
+        join(multiProjectRoot, '.git-service', 'id_rsa.pub'),
         'utf-8',
       );
       return c.json({ publicKey: content.trim() });
