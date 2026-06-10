@@ -18,9 +18,8 @@ import {
   resourceNameToString,
 } from '../../utils/resource-utils.js';
 import {
-  rewriteCalculationRefs,
   rewriteCardContentRefs,
-  rewriteHandlebarRefs,
+  rewriteContentFileRefs,
 } from '../cascades/rewrite-refs.js';
 import type { ChangeOperation } from '../../resources/resource-object.js';
 
@@ -63,8 +62,7 @@ export class FieldTypeRenameHandler implements Handler {
     // the field reference against the project, which is why renaming a field
     // still referenced by a card type is rejected.
     await Promise.all([
-      rewriteCalculationRefs(ctx.project, oldName, newName),
-      rewriteHandlebarRefs(ctx.project, oldName, newName),
+      rewriteContentFileRefs(ctx.project, oldName, newName),
       rewriteCardContentRefs(ctx.project, oldName, newName),
       this.updateCardTypes(ctx, oldName, newName),
     ]);

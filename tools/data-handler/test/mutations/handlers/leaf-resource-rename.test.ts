@@ -203,11 +203,26 @@ describe('LeafResourceRenameHandler (reports) card content cascade', () => {
 describe('LeafResourceRenameHandler (graphModels) own model.lp cascade', () => {
   let project: Project;
   const tmpDir = join(import.meta.dirname, 'tmp-graphmodels-rename-cascade');
+  const oldName = 'decision/graphModels/test';
+  const newName = 'decision/graphModels/test-v2';
 
   beforeEach(async () => {
     const projectPath = join(tmpDir, `proj-${Date.now()}-${Math.random()}`);
     await mkdir(projectPath, { recursive: true });
     await copyDir(FIXTURE_PATH, projectPath);
+    // Seed the graph model's own template (model.lp) with a reference to the
+    // old name BEFORE the project caches load the content files.
+    // Wrap the reference in quotes so the old name is not a substring of the
+    // new name (which appends `-v2` to the old identifier).
+    const oldModelFile = join(
+      projectPath,
+      '.cards',
+      'local',
+      'graphModels',
+      'test',
+      'model.lp',
+    );
+    await writeFile(oldModelFile, `% references "${oldName}"\n`, 'utf-8');
     project = new Project(projectPath);
     await project.populateCaches();
   });
@@ -216,22 +231,6 @@ describe('LeafResourceRenameHandler (graphModels) own model.lp cascade', () => {
   });
 
   it('apply rewrites references inside the graph model own model.lp', async () => {
-    const oldName = 'decision/graphModels/test';
-    const newName = 'decision/graphModels/test-v2';
-
-    // Seed the graph model's own template (model.lp) with a reference to the
-    // old name before renaming.
-    const graphModelsFolder = join(
-      project.paths.resourcesFolder,
-      'graphModels',
-    );
-    const oldModelFile = join(graphModelsFolder, 'test', 'model.lp');
-    // Wrap the reference in quotes so the old name is not a substring of the
-    // new name (which appends `-v2` to the old identifier).
-    await writeFile(oldModelFile, `% references "${oldName}"\n`, 'utf-8');
-
-    await project.populateCaches();
-
     const mutations = new ResourceMutations(project);
     await mutations.apply({
       kind: 'rename',
@@ -244,7 +243,12 @@ describe('LeafResourceRenameHandler (graphModels) own model.lp cascade', () => {
 
     // The model.lp now lives in the renamed folder; its content must reference
     // the new name and no longer the old one.
-    const newModelFile = join(graphModelsFolder, 'test-v2', 'model.lp');
+    const newModelFile = join(
+      project.paths.resourcesFolder,
+      'graphModels',
+      'test-v2',
+      'model.lp',
+    );
     const after = await readFile(newModelFile, 'utf-8');
     expect(after).toContain(`"${newName}"`);
     expect(after).not.toContain(`"${oldName}"`);

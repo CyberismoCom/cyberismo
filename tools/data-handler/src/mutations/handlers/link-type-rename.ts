@@ -18,9 +18,8 @@ import {
   resourceNameToString,
 } from '../../utils/resource-utils.js';
 import {
-  rewriteCalculationRefs,
   rewriteCardContentRefs,
-  rewriteHandlebarRefs,
+  rewriteContentFileRefs,
 } from '../cascades/rewrite-refs.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
 
@@ -51,8 +50,7 @@ export class LinkTypeRenameHandler implements Handler {
     // 2. Rewrite cascading references BEFORE renaming the resource on disk.
     //    Order matters: cascade scanners look for the old name, and the
     //    resource file (with that name) must still exist when they run.
-    await rewriteCalculationRefs(ctx.project, oldName, newName);
-    await rewriteHandlebarRefs(ctx.project, oldName, newName);
+    await rewriteContentFileRefs(ctx.project, oldName, newName);
     await rewriteCardContentRefs(ctx.project, oldName, newName);
 
     // 3. Rename the resource itself. LinkTypeResource.rename handles

@@ -19,9 +19,8 @@ import {
 } from '../../utils/resource-utils.js';
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import {
-  rewriteCalculationRefs,
   rewriteCardContentRefs,
-  rewriteHandlebarRefs,
+  rewriteContentFileRefs,
 } from '../cascades/rewrite-refs.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
 import type { ChangeOperation } from '../../resources/resource-object.js';
@@ -54,11 +53,11 @@ export class CardTypeRenameHandler implements Handler {
     }
 
     // 2. Rewrite the cascading references that used to live in
-    //    CardTypeResource.onNameChange: calculations, report handlebars,
-    //    card content and the source/destination card-type lists of every
-    //    link type that referenced this card type.
-    await rewriteCalculationRefs(ctx.project, oldName, newName);
-    await rewriteHandlebarRefs(ctx.project, oldName, newName);
+    //    CardTypeResource.onNameChange: folder-resource content files
+    //    (calculations, report/graph templates), card content and the
+    //    source/destination card-type lists of every link type that
+    //    referenced this card type.
+    await rewriteContentFileRefs(ctx.project, oldName, newName);
     await rewriteCardContentRefs(ctx.project, oldName, newName);
     await this.updateLinkTypes(ctx, oldName, newName);
 

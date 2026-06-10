@@ -12,8 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { extname, join } from 'node:path';
-import { readdir } from 'node:fs/promises';
+import { join } from 'node:path';
 
 import { copyDir } from '../utils/file-utils.js';
 import { DefaultContent } from './create-defaults.js';
@@ -68,22 +67,6 @@ export class GraphViewResource extends FolderResource<
     );
 
     await this.loadContentFiles();
-  }
-
-  /**
-   * Returns handlebar filename that this graph view has.
-   * @returns handlebar filename that this graph view has.
-   */
-  public async handleBarFile(nameOnly: boolean = false): Promise<string> {
-    return (
-      await readdir(this.internalFolder, {
-        withFileTypes: true,
-        recursive: true,
-      })
-    )
-      .filter((dirent) => dirent.isFile() && extname(dirent.name) === '.hbs')
-      .map((item) => (nameOnly ? item.name : join(item.parentPath, item.name)))
-      .at(0)!;
   }
 
   /**

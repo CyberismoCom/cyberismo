@@ -18,9 +18,8 @@ import {
   resourceNameToString,
 } from '../../utils/resource-utils.js';
 import {
-  rewriteCalculationRefs,
   rewriteCardContentRefs,
-  rewriteHandlebarRefs,
+  rewriteContentFileRefs,
 } from '../cascades/rewrite-refs.js';
 import type { ChangeOperation } from '../../resources/resource-object.js';
 
@@ -62,8 +61,7 @@ export class WorkflowRenameHandler implements Handler {
     // the old name in card content / calculations / handlebars and in card
     // types' `workflow` reference, none of which the file rename touched.
     await Promise.all([
-      rewriteCalculationRefs(ctx.project, oldName, newName),
-      rewriteHandlebarRefs(ctx.project, oldName, newName),
+      rewriteContentFileRefs(ctx.project, oldName, newName),
       rewriteCardContentRefs(ctx.project, oldName, newName),
       this.updateCardTypes(ctx, oldName, newName),
     ]);

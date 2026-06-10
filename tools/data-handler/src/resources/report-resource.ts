@@ -12,8 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { extname, join } from 'node:path';
-import { readdir } from 'node:fs/promises';
+import { join } from 'node:path';
 
 import { copyDir } from '../utils/file-utils.js';
 import { DefaultContent } from './create-defaults.js';
@@ -71,21 +70,6 @@ export class ReportResource extends FolderResource<
     const defaultReportLocation = await this.getDefaultReportLocation();
     await copyDir(defaultReportLocation, this.internalFolder);
     await this.loadContentFiles();
-  }
-
-  /**
-   * Returns list of handlebar filenames that this report has.
-   * @returns list of handlebar filenames that this report has.
-   */
-  public async handleBarFiles() {
-    return (
-      await readdir(this.internalFolder, {
-        withFileTypes: true,
-        recursive: true,
-      })
-    )
-      .filter((dirent) => dirent.isFile() && extname(dirent.name) === '.hbs')
-      .map((item) => join(item.parentPath, item.name));
   }
 
   /**

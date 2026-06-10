@@ -4,9 +4,8 @@ import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
 import {
-  rewriteCalculationRefs,
   rewriteCardContentRefs,
-  rewriteHandlebarRefs,
+  rewriteContentFileRefs,
 } from '../../../src/mutations/cascades/rewrite-refs.js';
 import { copyDir, deleteDir } from '../../../src/utils/file-utils.js';
 
@@ -14,27 +13,15 @@ const testDir = join(import.meta.dirname, 'tmp-rewrite-refs');
 const fixturePath = join(testDir, 'valid', 'decision-records');
 
 describe('rewrite-refs guards', () => {
-  it('rewriteCalculationRefs throws on empty "from"', async () => {
+  it('rewriteContentFileRefs throws on empty "from"', async () => {
     await expect(
-      rewriteCalculationRefs({} as unknown as Project, '  ', 'newName'),
+      rewriteContentFileRefs({} as unknown as Project, '  ', 'newName'),
     ).rejects.toThrow(/"from" and "to" parameters must not be empty/);
   });
 
-  it('rewriteCalculationRefs throws on empty "to"', async () => {
+  it('rewriteContentFileRefs throws on empty "to"', async () => {
     await expect(
-      rewriteCalculationRefs({} as unknown as Project, 'oldName', ''),
-    ).rejects.toThrow(/"from" and "to" parameters must not be empty/);
-  });
-
-  it('rewriteHandlebarRefs throws on empty "from"', async () => {
-    await expect(
-      rewriteHandlebarRefs({} as unknown as Project, '', 'newName'),
-    ).rejects.toThrow(/"from" and "to" parameters must not be empty/);
-  });
-
-  it('rewriteHandlebarRefs throws on empty "to"', async () => {
-    await expect(
-      rewriteHandlebarRefs({} as unknown as Project, 'oldName', '   '),
+      rewriteContentFileRefs({} as unknown as Project, 'oldName', ''),
     ).rejects.toThrow(/"from" and "to" parameters must not be empty/);
   });
 
@@ -51,17 +38,16 @@ describe('rewrite-refs guards', () => {
   });
 });
 
-describe('rewriteHandlebarRefs happy path', () => {
+describe('rewriteContentFileRefs happy path', () => {
   let project: Project;
-  // Path to a handlebar file we will mutate and check.
-  let hbsFile: string;
+  // Content files of different local folder resources, seeded with a marker.
+  let reportHbsFile: string;
+  let calculationLpFile: string;
 
   beforeAll(async () => {
     await mkdir(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    project = new Project(fixturePath);
-    await project.populateCaches();
-    hbsFile = join(
+    reportHbsFile = join(
       fixturePath,
       '.cards',
       'local',
@@ -69,24 +55,37 @@ describe('rewriteHandlebarRefs happy path', () => {
       'testReport',
       'index.adoc.hbs',
     );
-    // Seed a known token into the file so the rewrite is deterministic.
-    const original = (await readFile(hbsFile)).toString();
-    await writeFile(hbsFile, original + '\nMARKER_REWRITE_FROM\n');
+    calculationLpFile = join(
+      fixturePath,
+      '.cards',
+      'local',
+      'calculations',
+      'test',
+      'calculation.lp',
+    );
+    // Seed a known token before the caches load the content files.
+    for (const file of [reportHbsFile, calculationLpFile]) {
+      const original = (await readFile(file)).toString();
+      await writeFile(file, original + '\nMARKER_REWRITE_FROM\n');
+    }
+    project = new Project(fixturePath);
+    await project.populateCaches();
   });
 
   afterAll(async () => {
     await deleteDir(testDir);
   });
 
-  it('rewrites the supplied handlebar file content', async () => {
-    await rewriteHandlebarRefs(
+  it('rewrites content files across local folder resources', async () => {
+    await rewriteContentFileRefs(
       project,
       'MARKER_REWRITE_FROM',
       'MARKER_REWRITE_TO',
-      [hbsFile],
     );
-    const updated = (await readFile(hbsFile)).toString();
-    expect(updated).toContain('MARKER_REWRITE_TO');
-    expect(updated).not.toContain('MARKER_REWRITE_FROM');
+    for (const file of [reportHbsFile, calculationLpFile]) {
+      const updated = (await readFile(file)).toString();
+      expect(updated).toContain('MARKER_REWRITE_TO');
+      expect(updated).not.toContain('MARKER_REWRITE_FROM');
+    }
   });
 });
