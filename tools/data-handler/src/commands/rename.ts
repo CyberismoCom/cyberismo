@@ -20,11 +20,15 @@ import { write } from '../utils/rw-lock.js';
  * mutations engine, which performs the cascade and records the log entry.
  */
 export class Rename {
+  private readonly mutations: ResourceMutations;
+
   /**
    * Creates an instance of Rename command.
    * @param project Project instance to use.
    */
-  constructor(private project: Project) {}
+  constructor(private project: Project) {
+    this.mutations = new ResourceMutations(project);
+  }
 
   /**
    * Renames project prefix.
@@ -38,7 +42,6 @@ export class Rename {
     if (!to) {
       throw new Error(`Input validation error: empty 'to' is not allowed`);
     }
-    const mutations = new ResourceMutations(this.project);
-    await mutations.apply({ kind: 'project_rename', newPrefix: to });
+    await this.mutations.apply({ kind: 'project_rename', newPrefix: to });
   }
 }

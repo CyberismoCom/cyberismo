@@ -33,12 +33,6 @@ const FILE_TYPES_WITH_PREFIX_REFERENCES = ['adoc', 'hbs', 'json', 'lp'];
  * it: every local resource name, every `<oldPrefix>/<resourceType>/...`
  * reference, every `<oldPrefix>_*` card key, card metadata, attachments, and
  * file contents (adoc/hbs/json/lp).
- *
- * The whole operation runs in apply(); there is no module-target/local-target
- * split because a project rename only ever touches the local project.
- *
- * isBreaking is true: the engine records the project_rename log entry after
- * apply() succeeds; this handler must not log it itself.
  */
 export class ProjectRenameHandler implements Handler {
   readonly isBreaking = true;
@@ -62,13 +56,13 @@ export class ProjectRenameHandler implements Handler {
       throw new Error(`Project prefix is already '${from}'`);
     }
 
-    // (1) Change project prefix and invalidate caches. setCardPrefix validates
-    //     the new prefix format and throws for invalid prefixes.
+    // The prefix must change first: resource renames are validated against the
+    // current projectPrefix. The cache refresh is also required — local
+    // registry keys are derived from projectPrefix at collection time.
     await ctx.project.configuration.setCardPrefix(to);
     ctx.project.resources.changed();
 
-    // (2) Rename every local resource by category, in dependency order
-    //     (card types, workflows, field types first; then the rest).
+    // Referenced resource families must rename before their referrers.
     const orderedCategories = [
       'cardTypes',
       'workflows',
@@ -89,22 +83,20 @@ export class ProjectRenameHandler implements Handler {
         const oldName = resource.data?.name ?? '';
         if (!oldName) continue;
         const parsed = resourceName(oldName);
-        // Do not rename module resources.
+        // The file's own name field not carrying the old prefix means the
+        // resource was already renamed (e.g. a partially completed run).
         if (parsed.prefix !== from) continue;
         const newName = `${to}/${parsed.type}/${parsed.identifier}`;
         await resource.rename(resourceName(newName));
       }
     }
 
-    // (3) Rename template cards (deepest first) and rewrite their
-    //     content/attachments. Must run after calculations are renamed.
+    // Card renames must run after the resource renames above.
     for (const template of ctx.project.resources.templates(
       ResourcesFrom.localOnly,
     )) {
       await renameCards(ctx, template.templateObject().cards(), from, to);
     }
-
-    // (4) Rename project cards.
     await renameCards(
       ctx,
       ctx.project.cards(ctx.project.paths.cardRootFolder),
@@ -112,19 +104,14 @@ export class ProjectRenameHandler implements Handler {
       to,
     );
 
-    // (5) Walk cardRoot and resources, rewriting every prefix-qualified
-    //     reference and every "<prefix>_" card-key prefix.
     await updateFiles(ctx.project.paths.cardRootFolder, from, to);
     await updateFiles(ctx.project.paths.resourcesFolder, from, to);
 
-    // (6) Re-collect resources and rebuild card caches.
     ctx.project.resources.changed();
     ctx.project.cardsCache.clear();
     await ctx.project.populateCaches();
   }
 }
-
-// ---- Cascade helpers ----
 
 async function renameCards(
   ctx: MutationContext,
@@ -132,14 +119,14 @@ async function renameCards(
   from: string,
   to: string,
 ): Promise<void> {
-  // Sort cards by path length (deepest first) so children rename before parents.
+  // Children must be renamed before their parents, so deepest paths first
+  // and strictly sequentially.
   const sortedCards = [...cards].sort((a, b) => b.path.length - a.path.length);
 
   // Negative lookahead so only the last occurrence in the path is replaced;
   // the path may contain project prefixes that must not be touched.
   const re = new RegExp(`${from}(?!.*${from})`);
 
-  // Cannot run in parallel: deeper cards must be renamed before their parents.
   for (const card of sortedCards) {
     card.content = await updateCardAttachments(re, card, to);
     await renameOneCard(ctx, re, card, from, to);
@@ -189,16 +176,12 @@ async function updateCardMetadata(
     const { identifier, prefix, type } = resourceName(card.metadata.cardType);
     if (prefix === from) {
       card.metadata.cardType = `${to}/${type}/${identifier}`;
-      // Update the card's custom field keys.
-      const keys = Object.keys(card.metadata);
-      for (const oldKey of keys) {
+      for (const oldKey of Object.keys(card.metadata)) {
         if (oldKey.startsWith(`${from}/fieldTypes`)) {
           const parsed = resourceName(oldKey);
           const newKey = `${to}/${parsed.type}/${parsed.identifier}`;
-          // One-liner to remove the old key and add the new one.
-          delete Object.assign(card.metadata, {
-            [newKey]: card.metadata[oldKey],
-          })[oldKey];
+          card.metadata[newKey] = card.metadata[oldKey];
+          delete card.metadata[oldKey];
         }
       }
       await ctx.project.updateCardMetadata(card, card.metadata);
@@ -207,7 +190,6 @@ async function updateCardMetadata(
 }
 
 function scanExtensions(fileName: string): boolean {
-  // A file with no dot (or a dotfile) cannot carry a relevant extension.
   if (!fileName || !fileName.includes('.') || fileName.at(0) === '.') {
     return false;
   }
