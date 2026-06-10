@@ -13,10 +13,7 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
-import {
-  resourceName,
-  resourceNameToString,
-} from '../../utils/resource-utils.js';
+import { resourceNameToString } from '../../utils/resource-utils.js';
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import {
   rewriteCardContentRefs,
@@ -61,14 +58,12 @@ export class CardTypeRenameHandler implements Handler {
     await rewriteCardContentRefs(ctx.project, oldName, newName);
     await this.updateLinkTypes(ctx, oldName, newName);
 
-    // 3. Rename the resource itself. CardTypeResource.rename keeps the
-    //    self-only prefix rewrites for its own customFields /
-    //    alwaysVisibleFields / optionallyVisibleFields / workflow.
+    // 3. Rename the resource itself.
     const resource = ctx.project.resources.byType(oldName, 'cardTypes');
     if (!resource) {
       throw new Error(`CardType '${oldName}' not found`);
     }
-    await resource.rename(resourceName(newName));
+    await resource.rename(ctx.input.newIdentifier);
   }
 
   // Rewrite occurrences of the old card-type name in every local link type's

@@ -203,19 +203,6 @@ export class FieldTypeResource extends FileResource<FieldType> {
   }
 
   /**
-   * Renames resource metadata file and renames memory resident object 'name'.
-   *
-   * Only the file rename and in-memory name change happen here; the rename
-   * cascade (calculations, report handlebars, card content and the
-   * customFields[].name entries on referencing card types) has moved to
-   * FieldTypeRenameHandler. Exposed publicly so the handler can drive it.
-   * @param newName New name for the resource.
-   */
-  public async rename(newName: ResourceName) {
-    await super.rename(newName);
-  }
-
-  /**
    * Updates field type resource.
    * @param updateKey Key to modify
    * @param op Operation to perform on 'key'

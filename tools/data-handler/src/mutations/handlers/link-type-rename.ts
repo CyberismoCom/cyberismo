@@ -13,10 +13,7 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
-import {
-  resourceName,
-  resourceNameToString,
-} from '../../utils/resource-utils.js';
+import { resourceNameToString } from '../../utils/resource-utils.js';
 import {
   rewriteCardContentRefs,
   rewriteContentFileRefs,
@@ -53,14 +50,12 @@ export class LinkTypeRenameHandler implements Handler {
     await rewriteContentFileRefs(ctx.project, oldName, newName);
     await rewriteCardContentRefs(ctx.project, oldName, newName);
 
-    // 3. Rename the resource itself. LinkTypeResource.rename handles
-    //    self-only prefix rewrites for sourceCardTypes /
-    //    destinationCardTypes.
+    // 3. Rename the resource itself.
     const resource = ctx.project.resources.byType(oldName, 'linkTypes');
     if (!resource) {
       throw new Error(`Link type '${oldName}' not found`);
     }
-    await resource.rename(resourceName(newName));
+    await resource.rename(ctx.input.newIdentifier);
   }
 
   private affectedCards(ctx: MutationContext, oldName: string): Card[] {

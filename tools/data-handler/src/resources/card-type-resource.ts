@@ -161,44 +161,6 @@ export class CardTypeResource extends FileResource<CardType> {
   }
 
   /**
-   * When the resource name changes, rewrite the card type's own self-prefixed
-   * references (its customFields / visible-fields / workflow) to the new
-   * prefix and persist.
-   *
-   * The cross-resource cascade — rewriting calculations, report handlebars,
-   * card content, each card's metadata.cardType and the source/destination
-   * card-type lists of dependent link types — lives in CardTypeRenameHandler.
-   * This only handles the card type's own self-prefixed references, and runs
-   * from rename() below.
-   */
-  private async rewriteSelfPrefixes() {
-    const current = this.content;
-    const prefixes = this.project.projectPrefixes();
-    if (current.customFields) {
-      current.customFields.map(
-        (field) =>
-          (field.name = this.updatePrefixInResourceName(field.name, prefixes)),
-      );
-    }
-    if (current.alwaysVisibleFields) {
-      current.alwaysVisibleFields = current.alwaysVisibleFields.map((item) =>
-        this.updatePrefixInResourceName(item, prefixes),
-      );
-    }
-    if (current.optionallyVisibleFields) {
-      current.optionallyVisibleFields = current.optionallyVisibleFields.map(
-        (item) => this.updatePrefixInResourceName(item, prefixes),
-      );
-    }
-    current.workflow = this.updatePrefixInResourceName(
-      current.workflow,
-      prefixes,
-    );
-
-    await this.write();
-  }
-
-  /**
    * Creates a new card type object. Base class writes the object to disk automatically.
    * @param workflowName Workflow name that this card type uses.
    * @throws when workflow is empty, or
@@ -231,12 +193,28 @@ export class CardTypeResource extends FileResource<CardType> {
   }
 
   /**
-   * Renames resource metadata file and renames memory resident object 'name'.
-   * @param newName New name for the resource.
+   * When the project prefix changes, rewrite the card type's own references
+   * (its customFields / visible-fields / workflow) that carried the old
+   * prefix. The cross-resource rename cascade lives in CardTypeRenameHandler.
+   * @param newPrefix New project prefix.
    */
-  public async rename(newName: ResourceName) {
-    await super.rename(newName);
-    return this.rewriteSelfPrefixes();
+  public async changePrefix(newPrefix: string) {
+    // The persisted name carries the old prefix; resourceName may already be
+    // re-keyed under the new one (see ResourceObject.changePrefix).
+    const from = resourceName(this.content.name).prefix;
+    const content = this.content;
+    content.customFields.forEach(
+      (field) =>
+        (field.name = this.replacePrefix(field.name, from, newPrefix)),
+    );
+    content.alwaysVisibleFields = content.alwaysVisibleFields.map((item) =>
+      this.replacePrefix(item, from, newPrefix),
+    );
+    content.optionallyVisibleFields = content.optionallyVisibleFields.map(
+      (item) => this.replacePrefix(item, from, newPrefix),
+    );
+    content.workflow = this.replacePrefix(content.workflow, from, newPrefix);
+    await super.changePrefix(newPrefix);
   }
 
   /**

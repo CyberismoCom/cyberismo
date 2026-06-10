@@ -214,19 +214,6 @@ export class WorkflowResource extends FileResource<Workflow> {
   }
 
   /**
-   * Renames resource metadata file and renames memory resident object 'name'.
-   *
-   * Only the file rename and in-memory name change happen here; the rename
-   * cascade (calculations, report handlebars, card content and the `workflow`
-   * reference on dependent card types) has moved to WorkflowRenameHandler.
-   * Exposed publicly so the handler can drive it.
-   * @param newName New name for the resource.
-   */
-  public async rename(newName: ResourceName) {
-    await super.rename(newName);
-  }
-
-  /**
    * Updates workflow resource.
    * @param updateKey Key to modify
    * @param op Operation to perform on 'key'

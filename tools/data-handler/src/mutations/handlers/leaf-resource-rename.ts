@@ -13,10 +13,7 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
-import {
-  resourceName,
-  resourceNameToString,
-} from '../../utils/resource-utils.js';
+import { resourceNameToString } from '../../utils/resource-utils.js';
 import {
   rewriteCardContentRefs,
   rewriteContentFileRefs,
@@ -77,6 +74,6 @@ export class LeafResourceRenameHandler implements Handler {
 
     // Rename the resource itself (renames its metadata file and, for folder
     // resources, the content folder).
-    await resource.rename(resourceName(newName));
+    await resource.rename(ctx.input.newIdentifier);
   }
 }

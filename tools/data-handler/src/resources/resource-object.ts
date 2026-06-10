@@ -111,7 +111,7 @@ export abstract class AbstractResource<
   protected abstract create(content?: T): Promise<void>; // create a new with the content (memory)
   protected abstract delete(): Promise<void>; // delete from disk
   protected abstract read(): Promise<void>; // read content from disk (replaces existing content, if any)
-  protected abstract rename(newName: ResourceName): Promise<void>; // change name of the resource and filename; same as update('name', ...)
+  protected abstract rename(newIdentifier: string): Promise<void>; // change identifier of the resource and filename; same as update('name', ...)
   protected abstract show(): ShowReturnType<T, U>; // return the content as JSON
   protected abstract update<Type, K extends string>(
     updateKey: UpdateKey<K>,
@@ -445,13 +445,16 @@ export abstract class ResourceObject<
   }
 
   /**
-   * Renames resource.
-   * @param newName New name for the resource.
+   * Renames resource: changes the identifier while prefix and type stay
+   * fixed. Renames the metadata file (and, for folder resources, the content
+   * folder) and persists the new name. Cross-resource reference cascades live
+   * in the mutation handlers.
+   * @param newIdentifier New identifier for the resource.
    * @throws if trying to rename module resource, or
-   *         if resource does not exist,
-   *         if trying to rename so that type changes
+   *         if resource does not exist, or
+   *         if the new identifier is not valid
    */
-  protected async rename(newName: ResourceName) {
+  public async rename(newIdentifier: string) {
     if (this.moduleResource) {
       throw new Error(`Cannot rename module resources`);
     }
@@ -460,32 +463,39 @@ export abstract class ResourceObject<
         `Resource '${this.resourceName.identifier}' does not exist`,
       );
     }
-    if (newName.prefix !== this.project.projectPrefix) {
-      throw new Error('Can only rename project resources');
-    }
-    if (newName.type !== this.resourceName.type) {
-      throw new Error('Cannot change resource type');
-    }
-    const validator = await ResourceObject.getValidate();
-    validator.validResourceName(
-      this.resourceType(),
-      resourceNameToString(newName),
-      this.project.projectPrefixes(),
-    );
-    const newFilename = join(
-      this.project.paths.resourcePath(newName.type as ResourceFolderType),
-      newName.identifier + '.json',
-    );
+    const newName: ResourceName = {
+      prefix: this.resourceName.prefix,
+      type: this.resourceName.type,
+      identifier: newIdentifier,
+    };
+    // write() below renames the metadata file, updates the resource registry
+    // and persists the content under the new name.
+    this.content.name = await this.validName(newName);
+    await this.write();
+  }
 
+  /**
+   * Moves the resource to a new prefix; identifier and type stay fixed.
+   * Only the project-rename cascade uses this; the caller must have already
+   * updated the project configuration to the new prefix. Subclasses holding
+   * references to other resources override this to rewrite references that
+   * carried the old prefix — the old prefix is the one in `content.name`
+   * (the persisted identity), NOT `resourceName.prefix`: the resource
+   * registry is re-collected after the configuration change, so instances
+   * may already be keyed under the new prefix while their content still
+   * carries the old one.
+   * @param newPrefix New project prefix.
+   * @throws if trying to change a module resource.
+   */
+  public async changePrefix(newPrefix: string) {
+    if (this.moduleResource) {
+      throw new Error(`Cannot change prefix of module resources`);
+    }
     const oldName = resourceNameToString(this.resourceName);
-    await rename(this.fileName, newFilename);
-
-    this.fileName = newFilename;
-    this.content.name = resourceNameToString(newName);
-    const newNameString = this.content.name;
-    this.resourceName = newName;
-
-    this.project.resources.rename(oldName, newNameString);
+    this.resourceName = { ...this.resourceName, prefix: newPrefix };
+    this.content.name = resourceNameToString(this.resourceName);
+    this.project.resources.rename(oldName, this.content.name);
+    await this.write();
   }
 
   /**

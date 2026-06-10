@@ -85,17 +85,6 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
   }
 
   /**
-   * Renames the object and the file.
-   * @param newName New name for the resource.
-   */
-  public async rename(newName: ResourceName) {
-    await super.rename(newName);
-    // Persist the renamed metadata and rename the content folder on disk.
-    // The reference cascade lives in LeafResourceRenameHandler.
-    await this.write();
-  }
-
-  /**
    * Shows metadata of the resource.
    * @returns template metadata.
    */

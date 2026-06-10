@@ -100,6 +100,31 @@ describe('ProjectRenameHandler', () => {
     }
   });
 
+  it('apply rewrites internal references of card types and link types', async () => {
+    const newPrefix = 'renamed';
+    const mutations = new ResourceMutations(project);
+
+    await mutations.apply({ kind: 'project_rename', newPrefix });
+
+    const cardType = project.resources
+      .byType(`${newPrefix}/cardTypes/decision`, 'cardTypes')
+      .show();
+    expect(cardType.workflow).toBe(`${newPrefix}/workflows/decision`);
+    for (const field of cardType.customFields) {
+      expect(field.name.startsWith(`${newPrefix}/fieldTypes/`)).toBe(true);
+    }
+
+    const linkType = project.resources
+      .byType(`${newPrefix}/linkTypes/testTypes`, 'linkTypes')
+      .show();
+    expect(linkType.sourceCardTypes).toEqual([
+      `${newPrefix}/cardTypes/decision`,
+    ]);
+    expect(linkType.destinationCardTypes).toEqual([
+      `${newPrefix}/cardTypes/simplepage`,
+    ]);
+  });
+
   it('apply renames cards whose key starts with the old prefix', async () => {
     const oldPrefix = project.projectPrefix;
     const newPrefix = 'renamed';

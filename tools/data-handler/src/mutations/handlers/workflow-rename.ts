@@ -13,10 +13,7 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
-import {
-  resourceName,
-  resourceNameToString,
-} from '../../utils/resource-utils.js';
+import { resourceNameToString } from '../../utils/resource-utils.js';
 import {
   rewriteCardContentRefs,
   rewriteContentFileRefs,
@@ -53,7 +50,7 @@ export class WorkflowRenameHandler implements Handler {
     // Rename the resource itself first. WorkflowResource.rename only renames
     // the metadata file and the in-memory name (and validates the new
     // identifier); it no longer cascades.
-    await resource.rename(resourceName(newName));
+    await resource.rename(ctx.input.newIdentifier);
 
     // Cascade the rename across the project. These rewrites previously ran in
     // WorkflowResource.onNameChange (after the resource file was renamed), so

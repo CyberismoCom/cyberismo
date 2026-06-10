@@ -74,19 +74,15 @@ export abstract class FileResource<
   }
 
   /**
-   * Updates resource key to a new prefix
-   * @param name Resource name
-   * @param prefixes list of prefixes in the project
-   * @returns updated resource name
+   * Returns `ref` with its prefix replaced when it carries `from`.
+   * @param ref Resource name reference to update
+   * @param from Prefix to replace
+   * @param to Replacement prefix
+   * @returns updated resource name reference
    */
-  protected updatePrefixInResourceName(name: string, prefixes: string[]) {
-    const { identifier, prefix, type } = resourceName(name);
-    if (this.moduleResource) {
-      return name;
-    }
-    return !prefixes.includes(prefix)
-      ? `${this.project.configuration.cardKeyPrefix}/${type}/${identifier}`
-      : name;
+  protected replacePrefix(ref: string, from: string, to: string) {
+    const { identifier, prefix, type } = resourceName(ref);
+    return prefix === from ? `${to}/${type}/${identifier}` : ref;
   }
 
   /**

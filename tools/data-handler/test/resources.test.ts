@@ -13,7 +13,6 @@ import {
   Update,
 } from '../src/commands/index.js';
 import type { Project } from '../src/containers/project.js';
-import { resourceName } from '../src/utils/resource-utils.js';
 
 import type {
   CalculationMetadata,
@@ -1257,26 +1256,26 @@ describe('resources', function () {
           const res = project.resources.byType(name, config.type);
           const args = config.createArgs || [];
           await res.createCardType(args[0]);
-          await res.rename(resourceName(`decision/${config.type}/newname`));
+          await res.rename('newname');
           expect(res.data?.name).equals(`decision/${config.type}/newname`);
           await res.delete();
         } else if (config.type === 'fieldTypes') {
           const res = project.resources.byType(name, config.type);
           const args = config.createArgs || [];
           await res.createFieldType(args[0] as 'shortText');
-          await res.rename(resourceName(`decision/${config.type}/newname`));
+          await res.rename('newname');
           expect(res.data?.name).equals(`decision/${config.type}/newname`);
           await res.delete();
         } else if (config.type === 'reports') {
           const res = project.resources.byType(name, config.type);
           await res.createReport();
-          await res.rename(resourceName(`decision/${config.type}/newname`));
+          await res.rename('newname');
           expect(res.data?.name).equals(`decision/${config.type}/newname`);
           await res.delete();
         } else {
           const res = project.resources.byType(name, config.type);
           await res.create();
-          await res.rename(resourceName(`decision/${config.type}/newname`));
+          await res.rename('newname');
           expect(res.data?.name).equals(`decision/${config.type}/newname`);
           await res.delete();
         }
@@ -1286,7 +1285,7 @@ describe('resources', function () {
       const name = 'decision/templates/newResForRename';
       const res = project.resources.byType(name, 'templates');
       await res.create();
-      await res.rename(resourceName('decision/templates/newname'));
+      await res.rename('newname');
       expect(res.data?.name).equals('decision/templates/newname');
       await res.delete();
     });
@@ -1294,7 +1293,7 @@ describe('resources', function () {
       const name = 'decision/cardTypes/newResForRename';
       const res = project.resources.byType(name, 'cardTypes');
       await res.createCardType('decision/workflows/decision');
-      await res.rename(resourceName('decision/cardTypes/newnameWithNumber2'));
+      await res.rename('newnameWithNumber2');
       expect(res.data?.name).equals('decision/cardTypes/newnameWithNumber2');
       await res.update(
         {
@@ -1309,31 +1308,13 @@ describe('resources', function () {
       expect(res.data?.name).equals('decision/cardTypes/newnameWithNumber3');
       await res.delete();
     });
-    it('try to rename workflow - attempt to change prefix', async () => {
-      const name = 'decision/workflows/newResForRename';
-      const res = project.resources.byType(name, 'workflows');
-      await res.create();
-      await expect(
-        res.rename(resourceName('newpre/workflows/newname')),
-      ).rejects.toThrow('Can only rename project resources');
-      await res.delete();
-    });
-    it('try to rename workflow - attempt to change type', async () => {
-      const name = 'decision/workflows/newResForRename';
-      const res = project.resources.byType(name, 'workflows');
-      await res.create();
-      await expect(
-        res.rename(resourceName('decision/linkTypes/newname')),
-      ).rejects.toThrow('Cannot change resource type');
-      await res.delete();
-    });
     it('try to rename workflow - attempt to use invalid name', async () => {
       const name = 'decision/workflows/newResForRename';
       const res = project.resources.byType(name, 'workflows');
       await res.create();
-      await expect(
-        res.rename(resourceName('decision/workflows/newname-ööö')),
-      ).rejects.toThrow('Resource identifier must follow naming');
+      await expect(res.rename('newname-ööö')).rejects.toThrow(
+        'Resource identifier must follow naming',
+      );
       await res.delete();
     });
     it('update card type - name', async () => {
@@ -2554,7 +2535,7 @@ describe('resources', function () {
 
       const templateName = 'decision/templates/simplepage';
       const template = project.resources.byType(templateName, 'templates');
-      await template.rename(resourceName('decision/templates/renamedpage'));
+      await template.rename('renamedpage');
       const updatedCard = project.findCard(cardKey);
 
       expect(template.data?.name).toBe('decision/templates/renamedpage');
@@ -2564,7 +2545,7 @@ describe('resources', function () {
         'decision/templates/renamedpage',
       );
 
-      await template.rename(resourceName('decision/templates/simplepage'));
+      await template.rename('simplepage');
     });
 
     it('should not update card contents when renaming report via resource class (cascade moved to handler)', async () => {
@@ -2574,7 +2555,7 @@ describe('resources', function () {
 
       const reportName = 'decision/reports/testReport';
       const report = project.resources.byType(reportName, 'reports');
-      await report.rename(resourceName('decision/reports/renamedReport'));
+      await report.rename('renamedReport');
       const updatedCard = project.findCard(cardKey);
 
       expect(report.data?.name).toBe('decision/reports/renamedReport');
@@ -2584,7 +2565,7 @@ describe('resources', function () {
         'decision/reports/renamedReport',
       );
 
-      await report.rename(resourceName('decision/reports/testReport'));
+      await report.rename('testReport');
     });
 
     it('should not update card contents when renaming workflow via resource class (cascade moved to handler)', async () => {
@@ -2603,7 +2584,7 @@ describe('resources', function () {
       let card = project.findCard(cardKey);
       expect(card.content).toContain(workflowName);
 
-      await workflow.rename(resourceName('decision/workflows/renamedWorkflow'));
+      await workflow.rename('renamedWorkflow');
 
       expect(workflow.data?.name).toBe('decision/workflows/renamedWorkflow');
 
@@ -2633,7 +2614,7 @@ describe('resources', function () {
       let card = project.findCard(cardKey);
       expect(card.content).toContain(fieldTypeName);
 
-      await fieldType.rename(resourceName('decision/fieldTypes/renamedField'));
+      await fieldType.rename('renamedField');
       expect(fieldType.data?.name).toBe('decision/fieldTypes/renamedField');
 
       // The resource-level rename no longer cascades; FieldTypeRenameHandler does.
@@ -2662,7 +2643,7 @@ describe('resources', function () {
       let card = project.findCard(cardKey);
       expect(card.content).toContain(cardTypeName);
 
-      await cardType.rename(resourceName('decision/cardTypes/renamedType'));
+      await cardType.rename('renamedType');
       expect(cardType.data?.name).toBe('decision/cardTypes/renamedType');
 
       // The resource-level rename no longer cascades; CardTypeRenameHandler does.
@@ -2732,9 +2713,7 @@ describe('resources', function () {
 
       let card = project.findCard(cardKey);
       expect(card.content).toContain(calculationName);
-      await calculation.rename(
-        resourceName('decision/calculations/renamedCalc'),
-      );
+      await calculation.rename('renamedCalc');
 
       expect(calculation.data?.name).toBe('decision/calculations/renamedCalc');
 
@@ -2766,9 +2745,7 @@ describe('resources', function () {
       let card = project.findCard(cardKey);
       expect(card.content).toContain(graphModelName);
 
-      await graphModel.rename(
-        resourceName('decision/graphModels/renamedGraph'),
-      );
+      await graphModel.rename('renamedGraph');
       expect(graphModel.data?.name).toBe('decision/graphModels/renamedGraph');
 
       // The resource-level rename no longer cascades; LeafResourceRenameHandler does.
@@ -2796,7 +2773,7 @@ describe('resources', function () {
       let card = project.findCard(cardKey);
       expect(card.content).toContain(graphViewName);
 
-      await graphView.rename(resourceName('decision/graphViews/renamedView'));
+      await graphView.rename('renamedView');
       expect(graphView.data?.name).toBe('decision/graphViews/renamedView');
 
       // The resource-level rename no longer cascades; LeafResourceRenameHandler does.
@@ -2826,7 +2803,7 @@ describe('resources', function () {
         );
       }
 
-      await template.rename(resourceName('decision/templates/renamedMultiRef'));
+      await template.rename('renamedMultiRef');
 
       // The resource-level rename no longer cascades; LeafResourceRenameHandler does.
       for (const cardKey of cardKeys) {
@@ -2851,7 +2828,7 @@ describe('resources', function () {
       const workflow = project.resources.byType(workflowName, 'workflows');
       await workflow.create();
 
-      await workflow.rename(resourceName('decision/workflows/renamedNoRef'));
+      await workflow.rename('renamedNoRef');
       expect(workflow.data?.name).toBe('decision/workflows/renamedNoRef');
 
       await workflow.delete();

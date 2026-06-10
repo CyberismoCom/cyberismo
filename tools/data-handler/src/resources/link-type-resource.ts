@@ -12,7 +12,10 @@
 
 import { DefaultContent } from './create-defaults.js';
 import { FileResource } from './file-resource.js';
-import { resourceNameToString } from '../utils/resource-utils.js';
+import {
+  resourceName,
+  resourceNameToString,
+} from '../utils/resource-utils.js';
 import { sortCards } from '../utils/card-utils.js';
 
 import type { Card } from '../interfaces/project-interfaces.js';
@@ -53,24 +56,23 @@ export class LinkTypeResource extends FileResource<LinkType> {
   }
 
   /**
-   * Renames resource metadata file and renames memory resident object 'name'.
-   * @param newName New name for the resource.
+   * When the project prefix changes, rewrite the link type's own references
+   * (its sourceCardTypes / destinationCardTypes) that carried the old prefix.
+   * The cross-resource rename cascade lives in LinkTypeRenameHandler.
+   * @param newPrefix New project prefix.
    */
-  public async rename(newName: ResourceName) {
-    await super.rename(newName);
-    const current = this.content;
-    const prefixes = this.project.projectPrefixes();
-    if (current.sourceCardTypes) {
-      current.sourceCardTypes = current.sourceCardTypes.map((item) =>
-        this.updatePrefixInResourceName(item, prefixes),
-      );
-    }
-    if (current.destinationCardTypes) {
-      current.destinationCardTypes = current.destinationCardTypes.map((item) =>
-        this.updatePrefixInResourceName(item, prefixes),
-      );
-    }
-    await this.write();
+  public async changePrefix(newPrefix: string) {
+    // The persisted name carries the old prefix; resourceName may already be
+    // re-keyed under the new one (see ResourceObject.changePrefix).
+    const from = resourceName(this.content.name).prefix;
+    const content = this.content;
+    content.sourceCardTypes = content.sourceCardTypes.map((item) =>
+      this.replacePrefix(item, from, newPrefix),
+    );
+    content.destinationCardTypes = content.destinationCardTypes.map((item) =>
+      this.replacePrefix(item, from, newPrefix),
+    );
+    await super.changePrefix(newPrefix);
   }
 
   /**

@@ -70,17 +70,6 @@ export class CalculationResource extends FolderResource<
     await this.loadContentFiles();
   }
   /**
-   * Renames resource metadata file and renames memory resident object 'name'.
-   * @param newName New name for the resource.
-   */
-  public async rename(newName: ResourceName) {
-    await super.rename(newName);
-    // Persist the renamed metadata and rename the content folder on disk.
-    // The reference cascade lives in LeafResourceRenameHandler.
-    await this.write();
-  }
-
-  /**
    * List where calculation resource is used in cards, or other calculation resources.
    * Always returns card key references first, then calculation references.
    *
