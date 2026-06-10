@@ -471,7 +471,9 @@ export class CardCache {
       ...cardData, // Override with new data
       location: targetLocation,
       // Explicitly preserve certain data if it exists in the cached card but not in cardData
-      metadata: CardCache.normalizedMetadata(cardData.metadata ?? card.metadata),
+      metadata: CardCache.normalizedMetadata(
+        cardData.metadata ?? card.metadata,
+      ),
       content: cardData.content ?? card.content,
       attachments: cardData.attachments ?? card.attachments,
     };
