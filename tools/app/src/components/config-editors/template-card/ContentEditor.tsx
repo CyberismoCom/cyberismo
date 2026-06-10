@@ -12,7 +12,13 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { forwardRef, useCallback, useImperativeHandle, useState } from 'react';
+import {
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useMemo,
+  useState,
+} from 'react';
 import { Box, Button, Stack } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import type { ReactCodeMirrorRef } from '@uiw/react-codemirror';
@@ -21,7 +27,11 @@ import { StreamLanguage } from '@codemirror/language';
 import { EditorView, lineNumbers } from '@codemirror/view';
 import { asciidoc } from 'codemirror-asciidoc';
 import AsciiDocToolbar from '@/components/AsciiDocToolbar';
-import { addAttachment, handleAttachmentDrop } from '@/lib/codemirror';
+import {
+  addAttachment,
+  handleAttachmentDrop,
+  useSaveKeymap,
+} from '@/lib/codemirror';
 import { useIsDarkMode } from '@/lib/hooks';
 import { CODE_MIRROR_BASE_PROPS, CODE_MIRROR_THEMES } from '@/lib/constants';
 import type { CardResponse } from '@/lib/api/types';
@@ -58,6 +68,13 @@ export const ContentEditor = forwardRef<
   const isDarkMode = useIsDarkMode();
   const [view, setView] = useState<EditorView | null>(null);
   const [editor, setEditor] = useState<HTMLDivElement | null>(null);
+
+  // Cmd/Ctrl+S (and Cmd/Ctrl+Enter) saves the content when dirty.
+  const saveExtension = useSaveKeymap(view, { onSave, canSave: dirty });
+  const cmExtensions = useMemo(
+    () => [...extensions, saveExtension],
+    [saveExtension],
+  );
 
   useImperativeHandle(
     ref,
@@ -96,7 +113,7 @@ export const ContentEditor = forwardRef<
           theme={
             isDarkMode ? CODE_MIRROR_THEMES.dark : CODE_MIRROR_THEMES.light
           }
-          extensions={extensions}
+          extensions={cmExtensions}
           value={value}
           editable={editable}
           readOnly={!editable}

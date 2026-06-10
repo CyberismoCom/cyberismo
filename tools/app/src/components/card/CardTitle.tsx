@@ -17,7 +17,7 @@ import { Box, Button, IconButton, Stack, Textarea, Typography } from '@mui/joy';
 import EditIcon from '@mui/icons-material/Edit';
 import { useTranslation } from 'react-i18next';
 
-import { useAppDispatch } from '@/lib/hooks';
+import { useAppDispatch, formKeyHandler } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
 import { isEdited } from '@/lib/slices/pageState';
 import { UserRole, useHasMinRole } from '@/lib/auth';
@@ -106,14 +106,6 @@ export const CardTitle: React.FC<CardTitleProps> = ({
 
   useEffect(() => {
     if (!editing) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.key === 's' || e.key === 'Enter') && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        handleSave();
-      } else if (e.key === 'Escape') {
-        handleCancel();
-      }
-    };
     const handleClickAway = (e: MouseEvent) => {
       if (
         editBoxRef.current &&
@@ -122,10 +114,8 @@ export const CardTitle: React.FC<CardTitleProps> = ({
         handleCancel();
       }
     };
-    document.addEventListener('keydown', handleKeyDown, true);
     document.addEventListener('mousedown', handleClickAway);
     return () => {
-      document.removeEventListener('keydown', handleKeyDown, true);
       document.removeEventListener('mousedown', handleClickAway);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -149,6 +139,11 @@ export const CardTitle: React.FC<CardTitleProps> = ({
         borderColor="primary.outlinedBorder"
         borderRadius={6}
         padding={{ xs: 1, sm: 1.5 }}
+        onKeyDown={formKeyHandler({
+          canSubmit: true,
+          onSubmit: handleSave,
+          onCancel: handleCancel,
+        })}
       >
         <Stack spacing={1}>
           <Textarea
@@ -162,12 +157,6 @@ export const CardTitle: React.FC<CardTitleProps> = ({
             onChange={(e) => {
               setValue(e.target.value);
               dispatch(isEdited(true));
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSave();
-              }
             }}
             sx={{
               fontWeight: 'bold',

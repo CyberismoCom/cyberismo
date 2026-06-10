@@ -12,7 +12,6 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { KeyboardEvent } from 'react';
 import { useEffect } from 'react';
 import { Accordion, AccordionDetails, Box, IconButton, Stack } from '@mui/joy';
 import CheckIcon from '@mui/icons-material/Check';
@@ -23,6 +22,7 @@ import type { EnumDefinition } from '@cyberismo/data-handler/types/queries';
 import EditableField, { FieldLabel } from '@/components/EditableField';
 import FieldEditor from '@/components/FieldEditor';
 import { coerceMetadataValue } from '@/lib/utils';
+import { formKeyHandler } from '@/lib/hooks';
 
 export interface FieldRowProps {
   id?: string;
@@ -88,23 +88,6 @@ export function FieldRow({
     onCancel?.();
   };
 
-  const handleKeyDownCapture = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      e.stopPropagation();
-      handleCancel();
-    }
-  };
-
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Enter' && onSave && isDirty) {
-      // For multiline fields, require Ctrl/Cmd+Enter to save
-      if (dataType === 'longText' && !e.ctrlKey && !e.metaKey) return;
-      e.preventDefault();
-      handleSave();
-    }
-  };
-
   const isClickable = !disabled && !isEditing && !!onStartEdit;
 
   return (
@@ -130,8 +113,12 @@ export function FieldRow({
           <Stack
             direction={{ xs: 'column', md: 'row' }}
             spacing={{ xs: 0.5, md: 4 }}
-            onKeyDownCapture={handleKeyDownCapture}
-            onKeyDown={handleKeyDown}
+            onKeyDown={formKeyHandler({
+              canSubmit: !!onSave && isDirty,
+              onSubmit: handleSave,
+              onCancel: handleCancel,
+              multiline: dataType === 'longText' || dataType === 'label',
+            })}
           >
             <FieldLabel
               label={label}

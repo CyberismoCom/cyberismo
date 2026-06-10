@@ -19,6 +19,7 @@ import EditableField from '@/components/EditableField';
 import type { DataType, MetadataValue } from '@/lib/definitions';
 import type { EnumDefinition } from '@cyberismo/data-handler/types/queries';
 import { metadataValuesEqual } from '@/lib/utils';
+import { formKeyHandler } from '@/lib/hooks';
 
 /**
  * A single edit-first metadata row, controlled by the parent working draft
@@ -62,6 +63,12 @@ export function MetadataFieldRow({
         paddingY: 0.5,
         marginY: 0.5,
       }}
+      onKeyDown={formKeyHandler({
+        canSubmit: editable && dirty,
+        onSubmit: onSave,
+        onCancel,
+        multiline: dataType === 'longText' || dataType === 'label',
+      })}
     >
       <Stack direction="row" alignItems="flex-start" spacing={0.5}>
         <Box flexGrow={1} minWidth={0}>

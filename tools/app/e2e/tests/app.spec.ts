@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test, expect } from '../fixtures.js';
-import { editPage, dismissSaveToast } from '../helpers.js';
+import { editPage, dismissSaveToast, typeIntoCodeMirror } from '../helpers.js';
 import t from '../../src/locales/en/translation.json' with { type: 'json' };
 
 test.describe.configure({ mode: 'serial' });
@@ -676,6 +676,19 @@ test.describe('Navigation', () => {
     await expect(page.getByTestId('metadataView')).not.toContainText(
       'WILL CANCEL',
     );
+
+    // The content editor saves with Ctrl+S (no button click), like the normal
+    // card body.
+    await page.getByTestId('editTab').click();
+    await typeIntoCodeMirror(page, ['Body edited via keyboard']);
+    await expect(page.getByTestId('contentSaveButton')).toBeEnabled();
+    await page.keyboard.press('Control+s');
+    const contentToast = page
+      .getByRole('presentation')
+      .filter({ hasText: t.saveCard.success });
+    await expect(contentToast).toBeVisible();
+    await contentToast.getByTestId('notificationClose').click();
+    await expect(page.getByTestId('contentSaveButton')).toBeDisabled();
   });
 
   test('test notifications and policy checks', async ({ page }) => {

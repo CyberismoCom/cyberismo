@@ -18,6 +18,7 @@ import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -57,7 +58,11 @@ import parseReact, { domToReact } from 'html-react-parser';
 import type { DOMNode } from 'html-react-parser';
 import type { CardResponse } from '@/lib/api/types';
 import type { CardAttachment } from '@cyberismo/data-handler/interfaces/project-interfaces';
-import { addAttachment, handleAttachmentDrop } from '@/lib/codemirror';
+import {
+  addAttachment,
+  handleAttachmentDrop,
+  useSaveKeymap,
+} from '@/lib/codemirror';
 import SvgViewerModal from '@/components/modals/svgViewerModal';
 import { SafeRouterLink } from '@/components/SafeRouterLink';
 import AsciiDocToolbar from '@/components/AsciiDocToolbar';
@@ -212,22 +217,16 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
       }
     };
 
-    useEffect(() => {
-      if (!editing) return;
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if ((e.key === 's' || e.key === 'Enter') && (e.metaKey || e.ctrlKey)) {
-          e.preventDefault();
-          handleSave();
-        } else if (e.key === 'Escape') {
-          handleCancel();
-        }
-      };
-      document.addEventListener('keydown', handleKeyDown, true);
-      return () => {
-        document.removeEventListener('keydown', handleKeyDown, true);
-      };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [editing, onContentSave]);
+    // Cmd/Ctrl+S (and Cmd/Ctrl+Enter) saves; Escape cancels — scoped to the
+    // CodeMirror editor.
+    const saveExtension = useSaveKeymap(cmView, {
+      onSave: handleSave,
+      onCancel: handleCancel,
+    });
+    const editorExtensionsWithSave = useMemo(
+      () => [...editorExtensions, saveExtension],
+      [saveExtension],
+    );
 
     // scroll to last title on first render and when tab is changed
     useEffect(() => {
@@ -653,7 +652,7 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
                       ? CODE_MIRROR_THEMES.dark
                       : CODE_MIRROR_THEMES.light
                   }
-                  extensions={editorExtensions}
+                  extensions={editorExtensionsWithSave}
                   value={editContentRef.current}
                   onDrop={(e) =>
                     handleAttachmentDrop(

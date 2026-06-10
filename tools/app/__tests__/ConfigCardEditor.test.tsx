@@ -15,6 +15,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import type * as Utils from '@/lib/utils';
+import type * as HooksUtils from '@/lib/hooks/utils';
 
 // Regression coverage for INTDEV-1312: the dedicated, edit-first template card
 // editor. A single working draft is the source of truth, so every field is
@@ -53,11 +54,15 @@ vi.mock('@/lib/api', () => ({
   useCardMutations: () => ({ updateCard }),
 }));
 
-vi.mock('@/lib/hooks', () => ({
-  useAppRouter: () => ({ push: vi.fn() }),
-  useAppDispatch: () => vi.fn(),
-  useIsDarkMode: () => false,
-}));
+vi.mock('@/lib/hooks', async () => {
+  const utils = await vi.importActual<typeof HooksUtils>('@/lib/hooks/utils');
+  return {
+    useAppRouter: () => ({ push: vi.fn() }),
+    useAppDispatch: () => vi.fn(),
+    useIsDarkMode: () => false,
+    formKeyHandler: utils.formKeyHandler,
+  };
+});
 
 vi.mock('@/lib/auth', () => ({
   UserRole: { Reader: 0, Editor: 1, Admin: 2 },
@@ -167,6 +172,53 @@ describe('ConfigCardEditor (template card editor)', () => {
     expect(input.value).toBe('temp');
 
     fireEvent.click(rowButton(container, 'f1', 'fieldCancelButton'));
+
+    expect((fieldInput(container, 'f1') as HTMLInputElement).value).toBe('');
+    expect(updateCard).not.toHaveBeenCalled();
+  });
+
+  it('saves the title via keyboard (Enter and Ctrl+S)', () => {
+    const { container } = renderEditor();
+    const title = within(
+      container.querySelector('#card-title-editor') as HTMLElement,
+    ).getByRole('textbox');
+
+    fireEvent.change(title, { target: { value: 'Saved via Enter' } });
+    fireEvent.keyDown(title, { key: 'Enter' });
+    expect(updateCard).toHaveBeenCalledWith({
+      metadata: { title: 'Saved via Enter' },
+    });
+
+    updateCard.mockClear();
+    fireEvent.change(title, { target: { value: 'Saved via Ctrl+S' } });
+    fireEvent.keyDown(title, { key: 's', ctrlKey: true });
+    expect(updateCard).toHaveBeenCalledWith({
+      metadata: { title: 'Saved via Ctrl+S' },
+    });
+  });
+
+  it('saves a metadata field via keyboard (Enter and Ctrl+S)', () => {
+    const { container } = renderEditor();
+    const input = fieldInput(container, 'f1');
+
+    fireEvent.change(input, { target: { value: 'kbd enter' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(updateCard).toHaveBeenCalledWith({ metadata: { f1: 'kbd enter' } });
+
+    updateCard.mockClear();
+    fireEvent.change(input, { target: { value: 'kbd ctrl-s' } });
+    fireEvent.keyDown(input, { key: 's', ctrlKey: true });
+    expect(updateCard).toHaveBeenCalledWith({ metadata: { f1: 'kbd ctrl-s' } });
+  });
+
+  it('Escape reverts a dirty field without saving', () => {
+    const { container } = renderEditor();
+    const input = fieldInput(container, 'f1') as HTMLInputElement;
+
+    fireEvent.change(input, { target: { value: 'temp' } });
+    expect(input.value).toBe('temp');
+
+    fireEvent.keyDown(input, { key: 'Escape' });
 
     expect((fieldInput(container, 'f1') as HTMLInputElement).value).toBe('');
     expect(updateCard).not.toHaveBeenCalled();

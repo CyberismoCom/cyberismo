@@ -17,6 +17,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import { useTranslation } from 'react-i18next';
 import { TITLE_FIELD_PROPS } from '@/lib/constants';
+import { formKeyHandler } from '@/lib/hooks';
 
 export function TitleEditor({
   value,
@@ -41,6 +42,11 @@ export function TitleEditor({
       borderColor={dirty ? 'primary.outlinedBorder' : 'neutral.outlinedBorder'}
       borderRadius={6}
       padding={{ xs: 1, sm: 1.5 }}
+      onKeyDown={formKeyHandler({
+        canSubmit: editable && dirty,
+        onSubmit: onSave,
+        onCancel,
+      })}
     >
       <Stack direction="row" alignItems="flex-start" spacing={0.5}>
         <Box flexGrow={1} minWidth={0}>
