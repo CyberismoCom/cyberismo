@@ -532,7 +532,7 @@ export async function getWorkflowGraph(
 
 /**
  * Perform an updateOperation on a resource key.
- * This delegates to data-handler Update.applyResourceOperation.
+ * This delegates to the data-handler mutation engine.
  */
 export async function updateResourceWithOperation(
   commands: CommandManager,
@@ -542,11 +542,12 @@ export async function updateResourceWithOperation(
   const { updateKey, operation } = body;
   await commands.atomic(
     () =>
-      commands.updateCmd.applyResourceOperation(
-        resourceNameToString(resource),
+      commands.updateCmd.apply({
+        kind: 'edit',
+        target: resource,
         updateKey,
         operation,
-      ),
+      }),
     `Update ${resource.type} ${resource.identifier}`,
   );
 }
