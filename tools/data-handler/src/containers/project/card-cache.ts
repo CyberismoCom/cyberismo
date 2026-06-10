@@ -130,18 +130,22 @@ export class CardCache {
 
   // Gets metadata from disk.
   private async fetchMetadata(currentPath: string): Promise<string> {
-    function injectLinksIfMissing(metadata: string): string {
-      if (metadata !== '' && !metadata.includes('"links":')) {
-        const end = metadata.lastIndexOf('}');
-        metadata = metadata.slice(0, end - 1) + ',\n    "links": []\n' + '}';
-      }
-      return metadata;
-    }
-    let metadata = await readFile(join(currentPath, cardMetadataFile), {
+    return readFile(join(currentPath, cardMetadataFile), {
       encoding: 'utf-8',
     });
-    metadata = injectLinksIfMissing(metadata);
-    return metadata;
+  }
+
+  // Guarantees invariants the CardMetadata type promises (links is always an
+  // array) regardless of how the metadata was produced. Applied to every
+  // metadata object entering the cache; on-disk files and in-memory
+  // producers may both omit 'links'.
+  private static normalizedMetadata(
+    metadata?: CardMetadata,
+  ): CardMetadata | undefined {
+    if (!metadata || metadata.links) {
+      return metadata;
+    }
+    return { ...metadata, links: [] };
   }
 
   // Builds the card cache from filesystem.
@@ -186,7 +190,7 @@ export class CardCache {
         children: [],
         attachments: Array.isArray(cardAttachments) ? cardAttachments : [],
         content: typeof cardContent === 'string' ? cardContent : '',
-        metadata: metadata,
+        metadata: CardCache.normalizedMetadata(metadata),
         parent: parentCard(currentPath),
         location: location,
       };
@@ -446,6 +450,7 @@ export class CardCache {
       const targetLocation = this.determineLocationFromPath(cardData.path);
       const extendedCard: CachedCard = {
         ...cardData,
+        metadata: CardCache.normalizedMetadata(cardData.metadata),
         location: targetLocation,
       };
       this.cardCache.set(cardKey, extendedCard);
@@ -466,7 +471,7 @@ export class CardCache {
       ...cardData, // Override with new data
       location: targetLocation,
       // Explicitly preserve certain data if it exists in the cached card but not in cardData
-      metadata: cardData.metadata ?? card.metadata,
+      metadata: CardCache.normalizedMetadata(cardData.metadata ?? card.metadata),
       content: cardData.content ?? card.content,
       attachments: cardData.attachments ?? card.attachments,
     };
@@ -519,7 +524,7 @@ export class CardCache {
       CardCache.logger.warn(`Card '${cardKey}' not found`);
       return false;
     }
-    card.metadata = metadata;
+    card.metadata = CardCache.normalizedMetadata(metadata);
     this.cardCache.set(cardKey, card);
     return true;
   }
