@@ -37,7 +37,9 @@ describe('FieldType mutation engine end-to-end', () => {
     expect(project.resources.exists(name)).toBe(false);
     const entries = await ConfigurationLogger.entries(project.basePath);
     expect(
-      entries.some((e) => e.kind === 'resource_delete' && e.target === name),
+      entries.some(
+        (e) => e.operation === 'resource_delete' && e.target === name,
+      ),
     ).toBe(true);
   });
 
@@ -59,7 +61,9 @@ describe('FieldType mutation engine end-to-end', () => {
 
     const entries = await ConfigurationLogger.entries(project.basePath);
     expect(
-      entries.some((e) => e.kind === 'resource_rename' && e.target === name),
+      entries.some(
+        (e) => e.operation === 'resource_rename' && e.target === name,
+      ),
     ).toBe(true);
   });
 
@@ -78,7 +82,7 @@ describe('FieldType mutation engine end-to-end', () => {
     expect(
       entries.some(
         (e) =>
-          e.kind === 'resource_edit' &&
+          e.operation === 'resource_update' &&
           e.target === `${project.projectPrefix}/fieldTypes/finished`,
       ),
     ).toBe(true);

@@ -52,7 +52,7 @@ describe('LinkType delete end-to-end', () => {
 
     const entries = await ConfigurationLogger.entries(project.basePath);
     const deleteEntries = entries.filter(
-      (e) => e.kind === 'resource_delete' && e.target === linkTypeName,
+      (e) => e.operation === 'resource_delete' && e.target === linkTypeName,
     );
     expect(deleteEntries).toHaveLength(1);
   });

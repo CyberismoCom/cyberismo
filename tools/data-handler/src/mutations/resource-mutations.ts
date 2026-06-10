@@ -87,30 +87,39 @@ export class ResourceMutations {
   ): Promise<void> {
     if (input.kind === 'edit') {
       await ConfigurationLogger.log(this.project.basePath, {
-        kind: 'resource_edit',
+        operation: 'resource_update',
         target: `${input.target.prefix}/${input.target.type}/${input.target.identifier}`,
-        payload: { operation: input.operation, key: input.updateKey.key },
+        parameters: {
+          type: input.target.type,
+          operation: input.operation,
+          key: input.updateKey.key,
+        },
       });
     } else if (input.kind === 'delete') {
       await ConfigurationLogger.log(this.project.basePath, {
-        kind: 'resource_delete',
+        operation: 'resource_delete',
         target: `${input.target.prefix}/${input.target.type}/${input.target.identifier}`,
-        payload: { type: input.target.type },
+        parameters: { type: input.target.type },
       });
     } else if (input.kind === 'rename') {
+      const oldName = `${input.target.prefix}/${input.target.type}/${input.target.identifier}`;
+      const newName = `${input.target.prefix}/${input.target.type}/${input.newIdentifier}`;
       await ConfigurationLogger.log(this.project.basePath, {
-        kind: 'resource_rename',
-        target: `${input.target.prefix}/${input.target.type}/${input.target.identifier}`,
-        payload: { type: input.target.type, newName: input.newIdentifier },
+        operation: 'resource_rename',
+        target: oldName,
+        parameters: {
+          type: input.target.type,
+          operation: { name: 'change', target: oldName, to: newName },
+        },
       });
     } else if (input.kind === 'project_rename') {
       if (!context.oldPrefix) {
         throw new Error('project_rename log entry requires oldPrefix context');
       }
       await ConfigurationLogger.log(this.project.basePath, {
-        kind: 'project_rename',
+        operation: 'project_rename',
         target: input.newPrefix,
-        payload: {
+        parameters: {
           oldPrefix: context.oldPrefix,
           newPrefix: input.newPrefix,
         },

@@ -45,7 +45,7 @@ describe('mutation engine end-to-end', () => {
     expect(sawNew).toBe(true);
 
     const entries = await ConfigurationLogger.entries(project.basePath);
-    const renameEntry = entries.find((e) => e.kind === 'resource_rename');
+    const renameEntry = entries.find((e) => e.operation === 'resource_rename');
     expect(renameEntry).toBeDefined();
     expect(renameEntry!.target).toBe(`${project.projectPrefix}/linkTypes/test`);
   });

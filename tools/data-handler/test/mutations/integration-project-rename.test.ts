@@ -50,11 +50,11 @@ describe('ProjectRename end-to-end', () => {
     // Exactly one project_rename entry is recorded per rename.
     const entries = await ConfigurationLogger.entries(project.basePath);
     const projectRenameEntries = entries.filter(
-      (e) => e.kind === 'project_rename',
+      (e) => e.operation === 'project_rename',
     );
     expect(projectRenameEntries).toHaveLength(1);
     expect(projectRenameEntries[0].target).toBe('renamed');
-    expect(projectRenameEntries[0].payload).toEqual({
+    expect(projectRenameEntries[0].parameters).toEqual({
       oldPrefix: originalPrefix,
       newPrefix: 'renamed',
     });

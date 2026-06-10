@@ -19,17 +19,20 @@ import { getChildLogger } from './log-utils.js';
 import { ProjectPaths } from '../containers/project/project-paths.js';
 import { writeFileSafe, pathExists } from './file-utils.js';
 
-export type MigrationEntryKind =
-  | 'resource_edit'
+// Entry shapes match the log format shipped in released versions
+// (INTDEV-584), so logs written by older versions remain readable and no
+// migration is needed.
+export type ConfigurationOperation =
+  | 'resource_update'
   | 'resource_delete'
   | 'resource_rename'
   | 'project_rename';
 
 export interface ConfigurationLogEntry {
   timestamp: string;
-  kind: MigrationEntryKind;
+  operation: ConfigurationOperation;
   target: string;
-  payload: Record<string, unknown>;
+  parameters?: Record<string, unknown>;
 }
 
 /**
@@ -121,7 +124,7 @@ export class ConfigurationLogger {
       for (const line of lines) {
         try {
           const entry = JSON.parse(line) as ConfigurationLogEntry;
-          if (entry.timestamp && entry.kind && entry.target) {
+          if (entry.timestamp && entry.operation && entry.target) {
             entries.push(entry);
           }
         } catch {
@@ -168,7 +171,7 @@ export class ConfigurationLogger {
       });
 
       logger.debug(
-        `Logged ${entry.kind} operation for target: ${entry.target}`,
+        `Logged ${entry.operation} operation for target: ${entry.target}`,
       );
     } catch (error) {
       logger.error({ error, ...entry }, `Configuration logging failed`);
