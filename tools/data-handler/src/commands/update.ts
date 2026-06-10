@@ -120,6 +120,32 @@ export class Update {
       }
     }
 
+    if (type === 'workflows') {
+      if (isRename) {
+        const newIdentifier = parseResourceName(
+          (operation as ChangeOperation<string>).to,
+        ).identifier;
+        const input = { kind: 'rename' as const, target, newIdentifier };
+        await this.mutations.apply(input);
+        return;
+      }
+
+      // ALL workflow edits route through the engine. The dispatched handlers
+      // (add/remove/rename state, transition) delegate the cascade to
+      // WorkflowResource.update while recording a log entry for the breaking
+      // ones. Edit shapes without a dedicated handler (e.g. displayName change)
+      // fall to DefaultNoCascadeHandler, which runs the same `resource.update`
+      // with no log entry.
+      const input = {
+        kind: 'edit' as const,
+        target,
+        updateKey,
+        operation,
+      };
+      await this.mutations.apply(input);
+      return;
+    }
+
     const run = () =>
       this.project.lock.write(async () => {
         const resource = this.project.resources.byType(name, type);
