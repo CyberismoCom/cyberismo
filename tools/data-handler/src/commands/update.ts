@@ -146,6 +146,24 @@ export class Update {
       return;
     }
 
+    // Renames for these leaf resource families are routed through the engine;
+    // their other edits fall through to the in-class path below.
+    if (
+      isRename &&
+      (type === 'calculations' ||
+        type === 'reports' ||
+        type === 'graphModels' ||
+        type === 'graphViews' ||
+        type === 'templates')
+    ) {
+      const newIdentifier = parseResourceName(
+        (operation as ChangeOperation<string>).to,
+      ).identifier;
+      const input = { kind: 'rename' as const, target, newIdentifier };
+      await this.mutations.apply(input);
+      return;
+    }
+
     const run = () =>
       this.project.lock.write(async () => {
         const resource = this.project.resources.byType(name, type);

@@ -15,6 +15,7 @@
 import type { Handler, MutationContext } from './handler.js';
 import { DefaultNoCascadeHandler } from './handlers/default-no-cascade.js';
 import { LinkTypeDeleteHandler } from './handlers/link-type-delete.js';
+import { LinkTypeEditCardTypesHandler } from './handlers/link-type-edit-card-types.js';
 import { LinkTypeRenameHandler } from './handlers/link-type-rename.js';
 import { CardTypeRenameHandler } from './handlers/card-type-rename.js';
 import { CardTypeDeleteHandler } from './handlers/card-type-delete.js';
@@ -33,10 +34,12 @@ import { WorkflowRemoveStateHandler } from './handlers/workflow-remove-state.js'
 import { WorkflowRenameStateHandler } from './handlers/workflow-rename-state.js';
 import { WorkflowTransitionHandler } from './handlers/workflow-transition.js';
 import { WorkflowDeleteHandler } from './handlers/workflow-delete.js';
+import { LeafResourceRenameHandler } from './handlers/leaf-resource-rename.js';
 
 const HANDLERS: Handler[] = [
   new LinkTypeRenameHandler(),
   new LinkTypeDeleteHandler(),
+  new LinkTypeEditCardTypesHandler(),
   new CardTypeRenameHandler(),
   new CardTypeDeleteHandler(),
   // Cascades are operation-specific — keep one handler per edit operation;
@@ -60,6 +63,11 @@ const HANDLERS: Handler[] = [
   new WorkflowRenameStateHandler(),
   new WorkflowTransitionHandler(),
   new WorkflowDeleteHandler(),
+  new LeafResourceRenameHandler('templates', 'Template'),
+  new LeafResourceRenameHandler('calculations', 'Calculation'),
+  new LeafResourceRenameHandler('reports', 'Report'),
+  new LeafResourceRenameHandler('graphModels', 'Graph model'),
+  new LeafResourceRenameHandler('graphViews', 'Graph view'),
   new DefaultNoCascadeHandler(),
 ];
 
