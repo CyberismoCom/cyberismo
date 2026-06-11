@@ -38,8 +38,10 @@ export interface Handler<I extends MutationInput = MutationInput> {
    * that follow from this mutation. Called by apply() internally and alone
    * by module-update replay. Must derive everything from ctx.input,
    * tolerate zero matches, and never require the target resource to exist.
-   * Cascades may write directly to disk; the replay orchestrator is
-   * responsible for refreshing project caches after a replay batch.
+   * Cascades may write directly to disk; the replay orchestrator
+   * refreshes project caches once after a replay batch. A handler whose
+   * cascade rewrites files that LATER entries in the same batch read
+   * through caches must refresh eagerly itself (see ProjectRenameHandler).
    */
   applyCascade(ctx: MutationContext<I>): Promise<void>;
 }
