@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
 import {
@@ -87,5 +87,99 @@ describe('rewriteContentFileRefs happy path', () => {
       expect(updated).toContain('MARKER_REWRITE_TO');
       expect(updated).not.toContain('MARKER_REWRITE_FROM');
     }
+  });
+});
+
+describe('rewriteCardContentRefs local-only scope', () => {
+  const cardsTestDir = join(import.meta.dirname, 'tmp-rewrite-card-refs');
+  const cardsFixturePath = join(cardsTestDir, 'valid', 'decision-records');
+  let project: Project;
+  let localTemplateCardFile: string;
+  let projectCardFile: string;
+  let moduleTemplateCardFile: string;
+
+  beforeAll(async () => {
+    await mkdir(cardsTestDir, { recursive: true });
+    await copyDir('test/test-data/', cardsTestDir);
+
+    localTemplateCardFile = join(
+      cardsFixturePath,
+      '.cards',
+      'local',
+      'templates',
+      'decision',
+      'c',
+      'decision_1',
+      'index.adoc',
+    );
+    projectCardFile = join(
+      cardsFixturePath,
+      'cardRoot',
+      'decision_5',
+      'index.adoc',
+    );
+
+    // Seed a fake module template card. Module-owned content must never be
+    // rewritten from the consumer side.
+    const moduleTemplateDir = join(
+      cardsFixturePath,
+      '.cards',
+      'modules',
+      'mymod',
+      'templates',
+    );
+    const moduleCardDir = join(moduleTemplateDir, 'mytemp', 'c', 'mymod_1');
+    moduleTemplateCardFile = join(moduleCardDir, 'index.adoc');
+    await mkdir(moduleCardDir, { recursive: true });
+    await writeFile(
+      join(moduleTemplateDir, 'mytemp.json'),
+      JSON.stringify({
+        name: 'mymod/templates/mytemp',
+        displayName: 'Module template',
+      }),
+    );
+    await writeFile(
+      join(dirname(moduleCardDir), '.schema'),
+      JSON.stringify([{ id: 'cardBaseSchema', version: 1 }]),
+    );
+    await writeFile(
+      join(moduleCardDir, 'index.json'),
+      JSON.stringify({
+        cardType: 'decision/cardTypes/decision',
+        title: 'Module card',
+        workflowState: 'Draft',
+        rank: '0|a',
+      }),
+    );
+    await writeFile(
+      moduleTemplateCardFile,
+      'Module card\n\nMARKER_CARD_FROM\n',
+    );
+
+    for (const file of [localTemplateCardFile, projectCardFile]) {
+      const original = (await readFile(file)).toString();
+      await writeFile(file, original + '\nMARKER_CARD_FROM\n');
+    }
+
+    project = new Project(cardsFixturePath);
+    await project.populateCaches();
+  });
+
+  afterAll(async () => {
+    await deleteDir(cardsTestDir);
+  });
+
+  it('rewrites local cards but never module template cards', async () => {
+    await rewriteCardContentRefs(project, 'MARKER_CARD_FROM', 'MARKER_CARD_TO');
+
+    for (const file of [localTemplateCardFile, projectCardFile]) {
+      const updated = (await readFile(file)).toString();
+      expect(updated).toContain('MARKER_CARD_TO');
+      expect(updated).not.toContain('MARKER_CARD_FROM');
+    }
+
+    const moduleContent = (await readFile(moduleTemplateCardFile)).toString();
+    expect(moduleContent).toContain('MARKER_CARD_FROM');
+    expect(moduleContent).not.toContain('MARKER_CARD_TO');
   });
 });
