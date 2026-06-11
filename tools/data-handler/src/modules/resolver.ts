@@ -173,6 +173,22 @@ export async function resolveModules(
     );
     const childConfig = await readModuleConfig(path);
 
+    // The applier installs under the DECLARED name while replay cascades
+    // rewrite references to the prefix the staged config declares; letting
+    // a renamed module through would corrupt the project. Imports are
+    // unaffected: their declaration name is read from the new config and
+    // already matches. Relocating an existing installation is out of
+    // scope for automatic updates, so refuse loudly.
+    if (childConfig.cardKeyPrefix !== decl.name) {
+      throw new Error(
+        `Module '${decl.name}' renamed its prefix to ` +
+          `'${childConfig.cardKeyPrefix}'; automatic update cannot ` +
+          `relocate it. Re-import the module ` +
+          `(cyberismo module import ${decl.source.location}) ` +
+          `to adopt the new prefix.`,
+      );
+    }
+
     const resolvedEntry: ResolvedModule = {
       declaration: { ...decl },
       ref,
