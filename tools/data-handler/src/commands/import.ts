@@ -38,6 +38,7 @@ import {
 import { cleanOrphans } from '../modules/orphans.js';
 import {
   executeModuleReplays,
+  filterStepsToApplied,
   ModuleValidationFailedError,
   planModuleReplays,
 } from '../mutations/replay/replay.js';
@@ -114,14 +115,26 @@ export class Import {
     const installedBefore = await installedModulesWithSources(this.project);
     const steps = await planModuleReplays(resolved, installedBefore);
 
-    await applyModules(this.project, resolved, {
+    const appliedModules = await applyModules(this.project, resolved, {
       tempDir: this.tempModulesDir,
     });
     await cleanOrphans(this.project);
 
     if (steps.length === 0) return;
 
-    await executeModuleReplays(this.project, steps);
+    // A module whose apply failed still has its OLD files installed;
+    // replaying its chain would cascade changes those files do not
+    // reflect. Run replays only for modules that actually landed.
+    const { executable, dropped } = filterStepsToApplied(steps, appliedModules);
+    for (const step of dropped) {
+      console.warn(
+        `Skipping migration replay for module '${step.modulePrefix}' ` +
+          `(${step.fromVersion} -> ${step.toVersion}): the module failed to apply.`,
+      );
+    }
+    if (executable.length === 0) return;
+
+    await executeModuleReplays(this.project, executable);
 
     const validationErrors = await Validate.getInstance().validate(
       this.project.basePath,

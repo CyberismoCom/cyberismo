@@ -63,5 +63,12 @@ export function entryToMutationInput(
       }
       return { kind: 'project_rename', newPrefix, oldPrefix };
     }
+    // The switch is exhaustive over ConfigurationOperation; this guards
+    // callers that bypass plan-time seal validation (entries cast from
+    // untyped JSON).
+    default:
+      throw new Error(
+        `Unknown operation '${(entry as { operation: string }).operation}'`,
+      );
   }
 }
