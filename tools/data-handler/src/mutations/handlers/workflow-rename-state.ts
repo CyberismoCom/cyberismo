@@ -67,16 +67,24 @@ export class WorkflowRenameStateHandler implements Handler {
       throw new Error(`Workflow '${name}' not found`);
     }
 
-    const op = ctx.input.operation as ChangeOperation<WorkflowState>;
-    const oldState = (op.target as { name?: string }).name as string;
-    const newState = op.to.name;
-
     // Rename the state and rewrite the workflow's own transitions. The state
     // validation (must carry 'name' and 'category') lives in
     // WorkflowResource.update and fires here.
     await resource.update(ctx.input.updateKey, ctx.input.operation);
 
-    // Cascade: remap the workflowState of every card in the renamed state.
+    await this.applyCascade(ctx);
+  }
+
+  // Cascade: remap the workflowState of every card in the renamed state.
+  async applyCascade(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'edit') {
+      throw new Error('WorkflowRenameStateHandler: non-edit input');
+    }
+    const name = resourceNameToString(ctx.input.target);
+    const op = ctx.input.operation as ChangeOperation<WorkflowState>;
+    const oldState = (op.target as { name?: string }).name as string;
+    const newState = op.to.name;
+
     for (const card of this.cardsInState(ctx, name, oldState)) {
       card.metadata!.workflowState = newState;
       await ctx.project.updateCardMetadata(card, card.metadata!);

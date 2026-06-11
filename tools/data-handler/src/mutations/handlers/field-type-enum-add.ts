@@ -44,4 +44,7 @@ export class FieldTypeEnumAddHandler implements Handler {
     }
     await resource.update(ctx.input.updateKey, ctx.input.operation);
   }
+
+  // No cascade: a new enum option affects no existing card values.
+  async applyCascade(): Promise<void> {}
 }

@@ -44,4 +44,7 @@ export class WorkflowTransitionHandler implements Handler {
     }
     await resource.update(ctx.input.updateKey, ctx.input.operation);
   }
+
+  // No cascade: transitions are workflow-internal; no card data references them.
+  async applyCascade(): Promise<void> {}
 }

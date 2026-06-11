@@ -57,7 +57,17 @@ export class CardTypeAddCustomFieldHandler implements Handler {
       ctx.input.operation as Operation<unknown>,
     );
 
-    // Cascade: add the new field as null on every affected card.
+    await this.applyCascade(ctx);
+  }
+
+  // Cascade: add the new field as null on every affected card.
+  async applyCascade(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'edit') {
+      throw new Error(
+        'CardTypeAddCustomFieldHandler called with non-edit input',
+      );
+    }
+    const cardTypeName = resourceNameToString(ctx.input.target);
     const item = (ctx.input.operation as AddOperation<CustomField>)
       .target as CustomField;
     const cards = this.affectedCards(ctx, cardTypeName);

@@ -53,8 +53,17 @@ export class FieldTypeEnumRemoveHandler implements Handler {
     // FieldTypeResource.update).
     await resource.update(ctx.input.updateKey, ctx.input.operation);
 
-    // Cascade: when a replacement value is given, rewrite every card that held
-    // the removed value to the replacement.
+    await this.applyCascade(ctx);
+  }
+
+  // Cascade: when a replacement value is given, rewrite every card that held
+  // the removed value to the replacement. Without one, cards keep their
+  // orphaned value.
+  async applyCascade(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'edit') {
+      throw new Error('FieldTypeEnumRemoveHandler: non-edit input');
+    }
+    const fieldName = resourceNameToString(ctx.input.target);
     const removeOp = ctx.input.operation as RemoveOperation<EnumDefinition>;
     const newValue = removeOp.replacementValue as EnumDefinition | undefined;
     if (!newValue) return;

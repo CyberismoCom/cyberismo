@@ -44,4 +44,7 @@ export class LinkTypeEditCardTypesHandler implements Handler {
     }
     await resource.update(ctx.input.updateKey, ctx.input.operation);
   }
+
+  // No cascade: editing a link type's card-type arrays rewrites no card data.
+  async applyCascade(): Promise<void> {}
 }

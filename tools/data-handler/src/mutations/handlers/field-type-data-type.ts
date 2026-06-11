@@ -52,15 +52,24 @@ export class FieldTypeDataTypeHandler implements Handler {
       throw new Error(`Field type '${fieldName}' not found`);
     }
 
-    const op = ctx.input.operation as { target: DataType; to: DataType };
-    const fromType = op.target;
-    const toType = op.to;
-
     // Validate the conversion and persist the new dataType
     // (FieldTypeResource.update throws on a disallowed conversion).
     await resource.update(ctx.input.updateKey, ctx.input.operation);
 
-    // Cascade: convert every affected card's value to the new type.
+    await this.applyCascade(ctx);
+  }
+
+  // Cascade: convert every affected card's value to the new type. Old and new
+  // types come from the operation (target/to), not from the resource.
+  async applyCascade(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'edit') {
+      throw new Error('FieldTypeDataTypeHandler: non-edit input');
+    }
+    const fieldName = resourceNameToString(ctx.input.target);
+    const op = ctx.input.operation as { target: DataType; to: DataType };
+    const fromType = op.target;
+    const toType = op.to;
+
     for (const card of this.affectedCards(ctx, fieldName)) {
       const metadata = card.metadata!;
       try {

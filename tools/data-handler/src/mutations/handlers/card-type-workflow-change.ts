@@ -65,7 +65,21 @@ export class CardTypeWorkflowChangeHandler implements Handler {
       ctx.input.operation as Operation<unknown>,
     );
 
-    // Re-map each affected card's workflowState.
+    await this.applyCascade(ctx);
+  }
+
+  // Cascade: re-map each affected card's workflowState per the operation's
+  // state mapping. Without a mapping no cards are touched.
+  async applyCascade(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'edit') {
+      throw new Error(
+        'CardTypeWorkflowChangeHandler called with non-edit input',
+      );
+    }
+    const cardTypeName = resourceNameToString(ctx.input.target);
+    const changeOp = ctx.input.operation as ChangeOperation<string>;
+    const stateMapping = changeOp.mappingTable?.stateMapping || {};
+
     if (Object.keys(stateMapping).length > 0) {
       await this.applyStateMapping(ctx, cardTypeName, stateMapping);
     }
