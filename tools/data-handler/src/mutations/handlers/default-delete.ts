@@ -41,4 +41,8 @@ export class DefaultDeleteHandler implements Handler {
     }
     await resource.delete();
   }
+
+  // No cascade: these families have no dependent local state; delete()
+  // already refuses while the resource is still in use.
+  async applyCascade(): Promise<void> {}
 }

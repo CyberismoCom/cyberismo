@@ -40,4 +40,8 @@ export class WorkflowDeleteHandler implements Handler {
     }
     await resource.delete();
   }
+
+  // No cascade: a workflow can only be deleted once unused, so there is no
+  // dependent local state to rewrite.
+  async applyCascade(): Promise<void> {}
 }
