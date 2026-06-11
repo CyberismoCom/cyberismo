@@ -141,7 +141,7 @@ export class Import {
       () => this.project,
     );
     if (validationErrors.trim().length > 0) {
-      throw new ModuleValidationFailedError(validationErrors);
+      throw new ModuleValidationFailedError(validationErrors, executable);
     }
   }
 
