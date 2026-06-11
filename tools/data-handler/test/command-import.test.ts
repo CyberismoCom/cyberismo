@@ -32,6 +32,8 @@ import {
   mockEnsureModuleListUpToDate,
 } from './helpers/test-utils.js';
 import { toVersionRange } from '../src/modules/types.js';
+import { ModuleValidationFailedError } from '../src/mutations/replay/replay.js';
+import { formatSealFileName } from '../src/mutations/replay/seal-files.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
@@ -869,4 +871,212 @@ describe('module update — spec behaviours', () => {
     const afterConfig = JSON.parse(readFileSync(installedConfigPath, 'utf-8'));
     expect(afterConfig.version).toBe('1.0.0');
   });
+
+  // --- updateModule replay end to end -------------------------------------
+  //
+  // File sources expose no remote versions (`listRemoteVersions` → []), and
+  // the resolver only pins `resolved.version` from an explicit override or
+  // from remote tags — never from the staged cardsConfig. So replay through
+  // `updateModule` for a file source requires the caller's exact-version
+  // argument, exactly like the downgrade-conflict test above. The installed
+  // version is seeded by hand; the seal ships in the source's migrations/.
+
+  function rewriteJson(
+    path: string,
+    mutate: (value: Record<string, unknown>) => void,
+  ): void {
+    const value = JSON.parse(readFileSync(path, 'utf-8'));
+    mutate(value);
+    writeFileSync(path, JSON.stringify(value, null, 4));
+  }
+
+  /**
+   * Create a fresh host project, import the decision-records fixture (the
+   * private per-test copy under `moduleTestDir`), add a LOCAL card type
+   * referencing the module's `decision` workflow, and seed the installed
+   * module at version 1.0.0 (the fixture's own config carries no version,
+   * and its migrations folder is empty).
+   */
+  async function seedReplayHost(name: string, prefix: string) {
+    const moduleSource = join(moduleTestDir, 'valid', 'decision-records');
+    const projectDir = join(moduleTestDir, name);
+    const handler = new Commands();
+    const create = await handler.command(
+      Cmd.create,
+      ['project', name, prefix],
+      {
+        projectPath: projectDir,
+      },
+    );
+    expect(create.statusCode).toBe(200);
+
+    const commands = new CommandManager(projectDir, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+    await commands.importCmd.importModule(moduleSource);
+
+    await commands.createCmd.createCardType(
+      `${prefix}/cardTypes/consumer`,
+      'decision/workflows/decision',
+    );
+
+    const installedConfigPath = join(
+      projectDir,
+      '.cards',
+      'modules',
+      'decision',
+      'cardsConfig.json',
+    );
+    rewriteJson(installedConfigPath, (config) => {
+      config.version = '1.0.0';
+    });
+
+    return { moduleSource, projectDir, commands, installedConfigPath };
+  }
+
+  /**
+   * Turn the SOURCE fixture into its 2.0.0 release: bump the config version
+   * and write one seal covering (0.0.0, 2.0.0] with the given released-format
+   * log entries. Callers apply the matching resource changes themselves so
+   * the source tree stays self-consistent (upstream already migrated).
+   */
+  function sealSourceRelease(
+    moduleSource: string,
+    entries: Record<string, unknown>[],
+  ): void {
+    const sourceLocal = join(moduleSource, '.cards', 'local');
+    rewriteJson(join(sourceLocal, 'cardsConfig.json'), (config) => {
+      config.version = '2.0.0';
+    });
+    const migrationsDir = join(sourceLocal, 'migrations');
+    mkdirSync(migrationsDir, { recursive: true });
+    writeFileSync(
+      join(migrationsDir, formatSealFileName('0.0.0', '2.0.0')),
+      entries
+        .map((entry) =>
+          JSON.stringify({ timestamp: '2026-01-01T00:00:00.000Z', ...entry }),
+        )
+        .join('\n') + '\n',
+    );
+  }
+
+  it('updateModule replays a sealed workflow rename into the consumer (happy path)', async () => {
+    const { moduleSource, projectDir, commands, installedConfigPath } =
+      await seedReplayHost('replay-happy-proj', 'rhap');
+
+    // Upstream 2.0.0: workflow renamed decision -> resolution. The source
+    // tree carries the rename already applied (file moved, internal card
+    // type reference updated) plus the seal that records it.
+    const sourceLocal = join(moduleSource, '.cards', 'local');
+    const workflow = JSON.parse(
+      readFileSync(join(sourceLocal, 'workflows', 'decision.json'), 'utf-8'),
+    );
+    workflow.name = 'decision/workflows/resolution';
+    writeFileSync(
+      join(sourceLocal, 'workflows', 'resolution.json'),
+      JSON.stringify(workflow, null, 4),
+    );
+    rmSync(join(sourceLocal, 'workflows', 'decision.json'));
+    rewriteJson(join(sourceLocal, 'cardTypes', 'decision.json'), (cardType) => {
+      cardType.workflow = 'decision/workflows/resolution';
+    });
+    sealSourceRelease(moduleSource, [
+      {
+        operation: 'resource_rename',
+        target: 'decision/workflows/decision',
+        parameters: {
+          type: 'workflows',
+          operation: {
+            name: 'change',
+            target: 'decision/workflows/decision',
+            to: 'decision/workflows/resolution',
+          },
+        },
+      },
+    ]);
+
+    // plan -> applyModules -> replay -> final validation; must not throw.
+    await commands.importCmd.updateModule('decision', undefined, '2.0.0');
+
+    // Module files landed: new version, renamed workflow file.
+    const afterConfig = JSON.parse(readFileSync(installedConfigPath, 'utf-8'));
+    expect(afterConfig.version).toBe('2.0.0');
+    const installedWorkflows = join(
+      projectDir,
+      '.cards',
+      'modules',
+      'decision',
+      'workflows',
+    );
+    expect(existsSync(join(installedWorkflows, 'resolution.json'))).toBe(true);
+    expect(existsSync(join(installedWorkflows, 'decision.json'))).toBe(false);
+
+    // The replay cascade rewrote the LOCAL consumer's reference on disk.
+    const consumer = JSON.parse(
+      readFileSync(
+        join(projectDir, '.cards', 'local', 'cardTypes', 'consumer.json'),
+        'utf-8',
+      ),
+    );
+    expect(consumer.workflow).toBe('decision/workflows/resolution');
+  }, 30000);
+
+  it('updateModule surfaces ModuleValidationFailedError when a replayed delete breaks a local reference', async () => {
+    const { moduleSource, projectDir, commands, installedConfigPath } =
+      await seedReplayHost('replay-invalid-proj', 'rinv');
+
+    // A project card of the consumer card type, so the dangling workflow
+    // reference surfaces in card-level validation after the update.
+    await commands.createCmd.createTemplate('rinv/templates/seed', '');
+    await commands.createCmd.addCards(
+      'rinv/cardTypes/consumer',
+      'rinv/templates/seed',
+    );
+    await commands.createCmd.createCard('rinv/templates/seed');
+
+    // Upstream 2.0.0 deletes the workflow (its own card type now uses the
+    // remaining simplepage workflow, keeping the module self-consistent).
+    // The workflow-delete cascade is a no-op by design, so the LOCAL
+    // consumer's reference cannot be repaired and validation must fail.
+    const sourceLocal = join(moduleSource, '.cards', 'local');
+    rmSync(join(sourceLocal, 'workflows', 'decision.json'));
+    rewriteJson(join(sourceLocal, 'cardTypes', 'decision.json'), (cardType) => {
+      cardType.workflow = 'decision/workflows/simplepage';
+    });
+    sealSourceRelease(moduleSource, [
+      {
+        operation: 'resource_delete',
+        target: 'decision/workflows/decision',
+        parameters: { type: 'workflows' },
+      },
+    ]);
+
+    const error = await commands.importCmd
+      .updateModule('decision', undefined, '2.0.0')
+      .catch((e) => e);
+
+    expect(error).toBeInstanceOf(ModuleValidationFailedError);
+    expect(error.steps).toEqual([
+      { modulePrefix: 'decision', fromVersion: '1.0.0', toVersion: '2.0.0' },
+    ]);
+    expect(error.message).toContain('decision/workflows/decision');
+
+    // Best-effort semantics: the module files DID update before validation
+    // failed — new version on disk, deleted workflow gone.
+    const afterConfig = JSON.parse(readFileSync(installedConfigPath, 'utf-8'));
+    expect(afterConfig.version).toBe('2.0.0');
+    expect(
+      existsSync(
+        join(
+          projectDir,
+          '.cards',
+          'modules',
+          'decision',
+          'workflows',
+          'decision.json',
+        ),
+      ),
+    ).toBe(false);
+  }, 30000);
 });
