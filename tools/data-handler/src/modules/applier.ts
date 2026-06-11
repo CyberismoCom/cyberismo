@@ -48,12 +48,17 @@ interface StagedModule {
  * Every `stagedPath` is rooted in `options.tempDir` (the source layer
  * is responsible for staging there). The applier is therefore source-
  * agnostic: it owns the staging tree and may delete from it freely.
+ *
+ * @returns names of the modules that actually landed on disk. Per-module
+ *   apply failures are logged and skipped, so callers that act on the
+ *   installed modules afterwards (e.g. migration replays) must restrict
+ *   themselves to this set.
  */
 export async function applyModules(
   project: Project,
   resolved: ResolvedModule[],
   options: ApplyOptions,
-): Promise<void> {
+): Promise<string[]> {
   const selfPrefix = project.projectPrefix;
 
   // Skip transitive entries whose prefix matches the host project;
@@ -126,6 +131,8 @@ export async function applyModules(
   );
 
   await project.refreshAfterModuleChange();
+
+  return applied.map((stage) => stage.name);
 }
 
 function toStagedModule(entry: ResolvedModule): StagedModule {
