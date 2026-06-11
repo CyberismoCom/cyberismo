@@ -23,10 +23,8 @@ import type { ChangeOperation } from '../../resources/resource-object.js';
 /**
  * Renaming a workflow is a breaking change: dependent card types' workflow
  * reference and all cross-resource references (calculations, report handlebars
- * and card content) must be rewritten. The cascade used to live in
- * WorkflowResource.rename / onNameChange; it now lives here, mirroring
- * CardTypeRenameHandler / FieldTypeRenameHandler. The operation is marked
- * breaking so the engine records a log entry.
+ * and card content) must be rewritten. The operation is marked breaking so the
+ * engine records a log entry.
  */
 export class WorkflowRenameHandler implements Handler {
   readonly isBreaking = true;
@@ -52,11 +50,10 @@ export class WorkflowRenameHandler implements Handler {
     // identifier); it no longer cascades.
     await resource.rename(ctx.input.newIdentifier);
 
-    // Cascade the rename across the project. These rewrites previously ran in
-    // WorkflowResource.onNameChange (after the resource file was renamed), so
-    // they run after resource.rename() here too: the cascade scanners look for
-    // the old name in card content / calculations / handlebars and in card
-    // types' `workflow` reference, none of which the file rename touched.
+    // Cascade the rename across the project, after the resource file has been
+    // renamed: the cascade scanners look for the old name in card content /
+    // calculations / handlebars and in card types' `workflow` reference, none
+    // of which the file rename touched.
     await Promise.all([
       rewriteContentFileRefs(ctx.project, oldName, newName),
       rewriteCardContentRefs(ctx.project, oldName, newName),
@@ -65,8 +62,7 @@ export class WorkflowRenameHandler implements Handler {
   }
 
   // Rewrite the `workflow` reference on every card type that points at the
-  // renamed workflow. Mirrors WorkflowResource's former updateCardTypes
-  // cascade.
+  // renamed workflow.
   private async updateCardTypes(
     ctx: MutationContext,
     oldName: string,

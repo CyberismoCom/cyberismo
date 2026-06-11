@@ -49,8 +49,7 @@ export class CardTypeRenameHandler implements Handler {
       await ctx.project.updateCardMetadata(card, metadata);
     }
 
-    // 2. Rewrite the cascading references that used to live in
-    //    CardTypeResource.onNameChange: folder-resource content files
+    // 2. Rewrite the cascading references: folder-resource content files
     //    (calculations, report/graph templates), card content and the
     //    source/destination card-type lists of every link type that
     //    referenced this card type.
@@ -67,8 +66,7 @@ export class CardTypeRenameHandler implements Handler {
   }
 
   // Rewrite occurrences of the old card-type name in every local link type's
-  // sourceCardTypes / destinationCardTypes. Mirrors the resource's former
-  // updateLinkTypes cascade.
+  // sourceCardTypes / destinationCardTypes.
   private async updateLinkTypes(
     ctx: MutationContext,
     oldName: string,

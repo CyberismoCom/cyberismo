@@ -26,9 +26,8 @@ const SHORT_TEXT_MAX_LENGTH = 80;
 /**
  * Changing a field type's data type is a breaking change: every card carrying
  * the field has its value converted to the new type. FieldTypeResource.update
- * validates the conversion and persists the new dataType (it no longer
- * cascades). The handler then owns the per-card value conversion, mirroring the
- * resource's former dataTypeChanged. Marked breaking.
+ * validates the conversion and persists the new dataType; the handler then owns
+ * the per-card value conversion. Marked breaking.
  */
 export class FieldTypeDataTypeHandler implements Handler {
   readonly isBreaking = true;
@@ -82,8 +81,7 @@ export class FieldTypeDataTypeHandler implements Handler {
   }
 
   // Cards of card types that declare this field type: local project cards plus
-  // local (non-module) template cards. Mirrors the resource's former
-  // relevantCardTypes + dataTypeChanged scoping.
+  // local (non-module) template cards.
   private affectedCards(ctx: MutationContext, fieldName: string): Card[] {
     const relevant = new Set(
       ctx.project.resources
@@ -109,8 +107,7 @@ export class FieldTypeDataTypeHandler implements Handler {
   }
 
   // Converts a value from one data type to another. Returns null if the value
-  // cannot be converted; throws on an unsupported conversion. Mirrors the
-  // resource's former convertValue / doConvertValue.
+  // cannot be converted; throws on an unsupported conversion.
   private convertValue<T>(value: T, fromType: DataType, toType: DataType) {
     if (value === null) return null;
     if (value === undefined) return undefined;

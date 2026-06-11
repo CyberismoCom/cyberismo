@@ -25,10 +25,9 @@ import type { WorkflowState } from '../../interfaces/resource-interfaces.js';
  * or re-pointing them at the replacement) is intra-resource definition
  * consistency and stays in WorkflowResource.update. The cross-resource part —
  * migrating every card in the removed state to the replacement, when a
- * replacementValue is given — used to live in WorkflowResource.updateCardStates
- * and now lives here. The handler calls `resource.update()` (which removes the
- * state and rewrites transitions) and then performs the card migration. Marked
- * breaking so the engine records a log entry.
+ * replacementValue is given — lives here. The handler calls `resource.update()`
+ * (which removes the state and rewrites transitions) and then performs the card
+ * migration. Marked breaking so the engine records a log entry.
  */
 export class WorkflowRemoveStateHandler implements Handler {
   readonly isBreaking = true;
@@ -64,8 +63,7 @@ export class WorkflowRemoveStateHandler implements Handler {
 
     // Cascade: with a replacement, migrate every card in the removed state to
     // it. Without a replacement no cards are migrated (they keep their now-
-    // removed state value). Mirrors the resource's former updateCardStates
-    // cascade.
+    // removed state value).
     if (replacement) {
       for (const card of this.cardsInState(ctx, name, stateName)) {
         card.metadata!.workflowState = replacement.name;
@@ -75,9 +73,7 @@ export class WorkflowRemoveStateHandler implements Handler {
   }
 
   // Cards using this workflow (via their card type) that are currently in the
-  // given state: local project cards plus local template cards. Mirrors
-  // WorkflowResource's former collectCardsUsingWorkflow + updateCardStates
-  // scoping.
+  // given state: local project cards plus local template cards.
   private cardsInState(
     ctx: MutationContext,
     workflowName: string,

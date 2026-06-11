@@ -54,8 +54,7 @@ export class FieldTypeEnumRemoveHandler implements Handler {
     await resource.update(ctx.input.updateKey, ctx.input.operation);
 
     // Cascade: when a replacement value is given, rewrite every card that held
-    // the removed value to the replacement. Mirrors the resource's former
-    // handleEnumValueReplacements.
+    // the removed value to the replacement.
     const removeOp = ctx.input.operation as RemoveOperation<EnumDefinition>;
     const newValue = removeOp.replacementValue as EnumDefinition | undefined;
     if (!newValue) return;

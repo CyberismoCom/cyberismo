@@ -26,11 +26,10 @@ import type { WorkflowState } from '../../interfaces/resource-interfaces.js';
  *
  * Transition rewriting is intra-resource definition consistency and stays in
  * WorkflowResource.update. The cross-resource part — remapping the
- * `workflowState` of every card sitting in the renamed state — used to live in
- * WorkflowResource.updateCardStates and now lives here. The handler calls
- * `resource.update()` (which renames the state and rewrites transitions) and
- * then performs the card migration. Marked breaking so the engine records a
- * log entry.
+ * `workflowState` of every card sitting in the renamed state — lives here. The
+ * handler calls `resource.update()` (which renames the state and rewrites
+ * transitions) and then performs the card migration. Marked breaking so the
+ * engine records a log entry.
  *
  * A 'change' that only edits non-identity state properties (e.g. category) is
  * NOT matched here; it falls through to DefaultNoCascadeHandler, which runs the
@@ -77,7 +76,6 @@ export class WorkflowRenameStateHandler implements Handler {
     await resource.update(ctx.input.updateKey, ctx.input.operation);
 
     // Cascade: remap the workflowState of every card in the renamed state.
-    // Mirrors the resource's former updateCardStates cascade.
     for (const card of this.cardsInState(ctx, name, oldState)) {
       card.metadata!.workflowState = newState;
       await ctx.project.updateCardMetadata(card, card.metadata!);
@@ -85,9 +83,7 @@ export class WorkflowRenameStateHandler implements Handler {
   }
 
   // Cards using this workflow (via their card type) that are currently in the
-  // given state: local project cards plus local template cards. Mirrors
-  // WorkflowResource's former collectCardsUsingWorkflow + updateCardStates
-  // scoping.
+  // given state: local project cards plus local template cards.
   private cardsInState(
     ctx: MutationContext,
     workflowName: string,

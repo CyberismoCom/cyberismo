@@ -23,10 +23,8 @@ import type { ChangeOperation } from '../../resources/resource-object.js';
 /**
  * Renaming a field type is a breaking change: card-content references,
  * calculations, report handlebars and the customFields[].name entries on every
- * referencing card type are rewritten. The cascade used to live in
- * FieldTypeResource.rename / onNameChange; it now lives here, mirroring
- * CardTypeRenameHandler. The operation is marked breaking so the engine records
- * a log entry.
+ * referencing card type are rewritten. The operation is marked breaking so the
+ * engine records a log entry.
  */
 export class FieldTypeRenameHandler implements Handler {
   readonly isBreaking = true;
@@ -53,11 +51,10 @@ export class FieldTypeRenameHandler implements Handler {
     // the metadata file and the in-memory name; it no longer cascades.
     await resource.rename(ctx.input.newIdentifier);
 
-    // Cascade the rename across the project. These rewrites previously ran in
-    // FieldTypeResource.onNameChange (after the resource file was renamed), so
-    // they run after resource.rename() here too. updateCardTypes re-validates
-    // the field reference against the project, which is why renaming a field
-    // still referenced by a card type is rejected.
+    // Cascade the rename across the project, after the resource file has been
+    // renamed. updateCardTypes re-validates the field reference against the
+    // project, which is why renaming a field still referenced by a card type is
+    // rejected.
     await Promise.all([
       rewriteContentFileRefs(ctx.project, oldName, newName),
       rewriteCardContentRefs(ctx.project, oldName, newName),
@@ -66,7 +63,7 @@ export class FieldTypeRenameHandler implements Handler {
   }
 
   // Rewrite every card type's customFields entry that references the renamed
-  // field type. Mirrors FieldTypeResource's former updateCardTypes cascade.
+  // field type.
   private async updateCardTypes(
     ctx: MutationContext,
     oldName: string,
