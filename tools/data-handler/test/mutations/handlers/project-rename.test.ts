@@ -164,7 +164,8 @@ describe('ProjectRenameHandler', () => {
     );
     await writeFile(
       join(cardPath, 'index.adoc'),
-      'See mod_1 and mod/workflows/flow for details.\n',
+      'See mod_1 and mod/workflows/flow for details.\n' +
+        'Graphs: mod/graphModels/x and mod/graphViews/y.\n',
     );
     project = new Project(project.basePath);
     await project.populateCaches();
@@ -183,8 +184,11 @@ describe('ProjectRenameHandler', () => {
     const content = await readFile(join(cardPath, 'index.adoc'), 'utf-8');
     expect(content).toContain('newmod_1');
     expect(content).toContain('newmod/workflows/flow');
+    expect(content).toContain('newmod/graphModels/x');
+    expect(content).toContain('newmod/graphViews/y');
     expect(content).not.toMatch(/(?<!new)mod_1/);
     expect(content).not.toMatch(/(?<!new)mod\/workflows/);
+    expect(content).not.toMatch(/(?<!new)mod\/graph/);
 
     // The consumer project itself must not be renamed.
     const config = JSON.parse(
@@ -196,6 +200,31 @@ describe('ProjectRenameHandler', () => {
     await expect(
       access(join(project.paths.resourcesFolder, 'workflows', 'decision.json')),
     ).resolves.toBeUndefined();
+  });
+
+  it('replay without oldPrefix rejects and changes nothing', async () => {
+    const cardPath = join(project.paths.cardRootFolder, 'decision_5');
+    await writeFile(
+      join(cardPath, 'index.adoc'),
+      'See mod_1 and mod/workflows/flow for details.\n',
+    );
+    project = new Project(project.basePath);
+    await project.populateCaches();
+
+    const mutations = new ResourceMutations(project);
+    await expect(
+      mutations.apply(
+        { kind: 'project_rename', newPrefix: 'newmod' },
+        { kind: 'replay', modulePrefix: 'newmod' },
+      ),
+    ).rejects.toThrow(/requires oldPrefix/);
+
+    const content = await readFile(join(cardPath, 'index.adoc'), 'utf-8');
+    expect(content).toBe('See mod_1 and mod/workflows/flow for details.\n');
+    const config = JSON.parse(
+      await readFile(project.paths.configurationFile, 'utf-8'),
+    );
+    expect(config.cardKeyPrefix).toBe('decision');
   });
 
   it('throws for an invalid prefix', async () => {

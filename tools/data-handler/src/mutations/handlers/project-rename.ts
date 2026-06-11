@@ -47,10 +47,8 @@ export class ProjectRenameHandler implements Handler {
         'ProjectRenameHandler called with non-project_rename input',
       );
     }
-    // Capture before setCardPrefix changes projectPrefix; applyCascade reads
-    // the old prefix from the input.
-    ctx.input.oldPrefix ??= ctx.project.projectPrefix;
-    const from = ctx.input.oldPrefix;
+    // Capture before setCardPrefix changes projectPrefix.
+    const from = ctx.project.projectPrefix;
     const to = ctx.input.newPrefix;
     if (!to) {
       throw new Error("Input validation error: empty 'to' is not allowed");
@@ -106,7 +104,7 @@ export class ProjectRenameHandler implements Handler {
       to,
     );
 
-    await this.applyCascade(ctx);
+    await this.cascade(ctx, from, to);
 
     ctx.project.resources.changed();
     ctx.project.cardsCache.clear();
@@ -117,8 +115,8 @@ export class ProjectRenameHandler implements Handler {
    * Rewrite local references from `<from>/…` resource names and `<from>_`
    * card keys to the new prefix. Local apply: card metadata was already
    * rewritten by renameCards, so the metadata pass no-ops. Foreign replay
-   * (module renamed its prefix): `from` comes from the recorded entry, and
-   * this pass IS the metadata/content rewrite.
+   * (module renamed its prefix): `oldPrefix` is REQUIRED and comes from the
+   * recorded log entry, and this pass IS the metadata/content rewrite.
    */
   async applyCascade(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'project_rename') {
@@ -126,9 +124,18 @@ export class ProjectRenameHandler implements Handler {
         'ProjectRenameHandler called with non-project_rename input',
       );
     }
-    const from = ctx.input.oldPrefix ?? ctx.project.projectPrefix;
-    const to = ctx.input.newPrefix;
+    const from = ctx.input.oldPrefix;
+    if (!from) {
+      throw new Error('project_rename cascade requires oldPrefix');
+    }
+    await this.cascade(ctx, from, ctx.input.newPrefix);
+  }
 
+  private async cascade(
+    ctx: MutationContext,
+    from: string,
+    to: string,
+  ): Promise<void> {
     const localCards = [
       ...ctx.project.cards(ctx.project.paths.cardRootFolder),
       ...ctx.project.resources
@@ -237,6 +244,8 @@ async function updateFiles(
     [`${from}/calculations/`, `${to}/calculations/`],
     [`${from}/cardTypes/`, `${to}/cardTypes/`],
     [`${from}/fieldTypes/`, `${to}/fieldTypes/`],
+    [`${from}/graphModels/`, `${to}/graphModels/`],
+    [`${from}/graphViews/`, `${to}/graphViews/`],
     [`${from}/linkTypes/`, `${to}/linkTypes/`],
     [`${from}/reports/`, `${to}/reports/`],
     [`${from}/templates/`, `${to}/templates/`],
