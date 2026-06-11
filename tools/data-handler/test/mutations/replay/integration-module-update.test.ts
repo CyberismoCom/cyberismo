@@ -190,14 +190,17 @@ function seedCalculationContent(refs: string[]): void {
   );
 }
 
-function writeLocalCardType(identifier: string, fieldRefs: string[]): void {
+function writeLocalCardType(
+  identifier: string,
+  customFields: Record<string, unknown>[],
+): void {
   writeFileSync(
     join(projectPath, '.cards', 'local', 'cardTypes', `${identifier}.json`),
     JSON.stringify({
       name: `decision/cardTypes/${identifier}`,
       displayName: identifier,
       workflow: 'decision/workflows/decision',
-      customFields: fieldRefs.map((name) => ({ name })),
+      customFields,
       alwaysVisibleFields: [],
       optionallyVisibleFields: [],
     }),
@@ -257,10 +260,9 @@ describe('module replay end to end', () => {
       ],
       fieldTypes: ['priority'],
     });
-    // A null value: rewriting the card's content regenerates its clingo
-    // facts, and fact generation resolves the field type behind every
-    // NON-null custom metadata key — which would fail for a key whose
-    // field type was renamed away (pinned separately below).
+    // A null value under the old key; the non-null case (which additionally
+    // exercises clingo fact regeneration resolving the new field type) is
+    // covered separately below.
     seedCardMetadataKey('mod/fieldTypes/severity', null);
     seedCardContent(['mod/fieldTypes/severity']);
     seedCalculationContent(['mod/fieldTypes/severity']);
@@ -286,15 +288,12 @@ describe('module replay end to end', () => {
     expect(calculation).toContain('mod/fieldTypes/priority');
     expect(calculation).not.toContain('mod/fieldTypes/severity');
 
-    // FieldTypeRenameHandler's cascade rewrites content-file refs, card
-    // content and local card-type customFields — it does NOT rewrite card
-    // metadata keys (only the project_rename cascade touches those), so the
-    // stale key survives the replay.
+    // The cascade renames the card's metadata key, preserving the value.
     const metadata = JSON.parse(
       readFileSync(join(cardDir, 'index.json'), 'utf8'),
     );
-    expect(metadata).toHaveProperty('mod/fieldTypes/severity');
-    expect(metadata).not.toHaveProperty('mod/fieldTypes/priority');
+    expect(metadata).not.toHaveProperty('mod/fieldTypes/severity');
+    expect(metadata).toHaveProperty('mod/fieldTypes/priority', null);
 
     // Replayed entries are never recorded in the consumer's own log.
     expect(existsSync(consumerMigrationLogDir)).toBe(false);
@@ -304,16 +303,7 @@ describe('module replay end to end', () => {
     expect(snapshotTree(installed.path)).toEqual(moduleTreeBefore);
   });
 
-  // KNOWN GAP: the rename cascade cannot rewrite a LOCAL card type's
-  // customFields reference to a module field type. updateCardTypes goes
-  // through CardTypeResource.update, whose validateFieldType requires the
-  // OLD name to still exist — but after the module update the old field
-  // type's file is gone, so the replay fails. (Even with the old file
-  // present, ArrayHandler.handleChange would replace the `{name}` object
-  // with a bare string, which the card-type schema rejects.) When the
-  // cascade learns to rewrite customFields, flip this test to assert the
-  // card type ends up referencing 'mod/fieldTypes/priority'.
-  it('a local card type referencing the renamed field type currently fails the replay', async () => {
+  it('rewrites a local card type referencing the renamed field type', async () => {
     const installed = installModule({
       prefix: 'mod',
       location: 'file:/modules/mod',
@@ -333,18 +323,20 @@ describe('module replay end to end', () => {
       ],
       fieldTypes: ['priority'],
     });
-    writeLocalCardType('modref', ['mod/fieldTypes/severity']);
+    writeLocalCardType('modref', [
+      {
+        name: 'mod/fieldTypes/severity',
+        displayName: 'Severity',
+        isCalculated: true,
+      },
+    ]);
 
     const project = await loadProject();
     const steps = await planModuleReplays([resolved], [installed]);
-    const error = await executeModuleReplays(project, steps).catch((e) => e);
+    await executeModuleReplays(project, steps);
 
-    expect(error).toBeInstanceOf(ModuleReplayFailedError);
-    expect(error.modulePrefix).toBe('mod');
-    expect(error.sealFileName).toBe(formatSealFileName('0.0.0', '2.0.0'));
-    expect(error.sequence).toBe(1);
-    expect(error.message).toContain('does not exist in the project');
-
+    // The customFields entry keeps its shape — only the name is rewritten,
+    // sibling properties survive.
     const cardType = JSON.parse(
       readFileSync(
         join(projectPath, '.cards', 'local', 'cardTypes', 'modref.json'),
@@ -352,16 +344,19 @@ describe('module replay end to end', () => {
       ),
     );
     expect(cardType.customFields).toEqual([
-      { name: 'mod/fieldTypes/severity' },
+      {
+        name: 'mod/fieldTypes/priority',
+        displayName: 'Severity',
+        isCalculated: true,
+      },
     ]);
   });
 
-  // KNOWN GAP: the cascade does not rewrite card metadata keys, and a stale
-  // key is not merely cosmetic. Rewriting the card's content (the adoc
-  // mentions the old name) regenerates the card's clingo facts, and fact
-  // generation resolves the field type behind every non-null custom metadata
-  // key — the renamed-away field type no longer exists, so the replay fails.
-  it('a card whose metadata carries a value for the renamed field type currently fails the replay', async () => {
+  // The non-null value matters: rewriting the card's content regenerates its
+  // clingo facts, and fact generation resolves the field type behind every
+  // non-null custom metadata key — so the cascade must have renamed the key
+  // before the content rewrite for the replay to succeed.
+  it('renames a card metadata key with a non-null value for the renamed field type', async () => {
     const installed = installModule({
       prefix: 'mod',
       location: 'file:/modules/mod',
@@ -386,15 +381,19 @@ describe('module replay end to end', () => {
 
     const project = await loadProject();
     const steps = await planModuleReplays([resolved], [installed]);
-    const error = await executeModuleReplays(project, steps).catch((e) => e);
+    await executeModuleReplays(project, steps);
 
-    expect(error).toBeInstanceOf(ModuleReplayFailedError);
-    expect(error.modulePrefix).toBe('mod');
-    expect(error.sealFileName).toBe(formatSealFileName('0.0.0', '2.0.0'));
-    expect(error.sequence).toBe(1);
-    expect(error.message).toContain(
-      "FieldType 'mod/fieldTypes/severity' does not exist",
+    const metadata = JSON.parse(
+      readFileSync(join(cardDir, 'index.json'), 'utf8'),
     );
+    expect(metadata).not.toHaveProperty('mod/fieldTypes/severity');
+    expect(metadata).toHaveProperty('mod/fieldTypes/priority', 'high');
+
+    // The content rewrite — and the clingo fact regeneration it triggers —
+    // completed against the new field type name.
+    const adoc = readFileSync(join(cardDir, 'index.adoc'), 'utf8');
+    expect(adoc).toContain('mod/fieldTypes/priority');
+    expect(adoc).not.toContain('mod/fieldTypes/severity');
   });
 
   it('a non-linear installed chain is refused and the project is untouched', async () => {
