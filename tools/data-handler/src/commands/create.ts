@@ -720,9 +720,14 @@ export class Create {
       }
       throw error;
     } finally {
-      // Clean up temp directory (contains leftovers on failure, empty wrapper on success)
+      // Clean up on failure. On success rename() has already moved tempClonePath
+      // so rm with force:true is a no-op. Both paths are handled uniformly here.
       if (tempDir) {
         await rm(tempDir, { recursive: true, force: true }).catch(() => {});
+      } else if (tempClonePath) {
+        await rm(tempClonePath, { recursive: true, force: true }).catch(
+          () => {},
+        );
       }
     }
 

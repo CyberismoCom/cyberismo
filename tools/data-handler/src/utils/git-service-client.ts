@@ -26,8 +26,6 @@ const PROJECT_ROOT =
   (process.env.GIT_SERVICE_PROJECT_ROOT ?? '/project')
     .trim()
     .replace(/\/+$/, '') || '/project';
-/** Subdirectory under PROJECT_ROOT where git-service writes clones. */
-
 export function isGitServiceEnabled(): boolean {
   return GIT_SERVICE_URL.length > 0;
 }

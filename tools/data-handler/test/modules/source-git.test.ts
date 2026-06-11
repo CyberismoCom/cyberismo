@@ -202,10 +202,11 @@ describe('modules/source-git', () => {
     it('uses git-service clone endpoint when enabled', async () => {
       process.env.GIT_SERVICE_URL = 'http://git-service:8080';
       const cloneUuid = '550e8400-e29b-41d4-a716-446655440000';
+      const clonePath = `.git-service-clones/${cloneUuid}`;
       const fetchMock = vi.fn().mockResolvedValue(
         new Response(
           JSON.stringify({
-            path: cloneUuid,
+            path: clonePath,
           }),
           {
             status: 200,

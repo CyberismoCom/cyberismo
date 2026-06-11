@@ -41,12 +41,14 @@ describe('git-service-client', () => {
     expect(client.isGitServiceEnabled()).toBe(true);
   });
 
-  it('resolveGitServiceClonePath converts UUID to absolute path', async () => {
+  it('resolveGitServiceClonePath converts service path to absolute path', async () => {
     process.env.GIT_SERVICE_URL = 'http://git-service:8080';
     const client = await loadClient();
 
     expect(
-      client.resolveGitServiceClonePath('550e8400-e29b-41d4-a716-446655440000'),
+      client.resolveGitServiceClonePath(
+        '.git-service-clones/550e8400-e29b-41d4-a716-446655440000',
+      ),
     ).toBe('/project/.git-service-clones/550e8400-e29b-41d4-a716-446655440000');
   });
 
@@ -56,7 +58,9 @@ describe('git-service-client', () => {
     const client = await loadClient();
 
     expect(
-      client.resolveGitServiceClonePath('550e8400-e29b-41d4-a716-446655440000'),
+      client.resolveGitServiceClonePath(
+        '.git-service-clones/550e8400-e29b-41d4-a716-446655440000',
+      ),
     ).toBe(
       '/mnt/shared/.git-service-clones/550e8400-e29b-41d4-a716-446655440000',
     );
