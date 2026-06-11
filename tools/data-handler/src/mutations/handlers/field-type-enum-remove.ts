@@ -20,6 +20,15 @@ import type { Card } from '../../interfaces/project-interfaces.js';
 import type { RemoveOperation } from '../../resources/resource-object.js';
 import type { EnumDefinition } from '../../interfaces/resource-interfaces.js';
 
+// An enum value from either recorded shape: a full EnumDefinition object or
+// a bare string.
+function enumValueOf(value: unknown): string | undefined {
+  if (value === null || value === undefined) return undefined;
+  return typeof value === 'object'
+    ? (value as { enumValue?: string }).enumValue
+    : String(value);
+}
+
 /**
  * Removing an enum value is a breaking change. FieldTypeResource.update removes
  * the value from the enum definition and persists it (it no longer cascades).
@@ -49,21 +58,20 @@ export class FieldTypeEnumRemoveHandler implements Handler<EditInput> {
   async applyCascade(ctx: MutationContext<EditInput>): Promise<void> {
     const fieldName = resourceNameToString(ctx.input.target);
     const removeOp = ctx.input.operation as RemoveOperation<EnumDefinition>;
-    const newValue = removeOp.replacementValue as EnumDefinition | undefined;
-    if (!newValue) return;
+    // Recorded entries (and authoring surfaces) may carry either a full
+    // EnumDefinition object or a bare string for target/replacementValue;
+    // tolerate both shapes.
+    const replacement = enumValueOf(removeOp.replacementValue);
+    if (!replacement) return;
 
-    const removedValue = (removeOp.target as EnumDefinition).enumValue;
+    const removedValue = enumValueOf(removeOp.target);
     const cardsToUpdate = this.affectedCards(ctx, fieldName).filter(
       (card) => card.metadata?.[fieldName] === removedValue,
     );
 
     await Promise.all(
       cardsToUpdate.map((card) =>
-        ctx.project.updateCardMetadataKey(
-          card.key,
-          fieldName,
-          newValue.enumValue,
-        ),
+        ctx.project.updateCardMetadataKey(card.key, fieldName, replacement),
       ),
     );
   }

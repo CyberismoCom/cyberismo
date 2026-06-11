@@ -57,6 +57,33 @@ describe('FieldTypeDataTypeHandler', () => {
     }
   });
 
+  it('applyCascade without a recorded source type leaves unconvertible values untouched', async () => {
+    // Scalar change operations may be recorded without 'target' (the old
+    // data type). When the conversion cannot be determined, card values must
+    // be left as-is rather than cleared.
+    const before = project
+      .cards(undefined)
+      .filter((c) => c.metadata?.[fieldName()] != null)
+      .map((c) => [c.key, c.metadata![fieldName()]] as const);
+    expect(before.length).toBeGreaterThan(0);
+
+    const handler = new FieldTypeDataTypeHandler();
+    await handler.applyCascade({
+      project,
+      input: {
+        kind: 'edit' as const,
+        target: resourceName(fieldName()),
+        updateKey: { key: 'dataType' as const },
+        operation: { name: 'change' as const, to: 'number' },
+      },
+    });
+
+    for (const [key, value] of before) {
+      const card = project.cards(undefined).find((c) => c.key === key);
+      expect(card?.metadata?.[fieldName()]).toBe(value);
+    }
+  });
+
   it('rejects a conversion that is not allowed', async () => {
     const mutations = new ResourceMutations(project);
     await expect(

@@ -62,8 +62,10 @@ export class FieldTypeDataTypeHandler implements Handler<EditInput> {
           fromType,
           toType,
         );
-        // Either value was already null, or couldn't convert.
-        if (converted === null) continue;
+        // Value was already null/undefined, or the conversion could not be
+        // determined (e.g. a recorded entry without the old data type);
+        // leave the card untouched rather than writing undefined.
+        if (converted === null || converted === undefined) continue;
         metadata[fieldName] = converted as MetadataContent;
         await ctx.project.updateCardMetadata(card, metadata);
       } catch (error) {

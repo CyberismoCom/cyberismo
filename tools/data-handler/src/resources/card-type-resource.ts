@@ -217,6 +217,35 @@ export class CardTypeResource extends FileResource<CardType> {
   }
 
   /**
+   * Rewrites this card type's references to a renamed field type: the
+   * matching customFields[].name entries (other entry properties such as
+   * isCalculated are preserved) and the visible-fields arrays. Deliberately
+   * non-validating: the field-type rename cascade uses this during
+   * module-update replay, when the old field type is already gone from the
+   * module tree so update()'s validateFieldType could never pass.
+   * @param from Old field type name.
+   * @param to New field type name.
+   */
+  public async renameFieldTypeReferences(from: string, to: string) {
+    const content = this.content;
+    let changed = false;
+    const renameRef = (item: string) => {
+      if (item !== from) return item;
+      changed = true;
+      return to;
+    };
+    for (const field of content.customFields) {
+      field.name = renameRef(field.name);
+    }
+    content.alwaysVisibleFields = content.alwaysVisibleFields.map(renameRef);
+    content.optionallyVisibleFields =
+      content.optionallyVisibleFields.map(renameRef);
+    if (changed) {
+      await this.write();
+    }
+  }
+
+  /**
    * Updates card type resource.
    * @param updateKey Key to modify
    * @param op Operation to perform on 'key'
