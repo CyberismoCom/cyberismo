@@ -14,6 +14,7 @@
 
 import type { Handler, MutationContext } from '../handler.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
+import { isModuleCard } from '../../utils/card-utils.js';
 import type { ChangeOperation } from '../../resources/resource-object.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
 import type { WorkflowState } from '../../interfaces/resource-interfaces.js';
@@ -107,7 +108,7 @@ export class WorkflowRenameStateHandler implements Handler {
       .filter(matches);
     const templateCards = ctx.project
       .allTemplateCards()
-      .filter((card) => !card.path.includes('modules'))
+      .filter((card) => !isModuleCard(card))
       .filter(matches);
     return [...projectCards, ...templateCards];
   }

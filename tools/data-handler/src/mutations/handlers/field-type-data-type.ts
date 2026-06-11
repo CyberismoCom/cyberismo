@@ -15,6 +15,7 @@
 import type { Handler, MutationContext } from '../handler.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import { fromDate, fromNumber, fromString } from '../../utils/value-utils.js';
+import { isModuleCard } from '../../utils/card-utils.js';
 import type {
   Card,
   MetadataContent,
@@ -101,7 +102,7 @@ export class FieldTypeDataTypeHandler implements Handler {
       .filter(affected);
     const templateCards = ctx.project
       .allTemplateCards()
-      .filter((card) => !card.path.includes('modules'))
+      .filter((card) => !isModuleCard(card))
       .filter(affected);
     return [...projectCards, ...templateCards];
   }

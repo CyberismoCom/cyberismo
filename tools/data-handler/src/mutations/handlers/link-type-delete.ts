@@ -14,6 +14,7 @@
 
 import type { Handler, MutationContext } from '../handler.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
+import { isModuleCard } from '../../utils/card-utils.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
 
 export class LinkTypeDeleteHandler implements Handler {
@@ -28,6 +29,13 @@ export class LinkTypeDeleteHandler implements Handler {
       throw new Error('LinkTypeDeleteHandler: non-delete input');
     }
     const name = resourceNameToString(ctx.input.target);
+
+    // Interactive deletion of a module-owned link type is not allowed.
+    if (ctx.input.target.prefix !== ctx.project.projectPrefix) {
+      throw new Error(
+        `Cannot delete resource ${name}: It is a module resource`,
+      );
+    }
 
     // Strip the link usage before deleting the resource so that delete()
     // (which refuses while usage() is non-empty) can succeed.
@@ -58,13 +66,11 @@ export class LinkTypeDeleteHandler implements Handler {
   }
 
   // Project cards plus local template cards; module template cards are
-  // read-only from the consumer side and cannot reference a local link type.
+  // read-only from the consumer side and must never be rewritten here.
   private affectedCards(ctx: MutationContext, name: string): Card[] {
     return [
       ...ctx.project.cards(undefined),
-      ...ctx.project
-        .allTemplateCards()
-        .filter((c) => !c.path.includes('modules')),
+      ...ctx.project.allTemplateCards().filter((c) => !isModuleCard(c)),
     ].filter((c) => c.metadata?.links?.some((l) => l.linkType === name));
   }
 }
