@@ -40,8 +40,7 @@ export class DefaultNoCascadeHandler implements Handler {
     await resource.update(updateKey, operation);
   }
 
-  // No applyCascade yet: replay-origin.test.ts pins that the replay path
-  // rejects handlers without applyCascade during the Phase 1 transition and
-  // uses this handler as the probe. Task 1.7 adds the (empty) applyCascade
-  // and flips that test.
+  // No cascade: edits matched by this catch-all have no dependent local
+  // state to rewrite.
+  async applyCascade(): Promise<void> {}
 }
