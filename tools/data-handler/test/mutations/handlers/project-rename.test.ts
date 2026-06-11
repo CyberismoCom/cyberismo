@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdir, rm, readFile } from 'node:fs/promises';
+import { access, mkdir, rm, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
@@ -143,6 +143,59 @@ describe('ProjectRenameHandler', () => {
     await expect(
       mutations.apply({ kind: 'project_rename', newPrefix: current }),
     ).rejects.toThrow(`Project prefix is already '${current}'`);
+  });
+
+  it('foreign module prefix rename cascades into local references only', async () => {
+    const cardPath = join(project.paths.cardRootFolder, 'decision_5');
+    await writeFile(
+      join(cardPath, 'index.json'),
+      JSON.stringify(
+        {
+          cardType: 'mod/cardTypes/page',
+          title: 'Module-typed card',
+          workflowState: 'Created',
+          rank: '0|a',
+          lastUpdated: '2026-03-17T11:11:39.624Z',
+          links: [],
+        },
+        null,
+        4,
+      ),
+    );
+    await writeFile(
+      join(cardPath, 'index.adoc'),
+      'See mod_1 and mod/workflows/flow for details.\n',
+    );
+    project = new Project(project.basePath);
+    await project.populateCaches();
+
+    const mutations = new ResourceMutations(project);
+    await mutations.apply(
+      { kind: 'project_rename', newPrefix: 'newmod', oldPrefix: 'mod' },
+      { kind: 'replay', modulePrefix: 'newmod' },
+    );
+
+    const metadata = JSON.parse(
+      await readFile(join(cardPath, 'index.json'), 'utf-8'),
+    );
+    expect(metadata.cardType).toBe('newmod/cardTypes/page');
+
+    const content = await readFile(join(cardPath, 'index.adoc'), 'utf-8');
+    expect(content).toContain('newmod_1');
+    expect(content).toContain('newmod/workflows/flow');
+    expect(content).not.toMatch(/(?<!new)mod_1/);
+    expect(content).not.toMatch(/(?<!new)mod\/workflows/);
+
+    // The consumer project itself must not be renamed.
+    const config = JSON.parse(
+      await readFile(project.paths.configurationFile, 'utf-8'),
+    );
+    expect(config.cardKeyPrefix).toBe('decision');
+
+    // Local resource files keep their names.
+    await expect(
+      access(join(project.paths.resourcesFolder, 'workflows', 'decision.json')),
+    ).resolves.toBeUndefined();
   });
 
   it('throws for an invalid prefix', async () => {

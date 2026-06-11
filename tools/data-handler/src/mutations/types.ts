@@ -33,4 +33,12 @@ export type MutationInput =
     }
   | { kind: 'delete'; target: ResourceName }
   | { kind: 'rename'; target: ResourceName; newIdentifier: string }
-  | { kind: 'project_rename'; newPrefix: string };
+  | {
+      kind: 'project_rename';
+      newPrefix: string;
+      /**
+       * Set only when replaying a module's log entry: the module's previous
+       * prefix. Authoring leaves it undefined (derived from the project).
+       */
+      oldPrefix?: string;
+    };

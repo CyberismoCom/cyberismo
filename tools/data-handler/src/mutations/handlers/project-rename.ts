@@ -47,7 +47,10 @@ export class ProjectRenameHandler implements Handler {
         'ProjectRenameHandler called with non-project_rename input',
       );
     }
-    const from = ctx.project.projectPrefix;
+    // Capture before setCardPrefix changes projectPrefix; applyCascade reads
+    // the old prefix from the input.
+    ctx.input.oldPrefix ??= ctx.project.projectPrefix;
+    const from = ctx.input.oldPrefix;
     const to = ctx.input.newPrefix;
     if (!to) {
       throw new Error("Input validation error: empty 'to' is not allowed");
@@ -103,12 +106,41 @@ export class ProjectRenameHandler implements Handler {
       to,
     );
 
-    await updateFiles(ctx.project.paths.cardRootFolder, from, to);
-    await updateFiles(ctx.project.paths.resourcesFolder, from, to);
+    await this.applyCascade(ctx);
 
     ctx.project.resources.changed();
     ctx.project.cardsCache.clear();
     await ctx.project.populateCaches();
+  }
+
+  /**
+   * Rewrite local references from `<from>/…` resource names and `<from>_`
+   * card keys to the new prefix. Local apply: card metadata was already
+   * rewritten by renameCards, so the metadata pass no-ops. Foreign replay
+   * (module renamed its prefix): `from` comes from the recorded entry, and
+   * this pass IS the metadata/content rewrite.
+   */
+  async applyCascade(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'project_rename') {
+      throw new Error(
+        'ProjectRenameHandler called with non-project_rename input',
+      );
+    }
+    const from = ctx.input.oldPrefix ?? ctx.project.projectPrefix;
+    const to = ctx.input.newPrefix;
+
+    const localCards = [
+      ...ctx.project.cards(ctx.project.paths.cardRootFolder),
+      ...ctx.project.resources
+        .templates(ResourcesFrom.localOnly)
+        .flatMap((t) => t.templateObject().cards()),
+    ];
+    for (const card of localCards) {
+      await updateCardMetadata(ctx, card, from, to);
+    }
+
+    await updateFiles(ctx.project.paths.cardRootFolder, from, to);
+    await updateFiles(ctx.project.paths.resourcesFolder, from, to);
   }
 }
 
