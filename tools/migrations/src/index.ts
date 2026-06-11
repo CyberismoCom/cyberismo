@@ -9,6 +9,7 @@ import type { Migration } from './migration-interfaces.js';
 import migration2 from './2/index.js';
 import migration3 from './3/index.js';
 import migration4 from './4/index.js';
+import migration5 from './5/index.js';
 
 // Re-export migration interfaces and utilities
 export type {
@@ -29,6 +30,7 @@ export const migrations: Record<number, Migration> = {
   2: migration2,
   3: migration3,
   4: migration4,
+  5: migration5,
 };
 
 /**
