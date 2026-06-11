@@ -75,6 +75,81 @@ export async function installedModules(
   return installations;
 }
 
+/**
+ * {@link installedModules}, with transitive installations enriched with a
+ * source location. A transitive installation's source is not persisted in
+ * the project's own configuration, but each installed module's
+ * `cardsConfig.json` declares its dependencies with locations — so the
+ * location is recovered from there. The project's own declarations win,
+ * then the first installed module (in installation order) that declares
+ * the dependency. An installation whose location cannot be found anywhere
+ * keeps its empty location.
+ */
+export async function installedModulesWithSources(
+  project: Project,
+): Promise<ModuleInstallation[]> {
+  const installations = await installedModules(project);
+  if (installations.every((i) => i.source.location !== '')) {
+    return installations;
+  }
+
+  const sourceByName = new Map<string, Source>();
+  for (const setting of project.configuration.modules) {
+    if (!sourceByName.has(setting.name)) {
+      sourceByName.set(setting.name, {
+        location: setting.location,
+        private: setting.private ?? false,
+      });
+    }
+  }
+  for (const installation of installations) {
+    for (const dep of await declaredDependencySources(project, installation)) {
+      if (!sourceByName.has(dep.name)) {
+        sourceByName.set(dep.name, dep.source);
+      }
+    }
+  }
+
+  return installations.map((installation) => {
+    if (installation.source.location !== '') {
+      return installation;
+    }
+    const source = sourceByName.get(installation.name);
+    return source ? { ...installation, source: { ...source } } : installation;
+  });
+}
+
+/** Dependency declarations (with locations) from one installation's own config. */
+async function declaredDependencySources(
+  project: Project,
+  installation: ModuleInstallation,
+): Promise<Array<{ name: string; source: Source }>> {
+  let config: InstallationConfig | undefined;
+  try {
+    config = await readJsonFile(
+      project.paths.moduleConfigurationFile(installation.name),
+    );
+  } catch {
+    return [];
+  }
+
+  const deps: Array<{ name: string; source: Source }> = [];
+  for (const dep of config?.modules ?? []) {
+    if (
+      typeof dep.name === 'string' &&
+      dep.name.length > 0 &&
+      typeof dep.location === 'string' &&
+      dep.location.length > 0
+    ) {
+      deps.push({
+        name: dep.name,
+        source: { location: dep.location, private: dep.private === true },
+      });
+    }
+  }
+  return deps;
+}
+
 function toDeclaration(
   project: Project,
   setting: ModuleSetting,
@@ -166,7 +241,7 @@ async function toInstallation(
  */
 interface InstallationConfig {
   version?: string;
-  modules?: Array<{ name?: string }>;
+  modules?: Array<{ name?: string; location?: string; private?: boolean }>;
 }
 
 function parseInstalledVersion(raw: unknown): Version | undefined {

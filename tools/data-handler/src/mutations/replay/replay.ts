@@ -96,6 +96,22 @@ export class ModuleReplayFailedError extends Error {
 }
 
 /**
+ * Thrown by the module-update transaction when the project fails
+ * validation after replays ran. The module update and its replays have
+ * already been applied to disk.
+ */
+export class ModuleValidationFailedError extends Error {
+  constructor(readonly validationErrors: string) {
+    super(
+      `The module update was applied, but the project failed validation afterwards:\n` +
+        `${validationErrors}\n` +
+        `Review the errors above, or use git to restore a clean state.`,
+    );
+    this.name = 'ModuleValidationFailedError';
+  }
+}
+
+/**
  * Plan the replay chains for a module update.
  *
  * Installed and resolved modules are correlated by source location, never
