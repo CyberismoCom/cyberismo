@@ -34,6 +34,13 @@ export class LinkTypeRenameHandler implements Handler {
     }
     const oldName = resourceNameToString(ctx.input.target);
 
+    // Interactive rename of a module-owned link type is not allowed.
+    if (ctx.input.target.prefix !== ctx.project.projectPrefix) {
+      throw new Error(
+        `Cannot rename resource ${oldName}: It is a module resource`,
+      );
+    }
+
     // The cascade runs BEFORE renaming the resource on disk. Order matters:
     // cascade scanners look for the old name, and the resource file (with
     // that name) must still exist when they run.

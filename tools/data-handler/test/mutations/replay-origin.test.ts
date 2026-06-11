@@ -34,7 +34,6 @@ describe('ResourceMutations replay origin', () => {
   });
 
   describe('with a replay-capable stub handler', () => {
-
     it('calls applyCascade only and never writes a log entry', async () => {
       const handler = {
         matches: (ctx: MutationContext) =>
