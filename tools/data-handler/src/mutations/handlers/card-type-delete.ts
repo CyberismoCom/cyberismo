@@ -38,6 +38,22 @@ export class CardTypeDeleteHandler implements Handler {
       );
     }
 
+    // The cascade clears all local usage first so that the resource's own
+    // delete (which refuses while usage() is non-empty) can succeed.
+    await this.applyCascade(ctx);
+
+    // Delete the card type resource itself. By now usage() is empty.
+    const resource = ctx.project.resources.byType(cardTypeName, 'cardTypes');
+    if (!resource) throw new Error(`CardType '${cardTypeName}' not found`);
+    await resource.delete();
+  }
+
+  async applyCascade(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'delete') {
+      throw new Error('CardTypeDeleteHandler: non-delete input');
+    }
+    const cardTypeName = resourceNameToString(ctx.input.target);
+
     // 1. Strip the card type from every local link type.
     const linkTypes = ctx.project.resources.linkTypes(ResourcesFrom.localOnly);
     for (const lt of linkTypes) {
@@ -61,11 +77,6 @@ export class CardTypeDeleteHandler implements Handler {
     //    per-card permission check applies to a structural cardType deletion.
     const cards = this.affectedCards(ctx, cardTypeName);
     await ctx.project.deleteCards(cards);
-
-    // 3. Delete the card type resource itself. By now usage() is empty.
-    const resource = ctx.project.resources.byType(cardTypeName, 'cardTypes');
-    if (!resource) throw new Error(`CardType '${cardTypeName}' not found`);
-    await resource.delete();
   }
 
   // Cards using this card type: local project cards plus local template cards

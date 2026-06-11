@@ -42,4 +42,8 @@ export class FieldTypeDeleteHandler implements Handler {
     }
     await resource.delete();
   }
+
+  // No cascade: a field type can only be deleted once unused, so there is no
+  // dependent local state to rewrite.
+  async applyCascade(): Promise<void> {}
 }
