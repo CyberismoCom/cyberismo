@@ -345,6 +345,38 @@ describe('project settings', () => {
     await expect(projectSettings.save()).rejects.toThrow('wrong configuration');
   });
 
+  it('upsertModule drops a same-location declaration under a different name', async () => {
+    const configPath = createTestConfig('test-config-upsert-rename.json', {
+      modules: [
+        {
+          name: 'oldname',
+          location: 'https://example.com/mod.git',
+          version: '^1.0.0',
+        },
+        { name: 'other', location: 'https://example.com/other.git' },
+      ],
+    });
+    const projectSettings = new ProjectConfiguration(configPath, false);
+
+    await projectSettings.upsertModule({
+      name: 'newname',
+      location: 'https://example.com/mod.git',
+      version: '^2.0.0',
+    });
+
+    expect(projectSettings.modules.map((m) => m.name).sort()).toEqual([
+      'newname',
+      'other',
+    ]);
+    const savedConfig = readJsonFileSync(configPath) as {
+      modules: ModuleSetting[];
+    };
+    expect(savedConfig.modules.map((m) => m.name).sort()).toEqual([
+      'newname',
+      'other',
+    ]);
+  });
+
   it('should persist all configuration changes', async () => {
     const configPath = createTestConfig('test-config-persist.json');
     const projectSettings = new ProjectConfiguration(configPath, false);
