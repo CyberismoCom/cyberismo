@@ -32,6 +32,25 @@ export class LinkTypeRenameHandler implements Handler {
       throw new Error('LinkTypeRenameHandler called with non-rename input');
     }
     const oldName = resourceNameToString(ctx.input.target);
+
+    // The cascade runs BEFORE renaming the resource on disk. Order matters:
+    // cascade scanners look for the old name, and the resource file (with
+    // that name) must still exist when they run.
+    await this.applyCascade(ctx);
+
+    // Rename the resource itself.
+    const resource = ctx.project.resources.byType(oldName, 'linkTypes');
+    if (!resource) {
+      throw new Error(`Link type '${oldName}' not found`);
+    }
+    await resource.rename(ctx.input.newIdentifier);
+  }
+
+  async applyCascade(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'rename') {
+      throw new Error('LinkTypeRenameHandler called with non-rename input');
+    }
+    const oldName = resourceNameToString(ctx.input.target);
     const newName = `${ctx.input.target.prefix}/linkTypes/${ctx.input.newIdentifier}`;
 
     // 1. Rewrite card metadata references.
@@ -44,24 +63,19 @@ export class LinkTypeRenameHandler implements Handler {
       await ctx.project.updateCardMetadata(card, metadata);
     }
 
-    // 2. Rewrite cascading references BEFORE renaming the resource on disk.
-    //    Order matters: cascade scanners look for the old name, and the
-    //    resource file (with that name) must still exist when they run.
+    // 2. Rewrite cascading references in content files and card content.
     await rewriteContentFileRefs(ctx.project, oldName, newName);
     await rewriteCardContentRefs(ctx.project, oldName, newName);
-
-    // 3. Rename the resource itself.
-    const resource = ctx.project.resources.byType(oldName, 'linkTypes');
-    if (!resource) {
-      throw new Error(`Link type '${oldName}' not found`);
-    }
-    await resource.rename(ctx.input.newIdentifier);
   }
 
+  // Project cards plus LOCAL template cards: module cards are immutable from
+  // the consumer side and cannot reference a local link type anyway.
   private affectedCards(ctx: MutationContext, oldName: string): Card[] {
     const all = [
       ...ctx.project.cards(undefined),
-      ...ctx.project.allTemplateCards(),
+      ...ctx.project
+        .allTemplateCards()
+        .filter((card) => !card.path.includes('modules')),
     ];
     return all.filter((c) =>
       c.metadata?.links?.some((l) => l.linkType === oldName),
