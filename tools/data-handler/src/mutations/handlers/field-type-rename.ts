@@ -14,6 +14,7 @@
 
 import type { Handler, MutationContext } from '../handler.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
+import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import {
   rewriteCardContentRefs,
   rewriteContentFileRefs,
@@ -40,7 +41,6 @@ export class FieldTypeRenameHandler implements Handler {
       throw new Error('FieldTypeRenameHandler called with non-rename input');
     }
     const oldName = resourceNameToString(ctx.input.target);
-    const newName = `${ctx.input.target.prefix}/fieldTypes/${ctx.input.newIdentifier}`;
 
     const resource = ctx.project.resources.byType(oldName, 'fieldTypes');
     if (!resource) {
@@ -51,10 +51,16 @@ export class FieldTypeRenameHandler implements Handler {
     // the metadata file and the in-memory name; it no longer cascades.
     await resource.rename(ctx.input.newIdentifier);
 
-    // Cascade the rename across the project, after the resource file has been
-    // renamed. updateCardTypes re-validates the field reference against the
-    // project, which is why renaming a field still referenced by a card type is
-    // rejected.
+    await this.applyCascade(ctx);
+  }
+
+  async applyCascade(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'rename') {
+      throw new Error('FieldTypeRenameHandler called with non-rename input');
+    }
+    const oldName = resourceNameToString(ctx.input.target);
+    const newName = `${ctx.input.target.prefix}/fieldTypes/${ctx.input.newIdentifier}`;
+
     await Promise.all([
       rewriteContentFileRefs(ctx.project, oldName, newName),
       rewriteCardContentRefs(ctx.project, oldName, newName),
@@ -62,14 +68,15 @@ export class FieldTypeRenameHandler implements Handler {
     ]);
   }
 
-  // Rewrite every card type's customFields entry that references the renamed
-  // field type.
+  // Rewrite every LOCAL card type's customFields entry that references the
+  // renamed field type. Module-owned card types are immutable from the
+  // consumer side; their references are the owning module's responsibility.
   private async updateCardTypes(
     ctx: MutationContext,
     oldName: string,
     newName: string,
   ): Promise<void> {
-    const cardTypes = ctx.project.resources.cardTypes();
+    const cardTypes = ctx.project.resources.cardTypes(ResourcesFrom.localOnly);
     const op = {
       name: 'change',
       target: oldName,

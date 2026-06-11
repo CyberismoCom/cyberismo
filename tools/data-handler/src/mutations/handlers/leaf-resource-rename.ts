@@ -58,21 +58,30 @@ export class LeafResourceRenameHandler implements Handler {
       throw new Error('LeafResourceRenameHandler called with non-rename input');
     }
     const oldName = resourceNameToString(ctx.input.target);
-    const newName = `${ctx.input.target.prefix}/${this.type}/${ctx.input.newIdentifier}`;
 
     const resource = ctx.project.resources.byType(oldName, this.type);
     if (!resource) {
       throw new Error(`${this.label} '${oldName}' not found`);
     }
 
-    // Rewrite cascading references BEFORE renaming the resource on disk.
-    // Order matters: cascade scanners look for the old name, and the resource
-    // folder (with that name) must still exist when they run.
-    await rewriteContentFileRefs(ctx.project, oldName, newName);
-    await rewriteCardContentRefs(ctx.project, oldName, newName);
+    // The cascade runs BEFORE renaming the resource on disk. Order matters:
+    // cascade scanners look for the old name, and the resource folder (with
+    // that name) must still exist when they run.
+    await this.applyCascade(ctx);
 
     // Rename the resource itself (renames its metadata file and, for folder
     // resources, the content folder).
     await resource.rename(ctx.input.newIdentifier);
+  }
+
+  async applyCascade(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'rename') {
+      throw new Error('LeafResourceRenameHandler called with non-rename input');
+    }
+    const oldName = resourceNameToString(ctx.input.target);
+    const newName = `${ctx.input.target.prefix}/${this.type}/${ctx.input.newIdentifier}`;
+
+    await rewriteContentFileRefs(ctx.project, oldName, newName);
+    await rewriteCardContentRefs(ctx.project, oldName, newName);
   }
 }
