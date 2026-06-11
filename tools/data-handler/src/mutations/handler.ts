@@ -15,6 +15,10 @@
 import type { Project } from '../containers/project.js';
 import type { MutationInput } from './types.js';
 
+export type MutationOrigin =
+  | { kind: 'local' }
+  | { kind: 'replay'; modulePrefix: string };
+
 export interface MutationContext {
   project: Project;
   input: MutationInput;
@@ -27,6 +31,15 @@ export interface Handler {
   /** Whether matching inputs are classified as breaking changes. */
   readonly isBreaking: boolean;
 
-  /** Apply the resource-definition change and the cascade. */
+  /** Apply the resource-definition change and the cascade (authoring path). */
   apply(ctx: MutationContext): Promise<void>;
+
+  /**
+   * Apply only the cascade: rewrites of LOCAL resources, cards and content
+   * that follow from this mutation. Called by apply() internally and alone
+   * by module-update replay. Must derive everything from ctx.input,
+   * tolerate zero matches, and never require the target resource to exist.
+   * Optional only during the Phase 1 transition; required from Task 1.7.
+   */
+  applyCascade?(ctx: MutationContext): Promise<void>;
 }
