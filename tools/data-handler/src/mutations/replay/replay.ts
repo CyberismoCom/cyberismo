@@ -23,6 +23,8 @@ import { checkLinearity, computeChain } from './chain.js';
 import { entryToMutationInput } from './convert.js';
 import { listSealFiles } from './seal-files.js';
 
+import { CONFIGURATION_OPERATIONS } from '../../utils/configuration-logger.js';
+
 import type { ConfigurationLogEntry } from '../../utils/configuration-logger.js';
 import type { ModuleInstallation } from '../../modules/types.js';
 import type { Project } from '../../containers/project.js';
@@ -88,7 +90,8 @@ export class ModuleReplayFailedError extends Error {
       `Module replay failed for module '${modulePrefix}', ` +
         `seal '${sealFileName}', entry ${sequence}: ` +
         `${cause instanceof Error ? cause.message : String(cause)}. ` +
-        `The project may be partially migrated; use git to restore a clean state.`,
+        `The project may be partially migrated; restore the previous state ` +
+        `from git if it was not rolled back automatically.`,
       { cause },
     );
     this.name = 'ModuleReplayFailedError';
@@ -105,7 +108,8 @@ export class ModuleValidationFailedError extends Error {
     super(
       `The module update was applied, but the project failed validation afterwards:\n` +
         `${validationErrors}\n` +
-        `Review the errors above, or use git to restore a clean state.`,
+        `Review the errors above, or restore the previous state from git ` +
+        `if it was not rolled back automatically.`,
     );
     this.name = 'ModuleValidationFailedError';
   }
@@ -215,6 +219,26 @@ export async function planModuleReplays(
 }
 
 /**
+ * Split planned steps by whether their module's apply actually landed
+ * (`applyModules` logs-and-continues on per-module failures). Replaying a
+ * chain whose module files were never overwritten would cascade renames
+ * the installed files do not reflect, so dropped steps must be skipped
+ * (and surfaced to the user) by the caller.
+ */
+export function filterStepsToApplied(
+  steps: ReplayStep[],
+  appliedModules: string[],
+): { executable: ReplayStep[]; dropped: ReplayStep[] } {
+  const applied = new Set(appliedModules);
+  const executable: ReplayStep[] = [];
+  const dropped: ReplayStep[] = [];
+  for (const step of steps) {
+    (applied.has(step.modulePrefix) ? executable : dropped).push(step);
+  }
+  return { executable, dropped };
+}
+
+/**
  * Execute planned replay chains against the host project.
  *
  * Steps run in plan order (dependencies first), seals ascending within a
@@ -296,6 +320,19 @@ async function readSealEntries(
         ),
       );
     }
+    // An unrecognized operation (e.g. written by a future format) must
+    // fail here at plan time, before any disk change — not as a
+    // TypeError mid-replay.
+    if (!isKnownOperation(parsed.operation)) {
+      throw new Error(
+        malformedLine(
+          modulePrefix,
+          seal.fileName,
+          i + 1,
+          `unknown operation '${parsed.operation}'`,
+        ),
+      );
+    }
     entries.push(parsed);
   }
   return entries;
@@ -320,4 +357,8 @@ function isLogEntry(value: unknown): value is ConfigurationLogEntry {
     typeof (value as { operation?: unknown }).operation === 'string' &&
     typeof (value as { target?: unknown }).target === 'string'
   );
+}
+
+function isKnownOperation(operation: string): boolean {
+  return (CONFIGURATION_OPERATIONS as readonly string[]).includes(operation);
 }

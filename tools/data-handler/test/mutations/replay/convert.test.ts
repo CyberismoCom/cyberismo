@@ -14,6 +14,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { entryToMutationInput } from '../../../src/mutations/replay/convert.js';
+import type { ConfigurationLogEntry } from '../../../src/utils/configuration-logger.js';
 
 describe('entryToMutationInput', () => {
   it('converts resource_update', () => {
@@ -147,6 +148,16 @@ describe('entryToMutationInput', () => {
         parameters: { type: 'workflows', key: 'states' },
       }),
     ).toThrow(/resource_update.*mod\/workflows\/simple/);
+  });
+
+  it('throws on an unknown operation', () => {
+    expect(() =>
+      entryToMutationInput({
+        timestamp: 't',
+        operation: 'resource_frobnicate',
+        target: 'mod/fieldTypes/a',
+      } as unknown as ConfigurationLogEntry),
+    ).toThrow(/Unknown operation 'resource_frobnicate'/);
   });
 
   it('throws on a project_rename entry without prefixes', () => {

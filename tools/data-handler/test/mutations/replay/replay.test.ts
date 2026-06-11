@@ -6,6 +6,7 @@ import {
   ModuleReplayConflictError,
   ModuleReplayFailedError,
   executeModuleReplays,
+  filterStepsToApplied,
   planModuleReplays,
 } from '../../../src/mutations/replay/replay.js';
 import { formatSealFileName } from '../../../src/mutations/replay/seal-files.js';
@@ -320,6 +321,34 @@ describe('planModuleReplays', () => {
     expect(error.message).toContain('line 2');
   });
 
+  it('an unknown operation throws at plan time naming module, seal, line and operation', async () => {
+    const installed = await makeInstalled('mod', 'file:/x', '1.0.0');
+    const resolved = await makeResolved('mod', 'file:/x', '2.0.0', [
+      {
+        from: '1.0.0',
+        to: '2.0.0',
+        lines: [
+          logLine('resource_delete', 'mod/fieldTypes/a'),
+          JSON.stringify({
+            timestamp: '2026-01-01T00:00:00.000Z',
+            operation: 'resource_frobnicate',
+            target: 'mod/fieldTypes/b',
+          }),
+        ],
+      },
+    ]);
+
+    const error = await planModuleReplays([resolved], [installed]).catch(
+      (e) => e,
+    );
+    expect(error).toBeInstanceOf(Error);
+    expect(error).not.toBeInstanceOf(ModuleReplayConflictError);
+    expect(error.message).toContain("module 'mod'");
+    expect(error.message).toContain(formatSealFileName('1.0.0', '2.0.0'));
+    expect(error.message).toContain('line 2');
+    expect(error.message).toContain("unknown operation 'resource_frobnicate'");
+  });
+
   it('steps come out in reverse resolved order (dependencies first)', async () => {
     const installedRoot = await makeInstalled('root', 'file:/root', '1.0.0');
     const installedDep = await makeInstalled('dep', 'file:/dep', '1.0.0');
@@ -344,6 +373,41 @@ describe('planModuleReplays', () => {
       [installedRoot, installedDep],
     );
     expect(steps.map((s) => s.modulePrefix)).toEqual(['dep', 'root']);
+  });
+});
+
+describe('filterStepsToApplied', () => {
+  function bareStep(modulePrefix: string): ReplayStep {
+    return {
+      modulePrefix,
+      fromVersion: '1.0.0',
+      toVersion: '2.0.0',
+      seals: [],
+    };
+  }
+
+  it('keeps steps whose module applied and drops the rest, preserving order', () => {
+    const steps = [bareStep('dep'), bareStep('mid'), bareStep('root')];
+    const { executable, dropped } = filterStepsToApplied(steps, [
+      'root',
+      'dep',
+    ]);
+    expect(executable.map((s) => s.modulePrefix)).toEqual(['dep', 'root']);
+    expect(dropped.map((s) => s.modulePrefix)).toEqual(['mid']);
+  });
+
+  it('passes everything through when all modules applied', () => {
+    const steps = [bareStep('a'), bareStep('b')];
+    const { executable, dropped } = filterStepsToApplied(steps, ['a', 'b']);
+    expect(executable).toEqual(steps);
+    expect(dropped).toEqual([]);
+  });
+
+  it('drops everything when nothing applied', () => {
+    const steps = [bareStep('a')];
+    const { executable, dropped } = filterStepsToApplied(steps, []);
+    expect(executable).toEqual([]);
+    expect(dropped).toEqual(steps);
   });
 });
 
@@ -465,7 +529,7 @@ describe('executeModuleReplays', () => {
     expect(error.sealFileName).toBe(formatSealFileName('1.0.0', '2.0.0'));
     expect(error.sequence).toBe(2);
     expect(error.cause).toBe(boom);
-    expect(error.message).toContain('use git to restore');
+    expect(error.message).toContain('restore the previous state from git');
     expect(project.populateCaches).not.toHaveBeenCalled();
   });
 

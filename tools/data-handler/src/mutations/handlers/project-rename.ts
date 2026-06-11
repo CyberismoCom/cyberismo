@@ -129,6 +129,17 @@ export class ProjectRenameHandler implements Handler {
       throw new Error('project_rename cascade requires oldPrefix');
     }
     await this.cascade(ctx, from, ctx.input.newPrefix);
+
+    // The cascade rewrote local resource and card files raw on disk.
+    // Later entries in the same replay chain read through the project's
+    // caches (e.g. workflow-remove-state matches cards via
+    // resources.cardTypes()), so refresh here instead of relying on the
+    // orchestrator's single end-of-replay refresh. The local-authoring
+    // path refreshes in apply() after its own cascade, so this stays out
+    // of cascade() to avoid doing the work twice.
+    ctx.project.resources.changed();
+    ctx.project.cardsCache.clear();
+    await ctx.project.populateCaches();
   }
 
   private async cascade(

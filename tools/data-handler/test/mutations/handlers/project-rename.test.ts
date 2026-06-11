@@ -202,6 +202,46 @@ describe('ProjectRenameHandler', () => {
     ).resolves.toBeUndefined();
   });
 
+  it('foreign prefix rename refreshes cached resources, not just disk', async () => {
+    const cardTypePath = join(
+      project.paths.resourcesFolder,
+      'cardTypes',
+      'moduleTyped.json',
+    );
+    await writeFile(
+      cardTypePath,
+      JSON.stringify(
+        {
+          name: 'decision/cardTypes/moduleTyped',
+          displayName: 'Module-workflow card type',
+          workflow: 'mod/workflows/flow',
+        },
+        null,
+        4,
+      ),
+    );
+    project = new Project(project.basePath);
+    await project.populateCaches();
+
+    // Prime the instance cache so the stale-instance path is exercised:
+    // a later replay entry in the same chain reads through this cache.
+    const before = project.resources
+      .byType('decision/cardTypes/moduleTyped', 'cardTypes')
+      .show();
+    expect(before.workflow).toBe('mod/workflows/flow');
+
+    const mutations = new ResourceMutations(project);
+    await mutations.apply(
+      { kind: 'project_rename', newPrefix: 'newmod', oldPrefix: 'mod' },
+      { kind: 'replay', modulePrefix: 'newmod' },
+    );
+
+    const after = project.resources
+      .byType('decision/cardTypes/moduleTyped', 'cardTypes')
+      .show();
+    expect(after.workflow).toBe('newmod/workflows/flow');
+  });
+
   it('replay without oldPrefix rejects and changes nothing', async () => {
     const cardPath = join(project.paths.cardRootFolder, 'decision_5');
     await writeFile(

@@ -94,7 +94,8 @@ describe('modules/applier', () => {
       }),
     ];
 
-    await applyModules(project, resolved, { tempDir });
+    const applied = await applyModules(project, resolved, { tempDir });
+    expect(applied).toEqual(['A']);
 
     const moduleDir = join(projectDir, '.cards', 'modules', 'A');
     expect(existsSync(moduleDir)).toBe(true);
@@ -174,7 +175,10 @@ describe('modules/applier', () => {
       }),
     ];
 
-    await applyModules(project, resolved, { tempDir });
+    const applied = await applyModules(project, resolved, { tempDir });
+
+    // The returned set names exactly the modules that landed.
+    expect(applied).toEqual(['A', 'C']);
 
     // A and C landed on disk; B did not.
     expect(existsSync(join(projectDir, '.cards', 'modules', 'A'))).toBe(true);
