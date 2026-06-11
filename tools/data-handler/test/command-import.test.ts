@@ -820,4 +820,53 @@ describe('module update — spec behaviours', () => {
       "Cannot update module 'tupdep' because it is required by 'tuphost'. Update the parent module(s) instead.",
     );
   });
+
+  it('updateModule replay conflict aborts before any disk change', async () => {
+    // A downgrade is a replay-planning conflict. Planning runs BEFORE
+    // applyModules, so the installed tree must be untouched after the
+    // throw. File sources ignore the resolver's ref and report no remote
+    // versions, so the caller's exact-version override flows straight
+    // into the resolver while the installed version is seeded by hand.
+    const modRoot = join(moduleTestDir, 'fake-downgrade-mod');
+    makeFakeModuleFixture(modRoot, { cardKeyPrefix: 'dgmod' });
+
+    const projectDir = join(moduleTestDir, 'proj-downgrade');
+    const commandHandler = new Commands();
+    const create = await commandHandler.command(
+      Cmd.create,
+      ['project', 'downgrade-proj', 'dgp'],
+      { projectPath: projectDir },
+    );
+    expect(create.statusCode).toBe(200);
+
+    const commands = new CommandManager(projectDir, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+    await commands.importCmd.importModule(modRoot);
+
+    // Seed the INSTALLED config with a version newer than the override
+    // target. The fixture's own config carries no version, so a
+    // successful applyModules would wipe this marker.
+    const installedConfigPath = join(
+      projectDir,
+      '.cards',
+      'modules',
+      'dgmod',
+      'cardsConfig.json',
+    );
+    const installedConfig = JSON.parse(
+      readFileSync(installedConfigPath, 'utf-8'),
+    );
+    installedConfig.version = '1.0.0';
+    writeFileSync(installedConfigPath, JSON.stringify(installedConfig));
+
+    await expect(
+      commands.importCmd.updateModule('dgmod', undefined, '0.1.0'),
+    ).rejects.toThrow(/downgrade.*No files were changed/s);
+
+    // The conflict fired at plan time: the seeded marker survives.
+    const afterConfig = JSON.parse(readFileSync(installedConfigPath, 'utf-8'));
+    expect(afterConfig.version).toBe('1.0.0');
+  });
 });
