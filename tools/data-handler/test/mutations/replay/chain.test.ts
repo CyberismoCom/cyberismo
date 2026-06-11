@@ -74,6 +74,14 @@ describe('computeChain', () => {
     expect(computeChain(target, '3.0.0', '3.4.0')).toEqual([]);
   });
 
+  it('no-op update yields an empty chain', () => {
+    expect(computeChain(target, '3.0.0', '3.0.0')).toEqual([]);
+  });
+
+  it('downgrade yields an empty chain (caller refuses separately)', () => {
+    expect(computeChain(target, '3.0.0', '2.0.0')).toEqual([]);
+  });
+
   it('throws on a gap between seals', () => {
     const gappy = [seal('0.0.0', '1.0.0'), seal('2.0.0', '2.5.0')];
     expect(() => computeChain(gappy, '0.5.0', '2.5.0')).toThrow(/gap/i);

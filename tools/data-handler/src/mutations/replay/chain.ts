@@ -54,7 +54,7 @@ export function computeChain(
     );
   }
   for (let i = 1; i < chain.length; i++) {
-    if (chain[i].from !== chain[i - 1].to) {
+    if (!semver.eq(chain[i].from, chain[i - 1].to)) {
       throw new Error(
         `Migration log gap between ${chain[i - 1].fileName} and ${chain[i].fileName}`,
       );
