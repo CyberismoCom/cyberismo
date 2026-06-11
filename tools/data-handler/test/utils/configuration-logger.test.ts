@@ -307,6 +307,30 @@ describe('configuration logger', () => {
     expect(result).toBe(expectedPath);
     expect(pathExists(expectedPath)).toBe(true);
   });
+  it('createVersion rejects an invalid seal version', async () => {
+    const projectPath = await freshProject('invalid-version-seal');
+    await expect(
+      ConfigurationLogger.createVersion(projectPath, 'not-a-version'),
+    ).rejects.toThrow(/Invalid seal version/);
+  });
+  it('createVersion rejects a version equal to the last sealed version', async () => {
+    const projectPath = await freshProject('equal-version-seal');
+    const paths = new ProjectPaths(projectPath);
+    await mkdir(paths.migrationLogFolder, { recursive: true });
+    await writeFile(
+      join(paths.migrationLogFolder, 'migrationLog_0.0.0_1.0.0.jsonl'),
+      '',
+    );
+    await ConfigurationLogger.log(projectPath, {
+      operation: 'resource_delete',
+      target: 'some-resource',
+      parameters: {},
+    });
+
+    await expect(
+      ConfigurationLogger.createVersion(projectPath, '1.0.0'),
+    ).rejects.toThrow(/must be greater/);
+  });
   it('accepts and reads project_rename entries', async () => {
     const projectPath = await freshProject('project-rename-log');
     await ConfigurationLogger.log(projectPath, {
