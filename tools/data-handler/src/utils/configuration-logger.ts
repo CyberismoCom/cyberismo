@@ -16,6 +16,10 @@ import { readFile, rename, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { getChildLogger } from './log-utils.js';
+import {
+  formatSealFileName,
+  lastSealedVersion,
+} from '../mutations/replay/seal-files.js';
 import { ProjectPaths } from '../containers/project/project-paths.js';
 import { writeFileSafe, pathExists } from './file-utils.js';
 
@@ -67,9 +71,11 @@ export class ConfigurationLogger {
 
   /**
    * Create a versioned snapshot of the current migration log.
-   * Renames current migrationLog.jsonl to migrationLog_<version>.jsonl
+   * Renames current migrationLog.jsonl to migrationLog_<from>_<to>.jsonl,
+   * where <from> is the highest previously sealed version (0.0.0 when none)
+   * and <to> is the version being sealed.
    * @param projectPath Path to the project root
-   * @param version Version identifier (e.g., "1.0.0", "v2")
+   * @param version Version being sealed (e.g., "1.1.0")
    * @returns Path to the versioned log file
    */
   public static async createVersion(
@@ -78,9 +84,10 @@ export class ConfigurationLogger {
   ): Promise<string | null> {
     const paths = new ProjectPaths(projectPath);
     const currentLogPath = paths.configurationChangesLog;
+    const fromVersion = await lastSealedVersion(paths.migrationLogFolder);
     const versionedLogPath = join(
       paths.migrationLogFolder,
-      `migrationLog_${version}.jsonl`,
+      formatSealFileName(fromVersion, version),
     );
 
     if (!pathExists(currentLogPath)) {
