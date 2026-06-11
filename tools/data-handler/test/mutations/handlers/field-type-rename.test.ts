@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdirSync, rmSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { copyDir } from '../../../src/utils/file-utils.js';
@@ -73,6 +73,56 @@ describe('FieldTypeRenameHandler', () => {
     const renamed = project.resources.byType(newName, 'fieldTypes').show();
     expect(renamed.name).toBe(newName);
     expect(project.resources.exists(oldName)).toBe(false);
+  });
+
+  it('leaves module card types untouched by the cascade', async () => {
+    // Seed a module card type whose customFields references the local field
+    // type being renamed. The reference is artificial (modules cannot depend
+    // on local resources), but it pins the enumeration scope: updateCardTypes
+    // must iterate LOCAL card types only, so the module file stays as-is and
+    // the rename is not rejected by re-validation of the module's reference.
+    const oldName = `${project.projectPrefix}/fieldTypes/spare`;
+    const newName = `${project.projectPrefix}/fieldTypes/spareRenamed`;
+    const moduleCardTypesDir = join(
+      decisionRecordsPath,
+      '.cards',
+      'modules',
+      'mymod',
+      'cardTypes',
+    );
+    const moduleCardTypeFile = join(moduleCardTypesDir, 'modtype.json');
+    mkdirSync(moduleCardTypesDir, { recursive: true });
+    writeFileSync(
+      moduleCardTypeFile,
+      JSON.stringify({
+        name: 'mymod/cardTypes/modtype',
+        displayName: 'Module card type',
+        workflow: 'decision/workflows/decision',
+        customFields: [{ name: oldName }],
+        alwaysVisibleFields: [],
+        optionallyVisibleFields: [],
+      }),
+    );
+
+    // Fresh project so the resource cache collects the seeded module file.
+    const moduleProject = getTestProject(decisionRecordsPath);
+    await moduleProject.populateCaches();
+    await moduleProject.resources
+      .byType(oldName, 'fieldTypes')
+      .createFieldType('shortText');
+
+    const mutations = new ResourceMutations(moduleProject);
+    await mutations.apply({
+      kind: 'rename' as const,
+      target: resourceName(oldName),
+      newIdentifier: 'spareRenamed',
+    });
+
+    expect(moduleProject.resources.exists(newName)).toBe(true);
+    const moduleCardType = JSON.parse(
+      readFileSync(moduleCardTypeFile, 'utf-8'),
+    );
+    expect(moduleCardType.customFields).toEqual([{ name: oldName }]);
   });
 
   it('rejects renaming a field referenced by a card type', async () => {
