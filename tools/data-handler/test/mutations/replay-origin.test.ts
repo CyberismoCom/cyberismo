@@ -6,15 +6,19 @@ import { ConfigurationLogger } from '../../src/utils/configuration-logger.js';
 import { resourceName } from '../../src/utils/resource-utils.js';
 import type { Project } from '../../src/containers/project.js';
 
-// The pipeline must refuse replay for handlers that have not implemented
-// applyCascade yet (transitional state during Phase 1). Phase 1's final
-// task flips this test to assert replay succeeds.
 describe('ResourceMutations replay origin', () => {
-  it('throws for a handler without applyCascade', async () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('replays a displayName edit as a no-op cascade without logging', async () => {
+    const logSpy = vi.spyOn(ConfigurationLogger, 'log');
     const stubProject = {
       lock: { write: (fn: () => Promise<void>) => fn() },
     } as unknown as Project;
     const mutations = new ResourceMutations(stubProject);
+    // Dispatches to DefaultNoCascadeHandler, whose cascade is empty: the
+    // replay path must resolve without touching the project or the log.
     await expect(
       mutations.apply(
         {
@@ -25,13 +29,11 @@ describe('ResourceMutations replay origin', () => {
         },
         { kind: 'replay', modulePrefix: 'test' },
       ),
-    ).rejects.toThrow(/not replay-capable/);
+    ).resolves.toBeUndefined();
+    expect(logSpy).not.toHaveBeenCalled();
   });
 
   describe('with a replay-capable stub handler', () => {
-    afterEach(() => {
-      vi.restoreAllMocks();
-    });
 
     it('calls applyCascade only and never writes a log entry', async () => {
       const handler = {

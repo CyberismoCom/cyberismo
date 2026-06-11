@@ -41,7 +41,6 @@ export interface Handler {
    * tolerate zero matches, and never require the target resource to exist.
    * Cascades may write directly to disk; the replay orchestrator is
    * responsible for refreshing project caches after a replay batch.
-   * Optional only during the Phase 1 transition; required from Task 1.7.
    */
-  applyCascade?(ctx: MutationContext): Promise<void>;
+  applyCascade(ctx: MutationContext): Promise<void>;
 }

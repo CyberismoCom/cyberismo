@@ -73,14 +73,9 @@ export class ResourceMutations {
       // materialized by the module-file overwrite, and replayed entries
       // are never recorded in the host project's log (the host's own
       // consumers replay the module chain themselves).
-      if (!handler.applyCascade) {
-        throw new Error(
-          `Mutation handler for kind '${input.kind}' is not replay-capable`,
-        );
-      }
       await runWithDefaultCommitMessage(defaultCommitMessage(input), () =>
         this.project.lock.write(async () => {
-          await handler.applyCascade!(ctx);
+          await handler.applyCascade(ctx);
         }),
       );
       return;
