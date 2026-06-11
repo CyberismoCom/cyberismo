@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { join } from 'node:path';
 
 describe('git-service-client', () => {
   const originalGitServiceUrl = process.env.GIT_SERVICE_URL;
@@ -49,7 +50,13 @@ describe('git-service-client', () => {
       client.resolveGitServiceClonePath(
         '.git-service-clones/550e8400-e29b-41d4-a716-446655440000',
       ),
-    ).toBe('/project/.git-service-clones/550e8400-e29b-41d4-a716-446655440000');
+    ).toBe(
+      join(
+        '/project',
+        '.git-service-clones',
+        '550e8400-e29b-41d4-a716-446655440000',
+      ),
+    );
   });
 
   it('resolveGitServiceClonePath respects GIT_SERVICE_PROJECT_ROOT override', async () => {
@@ -62,7 +69,11 @@ describe('git-service-client', () => {
         '.git-service-clones/550e8400-e29b-41d4-a716-446655440000',
       ),
     ).toBe(
-      '/mnt/shared/.git-service-clones/550e8400-e29b-41d4-a716-446655440000',
+      join(
+        '/mnt/shared',
+        '.git-service-clones',
+        '550e8400-e29b-41d4-a716-446655440000',
+      ),
     );
   });
 

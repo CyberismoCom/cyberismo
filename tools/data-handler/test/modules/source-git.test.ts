@@ -230,7 +230,7 @@ describe('modules/source-git', () => {
         'my-module',
       );
 
-      expect(result).toBe(`/project/.git-service-clones/${cloneUuid}`);
+      expect(result).toBe(join('/project', `.git-service-clones/${cloneUuid}`));
       expect(fetchMock).toHaveBeenCalledWith(
         'http://git-service:8080/clone',
         expect.objectContaining({

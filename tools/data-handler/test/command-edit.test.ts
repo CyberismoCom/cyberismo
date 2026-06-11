@@ -116,41 +116,44 @@ describe('edit card', () => {
   it('shortText value over the length limit reports the length, not a type error', async () => {
     // Isolated project: this test adds a custom field to a card type.
     const freshTestDir = join(baseDir, 'tmp-edit-shorttext-test');
-    mkdirSync(freshTestDir, { recursive: true });
-    await copyDir('test/test-data/', freshTestDir);
-    const freshCommands = new CommandManager(
-      join(freshTestDir, 'valid/decision-records'),
-      { autoSaveConfiguration: false },
-    );
-    await freshCommands.initialize();
-
-    await freshCommands.createCmd.createFieldType('myShort', 'shortText');
-    await freshCommands.updateCmd.updateValue(
-      'decision/cardTypes/decision.json',
-      'add',
-      'customFields',
-      { name: 'decision/fieldTypes/myShort' },
-    );
-
-    const longValue = 'x'.repeat(120);
-    await expect(
-      freshCommands.editCmd.editCardMetadata(
-        'decision_6',
-        'decision/fieldTypes/myShort',
-        longValue,
-      ),
-    ).rejects.toThrow(
-      /value exceeds the maximum length for 'shortText': 80 characters allowed, but value has 120 characters/,
-    );
-    await expect(
-      freshCommands.editCmd.editCardMetadata(
-        'decision_6',
-        'decision/fieldTypes/myShort',
-        longValue,
-      ),
-    ).rejects.not.toThrow(/but it is 'string'/);
-
     rmSync(freshTestDir, { recursive: true, force: true });
+    mkdirSync(freshTestDir, { recursive: true });
+    try {
+      await copyDir('test/test-data/', freshTestDir);
+      const freshCommands = new CommandManager(
+        join(freshTestDir, 'valid/decision-records'),
+        { autoSaveConfiguration: false },
+      );
+      await freshCommands.initialize();
+
+      await freshCommands.createCmd.createFieldType('myShort', 'shortText');
+      await freshCommands.updateCmd.updateValue(
+        'decision/cardTypes/decision.json',
+        'add',
+        'customFields',
+        { name: 'decision/fieldTypes/myShort' },
+      );
+
+      const longValue = 'x'.repeat(120);
+      await expect(
+        freshCommands.editCmd.editCardMetadata(
+          'decision_6',
+          'decision/fieldTypes/myShort',
+          longValue,
+        ),
+      ).rejects.toThrow(
+        /value exceeds the maximum length for 'shortText': 80 characters allowed, but value has 120 characters/,
+      );
+      await expect(
+        freshCommands.editCmd.editCardMetadata(
+          'decision_6',
+          'decision/fieldTypes/myShort',
+          longValue,
+        ),
+      ).rejects.not.toThrow(/but it is 'string'/);
+    } finally {
+      rmSync(freshTestDir, { recursive: true, force: true });
+    }
   });
   it('try to edit card metadata - incorrect field name', async () => {
     const cards = commands.project.cards();
