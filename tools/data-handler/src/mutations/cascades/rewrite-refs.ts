@@ -74,7 +74,7 @@ export async function rewriteCardContentRefs(
 ) {
   if (!from.trim() || !to.trim()) {
     throw new Error(
-      'updateCardContentReferences: "from" and "to" parameters must not be empty',
+      'rewriteCardContentRefs: "from" and "to" parameters must not be empty',
     );
   }
 
