@@ -25,8 +25,8 @@ import type { WorkflowState } from '../../interfaces/resource-interfaces.js';
  * Transition rewriting (dropping transitions that reference the removed state,
  * or re-pointing them at the replacement) is intra-resource definition
  * consistency and stays in WorkflowResource.update. The cross-resource part —
- * migrating every card in the removed state to the replacement, when a
- * replacementValue is given — lives here. The handler calls `resource.update()`
+ * migrating every card in the removed state to the replacement, or to the
+ * new-card state when none is given — lives here. The handler calls `resource.update()`
  * (which removes the state and rewrites transitions) and then performs the card
  * migration. Marked breaking so the engine records a log entry.
  */
@@ -60,9 +60,8 @@ export class WorkflowRemoveStateHandler implements Handler {
     await this.applyCascade(ctx);
   }
 
-  // Cascade: with a replacement, migrate every card in the removed state to
-  // it. Without a replacement no cards are migrated (they keep their now-
-  // removed state value).
+  // Cascade: migrate every card in the removed state to the replacement, or
+  // — when none was recorded — to the workflow's new-card state.
   async applyCascade(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'edit') {
       throw new Error('WorkflowRemoveStateHandler: non-edit input');
@@ -73,12 +72,32 @@ export class WorkflowRemoveStateHandler implements Handler {
       op.target) as string;
     const replacement = op.replacementValue as WorkflowState | undefined;
 
-    if (replacement) {
+    // The author's recorded choice wins; with none, cards fall back to the
+    // state a new card would get rather than being left in a removed state.
+    const effective = replacement?.name ?? this.initialState(ctx, name);
+    if (effective) {
       for (const card of this.cardsInState(ctx, name, stateName)) {
-        card.metadata!.workflowState = replacement.name;
+        card.metadata!.workflowState = effective;
         await ctx.project.updateCardMetadata(card, card.metadata!);
       }
     }
+  }
+
+  // The state a newly created card gets: the toState of the initial
+  // transition (fromState contains ''). In the authoring path apply() runs
+  // resource.update() first, so this reads the POST-update workflow.
+  // Undefined when the workflow is missing (deleted later in a replay chain)
+  // or the initial transition is gone (e.g. its target was the removed
+  // state); affected cards are then left for final validation to report.
+  private initialState(
+    ctx: MutationContext,
+    workflowName: string,
+  ): string | undefined {
+    const workflow = ctx.project.resources.byType(
+      workflowName,
+      'workflows',
+    )?.data;
+    return workflow?.transitions.find((t) => t.fromState.includes(''))?.toState;
   }
 
   // Cards using this workflow (via their card type) that are currently in the
