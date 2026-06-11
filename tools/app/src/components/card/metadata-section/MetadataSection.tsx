@@ -18,16 +18,13 @@ import { Box, Button, Stack } from '@mui/joy';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import type { MetadataValue } from '@/lib/definitions';
 import type { CardResponse } from '@/lib/api/types';
-import { getDefaultValue } from '@/lib/utils';
+import { getDefaultValue, metadataFieldRowId as fieldRowId } from '@/lib/utils';
 import { UserRole, useHasMinRole } from '@/lib/auth';
 import { format } from 'date-fns';
 import { FieldRow } from './FieldRow';
 import { LABEL_SPLITTER } from '@/lib/constants';
 import { useAppDispatch } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
-
-const FIELD_ROW_ID_PREFIX = 'metadata-field-';
-const fieldRowId = (key: string) => `${FIELD_ROW_ID_PREFIX}${key}`;
 
 export interface MetadataViewProps {
   initialExpanded?: boolean;

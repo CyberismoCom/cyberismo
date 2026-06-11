@@ -56,8 +56,10 @@ execSync(
 // template so the move dialog keeps the source's parent template visible
 // (the dialog filters out empty templates when their only card is the
 // source being moved).
+// The captured card uses the allDataTypes card type so the e2e suite can
+// verify that custom metadata fields are editable in the template card editor.
 const addCardOutput = execSync(
-  `${cli} add card bat/templates/page test/cardTypes/page`,
+  `${cli} add card bat/templates/page test/cardTypes/allDataTypes`,
   { cwd: batPath, encoding: 'utf8' },
 );
 process.stdout.write(addCardOutput);

@@ -12,7 +12,6 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { KeyboardEvent } from 'react';
 import { useEffect } from 'react';
 import { Accordion, AccordionDetails, Box, IconButton, Stack } from '@mui/joy';
 import CheckIcon from '@mui/icons-material/Check';
@@ -22,6 +21,8 @@ import type { DataType, MetadataValue } from '@/lib/definitions';
 import type { EnumDefinition } from '@cyberismo/data-handler/types/queries';
 import EditableField, { FieldLabel } from '@/components/EditableField';
 import FieldEditor from '@/components/FieldEditor';
+import { coerceMetadataValue } from '@/lib/utils';
+import { formKeyHandler } from '@/lib/hooks';
 
 export interface FieldRowProps {
   id?: string;
@@ -37,30 +38,6 @@ export interface FieldRowProps {
   onSave?: (value: MetadataValue) => void;
   onAutoSave?: (value: MetadataValue) => void;
   onCancel?: () => void;
-}
-
-function coerceValue(
-  rawValue: string | string[] | null,
-  dataType: DataType | 'label',
-): MetadataValue {
-  switch (dataType) {
-    case 'number':
-    case 'integer':
-      return rawValue ? parseFloat(rawValue as string) : null;
-    case 'boolean':
-      return rawValue === 'true' ? true : rawValue === 'false' ? false : null;
-    case 'list':
-      return Array.isArray(rawValue) ? rawValue : [];
-    case 'shortText':
-    case 'longText':
-    case 'date':
-    case 'dateTime':
-    case 'person':
-    case 'enum':
-      return rawValue === '' ? null : rawValue;
-    default:
-      return rawValue;
-  }
 }
 
 export function FieldRow({
@@ -97,7 +74,7 @@ export function FieldRow({
     rawValue: string | string[] | null,
     onChange: (v: MetadataValue) => void,
   ) => {
-    const coerced = coerceValue(rawValue, dataType);
+    const coerced = coerceMetadataValue(rawValue, dataType);
     onChange(coerced);
     onAutoSave?.(coerced);
   };
@@ -109,23 +86,6 @@ export function FieldRow({
   const handleCancel = () => {
     reset({ value: initialValue });
     onCancel?.();
-  };
-
-  const handleKeyDownCapture = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      e.stopPropagation();
-      handleCancel();
-    }
-  };
-
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Enter' && onSave && isDirty) {
-      // For multiline fields, require Ctrl/Cmd+Enter to save
-      if (dataType === 'longText' && !e.ctrlKey && !e.metaKey) return;
-      e.preventDefault();
-      handleSave();
-    }
   };
 
   const isClickable = !disabled && !isEditing && !!onStartEdit;
@@ -153,8 +113,12 @@ export function FieldRow({
           <Stack
             direction={{ xs: 'column', md: 'row' }}
             spacing={{ xs: 0.5, md: 4 }}
-            onKeyDownCapture={handleKeyDownCapture}
-            onKeyDown={handleKeyDown}
+            onKeyDown={formKeyHandler({
+              canSubmit: !!onSave && isDirty,
+              onSubmit: handleSave,
+              onCancel: handleCancel,
+              multiline: dataType === 'longText' || dataType === 'label',
+            })}
           >
             <FieldLabel
               label={label}

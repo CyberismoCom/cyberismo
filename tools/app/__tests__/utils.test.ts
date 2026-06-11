@@ -121,6 +121,20 @@ test('getDefaultValue returns a null for null', () => {
   });
 });
 
+test('getDefaultValue maps query-shaped list items to their values', () => {
+  const result = getDefaultValue([
+    { value: 'a', displayValue: 'A', index: 0 },
+    { value: 'b', displayValue: 'B', index: 1 },
+  ]);
+  expect(result).toEqual(['a', 'b']);
+});
+
+test('getDefaultValue keeps raw (string) list items as-is', () => {
+  // The raw card endpoint returns list values as plain strings, not items.
+  const result = getDefaultValue(['option1', 'option2'] as never);
+  expect(result).toEqual(['option1', 'option2']);
+});
+
 test('Deep copy returns a different object', () => {
   const obj = { a: 1 };
   const result = deepCopy(obj);

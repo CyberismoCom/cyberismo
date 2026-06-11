@@ -157,6 +157,10 @@ type CardLayoutProps = {
   linkFormState: LinkFormState;
   onLinkFormChange?: (state: LinkFormState) => void;
   onEditingChange?: (editing: boolean) => void;
+  /** Optional content rendered at the top of the content column (e.g. an Edit/Preview toggle). */
+  header?: ReactNode;
+  /** When true, the linked cards section is not rendered (e.g. for template cards, which have no links). */
+  hideLinks?: boolean;
 };
 
 export type CardLayoutHandle = {
@@ -178,6 +182,8 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
       onLinkFormChange,
       onDeleteLink,
       onEditingChange,
+      header,
+      hideLinks,
     },
     ref,
   ) {
@@ -322,6 +328,7 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
           }}
         >
           <Stack spacing={2}>
+            {header}
             <CardTitle
               title={card.title}
               preview={preview}
@@ -337,17 +344,19 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
               focusFieldKey={focusFieldKey}
               onFieldFocused={() => setFocusFieldKey(null)}
             />
-            <LinkedCardsSection
-              card={card}
-              cards={cards}
-              linkTypes={linkTypes}
-              connectors={connectors}
-              preview={preview}
-              linkFormState={linkFormState}
-              onLinkFormChange={onLinkFormChange}
-              onLinkFormSubmit={onLinkFormSubmit}
-              onDeleteLink={onDeleteLink}
-            />
+            {!hideLinks && (
+              <LinkedCardsSection
+                card={card}
+                cards={cards}
+                linkTypes={linkTypes}
+                connectors={connectors}
+                preview={preview}
+                linkFormState={linkFormState}
+                onLinkFormChange={onLinkFormChange}
+                onLinkFormSubmit={onLinkFormSubmit}
+                onDeleteLink={onDeleteLink}
+              />
+            )}
             {isNarrow && editingBody && attachmentPanel}
             {isNarrow &&
               !editingBody &&

@@ -48,27 +48,30 @@ describe('formKeyHandler', () => {
       expect(event.preventDefault).not.toHaveBeenCalled();
     });
 
-    test('does not call onSubmit for plain Enter in textarea (allows newlines)', () => {
+    test('does not call onSubmit for plain Enter in a multiline field (allows newlines)', () => {
       const onSubmit = vi.fn();
-      const handler = formKeyHandler({ canSubmit: true, onSubmit });
-
-      const event = createKeyboardEvent('Enter', {
-        target: { tagName: 'TEXTAREA' },
+      const handler = formKeyHandler({
+        canSubmit: true,
+        onSubmit,
+        multiline: true,
       });
+
+      const event = createKeyboardEvent('Enter');
       handler(event);
 
       expect(onSubmit).not.toHaveBeenCalled();
       expect(event.preventDefault).not.toHaveBeenCalled();
     });
 
-    test('calls onSubmit for Ctrl+Enter in textarea', () => {
+    test('calls onSubmit for Ctrl+Enter in a multiline field', () => {
       const onSubmit = vi.fn();
-      const handler = formKeyHandler({ canSubmit: true, onSubmit });
-
-      const event = createKeyboardEvent('Enter', {
-        ctrlKey: true,
-        target: { tagName: 'TEXTAREA' },
+      const handler = formKeyHandler({
+        canSubmit: true,
+        onSubmit,
+        multiline: true,
       });
+
+      const event = createKeyboardEvent('Enter', { ctrlKey: true });
       handler(event);
 
       expect(onSubmit).toHaveBeenCalledTimes(1);
@@ -111,6 +114,30 @@ describe('formKeyHandler', () => {
 
       expect(() => handler(event)).not.toThrow();
       expect(onSubmit).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('save shortcut (Cmd/Ctrl+S)', () => {
+    test('Ctrl+S saves when canSubmit is true', () => {
+      const onSubmit = vi.fn();
+      const handler = formKeyHandler({ canSubmit: true, onSubmit });
+
+      const event = createKeyboardEvent('s', { ctrlKey: true });
+      handler(event);
+
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+      expect(event.preventDefault).toHaveBeenCalled();
+    });
+
+    test('Ctrl+S suppresses the default but does not submit when canSubmit is false', () => {
+      const onSubmit = vi.fn();
+      const handler = formKeyHandler({ canSubmit: false, onSubmit });
+
+      const event = createKeyboardEvent('s', { ctrlKey: true });
+      handler(event);
+
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(event.preventDefault).toHaveBeenCalled();
     });
   });
 

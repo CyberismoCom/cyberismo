@@ -222,32 +222,44 @@ export function useKeyboardShortcut(
 }
 
 /**
- * Creates a keyboard event handler for form inputs that handles Enter to submit and Escape to cancel.
- * For textarea elements, Ctrl+Enter is required to submit (allowing plain Enter for newlines).
+ * Creates a keyboard event handler for form inputs. Cmd/Ctrl+S and
+ * Cmd/Ctrl+Enter save; plain Enter saves single-line fields. Escape cancels.
  * @param canSubmit - Whether the form is in a valid state to submit
- * @param onSubmit - Callback to execute on Enter key
- * @param onCancel - Optional callback to execute on Escape key
+ * @param onSubmit - Callback to execute on save
+ * @param onCancel - Optional callback to execute on Escape
+ * @param multiline - When true, plain Enter is left for newlines and only
+ *   Cmd/Ctrl+Enter saves. Defaults to false. Callers with a `<textarea>` (or
+ *   similar) must opt in explicitly.
  */
 export function formKeyHandler({
   canSubmit,
   onSubmit,
   onCancel,
+  multiline = false,
 }: {
   canSubmit: boolean;
   onSubmit: () => void | Promise<void>;
   onCancel?: () => void;
+  multiline?: boolean;
 }) {
   return (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && canSubmit) {
-      const isTextarea = (e.target as HTMLElement).tagName === 'TEXTAREA';
-      if (isTextarea && !e.ctrlKey) {
-        return; // allow normal newline in textarea
-      }
-      e.preventDefault();
-      void onSubmit();
-    } else if (e.key === 'Escape' && onCancel) {
+    if (e.key === 'Escape') {
+      if (!onCancel) return;
       e.preventDefault();
       onCancel();
+      return;
+    }
+    const mod = e.metaKey || e.ctrlKey;
+    // Cmd/Ctrl+S or Cmd/Ctrl+Enter save (and suppress the browser save dialog).
+    if ((e.key === 's' || e.key === 'Enter') && mod) {
+      e.preventDefault();
+      if (canSubmit) void onSubmit();
+      return;
+    }
+    // Plain Enter saves single-line fields; multiline keeps it for newlines.
+    if (e.key === 'Enter' && canSubmit && !e.shiftKey && !multiline) {
+      e.preventDefault();
+      void onSubmit();
     }
   };
 }

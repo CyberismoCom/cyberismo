@@ -10,8 +10,10 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { DragEvent } from 'react';
+import { useEffect, useMemo, useRef, type DragEvent } from 'react';
 import type { EditorView } from '@uiw/react-codemirror';
+import { keymap, type KeyBinding } from '@codemirror/view';
+import { Compartment, Prec, type Extension } from '@codemirror/state';
 import { projectApiPaths } from '../swr';
 import type { CardAttachment } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import type { Document, Section } from '@asciidoctor/core';
@@ -277,6 +279,65 @@ function findSectionRecursive(
     }
   }
   return null;
+}
+
+/**
+ * A high-precedence CodeMirror keymap that saves on Cmd/Ctrl+S or
+ * Cmd/Ctrl+Enter, and (when `onCancel` is given) cancels on Escape. `Mod-`
+ * resolves to Cmd on macOS and Ctrl elsewhere. Callers handle any
+ * dirty/editable gating inside the callbacks.
+ */
+export function saveKeymap(
+  onSave: () => void,
+  onCancel?: () => void,
+): Extension {
+  const bindings: KeyBinding[] = [
+    { key: 'Mod-s', preventDefault: true, run: () => (onSave(), true) },
+    { key: 'Mod-Enter', preventDefault: true, run: () => (onSave(), true) },
+  ];
+  if (onCancel) {
+    bindings.push({
+      key: 'Escape',
+      preventDefault: true,
+      run: () => (onCancel(), true),
+    });
+  }
+  return Prec.highest(keymap.of(bindings));
+}
+
+/**
+ * Hook that returns a CodeMirror extension wiring the save keymap (see
+ * {@link saveKeymap}) to the given editor view. The keymap lives in a
+ * Compartment and is reconfigured when the view (re)mounts; the latest
+ * handlers and `canSave` flag are read through a ref, so a changing `onSave`
+ * identity doesn't reconfigure the editor on every keystroke.
+ */
+export function useSaveKeymap(
+  view: EditorView | null,
+  opts: { onSave: () => void; onCancel?: () => void; canSave?: boolean },
+): Extension {
+  const optsRef = useRef(opts);
+  useEffect(() => {
+    optsRef.current = opts;
+  });
+  const compartment = useMemo(() => new Compartment(), []);
+  useEffect(() => {
+    if (!view) return;
+    view.dispatch({
+      effects: compartment.reconfigure(
+        saveKeymap(
+          () => {
+            const { onSave, canSave = true } = optsRef.current;
+            if (canSave) onSave();
+          },
+          optsRef.current.onCancel
+            ? () => optsRef.current.onCancel?.()
+            : undefined,
+        ),
+      ),
+    });
+  }, [view, compartment]);
+  return useMemo(() => compartment.of([]), [compartment]);
 }
 
 export * from './actions';
