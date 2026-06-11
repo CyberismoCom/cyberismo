@@ -36,6 +36,13 @@ export class CardTypeRenameHandler implements Handler {
     }
     const oldName = resourceNameToString(ctx.input.target);
 
+    // Interactive rename of a module-owned card type is not allowed.
+    if (ctx.input.target.prefix !== ctx.project.projectPrefix) {
+      throw new Error(
+        `Cannot rename resource ${oldName}: It is a module resource`,
+      );
+    }
+
     // All reference rewrites run BEFORE renaming the resource on disk: the
     // cascade scanners look for the old name and the resource file (with that
     // name) must still exist while they run.
