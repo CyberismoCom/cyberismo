@@ -58,7 +58,17 @@ export class CardTypeRemoveCustomFieldHandler implements Handler {
       ctx.input.operation as Operation<unknown>,
     );
 
-    // Cascade: drop the field key from every affected card.
+    await this.applyCascade(ctx);
+  }
+
+  // Cascade: drop the field key from every affected card.
+  async applyCascade(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'edit') {
+      throw new Error(
+        'CardTypeRemoveCustomFieldHandler called with non-edit input',
+      );
+    }
+    const cardTypeName = resourceNameToString(ctx.input.target);
     const item = (ctx.input.operation as RemoveOperation<CustomField>)
       .target as CustomField;
     const cards = this.affectedCards(ctx, cardTypeName);

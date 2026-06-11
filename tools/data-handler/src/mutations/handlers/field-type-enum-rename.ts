@@ -56,4 +56,7 @@ export class FieldTypeEnumRenameHandler implements Handler {
     }
     await resource.update(ctx.input.updateKey, ctx.input.operation);
   }
+
+  // No cascade: cards keep their old enum value (definition-only change).
+  async applyCascade(): Promise<void> {}
 }

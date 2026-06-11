@@ -44,4 +44,7 @@ export class WorkflowAddStateHandler implements Handler {
     }
     await resource.update(ctx.input.updateKey, ctx.input.operation);
   }
+
+  // No cascade: no existing card can be in the new state.
+  async applyCascade(): Promise<void> {}
 }

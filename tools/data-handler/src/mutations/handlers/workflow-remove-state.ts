@@ -52,19 +52,27 @@ export class WorkflowRemoveStateHandler implements Handler {
       throw new Error(`Workflow '${name}' not found`);
     }
 
-    const op = ctx.input.operation as RemoveOperation<WorkflowState>;
-    const stateName = ((op.target as { name?: string }).name ??
-      op.target) as string;
-    const replacement = op.replacementValue as WorkflowState | undefined;
-
     // Remove the state and rewrite the workflow's own transitions. The
     // unknown-replacement-state guard lives in WorkflowResource.update and
     // fires here.
     await resource.update(ctx.input.updateKey, ctx.input.operation);
 
-    // Cascade: with a replacement, migrate every card in the removed state to
-    // it. Without a replacement no cards are migrated (they keep their now-
-    // removed state value).
+    await this.applyCascade(ctx);
+  }
+
+  // Cascade: with a replacement, migrate every card in the removed state to
+  // it. Without a replacement no cards are migrated (they keep their now-
+  // removed state value).
+  async applyCascade(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'edit') {
+      throw new Error('WorkflowRemoveStateHandler: non-edit input');
+    }
+    const name = resourceNameToString(ctx.input.target);
+    const op = ctx.input.operation as RemoveOperation<WorkflowState>;
+    const stateName = ((op.target as { name?: string }).name ??
+      op.target) as string;
+    const replacement = op.replacementValue as WorkflowState | undefined;
+
     if (replacement) {
       for (const card of this.cardsInState(ctx, name, stateName)) {
         card.metadata!.workflowState = replacement.name;
