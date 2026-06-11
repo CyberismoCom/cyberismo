@@ -112,6 +112,32 @@ describe('FieldTypeEnumRemoveHandler', () => {
     expect(anyMedium).toBe(true);
   });
 
+  it('applyCascade tolerates bare-string target and replacementValue shapes', async () => {
+    // Recorded log entries (and authoring surfaces) may carry bare strings
+    // instead of EnumDefinition objects; a replayed cascade must handle both.
+    const handler = new FieldTypeEnumRemoveHandler();
+    await handler.applyCascade({
+      project,
+      input: {
+        kind: 'edit' as const,
+        target: resourceName(fieldName()),
+        updateKey: { key: 'enumValues' as const },
+        operation: {
+          name: 'remove' as const,
+          target: 'low',
+          replacementValue: 'medium',
+        },
+      },
+    });
+    const cards = project
+      .cards(undefined)
+      .filter((c) => c.metadata?.[fieldName()] !== undefined);
+    expect(cards.length).toBeGreaterThan(0);
+    for (const card of cards) {
+      expect(card.metadata?.[fieldName()]).toBe('medium');
+    }
+  });
+
   it('leaves card values untouched when no replacement is given', async () => {
     const mutations = new ResourceMutations(project);
     await mutations.apply({
