@@ -15,6 +15,8 @@
 import { readFile, rename, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import semver from 'semver';
+
 import { getChildLogger } from './log-utils.js';
 import {
   formatSealFileName,
@@ -74,6 +76,8 @@ export class ConfigurationLogger {
    * Renames current migrationLog.jsonl to migrationLog_<from>_<to>.jsonl,
    * where <from> is the highest previously sealed version (0.0.0 when none)
    * and <to> is the version being sealed.
+   * Callers must serialize calls to this method (the read-then-rename is not
+   * atomic); bumpVersion's @write lock provides this today.
    * @param projectPath Path to the project root
    * @param version Version being sealed (e.g., "1.1.0")
    * @returns Path to the versioned log file
@@ -82,6 +86,9 @@ export class ConfigurationLogger {
     projectPath: string,
     version: string,
   ): Promise<string | null> {
+    if (!semver.valid(version)) {
+      throw new Error(`Invalid seal version: ${version}`);
+    }
     const paths = new ProjectPaths(projectPath);
     const currentLogPath = paths.configurationChangesLog;
     const fromVersion = await lastSealedVersion(paths.migrationLogFolder);
@@ -97,6 +104,12 @@ export class ConfigurationLogger {
       const logger = getChildLogger({ module: 'ConfigurationLogger' });
       logger.info(`Sealed empty migration log for version: ${version}`);
       return null;
+    }
+
+    if (semver.lte(version, fromVersion)) {
+      throw new Error(
+        `Seal version ${version} must be greater than the last sealed version ${fromVersion}`,
+      );
     }
 
     await rename(currentLogPath, versionedLogPath);
