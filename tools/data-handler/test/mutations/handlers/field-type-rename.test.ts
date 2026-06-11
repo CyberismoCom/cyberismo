@@ -53,10 +53,9 @@ describe('FieldTypeRenameHandler', () => {
   });
 
   it('renames the resource on disk via the cascade', async () => {
-    // Rename an unused field type. (Renaming a field referenced by a card type
-    // is rejected: FieldTypeResource.rename's updateCardTypes cascade
-    // re-validates the now-removed old field name and throws, so the happy path
-    // renames an unreferenced field.)
+    // Rename an unused field type. (An authoring rename of a field referenced
+    // by a local card type is rejected by the explicit guard in apply(), so
+    // the happy path renames an unreferenced field.)
     const oldName = `${project.projectPrefix}/fieldTypes/spare`;
     const newName = `${project.projectPrefix}/fieldTypes/spareRenamed`;
     await project.resources
@@ -78,9 +77,9 @@ describe('FieldTypeRenameHandler', () => {
   it('leaves module card types untouched by the cascade', async () => {
     // Seed a module card type whose customFields references the local field
     // type being renamed. The reference is artificial (modules cannot depend
-    // on local resources), but it pins the enumeration scope: updateCardTypes
-    // must iterate LOCAL card types only, so the module file stays as-is and
-    // the rename is not rejected by re-validation of the module's reference.
+    // on local resources), but it pins the enumeration scope: the cascade and
+    // the authoring guard must consider LOCAL card types only, so the module
+    // file stays as-is and the rename is not rejected.
     const oldName = `${project.projectPrefix}/fieldTypes/spare`;
     const newName = `${project.projectPrefix}/fieldTypes/spareRenamed`;
     const moduleCardTypesDir = join(
@@ -127,8 +126,8 @@ describe('FieldTypeRenameHandler', () => {
 
   it('rejects renaming a field referenced by a card type', async () => {
     // 'finished' is referenced by the decision card type's customFields. The
-    // updateCardTypes cascade re-validates the old name after the resource is
-    // renamed and throws. The handler must not mask this.
+    // explicit guard in apply() refuses the authoring rename before touching
+    // the resource.
     const oldName = `${project.projectPrefix}/fieldTypes/finished`;
     const mutations = new ResourceMutations(project);
     await expect(
@@ -137,6 +136,104 @@ describe('FieldTypeRenameHandler', () => {
         target: resourceName(oldName),
         newIdentifier: 'completed',
       }),
-    ).rejects.toThrow(/does not exist in the project/);
+    ).rejects.toThrow(/referenced by card type/);
+    expect(project.resources.exists(oldName)).toBe(true);
+  });
+
+  it('applyCascade rewrites local references when the old field type is gone (replay)', async () => {
+    // Replay-style: the module tree is already at its final version, so only
+    // the NEW field type exists on disk. The cascade must derive everything
+    // from the input and never resolve the old name.
+    const oldName = 'mymod/fieldTypes/oldField';
+    const newName = 'mymod/fieldTypes/newField';
+    const moduleFieldTypesDir = join(
+      decisionRecordsPath,
+      '.cards',
+      'modules',
+      'mymod',
+      'fieldTypes',
+    );
+    mkdirSync(moduleFieldTypesDir, { recursive: true });
+    writeFileSync(
+      join(moduleFieldTypesDir, 'newField.json'),
+      JSON.stringify({
+        name: newName,
+        displayName: 'New field',
+        dataType: 'shortText',
+      }),
+    );
+
+    // A local card type referencing the module field under its OLD name.
+    const cardTypeFile = join(
+      decisionRecordsPath,
+      '.cards',
+      'local',
+      'cardTypes',
+      'modfields.json',
+    );
+    writeFileSync(
+      cardTypeFile,
+      JSON.stringify({
+        name: 'decision/cardTypes/modfields',
+        displayName: 'Uses module field',
+        workflow: 'decision/workflows/simple',
+        customFields: [{ name: oldName, isCalculated: true }],
+        alwaysVisibleFields: [oldName],
+        optionallyVisibleFields: [],
+      }),
+    );
+
+    // A local card holding a value under the old key and content referencing
+    // the old name.
+    const cardDir = join(decisionRecordsPath, 'cardRoot', 'decision_5');
+    const metadataFile = join(cardDir, 'index.json');
+    const metadata = JSON.parse(readFileSync(metadataFile, 'utf-8'));
+    metadata[oldName] = 'keep-me';
+    writeFileSync(metadataFile, JSON.stringify(metadata, null, 4));
+    const contentFile = join(cardDir, 'index.adoc');
+    writeFileSync(contentFile, `Field ${oldName} is shown here.\n`);
+
+    const replayProject = getTestProject(decisionRecordsPath);
+    await replayProject.populateCaches();
+
+    const handler = new FieldTypeRenameHandler();
+    await handler.applyCascade({
+      project: replayProject,
+      input: {
+        kind: 'rename' as const,
+        target: resourceName(oldName),
+        newIdentifier: 'newField',
+      },
+    });
+
+    const cardType = JSON.parse(readFileSync(cardTypeFile, 'utf-8'));
+    expect(cardType.customFields).toEqual([
+      { name: newName, isCalculated: true },
+    ]);
+    expect(cardType.alwaysVisibleFields).toEqual([newName]);
+
+    const updatedMetadata = JSON.parse(readFileSync(metadataFile, 'utf-8'));
+    expect(updatedMetadata[newName]).toBe('keep-me');
+    expect(updatedMetadata).not.toHaveProperty(oldName);
+
+    const content = readFileSync(contentFile, 'utf-8');
+    expect(content).toContain(newName);
+    expect(content).not.toContain(oldName);
+  });
+
+  it('applyCascade is a safe no-op when nothing references the field type', async () => {
+    // Neither the old nor the new field type exists and nothing references
+    // either name; the cascade must still resolve.
+    const handler = new FieldTypeRenameHandler();
+    await expect(
+      handler.applyCascade({
+        project,
+        input: {
+          kind: 'rename' as const,
+          target: resourceName('mymod/fieldTypes/ghost'),
+          newIdentifier: 'phantom',
+        },
+      }),
+    ).resolves.toBeUndefined();
   });
 });
