@@ -51,6 +51,11 @@ export class FieldTypeRenameHandler implements Handler {
     // the metadata file and the in-memory name; it no longer cascades.
     await resource.rename(ctx.input.newIdentifier);
 
+    // The cascade must run AFTER the rename (unlike card-type-rename's
+    // cascade-first order): updateCardTypes goes through cardType.update,
+    // whose validateFieldType re-checks the changed field reference against
+    // the project. With the old name already gone, renaming a field type that
+    // a card type still references is rejected — behavior pinned by tests.
     await this.applyCascade(ctx);
   }
 
