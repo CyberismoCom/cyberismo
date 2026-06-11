@@ -27,6 +27,7 @@ import { CONFIGURATION_OPERATIONS } from '../../utils/configuration-logger.js';
 
 import type { ConfigurationLogEntry } from '../../utils/configuration-logger.js';
 import type { ModuleInstallation } from '../../modules/types.js';
+import type { MutationInput } from '../types.js';
 import type { Project } from '../../containers/project.js';
 import type { ResolvedModule } from '../../modules/resolver.js';
 import type { SealFile } from './seal-files.js';
@@ -85,10 +86,13 @@ export class ModuleReplayFailedError extends Error {
     /** 1-based position of the failing entry within its seal file. */
     readonly sequence: number,
     cause: unknown,
+    /** The converted mutation; undefined when the conversion itself failed. */
+    readonly input?: MutationInput,
   ) {
     super(
       `Module replay failed for module '${modulePrefix}', ` +
-        `seal '${sealFileName}', entry ${sequence}: ` +
+        `seal '${sealFileName}', entry ${sequence}` +
+        `${input ? `, mutation: ${JSON.stringify(input)}` : ''}: ` +
         `${cause instanceof Error ? cause.message : String(cause)}. ` +
         `The project may be partially migrated; restore the previous state ` +
         `from git if it was not rolled back automatically.`,
@@ -104,13 +108,35 @@ export class ModuleReplayFailedError extends Error {
  * already been applied to disk.
  */
 export class ModuleValidationFailedError extends Error {
-  constructor(readonly validationErrors: string) {
+  /** Summary of the replay chains that ran before validation failed. */
+  readonly steps: {
+    modulePrefix: string;
+    fromVersion: string;
+    toVersion: string;
+  }[];
+
+  constructor(
+    readonly validationErrors: string,
+    executedSteps: ReplayStep[],
+  ) {
+    const steps = executedSteps.map(
+      ({ modulePrefix, fromVersion, toVersion }) => ({
+        modulePrefix,
+        fromVersion,
+        toVersion,
+      }),
+    );
+    const summary = steps.map(
+      (s) => `  replayed ${s.modulePrefix} ${s.fromVersion} → ${s.toVersion}`,
+    );
     super(
       `The module update was applied, but the project failed validation afterwards:\n` +
         `${validationErrors}\n` +
+        `${summary.join('\n')}\n` +
         `Review the errors above, or restore the previous state from git ` +
         `if it was not rolled back automatically.`,
     );
+    this.steps = steps;
     this.name = 'ModuleValidationFailedError';
   }
 }
@@ -264,8 +290,9 @@ export async function executeModuleReplays(
   for (const step of steps) {
     for (const { seal, entries } of step.seals) {
       for (const [index, entry] of entries.entries()) {
+        let input: MutationInput | undefined;
         try {
-          const input = entryToMutationInput(entry);
+          input = entryToMutationInput(entry);
           await mutations.apply(input, {
             kind: 'replay',
             modulePrefix: step.modulePrefix,
@@ -276,6 +303,7 @@ export async function executeModuleReplays(
             seal.fileName,
             index + 1,
             error,
+            input,
           );
         }
       }

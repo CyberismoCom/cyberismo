@@ -234,7 +234,9 @@ describe('modules/inventory', () => {
     const installations = await installedModulesWithSources(project);
 
     const child = installations.find((i) => i.name === 'child');
-    expect(child?.source.location).toBe('https://example.com/child-project.git');
+    expect(child?.source.location).toBe(
+      'https://example.com/child-project.git',
+    );
   });
 
   it('withSources ignores module dependency declarations without a location', async () => {

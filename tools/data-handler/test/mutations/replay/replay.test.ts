@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import {
   ModuleReplayConflictError,
   ModuleReplayFailedError,
+  ModuleValidationFailedError,
   executeModuleReplays,
   filterStepsToApplied,
   planModuleReplays,
@@ -529,6 +530,9 @@ describe('executeModuleReplays', () => {
     expect(error.sealFileName).toBe(formatSealFileName('1.0.0', '2.0.0'));
     expect(error.sequence).toBe(2);
     expect(error.cause).toBe(boom);
+    expect(error.input).toMatchObject({ kind: 'delete' });
+    expect(error.input.target.identifier).toBe('b');
+    expect(error.message).toContain('mutation: {"kind":"delete"');
     expect(error.message).toContain('restore the previous state from git');
     expect(project.populateCaches).not.toHaveBeenCalled();
   });
@@ -563,6 +567,40 @@ describe('executeModuleReplays', () => {
 
     expect(error).toBeInstanceOf(ModuleReplayFailedError);
     expect(error.sequence).toBe(1);
+    expect(error.input).toBeUndefined();
+    expect(error.message).not.toContain('mutation:');
     expect(applySpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('ModuleValidationFailedError', () => {
+  it('carries a per-module replay summary mapped from the executed steps', () => {
+    const steps: ReplayStep[] = [
+      {
+        modulePrefix: 'dep',
+        fromVersion: '1.0.0',
+        toVersion: '2.0.0',
+        seals: [],
+      },
+      {
+        modulePrefix: 'root',
+        fromVersion: '2.1.0',
+        toVersion: '3.0.0',
+        seals: [],
+      },
+    ];
+
+    const error = new ModuleValidationFailedError('some validation', steps);
+
+    expect(error.name).toBe('ModuleValidationFailedError');
+    expect(error.validationErrors).toBe('some validation');
+    expect(error.steps).toEqual([
+      { modulePrefix: 'dep', fromVersion: '1.0.0', toVersion: '2.0.0' },
+      { modulePrefix: 'root', fromVersion: '2.1.0', toVersion: '3.0.0' },
+    ]);
+    expect(error.message).toContain('some validation');
+    expect(error.message).toContain('replayed dep 1.0.0 → 2.0.0');
+    expect(error.message).toContain('replayed root 2.1.0 → 3.0.0');
+    expect(error.message).toContain('restore the previous state from git');
   });
 });

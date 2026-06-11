@@ -285,6 +285,17 @@ export class ProjectConfiguration implements ProjectSettings {
       module.location = `file:${resolve(filePath)}`;
     }
 
+    // A re-import after a module renamed its prefix arrives under the NEW
+    // name while the OLD-name declaration still points at the same source;
+    // left behind, it keeps the old installation referenced forever and
+    // orphan cleanup can never remove it.
+    if (module.location) {
+      this.modules = this.modules.filter(
+        (item) =>
+          item.name === module.name || item.location !== module.location,
+      );
+    }
+
     const existing = this.modules.find((item) => item.name === module.name);
     if (existing) {
       existing.version = module.version;
