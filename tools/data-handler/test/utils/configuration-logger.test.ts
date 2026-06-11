@@ -255,9 +255,57 @@ describe('configuration logger', () => {
     const paths = new ProjectPaths(projectPath);
     const versionedPath = join(
       paths.migrationLogFolder,
-      'migrationLog_1.0.1.jsonl',
+      'migrationLog_0.0.0_1.0.1.jsonl',
     );
     expect(await pathExists(versionedPath)).toBe(false);
+  });
+  it('createVersion seals continuing the lineage from the last sealed version', async () => {
+    const projectPath = await freshProject('lineage-seal');
+    const paths = new ProjectPaths(projectPath);
+    await mkdir(paths.migrationLogFolder, { recursive: true });
+    await writeFile(
+      join(paths.migrationLogFolder, 'migrationLog_0.0.0_1.0.0.jsonl'),
+      '',
+    );
+    await ConfigurationLogger.log(projectPath, {
+      operation: 'resource_delete',
+      target: 'some-resource',
+      parameters: {},
+    });
+
+    const result = await ConfigurationLogger.createVersion(
+      projectPath,
+      '1.1.0',
+    );
+
+    const expectedPath = join(
+      paths.migrationLogFolder,
+      'migrationLog_1.0.0_1.1.0.jsonl',
+    );
+    expect(result).toBe(expectedPath);
+    expect(pathExists(expectedPath)).toBe(true);
+    expect(pathExists(paths.configurationChangesLog)).toBe(false);
+  });
+  it('createVersion starts the lineage from 0.0.0 on the first seal', async () => {
+    const projectPath = await freshProject('first-seal');
+    await ConfigurationLogger.log(projectPath, {
+      operation: 'resource_delete',
+      target: 'some-resource',
+      parameters: {},
+    });
+
+    const result = await ConfigurationLogger.createVersion(
+      projectPath,
+      '1.0.0',
+    );
+
+    const paths = new ProjectPaths(projectPath);
+    const expectedPath = join(
+      paths.migrationLogFolder,
+      'migrationLog_0.0.0_1.0.0.jsonl',
+    );
+    expect(result).toBe(expectedPath);
+    expect(pathExists(expectedPath)).toBe(true);
   });
   it('accepts and reads project_rename entries', async () => {
     const projectPath = await freshProject('project-rename-log');
