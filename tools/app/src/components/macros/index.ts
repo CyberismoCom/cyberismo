@@ -38,7 +38,8 @@ export type UIMacroName = Exclude<
 // We simply trust that the macro has been
 // validated and the backend will not return an invalid macro
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const macros: Record<UIMacroName, (props: any) => ReactElement> = {
+export const macros: Record<UIMacroName, (props: any) => ReactElement | null> =
+  {
   createCards: CreateCards,
   mermaid: Mermaid,
   scoreCard: ScoreCard,

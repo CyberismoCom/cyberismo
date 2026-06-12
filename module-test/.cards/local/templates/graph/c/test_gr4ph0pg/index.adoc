@@ -1,0 +1,13 @@
+== Context diagram
+
+{{#graph}}
+"model": "test/graphModels/contextDiagram",
+"view": "test/graphViews/contextDiagram"
+{{/graph}}
+
+== Second diagram
+
+{{#graph}}
+"model": "test/graphModels/contextDiagram",
+"view": "test/graphViews/contextDiagram"
+{{/graph}}
