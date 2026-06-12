@@ -19,20 +19,29 @@ import {
   Button,
   Textarea,
   IconButton,
+  Input,
+  FormControl,
+  FormLabel,
   Tooltip,
 } from '@mui/joy';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import type { GenericNode } from '@/lib/api/types';
+import AddIcon from '@mui/icons-material/Add';
+import type { GenericNode, Hub, HubModule } from '@/lib/api/types';
 import {
+  useHubs,
   useProjectSettings,
   useProjectSettingsMutations,
   usePublicKey,
 } from '@/lib/api';
 import { useEditableField, useAppDispatch } from '@/lib/hooks';
 import { useModals } from '@/lib/utils';
-import { ModuleDeleteModal, AddModuleModal } from '@/components/modals';
+import {
+  ModuleDeleteModal,
+  AddModuleModal,
+  HubDeleteModal,
+} from '@/components/modals';
 import { addNotification } from '@/lib/slices/notifications';
 import BaseEditor from './BaseEditor';
 import FieldRow from './fields/FieldRow';
@@ -53,17 +62,25 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
     deleteModule,
     updateAllModules,
     addModule,
+    addHub,
+    removeHub,
+    fetchHubs,
     isUpdating,
     updateProject,
   } = useProjectSettingsMutations();
+  const { data: hubs } = useHubs();
   const { modalOpen, openModal, closeModal } = useModals({
     deleteModule: false,
     addModule: false,
+    deleteHub: false,
   });
   const [moduleToDelete, setModuleToDelete] = useState<{
     name: string;
     cardKeyPrefix: string;
   } | null>(null);
+  const [hubToDelete, setHubToDelete] = useState<Hub | null>(null);
+  const [hubUrl, setHubUrl] = useState('');
+  const [importingModule, setImportingModule] = useState<string | null>(null);
   const dispatch = useAppDispatch();
   const isAdmin = useHasMinRole(UserRole.Admin);
 
@@ -126,6 +143,83 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
       await navigator.clipboard.writeText(publicKey);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const notifyError = (error: unknown) => {
+    dispatch(
+      addNotification({
+        message: error instanceof Error ? error.message : t('failedToLoad'),
+        type: 'error',
+      }),
+    );
+  };
+
+  const handleAddHub = async () => {
+    const location = hubUrl.trim();
+    if (!location) {
+      return;
+    }
+    try {
+      await addHub(location);
+      setHubUrl('');
+      dispatch(
+        addNotification({
+          message: t('general.addHubSuccess'),
+          type: 'success',
+        }),
+      );
+    } catch (error) {
+      notifyError(error);
+    }
+  };
+
+  const handleHubsUpdate = async () => {
+    try {
+      await fetchHubs();
+      dispatch(
+        addNotification({
+          message: t('general.updateHubsSuccess'),
+          type: 'success',
+        }),
+      );
+    } catch (error) {
+      notifyError(error);
+    }
+  };
+
+  const handleHubDelete = async (hub: Hub) => {
+    try {
+      await removeHub(hub.location);
+      dispatch(
+        addNotification({
+          message: t('deleteHubModal.success', {
+            hubName: hub.displayName || hub.location,
+          }),
+          type: 'success',
+        }),
+      );
+      setHubToDelete(null);
+      closeModal('deleteHub')();
+    } catch (error) {
+      notifyError(error);
+    }
+  };
+
+  const handleHubModuleImport = async (module: HubModule) => {
+    setImportingModule(module.name);
+    try {
+      await addModule(module.location);
+      dispatch(
+        addNotification({
+          message: t('addModuleModal.success'),
+          type: 'success',
+        }),
+      );
+    } catch (error) {
+      notifyError(error);
+    } finally {
+      setImportingModule(null);
     }
   };
 
@@ -347,6 +441,140 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
             </Card>
           ))}
         </Stack>
+
+        <Stack spacing={1} mt={4}>
+          <Typography level="title-lg">{t('general.hubsSection')}</Typography>
+          <FormControl>
+            <FormLabel>{t('general.addHub')} *</FormLabel>
+            <Input
+              placeholder={t('general.hubLocationUrl')}
+              value={hubUrl}
+              onChange={(e) => setHubUrl(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleAddHub();
+                }
+              }}
+              disabled={isDisabled || isUpdating()}
+              endDecorator={
+                <IconButton
+                  size="sm"
+                  variant="solid"
+                  color="primary"
+                  onClick={handleAddHub}
+                  loading={isUpdating('add-hub')}
+                  disabled={!hubUrl.trim() || isDisabled || isUpdating()}
+                  data-cy="addHubButton"
+                >
+                  <AddIcon />
+                </IconButton>
+              }
+            />
+          </FormControl>
+          {hubs && hubs.length === 0 && <Typography>{t('noHubs')}</Typography>}
+          {hubs?.map((hub) => (
+            <Card key={hub.location} size="sm" variant="outlined">
+              <CardContent>
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="flex-start"
+                  spacing={1}
+                >
+                  <Stack>
+                    <Typography level="title-sm">
+                      {hub.displayName || hub.location}
+                    </Typography>
+                    {hub.displayName && (
+                      <Typography level="body-sm">{hub.location}</Typography>
+                    )}
+                  </Stack>
+                  <Stack direction="row" spacing={1}>
+                    <Button
+                      size="sm"
+                      variant="outlined"
+                      loading={isUpdating('update-hubs')}
+                      disabled={isUpdating() || isDisabled}
+                      onClick={handleHubsUpdate}
+                    >
+                      {t('update')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outlined"
+                      color="danger"
+                      loading={isUpdating(`delete-hub-${hub.location}`)}
+                      disabled={isUpdating() || isDisabled}
+                      onClick={() => {
+                        setHubToDelete(hub);
+                        openModal('deleteHub')();
+                      }}
+                    >
+                      {t('delete')}
+                    </Button>
+                  </Stack>
+                </Stack>
+                <Typography level="title-sm" mt={1}>
+                  {t('general.modulesSection')}
+                </Typography>
+                {hub.modules.length === 0 ? (
+                  <Typography level="body-sm">
+                    {t('general.noHubModules')}
+                  </Typography>
+                ) : (
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                    {hub.modules.map((mod) => (
+                      <Card
+                        key={mod.name}
+                        size="sm"
+                        variant="outlined"
+                        sx={{ width: 180 }}
+                      >
+                        <CardContent>
+                          <Stack
+                            direction="row"
+                            justifyContent="space-between"
+                            alignItems="flex-start"
+                            spacing={1}
+                          >
+                            <Typography level="title-sm">
+                              {mod.displayName || mod.name}
+                            </Typography>
+                            <Tooltip
+                              title={
+                                mod.imported
+                                  ? t('general.moduleAlreadyImported')
+                                  : t('general.addModule')
+                              }
+                            >
+                              <span>
+                                <IconButton
+                                  size="sm"
+                                  variant="plain"
+                                  color="primary"
+                                  loading={importingModule === mod.name}
+                                  disabled={
+                                    mod.imported || isDisabled || isUpdating()
+                                  }
+                                  onClick={() => handleHubModuleImport(mod)}
+                                >
+                                  <AddIcon />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                          </Stack>
+                          <Typography level="body-sm">
+                            {t('general.cardKeyPrefix')}: {mod.name}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </Stack>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </Stack>
       </Stack>
       {moduleToDelete && (
         <ModuleDeleteModal
@@ -359,6 +587,18 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
           cardKeyPrefix={moduleToDelete.cardKeyPrefix}
           onDelete={() => handleModuleDelete(moduleToDelete)}
           isDeleting={isUpdating(`delete-${moduleToDelete.cardKeyPrefix}`)}
+        />
+      )}
+      {hubToDelete && (
+        <HubDeleteModal
+          open={modalOpen.deleteHub}
+          onClose={() => {
+            setHubToDelete(null);
+            closeModal('deleteHub')();
+          }}
+          hubName={hubToDelete.displayName || hubToDelete.location}
+          onDelete={() => handleHubDelete(hubToDelete)}
+          isDeleting={isUpdating(`delete-hub-${hubToDelete.location}`)}
         />
       )}
       <AddModuleModal
