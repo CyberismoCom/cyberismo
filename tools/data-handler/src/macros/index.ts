@@ -299,7 +299,8 @@ export function applyMacroResults(
 ) {
   for (const item of tasks) {
     if (item.error) {
-      input = input.replace(
+      input = replaceWithBlock(
+        input,
         item.placeholder,
         handleMacroError(item.error, item.macro, context),
       );
@@ -318,6 +319,29 @@ export function applyMacroResults(
     }
   }
   return input;
+}
+
+/**
+ * Replaces a placeholder with block-level adoc content. Block syntax (e.g.
+ * admonitions) is only recognized at the start of a line preceded by a blank
+ * line, so inline whitespace around the placeholder is stripped and a blank
+ * line is inserted before the block when the placeholder sits mid-paragraph.
+ * @param input - The content containing the placeholder
+ * @param placeholder - The placeholder to replace
+ * @param block - Block-level adoc content (must end with a blank line)
+ * @returns The content with the placeholder replaced
+ */
+function replaceWithBlock(input: string, placeholder: string, block: string) {
+  const index = input.indexOf(placeholder);
+  if (index === -1) {
+    return input;
+  }
+  let before = input.slice(0, index).replace(/[ \t]+$/, '');
+  const after = input.slice(index + placeholder.length).replace(/^[ \t]+/, '');
+  if (before !== '' && !before.endsWith('\n\n')) {
+    before += before.endsWith('\n') ? '\n' : '\n\n';
+  }
+  return before + block + after;
 }
 
 /**
