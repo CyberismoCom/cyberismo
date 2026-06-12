@@ -218,6 +218,11 @@ export interface ModuleSettingFromHub extends ModuleSetting {
   displayName: string;
 }
 
+// Hub configuration with the modules that are available from the hub.
+export interface HubDetails extends HubSetting {
+  modules: ModuleSettingFromHub[];
+}
+
 // Module configuration.
 export interface ModuleSetting extends ModuleSettingOptions {
   name: string;

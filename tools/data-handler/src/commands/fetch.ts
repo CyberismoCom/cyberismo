@@ -22,16 +22,19 @@ import { write } from '../utils/rw-lock.js';
 import type { ModuleSetting } from '../interfaces/project-interfaces.js';
 import type { Project } from '../containers/project.js';
 
-// Hub structure
-interface HubVersionInfo {
+// Cached data of a single hub.
+export interface CachedHub {
   location: string;
   version: number;
+  displayName?: string;
+  description?: string;
+  modules: ModuleSetting[];
 }
 
 // Structure of .temp/moduleList.json file.
-interface ModuleListFile {
+export interface ModuleListFile {
   modules: ModuleSetting[];
-  hubs: HubVersionInfo[];
+  hubs: CachedHub[];
 }
 
 const FETCH_TIMEOUT_MS = 30 * 1000; // 30s timeout for fetching a hub file.
@@ -175,6 +178,14 @@ export class Fetch {
           return true;
         }
 
+        // Cache written by an older version lacks per-hub module data.
+        if (!Array.isArray(localHub.modules)) {
+          this.logger.info(
+            `Cached data for hub ${configHub.location} is in an outdated format, fetching module list`,
+          );
+          return true;
+        }
+
         const remoteVersion = await this.checkRemoteVersion(configHub.location);
         if (remoteVersion === undefined) {
           const hubName = configHub.displayName || configHub.location;
@@ -211,30 +222,38 @@ export class Fetch {
 
   /**
    * Fetches modules from modules hub(s) and writes them to a file.
-   * Only fetches if the remote version is newer than the local version.
+   * Only fetches if the remote version is newer than the local version,
+   * unless 'force' is set.
+   * @param force Fetch hubs even if the cached data is up to date.
    */
   @write(() => 'Fetch hubs')
-  public async fetchHubs() {
-    const needsFetch = await this.fetchModuleList();
-    if (!needsFetch) {
-      return;
+  public async fetchHubs(force: boolean = false) {
+    if (!force) {
+      const needsFetch = await this.fetchModuleList();
+      if (!needsFetch) {
+        return;
+      }
     }
 
     const hubs = this.project.configuration.hubs;
     const moduleMap: Map<string, ModuleSetting> = new Map([]);
-    const hubVersions: HubVersionInfo[] = [];
+    const cachedHubs: CachedHub[] = [];
 
     for (const hub of hubs) {
       const json = await this.fetchJSON(hub.location, HUB_SCHEMA);
-      json.modules.forEach((module: ModuleSetting) => {
+      const hubModules: ModuleSetting[] = json.modules || [];
+      hubModules.forEach((module: ModuleSetting) => {
         if (!moduleMap.has(module.name)) {
           moduleMap.set(module.name, module);
         }
       });
 
-      hubVersions.push({
+      cachedHubs.push({
         location: hub.location,
         version: json.version || 1,
+        displayName: json.displayName,
+        description: json.description,
+        modules: hubModules,
       });
     }
 
@@ -254,7 +273,7 @@ export class Fetch {
       });
       await writeJsonFile(this.moduleListPath, {
         modules: Array.from(moduleMap.values()),
-        hubs: hubVersions,
+        hubs: cachedHubs,
       });
       this.logger.info(`Module list written to: ${this.moduleListPath}`);
     } catch (error) {
