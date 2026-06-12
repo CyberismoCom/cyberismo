@@ -1,6 +1,0 @@
-== Child diagram
-
-{{#graph}}
-"model": "test/graphModels/contextDiagram",
-"view": "test/graphViews/contextDiagram"
-{{/graph}}

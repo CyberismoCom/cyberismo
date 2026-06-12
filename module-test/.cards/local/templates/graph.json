@@ -1,6 +1,0 @@
-{
-  "name": "test/templates/graph",
-  "displayName": "Graph test",
-  "description": "Cards with graph macros for testing graph rendering",
-  "category": "Testing"
-}
