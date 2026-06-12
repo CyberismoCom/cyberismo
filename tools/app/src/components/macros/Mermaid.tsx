@@ -12,77 +12,77 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import DOMPurify from 'dompurify';
 import mermaid from 'mermaid';
+import SvgWrapper from '@/components/SvgWrapper';
+import { useIsDarkMode } from '@/lib/hooks/theme';
 import type { MacroContext } from '.';
 
 export interface MermaidProps extends MacroContext {
   code: string;
 }
 
-let mermaidInitialized = false;
-
-function ensureMermaidInit() {
-  if (mermaidInitialized) return;
-  mermaid.initialize({
-    startOnLoad: false,
-    theme: 'default',
-    securityLevel: 'strict',
-  });
-  mermaidInitialized = true;
-}
-
 let renderCounter = 0;
 
+const SANITIZE_OPTIONS = {
+  USE_PROFILES: { svg: true, svgFilters: true },
+  ADD_TAGS: [
+    'foreignObject',
+    'div',
+    'span',
+    'p',
+    'br',
+    'i',
+    'b',
+    'em',
+    'strong',
+    'pre',
+    'code',
+  ],
+  ADD_ATTR: ['class', 'style', 'xmlns', 'requiredExtensions'],
+  // Allow HTML content inside <foreignObject> (used by Mermaid for text labels)
+  HTML_INTEGRATION_POINTS: { foreignobject: true },
+};
+
 function Mermaid({ code }: MermaidProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [svg, setSvg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const isDarkMode = useIsDarkMode();
 
   useEffect(() => {
     if (!code) {
       setError('No Mermaid diagram code provided.');
       return;
     }
+    setError(null);
 
-    ensureMermaidInit();
+    let cancelled = false;
+
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: isDarkMode ? 'dark' : 'default',
+      securityLevel: 'strict',
+    });
     const id = `mermaid-diagram-${renderCounter++}`;
 
     mermaid
       .render(id, code)
       .then(({ svg }) => {
-        if (containerRef.current) {
-          // Wrap in cyberismo-svg-wrapper so ContentArea's observer
-          // adds the standard fullscreen/download controls automatically
-          const wrapper = document.createElement('div');
-          wrapper.setAttribute('data-type', 'cyberismo-svg-wrapper');
-          wrapper.innerHTML = DOMPurify.sanitize(svg, {
-            USE_PROFILES: { svg: true, svgFilters: true },
-            ADD_TAGS: [
-              'foreignObject',
-              'div',
-              'span',
-              'p',
-              'br',
-              'i',
-              'b',
-              'em',
-              'strong',
-              'pre',
-              'code',
-            ],
-            ADD_ATTR: ['class', 'style', 'xmlns', 'requiredExtensions'],
-            // Allow HTML content inside <foreignObject> (used by Mermaid for text labels)
-            HTML_INTEGRATION_POINTS: { foreignobject: true },
-          });
-          containerRef.current.innerHTML = '';
-          containerRef.current.appendChild(wrapper);
+        if (!cancelled) {
+          setSvg(DOMPurify.sanitize(svg, SANITIZE_OPTIONS));
         }
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : String(err));
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : String(err));
+        }
       });
-  }, [code]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [code, isDarkMode]);
 
   if (error) {
     return (
@@ -92,7 +92,15 @@ function Mermaid({ code }: MermaidProps) {
     );
   }
 
-  return <div ref={containerRef} />;
+  if (!svg) {
+    return null;
+  }
+
+  return (
+    <SvgWrapper>
+      <div dangerouslySetInnerHTML={{ __html: svg }} />
+    </SvgWrapper>
+  );
 }
 
 export default Mermaid;
