@@ -16,7 +16,7 @@ import useSWR, { mutate } from 'swr';
 import type { ModuleSettingFromHub } from '@cyberismo/data-handler';
 import { projectApiPaths, callApi } from '../swr';
 import { useSWRHook } from './common';
-import type { ProjectSettingsUpdate } from './types';
+import type { Hub, ProjectSettingsUpdate } from './types';
 import { useUpdating } from '../hooks';
 
 export const useProjectSettings = (
@@ -66,6 +66,7 @@ export const deleteProjectModule = async (
   mutate(apiPaths.project());
   mutate(apiPaths.resourceTree());
   mutate(apiPaths.templates());
+  mutate(apiPaths.projectHubs());
 };
 
 export const updateAllProjectModules = async (projectPrefix?: string) => {
@@ -81,6 +82,31 @@ export const addModule = async (source: string, projectPrefix?: string) => {
   mutate(apiPaths.project());
   mutate(apiPaths.resourceTree());
   mutate(apiPaths.templates());
+  mutate(apiPaths.projectModulesImportable());
+  mutate(apiPaths.projectHubs());
+};
+
+export const useHubs = (projectPrefix?: string) =>
+  useSWR<Hub[]>(projectApiPaths(projectPrefix).projectHubs());
+
+export const addHub = async (location: string, projectPrefix?: string) => {
+  const apiPaths = projectApiPaths(projectPrefix);
+  await callApi(apiPaths.projectHubs(), 'POST', { location });
+  mutate(apiPaths.projectHubs());
+  mutate(apiPaths.projectModulesImportable());
+};
+
+export const removeHub = async (location: string, projectPrefix?: string) => {
+  const apiPaths = projectApiPaths(projectPrefix);
+  await callApi(apiPaths.projectHubDelete(location), 'DELETE');
+  mutate(apiPaths.projectHubs());
+  mutate(apiPaths.projectModulesImportable());
+};
+
+export const fetchHubs = async (projectPrefix?: string) => {
+  const apiPaths = projectApiPaths(projectPrefix);
+  await callApi(apiPaths.projectHubsFetch(), 'POST');
+  mutate(apiPaths.projectHubs());
   mutate(apiPaths.projectModulesImportable());
 };
 
@@ -105,6 +131,11 @@ export const useProjectSettingsMutations = (projectPrefix?: string) => {
       call(() => updateAllProjectModules(projectPrefix), 'update-all-modules'),
     addModule: (source: string) =>
       call(() => addModule(source, projectPrefix), 'add-module'),
+    addHub: (location: string) =>
+      call(() => addHub(location, projectPrefix), 'add-hub'),
+    removeHub: (location: string) =>
+      call(() => removeHub(location, projectPrefix), `delete-hub-${location}`),
+    fetchHubs: () => call(() => fetchHubs(projectPrefix), 'update-hubs'),
   };
   return mutations;
 };

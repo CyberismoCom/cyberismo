@@ -18,7 +18,11 @@ import { join, resolve } from 'node:path';
 import { spawn } from 'node:child_process';
 import { writeFile } from 'node:fs/promises';
 
-import { type Fetch, MODULE_LIST_FULL_PATH } from './fetch.js';
+import {
+  type Fetch,
+  type ModuleListFile,
+  MODULE_LIST_FULL_PATH,
+} from './fetch.js';
 import { installedModules } from '../modules/index.js';
 
 import { CardLocation } from '../interfaces/project-interfaces.js';
@@ -32,6 +36,7 @@ import type {
   Context,
   FetchCardDetails,
   FileContentType,
+  HubDetails,
   HubSetting,
   ModuleContent,
   ModuleInfo,
@@ -432,6 +437,43 @@ export class Show {
     // Ensure module list is up to date before showing
     await this.fetchCmd.ensureModuleListUpToDate();
     return this.project.configuration.hubs;
+  }
+
+  /**
+   * Shows hubs of the project with the modules available from each hub.
+   * @returns list of hubs with their available modules.
+   */
+  @write()
+  public async showHubDetails(): Promise<HubDetails[]> {
+    try {
+      // Ensure module list is up to date before showing
+      await this.fetchCmd.ensureModuleListUpToDate();
+    } catch (error) {
+      // Hubs are still listed using cached data when fetching fails.
+      if (error instanceof Error) {
+        this.logger.error(error.message);
+      }
+    }
+
+    let cachedHubs: ModuleListFile['hubs'] = [];
+    try {
+      const moduleList = (await readJsonFile(
+        resolve(this.project.basePath, MODULE_LIST_FULL_PATH),
+      )) as ModuleListFile;
+      cachedHubs = moduleList.hubs ?? [];
+    } catch {
+      // Module list doesn't exist; hubs are shown without modules.
+    }
+
+    return this.project.configuration.hubs.map((hub) => {
+      const cached = cachedHubs.find((item) => item.location === hub.location);
+      return {
+        location: hub.location,
+        displayName: hub.displayName ?? cached?.displayName,
+        description: hub.description ?? cached?.description,
+        modules: (cached?.modules ?? []) as ModuleSettingFromHub[],
+      };
+    });
   }
 
   /**
