@@ -40,8 +40,8 @@ export type UIMacroName = Exclude<
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const macros: Record<UIMacroName, (props: any) => ReactElement | null> =
   {
-  createCards: CreateCards,
-  mermaid: Mermaid,
-  scoreCard: ScoreCard,
-  vega: Vega,
-};
+    createCards: CreateCards,
+    mermaid: Mermaid,
+    scoreCard: ScoreCard,
+    vega: Vega,
+  };

@@ -41,9 +41,7 @@ vi.mock('@/lib/hooks/theme', () => ({
 vi.mock('mermaid', () => ({
   default: {
     initialize: vi.fn(),
-    render: vi
-      .fn()
-      .mockResolvedValue({ svg: '<svg id="mock-mermaid"></svg>' }),
+    render: vi.fn().mockResolvedValue({ svg: '<svg id="mock-mermaid"></svg>' }),
   },
 }));
 
