@@ -123,3 +123,96 @@ describe('Project endpoints', () => {
     expect(response.status).toBe(400);
   });
 });
+
+describe('Hub endpoints', () => {
+  type HubResponse = {
+    location: string;
+    displayName?: string;
+    description?: string;
+    modules: {
+      name: string;
+      displayName?: string;
+      location: string;
+      imported: boolean;
+    }[];
+  }[];
+
+  test('GET /api/project/hubs returns configured hubs with modules', async () => {
+    const response = await app.request('/api/projects/test/project/hubs');
+    expect(response.status).toBe(200);
+    const result = (await response.json()) as HubResponse;
+
+    expect(result).toHaveLength(1);
+    expect(result[0].location).toBe(
+      'https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/',
+    );
+    expect(result[0].modules).toHaveLength(4);
+    expect(result[0].modules.every((mod) => !mod.imported)).toBe(true);
+  });
+
+  test('POST and DELETE /api/project/hubs add and remove a hub', async () => {
+    const location = 'https://example.com/test-hub';
+
+    const addResponse = await app.request('/api/projects/test/project/hubs', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ location }),
+    });
+    expect(addResponse.status).toBe(200);
+
+    const listResponse = await app.request('/api/projects/test/project/hubs');
+    const hubs = (await listResponse.json()) as HubResponse;
+    expect(hubs).toHaveLength(2);
+    const addedHub = hubs.find((hub) => hub.location === location);
+    expect(addedHub).toBeDefined();
+    // Hub is not reachable, so it has no modules.
+    expect(addedHub?.modules).toHaveLength(0);
+
+    const deleteResponse = await app.request(
+      `/api/projects/test/project/hubs?location=${encodeURIComponent(location)}`,
+      { method: 'DELETE' },
+    );
+    expect(deleteResponse.status).toBe(200);
+
+    const afterDelete = (await (
+      await app.request('/api/projects/test/project/hubs')
+    ).json()) as HubResponse;
+    expect(afterDelete).toHaveLength(1);
+  });
+
+  test('POST /api/project/hubs returns 400 for non-HTTP location', async () => {
+    const response = await app.request('/api/projects/test/project/hubs', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ location: 'ftp://example.com/hub' }),
+    });
+    expect(response.status).toBe(400);
+  });
+
+  test('POST /api/project/hubs returns 500 for duplicate hub', async () => {
+    const response = await app.request('/api/projects/test/project/hubs', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        location:
+          'https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/',
+      }),
+    });
+    expect(response.status).toBe(500);
+  });
+
+  test('DELETE /api/project/hubs returns 400 when location is missing', async () => {
+    const response = await app.request('/api/projects/test/project/hubs', {
+      method: 'DELETE',
+    });
+    expect(response.status).toBe(400);
+  });
+
+  test('POST /api/project/hubs/fetch refetches hub data', async () => {
+    const response = await app.request(
+      '/api/projects/test/project/hubs/fetch',
+      { method: 'POST' },
+    );
+    expect(response.status).toBe(200);
+  });
+});

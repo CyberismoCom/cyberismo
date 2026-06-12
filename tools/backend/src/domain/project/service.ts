@@ -38,6 +38,20 @@ export interface ProjectUpdatePayload {
   gitRemoteUrl?: string;
 }
 
+export interface HubModuleInfo {
+  name: string;
+  displayName?: string;
+  location: string;
+  imported: boolean;
+}
+
+export interface HubInfo {
+  location: string;
+  displayName?: string;
+  description?: string;
+  modules: HubModuleInfo[];
+}
+
 async function toModuleInfo(
   commands: CommandManager,
   moduleName: string,
@@ -130,4 +144,34 @@ export async function importModule(
   source: string,
 ): Promise<void> {
   await commands.importCmd.importModule(source);
+}
+
+export async function getHubs(commands: CommandManager): Promise<HubInfo[]> {
+  const hubs = await commands.showCmd.showHubDetails();
+  const importedModules = new Set(
+    (await commands.showCmd.showModules()).map((mod) => mod.name),
+  );
+  return hubs.map((hub) => ({
+    location: hub.location,
+    displayName: hub.displayName,
+    description: hub.description,
+    modules: hub.modules.map((mod) => ({
+      name: mod.name,
+      displayName: mod.displayName,
+      location: mod.location,
+      imported: importedModules.has(mod.name),
+    })),
+  }));
+}
+
+export async function addHub(commands: CommandManager, location: string) {
+  await commands.createCmd.addHubLocation(location);
+}
+
+export async function removeHub(commands: CommandManager, location: string) {
+  await commands.removeCmd.remove('hub', location);
+}
+
+export async function fetchHubs(commands: CommandManager) {
+  await commands.fetchCmd.fetchHubs(true);
 }
