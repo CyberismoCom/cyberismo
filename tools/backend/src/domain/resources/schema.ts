@@ -54,7 +54,9 @@ export const updateOperationBodySchema = z.object({
     }),
     z.object({
       name: z.literal('change'),
-      target: z.unknown(),
+      // The old value; scalar changes have none, and clients drop the key
+      // entirely when it is undefined (JSON.stringify omits undefined).
+      target: z.unknown().optional(),
       to: z.unknown(),
       mappingTable: z
         .object({

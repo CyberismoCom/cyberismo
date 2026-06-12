@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 
 import { copyDir } from '../src/utils/file-utils.js';
+import { resourceName } from '../src/utils/resource-utils.js';
 import { CommandManager } from '../src/command-manager.js';
 import { type Edit } from '../src/commands/index.js';
 import { CardNotFoundError } from '../src/exceptions/index.js';
@@ -125,12 +126,15 @@ describe('edit card', () => {
     await freshCommands.initialize();
 
     await freshCommands.createCmd.createFieldType('myShort', 'shortText');
-    await freshCommands.updateCmd.updateValue(
-      'decision/cardTypes/decision.json',
-      'add',
-      'customFields',
-      { name: 'decision/fieldTypes/myShort' },
-    );
+    await freshCommands.updateCmd.apply({
+      kind: 'edit',
+      target: resourceName('decision/cardTypes/decision'),
+      updateKey: { key: 'customFields' },
+      operation: {
+        name: 'add',
+        target: { name: 'decision/fieldTypes/myShort' },
+      },
+    });
 
     const longValue = 'x'.repeat(120);
     await expect(

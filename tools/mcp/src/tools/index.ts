@@ -895,11 +895,12 @@ export function registerTools(
     async ({ projectPrefix, resource, operation, key }) => {
       try {
         const commands = resolveCommands(provider, projectPrefix);
-        await commands.updateCmd.applyResourceOperation(
-          resource,
-          { key },
+        await commands.updateCmd.apply({
+          kind: 'edit',
+          target: resourceName(resource),
+          updateKey: { key },
           operation,
-        );
+        });
         return toolResult({
           resource,
           key,
@@ -955,13 +956,14 @@ export function registerTools(
         const commands = resolveCommands(provider, projectPrefix);
         const updateKey =
           query.key === 'content'
-            ? { key: 'content', subKey: query.subKey }
+            ? ({ key: 'content', subKey: query.subKey } as const)
             : { key: query.key };
-        await commands.updateCmd.applyResourceOperation(
-          resource,
+        await commands.updateCmd.apply({
+          kind: 'edit',
+          target: resourceName(resource),
           updateKey,
-          query.operation,
-        );
+          operation: query.operation,
+        });
         return toolResult({
           resource,
           key: query.key,

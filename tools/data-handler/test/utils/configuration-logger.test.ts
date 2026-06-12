@@ -5,15 +5,24 @@ import { join } from 'node:path';
 
 import {
   ConfigurationLogger,
-  ConfigurationOperation,
   type ConfigurationLogEntry,
 } from '../../src/utils/configuration-logger.js';
 import { deleteDir, pathExists } from '../../src/utils/file-utils.js';
+import { ProjectPaths } from '../../src/containers/project/project-paths.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-configuration-logger-tests');
 const testProjectPath = join(testDir, 'test-project');
+
+async function freshProject(name: string): Promise<string> {
+  const projectPath = join(testDir, name);
+  await mkdir(projectPath, { recursive: true });
+  await mkdir(join(projectPath, '.cards', 'local', 'migrationLog'), {
+    recursive: true,
+  });
+  return projectPath;
+}
 
 describe('configuration logger', () => {
   beforeAll(async () => {
@@ -29,48 +38,71 @@ describe('configuration logger', () => {
     await deleteDir(testDir);
   });
 
+  it('writes entries in the released operation/parameters shape', async () => {
+    const projectPath = await freshProject('shape-test');
+    await ConfigurationLogger.log(projectPath, {
+      operation: 'resource_update',
+      target: 'foo/cardTypes/bar',
+      parameters: {
+        key: 'customFields',
+        operation: { name: 'remove', target: 'priority' },
+      },
+    });
+    const entries = await ConfigurationLogger.entries(projectPath);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].operation).toBe('resource_update');
+    expect(entries[0].target).toBe('foo/cardTypes/bar');
+    // Logs written by released versions use this shape; the interim
+    // kind/payload shape must not come back.
+    expect(entries[0]).not.toHaveProperty('kind');
+    expect(entries[0]).not.toHaveProperty('payload');
+  });
+
   describe('basic logging operations', () => {
     afterAll(async () => {
       await ConfigurationLogger.clearLog(testProjectPath);
     });
     it('should log resource deletion', async () => {
       await ConfigurationLogger.log(testProjectPath, {
-        operation: ConfigurationOperation.RESOURCE_DELETE,
+        operation: 'resource_delete',
         target: 'test-resource',
         parameters: { type: 'template' },
       });
 
       const entries = await ConfigurationLogger.entries(testProjectPath);
       expect(entries).toHaveLength(1);
-      expect(entries[0].operation).toBe(ConfigurationOperation.RESOURCE_DELETE);
+      expect(entries[0].operation).toBe('resource_delete');
       expect(entries[0].target).toBe('test-resource');
       expect(entries[0].parameters?.type).toBe('template');
       expect(entries[0].timestamp).toBeTypeOf('string');
     });
     it('should handle logging without parameters', async () => {
       await ConfigurationLogger.log(testProjectPath, {
-        operation: ConfigurationOperation.RESOURCE_RENAME,
+        operation: 'resource_rename',
         target: 'renamed-resource',
+        parameters: {},
       });
 
       const entries = await ConfigurationLogger.entries(testProjectPath);
       const renameEntry = entries.find(
-        (e) => e.operation === ConfigurationOperation.RESOURCE_RENAME,
+        (e) => e.operation === 'resource_rename',
       );
       expect(renameEntry).toBeDefined();
       expect(renameEntry!.target).toBe('renamed-resource');
-      expect(renameEntry!.parameters).toBeUndefined();
+      expect(renameEntry!.parameters).toBeDefined();
     });
     it('should append entries in JSON Lines format', async () => {
       await ConfigurationLogger.clearLog(testProjectPath);
 
       await ConfigurationLogger.log(testProjectPath, {
-        operation: ConfigurationOperation.RESOURCE_DELETE,
+        operation: 'resource_delete',
         target: 'resource1',
+        parameters: {},
       });
       await ConfigurationLogger.log(testProjectPath, {
-        operation: ConfigurationOperation.RESOURCE_RENAME,
+        operation: 'resource_rename',
         target: 'resource2',
+        parameters: {},
       });
 
       const logPath = ConfigurationLogger.logFile(testProjectPath);
@@ -82,18 +114,30 @@ describe('configuration logger', () => {
       const entry1 = JSON.parse(lines[0]) as ConfigurationLogEntry;
       const entry2 = JSON.parse(lines[1]) as ConfigurationLogEntry;
 
-      expect(entry1.operation).toBe(ConfigurationOperation.RESOURCE_DELETE);
+      expect(entry1.operation).toBe('resource_delete');
       expect(entry1.target).toBe('resource1');
-      expect(entry2.operation).toBe(ConfigurationOperation.RESOURCE_RENAME);
+      expect(entry2.operation).toBe('resource_rename');
       expect(entry2.target).toBe('resource2');
     });
     it('should preserve entry order', async () => {
       await ConfigurationLogger.clearLog(testProjectPath);
 
       const entries = [
-        { operation: ConfigurationOperation.RESOURCE_DELETE, target: 'first' },
-        { operation: ConfigurationOperation.RESOURCE_UPDATE, target: 'second' },
-        { operation: ConfigurationOperation.MODULE_REMOVE, target: 'third' },
+        {
+          operation: 'resource_delete' as const,
+          target: 'first',
+          parameters: {},
+        },
+        {
+          operation: 'resource_update' as const,
+          target: 'second',
+          parameters: {},
+        },
+        {
+          operation: 'resource_rename' as const,
+          target: 'third',
+          parameters: {},
+        },
       ];
 
       for (const entry of entries) {
@@ -111,8 +155,9 @@ describe('configuration logger', () => {
 
       await expect(
         ConfigurationLogger.log(invalidPath, {
-          operation: ConfigurationOperation.RESOURCE_DELETE,
+          operation: 'resource_delete',
           target: 'test',
+          parameters: {},
         }),
       ).resolves.not.toThrow();
     });
@@ -121,23 +166,6 @@ describe('configuration logger', () => {
 
       const entries = await ConfigurationLogger.entries(nonExistentPath);
       expect(entries).toHaveLength(0);
-    });
-    it('should log module removal', async () => {
-      await ConfigurationLogger.clearLog(testProjectPath);
-
-      await ConfigurationLogger.log(testProjectPath, {
-        operation: ConfigurationOperation.MODULE_REMOVE,
-        target: 'test-module',
-        parameters: { location: '/path/to/module' },
-      });
-
-      const entries = await ConfigurationLogger.entries(testProjectPath);
-      const removeEntry = entries.find(
-        (e) => e.operation === ConfigurationOperation.MODULE_REMOVE,
-      );
-      expect(removeEntry).toBeDefined();
-      expect(removeEntry!.target).toBe('test-module');
-      expect(removeEntry!.parameters?.location).toBe('/path/to/module');
     });
     it('should get configuration log path', () => {
       const logPath = ConfigurationLogger.logFile(testProjectPath);
@@ -150,12 +178,14 @@ describe('configuration logger', () => {
       const beforeEntries = (await ConfigurationLogger.entries(testProjectPath))
         .length;
       await ConfigurationLogger.log(testProjectPath, {
-        operation: ConfigurationOperation.RESOURCE_DELETE,
+        operation: 'resource_delete',
         target: 'test1',
+        parameters: {},
       });
       await ConfigurationLogger.log(testProjectPath, {
-        operation: ConfigurationOperation.RESOURCE_DELETE,
+        operation: 'resource_delete',
         target: 'test2',
+        parameters: {},
       });
 
       let entries = await ConfigurationLogger.entries(testProjectPath);
@@ -192,18 +222,21 @@ describe('configuration logger', () => {
       expect(entries[0].target).toBe('valid');
       expect(entries[1].target).toBe('valid2');
     });
-    it('should throw when creating version from non-existent log', async () => {
+    it('should return null when creating version from non-existent log (empty seal)', async () => {
       await ConfigurationLogger.clearLog(testProjectPath);
 
-      await expect(
-        ConfigurationLogger.createVersion(testProjectPath, '1.0.0'),
-      ).rejects.toThrow('No current migration log exists to version');
+      const result = await ConfigurationLogger.createVersion(
+        testProjectPath,
+        '1.0.0',
+      );
+      expect(result).toBeNull();
     });
     it('should check log existence via static method', async () => {
       const testProjectPath2 = join(testDir, 'test-project-static');
       await ConfigurationLogger.log(testProjectPath2, {
-        operation: ConfigurationOperation.RESOURCE_DELETE,
+        operation: 'resource_delete',
         target: 'test',
+        parameters: {},
       });
 
       const logPath = ConfigurationLogger.logFile(testProjectPath2);
@@ -211,6 +244,34 @@ describe('configuration logger', () => {
       expect(ConfigurationLogger.hasBreakingChanges(testProjectPath2)).toBe(
         true,
       );
+    });
+  });
+
+  it('createVersion succeeds with no current log (empty seal)', async () => {
+    const projectPath = await freshProject('empty-seal');
+    // No entries have been logged; migrationLog.jsonl does not exist.
+    await ConfigurationLogger.createVersion(projectPath, '1.0.1');
+    // The versioned log file should also not exist (empty seal = no file).
+    const paths = new ProjectPaths(projectPath);
+    const versionedPath = join(
+      paths.migrationLogFolder,
+      'migrationLog_1.0.1.jsonl',
+    );
+    expect(await pathExists(versionedPath)).toBe(false);
+  });
+  it('accepts and reads project_rename entries', async () => {
+    const projectPath = await freshProject('project-rename-log');
+    await ConfigurationLogger.log(projectPath, {
+      operation: 'project_rename',
+      target: 'new-prefix',
+      parameters: { oldPrefix: 'old-prefix', newPrefix: 'new-prefix' },
+    });
+    const entries = await ConfigurationLogger.entries(projectPath);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].operation).toBe('project_rename');
+    expect(entries[0].parameters).toEqual({
+      oldPrefix: 'old-prefix',
+      newPrefix: 'new-prefix',
     });
   });
 });

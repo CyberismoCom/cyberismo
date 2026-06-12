@@ -11,12 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  allowed,
-  fromDate,
-  fromNumber,
-  fromString,
-} from '../utils/value-utils.js';
+import { allowed } from '../utils/value-utils.js';
 import { DefaultContent } from './create-defaults.js';
 import { FileResource } from './file-resource.js';
 import { resourceNameToString } from '../utils/resource-utils.js';
@@ -24,11 +19,7 @@ import { sortCards } from '../utils/card-utils.js';
 
 import * as EmailValidator from 'email-validator';
 
-import type {
-  ChangeOperation,
-  Operation,
-  RemoveOperation,
-} from './resource-object.js';
+import type { ChangeOperation, Operation } from './resource-object.js';
 import type { Card } from '../interfaces/project-interfaces.js';
 import type {
   DataType,
@@ -39,17 +30,10 @@ import type {
 import type { Project } from '../containers/project.js';
 import type { ResourceName } from '../utils/resource-utils.js';
 
-const SHORT_TEXT_MAX_LENGTH = 80;
-
 /**
  * Field type resource class.
  */
 export class FieldTypeResource extends FileResource<FieldType> {
-  // Initialize data type change helpers (fromType, toType) to some values.
-  // The actual types are set, if this Field Type's dataType is changed.
-  private fromType: DataType = 'integer';
-  private toType: DataType = 'integer';
-
   /**
    * Creates an instance of FieldTypeResource
    * @param project Project to use
@@ -70,104 +54,14 @@ export class FieldTypeResource extends FileResource<FieldType> {
       .map((card) => card.key);
   }
 
-  // Converts values.
-  // The allowed conversions are:
-  // - shortText/longText --> person, if valid email
-  // - shortText/longText --> integer/number, if can be parseNumber/parseInt'd
-  // - shortText/longText --> list, if text can be split with comma
-  // - shortText/longText --> date / datetime (if it can be parsed as date)
-  // - shortText/longText --> boolean, if string is "false" or "true"
-  // - number --> integer, drop fractions
-  // - integer --> number
-  // - date --> dateTime
-  // - dateTime --> date
-  // - any --> shortText, unless too long
-  // - any --> longText
-  // Other cases are forbidden.
-  private doConvertValue<T>(value: T) {
-    if (this.fromType === 'date' || this.fromType === 'dateTime') {
-      return fromDate(value, this.toType);
-    }
-    if (this.fromType === 'integer' || this.fromType === 'number') {
-      return fromNumber(value, this.toType);
-    }
-    if (this.fromType === 'shortText' || this.fromType === 'longText') {
-      return fromString(value, this.toType);
-    }
-    if (this.toType === 'shortText' || this.toType === 'longText') {
-      let tempValue = String(value);
-      tempValue = tempValue.replace(/(\\")/g, '');
-      if (
-        this.toType === 'shortText' &&
-        tempValue.length > SHORT_TEXT_MAX_LENGTH
-      ) {
-        return null;
-      }
-      return tempValue;
-    }
-  }
-
-  // Converts value 'fromType' to 'toType'. If value cannot be converted returns null.
-  private convertValue<T>(value: T) {
-    if (value === null) return null;
-    if (value === undefined) return undefined;
-
-    const tempValue = this.doConvertValue(value);
-    if (tempValue === null) {
-      throw new Error(
-        `Cannot convert from '${this.fromType}' to '${this.toType}' value '${value}'`,
-      );
-    }
-    return tempValue;
-  }
-
-  // If dataType has changed, convert all the cards with affected data.
-  private async dataTypeChanged() {
-    const cardTypesThatUseThisFieldType: string[] = [];
-
-    // Helper to filter out the unwanted cards.
-    function affectedCard(card: Card): boolean {
-      if (!card.metadata) return false;
-      return cardTypesThatUseThisFieldType.some(
-        (item) => item === card.metadata?.cardType,
-      );
-    }
-
-    // First collect the cardTypes that need to be updated.
-    const cardTypes = this.relevantCardTypes();
-    cardTypesThatUseThisFieldType.push(...cardTypes);
-
-    // Then collect cards (both project and local template) that use those card types.
-    const projectCards = this.project
-      .cards(this.project.paths.cardRootFolder)
-      .filter((card) => affectedCard(card));
-    const templateCards = this.project
-      .allTemplateCards()
-      .filter((card) => !card.path.includes('modules'))
-      .filter((card) => affectedCard(card));
-    const allCards = [...projectCards, ...templateCards];
-
-    // Finally, convert values and update the cards.
-    for (const card of allCards) {
-      const metadata = card.metadata!;
-      const fieldName = resourceNameToString(this.resourceName);
-      try {
-        metadata[fieldName] = this.convertValue(metadata[fieldName]);
-        // Either value was already null, or couldn't convert.
-        if (metadata[fieldName] === null) continue;
-
-        await this.project.updateCardMetadata(card, metadata);
-      } catch (error) {
-        console.error(
-          `In card '${card.key}': ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-    }
-  }
-
   // Checks that enum with 'enumValue' exists.
   private enumValueExists<Type>(op: Operation<Type>, values: Type[]) {
     const targetValue = (op as Operation<EnumDefinition>).target;
+    if (targetValue === undefined) {
+      throw new Error(
+        `Cannot perform operation on 'enumValues'. Operation requires 'target'`,
+      );
+    }
     const foundTarget = values.find(
       (item) => (item as EnumDefinition).enumValue === targetValue.enumValue,
     );
@@ -204,44 +98,8 @@ export class FieldTypeResource extends FileResource<FieldType> {
     return foundTarget;
   }
 
-  // If enum value is removed, and replacement value is given; replace all
-  // references to removed enum value with the given replacement value.
-  private async handleEnumValueReplacements<Type>(op: Operation<Type>) {
-    const removeOp = op as RemoveOperation<Type>;
-    const newValue = removeOp.replacementValue as EnumDefinition;
-    if (!newValue) return;
-
-    const removedValue = (op.target as EnumDefinition).enumValue;
-    const cardTypes = this.relevantCardTypes();
-    const allCards = await Promise.all(
-      cardTypes.map((cardType) =>
-        this.collectCards(
-          cardType,
-          (card, cardTypeName) => card.metadata?.cardType === cardTypeName,
-        ),
-      ),
-    );
-    const cardsToUpdate = allCards
-      .flat()
-      .filter((card) => card.metadata?.[this.content.name] === removedValue);
-
-    await Promise.all(
-      cardsToUpdate.map((card) =>
-        this.project.updateCardMetadataKey(
-          card.key,
-          this.content.name,
-          newValue.enumValue,
-        ),
-      ),
-    );
-  }
-
   // Checks if value 'from' can be converted 'to' value.
   private isConversionValid(from: DataType, to: DataType) {
-    // Set helpers to avoid dragging 'Operation' object everywhere.
-    this.fromType = from;
-    this.toType = to;
-
     return allowed(from, to);
   }
 
@@ -266,40 +124,6 @@ export class FieldTypeResource extends FileResource<FieldType> {
         references.push(cardType.data?.name);
     }
     return references;
-  }
-
-  // Update dependant card types
-  private async updateCardTypes(oldName: string) {
-    const cardTypes = this.project.resources.cardTypes();
-    const op = {
-      name: 'change',
-      target: oldName,
-      to: this.content.name,
-    } as ChangeOperation<string>;
-    for (const cardType of cardTypes) {
-      if (cardType.data?.customFields) {
-        const found = cardType.data.customFields
-          ? cardType.data.customFields.find((item) => item.name === oldName)
-          : undefined;
-        if (found) {
-          await cardType.update({ key: 'customFields' }, op);
-        }
-      }
-    }
-  }
-
-  /**
-   * When resource name changes.
-   * @param existingName Current resource name.
-   */
-  protected async onNameChange(existingName: string) {
-    await Promise.all([
-      super.updateHandleBars(existingName, this.content.name),
-      super.updateCalculations(existingName, this.content.name),
-      super.updateCardContentReferences(existingName, this.content.name),
-      this.updateCardTypes(existingName),
-    ]);
-    await this.write();
   }
 
   /**
@@ -384,16 +208,6 @@ export class FieldTypeResource extends FileResource<FieldType> {
   }
 
   /**
-   * Renames resource metadata file and renames memory resident object 'name'.
-   * @param newName New name for the resource.
-   */
-  public async rename(newName: ResourceName) {
-    const existingName = this.content.name;
-    await super.rename(newName);
-    return this.onNameChange(existingName);
-  }
-
-  /**
    * Updates field type resource.
    * @param updateKey Key to modify
    * @param op Operation to perform on 'key'
@@ -412,8 +226,6 @@ export class FieldTypeResource extends FileResource<FieldType> {
       await super.update(updateKey, op);
     } else {
       const content = structuredClone(this.content);
-      const typeChange = key === 'dataType';
-      const enumChange = key === 'enumValues';
       const existingType = this.content.dataType;
       if (key === 'dataType') {
         const toType = op as ChangeOperation<DataType>;
@@ -452,13 +264,11 @@ export class FieldTypeResource extends FileResource<FieldType> {
         throw new Error(`Unknown property '${key}' for FieldType`);
       }
 
+      // The dataType-conversion and enum-replacement cascades have moved to the
+      // FieldType handlers (FieldTypeDataTypeHandler, FieldTypeEnumRemoveHandler).
+      // update() now only validates and persists the resource edit; it no longer
+      // rewrites card metadata.
       await super.postUpdate(content, updateKey, op);
-
-      if (typeChange) {
-        await this.dataTypeChanged();
-      } else if (enumChange && op.name === 'remove') {
-        await this.handleEnumValueReplacements(op);
-      }
     }
   }
 

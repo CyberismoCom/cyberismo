@@ -18,52 +18,22 @@ import { join } from 'node:path';
 import { getChildLogger } from './log-utils.js';
 import { ProjectPaths } from '../containers/project/project-paths.js';
 import { writeFileSafe, pathExists } from './file-utils.js';
-import type {
-  Operation,
-  ChangeOperation,
-} from '../resources/resource-object.js';
-import type { ResourceFolderType } from '../interfaces/project-interfaces.js';
 
-/**
- * Enum for configuration change operation types.
- */
-export enum ConfigurationOperation {
-  MODULE_REMOVE = 'module_remove',
-  PROJECT_RENAME = 'project_rename',
-  RESOURCE_DELETE = 'resource_delete',
-  RESOURCE_RENAME = 'resource_rename',
-  RESOURCE_UPDATE = 'resource_update',
-}
+// Entry shapes match the log format shipped in released versions
+// (INTDEV-584), so logs written by older versions remain readable and no
+// migration is needed.
+export type ConfigurationOperation =
+  | 'resource_update'
+  | 'resource_delete'
+  | 'resource_rename'
+  | 'project_rename';
 
-/**
- * Individual log entry representing a single configuration change.
- * @param timestamp Timestamp when the operation occurred (ISO string)
- * @param operation Type of operation performed
- * @param target Target of the operation
- * @param parameters Additional parameters specific to the operation
- */
 export interface ConfigurationLogEntry {
   timestamp: string;
   operation: ConfigurationOperation;
   target: string;
   parameters?: Record<string, unknown>;
 }
-
-/** Keys where ALL operations (including remove) are non-breaking. */
-export const NON_BREAKING_KEYS = [
-  'alwaysVisibleFields',
-  'optionallyVisibleFields',
-  'transitions',
-];
-
-/** Keys where only 'change' is non-breaking — display-only scalars. */
-export const NON_BREAKING_CHANGE_KEYS = [
-  'displayName',
-  'description',
-  'category',
-  'outboundDisplayName',
-  'inboundDisplayName',
-];
 
 /**
  * Logger for tracking configuration changes that affect project structure.
@@ -105,7 +75,7 @@ export class ConfigurationLogger {
   public static async createVersion(
     projectPath: string,
     version: string,
-  ): Promise<string> {
+  ): Promise<string | null> {
     const paths = new ProjectPaths(projectPath);
     const currentLogPath = paths.configurationChangesLog;
     const versionedLogPath = join(
@@ -114,10 +84,14 @@ export class ConfigurationLogger {
     );
 
     if (!pathExists(currentLogPath)) {
-      throw new Error('No current migration log exists to version');
+      // Empty seal: no log file to rename; the version is sealed with no
+      // breaking changes. Per the spec, replay against a missing log is
+      // a no-op success.
+      const logger = getChildLogger({ module: 'ConfigurationLogger' });
+      logger.info(`Sealed empty migration log for version: ${version}`);
+      return null;
     }
 
-    // Rename current to versioned
     await rename(currentLogPath, versionedLogPath);
 
     const logger = getChildLogger({ module: 'ConfigurationLogger' });
@@ -202,74 +176,5 @@ export class ConfigurationLogger {
     } catch (error) {
       logger.error({ error, ...entry }, `Configuration logging failed`);
     }
-  }
-
-  /**
-   * For array-of-objects keys: which properties are "identity" (breaking if changed).
-   * If a 'change' op only modifies non-identity properties, it's non-breaking.
-   * Keys not listed here → all changes are breaking by default.
-   */
-  private static readonly IDENTITY_PROPERTIES: Record<string, string[]> = {
-    enumValues: ['enumValue'],
-    states: ['name'],
-    customFields: ['name', 'isCalculated'],
-  };
-
-  private static isNonBreakingArrayChange<T>(
-    key: string,
-    op: ChangeOperation<T>,
-  ): boolean {
-    const identityProps = ConfigurationLogger.IDENTITY_PROPERTIES[key];
-    if (!identityProps) return false;
-    const target = op.target as Record<string, unknown>;
-    const to = op.to as Record<string, unknown>;
-    return !identityProps.some(
-      (prop) => JSON.stringify(target[prop]) !== JSON.stringify(to[prop]),
-    );
-  }
-
-  public static async logResourceDelete(
-    projectPath: string,
-    target: string,
-    resourceType: ResourceFolderType,
-  ): Promise<void> {
-    await ConfigurationLogger.log(projectPath, {
-      operation: ConfigurationOperation.RESOURCE_DELETE,
-      target,
-      parameters: { type: resourceType },
-    });
-  }
-
-  public static async logResourceRename(
-    projectPath: string,
-    target: string,
-    resourceType: ResourceFolderType,
-    op: ChangeOperation<string>,
-  ): Promise<void> {
-    await ConfigurationLogger.log(projectPath, {
-      operation: ConfigurationOperation.RESOURCE_RENAME,
-      target,
-      parameters: { type: resourceType, operation: op },
-    });
-  }
-
-  public static async logResourceUpdate<T>(
-    projectPath: string,
-    target: string,
-    resourceType: ResourceFolderType,
-    op: Operation<T>,
-    key: string,
-  ): Promise<void> {
-    if (op.name === 'add' || op.name === 'rank') return;
-    if (NON_BREAKING_KEYS.includes(key)) return;
-    if (op.name === 'change') {
-      if (NON_BREAKING_CHANGE_KEYS.includes(key)) return;
-      if (ConfigurationLogger.isNonBreakingArrayChange(key, op)) return;
-    }
-    await ConfigurationLogger.log(projectPath, {
-      operation: ConfigurationOperation.RESOURCE_UPDATE,
-      target,
-      parameters: { type: resourceType, operation: op, key },
-    });
   }
 }

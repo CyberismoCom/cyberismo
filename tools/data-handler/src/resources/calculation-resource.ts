@@ -47,18 +47,6 @@ export class CalculationResource extends FolderResource<
   }
 
   /**
-   * When resource name changes
-   * @param existingName Current resource name
-   */
-  protected async onNameChange(existingName: string) {
-    await Promise.all([
-      super.updateCalculations(existingName, this.content.name),
-      super.updateCardContentReferences(existingName, this.content.name),
-    ]);
-    await this.write();
-  }
-
-  /**
    * Creates a new calculation object and file.
    * @param newContent Content for the calculation.
    */
@@ -81,16 +69,6 @@ export class CalculationResource extends FolderResource<
 
     await this.loadContentFiles();
   }
-  /**
-   * Renames resource metadata file and renames memory resident object 'name'.
-   * @param newName New name for the resource.
-   */
-  public async rename(newName: ResourceName) {
-    const existingName = this.content.name;
-    await super.rename(newName);
-    return this.onNameChange(existingName);
-  }
-
   /**
    * List where calculation resource is used in cards, or other calculation resources.
    * Always returns card key references first, then calculation references.

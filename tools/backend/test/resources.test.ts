@@ -135,6 +135,31 @@ test('/api/projects/decision/resources/decision/cardTypes/decision/operation per
   expect(cardTypeRestored.displayName).toBe(originalDisplayName);
 });
 
+test('/api/projects/decision/resources/decision/cardTypes/decision/operation accepts scalar change without target', async () => {
+  // Scalar changes carry no old value: the UI omits 'target' when the field
+  // is not yet present in the resource file (JSON.stringify drops undefined).
+  const response = await app.request(
+    '/api/projects/decision/resources/decision/cardTypes/decision/operation',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        updateKey: { key: 'description' },
+        operation: {
+          name: 'change',
+          to: 'Description set without a previous value',
+        },
+      }),
+    },
+  );
+
+  expect(response.status).toBe(200);
+  const result = await response.json();
+  expect(result.message).toBe('Updated');
+});
+
 test('/api/projects/decision/resources/decision/cardTypes/decision/operation performs add operation successfully', async () => {
   const targetField = 'decision/fieldTypes/percentageReady';
   const cardTypeBefore = await getCardTypeByName('decision/cardTypes/decision');

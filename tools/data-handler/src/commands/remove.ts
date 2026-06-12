@@ -16,10 +16,8 @@ import { isModuleCard, isExternalItemKey } from '../utils/card-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { declaredModules, installedModules } from '../modules/inventory.js';
 import { cleanOrphans } from '../modules/orphans.js';
-import {
-  ConfigurationLogger,
-  ConfigurationOperation,
-} from '../utils/configuration-logger.js';
+import { ResourceMutations } from '../mutations/resource-mutations.js';
+import { resourceName as parseResourceName } from '../utils/resource-utils.js';
 import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
 import type { RemovableResourceTypes } from '../interfaces/project-interfaces.js';
@@ -37,10 +35,14 @@ export class Remove {
    * Creates a new instance of Remove command.
    * @param project Project instance to use
    */
+  private readonly mutations: ResourceMutations;
+
   constructor(
     private project: Project,
     private fetchCmd: Fetch,
-  ) {}
+  ) {
+    this.mutations = new ResourceMutations(project);
+  }
 
   // True, if resource is a project resource
   private projectResource(type: RemovableResourceTypes): boolean {
@@ -81,41 +83,8 @@ export class Remove {
       await actionGuard.checkPermission('delete', cardKey);
     }
 
-    // Collect all card keys that will be deleted (the card itself and all descendants).
-    const cardsToDelete = new Set<string>();
-    const collectDescendants = (c: typeof card) => {
-      cardsToDelete.add(c.key);
-      for (const childKey of c.children) {
-        try {
-          const childCard = this.project.findCard(childKey);
-          collectDescendants(childCard);
-        } catch {
-          this.logger.debug({ childKey }, 'Child card not found, skipping');
-        }
-      }
-    };
-    collectDescendants(card);
-
-    // If any of the cards to be deleted is a destination of a link, remove the link.
-    const allCards = this.project.cards(this.project.paths.cardRootFolder);
-    const promiseContainer: Promise<void>[] = [];
-
-    for (const item of allCards) {
-      if (cardsToDelete.has(item.key) || !item.metadata) continue;
-      const links = item.metadata.links;
-      const preservedLinks = links.filter((l) => !cardsToDelete.has(l.cardKey));
-      if (preservedLinks.length !== links.length) {
-        promiseContainer.push(
-          this.project.updateCardMetadataKey(item.key, 'links', preservedLinks),
-        );
-      }
-    }
-
-    await Promise.all(promiseContainer);
-
-    if (card) {
-      await this.project.handleCardDeleted(card);
-    }
+    // Descendant cascade and link cleanup live in the project-level primitive.
+    await this.project.deleteCards([card]);
   }
 
   // removes label from project
@@ -297,11 +266,19 @@ export class Remove {
       );
     }
     if (this.projectResource(type)) {
-      const resource = this.project.resources.byType(
-        targetName,
-        this.project.resources.resourceTypeFromSingularType(type),
-      );
-      return resource?.delete();
+      // Callers may pass a bare identifier; fill in prefix and type.
+      const parsed = parseResourceName(targetName);
+      await this.mutations.apply({
+        kind: 'delete',
+        target: {
+          prefix: parsed.prefix || this.project.projectPrefix,
+          type:
+            parsed.type ||
+            this.project.resources.resourceTypeFromSingularType(type),
+          identifier: parsed.identifier,
+        },
+      });
+      return;
     } else {
       // Something else than resources...
       if (type === 'attachment')
@@ -347,10 +324,6 @@ export class Remove {
 
     // Delete the top-level declaration from cardsConfig.json.
     await this.project.configuration.removeModule(targetName);
-    await ConfigurationLogger.log(this.project.basePath, {
-      operation: ConfigurationOperation.MODULE_REMOVE,
-      target: targetName,
-    });
 
     // Removes this module's installation (now orphaned) plus any
     // transitives it owned that nothing else references.
