@@ -60,7 +60,9 @@ export class Fetch {
     location: string,
   ): Promise<number | undefined> {
     try {
-      const url = new URL(`${location.replace(/\/+$/, '')}/${MODULE_LIST_FILE}`);
+      const url = new URL(
+        `${location.replace(/\/+$/, '')}/${MODULE_LIST_FILE}`,
+      );
       if (!['http:', 'https:'].includes(url.protocol)) {
         return undefined;
       }
@@ -89,7 +91,9 @@ export class Fetch {
   // Fetches one hub's data as JSON.
   private async fetchJSON(location: string, schemaId: string) {
     try {
-      const url = new URL(`${location.replace(/\/+$/, '')}/${MODULE_LIST_FILE}`);
+      const url = new URL(
+        `${location.replace(/\/+$/, '')}/${MODULE_LIST_FILE}`,
+      );
       if (!['http:', 'https:'].includes(url.protocol)) {
         throw new Error(
           `Invalid protocol: ${url.protocol}. Only HTTP and HTTPS are supported.`,
