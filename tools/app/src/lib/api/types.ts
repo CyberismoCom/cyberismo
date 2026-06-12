@@ -123,12 +123,18 @@ interface BaseResourceNode {
 export interface GeneralSettings {
   name: string;
   cardKeyPrefix: string;
+  description: string;
+  category: string;
   modules: {
     name: string;
     cardKeyPrefix: string;
   }[];
   gitRemoteUrl: string | null;
 }
+
+export type ProjectSettingsUpdate = Partial<
+  Pick<GeneralSettings, 'name' | 'cardKeyPrefix' | 'description' | 'category'>
+> & { gitRemoteUrl?: string };
 
 interface GeneralNode extends BaseResourceNode {
   type: 'general';

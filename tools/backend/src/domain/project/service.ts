@@ -24,6 +24,8 @@ export interface ProjectModule {
 export interface ProjectInfo {
   name: string;
   cardKeyPrefix: string;
+  description: string;
+  category: string;
   modules: ProjectModule[];
   gitRemoteUrl: string | null;
 }
@@ -31,6 +33,8 @@ export interface ProjectInfo {
 export interface ProjectUpdatePayload {
   name?: string;
   cardKeyPrefix?: string;
+  description?: string;
+  category?: string;
   gitRemoteUrl?: string;
 }
 
@@ -67,6 +71,8 @@ export async function getProject(
     return {
       name: project.name,
       cardKeyPrefix: project.prefix,
+      description: project.description ?? '',
+      category: project.category ?? '',
       modules: moduleDetails,
       gitRemoteUrl,
     };
@@ -77,7 +83,7 @@ export async function updateProject(
   commands: CommandManager,
   updates: ProjectUpdatePayload,
 ): Promise<ProjectInfo> {
-  const { name, cardKeyPrefix, gitRemoteUrl } = updates;
+  const { name, cardKeyPrefix, description, category, gitRemoteUrl } = updates;
 
   await commands.atomic(async () => {
     if (cardKeyPrefix) {
@@ -85,6 +91,12 @@ export async function updateProject(
     }
     if (name) {
       await commands.project.configuration.setProjectName(name);
+    }
+    if (description !== undefined) {
+      await commands.project.configuration.setDescription(description);
+    }
+    if (category !== undefined) {
+      await commands.project.configuration.setCategory(category);
     }
   }, 'Update project settings');
 
