@@ -164,6 +164,31 @@ describe('project settings', () => {
     expect(projectSettings.hubs[0].location).toBe('https://example.com/hub');
   });
 
+  it('should strip moduleList.json from hub URL', async () => {
+    const configPath = createTestConfig('test-config-hub-strip.json');
+    const projectSettings = new ProjectConfiguration(configPath, false);
+    await projectSettings.addHub('https://example.com/hub/moduleList.json');
+
+    expect(projectSettings.hubs[0].location).toBe('https://example.com/hub');
+  });
+
+  it('should reject duplicate hub that differs only by trailing slash', async () => {
+    const configPath = createTestConfig(
+      'test-config-hub-slash-duplicate.json',
+      {
+        hubs: [{ location: 'https://example.com/hub/' }],
+      },
+    );
+    const projectSettings = new ProjectConfiguration(configPath, false);
+
+    await expect(
+      projectSettings.addHub('https://example.com/hub'),
+    ).rejects.toThrow('already exists as a hub for the project');
+    await expect(
+      projectSettings.addHub('https://example.com/hub/moduleList.json'),
+    ).rejects.toThrow('already exists as a hub for the project');
+  });
+
   it('should reject empty hub URL', async () => {
     const configPath = createTestConfig('test-config-hub-empty.json');
     const projectSettings = new ProjectConfiguration(configPath, false);
