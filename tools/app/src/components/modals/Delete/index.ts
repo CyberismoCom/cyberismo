@@ -12,5 +12,6 @@
 */
 export * from './BaseDeleteModal';
 export * from './DeleteModal';
+export * from './HubDeleteModal';
 export * from './ModuleDeleteModal';
 export * from './ResourceDeleteModal';

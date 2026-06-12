@@ -136,6 +136,20 @@ export type ProjectSettingsUpdate = Partial<
   Pick<GeneralSettings, 'name' | 'cardKeyPrefix' | 'description' | 'category'>
 > & { gitRemoteUrl?: string };
 
+export interface HubModule {
+  name: string;
+  displayName?: string;
+  location: string;
+  imported: boolean;
+}
+
+export interface Hub {
+  location: string;
+  displayName?: string;
+  description?: string;
+  modules: HubModule[];
+}
+
 interface GeneralNode extends BaseResourceNode {
   type: 'general';
   data: GeneralSettings;
