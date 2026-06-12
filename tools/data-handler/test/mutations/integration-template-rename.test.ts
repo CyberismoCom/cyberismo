@@ -44,7 +44,7 @@ describe('Leaf rename mutation engine end-to-end', () => {
     const entries = await ConfigurationLogger.entries(project.basePath);
     expect(
       entries.some(
-        (e) => e.kind === 'resource_rename' && e.target === TEMPLATE,
+        (e) => e.operation === 'resource_rename' && e.target === TEMPLATE,
       ),
     ).toBe(true);
   });
@@ -63,7 +63,9 @@ describe('Leaf rename mutation engine end-to-end', () => {
 
     const entries = await ConfigurationLogger.entries(project.basePath);
     expect(
-      entries.some((e) => e.kind === 'resource_rename' && e.target === REPORT),
+      entries.some(
+        (e) => e.operation === 'resource_rename' && e.target === REPORT,
+      ),
     ).toBe(true);
   });
 

@@ -38,21 +38,24 @@ describe('configuration logger', () => {
     await deleteDir(testDir);
   });
 
-  it('writes entries with the new kind-discriminated shape', async () => {
+  it('writes entries in the released operation/parameters shape', async () => {
     const projectPath = await freshProject('shape-test');
     await ConfigurationLogger.log(projectPath, {
-      kind: 'resource_edit',
+      operation: 'resource_update',
       target: 'foo/cardTypes/bar',
-      payload: {
+      parameters: {
         key: 'customFields',
         operation: { name: 'remove', target: 'priority' },
       },
     });
     const entries = await ConfigurationLogger.entries(projectPath);
     expect(entries).toHaveLength(1);
-    expect(entries[0].kind).toBe('resource_edit');
+    expect(entries[0].operation).toBe('resource_update');
     expect(entries[0].target).toBe('foo/cardTypes/bar');
-    expect(entries[0]).not.toHaveProperty('operation'); // old field is gone
+    // Logs written by released versions use this shape; the interim
+    // kind/payload shape must not come back.
+    expect(entries[0]).not.toHaveProperty('kind');
+    expect(entries[0]).not.toHaveProperty('payload');
   });
 
   describe('basic logging operations', () => {
@@ -61,43 +64,45 @@ describe('configuration logger', () => {
     });
     it('should log resource deletion', async () => {
       await ConfigurationLogger.log(testProjectPath, {
-        kind: 'resource_delete',
+        operation: 'resource_delete',
         target: 'test-resource',
-        payload: { type: 'template' },
+        parameters: { type: 'template' },
       });
 
       const entries = await ConfigurationLogger.entries(testProjectPath);
       expect(entries).toHaveLength(1);
-      expect(entries[0].kind).toBe('resource_delete');
+      expect(entries[0].operation).toBe('resource_delete');
       expect(entries[0].target).toBe('test-resource');
-      expect(entries[0].payload?.type).toBe('template');
+      expect(entries[0].parameters?.type).toBe('template');
       expect(entries[0].timestamp).toBeTypeOf('string');
     });
     it('should handle logging without parameters', async () => {
       await ConfigurationLogger.log(testProjectPath, {
-        kind: 'resource_rename',
+        operation: 'resource_rename',
         target: 'renamed-resource',
-        payload: {},
+        parameters: {},
       });
 
       const entries = await ConfigurationLogger.entries(testProjectPath);
-      const renameEntry = entries.find((e) => e.kind === 'resource_rename');
+      const renameEntry = entries.find(
+        (e) => e.operation === 'resource_rename',
+      );
       expect(renameEntry).toBeDefined();
       expect(renameEntry!.target).toBe('renamed-resource');
-      expect(renameEntry!.payload).toBeDefined();
+      expect(renameEntry!.parameters).toBeDefined();
     });
     it('should append entries in JSON Lines format', async () => {
       await ConfigurationLogger.clearLog(testProjectPath);
 
       await ConfigurationLogger.log(testProjectPath, {
-        kind: 'resource_delete',
+        operation: 'resource_delete',
         target: 'resource1',
-        payload: {},
+        parameters: {},
       });
       await ConfigurationLogger.log(testProjectPath, {
-        kind: 'resource_rename',
+        operation: 'resource_rename',
         target: 'resource2',
-        payload: {},
+        parameters: {},
       });
 
       const logPath = ConfigurationLogger.logFile(testProjectPath);
@@ -109,18 +114,30 @@ describe('configuration logger', () => {
       const entry1 = JSON.parse(lines[0]) as ConfigurationLogEntry;
       const entry2 = JSON.parse(lines[1]) as ConfigurationLogEntry;
 
-      expect(entry1.kind).toBe('resource_delete');
+      expect(entry1.operation).toBe('resource_delete');
       expect(entry1.target).toBe('resource1');
-      expect(entry2.kind).toBe('resource_rename');
+      expect(entry2.operation).toBe('resource_rename');
       expect(entry2.target).toBe('resource2');
     });
     it('should preserve entry order', async () => {
       await ConfigurationLogger.clearLog(testProjectPath);
 
       const entries = [
-        { kind: 'resource_delete' as const, target: 'first', payload: {} },
-        { kind: 'resource_edit' as const, target: 'second', payload: {} },
-        { kind: 'resource_rename' as const, target: 'third', payload: {} },
+        {
+          operation: 'resource_delete' as const,
+          target: 'first',
+          parameters: {},
+        },
+        {
+          operation: 'resource_update' as const,
+          target: 'second',
+          parameters: {},
+        },
+        {
+          operation: 'resource_rename' as const,
+          target: 'third',
+          parameters: {},
+        },
       ];
 
       for (const entry of entries) {
@@ -138,9 +155,9 @@ describe('configuration logger', () => {
 
       await expect(
         ConfigurationLogger.log(invalidPath, {
-          kind: 'resource_delete',
+          operation: 'resource_delete',
           target: 'test',
-          payload: {},
+          parameters: {},
         }),
       ).resolves.not.toThrow();
     });
@@ -161,14 +178,14 @@ describe('configuration logger', () => {
       const beforeEntries = (await ConfigurationLogger.entries(testProjectPath))
         .length;
       await ConfigurationLogger.log(testProjectPath, {
-        kind: 'resource_delete',
+        operation: 'resource_delete',
         target: 'test1',
-        payload: {},
+        parameters: {},
       });
       await ConfigurationLogger.log(testProjectPath, {
-        kind: 'resource_delete',
+        operation: 'resource_delete',
         target: 'test2',
-        payload: {},
+        parameters: {},
       });
 
       let entries = await ConfigurationLogger.entries(testProjectPath);
@@ -192,9 +209,9 @@ describe('configuration logger', () => {
 
       // Write some valid and invalid JSON lines
       const testContent = [
-        '{"timestamp":"2025-01-01T12:00:00.000Z","kind":"resource_delete","target":"valid"}',
+        '{"timestamp":"2025-01-01T12:00:00.000Z","operation":"resource_delete","target":"valid"}',
         'invalid json line', // Will be skipped - invalid JSON
-        '{"timestamp":"2025-01-01T12:01:00.000Z","kind":"resource_rename","target":"valid2"}',
+        '{"timestamp":"2025-01-01T12:01:00.000Z","operation":"resource_rename","target":"valid2"}',
         '{"incomplete":true}', // Will be skipped - missing required fields
       ].join('\n');
 
@@ -217,9 +234,9 @@ describe('configuration logger', () => {
     it('should check log existence via static method', async () => {
       const testProjectPath2 = join(testDir, 'test-project-static');
       await ConfigurationLogger.log(testProjectPath2, {
-        kind: 'resource_delete',
+        operation: 'resource_delete',
         target: 'test',
-        payload: {},
+        parameters: {},
       });
 
       const logPath = ConfigurationLogger.logFile(testProjectPath2);
@@ -245,14 +262,14 @@ describe('configuration logger', () => {
   it('accepts and reads project_rename entries', async () => {
     const projectPath = await freshProject('project-rename-log');
     await ConfigurationLogger.log(projectPath, {
-      kind: 'project_rename',
+      operation: 'project_rename',
       target: 'new-prefix',
-      payload: { oldPrefix: 'old-prefix', newPrefix: 'new-prefix' },
+      parameters: { oldPrefix: 'old-prefix', newPrefix: 'new-prefix' },
     });
     const entries = await ConfigurationLogger.entries(projectPath);
     expect(entries).toHaveLength(1);
-    expect(entries[0].kind).toBe('project_rename');
-    expect(entries[0].payload).toEqual({
+    expect(entries[0].operation).toBe('project_rename');
+    expect(entries[0].parameters).toEqual({
       oldPrefix: 'old-prefix',
       newPrefix: 'new-prefix',
     });

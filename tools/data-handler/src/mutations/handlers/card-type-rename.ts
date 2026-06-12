@@ -13,12 +13,15 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
-import {
-  resourceName,
-  resourceNameToString,
-} from '../../utils/resource-utils.js';
+import { resourceNameToString } from '../../utils/resource-utils.js';
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
+import {
+  rewriteCardContentRefs,
+  rewriteContentFileRefs,
+} from '../cascades/rewrite-refs.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
+import type { ChangeOperation } from '../../resources/resource-object.js';
+import type { LinkType } from '../../interfaces/resource-interfaces.js';
 
 export class CardTypeRenameHandler implements Handler {
   readonly isBreaking = true;
@@ -34,11 +37,11 @@ export class CardTypeRenameHandler implements Handler {
     const oldName = resourceNameToString(ctx.input.target);
     const newName = `${ctx.input.target.prefix}/cardTypes/${ctx.input.newIdentifier}`;
 
-    // 1. Rewrite metadata.cardType on every affected card BEFORE renaming the
-    //    resource on disk. CardTypeResource.rename() (onNameChange) cascades the
-    //    calculation / handlebar / card-content / link-type references and the
-    //    self-prefix rewrites, but it does NOT touch each card's
-    //    metadata.cardType — so that rewrite lives here.
+    // All reference rewrites run BEFORE renaming the resource on disk: the
+    // cascade scanners look for the old name and the resource file (with that
+    // name) must still exist while they run.
+
+    // 1. Rewrite metadata.cardType on every affected card.
     const cards = this.affectedCards(ctx, oldName);
     for (const card of cards) {
       const metadata = card.metadata!;
@@ -46,14 +49,53 @@ export class CardTypeRenameHandler implements Handler {
       await ctx.project.updateCardMetadata(card, metadata);
     }
 
-    // 2. Rename the resource itself. CardTypeResource.rename handles the
-    //    cascading reference rewrites (calculations, handlebars, card content,
-    //    link-type source/destination card types).
+    // 2. Rewrite the cascading references: folder-resource content files
+    //    (calculations, report/graph templates), card content and the
+    //    source/destination card-type lists of every link type that
+    //    referenced this card type.
+    await rewriteContentFileRefs(ctx.project, oldName, newName);
+    await rewriteCardContentRefs(ctx.project, oldName, newName);
+    await this.updateLinkTypes(ctx, oldName, newName);
+
+    // 3. Rename the resource itself.
     const resource = ctx.project.resources.byType(oldName, 'cardTypes');
     if (!resource) {
       throw new Error(`CardType '${oldName}' not found`);
     }
-    await resource.rename(resourceName(newName));
+    await resource.rename(ctx.input.newIdentifier);
+  }
+
+  // Rewrite occurrences of the old card-type name in every local link type's
+  // sourceCardTypes / destinationCardTypes.
+  private async updateLinkTypes(
+    ctx: MutationContext,
+    oldName: string,
+    newName: string,
+  ): Promise<void> {
+    const linkTypes = ctx.project.resources.linkTypes(ResourcesFrom.localOnly);
+    const cardTypeFields: Array<
+      keyof Pick<LinkType, 'destinationCardTypes' | 'sourceCardTypes'>
+    > = ['destinationCardTypes', 'sourceCardTypes'];
+
+    await Promise.all(
+      linkTypes.map(async (object) => {
+        const data = object.data;
+        const updates: Promise<void>[] = [];
+        for (const field of cardTypeFields) {
+          if (data && data[field].includes(oldName)) {
+            const op: ChangeOperation<string> = {
+              name: 'change',
+              target: oldName,
+              to: newName,
+            } as ChangeOperation<string>;
+            updates.push(object.update({ key: field }, op));
+          }
+        }
+        if (updates.length > 0) {
+          await Promise.all(updates);
+        }
+      }),
+    );
   }
 
   // Cards using this card type: local project cards plus local template cards

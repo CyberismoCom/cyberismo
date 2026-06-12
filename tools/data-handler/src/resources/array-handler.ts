@@ -78,7 +78,10 @@ export class ArrayHandler<T> {
 
   private handleChange(operation: ChangeOperation<T>, array: T[]): T[] {
     const { target, to } = operation;
-    const parsedTarget = this.tryParseJSON(operation.target);
+    if (target === undefined) {
+      throw new Error(`Changing an array item requires 'target'`);
+    }
+    const parsedTarget = this.tryParseJSON(target);
     const targetIndex = this.findItemIndex(parsedTarget, array);
     if (targetIndex === -1) {
       throw new Error(`Item '${JSON.stringify(target)}' not found`);

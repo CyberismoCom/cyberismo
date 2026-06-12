@@ -44,7 +44,7 @@ describe('Workflow mutation engine end-to-end', () => {
 
     const entries = await ConfigurationLogger.entries(project.basePath);
     expect(
-      entries.some((e) => e.kind === 'resource_rename' && e.target === WF),
+      entries.some((e) => e.operation === 'resource_rename' && e.target === WF),
     ).toBe(true);
   });
 
@@ -67,9 +67,9 @@ describe('Workflow mutation engine end-to-end', () => {
     expect(
       entries.some(
         (e) =>
-          e.kind === 'resource_edit' &&
+          e.operation === 'resource_update' &&
           e.target === WF &&
-          (e.payload as { key?: string }).key === 'states',
+          (e.parameters as { key?: string }).key === 'states',
       ),
     ).toBe(true);
   });
@@ -94,9 +94,9 @@ describe('Workflow mutation engine end-to-end', () => {
     expect(
       entries.some(
         (e) =>
-          e.kind === 'resource_edit' &&
+          e.operation === 'resource_update' &&
           e.target === WF &&
-          (e.payload as { key?: string }).key === 'states',
+          (e.parameters as { key?: string }).key === 'states',
       ),
     ).toBe(true);
   });

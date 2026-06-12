@@ -13,17 +13,18 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
+import { resourceNameToString } from '../../utils/resource-utils.js';
 import {
-  resourceName,
-  resourceNameToString,
-} from '../../utils/resource-utils.js';
+  rewriteCardContentRefs,
+  rewriteContentFileRefs,
+} from '../cascades/rewrite-refs.js';
+import type { ChangeOperation } from '../../resources/resource-object.js';
 
 /**
  * Renaming a field type is a breaking change: card-content references,
- * calculations, handlebars and the customFields[].name entries on every
- * referencing card type are rewritten. The cascade is performed by
- * FieldTypeResource.rename; this handler delegates to resource.rename() and
- * marks the operation breaking so the engine records a log entry.
+ * calculations, report handlebars and the customFields[].name entries on every
+ * referencing card type are rewritten. The operation is marked breaking so the
+ * engine records a log entry.
  */
 export class FieldTypeRenameHandler implements Handler {
   readonly isBreaking = true;
@@ -45,6 +46,42 @@ export class FieldTypeRenameHandler implements Handler {
     if (!resource) {
       throw new Error(`Field type '${oldName}' not found`);
     }
-    await resource.rename(resourceName(newName));
+
+    // Rename the resource itself first. FieldTypeResource.rename only renames
+    // the metadata file and the in-memory name; it no longer cascades.
+    await resource.rename(ctx.input.newIdentifier);
+
+    // Cascade the rename across the project, after the resource file has been
+    // renamed. updateCardTypes re-validates the field reference against the
+    // project, which is why renaming a field still referenced by a card type is
+    // rejected.
+    await Promise.all([
+      rewriteContentFileRefs(ctx.project, oldName, newName),
+      rewriteCardContentRefs(ctx.project, oldName, newName),
+      this.updateCardTypes(ctx, oldName, newName),
+    ]);
+  }
+
+  // Rewrite every card type's customFields entry that references the renamed
+  // field type.
+  private async updateCardTypes(
+    ctx: MutationContext,
+    oldName: string,
+    newName: string,
+  ): Promise<void> {
+    const cardTypes = ctx.project.resources.cardTypes();
+    const op = {
+      name: 'change',
+      target: oldName,
+      to: newName,
+    } as ChangeOperation<string>;
+    for (const cardType of cardTypes) {
+      const found = cardType.data?.customFields?.find(
+        (item) => item.name === oldName,
+      );
+      if (found) {
+        await cardType.update({ key: 'customFields' }, op);
+      }
+    }
   }
 }

@@ -13,7 +13,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 // node
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { mkdir, rename } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 
 import { ArrayHandler } from './array-handler.js';
@@ -30,8 +30,6 @@ import {
   resourceNameToString,
   type ResourceName,
 } from '../utils/resource-utils.js';
-import { ResourcesFrom } from '../containers/project/resources-from.js';
-
 import type {
   Card,
   ResourceFolderType,
@@ -59,8 +57,11 @@ export type AddOperation<T> = BaseOperation<T> & {
 };
 
 // Change item in an array or property in an object or rename a scalar.
-export type ChangeOperation<T> = BaseOperation<T> & {
+// 'target' is the item to change and is required for array changes; scalar
+// changes carry no old value, so it may be omitted.
+export type ChangeOperation<T> = Omit<BaseOperation<T>, 'target'> & {
   name: 'change';
+  target?: T;
   to: T;
   mappingTable?: { stateMapping: Record<string, string> }; // Optional state mapping for workflow changes
 };
@@ -113,7 +114,7 @@ export abstract class AbstractResource<
   protected abstract create(content?: T): Promise<void>; // create a new with the content (memory)
   protected abstract delete(): Promise<void>; // delete from disk
   protected abstract read(): Promise<void>; // read content from disk (replaces existing content, if any)
-  protected abstract rename(newName: ResourceName): Promise<void>; // change name of the resource and filename; same as update('name', ...)
+  protected abstract rename(newIdentifier: string): Promise<void>; // change identifier of the resource and filename; same as update('name', ...)
   protected abstract show(): ShowReturnType<T, U>; // return the content as JSON
   protected abstract update<Type, K extends string>(
     updateKey: UpdateKey<K>,
@@ -183,14 +184,6 @@ export abstract class ResourceObject<
       );
     }
     return this.validateInstancePromise;
-  }
-
-  // Gets handlebar files.
-  private async reportHandlerBarFiles(from: ResourcesFrom = ResourcesFrom.all) {
-    const files = await Promise.all(
-      this.project.resources.reports(from).map((r) => r.handleBarFiles()),
-    );
-    return files.flat();
   }
 
   // Type of resource.
@@ -455,13 +448,16 @@ export abstract class ResourceObject<
   }
 
   /**
-   * Renames resource.
-   * @param newName New name for the resource.
+   * Renames resource: changes the identifier while prefix and type stay
+   * fixed. Renames the metadata file (and, for folder resources, the content
+   * folder) and persists the new name. Cross-resource reference cascades live
+   * in the mutation handlers.
+   * @param newIdentifier New identifier for the resource.
    * @throws if trying to rename module resource, or
-   *         if resource does not exist,
-   *         if trying to rename so that type changes
+   *         if resource does not exist, or
+   *         if the new identifier is not valid
    */
-  protected async rename(newName: ResourceName) {
+  public async rename(newIdentifier: string) {
     if (this.moduleResource) {
       throw new Error(`Cannot rename module resources`);
     }
@@ -470,32 +466,39 @@ export abstract class ResourceObject<
         `Resource '${this.resourceName.identifier}' does not exist`,
       );
     }
-    if (newName.prefix !== this.project.projectPrefix) {
-      throw new Error('Can only rename project resources');
-    }
-    if (newName.type !== this.resourceName.type) {
-      throw new Error('Cannot change resource type');
-    }
-    const validator = await ResourceObject.getValidate();
-    validator.validResourceName(
-      this.resourceType(),
-      resourceNameToString(newName),
-      this.project.projectPrefixes(),
-    );
-    const newFilename = join(
-      this.project.paths.resourcePath(newName.type as ResourceFolderType),
-      newName.identifier + '.json',
-    );
+    const newName: ResourceName = {
+      prefix: this.resourceName.prefix,
+      type: this.resourceName.type,
+      identifier: newIdentifier,
+    };
+    // write() below renames the metadata file, updates the resource registry
+    // and persists the content under the new name.
+    this.content.name = await this.validName(newName);
+    await this.write();
+  }
 
+  /**
+   * Moves the resource to a new prefix; identifier and type stay fixed.
+   * Only the project-rename cascade uses this; the caller must have already
+   * updated the project configuration to the new prefix. Subclasses holding
+   * references to other resources override this to rewrite references that
+   * carried the old prefix — the old prefix is the one in `content.name`
+   * (the persisted identity), NOT `resourceName.prefix`: the resource
+   * registry is re-collected after the configuration change, so instances
+   * may already be keyed under the new prefix while their content still
+   * carries the old one.
+   * @param newPrefix New project prefix.
+   * @throws if trying to change a module resource.
+   */
+  public async changePrefix(newPrefix: string) {
+    if (this.moduleResource) {
+      throw new Error(`Cannot change prefix of module resources`);
+    }
     const oldName = resourceNameToString(this.resourceName);
-    await rename(this.fileName, newFilename);
-
-    this.fileName = newFilename;
-    this.content.name = resourceNameToString(newName);
-    const newNameString = this.content.name;
-    this.resourceName = newName;
-
-    this.project.resources.rename(oldName, newNameString);
+    this.resourceName = { ...this.resourceName, prefix: newPrefix };
+    this.content.name = resourceNameToString(this.resourceName);
+    this.project.resources.rename(oldName, this.content.name);
+    await this.write();
   }
 
   /**
@@ -541,101 +544,6 @@ export abstract class ResourceObject<
     if (key.key === '' || key === undefined) {
       throw new Error(`Cannot update empty key`);
     }
-  }
-
-  /**
-   * Update calculation files.
-   * @param from Resource name to update
-   * @param to New name for resource
-   * @throws if 'from' or 'to' is empty string
-   */
-  protected async updateCalculations(from: string, to: string) {
-    if (!from.trim() || !to.trim()) {
-      throw new Error(
-        'updateCalculations: "from" and "to" parameters must not be empty',
-      );
-    }
-
-    const calculations = this.project.resources.calculations(
-      ResourcesFrom.localOnly,
-    );
-
-    await Promise.all(
-      calculations.map(async (calculation) => {
-        const content = calculation.contentData();
-        if (content.calculation) {
-          const updatedContent = content.calculation.replaceAll(from, to);
-          await calculation.updateFile('calculation.lp', updatedContent);
-        }
-      }),
-    );
-  }
-
-  /**
-   * Update references in handlebars.
-   * @param from Resource name to update
-   * @param to New name for resource
-   * @param handleBarFiles Optional. List of handlebar files. If omitted, affects all handlebar files in the project.
-   * @throws if 'from' or 'to' is empty string
-   */
-  protected async updateHandleBars(
-    from: string,
-    to: string,
-    handleBarFiles?: string[],
-  ) {
-    if (!from.trim() || !to.trim()) {
-      throw new Error(
-        'updateHandleBars: "from" and "to" parameters must not be empty',
-      );
-    }
-
-    if (!handleBarFiles) {
-      handleBarFiles = await this.reportHandlerBarFiles(
-        ResourcesFrom.localOnly,
-      );
-    }
-
-    // Process all files in parallel.
-    await Promise.all(
-      handleBarFiles.map(async (handleBarFile) => {
-        const content = await readFile(handleBarFile);
-        const updatedContent = content.toString().replaceAll(from, to);
-        await writeFile(handleBarFile, Buffer.from(updatedContent));
-      }),
-    );
-  }
-
-  /**
-   * Update references in card content.
-   * Searches through all card content in the cache and replaces references to the old resource name.
-   * @param from Resource name to update
-   * @param to New name for resource
-   * @throws if 'from' or 'to' is empty string
-   */
-  protected async updateCardContentReferences(from: string, to: string) {
-    if (!from.trim() || !to.trim()) {
-      throw new Error(
-        'updateCardContentReferences: "from" and "to" parameters must not be empty',
-      );
-    }
-
-    const allCards = this.cards();
-    const cardsToUpdate = allCards.filter(
-      (card) => card.content && card.content.includes(from),
-    );
-
-    if (cardsToUpdate.length === 0) {
-      return;
-    }
-
-    await Promise.all(
-      cardsToUpdate.map(async (card) => {
-        if (card.content) {
-          const updatedContent = card.content.replaceAll(from, to);
-          await this.project.updateCardContent(card.key, updatedContent);
-        }
-      }),
-    );
   }
 
   /**

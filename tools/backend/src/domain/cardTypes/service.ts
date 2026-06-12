@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { CommandManager } from '@cyberismo/data-handler';
+import { resourceName, type CommandManager } from '@cyberismo/data-handler';
 import type { VisibilityGroup, FieldVisibilityBody } from './schema.js';
 
 export async function getCardTypes(commands: CommandManager) {
@@ -53,6 +53,7 @@ export async function updateFieldVisibility(
   body: FieldVisibilityBody,
 ): Promise<void> {
   const { fieldName, group: targetGroup, index: targetIndex } = body;
+  const target = resourceName(cardTypeName);
 
   await commands.atomic(async () => {
     // Read is now inside the write lock
@@ -87,38 +88,42 @@ export async function updateFieldVisibility(
     // If same group, just handle reordering
     if (currentGroup === targetGroup) {
       if (targetGroup !== 'hidden' && targetIndex !== undefined) {
-        await commands.updateCmd.applyResourceOperation(
-          cardTypeName,
-          { key: groupToKey[targetGroup] },
-          { name: 'rank', target: fieldName, newIndex: targetIndex },
-        );
+        await commands.updateCmd.apply({
+          kind: 'edit',
+          target,
+          updateKey: { key: groupToKey[targetGroup] },
+          operation: { name: 'rank', target: fieldName, newIndex: targetIndex },
+        });
       }
       return;
     }
 
     // Remove from current group (if not hidden)
     if (currentGroup !== 'hidden') {
-      await commands.updateCmd.applyResourceOperation(
-        cardTypeName,
-        { key: groupToKey[currentGroup] },
-        { name: 'remove', target: fieldName },
-      );
+      await commands.updateCmd.apply({
+        kind: 'edit',
+        target,
+        updateKey: { key: groupToKey[currentGroup] },
+        operation: { name: 'remove', target: fieldName },
+      });
     }
 
     // Add to new group (if not hidden)
     if (targetGroup !== 'hidden') {
-      await commands.updateCmd.applyResourceOperation(
-        cardTypeName,
-        { key: groupToKey[targetGroup] },
-        { name: 'add', target: fieldName },
-      );
+      await commands.updateCmd.apply({
+        kind: 'edit',
+        target,
+        updateKey: { key: groupToKey[targetGroup] },
+        operation: { name: 'add', target: fieldName },
+      });
 
       if (targetIndex !== undefined) {
-        await commands.updateCmd.applyResourceOperation(
-          cardTypeName,
-          { key: groupToKey[targetGroup] },
-          { name: 'rank', target: fieldName, newIndex: targetIndex },
-        );
+        await commands.updateCmd.apply({
+          kind: 'edit',
+          target,
+          updateKey: { key: groupToKey[targetGroup] },
+          operation: { name: 'rank', target: fieldName, newIndex: targetIndex },
+        });
       }
     }
   }, `Update field visibility for ${cardTypeName}`);

@@ -82,12 +82,6 @@ export abstract class FolderResource<
   }
 
   /**
-   * For handling name changes.
-   * @param previousName The previous name before the change
-   */
-  protected abstract onNameChange?(previousName: string): Promise<void>;
-
-  /**
    * Set content files. Should not be called by others than resource cache.
    */
   public setContentFiles(contentFiles: Map<string, string>) {
@@ -244,8 +238,6 @@ export abstract class FolderResource<
       return;
     }
 
-    const nameChange = key === 'name';
-    const existingName = this.content.name;
     await super.update(updateKey, op);
     const content = structuredClone(this.content);
 
@@ -262,9 +254,5 @@ export abstract class FolderResource<
     }
 
     await super.postUpdate(content, updateKey, op);
-
-    if (nameChange) {
-      await this.onNameChange?.(existingName);
-    }
   }
 }

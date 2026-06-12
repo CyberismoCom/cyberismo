@@ -59,7 +59,7 @@ describe('ResourceMutations.apply', () => {
     ).recordLogEntry(input, { oldPrefix });
     const entries = await ConfigurationLogger.entries(project.basePath);
     const last = entries[entries.length - 1];
-    expect(last.kind).toBe('project_rename');
-    expect(last.payload).toEqual({ oldPrefix, newPrefix: 'renamed' });
+    expect(last.operation).toBe('project_rename');
+    expect(last.parameters).toEqual({ oldPrefix, newPrefix: 'renamed' });
   });
 });

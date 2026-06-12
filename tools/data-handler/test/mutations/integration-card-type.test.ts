@@ -48,7 +48,7 @@ describe('CardType mutation engine end-to-end', () => {
     expect(
       entries.some(
         (e) =>
-          e.kind === 'resource_delete' &&
+          e.operation === 'resource_delete' &&
           e.target === `${project.projectPrefix}/cardTypes/decision`,
       ),
     ).toBe(true);
@@ -68,7 +68,7 @@ describe('CardType mutation engine end-to-end', () => {
     expect(
       entries.some(
         (e) =>
-          e.kind === 'resource_rename' &&
+          e.operation === 'resource_rename' &&
           e.target === `${project.projectPrefix}/cardTypes/decision`,
       ),
     ).toBe(true);

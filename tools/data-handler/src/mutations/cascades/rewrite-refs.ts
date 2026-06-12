@@ -12,87 +12,48 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { readFile, writeFile } from 'node:fs/promises';
-
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
+import { filename } from '../../interfaces/folder-content-interfaces.js';
 
 import type { Project } from '../../containers/project.js';
 
 /**
- * Default list of handlebar files for a project: every handlebar file
- * referenced by any local report resource.
- */
-async function defaultHandlebarFiles(project: Project): Promise<string[]> {
-  const files = await Promise.all(
-    project.resources
-      .reports(ResourcesFrom.localOnly)
-      .map((r) => r.handleBarFiles()),
-  );
-  return files.flat();
-}
-
-/**
- * Update calculation files: replace all occurrences of `from` with `to`
- * in local calculation resources.
- * @param project Project whose calculations should be rewritten
+ * Update the content files of every local folder resource (calculations,
+ * graph models, graph views, reports): replace all occurrences of `from`
+ * with `to`. Goes through each resource's own content-file interface
+ * (`contentData`/`updateFile`) so the in-memory state stays in sync with
+ * disk. Non-string content (e.g. a report's parameter schema) is skipped.
+ * @param project Project whose folder resources should be rewritten
  * @param from Resource name to update
  * @param to New name for resource
  * @throws if 'from' or 'to' is empty string
  */
-export async function rewriteCalculationRefs(
+export async function rewriteContentFileRefs(
   project: Project,
   from: string,
   to: string,
 ) {
   if (!from.trim() || !to.trim()) {
     throw new Error(
-      'updateCalculations: "from" and "to" parameters must not be empty',
+      'rewriteContentFileRefs: "from" and "to" parameters must not be empty',
     );
   }
 
-  const calculations = project.resources.calculations(ResourcesFrom.localOnly);
+  const resources = [
+    ...project.resources.calculations(ResourcesFrom.localOnly),
+    ...project.resources.graphModels(ResourcesFrom.localOnly),
+    ...project.resources.graphViews(ResourcesFrom.localOnly),
+    ...project.resources.reports(ResourcesFrom.localOnly),
+  ];
 
   await Promise.all(
-    calculations.map(async (calculation) => {
-      const content = calculation.contentData();
-      if (content.calculation) {
-        const updatedContent = content.calculation.replaceAll(from, to);
-        await calculation.updateFile('calculation.lp', updatedContent);
+    resources.map(async (resource) => {
+      const content = resource.contentData() as Record<string, unknown>;
+      for (const [key, value] of Object.entries(content)) {
+        if (typeof value === 'string' && value.includes(from)) {
+          await resource.updateFile(filename(key)!, value.replaceAll(from, to));
+        }
       }
-    }),
-  );
-}
-
-/**
- * Update references in handlebar files.
- * @param project Project whose handlebar files should be rewritten
- * @param from Resource name to update
- * @param to New name for resource
- * @param handleBarFiles Optional. List of handlebar files. If omitted, affects all handlebar files in the project.
- * @throws if 'from' or 'to' is empty string
- */
-export async function rewriteHandlebarRefs(
-  project: Project,
-  from: string,
-  to: string,
-  handleBarFiles?: string[],
-) {
-  if (!from.trim() || !to.trim()) {
-    throw new Error(
-      'updateHandleBars: "from" and "to" parameters must not be empty',
-    );
-  }
-
-  if (!handleBarFiles) {
-    handleBarFiles = await defaultHandlebarFiles(project);
-  }
-
-  // Process all files in parallel.
-  await Promise.all(
-    handleBarFiles.map(async (handleBarFile) => {
-      const content = await readFile(handleBarFile);
-      const updatedContent = content.toString().replaceAll(from, to);
-      await writeFile(handleBarFile, Buffer.from(updatedContent));
     }),
   );
 }

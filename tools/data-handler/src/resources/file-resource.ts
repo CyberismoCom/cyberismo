@@ -74,25 +74,15 @@ export abstract class FileResource<
   }
 
   /**
-   * For handling name changes.
-   * @param previousName The previous name before the change
+   * Returns `ref` with its prefix replaced when it carries `from`.
+   * @param ref Resource name reference to update
+   * @param from Prefix to replace
+   * @param to Replacement prefix
+   * @returns updated resource name reference
    */
-  protected abstract onNameChange?(previousName: string): Promise<void>;
-
-  /**
-   * Updates resource key to a new prefix
-   * @param name Resource name
-   * @param prefixes list of prefixes in the project
-   * @returns updated resource name
-   */
-  protected updatePrefixInResourceName(name: string, prefixes: string[]) {
-    const { identifier, prefix, type } = resourceName(name);
-    if (this.moduleResource) {
-      return name;
-    }
-    return !prefixes.includes(prefix)
-      ? `${this.project.configuration.cardKeyPrefix}/${type}/${identifier}`
-      : name;
+  protected replacePrefix(ref: string, from: string, to: string) {
+    const { identifier, prefix, type } = resourceName(ref);
+    return prefix === from ? `${to}/${type}/${identifier}` : ref;
   }
 
   /**
@@ -107,8 +97,6 @@ export abstract class FileResource<
   ) {
     const { key } = updateKey;
 
-    const nameChange = key === 'name';
-    const existingName = this.content.name;
     await super.update(updateKey, op);
     const content = structuredClone(this.content);
 
@@ -125,10 +113,6 @@ export abstract class FileResource<
     }
 
     await super.postUpdate(content, updateKey, op);
-
-    if (nameChange) {
-      await this.onNameChange?.(existingName);
-    }
   }
 
   /**

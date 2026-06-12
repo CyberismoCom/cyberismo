@@ -86,8 +86,7 @@ export class ProjectRenameHandler implements Handler {
         // The file's own name field not carrying the old prefix means the
         // resource was already renamed (e.g. a partially completed run).
         if (parsed.prefix !== from) continue;
-        const newName = `${to}/${parsed.type}/${parsed.identifier}`;
-        await resource.rename(resourceName(newName));
+        await resource.changePrefix(to);
       }
     }
 

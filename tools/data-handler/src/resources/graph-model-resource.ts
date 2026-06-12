@@ -47,22 +47,6 @@ export class GraphModelResource extends FolderResource<
   }
 
   /**
-   * Handle name changes for graph models
-   * @param existingName The previous name before the change
-   */
-  protected async onNameChange(existingName: string): Promise<void> {
-    await Promise.all([
-      super.updateHandleBars(existingName, this.content.name, [
-        join(this.internalFolder, CONTENT_FILES.model),
-      ]),
-      super.updateCalculations(existingName, this.content.name),
-      super.updateCardContentReferences(existingName, this.content.name),
-    ]);
-    // Finally, write updated content.
-    await this.write();
-  }
-
-  /**
    * Sets new metadata into the graph model object graph model.
    * @param newContent metadata content for the graph model.
    * @throws if 'newContent' is not valid.
@@ -87,16 +71,6 @@ export class GraphModelResource extends FolderResource<
     });
 
     await this.loadContentFiles();
-  }
-
-  /**
-   * Renames the object and the file.
-   * @param newName New name for the resource.
-   */
-  public async rename(newName: ResourceName) {
-    const existingName = this.content.name;
-    await super.rename(newName);
-    return this.onNameChange(existingName);
   }
 
   /**

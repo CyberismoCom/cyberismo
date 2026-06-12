@@ -59,19 +59,6 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
   }
 
   /**
-   * Handle name changes for templates
-   * @param existingName The previous name before the change
-   */
-  protected async onNameChange(existingName: string): Promise<void> {
-    await Promise.all([
-      super.updateHandleBars(existingName, this.content.name),
-      super.updateCalculations(existingName, this.content.name),
-      super.updateCardContentReferences(existingName, this.content.name),
-    ]);
-    await this.write();
-  }
-
-  /**
    * Sets new metadata into the template object.
    * @param newContent metadata content for the template.
    */
@@ -95,16 +82,6 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
     const templateName = resourceNameToString(this.resourceName);
     this.project.cardsCache.deleteCardsFromTemplate(templateName);
     return super.delete();
-  }
-
-  /**
-   * Renames the object and the file.
-   * @param newName New name for the resource.
-   */
-  public async rename(newName: ResourceName) {
-    const existingName = this.content.name;
-    await super.rename(newName);
-    return this.onNameChange(existingName);
   }
 
   /**

@@ -266,22 +266,19 @@ export class Remove {
       );
     }
     if (this.projectResource(type)) {
-      if (
-        type === 'linkType' ||
-        type === 'cardType' ||
-        type === 'fieldType' ||
-        type === 'workflow'
-      ) {
-        const target = parseResourceName(targetName);
-        const input = { kind: 'delete' as const, target };
-        await this.mutations.apply(input);
-        return;
-      }
-      const resource = this.project.resources.byType(
-        targetName,
-        this.project.resources.resourceTypeFromSingularType(type),
-      );
-      return resource?.delete();
+      // Callers may pass a bare identifier; fill in prefix and type.
+      const parsed = parseResourceName(targetName);
+      await this.mutations.apply({
+        kind: 'delete',
+        target: {
+          prefix: parsed.prefix || this.project.projectPrefix,
+          type:
+            parsed.type ||
+            this.project.resources.resourceTypeFromSingularType(type),
+          identifier: parsed.identifier,
+        },
+      });
+      return;
     } else {
       // Something else than resources...
       if (type === 'attachment')
