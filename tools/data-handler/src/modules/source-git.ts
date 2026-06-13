@@ -18,6 +18,11 @@ import { join } from 'node:path';
 import { simpleGit, type SimpleGit } from 'simple-git';
 
 import { NON_INTERACTIVE_GIT_ENV, gitTimeout } from '../utils/git-config.js';
+import {
+  clone as cloneFromGitService,
+  isGitServiceEnabled,
+  resolveGitServiceClonePath,
+} from '../utils/git-service-client.js';
 import { GitManager } from '../utils/git-manager.js';
 import { pickVersion } from './version.js';
 import type { FetchTarget, SourceLayer } from './source.js';
@@ -43,6 +48,26 @@ export class GitSourceLayer implements SourceLayer {
     nameHint: string,
   ): Promise<string> {
     const destinationPath = join(destRoot, nameHint);
+
+    if (isGitServiceEnabled()) {
+      try {
+        const clonePath = await cloneFromGitService({
+          url: target.remoteUrl,
+          ref: target.ref,
+          shallow: true,
+        });
+
+        return resolveGitServiceClonePath(clonePath);
+      } catch (error) {
+        if (error instanceof Error) {
+          throw new Error(
+            `Failed to clone module '${nameHint}': ${error.message}`,
+            { cause: error },
+          );
+        }
+        throw error;
+      }
+    }
 
     await mkdir(destRoot, { recursive: true });
     await rm(destinationPath, { recursive: true, force: true });

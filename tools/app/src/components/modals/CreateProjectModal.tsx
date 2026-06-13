@@ -13,6 +13,7 @@
 
 import { useState } from 'react';
 import {
+  Alert,
   Button,
   DialogActions,
   DialogContent,
@@ -53,6 +54,7 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
 
   const [step, setStep] = useState<WizardStep>('method');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [cloneUrl, setCloneUrl] = useState('');
   const [form, setForm] = useState<ProjectFormData>({
     name: '',
@@ -71,6 +73,7 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
   const resetState = () => {
     setStep('method');
     setIsLoading(false);
+    setError(null);
     setCloneUrl('');
     setForm({ name: '', prefix: '', category: '', description: '' });
     setCreatedPrefix(null);
@@ -91,6 +94,7 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
   const handleClone = async () => {
     if (!cloneUrl.trim()) return;
     setIsLoading(true);
+    setError(null);
     try {
       const result = await cloneProject({ url: cloneUrl.trim() });
       dispatch(
@@ -105,14 +109,8 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
         handleClose();
       }
     } catch (error) {
-      dispatch(
-        addNotification({
-          message:
-            error instanceof Error
-              ? error.message
-              : t('projectDialog.cloneError'),
-          type: 'error',
-        }),
+      setError(
+        error instanceof Error ? error.message : t('projectDialog.cloneError'),
       );
       setIsLoading(false);
     }
@@ -121,6 +119,7 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
   const handleCreateProject = async () => {
     if (!canSubmitProjectForm(form)) return;
     setIsLoading(true);
+    setError(null);
     try {
       const result = await createProject({
         name: form.name.trim(),
@@ -137,14 +136,8 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
         }),
       );
     } catch (error) {
-      dispatch(
-        addNotification({
-          message:
-            error instanceof Error
-              ? error.message
-              : t('projectDialog.createError'),
-          type: 'error',
-        }),
+      setError(
+        error instanceof Error ? error.message : t('projectDialog.createError'),
       );
     }
     setIsLoading(false);
@@ -210,6 +203,11 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
         <LinearProgress determinate value={progressValue} sx={{ my: 1 }} />
         <Divider />
         <DialogContent sx={{ overflow: 'auto' }}>
+          {error && (
+            <Alert color="danger" sx={{ mb: 1 }}>
+              {error}
+            </Alert>
+          )}
           {step === 'method' && (
             <MethodStep
               onSelect={(m) => setStep(m === 'clone' ? 'clone' : 'projectInfo')}

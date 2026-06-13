@@ -1,4 +1,4 @@
-import { expect, it, describe, beforeEach, afterEach } from 'vitest';
+import { expect, it, describe, beforeEach, afterEach, vi } from 'vitest';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -16,6 +16,15 @@ function testGit(dir: string) {
 describe('GitManager', () => {
   let dir: string;
   let gm: GitManager;
+  const originalGitServiceUrl = process.env.GIT_SERVICE_URL;
+
+  function restoreGitServiceUrl() {
+    if (originalGitServiceUrl === undefined) {
+      delete process.env.GIT_SERVICE_URL;
+      return;
+    }
+    process.env.GIT_SERVICE_URL = originalGitServiceUrl;
+  }
 
   beforeEach(async () => {
     dir = await mkdtemp(join(tmpdir(), 'git-manager-test-'));
@@ -31,6 +40,8 @@ describe('GitManager', () => {
   });
 
   afterEach(async () => {
+    restoreGitServiceUrl();
+    vi.unstubAllGlobals();
     await rm(dir, { recursive: true, force: true });
   });
 
@@ -248,6 +259,35 @@ describe('GitManager', () => {
 
       const dirty = await gm.hasUncommittedChanges();
       expect(dirty).toBe(false);
+    });
+  });
+
+  describe('listRemoteVersionTags()', () => {
+    it('uses git-service when GIT_SERVICE_URL is set', async () => {
+      process.env.GIT_SERVICE_URL = 'http://git-service:8080';
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(['v2.0.0', 'v1.0.0']), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+      );
+      vi.stubGlobal('fetch', fetchMock);
+
+      vi.resetModules();
+      const { GitManager: FreshManager } =
+        await import('../src/utils/git-manager.js');
+
+      const tags = await FreshManager.listRemoteVersionTags(
+        'https://example.com/repo.git',
+      );
+
+      expect(tags).toEqual(['2.0.0', '1.0.0']);
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://git-service:8080/tags?url=https%3A%2F%2Fexample.com%2Frepo.git',
+        expect.objectContaining({
+          headers: expect.objectContaining({ Accept: 'application/json' }),
+        }),
+      );
     });
   });
 });

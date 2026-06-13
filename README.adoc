@@ -108,6 +108,8 @@ Copy *env.example* files to respective *.env* files:
 cp tools/backend/env.example tools/backend/.env
 ----
 
+Optional for SaaS-style deployments: set `GIT_SERVICE_URL` (for example `http://git-service:8080`) to delegate external git clone and remote tag operations to git-service.
+
 CLI related dependencies: link:tools/cli/README.md[README.md]
 
 === Run Project

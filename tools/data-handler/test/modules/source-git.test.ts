@@ -22,7 +22,19 @@ vi.mock('simple-git', () => {
 });
 
 describe('modules/source-git', () => {
+  const originalGitServiceUrl = process.env.GIT_SERVICE_URL;
+
+  function restoreGitServiceUrl() {
+    if (originalGitServiceUrl === undefined) {
+      delete process.env.GIT_SERVICE_URL;
+      return;
+    }
+    process.env.GIT_SERVICE_URL = originalGitServiceUrl;
+  }
+
   afterEach(() => {
+    restoreGitServiceUrl();
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
@@ -50,6 +62,21 @@ describe('modules/source-git', () => {
       'https://u:t@example.com/repo.git',
     );
     expect(spy).toHaveBeenCalledWith('https://u:t@example.com/repo.git');
+  });
+
+  it('listRemoteVersions uses GitManager normalization path when git-service is enabled', async () => {
+    process.env.GIT_SERVICE_URL = 'http://git-service:8080';
+    const managerSpy = vi
+      .spyOn(GitManager, 'listRemoteVersionTags')
+      .mockResolvedValue(['2.0.0', '1.0.0']);
+    const layer = new GitSourceLayer();
+    const versions = await layer.listRemoteVersions(
+      'https://example.com/repo.git',
+      'https://u:t@example.com/repo.git',
+    );
+
+    expect(versions).toEqual(['2.0.0', '1.0.0']);
+    expect(managerSpy).toHaveBeenCalledWith('https://u:t@example.com/repo.git');
   });
 
   it('queryRemote returns latest and latestSatisfying from the remote tag list', async () => {
@@ -170,6 +197,51 @@ describe('modules/source-git', () => {
       );
 
       expect(result).toBe(join(tmpRoot, 'my-module'));
+    });
+
+    it('uses git-service clone endpoint when enabled', async () => {
+      process.env.GIT_SERVICE_URL = 'http://git-service:8080';
+      const cloneUuid = '550e8400-e29b-41d4-a716-446655440000';
+      const clonePath = `.git-service-clones/${cloneUuid}`;
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            path: clonePath,
+          }),
+          {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          },
+        ),
+      );
+      vi.stubGlobal('fetch', fetchMock);
+
+      vi.resetModules();
+      const { GitSourceLayer: FreshLayer } =
+        await import('../../src/modules/source-git.js');
+      const layer = new FreshLayer();
+      const result = await layer.fetch(
+        {
+          location: 'https://example.com/repo.git',
+          remoteUrl: 'https://example.com/repo.git',
+          ref: 'v1.2.3',
+        },
+        join(tmpRoot, 'myproject', '.temp', 'modules'),
+        'my-module',
+      );
+
+      expect(result).toBe(join('/project', `.git-service-clones/${cloneUuid}`));
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://git-service:8080/clone',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            url: 'https://example.com/repo.git',
+            ref: 'v1.2.3',
+            shallow: true,
+          }),
+        }),
+      );
     });
   });
 });

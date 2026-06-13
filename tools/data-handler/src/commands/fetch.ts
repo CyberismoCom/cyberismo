@@ -14,6 +14,7 @@
 import { mkdir } from 'node:fs/promises';
 import { resolve, sep } from 'node:path';
 
+import { hubFetch } from '../utils/git-service-client.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { readJsonFile, writeJsonFile } from '../utils/json.js';
 import { validateJson } from '../utils/validate.js';
@@ -59,12 +60,14 @@ export class Fetch {
     location: string,
   ): Promise<number | undefined> {
     try {
-      const url = new URL(`${location}/${MODULE_LIST_FILE}`);
+      const url = new URL(
+        `${location.replace(/\/+$/, '')}/${MODULE_LIST_FILE}`,
+      );
       if (!['http:', 'https:'].includes(url.protocol)) {
         return undefined;
       }
 
-      const response = await fetch(url.toString(), {
+      const response = await hubFetch(url.toString(), {
         method: 'GET',
         headers: {
           Accept: 'application/json',
@@ -88,7 +91,9 @@ export class Fetch {
   // Fetches one hub's data as JSON.
   private async fetchJSON(location: string, schemaId: string) {
     try {
-      const url = new URL(`${location}/${MODULE_LIST_FILE}`);
+      const url = new URL(
+        `${location.replace(/\/+$/, '')}/${MODULE_LIST_FILE}`,
+      );
       if (!['http:', 'https:'].includes(url.protocol)) {
         throw new Error(
           `Invalid protocol: ${url.protocol}. Only HTTP and HTTPS are supported.`,
@@ -96,7 +101,7 @@ export class Fetch {
       }
 
       this.logger.info(`Fetching module list from hub: ${url.toString()}`);
-      const response = await fetch(url.toString(), {
+      const response = await hubFetch(url.toString(), {
         method: 'GET',
         headers: {
           Accept: 'application/json',
@@ -212,6 +217,7 @@ export class Fetch {
   /**
    * Fetches modules from modules hub(s) and writes them to a file.
    * Only fetches if the remote version is newer than the local version.
+   * In git-service mode, HTTP calls are proxied through the git-service /hub endpoint.
    */
   @write(() => 'Fetch hubs')
   public async fetchHubs() {
