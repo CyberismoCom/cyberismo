@@ -116,12 +116,18 @@ export class ProjectConfiguration implements ProjectSettings {
    * @throws if hub is already in the project or URL is invalid
    */
   public async addHub(hubName: string) {
-    const trimmedHub = hubName?.trim();
+    // Hub location is the directory that contains moduleList.json; accept
+    // URLs that point to the file itself.
+    const trimmedHub = hubName?.trim().replace(/\/?moduleList\.json$/, '');
     if (!trimmedHub) {
       throw new Error(`Cannot add empty hub to the project`);
     }
 
-    const exists = this.hubs.find((item) => item.location === trimmedHub);
+    // Same hub with and without a trailing slash is a duplicate.
+    const normalize = (location: string) => location.replace(/\/+$/, '');
+    const exists = this.hubs.find(
+      (item) => normalize(item.location) === normalize(trimmedHub),
+    );
     if (exists) {
       throw new Error(
         `Hub '${trimmedHub}' already exists as a hub for the project`,

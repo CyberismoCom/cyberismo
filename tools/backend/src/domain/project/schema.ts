@@ -30,6 +30,15 @@ export const updateProjectSchema = z.object({
     .optional(),
 });
 
+export const hubLocationSchema = z.object({
+  location: z
+    .string()
+    .min(1)
+    .refine((s) => s.startsWith('https://') || s.startsWith('http://'), {
+      message: 'Hub location must be an HTTP or HTTPS URL',
+    }),
+});
+
 export const importModuleSchema = z.object({
   source: z
     .string()

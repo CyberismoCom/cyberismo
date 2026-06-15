@@ -14,6 +14,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '../../middleware/zvalidator.js';
 import {
+  hubLocationSchema,
   importModuleSchema,
   moduleParamSchema,
   updateProjectSchema,
@@ -91,5 +92,41 @@ router.delete(
     return c.json({ message: 'Module removed' });
   },
 );
+
+router.get('/hubs', requireRole(UserRole.Reader), async (c) => {
+  const commands = c.get('commands');
+  const hubs = await projectService.getHubs(commands);
+  return c.json(hubs);
+});
+
+router.post(
+  '/hubs',
+  requireRole(UserRole.Admin),
+  zValidator('json', hubLocationSchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const { location } = c.req.valid('json');
+    await projectService.addHub(commands, location);
+    return c.json({ message: 'Hub added' });
+  },
+);
+
+router.delete(
+  '/hubs',
+  requireRole(UserRole.Admin),
+  zValidator('query', hubLocationSchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const { location } = c.req.valid('query');
+    await projectService.removeHub(commands, location);
+    return c.json({ message: 'Hub removed' });
+  },
+);
+
+router.post('/hubs/fetch', requireRole(UserRole.Admin), async (c) => {
+  const commands = c.get('commands');
+  await projectService.fetchHubs(commands);
+  return c.json({ message: 'Hubs fetched' });
+});
 
 export default router;
