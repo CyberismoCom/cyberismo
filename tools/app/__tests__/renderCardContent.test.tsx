@@ -19,18 +19,10 @@ import type * as libHooksModule from '@/lib/hooks';
 
 vi.mock('@/lib/hooks', async (importOriginal) => {
   const actual = await importOriginal<typeof libHooksModule>();
+  const { mockAppRouter } = await import('./helpers/router');
   return {
     ...actual,
-    useAppRouter: vi.fn(() => ({
-      push: vi.fn(),
-      replace: vi.fn(),
-      back: vi.fn(),
-      forward: vi.fn(),
-      safePush: vi.fn(),
-      safeReplace: vi.fn(),
-      safeBack: vi.fn(),
-      safeForward: vi.fn(),
-    })),
+    useAppRouter: vi.fn(mockAppRouter),
   };
 });
 

@@ -14,35 +14,24 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom';
-import { BrowserRouter } from 'react-router';
-import type { ReactNode } from 'react';
+import { withRouter } from './helpers/router';
 import type * as libHooksModule from '@/lib/hooks';
 
 vi.mock('@/lib/hooks', async (importOriginal) => {
   const actual = await importOriginal<typeof libHooksModule>();
+  const { mockAppRouter } = await import('./helpers/router');
   return {
     ...actual,
-    useAppRouter: vi.fn(() => ({
-      push: vi.fn(),
-      replace: vi.fn(),
-      back: vi.fn(),
-      forward: vi.fn(),
-      safePush: vi.fn(),
-      safeReplace: vi.fn(),
-      safeBack: vi.fn(),
-      safeForward: vi.fn(),
-    })),
+    useAppRouter: vi.fn(mockAppRouter),
   };
 });
 
 import SvgWrapper from '@/components/SvgWrapper';
 
-const wrap = (ui: ReactNode) => <BrowserRouter>{ui}</BrowserRouter>;
-
 describe('SvgWrapper', () => {
   it('renders svg content inside a cyberismo-svg-wrapper with controls', () => {
     const { container } = render(
-      wrap(
+      withRouter(
         <SvgWrapper>
           <svg id="diagram" viewBox="0 0 10 10" />
         </SvgWrapper>,
@@ -64,14 +53,14 @@ describe('SvgWrapper', () => {
 
   it('does not duplicate controls when re-rendered', () => {
     const { container, rerender } = render(
-      wrap(
+      withRouter(
         <SvgWrapper>
           <svg viewBox="0 0 10 10" />
         </SvgWrapper>,
       ),
     );
     rerender(
-      wrap(
+      withRouter(
         <SvgWrapper>
           <svg viewBox="0 0 10 10" />
         </SvgWrapper>,
@@ -85,13 +74,13 @@ describe('SvgWrapper', () => {
 
   it('leaves no controls behind when replaced by other content', () => {
     const { container, rerender } = render(
-      wrap(
+      withRouter(
         <SvgWrapper>
           <svg viewBox="0 0 10 10" />
         </SvgWrapper>,
       ),
     );
-    rerender(wrap(<div className="paragraph">plain text</div>));
+    rerender(withRouter(<div className="paragraph">plain text</div>));
 
     expect(container.querySelector('[data-cy="svg-controls"]')).toBeNull();
     expect(container.querySelectorAll('button')).toHaveLength(0);
@@ -99,7 +88,7 @@ describe('SvgWrapper', () => {
 
   it('opens the fullscreen viewer when the fullscreen control is clicked', () => {
     render(
-      wrap(
+      withRouter(
         <SvgWrapper>
           <svg viewBox="0 0 10 10" />
         </SvgWrapper>,
@@ -116,7 +105,7 @@ describe('SvgWrapper', () => {
   // before the diagram in the DOM — the viewer must not pick those up.
   it('shows the diagram svg in the fullscreen viewer, not a control icon', () => {
     render(
-      wrap(
+      withRouter(
         <SvgWrapper>
           <svg id="diagram" viewBox="0 0 10 10" />
         </SvgWrapper>,

@@ -27,12 +27,11 @@ vi.mock('react-router', async (importOriginal) => {
 vi.mock('../src/lib/hooks', async (importOriginal) => {
   const actual = await importOriginal<typeof libHooksModule>();
   const { selectRecentPrefixes } = await import('../src/lib/slices/project');
+  const { mockAppRouter } = await import('./helpers/router');
   let callCount = 0;
   return {
     ...actual,
-    useAppRouter: vi.fn(() => ({
-      push: vi.fn(),
-    })),
+    useAppRouter: vi.fn(mockAppRouter),
     useAppSelector: vi.fn((selector) => {
       if (selector === selectRecentPrefixes) return [];
       return 'decision';

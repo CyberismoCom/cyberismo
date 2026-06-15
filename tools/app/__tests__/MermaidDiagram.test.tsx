@@ -1,7 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { BrowserRouter } from 'react-router';
-import type { ReactNode } from 'react';
+import { withRouter } from './helpers/router';
 import type * as libHooksModule from '@/lib/hooks';
 
 vi.mock('mermaid', () => {
@@ -24,18 +23,10 @@ vi.mock('mermaid', () => {
 
 vi.mock('@/lib/hooks', async (importOriginal) => {
   const actual = await importOriginal<typeof libHooksModule>();
+  const { mockAppRouter } = await import('./helpers/router');
   return {
     ...actual,
-    useAppRouter: vi.fn(() => ({
-      push: vi.fn(),
-      replace: vi.fn(),
-      back: vi.fn(),
-      forward: vi.fn(),
-      safePush: vi.fn(),
-      safeReplace: vi.fn(),
-      safeBack: vi.fn(),
-      safeForward: vi.fn(),
-    })),
+    useAppRouter: vi.fn(mockAppRouter),
   };
 });
 
@@ -45,12 +36,10 @@ vi.mock('@/lib/hooks/theme', () => ({
 
 import Mermaid from '@/components/macros/Mermaid';
 
-const wrap = (ui: ReactNode) => <BrowserRouter>{ui}</BrowserRouter>;
-
 describe('Mermaid component', () => {
   it('renders a mermaid diagram from code', async () => {
     const { container } = render(
-      wrap(
+      withRouter(
         <Mermaid
           code="graph TD\n    A-->B"
           macroKey="test-1"
@@ -66,7 +55,7 @@ describe('Mermaid component', () => {
 
   it('wraps SVG in a cyberismo-svg-wrapper with controls', async () => {
     const { container } = render(
-      wrap(
+      withRouter(
         <Mermaid
           code="graph TD\n    A-->B"
           macroKey="test-4"
@@ -87,13 +76,13 @@ describe('Mermaid component', () => {
   });
 
   it('shows an error when no code is provided', () => {
-    render(wrap(<Mermaid code="" macroKey="test-2" preview={false} />));
+    render(withRouter(<Mermaid code="" macroKey="test-2" preview={false} />));
 
     expect(screen.getByText(/No Mermaid diagram code provided/)).toBeDefined();
   });
 
   it('shows an error message when mermaid rendering fails', async () => {
-    render(wrap(<Mermaid code="invalid" macroKey="test-3" preview={false} />));
+    render(withRouter(<Mermaid code="invalid" macroKey="test-3" preview={false} />));
 
     await waitFor(() => {
       expect(screen.getByText(/Parse error/)).toBeDefined();
