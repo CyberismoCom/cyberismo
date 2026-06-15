@@ -6,6 +6,7 @@ import { copyDir } from '../../../src/utils/file-utils.js';
 import type { Project } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
 import { CardTypeAddCustomFieldHandler } from '../../../src/mutations/handlers/card-type-add-custom-field.js';
+import { dispatch } from '../../../src/mutations/dispatcher.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 
@@ -25,8 +26,7 @@ describe('CardTypeAddCustomFieldHandler', () => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
-  it('matches an add operation on customFields', () => {
-    const handler = new CardTypeAddCustomFieldHandler();
+  it('routes an add operation on customFields to this handler (breaking)', () => {
     const ctx = {
       project,
       input: {
@@ -39,8 +39,9 @@ describe('CardTypeAddCustomFieldHandler', () => {
         },
       },
     };
-    expect(handler.matches(ctx)).toBe(true);
-    expect(handler.isBreaking).toBe(true);
+    const { handler, breaking } = dispatch(ctx);
+    expect(handler).toBeInstanceOf(CardTypeAddCustomFieldHandler);
+    expect(breaking).toBe(true);
   });
 
   it('writes null for the new field on every affected card', async () => {

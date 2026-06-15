@@ -4,6 +4,8 @@ import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
 import { WorkflowRenameHandler } from '../../../src/mutations/handlers/workflow-rename.js';
+import { PlainHandler } from '../../../src/mutations/handlers/plain-handler.js';
+import { dispatch } from '../../../src/mutations/dispatcher.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
@@ -32,37 +34,31 @@ describe('WorkflowRenameHandler', () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
-  it('matches a workflow rename input', () => {
-    const handler = new WorkflowRenameHandler();
-    expect(
-      handler.matches({
-        project,
-        input: {
-          kind: 'rename',
-          target: resourceName('decision/workflows/decision'),
-          newIdentifier: 'decision-v2',
-        },
-      }),
-    ).toBe(true);
+  it('routes a workflow rename input to this handler (breaking)', () => {
+    const { handler, breaking } = dispatch({
+      project,
+      input: {
+        kind: 'rename',
+        target: resourceName('decision/workflows/decision'),
+        newIdentifier: 'decision-v2',
+      },
+    });
+    expect(handler).toBeInstanceOf(WorkflowRenameHandler);
+    expect(breaking).toBe(true);
   });
 
-  it('declines a workflow edit input', () => {
-    const handler = new WorkflowRenameHandler();
-    expect(
-      handler.matches({
-        project,
-        input: {
-          kind: 'edit',
-          target: resourceName('decision/workflows/decision'),
-          updateKey: { key: 'displayName' },
-          operation: { name: 'change', target: 'A', to: 'B' },
-        },
-      }),
-    ).toBe(false);
-  });
-
-  it('isBreaking is true', () => {
-    expect(new WorkflowRenameHandler().isBreaking).toBe(true);
+  it('routes a workflow edit input to the plain handler, not this one', () => {
+    const { handler } = dispatch({
+      project,
+      input: {
+        kind: 'edit',
+        target: resourceName('decision/workflows/decision'),
+        updateKey: { key: 'displayName' },
+        operation: { name: 'change', target: 'A', to: 'B' },
+      },
+    });
+    expect(handler).not.toBeInstanceOf(WorkflowRenameHandler);
+    expect(handler).toBeInstanceOf(PlainHandler);
   });
 
   it('apply rewrites the workflow reference in dependent card types', async () => {

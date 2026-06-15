@@ -3,7 +3,8 @@ import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
-import { WorkflowDeleteHandler } from '../../../src/mutations/handlers/workflow-delete.js';
+import { PlainDeleteHandler } from '../../../src/mutations/handlers/plain-handler.js';
+import { dispatch } from '../../../src/mutations/dispatcher.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
@@ -18,7 +19,7 @@ const FIXTURE_PATH = join(
 );
 const tmpDir = join(import.meta.dirname, 'tmp-workflow-delete');
 
-describe('WorkflowDeleteHandler', () => {
+describe('workflow delete routing and cascade', () => {
   let project: Project;
 
   beforeEach(async () => {
@@ -32,20 +33,16 @@ describe('WorkflowDeleteHandler', () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
-  it('matches a workflow delete input', () => {
-    expect(
-      new WorkflowDeleteHandler().matches({
-        project,
-        input: {
-          kind: 'delete',
-          target: resourceName('decision/workflows/decision'),
-        },
-      }),
-    ).toBe(true);
-  });
-
-  it('isBreaking is true', () => {
-    expect(new WorkflowDeleteHandler().isBreaking).toBe(true);
+  it('routes a workflow delete to the plain delete handler (breaking)', () => {
+    const { handler, breaking } = dispatch({
+      project,
+      input: {
+        kind: 'delete',
+        target: resourceName('decision/workflows/decision'),
+      },
+    });
+    expect(handler).toBeInstanceOf(PlainDeleteHandler);
+    expect(breaking).toBe(true);
   });
 
   // Deleting a workflow that is still used (by card types / cards) is refused.

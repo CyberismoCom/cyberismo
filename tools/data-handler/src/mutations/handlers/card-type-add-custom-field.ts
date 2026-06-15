@@ -29,17 +29,6 @@ import type { CustomField } from '../../interfaces/resource-interfaces.js';
  * then writes the new field (as null) on each affected card.
  */
 export class CardTypeAddCustomFieldHandler implements Handler {
-  readonly isBreaking = true;
-
-  matches(ctx: MutationContext): boolean {
-    if (ctx.input.kind !== 'edit') return false;
-    if (ctx.input.target.type !== 'cardTypes') return false;
-    return (
-      ctx.input.updateKey.key === 'customFields' &&
-      ctx.input.operation.name === 'add'
-    );
-  }
-
   async apply(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'edit') {
       throw new Error(

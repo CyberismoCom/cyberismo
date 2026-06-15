@@ -18,12 +18,6 @@ import { isModuleCard } from '../../utils/card-utils.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
 
 export class LinkTypeDeleteHandler implements Handler {
-  readonly isBreaking = true;
-
-  matches(ctx: MutationContext): boolean {
-    return ctx.input.kind === 'delete' && ctx.input.target.type === 'linkTypes';
-  }
-
   async apply(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'delete') {
       throw new Error('LinkTypeDeleteHandler: non-delete input');

@@ -17,7 +17,7 @@ describe('ResourceMutations replay origin', () => {
       lock: { write: (fn: () => Promise<void>) => fn() },
     } as unknown as Project;
     const mutations = new ResourceMutations(stubProject);
-    // Dispatches to DefaultNoCascadeHandler, whose cascade is empty: the
+    // Dispatches to the plain handler, whose cascade is empty: the
     // replay path must resolve without touching the project or the log.
     await expect(
       mutations.apply(

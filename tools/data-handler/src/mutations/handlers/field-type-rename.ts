@@ -28,14 +28,6 @@ import type { ChangeOperation } from '../../resources/resource-object.js';
  * engine records a log entry.
  */
 export class FieldTypeRenameHandler implements Handler {
-  readonly isBreaking = true;
-
-  matches(ctx: MutationContext): boolean {
-    return (
-      ctx.input.kind === 'rename' && ctx.input.target.type === 'fieldTypes'
-    );
-  }
-
   async apply(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'rename') {
       throw new Error('FieldTypeRenameHandler called with non-rename input');

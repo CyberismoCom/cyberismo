@@ -31,17 +31,6 @@ import type { WorkflowState } from '../../interfaces/resource-interfaces.js';
  * migration. Marked breaking so the engine records a log entry.
  */
 export class WorkflowRemoveStateHandler implements Handler {
-  readonly isBreaking = true;
-
-  matches(ctx: MutationContext): boolean {
-    return (
-      ctx.input.kind === 'edit' &&
-      ctx.input.target.type === 'workflows' &&
-      ctx.input.updateKey.key === 'states' &&
-      ctx.input.operation.name === 'remove'
-    );
-  }
-
   async apply(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'edit') {
       throw new Error('WorkflowRemoveStateHandler: non-edit input');

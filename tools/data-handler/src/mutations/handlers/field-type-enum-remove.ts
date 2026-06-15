@@ -28,17 +28,6 @@ import type { EnumDefinition } from '../../interfaces/resource-interfaces.js';
  * orphaned value (they are NOT nulled). Marked breaking.
  */
 export class FieldTypeEnumRemoveHandler implements Handler {
-  readonly isBreaking = true;
-
-  matches(ctx: MutationContext): boolean {
-    return (
-      ctx.input.kind === 'edit' &&
-      ctx.input.target.type === 'fieldTypes' &&
-      ctx.input.updateKey.key === 'enumValues' &&
-      ctx.input.operation.name === 'remove'
-    );
-  }
-
   async apply(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'edit') {
       throw new Error('FieldTypeEnumRemoveHandler: non-edit input');

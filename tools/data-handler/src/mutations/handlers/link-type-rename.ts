@@ -22,12 +22,6 @@ import { isModuleCard } from '../../utils/card-utils.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
 
 export class LinkTypeRenameHandler implements Handler {
-  readonly isBreaking = true;
-
-  matches(ctx: MutationContext): boolean {
-    return ctx.input.kind === 'rename' && ctx.input.target.type === 'linkTypes';
-  }
-
   async apply(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'rename') {
       throw new Error('LinkTypeRenameHandler called with non-rename input');

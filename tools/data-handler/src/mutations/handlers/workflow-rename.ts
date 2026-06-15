@@ -28,12 +28,6 @@ import type { ChangeOperation } from '../../resources/resource-object.js';
  * engine records a log entry.
  */
 export class WorkflowRenameHandler implements Handler {
-  readonly isBreaking = true;
-
-  matches(ctx: MutationContext): boolean {
-    return ctx.input.kind === 'rename' && ctx.input.target.type === 'workflows';
-  }
-
   async apply(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'rename') {
       throw new Error('WorkflowRenameHandler called with non-rename input');

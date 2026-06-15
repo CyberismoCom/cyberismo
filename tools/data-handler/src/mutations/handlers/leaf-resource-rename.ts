@@ -42,16 +42,10 @@ type LeafResourceType =
  * does).
  */
 export class LeafResourceRenameHandler implements Handler {
-  readonly isBreaking = true;
-
   constructor(
     private readonly type: LeafResourceType,
     private readonly label: string,
   ) {}
-
-  matches(ctx: MutationContext): boolean {
-    return ctx.input.kind === 'rename' && ctx.input.target.type === this.type;
-  }
 
   async apply(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'rename') {

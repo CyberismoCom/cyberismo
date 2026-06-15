@@ -5,7 +5,8 @@ import { join } from 'node:path';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import type { Project } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
-import { FieldTypeEnumRenameHandler } from '../../../src/mutations/handlers/field-type-enum-rename.js';
+import { PlainHandler } from '../../../src/mutations/handlers/plain-handler.js';
+import { dispatch } from '../../../src/mutations/dispatcher.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 
@@ -54,7 +55,7 @@ async function seedCardValues() {
   }
 }
 
-describe('FieldTypeEnumRenameHandler', () => {
+describe('fieldType enumValues rename-member routing', () => {
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir(join(baseDir, '..', '..', 'test-data'), testDir);
@@ -67,9 +68,10 @@ describe('FieldTypeEnumRenameHandler', () => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
-  it('matches change on enumValues where enumValue differs', () => {
-    const handler = new FieldTypeEnumRenameHandler();
-    const ctx = {
+  it('routes a change where enumValue differs as a breaking rename-member', () => {
+    // An identity change (enumValue differs) hits the enumValues/rename-member
+    // row: still the plain handler, but registered as breaking.
+    const { handler, breaking } = dispatch({
       project,
       input: {
         kind: 'edit' as const,
@@ -81,14 +83,15 @@ describe('FieldTypeEnumRenameHandler', () => {
           to: { enumValue: 'minor' },
         },
       },
-    };
-    expect(handler.matches(ctx)).toBe(true);
-    expect(handler.isBreaking).toBe(true);
+    });
+    expect(handler).toBeInstanceOf(PlainHandler);
+    expect(breaking).toBe(true);
   });
 
-  it('does not match a change that only edits enumDisplayValue', () => {
-    const handler = new FieldTypeEnumRenameHandler();
-    const ctx = {
+  it('routes a change that only edits enumDisplayValue as a non-breaking edit', () => {
+    // No identity change: routes to the enumValues wildcard plain row, which is
+    // non-breaking.
+    const { handler, breaking } = dispatch({
       project,
       input: {
         kind: 'edit' as const,
@@ -100,8 +103,9 @@ describe('FieldTypeEnumRenameHandler', () => {
           to: { enumValue: 'low', enumDisplayValue: 'Low priority' },
         },
       },
-    };
-    expect(handler.matches(ctx)).toBe(false);
+    });
+    expect(handler).toBeInstanceOf(PlainHandler);
+    expect(breaking).toBe(false);
   });
 
   it('renames the value in the field definition', async () => {

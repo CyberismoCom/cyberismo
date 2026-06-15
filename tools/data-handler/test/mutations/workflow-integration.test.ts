@@ -136,7 +136,7 @@ describe('Workflow mutation engine end-to-end', () => {
     expect(entries).toHaveLength(0);
   });
 
-  it('display-only changes fall through to DefaultNoCascadeHandler (no log entry)', async () => {
+  it('display-only changes route to the plain handler (no log entry)', async () => {
     const mutations = new ResourceMutations(project);
     await mutations.apply({
       kind: 'edit',

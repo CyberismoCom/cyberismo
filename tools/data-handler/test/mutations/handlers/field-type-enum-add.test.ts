@@ -5,7 +5,9 @@ import { join } from 'node:path';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import type { Project } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
-import { FieldTypeEnumAddHandler } from '../../../src/mutations/handlers/field-type-enum-add.js';
+import { PlainHandler } from '../../../src/mutations/handlers/plain-handler.js';
+import { FieldTypeEnumRemoveHandler } from '../../../src/mutations/handlers/field-type-enum-remove.js';
+import { dispatch } from '../../../src/mutations/dispatcher.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 
@@ -44,7 +46,7 @@ function seedEnumField() {
   );
 }
 
-describe('FieldTypeEnumAddHandler', () => {
+describe('fieldType enumValues add routing', () => {
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir(join(baseDir, '..', '..', 'test-data'), testDir);
@@ -56,9 +58,8 @@ describe('FieldTypeEnumAddHandler', () => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
-  it('matches add operation on enumValues', () => {
-    const handler = new FieldTypeEnumAddHandler();
-    const ctx = {
+  it('routes an add operation on enumValues to the plain handler (non-breaking)', () => {
+    const { handler, breaking } = dispatch({
       project,
       input: {
         kind: 'edit' as const,
@@ -66,13 +67,13 @@ describe('FieldTypeEnumAddHandler', () => {
         updateKey: { key: 'enumValues' as const },
         operation: { name: 'add' as const, target: { enumValue: 'fresh' } },
       },
-    };
-    expect(handler.matches(ctx)).toBe(true);
+    });
+    expect(handler).toBeInstanceOf(PlainHandler);
+    expect(breaking).toBe(false);
   });
 
-  it('does not match remove on enumValues', () => {
-    const handler = new FieldTypeEnumAddHandler();
-    const ctx = {
+  it('routes a remove on enumValues to the remove handler, not the plain add path', () => {
+    const { handler } = dispatch({
       project,
       input: {
         kind: 'edit' as const,
@@ -80,12 +81,8 @@ describe('FieldTypeEnumAddHandler', () => {
         updateKey: { key: 'enumValues' as const },
         operation: { name: 'remove' as const, target: { enumValue: 'low' } },
       },
-    };
-    expect(handler.matches(ctx)).toBe(false);
-  });
-
-  it('is non-breaking', () => {
-    expect(new FieldTypeEnumAddHandler().isBreaking).toBe(false);
+    });
+    expect(handler).toBeInstanceOf(FieldTypeEnumRemoveHandler);
   });
 
   it('adds the new value to the field definition', async () => {

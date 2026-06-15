@@ -13,82 +13,56 @@
 */
 
 import type { Handler, MutationContext } from './handler.js';
-import { DefaultDeleteHandler } from './handlers/default-delete.js';
-import { DefaultNoCascadeHandler } from './handlers/default-no-cascade.js';
-import { LinkTypeDeleteHandler } from './handlers/link-type-delete.js';
-import { LinkTypeEditCardTypesHandler } from './handlers/link-type-edit-card-types.js';
-import { LinkTypeRenameHandler } from './handlers/link-type-rename.js';
-import { CardTypeRenameHandler } from './handlers/card-type-rename.js';
-import { CardTypeDeleteHandler } from './handlers/card-type-delete.js';
-import { CardTypeAddCustomFieldHandler } from './handlers/card-type-add-custom-field.js';
-import { CardTypeRemoveCustomFieldHandler } from './handlers/card-type-remove-custom-field.js';
-import { CardTypeWorkflowChangeHandler } from './handlers/card-type-workflow-change.js';
-import { FieldTypeRenameHandler } from './handlers/field-type-rename.js';
-import { FieldTypeDataTypeHandler } from './handlers/field-type-data-type.js';
-import { FieldTypeEnumAddHandler } from './handlers/field-type-enum-add.js';
-import { FieldTypeEnumRemoveHandler } from './handlers/field-type-enum-remove.js';
-import { FieldTypeEnumRenameHandler } from './handlers/field-type-enum-rename.js';
-import { FieldTypeDeleteHandler } from './handlers/field-type-delete.js';
-import { WorkflowRenameHandler } from './handlers/workflow-rename.js';
-import { WorkflowAddStateHandler } from './handlers/workflow-add-state.js';
-import { WorkflowRemoveStateHandler } from './handlers/workflow-remove-state.js';
-import { WorkflowRenameStateHandler } from './handlers/workflow-rename-state.js';
-import { WorkflowTransitionHandler } from './handlers/workflow-transition.js';
-import { WorkflowDeleteHandler } from './handlers/workflow-delete.js';
-import { LeafResourceRenameHandler } from './handlers/leaf-resource-rename.js';
-import { ProjectRenameHandler } from './handlers/project-rename.js';
+import { ROUTES } from './registry.js';
+import { route, routeKeyString } from './route.js';
 
-const HANDLERS: Handler[] = [
-  new LinkTypeRenameHandler(),
-  new LinkTypeDeleteHandler(),
-  new LinkTypeEditCardTypesHandler(),
-  new CardTypeRenameHandler(),
-  new CardTypeDeleteHandler(),
-  // Cascades are operation-specific — keep one handler per edit operation;
-  // don't merge these into a shared base.
-  new CardTypeAddCustomFieldHandler(),
-  new CardTypeRemoveCustomFieldHandler(),
-  new CardTypeWorkflowChangeHandler(),
-  // Cascades are operation-specific — keep one handler per edit operation;
-  // don't merge these into a shared base.
-  new FieldTypeRenameHandler(),
-  new FieldTypeDataTypeHandler(),
-  new FieldTypeEnumAddHandler(),
-  new FieldTypeEnumRemoveHandler(),
-  new FieldTypeEnumRenameHandler(),
-  new FieldTypeDeleteHandler(),
-  // Cascades are operation-specific — keep one handler per operation; don't
-  // merge these into a shared base.
-  new WorkflowRenameHandler(),
-  new WorkflowAddStateHandler(),
-  new WorkflowRemoveStateHandler(),
-  new WorkflowRenameStateHandler(),
-  new WorkflowTransitionHandler(),
-  new WorkflowDeleteHandler(),
-  new LeafResourceRenameHandler('templates', 'Template'),
-  new LeafResourceRenameHandler('calculations', 'Calculation'),
-  new LeafResourceRenameHandler('reports', 'Report'),
-  new LeafResourceRenameHandler('graphModels', 'Graph model'),
-  new LeafResourceRenameHandler('graphViews', 'Graph view'),
-  new ProjectRenameHandler(),
-  new DefaultDeleteHandler(),
-  new DefaultNoCascadeHandler(),
-];
+const MAP = new Map<string, { handler: Handler; breaking: boolean }>();
+for (const r of ROUTES) {
+  const s = routeKeyString(r.route);
+  if (MAP.has(s)) throw new Error(`Duplicate route registration: ${s}`);
+  MAP.set(s, { handler: r.handler, breaking: r.breaking });
+}
 
-export function dispatch(ctx: MutationContext): Handler {
-  for (const handler of HANDLERS) {
-    if (handler.matches(ctx)) return handler;
+/**
+ * Test-only override registered ahead of the declarative MAP. Carries its own
+ * matches()/isBreaking so tests keep classifying inputs directly, while the
+ * production Handler interface no longer exposes them.
+ */
+interface TestOverride {
+  matches(ctx: MutationContext): boolean;
+  readonly isBreaking: boolean;
+  apply: Handler['apply'];
+  applyCascade: Handler['applyCascade'];
+}
+
+const TEST_OVERRIDES: TestOverride[] = [];
+
+export function dispatch(ctx: MutationContext): {
+  handler: Handler;
+  breaking: boolean;
+} {
+  for (const override of TEST_OVERRIDES) {
+    if (override.matches(ctx)) {
+      return { handler: override, breaking: override.isBreaking };
+    }
+  }
+  const k = route(ctx.input);
+  const exact = MAP.get(routeKeyString(k));
+  if (exact) return exact;
+  if (k.kind === 'edit') {
+    const wildcard = MAP.get(routeKeyString({ ...k, op: undefined }));
+    if (wildcard) return wildcard;
   }
   throw new Error(
     `No mutation handler for input: ${JSON.stringify(ctx.input)}`,
   );
 }
 
-/** Test-only escape hatch for registering a handler ahead of the default. */
-export function _registerHandlerForTest(handler: Handler): () => void {
-  HANDLERS.unshift(handler);
+/** Test-only escape hatch for registering a handler ahead of the routes. */
+export function _registerHandlerForTest(handler: TestOverride): () => void {
+  TEST_OVERRIDES.unshift(handler);
   return () => {
-    const idx = HANDLERS.indexOf(handler);
-    if (idx >= 0) HANDLERS.splice(idx, 1);
+    const idx = TEST_OVERRIDES.indexOf(handler);
+    if (idx >= 0) TEST_OVERRIDES.splice(idx, 1);
   };
 }

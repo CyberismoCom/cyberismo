@@ -31,17 +31,6 @@ const SHORT_TEXT_MAX_LENGTH = 80;
  * the per-card value conversion. Marked breaking.
  */
 export class FieldTypeDataTypeHandler implements Handler {
-  readonly isBreaking = true;
-
-  matches(ctx: MutationContext): boolean {
-    return (
-      ctx.input.kind === 'edit' &&
-      ctx.input.target.type === 'fieldTypes' &&
-      ctx.input.updateKey.key === 'dataType' &&
-      ctx.input.operation.name === 'change'
-    );
-  }
-
   async apply(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'edit') {
       throw new Error('FieldTypeDataTypeHandler: non-edit input');

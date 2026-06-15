@@ -30,17 +30,6 @@ import type { CustomField } from '../../interfaces/resource-interfaces.js';
  * then the handler drops the field key from each affected card.
  */
 export class CardTypeRemoveCustomFieldHandler implements Handler {
-  readonly isBreaking = true;
-
-  matches(ctx: MutationContext): boolean {
-    if (ctx.input.kind !== 'edit') return false;
-    if (ctx.input.target.type !== 'cardTypes') return false;
-    return (
-      ctx.input.updateKey.key === 'customFields' &&
-      ctx.input.operation.name === 'remove'
-    );
-  }
-
   async apply(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'edit') {
       throw new Error(

@@ -37,26 +37,6 @@ import type { WorkflowState } from '../../interfaces/resource-interfaces.js';
  * same update without recording a (non-breaking) log entry.
  */
 export class WorkflowRenameStateHandler implements Handler {
-  readonly isBreaking = true;
-
-  matches(ctx: MutationContext): boolean {
-    if (ctx.input.kind !== 'edit') return false;
-    if (ctx.input.target.type !== 'workflows') return false;
-    if (ctx.input.updateKey.key !== 'states') return false;
-    if (ctx.input.operation.name !== 'change') return false;
-
-    // Only a state rename (identity change) routes here. The discriminator is
-    // that `to.name` differs from `target.name`.
-    const op = ctx.input.operation as ChangeOperation<unknown>;
-    const targetName = (op.target as { name?: string }).name;
-    const toName = (op.to as { name?: string }).name;
-    return (
-      typeof targetName === 'string' &&
-      typeof toName === 'string' &&
-      targetName !== toName
-    );
-  }
-
   async apply(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'edit') {
       throw new Error('WorkflowRenameStateHandler: non-edit input');

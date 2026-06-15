@@ -25,12 +25,6 @@ export interface MutationContext {
 }
 
 export interface Handler {
-  /** True when this handler matches the input's (kind, target, key, operation) tuple. */
-  matches(ctx: MutationContext): boolean;
-
-  /** Whether matching inputs are classified as breaking changes. */
-  readonly isBreaking: boolean;
-
   /** Apply the resource-definition change and the cascade (authoring path). */
   apply(ctx: MutationContext): Promise<void>;
 

@@ -15,19 +15,38 @@
 import type { Handler, MutationContext } from '../handler.js';
 
 /**
- * Deletes resources of families without a cascading delete handler
- * (calculations, reports, graph models, graph views, templates). The base
- * resource delete() already refuses when the resource is still in use; no
- * log entry is recorded.
+ * Plain definition write: applies an edit via resource.update with no
+ * consumer-side cascade. Routed to by key-wildcard ROUTES rows whose edits
+ * have no dependent local state to rewrite.
  */
-export class DefaultDeleteHandler implements Handler {
-  readonly isBreaking = false;
-
-  matches(ctx: MutationContext): boolean {
-    // Catch-all: dispatcher consults family-specific delete handlers first.
-    return ctx.input.kind === 'delete';
+export class PlainHandler implements Handler {
+  async apply(ctx: MutationContext): Promise<void> {
+    if (ctx.input.kind !== 'edit') {
+      throw new Error('DefaultNoCascadeHandler only supports edits');
+    }
+    const { target, updateKey, operation } = ctx.input;
+    const type = ctx.project.resources.extractType(
+      `${target.prefix}/${target.type}/${target.identifier}`,
+    );
+    const resource = ctx.project.resources.byType(
+      `${target.prefix}/${target.type}/${target.identifier}`,
+      type,
+    );
+    if (!resource) {
+      throw new Error('Resource not found');
+    }
+    await resource.update(updateKey, operation);
   }
 
+  async applyCascade(): Promise<void> {}
+}
+
+/**
+ * Plain resource delete: deletes resources of families without a cascading
+ * delete handler. The base resource delete() already refuses when the resource
+ * is still in use; no dependent local state is rewritten.
+ */
+export class PlainDeleteHandler implements Handler {
   async apply(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'delete') {
       throw new Error('DefaultDeleteHandler only supports deletes');
@@ -42,7 +61,5 @@ export class DefaultDeleteHandler implements Handler {
     await resource.delete();
   }
 
-  // No cascade: these families have no dependent local state; delete()
-  // already refuses while the resource is still in use.
   async applyCascade(): Promise<void> {}
 }

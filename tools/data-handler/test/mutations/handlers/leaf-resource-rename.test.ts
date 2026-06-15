@@ -4,6 +4,8 @@ import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
 import { LeafResourceRenameHandler } from '../../../src/mutations/handlers/leaf-resource-rename.js';
+import { PlainHandler } from '../../../src/mutations/handlers/plain-handler.js';
+import { dispatch } from '../../../src/mutations/dispatcher.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
@@ -65,7 +67,7 @@ const CASES: LeafCase[] = [
 
 describe.each(CASES)(
   'LeafResourceRenameHandler ($type)',
-  ({ type, label, oldName, newIdentifier, newName }) => {
+  ({ type, oldName, newIdentifier, newName }) => {
     let project: Project;
     const tmpDir = join(import.meta.dirname, `tmp-${type}-rename`);
 
@@ -80,51 +82,43 @@ describe.each(CASES)(
       await rm(tmpDir, { recursive: true, force: true });
     });
 
-    it('matches a rename input for its type', () => {
-      const handler = new LeafResourceRenameHandler(type, label);
-      expect(
-        handler.matches({
-          project,
-          input: {
-            kind: 'rename',
-            target: resourceName(oldName),
-            newIdentifier,
-          },
-        }),
-      ).toBe(true);
+    it('routes a rename input for its type to a leaf rename handler (breaking)', () => {
+      const { handler, breaking } = dispatch({
+        project,
+        input: {
+          kind: 'rename',
+          target: resourceName(oldName),
+          newIdentifier,
+        },
+      });
+      expect(handler).toBeInstanceOf(LeafResourceRenameHandler);
+      expect(breaking).toBe(true);
     });
 
-    it('declines an edit input', () => {
-      const handler = new LeafResourceRenameHandler(type, label);
-      expect(
-        handler.matches({
-          project,
-          input: {
-            kind: 'edit',
-            target: resourceName(oldName),
-            updateKey: { key: 'displayName' },
-            operation: { name: 'change', target: 'A', to: 'B' },
-          },
-        }),
-      ).toBe(false);
+    it('routes an edit input to the plain handler, not a leaf rename handler', () => {
+      const { handler } = dispatch({
+        project,
+        input: {
+          kind: 'edit',
+          target: resourceName(oldName),
+          updateKey: { key: 'displayName' },
+          operation: { name: 'change', target: 'A', to: 'B' },
+        },
+      });
+      expect(handler).not.toBeInstanceOf(LeafResourceRenameHandler);
+      expect(handler).toBeInstanceOf(PlainHandler);
     });
 
-    it('declines a rename input for another type', () => {
-      const handler = new LeafResourceRenameHandler(type, label);
-      expect(
-        handler.matches({
-          project,
-          input: {
-            kind: 'rename',
-            target: resourceName('decision/workflows/decision-workflow'),
-            newIdentifier: 'whatever',
-          },
-        }),
-      ).toBe(false);
-    });
-
-    it('isBreaking is true', () => {
-      expect(new LeafResourceRenameHandler(type, label).isBreaking).toBe(true);
+    it('routes a rename input for another type to a different handler', () => {
+      const { handler } = dispatch({
+        project,
+        input: {
+          kind: 'rename',
+          target: resourceName('decision/workflows/decision'),
+          newIdentifier: 'whatever',
+        },
+      });
+      expect(handler).not.toBeInstanceOf(LeafResourceRenameHandler);
     });
 
     it('apply renames the resource', async () => {

@@ -19,12 +19,6 @@ import type { Card } from '../../interfaces/project-interfaces.js';
 import type { Operation } from '../../resources/resource-object.js';
 
 export class CardTypeDeleteHandler implements Handler {
-  readonly isBreaking = true;
-
-  matches(ctx: MutationContext): boolean {
-    return ctx.input.kind === 'delete' && ctx.input.target.type === 'cardTypes';
-  }
-
   async apply(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'delete') {
       throw new Error('CardTypeDeleteHandler: non-delete input');

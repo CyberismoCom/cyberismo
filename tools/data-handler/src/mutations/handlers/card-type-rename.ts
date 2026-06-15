@@ -24,12 +24,6 @@ import type { ChangeOperation } from '../../resources/resource-object.js';
 import type { LinkType } from '../../interfaces/resource-interfaces.js';
 
 export class CardTypeRenameHandler implements Handler {
-  readonly isBreaking = true;
-
-  matches(ctx: MutationContext): boolean {
-    return ctx.input.kind === 'rename' && ctx.input.target.type === 'cardTypes';
-  }
-
   async apply(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'rename') {
       throw new Error('CardTypeRenameHandler called with non-rename input');

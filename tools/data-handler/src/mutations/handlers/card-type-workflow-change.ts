@@ -29,17 +29,6 @@ import type {
  * card type resource and then re-maps each affected card's workflowState.
  */
 export class CardTypeWorkflowChangeHandler implements Handler {
-  readonly isBreaking = true;
-
-  matches(ctx: MutationContext): boolean {
-    if (ctx.input.kind !== 'edit') return false;
-    if (ctx.input.target.type !== 'cardTypes') return false;
-    return (
-      ctx.input.updateKey.key === 'workflow' &&
-      ctx.input.operation.name === 'change'
-    );
-  }
-
   async apply(ctx: MutationContext): Promise<void> {
     if (ctx.input.kind !== 'edit') {
       throw new Error(

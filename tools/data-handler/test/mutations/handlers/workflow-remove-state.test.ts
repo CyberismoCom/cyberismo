@@ -4,6 +4,7 @@ import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
 import { WorkflowRemoveStateHandler } from '../../../src/mutations/handlers/workflow-remove-state.js';
+import { dispatch } from '../../../src/mutations/dispatcher.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
@@ -44,25 +45,21 @@ describe('WorkflowRemoveStateHandler', () => {
     return target.key;
   }
 
-  it('matches remove on workflow states', () => {
-    expect(
-      new WorkflowRemoveStateHandler().matches({
-        project,
-        input: {
-          kind: 'edit',
-          target: resourceName(WF),
-          updateKey: { key: 'states' },
-          operation: {
-            name: 'remove',
-            target: { name: 'Rejected', category: 'closed' },
-          },
+  it('routes remove on workflow states to this handler (breaking)', () => {
+    const { handler, breaking } = dispatch({
+      project,
+      input: {
+        kind: 'edit',
+        target: resourceName(WF),
+        updateKey: { key: 'states' },
+        operation: {
+          name: 'remove',
+          target: { name: 'Rejected', category: 'closed' },
         },
-      }),
-    ).toBe(true);
-  });
-
-  it('isBreaking is true', () => {
-    expect(new WorkflowRemoveStateHandler().isBreaking).toBe(true);
+      },
+    });
+    expect(handler).toBeInstanceOf(WorkflowRemoveStateHandler);
+    expect(breaking).toBe(true);
   });
 
   it('apply removes the state and strips transitions referencing it', async () => {

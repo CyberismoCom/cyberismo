@@ -4,6 +4,8 @@ import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
 import { WorkflowRenameStateHandler } from '../../../src/mutations/handlers/workflow-rename-state.js';
+import { PlainHandler } from '../../../src/mutations/handlers/plain-handler.js';
+import { dispatch } from '../../../src/mutations/dispatcher.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
@@ -34,46 +36,42 @@ describe('WorkflowRenameStateHandler', () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
-  it('matches a state rename (name identity change)', () => {
-    expect(
-      new WorkflowRenameStateHandler().matches({
-        project,
-        input: {
-          kind: 'edit',
-          target: resourceName(WF),
-          updateKey: { key: 'states' },
-          operation: {
-            name: 'change',
-            target: { name: 'Draft', category: 'initial' },
-            to: { name: 'DraftNew', category: 'initial' },
-          },
+  it('routes a state rename (name identity change) to this handler (breaking)', () => {
+    const { handler, breaking } = dispatch({
+      project,
+      input: {
+        kind: 'edit',
+        target: resourceName(WF),
+        updateKey: { key: 'states' },
+        operation: {
+          name: 'change',
+          target: { name: 'Draft', category: 'initial' },
+          to: { name: 'DraftNew', category: 'initial' },
         },
-      }),
-    ).toBe(true);
+      },
+    });
+    expect(handler).toBeInstanceOf(WorkflowRenameStateHandler);
+    expect(breaking).toBe(true);
   });
 
-  it('declines a change that keeps the same state name (non-identity change)', () => {
-    // A category-only change is not a state rename; it falls through to the
-    // default handler instead.
-    expect(
-      new WorkflowRenameStateHandler().matches({
-        project,
-        input: {
-          kind: 'edit',
-          target: resourceName(WF),
-          updateKey: { key: 'states' },
-          operation: {
-            name: 'change',
-            target: { name: 'Draft', category: 'initial' },
-            to: { name: 'Draft', category: 'active' },
-          },
+  it('routes a change that keeps the same state name to the plain handler', () => {
+    // A category-only change is not a state rename; it routes to the plain
+    // wildcard handler instead of the rename-state handler.
+    const { handler } = dispatch({
+      project,
+      input: {
+        kind: 'edit',
+        target: resourceName(WF),
+        updateKey: { key: 'states' },
+        operation: {
+          name: 'change',
+          target: { name: 'Draft', category: 'initial' },
+          to: { name: 'Draft', category: 'active' },
         },
-      }),
-    ).toBe(false);
-  });
-
-  it('isBreaking is true', () => {
-    expect(new WorkflowRenameStateHandler().isBreaking).toBe(true);
+      },
+    });
+    expect(handler).not.toBeInstanceOf(WorkflowRenameStateHandler);
+    expect(handler).toBeInstanceOf(PlainHandler);
   });
 
   it('apply rewrites workflowState on affected cards and transitions', async () => {

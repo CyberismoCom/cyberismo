@@ -6,6 +6,8 @@ import { copyDir } from '../../../src/utils/file-utils.js';
 import type { Project } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
 import { FieldTypeDataTypeHandler } from '../../../src/mutations/handlers/field-type-data-type.js';
+import { PlainHandler } from '../../../src/mutations/handlers/plain-handler.js';
+import { dispatch } from '../../../src/mutations/dispatcher.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 
@@ -36,8 +38,7 @@ describe('FieldTypeDataTypeHandler', () => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
-  it('matches an edit with key=dataType on a field type', () => {
-    const handler = new FieldTypeDataTypeHandler();
+  it('routes an edit with key=dataType to this handler (breaking)', () => {
     const ctx = {
       project,
       input: {
@@ -51,12 +52,12 @@ describe('FieldTypeDataTypeHandler', () => {
         },
       },
     };
-    expect(handler.matches(ctx)).toBe(true);
-    expect(handler.isBreaking).toBe(true);
+    const { handler, breaking } = dispatch(ctx);
+    expect(handler).toBeInstanceOf(FieldTypeDataTypeHandler);
+    expect(breaking).toBe(true);
   });
 
-  it('does not match a displayName change', () => {
-    const handler = new FieldTypeDataTypeHandler();
+  it('routes a displayName change to the plain handler, not this one', () => {
     const ctx = {
       project,
       input: {
@@ -66,7 +67,10 @@ describe('FieldTypeDataTypeHandler', () => {
         operation: { name: 'change' as const, target: 'Finished', to: 'Done' },
       },
     };
-    expect(handler.matches(ctx)).toBe(false);
+    const { handler, breaking } = dispatch(ctx);
+    expect(handler).not.toBeInstanceOf(FieldTypeDataTypeHandler);
+    expect(handler).toBeInstanceOf(PlainHandler);
+    expect(breaking).toBe(false);
   });
 
   it('converts values on every affected card and updates the field definition', async () => {

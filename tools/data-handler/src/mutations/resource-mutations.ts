@@ -66,7 +66,7 @@ export class ResourceMutations {
   ): Promise<void> {
     const input = normalized(rawInput);
     const ctx: MutationContext = { project: this.project, input };
-    const handler = dispatch(ctx);
+    const { handler, breaking } = dispatch(ctx);
 
     if (origin.kind === 'replay') {
       // Replay applies the cascade only: the resource change is already
@@ -90,7 +90,7 @@ export class ResourceMutations {
     await runWithDefaultCommitMessage(defaultCommitMessage(input), () =>
       this.project.lock.write(async () => {
         await handler.apply(ctx);
-        if (handler.isBreaking) {
+        if (breaking) {
           await this.recordLogEntry(input, recordContext);
         }
       }),
