@@ -232,9 +232,10 @@ export class CardContainer {
       const metadataFile = join(card.path, CardContainer.cardMetadataFile);
       card.metadata!.lastUpdated = new Date().toISOString();
 
+      // Cache the same object that was written, so cache and disk agree.
       const sanitizedMetadata = CardContainer.sanitizeMetadata(card);
       await writeJsonFile(metadataFile, sanitizedMetadata);
-      return this.cardCache.updateCardMetadata(card.key, card.metadata);
+      return this.cardCache.updateCardMetadata(card.key, sanitizedMetadata);
     }
     return false;
   }

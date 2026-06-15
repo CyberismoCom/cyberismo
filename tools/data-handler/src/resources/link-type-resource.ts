@@ -12,7 +12,7 @@
 
 import { DefaultContent } from './create-defaults.js';
 import { FileResource } from './file-resource.js';
-import { resourceNameToString } from '../utils/resource-utils.js';
+import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 import { sortCards } from '../utils/card-utils.js';
 
 import type { Card } from '../interfaces/project-interfaces.js';
@@ -37,60 +37,6 @@ export class LinkTypeResource extends FileResource<LinkType> {
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
   }
 
-  // Update card metadata links when link type is renamed
-  private async updateCardLinks(from: string, to: string) {
-    const cards = await this.collectCards(
-      from,
-      (card, linkTypeName) =>
-        card.metadata?.links?.some((link) => link.linkType === linkTypeName) ??
-        false,
-    );
-    if (cards.length === 0) {
-      return;
-    }
-
-    await Promise.all(
-      cards.map(async (card) => {
-        if (card.metadata?.links) {
-          card.metadata.links = card.metadata.links.map((link) => {
-            if (link.linkType === from) {
-              return { ...link, linkType: to };
-            }
-            return link;
-          });
-          await this.project.updateCardMetadata(card, card.metadata);
-        }
-      }),
-    );
-  }
-
-  /**
-   * When resource name changes.
-   * @param existingName Current resource name.
-   */
-  protected async onNameChange(existingName: string) {
-    const current = this.content;
-    const prefixes = this.project.projectPrefixes();
-    if (current.sourceCardTypes) {
-      current.sourceCardTypes = current.sourceCardTypes.map((item) =>
-        this.updatePrefixInResourceName(item, prefixes),
-      );
-    }
-    if (current.destinationCardTypes) {
-      current.destinationCardTypes = current.destinationCardTypes.map((item) =>
-        this.updatePrefixInResourceName(item, prefixes),
-      );
-    }
-    await Promise.all([
-      super.updateHandleBars(existingName, this.content.name),
-      super.updateCalculations(existingName, this.content.name),
-      super.updateCardContentReferences(existingName, this.content.name),
-      this.updateCardLinks(existingName, this.content.name),
-    ]);
-    // Finally, write updated content.
-    await this.write();
-  }
-
   /**
    * Creates a new link type object. Base class writes the object to disk automatically.
    * @param newContent Content for the link type.
@@ -107,13 +53,23 @@ export class LinkTypeResource extends FileResource<LinkType> {
   }
 
   /**
-   * Renames resource metadata file and renames memory resident object 'name'.
-   * @param newName New name for the resource.
+   * When the project prefix changes, rewrite the link type's own references
+   * (its sourceCardTypes / destinationCardTypes) that carried the old prefix.
+   * The cross-resource rename cascade lives in LinkTypeRenameHandler.
+   * @param newPrefix New project prefix.
    */
-  public async rename(newName: ResourceName) {
-    const existingName = this.content.name;
-    await super.rename(newName);
-    return this.onNameChange(existingName);
+  public async changePrefix(newPrefix: string) {
+    // The persisted name carries the old prefix; resourceName may already be
+    // re-keyed under the new one (see ResourceObject.changePrefix).
+    const from = resourceName(this.content.name).prefix;
+    const content = this.content;
+    content.sourceCardTypes = content.sourceCardTypes.map((item) =>
+      this.replacePrefix(item, from, newPrefix),
+    );
+    content.destinationCardTypes = content.destinationCardTypes.map((item) =>
+      this.replacePrefix(item, from, newPrefix),
+    );
+    await super.changePrefix(newPrefix);
   }
 
   /**

@@ -12,8 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { extname, join } from 'node:path';
-import { readdir } from 'node:fs/promises';
+import { join } from 'node:path';
 
 import { copyDir } from '../utils/file-utils.js';
 import { DefaultContent } from './create-defaults.js';
@@ -48,21 +47,6 @@ export class GraphViewResource extends FolderResource<
   }
 
   /**
-   * Handle name changes for graph views
-   * @param existingName The previous name before the change
-   */
-  protected async onNameChange(existingName: string): Promise<void> {
-    await Promise.all([
-      super.updateHandleBars(existingName, this.content.name, [
-        await this.handleBarFile(),
-      ]),
-      super.updateCalculations(existingName, this.content.name),
-      super.updateCardContentReferences(existingName, this.content.name),
-    ]);
-    await this.write();
-  }
-
-  /**
    * Sets new metadata into the graph view object.
    * @param newContent metadata content for the graph view.
    * @throws if 'newContent' is not valid.
@@ -83,32 +67,6 @@ export class GraphViewResource extends FolderResource<
     );
 
     await this.loadContentFiles();
-  }
-
-  /**
-   * Returns handlebar filename that this graph view has.
-   * @returns handlebar filename that this graph view has.
-   */
-  public async handleBarFile(nameOnly: boolean = false): Promise<string> {
-    return (
-      await readdir(this.internalFolder, {
-        withFileTypes: true,
-        recursive: true,
-      })
-    )
-      .filter((dirent) => dirent.isFile() && extname(dirent.name) === '.hbs')
-      .map((item) => (nameOnly ? item.name : join(item.parentPath, item.name)))
-      .at(0)!;
-  }
-
-  /**
-   * Renames the object and the file.
-   * @param newName New name for the resource.
-   */
-  public async rename(newName: ResourceName) {
-    const existingName = this.content.name;
-    await super.rename(newName);
-    return this.onNameChange(existingName);
   }
 
   /**

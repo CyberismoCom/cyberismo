@@ -15,22 +15,15 @@
 import { DefaultContent } from './create-defaults.js';
 import { FileResource } from './file-resource.js';
 import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
-import { ResourcesFrom } from '../containers/project/resources-from.js';
 import { sortCards } from '../utils/card-utils.js';
 import { removeValue } from '../utils/common-utils.js';
 import { Validate } from '../commands/validate.js';
 
-import type {
-  AddOperation,
-  ChangeOperation,
-  Operation,
-  RemoveOperation,
-} from './resource-object.js';
+import type { Operation, RemoveOperation } from './resource-object.js';
 import type { Card } from '../interfaces/project-interfaces.js';
 import type {
   CardType,
   CustomField,
-  LinkType,
   UpdateKey,
 } from '../interfaces/resource-interfaces.js';
 import type { Project } from '../containers/project.js';
@@ -67,99 +60,6 @@ export class CardTypeResource extends FileResource<CardType> {
     return field && field.name
       ? this.project.resources.exists(field.name)
       : false;
-  }
-
-  // If custom fields change, cards need to be updated.
-  // Rename change changes key names in cards.
-  private async handleCustomFieldsChange<Type>(op: Operation<Type>) {
-    if (op && op.name === 'rank') return;
-
-    // Collect both project cards and template cards.
-    const cards = await this.collectCards(
-      this.content.name,
-      (card, cardTypeName) => card.metadata?.cardType === cardTypeName,
-    );
-
-    if (op && op.name === 'change') {
-      const from = (op as ChangeOperation<string>).target;
-      const to = (op as ChangeOperation<string>).to;
-
-      // Then update them all parallel.
-      const promises: Promise<void>[] = [];
-      for (const card of cards) {
-        promises.push(this.updateCardMetadata(card, from, to));
-      }
-      await Promise.all(promises);
-    } else if (op && op.name === 'add') {
-      // todo: target can be string here as well? Fix at some point
-      const item = (op as AddOperation<Type>).target as CustomField;
-      await this.handleAddNewField(cards, item);
-    } else if (op && op.name === 'remove') {
-      // todo: target can be string here as well? Fix at some point
-      const item = (op as RemoveOperation<Type>).target as CustomField;
-      await this.handleRemoveField(cards, item);
-    }
-  }
-
-  // When new field is added, add it all affected cards with 'null' value.
-  private async handleAddNewField(cards: Card[], item: CustomField) {
-    for (const card of cards) {
-      if (card.metadata) {
-        card.metadata[item.name] = null;
-        await this.project.updateCardMetadata(card, card.metadata);
-      }
-    }
-  }
-
-  // When a field is removed, remove it from all affected cards.
-  private async handleRemoveField(cards: Card[], item: CustomField) {
-    for (const card of cards) {
-      if (card.metadata) {
-        delete card.metadata[item.name];
-        await this.project.updateCardMetadata(card, card.metadata);
-      }
-    }
-  }
-
-  // Apply state mapping to all cards using this card type.
-  // Checks that all states in the current workflow are updated.
-  private async handleWorkflowChange<Type>(
-    stateMapping: Record<string, string>,
-    op: ChangeOperation<Type>,
-  ) {
-    await this.verifyStateMapping(stateMapping, op);
-    const cards = await this.collectCards(
-      this.content.name,
-      (card, cardTypeName) => card.metadata?.cardType === cardTypeName,
-    );
-
-    const unmappedStates: string[] = [];
-
-    // Update each card's workflowState if it has a mapping
-    const updatePromises = cards.map(async (card) => {
-      if (card.metadata && card.metadata.workflowState) {
-        const currentState = card.metadata.workflowState;
-        const newState = stateMapping[currentState];
-
-        if (newState && newState !== currentState) {
-          this.logger.info(
-            `Updating card '${card.key}': ${currentState} -> ${newState}`,
-          );
-          card.metadata.workflowState = newState;
-          await this.project.updateCardMetadata(card, card.metadata);
-        } else if (!newState && !unmappedStates.includes(currentState)) {
-          unmappedStates.push(currentState);
-        }
-      }
-    });
-
-    await Promise.all(updatePromises);
-
-    if (unmappedStates.length > 0) {
-      this.logger.warn(
-        `Found unmapped states that were not updated: ${unmappedStates.join(', ')}`,
-      );
-    }
   }
 
   // Checks if field type exists in this card type.
@@ -233,49 +133,6 @@ export class CardTypeResource extends FileResource<CardType> {
     this.content = content;
   }
 
-  // Updates dependent link types.
-  private async updateLinkTypes(oldName: string): Promise<void> {
-    const linkTypes = this.project.resources.linkTypes(ResourcesFrom.localOnly);
-
-    const updatePromises = linkTypes.map(async (object) => {
-      const data = object.data;
-      const updates: Promise<void>[] = [];
-
-      const cardTypeFields: Array<
-        keyof Pick<LinkType, 'destinationCardTypes' | 'sourceCardTypes'>
-      > = ['destinationCardTypes', 'sourceCardTypes'];
-
-      for (const field of cardTypeFields) {
-        if (data && data[field].includes(oldName)) {
-          const op: ChangeOperation<string> = {
-            name: 'change',
-            target: oldName,
-            to: this.content.name,
-          } as ChangeOperation<string>;
-          updates.push(object.update({ key: field }, op));
-        }
-      }
-
-      if (updates.length > 0) {
-        await Promise.all(updates);
-      }
-    });
-    await Promise.all(updatePromises);
-  }
-
-  // Update changed custom fields to cards
-  private async updateCardMetadata(card: Card, from: string, to: string) {
-    if (card.metadata?.cardType && card.metadata?.cardType.length > 0) {
-      if (card.metadata && Object.keys(card.metadata).includes(from)) {
-        delete Object.assign(card.metadata, {
-          [to]: card.metadata[from],
-        })[from];
-
-        await this.project.updateCardMetadata(card, card.metadata);
-      }
-    }
-  }
-
   // Checks that field type exists in the project and is defined in this card type.
   private async validateFieldType<Type>(
     key: string,
@@ -301,98 +158,6 @@ export class CardTypeResource extends FileResource<CardType> {
         );
       }
     }
-  }
-
-  // Verifies that:
-  // - all states in the current workflow are covered in the state mapping
-  // - the states are correct
-  private async verifyStateMapping<Type>(
-    stateMapping: Record<string, string>,
-    op: ChangeOperation<Type>,
-  ) {
-    const currentWorkflowName = op.target as string;
-    const currentWorkflow = this.project.resources
-      .byType(currentWorkflowName, 'workflows')
-      .show();
-    if (!currentWorkflow) {
-      throw new Error(
-        `Workflow '${currentWorkflowName}' does not exist in the project`,
-      );
-    }
-
-    const newWorkflow = this.project.resources
-      .byType(op.to as string, 'workflows')
-      .show();
-
-    if (!newWorkflow) {
-      throw new Error(`Workflow '${op.to}' does not exist in the project`);
-    }
-
-    const currentWorkflowStates = currentWorkflow.states.map(
-      (state) => state.name,
-    );
-    const mappedSourceStates = Object.keys(stateMapping);
-    const unmappedCurrentStates = currentWorkflowStates.filter(
-      (stateName) => !mappedSourceStates.includes(stateName),
-    );
-
-    if (unmappedCurrentStates.length > 0) {
-      throw new Error(
-        `State mapping validation failed: The following states exist in the current workflow '${currentWorkflowName}' ` +
-          `but are not mapped from in the state mapping JSON file: ${unmappedCurrentStates.join(', ')}. ` +
-          `Please ensure all states in the current workflow are accounted for in the mapping to ensure all cards are properly updated.`,
-      );
-    }
-
-    // Also verify that all target states exist in the new workflow
-    const newWorkflowStates = newWorkflow.states.map((state) => state.name);
-    const mappedTargetStates = Object.values(stateMapping);
-    const invalidTargetStates = mappedTargetStates.filter(
-      (stateName) => !newWorkflowStates.includes(stateName),
-    );
-
-    if (invalidTargetStates.length > 0) {
-      throw new Error(
-        `State mapping validation failed: The following target states in the mapping do not exist in the new workflow '${op.to}': ${invalidTargetStates.join(', ')}.`,
-      );
-    }
-  }
-
-  /**
-   * When resource name changes
-   * @param existingName Current resource name
-   */
-  protected async onNameChange(existingName: string) {
-    const current = this.content;
-    const prefixes = this.project.projectPrefixes();
-    if (current.customFields) {
-      current.customFields.map(
-        (field) =>
-          (field.name = this.updatePrefixInResourceName(field.name, prefixes)),
-      );
-    }
-    if (current.alwaysVisibleFields) {
-      current.alwaysVisibleFields = current.alwaysVisibleFields.map((item) =>
-        this.updatePrefixInResourceName(item, prefixes),
-      );
-    }
-    if (current.optionallyVisibleFields) {
-      current.optionallyVisibleFields = current.optionallyVisibleFields.map(
-        (item) => this.updatePrefixInResourceName(item, prefixes),
-      );
-    }
-    current.workflow = this.updatePrefixInResourceName(
-      current.workflow,
-      prefixes,
-    );
-    await Promise.all([
-      super.updateHandleBars(existingName, this.content.name),
-      super.updateCalculations(existingName, this.content.name),
-      super.updateCardContentReferences(existingName, this.content.name),
-      this.updateLinkTypes(existingName),
-    ]);
-
-    await this.write();
   }
 
   /**
@@ -428,13 +193,27 @@ export class CardTypeResource extends FileResource<CardType> {
   }
 
   /**
-   * Renames resource metadata file and renames memory resident object 'name'.
-   * @param newName New name for the resource.
+   * When the project prefix changes, rewrite the card type's own references
+   * (its customFields / visible-fields / workflow) that carried the old
+   * prefix. The cross-resource rename cascade lives in CardTypeRenameHandler.
+   * @param newPrefix New project prefix.
    */
-  public async rename(newName: ResourceName) {
-    const existingName = this.content.name;
-    await super.rename(newName);
-    return this.onNameChange(existingName);
+  public async changePrefix(newPrefix: string) {
+    // The persisted name carries the old prefix; resourceName may already be
+    // re-keyed under the new one (see ResourceObject.changePrefix).
+    const from = resourceName(this.content.name).prefix;
+    const content = this.content;
+    content.customFields.forEach(
+      (field) => (field.name = this.replacePrefix(field.name, from, newPrefix)),
+    );
+    content.alwaysVisibleFields = content.alwaysVisibleFields.map((item) =>
+      this.replacePrefix(item, from, newPrefix),
+    );
+    content.optionallyVisibleFields = content.optionallyVisibleFields.map(
+      (item) => this.replacePrefix(item, from, newPrefix),
+    );
+    content.workflow = this.replacePrefix(content.workflow, from, newPrefix);
+    await super.changePrefix(newPrefix);
   }
 
   /**
@@ -452,7 +231,6 @@ export class CardTypeResource extends FileResource<CardType> {
       await super.update(updateKey, op);
     } else {
       const content = structuredClone(this.content);
-      const customFieldsChange = key === 'customFields';
       if (key === 'alwaysVisibleFields') {
         await this.validateFieldType(key, op);
         content.alwaysVisibleFields = super.handleArray(
@@ -468,12 +246,7 @@ export class CardTypeResource extends FileResource<CardType> {
           content.optionallyVisibleFields as Type[],
         ) as string[];
       } else if (key === 'workflow') {
-        const changeOp = op as ChangeOperation<string>;
-        const stateMapping = changeOp.mappingTable?.stateMapping || {};
         content.workflow = super.handleScalar(op) as string;
-        if (Object.keys(stateMapping).length > 0) {
-          await this.handleWorkflowChange(stateMapping, changeOp);
-        }
       } else if (key === 'customFields') {
         await this.validateFieldType(key, op);
         content.customFields = super.handleArray(
@@ -488,10 +261,6 @@ export class CardTypeResource extends FileResource<CardType> {
         throw new Error(`Unknown property '${key}' for CardType`);
       }
       await super.postUpdate(content, updateKey, op);
-
-      if (customFieldsChange) {
-        return this.handleCustomFieldsChange(op as ChangeOperation<string>);
-      }
     }
   }
 
