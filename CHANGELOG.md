@@ -1,5 +1,40 @@
 # Changelog
 
+## [1.0.0] — 2026-06-15
+
+### Highlights
+
+Role-based permissions now gate the UI — readers and editors see only the actions available to them while admin-only mutations are hidden. Users can also create new projects without the CLI via a "New Project" button in the projects view.
+
+### Breaking changes
+
+- Transition names within a workflow are now validated to be unique; projects with duplicate transition names will fail `cyberismo validate`. Rename duplicate transitions in your workflow files to resolve. (#1437)
+
+### Features
+
+- Role-based permissions gate card and config UI by role — readers/editors can view configuration while mutations stay admin-only (#1312)
+- New "New Project" button in the projects view lets you initialize or clone a project without the CLI (#1431)
+- Project description and category are now editable from the configuration view (#1451)
+- Template card metadata fields are now editable (#1448)
+
+### Fixes
+
+- Fix graph macro duplicating SVG controls on the screen (#1456)
+- Fix broken xref macro warning rendering in the middle of text (#1455)
+- Show a clear validation error when a `shortText` value exceeds the length limit (#1450)
+- Remove the "Status: " prefix from workflow transition buttons (#1449)
+- Fix attachment upload bug (#1442)
+- Fix null Boolean field incorrectly shown as "No" (#1436)
+- Fix outdated facts displayed in the card logic program view (#1435)
+- Fix template card creation from the Create menu (#1434)
+
+### Internal
+
+- Enable ccache in devcontainer for faster builds (#1440)
+- Install Playwright browsers in devcontainer post-create (#1438)
+- Pin third-party GitHub Actions to commit hashes (#1433)
+- Fix useless conditional identified by code scanning alert #248 (#1432)
+
 ## [0.0.27] — 2026-06-04
 
 ### Highlights
