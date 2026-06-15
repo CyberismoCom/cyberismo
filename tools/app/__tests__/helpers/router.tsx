@@ -34,4 +34,6 @@ export const mockAppRouter = () => ({
 });
 
 /** Wrap UI in a router so components using router hooks can render. */
-export const withRouter = (ui: ReactNode) => <BrowserRouter>{ui}</BrowserRouter>;
+export const withRouter = (ui: ReactNode) => (
+  <BrowserRouter>{ui}</BrowserRouter>
+);

@@ -82,7 +82,9 @@ describe('Mermaid component', () => {
   });
 
   it('shows an error message when mermaid rendering fails', async () => {
-    render(withRouter(<Mermaid code="invalid" macroKey="test-3" preview={false} />));
+    render(
+      withRouter(<Mermaid code="invalid" macroKey="test-3" preview={false} />),
+    );
 
     await waitFor(() => {
       expect(screen.getByText(/Parse error/)).toBeDefined();
