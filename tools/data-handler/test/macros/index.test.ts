@@ -950,6 +950,24 @@ Some content here`;
         );
       });
 
+      it('xrefMacro error in the middle of text renders warning as its own block', async () => {
+        const content = `tekstiä {{#xref}}"cardKey": "non-existent-card"{{/xref}} lisää tekstiä`;
+        const result = await evaluateMacros(content, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
+
+        expect(result).toContain('.Macro Error');
+        // The admonition must be separated from the preceding text by a blank
+        // line, otherwise adoc renders '[WARNING]' as literal inline text
+        expect(result).toContain('tekstiä\n\n[WARNING]\n');
+        // The text after the macro must not start with whitespace, otherwise
+        // adoc renders it as a literal block
+        expect(result).toMatch(/====\n+lisää tekstiä/);
+      });
+
       it('xrefMacro with wrong schema should return warning message', async () => {
         const macro = `{{#xref}}"invalidProperty": "test-value"{{/xref}}`;
         const result = await evaluateMacros(macro, {
