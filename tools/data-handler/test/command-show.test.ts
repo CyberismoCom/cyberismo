@@ -226,10 +226,12 @@ describe('shows command', () => {
       );
       const payloadAsArray = Object.values(result.payload || []);
       expect(result.statusCode).toBe(200);
-      expect(payloadAsArray.length).toBe(3);
+      expect(payloadAsArray.length).toBe(5);
       expect(payloadAsArray[0]).toBe('decision/reports/anotherReport');
-      expect(payloadAsArray[1]).toBe('decision/reports/eqNeReport');
-      expect(payloadAsArray[2]).toBe('decision/reports/testReport');
+      expect(payloadAsArray[1]).toBe('decision/reports/divideByZeroReport');
+      expect(payloadAsArray[2]).toBe('decision/reports/eqNeReport');
+      expect(payloadAsArray[3]).toBe('decision/reports/percentageReport');
+      expect(payloadAsArray[4]).toBe('decision/reports/testReport');
     });
     it('show templates - success()', async () => {
       const result = await commandHandler.command(

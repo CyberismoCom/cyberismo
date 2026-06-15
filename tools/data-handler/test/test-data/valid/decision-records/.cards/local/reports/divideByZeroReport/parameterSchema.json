@@ -1,0 +1,13 @@
+{
+    "title": "Report",
+    "$id": "divideByZeroReportSchema",
+    "description": "Parameters for the divide-by-zero test report",
+    "type": "object",
+    "properties": {
+      "name": {
+        "description": "The name of the report",
+        "type": "string"
+      }
+    },
+    "required": ["name"]
+  }

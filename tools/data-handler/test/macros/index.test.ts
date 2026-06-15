@@ -388,6 +388,19 @@ Some content here`;
         expect(result).toContain('Macro Error');
       });
     });
+    describe('reportMacro', () => {
+      it('renders an inline error when report content divides by zero', async () => {
+        const macro = `{{#report}}"name": "decision/reports/divideByZeroReport"{{/report}}`;
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: 'decision_1',
+          context: 'localApp',
+        });
+        expect(result).toContain('.Macro Error');
+        expect(result).toContain('Division by zero');
+      });
+    });
     describe('includeMacro', () => {
       let cardDetailsByIdStub: sinon.SinonStub;
       beforeEach(() => {

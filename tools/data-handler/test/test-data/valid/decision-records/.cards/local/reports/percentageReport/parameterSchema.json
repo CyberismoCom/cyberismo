@@ -1,0 +1,17 @@
+{
+    "title": "Report",
+    "$id": "percentageReportSchema",
+    "description": "Parameters for the percentage test report",
+    "type": "object",
+    "properties": {
+      "name": {
+        "description": "The name of the report",
+        "type": "string"
+      },
+      "value": {
+        "description": "The percentage value to render",
+        "type": "number"
+      }
+    },
+    "required": ["name", "value"]
+  }

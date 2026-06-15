@@ -1,0 +1,5 @@
+{
+    "displayName": "Divide by zero test report",
+    "description": "A report whose content divides by zero, to verify divide-by-zero renders an inline error.",
+    "name": "decision/reports/divideByZeroReport"
+}
