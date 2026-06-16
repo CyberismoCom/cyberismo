@@ -48,15 +48,8 @@ export class FieldTypeEnumRenameHandler implements Handler<EditInput> {
     const newValue = (op.to as EnumDefinition).enumValue;
 
     for (const card of this.affectedCards(ctx, name)) {
-      const value = card.metadata?.[name];
-      if (value === oldValue) {
+      if (card.metadata?.[name] === oldValue) {
         await ctx.project.updateCardMetadataKey(card.key, name, newValue);
-      } else if (Array.isArray(value) && (value as string[]).includes(oldValue)) {
-        await ctx.project.updateCardMetadataKey(
-          card.key,
-          name,
-          (value as string[]).map((v) => (v === oldValue ? newValue : v)),
-        );
       }
     }
   }

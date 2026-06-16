@@ -46,45 +46,52 @@ function seedEnumField() {
   );
 }
 
-async function seedCardValues() {
+// Register the enum field on the decision card type, then seed the value 'low'
+// onto every card of that type — mirrors FieldTypeEnumRemoveHandler's setup.
+async function seedCardTypeAndCardValues() {
+  const cardTypeName = `${project.projectPrefix}/cardTypes/decision`;
+  await project.resources.byType(cardTypeName, 'cardTypes').update(
+    { key: 'customFields' },
+    {
+      name: 'add' as const,
+      target: { name: fieldName() },
+    },
+  );
   const cards = project
     .cards(undefined)
-    .filter((c) => c.metadata && c.metadata.cardType);
+    .filter((c) => c.metadata?.cardType === cardTypeName);
   for (const card of cards) {
     card.metadata![fieldName()] = 'low';
     await project.updateCardMetadata(card, card.metadata!);
   }
 }
 
-describe('fieldType enumValues rename-member routing', () => {
+const renameOp = {
+  kind: 'edit' as const,
+  target: resourceName('decision/fieldTypes/testEnum'),
+  updateKey: { key: 'enumValues' as const },
+  operation: {
+    name: 'change' as const,
+    target: { enumValue: 'low' },
+    to: { enumValue: 'minor' },
+  },
+};
+
+describe('FieldTypeEnumRenameHandler', () => {
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir(join(baseDir, '..', '..', 'test-data'), testDir);
     seedEnumField();
     project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
-    await seedCardValues();
+    await seedCardTypeAndCardValues();
   });
   afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
   it('routes a change where enumValue differs as a breaking rename-member', () => {
-    // An identity change (enumValue differs) hits the enumValues/rename-member
-    // row: the dedicated cascade handler, registered as breaking.
-    const { handler, breaking } = dispatch({
-      project,
-      input: {
-        kind: 'edit' as const,
-        target: resourceName(fieldName()),
-        updateKey: { key: 'enumValues' as const },
-        operation: {
-          name: 'change' as const,
-          target: { enumValue: 'low' },
-          to: { enumValue: 'minor' },
-        },
-      },
-    });
+    const { handler, breaking } = dispatch({ project, input: renameOp });
     expect(handler).toBeInstanceOf(FieldTypeEnumRenameHandler);
     expect(breaking).toBe(true);
   });
@@ -110,17 +117,7 @@ describe('fieldType enumValues rename-member routing', () => {
   });
 
   it('renames the value in the field definition', async () => {
-    const mutations = new ResourceMutations(project);
-    await mutations.apply({
-      kind: 'edit' as const,
-      target: resourceName(fieldName()),
-      updateKey: { key: 'enumValues' as const },
-      operation: {
-        name: 'change' as const,
-        target: { enumValue: 'low' },
-        to: { enumValue: 'minor' },
-      },
-    });
+    await new ResourceMutations(project).apply(renameOp);
     const updated = project.resources.byType(fieldName(), 'fieldTypes').show();
     const values = (updated.enumValues ?? []).map((e) => e.enumValue);
     expect(values).toContain('minor');
@@ -128,22 +125,28 @@ describe('fieldType enumValues rename-member routing', () => {
   });
 
   it('migrates card values to the new value', async () => {
-    const mutations = new ResourceMutations(project);
-    await mutations.apply({
-      kind: 'edit' as const,
-      target: resourceName(fieldName()),
-      updateKey: { key: 'enumValues' as const },
-      operation: {
-        name: 'change' as const,
-        target: { enumValue: 'low' },
-        to: { enumValue: 'minor' },
-      },
-    });
-    // The cascade rewrites every card holding the old value to the new value.
+    await new ResourceMutations(project).apply(renameOp);
     const cards = project.cards(undefined);
     const anyStillLow = cards.some((c) => c.metadata?.[fieldName()] === 'low');
     const migrated = cards.filter((c) => c.metadata?.[fieldName()] === 'minor');
     expect(anyStillLow).toBe(false);
     expect(migrated.length).toBeGreaterThan(0);
+  });
+
+  it('applyCascade migrates card values without touching the definition', async () => {
+    // Rename the definition first, then run the cascade in isolation.
+    await project.resources
+      .byType(fieldName(), 'fieldTypes')
+      .update(renameOp.updateKey, renameOp.operation);
+
+    await new FieldTypeEnumRenameHandler().applyCascade({
+      project,
+      input: renameOp,
+    });
+
+    const anyStillLow = project
+      .cards(undefined)
+      .some((c) => c.metadata?.[fieldName()] === 'low');
+    expect(anyStillLow).toBe(false);
   });
 });
