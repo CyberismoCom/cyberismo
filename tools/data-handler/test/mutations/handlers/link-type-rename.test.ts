@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
-import { LinkTypeRenameHandler } from '../../../src/mutations/handlers/link-type-rename.js';
+import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir, deleteDir } from '../../../src/utils/file-utils.js';
 import { createLinkSeededProject } from '../helpers.js';
@@ -21,16 +21,11 @@ describe('LinkTypeRenameHandler', () => {
   });
 
   it('applying rewrites every card that referenced the old link type', async () => {
-    const handler = new LinkTypeRenameHandler();
-    const ctx = {
-      project,
-      input: {
-        kind: 'rename' as const,
-        target: resourceName(`${project.projectPrefix}/linkTypes/test`),
-        newIdentifier: 'is-caused-by',
-      },
-    };
-    await handler.apply(ctx);
+    await new ResourceMutations(project).apply({
+      kind: 'rename' as const,
+      target: resourceName(`${project.projectPrefix}/linkTypes/test`),
+      newIdentifier: 'is-caused-by',
+    });
     const cards = project.cards(undefined);
     const oldRef = `${project.projectPrefix}/linkTypes/test`;
     const newRef = `${project.projectPrefix}/linkTypes/is-caused-by`;
@@ -109,14 +104,10 @@ describe('LinkTypeRenameHandler module scope', () => {
   });
 
   it('leaves module template card links untouched by the cascade', async () => {
-    const handler = new LinkTypeRenameHandler();
-    await handler.apply({
-      project,
-      input: {
-        kind: 'rename' as const,
-        target: resourceName(`${project.projectPrefix}/linkTypes/test`),
-        newIdentifier: 'is-caused-by',
-      },
+    await new ResourceMutations(project).apply({
+      kind: 'rename' as const,
+      target: resourceName(`${project.projectPrefix}/linkTypes/test`),
+      newIdentifier: 'is-caused-by',
     });
 
     expect(

@@ -6,7 +6,6 @@ import { join } from 'node:path';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import type { Project } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
-import { CardTypeRenameHandler } from '../../../src/mutations/handlers/card-type-rename.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 
@@ -114,15 +113,11 @@ describe('CardTypeRenameHandler module scope', () => {
   });
 
   it('rejects a module card-type rename before rewriting local card metadata', async () => {
-    const handler = new CardTypeRenameHandler();
     await expect(
-      handler.apply({
-        project: moduleProject,
-        input: {
-          kind: 'rename' as const,
-          target: resourceName('mymod/cardTypes/dummy'),
-          newIdentifier: 'renamed',
-        },
+      new ResourceMutations(moduleProject).apply({
+        kind: 'rename' as const,
+        target: resourceName('mymod/cardTypes/dummy'),
+        newIdentifier: 'renamed',
       }),
     ).rejects.toThrow(
       'Cannot rename resource mymod/cardTypes/dummy: It is a module resource',

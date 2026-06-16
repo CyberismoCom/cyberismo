@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
-import { LinkTypeDeleteHandler } from '../../../src/mutations/handlers/link-type-delete.js';
+import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 import { copyDir, deleteDir } from '../../../src/utils/file-utils.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { createLinkSeededProject } from '../helpers.js';
@@ -21,11 +21,10 @@ describe('LinkTypeDeleteHandler', () => {
   });
 
   it('apply strips matching links and deletes the resource', async () => {
-    const handler = new LinkTypeDeleteHandler();
     const linkTypeName = `${project.projectPrefix}/linkTypes/test`;
-    await handler.apply({
-      project,
-      input: { kind: 'delete', target: resourceName(linkTypeName) },
+    await new ResourceMutations(project).apply({
+      kind: 'delete',
+      target: resourceName(linkTypeName),
     });
 
     for (const card of project.cards(undefined)) {
@@ -118,17 +117,12 @@ describe('LinkTypeDeleteHandler module scope', () => {
     await deleteDir(moduleTmpDir);
   });
 
-  // The full apply() cannot succeed here: usage() counts the module card's
-  // reference, so resource.delete() refuses. The cascade is what owns the
-  // local-only card scoping, so pin it directly.
-  it('local delete cascade leaves module template card links untouched', async () => {
-    const handler = new LinkTypeDeleteHandler();
-    await handler.applyCascade({
-      project,
-      input: {
-        kind: 'delete',
-        target: resourceName(`${project.projectPrefix}/linkTypes/test`),
-      },
+  // The cascade is local-only: deleting a local link type strips it from local
+  // cards but must leave module-owned card links untouched.
+  it('local delete leaves module template card links untouched', async () => {
+    await new ResourceMutations(project).apply({
+      kind: 'delete',
+      target: resourceName(`${project.projectPrefix}/linkTypes/test`),
     });
 
     const localCard = JSON.parse(
@@ -146,14 +140,10 @@ describe('LinkTypeDeleteHandler module scope', () => {
   });
 
   it('rejects a module link-type delete before stripping local card links', async () => {
-    const handler = new LinkTypeDeleteHandler();
     await expect(
-      handler.apply({
-        project,
-        input: {
-          kind: 'delete',
-          target: resourceName('mymod/linkTypes/dummy'),
-        },
+      new ResourceMutations(project).apply({
+        kind: 'delete',
+        target: resourceName('mymod/linkTypes/dummy'),
       }),
     ).rejects.toThrow(
       'Cannot delete resource mymod/linkTypes/dummy: It is a module resource',

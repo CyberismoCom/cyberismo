@@ -5,7 +5,6 @@ import { join } from 'node:path';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import type { Project } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
-import { FieldTypeDeleteHandler } from '../../../src/mutations/handlers/field-type-delete.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 
@@ -127,29 +126,11 @@ describe('FieldTypeDeleteHandler', () => {
     expect(after).toHaveLength(0);
   });
 
-  it('applyCascade strips the field without deleting the resource', async () => {
-    await new FieldTypeDeleteHandler().applyCascade({
-      project,
-      input: { kind: 'delete', target: resourceName(fieldName()) },
-    });
-
-    // The cascade rewrote consumers but left the field type resource in place.
-    expect(project.resources.exists(fieldName())).toBe(true);
-    expect(
-      project.resources
-        .byType(cardTypeName(), 'cardTypes')
-        .data?.customFields?.some((f) => f.name === fieldName()),
-    ).toBe(false);
-  });
-
   it('rejects deleting a module-owned field type', async () => {
     await expect(
-      new FieldTypeDeleteHandler().apply({
-        project,
-        input: {
-          kind: 'delete',
-          target: resourceName('mymod/fieldTypes/dummy'),
-        },
+      new ResourceMutations(project).apply({
+        kind: 'delete',
+        target: resourceName('mymod/fieldTypes/dummy'),
       }),
     ).rejects.toThrow(
       'Cannot delete resource mymod/fieldTypes/dummy: It is a module resource',

@@ -5,7 +5,6 @@ import { join } from 'node:path';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import type { Project } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
-import { FieldTypeEnumRenameHandler } from '../../../src/mutations/handlers/field-type-enum-rename.js';
 import { route } from '../../../src/mutations/route.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
@@ -124,15 +123,16 @@ describe('FieldTypeEnumRenameHandler', () => {
     expect(migrated.length).toBeGreaterThan(0);
   });
 
-  it('applyCascade migrates card values without touching the definition', async () => {
-    // Rename the definition first, then run the cascade in isolation.
+  it('replay runs the cascade only: migrates card values without touching the definition', async () => {
+    // Replay assumes the definition change is already materialized (mirrors the
+    // module-file overwrite), so apply it first, then replay runs the cascade.
     await project.resources
       .byType(fieldName(), 'fieldTypes')
       .update(renameOp.updateKey, renameOp.operation);
 
-    await new FieldTypeEnumRenameHandler().applyCascade({
-      project,
-      input: renameOp,
+    await new ResourceMutations(project).apply(renameOp, {
+      kind: 'replay',
+      modulePrefix: project.projectPrefix,
     });
 
     const anyStillLow = project

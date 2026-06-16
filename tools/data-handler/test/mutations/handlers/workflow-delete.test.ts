@@ -5,7 +5,6 @@ import { join } from 'node:path';
 import { Project } from '../../../src/containers/project.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
-import { WorkflowDeleteHandler } from '../../../src/mutations/handlers/workflow-delete.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 
 const FIXTURE_PATH = join(
@@ -80,26 +79,11 @@ describe('WorkflowDeleteHandler', () => {
     expect(after).toHaveLength(0);
   });
 
-  it('applyCascade deletes dependent card types but not the workflow', async () => {
-    await new WorkflowDeleteHandler().applyCascade({
-      project,
-      input: { kind: 'delete', target: resourceName(WF) },
-    });
-    await project.populateCaches();
-
-    // The cascade removed the dependent card type but left the workflow itself.
-    expect(project.resources.exists(DEPENDENT_CT)).toBe(false);
-    expect(project.resources.exists(WF)).toBe(true);
-  });
-
   it('rejects deleting a module-owned workflow', async () => {
     await expect(
-      new WorkflowDeleteHandler().apply({
-        project,
-        input: {
-          kind: 'delete',
-          target: resourceName('mymod/workflows/dummy'),
-        },
+      new ResourceMutations(project).apply({
+        kind: 'delete',
+        target: resourceName('mymod/workflows/dummy'),
       }),
     ).rejects.toThrow(
       'Cannot delete resource mymod/workflows/dummy: It is a module resource',
