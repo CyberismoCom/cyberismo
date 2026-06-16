@@ -5,9 +5,8 @@ import { join } from 'node:path';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import type { Project } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
-import { PlainHandler } from '../../../src/mutations/handlers/plain-handler.js';
 import { FieldTypeEnumRenameHandler } from '../../../src/mutations/handlers/field-type-enum-rename.js';
-import { dispatch } from '../../../src/mutations/dispatcher.js';
+import { route } from '../../../src/mutations/route.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 
@@ -90,30 +89,22 @@ describe('FieldTypeEnumRenameHandler', () => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
-  it('routes a change where enumValue differs as a breaking rename-member', () => {
-    const { handler, breaking } = dispatch({ project, input: renameOp });
-    expect(handler).toBeInstanceOf(FieldTypeEnumRenameHandler);
-    expect(breaking).toBe(true);
+  it('derives op=rename-member when the enumValue identity changes', () => {
+    expect(route(renameOp).op).toBe('rename-member');
   });
 
-  it('routes a change that only edits enumDisplayValue as a non-breaking edit', () => {
-    // No identity change: routes to the enumValues wildcard plain row, which is
-    // non-breaking.
-    const { handler, breaking } = dispatch({
-      project,
-      input: {
-        kind: 'edit' as const,
-        target: resourceName(fieldName()),
-        updateKey: { key: 'enumValues' as const },
-        operation: {
-          name: 'change' as const,
-          target: { enumValue: 'low' },
-          to: { enumValue: 'low', enumDisplayValue: 'Low priority' },
-        },
+  it('keeps op=change when only enumDisplayValue is edited (no identity change)', () => {
+    const op = route({
+      kind: 'edit' as const,
+      target: resourceName(fieldName()),
+      updateKey: { key: 'enumValues' as const },
+      operation: {
+        name: 'change' as const,
+        target: { enumValue: 'low' },
+        to: { enumValue: 'low', enumDisplayValue: 'Low priority' },
       },
-    });
-    expect(handler).toBeInstanceOf(PlainHandler);
-    expect(breaking).toBe(false);
+    }).op;
+    expect(op).toBe('change');
   });
 
   it('renames the value in the field definition', async () => {
