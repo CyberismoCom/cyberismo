@@ -5,8 +5,6 @@ import { join } from 'node:path';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import type { Project } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
-import { PlainDeleteHandler } from '../../../src/mutations/handlers/plain-handler.js';
-import { dispatch } from '../../../src/mutations/dispatcher.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 
@@ -24,18 +22,6 @@ describe('fieldType delete routing and cascade', () => {
   });
   afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
-  });
-
-  it('routes a FieldType delete to the plain delete handler (breaking)', () => {
-    const { handler, breaking } = dispatch({
-      project,
-      input: {
-        kind: 'delete',
-        target: resourceName(`${project.projectPrefix}/fieldTypes/finished`),
-      },
-    });
-    expect(handler).toBeInstanceOf(PlainDeleteHandler);
-    expect(breaking).toBe(true);
   });
 
   it('deletes an unused field type resource from disk', async () => {

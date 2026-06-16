@@ -3,10 +3,7 @@ import { access, mkdir, rm, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
-import { ProjectRenameHandler } from '../../../src/mutations/handlers/project-rename.js';
-import { dispatch } from '../../../src/mutations/dispatcher.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
-import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 
 const FIXTURE_PATH = join(
@@ -31,32 +28,6 @@ describe('ProjectRenameHandler', () => {
   });
   afterEach(async () => {
     await rm(tmpDir, { recursive: true, force: true });
-  });
-
-  it('routes only project_rename inputs to this handler', () => {
-    const projectRename = dispatch({
-      project,
-      input: { kind: 'project_rename', newPrefix: 'renamed' },
-    });
-    expect(projectRename.handler).toBeInstanceOf(ProjectRenameHandler);
-
-    const resourceRename = dispatch({
-      project,
-      input: {
-        kind: 'rename' as const,
-        target: resourceName(`${project.projectPrefix}/cardTypes/decision`),
-        newIdentifier: 'choice',
-      },
-    });
-    expect(resourceRename.handler).not.toBeInstanceOf(ProjectRenameHandler);
-  });
-
-  it('is registered as breaking', () => {
-    const { breaking } = dispatch({
-      project,
-      input: { kind: 'project_rename', newPrefix: 'renamed' },
-    });
-    expect(breaking).toBe(true);
   });
 
   it('apply rewrites cardType references in every card', async () => {

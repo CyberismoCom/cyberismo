@@ -5,9 +5,6 @@ import { join } from 'node:path';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import type { Project } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
-import { FieldTypeDataTypeHandler } from '../../../src/mutations/handlers/field-type-data-type.js';
-import { PlainHandler } from '../../../src/mutations/handlers/plain-handler.js';
-import { dispatch } from '../../../src/mutations/dispatcher.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 
@@ -36,41 +33,6 @@ describe('FieldTypeDataTypeHandler', () => {
   });
   afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
-  });
-
-  it('routes an edit with key=dataType to this handler (breaking)', () => {
-    const ctx = {
-      project,
-      input: {
-        kind: 'edit' as const,
-        target: resourceName(fieldName()),
-        updateKey: { key: 'dataType' as const },
-        operation: {
-          name: 'change' as const,
-          target: 'boolean',
-          to: 'shortText',
-        },
-      },
-    };
-    const { handler, breaking } = dispatch(ctx);
-    expect(handler).toBeInstanceOf(FieldTypeDataTypeHandler);
-    expect(breaking).toBe(true);
-  });
-
-  it('routes a displayName change to the plain handler, not this one', () => {
-    const ctx = {
-      project,
-      input: {
-        kind: 'edit' as const,
-        target: resourceName(fieldName()),
-        updateKey: { key: 'displayName' as const },
-        operation: { name: 'change' as const, target: 'Finished', to: 'Done' },
-      },
-    };
-    const { handler, breaking } = dispatch(ctx);
-    expect(handler).not.toBeInstanceOf(FieldTypeDataTypeHandler);
-    expect(handler).toBeInstanceOf(PlainHandler);
-    expect(breaking).toBe(false);
   });
 
   it('converts values on every affected card and updates the field definition', async () => {

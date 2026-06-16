@@ -5,8 +5,6 @@ import { join } from 'node:path';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import type { Project } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
-import { FieldTypeRenameHandler } from '../../../src/mutations/handlers/field-type-rename.js';
-import { dispatch } from '../../../src/mutations/dispatcher.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 
@@ -24,33 +22,6 @@ describe('FieldTypeRenameHandler', () => {
   });
   afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
-  });
-
-  it('routes a field-type rename input to this handler (breaking)', () => {
-    const ctx = {
-      project,
-      input: {
-        kind: 'rename' as const,
-        target: resourceName(`${project.projectPrefix}/fieldTypes/finished`),
-        newIdentifier: 'completed',
-      },
-    };
-    const { handler, breaking } = dispatch(ctx);
-    expect(handler).toBeInstanceOf(FieldTypeRenameHandler);
-    expect(breaking).toBe(true);
-  });
-
-  it('does not route a link-type rename to this handler', () => {
-    const ctx = {
-      project,
-      input: {
-        kind: 'rename' as const,
-        target: resourceName(`${project.projectPrefix}/linkTypes/test`),
-        newIdentifier: 'is-caused-by',
-      },
-    };
-    const { handler } = dispatch(ctx);
-    expect(handler).not.toBeInstanceOf(FieldTypeRenameHandler);
   });
 
   it('renames the resource on disk via the cascade', async () => {

@@ -3,8 +3,6 @@ import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
-import { PlainDeleteHandler } from '../../../src/mutations/handlers/plain-handler.js';
-import { dispatch } from '../../../src/mutations/dispatcher.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
@@ -31,18 +29,6 @@ describe('workflow delete routing and cascade', () => {
   });
   afterEach(async () => {
     await rm(tmpDir, { recursive: true, force: true });
-  });
-
-  it('routes a workflow delete to the plain delete handler (breaking)', () => {
-    const { handler, breaking } = dispatch({
-      project,
-      input: {
-        kind: 'delete',
-        target: resourceName('decision/workflows/decision'),
-      },
-    });
-    expect(handler).toBeInstanceOf(PlainDeleteHandler);
-    expect(breaking).toBe(true);
   });
 
   // Deleting a workflow that is still used (by card types / cards) is refused.

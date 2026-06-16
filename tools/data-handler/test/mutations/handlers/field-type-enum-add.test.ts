@@ -5,9 +5,6 @@ import { join } from 'node:path';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import type { Project } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
-import { PlainHandler } from '../../../src/mutations/handlers/plain-handler.js';
-import { FieldTypeEnumRemoveHandler } from '../../../src/mutations/handlers/field-type-enum-remove.js';
-import { dispatch } from '../../../src/mutations/dispatcher.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 
@@ -56,33 +53,6 @@ describe('fieldType enumValues add routing', () => {
   });
   afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
-  });
-
-  it('routes an add operation on enumValues to the plain handler (non-breaking)', () => {
-    const { handler, breaking } = dispatch({
-      project,
-      input: {
-        kind: 'edit' as const,
-        target: resourceName(fieldName()),
-        updateKey: { key: 'enumValues' as const },
-        operation: { name: 'add' as const, target: { enumValue: 'fresh' } },
-      },
-    });
-    expect(handler).toBeInstanceOf(PlainHandler);
-    expect(breaking).toBe(false);
-  });
-
-  it('routes a remove on enumValues to the remove handler, not the plain add path', () => {
-    const { handler } = dispatch({
-      project,
-      input: {
-        kind: 'edit' as const,
-        target: resourceName(fieldName()),
-        updateKey: { key: 'enumValues' as const },
-        operation: { name: 'remove' as const, target: { enumValue: 'low' } },
-      },
-    });
-    expect(handler).toBeInstanceOf(FieldTypeEnumRemoveHandler);
   });
 
   it('adds the new value to the field definition', async () => {

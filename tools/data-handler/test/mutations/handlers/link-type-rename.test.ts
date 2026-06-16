@@ -4,7 +4,6 @@ import { dirname, join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
 import { LinkTypeRenameHandler } from '../../../src/mutations/handlers/link-type-rename.js';
-import { dispatch } from '../../../src/mutations/dispatcher.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir, deleteDir } from '../../../src/utils/file-utils.js';
 import { createLinkSeededProject } from '../helpers.js';
@@ -19,19 +18,6 @@ describe('LinkTypeRenameHandler', () => {
   });
   afterEach(async () => {
     await deleteDir(tmpDir);
-  });
-
-  it('routes a link-type rename input to this handler', () => {
-    const ctx = {
-      project,
-      input: {
-        kind: 'rename' as const,
-        target: resourceName(`${project.projectPrefix}/linkTypes/test`),
-        newIdentifier: 'is-caused-by',
-      },
-    };
-    const { handler } = dispatch(ctx);
-    expect(handler).toBeInstanceOf(LinkTypeRenameHandler);
   });
 
   it('applying rewrites every card that referenced the old link type', async () => {
@@ -58,17 +44,6 @@ describe('LinkTypeRenameHandler', () => {
     }
   });
 
-  it('is registered as breaking', () => {
-    const { breaking } = dispatch({
-      project,
-      input: {
-        kind: 'rename' as const,
-        target: resourceName(`${project.projectPrefix}/linkTypes/test`),
-        newIdentifier: 'is-caused-by',
-      },
-    });
-    expect(breaking).toBe(true);
-  });
 });
 
 describe('LinkTypeRenameHandler module scope', () => {

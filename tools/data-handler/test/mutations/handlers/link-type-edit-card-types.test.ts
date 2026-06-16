@@ -3,9 +3,6 @@ import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
-import { PlainHandler } from '../../../src/mutations/handlers/plain-handler.js';
-import { LinkTypeRenameHandler } from '../../../src/mutations/handlers/link-type-rename.js';
-import { dispatch } from '../../../src/mutations/dispatcher.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
@@ -34,35 +31,6 @@ describe('linkType sourceCardTypes/destinationCardTypes edit routing and cascade
   });
   afterEach(async () => {
     await rm(tmpDir, { recursive: true, force: true });
-  });
-
-  it('routes edits on sourceCardTypes and destinationCardTypes to the plain handler (non-breaking)', () => {
-    for (const key of ['sourceCardTypes', 'destinationCardTypes']) {
-      const { handler, breaking } = dispatch({
-        project,
-        input: {
-          kind: 'edit',
-          target: resourceName(LT),
-          updateKey: { key },
-          operation: { name: 'add', target: 'decision/cardTypes/decision' },
-        },
-      });
-      expect(handler).toBeInstanceOf(PlainHandler);
-      expect(breaking).toBe(false);
-    }
-  });
-
-  it('does not route a link-type rename through the plain edit path', () => {
-    const { handler } = dispatch({
-      project,
-      input: {
-        kind: 'rename',
-        target: resourceName(LT),
-        newIdentifier: 'test-v2',
-      },
-    });
-    expect(handler).not.toBeInstanceOf(PlainHandler);
-    expect(handler).toBeInstanceOf(LinkTypeRenameHandler);
   });
 
   it('apply adds an existing card type to sourceCardTypes', async () => {

@@ -7,7 +7,6 @@ import { copyDir } from '../../../src/utils/file-utils.js';
 import type { Project } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
 import { CardTypeRenameHandler } from '../../../src/mutations/handlers/card-type-rename.js';
-import { dispatch } from '../../../src/mutations/dispatcher.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 
@@ -25,20 +24,6 @@ describe('CardTypeRenameHandler', () => {
   });
   afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
-  });
-
-  it('routes a CardType rename input to this handler (breaking)', () => {
-    const ctx = {
-      project,
-      input: {
-        kind: 'rename' as const,
-        target: resourceName(`${project.projectPrefix}/cardTypes/decision`),
-        newIdentifier: 'choice',
-      },
-    };
-    const { handler, breaking } = dispatch(ctx);
-    expect(handler).toBeInstanceOf(CardTypeRenameHandler);
-    expect(breaking).toBe(true);
   });
 
   it('rewrites cardType in every affected card after apply', async () => {

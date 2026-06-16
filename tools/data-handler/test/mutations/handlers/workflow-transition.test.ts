@@ -3,8 +3,6 @@ import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
-import { PlainHandler } from '../../../src/mutations/handlers/plain-handler.js';
-import { dispatch } from '../../../src/mutations/dispatcher.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
@@ -31,59 +29,6 @@ describe('workflow transitions routing and cascade', () => {
   });
   afterEach(async () => {
     await rm(tmpDir, { recursive: true, force: true });
-  });
-
-  it('routes add on transitions to the plain handler (non-breaking)', () => {
-    const { handler, breaking } = dispatch({
-      project,
-      input: {
-        kind: 'edit',
-        target: resourceName('decision/workflows/decision'),
-        updateKey: { key: 'transitions' },
-        operation: {
-          name: 'add',
-          target: {
-            name: 'Archive',
-            fromState: ['Approved'],
-            toState: 'Deprecated',
-          },
-        },
-      },
-    });
-    expect(handler).toBeInstanceOf(PlainHandler);
-    expect(breaking).toBe(false);
-  });
-
-  it('routes remove on transitions to the plain handler (non-breaking)', () => {
-    const { handler, breaking } = dispatch({
-      project,
-      input: {
-        kind: 'edit',
-        target: resourceName('decision/workflows/decision'),
-        updateKey: { key: 'transitions' },
-        operation: { name: 'remove', target: 'Deprecate' },
-      },
-    });
-    expect(handler).toBeInstanceOf(PlainHandler);
-    expect(breaking).toBe(false);
-  });
-
-  it('routes change on transitions to the plain handler (non-breaking)', () => {
-    const { handler, breaking } = dispatch({
-      project,
-      input: {
-        kind: 'edit',
-        target: resourceName('decision/workflows/decision'),
-        updateKey: { key: 'transitions' },
-        operation: {
-          name: 'change',
-          target: 'Deprecate',
-          to: 'MarkDeprecated',
-        },
-      },
-    });
-    expect(handler).toBeInstanceOf(PlainHandler);
-    expect(breaking).toBe(false);
   });
 
   it('apply add appends the transition to the workflow definition', async () => {

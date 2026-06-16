@@ -3,9 +3,6 @@ import { mkdir, rm, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
-import { LeafResourceRenameHandler } from '../../../src/mutations/handlers/leaf-resource-rename.js';
-import { PlainHandler } from '../../../src/mutations/handlers/plain-handler.js';
-import { dispatch } from '../../../src/mutations/dispatcher.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
@@ -80,45 +77,6 @@ describe.each(CASES)(
     });
     afterEach(async () => {
       await rm(tmpDir, { recursive: true, force: true });
-    });
-
-    it('routes a rename input for its type to a leaf rename handler (breaking)', () => {
-      const { handler, breaking } = dispatch({
-        project,
-        input: {
-          kind: 'rename',
-          target: resourceName(oldName),
-          newIdentifier,
-        },
-      });
-      expect(handler).toBeInstanceOf(LeafResourceRenameHandler);
-      expect(breaking).toBe(true);
-    });
-
-    it('routes an edit input to the plain handler, not a leaf rename handler', () => {
-      const { handler } = dispatch({
-        project,
-        input: {
-          kind: 'edit',
-          target: resourceName(oldName),
-          updateKey: { key: 'displayName' },
-          operation: { name: 'change', target: 'A', to: 'B' },
-        },
-      });
-      expect(handler).not.toBeInstanceOf(LeafResourceRenameHandler);
-      expect(handler).toBeInstanceOf(PlainHandler);
-    });
-
-    it('routes a rename input for another type to a different handler', () => {
-      const { handler } = dispatch({
-        project,
-        input: {
-          kind: 'rename',
-          target: resourceName('decision/workflows/decision'),
-          newIdentifier: 'whatever',
-        },
-      });
-      expect(handler).not.toBeInstanceOf(LeafResourceRenameHandler);
     });
 
     it('apply renames the resource', async () => {

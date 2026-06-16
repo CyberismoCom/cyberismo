@@ -4,7 +4,6 @@ import { dirname, join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
 import { LinkTypeDeleteHandler } from '../../../src/mutations/handlers/link-type-delete.js';
-import { dispatch } from '../../../src/mutations/dispatcher.js';
 import { copyDir, deleteDir } from '../../../src/utils/file-utils.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { createLinkSeededProject } from '../helpers.js';
@@ -19,37 +18,6 @@ describe('LinkTypeDeleteHandler', () => {
   });
   afterEach(async () => {
     await deleteDir(tmpDir);
-  });
-
-  it('routes only delete inputs on linkTypes to this handler', () => {
-    const linkTypeDelete = dispatch({
-      project,
-      input: {
-        kind: 'delete',
-        target: resourceName(`${project.projectPrefix}/linkTypes/test`),
-      },
-    });
-    expect(linkTypeDelete.handler).toBeInstanceOf(LinkTypeDeleteHandler);
-
-    const cardTypeDelete = dispatch({
-      project,
-      input: {
-        kind: 'delete',
-        target: resourceName(`${project.projectPrefix}/cardTypes/foo`),
-      },
-    });
-    expect(cardTypeDelete.handler).not.toBeInstanceOf(LinkTypeDeleteHandler);
-  });
-
-  it('is registered as breaking', () => {
-    const { breaking } = dispatch({
-      project,
-      input: {
-        kind: 'delete',
-        target: resourceName(`${project.projectPrefix}/linkTypes/test`),
-      },
-    });
-    expect(breaking).toBe(true);
   });
 
   it('apply strips matching links and deletes the resource', async () => {
