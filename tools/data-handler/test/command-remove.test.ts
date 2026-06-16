@@ -594,14 +594,14 @@ describe('remove command', () => {
         removeCmd.remove('module', 'i-dont-exist'),
       ).rejects.toThrow();
     });
-    it('try to remove workflow that this is still used', async () => {
+    it('removes an in-use workflow by cascade-deleting its card types', async () => {
       const workflowName = `decision/workflows/decision`;
       const result = await commandHandler.command(
         Cmd.remove,
         ['workflow', workflowName],
         options,
       );
-      expect(result.statusCode).toBe(400);
+      expect(result.statusCode).toBe(200);
     });
     it('try to remove hub - not existing in the project', async () => {
       const hub = `https://example.com/nonExisting`;

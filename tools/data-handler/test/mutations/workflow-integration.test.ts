@@ -156,14 +156,20 @@ describe('Workflow mutation engine end-to-end', () => {
     expect(entries).toHaveLength(0);
   });
 
-  it('apply → deleting an in-use workflow is refused (no log entry)', async () => {
+  it('apply → deleting an in-use workflow cascade-deletes dependent card types and logs', async () => {
     const mutations = new ResourceMutations(project);
-    await expect(
-      mutations.apply({ kind: 'delete', target: resourceName(WF) }),
-    ).rejects.toThrow();
+    await mutations.apply({ kind: 'delete', target: resourceName(WF) });
 
-    expect(project.resources.exists(WF)).toBe(true);
+    // The workflow and every card type that referenced it are gone.
+    expect(project.resources.exists(WF)).toBe(false);
+    expect(project.resources.exists('decision/cardTypes/decision')).toBe(false);
+
+    // The breaking delete records a log entry.
     const entries = await ConfigurationLogger.entries(project.basePath);
-    expect(entries).toHaveLength(0);
+    expect(
+      entries.some(
+        (e) => e.operation === 'resource_delete' && e.target === WF,
+      ),
+    ).toBe(true);
   });
 });

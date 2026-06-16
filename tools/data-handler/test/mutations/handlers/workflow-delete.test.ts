@@ -32,20 +32,24 @@ describe('workflow delete routing and cascade', () => {
   });
 
   // Deleting a workflow that is still used (by card types / cards) is refused.
-  // WorkflowResource.delete throws when usage() is non-empty; no cascade
-  // deletion of dependents takes place.
-  it('refuses to delete a workflow that is still in use', async () => {
+  // Deleting an in-use workflow cascade-deletes every card type that
+  // references it (which in turn deletes those card types' cards).
+  it('cascade-deletes dependent card types when deleting an in-use workflow', async () => {
     const mutations = new ResourceMutations(project);
-    await expect(
-      mutations.apply({
-        kind: 'delete',
-        target: resourceName('decision/workflows/decision'),
-      }),
-    ).rejects.toThrow();
+    await mutations.apply({
+      kind: 'delete',
+      target: resourceName('decision/workflows/decision'),
+    });
+    await project.populateCaches();
 
-    // Workflow and its dependent card type are untouched.
-    expect(project.resources.exists('decision/workflows/decision')).toBe(true);
-    expect(project.resources.exists('decision/cardTypes/decision')).toBe(true);
+    // The workflow and its dependent card type are both gone.
+    expect(project.resources.exists('decision/workflows/decision')).toBe(false);
+    expect(project.resources.exists('decision/cardTypes/decision')).toBe(false);
+    // No card of the deleted card type remains.
+    const anyDecisionCard = project
+      .cards(undefined)
+      .some((c) => c.metadata?.cardType === 'decision/cardTypes/decision');
+    expect(anyDecisionCard).toBe(false);
   });
 
   it('deletes an unused workflow', async () => {

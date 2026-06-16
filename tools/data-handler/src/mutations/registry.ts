@@ -29,10 +29,13 @@ import { CardTypeRenameHandler } from './handlers/card-type-rename.js';
 import { CardTypeDeleteHandler } from './handlers/card-type-delete.js';
 import { FieldTypeDataTypeHandler } from './handlers/field-type-data-type.js';
 import { FieldTypeEnumRemoveHandler } from './handlers/field-type-enum-remove.js';
+import { FieldTypeEnumRenameHandler } from './handlers/field-type-enum-rename.js';
 import { FieldTypeRenameHandler } from './handlers/field-type-rename.js';
+import { FieldTypeDeleteHandler } from './handlers/field-type-delete.js';
 import { WorkflowRemoveStateHandler } from './handlers/workflow-remove-state.js';
 import { WorkflowRenameStateHandler } from './handlers/workflow-rename-state.js';
 import { WorkflowRenameHandler } from './handlers/workflow-rename.js';
+import { WorkflowDeleteHandler } from './handlers/workflow-delete.js';
 import { LinkTypeRenameHandler } from './handlers/link-type-rename.js';
 import { LinkTypeDeleteHandler } from './handlers/link-type-delete.js';
 import { LeafResourceRenameHandler } from './handlers/leaf-resource-rename.js';
@@ -77,10 +80,13 @@ const cardTypeRename = new CardTypeRenameHandler();
 const cardTypeDelete = new CardTypeDeleteHandler();
 const fieldTypeDataType = new FieldTypeDataTypeHandler();
 const fieldTypeEnumRemove = new FieldTypeEnumRemoveHandler();
+const fieldTypeEnumRename = new FieldTypeEnumRenameHandler();
 const fieldTypeRename = new FieldTypeRenameHandler();
+const fieldTypeDelete = new FieldTypeDeleteHandler();
 const workflowRemoveState = new WorkflowRemoveStateHandler();
 const workflowRenameState = new WorkflowRenameStateHandler();
 const workflowRename = new WorkflowRenameHandler();
+const workflowDelete = new WorkflowDeleteHandler();
 const linkTypeRename = new LinkTypeRenameHandler();
 const linkTypeDelete = new LinkTypeDeleteHandler();
 const projectRename = new ProjectRenameHandler();
@@ -186,7 +192,7 @@ export const ROUTES: Registration[] = [
       key: 'enumValues',
       op: 'rename-member',
     },
-    handler: plain,
+    handler: fieldTypeEnumRename,
     breaking: true,
   },
   {
@@ -270,12 +276,12 @@ export const ROUTES: Registration[] = [
   },
   {
     route: { kind: 'delete', type: 'fieldTypes' },
-    handler: plainDelete,
+    handler: fieldTypeDelete,
     breaking: true,
   },
   {
     route: { kind: 'delete', type: 'workflows' },
-    handler: plainDelete,
+    handler: workflowDelete,
     breaking: true,
   },
   {

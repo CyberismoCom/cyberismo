@@ -37,13 +37,25 @@ describe('fieldType delete routing and cascade', () => {
     expect(project.resources.exists(name)).toBe(false);
   });
 
-  it('refuses to delete a field type used by a card type', async () => {
+  it('cascades when deleting a field type used by a card type', async () => {
     // 'finished' is referenced by the decision card type's customFields.
     const name = `${project.projectPrefix}/fieldTypes/finished`;
+    const cardTypeName = `${project.projectPrefix}/cardTypes/decision`;
+    const cardType = project.resources.byType(cardTypeName, 'cardTypes');
+    expect(cardType.data?.customFields?.some((f) => f.name === name)).toBe(true);
+
     const mutations = new ResourceMutations(project);
-    await expect(
-      mutations.apply({ kind: 'delete', target: resourceName(name) }),
-    ).rejects.toThrow(/used by/);
-    expect(project.resources.exists(name)).toBe(true);
+    await mutations.apply({ kind: 'delete', target: resourceName(name) });
+
+    // The field type is gone, and the cascade stripped it from the card type.
+    expect(project.resources.exists(name)).toBe(false);
+    expect(cardType.data?.customFields?.some((f) => f.name === name)).toBe(
+      false,
+    );
+    // No remaining card carries the deleted field key.
+    const anyCardHasField = project
+      .cards(undefined)
+      .some((c) => c.metadata && name in c.metadata);
+    expect(anyCardHasField).toBe(false);
   });
 });

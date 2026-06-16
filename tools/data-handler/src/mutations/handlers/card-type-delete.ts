@@ -15,9 +15,10 @@
 import type { Handler, MutationContext } from '../handler.js';
 import type { DeleteInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
-import { ResourcesFrom } from '../../containers/project/resources-from.js';
-import type { Card } from '../../interfaces/project-interfaces.js';
-import type { Operation } from '../../resources/resource-object.js';
+import {
+  deleteCardType,
+  deleteCardTypeCascade,
+} from '../cascades/delete-card-type.js';
 
 export class CardTypeDeleteHandler implements Handler<DeleteInput> {
   async apply(ctx: MutationContext<DeleteInput>): Promise<void> {
@@ -30,52 +31,11 @@ export class CardTypeDeleteHandler implements Handler<DeleteInput> {
       );
     }
 
-    // The cascade clears all local usage first so that the resource's own
-    // delete (which refuses while usage() is non-empty) can succeed.
-    await this.applyCascade(ctx);
-
-    // Delete the card type resource itself. By now usage() is empty.
-    const resource = ctx.project.resources.byType(cardTypeName, 'cardTypes');
-    if (!resource) throw new Error(`CardType '${cardTypeName}' not found`);
-    await resource.delete();
+    // Cascade (strip link types, delete cards) then remove the resource.
+    await deleteCardType(ctx, cardTypeName);
   }
 
   async applyCascade(ctx: MutationContext<DeleteInput>): Promise<void> {
-    const cardTypeName = resourceNameToString(ctx.input.target);
-
-    // 1. Strip the card type from every local link type.
-    const linkTypes = ctx.project.resources.linkTypes(ResourcesFrom.localOnly);
-    for (const lt of linkTypes) {
-      const data = lt.data;
-      if (!data) continue;
-      for (const field of [
-        'sourceCardTypes',
-        'destinationCardTypes',
-      ] as const) {
-        if (data[field].includes(cardTypeName)) {
-          await lt.update({ key: field }, {
-            name: 'remove',
-            target: cardTypeName,
-          } as Operation<string>);
-        }
-      }
-    }
-
-    // 2. Delete every local card of this type, along with their subtrees and
-    //    any links pointing at them. deleteCards handles the cascade; no
-    //    per-card permission check applies to a structural cardType deletion.
-    const cards = this.affectedCards(ctx, cardTypeName);
-    await ctx.project.deleteCards(cards);
-  }
-
-  // Cards using this card type: local project cards plus local template cards
-  // (matches CardTypeResource's collectCards scoping).
-  private affectedCards(ctx: MutationContext, cardTypeName: string): Card[] {
-    return [
-      ...ctx.project.cards(undefined),
-      ...ctx.project.resources
-        .templates(ResourcesFrom.localOnly)
-        .flatMap((t) => t.templateObject().cards()),
-    ].filter((c) => c.metadata?.cardType === cardTypeName);
+    await deleteCardTypeCascade(ctx, resourceNameToString(ctx.input.target));
   }
 }

@@ -6,6 +6,7 @@ import { copyDir } from '../../../src/utils/file-utils.js';
 import type { Project } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
 import { PlainHandler } from '../../../src/mutations/handlers/plain-handler.js';
+import { FieldTypeEnumRenameHandler } from '../../../src/mutations/handlers/field-type-enum-rename.js';
 import { dispatch } from '../../../src/mutations/dispatcher.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
@@ -70,7 +71,7 @@ describe('fieldType enumValues rename-member routing', () => {
 
   it('routes a change where enumValue differs as a breaking rename-member', () => {
     // An identity change (enumValue differs) hits the enumValues/rename-member
-    // row: still the plain handler, but registered as breaking.
+    // row: the dedicated cascade handler, registered as breaking.
     const { handler, breaking } = dispatch({
       project,
       input: {
@@ -84,7 +85,7 @@ describe('fieldType enumValues rename-member routing', () => {
         },
       },
     });
-    expect(handler).toBeInstanceOf(PlainHandler);
+    expect(handler).toBeInstanceOf(FieldTypeEnumRenameHandler);
     expect(breaking).toBe(true);
   });
 
@@ -126,7 +127,7 @@ describe('fieldType enumValues rename-member routing', () => {
     expect(values).not.toContain('low');
   });
 
-  it('leaves card values untouched', async () => {
+  it('migrates card values to the new value', async () => {
     const mutations = new ResourceMutations(project);
     await mutations.apply({
       kind: 'edit' as const,
@@ -138,10 +139,11 @@ describe('fieldType enumValues rename-member routing', () => {
         to: { enumValue: 'minor' },
       },
     });
-    // The enum definition is updated only; existing cards keep their old value.
-    const anyStillLow = project
-      .cards(undefined)
-      .some((c) => c.metadata?.[fieldName()] === 'low');
-    expect(anyStillLow).toBe(true);
+    // The cascade rewrites every card holding the old value to the new value.
+    const cards = project.cards(undefined);
+    const anyStillLow = cards.some((c) => c.metadata?.[fieldName()] === 'low');
+    const migrated = cards.filter((c) => c.metadata?.[fieldName()] === 'minor');
+    expect(anyStillLow).toBe(false);
+    expect(migrated.length).toBeGreaterThan(0);
   });
 });
