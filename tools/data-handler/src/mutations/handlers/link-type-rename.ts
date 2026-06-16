@@ -13,6 +13,7 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
+import type { RenameInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import {
   rewriteCardContentRefs,
@@ -21,11 +22,8 @@ import {
 import { isModuleCard } from '../../utils/card-utils.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
 
-export class LinkTypeRenameHandler implements Handler {
-  async apply(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'rename') {
-      throw new Error('LinkTypeRenameHandler called with non-rename input');
-    }
+export class LinkTypeRenameHandler implements Handler<RenameInput> {
+  async apply(ctx: MutationContext<RenameInput>): Promise<void> {
     const oldName = resourceNameToString(ctx.input.target);
 
     // Interactive rename of a module-owned link type is not allowed.
@@ -48,10 +46,7 @@ export class LinkTypeRenameHandler implements Handler {
     await resource.rename(ctx.input.newIdentifier);
   }
 
-  async applyCascade(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'rename') {
-      throw new Error('LinkTypeRenameHandler called with non-rename input');
-    }
+  async applyCascade(ctx: MutationContext<RenameInput>): Promise<void> {
     const oldName = resourceNameToString(ctx.input.target);
     const newName = `${ctx.input.target.prefix}/linkTypes/${ctx.input.newIdentifier}`;
 

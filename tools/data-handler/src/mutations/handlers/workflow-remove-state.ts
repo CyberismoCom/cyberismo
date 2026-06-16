@@ -13,6 +13,7 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
+import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import { isModuleCard } from '../../utils/card-utils.js';
 import type { RemoveOperation } from '../../resources/resource-object.js';
@@ -30,11 +31,8 @@ import type { WorkflowState } from '../../interfaces/resource-interfaces.js';
  * (which removes the state and rewrites transitions) and then performs the card
  * migration. Marked breaking so the engine records a log entry.
  */
-export class WorkflowRemoveStateHandler implements Handler {
-  async apply(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'edit') {
-      throw new Error('WorkflowRemoveStateHandler: non-edit input');
-    }
+export class WorkflowRemoveStateHandler implements Handler<EditInput> {
+  async apply(ctx: MutationContext<EditInput>): Promise<void> {
     const name = resourceNameToString(ctx.input.target);
     const resource = ctx.project.resources.byType(name, 'workflows');
     if (!resource) {
@@ -52,10 +50,7 @@ export class WorkflowRemoveStateHandler implements Handler {
   // Cascade: with a replacement, migrate every card in the removed state to
   // it. Without a replacement no cards are migrated (they keep their now-
   // removed state value).
-  async applyCascade(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'edit') {
-      throw new Error('WorkflowRemoveStateHandler: non-edit input');
-    }
+  async applyCascade(ctx: MutationContext<EditInput>): Promise<void> {
     const name = resourceNameToString(ctx.input.target);
     const op = ctx.input.operation as RemoveOperation<WorkflowState>;
     const stateName = ((op.target as { name?: string }).name ??

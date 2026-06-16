@@ -19,14 +19,20 @@ export type MutationOrigin =
   | { kind: 'local' }
   | { kind: 'replay'; modulePrefix: string };
 
-export interface MutationContext {
+/**
+ * Context handed to a handler. Generic over the input variant: the dispatcher
+ * routes each mutation to a handler registered for its kind, so a handler can
+ * fix `I` to the precise {@link MutationInput} variant it handles (e.g.
+ * `RenameInput`) and read `ctx.input` without re-narrowing the union.
+ */
+export interface MutationContext<I extends MutationInput = MutationInput> {
   project: Project;
-  input: MutationInput;
+  input: I;
 }
 
-export interface Handler {
+export interface Handler<I extends MutationInput = MutationInput> {
   /** Apply the resource-definition change and the cascade (authoring path). */
-  apply(ctx: MutationContext): Promise<void>;
+  apply(ctx: MutationContext<I>): Promise<void>;
 
   /**
    * Apply only the cascade: rewrites of LOCAL resources, cards and content
@@ -36,5 +42,5 @@ export interface Handler {
    * Cascades may write directly to disk; the replay orchestrator is
    * responsible for refreshing project caches after a replay batch.
    */
-  applyCascade(ctx: MutationContext): Promise<void>;
+  applyCascade(ctx: MutationContext<I>): Promise<void>;
 }

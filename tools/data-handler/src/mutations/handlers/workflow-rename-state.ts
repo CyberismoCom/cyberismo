@@ -13,6 +13,7 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
+import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import { isModuleCard } from '../../utils/card-utils.js';
 import type { ChangeOperation } from '../../resources/resource-object.js';
@@ -36,11 +37,8 @@ import type { WorkflowState } from '../../interfaces/resource-interfaces.js';
  * NOT matched here; it falls through to DefaultNoCascadeHandler, which runs the
  * same update without recording a (non-breaking) log entry.
  */
-export class WorkflowRenameStateHandler implements Handler {
-  async apply(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'edit') {
-      throw new Error('WorkflowRenameStateHandler: non-edit input');
-    }
+export class WorkflowRenameStateHandler implements Handler<EditInput> {
+  async apply(ctx: MutationContext<EditInput>): Promise<void> {
     const name = resourceNameToString(ctx.input.target);
     const resource = ctx.project.resources.byType(name, 'workflows');
     if (!resource) {
@@ -56,10 +54,7 @@ export class WorkflowRenameStateHandler implements Handler {
   }
 
   // Cascade: remap the workflowState of every card in the renamed state.
-  async applyCascade(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'edit') {
-      throw new Error('WorkflowRenameStateHandler: non-edit input');
-    }
+  async applyCascade(ctx: MutationContext<EditInput>): Promise<void> {
     const name = resourceNameToString(ctx.input.target);
     const op = ctx.input.operation as ChangeOperation<WorkflowState>;
     const oldState = (op.target as { name?: string }).name as string;

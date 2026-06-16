@@ -13,15 +13,13 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
+import type { DeleteInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import { isModuleCard } from '../../utils/card-utils.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
 
-export class LinkTypeDeleteHandler implements Handler {
-  async apply(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'delete') {
-      throw new Error('LinkTypeDeleteHandler: non-delete input');
-    }
+export class LinkTypeDeleteHandler implements Handler<DeleteInput> {
+  async apply(ctx: MutationContext<DeleteInput>): Promise<void> {
     const name = resourceNameToString(ctx.input.target);
 
     // Interactive deletion of a module-owned link type is not allowed.
@@ -43,10 +41,7 @@ export class LinkTypeDeleteHandler implements Handler {
     await resource.delete();
   }
 
-  async applyCascade(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'delete') {
-      throw new Error('LinkTypeDeleteHandler: non-delete input');
-    }
+  async applyCascade(ctx: MutationContext<DeleteInput>): Promise<void> {
     const name = resourceNameToString(ctx.input.target);
 
     // Strip matching links from every card's metadata.

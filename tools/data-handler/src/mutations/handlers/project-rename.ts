@@ -21,6 +21,7 @@ import {
 } from 'node:fs/promises';
 
 import type { Handler, MutationContext } from '../handler.js';
+import type { ProjectRenameInput } from '../types.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
 import { isTemplateCard } from '../../utils/card-utils.js';
 import { resourceName } from '../../utils/resource-utils.js';
@@ -34,13 +35,8 @@ const FILE_TYPES_WITH_PREFIX_REFERENCES = ['adoc', 'hbs', 'json', 'lp'];
  * reference, every `<oldPrefix>_*` card key, card metadata, attachments, and
  * file contents (adoc/hbs/json/lp).
  */
-export class ProjectRenameHandler implements Handler {
-  async apply(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'project_rename') {
-      throw new Error(
-        'ProjectRenameHandler called with non-project_rename input',
-      );
-    }
+export class ProjectRenameHandler implements Handler<ProjectRenameInput> {
+  async apply(ctx: MutationContext<ProjectRenameInput>): Promise<void> {
     // Capture before setCardPrefix changes projectPrefix.
     const from = ctx.project.projectPrefix;
     const to = ctx.input.newPrefix;
@@ -112,12 +108,7 @@ export class ProjectRenameHandler implements Handler {
    * (module renamed its prefix): `oldPrefix` is REQUIRED and comes from the
    * recorded log entry, and this pass IS the metadata/content rewrite.
    */
-  async applyCascade(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'project_rename') {
-      throw new Error(
-        'ProjectRenameHandler called with non-project_rename input',
-      );
-    }
+  async applyCascade(ctx: MutationContext<ProjectRenameInput>): Promise<void> {
     const from = ctx.input.oldPrefix;
     if (!from) {
       throw new Error('project_rename cascade requires oldPrefix');

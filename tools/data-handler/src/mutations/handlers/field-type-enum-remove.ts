@@ -13,6 +13,7 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
+import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
@@ -27,11 +28,8 @@ import type { EnumDefinition } from '../../interfaces/resource-interfaces.js';
  * one, the value is removed from the enum definition only and cards keep their
  * orphaned value (they are NOT nulled). Marked breaking.
  */
-export class FieldTypeEnumRemoveHandler implements Handler {
-  async apply(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'edit') {
-      throw new Error('FieldTypeEnumRemoveHandler: non-edit input');
-    }
+export class FieldTypeEnumRemoveHandler implements Handler<EditInput> {
+  async apply(ctx: MutationContext<EditInput>): Promise<void> {
     const fieldName = resourceNameToString(ctx.input.target);
     const resource = ctx.project.resources.byType(fieldName, 'fieldTypes');
     if (!resource) {
@@ -48,10 +46,7 @@ export class FieldTypeEnumRemoveHandler implements Handler {
   // Cascade: when a replacement value is given, rewrite every card that held
   // the removed value to the replacement. Without one, cards keep their
   // orphaned value.
-  async applyCascade(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'edit') {
-      throw new Error('FieldTypeEnumRemoveHandler: non-edit input');
-    }
+  async applyCascade(ctx: MutationContext<EditInput>): Promise<void> {
     const fieldName = resourceNameToString(ctx.input.target);
     const removeOp = ctx.input.operation as RemoveOperation<EnumDefinition>;
     const newValue = removeOp.replacementValue as EnumDefinition | undefined;

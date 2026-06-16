@@ -13,17 +13,15 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
+import type { DeleteInput, EditInput } from '../types.js';
 
 /**
  * Plain definition write: applies an edit via resource.update with no
  * consumer-side cascade. Routed to by key-wildcard ROUTES rows whose edits
  * have no dependent local state to rewrite.
  */
-export class PlainHandler implements Handler {
-  async apply(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'edit') {
-      throw new Error('DefaultNoCascadeHandler only supports edits');
-    }
+export class PlainHandler implements Handler<EditInput> {
+  async apply(ctx: MutationContext<EditInput>): Promise<void> {
     const { target, updateKey, operation } = ctx.input;
     const type = ctx.project.resources.extractType(
       `${target.prefix}/${target.type}/${target.identifier}`,
@@ -46,11 +44,8 @@ export class PlainHandler implements Handler {
  * delete handler. The base resource delete() already refuses when the resource
  * is still in use; no dependent local state is rewritten.
  */
-export class PlainDeleteHandler implements Handler {
-  async apply(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'delete') {
-      throw new Error('DefaultDeleteHandler only supports deletes');
-    }
+export class PlainDeleteHandler implements Handler<DeleteInput> {
+  async apply(ctx: MutationContext<DeleteInput>): Promise<void> {
     const { target } = ctx.input;
     const name = `${target.prefix}/${target.type}/${target.identifier}`;
     const type = ctx.project.resources.extractType(name);

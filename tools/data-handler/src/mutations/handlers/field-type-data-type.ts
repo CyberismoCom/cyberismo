@@ -13,6 +13,7 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
+import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import { fromDate, fromNumber, fromString } from '../../utils/value-utils.js';
 import { isModuleCard } from '../../utils/card-utils.js';
@@ -30,11 +31,8 @@ const SHORT_TEXT_MAX_LENGTH = 80;
  * validates the conversion and persists the new dataType; the handler then owns
  * the per-card value conversion. Marked breaking.
  */
-export class FieldTypeDataTypeHandler implements Handler {
-  async apply(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'edit') {
-      throw new Error('FieldTypeDataTypeHandler: non-edit input');
-    }
+export class FieldTypeDataTypeHandler implements Handler<EditInput> {
+  async apply(ctx: MutationContext<EditInput>): Promise<void> {
     const fieldName = resourceNameToString(ctx.input.target);
     const resource = ctx.project.resources.byType(fieldName, 'fieldTypes');
     if (!resource) {
@@ -50,10 +48,7 @@ export class FieldTypeDataTypeHandler implements Handler {
 
   // Cascade: convert every affected card's value to the new type. Old and new
   // types come from the operation (target/to), not from the resource.
-  async applyCascade(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'edit') {
-      throw new Error('FieldTypeDataTypeHandler: non-edit input');
-    }
+  async applyCascade(ctx: MutationContext<EditInput>): Promise<void> {
     const fieldName = resourceNameToString(ctx.input.target);
     const op = ctx.input.operation as { target: DataType; to: DataType };
     const fromType = op.target;

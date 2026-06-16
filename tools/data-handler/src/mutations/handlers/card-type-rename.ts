@@ -13,6 +13,7 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
+import type { RenameInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import {
@@ -23,11 +24,8 @@ import type { Card } from '../../interfaces/project-interfaces.js';
 import type { ChangeOperation } from '../../resources/resource-object.js';
 import type { LinkType } from '../../interfaces/resource-interfaces.js';
 
-export class CardTypeRenameHandler implements Handler {
-  async apply(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'rename') {
-      throw new Error('CardTypeRenameHandler called with non-rename input');
-    }
+export class CardTypeRenameHandler implements Handler<RenameInput> {
+  async apply(ctx: MutationContext<RenameInput>): Promise<void> {
     const oldName = resourceNameToString(ctx.input.target);
 
     // Interactive rename of a module-owned card type is not allowed.
@@ -50,10 +48,7 @@ export class CardTypeRenameHandler implements Handler {
     await resource.rename(ctx.input.newIdentifier);
   }
 
-  async applyCascade(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'rename') {
-      throw new Error('CardTypeRenameHandler called with non-rename input');
-    }
+  async applyCascade(ctx: MutationContext<RenameInput>): Promise<void> {
     const oldName = resourceNameToString(ctx.input.target);
     const newName = `${ctx.input.target.prefix}/cardTypes/${ctx.input.newIdentifier}`;
 

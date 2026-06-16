@@ -13,6 +13,7 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
+import type { RenameInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import {
@@ -27,11 +28,8 @@ import type { ChangeOperation } from '../../resources/resource-object.js';
  * referencing card type are rewritten. The operation is marked breaking so the
  * engine records a log entry.
  */
-export class FieldTypeRenameHandler implements Handler {
-  async apply(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'rename') {
-      throw new Error('FieldTypeRenameHandler called with non-rename input');
-    }
+export class FieldTypeRenameHandler implements Handler<RenameInput> {
+  async apply(ctx: MutationContext<RenameInput>): Promise<void> {
     const oldName = resourceNameToString(ctx.input.target);
 
     const resource = ctx.project.resources.byType(oldName, 'fieldTypes');
@@ -51,10 +49,7 @@ export class FieldTypeRenameHandler implements Handler {
     await this.applyCascade(ctx);
   }
 
-  async applyCascade(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'rename') {
-      throw new Error('FieldTypeRenameHandler called with non-rename input');
-    }
+  async applyCascade(ctx: MutationContext<RenameInput>): Promise<void> {
     const oldName = resourceNameToString(ctx.input.target);
     const newName = `${ctx.input.target.prefix}/fieldTypes/${ctx.input.newIdentifier}`;
 

@@ -13,6 +13,7 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
+import type { RenameInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import {
   rewriteCardContentRefs,
@@ -41,16 +42,13 @@ type LeafResourceType =
  * Renaming a template does not flush the template-card cache (only deletion
  * does).
  */
-export class LeafResourceRenameHandler implements Handler {
+export class LeafResourceRenameHandler implements Handler<RenameInput> {
   constructor(
     private readonly type: LeafResourceType,
     private readonly label: string,
   ) {}
 
-  async apply(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'rename') {
-      throw new Error('LeafResourceRenameHandler called with non-rename input');
-    }
+  async apply(ctx: MutationContext<RenameInput>): Promise<void> {
     const oldName = resourceNameToString(ctx.input.target);
 
     // Interactive rename of a module-owned resource is not allowed.
@@ -75,10 +73,7 @@ export class LeafResourceRenameHandler implements Handler {
     await resource.rename(ctx.input.newIdentifier);
   }
 
-  async applyCascade(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'rename') {
-      throw new Error('LeafResourceRenameHandler called with non-rename input');
-    }
+  async applyCascade(ctx: MutationContext<RenameInput>): Promise<void> {
     const oldName = resourceNameToString(ctx.input.target);
     const newName = `${ctx.input.target.prefix}/${this.type}/${ctx.input.newIdentifier}`;
 

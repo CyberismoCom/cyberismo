@@ -13,6 +13,7 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
+import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
@@ -29,13 +30,8 @@ import type { CustomField } from '../../interfaces/resource-interfaces.js';
  * customFields / alwaysVisibleFields / optionallyVisibleFields and persists it,
  * then the handler drops the field key from each affected card.
  */
-export class CardTypeRemoveCustomFieldHandler implements Handler {
-  async apply(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'edit') {
-      throw new Error(
-        'CardTypeRemoveCustomFieldHandler called with non-edit input',
-      );
-    }
+export class CardTypeRemoveCustomFieldHandler implements Handler<EditInput> {
+  async apply(ctx: MutationContext<EditInput>): Promise<void> {
     const cardTypeName = resourceNameToString(ctx.input.target);
     const resource = ctx.project.resources.byType(cardTypeName, 'cardTypes');
     if (!resource) throw new Error(`CardType '${cardTypeName}' not found`);
@@ -51,12 +47,7 @@ export class CardTypeRemoveCustomFieldHandler implements Handler {
   }
 
   // Cascade: drop the field key from every affected card.
-  async applyCascade(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'edit') {
-      throw new Error(
-        'CardTypeRemoveCustomFieldHandler called with non-edit input',
-      );
-    }
+  async applyCascade(ctx: MutationContext<EditInput>): Promise<void> {
     const cardTypeName = resourceNameToString(ctx.input.target);
     const item = (ctx.input.operation as RemoveOperation<CustomField>)
       .target as CustomField;

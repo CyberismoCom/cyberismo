@@ -13,16 +13,14 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
+import type { DeleteInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
 import type { Operation } from '../../resources/resource-object.js';
 
-export class CardTypeDeleteHandler implements Handler {
-  async apply(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'delete') {
-      throw new Error('CardTypeDeleteHandler: non-delete input');
-    }
+export class CardTypeDeleteHandler implements Handler<DeleteInput> {
+  async apply(ctx: MutationContext<DeleteInput>): Promise<void> {
     const cardTypeName = resourceNameToString(ctx.input.target);
 
     // Interactive deletion of a module-owned card type is not allowed.
@@ -42,10 +40,7 @@ export class CardTypeDeleteHandler implements Handler {
     await resource.delete();
   }
 
-  async applyCascade(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'delete') {
-      throw new Error('CardTypeDeleteHandler: non-delete input');
-    }
+  async applyCascade(ctx: MutationContext<DeleteInput>): Promise<void> {
     const cardTypeName = resourceNameToString(ctx.input.target);
 
     // 1. Strip the card type from every local link type.

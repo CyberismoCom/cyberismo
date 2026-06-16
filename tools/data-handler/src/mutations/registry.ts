@@ -14,6 +14,12 @@
 
 import type { Handler } from './handler.js';
 import type { RouteKey } from './route.js';
+import type {
+  DeleteInput,
+  EditInput,
+  ProjectRenameInput,
+  RenameInput,
+} from './types.js';
 
 import { PlainHandler, PlainDeleteHandler } from './handlers/plain-handler.js';
 import { CardTypeAddCustomFieldHandler } from './handlers/card-type-add-custom-field.js';
@@ -32,11 +38,34 @@ import { LinkTypeDeleteHandler } from './handlers/link-type-delete.js';
 import { LeafResourceRenameHandler } from './handlers/leaf-resource-rename.js';
 import { ProjectRenameHandler } from './handlers/project-rename.js';
 
-export interface Registration {
-  route: RouteKey;
-  handler: Handler;
-  breaking: boolean;
-}
+/**
+ * A route → handler pair. Discriminated by `route.kind`: each member ties the
+ * handler to the input variant its route is guaranteed to dispatch, so pairing
+ * a route with a handler built for a different variant (e.g. a `rename` route
+ * with a `Handler<EditInput>`) is a compile error. The array below is therefore
+ * plain data — the kind mismatch is caught structurally, with no helper.
+ */
+export type Registration =
+  | {
+      route: RouteKey & { kind: 'edit' };
+      handler: Handler<EditInput>;
+      breaking: boolean;
+    }
+  | {
+      route: RouteKey & { kind: 'delete' };
+      handler: Handler<DeleteInput>;
+      breaking: boolean;
+    }
+  | {
+      route: RouteKey & { kind: 'rename' };
+      handler: Handler<RenameInput>;
+      breaking: boolean;
+    }
+  | {
+      route: RouteKey & { kind: 'project_rename' };
+      handler: Handler<ProjectRenameInput>;
+      breaking: boolean;
+    };
 
 const plain = new PlainHandler();
 const plainDelete = new PlainDeleteHandler();
@@ -58,7 +87,11 @@ const projectRename = new ProjectRenameHandler();
 
 // Key-wildcard plain edit rows: route.op = undefined, breaking: false.
 function plainEdit(type: string, key: string): Registration {
-  return { route: { kind: 'edit', type, key }, handler: plain, breaking: false };
+  return {
+    route: { kind: 'edit', type, key },
+    handler: plain,
+    breaking: false,
+  };
 }
 
 const wildcardEditKeys: Record<string, string[]> = {
@@ -71,8 +104,20 @@ const wildcardEditKeys: Record<string, string[]> = {
     'alwaysVisibleFields',
     'optionallyVisibleFields',
   ],
-  fieldTypes: ['displayName', 'description', 'category', 'dataType', 'enumValues'],
-  workflows: ['displayName', 'description', 'category', 'states', 'transitions'],
+  fieldTypes: [
+    'displayName',
+    'description',
+    'category',
+    'dataType',
+    'enumValues',
+  ],
+  workflows: [
+    'displayName',
+    'description',
+    'category',
+    'states',
+    'transitions',
+  ],
   linkTypes: [
     'displayName',
     'description',
@@ -85,7 +130,13 @@ const wildcardEditKeys: Record<string, string[]> = {
     'enableLinkDescription',
   ],
   templates: ['displayName', 'description', 'category'],
-  calculations: ['displayName', 'description', 'category', 'calculation', 'content'],
+  calculations: [
+    'displayName',
+    'description',
+    'category',
+    'calculation',
+    'content',
+  ],
   reports: ['displayName', 'description', 'category', 'content'],
   graphModels: ['displayName', 'description', 'category', 'content'],
   graphViews: ['displayName', 'description', 'category', 'content'],
@@ -99,7 +150,12 @@ export const ROUTES: Registration[] = [
     breaking: true,
   },
   {
-    route: { kind: 'edit', type: 'cardTypes', key: 'customFields', op: 'remove' },
+    route: {
+      kind: 'edit',
+      type: 'cardTypes',
+      key: 'customFields',
+      op: 'remove',
+    },
     handler: cardTypeRemoveCustomField,
     breaking: true,
   },
@@ -114,7 +170,12 @@ export const ROUTES: Registration[] = [
     breaking: true,
   },
   {
-    route: { kind: 'edit', type: 'fieldTypes', key: 'enumValues', op: 'remove' },
+    route: {
+      kind: 'edit',
+      type: 'fieldTypes',
+      key: 'enumValues',
+      op: 'remove',
+    },
     handler: fieldTypeEnumRemove,
     breaking: true,
   },
@@ -150,10 +211,26 @@ export const ROUTES: Registration[] = [
   ),
 
   // RENAME rows.
-  { route: { kind: 'rename', type: 'cardTypes' }, handler: cardTypeRename, breaking: true },
-  { route: { kind: 'rename', type: 'fieldTypes' }, handler: fieldTypeRename, breaking: true },
-  { route: { kind: 'rename', type: 'linkTypes' }, handler: linkTypeRename, breaking: true },
-  { route: { kind: 'rename', type: 'workflows' }, handler: workflowRename, breaking: true },
+  {
+    route: { kind: 'rename', type: 'cardTypes' },
+    handler: cardTypeRename,
+    breaking: true,
+  },
+  {
+    route: { kind: 'rename', type: 'fieldTypes' },
+    handler: fieldTypeRename,
+    breaking: true,
+  },
+  {
+    route: { kind: 'rename', type: 'linkTypes' },
+    handler: linkTypeRename,
+    breaking: true,
+  },
+  {
+    route: { kind: 'rename', type: 'workflows' },
+    handler: workflowRename,
+    breaking: true,
+  },
   {
     route: { kind: 'rename', type: 'templates' },
     handler: new LeafResourceRenameHandler('templates', 'Template'),
@@ -181,15 +258,51 @@ export const ROUTES: Registration[] = [
   },
 
   // DELETE rows.
-  { route: { kind: 'delete', type: 'cardTypes' }, handler: cardTypeDelete, breaking: true },
-  { route: { kind: 'delete', type: 'linkTypes' }, handler: linkTypeDelete, breaking: true },
-  { route: { kind: 'delete', type: 'fieldTypes' }, handler: plainDelete, breaking: true },
-  { route: { kind: 'delete', type: 'workflows' }, handler: plainDelete, breaking: true },
-  { route: { kind: 'delete', type: 'templates' }, handler: plainDelete, breaking: false },
-  { route: { kind: 'delete', type: 'calculations' }, handler: plainDelete, breaking: false },
-  { route: { kind: 'delete', type: 'reports' }, handler: plainDelete, breaking: false },
-  { route: { kind: 'delete', type: 'graphModels' }, handler: plainDelete, breaking: false },
-  { route: { kind: 'delete', type: 'graphViews' }, handler: plainDelete, breaking: false },
+  {
+    route: { kind: 'delete', type: 'cardTypes' },
+    handler: cardTypeDelete,
+    breaking: true,
+  },
+  {
+    route: { kind: 'delete', type: 'linkTypes' },
+    handler: linkTypeDelete,
+    breaking: true,
+  },
+  {
+    route: { kind: 'delete', type: 'fieldTypes' },
+    handler: plainDelete,
+    breaking: true,
+  },
+  {
+    route: { kind: 'delete', type: 'workflows' },
+    handler: plainDelete,
+    breaking: true,
+  },
+  {
+    route: { kind: 'delete', type: 'templates' },
+    handler: plainDelete,
+    breaking: false,
+  },
+  {
+    route: { kind: 'delete', type: 'calculations' },
+    handler: plainDelete,
+    breaking: false,
+  },
+  {
+    route: { kind: 'delete', type: 'reports' },
+    handler: plainDelete,
+    breaking: false,
+  },
+  {
+    route: { kind: 'delete', type: 'graphModels' },
+    handler: plainDelete,
+    breaking: false,
+  },
+  {
+    route: { kind: 'delete', type: 'graphViews' },
+    handler: plainDelete,
+    breaking: false,
+  },
 
   // PROJECT_RENAME row.
   { route: { kind: 'project_rename' }, handler: projectRename, breaking: true },
