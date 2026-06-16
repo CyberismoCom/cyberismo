@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import AppToolbar from '../components/AppToolbar';
-import { useAppSelector, useOptionalKeyParam } from '@/lib/hooks';
+import { useOptionalKeyParam } from '@/lib/hooks';
 import { Stack, styled } from '@mui/joy';
 import { Outlet } from 'react-router';
 import {
@@ -28,12 +28,7 @@ import {
   NewTemplateModal,
   NewWorkflowModal,
 } from '../components/modals/resource-forms';
-import { Snackbar } from '@mui/joy';
-import { closeNotification } from '../lib/slices/notifications';
-import { removeNotification } from '../lib/slices/notifications';
-import { IconButton } from '@mui/joy';
-import CloseRounded from '@mui/icons-material/CloseRounded';
-import { useAppDispatch, useIsInCards } from '../lib/hooks';
+import { useIsInCards } from '../lib/hooks';
 import { useModals } from '@/lib/utils';
 import { NewTemplateCardModal } from '../components/modals/resource-forms/NewTemplateCardModal';
 import { useConfigTemplateCreationContext } from '@/lib/hooks';
@@ -51,18 +46,6 @@ const Main = styled('main')(() => ({
   height: 'calc(100vh - 44px)', // 44px is the height of the toolbar
   flexGrow: 1,
 }));
-
-const notificationColorMap = {
-  error: 'danger',
-  info: 'primary',
-  success: 'success',
-} as const;
-
-const notificationDurationMap = {
-  error: 10000,
-  info: 4000,
-  success: 4000,
-} as const;
 
 export default function Layout() {
   const inCards = useIsInCards();
@@ -92,12 +75,6 @@ export default function Layout() {
     setPrevInCards(inCards);
     if (!inCards) setDrawerOpen(false);
   }
-
-  const dispatch = useAppDispatch();
-
-  const notifications = useAppSelector(
-    (state) => state.notifications.notifications,
-  );
 
   const openCreateResourceModal = useCallback(
     (resourceType: ResourceName) => {
@@ -186,56 +163,6 @@ export default function Layout() {
         open={modalOpen.workflows}
         onClose={closeModal('workflows')}
       />
-      {notifications.map((notification, index) => {
-        const color = notificationColorMap[notification.type];
-        const autoHideDuration = notification.disableAutoClose
-          ? null
-          : notificationDurationMap[notification.type];
-
-        return (
-          <Snackbar
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            key={notification.id}
-            open={!notification.closed}
-            sx={{
-              marginBottom: index * 9,
-            }}
-            autoHideDuration={autoHideDuration}
-            color={color}
-            variant="solid"
-            data-cy="notification"
-            onClose={(_, reason) => {
-              // If the notification has been closed by clicking away, and it has been less than 2 seconds, don't close it
-              if (
-                reason === 'clickaway' &&
-                notification.createdAt + 2000 >= Date.now()
-              ) {
-                return;
-              }
-
-              dispatch(closeNotification(notification.id));
-            }}
-            onUnmount={() => {
-              dispatch(removeNotification(notification.id));
-            }}
-            endDecorator={
-              <IconButton
-                variant="plain"
-                size="sm"
-                color="neutral"
-                data-cy="notificationClose"
-                onClick={() => {
-                  dispatch(closeNotification(notification.id));
-                }}
-              >
-                <CloseRounded />
-              </IconButton>
-            }
-          >
-            {notification.message}
-          </Snackbar>
-        );
-      })}
     </Stack>
   );
 }

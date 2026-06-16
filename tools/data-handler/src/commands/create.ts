@@ -21,6 +21,11 @@ import { SCHEMA_VERSION } from '@cyberismo/assets';
 import { scanForProjects } from '../project-scanner.js';
 import { errorFunction } from '../utils/error-utils.js';
 import { NON_INTERACTIVE_GIT_ENV, gitTimeout } from '../utils/git-config.js';
+import {
+  clone as cloneFromGitService,
+  isGitServiceEnabled,
+  resolveGitServiceClonePath,
+} from '../utils/git-service-client.js';
 import { pathExists } from '../utils/file-utils.js';
 import { Project } from '../containers/project.js';
 import { Validate } from './validate.js';
@@ -36,6 +41,9 @@ import type { Card, ProjectFile } from '../interfaces/project-interfaces.js';
 import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 import { write } from '../utils/rw-lock.js';
 import { writeJsonFile } from '../utils/json.js';
+import { getChildLogger } from '../utils/log-utils.js';
+
+const logger = getChildLogger({ module: 'create' });
 
 // todo: Is there a easy to way to make JSON schema into a TypeScript interface/type?
 //       Check this out: https://www.npmjs.com/package/json-schema-to-ts
@@ -677,15 +685,24 @@ export class Create {
 
     // Clone to a temp directory in destPath so rename works (same filesystem)
     await mkdir(destPath, { recursive: true });
-    const tempDir = await mkdtemp(join(destPath, '.cyberismo-clone-'));
-    const tempClonePath = join(tempDir, repoName);
-
-    const git = simpleGit({
-      timeout: { block: gitTimeout() },
-    });
+    let tempDir: string | undefined;
+    let tempClonePath!: string;
 
     try {
-      await git.env({ ...NON_INTERACTIVE_GIT_ENV }).clone(url, tempClonePath);
+      if (isGitServiceEnabled()) {
+        const clonePath = await cloneFromGitService({
+          url,
+          shallow: false,
+        });
+        tempClonePath = resolveGitServiceClonePath(clonePath);
+      } else {
+        tempDir = await mkdtemp(join(destPath, '.cyberismo-clone-'));
+        tempClonePath = join(tempDir, repoName);
+        const git = simpleGit({
+          timeout: { block: gitTimeout() },
+        });
+        await git.env({ ...NON_INTERACTIVE_GIT_ENV }).clone(url, tempClonePath);
+      }
 
       // Validate that the cloned repo contains Cyberismo projects
       const projects = await scanForProjects(tempClonePath);
@@ -706,8 +723,17 @@ export class Create {
       }
       throw error;
     } finally {
-      // Clean up temp directory (contains leftovers on failure, empty wrapper on success)
-      await rm(tempDir, { recursive: true, force: true }).catch(() => {});
+      // Clean up on failure. On success rename() has already moved tempClonePath
+      // so rm with force:true is a no-op. Both paths are handled uniformly here.
+      const cleanupPath = tempDir ?? tempClonePath;
+      if (cleanupPath) {
+        await rm(cleanupPath, { recursive: true, force: true }).catch((err) => {
+          logger.warn(
+            err,
+            `Failed to clean up temporary path '${cleanupPath}'`,
+          );
+        });
+      }
     }
 
     return finalPath;
