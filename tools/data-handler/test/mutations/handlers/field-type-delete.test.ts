@@ -19,7 +19,13 @@ const cardTypeName = () => `${project.projectPrefix}/cardTypes/decision`;
 
 function seedField() {
   writeFileSync(
-    join(decisionRecordsPath, '.cards', 'local', 'fieldTypes', 'testField.json'),
+    join(
+      decisionRecordsPath,
+      '.cards',
+      'local',
+      'fieldTypes',
+      'testField.json',
+    ),
     JSON.stringify(
       {
         name: 'decision/fieldTypes/testField',
@@ -35,10 +41,12 @@ function seedField() {
 
 // Register the field on the decision card type and seed a value onto its cards.
 async function seedCardTypeAndCardValues() {
-  await project.resources.byType(cardTypeName(), 'cardTypes').update(
-    { key: 'customFields' },
-    { name: 'add' as const, target: { name: fieldName() } },
-  );
+  await project.resources
+    .byType(cardTypeName(), 'cardTypes')
+    .update(
+      { key: 'customFields' },
+      { name: 'add' as const, target: { name: fieldName() } },
+    );
   const cards = project
     .cards(undefined)
     .filter((c) => c.metadata?.cardType === cardTypeName());
@@ -63,7 +71,9 @@ describe('FieldTypeDeleteHandler', () => {
 
   it('deletes an unused field type resource from disk', async () => {
     const name = `${project.projectPrefix}/fieldTypes/unusedField`;
-    await project.resources.byType(name, 'fieldTypes').createFieldType('shortText');
+    await project.resources
+      .byType(name, 'fieldTypes')
+      .createFieldType('shortText');
     expect(project.resources.exists(name)).toBe(true);
 
     await new ResourceMutations(project).apply({
@@ -136,7 +146,10 @@ describe('FieldTypeDeleteHandler', () => {
     await expect(
       new FieldTypeDeleteHandler().apply({
         project,
-        input: { kind: 'delete', target: resourceName('mymod/fieldTypes/dummy') },
+        input: {
+          kind: 'delete',
+          target: resourceName('mymod/fieldTypes/dummy'),
+        },
       }),
     ).rejects.toThrow(
       'Cannot delete resource mymod/fieldTypes/dummy: It is a module resource',

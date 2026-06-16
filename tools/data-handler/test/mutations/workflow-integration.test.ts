@@ -167,9 +167,7 @@ describe('Workflow mutation engine end-to-end', () => {
     // The breaking delete records a log entry.
     const entries = await ConfigurationLogger.entries(project.basePath);
     expect(
-      entries.some(
-        (e) => e.operation === 'resource_delete' && e.target === WF,
-      ),
+      entries.some((e) => e.operation === 'resource_delete' && e.target === WF),
     ).toBe(true);
   });
 });

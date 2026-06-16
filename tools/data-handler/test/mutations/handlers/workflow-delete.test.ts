@@ -96,7 +96,10 @@ describe('WorkflowDeleteHandler', () => {
     await expect(
       new WorkflowDeleteHandler().apply({
         project,
-        input: { kind: 'delete', target: resourceName('mymod/workflows/dummy') },
+        input: {
+          kind: 'delete',
+          target: resourceName('mymod/workflows/dummy'),
+        },
       }),
     ).rejects.toThrow(
       'Cannot delete resource mymod/workflows/dummy: It is a module resource',

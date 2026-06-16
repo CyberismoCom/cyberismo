@@ -43,7 +43,6 @@ describe('LinkTypeRenameHandler', () => {
       }
     }
   });
-
 });
 
 describe('LinkTypeRenameHandler module scope', () => {

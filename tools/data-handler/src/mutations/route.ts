@@ -34,14 +34,19 @@ function isMemberRename(key: string, op: ChangeOperation<unknown>): boolean {
       (op.to as EnumDefinition).enumValue
     );
   if (key === 'states')
-    return (op.target as { name?: string }).name !== (op.to as { name?: string }).name;
+    return (
+      (op.target as { name?: string }).name !==
+      (op.to as { name?: string }).name
+    );
   return false;
 }
 
 export function route(input: MutationInput): RouteKey {
   if (input.kind === 'project_rename') return { kind: 'project_rename' };
-  if (input.kind === 'rename') return { kind: 'rename', type: input.target.type };
-  if (input.kind === 'delete') return { kind: 'delete', type: input.target.type };
+  if (input.kind === 'rename')
+    return { kind: 'rename', type: input.target.type };
+  if (input.kind === 'delete')
+    return { kind: 'delete', type: input.target.type };
   const { target, updateKey, operation } = input;
   const op: RouteOp =
     operation.name === 'change' &&
