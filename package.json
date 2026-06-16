@@ -53,7 +53,8 @@
     "build-docker": "docker build -t cyberismo .",
     "ci:publish": "pnpm --filter !app --filter !@cyberismo/node-clingo publish --access public --no-git-checks",
     "release": "node scripts/release.mjs",
-    "create-migration": "node scripts/create-migration.mjs"
+    "create-migration": "node scripts/create-migration.mjs",
+    "check-licenses": "node scripts/check-licenses.mjs"
   },
   "pnpm": {
     "ignoredOptionalDependencies": [

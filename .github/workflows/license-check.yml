@@ -1,0 +1,35 @@
+# Verifies that all npm/pnpm dependencies carry an allowed license.
+# Policy lives in scripts/license-policy.json
+
+name: License check
+
+on:
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  license-check:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: ["${{ vars.NODE_VERSION }}"]
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pnpm
+        uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "pnpm"
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@cyberismo"
+      - name: Install dependencies
+        run: pnpm install --ignore-scripts
+      - name: Check dependency licenses
+        run: pnpm check-licenses
