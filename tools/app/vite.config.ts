@@ -19,6 +19,16 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+    // CodeMirror validates extensions by class/facet identity, so it breaks
+    // (silently — e.g. closeBrackets stops working) if more than one copy of
+    // these packages ends up in the bundle. A dependency bump can fork them
+    // into two versions; force a single copy here so it can't.
+    dedupe: [
+      '@codemirror/state',
+      '@codemirror/view',
+      '@codemirror/language',
+      'style-mod',
+    ],
   },
   server: {
     host: process.env.VITE_HOST === 'true' ? true : undefined,
