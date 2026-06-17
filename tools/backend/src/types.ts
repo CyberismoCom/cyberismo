@@ -32,11 +32,14 @@ export interface TreeOptions {
  * - Admin: All operations including configuration
  * - Editor: Can create, edit, and manage content but not config
  * - Reader: Can only view content
+ * Orthogonal role (outside hierarchy):
+ * - Connector: Service accounts that can only create/update calculations
  */
 export enum UserRole {
   Admin = 'admin',
   Editor = 'editor',
   Reader = 'reader',
+  Connector = 'connector',
 }
 
 /**

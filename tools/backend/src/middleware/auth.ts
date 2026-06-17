@@ -24,6 +24,7 @@ declare module 'hono' {
 }
 
 const roleLevel: Record<UserRole, number> = {
+  [UserRole.Connector]: -1,
   [UserRole.Reader]: 0,
   [UserRole.Editor]: 1,
   [UserRole.Admin]: 2,
@@ -72,10 +73,15 @@ export function hasRole(c: Context, minimumRole: UserRole): boolean {
 }
 
 /**
- * Require minimum role middleware factory
- * Returns a middleware that checks if the user has at least the required role
+ * Require minimum role middleware factory.
+ * Optional exactRoles allows orthogonal roles (e.g. Connector) that bypass
+ * the hierarchy with an exact match.
+ * e.g. requireRole(Admin, [Connector]) → Admin ✓, Editor ✗, Connector ✓
  */
-export function requireRole(minimumRole: UserRole): MiddlewareHandler {
+export function requireRole(
+  minimumRole: UserRole,
+  exactRoles?: UserRole[],
+): MiddlewareHandler {
   return async (c, next) => {
     const user = c.get('user');
 
@@ -83,7 +89,7 @@ export function requireRole(minimumRole: UserRole): MiddlewareHandler {
       return c.json({ error: 'Unauthorized' }, 401);
     }
 
-    if (!hasRole(c, minimumRole)) {
+    if (!hasRole(c, minimumRole) && !exactRoles?.includes(user.role)) {
       return c.json({ error: 'Forbidden' }, 403);
     }
 

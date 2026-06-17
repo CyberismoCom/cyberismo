@@ -29,6 +29,7 @@ const ROLE_ALIASES: Record<string, UserRole> = {
   reader: UserRole.Reader,
   editor: UserRole.Editor,
   admin: UserRole.Admin,
+  connector: UserRole.Connector,
 };
 
 function parseRole(value: string | null | undefined): UserRole | null {

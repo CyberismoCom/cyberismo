@@ -142,6 +142,83 @@ describe('requireRole', () => {
   });
 });
 
+const connectorUser: UserInfo = {
+  id: 'connector-1',
+  email: 'connector@example.com',
+  name: 'Connector',
+  role: UserRole.Connector,
+};
+
+describe('requireRole with exactRoles', () => {
+  function appWithExactRoles(
+    user: UserInfo | null,
+    minimumRole: UserRole,
+    exactRoles: UserRole[],
+  ) {
+    const app = new Hono();
+    if (user) {
+      app.use('*', async (c, next) => {
+        c.set('user', user);
+        await next();
+      });
+    }
+    app.use('*', requireRole(minimumRole, exactRoles));
+    app.get('/test', (c) => c.json({ ok: true }));
+    return app;
+  }
+
+  it('allows Connector when in exactRoles', async () => {
+    const app = appWithExactRoles(connectorUser, UserRole.Admin, [
+      UserRole.Connector,
+    ]);
+    const res = await app.request('/test');
+    expect(res.status).toBe(200);
+  });
+
+  it('blocks Connector when not in exactRoles', async () => {
+    const app = appWithExactRoles(connectorUser, UserRole.Admin, []);
+    const res = await app.request('/test');
+    expect(res.status).toBe(403);
+  });
+
+  it('Admin still passes via hierarchy', async () => {
+    const app = appWithExactRoles(adminUser, UserRole.Admin, [
+      UserRole.Connector,
+    ]);
+    const res = await app.request('/test');
+    expect(res.status).toBe(200);
+  });
+
+  it('Editor blocked when minimum is Admin and not in exactRoles', async () => {
+    const editorUser: UserInfo = {
+      id: 'e1',
+      email: 'e@e.com',
+      name: 'Editor',
+      role: UserRole.Editor,
+    };
+    const app = appWithExactRoles(editorUser, UserRole.Admin, [
+      UserRole.Connector,
+    ]);
+    const res = await app.request('/test');
+    expect(res.status).toBe(403);
+  });
+
+  it('Connector does not pass hierarchy check (hasRole returns false)', async () => {
+    const app = new Hono();
+    app.use('*', async (c, next) => {
+      c.set('user', connectorUser);
+      await next();
+    });
+    let result = true;
+    app.get('/test', (c) => {
+      result = hasRole(c, UserRole.Reader);
+      return c.text('ok');
+    });
+    await app.request('/test');
+    expect(result).toBe(false);
+  });
+});
+
 describe('getCurrentUser', () => {
   it('returns user from context', async () => {
     const app = new Hono();
