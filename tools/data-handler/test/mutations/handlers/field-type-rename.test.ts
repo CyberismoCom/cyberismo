@@ -168,15 +168,14 @@ describe('FieldTypeRenameHandler', () => {
     const replayProject = getTestProject(decisionRecordsPath);
     await replayProject.populateCaches();
 
-    const handler = new FieldTypeRenameHandler();
-    await handler.applyCascade({
-      project: replayProject,
-      input: {
+    await new ResourceMutations(replayProject).apply(
+      {
         kind: 'rename' as const,
         target: resourceName(oldName),
         newIdentifier: 'newField',
       },
-    });
+      { kind: 'replay', modulePrefix: replayProject.projectPrefix },
+    );
 
     const cardType = JSON.parse(readFileSync(cardTypeFile, 'utf-8'));
     expect(cardType.customFields).toEqual([
@@ -196,16 +195,15 @@ describe('FieldTypeRenameHandler', () => {
   it('applyCascade is a safe no-op when nothing references the field type', async () => {
     // Neither the old nor the new field type exists and nothing references
     // either name; the cascade must still resolve.
-    const handler = new FieldTypeRenameHandler();
     await expect(
-      handler.applyCascade({
-        project,
-        input: {
+      new ResourceMutations(project).apply(
+        {
           kind: 'rename' as const,
           target: resourceName('mymod/fieldTypes/ghost'),
           newIdentifier: 'phantom',
         },
-      }),
+        { kind: 'replay', modulePrefix: 'mymod' },
+      ),
     ).resolves.toBeUndefined();
   });
 });
