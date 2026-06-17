@@ -123,9 +123,8 @@ describe('WorkflowRemoveStateHandler', () => {
     project = new Project(projectPath);
     await project.populateCaches();
 
-    await new WorkflowRemoveStateHandler().applyCascade({
-      project,
-      input: {
+    await new ResourceMutations(project).apply(
+      {
         kind: 'edit',
         target: resourceName(WF),
         updateKey: { key: 'states' },
@@ -134,7 +133,8 @@ describe('WorkflowRemoveStateHandler', () => {
           target: { name: 'Rejected', category: 'closed' },
         },
       },
-    });
+      { kind: 'replay', modulePrefix: project.projectPrefix },
+    );
 
     const refetched = project.cards(undefined).find((c) => c.key === cardKey)!;
     expect(refetched.metadata?.workflowState).toBe('Rejected');
@@ -143,9 +143,8 @@ describe('WorkflowRemoveStateHandler', () => {
   it('applyCascade tolerates a missing workflow (no migration, no throw)', async () => {
     const cardKey = await seedCardInState('Rejected');
 
-    await new WorkflowRemoveStateHandler().applyCascade({
-      project,
-      input: {
+    await new ResourceMutations(project).apply(
+      {
         kind: 'edit',
         target: resourceName('decision/workflows/nonexistent'),
         updateKey: { key: 'states' },
@@ -154,7 +153,8 @@ describe('WorkflowRemoveStateHandler', () => {
           target: { name: 'Rejected', category: 'closed' },
         },
       },
-    });
+      { kind: 'replay', modulePrefix: project.projectPrefix },
+    );
 
     const refetched = project.cards(undefined).find((c) => c.key === cardKey)!;
     expect(refetched.metadata?.workflowState).toBe('Rejected');

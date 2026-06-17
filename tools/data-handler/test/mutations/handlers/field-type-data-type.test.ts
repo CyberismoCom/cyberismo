@@ -67,16 +67,16 @@ describe('FieldTypeDataTypeHandler', () => {
       .map((c) => [c.key, c.metadata![fieldName()]] as const);
     expect(before.length).toBeGreaterThan(0);
 
-    const handler = new FieldTypeDataTypeHandler();
-    await handler.applyCascade({
-      project,
-      input: {
+    const mutations = new ResourceMutations(project);
+    await mutations.apply(
+      {
         kind: 'edit' as const,
         target: resourceName(fieldName()),
         updateKey: { key: 'dataType' as const },
         operation: { name: 'change' as const, to: 'number' },
       },
-    });
+      { kind: 'replay', modulePrefix: project.projectPrefix },
+    );
 
     for (const [key, value] of before) {
       const card = project.cards(undefined).find((c) => c.key === key);
