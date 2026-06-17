@@ -11,10 +11,9 @@
   You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-import { spawn } from 'node:child_process';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { Worker } from 'node:worker_threads';
 
 /**
  * Regex that matches standard AsciiDoc mermaid diagram blocks.
@@ -25,80 +24,118 @@ import { tmpdir } from 'node:os';
 const MERMAID_BLOCK_REGEX =
   /\[mermaid[^\]]*\]\r?\n(\.{4,}|-{4,})\r?\n([\s\S]*?)\r?\n\1/g;
 
-/**
- * Render mermaid code to a file using the `mmdc` CLI (mermaid-cli).
- * mmdc uses headless Chromium for pixel-perfect rendering.
- *
- * @param code - Mermaid diagram definition text
- * @param format - Output format ('png' or 'svg')
- * @returns Buffer containing the rendered output
- */
-async function renderWithMmdc(
-  code: string,
-  format: 'png' | 'svg',
-): Promise<Buffer> {
-  const tempDir = await mkdtemp(join(tmpdir(), 'mermaid-'));
-  const inputPath = join(tempDir, 'input.mmd');
-  const outputPath = join(tempDir, `output.${format}`);
+/** Rasterization scale (multiplier over the diagram's intrinsic size). */
+const PNG_SCALE = 3;
 
-  try {
-    // Unescape literal \n sequences that may come from upstream
-    // processing (e.g., Handlebars/JSON serialization of report data).
-    const unescaped = code.replace(/\\n/g, '\n');
-    await writeFile(inputPath, unescaped, 'utf-8');
+export interface MermaidWorkerRequest {
+  codes: string[];
+  scale: number;
+}
 
-    await new Promise<void>((resolve, reject) => {
-      const proc = spawn(
-        'mmdc',
-        ['-i', inputPath, '-o', outputPath, '-b', 'white', '-t', 'default'],
-        {
-          timeout: 60000,
-          shell: process.platform === 'win32',
-        },
-      );
+export type MermaidRenderResult =
+  | { ok: true; png: string }
+  | { ok: false; error: string };
 
-      let stderr = '';
-      proc.stderr.on('data', (chunk: Buffer) => {
-        stderr += chunk.toString();
-      });
-
-      proc.on('error', (error: NodeJS.ErrnoException) => {
-        if (error.code === 'ENOENT') {
-          reject(
-            new Error(
-              'mmdc (mermaid CLI) not found. Install with: npm install -g @mermaid-js/mermaid-cli',
-            ),
-          );
-        } else {
-          reject(error);
-        }
-      });
-
-      proc.on('close', (exitCode) => {
-        if (exitCode === 0) {
-          resolve();
-        } else {
-          reject(new Error(`mmdc failed with code ${exitCode}: ${stderr}`));
-        }
-      });
-    });
-
-    return readFile(outputPath);
-  } finally {
-    await rm(tempDir, { recursive: true, force: true }).catch(() => {});
-  }
+export interface MermaidWorkerResponse {
+  results: MermaidRenderResult[];
 }
 
 /**
- * Render a Mermaid diagram definition to SVG string using the mmdc CLI.
- * Requires `@mermaid-js/mermaid-cli` to be installed globally.
+ * Resolve the path to the compiled worker. Mirrors the convention used by the
+ * migration worker: the worker always runs from the built `dist` output, even
+ * when the calling code runs from `src` under a test runner.
+ */
+function workerPath(): string {
+  const currentDir = dirname(fileURLToPath(import.meta.url));
+  const distDir = currentDir.replace(
+    join('src', 'utils'),
+    join('dist', 'utils'),
+  );
+  return join(distDir, 'mermaid-worker.js');
+}
+
+/**
+ * Render a batch of Mermaid diagram definitions to PNG buffers in a worker
+ * thread. Rendering happens off the main thread so the DOM globals Mermaid needs
+ * cannot leak into the rest of the process. Diagrams that fail to render resolve
+ * to `null` so the caller can fall back gracefully.
+ *
+ * @param codes - Mermaid diagram definitions
+ * @returns Array aligned with `codes`; each entry is a PNG Buffer or null
+ */
+export function renderMermaidDiagrams(
+  codes: string[],
+): Promise<Array<Buffer | null>> {
+  if (codes.length === 0) return Promise.resolve([]);
+
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(workerPath(), { execArgv: process.execArgv });
+    let settled = false;
+
+    const finish = (value: Array<Buffer | null>) => {
+      if (settled) return;
+      settled = true;
+      void worker.terminate();
+      resolve(value);
+    };
+
+    worker.on('message', (response: MermaidWorkerResponse) => {
+      finish(
+        response.results.map((result) =>
+          result.ok ? Buffer.from(result.png, 'base64') : null,
+        ),
+      );
+    });
+
+    worker.on('error', (error) => {
+      if (settled) return;
+      settled = true;
+      void worker.terminate();
+      reject(error);
+    });
+
+    worker.on('exit', (code) => {
+      if (settled) return;
+      settled = true;
+      reject(new Error(`Mermaid worker exited with code ${code}`));
+    });
+
+    const request: MermaidWorkerRequest = { codes, scale: PNG_SCALE };
+    worker.postMessage(request);
+  });
+}
+
+/**
+ * Render a single Mermaid diagram definition to a PNG buffer.
  *
  * @param code - Mermaid diagram definition text
- * @returns SVG string
+ * @returns PNG Buffer, or null if rendering failed
  */
-export async function renderMermaidToSvg(code: string): Promise<string> {
-  const buffer = await renderWithMmdc(code, 'svg');
-  return buffer.toString('utf-8');
+export async function renderMermaidToPng(code: string): Promise<Buffer | null> {
+  const [result] = await renderMermaidDiagrams([code]);
+  return result ?? null;
+}
+
+/** Build the AsciiDoc directive that embeds a PNG buffer inline. */
+function pngImageDirective(png: Buffer): string {
+  return `image::data:image/png;base64,${png.toString('base64')}[]`;
+}
+
+/** Fallback rendering of a mermaid block as a source listing. */
+function codeBlockFallback(code: string): string {
+  return `[source,mermaid]\n----\n${code}\n----`;
+}
+
+/**
+ * Render a single mermaid diagram to an embeddable AsciiDoc snippet for PDF
+ * export: an inline PNG image, or a source listing if rendering failed.
+ *
+ * @param code - Mermaid diagram definition text
+ * @returns AsciiDoc snippet ready to embed in the PDF source
+ */
+export async function renderMermaidForPdf(code: string): Promise<string> {
+  const png = await renderMermaidToPng(code);
+  return png ? pngImageDirective(png) : codeBlockFallback(code);
 }
 
 /**
@@ -117,13 +154,13 @@ export function preprocessMermaidBlocksForHtml(content: string): string {
 
 /**
  * Pre-processes AsciiDoc content to convert [mermaid] blocks into inline
- * base64-encoded PNG images for PDF export using the mmdc CLI.
+ * base64-encoded PNG images for PDF export.
  *
- * If mmdc is not installed, mermaid blocks are rendered as code listings
- * instead of diagrams (graceful degradation).
+ * If adiagram fails to render, it falls back to a source listing rather than
+ * breaking the export.
  *
  * @param content - Raw AsciiDoc content
- * @returns Processed content with mermaid blocks replaced by inline PNG image references
+ * @returns Processed content with mermaid blocks replaced by inline PNG images
  */
 export async function preprocessMermaidBlocksForPdf(
   content: string,
@@ -131,45 +168,17 @@ export async function preprocessMermaidBlocksForPdf(
   const matches = [...content.matchAll(MERMAID_BLOCK_REGEX)];
   if (matches.length === 0) return content;
 
+  const codes = matches.map((match) => match[2]);
+  const pngs = await renderMermaidDiagrams(codes);
+
   let result = content;
-  let mmdcMissing = false;
-
-  for (const match of matches) {
-    const fullMatch = match[0];
-    const diagramCode = match[2];
-
-    if (mmdcMissing) {
-      result = result.replace(
-        fullMatch,
-        `[source,mermaid]\n----\n${diagramCode}\n----`,
-      );
-      continue;
-    }
-
-    try {
-      const pngBuffer = await renderWithMmdc(diagramCode, 'png');
-      const base64 = pngBuffer.toString('base64');
-      result = result.replace(
-        fullMatch,
-        `image::data:image/png;base64,${base64}[]`,
-      );
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message.includes('mmdc (mermaid CLI) not found')
-      ) {
-        mmdcMissing = true;
-        process.stderr.write(
-          'Warning: mmdc not found. Mermaid diagrams will appear as code blocks in the PDF.\n' +
-            'Install with: npm install -g @mermaid-js/mermaid-cli\n',
-        );
-      }
-      result = result.replace(
-        fullMatch,
-        `[source,mermaid]\n----\n${diagramCode}\n----`,
-      );
-    }
-  }
+  matches.forEach((match, index) => {
+    const png = pngs[index];
+    const replacement = png
+      ? pngImageDirective(png)
+      : codeBlockFallback(match[2]);
+    result = result.replace(match[0], replacement);
+  });
 
   return result;
 }
