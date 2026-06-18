@@ -22,6 +22,7 @@ import { ResourceMutations } from '../resource-mutations.js';
 import { checkLinearity, computeChain } from './chain.js';
 import { entryToMutationInput } from './convert.js';
 import { listSealFiles } from './seal-files.js';
+import { resourceName } from '../../utils/resource-utils.js';
 
 import { CONFIGURATION_OPERATIONS } from '../../utils/configuration-logger.js';
 
@@ -35,7 +36,7 @@ import type { SealFile } from './seal-files.js';
 /** A reason one module's update cannot be replayed safely. */
 export interface ReplayConflict {
   modulePrefix: string;
-  kind: 'non_linear' | 'downgrade' | 'chain_gap';
+  kind: 'non_linear' | 'downgrade' | 'chain_gap' | 'split_workflow_ownership';
   detail: string;
 }
 
@@ -238,10 +239,80 @@ export async function planModuleReplays(
     steps.push({ modulePrefix, fromVersion: from, toVersion: to, seals });
   }
 
+  conflicts.push(...detectSplitWorkflowOwnership(steps));
+
   if (conflicts.length > 0) {
     throw new ModuleReplayConflictError(conflicts);
   }
   return steps;
+}
+
+/**
+ * Conservative guard for the one cross-module value that is NOT single-owner.
+ *
+ * A card's `workflowState` is governed jointly by the workflow that owns the
+ * state names and the card type that points the card at that workflow. When a
+ * workflow-state change (rename/remove) and a card-type workflow change are
+ * replayed from DIFFERENT modules in one update, both cascades rewrite the same
+ * cards' `workflowState` and the result is order-dependent. Every other
+ * cross-module migration commutes (single-writer ownership), so this is the
+ * only ordering hazard we refuse.
+ *
+ * This is the conservative form: it refuses any cross-module pairing of the two
+ * entry kinds, without checking that the card type actually references the
+ * workflow or that an affected card exists. A precise form is tracked
+ * separately. Same-module pairings are safe (replayed in version order) and are
+ * not refused.
+ */
+function detectSplitWorkflowOwnership(steps: ReplayStep[]): ReplayConflict[] {
+  const stateChangeModules = new Set<string>();
+  const workflowChangeModules = new Set<string>();
+  for (const step of steps) {
+    for (const { entries } of step.seals) {
+      for (const entry of entries) {
+        if (isWorkflowStateChange(entry)) {
+          stateChangeModules.add(step.modulePrefix);
+        } else if (isCardTypeWorkflowChange(entry)) {
+          workflowChangeModules.add(step.modulePrefix);
+        }
+      }
+    }
+  }
+
+  const conflicts: ReplayConflict[] = [];
+  for (const workflowModule of stateChangeModules) {
+    for (const cardTypeModule of workflowChangeModules) {
+      if (workflowModule === cardTypeModule) continue;
+      conflicts.push({
+        modulePrefix: cardTypeModule,
+        kind: 'split_workflow_ownership',
+        detail:
+          `module '${cardTypeModule}' changes a card type's workflow while ` +
+          `module '${workflowModule}' renames or removes a workflow state in ` +
+          `the same update. A card's workflowState is owned jointly by both, ` +
+          `so this migration is order-dependent. Update these modules one at a time.`,
+      });
+    }
+  }
+  return conflicts;
+}
+
+/** A breaking workflow-state migration: a rename ('change') or 'remove' of a
+ * state, which rewrites the workflowState of every card in that state. */
+function isWorkflowStateChange(entry: ConfigurationLogEntry): boolean {
+  if (entry.operation !== 'resource_update') return false;
+  if (resourceName(entry.target).type !== 'workflows') return false;
+  if (entry.parameters?.key !== 'states') return false;
+  const op = entry.parameters?.operation as { name?: string } | undefined;
+  return op?.name === 'change' || op?.name === 'remove';
+}
+
+/** A card type repointed at a different workflow, which re-maps the
+ * workflowState of every card of that type. */
+function isCardTypeWorkflowChange(entry: ConfigurationLogEntry): boolean {
+  if (entry.operation !== 'resource_update') return false;
+  if (resourceName(entry.target).type !== 'cardTypes') return false;
+  return entry.parameters?.key === 'workflow';
 }
 
 /**
