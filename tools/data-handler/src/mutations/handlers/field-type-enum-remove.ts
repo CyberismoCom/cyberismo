@@ -70,32 +70,28 @@ export class FieldTypeEnumRemoveHandler implements Handler<EditInput> {
     );
 
     await Promise.all(
-      cardsToUpdate.map((card) =>
-        ctx.project.updateCardMetadataKey(card.key, fieldName, replacement),
-      ),
+      cardsToUpdate.map((card) => {
+        card.metadata![fieldName] = replacement;
+        // Non-validating write: replay applies entries mechanically and the
+        // resulting project is judged once, at the end, by the replay's
+        // validation gate. Per-write validation here would reject a card that
+        // a later entry in the chain has yet to migrate.
+        return ctx.project.updateCardMetadata(card, card.metadata!);
+      }),
     );
   }
 
-  // Cards of card types that declare this field type: local project cards plus
-  // local template cards (matches FieldTypeResource's relevantCardTypes +
-  // collectCards scoping).
+  // Local project cards plus local template cards that hold a value under this
+  // field. Selection is by the metadata KEY, not by the (possibly-renamed)
+  // card type name: a card type rename elsewhere in the same update must not
+  // hide a card from this cascade.
   private affectedCards(ctx: MutationContext, fieldName: string): Card[] {
-    const relevant = new Set(
-      ctx.project.resources
-        .cardTypes()
-        .filter((cardType) =>
-          cardType.data?.customFields?.some((f) => f.name === fieldName),
-        )
-        .map((cardType) => cardType.data!.name),
-    );
-    if (relevant.size === 0) return [];
-
     const project = [...ctx.project.cards(undefined)];
     const templates = ctx.project.resources
       .templates(ResourcesFrom.localOnly)
       .flatMap((t) => t.templateObject().cards());
     return [...project, ...templates].filter(
-      (c) => c.metadata?.cardType && relevant.has(c.metadata.cardType),
+      (c) => c.metadata != null && fieldName in c.metadata,
     );
   }
 }
