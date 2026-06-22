@@ -82,6 +82,43 @@ describe('WorkflowRemoveStateHandler', () => {
     expect(refetched.metadata?.workflowState).toBe('Approved');
   });
 
+  it('replay migrates a card whose card type is renamed later in the chain', async () => {
+    // The card still carries its pre-rename type while this (earlier) seal
+    // replays; the registry already shows the new name. The rename map must
+    // bridge the two or the card is missed.
+    const target = project
+      .cards(undefined)
+      .find((c) => c.metadata?.cardType === 'decision/cardTypes/decision')!;
+    target.metadata!.cardType = 'decision/cardTypes/oldDecision';
+    target.metadata!.workflowState = 'Rejected';
+    await project.updateCardMetadata(target, target.metadata!);
+
+    await new ResourceMutations(project).apply(
+      {
+        kind: 'edit',
+        target: resourceName(WF),
+        updateKey: { key: 'states' },
+        operation: {
+          name: 'remove',
+          target: { name: 'Rejected', category: 'closed' },
+          replacementValue: { name: 'Approved', category: 'closed' },
+        },
+      },
+      {
+        kind: 'replay',
+        modulePrefix: project.projectPrefix,
+        cardTypeRenames: new Map([
+          ['decision/cardTypes/oldDecision', 'decision/cardTypes/decision'],
+        ]),
+      },
+    );
+
+    const refetched = project
+      .cards(undefined)
+      .find((c) => c.key === target.key)!;
+    expect(refetched.metadata?.workflowState).toBe('Approved');
+  });
+
   it('apply without replacementValue migrates cards to the new-card state', async () => {
     const cardKey = await seedCardInState('Rejected');
 

@@ -391,7 +391,10 @@ export class ResourceCache {
         metadata.source === 'module' &&
         (metadata.moduleName === moduleName || !moduleName)
       ) {
-        this.resourceRegistry.delete(key);
+        // Evict the instance too, not just the registry entry: module files
+        // are overwritten in place, so a resource keeps its key but its
+        // content (e.g. a field's dataType) may have changed.
+        this.deleteKey(key);
       }
     }
     this.collectModuleResources();

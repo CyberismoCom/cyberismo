@@ -65,7 +65,12 @@ export class ResourceMutations {
     origin: MutationOrigin = { kind: 'local' },
   ): Promise<void> {
     const input = normalized(rawInput);
-    const ctx: MutationContext = { project: this.project, input };
+    const ctx: MutationContext = {
+      project: this.project,
+      input,
+      cardTypeRenames:
+        origin.kind === 'replay' ? origin.cardTypeRenames : undefined,
+    };
     const { handler, breaking } = dispatch(ctx);
 
     if (origin.kind === 'replay') {

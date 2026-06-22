@@ -17,7 +17,31 @@ import type { MutationInput } from './types.js';
 
 export type MutationOrigin =
   | { kind: 'local' }
-  | { kind: 'replay'; modulePrefix: string };
+  | {
+      kind: 'replay';
+      modulePrefix: string;
+      /**
+       * Card-type renames in the batch (old name -> new). A card keeps its old
+       * type until the rename entry applies, so name-based card selection
+       * resolves through this.
+       */
+      cardTypeRenames?: ReadonlyMap<string, string>;
+    };
+
+/** Follow card-type renames (old -> new) to the final name; identity when absent. */
+export function resolveCardTypeRename(
+  name: string,
+  renames?: ReadonlyMap<string, string>,
+): string {
+  if (!renames) return name;
+  let current = name;
+  const seen = new Set<string>();
+  while (renames.has(current) && !seen.has(current)) {
+    seen.add(current);
+    current = renames.get(current)!;
+  }
+  return current;
+}
 
 /**
  * Context handed to a handler. Generic over the input variant: the dispatcher
@@ -28,6 +52,8 @@ export type MutationOrigin =
 export interface MutationContext<I extends MutationInput = MutationInput> {
   project: Project;
   input: I;
+  /** Card-type renames in the active replay batch; absent when authoring. */
+  cardTypeRenames?: ReadonlyMap<string, string>;
 }
 
 export interface Handler<I extends MutationInput = MutationInput> {

@@ -1,7 +1,7 @@
 import { expect, describe, it, beforeEach, afterEach } from 'vitest';
 
 import { join } from 'node:path';
-import { mkdirSync, rmSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 
 import { CommandManager } from '../src/command-manager.js';
 import { copyDir, pathExists } from '../src/utils/file-utils.js';
@@ -110,6 +110,40 @@ describe('Resource cache', () => {
       );
       expect(exists).toBe(false);
     });
+    it('changedModules reloads a module resource overwritten in place', () => {
+      const moduleDir = join(testProjectPath, '.cards', 'modules', 'mod');
+      mkdirSync(join(moduleDir, 'fieldTypes'), { recursive: true });
+      writeFileSync(
+        join(moduleDir, 'cardsConfig.json'),
+        JSON.stringify({ cardKeyPrefix: 'mod', name: 'mod', modules: [] }),
+      );
+      const file = join(moduleDir, 'fieldTypes', 'estimate.json');
+      const write = (dataType: string) =>
+        writeFileSync(
+          file,
+          JSON.stringify({
+            name: 'mod/fieldTypes/estimate',
+            displayName: '',
+            dataType,
+          }),
+        );
+
+      write('number');
+      project.resources.changedModules();
+      expect(
+        project.resources.byType('mod/fieldTypes/estimate', 'fieldTypes').data
+          ?.dataType,
+      ).toBe('number');
+
+      // Overwrite under the same key, as a module update does on disk.
+      write('shortText');
+      project.resources.changedModules();
+      expect(
+        project.resources.byType('mod/fieldTypes/estimate', 'fieldTypes').data
+          ?.dataType,
+      ).toBe('shortText');
+    });
+
     it('should get resource by type and name', () => {
       const workflow = project.resources.byType(
         'decision/workflows/decision',
