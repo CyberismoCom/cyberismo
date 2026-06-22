@@ -357,6 +357,9 @@ export async function executeModuleReplays(
 ): Promise<void> {
   if (steps.length === 0) return;
 
+  // A card keeps its old type until the (later) rename entry applies.
+  const cardTypeRenames = buildCardTypeRenameMap(steps);
+
   const mutations = new ResourceMutations(project);
   for (const step of steps) {
     for (const { seal, entries } of step.seals) {
@@ -367,6 +370,7 @@ export async function executeModuleReplays(
           await mutations.apply(input, {
             kind: 'replay',
             modulePrefix: step.modulePrefix,
+            cardTypeRenames,
           });
         } catch (error) {
           throw new ModuleReplayFailedError(
@@ -381,9 +385,30 @@ export async function executeModuleReplays(
     }
   }
 
+  // Module trees were overwritten on disk before replay; refresh both caches.
   project.resources.changed();
+  project.resources.changedModules();
   project.cardsCache.clear();
   await project.populateCaches();
+}
+
+/** Every card-type rename in the batch (old name -> new). */
+function buildCardTypeRenameMap(steps: ReplayStep[]): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const step of steps) {
+    for (const { entries } of step.seals) {
+      for (const entry of entries) {
+        if (entry.operation !== 'resource_rename') continue;
+        if (resourceName(entry.target).type !== 'cardTypes') continue;
+        const to = (entry.parameters?.operation as { to?: string } | undefined)
+          ?.to;
+        if (typeof to === 'string') {
+          map.set(entry.target, to);
+        }
+      }
+    }
+  }
+  return map;
 }
 
 async function readSealEntries(

@@ -482,7 +482,7 @@ describe('executeModuleReplays', () => {
 
   function fakeProject() {
     return {
-      resources: { changed: vi.fn() },
+      resources: { changed: vi.fn(), changedModules: vi.fn() },
       cardsCache: { clear: vi.fn() },
       populateCaches: vi.fn().mockResolvedValue(undefined),
     } as unknown as Project;
@@ -538,9 +538,9 @@ describe('executeModuleReplays', () => {
       { kind: 'delete', target: { prefix: 'root', identifier: 'c' } },
     ]);
     expect(applySpy.mock.calls.map(([, origin]) => origin)).toEqual([
-      { kind: 'replay', modulePrefix: 'dep' },
-      { kind: 'replay', modulePrefix: 'dep' },
-      { kind: 'replay', modulePrefix: 'root' },
+      { kind: 'replay', modulePrefix: 'dep', cardTypeRenames: new Map() },
+      { kind: 'replay', modulePrefix: 'dep', cardTypeRenames: new Map() },
+      { kind: 'replay', modulePrefix: 'root', cardTypeRenames: new Map() },
     ]);
   });
 

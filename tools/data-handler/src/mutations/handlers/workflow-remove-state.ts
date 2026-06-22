@@ -13,6 +13,7 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
+import { resolveCardTypeRename } from '../handler.js';
 import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import { isModuleCard } from '../../utils/card-utils.js';
@@ -99,9 +100,15 @@ export class WorkflowRemoveStateHandler implements Handler<EditInput> {
     );
     if (cardTypeNames.size === 0) return [];
 
+    // Resolve the card's type through pending renames: it still carries its
+    // old type when this (earlier) seal replays.
+    const usesWorkflow = (cardType: string): boolean =>
+      cardTypeNames.has(cardType) ||
+      cardTypeNames.has(resolveCardTypeRename(cardType, ctx.cardTypeRenames));
+
     const matches = (card: Card): boolean =>
       !!card.metadata?.cardType &&
-      cardTypeNames.has(card.metadata.cardType) &&
+      usesWorkflow(card.metadata.cardType) &&
       card.metadata.workflowState === state;
 
     const projectCards = ctx.project
