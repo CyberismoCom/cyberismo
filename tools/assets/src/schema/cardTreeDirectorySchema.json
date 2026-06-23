@@ -34,6 +34,9 @@
                     "reports": {
                       "$ref": "#/$defs/reportResourceSchema"
                     },
+                    "skills": {
+                      "$ref": "#/$defs/skillResourceSchema"
+                    },
                     "templates": {
                       "$ref": "#/$defs/templatesResourceSchema"
                     },
@@ -380,6 +383,52 @@
         }
       }
     },
+    "skillResourceSchema": {
+      "type": "object",
+      "properties": {
+        "additionalProperties": false,
+        "files": {
+          "$comment": "skills folder can contain skill configuration files (<name>.json), or .gitkeep",
+          "type": "object",
+          "additionalProperties": false,
+          "patternProperties": {
+            "^[A-Za-z0-9-_]+.json$": {
+              "type": "object"
+            },
+            "^.schema$": {
+              "type": "object"
+            },
+            "^.gitkeep$": {
+              "type": "object"
+            }
+          }
+        },
+        "directories": {
+          "type": "object",
+          "additionalProperties": false,
+          "patternProperties": {
+            ".+": {
+              "type": "object",
+              "properties": {
+                "files": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "skill.md": {
+                      "type": "object"
+                    },
+                    "query.lp": {
+                      "type": "object"
+                    }
+                  },
+                  "required": ["skill.md"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "workflowResourceSchema": {
       "type": "object",
       "allOf": [
@@ -572,6 +621,9 @@
                         },
                         "reports": {
                           "$ref": "#/$defs/reportResourceSchema"
+                        },
+                        "skills": {
+                          "$ref": "#/$defs/skillResourceSchema"
                         },
                         "templates": {
                           "$ref": "#/$defs/templatesResourceSchema"

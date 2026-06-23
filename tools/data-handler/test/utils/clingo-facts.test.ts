@@ -1,10 +1,12 @@
 import { expect, it, describe } from 'vitest';
 import {
   createContextFacts,
+  createSkillFacts,
   createWorkflowFacts,
 } from '../../src/utils/clingo-facts.js';
 import {
   WorkflowCategory,
+  type SkillMetadata,
   type Workflow,
 } from '../../src/interfaces/resource-interfaces.js';
 
@@ -53,6 +55,34 @@ describe('clingo-facts', () => {
       expect(createWorkflowFacts(workflow)).toContain(
         'workflowState("mod/workflows/wf", "Draft", "none").',
       );
+    });
+  });
+
+  describe('createSkillFacts', () => {
+    it('emits one skillRelatedTool fact per related tool', () => {
+      const skill: SkillMetadata = {
+        name: 'mod/skills/risk',
+        displayName: 'Risk',
+        relatedTools: ['search_cards', 'create_card'],
+      };
+
+      const facts = createSkillFacts(skill);
+      expect(facts).toContain(
+        'skillRelatedTool("mod/skills/risk", "search_cards").',
+      );
+      expect(facts).toContain(
+        'skillRelatedTool("mod/skills/risk", "create_card").',
+      );
+    });
+
+    it('emits no skillRelatedTool facts when relatedTools is empty', () => {
+      const skill: SkillMetadata = {
+        name: 'mod/skills/risk',
+        displayName: 'Risk',
+        relatedTools: [],
+      };
+
+      expect(createSkillFacts(skill)).not.toContain('skillRelatedTool(');
     });
   });
 });

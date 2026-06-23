@@ -206,3 +206,69 @@ describe('LeafResourceRenameHandler (graphModels) own model.lp cascade', () => {
     expect(after).not.toContain(`"${oldName}"`);
   });
 });
+
+// Skill-specific: skills are leaf folder resources too. The fixture has no
+// skills, so seed one (metadata + content folder) before the caches load, then
+// verify the rename moves both the metadata file and the content folder.
+describe('LeafResourceRenameHandler (skills)', () => {
+  let project: Project;
+  const tmpDir = join(import.meta.dirname, 'tmp-skills-rename');
+  const oldName = 'decision/skills/testSkill';
+  const newName = 'decision/skills/testSkillV2';
+
+  beforeEach(async () => {
+    const projectPath = join(tmpDir, `proj-${Date.now()}-${Math.random()}`);
+    await mkdir(projectPath, { recursive: true });
+    await copyDir(FIXTURE_PATH, projectPath);
+
+    const skillsFolder = join(projectPath, '.cards', 'local', 'skills');
+    await mkdir(join(skillsFolder, 'testSkill'), { recursive: true });
+    await writeFile(
+      join(skillsFolder, '.schema'),
+      JSON.stringify([{ version: 1, id: 'skillSchema' }]),
+      'utf-8',
+    );
+    await writeFile(
+      join(skillsFolder, 'testSkill.json'),
+      JSON.stringify({
+        name: oldName,
+        displayName: 'Test skill',
+        relatedTools: [],
+      }),
+      'utf-8',
+    );
+    await writeFile(
+      join(skillsFolder, 'testSkill', 'skill.md'),
+      '# Test skill\n',
+      'utf-8',
+    );
+    await writeFile(join(skillsFolder, 'testSkill', 'query.lp'), '', 'utf-8');
+
+    project = new Project(projectPath);
+    await project.populateCaches();
+  });
+  afterEach(async () => {
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('apply renames the skill metadata and content folder', async () => {
+    const mutations = new ResourceMutations(project);
+    await mutations.apply({
+      kind: 'rename',
+      target: resourceName(oldName),
+      newIdentifier: 'testSkillV2',
+    });
+
+    expect(project.resources.exists(oldName)).toBe(false);
+    expect(project.resources.exists(newName)).toBe(true);
+
+    // The content folder moved with the metadata.
+    const newSkillContent = join(
+      project.paths.resourcesFolder,
+      'skills',
+      'testSkillV2',
+      'skill.md',
+    );
+    expect(await readFile(newSkillContent, 'utf-8')).toContain('# Test skill');
+  });
+});

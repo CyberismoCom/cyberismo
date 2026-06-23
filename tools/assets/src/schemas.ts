@@ -33,6 +33,7 @@ import reportMacroBaseSchema from './schema/macros/reportMacroBaseSchema.json' w
 import reportSchema from './schema/resources/reportSchema.json' with { type: 'json' };
 import schema from './schema/schema.json' with { type: 'json' };
 import scoreCardMacroSchema from './schema/macros/scoreCardMacroSchema.json' with { type: 'json' };
+import skillSchema from './schema/resources/skillSchema.json' with { type: 'json' };
 import templateSchema from './schema/resources/templateSchema.json' with { type: 'json' };
 import vegaLiteMacroSchema from './schema/macros/vegaLiteMacroSchema.json' with { type: 'json' };
 import vegaMacroSchema from './schema/macros/vegaMacroSchema.json' with { type: 'json' };
@@ -65,6 +66,7 @@ export const schemas = [
   reportSchema,
   schema,
   scoreCardMacroSchema,
+  skillSchema,
   templateSchema,
   vegaLiteMacroSchema,
   vegaMacroSchema,

@@ -749,6 +749,15 @@ export class Create {
   }
 
   /**
+   * Creates a skill
+   * @param name name of the skill
+   */
+  @write((name) => `Create skill ${name}`)
+  public async createSkill(name: string) {
+    return this.project.resources.byType(name, 'skills').createSkill();
+  }
+
+  /**
    * Creates a new template to a project.
    * @param templateName Name of the template.
    * @param templateContent JSON content for the template file.

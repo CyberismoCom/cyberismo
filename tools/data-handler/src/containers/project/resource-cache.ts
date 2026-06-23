@@ -31,6 +31,7 @@ import { GraphModelResource } from '../../resources/graph-model-resource.js';
 import { GraphViewResource } from '../../resources/graph-view-resource.js';
 import { LinkTypeResource } from '../../resources/link-type-resource.js';
 import { ReportResource } from '../../resources/report-resource.js';
+import { SkillResource } from '../../resources/skill-resource.js';
 import { TemplateResource } from '../../resources/template-resource.js';
 import { WorkflowResource } from '../../resources/workflow-resource.js';
 
@@ -55,9 +56,16 @@ export type ResourceMap = {
   graphModels: GraphModelResource;
   linkTypes: LinkTypeResource;
   reports: ReportResource;
+  skills: SkillResource;
   templates: TemplateResource;
   workflows: WorkflowResource;
 };
+
+// Constructor signature shared by every resource class.
+type ResourceConstructor = new (
+  project: Project,
+  name: ResourceName,
+) => ResourceMap[keyof ResourceMap];
 
 // Helper for SafeExtract.
 export type ExtractResourceType<T extends string> =
@@ -88,6 +96,7 @@ const FOLDER_RESOURCE_TYPES: ResourceFolderType[] = [
   'graphModels',
   'graphViews',
   'reports',
+  'skills',
   'templates',
 ];
 
@@ -103,6 +112,26 @@ const FOLDER_RESOURCE_TYPES: ResourceFolderType[] = [
  *
  */
 export class ResourceCache {
+  // Maps each resource type to its constructor. The object literal is checked
+  // against ResourceMap for exhaustiveness, then frozen into a Map for lookup.
+  private static readonly resourceConstructors = new Map<
+    string,
+    ResourceConstructor
+  >(
+    Object.entries({
+      calculations: CalculationResource,
+      cardTypes: CardTypeResource,
+      fieldTypes: FieldTypeResource,
+      graphModels: GraphModelResource,
+      graphViews: GraphViewResource,
+      linkTypes: LinkTypeResource,
+      reports: ReportResource,
+      skills: SkillResource,
+      templates: TemplateResource,
+      workflows: WorkflowResource,
+    } satisfies Record<keyof ResourceMap, ResourceConstructor>),
+  );
+
   private resourceRegistry = new Map<string, ResourceMetadata>();
   private instanceCache = new Map<string, unknown>();
 
@@ -130,29 +159,14 @@ export class ResourceCache {
   private createResourceObject(resourceName: ResourceName): unknown {
     const key = resourceNameToString(resourceName);
     const metadata = this.resourceRegistry.get(key);
-    let resource: unknown;
 
-    if (resourceName.type === 'calculations') {
-      resource = new CalculationResource(this.project, resourceName);
-    } else if (resourceName.type === 'cardTypes') {
-      resource = new CardTypeResource(this.project, resourceName);
-    } else if (resourceName.type === 'fieldTypes') {
-      resource = new FieldTypeResource(this.project, resourceName);
-    } else if (resourceName.type === 'graphModels') {
-      resource = new GraphModelResource(this.project, resourceName);
-    } else if (resourceName.type === 'graphViews') {
-      resource = new GraphViewResource(this.project, resourceName);
-    } else if (resourceName.type === 'linkTypes') {
-      resource = new LinkTypeResource(this.project, resourceName);
-    } else if (resourceName.type === 'reports') {
-      resource = new ReportResource(this.project, resourceName);
-    } else if (resourceName.type === 'templates') {
-      resource = new TemplateResource(this.project, resourceName);
-    } else if (resourceName.type === 'workflows') {
-      resource = new WorkflowResource(this.project, resourceName);
-    } else {
+    const resourceConstructor = ResourceCache.resourceConstructors.get(
+      resourceName.type,
+    );
+    if (!resourceConstructor) {
       throw new Error(`Unsupported resource type '${resourceName.type}'`);
     }
+    const resource = new resourceConstructor(this.project, resourceName);
 
     // Populate content files into folder resources
     if (metadata?.contentFiles && this.hasSetContentFiles(resource)) {
@@ -178,6 +192,7 @@ export class ResourceCache {
       'graphViews',
       'linkTypes',
       'reports',
+      'skills',
       'templates',
       'workflows',
     ];

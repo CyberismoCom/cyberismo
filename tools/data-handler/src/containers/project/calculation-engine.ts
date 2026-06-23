@@ -38,6 +38,7 @@ import {
   createModuleFacts,
   createProjectFacts,
   createReportFacts,
+  createSkillFacts,
   createTemplateFacts,
   createWorkflowFacts,
 } from '../../utils/clingo-facts.js';
@@ -47,6 +48,7 @@ import type {
   FieldType,
   LinkType,
   ReportMetadata,
+  SkillMetadata,
   TemplateMetadata,
   Workflow,
 } from '../../interfaces/resource-interfaces.js';
@@ -185,6 +187,16 @@ export class CalculationEngine {
     }
   }
 
+  // Sets individual Skill programs
+  private async setSkillsPrograms() {
+    const skills = this.project.resources.skills();
+    for (const skill of skills) {
+      const skl = skill.show();
+      const skillContent = createSkillFacts(skl);
+      this.clingo.setProgram(skl.name, skillContent, [ALL_CATEGORY]);
+    }
+  }
+
   // Sets individual Template programs
   private async setTemplatesPrograms() {
     const templates = this.project.resources.templates();
@@ -312,6 +324,7 @@ export class CalculationEngine {
     await this.setLinkTypesPrograms();
     await this.setWorkflowsPrograms();
     await this.setReportsPrograms();
+    await this.setSkillsPrograms();
     await this.setTemplatesPrograms();
     await this.setCalculationsPrograms();
 
@@ -418,6 +431,8 @@ export class CalculationEngine {
         return createWorkflowFacts(resource as Workflow);
       case 'reports':
         return createReportFacts(resource as ReportMetadata);
+      case 'skills':
+        return createSkillFacts(resource as SkillMetadata);
       case 'templates':
         return createTemplateFacts(resource as TemplateMetadata);
       default:

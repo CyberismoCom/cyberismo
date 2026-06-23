@@ -54,6 +54,7 @@ export class Remove {
       type === 'graphView' ||
       type === 'linkType' ||
       type === 'report' ||
+      type === 'skill' ||
       type === 'template' ||
       type === 'workflow'
     );

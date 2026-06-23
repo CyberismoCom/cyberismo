@@ -28,6 +28,7 @@ import type {
   Link,
   LinkType,
   ReportMetadata,
+  SkillMetadata,
   TemplateMetadata,
   Workflow,
 } from '../interfaces/resource-interfaces.js';
@@ -71,6 +72,11 @@ export namespace Facts {
 
   export enum Report {
     REPORT = 'report',
+  }
+
+  export enum Skill {
+    RELATED_TOOL = 'skillRelatedTool',
+    SKILL = 'skill',
   }
 
   export enum Template {
@@ -614,6 +620,37 @@ export const createReportFacts = (report: ReportMetadata) => {
       'category',
       report.category,
     );
+  return builder.buildAll();
+};
+
+/**
+ * Creates clingo facts for a skill.
+ * @param skill Skill metadata
+ * @returns clingo facts as a string
+ */
+export const createSkillFacts = (skill: SkillMetadata) => {
+  const builder = new ClingoProgramBuilder();
+  builder.addFact(Facts.Skill.SKILL, skill.name);
+
+  if (skill.displayName)
+    builder.addFact(
+      Facts.Common.FIELD,
+      skill.name,
+      'displayName',
+      skill.displayName,
+    );
+  if (skill.description)
+    builder.addFact(
+      Facts.Common.FIELD,
+      skill.name,
+      'description',
+      skill.description,
+    );
+  if (skill.category)
+    builder.addFact(Facts.Common.FIELD, skill.name, 'category', skill.category);
+  for (const relatedTool of skill.relatedTools) {
+    builder.addFact(Facts.Skill.RELATED_TOOL, skill.name, relatedTool);
+  }
   return builder.buildAll();
 };
 

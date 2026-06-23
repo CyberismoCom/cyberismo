@@ -46,12 +46,15 @@ export async function generateReportContent(
   const handlebars = Handlebars.create();
   registerComparisonHelpers(handlebars);
 
-  // Compile and execute the query template
-  const template = handlebars.compile(queryTemplate, {
-    strict: true,
-  });
-
-  const result = await calculate.runLogicProgram(template(options), context);
+  // When the query is empty, skip the logic program entirely and render the
+  // content template using only the parameter context.
+  const result =
+    (queryTemplate ?? '').trim() === ''
+      ? { results: [], error: null }
+      : await calculate.runLogicProgram(
+          handlebars.compile(queryTemplate, { strict: true })(options),
+          context,
+        );
 
   if (result.error) {
     throw new Error(result.error);

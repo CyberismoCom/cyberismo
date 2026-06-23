@@ -24,6 +24,7 @@ export const singularToPluralResourceType: Record<string, keyof ResourceMap> = {
   template: 'templates',
   workflow: 'workflows',
   report: 'reports',
+  skill: 'skills',
   calculation: 'calculations',
   cardType: 'cardTypes',
   fieldType: 'fieldTypes',
@@ -215,6 +216,10 @@ export class ResourceHandler {
 
   public reports(from: ResourcesFrom = ResourcesFrom.all) {
     return this.cache.resources('reports', from);
+  }
+
+  public skills(from: ResourcesFrom = ResourcesFrom.all) {
+    return this.cache.resources('skills', from);
   }
 
   public templates(from: ResourcesFrom = ResourcesFrom.all) {

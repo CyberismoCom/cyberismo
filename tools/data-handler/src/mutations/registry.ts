@@ -146,6 +146,7 @@ const wildcardEditKeys: Record<string, string[]> = {
   reports: ['displayName', 'description', 'category', 'content'],
   graphModels: ['displayName', 'description', 'category', 'content'],
   graphViews: ['displayName', 'description', 'category', 'content'],
+  skills: ['displayName', 'description', 'category', 'relatedTools', 'content'],
 };
 
 export const ROUTES: Registration[] = [
@@ -262,6 +263,11 @@ export const ROUTES: Registration[] = [
     handler: new LeafResourceRenameHandler('graphViews', 'Graph view'),
     breaking: true,
   },
+  {
+    route: { kind: 'rename', type: 'skills' },
+    handler: new LeafResourceRenameHandler('skills', 'Skill'),
+    breaking: true,
+  },
 
   // DELETE rows.
   {
@@ -306,6 +312,11 @@ export const ROUTES: Registration[] = [
   },
   {
     route: { kind: 'delete', type: 'graphViews' },
+    handler: plainDelete,
+    breaking: false,
+  },
+  {
+    route: { kind: 'delete', type: 'skills' },
     handler: plainDelete,
     breaking: false,
   },

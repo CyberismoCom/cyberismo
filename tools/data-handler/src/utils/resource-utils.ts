@@ -34,6 +34,7 @@ const RESOURCE_FOLDER_TYPES = [
   'graphModels',
   'graphViews',
   'reports',
+  'skills',
   'templates',
 ];
 
