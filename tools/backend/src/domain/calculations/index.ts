@@ -47,7 +47,7 @@ const router = new Hono();
  */
 router.post(
   '/',
-  requireRole(UserRole.Admin),
+  requireRole(UserRole.Admin, [UserRole.Connector]),
   zValidator('json', createCalculationSchema),
   async (c) => {
     const commands = c.get('commands');

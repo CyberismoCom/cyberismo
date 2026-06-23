@@ -304,6 +304,22 @@ describe('KeycloakAuthProvider', () => {
       expect(result!.role).toBe(UserRole.Reader);
     });
 
+    it('maps connector role to Connector', async () => {
+      const provider = new KeycloakAuthProvider(config);
+      mockJwtVerify.mockResolvedValue(
+        mockVerifyResult({
+          sub: 'u1',
+          email: 'a@b.c',
+          realm_access: { roles: ['connector'] },
+        }),
+      );
+
+      const result = await provider.authenticate(
+        makeRequest({ authorization: 'Bearer tok' }),
+      );
+      expect(result!.role).toBe(UserRole.Connector);
+    });
+
     it('errors for no roles', async () => {
       const provider = new KeycloakAuthProvider(config);
       mockJwtVerify.mockResolvedValue(

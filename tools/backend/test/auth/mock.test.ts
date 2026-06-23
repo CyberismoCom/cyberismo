@@ -50,6 +50,17 @@ describe('MockAuthProvider', () => {
     expect(user!.role).toBe(UserRole.Editor);
   });
 
+  it('uses the connector role from cookie', async () => {
+    const provider = new MockAuthProvider();
+    const user = await provider.authenticate(
+      new Request('http://localhost/api/test', {
+        headers: { cookie: `${MOCK_ROLE_COOKIE}=connector` },
+      }),
+    );
+
+    expect(user!.role).toBe(UserRole.Connector);
+  });
+
   it('falls back to admin for an unrecognized cookie value', async () => {
     const provider = new MockAuthProvider();
     const user = await provider.authenticate(

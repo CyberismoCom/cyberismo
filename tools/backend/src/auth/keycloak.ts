@@ -104,6 +104,9 @@ export class KeycloakAuthProvider implements AuthProvider {
     if (roles.includes('reader')) {
       return UserRole.Reader;
     }
+    if (roles.includes('connector')) {
+      return UserRole.Connector;
+    }
     throw new Error('No recognized role found in token');
   }
 }

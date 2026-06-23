@@ -2,7 +2,7 @@ import { expect, test, beforeAll, afterAll } from 'vitest';
 import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { ProjectRegistry } from '../src/project-registry.js';
-import { MockAuthProvider } from '../src/auth/mock.js';
+import { MockAuthProvider, MOCK_ROLE_COOKIE } from '../src/auth/mock.js';
 import { cleanupTempTestData, createTempTestData } from './test-utils.js';
 
 let app: ReturnType<typeof createApp>;
@@ -333,4 +333,42 @@ test('/api/projects/decision/resources/decision/cardTypes/decision/operation ret
 
   expect(response).not.toBe(null);
   expect(response.status).toBe(500);
+});
+
+test('POST /operation allows Connector role', async () => {
+  const response = await app.request(
+    '/api/projects/decision/resources/decision/cardTypes/decision/operation',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        cookie: `${MOCK_ROLE_COOKIE}=connector`,
+      },
+      body: JSON.stringify({
+        updateKey: { key: 'displayName' },
+        operation: { name: 'change', to: 'Connector Updated' },
+      }),
+    },
+  );
+
+  expect(response.status).toBe(200);
+});
+
+test('POST /operation blocks Editor role', async () => {
+  const response = await app.request(
+    '/api/projects/decision/resources/decision/cardTypes/decision/operation',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        cookie: `${MOCK_ROLE_COOKIE}=editor`,
+      },
+      body: JSON.stringify({
+        updateKey: { key: 'displayName' },
+        operation: { name: 'change', to: 'Editor Updated' },
+      }),
+    },
+  );
+
+  expect(response.status).toBe(403);
 });

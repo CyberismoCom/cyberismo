@@ -213,7 +213,7 @@ router.get(
 
 router.post(
   '/:prefix/:type/:identifier/operation',
-  requireRole(UserRole.Admin),
+  requireRole(UserRole.Admin, [UserRole.Connector]),
   zValidator('param', resourceParamsSchema),
   zValidator('json', updateOperationBodySchema),
   async (c) => {
