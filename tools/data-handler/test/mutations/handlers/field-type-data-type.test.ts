@@ -5,7 +5,6 @@ import { join } from 'node:path';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import type { Project } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
-import { FieldTypeDataTypeHandler } from '../../../src/mutations/handlers/field-type-data-type.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 
@@ -34,39 +33,6 @@ describe('FieldTypeDataTypeHandler', () => {
   });
   afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
-  });
-
-  it('matches an edit with key=dataType on a field type', () => {
-    const handler = new FieldTypeDataTypeHandler();
-    const ctx = {
-      project,
-      input: {
-        kind: 'edit' as const,
-        target: resourceName(fieldName()),
-        updateKey: { key: 'dataType' as const },
-        operation: {
-          name: 'change' as const,
-          target: 'boolean',
-          to: 'shortText',
-        },
-      },
-    };
-    expect(handler.matches(ctx)).toBe(true);
-    expect(handler.isBreaking).toBe(true);
-  });
-
-  it('does not match a displayName change', () => {
-    const handler = new FieldTypeDataTypeHandler();
-    const ctx = {
-      project,
-      input: {
-        kind: 'edit' as const,
-        target: resourceName(fieldName()),
-        updateKey: { key: 'displayName' as const },
-        operation: { name: 'change' as const, target: 'Finished', to: 'Done' },
-      },
-    };
-    expect(handler.matches(ctx)).toBe(false);
   });
 
   it('converts values on every affected card and updates the field definition', async () => {

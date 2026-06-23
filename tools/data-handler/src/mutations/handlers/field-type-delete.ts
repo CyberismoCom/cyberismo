@@ -13,33 +13,77 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
+import type { DeleteInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
+import { ResourcesFrom } from '../../containers/project/resources-from.js';
+import type { Card } from '../../interfaces/project-interfaces.js';
+import type { Operation } from '../../resources/resource-object.js';
 
 /**
- * Deleting a field type is a breaking change. A field type has no consumer-side
- * cascade: ResourceObject.delete() throws while the field is referenced by any
- * card or resource (usage() non-empty), so deletion only succeeds once the
- * field is unused. This handler delegates to resource.delete(); it only marks
- * the operation breaking so the engine records a log entry.
+ * Deleting a field type is a breaking change (data loss). The handler owns the
+ * cascade: the field is stripped from every local card type that declares it
+ * (CardTypeResource.update also drops it from the visible-field arrays) and the
+ * field key is removed from every affected local card. resource.delete() is a
+ * pure primitive that no longer refuses on usage.
  */
-export class FieldTypeDeleteHandler implements Handler {
-  readonly isBreaking = true;
+export class FieldTypeDeleteHandler implements Handler<DeleteInput> {
+  async apply(ctx: MutationContext<DeleteInput>): Promise<void> {
+    const name = resourceNameToString(ctx.input.target);
 
-  matches(ctx: MutationContext): boolean {
-    return (
-      ctx.input.kind === 'delete' && ctx.input.target.type === 'fieldTypes'
-    );
+    // Interactive deletion of a module-owned field type is not allowed.
+    if (ctx.input.target.prefix !== ctx.project.projectPrefix) {
+      throw new Error(
+        `Cannot delete resource ${name}: It is a module resource`,
+      );
+    }
+
+    await this.applyCascade(ctx);
+
+    const resource = ctx.project.resources.byType(name, 'fieldTypes');
+    if (!resource) throw new Error(`Field type '${name}' not found`);
+    await resource.delete();
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'delete') {
-      throw new Error('FieldTypeDeleteHandler: non-delete input');
+  // Cascade: strip the field from every local card type declaring it, and drop
+  // the field key from every affected local card.
+  async applyCascade(ctx: MutationContext<DeleteInput>): Promise<void> {
+    const name = resourceNameToString(ctx.input.target);
+
+    const declaringCardTypes = ctx.project.resources
+      .cardTypes(ResourcesFrom.localOnly)
+      .filter((ct) => ct.data?.customFields?.some((f) => f.name === name));
+
+    for (const cardType of declaringCardTypes) {
+      await cardType.update({ key: 'customFields' }, {
+        name: 'remove',
+        target: { name },
+      } as Operation<unknown>);
     }
-    const fieldName = resourceNameToString(ctx.input.target);
-    const resource = ctx.project.resources.byType(fieldName, 'fieldTypes');
-    if (!resource) {
-      throw new Error(`Field type '${fieldName}' not found`);
+
+    const declaringNames = new Set(
+      declaringCardTypes.map((ct) => ct.data!.name),
+    );
+    for (const card of this.affectedCards(ctx, declaringNames)) {
+      if (card.metadata && name in card.metadata) {
+        delete card.metadata[name];
+        await ctx.project.updateCardMetadata(card, card.metadata);
+      }
     }
-    await resource.delete();
+  }
+
+  // Cards whose card type declared the field: local project cards plus local
+  // template cards.
+  private affectedCards(
+    ctx: MutationContext,
+    cardTypeNames: Set<string>,
+  ): Card[] {
+    if (cardTypeNames.size === 0) return [];
+    const project = [...ctx.project.cards(undefined)];
+    const templates = ctx.project.resources
+      .templates(ResourcesFrom.localOnly)
+      .flatMap((t) => t.templateObject().cards());
+    return [...project, ...templates].filter(
+      (c) => c.metadata?.cardType && cardTypeNames.has(c.metadata.cardType),
+    );
   }
 }

@@ -5,7 +5,6 @@ import { join } from 'node:path';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import type { Project } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
-import { FieldTypeEnumRemoveHandler } from '../../../src/mutations/handlers/field-type-enum-remove.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 
@@ -76,21 +75,6 @@ describe('FieldTypeEnumRemoveHandler', () => {
   });
   afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
-  });
-
-  it('matches remove on enumValues', () => {
-    const handler = new FieldTypeEnumRemoveHandler();
-    const ctx = {
-      project,
-      input: {
-        kind: 'edit' as const,
-        target: resourceName(fieldName()),
-        updateKey: { key: 'enumValues' as const },
-        operation: { name: 'remove' as const, target: { enumValue: 'low' } },
-      },
-    };
-    expect(handler.matches(ctx)).toBe(true);
-    expect(handler.isBreaking).toBe(true);
   });
 
   it('removes the value from the field definition', async () => {

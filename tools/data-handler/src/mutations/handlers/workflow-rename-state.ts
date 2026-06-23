@@ -13,7 +13,9 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
+import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
+import { isModuleCard } from '../../utils/card-utils.js';
 import type { ChangeOperation } from '../../resources/resource-object.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
 import type { WorkflowState } from '../../interfaces/resource-interfaces.js';
@@ -35,47 +37,29 @@ import type { WorkflowState } from '../../interfaces/resource-interfaces.js';
  * NOT matched here; it falls through to DefaultNoCascadeHandler, which runs the
  * same update without recording a (non-breaking) log entry.
  */
-export class WorkflowRenameStateHandler implements Handler {
-  readonly isBreaking = true;
-
-  matches(ctx: MutationContext): boolean {
-    if (ctx.input.kind !== 'edit') return false;
-    if (ctx.input.target.type !== 'workflows') return false;
-    if (ctx.input.updateKey.key !== 'states') return false;
-    if (ctx.input.operation.name !== 'change') return false;
-
-    // Only a state rename (identity change) routes here. The discriminator is
-    // that `to.name` differs from `target.name`.
-    const op = ctx.input.operation as ChangeOperation<unknown>;
-    const targetName = (op.target as { name?: string }).name;
-    const toName = (op.to as { name?: string }).name;
-    return (
-      typeof targetName === 'string' &&
-      typeof toName === 'string' &&
-      targetName !== toName
-    );
-  }
-
-  async apply(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'edit') {
-      throw new Error('WorkflowRenameStateHandler: non-edit input');
-    }
+export class WorkflowRenameStateHandler implements Handler<EditInput> {
+  async apply(ctx: MutationContext<EditInput>): Promise<void> {
     const name = resourceNameToString(ctx.input.target);
     const resource = ctx.project.resources.byType(name, 'workflows');
     if (!resource) {
       throw new Error(`Workflow '${name}' not found`);
     }
 
-    const op = ctx.input.operation as ChangeOperation<WorkflowState>;
-    const oldState = (op.target as { name?: string }).name as string;
-    const newState = op.to.name;
-
     // Rename the state and rewrite the workflow's own transitions. The state
     // validation (must carry 'name' and 'category') lives in
     // WorkflowResource.update and fires here.
     await resource.update(ctx.input.updateKey, ctx.input.operation);
 
-    // Cascade: remap the workflowState of every card in the renamed state.
+    await this.applyCascade(ctx);
+  }
+
+  // Cascade: remap the workflowState of every card in the renamed state.
+  async applyCascade(ctx: MutationContext<EditInput>): Promise<void> {
+    const name = resourceNameToString(ctx.input.target);
+    const op = ctx.input.operation as ChangeOperation<WorkflowState>;
+    const oldState = (op.target as { name?: string }).name as string;
+    const newState = op.to.name;
+
     for (const card of this.cardsInState(ctx, name, oldState)) {
       card.metadata!.workflowState = newState;
       await ctx.project.updateCardMetadata(card, card.metadata!);
@@ -107,7 +91,7 @@ export class WorkflowRenameStateHandler implements Handler {
       .filter(matches);
     const templateCards = ctx.project
       .allTemplateCards()
-      .filter((card) => !card.path.includes('modules'))
+      .filter((card) => !isModuleCard(card))
       .filter(matches);
     return [...projectCards, ...templateCards];
   }

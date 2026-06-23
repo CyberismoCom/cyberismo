@@ -13,8 +13,10 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
+import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import { fromDate, fromNumber, fromString } from '../../utils/value-utils.js';
+import { isModuleCard } from '../../utils/card-utils.js';
 import type {
   Card,
   MetadataContent,
@@ -29,37 +31,29 @@ const SHORT_TEXT_MAX_LENGTH = 80;
  * validates the conversion and persists the new dataType; the handler then owns
  * the per-card value conversion. Marked breaking.
  */
-export class FieldTypeDataTypeHandler implements Handler {
-  readonly isBreaking = true;
-
-  matches(ctx: MutationContext): boolean {
-    return (
-      ctx.input.kind === 'edit' &&
-      ctx.input.target.type === 'fieldTypes' &&
-      ctx.input.updateKey.key === 'dataType' &&
-      ctx.input.operation.name === 'change'
-    );
-  }
-
-  async apply(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'edit') {
-      throw new Error('FieldTypeDataTypeHandler: non-edit input');
-    }
+export class FieldTypeDataTypeHandler implements Handler<EditInput> {
+  async apply(ctx: MutationContext<EditInput>): Promise<void> {
     const fieldName = resourceNameToString(ctx.input.target);
     const resource = ctx.project.resources.byType(fieldName, 'fieldTypes');
     if (!resource) {
       throw new Error(`Field type '${fieldName}' not found`);
     }
 
-    const op = ctx.input.operation as { target: DataType; to: DataType };
-    const fromType = op.target;
-    const toType = op.to;
-
     // Validate the conversion and persist the new dataType
     // (FieldTypeResource.update throws on a disallowed conversion).
     await resource.update(ctx.input.updateKey, ctx.input.operation);
 
-    // Cascade: convert every affected card's value to the new type.
+    await this.applyCascade(ctx);
+  }
+
+  // Cascade: convert every affected card's value to the new type. Old and new
+  // types come from the operation (target/to), not from the resource.
+  async applyCascade(ctx: MutationContext<EditInput>): Promise<void> {
+    const fieldName = resourceNameToString(ctx.input.target);
+    const op = ctx.input.operation as { target: DataType; to: DataType };
+    const fromType = op.target;
+    const toType = op.to;
+
     for (const card of this.affectedCards(ctx, fieldName)) {
       const metadata = card.metadata!;
       try {
@@ -101,7 +95,7 @@ export class FieldTypeDataTypeHandler implements Handler {
       .filter(affected);
     const templateCards = ctx.project
       .allTemplateCards()
-      .filter((card) => !card.path.includes('modules'))
+      .filter((card) => !isModuleCard(card))
       .filter(affected);
     return [...projectCards, ...templateCards];
   }

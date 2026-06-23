@@ -3,7 +3,7 @@ import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
-import { WorkflowRenameStateHandler } from '../../../src/mutations/handlers/workflow-rename-state.js';
+import { route } from '../../../src/mutations/route.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
@@ -34,46 +34,32 @@ describe('WorkflowRenameStateHandler', () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
-  it('matches a state rename (name identity change)', () => {
-    expect(
-      new WorkflowRenameStateHandler().matches({
-        project,
-        input: {
-          kind: 'edit',
-          target: resourceName(WF),
-          updateKey: { key: 'states' },
-          operation: {
-            name: 'change',
-            target: { name: 'Draft', category: 'initial' },
-            to: { name: 'DraftNew', category: 'initial' },
-          },
-        },
-      }),
-    ).toBe(true);
+  it('derives op=rename-member when the state name identity changes', () => {
+    const op = route({
+      kind: 'edit',
+      target: resourceName(WF),
+      updateKey: { key: 'states' },
+      operation: {
+        name: 'change',
+        target: { name: 'Draft', category: 'initial' },
+        to: { name: 'DraftNew', category: 'initial' },
+      },
+    }).op;
+    expect(op).toBe('rename-member');
   });
 
-  it('declines a change that keeps the same state name (non-identity change)', () => {
-    // A category-only change is not a state rename; it falls through to the
-    // default handler instead.
-    expect(
-      new WorkflowRenameStateHandler().matches({
-        project,
-        input: {
-          kind: 'edit',
-          target: resourceName(WF),
-          updateKey: { key: 'states' },
-          operation: {
-            name: 'change',
-            target: { name: 'Draft', category: 'initial' },
-            to: { name: 'Draft', category: 'active' },
-          },
-        },
-      }),
-    ).toBe(false);
-  });
-
-  it('isBreaking is true', () => {
-    expect(new WorkflowRenameStateHandler().isBreaking).toBe(true);
+  it('keeps op=change for a category-only edit (no state-name identity change)', () => {
+    const op = route({
+      kind: 'edit',
+      target: resourceName(WF),
+      updateKey: { key: 'states' },
+      operation: {
+        name: 'change',
+        target: { name: 'Draft', category: 'initial' },
+        to: { name: 'Draft', category: 'active' },
+      },
+    }).op;
+    expect(op).toBe('change');
   });
 
   it('apply rewrites workflowState on affected cards and transitions', async () => {

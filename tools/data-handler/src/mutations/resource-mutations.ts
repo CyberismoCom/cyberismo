@@ -14,7 +14,7 @@
 
 import type { Project } from '../containers/project.js';
 import { dispatch } from './dispatcher.js';
-import type { MutationContext } from './handler.js';
+import type { MutationContext, MutationOrigin } from './handler.js';
 import type { MutationInput } from './types.js';
 import { ConfigurationLogger } from '../utils/configuration-logger.js';
 import { runWithDefaultCommitMessage } from '../utils/commit-context.js';
@@ -60,10 +60,26 @@ function defaultCommitMessage(input: MutationInput): string {
 export class ResourceMutations {
   constructor(private project: Project) {}
 
-  async apply(rawInput: MutationInput): Promise<void> {
+  async apply(
+    rawInput: MutationInput,
+    origin: MutationOrigin = { kind: 'local' },
+  ): Promise<void> {
     const input = normalized(rawInput);
     const ctx: MutationContext = { project: this.project, input };
-    const handler = dispatch(ctx);
+    const { handler, breaking } = dispatch(ctx);
+
+    if (origin.kind === 'replay') {
+      // Replay applies the cascade only: the resource change is already
+      // materialized by the module-file overwrite, and replayed entries
+      // are never recorded in the host project's log (the host's own
+      // consumers replay the module chain themselves).
+      await runWithDefaultCommitMessage(defaultCommitMessage(input), () =>
+        this.project.lock.write(async () => {
+          await handler.applyCascade(ctx);
+        }),
+      );
+      return;
+    }
 
     // Capture extras the log entry depends on BEFORE the cascade mutates state.
     const recordContext: RecordContext = {};
@@ -74,7 +90,7 @@ export class ResourceMutations {
     await runWithDefaultCommitMessage(defaultCommitMessage(input), () =>
       this.project.lock.write(async () => {
         await handler.apply(ctx);
-        if (handler.isBreaking) {
+        if (breaking) {
           await this.recordLogEntry(input, recordContext);
         }
       }),

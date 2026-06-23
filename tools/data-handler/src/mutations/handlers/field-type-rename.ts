@@ -13,7 +13,9 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
+import type { RenameInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
+import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import {
   rewriteCardContentRefs,
   rewriteContentFileRefs,
@@ -26,21 +28,9 @@ import type { ChangeOperation } from '../../resources/resource-object.js';
  * referencing card type are rewritten. The operation is marked breaking so the
  * engine records a log entry.
  */
-export class FieldTypeRenameHandler implements Handler {
-  readonly isBreaking = true;
-
-  matches(ctx: MutationContext): boolean {
-    return (
-      ctx.input.kind === 'rename' && ctx.input.target.type === 'fieldTypes'
-    );
-  }
-
-  async apply(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'rename') {
-      throw new Error('FieldTypeRenameHandler called with non-rename input');
-    }
+export class FieldTypeRenameHandler implements Handler<RenameInput> {
+  async apply(ctx: MutationContext<RenameInput>): Promise<void> {
     const oldName = resourceNameToString(ctx.input.target);
-    const newName = `${ctx.input.target.prefix}/fieldTypes/${ctx.input.newIdentifier}`;
 
     const resource = ctx.project.resources.byType(oldName, 'fieldTypes');
     if (!resource) {
@@ -51,10 +41,18 @@ export class FieldTypeRenameHandler implements Handler {
     // the metadata file and the in-memory name; it no longer cascades.
     await resource.rename(ctx.input.newIdentifier);
 
-    // Cascade the rename across the project, after the resource file has been
-    // renamed. updateCardTypes re-validates the field reference against the
-    // project, which is why renaming a field still referenced by a card type is
-    // rejected.
+    // The cascade must run AFTER the rename (unlike card-type-rename's
+    // cascade-first order): updateCardTypes goes through cardType.update,
+    // whose validateFieldType re-checks the changed field reference against
+    // the project. With the old name already gone, renaming a field type that
+    // a card type still references is rejected — behavior pinned by tests.
+    await this.applyCascade(ctx);
+  }
+
+  async applyCascade(ctx: MutationContext<RenameInput>): Promise<void> {
+    const oldName = resourceNameToString(ctx.input.target);
+    const newName = `${ctx.input.target.prefix}/fieldTypes/${ctx.input.newIdentifier}`;
+
     await Promise.all([
       rewriteContentFileRefs(ctx.project, oldName, newName),
       rewriteCardContentRefs(ctx.project, oldName, newName),
@@ -62,14 +60,15 @@ export class FieldTypeRenameHandler implements Handler {
     ]);
   }
 
-  // Rewrite every card type's customFields entry that references the renamed
-  // field type.
+  // Rewrite every LOCAL card type's customFields entry that references the
+  // renamed field type. Module-owned card types are immutable from the
+  // consumer side; their references are the owning module's responsibility.
   private async updateCardTypes(
     ctx: MutationContext,
     oldName: string,
     newName: string,
   ): Promise<void> {
-    const cardTypes = ctx.project.resources.cardTypes();
+    const cardTypes = ctx.project.resources.cardTypes(ResourcesFrom.localOnly);
     const op = {
       name: 'change',
       target: oldName,

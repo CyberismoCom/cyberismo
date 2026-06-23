@@ -3,7 +3,6 @@ import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
-import { WorkflowAddStateHandler } from '../../../src/mutations/handlers/workflow-add-state.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
@@ -18,7 +17,7 @@ const FIXTURE_PATH = join(
 );
 const tmpDir = join(import.meta.dirname, 'tmp-workflow-add-state');
 
-describe('WorkflowAddStateHandler', () => {
+describe('workflow states add routing and cascade', () => {
   let project: Project;
 
   beforeEach(async () => {
@@ -30,27 +29,6 @@ describe('WorkflowAddStateHandler', () => {
   });
   afterEach(async () => {
     await rm(tmpDir, { recursive: true, force: true });
-  });
-
-  it('matches add on workflow states', () => {
-    expect(
-      new WorkflowAddStateHandler().matches({
-        project,
-        input: {
-          kind: 'edit',
-          target: resourceName('decision/workflows/decision'),
-          updateKey: { key: 'states' },
-          operation: {
-            name: 'add',
-            target: { name: 'Archived', category: 'closed' },
-          },
-        },
-      }),
-    ).toBe(true);
-  });
-
-  it('is non-breaking', () => {
-    expect(new WorkflowAddStateHandler().isBreaking).toBe(false);
   });
 
   it('apply appends the new state to the workflow definition', async () => {

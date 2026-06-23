@@ -642,9 +642,13 @@ export abstract class ResourceObject<
 
   /**
    * Deletes the file and removes the resource from project.
-   * @throws if resource is a module resource, or
-   *         if resource does not exist, or
-   *         if resource is used by other resources.
+   *
+   * This is a pure primitive: it does not check usage. Consumer-side cleanup
+   * (cascades) and any refuse-if-used policy belong to the mutation handlers.
+   * A usage guard here cannot be enforced consistently across the module
+   * boundary (module authors have no visibility into downstream projects) and
+   * would deadlock locals referenced by immutable module content.
+   * @throws if resource is a module resource, or if resource does not exist.
    */
   public async delete() {
     if (this.moduleResource) {
@@ -658,12 +662,6 @@ export abstract class ResourceObject<
     if (!this.exists()) {
       throw new Error(
         `Resource '${this.resourceName.identifier}' does not exist in the project`,
-      );
-    }
-    const usedIn = await this.usage();
-    if (usedIn.length > 0) {
-      throw new Error(
-        `Cannot delete resource ${resourceNameToString(this.resourceName)}. It is used by: ${usedIn.join(', ')}`,
       );
     }
     await deleteFile(this.fileName);

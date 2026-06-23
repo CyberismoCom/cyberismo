@@ -1,9 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdir, rm, readFile } from 'node:fs/promises';
+import { access, mkdir, rm, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
-import { ProjectRenameHandler } from '../../../src/mutations/handlers/project-rename.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 
@@ -29,27 +28,6 @@ describe('ProjectRenameHandler', () => {
   });
   afterEach(async () => {
     await rm(tmpDir, { recursive: true, force: true });
-  });
-
-  it('matches only project_rename inputs', () => {
-    const handler = new ProjectRenameHandler();
-    expect(
-      handler.matches({
-        project,
-        input: { kind: 'project_rename', newPrefix: 'renamed' },
-      }),
-    ).toBe(true);
-    expect(
-      handler.matches({
-        project,
-        // @ts-expect-error matches() must reject inputs whose kind is not 'project_rename'
-        input: { kind: 'rename' },
-      }),
-    ).toBe(false);
-  });
-
-  it('is breaking', () => {
-    expect(new ProjectRenameHandler().isBreaking).toBe(true);
   });
 
   it('apply rewrites cardType references in every card', async () => {
@@ -143,6 +121,88 @@ describe('ProjectRenameHandler', () => {
     await expect(
       mutations.apply({ kind: 'project_rename', newPrefix: current }),
     ).rejects.toThrow(`Project prefix is already '${current}'`);
+  });
+
+  it('foreign module prefix rename cascades into local references only', async () => {
+    const cardPath = join(project.paths.cardRootFolder, 'decision_5');
+    await writeFile(
+      join(cardPath, 'index.json'),
+      JSON.stringify(
+        {
+          cardType: 'mod/cardTypes/page',
+          title: 'Module-typed card',
+          workflowState: 'Created',
+          rank: '0|a',
+          lastUpdated: '2026-03-17T11:11:39.624Z',
+          links: [],
+        },
+        null,
+        4,
+      ),
+    );
+    await writeFile(
+      join(cardPath, 'index.adoc'),
+      'See mod_1 and mod/workflows/flow for details.\n' +
+        'Graphs: mod/graphModels/x and mod/graphViews/y.\n',
+    );
+    project = new Project(project.basePath);
+    await project.populateCaches();
+
+    const mutations = new ResourceMutations(project);
+    await mutations.apply(
+      { kind: 'project_rename', newPrefix: 'newmod', oldPrefix: 'mod' },
+      { kind: 'replay', modulePrefix: 'newmod' },
+    );
+
+    const metadata = JSON.parse(
+      await readFile(join(cardPath, 'index.json'), 'utf-8'),
+    );
+    expect(metadata.cardType).toBe('newmod/cardTypes/page');
+
+    const content = await readFile(join(cardPath, 'index.adoc'), 'utf-8');
+    expect(content).toContain('newmod_1');
+    expect(content).toContain('newmod/workflows/flow');
+    expect(content).toContain('newmod/graphModels/x');
+    expect(content).toContain('newmod/graphViews/y');
+    expect(content).not.toMatch(/(?<!new)mod_1/);
+    expect(content).not.toMatch(/(?<!new)mod\/workflows/);
+    expect(content).not.toMatch(/(?<!new)mod\/graph/);
+
+    // The consumer project itself must not be renamed.
+    const config = JSON.parse(
+      await readFile(project.paths.configurationFile, 'utf-8'),
+    );
+    expect(config.cardKeyPrefix).toBe('decision');
+
+    // Local resource files keep their names.
+    await expect(
+      access(join(project.paths.resourcesFolder, 'workflows', 'decision.json')),
+    ).resolves.toBeUndefined();
+  });
+
+  it('replay without oldPrefix rejects and changes nothing', async () => {
+    const cardPath = join(project.paths.cardRootFolder, 'decision_5');
+    await writeFile(
+      join(cardPath, 'index.adoc'),
+      'See mod_1 and mod/workflows/flow for details.\n',
+    );
+    project = new Project(project.basePath);
+    await project.populateCaches();
+
+    const mutations = new ResourceMutations(project);
+    await expect(
+      mutations.apply(
+        { kind: 'project_rename', newPrefix: 'newmod' },
+        { kind: 'replay', modulePrefix: 'newmod' },
+      ),
+    ).rejects.toThrow(/requires oldPrefix/);
+
+    const content = await readFile(join(cardPath, 'index.adoc'), 'utf-8');
+    expect(content).toBe('See mod_1 and mod/workflows/flow for details.\n');
+    const config = JSON.parse(
+      await readFile(project.paths.configurationFile, 'utf-8'),
+    );
+    expect(config.cardKeyPrefix).toBe('decision');
   });
 
   it('throws for an invalid prefix', async () => {

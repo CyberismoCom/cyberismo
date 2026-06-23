@@ -3,7 +3,6 @@ import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
-import { WorkflowRenameHandler } from '../../../src/mutations/handlers/workflow-rename.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
@@ -30,39 +29,6 @@ describe('WorkflowRenameHandler', () => {
   });
   afterEach(async () => {
     await rm(tmpDir, { recursive: true, force: true });
-  });
-
-  it('matches a workflow rename input', () => {
-    const handler = new WorkflowRenameHandler();
-    expect(
-      handler.matches({
-        project,
-        input: {
-          kind: 'rename',
-          target: resourceName('decision/workflows/decision'),
-          newIdentifier: 'decision-v2',
-        },
-      }),
-    ).toBe(true);
-  });
-
-  it('declines a workflow edit input', () => {
-    const handler = new WorkflowRenameHandler();
-    expect(
-      handler.matches({
-        project,
-        input: {
-          kind: 'edit',
-          target: resourceName('decision/workflows/decision'),
-          updateKey: { key: 'displayName' },
-          operation: { name: 'change', target: 'A', to: 'B' },
-        },
-      }),
-    ).toBe(false);
-  });
-
-  it('isBreaking is true', () => {
-    expect(new WorkflowRenameHandler().isBreaking).toBe(true);
   });
 
   it('apply rewrites the workflow reference in dependent card types', async () => {

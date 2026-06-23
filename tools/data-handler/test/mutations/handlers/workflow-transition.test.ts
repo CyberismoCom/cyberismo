@@ -3,7 +3,6 @@ import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
-import { WorkflowTransitionHandler } from '../../../src/mutations/handlers/workflow-transition.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
@@ -18,7 +17,7 @@ const FIXTURE_PATH = join(
 );
 const tmpDir = join(import.meta.dirname, 'tmp-workflow-transition');
 
-describe('WorkflowTransitionHandler', () => {
+describe('workflow transitions routing and cascade', () => {
   let project: Project;
 
   beforeEach(async () => {
@@ -30,63 +29,6 @@ describe('WorkflowTransitionHandler', () => {
   });
   afterEach(async () => {
     await rm(tmpDir, { recursive: true, force: true });
-  });
-
-  it('matches add on transitions', () => {
-    expect(
-      new WorkflowTransitionHandler().matches({
-        project,
-        input: {
-          kind: 'edit',
-          target: resourceName('decision/workflows/decision'),
-          updateKey: { key: 'transitions' },
-          operation: {
-            name: 'add',
-            target: {
-              name: 'Archive',
-              fromState: ['Approved'],
-              toState: 'Deprecated',
-            },
-          },
-        },
-      }),
-    ).toBe(true);
-  });
-
-  it('matches remove on transitions', () => {
-    expect(
-      new WorkflowTransitionHandler().matches({
-        project,
-        input: {
-          kind: 'edit',
-          target: resourceName('decision/workflows/decision'),
-          updateKey: { key: 'transitions' },
-          operation: { name: 'remove', target: 'Deprecate' },
-        },
-      }),
-    ).toBe(true);
-  });
-
-  it('matches change on transitions', () => {
-    expect(
-      new WorkflowTransitionHandler().matches({
-        project,
-        input: {
-          kind: 'edit',
-          target: resourceName('decision/workflows/decision'),
-          updateKey: { key: 'transitions' },
-          operation: {
-            name: 'change',
-            target: 'Deprecate',
-            to: 'MarkDeprecated',
-          },
-        },
-      }),
-    ).toBe(true);
-  });
-
-  it('is non-breaking', () => {
-    expect(new WorkflowTransitionHandler().isBreaking).toBe(false);
   });
 
   it('apply add appends the transition to the workflow definition', async () => {

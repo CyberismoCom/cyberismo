@@ -3,7 +3,6 @@ import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
-import { WorkflowDeleteHandler } from '../../../src/mutations/handlers/workflow-delete.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
@@ -17,6 +16,9 @@ const FIXTURE_PATH = join(
   'decision-records',
 );
 const tmpDir = join(import.meta.dirname, 'tmp-workflow-delete');
+
+const WF = 'decision/workflows/decision';
+const DEPENDENT_CT = 'decision/cardTypes/decision';
 
 describe('WorkflowDeleteHandler', () => {
   let project: Project;
@@ -32,50 +34,13 @@ describe('WorkflowDeleteHandler', () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
-  it('matches a workflow delete input', () => {
-    expect(
-      new WorkflowDeleteHandler().matches({
-        project,
-        input: {
-          kind: 'delete',
-          target: resourceName('decision/workflows/decision'),
-        },
-      }),
-    ).toBe(true);
-  });
-
-  it('isBreaking is true', () => {
-    expect(new WorkflowDeleteHandler().isBreaking).toBe(true);
-  });
-
-  // Deleting a workflow that is still used (by card types / cards) is refused.
-  // WorkflowResource.delete throws when usage() is non-empty; no cascade
-  // deletion of dependents takes place.
-  it('refuses to delete a workflow that is still in use', async () => {
-    const mutations = new ResourceMutations(project);
-    await expect(
-      mutations.apply({
-        kind: 'delete',
-        target: resourceName('decision/workflows/decision'),
-      }),
-    ).rejects.toThrow();
-
-    // Workflow and its dependent card type are untouched.
-    expect(project.resources.exists('decision/workflows/decision')).toBe(true);
-    expect(project.resources.exists('decision/cardTypes/decision')).toBe(true);
-  });
-
   it('deletes an unused workflow', async () => {
-    // Create a fresh workflow that no card type references, so usage() is empty
-    // and the delete is allowed.
     const unusedName = 'decision/workflows/unused';
-    const wf = project.resources.byType(unusedName, 'workflows');
-    await wf.create();
+    await project.resources.byType(unusedName, 'workflows').create();
     await project.populateCaches();
     expect(project.resources.exists(unusedName)).toBe(true);
 
-    const mutations = new ResourceMutations(project);
-    await mutations.apply({
+    await new ResourceMutations(project).apply({
       kind: 'delete',
       target: resourceName(unusedName),
     });
@@ -83,10 +48,51 @@ describe('WorkflowDeleteHandler', () => {
     expect(project.resources.exists(unusedName)).toBe(false);
   });
 
-  it('throws when the workflow does not exist', async () => {
-    const mutations = new ResourceMutations(project);
+  it('cascade-deletes dependent card types when deleting an in-use workflow', async () => {
+    expect(project.resources.exists(DEPENDENT_CT)).toBe(true);
+
+    await new ResourceMutations(project).apply({
+      kind: 'delete',
+      target: resourceName(WF),
+    });
+    await project.populateCaches();
+
+    expect(project.resources.exists(WF)).toBe(false);
+    expect(project.resources.exists(DEPENDENT_CT)).toBe(false);
+  });
+
+  it('deletes the cards of the dependent card types', async () => {
+    const before = project
+      .cards(undefined)
+      .filter((c) => c.metadata?.cardType === DEPENDENT_CT);
+    expect(before.length).toBeGreaterThan(0);
+
+    await new ResourceMutations(project).apply({
+      kind: 'delete',
+      target: resourceName(WF),
+    });
+    await project.populateCaches();
+
+    const after = project
+      .cards(undefined)
+      .filter((c) => c.metadata?.cardType === DEPENDENT_CT);
+    expect(after).toHaveLength(0);
+  });
+
+  it('rejects deleting a module-owned workflow', async () => {
     await expect(
-      mutations.apply({
+      new ResourceMutations(project).apply({
+        kind: 'delete',
+        target: resourceName('mymod/workflows/dummy'),
+      }),
+    ).rejects.toThrow(
+      'Cannot delete resource mymod/workflows/dummy: It is a module resource',
+    );
+  });
+
+  it('throws when the workflow does not exist', async () => {
+    await expect(
+      new ResourceMutations(project).apply({
         kind: 'delete',
         target: resourceName('decision/workflows/does-not-exist'),
       }),

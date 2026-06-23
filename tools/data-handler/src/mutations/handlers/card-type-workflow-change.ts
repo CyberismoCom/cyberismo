@@ -13,6 +13,7 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
+import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import { getChildLogger } from '../../utils/log-utils.js';
@@ -28,24 +29,8 @@ import type {
  * the handler validates the state mapping, applies the workflow change to the
  * card type resource and then re-maps each affected card's workflowState.
  */
-export class CardTypeWorkflowChangeHandler implements Handler {
-  readonly isBreaking = true;
-
-  matches(ctx: MutationContext): boolean {
-    if (ctx.input.kind !== 'edit') return false;
-    if (ctx.input.target.type !== 'cardTypes') return false;
-    return (
-      ctx.input.updateKey.key === 'workflow' &&
-      ctx.input.operation.name === 'change'
-    );
-  }
-
-  async apply(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'edit') {
-      throw new Error(
-        'CardTypeWorkflowChangeHandler called with non-edit input',
-      );
-    }
+export class CardTypeWorkflowChangeHandler implements Handler<EditInput> {
+  async apply(ctx: MutationContext<EditInput>): Promise<void> {
     const cardTypeName = resourceNameToString(ctx.input.target);
     const resource = ctx.project.resources.byType(cardTypeName, 'cardTypes');
     if (!resource) throw new Error(`CardType '${cardTypeName}' not found`);
@@ -65,7 +50,16 @@ export class CardTypeWorkflowChangeHandler implements Handler {
       ctx.input.operation as Operation<unknown>,
     );
 
-    // Re-map each affected card's workflowState.
+    await this.applyCascade(ctx);
+  }
+
+  // Cascade: re-map each affected card's workflowState per the operation's
+  // state mapping. Without a mapping no cards are touched.
+  async applyCascade(ctx: MutationContext<EditInput>): Promise<void> {
+    const cardTypeName = resourceNameToString(ctx.input.target);
+    const changeOp = ctx.input.operation as ChangeOperation<string>;
+    const stateMapping = changeOp.mappingTable?.stateMapping || {};
+
     if (Object.keys(stateMapping).length > 0) {
       await this.applyStateMapping(ctx, cardTypeName, stateMapping);
     }

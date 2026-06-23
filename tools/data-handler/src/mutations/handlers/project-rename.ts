@@ -21,6 +21,7 @@ import {
 } from 'node:fs/promises';
 
 import type { Handler, MutationContext } from '../handler.js';
+import type { ProjectRenameInput } from '../types.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
 import { isTemplateCard } from '../../utils/card-utils.js';
 import { resourceName } from '../../utils/resource-utils.js';
@@ -34,19 +35,9 @@ const FILE_TYPES_WITH_PREFIX_REFERENCES = ['adoc', 'hbs', 'json', 'lp'];
  * reference, every `<oldPrefix>_*` card key, card metadata, attachments, and
  * file contents (adoc/hbs/json/lp).
  */
-export class ProjectRenameHandler implements Handler {
-  readonly isBreaking = true;
-
-  matches(ctx: MutationContext): boolean {
-    return ctx.input.kind === 'project_rename';
-  }
-
-  async apply(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'project_rename') {
-      throw new Error(
-        'ProjectRenameHandler called with non-project_rename input',
-      );
-    }
+export class ProjectRenameHandler implements Handler<ProjectRenameInput> {
+  async apply(ctx: MutationContext<ProjectRenameInput>): Promise<void> {
+    // Capture before setCardPrefix changes projectPrefix.
     const from = ctx.project.projectPrefix;
     const to = ctx.input.newPrefix;
     if (!to) {
@@ -103,12 +94,45 @@ export class ProjectRenameHandler implements Handler {
       to,
     );
 
-    await updateFiles(ctx.project.paths.cardRootFolder, from, to);
-    await updateFiles(ctx.project.paths.resourcesFolder, from, to);
+    await this.cascade(ctx, from, to);
 
     ctx.project.resources.changed();
     ctx.project.cardsCache.clear();
     await ctx.project.populateCaches();
+  }
+
+  /**
+   * Rewrite local references from `<from>/…` resource names and `<from>_`
+   * card keys to the new prefix. Local apply: card metadata was already
+   * rewritten by renameCards, so the metadata pass no-ops. Foreign replay
+   * (module renamed its prefix): `oldPrefix` is REQUIRED and comes from the
+   * recorded log entry, and this pass IS the metadata/content rewrite.
+   */
+  async applyCascade(ctx: MutationContext<ProjectRenameInput>): Promise<void> {
+    const from = ctx.input.oldPrefix;
+    if (!from) {
+      throw new Error('project_rename cascade requires oldPrefix');
+    }
+    await this.cascade(ctx, from, ctx.input.newPrefix);
+  }
+
+  private async cascade(
+    ctx: MutationContext,
+    from: string,
+    to: string,
+  ): Promise<void> {
+    const localCards = [
+      ...ctx.project.cards(ctx.project.paths.cardRootFolder),
+      ...ctx.project.resources
+        .templates(ResourcesFrom.localOnly)
+        .flatMap((t) => t.templateObject().cards()),
+    ];
+    for (const card of localCards) {
+      await updateCardMetadata(ctx, card, from, to);
+    }
+
+    await updateFiles(ctx.project.paths.cardRootFolder, from, to);
+    await updateFiles(ctx.project.paths.resourcesFolder, from, to);
   }
 }
 
@@ -205,6 +229,8 @@ async function updateFiles(
     [`${from}/calculations/`, `${to}/calculations/`],
     [`${from}/cardTypes/`, `${to}/cardTypes/`],
     [`${from}/fieldTypes/`, `${to}/fieldTypes/`],
+    [`${from}/graphModels/`, `${to}/graphModels/`],
+    [`${from}/graphViews/`, `${to}/graphViews/`],
     [`${from}/linkTypes/`, `${to}/linkTypes/`],
     [`${from}/reports/`, `${to}/reports/`],
     [`${from}/templates/`, `${to}/templates/`],

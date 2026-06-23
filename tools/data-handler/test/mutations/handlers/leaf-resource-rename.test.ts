@@ -3,7 +3,6 @@ import { mkdir, rm, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
-import { LeafResourceRenameHandler } from '../../../src/mutations/handlers/leaf-resource-rename.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
@@ -65,7 +64,7 @@ const CASES: LeafCase[] = [
 
 describe.each(CASES)(
   'LeafResourceRenameHandler ($type)',
-  ({ type, label, oldName, newIdentifier, newName }) => {
+  ({ type, oldName, newIdentifier, newName }) => {
     let project: Project;
     const tmpDir = join(import.meta.dirname, `tmp-${type}-rename`);
 
@@ -78,53 +77,6 @@ describe.each(CASES)(
     });
     afterEach(async () => {
       await rm(tmpDir, { recursive: true, force: true });
-    });
-
-    it('matches a rename input for its type', () => {
-      const handler = new LeafResourceRenameHandler(type, label);
-      expect(
-        handler.matches({
-          project,
-          input: {
-            kind: 'rename',
-            target: resourceName(oldName),
-            newIdentifier,
-          },
-        }),
-      ).toBe(true);
-    });
-
-    it('declines an edit input', () => {
-      const handler = new LeafResourceRenameHandler(type, label);
-      expect(
-        handler.matches({
-          project,
-          input: {
-            kind: 'edit',
-            target: resourceName(oldName),
-            updateKey: { key: 'displayName' },
-            operation: { name: 'change', target: 'A', to: 'B' },
-          },
-        }),
-      ).toBe(false);
-    });
-
-    it('declines a rename input for another type', () => {
-      const handler = new LeafResourceRenameHandler(type, label);
-      expect(
-        handler.matches({
-          project,
-          input: {
-            kind: 'rename',
-            target: resourceName('decision/workflows/decision-workflow'),
-            newIdentifier: 'whatever',
-          },
-        }),
-      ).toBe(false);
-    });
-
-    it('isBreaking is true', () => {
-      expect(new LeafResourceRenameHandler(type, label).isBreaking).toBe(true);
     });
 
     it('apply renames the resource', async () => {

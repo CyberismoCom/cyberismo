@@ -13,6 +13,7 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
+import type { RenameInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import {
   rewriteCardContentRefs,
@@ -41,38 +42,42 @@ type LeafResourceType =
  * Renaming a template does not flush the template-card cache (only deletion
  * does).
  */
-export class LeafResourceRenameHandler implements Handler {
-  readonly isBreaking = true;
-
+export class LeafResourceRenameHandler implements Handler<RenameInput> {
   constructor(
     private readonly type: LeafResourceType,
     private readonly label: string,
   ) {}
 
-  matches(ctx: MutationContext): boolean {
-    return ctx.input.kind === 'rename' && ctx.input.target.type === this.type;
-  }
-
-  async apply(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'rename') {
-      throw new Error('LeafResourceRenameHandler called with non-rename input');
-    }
+  async apply(ctx: MutationContext<RenameInput>): Promise<void> {
     const oldName = resourceNameToString(ctx.input.target);
-    const newName = `${ctx.input.target.prefix}/${this.type}/${ctx.input.newIdentifier}`;
+
+    // Interactive rename of a module-owned resource is not allowed.
+    if (ctx.input.target.prefix !== ctx.project.projectPrefix) {
+      throw new Error(
+        `Cannot rename resource ${oldName}: It is a module resource`,
+      );
+    }
 
     const resource = ctx.project.resources.byType(oldName, this.type);
     if (!resource) {
       throw new Error(`${this.label} '${oldName}' not found`);
     }
 
-    // Rewrite cascading references BEFORE renaming the resource on disk.
-    // Order matters: cascade scanners look for the old name, and the resource
-    // folder (with that name) must still exist when they run.
-    await rewriteContentFileRefs(ctx.project, oldName, newName);
-    await rewriteCardContentRefs(ctx.project, oldName, newName);
+    // The cascade runs BEFORE renaming the resource on disk. Order matters:
+    // cascade scanners look for the old name, and the resource folder (with
+    // that name) must still exist when they run.
+    await this.applyCascade(ctx);
 
     // Rename the resource itself (renames its metadata file and, for folder
     // resources, the content folder).
     await resource.rename(ctx.input.newIdentifier);
+  }
+
+  async applyCascade(ctx: MutationContext<RenameInput>): Promise<void> {
+    const oldName = resourceNameToString(ctx.input.target);
+    const newName = `${ctx.input.target.prefix}/${this.type}/${ctx.input.newIdentifier}`;
+
+    await rewriteContentFileRefs(ctx.project, oldName, newName);
+    await rewriteCardContentRefs(ctx.project, oldName, newName);
   }
 }

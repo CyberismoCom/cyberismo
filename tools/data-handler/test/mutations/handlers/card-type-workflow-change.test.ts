@@ -5,7 +5,6 @@ import { join } from 'node:path';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import type { Project } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
-import { CardTypeWorkflowChangeHandler } from '../../../src/mutations/handlers/card-type-workflow-change.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 
@@ -27,25 +26,6 @@ describe('CardTypeWorkflowChangeHandler', () => {
   });
   afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
-  });
-
-  it('matches an edit of cardType.workflow', () => {
-    const handler = new CardTypeWorkflowChangeHandler();
-    const ctx = {
-      project,
-      input: {
-        kind: 'edit' as const,
-        target: resourceName(cardTypeName()),
-        updateKey: { key: 'workflow' },
-        operation: {
-          name: 'change' as const,
-          target: fromWorkflow(),
-          to: toWorkflow(),
-        },
-      },
-    };
-    expect(handler.matches(ctx)).toBe(true);
-    expect(handler.isBreaking).toBe(true);
   });
 
   it('rejects incomplete mappings the same way verifyStateMapping does', async () => {

@@ -13,47 +13,57 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
+import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
+import { ResourcesFrom } from '../../containers/project/resources-from.js';
+import type { Card } from '../../interfaces/project-interfaces.js';
 import type { ChangeOperation } from '../../resources/resource-object.js';
 import type { EnumDefinition } from '../../interfaces/resource-interfaces.js';
 
 /**
- * Renaming an enum value (a 'change' on enumValues where the enumValue itself
- * differs) is a breaking change. FieldTypeResource.update applies the change to
- * the enum definition array only; it does NOT rewrite the value carried by
- * existing cards, so cards keep their old value. This handler routes the
- * operation unchanged and marks it breaking. A change that only edits
- * enumDisplayValue (same enumValue) is not a rename and falls through to the
- * default no-cascade handler, which updates the definition only.
+ * Renaming an enum value (a 'change' on 'enumValues' whose enumValue differs
+ * from the new one) is a breaking change: the enum value is the array identity,
+ * so every card holding the old value must be remapped. FieldTypeResource.update
+ * renames the value in the enum definition; the cross-resource part — rewriting
+ * the value on every affected card — lives here. Mirrors
+ * WorkflowRenameStateHandler. Marked breaking.
  */
-export class FieldTypeEnumRenameHandler implements Handler {
-  readonly isBreaking = true;
+export class FieldTypeEnumRenameHandler implements Handler<EditInput> {
+  async apply(ctx: MutationContext<EditInput>): Promise<void> {
+    const name = resourceNameToString(ctx.input.target);
+    const resource = ctx.project.resources.byType(name, 'fieldTypes');
+    if (!resource) throw new Error(`Field type '${name}' not found`);
 
-  matches(ctx: MutationContext): boolean {
-    if (
-      ctx.input.kind !== 'edit' ||
-      ctx.input.target.type !== 'fieldTypes' ||
-      ctx.input.updateKey.key !== 'enumValues' ||
-      ctx.input.operation.name !== 'change'
-    ) {
-      return false;
-    }
-    const op = ctx.input.operation as ChangeOperation<EnumDefinition>;
-    return (
-      (op.target as EnumDefinition).enumValue !==
-      (op.to as EnumDefinition).enumValue
-    );
+    // Rename the value in the enum definition and persist it.
+    await resource.update(ctx.input.updateKey, ctx.input.operation);
+
+    await this.applyCascade(ctx);
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'edit') {
-      throw new Error('FieldTypeEnumRenameHandler: non-edit input');
+  // Cascade: rewrite every card holding the old enum value to the new value.
+  async applyCascade(ctx: MutationContext<EditInput>): Promise<void> {
+    const name = resourceNameToString(ctx.input.target);
+    const op = ctx.input.operation as ChangeOperation<EnumDefinition>;
+    const oldValue = (op.target as EnumDefinition).enumValue;
+    const newValue = (op.to as EnumDefinition).enumValue;
+
+    for (const card of this.affectedCards(ctx, name)) {
+      if (card.metadata?.[name] === oldValue) {
+        await ctx.project.updateCardMetadataKey(card.key, name, newValue);
+      }
     }
-    const fieldName = resourceNameToString(ctx.input.target);
-    const resource = ctx.project.resources.byType(fieldName, 'fieldTypes');
-    if (!resource) {
-      throw new Error(`Field type '${fieldName}' not found`);
-    }
-    await resource.update(ctx.input.updateKey, ctx.input.operation);
+  }
+
+  // Every local card that holds this field: local project cards plus local
+  // template cards. The field key carrying the old value is itself the evidence
+  // a card needs migrating, so no card-type scoping is required.
+  private affectedCards(ctx: MutationContext, fieldName: string): Card[] {
+    const project = [...ctx.project.cards(undefined)];
+    const templates = ctx.project.resources
+      .templates(ResourcesFrom.localOnly)
+      .flatMap((t) => t.templateObject().cards());
+    return [...project, ...templates].filter(
+      (c) => c.metadata && fieldName in c.metadata,
+    );
   }
 }

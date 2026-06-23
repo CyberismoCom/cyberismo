@@ -5,7 +5,6 @@ import { join } from 'node:path';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import type { Project } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
-import { CardTypeDeleteHandler } from '../../../src/mutations/handlers/card-type-delete.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 
@@ -26,20 +25,6 @@ describe('CardTypeDeleteHandler', () => {
   });
 
   const cardTypeName = () => `${project.projectPrefix}/cardTypes/decision`;
-
-  it('matches a CardType delete input', () => {
-    const handler = new CardTypeDeleteHandler();
-    expect(
-      handler.matches({
-        project,
-        input: {
-          kind: 'delete',
-          target: resourceName(cardTypeName()),
-        },
-      }),
-    ).toBe(true);
-    expect(handler.isBreaking).toBe(true);
-  });
 
   it('deletes every card of this type', async () => {
     const before = project

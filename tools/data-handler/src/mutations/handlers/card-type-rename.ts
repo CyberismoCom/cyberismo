@@ -13,6 +13,7 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
+import type { RenameInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import {
@@ -23,23 +24,33 @@ import type { Card } from '../../interfaces/project-interfaces.js';
 import type { ChangeOperation } from '../../resources/resource-object.js';
 import type { LinkType } from '../../interfaces/resource-interfaces.js';
 
-export class CardTypeRenameHandler implements Handler {
-  readonly isBreaking = true;
-
-  matches(ctx: MutationContext): boolean {
-    return ctx.input.kind === 'rename' && ctx.input.target.type === 'cardTypes';
-  }
-
-  async apply(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'rename') {
-      throw new Error('CardTypeRenameHandler called with non-rename input');
-    }
+export class CardTypeRenameHandler implements Handler<RenameInput> {
+  async apply(ctx: MutationContext<RenameInput>): Promise<void> {
     const oldName = resourceNameToString(ctx.input.target);
-    const newName = `${ctx.input.target.prefix}/cardTypes/${ctx.input.newIdentifier}`;
+
+    // Interactive rename of a module-owned card type is not allowed.
+    if (ctx.input.target.prefix !== ctx.project.projectPrefix) {
+      throw new Error(
+        `Cannot rename resource ${oldName}: It is a module resource`,
+      );
+    }
 
     // All reference rewrites run BEFORE renaming the resource on disk: the
     // cascade scanners look for the old name and the resource file (with that
     // name) must still exist while they run.
+    await this.applyCascade(ctx);
+
+    // Rename the resource itself.
+    const resource = ctx.project.resources.byType(oldName, 'cardTypes');
+    if (!resource) {
+      throw new Error(`CardType '${oldName}' not found`);
+    }
+    await resource.rename(ctx.input.newIdentifier);
+  }
+
+  async applyCascade(ctx: MutationContext<RenameInput>): Promise<void> {
+    const oldName = resourceNameToString(ctx.input.target);
+    const newName = `${ctx.input.target.prefix}/cardTypes/${ctx.input.newIdentifier}`;
 
     // 1. Rewrite metadata.cardType on every affected card.
     const cards = this.affectedCards(ctx, oldName);
@@ -56,13 +67,6 @@ export class CardTypeRenameHandler implements Handler {
     await rewriteContentFileRefs(ctx.project, oldName, newName);
     await rewriteCardContentRefs(ctx.project, oldName, newName);
     await this.updateLinkTypes(ctx, oldName, newName);
-
-    // 3. Rename the resource itself.
-    const resource = ctx.project.resources.byType(oldName, 'cardTypes');
-    if (!resource) {
-      throw new Error(`CardType '${oldName}' not found`);
-    }
-    await resource.rename(ctx.input.newIdentifier);
   }
 
   // Rewrite occurrences of the old card-type name in every local link type's

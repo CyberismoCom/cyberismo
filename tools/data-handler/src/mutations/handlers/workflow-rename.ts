@@ -13,7 +13,9 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
+import type { RenameInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
+import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import {
   rewriteCardContentRefs,
   rewriteContentFileRefs,
@@ -26,19 +28,9 @@ import type { ChangeOperation } from '../../resources/resource-object.js';
  * and card content) must be rewritten. The operation is marked breaking so the
  * engine records a log entry.
  */
-export class WorkflowRenameHandler implements Handler {
-  readonly isBreaking = true;
-
-  matches(ctx: MutationContext): boolean {
-    return ctx.input.kind === 'rename' && ctx.input.target.type === 'workflows';
-  }
-
-  async apply(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'rename') {
-      throw new Error('WorkflowRenameHandler called with non-rename input');
-    }
+export class WorkflowRenameHandler implements Handler<RenameInput> {
+  async apply(ctx: MutationContext<RenameInput>): Promise<void> {
     const oldName = resourceNameToString(ctx.input.target);
-    const newName = `${ctx.input.target.prefix}/workflows/${ctx.input.newIdentifier}`;
 
     const resource = ctx.project.resources.byType(oldName, 'workflows');
     if (!resource) {
@@ -50,10 +42,13 @@ export class WorkflowRenameHandler implements Handler {
     // identifier); it no longer cascades.
     await resource.rename(ctx.input.newIdentifier);
 
-    // Cascade the rename across the project, after the resource file has been
-    // renamed: the cascade scanners look for the old name in card content /
-    // calculations / handlebars and in card types' `workflow` reference, none
-    // of which the file rename touched.
+    await this.applyCascade(ctx);
+  }
+
+  async applyCascade(ctx: MutationContext<RenameInput>): Promise<void> {
+    const oldName = resourceNameToString(ctx.input.target);
+    const newName = `${ctx.input.target.prefix}/workflows/${ctx.input.newIdentifier}`;
+
     await Promise.all([
       rewriteContentFileRefs(ctx.project, oldName, newName),
       rewriteCardContentRefs(ctx.project, oldName, newName),
@@ -61,14 +56,15 @@ export class WorkflowRenameHandler implements Handler {
     ]);
   }
 
-  // Rewrite the `workflow` reference on every card type that points at the
-  // renamed workflow.
+  // Rewrite the `workflow` reference on every LOCAL card type that points at
+  // the renamed workflow. Module-owned card types are immutable from the
+  // consumer side; their references are the owning module's responsibility.
   private async updateCardTypes(
     ctx: MutationContext,
     oldName: string,
     newName: string,
   ): Promise<void> {
-    const cardTypes = ctx.project.resources.cardTypes();
+    const cardTypes = ctx.project.resources.cardTypes(ResourcesFrom.localOnly);
     const op = {
       name: 'change',
       target: oldName,

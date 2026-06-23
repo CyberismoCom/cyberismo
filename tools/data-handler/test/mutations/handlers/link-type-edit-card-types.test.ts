@@ -3,7 +3,6 @@ import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
-import { LinkTypeEditCardTypesHandler } from '../../../src/mutations/handlers/link-type-edit-card-types.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
@@ -20,7 +19,7 @@ const tmpDir = join(import.meta.dirname, 'tmp-link-type-edit-card-types');
 
 const LT = 'decision/linkTypes/test';
 
-describe('LinkTypeEditCardTypesHandler', () => {
+describe('linkType sourceCardTypes/destinationCardTypes edit routing and cascade', () => {
   let project: Project;
 
   beforeEach(async () => {
@@ -32,56 +31,6 @@ describe('LinkTypeEditCardTypesHandler', () => {
   });
   afterEach(async () => {
     await rm(tmpDir, { recursive: true, force: true });
-  });
-
-  it('matches edits on sourceCardTypes and destinationCardTypes', () => {
-    const handler = new LinkTypeEditCardTypesHandler();
-    for (const key of ['sourceCardTypes', 'destinationCardTypes']) {
-      expect(
-        handler.matches({
-          project,
-          input: {
-            kind: 'edit',
-            target: resourceName(LT),
-            updateKey: { key },
-            operation: { name: 'add', target: 'decision/cardTypes/decision' },
-          },
-        }),
-      ).toBe(true);
-    }
-  });
-
-  it('declines edits on other link-type keys', () => {
-    const handler = new LinkTypeEditCardTypesHandler();
-    expect(
-      handler.matches({
-        project,
-        input: {
-          kind: 'edit',
-          target: resourceName(LT),
-          updateKey: { key: 'outboundDisplayName' },
-          operation: { name: 'change', target: 'a', to: 'b' },
-        },
-      }),
-    ).toBe(false);
-  });
-
-  it('declines non-edit inputs', () => {
-    const handler = new LinkTypeEditCardTypesHandler();
-    expect(
-      handler.matches({
-        project,
-        input: {
-          kind: 'rename',
-          target: resourceName(LT),
-          newIdentifier: 'test-v2',
-        },
-      }),
-    ).toBe(false);
-  });
-
-  it('isBreaking is false', () => {
-    expect(new LinkTypeEditCardTypesHandler().isBreaking).toBe(false);
   });
 
   it('apply adds an existing card type to sourceCardTypes', async () => {

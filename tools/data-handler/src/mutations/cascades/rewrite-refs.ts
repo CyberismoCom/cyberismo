@@ -39,6 +39,7 @@ export async function rewriteContentFileRefs(
     );
   }
 
+  // Local folder resources only: module content is migrated by the owning module.
   const resources = [
     ...project.resources.calculations(ResourcesFrom.localOnly),
     ...project.resources.graphModels(ResourcesFrom.localOnly),
@@ -73,11 +74,15 @@ export async function rewriteCardContentRefs(
 ) {
   if (!from.trim() || !to.trim()) {
     throw new Error(
-      'updateCardContentReferences: "from" and "to" parameters must not be empty',
+      'rewriteCardContentRefs: "from" and "to" parameters must not be empty',
     );
   }
 
-  const allCards = [...project.cards(undefined), ...project.allTemplateCards()];
+  // Local templates only: module content is migrated by the owning module.
+  const localTemplateCards = project.resources
+    .templates(ResourcesFrom.localOnly)
+    .flatMap((template) => template.templateObject().cards());
+  const allCards = [...project.cards(undefined), ...localTemplateCards];
   const cardsToUpdate = allCards.filter(
     (card) => card.content && card.content.includes(from),
   );

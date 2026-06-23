@@ -13,6 +13,7 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
+import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
@@ -28,24 +29,8 @@ import type { CustomField } from '../../interfaces/resource-interfaces.js';
  * CardTypeResource.update validate the field and persist it on the card type,
  * then writes the new field (as null) on each affected card.
  */
-export class CardTypeAddCustomFieldHandler implements Handler {
-  readonly isBreaking = true;
-
-  matches(ctx: MutationContext): boolean {
-    if (ctx.input.kind !== 'edit') return false;
-    if (ctx.input.target.type !== 'cardTypes') return false;
-    return (
-      ctx.input.updateKey.key === 'customFields' &&
-      ctx.input.operation.name === 'add'
-    );
-  }
-
-  async apply(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'edit') {
-      throw new Error(
-        'CardTypeAddCustomFieldHandler called with non-edit input',
-      );
-    }
+export class CardTypeAddCustomFieldHandler implements Handler<EditInput> {
+  async apply(ctx: MutationContext<EditInput>): Promise<void> {
     const cardTypeName = resourceNameToString(ctx.input.target);
     const resource = ctx.project.resources.byType(cardTypeName, 'cardTypes');
     if (!resource) throw new Error(`CardType '${cardTypeName}' not found`);
@@ -57,7 +42,12 @@ export class CardTypeAddCustomFieldHandler implements Handler {
       ctx.input.operation as Operation<unknown>,
     );
 
-    // Cascade: add the new field as null on every affected card.
+    await this.applyCascade(ctx);
+  }
+
+  // Cascade: add the new field as null on every affected card.
+  async applyCascade(ctx: MutationContext<EditInput>): Promise<void> {
+    const cardTypeName = resourceNameToString(ctx.input.target);
     const item = (ctx.input.operation as AddOperation<CustomField>)
       .target as CustomField;
     const cards = this.affectedCards(ctx, cardTypeName);

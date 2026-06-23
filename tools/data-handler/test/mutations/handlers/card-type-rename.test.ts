@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdirSync, rmSync } from 'node:fs';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { copyDir } from '../../../src/utils/file-utils.js';
 import type { Project } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
-import { CardTypeRenameHandler } from '../../../src/mutations/handlers/card-type-rename.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 
@@ -23,20 +23,6 @@ describe('CardTypeRenameHandler', () => {
   });
   afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
-  });
-
-  it('matches a CardType rename input', () => {
-    const handler = new CardTypeRenameHandler();
-    const ctx = {
-      project,
-      input: {
-        kind: 'rename' as const,
-        target: resourceName(`${project.projectPrefix}/cardTypes/decision`),
-        newIdentifier: 'choice',
-      },
-    };
-    expect(handler.matches(ctx)).toBe(true);
-    expect(handler.isBreaking).toBe(true);
   });
 
   it('rewrites cardType in every affected card after apply', async () => {
@@ -70,5 +56,76 @@ describe('CardTypeRenameHandler', () => {
       expect(data.sourceCardTypes).not.toContain(oldName);
       expect(data.destinationCardTypes).not.toContain(oldName);
     }
+  });
+});
+
+describe('CardTypeRenameHandler module scope', () => {
+  const moduleTmpDir = join(import.meta.dirname, 'tmp-card-type-rename-module');
+  const projectPath = join(moduleTmpDir, 'proj');
+  let moduleProject: Project;
+  let localCardMetadataFile: string;
+
+  beforeEach(async () => {
+    await mkdir(projectPath, { recursive: true });
+    await copyDir(
+      join(baseDir, '..', '..', 'test-data', 'valid', 'decision-records'),
+      projectPath,
+    );
+
+    // Seed a module-owned card type and a local card that uses it.
+    const moduleCardTypesDir = join(
+      projectPath,
+      '.cards',
+      'modules',
+      'mymod',
+      'cardTypes',
+    );
+    await mkdir(moduleCardTypesDir, { recursive: true });
+    await writeFile(
+      join(moduleCardTypesDir, 'dummy.json'),
+      JSON.stringify({
+        name: 'mymod/cardTypes/dummy',
+        displayName: 'Module card type',
+        workflow: 'decision/workflows/decision',
+        customFields: [],
+        alwaysVisibleFields: [],
+        optionallyVisibleFields: [],
+      }),
+    );
+
+    localCardMetadataFile = join(
+      projectPath,
+      'cardRoot',
+      'decision_5',
+      'index.json',
+    );
+    const localCard = JSON.parse(
+      await readFile(localCardMetadataFile, 'utf-8'),
+    );
+    localCard.cardType = 'mymod/cardTypes/dummy';
+    await writeFile(localCardMetadataFile, JSON.stringify(localCard, null, 4));
+
+    moduleProject = getTestProject(projectPath);
+    await moduleProject.populateCaches();
+  });
+  afterEach(() => {
+    rmSync(moduleTmpDir, { recursive: true, force: true });
+  });
+
+  it('rejects a module card-type rename before rewriting local card metadata', async () => {
+    await expect(
+      new ResourceMutations(moduleProject).apply({
+        kind: 'rename' as const,
+        target: resourceName('mymod/cardTypes/dummy'),
+        newIdentifier: 'renamed',
+      }),
+    ).rejects.toThrow(
+      'Cannot rename resource mymod/cardTypes/dummy: It is a module resource',
+    );
+
+    const localCard = JSON.parse(
+      await readFile(localCardMetadataFile, 'utf-8'),
+    );
+    expect(localCard.cardType).toBe('mymod/cardTypes/dummy');
   });
 });

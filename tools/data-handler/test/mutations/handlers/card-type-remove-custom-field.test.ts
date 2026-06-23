@@ -5,7 +5,6 @@ import { join } from 'node:path';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import type { Project } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
-import { CardTypeRemoveCustomFieldHandler } from '../../../src/mutations/handlers/card-type-remove-custom-field.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 
@@ -27,22 +26,6 @@ describe('CardTypeRemoveCustomFieldHandler', () => {
 
   const cardTypeName = () => `${project.projectPrefix}/cardTypes/decision`;
   const fieldName = () => `${project.projectPrefix}/fieldTypes/finished`;
-
-  it('matches a remove operation on customFields', () => {
-    const handler = new CardTypeRemoveCustomFieldHandler();
-    expect(
-      handler.matches({
-        project,
-        input: {
-          kind: 'edit',
-          target: resourceName(cardTypeName()),
-          updateKey: { key: 'customFields' },
-          operation: { name: 'remove', target: { name: fieldName() } },
-        },
-      }),
-    ).toBe(true);
-    expect(handler.isBreaking).toBe(true);
-  });
 
   it('removes the field key from every card of this type', async () => {
     const mutations = new ResourceMutations(project);

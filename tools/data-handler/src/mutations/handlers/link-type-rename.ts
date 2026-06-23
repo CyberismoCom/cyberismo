@@ -13,24 +13,40 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
+import type { RenameInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import {
   rewriteCardContentRefs,
   rewriteContentFileRefs,
 } from '../cascades/rewrite-refs.js';
+import { isModuleCard } from '../../utils/card-utils.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
 
-export class LinkTypeRenameHandler implements Handler {
-  readonly isBreaking = true;
+export class LinkTypeRenameHandler implements Handler<RenameInput> {
+  async apply(ctx: MutationContext<RenameInput>): Promise<void> {
+    const oldName = resourceNameToString(ctx.input.target);
 
-  matches(ctx: MutationContext): boolean {
-    return ctx.input.kind === 'rename' && ctx.input.target.type === 'linkTypes';
+    // Interactive rename of a module-owned link type is not allowed.
+    if (ctx.input.target.prefix !== ctx.project.projectPrefix) {
+      throw new Error(
+        `Cannot rename resource ${oldName}: It is a module resource`,
+      );
+    }
+
+    // The cascade runs BEFORE renaming the resource on disk. Order matters:
+    // cascade scanners look for the old name, and the resource file (with
+    // that name) must still exist when they run.
+    await this.applyCascade(ctx);
+
+    // Rename the resource itself.
+    const resource = ctx.project.resources.byType(oldName, 'linkTypes');
+    if (!resource) {
+      throw new Error(`Link type '${oldName}' not found`);
+    }
+    await resource.rename(ctx.input.newIdentifier);
   }
 
-  async apply(ctx: MutationContext): Promise<void> {
-    if (ctx.input.kind !== 'rename') {
-      throw new Error('LinkTypeRenameHandler called with non-rename input');
-    }
+  async applyCascade(ctx: MutationContext<RenameInput>): Promise<void> {
     const oldName = resourceNameToString(ctx.input.target);
     const newName = `${ctx.input.target.prefix}/linkTypes/${ctx.input.newIdentifier}`;
 
@@ -44,24 +60,17 @@ export class LinkTypeRenameHandler implements Handler {
       await ctx.project.updateCardMetadata(card, metadata);
     }
 
-    // 2. Rewrite cascading references BEFORE renaming the resource on disk.
-    //    Order matters: cascade scanners look for the old name, and the
-    //    resource file (with that name) must still exist when they run.
+    // 2. Rewrite cascading references in content files and card content.
     await rewriteContentFileRefs(ctx.project, oldName, newName);
     await rewriteCardContentRefs(ctx.project, oldName, newName);
-
-    // 3. Rename the resource itself.
-    const resource = ctx.project.resources.byType(oldName, 'linkTypes');
-    if (!resource) {
-      throw new Error(`Link type '${oldName}' not found`);
-    }
-    await resource.rename(ctx.input.newIdentifier);
   }
 
+  // Project cards plus LOCAL template cards: module cards are immutable from
+  // the consumer side and cannot reference a local link type anyway.
   private affectedCards(ctx: MutationContext, oldName: string): Card[] {
     const all = [
       ...ctx.project.cards(undefined),
-      ...ctx.project.allTemplateCards(),
+      ...ctx.project.allTemplateCards().filter((card) => !isModuleCard(card)),
     ];
     return all.filter((c) =>
       c.metadata?.links?.some((l) => l.linkType === oldName),

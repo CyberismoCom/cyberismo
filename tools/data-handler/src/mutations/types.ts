@@ -33,4 +33,25 @@ export type MutationInput =
     }
   | { kind: 'delete'; target: ResourceName }
   | { kind: 'rename'; target: ResourceName; newIdentifier: string }
-  | { kind: 'project_rename'; newPrefix: string };
+  | {
+      kind: 'project_rename';
+      newPrefix: string;
+      /**
+       * Set only when replaying a module's log entry: the module's previous
+       * prefix. Authoring leaves it undefined (derived from the project).
+       */
+      oldPrefix?: string;
+    };
+
+/**
+ * Per-kind narrowings of {@link MutationInput}. A handler registered against a
+ * route of a given kind only ever receives the matching variant, so it can be
+ * typed with the precise input instead of re-narrowing the union at runtime.
+ */
+export type EditInput = Extract<MutationInput, { kind: 'edit' }>;
+export type DeleteInput = Extract<MutationInput, { kind: 'delete' }>;
+export type RenameInput = Extract<MutationInput, { kind: 'rename' }>;
+export type ProjectRenameInput = Extract<
+  MutationInput,
+  { kind: 'project_rename' }
+>;

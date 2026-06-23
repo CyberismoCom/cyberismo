@@ -88,6 +88,91 @@ describe('FieldType mutation engine end-to-end', () => {
     ).toBe(true);
   });
 
+  it('apply → in-use FieldType delete cascades and logs', async () => {
+    // 'finished' is referenced by the decision card type's customFields.
+    const name = `${project.projectPrefix}/fieldTypes/finished`;
+    const cardTypeName = `${project.projectPrefix}/cardTypes/decision`;
+
+    const mutations = new ResourceMutations(project);
+    await mutations.apply({ kind: 'delete', target: resourceName(name) });
+
+    expect(project.resources.exists(name)).toBe(false);
+    expect(
+      project.resources
+        .byType(cardTypeName, 'cardTypes')
+        .data?.customFields?.some((f) => f.name === name),
+    ).toBe(false);
+    const entries = await ConfigurationLogger.entries(project.basePath);
+    expect(
+      entries.some(
+        (e) => e.operation === 'resource_delete' && e.target === name,
+      ),
+    ).toBe(true);
+  });
+
+  it('apply → enum rename-member is breaking, migrates cards, and logs', async () => {
+    const enumFieldPath = join(
+      decisionRecordsPath,
+      '.cards',
+      'local',
+      'fieldTypes',
+      'testEnum.json',
+    );
+    writeFileSync(
+      enumFieldPath,
+      JSON.stringify({
+        name: 'decision/fieldTypes/testEnum',
+        displayName: 'Test Enum',
+        dataType: 'enum',
+        enumValues: [{ enumValue: 'low' }, { enumValue: 'high' }],
+      }),
+    );
+    const freshProject = getTestProject(decisionRecordsPath);
+    await freshProject.populateCaches();
+
+    // Register the field on the decision card type and set 'low' on its cards.
+    const fieldName = `${freshProject.projectPrefix}/fieldTypes/testEnum`;
+    const cardTypeName = `${freshProject.projectPrefix}/cardTypes/decision`;
+    await freshProject.resources
+      .byType(cardTypeName, 'cardTypes')
+      .update(
+        { key: 'customFields' },
+        { name: 'add', target: { name: fieldName } },
+      );
+    for (const card of freshProject
+      .cards(undefined)
+      .filter((c) => c.metadata?.cardType === cardTypeName)) {
+      card.metadata![fieldName] = 'low';
+      await freshProject.updateCardMetadata(card, card.metadata!);
+    }
+
+    const mutations = new ResourceMutations(freshProject);
+    await mutations.apply({
+      kind: 'edit',
+      target: resourceName(fieldName),
+      updateKey: { key: 'enumValues' },
+      operation: {
+        name: 'change',
+        target: { enumValue: 'low' },
+        to: { enumValue: 'minor' },
+      },
+    });
+
+    // Cards migrated to the new value.
+    const anyStillLow = freshProject
+      .cards(undefined)
+      .some((c) => c.metadata?.[fieldName] === 'low');
+    expect(anyStillLow).toBe(false);
+
+    // Breaking edit records a log entry.
+    const entries = await ConfigurationLogger.entries(freshProject.basePath);
+    expect(
+      entries.some(
+        (e) => e.operation === 'resource_update' && e.target === fieldName,
+      ),
+    ).toBe(true);
+  });
+
   it('adding an enum value is non-breaking (no log entry)', async () => {
     const enumFieldPath = join(
       decisionRecordsPath,
@@ -120,7 +205,7 @@ describe('FieldType mutation engine end-to-end', () => {
     expect(entries).toHaveLength(0);
   });
 
-  it('display-only changes fall through to DefaultNoCascadeHandler (no log entry)', async () => {
+  it('display-only changes route to the plain handler (no log entry)', async () => {
     const mutations = new ResourceMutations(project);
     await mutations.apply({
       kind: 'edit',
