@@ -156,6 +156,9 @@ export function inMemorySource(opts: InMemorySourceOptions): SourceLayer {
       return availableByLocation.get(location) ?? [];
     },
     queryRemote,
+    async readMetadata() {
+      throw new Error('readMetadata not implemented in inMemorySource stub');
+    },
   };
 }
 
