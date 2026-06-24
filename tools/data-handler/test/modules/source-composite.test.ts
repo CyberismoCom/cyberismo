@@ -106,6 +106,7 @@ describe('modules/source-composite', () => {
           supportsVersioning: () => true,
           listRemoteVersions: async () => sentinel,
           queryRemote: async () => ({ reachable: true }),
+          readMetadata: async () => { throw new Error('readMetadata not used in this test'); },
         },
       },
       {

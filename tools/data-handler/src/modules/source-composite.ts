@@ -13,7 +13,9 @@
 */
 
 import type { FetchTarget, SourceLayer } from './source.js';
-import type { RemoteQueryOutcome, Source, VersionRange } from './types.js';
+import type { RemoteQueryOutcome, Source, Version, VersionRange } from './types.js';
+import type { SealFile } from '../mutations/replay/seal-files.js';
+import type { ProjectSettings } from '../interfaces/project-interfaces.js';
 
 /** One dispatch route: a predicate plus the layer to delegate to. */
 export interface SourceRoute {
@@ -68,5 +70,19 @@ export class CompositeSourceLayer implements SourceLayer {
     options?: { remoteUrl?: string; range?: VersionRange | string },
   ): Promise<RemoteQueryOutcome> {
     return this.pick(source.location).queryRemote(source, options);
+  }
+
+  async readMetadata(
+    source: Source,
+    version: Version,
+    remoteUrl?: string,
+  ): Promise<{ config: ProjectSettings; seals: SealFile[] }> {
+    return this.pick(source.location).readMetadata(source, version, remoteUrl);
+  }
+
+  async dispose(): Promise<void> {
+    for (const { layer } of this.routes) {
+      await layer.dispose?.();
+    }
   }
 }
