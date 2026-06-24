@@ -4,95 +4,13 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import { isGitLocation } from '../../src/modules/location.js';
 import { resolveModules } from '../../src/modules/resolver.js';
-import type { SourceLayer, FetchTarget } from '../../src/modules/source.js';
 import { toVersionRange } from '../../src/modules/types.js';
 import type {
   ModuleDeclaration,
   DiamondVersionConflict,
 } from '../../src/modules/types.js';
-
-/** Minimal `cardsConfig.json` shape the resolver reads. */
-interface FakeModuleConfig {
-  cardKeyPrefix?: string;
-  name?: string;
-  modules?: Array<{
-    name: string;
-    location: string;
-    version?: string;
-    private?: boolean;
-  }>;
-}
-
-/**
- * In-memory `SourceLayer` that writes a synthetic `cardsConfig.json` on
- * fetch. Instrumented so tests can assert fetch calls and refs.
- */
-class InMemorySource implements SourceLayer {
-  readonly fetchLog: Array<{
-    location: string;
-    remoteUrl: string;
-    ref?: string;
-    nameHint: string;
-  }> = [];
-  readonly listLog: string[] = [];
-
-  constructor(
-    private readonly configs: Map<string, FakeModuleConfig>,
-    private readonly availableByLocation: Map<string, string[]>,
-    private readonly fetchOverrides: Map<
-      string,
-      () => Promise<never>
-    > = new Map(),
-  ) {}
-
-  async fetch(
-    target: FetchTarget,
-    destRoot: string,
-    nameHint: string,
-  ): Promise<string> {
-    this.fetchLog.push({
-      location: target.location,
-      remoteUrl: target.remoteUrl,
-      ref: target.ref,
-      nameHint,
-    });
-    const override = this.fetchOverrides.get(target.location);
-    if (override) {
-      await override();
-    }
-    const dir = join(destRoot, nameHint);
-    await mkdir(join(dir, '.cards', 'local'), { recursive: true });
-    const config = this.configs.get(target.location) ?? {
-      cardKeyPrefix: nameHint,
-      name: nameHint,
-      modules: [],
-    };
-    await writeFile(
-      join(dir, '.cards', 'local', 'cardsConfig.json'),
-      JSON.stringify(config),
-    );
-    return dir;
-  }
-
-  supportsVersioning(location: string): boolean {
-    return isGitLocation(location);
-  }
-
-  async listRemoteVersions(location: string): Promise<string[]> {
-    this.listLog.push(location);
-    return this.availableByLocation.get(location) ?? [];
-  }
-
-  async queryRemote(): Promise<never> {
-    throw new Error('queryRemote not used by resolver tests');
-  }
-
-  async readMetadata(): Promise<never> {
-    throw new Error('readMetadata not used by resolver tests');
-  }
-}
+import { InMemorySource } from './in-memory-source.js';
 
 function decl(
   name: string,
