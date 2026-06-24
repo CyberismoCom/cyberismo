@@ -118,12 +118,18 @@ export class GitSourceLayer implements SourceLayer {
     if (!p) {
       p = (async () => {
         const dir = await mkdtemp(join(tmpdir(), 'cyb-meta-'));
-        const git = simpleGit({ timeout: { block: gitTimeout() } }).env({ ...NON_INTERACTIVE_GIT_ENV });
-        // All refs, no checkout, blobs lazy. Fall back to a full clone if the
-        // server rejects partial clone.
-        try { await git.clone(url, dir, ['--no-checkout', '--filter=blob:none']); }
-        catch { await git.clone(url, dir, ['--no-checkout']); }
-        return dir;
+        try {
+          const git = simpleGit({ timeout: { block: gitTimeout() } }).env({ ...NON_INTERACTIVE_GIT_ENV });
+          // All refs, no checkout, blobs lazy. Fall back to a full clone if the
+          // server rejects partial clone.
+          try { await git.clone(url, dir, ['--no-checkout', '--filter=blob:none']); }
+          catch { await git.clone(url, dir, ['--no-checkout']); }
+          return dir;
+        } catch (e) {
+          this.repos.delete(url);                                  // don't cache the failure
+          await rm(dir, { recursive: true, force: true }).catch(() => {});
+          throw e;
+        }
       })();
       this.repos.set(url, p);
     }
@@ -132,7 +138,8 @@ export class GitSourceLayer implements SourceLayer {
 
   async readMetadata(source: Source, version: Version, remoteUrl?: string): Promise<{ config: ProjectSettings; seals: SealFile[] }> {
     const tag = versionToTag(version);
-    const g = simpleGit(await this.ensureRepo(remoteUrl ?? source.location));
+    const g = simpleGit(await this.ensureRepo(remoteUrl ?? source.location))
+      .env({ ...NON_INTERACTIVE_GIT_ENV });
     const config = JSON.parse(
       await g.raw(['cat-file', '-p', `${tag}:.cards/local/cardsConfig.json`]),
     ) as ProjectSettings;
