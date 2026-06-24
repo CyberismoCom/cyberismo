@@ -35,12 +35,16 @@ interface Node {
 interface Decision { version: Version; edges: Edge[]; }
 type Assignment = Map<string, Decision>;
 
-function toEdges(config: { modules?: Array<{ name: string; location: string; version?: string; private?: boolean }> }): Edge[] {
-  return (config.modules ?? []).map((d) => ({
-    name: d.name,
-    source: { location: d.location, private: d.private ?? false },
-    range: toVersionRange(d.version && d.version.length > 0 ? d.version : '*'),
-  }));
+function toEdges(config: { modules?: Array<{ name?: unknown; location?: unknown; version?: string; private?: boolean }> }): Edge[] {
+  return (config.modules ?? [])
+    .filter((d): d is { name: string; location: string; version?: string; private?: boolean } =>
+      typeof d.name === 'string' && d.name.length > 0 &&
+      typeof d.location === 'string' && d.location.length > 0)
+    .map((d) => ({
+      name: d.name,
+      source: { location: d.location, private: d.private ?? false },
+      range: toVersionRange(d.version && d.version.length > 0 ? d.version : '*'),
+    }));
 }
 
 export async function resolve(
