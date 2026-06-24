@@ -88,6 +88,10 @@ class InMemorySource implements SourceLayer {
   async queryRemote(): Promise<never> {
     throw new Error('queryRemote not used by resolver tests');
   }
+
+  async readMetadata(): Promise<never> {
+    throw new Error('readMetadata not used by resolver tests');
+  }
 }
 
 function decl(
