@@ -124,19 +124,3 @@ export interface ModuleCheckReport {
   status: CheckStatus;
 }
 
-// ---------------------------------------------------------------------------
-// Transitive resolution diagnostics
-// ---------------------------------------------------------------------------
-
-/**
- * Emitted by the resolver when a later transitive declaration's range rejects
- * a version already chosen for the same name. First resolution wins; the
- * conflict surfaces as a structured event instead of aborting.
- */
-export interface DiamondVersionConflict {
-  project: string;
-  name: string;
-  installedVersion: { kind: 'pinned'; value: Version };
-  rejectingRange: VersionRange;
-  rejectingParent?: InstallationRef;
-}
