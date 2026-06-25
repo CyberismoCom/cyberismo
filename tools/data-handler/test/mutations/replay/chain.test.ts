@@ -50,73 +50,99 @@ describe('checkLinearity', () => {
 });
 
 describe('computeChain', () => {
+  // Dense, contiguous seal set: every minor/major seals, patches don't.
   const target = [
-    seal('0.0.0', '2.0.0'),
-    seal('2.0.0', '2.6.0'),
-    seal('2.6.0', '3.0.0'),
+    seal('0.0.0', '1.0.0'),
+    seal('1.0.0', '1.1.0'),
+    seal('1.1.0', '2.0.0'),
+    seal('2.0.0', '2.1.0'),
   ];
 
   it('selects seals with to in (from, to], ascending', () => {
-    expect(computeChain(target, '2.0.0', '3.0.0').map((s) => s.to)).toEqual([
-      '2.6.0',
-      '3.0.0',
+    expect(computeChain(target, '1.0.0', '2.0.0').map((s) => s.to)).toEqual([
+      '1.1.0',
+      '2.0.0',
     ]);
-  });
-
-  it('clean release between seals: first seal may start below from', () => {
-    // Consumer at clean 2.7 (never sealed); replaying 2.6→3.0 is correct.
-    expect(computeChain(target, '2.7.0', '3.0.0').map((s) => s.to)).toEqual([
-      '3.0.0',
-    ]);
-  });
-
-  it('empty chain when nothing breaking happened in range', () => {
-    expect(computeChain(target, '3.0.0', '3.4.0')).toEqual([]);
-  });
-
-  it('no-op update yields an empty chain', () => {
-    expect(computeChain(target, '3.0.0', '3.0.0')).toEqual([]);
-  });
-
-  it('downgrade yields an empty chain (caller refuses separately)', () => {
-    expect(computeChain(target, '3.0.0', '2.0.0')).toEqual([]);
-  });
-
-  it('throws on a gap between seals', () => {
-    const gappy = [seal('0.0.0', '1.0.0'), seal('2.0.0', '2.5.0')];
-    expect(() => computeChain(gappy, '0.5.0', '2.5.0')).toThrow(/gap/i);
-  });
-
-  it('throws when the first seal starts above from', () => {
-    expect(() =>
-      computeChain([seal('2.6.0', '3.0.0')], '2.0.0', '3.0.0'),
-    ).toThrow(/gap/i);
   });
 
   it('selects the full chain from 0.0.0', () => {
-    expect(computeChain(target, '0.0.0', '3.0.0').map((s) => s.to)).toEqual([
+    expect(computeChain(target, '0.0.0', '2.1.0').map((s) => s.to)).toEqual([
+      '1.0.0',
+      '1.1.0',
       '2.0.0',
-      '2.6.0',
-      '3.0.0',
+      '2.1.0',
     ]);
   });
 
   it('excludes seals whose to equals from (already applied)', () => {
-    expect(computeChain(target, '2.6.0', '3.0.0').map((s) => s.to)).toEqual([
-      '3.0.0',
+    expect(computeChain(target, '1.1.0', '2.0.0').map((s) => s.to)).toEqual([
+      '2.0.0',
     ]);
   });
 
   it('sorts unordered input ascending before linking', () => {
-    const shuffled = [target[2], target[0], target[1]];
-    expect(computeChain(shuffled, '0.0.0', '3.0.0').map((s) => s.to)).toEqual([
+    const shuffled = [target[3], target[1], target[0], target[2]];
+    expect(computeChain(shuffled, '0.0.0', '2.1.0').map((s) => s.to)).toEqual([
+      '1.0.0',
+      '1.1.0',
       '2.0.0',
-      '2.6.0',
-      '3.0.0',
+      '2.1.0',
     ]);
   });
 
-  it('empty chain when target has no seals at all', () => {
-    expect(computeChain([], '1.0.0', '2.0.0')).toEqual([]);
+  it('installed at a patch: first seal may start below from', () => {
+    // 1.0.3 never sealed; it sits inside the 1.0.0→1.1.0 seal range.
+    expect(computeChain(target, '1.0.3', '1.1.0').map((s) => s.to)).toEqual([
+      '1.1.0',
+    ]);
+  });
+
+  it('patch target: chain reaches the enclosing minor', () => {
+    // Updating to patch 2.1.4 is covered by reaching its minor 2.1.0.
+    expect(computeChain(target, '2.0.0', '2.1.4').map((s) => s.to)).toEqual([
+      '2.1.0',
+    ]);
+  });
+
+  it('empty chain for a patch jump within one minor', () => {
+    expect(computeChain(target, '2.0.0', '2.0.4')).toEqual([]);
+  });
+
+  it('no-op update yields an empty chain', () => {
+    expect(computeChain(target, '2.1.0', '2.1.0')).toEqual([]);
+  });
+
+  it('throws on a downgrade', () => {
+    expect(() => computeChain(target, '2.1.0', '1.0.0')).toThrow(/downgrade/i);
+  });
+
+  it('throws on a patch downgrade within a minor', () => {
+    expect(() => computeChain(target, '1.0.5', '1.0.2')).toThrow(/downgrade/i);
+  });
+
+  it('throws when an unsealed target crosses a minor boundary', () => {
+    expect(() => computeChain([], '1.0.0', '2.0.0')).toThrow(/gap/i);
+  });
+
+  it('throws on a gap between seals', () => {
+    const gappy = [seal('0.0.0', '1.0.0'), seal('1.1.0', '2.0.0')];
+    expect(() => computeChain(gappy, '0.5.0', '2.0.0')).toThrow(/gap/i);
+  });
+
+  it('throws when the first seal starts above from', () => {
+    expect(() =>
+      computeChain([seal('1.1.0', '2.0.0')], '1.0.0', '2.0.0'),
+    ).toThrow(/gap/i);
+  });
+
+  it('throws when the top seal is missing (chain stops below the target)', () => {
+    const partial = [seal('0.0.0', '1.0.0'), seal('1.0.0', '1.1.0')];
+    expect(() => computeChain(partial, '1.0.0', '2.0.0')).toThrow(/gap/i);
+  });
+
+  it('throws when an empty range crosses a minor boundary', () => {
+    expect(() =>
+      computeChain([seal('0.0.0', '1.0.0')], '1.0.0', '2.0.0'),
+    ).toThrow(/gap/i);
   });
 });

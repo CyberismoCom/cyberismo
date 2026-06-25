@@ -15,11 +15,7 @@
 import semver from 'semver';
 import type { SealFile } from './seal-files.js';
 
-/**
- * Linearity = the installed tree's seal set is a subset of the target
- * tree's (the consumer's chain is a prefix of the target's chain).
- * @returns file names the target is missing; empty means linear.
- */
+/** @returns installed seals absent from the target; empty means linear. */
 export function checkLinearity(
   installedSeals: SealFile[],
   targetSeals: SealFile[],
@@ -30,23 +26,36 @@ export function checkLinearity(
     .map((s) => s.fileName);
 }
 
+/** Two versions on the same minor line (differ only in patch). */
+function sameMinorLine(a: string, b: string): boolean {
+  return (
+    semver.major(a) === semver.major(b) && semver.minor(a) === semver.minor(b)
+  );
+}
+
 /**
- * Target-tree seals to replay for an update from `from` to `to`:
- * those with `to` in (from, to], ascending, linked end-to-end. The first
- * seal's lower bound may sit at or below `from` (clean releases seal
- * nothing).
- * @throws on a gap — a corrupt module tree.
+ * Seals to replay for `from` → `to`: those with `to` in (from, to], ascending
+ * and contiguous. `from` and `to` need not fall on seal boundaries.
+ * @returns [] when the range crosses no seal boundary (no-op or patch jump).
+ * @throws on a downgrade, a gap, or when the chain falls short of `to`.
  */
 export function computeChain(
   targetSeals: SealFile[],
   from: string,
   to: string,
 ): SealFile[] {
+  if (semver.lt(to, from)) {
+    throw new Error(`Cannot replay a downgrade: ${to} is older than ${from}`);
+  }
+
   const chain = targetSeals
     .filter((s) => semver.gt(s.to, from) && semver.lte(s.to, to))
     .sort((a, b) => semver.compare(a.to, b.to));
 
-  if (chain.length === 0) return [];
+  if (chain.length === 0) {
+    if (sameMinorLine(from, to)) return [];
+    throw new Error(`Migration log gap: no seal bridges ${from} to ${to}`);
+  }
 
   if (semver.gt(chain[0].from, from)) {
     throw new Error(
@@ -59,6 +68,11 @@ export function computeChain(
         `Migration log gap between ${chain[i - 1].fileName} and ${chain[i].fileName}`,
       );
     }
+  }
+  if (!sameMinorLine(chain[chain.length - 1].to, to)) {
+    throw new Error(
+      `Migration log gap: chain ends at ${chain[chain.length - 1].fileName} but the update targets ${to}`,
+    );
   }
   return chain;
 }
