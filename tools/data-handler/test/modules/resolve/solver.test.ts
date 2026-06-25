@@ -1,13 +1,13 @@
 import { expect, it, describe, beforeAll, afterAll, beforeEach } from 'vitest';
 
 import { mkdir, writeFile } from 'node:fs/promises';
-import { mkdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { copyDir } from '../../../src/utils/file-utils.js';
 import { getTestProject } from '../../helpers/test-utils.js';
 import { InMemorySource, type FakeModuleConfig } from '../in-memory-source.js';
-import { resolve } from '../../../src/modules/resolve/solver.js';
+import { resolve, resolveForApply } from '../../../src/modules/resolve/solver.js';
 import type { Version } from '../../../src/modules/types.js';
 import type { ModuleSetting } from '../../../src/interfaces/project-interfaces.js';
 
@@ -372,5 +372,148 @@ describe('resolve solver', () => {
     if (!result.ok) return;
     const b = result.changes.find((c) => c.module === 'B');
     expect(b).toMatchObject({ from: '1.0.0', to: '1.2.0' });
+  });
+
+  it('resolveForApply builds ResolvedModule[] for the moved cascade', async () => {
+    const project = buildProjectWithModules([
+      { name: 'A', location: 'https://x/A.git', version: '^1.0.0', private: false },
+      { name: 'C', location: 'https://x/C.git', version: '^1.0.0', private: false },
+    ]);
+    await installModule(project, {
+      name: 'A',
+      version: '1.6.0',
+      modules: [{ name: 'B', location: 'https://x/B.git', version: '>=1.3.0' }],
+    });
+    await installModule(project, {
+      name: 'C',
+      version: '1.2.0',
+      modules: [{ name: 'B', location: 'https://x/B.git', version: '~1.3.0' }],
+    });
+    await installModule(project, { name: 'B', version: '1.3.0' });
+
+    const configs = new Map<string, FakeModuleConfig>([
+      [
+        'https://x/A.git@v1.8.0',
+        {
+          cardKeyPrefix: 'A',
+          name: 'A',
+          version: '1.8.0',
+          modules: [{ name: 'B', location: 'https://x/B.git', version: '>=1.4.0' }],
+        } as FakeModuleConfig,
+      ],
+      [
+        'https://x/C.git@v1.3.0',
+        {
+          cardKeyPrefix: 'C',
+          name: 'C',
+          version: '1.3.0',
+          modules: [{ name: 'B', location: 'https://x/B.git', version: '>=1.4.0' }],
+        } as FakeModuleConfig,
+      ],
+      [
+        'https://x/B.git@v1.4.0',
+        { cardKeyPrefix: 'B', name: 'B', version: '1.4.0', modules: [] } as FakeModuleConfig,
+      ],
+    ]);
+    const available = new Map([
+      ['https://x/A.git', ['1.8.0', '1.6.0']],
+      ['https://x/C.git', ['1.3.0', '1.2.0']],
+      ['https://x/B.git', ['1.4.0', '1.3.0']],
+    ]);
+    const seals = new Map<string, Array<[string, string]>>([
+      ['https://x/A.git@v1.8.0', [['1.6.0', '1.8.0']]],
+      ['https://x/C.git@v1.3.0', [['1.2.0', '1.3.0']]],
+      ['https://x/B.git@v1.4.0', [['1.3.0', '1.4.0']]],
+    ]);
+    const source = new InMemorySource(configs, available, new Map(), seals);
+
+    const { plan, resolved } = await resolveForApply(
+      project,
+      { kind: 'update', module: 'A', to: '1.8.0' as Version },
+      { sourceLayer: source, tempDir: join(testDir, 'apply-fetch') },
+    );
+
+    expect(plan.ok).toBe(true);
+    expect(resolved.map((r) => r.declaration.name).sort()).toEqual(['A', 'B', 'C']);
+
+    const byName = new Map(resolved.map((r) => [r.declaration.name, r]));
+
+    const a = byName.get('A')!;
+    expect(a.declaration.parent).toBeUndefined();
+    expect(a.declaration.versionRange).toBe('^1.0.0');
+    expect(a.version).toBe('1.8.0');
+    expect(a.ref).toBe('v1.8.0');
+
+    const c = byName.get('C')!;
+    expect(c.declaration.parent).toBeUndefined();
+    expect(c.declaration.versionRange).toBe('^1.0.0');
+    expect(c.version).toBe('1.3.0');
+    expect(c.ref).toBe('v1.3.0');
+
+    const b = byName.get('B')!;
+    expect(b.declaration.parent).toBeDefined();
+    expect(b.declaration.parent!.name).toMatch(/^(A|C)$/);
+    expect(b.declaration.versionRange).toBeUndefined();
+    expect(b.version).toBe('1.4.0');
+    expect(b.ref).toBe('v1.4.0');
+
+    for (const entry of resolved) {
+      expect(
+        existsSync(join(entry.stagedPath, '.cards', 'local', 'cardsConfig.json')),
+      ).toBe(true);
+    }
+  });
+
+  it('resolveForApply returns an empty plan on an unsatisfiable request', async () => {
+    const project = buildProjectWithModules([
+      { name: 'A', location: 'https://x/A.git', version: '^1.0.0', private: false },
+      { name: 'C', location: 'https://x/C.git', version: '^1.0.0', private: false },
+    ]);
+    await installModule(project, {
+      name: 'A',
+      version: '1.6.0',
+      modules: [{ name: 'B', location: 'https://x/B.git', version: '>=1.3.0' }],
+    });
+    await installModule(project, {
+      name: 'C',
+      version: '1.2.0',
+      modules: [{ name: 'B', location: 'https://x/B.git', version: '~1.3.0' }],
+    });
+    await installModule(project, { name: 'B', version: '1.3.0' });
+
+    const configs = new Map<string, FakeModuleConfig>([
+      [
+        'https://x/A.git@v1.8.0',
+        {
+          cardKeyPrefix: 'A',
+          name: 'A',
+          version: '1.8.0',
+          modules: [{ name: 'B', location: 'https://x/B.git', version: '>=2.0.0' }],
+        } as FakeModuleConfig,
+      ],
+      [
+        'https://x/B.git@v2.0.0',
+        { cardKeyPrefix: 'B', name: 'B', version: '2.0.0', modules: [] } as FakeModuleConfig,
+      ],
+    ]);
+    const available = new Map([
+      ['https://x/A.git', ['1.8.0', '1.6.0']],
+      ['https://x/C.git', ['1.2.0']],
+      ['https://x/B.git', ['2.0.0', '1.3.0']],
+    ]);
+    const seals = new Map<string, Array<[string, string]>>([
+      ['https://x/A.git@v1.8.0', [['1.6.0', '1.8.0']]],
+      ['https://x/B.git@v2.0.0', [['1.3.0', '2.0.0']]],
+    ]);
+    const source = new InMemorySource(configs, available, new Map(), seals);
+
+    const { plan, resolved } = await resolveForApply(
+      project,
+      { kind: 'update', module: 'A', to: '1.8.0' as Version },
+      { sourceLayer: source, tempDir: join(testDir, 'apply-fetch-conflict') },
+    );
+
+    expect(plan.ok).toBe(false);
+    expect(resolved).toEqual([]);
   });
 });
