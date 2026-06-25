@@ -20,9 +20,11 @@ import { checkLinearity, computeChain } from '../../mutations/replay/chain.js';
 import { listSealFiles, type SealFile } from '../../mutations/replay/seal-files.js';
 import { installedModulesWithSources, declaredModules } from '../inventory.js';
 import { buildRemoteUrl } from '../remote-url.js';
+import { versionToTag } from '../version.js';
 import { toVersion, toVersionRange, type Source, type Version, type VersionRange }
   from '../types.js';
 import { createSourceLayer, type SourceLayer } from '../source.js';
+import type { ResolvedModule } from '../resolver.js';
 import type { Project } from '../../containers/project.js';
 import type { Credentials } from '../../interfaces/project-interfaces.js';
 import type { Change, ConflictDemand, ResolveConflict, ResolveResult, UpdateRequest } from './types.js';
@@ -34,6 +36,13 @@ interface Node {
 }
 interface Decision { version: Version; edges: Edge[]; }
 type Assignment = Map<string, Decision>;
+
+/** Solver internals shared between {@link resolve} and {@link resolveForApply}. */
+interface SolveOutcome {
+  result: ResolveResult;
+  nodes: Map<string, Node>;
+  assign: Assignment;
+}
 
 function toEdges(config: { modules?: Array<{ name?: unknown; location?: unknown; version?: string; private?: boolean }> }): Edge[] {
   return (config.modules ?? [])
@@ -47,15 +56,12 @@ function toEdges(config: { modules?: Array<{ name?: unknown; location?: unknown;
     }));
 }
 
-export async function resolve(
+async function solve(
   project: Project,
   req: UpdateRequest,
-  opts?: { sourceLayer?: SourceLayer; tempDir?: string; credentials?: Credentials },
-): Promise<ResolveResult> {
-  const source = opts?.sourceLayer ?? createSourceLayer();
-  const credentials = opts?.credentials;
-  try {
-
+  source: SourceLayer,
+  credentials?: Credentials,
+): Promise<SolveOutcome> {
   const installed = await installedModulesWithSources(project);
   const declaredByName = new Map(declaredModules(project).map((d) => [d.name, d]));
 
@@ -192,7 +198,7 @@ export async function resolve(
       const prev = byModule.get(c.module);
       if (!prev || c.demands.length > prev.demands.length) byModule.set(c.module, c);
     }
-    return { ok: false, conflicts: [...byModule.values()] };
+    return { result: { ok: false, conflicts: [...byModule.values()] }, nodes, assign };
   }
 
   const changes: Change[] = [];
@@ -207,8 +213,80 @@ export async function resolve(
       changes.push({ module: name, from, to, replay });
     }
   }
-  return { ok: true, changes };
+  return { result: { ok: true, changes }, nodes, assign };
+}
+
+export async function resolve(
+  project: Project,
+  req: UpdateRequest,
+  opts?: { sourceLayer?: SourceLayer; tempDir?: string; credentials?: Credentials },
+): Promise<ResolveResult> {
+  const source = opts?.sourceLayer ?? createSourceLayer();
+  try {
+    return (await solve(project, req, source, opts?.credentials)).result;
   } finally {
     await source.dispose?.(); // release reused clones (no-op for fakes/file sources)
+  }
+}
+
+/**
+ * Solve, then for each MOVED module fetch the full tree and shape a
+ * {@link ResolvedModule} the applier can consume. Roots carry their declared
+ * range and no parent; transitives carry the owning installation as parent and
+ * no range (the range lives in the parent's own config).
+ */
+export async function resolveForApply(
+  project: Project,
+  req: UpdateRequest,
+  opts?: { sourceLayer?: SourceLayer; tempDir?: string; credentials?: Credentials },
+): Promise<{ plan: ResolveResult; resolved: ResolvedModule[] }> {
+  const source = opts?.sourceLayer ?? createSourceLayer();
+  const tempDir = opts?.tempDir ?? join(project.paths.tempFolder, 'resolve');
+  try {
+    const { result, nodes, assign } = await solve(
+      project,
+      req,
+      source,
+      opts?.credentials,
+    );
+    if (!result.ok) return { plan: result, resolved: [] };
+
+    const resolved: ResolvedModule[] = [];
+    for (const change of result.changes) {
+      const node = nodes.get(change.module)!;
+      const remoteUrl = buildRemoteUrl(node.source, opts?.credentials);
+      const ref = versionToTag(change.to);
+      // FULL fetch — the apply path needs the whole module tree, not metadata.
+      const stagedPath = await source.fetch(
+        { location: node.source.location, remoteUrl, ref },
+        tempDir,
+        change.module,
+      );
+      // Roots have no parent; a transitive's parent is any chosen module whose
+      // edges reference it.
+      const referrer = node.isRoot
+        ? undefined
+        : [...assign].find(([, d]) =>
+            d.edges.some((e) => e.name === change.module),
+          )?.[0];
+      resolved.push({
+        declaration: {
+          project: project.basePath,
+          name: change.module,
+          source: node.source,
+          versionRange: node.isRoot ? (node.declaredRange ?? undefined) : undefined,
+          parent: referrer
+            ? { project: project.basePath, name: referrer }
+            : undefined,
+        },
+        ref,
+        remoteUrl,
+        version: change.to,
+        stagedPath,
+      });
+    }
+    return { plan: result, resolved };
+  } finally {
+    await source.dispose?.();
   }
 }
