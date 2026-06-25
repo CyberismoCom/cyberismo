@@ -217,7 +217,9 @@ async function solve(
     };
     switch (req.kind) {
       case 'verify':
-        return n.installed ? [n.installed] : [];
+        // An installed module with no version is unversioned (install-as-is),
+        // not a conflict — even if its remote happens to list tags.
+        return n.installed !== null ? [n.installed] : [null];
       case 'update':
         if (n.name !== req.module) return fromInstalled();
         return req.to ? [req.to] : inRange;
