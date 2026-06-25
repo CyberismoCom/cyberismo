@@ -46,12 +46,13 @@ export class Version {
 
     const currentVersion = this.project.configuration.version;
 
-    // Guard: breaking changes require a major bump.
+    // Guard: breaking changes cannot ship in a patch. Minor and major bumps
+    // seal the log; consumers replay it on module update.
     // Skipped for the first version — there is no predecessor to break against.
-    if (currentVersion && bumpType !== 'major') {
+    if (currentVersion && bumpType === 'patch') {
       if (ConfigurationLogger.hasBreakingChanges(this.project.basePath)) {
         throw new Error(
-          'Cannot publish a patch or minor version: breaking configuration changes detected. Use a major version bump.',
+          'Cannot publish a patch version: breaking configuration changes detected. Use a minor or major version bump.',
         );
       }
     }
@@ -66,8 +67,9 @@ export class Version {
       );
     }
 
-    // Snapshot the current migration log with the new version
-    if (ConfigurationLogger.hasBreakingChanges(this.project.basePath)) {
+    // Seal on the first version and every minor/major bump. Patches on an
+    // existing version never seal; they must keep a clean log (guarded above).
+    if (!currentVersion || bumpType !== 'patch') {
       await ConfigurationLogger.createVersion(
         this.project.basePath,
         newVersion,

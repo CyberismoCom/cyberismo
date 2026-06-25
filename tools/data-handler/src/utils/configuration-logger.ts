@@ -15,7 +15,13 @@
 import { readFile, rename, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import semver from 'semver';
+
 import { getChildLogger } from './log-utils.js';
+import {
+  formatSealFileName,
+  lastSealedVersion,
+} from '../mutations/replay/seal-files.js';
 import { ProjectPaths } from '../containers/project/project-paths.js';
 import { writeFileSafe, pathExists } from './file-utils.js';
 
@@ -67,37 +73,49 @@ export class ConfigurationLogger {
 
   /**
    * Create a versioned snapshot of the current migration log.
-   * Renames current migrationLog.jsonl to migrationLog_<version>.jsonl
+   * Renames current migrationLog.jsonl to migrationLog_<from>_<to>.jsonl,
+   * where <from> is the highest previously sealed version (0.0.0 when none)
+   * and <to> is the version being sealed.
+   * Callers must serialize calls to this method (the read-then-rename is not
+   * atomic); bumpVersion's @write lock provides this today.
    * @param projectPath Path to the project root
-   * @param version Version identifier (e.g., "1.0.0", "v2")
+   * @param version Version being sealed (e.g., "1.1.0")
    * @returns Path to the versioned log file
    */
   public static async createVersion(
     projectPath: string,
     version: string,
-  ): Promise<string | null> {
+  ): Promise<string> {
+    if (!semver.valid(version)) {
+      throw new Error(`Invalid seal version: ${version}`);
+    }
     const paths = new ProjectPaths(projectPath);
     const currentLogPath = paths.configurationChangesLog;
-    const versionedLogPath = join(
-      paths.migrationLogFolder,
-      `migrationLog_${version}.jsonl`,
-    );
+    const fromVersion = await lastSealedVersion(paths.migrationLogFolder);
 
-    if (!pathExists(currentLogPath)) {
-      // Empty seal: no log file to rename; the version is sealed with no
-      // breaking changes. Per the spec, replay against a missing log is
-      // a no-op success.
-      const logger = getChildLogger({ module: 'ConfigurationLogger' });
-      logger.info(`Sealed empty migration log for version: ${version}`);
-      return null;
+    if (semver.lte(version, fromVersion)) {
+      throw new Error(
+        `Seal version ${version} must be greater than the last sealed version ${fromVersion}`,
+      );
     }
 
-    await rename(currentLogPath, versionedLogPath);
-
-    const logger = getChildLogger({ module: 'ConfigurationLogger' });
-    logger.info(
-      `Created migration to version: ${version} at ${versionedLogPath}`,
+    const versionedLogPath = join(
+      paths.migrationLogFolder,
+      formatSealFileName(fromVersion, version),
     );
+    const logger = getChildLogger({ module: 'ConfigurationLogger' });
+
+    if (pathExists(currentLogPath)) {
+      await rename(currentLogPath, versionedLogPath);
+      logger.info(
+        `Created migration to version: ${version} at ${versionedLogPath}`,
+      );
+    } else {
+      // No pending changes: still write an empty seal so every sealed version
+      // has a log file. writeFileSafe creates the migrations folder if needed.
+      await writeFileSafe(versionedLogPath, '');
+      logger.info(`Sealed empty migration log for version: ${version}`);
+    }
 
     return versionedLogPath;
   }

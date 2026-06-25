@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import sinon from 'sinon';
 
 import { GitManager } from '../src/utils/git-manager.js';
+import { pathExists } from '../src/utils/file-utils.js';
 import { RWLock } from '../src/utils/rw-lock.js';
 import { Version } from '../src/commands/version.js';
 import { ConfigurationLogger } from '../src/utils/configuration-logger.js';
@@ -166,20 +167,31 @@ describe('Version', () => {
       hasBreakingChangesStub.returns(true);
 
       await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
-        'breaking configuration changes',
+        /Cannot publish a patch version/,
       );
     });
 
-    it('should throw when minor bump attempted with breaking changes', async () => {
+    it('should seal the log when minor bump attempted with breaking changes', async () => {
       configuration.version = '1.0.0';
       await configuration.setVersion('1.0.0');
-      await git.commit('set version');
+      hasBreakingChangesStub.restore();
+      await ConfigurationLogger.log(dir, {
+        operation: 'resource_delete',
+        target: 'some-resource',
+        parameters: {},
+      });
+      await git.commit('set version and dirty log');
 
-      hasBreakingChangesStub.returns(true);
+      const result = await versionCmd.bumpVersion('minor');
 
-      await expect(versionCmd.bumpVersion('minor')).rejects.toThrow(
-        'breaking configuration changes',
-      );
+      expect(result.newVersion).toBe('1.1.0');
+      const migrationsFolder = join(dir, '.cards', 'local', 'migrations');
+      expect(
+        pathExists(join(migrationsFolder, 'migrationLog_0.0.0_1.1.0.jsonl')),
+      ).toBe(true);
+      expect(
+        pathExists(join(migrationsFolder, 'current', 'migrationLog.jsonl')),
+      ).toBe(false);
     });
 
     it('should allow major bump when breaking changes exist', async () => {
@@ -228,6 +240,21 @@ describe('Version', () => {
 
       expect(createVersionStub.calledOnce).toBe(true);
       expect(createVersionStub.calledWith(dir, '1.0.0')).toBe(true);
+    });
+
+    it('seals an empty log on a clean minor bump (no breaking changes)', async () => {
+      configuration.version = '1.0.0';
+      await configuration.setVersion('1.0.0');
+      await git.commit('set version');
+      // hasBreakingChangesStub returns false (set in beforeEach)
+
+      const result = await versionCmd.bumpVersion('minor');
+
+      expect(result.newVersion).toBe('1.1.0');
+      const migrationsFolder = join(dir, '.cards', 'local', 'migrations');
+      expect(
+        pathExists(join(migrationsFolder, 'migrationLog_0.0.0_1.1.0.jsonl')),
+      ).toBe(true);
     });
   });
 });
