@@ -241,7 +241,7 @@ export interface ModuleUpdateStatus {
   // Version this module could move to (set when status === 'update_available').
   reachableVersion?: string;
   // The full set of modules that would move if this update were applied.
-  cascade?: { module: string; from: string | null; to: string }[];
+  cascade?: { module: string; from: string | null; to: string | null }[];
   // Conflicts that prevent the update (set when status === 'blocked').
   blocked?: ResolveConflict[];
 }

@@ -132,7 +132,7 @@ export class CheckUpdates {
         return {
           ...base,
           status: 'update_available',
-          reachableVersion: own.to,
+          reachableVersion: own.to ?? undefined,
           cascade: plan.changes.map((c) => ({
             module: c.module,
             from: c.from,
