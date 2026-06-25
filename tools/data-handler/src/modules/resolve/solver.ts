@@ -17,24 +17,49 @@ import semver from 'semver';
 
 import { readJsonFile } from '../../utils/json.js';
 import { checkLinearity, computeChain } from '../../mutations/replay/chain.js';
-import { listSealFiles, type SealFile } from '../../mutations/replay/seal-files.js';
+import {
+  listSealFiles,
+  type SealFile,
+} from '../../mutations/replay/seal-files.js';
 import { installedModulesWithSources, declaredModules } from '../inventory.js';
 import { buildRemoteUrl } from '../remote-url.js';
 import { versionToTag } from '../version.js';
-import { toVersion, toVersionRange, type Source, type Version, type VersionRange }
-  from '../types.js';
+import {
+  toVersion,
+  toVersionRange,
+  type Source,
+  type Version,
+  type VersionRange,
+} from '../types.js';
 import { createSourceLayer, type SourceLayer } from '../source.js';
 import type { ResolvedModule } from '../resolver.js';
 import type { Project } from '../../containers/project.js';
 import type { Credentials } from '../../interfaces/project-interfaces.js';
-import type { Change, ConflictDemand, ResolveConflict, ResolveResult, UpdateRequest } from './types.js';
+import type {
+  Change,
+  ConflictDemand,
+  ResolveConflict,
+  ResolveResult,
+  UpdateRequest,
+} from './types.js';
 
-interface Edge { name: string; source: Source; range: VersionRange; }
-interface Node {
-  name: string; source: Source; installed: Version | null;
-  path: string | null; isRoot: boolean; declaredRange: VersionRange | null;
+interface Edge {
+  name: string;
+  source: Source;
+  range: VersionRange;
 }
-interface Decision { version: Version; edges: Edge[]; }
+interface Node {
+  name: string;
+  source: Source;
+  installed: Version | null;
+  path: string | null;
+  isRoot: boolean;
+  declaredRange: VersionRange | null;
+}
+interface Decision {
+  version: Version | null;
+  edges: Edge[];
+}
 type Assignment = Map<string, Decision>;
 
 /** Solver internals shared between {@link resolve} and {@link resolveForApply}. */
@@ -44,15 +69,35 @@ interface SolveOutcome {
   assign: Assignment;
 }
 
-function toEdges(config: { modules?: Array<{ name?: unknown; location?: unknown; version?: string; private?: boolean }> }): Edge[] {
+function toEdges(config: {
+  modules?: Array<{
+    name?: unknown;
+    location?: unknown;
+    version?: string;
+    private?: boolean;
+  }>;
+}): Edge[] {
   return (config.modules ?? [])
-    .filter((d): d is { name: string; location: string; version?: string; private?: boolean } =>
-      typeof d.name === 'string' && d.name.length > 0 &&
-      typeof d.location === 'string' && d.location.length > 0)
+    .filter(
+      (
+        d,
+      ): d is {
+        name: string;
+        location: string;
+        version?: string;
+        private?: boolean;
+      } =>
+        typeof d.name === 'string' &&
+        d.name.length > 0 &&
+        typeof d.location === 'string' &&
+        d.location.length > 0,
+    )
     .map((d) => ({
       name: d.name,
       source: { location: d.location, private: d.private ?? false },
-      range: toVersionRange(d.version && d.version.length > 0 ? d.version : '*'),
+      range: toVersionRange(
+        d.version && d.version.length > 0 ? d.version : '*',
+      ),
     }));
 }
 
@@ -63,14 +108,20 @@ async function solve(
   credentials?: Credentials,
 ): Promise<SolveOutcome> {
   const installed = await installedModulesWithSources(project);
-  const declaredByName = new Map(declaredModules(project).map((d) => [d.name, d]));
+  const declaredByName = new Map(
+    declaredModules(project).map((d) => [d.name, d]),
+  );
 
   const nodes = new Map<string, Node>();
   for (const i of installed) {
     const decl = declaredByName.get(i.name);
     nodes.set(i.name, {
-      name: i.name, source: i.source, installed: i.version ?? null, path: i.path,
-      isRoot: decl !== undefined, declaredRange: decl?.versionRange ?? null,
+      name: i.name,
+      source: i.source,
+      installed: i.version ?? null,
+      path: i.path,
+      isRoot: decl !== undefined,
+      declaredRange: decl?.versionRange ?? null,
     });
   }
   // Fresh import: seed a not-yet-installed root from the prefetched name+source.
@@ -78,20 +129,33 @@ async function solve(
   if (req.kind === 'add') {
     const existing = nodes.get(req.name);
     nodes.set(req.name, {
-      name: req.name, source: req.source,
-      installed: existing?.installed ?? null, path: existing?.path ?? null,
-      isRoot: true, declaredRange: req.range ?? null,
+      name: req.name,
+      source: req.source,
+      installed: existing?.installed ?? null,
+      path: existing?.path ?? null,
+      isRoot: true,
+      declaredRange: req.range ?? null,
     });
   }
   const nodeFor = (name: string, src: Source): Node => {
     const found = nodes.get(name);
     if (found) return found;
-    const created: Node = { name, source: src, installed: null, path: null, isRoot: false, declaredRange: null };
+    const created: Node = {
+      name,
+      source: src,
+      installed: null,
+      path: null,
+      isRoot: false,
+      declaredRange: null,
+    };
     nodes.set(name, created);
     return created;
   };
 
-  const candidateCache = new Map<string, { edges: Edge[]; seals: SealFile[] }>();
+  const candidateCache = new Map<
+    string,
+    { edges: Edge[]; seals: SealFile[] }
+  >();
   const installedSealCache = new Map<string, SealFile[]>();
 
   const installedSeals = async (n: Node): Promise<SealFile[]> => {
@@ -103,13 +167,16 @@ async function solve(
     return seals;
   };
 
-  const readCandidate = async (n: Node, v: Version) => {
+  const readCandidate = async (n: Node, v: Version | null) => {
     const key = `${n.name}@${v}`;
     const hit = candidateCache.get(key);
     if (hit) return hit;
-    let edges: Edge[]; let seals: SealFile[];
+    let edges: Edge[];
+    let seals: SealFile[];
     if (n.installed === v && n.path) {
-      edges = toEdges(await readJsonFile(project.paths.moduleConfigurationFile(n.name)));
+      edges = toEdges(
+        await readJsonFile(project.paths.moduleConfigurationFile(n.name)),
+      );
       seals = await listSealFiles(join(n.path, 'migrations'));
     } else {
       const url = buildRemoteUrl(n.source, credentials);
@@ -123,28 +190,41 @@ async function solve(
   };
 
   const availableVersions = async (n: Node): Promise<Version[]> => {
-    if (!source.supportsVersioning(n.source.location)) return n.installed ? [n.installed] : [];
+    if (!source.supportsVersioning(n.source.location))
+      return n.installed ? [n.installed] : [];
     const url = buildRemoteUrl(n.source, credentials);
-    return (await source.listRemoteVersions(n.source.location, url)).map(toVersion);
+    const remote = (
+      await source.listRemoteVersions(n.source.location, url)
+    ).map(toVersion);
+    // An installed versioned module stays a candidate even if the remote
+    // currently lists no tags — only a genuinely tagless source is unversioned.
+    if (remote.length === 0 && n.installed) return [n.installed];
+    return remote;
   };
 
-  const candidatesFor = async (n: Node): Promise<Version[]> => {
+  const candidatesFor = async (n: Node): Promise<(Version | null)[]> => {
     const avail = await availableVersions(n);
+    if (avail.length === 0) return [null]; // unversioned / tagless: install-as-is
     const newestFirst = [...avail].sort(semver.rcompare) as Version[];
     const inRange = n.declaredRange
-      ? newestFirst.filter((v) => semver.satisfies(v, n.declaredRange!)) : newestFirst;
+      ? newestFirst.filter((v) => semver.satisfies(v, n.declaredRange!))
+      : newestFirst;
     const fromInstalled = (): Version[] => {
       const asc = [...avail].sort(semver.compare) as Version[];
-      return n.installed ? [n.installed, ...asc.filter((v) => v !== n.installed)] : asc;
+      return n.installed
+        ? [n.installed, ...asc.filter((v) => v !== n.installed)]
+        : asc;
     };
     switch (req.kind) {
-      case 'verify': return n.installed ? [n.installed] : [];
+      case 'verify':
+        return n.installed ? [n.installed] : [];
       case 'update':
         if (n.name !== req.module) return fromInstalled();
         return req.to ? [req.to] : inRange;
       case 'add':
         return n.name === req.name ? inRange : fromInstalled();
-      case 'updateAll': return inRange; // everything to newest-in-range, transitive included
+      case 'updateAll':
+        return inRange; // everything to newest-in-range, transitive included
       case 'availability': {
         if (!req.module) return inRange; // "can I update all?" → everything to newest
         return n.name === req.module ? inRange : fromInstalled();
@@ -152,19 +232,28 @@ async function solve(
     }
   };
 
-  const isReplayable = async (n: Node, v: Version): Promise<boolean> => {
-    if (!n.installed || n.installed === v) return true;
+  const isReplayable = async (n: Node, v: Version | null): Promise<boolean> => {
+    if (v === null || !n.installed || n.installed === v) return true;
     const before = await installedSeals(n);
     const { seals: target } = await readCandidate(n, v);
     if (checkLinearity(before, target).length > 0) return false;
-    try { computeChain(target, n.installed, v); return true; } catch { return false; }
+    try {
+      computeChain(target, n.installed, v);
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   // Carries which module imposed each range, so a refusal names the culprits.
-  const dependentRanges = (name: string, assign: Assignment): ConflictDemand[] => {
+  const dependentRanges = (
+    name: string,
+    assign: Assignment,
+  ): ConflictDemand[] => {
     const out: ConflictDemand[] = [];
     for (const [producer, d] of assign)
-      for (const e of d.edges) if (e.name === name) out.push({ range: e.range, from: producer });
+      for (const e of d.edges)
+        if (e.name === name) out.push({ range: e.range, from: producer });
     return out;
   };
 
@@ -176,12 +265,26 @@ async function solve(
     if (assign.has(n.name)) return dfs(rest, assign);
     const incoming = dependentRanges(n.name, assign);
     for (const v of await candidatesFor(n)) {
-      if (!incoming.every((d) => semver.satisfies(v, d.range))) continue;
+      if (v !== null && !incoming.every((d) => semver.satisfies(v, d.range)))
+        continue;
       if (!(await isReplayable(n, v))) continue;
       const { edges } = await readCandidate(n, v);
-      if (edges.some((e) => assign.has(e.name) && !semver.satisfies(assign.get(e.name)!.version, e.range))) continue;
+      if (
+        edges.some((e) => {
+          const d = assign.get(e.name);
+          return (
+            d && d.version !== null && !semver.satisfies(d.version, e.range)
+          );
+        })
+      )
+        continue;
       assign.set(n.name, { version: v, edges });
-      const next = [...rest, ...edges.map((e) => nodeFor(e.name, e.source)).filter((m) => !assign.has(m.name))];
+      const next = [
+        ...rest,
+        ...edges
+          .map((e) => nodeFor(e.name, e.source))
+          .filter((m) => !assign.has(m.name)),
+      ];
       if (await dfs(next, assign)) return true;
       assign.delete(n.name);
     }
@@ -190,25 +293,43 @@ async function solve(
   };
 
   const assign: Assignment = new Map();
-  const ok = await dfs([...nodes.values()].filter((n) => n.isRoot), assign);
+  const ok = await dfs(
+    [...nodes.values()].filter((n) => n.isRoot),
+    assign,
+  );
   if (!ok) {
     // Dedupe by module: keep the richest demand set, drop dead-branch noise.
     const byModule = new Map<string, ResolveConflict>();
     for (const c of conflicts) {
       const prev = byModule.get(c.module);
-      if (!prev || c.demands.length > prev.demands.length) byModule.set(c.module, c);
+      if (!prev || c.demands.length > prev.demands.length)
+        byModule.set(c.module, c);
     }
-    return { result: { ok: false, conflicts: [...byModule.values()] }, nodes, assign };
+    return {
+      result: { ok: false, conflicts: [...byModule.values()] },
+      nodes,
+      assign,
+    };
   }
 
   const changes: Change[] = [];
-  for (const [name, { version: to }] of assign) {
-    const from = nodes.get(name)?.installed ?? null;
-    if (from !== to) {
+  for (const [name, decision] of assign) {
+    const node = nodes.get(name)!;
+    const from = node.installed; // Version | null
+    const to = decision.version; // Version | null
+    const wasInstalled = node.path !== null;
+    if (!wasInstalled || from !== to) {
       let replay: SealFile[] = [];
-      if (from) {
-        try { replay = computeChain((await readCandidate(nodes.get(name)!, to)).seals, from, to); }
-        catch { replay = []; }
+      if (from && to && from !== to) {
+        try {
+          replay = computeChain(
+            (await readCandidate(node, to)).seals,
+            from,
+            to,
+          );
+        } catch {
+          replay = [];
+        }
       }
       changes.push({ module: name, from, to, replay });
     }
@@ -219,7 +340,11 @@ async function solve(
 export async function resolve(
   project: Project,
   req: UpdateRequest,
-  opts?: { sourceLayer?: SourceLayer; tempDir?: string; credentials?: Credentials },
+  opts?: {
+    sourceLayer?: SourceLayer;
+    tempDir?: string;
+    credentials?: Credentials;
+  },
 ): Promise<ResolveResult> {
   const source = opts?.sourceLayer ?? createSourceLayer();
   try {
@@ -238,7 +363,11 @@ export async function resolve(
 export async function resolveForApply(
   project: Project,
   req: UpdateRequest,
-  opts?: { sourceLayer?: SourceLayer; tempDir?: string; credentials?: Credentials },
+  opts?: {
+    sourceLayer?: SourceLayer;
+    tempDir?: string;
+    credentials?: Credentials;
+  },
 ): Promise<{ plan: ResolveResult; resolved: ResolvedModule[] }> {
   const source = opts?.sourceLayer ?? createSourceLayer();
   const tempDir = opts?.tempDir ?? join(project.paths.tempFolder, 'resolve');
@@ -255,7 +384,7 @@ export async function resolveForApply(
     for (const change of result.changes) {
       const node = nodes.get(change.module)!;
       const remoteUrl = buildRemoteUrl(node.source, opts?.credentials);
-      const ref = versionToTag(change.to);
+      const ref = change.to ? versionToTag(change.to) : undefined;
       // FULL fetch — the apply path needs the whole module tree, not metadata.
       const stagedPath = await source.fetch(
         { location: node.source.location, remoteUrl, ref },
@@ -274,14 +403,16 @@ export async function resolveForApply(
           project: project.basePath,
           name: change.module,
           source: node.source,
-          versionRange: node.isRoot ? (node.declaredRange ?? undefined) : undefined,
+          versionRange: node.isRoot
+            ? (node.declaredRange ?? undefined)
+            : undefined,
           parent: referrer
             ? { project: project.basePath, name: referrer }
             : undefined,
         },
         ref,
         remoteUrl,
-        version: change.to,
+        version: change.to ?? undefined,
         stagedPath,
       });
     }
