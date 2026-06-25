@@ -40,4 +40,25 @@ describe('SourceLayer.readMetadata', () => {
     const out = await new FileSourceLayer().readMetadata({ location: `file:${src}` }, '1.1.0' as never);
     expect(out.seals).toHaveLength(1);
   });
+
+  it('git: null version reads config + seals from HEAD', async () => {
+    const repo = join(dir, 'repo-null');
+    await layoutModule(repo, { cardKeyPrefix: 'Z', modules: [] }, [['1.0.0', '2.0.0']]);
+    const git = simpleGit(repo);
+    await git.init().add('.').commit('init');
+
+    const layer = new GitSourceLayer();
+    const out = await layer.readMetadata({ location: repo }, null, repo);
+    expect(out.config.cardKeyPrefix).toBe('Z');
+    expect(out.seals.map((s) => s.fileName)).toContain('migrationLog_1.0.0_2.0.0.jsonl');
+    await layer.dispose();
+  });
+
+  it('file: null version reads config + seals from the source dir', async () => {
+    const src = join(dir, 'src-null');
+    await layoutModule(src, { cardKeyPrefix: 'B', name: 'B', modules: [] }, [['2.0.0', '2.1.0']]);
+    const out = await new FileSourceLayer().readMetadata({ location: `file:${src}` }, null);
+    expect(out.config.cardKeyPrefix).toBe('B');
+    expect(out.seals).toHaveLength(1);
+  });
 });

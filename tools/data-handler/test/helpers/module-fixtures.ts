@@ -25,6 +25,7 @@ import type { ModuleSetting } from '../../src/interfaces/project-interfaces.js';
 import type {
   RemoteQueryOutcome,
   Source,
+  Version,
   VersionRange,
 } from '../../src/modules/types.js';
 
@@ -156,7 +157,7 @@ export function inMemorySource(opts: InMemorySourceOptions): SourceLayer {
       return availableByLocation.get(location) ?? [];
     },
     queryRemote,
-    async readMetadata() {
+    async readMetadata(_source: Source, _version: Version | null) {
       throw new Error('readMetadata not implemented in inMemorySource stub');
     },
   };

@@ -74,7 +74,7 @@ export class CompositeSourceLayer implements SourceLayer {
 
   async readMetadata(
     source: Source,
-    version: Version,
+    version: Version | null,
     remoteUrl?: string,
   ): Promise<{ config: ProjectSettings; seals: SealFile[] }> {
     return this.pick(source.location).readMetadata(source, version, remoteUrl);

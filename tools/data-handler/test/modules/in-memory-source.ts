@@ -98,17 +98,17 @@ export class InMemorySource implements SourceLayer {
     throw new Error('queryRemote not used in tests');
   }
 
-  async readMetadata(source: Source, version: Version): Promise<{ config: ProjectSettings; seals: SealFile[] }> {
-    const tag = versionToTag(version);
+  async readMetadata(source: Source, version: Version | null): Promise<{ config: ProjectSettings; seals: SealFile[] }> {
+    const tag = version === null ? undefined : versionToTag(version);
     return {
       config: this.cfg(source.location, tag),
-      seals: this.sealsAt(source.location, tag),
+      seals: tag !== undefined ? this.sealsAt(source.location, tag) : [],
     };
   }
 
-  private cfg(location: string, tag: string): ProjectSettings {
+  private cfg(location: string, tag: string | undefined): ProjectSettings {
     const raw =
-      this.configs.get(`${location}@${tag}`) ??
+      (tag !== undefined ? this.configs.get(`${location}@${tag}`) : undefined) ??
       this.configs.get(location) ??
       ({ cardKeyPrefix: 'unknown', modules: [] } as FakeModuleConfig);
     return raw as unknown as ProjectSettings;

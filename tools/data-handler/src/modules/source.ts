@@ -69,10 +69,12 @@ export interface SourceLayer {
    * Read a version's manifest + seal filenames WITHOUT a full checkout.
    * Git: read the tag from a per-repo blobless clone reused across candidates.
    * File: read the source dir.
+   * Pass `null` for `version` to read the default branch / install-as-is state
+   * (for unversioned modules: file sources, or git remotes with no tags).
    */
   readMetadata(
     source: Source,
-    version: Version,
+    version: Version | null,
     remoteUrl?: string,
   ): Promise<{ config: ProjectSettings; seals: SealFile[] }>;
 

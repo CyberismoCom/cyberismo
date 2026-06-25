@@ -99,7 +99,7 @@ export class FileSourceLayer implements SourceLayer {
     };
   }
 
-  async readMetadata(source: Source, _version: Version): Promise<{ config: ProjectSettings; seals: SealFile[] }> {
+  async readMetadata(source: Source, _version: Version | null): Promise<{ config: ProjectSettings; seals: SealFile[] }> {
     const base = stripFileProtocol(source.location);
     const config = await readModuleConfig(base);
     const seals = await listSealFiles(new ProjectPaths(base).migrationLogFolder);
