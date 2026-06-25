@@ -187,11 +187,14 @@ describe('GitManager', () => {
       await gm.commit('change 1');
       await gm.tagVersion('1.1.0');
 
+      // Remember the default branch name (may be 'main' or 'master')
+      const defaultBranch = (await git.branchLocal()).current;
+
       // Branch off at v1.1.0
       await git.checkoutLocalBranch('maintenance');
 
-      // Go back to main and create v2.0.0
-      await git.checkout('master');
+      // Go back to default branch and create v2.0.0
+      await git.checkout(defaultBranch);
       await writeFile(join(dir, 'cardRoot', 'b.txt'), 'b');
       await gm.commit('change 2');
       await gm.tagVersion('2.0.0');
