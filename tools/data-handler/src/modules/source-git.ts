@@ -161,16 +161,16 @@ export class GitSourceLayer implements SourceLayer {
     return p;
   }
 
-  async readMetadata(source: Source, version: Version, remoteUrl?: string): Promise<{ config: ProjectSettings; seals: SealFile[] }> {
-    const tag = versionToTag(version);
+  async readMetadata(source: Source, version: Version | null, remoteUrl?: string): Promise<{ config: ProjectSettings; seals: SealFile[] }> {
+    const ref = version === null ? 'HEAD' : versionToTag(version);
     const g = simpleGit(await this.ensureRepo(remoteUrl ?? source.location))
       .env({ ...NON_INTERACTIVE_GIT_ENV });
     const config = JSON.parse(
-      await g.raw(['cat-file', '-p', `${tag}:.cards/local/cardsConfig.json`]),
+      await g.raw(['cat-file', '-p', `${ref}:.cards/local/cardsConfig.json`]),
     ) as ProjectSettings;
     let seals: SealFile[] = [];
     try {
-      const listing = await g.raw(['ls-tree', '--name-only', tag, '.cards/local/migrations/']);
+      const listing = await g.raw(['ls-tree', '--name-only', ref, '.cards/local/migrations/']);
       seals = listing.split('\n').map((s) => s.trim()).filter(Boolean)
         .map((s) => parseSealFileName(basename(s)))
         .filter((s): s is SealFile => s !== undefined);
