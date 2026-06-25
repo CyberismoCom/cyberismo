@@ -20,10 +20,18 @@ import { simpleGit, type SimpleGit } from 'simple-git';
 
 import { NON_INTERACTIVE_GIT_ENV, gitTimeout } from '../utils/git-config.js';
 import { GitManager } from '../utils/git-manager.js';
-import { parseSealFileName, type SealFile } from '../mutations/replay/seal-files.js';
+import {
+  parseSealFileName,
+  type SealFile,
+} from '../mutations/replay/seal-files.js';
 import { pickVersion, versionToTag } from './version.js';
 import type { FetchTarget, SourceLayer } from './source.js';
-import type { RemoteQueryOutcome, Source, Version, VersionRange } from './types.js';
+import type {
+  RemoteQueryOutcome,
+  Source,
+  Version,
+  VersionRange,
+} from './types.js';
 import type { ProjectSettings } from '../interfaces/project-interfaces.js';
 
 function cloneOptions(ref?: string): string[] {
@@ -119,14 +127,19 @@ export class GitSourceLayer implements SourceLayer {
       p = (async () => {
         const dir = await mkdtemp(join(tmpdir(), 'cyb-meta-'));
         try {
-          const git = simpleGit({ timeout: { block: gitTimeout() } }).env({ ...NON_INTERACTIVE_GIT_ENV });
+          const git = simpleGit({ timeout: { block: gitTimeout() } }).env({
+            ...NON_INTERACTIVE_GIT_ENV,
+          });
           // All refs, no checkout, blobs lazy. Fall back to a full clone if the
           // server rejects partial clone.
-          try { await git.clone(url, dir, ['--no-checkout', '--filter=blob:none']); }
-          catch { await git.clone(url, dir, ['--no-checkout']); }
+          try {
+            await git.clone(url, dir, ['--no-checkout', '--filter=blob:none']);
+          } catch {
+            await git.clone(url, dir, ['--no-checkout']);
+          }
           return dir;
         } catch (e) {
-          this.repos.delete(url);                                  // don't cache the failure
+          this.repos.delete(url); // don't cache the failure
           await rm(dir, { recursive: true, force: true }).catch(() => {});
           throw e;
         }
@@ -136,20 +149,35 @@ export class GitSourceLayer implements SourceLayer {
     return p;
   }
 
-  async readMetadata(source: Source, version: Version | null, remoteUrl?: string): Promise<{ config: ProjectSettings; seals: SealFile[] }> {
+  async readMetadata(
+    source: Source,
+    version: Version | null,
+    remoteUrl?: string,
+  ): Promise<{ config: ProjectSettings; seals: SealFile[] }> {
     const ref = version === null ? 'HEAD' : versionToTag(version);
-    const g = simpleGit(await this.ensureRepo(remoteUrl ?? source.location))
-      .env({ ...NON_INTERACTIVE_GIT_ENV });
+    const g = simpleGit(
+      await this.ensureRepo(remoteUrl ?? source.location),
+    ).env({ ...NON_INTERACTIVE_GIT_ENV });
     const config = JSON.parse(
       await g.raw(['cat-file', '-p', `${ref}:.cards/local/cardsConfig.json`]),
     ) as ProjectSettings;
-    let seals: SealFile[] = [];
+    let seals: SealFile[];
     try {
-      const listing = await g.raw(['ls-tree', '--name-only', ref, '.cards/local/migrations/']);
-      seals = listing.split('\n').map((s) => s.trim()).filter(Boolean)
+      const listing = await g.raw([
+        'ls-tree',
+        '--name-only',
+        ref,
+        '.cards/local/migrations/',
+      ]);
+      seals = listing
+        .split('\n')
+        .map((s) => s.trim())
+        .filter(Boolean)
         .map((s) => parseSealFileName(basename(s)))
         .filter((s): s is SealFile => s !== undefined);
-    } catch { seals = []; }
+    } catch {
+      seals = [];
+    }
     return { config, seals };
   }
 
@@ -158,7 +186,11 @@ export class GitSourceLayer implements SourceLayer {
     const paths = [...this.repos.values()];
     this.repos.clear();
     for (const p of paths) {
-      try { await rm(await p, { recursive: true, force: true }); } catch { /* best effort */ }
+      try {
+        await rm(await p, { recursive: true, force: true });
+      } catch {
+        /* best effort */
+      }
     }
   }
 }
