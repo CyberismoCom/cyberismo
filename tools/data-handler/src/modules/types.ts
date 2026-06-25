@@ -111,10 +111,8 @@ export interface ModuleInstallation {
 export type CheckStatus =
   | 'up_to_date'
   | 'update_available'
-  | 'range_blocks_update'
-  | 'range_unsatisfiable'
-  | 'source_unreachable'
-  | 'drifted';
+  | 'blocked'
+  | 'source_unreachable';
 
 /** Read-only per-module report produced by `CheckUpdates`. */
 export interface ModuleCheckReport {
