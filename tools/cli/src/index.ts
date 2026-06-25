@@ -1491,57 +1491,63 @@ checkUpdatesCmd.action(
 
     // Display summary
     for (const mod of updates) {
-      if (mod.updateAvailable) {
-        const from = mod.installedVersion || 'unversioned';
-        const blocked = mod.constraintBlocksUpdate
-          ? `  (constraint "${mod.versionConstraint}" blocks auto-update)`
-          : '';
+      if (mod.status === 'up_to_date') {
+        if (!mod.isGitModule) {
+          console.log(`  ${mod.name}    (local module)`);
+        } else {
+          console.log(
+            `  ${mod.name}    ${mod.installedVersion ?? 'unknown'}  (up to date)`,
+          );
+        }
+      } else if (mod.status === 'update_available') {
+        const cascadeOthers = (mod.cascade ?? [])
+          .filter((c) => c.module !== mod.name)
+          .map((c) => c.module);
+        const cascadeSuffix =
+          cascadeOthers.length > 0
+            ? `  (also updates: ${cascadeOthers.join(', ')})`
+            : '';
         console.log(
-          `  ${mod.name}    ${from}  →  ${mod.latestVersion}${blocked}`,
+          `  ${mod.name}    ${mod.installedVersion ?? 'unversioned'}  →  ${mod.reachableVersion}${cascadeSuffix}`,
         );
-      } else if (!mod.isGitModule) {
-        console.log(`  ${mod.name}    (local module, skipped)`);
-      } else if (mod.noMatchingVersion) {
-        console.log(
-          `  ${mod.name}    (no version matches constraint ${mod.versionConstraint})`,
-        );
-      } else if (mod.availableVersions.length === 0) {
-        console.log(
-          `  ${mod.name}    ${mod.installedVersion || 'unknown'}  (no version tags)`,
-        );
-      } else {
-        console.log(
-          `  ${mod.name}    ${mod.installedVersion || 'unknown'}  (up to date)`,
-        );
+      } else if (mod.status === 'blocked') {
+        const conflicts = mod.blocked ?? [];
+        const reasons = conflicts
+          .map((c) => {
+            if (c.demands.length === 0) {
+              return `(no version satisfies its range)`;
+            }
+            return `needs ${c.demands.map((d) => `${d.from} wants ${d.range}`).join('; ')}`;
+          })
+          .join('; ');
+        const reasonSuffix = reasons ? `  ${reasons}` : '';
+        console.log(`  ${mod.name}    blocked${reasonSuffix}`);
+      } else if (mod.status === 'source_unreachable') {
+        console.log(`  ${mod.name}    (source unreachable)`);
       }
     }
 
-    const updatable = updates.filter((m) => m.updateAvailable);
+    const updatable = updates.filter((m) => m.status === 'update_available');
     if (updatable.length === 0) {
       console.log('\nAll modules are up to date.');
       return;
     }
 
-    const autoUpdatable = updatable.filter((m) => !m.constraintBlocksUpdate);
-    const blocked = updatable.filter((m) => m.constraintBlocksUpdate);
+    const blockedModules = updates.filter((m) => m.status === 'blocked');
 
     console.log(`\n${updatable.length} module(s) have updates available.`);
-    if (blocked.length > 0) {
+    if (blockedModules.length > 0) {
       console.log(
-        `${blocked.length} module(s) are blocked by version constraints — edit the constraint in cardsConfig.json to upgrade.`,
+        `${blockedModules.length} module(s) are blocked — resolve conflicts before upgrading.`,
       );
     }
 
-    if (autoUpdatable.length === 0) {
-      return;
-    }
-
     const shouldUpdate = await confirm({
-      message: `Apply ${autoUpdatable.length} available update(s)?`,
+      message: `Apply ${updatable.length} available update(s)?`,
     });
     if (shouldUpdate) {
-      for (const mod of autoUpdatable) {
-        const target = mod.latestSatisfyingConstraint ?? mod.latestVersion!;
+      for (const mod of updatable) {
+        const target = mod.reachableVersion!;
         const updateResult = await commandHandler.command(
           Cmd.updateModules,
           [mod.name, target],

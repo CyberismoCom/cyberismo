@@ -111,34 +111,5 @@ export interface ModuleInstallation {
 export type CheckStatus =
   | 'up_to_date'
   | 'update_available'
-  | 'range_blocks_update'
-  | 'range_unsatisfiable'
-  | 'source_unreachable'
-  | 'drifted';
-
-/** Read-only per-module report produced by `CheckUpdates`. */
-export interface ModuleCheckReport {
-  project: string;
-  declaration: ModuleDeclaration;
-  installation?: ModuleInstallation;
-  latestVersion?: Version;
-  latestSatisfying?: Version;
-  status: CheckStatus;
-}
-
-// ---------------------------------------------------------------------------
-// Transitive resolution diagnostics
-// ---------------------------------------------------------------------------
-
-/**
- * Emitted by the resolver when a later transitive declaration's range rejects
- * a version already chosen for the same name. First resolution wins; the
- * conflict surfaces as a structured event instead of aborting.
- */
-export interface DiamondVersionConflict {
-  project: string;
-  name: string;
-  installedVersion: { kind: 'pinned'; value: Version };
-  rejectingRange: VersionRange;
-  rejectingParent?: InstallationRef;
-}
+  | 'blocked'
+  | 'source_unreachable';
