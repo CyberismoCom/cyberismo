@@ -49,7 +49,10 @@ export class InMemorySource implements SourceLayer {
       string,
       () => Promise<never>
     > = new Map(),
-    private readonly sealsByRef: Map<string, Array<[string, string]>> = new Map(),
+    private readonly sealsByRef: Map<
+      string,
+      Array<[string, string]>
+    > = new Map(),
     private readonly unreachable: Set<string> = new Set(),
   ) {}
 
@@ -98,7 +101,10 @@ export class InMemorySource implements SourceLayer {
     throw new Error('queryRemote not used in tests');
   }
 
-  async readMetadata(source: Source, version: Version | null): Promise<{ config: ProjectSettings; seals: SealFile[] }> {
+  async readMetadata(
+    source: Source,
+    version: Version | null,
+  ): Promise<{ config: ProjectSettings; seals: SealFile[] }> {
     const tag = version === null ? undefined : versionToTag(version);
     return {
       config: this.cfg(source.location, tag),
@@ -108,7 +114,9 @@ export class InMemorySource implements SourceLayer {
 
   private cfg(location: string, tag: string | undefined): ProjectSettings {
     const raw =
-      (tag !== undefined ? this.configs.get(`${location}@${tag}`) : undefined) ??
+      (tag !== undefined
+        ? this.configs.get(`${location}@${tag}`)
+        : undefined) ??
       this.configs.get(location) ??
       ({ cardKeyPrefix: 'unknown', modules: [] } as FakeModuleConfig);
     return raw as unknown as ProjectSettings;
