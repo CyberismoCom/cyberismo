@@ -58,90 +58,95 @@ export class CheckUpdates {
     moduleName?: string,
     credentials?: Credentials,
   ): Promise<ModuleUpdateStatus[]> {
+    const ownsSource = !this.sourceLayer;
     const sourceLayer = this.sourceLayer ?? createSourceLayer();
 
-    const allDeclared = declaredModules(this.project);
-    const declared = moduleName
-      ? allDeclared.filter((d) => d.name === moduleName)
-      : allDeclared;
+    try {
+      const allDeclared = declaredModules(this.project);
+      const declared = moduleName
+        ? allDeclared.filter((d) => d.name === moduleName)
+        : allDeclared;
 
-    const installed = await installedModules(this.project);
-    const installedByName = new Map<string, ModuleInstallation>(
-      installed.map((i) => [i.name, i]),
-    );
+      const installed = await installedModules(this.project);
+      const installedByName = new Map<string, ModuleInstallation>(
+        installed.map((i) => [i.name, i]),
+      );
 
-    if (moduleName && declared.length === 0) {
-      const parents = installed
-        .filter((m) => m.declaredDependencies.includes(moduleName))
-        .map((m) => m.name);
-      if (parents.length > 0) {
-        const parentList = parents.map((n) => `'${n}'`).join(', ');
-        throw new Error(
-          `Cannot check updates for module '${moduleName}' because it is required by ${parentList}. Check updates for the parent module(s) instead.`,
-        );
+      if (moduleName && declared.length === 0) {
+        const parents = installed
+          .filter((m) => m.declaredDependencies.includes(moduleName))
+          .map((m) => m.name);
+        if (parents.length > 0) {
+          const parentList = parents.map((n) => `'${n}'`).join(', ');
+          throw new Error(
+            `Cannot check updates for module '${moduleName}' because it is required by ${parentList}. Check updates for the parent module(s) instead.`,
+          );
+        }
+        throw new Error(`Module '${moduleName}' is not part of the project`);
       }
-      throw new Error(`Module '${moduleName}' is not part of the project`);
+
+      const results = await Promise.all(
+        declared.map(async (decl) => {
+          const installation = installedByName.get(decl.name);
+          const installedVersion = installation?.version;
+          const isGitModule = isGitLocation(decl.source.location);
+
+          const base = {
+            name: decl.name,
+            installedVersion,
+            isGitModule,
+          };
+
+          let plan;
+          try {
+            plan = await resolve(
+              this.project,
+              { kind: 'availability', module: decl.name },
+              { sourceLayer, credentials },
+            );
+          } catch (err) {
+            // Unreachable remote / fetch failure — distinguish from up-to-date.
+            this.logger.warn(
+              `check-updates: source unreachable for '${decl.name}': ${err instanceof Error ? err.message : String(err)}`,
+            );
+            return {
+              ...base,
+              status: 'source_unreachable',
+            } satisfies ModuleUpdateStatus;
+          }
+
+          if (!plan.ok) {
+            return {
+              ...base,
+              status: 'blocked',
+              blocked: plan.conflicts,
+            } satisfies ModuleUpdateStatus;
+          }
+
+          const own = plan.changes.find((c) => c.module === decl.name);
+          if (!own) {
+            return {
+              ...base,
+              status: 'up_to_date',
+            } satisfies ModuleUpdateStatus;
+          }
+
+          return {
+            ...base,
+            status: 'update_available',
+            reachableVersion: own.to ?? undefined,
+            cascade: plan.changes.map((c) => ({
+              module: c.module,
+              from: c.from,
+              to: c.to,
+            })),
+          } satisfies ModuleUpdateStatus;
+        }),
+      );
+
+      return results;
+    } finally {
+      if (ownsSource) await sourceLayer.dispose?.();
     }
-
-    const results = await Promise.all(
-      declared.map(async (decl) => {
-        const installation = installedByName.get(decl.name);
-        const installedVersion = installation?.version;
-        const isGitModule = isGitLocation(decl.source.location);
-
-        const base = {
-          name: decl.name,
-          installedVersion,
-          isGitModule,
-        };
-
-        let plan;
-        try {
-          plan = await resolve(
-            this.project,
-            { kind: 'availability', module: decl.name },
-            { sourceLayer, credentials },
-          );
-        } catch (err) {
-          // Unreachable remote / fetch failure — distinguish from up-to-date.
-          this.logger.warn(
-            `check-updates: source unreachable for '${decl.name}': ${err instanceof Error ? err.message : String(err)}`,
-          );
-          return {
-            ...base,
-            status: 'source_unreachable',
-          } satisfies ModuleUpdateStatus;
-        }
-
-        if (!plan.ok) {
-          return {
-            ...base,
-            status: 'blocked',
-            blocked: plan.conflicts,
-          } satisfies ModuleUpdateStatus;
-        }
-
-        const own = plan.changes.find((c) => c.module === decl.name);
-        if (!own) {
-          return {
-            ...base,
-            status: 'up_to_date',
-          } satisfies ModuleUpdateStatus;
-        }
-
-        return {
-          ...base,
-          status: 'update_available',
-          reachableVersion: own.to ?? undefined,
-          cascade: plan.changes.map((c) => ({
-            module: c.module,
-            from: c.from,
-            to: c.to,
-          })),
-        } satisfies ModuleUpdateStatus;
-      }),
-    );
-
-    return results;
   }
 }
