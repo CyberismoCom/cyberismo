@@ -85,26 +85,13 @@ export class ConfigurationLogger {
   public static async createVersion(
     projectPath: string,
     version: string,
-  ): Promise<string | null> {
+  ): Promise<string> {
     if (!semver.valid(version)) {
       throw new Error(`Invalid seal version: ${version}`);
     }
     const paths = new ProjectPaths(projectPath);
     const currentLogPath = paths.configurationChangesLog;
     const fromVersion = await lastSealedVersion(paths.migrationLogFolder);
-    const versionedLogPath = join(
-      paths.migrationLogFolder,
-      formatSealFileName(fromVersion, version),
-    );
-
-    if (!pathExists(currentLogPath)) {
-      // Empty seal: no log file to rename; the version is sealed with no
-      // breaking changes. Per the spec, replay against a missing log is
-      // a no-op success.
-      const logger = getChildLogger({ module: 'ConfigurationLogger' });
-      logger.info(`Sealed empty migration log for version: ${version}`);
-      return null;
-    }
 
     if (semver.lte(version, fromVersion)) {
       throw new Error(
@@ -112,12 +99,23 @@ export class ConfigurationLogger {
       );
     }
 
-    await rename(currentLogPath, versionedLogPath);
-
-    const logger = getChildLogger({ module: 'ConfigurationLogger' });
-    logger.info(
-      `Created migration to version: ${version} at ${versionedLogPath}`,
+    const versionedLogPath = join(
+      paths.migrationLogFolder,
+      formatSealFileName(fromVersion, version),
     );
+    const logger = getChildLogger({ module: 'ConfigurationLogger' });
+
+    if (pathExists(currentLogPath)) {
+      await rename(currentLogPath, versionedLogPath);
+      logger.info(
+        `Created migration to version: ${version} at ${versionedLogPath}`,
+      );
+    } else {
+      // No pending changes: still write an empty seal so every sealed version
+      // has a log file. writeFileSafe creates the migrations folder if needed.
+      await writeFileSafe(versionedLogPath, '');
+      logger.info(`Sealed empty migration log for version: ${version}`);
+    }
 
     return versionedLogPath;
   }

@@ -222,14 +222,15 @@ describe('configuration logger', () => {
       expect(entries[0].target).toBe('valid');
       expect(entries[1].target).toBe('valid2');
     });
-    it('should return null when creating version from non-existent log (empty seal)', async () => {
+    it('seals an empty log (returns a path, not null) when the current log does not exist', async () => {
       await ConfigurationLogger.clearLog(testProjectPath);
 
       const result = await ConfigurationLogger.createVersion(
         testProjectPath,
         '1.0.0',
       );
-      expect(result).toBeNull();
+      expect(result).not.toBeNull();
+      expect(pathExists(result)).toBe(true);
     });
     it('should check log existence via static method', async () => {
       const testProjectPath2 = join(testDir, 'test-project-static');
@@ -247,17 +248,22 @@ describe('configuration logger', () => {
     });
   });
 
-  it('createVersion succeeds with no current log (empty seal)', async () => {
+  it('createVersion seals an empty log when there is no current log', async () => {
     const projectPath = await freshProject('empty-seal');
     // No entries have been logged; migrationLog.jsonl does not exist.
-    await ConfigurationLogger.createVersion(projectPath, '1.0.1');
-    // The versioned log file should also not exist (empty seal = no file).
+    const result = await ConfigurationLogger.createVersion(
+      projectPath,
+      '1.0.1',
+    );
+    // An empty seal file records the transition (empty seal = empty file).
     const paths = new ProjectPaths(projectPath);
     const versionedPath = join(
       paths.migrationLogFolder,
       'migrationLog_0.0.0_1.0.1.jsonl',
     );
-    expect(await pathExists(versionedPath)).toBe(false);
+    expect(result).toBe(versionedPath);
+    expect(pathExists(versionedPath)).toBe(true);
+    expect(await readFile(versionedPath, 'utf-8')).toBe('');
   });
   it('createVersion seals continuing the lineage from the last sealed version', async () => {
     const projectPath = await freshProject('lineage-seal');

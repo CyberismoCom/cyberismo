@@ -67,8 +67,9 @@ export class Version {
       );
     }
 
-    // Snapshot the current migration log with the new version
-    if (ConfigurationLogger.hasBreakingChanges(this.project.basePath)) {
+    // Seal on the first version and every minor/major bump. Patches on an
+    // existing version never seal; they must keep a clean log (guarded above).
+    if (!currentVersion || bumpType !== 'patch') {
       await ConfigurationLogger.createVersion(
         this.project.basePath,
         newVersion,

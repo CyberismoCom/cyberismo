@@ -241,5 +241,20 @@ describe('Version', () => {
       expect(createVersionStub.calledOnce).toBe(true);
       expect(createVersionStub.calledWith(dir, '1.0.0')).toBe(true);
     });
+
+    it('seals an empty log on a clean minor bump (no breaking changes)', async () => {
+      configuration.version = '1.0.0';
+      await configuration.setVersion('1.0.0');
+      await git.commit('set version');
+      // hasBreakingChangesStub returns false (set in beforeEach)
+
+      const result = await versionCmd.bumpVersion('minor');
+
+      expect(result.newVersion).toBe('1.1.0');
+      const migrationsFolder = join(dir, '.cards', 'local', 'migrations');
+      expect(
+        pathExists(join(migrationsFolder, 'migrationLog_0.0.0_1.1.0.jsonl')),
+      ).toBe(true);
+    });
   });
 });
