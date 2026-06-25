@@ -16,7 +16,10 @@ import { copyDir } from '../src/utils/file-utils.js';
 import { CheckUpdates } from '../src/commands/check-updates.js';
 import type { ModuleSetting } from '../src/interfaces/project-interfaces.js';
 import { getTestProject } from './helpers/test-utils.js';
-import { InMemorySource, type FakeModuleConfig } from './modules/in-memory-source.js';
+import {
+  InMemorySource,
+  type FakeModuleConfig,
+} from './modules/in-memory-source.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-command-check-updates-tests');
@@ -93,10 +96,15 @@ describe('check-updates', () => {
     installModule(project, { name: 'base', version: '1.0.0' });
 
     const configs = new Map<string, FakeModuleConfig>([
-      [`${location}@v1.1.0`, { name: 'base', cardKeyPrefix: 'base', modules: [] }],
+      [
+        `${location}@v1.1.0`,
+        { name: 'base', cardKeyPrefix: 'base', modules: [] },
+      ],
     ]);
     const available = new Map([[location, ['1.1.0', '1.0.0']]]);
-    const seals = new Map([[`${location}@v1.1.0`, [['1.0.0', '1.1.0'] as [string, string]]]]);
+    const seals = new Map([
+      [`${location}@v1.1.0`, [['1.0.0', '1.1.0'] as [string, string]]],
+    ]);
     const source = new InMemorySource(configs, available, new Map(), seals);
 
     const [status] = await new CheckUpdates(project, source).checkUpdates();
@@ -207,7 +215,11 @@ describe('check-updates', () => {
     // is owned by `host`. Checking updates for it must surface the parent
     // rather than misleadingly claim it is not part of the project.
     const project = buildProjectWithModules([
-      { name: 'host', location: 'https://example.com/host.git', private: false },
+      {
+        name: 'host',
+        location: 'https://example.com/host.git',
+        private: false,
+      },
     ]);
     installModule(project, {
       name: 'host',
@@ -230,9 +242,18 @@ describe('check-updates', () => {
     const extLoc = 'https://example.com/extension.git';
     const project = buildProjectWithModules([
       { name: 'base', location: baseLoc, version: '^1.0.0', private: false },
-      { name: 'extension', location: extLoc, version: '^2.0.0', private: false },
+      {
+        name: 'extension',
+        location: extLoc,
+        version: '^2.0.0',
+        private: false,
+      },
     ]);
-    installModule(project, { name: 'base', version: '1.0.0', cardKeyPrefix: 'base' });
+    installModule(project, {
+      name: 'base',
+      version: '1.0.0',
+      cardKeyPrefix: 'base',
+    });
     installModule(project, {
       name: 'extension',
       version: '2.0.0',
@@ -255,9 +276,18 @@ describe('check-updates', () => {
     const extLoc = 'https://example.com/extension.git';
     const project = buildProjectWithModules([
       { name: 'base', location: baseLoc, version: '^1.0.0', private: false },
-      { name: 'extension', location: extLoc, version: '^2.0.0', private: false },
+      {
+        name: 'extension',
+        location: extLoc,
+        version: '^2.0.0',
+        private: false,
+      },
     ]);
-    installModule(project, { name: 'base', version: '1.0.0', cardKeyPrefix: 'base' });
+    installModule(project, {
+      name: 'base',
+      version: '1.0.0',
+      cardKeyPrefix: 'base',
+    });
     installModule(project, {
       name: 'extension',
       version: '2.0.0',
@@ -270,7 +300,9 @@ describe('check-updates', () => {
     ]);
     const source = new InMemorySource(new Map(), available);
 
-    const statuses = await new CheckUpdates(project, source).checkUpdates('base');
+    const statuses = await new CheckUpdates(project, source).checkUpdates(
+      'base',
+    );
 
     expect(statuses).toHaveLength(1);
     expect(statuses[0].name).toBe('base');
