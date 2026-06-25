@@ -30,6 +30,8 @@ export interface FakeModuleConfig {
  *   availableByLocation — map from location to semver tag list
  *   fetchOverrides     — optional map from location to a function that throws
  *   sealsByRef         — optional map from `location@tag` to seal pairs
+ *   unreachable        — optional set of locations whose version listing throws,
+ *                        simulating an unreachable remote
  */
 export class InMemorySource implements SourceLayer {
   readonly fetchLog: Array<{
@@ -48,6 +50,7 @@ export class InMemorySource implements SourceLayer {
       () => Promise<never>
     > = new Map(),
     private readonly sealsByRef: Map<string, Array<[string, string]>> = new Map(),
+    private readonly unreachable: Set<string> = new Set(),
   ) {}
 
   async fetch(
@@ -85,6 +88,9 @@ export class InMemorySource implements SourceLayer {
 
   async listRemoteVersions(location: string): Promise<string[]> {
     this.listLog.push(location);
+    if (this.unreachable.has(location)) {
+      throw new Error(`remote unreachable: ${location}`);
+    }
     return this.availableByLocation.get(location) ?? [];
   }
 
