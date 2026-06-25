@@ -7,7 +7,10 @@ import { join } from 'node:path';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import { getTestProject } from '../../helpers/test-utils.js';
 import { InMemorySource, type FakeModuleConfig } from '../in-memory-source.js';
-import { resolve, resolveForApply } from '../../../src/modules/resolve/solver.js';
+import {
+  resolve,
+  resolveForApply,
+} from '../../../src/modules/resolve/solver.js';
 import type { Version } from '../../../src/modules/types.js';
 import type { ModuleSetting } from '../../../src/interfaces/project-interfaces.js';
 
@@ -99,8 +102,18 @@ describe('resolve solver', () => {
 
   it('update A to 1.8 forces B→1.4 and backtracks C 1.2→1.3', async () => {
     const project = buildProjectWithModules([
-      { name: 'A', location: 'https://x/A.git', version: '^1.0.0', private: false },
-      { name: 'C', location: 'https://x/C.git', version: '^1.0.0', private: false },
+      {
+        name: 'A',
+        location: 'https://x/A.git',
+        version: '^1.0.0',
+        private: false,
+      },
+      {
+        name: 'C',
+        location: 'https://x/C.git',
+        version: '^1.0.0',
+        private: false,
+      },
     ]);
     await installModule(project, {
       name: 'A',
@@ -121,7 +134,9 @@ describe('resolve solver', () => {
           cardKeyPrefix: 'A',
           name: 'A',
           version: '1.8.0',
-          modules: [{ name: 'B', location: 'https://x/B.git', version: '>=1.4.0' }],
+          modules: [
+            { name: 'B', location: 'https://x/B.git', version: '>=1.4.0' },
+          ],
         } as FakeModuleConfig,
       ],
       [
@@ -130,12 +145,19 @@ describe('resolve solver', () => {
           cardKeyPrefix: 'C',
           name: 'C',
           version: '1.3.0',
-          modules: [{ name: 'B', location: 'https://x/B.git', version: '>=1.4.0' }],
+          modules: [
+            { name: 'B', location: 'https://x/B.git', version: '>=1.4.0' },
+          ],
         } as FakeModuleConfig,
       ],
       [
         'https://x/B.git@v1.4.0',
-        { cardKeyPrefix: 'B', name: 'B', version: '1.4.0', modules: [] } as FakeModuleConfig,
+        {
+          cardKeyPrefix: 'B',
+          name: 'B',
+          version: '1.4.0',
+          modules: [],
+        } as FakeModuleConfig,
       ],
     ]);
     const available = new Map([
@@ -164,8 +186,18 @@ describe('resolve solver', () => {
 
   it('unsatisfiable update reports a conflict naming the culprits', async () => {
     const project = buildProjectWithModules([
-      { name: 'A', location: 'https://x/A.git', version: '^1.0.0', private: false },
-      { name: 'C', location: 'https://x/C.git', version: '^1.0.0', private: false },
+      {
+        name: 'A',
+        location: 'https://x/A.git',
+        version: '^1.0.0',
+        private: false,
+      },
+      {
+        name: 'C',
+        location: 'https://x/C.git',
+        version: '^1.0.0',
+        private: false,
+      },
     ]);
     await installModule(project, {
       name: 'A',
@@ -186,12 +218,19 @@ describe('resolve solver', () => {
           cardKeyPrefix: 'A',
           name: 'A',
           version: '1.8.0',
-          modules: [{ name: 'B', location: 'https://x/B.git', version: '>=2.0.0' }],
+          modules: [
+            { name: 'B', location: 'https://x/B.git', version: '>=2.0.0' },
+          ],
         } as FakeModuleConfig,
       ],
       [
         'https://x/B.git@v2.0.0',
-        { cardKeyPrefix: 'B', name: 'B', version: '2.0.0', modules: [] } as FakeModuleConfig,
+        {
+          cardKeyPrefix: 'B',
+          name: 'B',
+          version: '2.0.0',
+          modules: [],
+        } as FakeModuleConfig,
       ],
     ]);
     const available = new Map([
@@ -221,7 +260,12 @@ describe('resolve solver', () => {
 
   it('replayability prune blocks a non-linear upgrade', async () => {
     const project = buildProjectWithModules([
-      { name: 'A', location: 'https://x/A.git', version: '^1.0.0', private: false },
+      {
+        name: 'A',
+        location: 'https://x/A.git',
+        version: '^1.0.0',
+        private: false,
+      },
     ]);
     await installModule(project, {
       name: 'A',
@@ -237,12 +281,19 @@ describe('resolve solver', () => {
           cardKeyPrefix: 'A',
           name: 'A',
           version: '1.8.0',
-          modules: [{ name: 'B', location: 'https://x/B.git', version: '>=1.5.0' }],
+          modules: [
+            { name: 'B', location: 'https://x/B.git', version: '>=1.5.0' },
+          ],
         } as FakeModuleConfig,
       ],
       [
         'https://x/B.git@v1.5.0',
-        { cardKeyPrefix: 'B', name: 'B', version: '1.5.0', modules: [] } as FakeModuleConfig,
+        {
+          cardKeyPrefix: 'B',
+          name: 'B',
+          version: '1.5.0',
+          modules: [],
+        } as FakeModuleConfig,
       ],
     ]);
     const available = new Map([
@@ -274,12 +325,19 @@ describe('resolve solver', () => {
           cardKeyPrefix: 'A',
           name: 'A',
           version: '1.0.0',
-          modules: [{ name: 'D', location: 'https://x/D.git', version: '>=1.0.0' }],
+          modules: [
+            { name: 'D', location: 'https://x/D.git', version: '>=1.0.0' },
+          ],
         } as FakeModuleConfig,
       ],
       [
         'https://x/D.git@v1.0.0',
-        { cardKeyPrefix: 'D', name: 'D', version: '1.0.0', modules: [] } as FakeModuleConfig,
+        {
+          cardKeyPrefix: 'D',
+          name: 'D',
+          version: '1.0.0',
+          modules: [],
+        } as FakeModuleConfig,
       ],
     ]);
     const available = new Map([
@@ -290,19 +348,37 @@ describe('resolve solver', () => {
 
     const result = await resolve(
       project,
-      { kind: 'add', name: 'A', source: { location: 'https://x/A.git', private: false }, range: undefined },
+      {
+        kind: 'add',
+        name: 'A',
+        source: { location: 'https://x/A.git', private: false },
+        range: undefined,
+      },
       { sourceLayer: source, tempDir: testDir },
     );
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const byModule = new Map(result.changes.map((c) => [c.module, c]));
-    expect(byModule.get('A')).toMatchObject({ to: '1.0.0', from: null, replay: [] });
-    expect(byModule.get('D')).toMatchObject({ to: '1.0.0', from: null, replay: [] });
+    expect(byModule.get('A')).toMatchObject({
+      to: '1.0.0',
+      from: null,
+      replay: [],
+    });
+    expect(byModule.get('D')).toMatchObject({
+      to: '1.0.0',
+      from: null,
+      replay: [],
+    });
   });
 
   it('updateAll floats a transitive dep to newest even when its root stays put', async () => {
     const project = buildProjectWithModules([
-      { name: 'A', location: 'https://x/A.git', version: '^1.0.0', private: false },
+      {
+        name: 'A',
+        location: 'https://x/A.git',
+        version: '^1.0.0',
+        private: false,
+      },
     ]);
     await installModule(project, {
       name: 'A',
@@ -314,7 +390,12 @@ describe('resolve solver', () => {
     const configs = new Map<string, FakeModuleConfig>([
       [
         'https://x/B.git@v1.2.0',
-        { cardKeyPrefix: 'B', name: 'B', version: '1.2.0', modules: [] } as FakeModuleConfig,
+        {
+          cardKeyPrefix: 'B',
+          name: 'B',
+          version: '1.2.0',
+          modules: [],
+        } as FakeModuleConfig,
       ],
     ]);
     const available = new Map([
@@ -339,7 +420,12 @@ describe('resolve solver', () => {
 
   it('availability reports the same floated changes without applying them', async () => {
     const project = buildProjectWithModules([
-      { name: 'A', location: 'https://x/A.git', version: '^1.0.0', private: false },
+      {
+        name: 'A',
+        location: 'https://x/A.git',
+        version: '^1.0.0',
+        private: false,
+      },
     ]);
     await installModule(project, {
       name: 'A',
@@ -351,7 +437,12 @@ describe('resolve solver', () => {
     const configs = new Map<string, FakeModuleConfig>([
       [
         'https://x/B.git@v1.2.0',
-        { cardKeyPrefix: 'B', name: 'B', version: '1.2.0', modules: [] } as FakeModuleConfig,
+        {
+          cardKeyPrefix: 'B',
+          name: 'B',
+          version: '1.2.0',
+          modules: [],
+        } as FakeModuleConfig,
       ],
     ]);
     const available = new Map([
@@ -376,8 +467,18 @@ describe('resolve solver', () => {
 
   it('resolveForApply builds ResolvedModule[] for the moved cascade', async () => {
     const project = buildProjectWithModules([
-      { name: 'A', location: 'https://x/A.git', version: '^1.0.0', private: false },
-      { name: 'C', location: 'https://x/C.git', version: '^1.0.0', private: false },
+      {
+        name: 'A',
+        location: 'https://x/A.git',
+        version: '^1.0.0',
+        private: false,
+      },
+      {
+        name: 'C',
+        location: 'https://x/C.git',
+        version: '^1.0.0',
+        private: false,
+      },
     ]);
     await installModule(project, {
       name: 'A',
@@ -398,7 +499,9 @@ describe('resolve solver', () => {
           cardKeyPrefix: 'A',
           name: 'A',
           version: '1.8.0',
-          modules: [{ name: 'B', location: 'https://x/B.git', version: '>=1.4.0' }],
+          modules: [
+            { name: 'B', location: 'https://x/B.git', version: '>=1.4.0' },
+          ],
         } as FakeModuleConfig,
       ],
       [
@@ -407,12 +510,19 @@ describe('resolve solver', () => {
           cardKeyPrefix: 'C',
           name: 'C',
           version: '1.3.0',
-          modules: [{ name: 'B', location: 'https://x/B.git', version: '>=1.4.0' }],
+          modules: [
+            { name: 'B', location: 'https://x/B.git', version: '>=1.4.0' },
+          ],
         } as FakeModuleConfig,
       ],
       [
         'https://x/B.git@v1.4.0',
-        { cardKeyPrefix: 'B', name: 'B', version: '1.4.0', modules: [] } as FakeModuleConfig,
+        {
+          cardKeyPrefix: 'B',
+          name: 'B',
+          version: '1.4.0',
+          modules: [],
+        } as FakeModuleConfig,
       ],
     ]);
     const available = new Map([
@@ -434,7 +544,11 @@ describe('resolve solver', () => {
     );
 
     expect(plan.ok).toBe(true);
-    expect(resolved.map((r) => r.declaration.name).sort()).toEqual(['A', 'B', 'C']);
+    expect(resolved.map((r) => r.declaration.name).sort()).toEqual([
+      'A',
+      'B',
+      'C',
+    ]);
 
     const byName = new Map(resolved.map((r) => [r.declaration.name, r]));
 
@@ -459,15 +573,180 @@ describe('resolve solver', () => {
 
     for (const entry of resolved) {
       expect(
-        existsSync(join(entry.stagedPath, '.cards', 'local', 'cardsConfig.json')),
+        existsSync(
+          join(entry.stagedPath, '.cards', 'local', 'cardsConfig.json'),
+        ),
       ).toBe(true);
     }
   });
 
+  it('unversioned: fresh add of a file source installs as-is (to:null)', async () => {
+    const project = buildProjectWithModules([]);
+
+    // file: location ⇒ supportsVersioning false ⇒ no available versions ⇒
+    // unversioned. The fake reads readMetadata(source, null) from the bare key.
+    const configs = new Map<string, FakeModuleConfig>([
+      [
+        'file:/m/F',
+        { cardKeyPrefix: 'F', name: 'F', modules: [] } as FakeModuleConfig,
+      ],
+    ]);
+    const source = new InMemorySource(configs, new Map(), new Map(), new Map());
+
+    const result = await resolve(
+      project,
+      {
+        kind: 'add',
+        name: 'F',
+        source: { location: 'file:/m/F', private: false },
+        range: undefined,
+      },
+      { sourceLayer: source, tempDir: testDir },
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const f = result.changes.find((c) => c.module === 'F');
+    expect(f).toMatchObject({ module: 'F', from: null, to: null, replay: [] });
+  });
+
+  it('unversioned: fresh add pulls an unversioned transitive', async () => {
+    const project = buildProjectWithModules([]);
+
+    const configs = new Map<string, FakeModuleConfig>([
+      [
+        'file:/m/F',
+        {
+          cardKeyPrefix: 'F',
+          name: 'F',
+          modules: [{ name: 'G', location: 'file:/m/G', private: false }],
+        } as FakeModuleConfig,
+      ],
+      [
+        'file:/m/G',
+        { cardKeyPrefix: 'G', name: 'G', modules: [] } as FakeModuleConfig,
+      ],
+    ]);
+    const source = new InMemorySource(configs, new Map(), new Map(), new Map());
+
+    const result = await resolve(
+      project,
+      {
+        kind: 'add',
+        name: 'F',
+        source: { location: 'file:/m/F', private: false },
+        range: undefined,
+      },
+      { sourceLayer: source, tempDir: testDir },
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const byModule = new Map(result.changes.map((c) => [c.module, c]));
+    expect(byModule.get('F')).toMatchObject({ from: null, to: null });
+    expect(byModule.get('G')).toMatchObject({ from: null, to: null });
+  });
+
+  it('unversioned: a versioned root updates while its unversioned dep stays put', async () => {
+    const project = buildProjectWithModules([
+      {
+        name: 'A',
+        location: 'https://x/A.git',
+        version: '^1.0.0',
+        private: false,
+      },
+    ]);
+    await installModule(project, {
+      name: 'A',
+      version: '1.0.0',
+      modules: [{ name: 'F', location: 'file:/m/F' }],
+    });
+    // Installed unversioned file module (no version in its config).
+    {
+      const dir = join(project.paths.modulesFolder, 'F');
+      await mkdir(dir, { recursive: true });
+      await writeFile(
+        join(dir, 'cardsConfig.json'),
+        JSON.stringify({ name: 'F', cardKeyPrefix: 'F', modules: [] }),
+      );
+    }
+
+    const configs = new Map<string, FakeModuleConfig>([
+      [
+        'https://x/A.git@v1.1.0',
+        {
+          cardKeyPrefix: 'A',
+          name: 'A',
+          version: '1.1.0',
+          modules: [{ name: 'F', location: 'file:/m/F', private: false }],
+        } as FakeModuleConfig,
+      ],
+      [
+        'file:/m/F',
+        { cardKeyPrefix: 'F', name: 'F', modules: [] } as FakeModuleConfig,
+      ],
+    ]);
+    const available = new Map([['https://x/A.git', ['1.1.0', '1.0.0']]]);
+    const seals = new Map<string, Array<[string, string]>>([
+      ['https://x/A.git@v1.1.0', [['1.0.0', '1.1.0']]],
+    ]);
+    const source = new InMemorySource(configs, available, new Map(), seals);
+
+    const result = await resolve(
+      project,
+      { kind: 'update', module: 'A' },
+      { sourceLayer: source, tempDir: testDir },
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const a = result.changes.find((c) => c.module === 'A');
+    expect(a).toMatchObject({ from: '1.0.0', to: '1.1.0' });
+    expect(a!.replay).not.toEqual([]);
+    // F is already installed and unchanged ⇒ no change emitted, and no conflict.
+    expect(result.changes.find((c) => c.module === 'F')).toBeUndefined();
+  });
+
+  it('resolveForApply: a fresh unversioned add stages with no ref/version', async () => {
+    const project = buildProjectWithModules([]);
+
+    const configs = new Map<string, FakeModuleConfig>([
+      [
+        'file:/m/F',
+        { cardKeyPrefix: 'F', name: 'F', modules: [] } as FakeModuleConfig,
+      ],
+    ]);
+    const source = new InMemorySource(configs, new Map(), new Map(), new Map());
+
+    const { plan, resolved } = await resolveForApply(
+      project,
+      {
+        kind: 'add',
+        name: 'F',
+        source: { location: 'file:/m/F', private: false },
+        range: undefined,
+      },
+      { sourceLayer: source, tempDir: join(testDir, 'apply-unversioned') },
+    );
+    expect(plan.ok).toBe(true);
+    const f = resolved.find((r) => r.declaration.name === 'F');
+    expect(f).toBeDefined();
+    expect(f!.version).toBeUndefined();
+    expect(f!.ref).toBeUndefined();
+    expect(existsSync(f!.stagedPath)).toBe(true);
+  });
+
   it('resolveForApply returns an empty plan on an unsatisfiable request', async () => {
     const project = buildProjectWithModules([
-      { name: 'A', location: 'https://x/A.git', version: '^1.0.0', private: false },
-      { name: 'C', location: 'https://x/C.git', version: '^1.0.0', private: false },
+      {
+        name: 'A',
+        location: 'https://x/A.git',
+        version: '^1.0.0',
+        private: false,
+      },
+      {
+        name: 'C',
+        location: 'https://x/C.git',
+        version: '^1.0.0',
+        private: false,
+      },
     ]);
     await installModule(project, {
       name: 'A',
@@ -488,12 +767,19 @@ describe('resolve solver', () => {
           cardKeyPrefix: 'A',
           name: 'A',
           version: '1.8.0',
-          modules: [{ name: 'B', location: 'https://x/B.git', version: '>=2.0.0' }],
+          modules: [
+            { name: 'B', location: 'https://x/B.git', version: '>=2.0.0' },
+          ],
         } as FakeModuleConfig,
       ],
       [
         'https://x/B.git@v2.0.0',
-        { cardKeyPrefix: 'B', name: 'B', version: '2.0.0', modules: [] } as FakeModuleConfig,
+        {
+          cardKeyPrefix: 'B',
+          name: 'B',
+          version: '2.0.0',
+          modules: [],
+        } as FakeModuleConfig,
       ],
     ]);
     const available = new Map([
