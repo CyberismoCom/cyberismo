@@ -18,12 +18,15 @@ import { join, resolve as pathResolve } from 'node:path';
 import { Validate } from '../commands/validate.js';
 import { ProjectPaths } from '../containers/project/project-paths.js';
 import { copyDir, deleteDir, pathExists } from '../utils/file-utils.js';
-import { listSealFiles, type SealFile } from '../mutations/replay/seal-files.js';
+import {
+  listSealFiles,
+  type SealFile,
+} from '../mutations/replay/seal-files.js';
 import { readModuleConfig } from './resolver.js';
 
 import { isFileLocation, stripFileProtocol } from './location.js';
 import type { FetchTarget, SourceLayer } from './source.js';
-import type { RemoteQueryOutcome, Source, Version } from './types.js';
+import type { RemoteQueryOutcome, Source } from './types.js';
 import type { ProjectSettings } from '../interfaces/project-interfaces.js';
 
 /**
@@ -99,10 +102,14 @@ export class FileSourceLayer implements SourceLayer {
     };
   }
 
-  async readMetadata(source: Source, _version: Version | null): Promise<{ config: ProjectSettings; seals: SealFile[] }> {
+  async readMetadata(
+    source: Source,
+  ): Promise<{ config: ProjectSettings; seals: SealFile[] }> {
     const base = stripFileProtocol(source.location);
     const config = await readModuleConfig(base);
-    const seals = await listSealFiles(new ProjectPaths(base).migrationLogFolder);
+    const seals = await listSealFiles(
+      new ProjectPaths(base).migrationLogFolder,
+    );
     return { config, seals };
   }
 }
