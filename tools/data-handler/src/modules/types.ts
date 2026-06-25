@@ -113,14 +113,3 @@ export type CheckStatus =
   | 'update_available'
   | 'blocked'
   | 'source_unreachable';
-
-/** Read-only per-module report produced by `CheckUpdates`. */
-export interface ModuleCheckReport {
-  project: string;
-  declaration: ModuleDeclaration;
-  installation?: ModuleInstallation;
-  latestVersion?: Version;
-  latestSatisfying?: Version;
-  status: CheckStatus;
-}
-

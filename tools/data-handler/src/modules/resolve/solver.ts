@@ -352,7 +352,12 @@ async function solve(
     const isAddTarget = req.kind === 'add' && name === req.name;
     const isUnversionedRootRefresh =
       req.kind === 'updateAll' && node.isRoot && to === null;
-    if (isAddTarget || isUnversionedRootRefresh || !wasInstalled || from !== to) {
+    if (
+      isAddTarget ||
+      isUnversionedRootRefresh ||
+      !wasInstalled ||
+      from !== to
+    ) {
       let replay: SealFile[] = [];
       if (from && to && from !== to) {
         try {
@@ -380,11 +385,12 @@ export async function resolve(
     credentials?: Credentials;
   },
 ): Promise<ResolveResult> {
+  const ownsSource = !opts?.sourceLayer;
   const source = opts?.sourceLayer ?? createSourceLayer();
   try {
     return (await solve(project, req, source, opts?.credentials)).result;
   } finally {
-    await source.dispose?.(); // release reused clones (no-op for fakes/file sources)
+    if (ownsSource) await source.dispose?.(); // release reused clones (no-op for fakes/file sources)
   }
 }
 
@@ -403,6 +409,7 @@ export async function resolveForApply(
     credentials?: Credentials;
   },
 ): Promise<{ plan: ResolveResult; resolved: ResolvedModule[] }> {
+  const ownsSource = !opts?.sourceLayer;
   const source = opts?.sourceLayer ?? createSourceLayer();
   const tempDir = opts?.tempDir ?? join(project.paths.tempFolder, 'resolve');
   try {
@@ -452,6 +459,6 @@ export async function resolveForApply(
     }
     return { plan: result, resolved };
   } finally {
-    await source.dispose?.();
+    if (ownsSource) await source.dispose?.();
   }
 }

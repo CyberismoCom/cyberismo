@@ -733,6 +733,50 @@ describe('resolve solver', () => {
     expect(existsSync(f!.stagedPath)).toBe(true);
   });
 
+  it('injected sourceLayer is NOT disposed by resolve or resolveForApply', async () => {
+    // Regression: resolve/resolveForApply must NOT call dispose on a caller-injected
+    // layer — the caller owns disposal. An injected fake whose dispose throws would
+    // propagate and fail the test if the contract is broken.
+    const project = buildProjectWithModules([
+      {
+        name: 'A',
+        location: 'https://x/A.git',
+        version: '^1.0.0',
+        private: false,
+      },
+    ]);
+    await installModule(project, { name: 'A', version: '1.0.0' });
+
+    const source = new InMemorySource(
+      new Map(),
+      new Map([['https://x/A.git', ['1.0.0']]]),
+    );
+    let disposeCallCount = 0;
+    (source as unknown as { dispose: () => Promise<void> }).dispose =
+      async () => {
+        disposeCallCount++;
+      };
+
+    await resolve(
+      project,
+      { kind: 'verify' },
+      { sourceLayer: source, tempDir: testDir },
+    );
+    expect(disposeCallCount, 'resolve must not dispose an injected layer').toBe(
+      0,
+    );
+
+    await resolveForApply(
+      project,
+      { kind: 'verify' },
+      { sourceLayer: source, tempDir: testDir },
+    );
+    expect(
+      disposeCallCount,
+      'resolveForApply must not dispose an injected layer',
+    ).toBe(0);
+  });
+
   it('resolveForApply returns an empty plan on an unsatisfiable request', async () => {
     const project = buildProjectWithModules([
       {
