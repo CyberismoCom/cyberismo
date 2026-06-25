@@ -19,6 +19,7 @@ import {
   isGitLocation,
   resolve,
 } from '../modules/index.js';
+import { getChildLogger } from '../utils/log-utils.js';
 
 import type {
   Credentials,
@@ -32,6 +33,10 @@ import type { SourceLayer } from '../modules/source.js';
  * Handles checking for module updates.
  */
 export class CheckUpdates {
+  private get logger() {
+    return getChildLogger({ module: 'check-updates' });
+  }
+
   constructor(
     private project: Project,
     private sourceLayer?: SourceLayer,
@@ -97,8 +102,11 @@ export class CheckUpdates {
             { kind: 'availability', module: decl.name },
             { sourceLayer, credentials },
           );
-        } catch {
+        } catch (err) {
           // Unreachable remote / fetch failure — distinguish from up-to-date.
+          this.logger.warn(
+            `check-updates: source unreachable for '${decl.name}': ${err instanceof Error ? err.message : String(err)}`,
+          );
           return {
             ...base,
             status: 'source_unreachable',
