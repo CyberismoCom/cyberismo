@@ -128,6 +128,24 @@ async function solve(
   // Upsert so re-importing an installed module frees it like an update.
   if (req.kind === 'add') {
     const existing = nodes.get(req.name);
+    // Re-importing an already-installed module from a different source is a
+    // conflict — the prefix is already bound to its origin. Reject before any
+    // disk change rather than silently rebinding it.
+    if (existing?.path) {
+      const existingPrivate = existing.source.private ?? false;
+      const declPrivate = req.source.private ?? false;
+      if (
+        existing.source.location !== req.source.location ||
+        existingPrivate !== declPrivate
+      ) {
+        throw new Error(
+          `Conflicting source for module '${req.name}': ` +
+            `installed from '${existing.source.location}' ` +
+            `(private=${existingPrivate}), but also declared with ` +
+            `'${req.source.location}' (private=${declPrivate})`,
+        );
+      }
+    }
     nodes.set(req.name, {
       name: req.name,
       source: req.source,
@@ -173,7 +191,13 @@ async function solve(
     if (hit) return hit;
     let edges: Edge[];
     let seals: SealFile[];
-    if (n.installed === v && n.path) {
+    // updateAll on an unversioned (to === null) installed module tracks a
+    // moving source, so its transitive set may have drifted from the vendored
+    // copy. Re-read from source to surface added/dropped deps; otherwise the
+    // cheaper installed-config read is authoritative.
+    const refreshUnversioned =
+      req.kind === 'updateAll' && v === null && n.installed === null;
+    if (n.installed === v && n.path && !refreshUnversioned) {
       edges = toEdges(
         await readJsonFile(project.paths.moduleConfigurationFile(n.name)),
       );
@@ -320,7 +344,15 @@ async function solve(
     const from = node.installed; // Version | null
     const to = decision.version; // Version | null
     const wasInstalled = node.path !== null;
-    if (!wasInstalled || from !== to) {
+    // An unversioned module (to === null) tracks a moving source, so its
+    // refreshed config may have changed even though from === to === null —
+    // which would otherwise read as "no change". Re-emit it so dropped/added
+    // transitive deps get re-vendored or orphaned: on the add target itself,
+    // and on every unversioned root during updateAll.
+    const isAddTarget = req.kind === 'add' && name === req.name;
+    const isUnversionedRootRefresh =
+      req.kind === 'updateAll' && node.isRoot && to === null;
+    if (isAddTarget || isUnversionedRootRefresh || !wasInstalled || from !== to) {
       let replay: SealFile[] = [];
       if (from && to && from !== to) {
         try {
