@@ -18,6 +18,7 @@ import type {
   TemplateConfiguration,
 } from './resource-interfaces.js';
 import type { CheckStatus } from '../modules/types.js';
+import type { ResolveConflict } from '../modules/resolve/types.js';
 
 // Single card; either in project or in template.
 export interface Card {
@@ -231,23 +232,18 @@ export interface ModuleSettingOptions {
   version?: string;
 }
 
-// Result of checking for module updates.
+// Result of checking for module updates, computed through the resolver engine.
 export interface ModuleUpdateStatus {
   name: string;
   installedVersion?: string;
-  // Absolute latest available version from the remote, regardless of constraint.
-  latestVersion?: string;
-  // Highest available version that satisfies the module's version constraint (if any).
-  latestSatisfyingConstraint?: string;
-  availableVersions: string[];
-  // True when latestVersion is newer than installedVersion.
-  updateAvailable: boolean;
-  // True when the constraint prevents auto-updating to latestVersion.
-  constraintBlocksUpdate?: boolean;
   isGitModule: boolean;
-  versionConstraint?: string;
-  noMatchingVersion?: boolean;
   status: CheckStatus;
+  // Version this module could move to (set when status === 'update_available').
+  reachableVersion?: string;
+  // The full set of modules that would move if this update were applied.
+  cascade?: { module: string; from: string | null; to: string }[];
+  // Conflicts that prevent the update (set when status === 'blocked').
+  blocked?: ResolveConflict[];
 }
 
 // Resources that are possible to remove.
