@@ -26,7 +26,6 @@ import {
 import {
   resourceNameRegex,
   BASE_PROPERTY_KEYS,
-  DATA_TYPES,
   changeOperationSchema,
   arrayUpdateOperationSchema,
   SUB_PROPERTY_KEYS,
@@ -765,134 +764,35 @@ export function registerTools(
   );
 
   server.registerTool(
-    'update_file_resource',
+    'update_card_type',
     {
       description:
-        'Update a file based resource (card types, field types, workflows, link types)',
-      inputSchema: z.union([
-        z.object({
-          projectPrefix: projectPrefixParam,
-          key: z
-            .enum([...BASE_PROPERTY_KEYS, 'workflow'])
-            .describe('Available property keys to update'),
-          operation: changeOperationSchema,
-          resource: z
-            .string()
-            .regex(resourceNameRegex('cardTypes'))
-            .describe(
-              'Full resource name (e.g., "prefix/cardTypes/myResourceName")',
-            ),
-        }),
-        z.object({
-          projectPrefix: projectPrefixParam,
-          key: z
-            .enum([
-              'alwaysVisibleFields',
-              'optionallyVisibleFields',
-              'customFields',
-            ])
-            .describe('Available property keys to update'),
-          operation: arrayUpdateOperationSchema,
-          resource: z
-            .string()
-            .regex(resourceNameRegex('cardTypes'))
-            .describe(
-              'Full resource name (e.g., "prefix/cardTypes/myResourceName")',
-            ),
-        }),
-        z.object({
-          projectPrefix: projectPrefixParam,
-          key: z
-            .enum(BASE_PROPERTY_KEYS)
-            .describe('Available property keys to update'),
-          operation: changeOperationSchema,
-          resource: z
-            .string()
-            .regex(resourceNameRegex('fieldTypes'))
-            .describe(
-              'Full resource name (e.g., "prefix/fieldTypes/myResourceName")',
-            ),
-        }),
-        z.object({
-          projectPrefix: projectPrefixParam,
-          key: z.literal('dataType'),
-          operation: changeOperationSchema.extend({
-            to: z.enum(DATA_TYPES).describe('New data type for the field'),
-          }),
-          resource: z
-            .string()
-            .regex(resourceNameRegex('fieldTypes'))
-            .describe(
-              'Full resource name (e.g., "prefix/fieldTypes/myResourceName")',
-            ),
-        }),
-        z.object({
-          projectPrefix: projectPrefixParam,
-          key: z.literal('enumValues'),
-          operation: arrayUpdateOperationSchema,
-          resource: z
-            .string()
-            .regex(resourceNameRegex('fieldTypes'))
-            .describe(
-              'Full resource name (e.g., "prefix/fieldTypes/myResourceName")',
-            ),
-        }),
-        z.object({
-          projectPrefix: projectPrefixParam,
-          key: z
-            .enum([
-              ...BASE_PROPERTY_KEYS,
-              'enableLinkDescription',
-              'inboundDisplayName',
-              'outboundDisplayName',
-            ])
-            .describe('Base metadata field to update'),
-          operation: changeOperationSchema,
-          resource: z
-            .string()
-            .regex(resourceNameRegex('linkTypes'))
-            .describe(
-              'Full resource name (e.g., "prefix/linkTypes/myResourceName")',
-            ),
-        }),
-        z.object({
-          projectPrefix: projectPrefixParam,
-          key: z.enum(['destinationCardTypes', 'sourceCardTypes']),
-          operation: arrayUpdateOperationSchema,
-          resource: z
-            .string()
-            .regex(resourceNameRegex('linkTypes'))
-            .describe(
-              'Full resource name (e.g., "prefix/linkTypes/myResourceName")',
-            ),
-        }),
-        z.object({
-          projectPrefix: projectPrefixParam,
-          key: z
-            .enum(BASE_PROPERTY_KEYS)
-            .describe('Available property keys to update'),
-          operation: changeOperationSchema,
-          resource: z
-            .string()
-            .regex(resourceNameRegex('workflows'))
-            .describe(
-              'Full resource name (e.g., "prefix/workflows/myResourceName")',
-            ),
-        }),
-        z.object({
-          projectPrefix: projectPrefixParam,
-          key: z.enum(['states', 'transitions']),
-          operation: arrayUpdateOperationSchema,
-          resource: z
-            .string()
-            .regex(resourceNameRegex('workflows'))
-            .describe(
-              'Full resource name (e.g., "prefix/workflows/myResourceName")',
-            ),
-        }),
-      ]),
+        'Update a card type resource. Use key "name", "displayName", "description", "category", or "workflow" with a change operation to update scalar properties. Use key "alwaysVisibleFields", "optionallyVisibleFields", or "customFields" with an array operation (add/change/rank/remove) to manage array properties.',
+      inputSchema: {
+        projectPrefix: projectPrefixParam,
+        resource: z
+          .string()
+          .regex(resourceNameRegex('cardTypes'))
+          .describe(
+            'Full resource name (e.g., "prefix/cardTypes/myResourceName")',
+          ),
+        key: z
+          .enum([
+            ...BASE_PROPERTY_KEYS,
+            'workflow',
+            'alwaysVisibleFields',
+            'optionallyVisibleFields',
+            'customFields',
+          ])
+          .describe('Property key to update'),
+        operation: z
+          .union([changeOperationSchema, arrayUpdateOperationSchema])
+          .describe(
+            'Operation to perform. Use change operation for scalar keys (name, displayName, description, category, workflow). Use array operation (add/change/rank/remove) for array keys (alwaysVisibleFields, optionallyVisibleFields, customFields).',
+          ),
+      },
     },
-    async ({ projectPrefix, resource, operation, key }) => {
+    async ({ projectPrefix, resource, key, operation }) => {
       try {
         const commands = resolveCommands(provider, projectPrefix);
         await commands.updateCmd.apply({
@@ -908,7 +808,146 @@ export function registerTools(
           text: 'Successfully updated',
         });
       } catch (error) {
-        return toolError('updating resource', error);
+        return toolError('updating card type', error);
+      }
+    },
+  );
+
+  server.registerTool(
+    'update_field_type',
+    {
+      description:
+        'Update a field type resource. Use key "name", "displayName", "description", "category" with a change operation to update scalar properties. Use key "dataType" with a change operation (to must be one of: boolean, date, dateTime, enum, integer, list, longText, number, person, shortText). Use key "enumValues" with an array operation (add/change/rank/remove) to manage enum/list values.',
+      inputSchema: {
+        projectPrefix: projectPrefixParam,
+        resource: z
+          .string()
+          .regex(resourceNameRegex('fieldTypes'))
+          .describe(
+            'Full resource name (e.g., "prefix/fieldTypes/myResourceName")',
+          ),
+        key: z
+          .enum([...BASE_PROPERTY_KEYS, 'dataType', 'enumValues'])
+          .describe('Property key to update'),
+        operation: z
+          .union([changeOperationSchema, arrayUpdateOperationSchema])
+          .describe(
+            'Operation to perform. Use change operation for scalar keys (name, displayName, description, category, dataType). Use array operation (add/change/rank/remove) for enumValues.',
+          ),
+      },
+    },
+    async ({ projectPrefix, resource, key, operation }) => {
+      try {
+        const commands = resolveCommands(provider, projectPrefix);
+        await commands.updateCmd.apply({
+          kind: 'edit',
+          target: resourceName(resource),
+          updateKey: { key },
+          operation,
+        });
+        return toolResult({
+          resource,
+          key,
+          operation,
+          text: 'Successfully updated',
+        });
+      } catch (error) {
+        return toolError('updating field type', error);
+      }
+    },
+  );
+
+  server.registerTool(
+    'update_link_type',
+    {
+      description:
+        'Update a link type resource. Use key "name", "displayName", "description", "category", "enableLinkDescription", "inboundDisplayName", or "outboundDisplayName" with a change operation to update scalar properties. Use key "sourceCardTypes" or "destinationCardTypes" with an array operation (add/change/rank/remove) to manage which card types can be linked.',
+      inputSchema: {
+        projectPrefix: projectPrefixParam,
+        resource: z
+          .string()
+          .regex(resourceNameRegex('linkTypes'))
+          .describe(
+            'Full resource name (e.g., "prefix/linkTypes/myResourceName")',
+          ),
+        key: z
+          .enum([
+            ...BASE_PROPERTY_KEYS,
+            'enableLinkDescription',
+            'inboundDisplayName',
+            'outboundDisplayName',
+            'sourceCardTypes',
+            'destinationCardTypes',
+          ])
+          .describe('Property key to update'),
+        operation: z
+          .union([changeOperationSchema, arrayUpdateOperationSchema])
+          .describe(
+            'Operation to perform. Use change operation for scalar keys (name, displayName, description, category, enableLinkDescription, inboundDisplayName, outboundDisplayName). Use array operation (add/change/rank/remove) for sourceCardTypes and destinationCardTypes.',
+          ),
+      },
+    },
+    async ({ projectPrefix, resource, key, operation }) => {
+      try {
+        const commands = resolveCommands(provider, projectPrefix);
+        await commands.updateCmd.apply({
+          kind: 'edit',
+          target: resourceName(resource),
+          updateKey: { key },
+          operation,
+        });
+        return toolResult({
+          resource,
+          key,
+          operation,
+          text: 'Successfully updated',
+        });
+      } catch (error) {
+        return toolError('updating link type', error);
+      }
+    },
+  );
+
+  server.registerTool(
+    'update_workflow',
+    {
+      description:
+        'Update a workflow resource. Use key "name", "displayName", "description", or "category" with a change operation to update scalar properties. Use key "states" or "transitions" with an array operation (add/change/rank/remove) to manage workflow states and transitions.',
+      inputSchema: {
+        projectPrefix: projectPrefixParam,
+        resource: z
+          .string()
+          .regex(resourceNameRegex('workflows'))
+          .describe(
+            'Full resource name (e.g., "prefix/workflows/myResourceName")',
+          ),
+        key: z
+          .enum([...BASE_PROPERTY_KEYS, 'states', 'transitions'])
+          .describe('Property key to update'),
+        operation: z
+          .union([changeOperationSchema, arrayUpdateOperationSchema])
+          .describe(
+            'Operation to perform. Use change operation for scalar keys (name, displayName, description, category). Use array operation (add/change/rank/remove) for states and transitions.',
+          ),
+      },
+    },
+    async ({ projectPrefix, resource, key, operation }) => {
+      try {
+        const commands = resolveCommands(provider, projectPrefix);
+        await commands.updateCmd.apply({
+          kind: 'edit',
+          target: resourceName(resource),
+          updateKey: { key },
+          operation,
+        });
+        return toolResult({
+          resource,
+          key,
+          operation,
+          text: 'Successfully updated',
+        });
+      } catch (error) {
+        return toolError('updating workflow', error);
       }
     },
   );
