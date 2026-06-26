@@ -614,6 +614,28 @@ describe('modules/resolver', () => {
     ).rejects.toThrow(/empty name/);
   });
 
+  it('throws when the staged config prefix differs from the declared name (prefix rename)', async () => {
+    const source = new InMemorySource(
+      new Map([
+        [
+          'https://example.com/A.git',
+          { cardKeyPrefix: 'renamed', name: 'A', modules: [] },
+        ],
+      ]),
+      new Map([['https://example.com/A.git', ['2.0.0']]]),
+    );
+
+    await expect(
+      resolveModules(
+        source,
+        [decl('olda', 'https://example.com/A.git', '^2.0.0')],
+        { tempDir },
+      ),
+    ).rejects.toThrow(
+      /Module 'olda' renamed its prefix to 'renamed'[\s\S]*Re-import the module/,
+    );
+  });
+
   it('rejects a transitive child whose name would escape a join() before fetching it', async () => {
     const source = new InMemorySource(
       new Map([

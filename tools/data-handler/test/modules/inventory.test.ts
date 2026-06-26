@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import {
   declaredModules,
   installedModules,
+  installedModulesWithSources,
 } from '../../src/modules/inventory.js';
 import { makeProjectStub } from '../helpers/module-fixtures.js';
 import type { ModuleSetting } from '../../src/interfaces/project-interfaces.js';
@@ -154,6 +155,110 @@ describe('modules/inventory', () => {
 
     const installations = await installedModules(project);
     expect(installations).toEqual([]);
+  });
+
+  it('withSources recovers a transitive location from an installed parent declaration', async () => {
+    // Project declares only "parent"; "child" was installed transitively.
+    const project = makeStub(projectDir, [
+      { name: 'parent', location: 'https://example.com/parent.git' },
+    ]);
+    await writeInstalledModule(projectDir, 'parent', {
+      cardKeyPrefix: 'parent',
+      name: 'parent',
+      version: '1.0.0',
+      modules: [{ name: 'child', location: 'https://example.com/child.git' }],
+    });
+    await writeInstalledModule(projectDir, 'child', {
+      cardKeyPrefix: 'child',
+      name: 'child',
+      version: '2.0.0',
+      modules: [],
+    });
+
+    const installations = await installedModulesWithSources(project);
+
+    const child = installations.find((i) => i.name === 'child');
+    expect(child?.source).toEqual({
+      location: 'https://example.com/child.git',
+      private: false,
+    });
+    const parent = installations.find((i) => i.name === 'parent');
+    expect(parent?.source.location).toBe('https://example.com/parent.git');
+  });
+
+  it('withSources keeps an empty location when no installed module declares the dependency', async () => {
+    const project = makeStub(projectDir, [
+      { name: 'parent', location: 'https://example.com/parent.git' },
+    ]);
+    await writeInstalledModule(projectDir, 'parent', {
+      cardKeyPrefix: 'parent',
+      name: 'parent',
+      version: '1.0.0',
+      modules: [],
+    });
+    // Orphaned transitive: nothing declares it anywhere.
+    await writeInstalledModule(projectDir, 'stray', {
+      cardKeyPrefix: 'stray',
+      name: 'stray',
+      version: '3.0.0',
+    });
+
+    const installations = await installedModulesWithSources(project);
+
+    const stray = installations.find((i) => i.name === 'stray');
+    expect(stray?.source.location).toBe('');
+  });
+
+  it('withSources lets a project declaration win over a module declaration', async () => {
+    // "child" is declared by the project AND by parent's config, with
+    // different locations; the project's location must win.
+    const project = makeStub(projectDir, [
+      { name: 'parent', location: 'https://example.com/parent.git' },
+      { name: 'child', location: 'https://example.com/child-project.git' },
+    ]);
+    await writeInstalledModule(projectDir, 'parent', {
+      cardKeyPrefix: 'parent',
+      name: 'parent',
+      version: '1.0.0',
+      modules: [
+        { name: 'child', location: 'https://example.com/child-module.git' },
+      ],
+    });
+    await writeInstalledModule(projectDir, 'child', {
+      cardKeyPrefix: 'child',
+      name: 'child',
+      version: '2.0.0',
+      modules: [],
+    });
+
+    const installations = await installedModulesWithSources(project);
+
+    const child = installations.find((i) => i.name === 'child');
+    expect(child?.source.location).toBe(
+      'https://example.com/child-project.git',
+    );
+  });
+
+  it('withSources ignores module dependency declarations without a location', async () => {
+    const project = makeStub(projectDir, [
+      { name: 'parent', location: 'https://example.com/parent.git' },
+    ]);
+    await writeInstalledModule(projectDir, 'parent', {
+      cardKeyPrefix: 'parent',
+      name: 'parent',
+      version: '1.0.0',
+      modules: [{ name: 'child' }],
+    });
+    await writeInstalledModule(projectDir, 'child', {
+      cardKeyPrefix: 'child',
+      name: 'child',
+      version: '2.0.0',
+    });
+
+    const installations = await installedModulesWithSources(project);
+
+    const child = installations.find((i) => i.name === 'child');
+    expect(child?.source.location).toBe('');
   });
 
   it('installed flags an untracked installation with an empty source.location', async () => {

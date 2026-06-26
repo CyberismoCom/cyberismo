@@ -381,11 +381,16 @@ export class ResourceCache {
 
   /**
    * Refresh local resources in the cache.
+   *
+   * Drops cached instances as well: instances hold file content read at
+   * construction time, so after an on-disk rewrite (project-rename
+   * cascade, git rollback) a surviving instance would keep serving stale
+   * content even though the registry was re-collected.
    */
   public changed() {
     for (const [key, metadata] of this.resourceRegistry) {
       if (metadata.source === 'local') {
-        this.resourceRegistry.delete(key);
+        this.deleteKey(key);
       }
     }
     this.collectLocalResources();
@@ -401,7 +406,10 @@ export class ResourceCache {
         metadata.source === 'module' &&
         (metadata.moduleName === moduleName || !moduleName)
       ) {
-        this.resourceRegistry.delete(key);
+        // Evict the instance too, not just the registry entry: module files
+        // are overwritten in place, so a resource keeps its key but its
+        // content (e.g. a field's dataType) may have changed.
+        this.deleteKey(key);
       }
     }
     this.collectModuleResources();

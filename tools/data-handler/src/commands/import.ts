@@ -23,6 +23,7 @@ import {
   buildRemoteUrl,
   declaredModules,
   installedModules,
+  installedModulesWithSources,
   resolveModules,
   createSourceLayer,
   FILE_PROTOCOL,
@@ -35,6 +36,12 @@ import {
   validateVersionAgainstConstraints,
 } from '../modules/index.js';
 import { cleanOrphans } from '../modules/orphans.js';
+import {
+  executeModuleReplays,
+  filterStepsToApplied,
+  ModuleValidationFailedError,
+  planModuleReplays,
+} from '../mutations/replay/replay.js';
 
 import type { Create } from './create.js';
 import type {
@@ -44,6 +51,7 @@ import type {
 import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
 import type { ModuleDeclaration } from '../modules/types.js';
+import type { ResolvedModule } from '../modules/resolver.js';
 
 /**
  * Coerce a caller-supplied source into the canonical form used by the
@@ -91,6 +99,50 @@ export class Import {
   /** Temp directory shared between the resolver and the applier. */
   private get tempModulesDir(): string {
     return join(this.project.paths.tempFolder, 'modules');
+  }
+
+  /**
+   * The single module-update transaction: plan migration replays from the
+   * pre-update installation snapshot (a conflict aborts here, before any
+   * disk change), apply the staged modules, execute the planned replays,
+   * and validate the project when replays actually ran. Plain installs
+   * and no-op updates produce no steps and skip both replay and the
+   * post-replay validation.
+   */
+  private async applyResolvedWithReplay(
+    resolved: ResolvedModule[],
+  ): Promise<void> {
+    const installedBefore = await installedModulesWithSources(this.project);
+    const steps = await planModuleReplays(resolved, installedBefore);
+
+    const appliedModules = await applyModules(this.project, resolved, {
+      tempDir: this.tempModulesDir,
+    });
+    await cleanOrphans(this.project);
+
+    if (steps.length === 0) return;
+
+    // A module whose apply failed still has its OLD files installed;
+    // replaying its chain would cascade changes those files do not
+    // reflect. Run replays only for modules that actually landed.
+    const { executable, dropped } = filterStepsToApplied(steps, appliedModules);
+    for (const step of dropped) {
+      console.warn(
+        `Skipping migration replay for module '${step.modulePrefix}' ` +
+          `(${step.fromVersion} -> ${step.toVersion}): the module failed to apply.`,
+      );
+    }
+    if (executable.length === 0) return;
+
+    await executeModuleReplays(this.project, executable);
+
+    const validationErrors = await Validate.getInstance().validate(
+      this.project.basePath,
+      () => this.project,
+    );
+    if (validationErrors.trim().length > 0) {
+      throw new ModuleValidationFailedError(validationErrors, executable);
+    }
   }
 
   /**
@@ -285,12 +337,7 @@ export class Import {
       tempDir: this.tempModulesDir,
     });
 
-    await applyModules(this.project, resolved, {
-      tempDir: this.tempModulesDir,
-    });
-
-    // Clean up any installations orphaned by this import.
-    await cleanOrphans(this.project);
+    await this.applyResolvedWithReplay(resolved);
 
     // Validate the project after module has been imported.
     const afterImportValidateErrors = await Validate.getInstance().validate(
@@ -377,11 +424,7 @@ export class Import {
       tempDir: this.tempModulesDir,
     });
 
-    await applyModules(this.project, resolved, {
-      tempDir: this.tempModulesDir,
-    });
-
-    await cleanOrphans(this.project);
+    await this.applyResolvedWithReplay(resolved);
   }
 
   /**
@@ -406,10 +449,6 @@ export class Import {
       tempDir: this.tempModulesDir,
     });
 
-    await applyModules(this.project, resolved, {
-      tempDir: this.tempModulesDir,
-    });
-
-    await cleanOrphans(this.project);
+    await this.applyResolvedWithReplay(resolved);
   }
 }
