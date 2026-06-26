@@ -125,7 +125,6 @@
     "calculationResourceSchema": {
       "type": "object",
       "properties": {
-        "additionalProperties": false,
         "directories": {
           "type": "object",
           "additionalProperties": false,
@@ -219,7 +218,6 @@
     "graphViewResourceSchema": {
       "type": "object",
       "properties": {
-        "additionalProperties": false,
         "directories": {
           "type": "object",
           "additionalProperties": false,
@@ -248,7 +246,6 @@
     "graphModelResourceSchema": {
       "type": "object",
       "properties": {
-        "additionalProperties": false,
         "directories": {
           "type": "object",
           "additionalProperties": false,
@@ -334,19 +331,18 @@
     "reportResourceSchema": {
       "type": "object",
       "properties": {
-        "additionalProperties": false,
         "files": {
           "$comment": "reports folder can contain report configuration files (<name>.json), or .gitkeep",
           "type": "object",
           "additionalProperties": false,
           "patternProperties": {
-            "^[A-Za-z0-9-_]+.json$": {
+            "^[A-Za-z0-9-_]+\\.json$": {
               "type": "object"
             },
-            "^.schema$": {
+            "^\\.schema$": {
               "type": "object"
             },
-            "^.gitkeep$": {
+            "^\\.gitkeep$": {
               "type": "object"
             }
           }
@@ -386,19 +382,18 @@
     "skillResourceSchema": {
       "type": "object",
       "properties": {
-        "additionalProperties": false,
         "files": {
           "$comment": "skills folder can contain skill configuration files (<name>.json), or .gitkeep",
           "type": "object",
           "additionalProperties": false,
           "patternProperties": {
-            "^[A-Za-z0-9-_]+.json$": {
+            "^[A-Za-z0-9-_]+\\.json$": {
               "type": "object"
             },
-            "^.schema$": {
+            "^\\.schema$": {
               "type": "object"
             },
-            "^.gitkeep$": {
+            "^\\.gitkeep$": {
               "type": "object"
             }
           }
@@ -407,7 +402,7 @@
           "type": "object",
           "additionalProperties": false,
           "patternProperties": {
-            ".+": {
+            "^[A-Za-z0-9-_]+$": {
               "type": "object",
               "properties": {
                 "files": {
@@ -531,15 +526,15 @@
               "type": "object",
               "additionalProperties": false,
               "patternProperties": {
-                "^[A-Za-z0-9-_]+.json$": {
+                "^[A-Za-z0-9-_]+\\.json$": {
                   "type": "object",
                   "$comment": "Each file needs to be separately validated against 'contentSchema'",
                   "contentSchema": "templateSchema.json"
                 },
-                "^.schema$": {
+                "^\\.schema$": {
                   "type": "object"
                 },
-                "^.gitkeep$": {
+                "^\\.gitkeep$": {
                   "type": "object"
                 }
               }

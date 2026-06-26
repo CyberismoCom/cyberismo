@@ -1,8 +1,10 @@
-import { readdir } from 'node:fs/promises';
+import { mkdirSync, rmSync } from 'node:fs';
+import { readdir, writeFile } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
 
 import { expect, describe, it, beforeAll } from 'vitest';
 
+import { copyDir } from '../src/utils/file-utils.js';
 import { readJsonFile } from '../src/utils/json.js';
 import { Validate } from '../src/commands/index.js';
 import type { Project } from '../src/containers/project.js';
@@ -94,6 +96,18 @@ describe('validate cmd tests', () => {
   it('try to validate() - no-.schema-in-cardRoot', async () => {
     const path = 'test/test-data/invalid/o-.schema-in-cardRoot';
     const valid = await validateCmd.validate(path, () => getTestProject(path));
+    expect(valid.length).toBeGreaterThan(0);
+  });
+  it('try to validate() - stray file matching only via an unescaped dot (fschema)', async () => {
+    // The directory-schema patterns escape the dot in `\.schema`/`\.gitkeep`/
+    // `<name>\.json`. With an unescaped dot, `^.schema$` also matched "fschema".
+    const tmp = join(baseDir, 'tmp-stray-schema-file');
+    rmSync(tmp, { recursive: true, force: true });
+    mkdirSync(tmp, { recursive: true });
+    await copyDir('test/test-data/valid/decision-records', tmp);
+    await writeFile(join(tmp, '.cards/local/reports/fschema'), '', 'utf-8');
+    const valid = await validateCmd.validate(tmp, () => getTestProject(tmp));
+    rmSync(tmp, { recursive: true, force: true });
     expect(valid.length).toBeGreaterThan(0);
   });
   it('try to validate() - invalid-empty', async () => {
