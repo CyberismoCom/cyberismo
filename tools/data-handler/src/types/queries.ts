@@ -77,6 +77,8 @@ export interface ParseResult<T extends BaseResult> {
 export const queries = [
   'card',
   'connectors',
+  'enabledSkills',
+  'globalSkills',
   'onCreation',
   'onTransition',
   'tree',
@@ -87,6 +89,8 @@ export type QueryName = (typeof queries)[number];
 export type QueryMap = {
   card: CardQueryResult;
   connectors: ConnectorQueryResult;
+  enabledSkills: BaseResult;
+  globalSkills: BaseResult;
   onCreation: FieldsToUpdateQueryResult;
   onTransition: FieldsToUpdateQueryResult;
   tree: TreeQueryResult;
