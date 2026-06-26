@@ -36,6 +36,7 @@ const RESOURCE_SCHEMAS: Record<string, string> = {
   reports: 'reportSchema.json',
   graphModels: 'graphModelSchema.json',
   graphViews: 'graphViewSchema.json',
+  skills: 'skillSchema.json',
 };
 
 // Edit keys that are intentionally NOT schema `properties`. `content` is a

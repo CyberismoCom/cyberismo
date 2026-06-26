@@ -36,6 +36,8 @@ export const VALID_FOLDER_RESOURCE_FILES = [
   'view.lp.hbs',
   'model.lp',
   'calculation.lp',
+  'skill.md',
+  'query.lp',
 ];
 
 /**

@@ -696,6 +696,20 @@ createCmd
     handleResponse(result);
   });
 
+// Create skill subcommand
+createCmd
+  .command('skill')
+  .description('Create a new skill')
+  .argument('<name>', `Name for skill. ${nameGuideline}`)
+  .action(async (name: string, options: CommandOptions<'create'>) => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['skill', name],
+      Object.assign({}, options, program.opts()),
+    );
+    handleResponse(result);
+  });
+
 // Create template subcommand
 createCmd
   .command('template')

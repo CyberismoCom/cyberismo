@@ -1,0 +1,35 @@
+{
+  "$id": "skillSchema",
+  "additionalProperties": false,
+  "description": "A skill object provides supplemental information about a skill",
+  "properties": {
+    "name": {
+      "description": "The name of this skill",
+      "minLength": 7,
+      "pattern": "^[A-Za-z0-9/._-]+$",
+      "type": "string"
+    },
+    "displayName": {
+      "description": "The name of the skill as it should be displayed in the user interface. For example, 'Manage Risk Register'.",
+      "type": "string"
+    },
+    "description": {
+      "description": "A brief summary of what the skill does and when it applies.",
+      "type": "string"
+    },
+    "category": {
+      "description": "The grouping category of the skill. For example, 'risk assessment', 'compliance' or 'incident response'.",
+      "type": "string"
+    },
+    "relatedTools": {
+      "description": "The MCP tool names that the skill's instructions reference. Lets AI agents see which tools are relevant without parsing the instructions.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": ["name", "displayName", "relatedTools"],
+  "title": "Skill",
+  "type": "object"
+}

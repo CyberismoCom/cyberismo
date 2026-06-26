@@ -16,6 +16,7 @@ import type {
   GraphModelContent,
   GraphViewContent,
   ReportContent,
+  SkillContent,
 } from './folder-content-interfaces.js';
 import type { ResourceType } from './project-interfaces.js';
 
@@ -137,6 +138,19 @@ export type ReportContentPropertyName =
 // Metadata for report
 export type ReportMetadata = ResourceBaseMetadata;
 
+// Skill resource.
+export interface Skill extends SkillMetadata {
+  content: SkillContent;
+}
+
+// Resource-specific content names
+export type SkillContentPropertyName = 'skillContent' | 'skillQuery';
+
+// Metadata for skill
+export interface SkillMetadata extends ResourceBaseMetadata {
+  relatedTools: string[];
+}
+
 // Base interface for all resources.
 export interface ResourceBaseMetadata {
   name: string;
@@ -155,6 +169,7 @@ export type AnyResourceContent =
   | GraphView
   | LinkType
   | Report
+  | Skill
   | TemplateMetadata
   | Workflow;
 
@@ -168,6 +183,7 @@ export type ResourceContentMap = {
   graphViews: GraphView;
   linkTypes: LinkType;
   reports: Report;
+  skills: Skill;
   templates: TemplateMetadata;
   workflows: Workflow;
 };

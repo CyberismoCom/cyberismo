@@ -26,11 +26,13 @@ type LeafResourceType =
   | 'reports'
   | 'graphModels'
   | 'graphViews'
+  | 'skills'
   | 'templates';
 
 /**
- * Renames a leaf resource (calculation, report, graph model, graph view or
- * template). The handler performs the reference cascade itself, rewriting
+ * Renames a leaf resource (calculation, report, graph model, graph view,
+ * skill or template). The handler performs the reference cascade itself,
+ * rewriting
  * references to the old name across folder-resource content files and card
  * content before renaming the resource on disk. The operation is marked
  * breaking so a log entry is recorded.

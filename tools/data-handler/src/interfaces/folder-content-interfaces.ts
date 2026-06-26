@@ -21,7 +21,9 @@ export const ALL_FILE_MAPPINGS = {
   'index.adoc.hbs': 'contentTemplate',
   'model.lp': 'model',
   'parameterSchema.json': 'schema',
+  'query.lp': 'skillQuery',
   'query.lp.hbs': 'queryTemplate',
+  'skill.md': 'skillContent',
   'view.lp.hbs': 'viewTemplate',
 } as const;
 
@@ -32,6 +34,8 @@ export const CONTENT_FILES = {
   model: 'model.lp',
   queryTemplate: 'query.lp.hbs',
   schema: 'parameterSchema.json',
+  skillContent: 'skill.md',
+  skillQuery: 'query.lp',
   viewTemplate: 'view.lp.hbs',
 } as const;
 
@@ -61,11 +65,18 @@ export interface ReportContent {
   schema?: Schema;
 }
 
+// Content interface for Skill resources
+export interface SkillContent {
+  skillContent: string;
+  skillQuery: string;
+}
+
 export type FolderResourceContent =
   | CalculationContent
   | GraphModelContent
   | GraphViewContent
-  | ReportContent;
+  | ReportContent
+  | SkillContent;
 
 /**
  * Get filename with property name

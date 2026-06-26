@@ -20,6 +20,7 @@ const Resources = [
   'graphView',
   'linkType',
   'report',
+  'skill',
   'template',
   'workflow',
 ];
@@ -33,6 +34,7 @@ const pluralLookUpForResources = new Map([
   ['graphView', 'graphViews'],
   ['linkType', 'linkTypes'],
   ['report', 'reports'],
+  ['skill', 'skills'],
   ['template', 'templates'],
   ['workflow', 'workflows'],
 ]);

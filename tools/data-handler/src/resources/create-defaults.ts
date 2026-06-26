@@ -23,6 +23,7 @@ import type {
   Link,
   LinkType,
   ReportMetadata,
+  SkillMetadata,
   TemplateMetadata,
   Workflow,
 } from '../interfaces/resource-interfaces.js';
@@ -184,6 +185,19 @@ export abstract class DefaultContent {
     return {
       name: reportName,
       displayName: '',
+    };
+  }
+
+  /**
+   * Default content for skill type.
+   * @param skillName skill name
+   * @returns Default content for skill type.
+   */
+  static skill(skillName: string): SkillMetadata {
+    return {
+      name: skillName,
+      displayName: '',
+      relatedTools: [],
     };
   }
 

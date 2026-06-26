@@ -264,6 +264,7 @@ export type RemovableResourceTypes =
   | 'linkType'
   | 'module'
   | 'report'
+  | 'skill'
   | 'template'
   | 'workflow'
   | 'label';
@@ -281,6 +282,7 @@ export type ResourceFolderType =
   | 'linkTypes'
   | 'modules'
   | 'reports'
+  | 'skills'
   | 'templates'
   | 'workflows';
 

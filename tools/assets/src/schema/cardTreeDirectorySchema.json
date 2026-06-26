@@ -34,6 +34,9 @@
                     "reports": {
                       "$ref": "#/$defs/reportResourceSchema"
                     },
+                    "skills": {
+                      "$ref": "#/$defs/skillResourceSchema"
+                    },
                     "templates": {
                       "$ref": "#/$defs/templatesResourceSchema"
                     },
@@ -122,7 +125,6 @@
     "calculationResourceSchema": {
       "type": "object",
       "properties": {
-        "additionalProperties": false,
         "directories": {
           "type": "object",
           "additionalProperties": false,
@@ -216,7 +218,6 @@
     "graphViewResourceSchema": {
       "type": "object",
       "properties": {
-        "additionalProperties": false,
         "directories": {
           "type": "object",
           "additionalProperties": false,
@@ -245,7 +246,6 @@
     "graphModelResourceSchema": {
       "type": "object",
       "properties": {
-        "additionalProperties": false,
         "directories": {
           "type": "object",
           "additionalProperties": false,
@@ -331,19 +331,18 @@
     "reportResourceSchema": {
       "type": "object",
       "properties": {
-        "additionalProperties": false,
         "files": {
           "$comment": "reports folder can contain report configuration files (<name>.json), or .gitkeep",
           "type": "object",
           "additionalProperties": false,
           "patternProperties": {
-            "^[A-Za-z0-9-_]+.json$": {
+            "^[A-Za-z0-9-_]+\\.json$": {
               "type": "object"
             },
-            "^.schema$": {
+            "^\\.schema$": {
               "type": "object"
             },
-            "^.gitkeep$": {
+            "^\\.gitkeep$": {
               "type": "object"
             }
           }
@@ -373,6 +372,51 @@
                     }
                   },
                   "required": [".schema", "index.adoc.hbs", "query.lp.hbs"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "skillResourceSchema": {
+      "type": "object",
+      "properties": {
+        "files": {
+          "$comment": "skills folder can contain skill configuration files (<name>.json), or .gitkeep",
+          "type": "object",
+          "additionalProperties": false,
+          "patternProperties": {
+            "^[A-Za-z0-9-_]+\\.json$": {
+              "type": "object"
+            },
+            "^\\.schema$": {
+              "type": "object"
+            },
+            "^\\.gitkeep$": {
+              "type": "object"
+            }
+          }
+        },
+        "directories": {
+          "type": "object",
+          "additionalProperties": false,
+          "patternProperties": {
+            "^[A-Za-z0-9-_]+$": {
+              "type": "object",
+              "properties": {
+                "files": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "skill.md": {
+                      "type": "object"
+                    },
+                    "query.lp": {
+                      "type": "object"
+                    }
+                  },
+                  "required": ["skill.md"]
                 }
               }
             }
@@ -482,15 +526,15 @@
               "type": "object",
               "additionalProperties": false,
               "patternProperties": {
-                "^[A-Za-z0-9-_]+.json$": {
+                "^[A-Za-z0-9-_]+\\.json$": {
                   "type": "object",
                   "$comment": "Each file needs to be separately validated against 'contentSchema'",
                   "contentSchema": "templateSchema.json"
                 },
-                "^.schema$": {
+                "^\\.schema$": {
                   "type": "object"
                 },
-                "^.gitkeep$": {
+                "^\\.gitkeep$": {
                   "type": "object"
                 }
               }
@@ -572,6 +616,9 @@
                         },
                         "reports": {
                           "$ref": "#/$defs/reportResourceSchema"
+                        },
+                        "skills": {
+                          "$ref": "#/$defs/skillResourceSchema"
                         },
                         "templates": {
                           "$ref": "#/$defs/templatesResourceSchema"

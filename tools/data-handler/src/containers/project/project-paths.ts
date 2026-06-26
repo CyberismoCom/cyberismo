@@ -31,6 +31,7 @@ export class ProjectPaths {
       ['linkTypes', this.linkTypesFolder],
       ['modules', this.modulesFolder],
       ['reports', this.reportsFolder],
+      ['skills', this.skillsFolder],
       ['templates', this.templatesFolder],
       ['workflows', this.workflowsFolder],
     ]);
@@ -118,6 +119,10 @@ export class ProjectPaths {
 
   public get reportsFolder(): string {
     return join(this.resourcesFolder, 'reports');
+  }
+
+  public get skillsFolder(): string {
+    return join(this.resourcesFolder, 'skills');
   }
 
   /**

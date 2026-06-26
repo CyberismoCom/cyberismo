@@ -295,6 +295,9 @@ export class Commands {
         } else if (target === 'report') {
           const [name] = rest;
           await this.commands?.createCmd.createReport(name);
+        } else if (target === 'skill') {
+          const [name] = rest;
+          await this.commands?.createCmd.createSkill(name);
         } else if (target === 'template') {
           const [name, content] = rest;
           await this.commands?.createCmd.createTemplate(name, content);
@@ -846,6 +849,7 @@ export class Commands {
       case 'graphModel':
       case 'linkType':
       case 'report':
+      case 'skill':
       case 'template':
       case 'workflow':
         promise = this.commands!.showCmd.showResource(detail, options.showUse);
@@ -857,6 +861,7 @@ export class Commands {
       case 'graphViews':
       case 'linkTypes':
       case 'reports':
+      case 'skills':
       case 'templates':
       case 'workflows':
         promise = this.commands!.showCmd.showResources(type);

@@ -75,6 +75,7 @@ export class Show {
     graphViews: (from) => this.resourceNames('graphViews', from),
     linkTypes: (from) => this.resourceNames('linkTypes', from),
     reports: (from) => this.resourceNames('reports', from),
+    skills: (from) => this.resourceNames('skills', from),
     templates: (from) => this.resourceNames('templates', from),
     workflows: (from) => this.resourceNames('workflows', from),
   };
