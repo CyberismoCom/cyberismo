@@ -425,6 +425,75 @@ export function registerTools(
     },
   );
 
+  server.registerTool(
+    'list_skills',
+    {
+      description:
+        "List the skills currently enabled for this project. Skills are enabled dynamically by the project logic, so re-check before acting - availability can change. Returns lightweight summaries; call get_skill for full instructions. Each skill has a `scope`: 'global' (usable anywhere) or 'card' (enabled for specific cards - pass a cardKey to get_skill).",
+      inputSchema: {
+        projectPrefix: projectPrefixParam,
+        category: z
+          .string()
+          .optional()
+          .describe('Only return skills in this category.'),
+        cardKey: z
+          .string()
+          .optional()
+          .describe(
+            'Only return skills enabled for this card (in addition to globally-enabled skills).',
+          ),
+      },
+    },
+    async ({ projectPrefix, category, cardKey }) => {
+      try {
+        const commands = resolveCommands(provider, projectPrefix);
+        const skills = await commands.showCmd.listSkills({ category, cardKey });
+        return toolResult({ skills });
+      } catch (error) {
+        return toolError('listing skills', error);
+      }
+    },
+  );
+
+  server.registerTool(
+    'get_skill',
+    {
+      description:
+        'Get the full rendered instructions for a single enabled skill by name. Pass cardKey for a skill that applies to a specific card.',
+      inputSchema: {
+        projectPrefix: projectPrefixParam,
+        name: z
+          .string()
+          .describe('The skill name, e.g. "mod/skills/manageRiskRegister".'),
+        cardKey: z
+          .string()
+          .optional()
+          .describe('Card context for rendering a card-specific skill.'),
+      },
+    },
+    async ({ projectPrefix, name, cardKey }) => {
+      try {
+        const commands = resolveCommands(provider, projectPrefix);
+        const result = await commands.showCmd.getSkill(name, { cardKey });
+        if (result.status === 'not-enabled') {
+          return toolResult({
+            enabled: false,
+            message: `Skill '${name}' is not currently enabled. Call list_skills to see the enabled skills.`,
+          });
+        }
+        if (result.status === 'needs-card') {
+          return toolResult({
+            enabled: true,
+            message: `Skill '${name}' is enabled for specific cards. Call get_skill again with a 'cardKey' to render it.`,
+          });
+        }
+        return toolResult({ skill: result.skill });
+      } catch (error) {
+        return toolError('getting skill', error);
+      }
+    },
+  );
+
   // --- Phase 1: Quick Wins ---
 
   server.registerTool(

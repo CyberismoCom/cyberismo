@@ -43,6 +43,9 @@ import type {
   AnyResourceContent,
   CardType,
   ResourceContent,
+  Skill,
+  SkillLookupResult,
+  SkillSummary,
   TemplateConfiguration,
   Workflow,
 } from '../interfaces/resource-interfaces.js';
@@ -53,6 +56,7 @@ import type { ResourceMap } from '../containers/project/resource-cache.js';
 import { UserPreferences } from '../utils/user-preferences.js';
 import { read, write } from '../utils/rw-lock.js';
 import ReportMacro from '../macros/report/index.js';
+import { generateReportContent } from '../utils/report.js';
 import TaskQueue from '../macros/task-queue.js';
 import { evaluateMacros } from '../macros/index.js';
 import { readJsonFile } from '../utils/json.js';
@@ -624,6 +628,125 @@ export class Show {
       workflows.push(workflow.data);
     }
     return workflows;
+  }
+
+  // Maps a full skill resource to a lightweight discovery summary.
+  private toSkillSummary(
+    skill: Skill,
+    scope: SkillSummary['scope'],
+  ): SkillSummary {
+    const { name, displayName, description, category, relatedTools } = skill;
+
+    return {
+      name,
+      displayName,
+      description,
+      category,
+      relatedTools,
+      scope,
+    };
+  }
+
+  /**
+   * Lists the skills currently enabled by the project's logic programs.
+   *
+   * A skill is enabled either globally (`enableSkill/1`) or for specific cards
+   * (`enableSkill/2`). Without a cardKey, all enabled skills are returned
+   * (global + every card-specific skill); with a cardKey, the result is the
+   * global skills plus those enabled for that card. Enablement is evaluated
+   * against the current project state on every call.
+   * @param options.cardKey Optional card to scope card-specific skills to.
+   * @param options.category Optional category filter.
+   * @param context Calculation context.
+   * @returns lightweight summaries of the enabled skills, sorted by name.
+   */
+  public async listSkills(
+    options: { cardKey?: string; category?: string } = {},
+    context: Context = 'localApp',
+  ): Promise<SkillSummary[]> {
+    return this.project.lock.read(async () => {
+      const enabled = await this.project.calculationEngine.runQuery(
+        'enabledSkills',
+        context,
+        { cardKey: options.cardKey },
+      );
+      const globallyEnabled = new Set(
+        (
+          await this.project.calculationEngine.runQuery('globalSkills', context)
+        ).map((row) => row.key),
+      );
+      const summaries: SkillSummary[] = [];
+      for (const { key } of enabled) {
+        const resource = this.project.resources.byType(key, 'skills');
+        if (!resource) continue;
+        const skill = resource.show() as Skill;
+        if (options.category && skill.category !== options.category) continue;
+        summaries.push(
+          this.toSkillSummary(
+            skill,
+            globallyEnabled.has(key) ? 'global' : 'card',
+          ),
+        );
+      }
+      return summaries.sort((a, b) => a.name.localeCompare(b.name));
+    });
+  }
+
+  /**
+   * Returns a single enabled skill with its rendered instructions.
+   *
+   * The skill must be enabled by the logic programs. A card-specific skill
+   * requested without a cardKey cannot be rendered meaningfully, so a
+   * 'needs-card' marker is returned instead of throwing.
+   * @param name Full skill resource name.
+   * @param options.cardKey Card context for per-card template rendering.
+   * @param context Calculation context.
+   * @returns the rendered skill ('ok'), or a marker ('not-enabled' / 'needs-card').
+   */
+  public async getSkill(
+    name: string,
+    options: { cardKey?: string } = {},
+    context: Context = 'localApp',
+  ): Promise<SkillLookupResult> {
+    return this.project.lock.read(async () => {
+      const { cardKey } = options;
+      const enabled = (
+        await this.project.calculationEngine.runQuery(
+          'enabledSkills',
+          context,
+          {
+            cardKey,
+          },
+        )
+      ).map((row) => row.key);
+      if (!enabled.includes(name)) {
+        return { status: 'not-enabled' };
+      }
+      const globallyEnabled = (
+        await this.project.calculationEngine.runQuery('globalSkills', context)
+      ).map((row) => row.key);
+      const scope = globallyEnabled.includes(name) ? 'global' : 'card';
+      // A card-specific skill can't be rendered meaningfully without a cardKey.
+      if (scope === 'card' && !cardKey) {
+        return { status: 'needs-card' };
+      }
+      const resource = this.project.resources.byType(name, 'skills');
+      if (!resource) {
+        return { status: 'not-enabled' };
+      }
+      const skill = resource.show() as Skill;
+      const instructions = await generateReportContent({
+        calculate: this.project.calculationEngine,
+        contentTemplate: skill.content.skillContent,
+        queryTemplate: skill.content.skillQuery,
+        options: { cardKey },
+        context,
+      });
+      return {
+        status: 'ok',
+        skill: { ...this.toSkillSummary(skill, scope), instructions },
+      };
+    });
   }
 
   /**
