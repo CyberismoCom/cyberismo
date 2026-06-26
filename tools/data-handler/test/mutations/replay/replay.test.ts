@@ -150,8 +150,10 @@ describe('planModuleReplays', () => {
         lines: [logLine('resource_delete', 'mod/fieldTypes/a')],
       },
     ]);
-    // Target seals exist, but none cover (1.0.0, 2.0.0]: a clean release.
-    const resolved = await makeResolved('mod', 'file:/x', '2.0.0', [
+    // A patch jump within one minor line: no seal covers (1.0.0, 1.0.1], and
+    // because from and to share a minor line that empty range is a no-op
+    // rather than a gap.
+    const resolved = await makeResolved('mod', 'file:/x', '1.0.1', [
       {
         from: '0.0.0',
         to: '1.0.0',
