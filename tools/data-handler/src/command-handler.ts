@@ -39,6 +39,7 @@ import type {
   AllCommandOptions,
   CalcCommandOptions,
   ExportCommandOptions,
+  InstallSkillsCommandOptions,
   MigrateCommandOptions,
   ReportCommandOptions,
   ShowCommandOptions,
@@ -49,6 +50,7 @@ import type {
 import type { requestStatus } from './interfaces/request-status-interfaces.js';
 
 import { Create } from './commands/create.js';
+import { InstallSkills } from './commands/install-skills.js';
 import { Validate } from './commands/validate.js';
 import { CommandManager } from './command-manager.js';
 import type {
@@ -77,6 +79,7 @@ export const Cmd = {
   export: 'export',
   fetch: 'fetch',
   import: 'import',
+  installSkills: 'install-skills',
   migrate: 'migrate',
   move: 'move',
   publish: 'publish',
@@ -139,13 +142,17 @@ export class Commands {
   ): Promise<requestStatus> {
     // Set project path and validate it.
     const creatingNewProject = command === Cmd.create && args[0] === 'project';
-    if (!creatingNewProject) {
+    // install-skills writes into a target directory (often a repo root, not a
+    // Cyberismo project), so it does not load/validate a project.
+    const projectNotRequired =
+      creatingNewProject || command === Cmd.installSkills;
+    if (!projectNotRequired) {
       try {
         await this.doSetProject(options);
       } catch (error) {
         return { statusCode: 400, message: errorFunction(error) };
       }
-    } else {
+    } else if (creatingNewProject) {
       this.projectPath = options.projectPath || '';
     }
     return await this.doHandleCommand(command, args, options, credentials);
@@ -307,6 +314,18 @@ export class Commands {
         } else {
           throw new Error(`Unknown type to create: '${target}'`);
         }
+      } else if (command === Cmd.installSkills) {
+        const [targetPath] = args;
+        const written = await InstallSkills.install(
+          targetPath,
+          options as InstallSkillsCommandOptions,
+        );
+        return {
+          statusCode: 200,
+          message: `Installed skill discovery into '${targetPath}':\n${written
+            .map((path) => `  ${path}`)
+            .join('\n')}`,
+        };
       } else if (command === Cmd.edit) {
         const [cardKey] = args;
         await this.commands?.editCmd.editCard(cardKey);
