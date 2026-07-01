@@ -46,7 +46,7 @@
     "date-fns": "^4.4.0",
     "dompurify": "^3.4.7",
     "eslint-plugin-react-hooks": "7.0.1",
-    "eslint-plugin-react-refresh": "^0.5.2",
+    "eslint-plugin-react-refresh": "^0.5.3",
     "global-jsdom": "^29.0.0",
     "globals": "^17.4.0",
     "html-react-parser": "^6.1.3",
