@@ -14,38 +14,25 @@
 */
 
 import { beforeAll, afterAll, describe, expect, test } from 'vitest';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { CommandManager } from '@cyberismo/data-handler';
-import { createMcpServer, singleProjectProvider } from '../src/server.js';
-import { testDataPath } from './test-utils.js';
+import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import {
+  contentOf,
+  parseResult,
+  setupMcpTest,
+  type McpTestContext,
+} from './test-utils.js';
 
-let commands: CommandManager;
+let ctx: McpTestContext;
 let client: Client;
 
-// Fixes weird issue with asciidoctor
 beforeAll(async () => {
-  process.argv = [];
-  commands = await CommandManager.getInstance(testDataPath);
-
-  const server = createMcpServer(singleProjectProvider(commands));
-  const [clientTransport, serverTransport] =
-    InMemoryTransport.createLinkedPair();
-
-  await server.connect(serverTransport);
-
-  client = new Client({ name: 'test-client', version: '1.0.0' });
-  await client.connect(clientTransport);
+  ctx = await setupMcpTest();
+  client = ctx.client;
 });
 
 afterAll(async () => {
-  await client.close();
-  commands.project.dispose();
+  await ctx.cleanup();
 });
-
-type TextContent = { type: string; text: string };
-const contentOf = (result: Record<string, unknown>) =>
-  result.content as TextContent[];
 
 describe('MCP Tools via Client', () => {
   test('list_projects returns available projects', async () => {
@@ -55,7 +42,7 @@ describe('MCP Tools via Client', () => {
     });
 
     expect(result.isError).toBeFalsy();
-    const parsed = JSON.parse(contentOf(result)[0].text);
+    const parsed = parseResult(result);
     expect(parsed.success).toBe(true);
     expect(Array.isArray(parsed.projects)).toBe(true);
     expect(parsed.projects.length).toBe(1);
@@ -100,7 +87,7 @@ describe('MCP Tools via Client', () => {
     });
 
     expect(result.isError).toBeFalsy();
-    const parsed = JSON.parse(contentOf(result)[0].text);
+    const parsed = parseResult(result);
     expect(parsed.success).toBe(true);
     expect(parsed.card.key).toBe('decision_5');
   });
@@ -123,7 +110,7 @@ describe('MCP Tools via Client', () => {
     });
 
     expect(result.isError).toBeFalsy();
-    const parsed = JSON.parse(contentOf(result)[0].text);
+    const parsed = parseResult(result);
     expect(parsed.success).toBe(true);
     expect(Array.isArray(parsed.cards)).toBe(true);
     expect(parsed.cards.length).toBeGreaterThan(0);
@@ -136,7 +123,7 @@ describe('MCP Tools via Client', () => {
     });
 
     expect(result.isError).toBeFalsy();
-    const parsed = JSON.parse(contentOf(result)[0].text);
+    const parsed = parseResult(result);
     expect(parsed.success).toBe(true);
     expect(Array.isArray(parsed.templates)).toBe(true);
   });
@@ -148,7 +135,7 @@ describe('MCP Tools via Client', () => {
     });
 
     expect(result.isError).toBeFalsy();
-    const parsed = JSON.parse(contentOf(result)[0].text);
+    const parsed = parseResult(result);
     expect(parsed.success).toBe(true);
     expect(Array.isArray(parsed.labels)).toBe(true);
   });
@@ -160,7 +147,7 @@ describe('MCP Tools via Client', () => {
     });
 
     expect(result.isError).toBeFalsy();
-    const parsed = JSON.parse(contentOf(result)[0].text);
+    const parsed = parseResult(result);
     expect(parsed.success).toBe(true);
     expect(Array.isArray(parsed.results)).toBe(true);
     expect(parsed.results.length).toBeGreaterThan(0);

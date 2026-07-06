@@ -170,4 +170,64 @@ describe('edit card', () => {
       EditCmd.editCardMetadata('card-key-does-not-exist', 'whoopie', 'whoopie'),
     ).rejects.toThrow();
   });
+
+  // Find-and-replace semantics are unit-tested in content-edit.test.ts;
+  // these tests cover the integration: locking, permissions, and persistence.
+  describe('patch card content', () => {
+    const seedFirstCard = async (content: string) => {
+      const card = commands.project.cards().at(0) as Card;
+      await editCmd.editCardContent(card.key, content);
+      return card.key;
+    };
+
+    it('applies edits to card content and bumps lastUpdated', async () => {
+      const cardKey = await seedFirstCard('Hello world, hello again');
+      const before = commands.project.findCard(cardKey).metadata!.lastUpdated;
+
+      await editCmd.patchCardContent(cardKey, [
+        { oldString: 'world', newString: 'there' },
+      ]);
+
+      const changed = commands.project.findCard(cardKey);
+      expect(changed.content).to.equal('Hello there, hello again');
+      expect(changed.metadata!.lastUpdated).to.not.equal(before);
+    });
+
+    it('propagates validation errors without modifying the card', async () => {
+      const cardKey = await seedFirstCard('some content');
+
+      await expect(
+        editCmd.patchCardContent(cardKey, [
+          { oldString: 'missing', newString: 'x' },
+        ]),
+      ).rejects.toThrow(/not found/);
+
+      expect(commands.project.findCard(cardKey).content).to.equal(
+        'some content',
+      );
+    });
+
+    it('patches a template card', async () => {
+      const templateCards = commands.project.templateCards(
+        'decision/templates/decision',
+      );
+      const card = templateCards.at(0) as Card;
+      await editCmd.editCardContent(card.key, 'template body text');
+
+      await editCmd.patchCardContent(card.key, [
+        { oldString: 'body', newString: 'content' },
+      ]);
+
+      const changed = commands.project.findCard(card.key);
+      expect(changed.content).to.equal('template content text');
+    });
+
+    it('throws when card is not in project', async () => {
+      await expect(
+        editCmd.patchCardContent('card-key-does-not-exist', [
+          { oldString: 'a', newString: 'b' },
+        ]),
+      ).rejects.toThrow(CardNotFoundError);
+    });
+  });
 });

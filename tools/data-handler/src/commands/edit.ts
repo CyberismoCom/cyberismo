@@ -17,11 +17,15 @@ import { homedir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 
 import { ActionGuard } from '../permissions/action-guard.js';
+import { applyContentEdits } from '../utils/content-edit.js';
 import { Project } from '../containers/project.js';
 import { UserPreferences } from '../utils/user-preferences.js';
 import { write } from '../utils/rw-lock.js';
 
+import type { ContentEdit } from '../utils/content-edit.js';
 import type { MetadataContent } from '../interfaces/project-interfaces.js';
+
+export type { ContentEdit } from '../utils/content-edit.js';
 
 export class Edit {
   private project: Project;
@@ -87,6 +91,25 @@ export class Edit {
       await actionGuard.checkPermission('editContent', cardKey);
       await this.project.updateCardContent(cardKey, changedContent);
     }
+  }
+
+  /**
+   * Applies targeted find-and-replace edits to a card's content, avoiding the
+   * need to resend the whole document for minor changes. Edits are applied
+   * sequentially, so each edit sees the result of the previous one.
+   *
+   * Reading, patching, and writing happen under a single write lock; the
+   * permission-checked write is delegated to editCardContent.
+   * @param cardKey The card to update.
+   * @param edits Ordered list of find-and-replace edits.
+   */
+  @write((cardKey) => `Patch content of ${cardKey}`)
+  public async patchCardContent(cardKey: string, edits: ContentEdit[]) {
+    const card = this.project.findCard(cardKey, { content: true });
+    return this.editCardContent(
+      cardKey,
+      applyContentEdits(card.content ?? '', edits),
+    );
   }
 
   /**

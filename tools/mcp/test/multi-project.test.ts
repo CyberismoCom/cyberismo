@@ -14,14 +14,17 @@
 */
 
 import { beforeAll, afterAll, describe, expect, test } from 'vitest';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { CommandManager } from '@cyberismo/data-handler';
-import { createMcpServer } from '../src/server.js';
+import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import type { CommandManager } from '@cyberismo/data-handler';
 import type { ProjectProvider } from '../src/lib/resolve-project.js';
-import { testDataPath } from './test-utils.js';
+import {
+  contentOf,
+  parseResult,
+  setupMcpTest,
+  type McpTestContext,
+} from './test-utils.js';
 
-let commands: CommandManager;
+let ctx: McpTestContext;
 let client: Client;
 
 /**
@@ -39,29 +42,14 @@ function multiProjectProvider(cmd: CommandManager): ProjectProvider {
   };
 }
 
-// Fixes weird issue with asciidoctor
 beforeAll(async () => {
-  process.argv = [];
-  commands = await CommandManager.getInstance(testDataPath);
-
-  const server = createMcpServer(multiProjectProvider(commands));
-  const [clientTransport, serverTransport] =
-    InMemoryTransport.createLinkedPair();
-
-  await server.connect(serverTransport);
-
-  client = new Client({ name: 'test-client', version: '1.0.0' });
-  await client.connect(clientTransport);
+  ctx = await setupMcpTest({ provider: multiProjectProvider });
+  client = ctx.client;
 });
 
 afterAll(async () => {
-  await client.close();
-  commands.project.dispose();
+  await ctx.cleanup();
 });
-
-type TextContent = { type: string; text: string };
-const contentOf = (result: Record<string, unknown>) =>
-  result.content as TextContent[];
 
 describe('Multi-project MCP', () => {
   test('projectPrefix is required (no default) with multiple projects', async () => {
@@ -84,7 +72,7 @@ describe('Multi-project MCP', () => {
     });
 
     expect(result.isError).toBeFalsy();
-    const parsed = JSON.parse(contentOf(result)[0].text);
+    const parsed = parseResult(result);
     expect(parsed.projects).toHaveLength(2);
     const prefixes = parsed.projects.map((p: { prefix: string }) => p.prefix);
     expect(prefixes).toContain('decision');
@@ -98,7 +86,7 @@ describe('Multi-project MCP', () => {
     });
 
     expect(result.isError).toBeFalsy();
-    const parsed = JSON.parse(contentOf(result)[0].text);
+    const parsed = parseResult(result);
     expect(parsed.success).toBe(true);
     expect(Array.isArray(parsed.cards)).toBe(true);
   });

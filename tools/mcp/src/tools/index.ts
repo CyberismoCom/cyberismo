@@ -113,6 +113,48 @@ export function registerTools(
   );
 
   server.registerTool(
+    'patch_card_content',
+    {
+      description:
+        "Apply targeted find-and-replace edits to a card's AsciiDoc content without resending the whole document. " +
+        'Prefer this over edit_card_content for minor changes. First read the current content with get_card (rawContent). ' +
+        'Each oldString must match the current content exactly (including whitespace and line breaks) and must be unique unless replaceAll is true. ' +
+        'Edits are applied in order, so a later edit can target text produced by an earlier one.',
+      inputSchema: {
+        projectPrefix: projectPrefixParam,
+        cardKey: z.string().describe('Card key to edit'),
+        edits: z
+          .array(
+            z.object({
+              oldString: z
+                .string()
+                .min(1)
+                .describe(
+                  'Exact text to find. Must be non-empty and unique in the content unless replaceAll is true.',
+                ),
+              newString: z.string().describe('Replacement text'),
+              replaceAll: z
+                .boolean()
+                .optional()
+                .describe('Replace every occurrence of oldString'),
+            }),
+          )
+          .min(1)
+          .describe('Ordered list of find-and-replace edits to apply'),
+      },
+    },
+    async ({ projectPrefix, cardKey, edits }) => {
+      try {
+        const commands = resolveCommands(provider, projectPrefix);
+        await commands.editCmd.patchCardContent(cardKey, edits);
+        return toolResult({ cardKey, editsApplied: edits.length });
+      } catch (error) {
+        return toolError('patching content', error);
+      }
+    },
+  );
+
+  server.registerTool(
     'edit_card_metadata',
     {
       description: 'Update a metadata field of a card',

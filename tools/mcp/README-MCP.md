@@ -118,6 +118,7 @@ The MCP server exposes the following tools:
 | `list_cards`         | List all cards in the project hierarchy                                            |
 | `create_card`        | Create a new card from a template                                                  |
 | `edit_card_content`  | Update the AsciiDoc content of a card                                              |
+| `patch_card_content` | Apply find-and-replace edits to a card's content (preferred for minor changes)     |
 | `edit_card_metadata` | Update a metadata field                                                            |
 | `remove_card`        | Delete a card and its children                                                     |
 | `move_card`          | Move a card to a new parent                                                        |
