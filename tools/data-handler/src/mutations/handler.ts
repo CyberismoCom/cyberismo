@@ -16,8 +16,7 @@ import type { Project } from '../containers/project.js';
 import type { MutationInput } from './types.js';
 
 export type MutationOrigin =
-  | { kind: 'local' }
-  | { kind: 'replay'; modulePrefix: string };
+  { kind: 'local' } | { kind: 'replay'; modulePrefix: string };
 
 /**
  * Context handed to a handler. Generic over the input variant: the dispatcher

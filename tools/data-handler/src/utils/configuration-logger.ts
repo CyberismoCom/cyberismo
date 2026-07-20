@@ -29,10 +29,7 @@ import { writeFileSafe, pathExists } from './file-utils.js';
 // (INTDEV-584), so logs written by older versions remain readable and no
 // migration is needed.
 export type ConfigurationOperation =
-  | 'resource_update'
-  | 'resource_delete'
-  | 'resource_rename'
-  | 'project_rename';
+  'resource_update' | 'resource_delete' | 'resource_rename' | 'project_rename';
 
 export interface ConfigurationLogEntry {
   timestamp: string;
