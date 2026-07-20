@@ -254,7 +254,8 @@ export function findSection(
   sectionIdentifier: string,
   by: 'id' | 'name' = 'id',
 ) {
-  const sections = doc.getSections();
+  // v4 types return AbstractBlock[]; document sections are Sections at runtime
+  const sections = doc.getSections() as Section[];
   return findSectionRecursive(sections, sectionIdentifier, by);
 }
 
@@ -270,7 +271,7 @@ function findSectionRecursive(
       return section;
     }
     const found = findSectionRecursive(
-      section.getSections(),
+      section.getSections() as Section[],
       sectionIdentifier,
       by,
     );

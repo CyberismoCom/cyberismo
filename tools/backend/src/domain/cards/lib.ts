@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import Processor from '@asciidoctor/core';
+import { convert } from '@asciidoctor/core';
 import type { Card } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import { type CommandManager, evaluateMacros } from '@cyberismo/data-handler';
 import { preprocessMermaidBlocksForHtml } from '@cyberismo/data-handler/utils/mermaid-renderer';
@@ -71,15 +71,15 @@ export async function getCardDetails(
     );
 
     const projectPrefix = commands.project.projectPrefix;
-    const htmlContent = Processor()
-      .convert(asciidocContent, {
+    const htmlContent = (
+      await convert(asciidocContent, {
         safe: 'safe',
         attributes: {
           imagesdir: `/api/projects/${projectPrefix}/cards/${key}/a`,
           icons: 'font',
         },
       })
-      .toString();
+    ).toString();
 
     if (raw) {
       if (!cardDetailsResponse.metadata) {

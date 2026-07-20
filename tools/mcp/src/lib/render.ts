@@ -13,7 +13,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import Processor from '@asciidoctor/core';
+import { convert } from '@asciidoctor/core';
 import { type CommandManager, evaluateMacros } from '@cyberismo/data-handler';
 import { rewriteAsciidocCardXrefs } from '@cyberismo/data-handler/utils/asciidoc-xref';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
@@ -175,16 +175,15 @@ export async function renderCard(
         );
 
         // Convert AsciiDoc to HTML
-        const processor = Processor();
-        parsedContent = processor
-          .convert(asciidocContent, {
+        parsedContent = (
+          await convert(asciidocContent, {
             safe: 'safe',
             attributes: {
               imagesdir: `/api/cards/${cardKey}/a`,
               icons: 'font',
             },
           })
-          .toString();
+        ).toString();
       } catch (error) {
         parsedContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${rawContent}`;
       }

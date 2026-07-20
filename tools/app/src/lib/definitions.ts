@@ -129,13 +129,7 @@ export type FieldTypeKey = string;
 
 // Single metadata value types.
 export type MetadataValue =
-  | string
-  | number
-  | boolean
-  | Date
-  | string[]
-  | Link[]
-  | null;
+  string | number | boolean | Date | string[] | Link[] | null;
 
 // Expanded link from DataHandler.
 export type ParsedLink = Link & {

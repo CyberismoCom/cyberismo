@@ -30,8 +30,6 @@ import type {
   FetchCardDetails,
 } from '../interfaces/project-interfaces.js';
 
-import asciidoctor from '@asciidoctor/core';
-
 import { isPredefinedField, ROOT } from '../utils/constants.js';
 
 /**
@@ -169,12 +167,6 @@ export class CardContainer {
   protected findCard(cardKey: string, details?: FetchCardDetails): Card {
     const cachedCard = this.cardCache.getCard(cardKey);
     if (cachedCard) {
-      // Apply content type transformation if needed
-      const content = cachedCard.content;
-      if (details?.contentType === 'html' && content) {
-        const processor = asciidoctor();
-        processor.convert(content) as string;
-      }
       return this.filterCardDetails(cachedCard, details);
     }
     throw new CardNotFoundError(cardKey);
