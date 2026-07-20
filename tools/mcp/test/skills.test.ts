@@ -185,3 +185,53 @@ describe('skill discovery MCP tools', () => {
     expect(parsed.message).toMatch(/not currently enabled/);
   });
 });
+
+const promptText = (result: { messages: { content: { text?: string } }[] }) =>
+  result.messages.map((m) => m.content.text ?? '').join('\n');
+
+describe('skill discovery MCP prompts', () => {
+  test('listPrompts exposes enabled skills, with a cardKey arg for card-scoped', async () => {
+    const { prompts } = await client.listPrompts();
+    const byName = new Map(prompts.map((p) => [p.name, p]));
+
+    expect(byName.has('decision/skills/globalSkill')).toBe(true);
+    expect(byName.has('decision/skills/cardSkill')).toBe(true);
+
+    // global skill takes no arguments; card skill declares an optional cardKey
+    expect(byName.get('decision/skills/globalSkill')?.arguments ?? []).toEqual(
+      [],
+    );
+    const cardArgs = byName.get('decision/skills/cardSkill')?.arguments ?? [];
+    expect(cardArgs.map((a) => a.name)).toEqual(['cardKey']);
+    expect(cardArgs[0].required).toBe(false);
+  });
+
+  test('getPrompt renders a globally-enabled skill', async () => {
+    const result = await client.getPrompt({
+      name: 'decision/skills/globalSkill',
+    });
+    expect(promptText(result)).toContain('Use this any time.');
+    // metadata header is included as context
+    expect(promptText(result)).toContain('decision/skills/globalSkill');
+  });
+
+  test('getPrompt renders a per-card skill with the cardKey', async () => {
+    const result = await client.getPrompt({
+      name: 'decision/skills/cardSkill',
+      arguments: { cardKey: 'decision_5' },
+    });
+    expect(promptText(result)).toContain('Applies to decision_5.');
+  });
+
+  test('getPrompt asks for a cardKey for a per-card skill', async () => {
+    const result = await client.getPrompt({
+      name: 'decision/skills/cardSkill',
+    });
+    expect(promptText(result)).toMatch(/cardKey/);
+  });
+
+  test('getPrompt reports a not-enabled skill without throwing', async () => {
+    const result = await client.getPrompt({ name: 'decision/skills/nope' });
+    expect(promptText(result)).toMatch(/not currently enabled/);
+  });
+});
