@@ -11,7 +11,13 @@
 import { join, parse, sep } from 'node:path';
 
 import type { Project } from '../containers/project.js';
+import type { WorkflowTransition } from '../interfaces/resource-interfaces.js';
 import { stripExtension } from './file-utils.js';
+
+/** The new-card transition: fromState is [''] or empty. */
+export function isInitialTransition(transition: WorkflowTransition): boolean {
+  return transition.fromState.includes('') || transition.fromState.length === 0;
+}
 
 // Resource name parts are:
 // - prefix; name of the project this resource is part of

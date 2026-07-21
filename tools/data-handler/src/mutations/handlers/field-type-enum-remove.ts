@@ -20,6 +20,15 @@ import type { Card } from '../../interfaces/project-interfaces.js';
 import type { RemoveOperation } from '../../resources/resource-object.js';
 import type { EnumDefinition } from '../../interfaces/resource-interfaces.js';
 
+// An enum value from either recorded shape: a full EnumDefinition object or
+// a bare string.
+function enumValueOf(value: unknown): string | undefined {
+  if (value === null || value === undefined) return undefined;
+  return typeof value === 'object'
+    ? (value as { enumValue?: string }).enumValue
+    : String(value);
+}
+
 /**
  * Removing an enum value is a breaking change. FieldTypeResource.update removes
  * the value from the enum definition and persists it (it no longer cascades).
@@ -49,45 +58,40 @@ export class FieldTypeEnumRemoveHandler implements Handler<EditInput> {
   async applyCascade(ctx: MutationContext<EditInput>): Promise<void> {
     const fieldName = resourceNameToString(ctx.input.target);
     const removeOp = ctx.input.operation as RemoveOperation<EnumDefinition>;
-    const newValue = removeOp.replacementValue as EnumDefinition | undefined;
-    if (!newValue) return;
+    // Recorded entries (and authoring surfaces) may carry either a full
+    // EnumDefinition object or a bare string for target/replacementValue;
+    // tolerate both shapes.
+    const replacement = enumValueOf(removeOp.replacementValue);
+    if (!replacement) return;
 
-    const removedValue = (removeOp.target as EnumDefinition).enumValue;
+    const removedValue = enumValueOf(removeOp.target);
     const cardsToUpdate = this.affectedCards(ctx, fieldName).filter(
       (card) => card.metadata?.[fieldName] === removedValue,
     );
 
     await Promise.all(
-      cardsToUpdate.map((card) =>
-        ctx.project.updateCardMetadataKey(
-          card.key,
-          fieldName,
-          newValue.enumValue,
-        ),
-      ),
+      cardsToUpdate.map((card) => {
+        card.metadata![fieldName] = replacement;
+        // Non-validating write: replay applies entries mechanically and the
+        // resulting project is judged once, at the end, by the replay's
+        // validation gate. Per-write validation here would reject a card that
+        // a later entry in the chain has yet to migrate.
+        return ctx.project.updateCardMetadata(card, card.metadata!);
+      }),
     );
   }
 
-  // Cards of card types that declare this field type: local project cards plus
-  // local template cards (matches FieldTypeResource's relevantCardTypes +
-  // collectCards scoping).
+  // Local project cards plus local template cards that hold a value under this
+  // field. Selection is by the metadata KEY, not by the (possibly-renamed)
+  // card type name: a card type rename elsewhere in the same update must not
+  // hide a card from this cascade.
   private affectedCards(ctx: MutationContext, fieldName: string): Card[] {
-    const relevant = new Set(
-      ctx.project.resources
-        .cardTypes()
-        .filter((cardType) =>
-          cardType.data?.customFields?.some((f) => f.name === fieldName),
-        )
-        .map((cardType) => cardType.data!.name),
-    );
-    if (relevant.size === 0) return [];
-
     const project = [...ctx.project.cards(undefined)];
     const templates = ctx.project.resources
       .templates(ResourcesFrom.localOnly)
       .flatMap((t) => t.templateObject().cards());
     return [...project, ...templates].filter(
-      (c) => c.metadata?.cardType && relevant.has(c.metadata.cardType),
+      (c) => c.metadata != null && fieldName in c.metadata,
     );
   }
 }

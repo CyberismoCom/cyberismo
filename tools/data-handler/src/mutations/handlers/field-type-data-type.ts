@@ -62,8 +62,8 @@ export class FieldTypeDataTypeHandler implements Handler<EditInput> {
           fromType,
           toType,
         );
-        // Either value was already null, or couldn't convert.
-        if (converted === null) continue;
+        // Conversion indeterminate — leave the card untouched.
+        if (converted === null || converted === undefined) continue;
         metadata[fieldName] = converted as MetadataContent;
         await ctx.project.updateCardMetadata(card, metadata);
       } catch (error) {
@@ -74,29 +74,21 @@ export class FieldTypeDataTypeHandler implements Handler<EditInput> {
     }
   }
 
-  // Cards of card types that declare this field type: local project cards plus
-  // local (non-module) template cards.
+  // Local project cards plus local (non-module) template cards that hold a
+  // value under this field. Selection is by the metadata KEY, not by the
+  // (possibly-renamed) card type name: a card type rename elsewhere in the
+  // same update must not hide a card from this cascade.
   private affectedCards(ctx: MutationContext, fieldName: string): Card[] {
-    const relevant = new Set(
-      ctx.project.resources
-        .cardTypes()
-        .filter((cardType) =>
-          cardType.data?.customFields?.some((f) => f.name === fieldName),
-        )
-        .map((cardType) => cardType.data!.name),
-    );
-    if (relevant.size === 0) return [];
-
-    const affected = (card: Card): boolean =>
-      !!card.metadata?.cardType && relevant.has(card.metadata.cardType);
+    const holdsField = (card: Card): boolean =>
+      card.metadata != null && fieldName in card.metadata;
 
     const projectCards = ctx.project
       .cards(ctx.project.paths.cardRootFolder)
-      .filter(affected);
+      .filter(holdsField);
     const templateCards = ctx.project
       .allTemplateCards()
       .filter((card) => !isModuleCard(card))
-      .filter(affected);
+      .filter(holdsField);
     return [...projectCards, ...templateCards];
   }
 

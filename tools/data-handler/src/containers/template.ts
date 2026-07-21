@@ -36,7 +36,7 @@ import {
 import { getChildLogger } from '../utils/log-utils.js';
 import { isModulePath } from '../utils/card-utils.js';
 import { Project } from './project.js';
-import { resourceName } from '../utils/resource-utils.js';
+import { isInitialTransition, resourceName } from '../utils/resource-utils.js';
 
 import { ROOT } from '../utils/constants.js';
 
@@ -215,9 +215,7 @@ export class Template extends CardContainer {
       .byType(cardType.workflow, 'workflows')
       .show();
 
-    const initialWorkflowState = workflow.transitions.find(
-      (item) => item.fromState.includes('') || item.fromState.length === 0,
-    );
+    const initialWorkflowState = workflow.transitions.find(isInitialTransition);
     if (!initialWorkflowState) {
       throw new Error(
         `Workflow '${cardType.workflow}' initial state cannot be found`,

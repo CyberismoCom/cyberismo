@@ -28,8 +28,14 @@ import { writeFileSafe, pathExists } from './file-utils.js';
 // Entry shapes match the log format shipped in released versions
 // (INTDEV-584), so logs written by older versions remain readable and no
 // migration is needed.
-export type ConfigurationOperation =
-  'resource_update' | 'resource_delete' | 'resource_rename' | 'project_rename';
+export const CONFIGURATION_OPERATIONS = [
+  'resource_update',
+  'resource_delete',
+  'resource_rename',
+  'project_rename',
+] as const;
+
+export type ConfigurationOperation = (typeof CONFIGURATION_OPERATIONS)[number];
 
 export interface ConfigurationLogEntry {
   timestamp: string;

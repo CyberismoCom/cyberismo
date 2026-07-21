@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdir, rm } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Project } from '../../../src/containers/project.js';
@@ -21,9 +21,10 @@ const WF = 'decision/workflows/decision';
 
 describe('WorkflowRemoveStateHandler', () => {
   let project: Project;
+  let projectPath: string;
 
   beforeEach(async () => {
-    const projectPath = join(tmpDir, `proj-${Date.now()}-${Math.random()}`);
+    projectPath = join(tmpDir, `proj-${Date.now()}-${Math.random()}`);
     await mkdir(projectPath, { recursive: true });
     await copyDir(FIXTURE_PATH, projectPath);
     project = new Project(projectPath);
@@ -81,7 +82,67 @@ describe('WorkflowRemoveStateHandler', () => {
     expect(refetched.metadata?.workflowState).toBe('Approved');
   });
 
-  it('apply without replacementValue does NOT migrate cards', async () => {
+  it('replay migrates a card whose card type is renamed later in the chain', async () => {
+    // The card still carries its pre-rename type while this (earlier) seal
+    // replays; the registry already shows the new name. The rename map must
+    // bridge the two or the card is missed.
+    const target = project
+      .cards(undefined)
+      .find((c) => c.metadata?.cardType === 'decision/cardTypes/decision')!;
+    target.metadata!.cardType = 'decision/cardTypes/oldDecision';
+    target.metadata!.workflowState = 'Rejected';
+    await project.updateCardMetadata(target, target.metadata!);
+
+    await new ResourceMutations(project).apply(
+      {
+        kind: 'edit',
+        target: resourceName(WF),
+        updateKey: { key: 'states' },
+        operation: {
+          name: 'remove',
+          target: { name: 'Rejected', category: 'closed' },
+          replacementValue: { name: 'Approved', category: 'closed' },
+        },
+      },
+      {
+        kind: 'replay',
+        modulePrefix: project.projectPrefix,
+        cardTypeRenames: new Map([
+          ['decision/cardTypes/oldDecision', 'decision/cardTypes/decision'],
+        ]),
+      },
+    );
+
+    const refetched = project
+      .cards(undefined)
+      .find((c) => c.key === target.key)!;
+    expect(refetched.metadata?.workflowState).toBe('Approved');
+  });
+
+  it('applyCascade tolerates a bare-string replacementValue (replay shape)', async () => {
+    const cardKey = await seedCardInState('Rejected');
+
+    await new ResourceMutations(project).apply(
+      {
+        kind: 'edit',
+        target: resourceName(WF),
+        updateKey: { key: 'states' },
+        operation: {
+          name: 'remove',
+          target: 'Rejected',
+          replacementValue: 'Approved',
+        },
+      },
+      { kind: 'replay', modulePrefix: project.projectPrefix },
+    );
+
+    // The recorded replacement must win; falling back to the new-card state
+    // ('Draft') would silently migrate the card to the wrong state.
+    const refetched = project.cards(undefined).find((c) => c.key === cardKey)!;
+    expect(refetched.metadata?.workflowState).toBe('Approved');
+  });
+
+  it('apply without replacementValue migrates cards to the new-card state', async () => {
     const cardKey = await seedCardInState('Rejected');
 
     const mutations = new ResourceMutations(project);
@@ -95,8 +156,103 @@ describe('WorkflowRemoveStateHandler', () => {
       },
     });
 
-    // Cards are only migrated when a replacementValue is given; without one,
-    // the card keeps its (now-removed) state value.
+    // Without a recorded replacement, cards fall back to the state a new
+    // card would get: the toState of the fixture's 'Create' transition.
+    const refetched = project.cards(undefined).find((c) => c.key === cardKey)!;
+    expect(refetched.metadata?.workflowState).toBe('Draft');
+  });
+
+  it('applyCascade recognizes an initial transition with an empty fromState array', async () => {
+    const cardKey = await seedCardInState('Rejected');
+
+    // Both [''] and [] mark the new-card transition elsewhere in the
+    // codebase (template.ts, workflow-resource.ts); the fallback must too.
+    const wfPath = join(
+      projectPath,
+      '.cards',
+      'local',
+      'workflows',
+      'decision.json',
+    );
+    const wf = JSON.parse(await readFile(wfPath, 'utf-8'));
+    for (const t of wf.transitions) {
+      if (t.fromState.includes('')) t.fromState = [];
+    }
+    await writeFile(wfPath, JSON.stringify(wf));
+    project = new Project(projectPath);
+    await project.populateCaches();
+
+    await new ResourceMutations(project).apply(
+      {
+        kind: 'edit',
+        target: resourceName(WF),
+        updateKey: { key: 'states' },
+        operation: {
+          name: 'remove',
+          target: { name: 'Rejected', category: 'closed' },
+        },
+      },
+      { kind: 'replay', modulePrefix: project.projectPrefix },
+    );
+
+    const refetched = project.cards(undefined).find((c) => c.key === cardKey)!;
+    expect(refetched.metadata?.workflowState).toBe('Draft');
+  });
+
+  it('applyCascade without an initial transition leaves cards in the removed state', async () => {
+    const cardKey = await seedCardInState('Rejected');
+
+    // Resource validation requires exactly one new-card transition, so this
+    // workflow shape can only be constructed on disk (mirroring a replay
+    // chain where later mutations rewrote the workflow).
+    const wfPath = join(
+      projectPath,
+      '.cards',
+      'local',
+      'workflows',
+      'decision.json',
+    );
+    const wf = JSON.parse(await readFile(wfPath, 'utf-8'));
+    wf.transitions = wf.transitions.filter(
+      (t: { fromState: string[] }) => !t.fromState.includes(''),
+    );
+    await writeFile(wfPath, JSON.stringify(wf));
+    project = new Project(projectPath);
+    await project.populateCaches();
+
+    await new ResourceMutations(project).apply(
+      {
+        kind: 'edit',
+        target: resourceName(WF),
+        updateKey: { key: 'states' },
+        operation: {
+          name: 'remove',
+          target: { name: 'Rejected', category: 'closed' },
+        },
+      },
+      { kind: 'replay', modulePrefix: project.projectPrefix },
+    );
+
+    const refetched = project.cards(undefined).find((c) => c.key === cardKey)!;
+    expect(refetched.metadata?.workflowState).toBe('Rejected');
+  });
+
+  it('applyCascade tolerates a missing workflow (no migration, no throw)', async () => {
+    const cardKey = await seedCardInState('Rejected');
+
+    await new ResourceMutations(project).apply(
+      {
+        kind: 'edit',
+        target: resourceName('decision/workflows/nonexistent'),
+        updateKey: { key: 'states' },
+        operation: {
+          name: 'remove',
+          target: { name: 'Rejected', category: 'closed' },
+        },
+      },
+      { kind: 'replay', modulePrefix: project.projectPrefix },
+    );
+
     const refetched = project.cards(undefined).find((c) => c.key === cardKey)!;
     expect(refetched.metadata?.workflowState).toBe('Rejected');
   });
