@@ -12,7 +12,8 @@
 */
 
 import { ActionGuard } from '../permissions/action-guard.js';
-import { CardMetadataUpdater } from '../card-metadata-updater.js';
+import { applySideEffects, type SideEffects } from '../side-effects.js';
+import { getChildLogger } from '../utils/log-utils.js';
 import type { Project } from '../containers/project.js';
 import { write } from '../utils/rw-lock.js';
 
@@ -20,6 +21,10 @@ import { write } from '../utils/rw-lock.js';
  * Handles transitions.
  */
 export class Transition {
+  private static get logger() {
+    return getChildLogger({ module: 'transition' });
+  }
+
   /**
    * Creates an instance of Transition command.
    * @param project Project to use.
@@ -36,12 +41,18 @@ export class Transition {
   }
 
   /**
-   * Transitions a card from its current state to a new state.
-   * @param cardKey card key
-   * @param transitionName name of the transition to do
+   * Performs a single workflow transition without cascading, and returns
+   * its side effects for the caller to execute. Throws if the card is
+   * missing, the transition is not available from the card's current state,
+   * or the transition is denied.
+   *
+   * Must run inside a write-lock context (cardTransition, or the creation
+   * flow's side-effect execution).
    */
-  @write((cardKey) => `Transition card ${cardKey}`)
-  public async cardTransition(cardKey: string, transitionName: string) {
+  public async performTransition(
+    cardKey: string,
+    transitionName: string,
+  ): Promise<SideEffects | undefined> {
     const card = this.project.findCard(cardKey);
 
     if (!card.metadata?.cardType) {
@@ -85,27 +96,68 @@ export class Transition {
     const actionGuard = new ActionGuard(this.project.calculationEngine);
     await actionGuard.checkPermission('transition', cardKey, transitionName);
 
-    if (card.metadata) {
-      card.metadata.workflowState = found.toState;
-      card.metadata.lastUpdated = new Date().toISOString();
-      card.metadata.lastTransitioned = new Date().toISOString();
-      return this.project
-        .updateCardMetadata(card, card.metadata)
-        .then(async () => this.transitionChangesQuery(cardKey, transitionName))
-        .then(async (queryResult) => {
-          if (
-            !queryResult ||
-            queryResult.at(0) === undefined ||
-            queryResult.at(0)?.updateFields === undefined
-          ) {
-            return;
-          }
-          const fieldsToUpdate = queryResult.at(0)?.updateFields;
-          if (fieldsToUpdate) {
-            return CardMetadataUpdater.apply(this.project, fieldsToUpdate);
-          }
-        })
-        .catch((error) => console.error(error));
+    card.metadata.workflowState = found.toState;
+    // lastUpdated is stamped by saveCardMetadata on every save; only
+    // lastTransitioned needs to be set here.
+    card.metadata.lastTransitioned = new Date().toISOString();
+    await this.project.updateCardMetadata(card, card.metadata);
+
+    // A broken module calculation must not fail the transition itself.
+    try {
+      const queryResult = await this.transitionChangesQuery(
+        cardKey,
+        transitionName,
+      );
+      return queryResult?.at(0);
+    } catch (error) {
+      Transition.logger.warn(
+        {
+          cardKey,
+          transition: transitionName,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        'onTransition query failed; side effects skipped',
+      );
+      return undefined;
     }
+  }
+
+  /**
+   * Executes a transition's side effects (field updates and cascading
+   * transitions on other cards). Never throws: module calculation problems
+   * must not fail the user's primary action.
+   * @param effects Side effects from an onTransition/onCreation query.
+   * @param visited `cardKey:transitionName` pairs already attempted in this
+   *                cascade.
+   */
+  public async executeSideEffects(
+    effects: SideEffects | undefined,
+    visited: Set<string>,
+  ): Promise<void> {
+    try {
+      await applySideEffects(this.project, effects, visited, (card, name) =>
+        this.performTransition(card, name),
+      );
+    } catch (error) {
+      Transition.logger.warn(
+        { error: error instanceof Error ? error.message : String(error) },
+        'Applying transition side effects failed',
+      );
+    }
+  }
+
+  /**
+   * Transitions a card from its current state to a new state, then executes
+   * any side effects modules have declared for the transition.
+   * @param cardKey card key
+   * @param transitionName name of the transition to do
+   */
+  @write((cardKey) => `Transition card ${cardKey}`)
+  public async cardTransition(cardKey: string, transitionName: string) {
+    const effects = await this.performTransition(cardKey, transitionName);
+    await this.executeSideEffects(
+      effects,
+      new Set([`${cardKey}:${transitionName}`]),
+    );
   }
 }
