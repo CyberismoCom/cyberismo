@@ -158,8 +158,11 @@ export class ModuleValidationFailedError extends Error {
  * aborting is the safe direction.
  *
  * The resolver yields roots before their transitive dependencies (BFS);
- * steps are produced in REVERSE resolved order so dependencies replay
- * before their dependents.
+ * steps are produced in REVERSE resolved order so dependencies tend to
+ * replay before their dependents. This is a heuristic, not a topological
+ * sort: a dependency shared between siblings can replay after one of
+ * them. Safe because cross-module migrations commute (the one exception
+ * is refused, see {@link detectSplitWorkflowOwnership}).
  *
  * Skips (no step, no conflict): module not installed before, installed or
  * resolved version unknown, version unchanged, or no seal covers the range.

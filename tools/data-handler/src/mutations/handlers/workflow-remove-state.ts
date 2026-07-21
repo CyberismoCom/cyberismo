@@ -15,7 +15,10 @@
 import type { Handler, MutationContext } from '../handler.js';
 import { resolveCardTypeRename } from '../handler.js';
 import type { EditInput } from '../types.js';
-import { resourceNameToString } from '../../utils/resource-utils.js';
+import {
+  isInitialTransition,
+  resourceNameToString,
+} from '../../utils/resource-utils.js';
 import { isModuleCard } from '../../utils/card-utils.js';
 import type { RemoveOperation } from '../../resources/resource-object.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
@@ -55,11 +58,17 @@ export class WorkflowRemoveStateHandler implements Handler<EditInput> {
     const op = ctx.input.operation as RemoveOperation<WorkflowState>;
     const stateName = ((op.target as { name?: string }).name ??
       op.target) as string;
-    const replacement = op.replacementValue as WorkflowState | undefined;
+    // Recorded entries may carry a bare string or a WorkflowState object.
+    const replacement = op.replacementValue as
+      | WorkflowState
+      | string
+      | undefined;
+    const replacementName =
+      typeof replacement === 'string' ? replacement : replacement?.name;
 
     // The author's recorded choice wins; with none, cards fall back to the
     // state a new card would get rather than being left in a removed state.
-    const effective = replacement?.name ?? this.initialState(ctx, name);
+    const effective = replacementName ?? this.initialState(ctx, name);
     if (effective) {
       for (const card of this.cardsInState(ctx, name, stateName)) {
         card.metadata!.workflowState = effective;
@@ -68,8 +77,7 @@ export class WorkflowRemoveStateHandler implements Handler<EditInput> {
     }
   }
 
-  // The state a newly created card gets: the toState of the initial
-  // transition (fromState contains ''). In the authoring path apply() runs
+  // The state a newly created card gets. In the authoring path apply() runs
   // resource.update() first, so this reads the POST-update workflow.
   // Undefined when the workflow is missing (deleted later in a replay chain)
   // or the initial transition is gone (e.g. its target was the removed
@@ -82,7 +90,7 @@ export class WorkflowRemoveStateHandler implements Handler<EditInput> {
       workflowName,
       'workflows',
     )?.data;
-    return workflow?.transitions.find((t) => t.fromState.includes(''))?.toState;
+    return workflow?.transitions.find(isInitialTransition)?.toState;
   }
 
   // Cards using this workflow (via their card type) that are currently in the

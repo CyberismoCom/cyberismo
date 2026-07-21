@@ -20,7 +20,10 @@ import type {
 } from '../interfaces/resource-interfaces.js';
 import { DefaultContent } from './create-defaults.js';
 import { FileResource } from './file-resource.js';
-import { resourceNameToString } from '../utils/resource-utils.js';
+import {
+  isInitialTransition,
+  resourceNameToString,
+} from '../utils/resource-utils.js';
 import { sortCards } from '../utils/card-utils.js';
 
 import type { Card } from '../interfaces/project-interfaces.js';
@@ -187,9 +190,8 @@ export class WorkflowResource extends FileResource<Workflow> {
 
     const workflowContent = content ?? this.content;
 
-    const newCardTransitions = workflowContent.transitions.filter(
-      (t) => t.fromState.includes('') || t.fromState.length === 0,
-    );
+    const newCardTransitions =
+      workflowContent.transitions.filter(isInitialTransition);
 
     if (newCardTransitions.length !== 1) {
       throw new Error(

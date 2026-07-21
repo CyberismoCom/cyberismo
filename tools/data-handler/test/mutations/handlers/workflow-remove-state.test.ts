@@ -119,6 +119,29 @@ describe('WorkflowRemoveStateHandler', () => {
     expect(refetched.metadata?.workflowState).toBe('Approved');
   });
 
+  it('applyCascade tolerates a bare-string replacementValue (replay shape)', async () => {
+    const cardKey = await seedCardInState('Rejected');
+
+    await new ResourceMutations(project).apply(
+      {
+        kind: 'edit',
+        target: resourceName(WF),
+        updateKey: { key: 'states' },
+        operation: {
+          name: 'remove',
+          target: 'Rejected',
+          replacementValue: 'Approved',
+        },
+      },
+      { kind: 'replay', modulePrefix: project.projectPrefix },
+    );
+
+    // The recorded replacement must win; falling back to the new-card state
+    // ('Draft') would silently migrate the card to the wrong state.
+    const refetched = project.cards(undefined).find((c) => c.key === cardKey)!;
+    expect(refetched.metadata?.workflowState).toBe('Approved');
+  });
+
   it('apply without replacementValue migrates cards to the new-card state', async () => {
     const cardKey = await seedCardInState('Rejected');
 
@@ -135,6 +158,43 @@ describe('WorkflowRemoveStateHandler', () => {
 
     // Without a recorded replacement, cards fall back to the state a new
     // card would get: the toState of the fixture's 'Create' transition.
+    const refetched = project.cards(undefined).find((c) => c.key === cardKey)!;
+    expect(refetched.metadata?.workflowState).toBe('Draft');
+  });
+
+  it('applyCascade recognizes an initial transition with an empty fromState array', async () => {
+    const cardKey = await seedCardInState('Rejected');
+
+    // Both [''] and [] mark the new-card transition elsewhere in the
+    // codebase (template.ts, workflow-resource.ts); the fallback must too.
+    const wfPath = join(
+      projectPath,
+      '.cards',
+      'local',
+      'workflows',
+      'decision.json',
+    );
+    const wf = JSON.parse(await readFile(wfPath, 'utf-8'));
+    for (const t of wf.transitions) {
+      if (t.fromState.includes('')) t.fromState = [];
+    }
+    await writeFile(wfPath, JSON.stringify(wf));
+    project = new Project(projectPath);
+    await project.populateCaches();
+
+    await new ResourceMutations(project).apply(
+      {
+        kind: 'edit',
+        target: resourceName(WF),
+        updateKey: { key: 'states' },
+        operation: {
+          name: 'remove',
+          target: { name: 'Rejected', category: 'closed' },
+        },
+      },
+      { kind: 'replay', modulePrefix: project.projectPrefix },
+    );
+
     const refetched = project.cards(undefined).find((c) => c.key === cardKey)!;
     expect(refetched.metadata?.workflowState).toBe('Draft');
   });
