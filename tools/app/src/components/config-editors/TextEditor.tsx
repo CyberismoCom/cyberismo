@@ -30,14 +30,15 @@ export function TextEditor({ node }: { node: FileNode }) {
   const isDarkMode = useIsDarkMode();
   const isAdmin = useHasMinRole(UserRole.Admin);
   const [content, setContent] = useState(node.data.content);
+  const [prevNode, setPrevNode] = useState(node);
+  if (node !== prevNode) {
+    setPrevNode(node);
+    setContent(node.data.content);
+  }
 
   const { update, isUpdating } = useResource(node.resourceName);
 
   const isDirty = content !== node.data.content;
-
-  useEffect(() => {
-    setContent(node.data.content);
-  }, [node]);
 
   useEffect(() => {
     dispatch(isEdited(isDirty));

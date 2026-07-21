@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useResourceTree } from '@/lib/api';
 import type { ResourceNode } from '@/lib/api/types';
@@ -42,12 +42,13 @@ export function useEditableField({
   isUpdating,
 }: EditableFieldOptions) {
   const [value, setValue] = useState(initialValue);
+  const [prevInitialValue, setPrevInitialValue] = useState(initialValue);
+  if (initialValue !== prevInitialValue) {
+    setPrevInitialValue(initialValue);
+    setValue(initialValue);
+  }
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
-
-  useEffect(() => {
-    setValue(initialValue);
-  }, [initialValue]);
 
   const dirty = value !== initialValue;
   const saving = isUpdating(actionKey);
