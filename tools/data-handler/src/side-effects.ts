@@ -17,6 +17,8 @@ import { getChildLogger } from './utils/log-utils.js';
 import type { Project } from './containers/project.js';
 import type { ExecuteTransition, UpdateField } from './types/queries.js';
 
+const logger = getChildLogger({ module: 'sideEffects' });
+
 /**
  * Side effects of one workflow transition or card creation, as returned by
  * the onTransition / onCreation hook queries.
@@ -41,7 +43,7 @@ export type PerformTransition = (
  * own side effects back into the queue.
  *
  * Termination: `visited` holds `"cardKey:transitionName"` pairs already
- * performed in this cascade (callers seed it with the primary transition).
+ * attempted in this cascade (callers seed it with the primary transition).
  * A repeated pair is skipped, so cyclic module definitions degrade to a
  * logged no-op instead of looping.
  *
@@ -54,7 +56,6 @@ export async function applySideEffects(
   visited: Set<string>,
   performTransition: PerformTransition,
 ): Promise<void> {
-  const logger = getChildLogger({ module: 'sideEffects' });
   const queue: ExecuteTransition[] = [];
 
   const consume = async (effects: SideEffects | undefined) => {

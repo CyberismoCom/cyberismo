@@ -30,6 +30,31 @@ describe('applySideEffects', () => {
     expect(apply).toHaveBeenCalledWith(project, effects.updateFields);
   });
 
+  it('propagates a CardMetadataUpdater failure on the initial effects', async () => {
+    vi.spyOn(CardMetadataUpdater, 'apply').mockRejectedValue(
+      new Error('bad field'),
+    );
+    const effects: SideEffects = {
+      updateFields: [{ card: 'a_1', field: 'title', newValue: 'x' }],
+    };
+    await expect(
+      applySideEffects(project, effects, new Set<string>(), vi.fn()),
+    ).rejects.toThrow('bad field');
+  });
+
+  it('does nothing with empty updateFields and executeTransition arrays', async () => {
+    const apply = vi.spyOn(CardMetadataUpdater, 'apply');
+    const perform = vi.fn(async () => undefined);
+    await applySideEffects(
+      project,
+      { updateFields: [], executeTransition: [] },
+      new Set<string>(),
+      perform,
+    );
+    expect(apply).not.toHaveBeenCalled();
+    expect(perform).not.toHaveBeenCalled();
+  });
+
   it('executes transitions breadth-first and cascades nested effects', async () => {
     const order: string[] = [];
     const nested: Record<string, SideEffects | undefined> = {
