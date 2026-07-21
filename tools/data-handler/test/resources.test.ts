@@ -52,7 +52,10 @@ type ResourceConfig = {
   type: ResourceType;
   identifier: string;
   createMethod?:
-    'create' | 'createCardType' | 'createFieldType' | 'createReport';
+    | 'create'
+    | 'createCardType'
+    | 'createFieldType'
+    | 'createReport';
   createArgs?: string[];
   createContent?: unknown;
   expectedData?: unknown;
