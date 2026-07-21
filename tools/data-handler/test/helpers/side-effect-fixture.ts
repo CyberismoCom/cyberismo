@@ -26,6 +26,11 @@ import { Cmd, Commands } from '../../src/command-handler.js';
  * given logic-program facts to its test calculation, and returns a fresh
  * Commands instance pointed at it. Per-scenario copies keep scenarios from
  * contaminating each other.
+ *
+ * Isolation depends on callers passing a unique `name` per scenario: each
+ * copy gets its own directory and calculation file, but there is no
+ * cross-instance file locking, only the in-memory write lock scoped to a
+ * single project instance.
  */
 export async function setupSideEffectProject(
   rootDir: string,

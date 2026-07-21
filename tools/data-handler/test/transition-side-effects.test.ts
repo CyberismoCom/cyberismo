@@ -1,5 +1,13 @@
 // testing
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';
@@ -7,6 +15,7 @@ import { join } from 'node:path';
 
 // cyberismo
 import { Cmd } from '../src/command-handler.js';
+import { Project } from '../src/containers/project.js';
 import {
   cardState,
   setupSideEffectProject,
@@ -27,6 +36,10 @@ afterAll(() => {
   rmSync(testDir, { recursive: true, force: true });
 });
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe('transition side effects', () => {
   it('performs the declared side-effect transition on another card', async () => {
     const { commands, options } = await setup(
@@ -41,5 +54,21 @@ describe('transition side effects', () => {
     expect(result.statusCode).toBe(200);
     expect(await state(commands, options, 'decision_5')).toBe('Approved');
     expect(await state(commands, options, 'decision_6')).toBe('Rejected');
+  });
+
+  it('propagates a primary state-write failure instead of swallowing it', async () => {
+    // Regression test: cardTransition used to .catch(console.error) around
+    // the whole write+query chain, so a failed metadata write was silently
+    // dropped and the command reported success anyway.
+    const { commands, options } = await setup('write-failure', '% no facts');
+    vi.spyOn(Project.prototype, 'updateCardMetadata').mockRejectedValueOnce(
+      new Error('disk full'),
+    );
+    const result = await commands.command(
+      Cmd.transition,
+      ['decision_5', 'Approve'],
+      options,
+    );
+    expect(result.statusCode).not.toBe(200);
   });
 });

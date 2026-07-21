@@ -140,7 +140,10 @@ export class Transition {
       );
     } catch (error) {
       Transition.logger.warn(
-        { error: error instanceof Error ? error.message : String(error) },
+        {
+          attempted: [...visited],
+          error: error instanceof Error ? error.message : String(error),
+        },
         'Applying transition side effects failed',
       );
     }
