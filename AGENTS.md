@@ -40,10 +40,9 @@ Internal deps use `"workspace:*"` and are imported as `@cyberismo/<package>`.
 
 ## Testing
 
-- **Vitest**: app, backend, mcp, node-clingo
-- **Mocha + Chai**: cli, data-handler
+- Vitest
 - Tests live in `test/` dirs (or `__tests__/` in app)
-- Never commit `.only()` in tests (enforced by `--forbid-only`)
+- Never commit `.only()` in tests
 
 ## Key patterns
 
