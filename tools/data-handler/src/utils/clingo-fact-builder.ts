@@ -19,9 +19,7 @@ export type AllowedClingoType = string | number | boolean;
 export type NestedBuilder = (builder: ClingoFactBuilder) => ClingoFactBuilder;
 
 type ClingoArgumentInternal =
-  | AllowedClingoType
-  | AllowedClingoType[]
-  | ClingoFactBuilder;
+  AllowedClingoType | AllowedClingoType[] | ClingoFactBuilder;
 
 export type ClingoArgument = ClingoArgumentInternal | NestedBuilder;
 

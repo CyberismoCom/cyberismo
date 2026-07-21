@@ -60,9 +60,7 @@ export class WorkflowRemoveStateHandler implements Handler<EditInput> {
       op.target) as string;
     // Recorded entries may carry a bare string or a WorkflowState object.
     const replacement = op.replacementValue as
-      | WorkflowState
-      | string
-      | undefined;
+      WorkflowState | string | undefined;
     const replacementName =
       typeof replacement === 'string' ? replacement : replacement?.name;
 
