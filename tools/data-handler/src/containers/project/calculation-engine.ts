@@ -396,8 +396,10 @@ export class CalculationEngine {
     ) {
       return;
     }
-    const fieldsToUpdate = queryResult.at(0)!.updateFields;
-    await CardMetadataUpdater.apply(this.project, fieldsToUpdate);
+    const fieldsToUpdate = queryResult.at(0)?.updateFields;
+    if (fieldsToUpdate) {
+      await CardMetadataUpdater.apply(this.project, fieldsToUpdate);
+    }
   }
 
   /**

@@ -100,8 +100,10 @@ export class Transition {
           ) {
             return;
           }
-          const fieldsToUpdate = queryResult.at(0)!.updateFields;
-          return CardMetadataUpdater.apply(this.project, fieldsToUpdate);
+          const fieldsToUpdate = queryResult.at(0)?.updateFields;
+          if (fieldsToUpdate) {
+            return CardMetadataUpdater.apply(this.project, fieldsToUpdate);
+          }
         })
         .catch((error) => console.error(error));
     }
