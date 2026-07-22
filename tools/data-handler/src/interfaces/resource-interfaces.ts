@@ -149,6 +149,28 @@ export interface SkillMetadata extends ResourceBaseMetadata {
   relatedTools: string[];
 }
 
+// Lightweight skill listing entry (list_skills / MCP discovery).
+export interface SkillSummary {
+  name: string;
+  displayName: string;
+  description?: string;
+  category?: string;
+  relatedTools: string[];
+  scope: 'global' | 'card';
+}
+
+// Full skill payload for get_skill: summary plus rendered instructions.
+export interface SkillDetails extends SkillSummary {
+  instructions: string;
+}
+
+// Discriminated result for getSkill: the enabled-and-rendered skill, or the
+// reason it cannot be returned (so callers report it without throwing).
+export type SkillLookupResult =
+  | { status: 'ok'; skill: SkillDetails }
+  | { status: 'not-enabled' }
+  | { status: 'needs-card' };
+
 // Base interface for all resources.
 export interface ResourceBaseMetadata {
   name: string;
