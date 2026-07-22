@@ -783,12 +783,19 @@ export class Validate {
         continue;
       }
       if (field.isCalculated) {
-        if (card.metadata[field.name] !== undefined) {
+        const value = card.metadata[field.name];
+        const hasStoredValue = value !== undefined && value !== null;
+        if (!hasStoredValue) {
+          // Absent or null: no override; nothing further to check.
+          continue;
+        }
+        if (!field.enableOverride) {
           validationErrors.push(
             `Card '${card.key}' not allowed to have a value in a calculated field '${field.name}'`,
           );
+          continue;
         }
-        continue;
+        // Stored override: fall through to the type check below.
       } else {
         if (card.metadata[field.name] === undefined) {
           validationErrors.push(

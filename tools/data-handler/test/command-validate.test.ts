@@ -59,4 +59,124 @@ describe('command-handler: validate command', () => {
       rmSync(tmpDir, { recursive: true, force: true });
     }
   });
+  it('override-enabled calculated field with stored value passes validation', async () => {
+    // A calculated field marked enableOverride may legitimately carry a
+    // user-provided value in index.json; it must not be flagged.
+    const tmpDir = join(baseDir, 'tmp-command-validate-tests-override-valid');
+    mkdirSync(tmpDir, { recursive: true });
+    try {
+      await copyDir(join(testDir, 'valid/decision-records'), tmpDir);
+      const cardTypePath = join(tmpDir, '.cards/local/cardTypes/decision.json');
+      const cardType = JSON.parse(readFileSync(cardTypePath, 'utf-8'));
+      const obsoletedByField = cardType.customFields.find(
+        (field: { name: string }) =>
+          field.name === 'decision/fieldTypes/obsoletedBy',
+      );
+      obsoletedByField.enableOverride = true;
+      writeFileSync(cardTypePath, JSON.stringify(cardType));
+
+      const cardPath = join(
+        tmpDir,
+        'cardRoot/decision_5/c/decision_6/index.json',
+      );
+      const card = JSON.parse(readFileSync(cardPath, 'utf-8'));
+      card['decision/fieldTypes/obsoletedBy'] = 'decision_999';
+      writeFileSync(cardPath, JSON.stringify(card));
+
+      const result = await commandHandler.command(Cmd.validate, [], {
+        projectPath: tmpDir,
+      });
+      expect(result.statusCode).toBe(200);
+      expect(result.message).not.toContain('calculated field');
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+  it('calculated field with stored value but no enableOverride fails validation', async () => {
+    // Without enableOverride, a stored value in a calculated field is still
+    // disallowed, matching current behavior.
+    const tmpDir = join(baseDir, 'tmp-command-validate-tests-override-none');
+    mkdirSync(tmpDir, { recursive: true });
+    try {
+      await copyDir(join(testDir, 'valid/decision-records'), tmpDir);
+      const cardPath = join(
+        tmpDir,
+        'cardRoot/decision_5/c/decision_6/index.json',
+      );
+      const card = JSON.parse(readFileSync(cardPath, 'utf-8'));
+      card['decision/fieldTypes/obsoletedBy'] = 'decision_999';
+      writeFileSync(cardPath, JSON.stringify(card));
+
+      const result = await commandHandler.command(Cmd.validate, [], {
+        projectPath: tmpDir,
+      });
+      expect(result.statusCode).toBe(200);
+      expect(result.message).toContain(
+        'not allowed to have a value in a calculated field',
+      );
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+  it('calculated field with null value passes validation', async () => {
+    // Null is cleared-override residue and must always be tolerated,
+    // regardless of enableOverride.
+    const tmpDir = join(baseDir, 'tmp-command-validate-tests-override-null');
+    mkdirSync(tmpDir, { recursive: true });
+    try {
+      await copyDir(join(testDir, 'valid/decision-records'), tmpDir);
+      const cardPath = join(
+        tmpDir,
+        'cardRoot/decision_5/c/decision_6/index.json',
+      );
+      const card = JSON.parse(readFileSync(cardPath, 'utf-8'));
+      card['decision/fieldTypes/obsoletedBy'] = null;
+      writeFileSync(cardPath, JSON.stringify(card));
+
+      const result = await commandHandler.command(Cmd.validate, [], {
+        projectPath: tmpDir,
+      });
+      expect(result.statusCode).toBe(200);
+      expect(result.message).not.toContain('calculated field');
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+  it('override-enabled calculated field with invalid value fails type validation', async () => {
+    // An override value must still be type-checked like any other value.
+    // decision/fieldTypes/obsoletedBy is a shortText field (max 80 chars),
+    // so a longer string should be rejected on type grounds, not because
+    // it's a calculated field.
+    const tmpDir = join(baseDir, 'tmp-command-validate-tests-override-bad');
+    mkdirSync(tmpDir, { recursive: true });
+    try {
+      await copyDir(join(testDir, 'valid/decision-records'), tmpDir);
+      const cardTypePath = join(tmpDir, '.cards/local/cardTypes/decision.json');
+      const cardType = JSON.parse(readFileSync(cardTypePath, 'utf-8'));
+      const obsoletedByField = cardType.customFields.find(
+        (field: { name: string }) =>
+          field.name === 'decision/fieldTypes/obsoletedBy',
+      );
+      obsoletedByField.enableOverride = true;
+      writeFileSync(cardTypePath, JSON.stringify(cardType));
+
+      const cardPath = join(
+        tmpDir,
+        'cardRoot/decision_5/c/decision_6/index.json',
+      );
+      const card = JSON.parse(readFileSync(cardPath, 'utf-8'));
+      card['decision/fieldTypes/obsoletedBy'] = 'x'.repeat(81);
+      writeFileSync(cardPath, JSON.stringify(card));
+
+      const result = await commandHandler.command(Cmd.validate, [], {
+        projectPath: tmpDir,
+      });
+      expect(result.statusCode).toBe(200);
+      expect(result.message).toContain(
+        "field 'decision/fieldTypes/obsoletedBy' value exceeds the maximum length for 'shortText'",
+      );
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
 });
