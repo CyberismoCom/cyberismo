@@ -20,22 +20,27 @@ import type {
   RemoveOperation,
 } from './resource-object.js';
 
+// Parses a CLI-supplied JSON-string operand (object/array literal) back into
+// its value; anything else (including non-JSON strings) passes through
+// unchanged. Exported so callers that inspect operation operands ahead of
+// handleArray() - e.g. resource-specific update guards - can normalize them
+// the same way.
+export function tryParseJSON<U>(value: U): U {
+  if (typeof value !== 'string') return value;
+  try {
+    const trimmed = value.trim();
+    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+      return JSON.parse(trimmed) as U;
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return value;
+}
+
 export class ArrayHandler<T> {
   private isValidIndex(index: number, array: T[]): boolean {
     return index >= 0 && index < array.length;
-  }
-
-  private tryParseJSON<U>(value: U): U {
-    if (typeof value !== 'string') return value;
-    try {
-      const trimmed = value.trim();
-      if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
-        return JSON.parse(trimmed) as U;
-      }
-    } catch {
-      // Ignore parse errors
-    }
-    return value;
   }
 
   private findItemIndex(item: T, array: T[]): number {
@@ -66,7 +71,7 @@ export class ArrayHandler<T> {
   }
 
   private handleAdd(operation: AddOperation<T>, array: T[]): T[] {
-    const parsedItem = this.tryParseJSON(operation.target);
+    const parsedItem = tryParseJSON(operation.target);
     const index = this.findItemIndex(parsedItem, array);
 
     if (index !== -1) {
@@ -81,13 +86,13 @@ export class ArrayHandler<T> {
     if (target === undefined) {
       throw new Error(`Changing an array item requires 'target'`);
     }
-    const parsedTarget = this.tryParseJSON(target);
+    const parsedTarget = tryParseJSON(target);
     const targetIndex = this.findItemIndex(parsedTarget, array);
     if (targetIndex === -1) {
       throw new Error(`Item '${JSON.stringify(target)}' not found`);
     }
     const actualTarget = array[targetIndex];
-    const parsedTo = this.tryParseJSON(to);
+    const parsedTo = tryParseJSON(to);
 
     if (typeof to === 'string' && (to.startsWith('[') || to.startsWith('{'))) {
       return parsedTo as T[];

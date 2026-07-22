@@ -144,6 +144,36 @@ describe('fieldOverride fact generation', () => {
     expect(field?.enableOverride).toBe(true);
   });
 
+  it('disabling enableOverride is refused when target/to arrive as JSON strings', async () => {
+    // updateCmd.apply() is a public entry point: callers (e.g. the CLI's
+    // command-handler, which JSON-encodes non-scalar operands) may hand it
+    // 'target'/'to' as raw JSON strings rather than parsed objects. The guard
+    // must normalize them the same way handleChange() does before inspecting
+    // them. 'target' uses the name-only shorthand (already a plain string,
+    // same as a CLI caller identifying the field by name); 'to' is the
+    // JSON-encoded new field object, mirroring how the CLI serializes a
+    // non-scalar operand.
+    const promise = commands.updateCmd.apply({
+      kind: 'edit',
+      target: resourceName('decision/cardTypes/decision'),
+      updateKey: { key: 'customFields' },
+      operation: {
+        name: 'change',
+        target: FIELD,
+        to: JSON.stringify({ name: FIELD, isCalculated: true }),
+      },
+    });
+    await expect(promise).rejects.toThrow(/override value/);
+    await expect(promise).rejects.toThrow(CARD_KEY);
+
+    // The guard must refuse before anything is persisted.
+    const cardType = commands.project.resources
+      .byType('decision/cardTypes/decision', 'cardTypes')
+      .show() as CardType;
+    const field = cardType.customFields.find((f) => f.name === FIELD);
+    expect(field?.enableOverride).toBe(true);
+  });
+
   it('a rename-shaped change is judged by the target field, not the new name', async () => {
     const renamedField = 'decision/fieldTypes/obsoletedByRenamed';
     const promise = commands.updateCmd.apply({
