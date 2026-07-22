@@ -74,7 +74,7 @@ field(Card, Field, Value) :-
 
 % warn when a scalar field ends up with conflicting values, e.g. a calculation
 % still uses a field() head for an override-enabled field
-notification(Card, "Fields", "Conflicting field values", @concatenate("Field ", Field, " has multiple values. Calculations for fields that enable override must use fieldCalculated instead of field.")) :-
+notification(Card, "Fields", "Conflicting field values", @concatenate("Field ", Field, " has multiple values. If the field is calculated, make sure calculations use fieldCalculated instead of field.")) :-
     card(Card),
     field(Card, Field, V1),
     field(Card, Field, V2),
