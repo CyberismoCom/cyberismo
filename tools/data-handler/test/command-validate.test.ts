@@ -59,4 +59,42 @@ describe('command-handler: validate command', () => {
       rmSync(tmpDir, { recursive: true, force: true });
     }
   });
+  it('reports every invalid calculation with diagnostics', async () => {
+    // Calculation create/update rejects invalid logic programs; files edited
+    // by hand or brought in by git pull must be caught by project validation,
+    // and each file must be validated independently so all failures are listed.
+    const tmpDir = join(baseDir, 'tmp-command-validate-calculations-tests');
+    mkdirSync(tmpDir, { recursive: true });
+    try {
+      await copyDir(join(testDir, 'valid/decision-records'), tmpDir);
+      const calculationsDir = join(tmpDir, '.cards/local/calculations');
+      writeFileSync(join(calculationsDir, 'test/calculation.lp'), 'broken((');
+
+      const metadata = JSON.parse(
+        readFileSync(join(calculationsDir, 'test.json'), 'utf-8'),
+      );
+      metadata.name = 'decision/calculations/second';
+      metadata.displayName = 'SecondCalculation';
+      writeFileSync(
+        join(calculationsDir, 'second.json'),
+        JSON.stringify(metadata),
+      );
+      mkdirSync(join(calculationsDir, 'second'));
+      writeFileSync(
+        join(calculationsDir, 'second/calculation.lp'),
+        'unsafe(X) :- other(Y).',
+      );
+
+      const result = await commandHandler.command(Cmd.validate, [], {
+        projectPath: tmpDir,
+      });
+      expect(result.statusCode).toBe(200);
+      expect(result.message).toContain('decision/calculations/test');
+      expect(result.message).toContain('syntax error');
+      expect(result.message).toContain('decision/calculations/second');
+      expect(result.message).toContain('unsafe variables');
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
 });

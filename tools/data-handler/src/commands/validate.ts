@@ -20,6 +20,7 @@ import { readdir } from 'node:fs/promises';
 import { Validator as JSONValidator, type Schema } from 'jsonschema';
 import { Validator as DirectoryValidator } from 'directory-schema-validator';
 import { parentSchema, schemas } from '@cyberismo/assets';
+import { validateProgram } from '@cyberismo/node-clingo';
 
 // data-handler
 import type {
@@ -554,6 +555,23 @@ export class Validate {
         for (const workflow of project.resources.workflows()) {
           try {
             await workflow.validate();
+          } catch (error) {
+            errorMsg.push(errorFunction(error));
+          }
+        }
+
+        // Validate each calculation logic program independently, so that
+        // every broken file is reported; files on disk may have been edited
+        // by hand and bypassed validation at creation or update time.
+        for (const calculation of project.resources.calculations()) {
+          try {
+            const content = calculation.contentData();
+            const validation = validateProgram(content.calculation);
+            if (!validation.valid) {
+              errorMsg.push(
+                `Invalid calculation '${calculation.data!.name}':\n${validation.errors.join('\n')}`,
+              );
+            }
           } catch (error) {
             errorMsg.push(errorFunction(error));
           }
