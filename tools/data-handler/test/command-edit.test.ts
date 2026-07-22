@@ -1,6 +1,6 @@
 import { expect, it, describe, beforeAll, afterAll } from 'vitest';
 import { join } from 'node:path';
-import { mkdirSync, rmSync } from 'node:fs';
+import { mkdirSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
@@ -169,5 +169,65 @@ describe('edit card', () => {
     await expect(
       EditCmd.editCardMetadata('card-key-does-not-exist', 'whoopie', 'whoopie'),
     ).rejects.toThrow();
+  });
+
+  it('editing a calculated field without override is rejected', async () => {
+    await expect(
+      editCmd.editCardMetadata(
+        'decision_6',
+        'decision/fieldTypes/obsoletedBy',
+        'decision_999',
+      ),
+    ).rejects.toThrow(/calculated field/);
+  });
+
+  it('editing a calculated field with override enabled persists the override', async () => {
+    const freshTestDir = join(baseDir, 'tmp-edit-override-test');
+    mkdirSync(freshTestDir, { recursive: true });
+    try {
+      await copyDir('test/test-data/', freshTestDir);
+      const projectPath = join(freshTestDir, 'valid/decision-records');
+
+      const cardTypePath = join(
+        projectPath,
+        '.cards/local/cardTypes/decision.json',
+      );
+      const cardType = JSON.parse(readFileSync(cardTypePath, 'utf-8'));
+      const field = cardType.customFields.find(
+        (f: { name: string }) => f.name === 'decision/fieldTypes/obsoletedBy',
+      );
+      expect(field).toBeDefined();
+      field.enableOverride = true;
+      writeFileSync(cardTypePath, JSON.stringify(cardType));
+
+      const freshCommands = new CommandManager(projectPath, {
+        autoSaveConfiguration: false,
+      });
+      await freshCommands.initialize();
+
+      await expect(
+        freshCommands.editCmd.editCardMetadata(
+          'decision_6',
+          'decision/fieldTypes/obsoletedBy',
+          'decision_999',
+        ),
+      ).resolves.not.toThrow();
+
+      const changed = freshCommands.project.findCard('decision_6');
+      expect(changed.metadata!['decision/fieldTypes/obsoletedBy']).toBe(
+        'decision_999',
+      );
+
+      // Clearing the override (saving null) also works.
+      await expect(
+        freshCommands.editCmd.editCardMetadata(
+          'decision_6',
+          'decision/fieldTypes/obsoletedBy',
+          null,
+        ),
+      ).resolves.not.toThrow();
+    } finally {
+      rmSync(freshTestDir, { recursive: true, force: true });
+    }
   });
 });
