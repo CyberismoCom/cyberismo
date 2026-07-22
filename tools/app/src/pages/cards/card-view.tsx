@@ -60,12 +60,13 @@ export default function Page() {
 
   const [linkFormState, setLinkFormState] = useState<LinkFormState>('hidden');
   const [isEditing, setIsEditing] = useState(false);
+  const [prevKey, setPrevKey] = useState(key);
+  if (key !== prevKey) {
+    setPrevKey(key);
+    setLinkFormState('hidden');
+  }
 
   const layoutRef = useRef<CardLayoutHandle>(null);
-
-  useEffect(() => {
-    setLinkFormState('hidden');
-  }, [key]);
 
   useEffect(() => {
     if (listCard) {

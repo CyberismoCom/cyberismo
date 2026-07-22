@@ -674,7 +674,6 @@ export function useModals<T extends Record<string, boolean>>(modals: T) {
 
     // Update the modalsRef
     modalsRef.current = modals;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOpenModals(modals);
   }, [modals, setOpenModals]);
 

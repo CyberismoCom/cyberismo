@@ -50,12 +50,16 @@ function Mermaid({ code }: MermaidProps) {
   const [error, setError] = useState<string | null>(null);
   const isDarkMode = useIsDarkMode();
 
+  const [prevRender, setPrevRender] = useState({ code, isDarkMode });
+  if (code !== prevRender.code || isDarkMode !== prevRender.isDarkMode) {
+    setPrevRender({ code, isDarkMode });
+    setError(null);
+  }
+
   useEffect(() => {
     if (!code) {
-      setError('No Mermaid diagram code provided.');
       return;
     }
-    setError(null);
 
     let cancelled = false;
 
@@ -84,10 +88,11 @@ function Mermaid({ code }: MermaidProps) {
     };
   }, [code, isDarkMode]);
 
-  if (error) {
+  if (!code || error) {
     return (
       <div style={{ color: 'red', whiteSpace: 'pre-wrap' }}>
-        Mermaid diagram error: {error}
+        Mermaid diagram error:{' '}
+        {!code ? 'No Mermaid diagram code provided.' : error}
       </div>
     );
   }

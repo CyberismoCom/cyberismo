@@ -49,26 +49,39 @@ export default function MetadataSection({
   const dispatch = useAppDispatch();
   const canEditRole = useHasMinRole(UserRole.Editor);
 
-  useEffect(() => {
-    setEditingFieldKey(null);
-  }, [card.key]);
+  const focusFieldExists =
+    !!focusFieldKey &&
+    (focusFieldKey === 'labels' ||
+      (card.fields ?? []).some((f) => f.key === focusFieldKey));
+
+  const [prevFocus, setPrevFocus] = useState({
+    cardKey: card.key,
+    focusFieldKey,
+  });
+  if (
+    prevFocus.cardKey !== card.key ||
+    prevFocus.focusFieldKey !== focusFieldKey
+  ) {
+    const cardChanged = prevFocus.cardKey !== card.key;
+    setPrevFocus({ cardKey: card.key, focusFieldKey });
+    if (cardChanged) {
+      setEditingFieldKey(null);
+    }
+    if (focusFieldKey && focusFieldExists) {
+      setExpanded(true);
+      setEditingFieldKey(focusFieldKey);
+    }
+  }
 
   useEffect(() => {
     if (!focusFieldKey) return;
-    const fieldExists =
-      focusFieldKey === 'labels' ||
-      (card.fields ?? []).some((f) => f.key === focusFieldKey);
-    if (!fieldExists) {
-      onFieldFocused?.();
-      return;
+    if (focusFieldExists) {
+      // Scroll after the state updates commit so the element is in its final layout.
+      requestAnimationFrame(() => {
+        const el = document.getElementById(fieldRowId(focusFieldKey));
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
     }
-    setExpanded(true);
-    setEditingFieldKey(focusFieldKey);
-    // Scroll after the state updates commit so the element is in its final layout.
-    requestAnimationFrame(() => {
-      const el = document.getElementById(fieldRowId(focusFieldKey));
-      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
     onFieldFocused?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusFieldKey, card.key]);
