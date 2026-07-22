@@ -15,17 +15,20 @@
 import { basename, dirname, join, normalize } from 'node:path';
 import { mkdir, readdir, readFile, rename, rm } from 'node:fs/promises';
 
+import { validateProgram } from '@cyberismo/node-clingo';
+
 import { isContentKey } from '../interfaces/resource-interfaces.js';
 import {
   filename,
   contentPropertyName,
   ALL_FILE_MAPPINGS,
+  CONTENT_FILES,
 } from '../interfaces/folder-content-interfaces.js';
 import { formatJson } from '../utils/json.js';
 import { VALID_FOLDER_RESOURCE_FILES } from '../utils/constants.js';
 import { writeFileSafe } from '../utils/file-utils.js';
 import { ResourceObject } from './resource-object.js';
-import { resourceName } from '../utils/resource-utils.js';
+import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 
 import type { UpdateKey } from '../interfaces/resource-interfaces.js';
 import type { FolderResourceContent } from '../interfaces/folder-content-interfaces.js';
@@ -154,6 +157,19 @@ export abstract class FolderResource<
         );
       }
     }
+    // Gate only calculation.lp: query.lp / query.lp.hbs / view.lp.hbs may
+    // contain Handlebars syntax that is not valid clingo on its own, and
+    // model.lp validation is out of scope here (INTDEV-1347 covers
+    // calculations only).
+    if (fileName === CONTENT_FILES.calculation) {
+      const validation = validateProgram(changedContent);
+      if (!validation.valid) {
+        throw new Error(
+          `Invalid logic program for '${resourceNameToString(this.resourceName)}' update:\n${validation.errors.join('\n')}`,
+        );
+      }
+    }
+
     const contentToWrite = isJson
       ? formatJson(parsedContent as object)
       : changedContent;
