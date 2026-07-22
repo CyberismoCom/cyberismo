@@ -86,6 +86,7 @@ describe('command-handler: validate command', () => {
         (field: { name: string }) =>
           field.name === 'decision/fieldTypes/obsoletedBy',
       );
+      expect(obsoletedByField).toBeDefined();
       obsoletedByField.enableOverride = true;
       writeFileSync(cardTypePath, JSON.stringify(cardType));
 
@@ -101,7 +102,7 @@ describe('command-handler: validate command', () => {
         projectPath: tmpDir,
       });
       expect(result.statusCode).toBe(200);
-      expect(result.message).not.toContain('calculated field');
+      expect(result.message).toBe('Project structure validated');
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
     }
@@ -151,7 +152,7 @@ describe('command-handler: validate command', () => {
         projectPath: tmpDir,
       });
       expect(result.statusCode).toBe(200);
-      expect(result.message).not.toContain('calculated field');
+      expect(result.message).toBe('Project structure validated');
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
     }
@@ -171,6 +172,7 @@ describe('command-handler: validate command', () => {
         (field: { name: string }) =>
           field.name === 'decision/fieldTypes/obsoletedBy',
       );
+      expect(obsoletedByField).toBeDefined();
       obsoletedByField.enableOverride = true;
       writeFileSync(cardTypePath, JSON.stringify(cardType));
 
