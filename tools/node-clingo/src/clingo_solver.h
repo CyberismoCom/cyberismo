@@ -13,6 +13,7 @@
 #ifndef NODE_CLINGO_CLINGO_SOLVER_H
 #define NODE_CLINGO_CLINGO_SOLVER_H
 
+#include <mutex>
 #include <sstream>
 
 #include <clingo.hh>
@@ -26,6 +27,9 @@ namespace node_clingo
 {
 
     const int MAX_CLINGO_LOG_MESSAGES = 50;
+
+    // Serializes clingo AST/parse phases across threads; see clingo_solver.cc.
+    std::mutex& ast_mutex();
 
     class ClingoSolver {
       public:

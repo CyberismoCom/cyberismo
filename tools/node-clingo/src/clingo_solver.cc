@@ -23,6 +23,8 @@ namespace node_clingo
     // the expensive ground() step still runs concurrently.
     static std::mutex g_ast_mutex;
 
+    std::mutex& ast_mutex() { return g_ast_mutex; }
+
     struct ModelCollector : Clingo::SolveEventHandler
     {
         std::vector<std::string>& answers;
@@ -79,7 +81,7 @@ namespace node_clingo
             std::vector<Clingo::Part> parts;
 
             {
-                std::lock_guard<std::mutex> lock(g_ast_mutex);
+                std::lock_guard<std::mutex> lock(ast_mutex());
                 Clingo::AST::with_builder(control, [&](Clingo::AST::ProgramBuilder& builder) {
                     for (const auto& program : query.programs)
                     {
