@@ -178,7 +178,7 @@ describe('edit card', () => {
         'decision/fieldTypes/obsoletedBy',
         'decision_999',
       ),
-    ).rejects.toThrow(/calculated field/);
+    ).rejects.toThrow(/Cannot edit calculated field/);
   });
 
   it('editing a calculated field with override enabled persists the override', async () => {
@@ -226,6 +226,9 @@ describe('edit card', () => {
           null,
         ),
       ).resolves.not.toThrow();
+
+      const cleared = freshCommands.project.findCard('decision_6');
+      expect(cleared.metadata!['decision/fieldTypes/obsoletedBy']).toBeNull();
     } finally {
       rmSync(freshTestDir, { recursive: true, force: true });
     }
