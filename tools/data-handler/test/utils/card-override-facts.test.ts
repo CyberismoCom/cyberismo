@@ -122,18 +122,19 @@ describe('fieldOverride fact generation', () => {
   });
 
   it('disabling enableOverride is refused while cards hold override values', async () => {
-    await expect(
-      commands.updateCmd.apply({
-        kind: 'edit',
-        target: resourceName('decision/cardTypes/decision'),
-        updateKey: { key: 'customFields' },
-        operation: {
-          name: 'change',
-          target: { name: FIELD, isCalculated: true, enableOverride: true },
-          to: { name: FIELD, isCalculated: true },
-        },
-      }),
-    ).rejects.toThrow(/override value/);
+    const promise = commands.updateCmd.apply({
+      kind: 'edit',
+      target: resourceName('decision/cardTypes/decision'),
+      updateKey: { key: 'customFields' },
+      operation: {
+        name: 'change',
+        target: { name: FIELD, isCalculated: true, enableOverride: true },
+        to: { name: FIELD, isCalculated: true },
+      },
+    });
+    await expect(promise).rejects.toThrow('override value');
+    // Pins that the error lists the offending card key.
+    await expect(promise).rejects.toThrow(CARD_KEY);
 
     // The guard must refuse before anything is persisted.
     const cardType = commands.project.resources
@@ -141,6 +142,33 @@ describe('fieldOverride fact generation', () => {
       .show() as CardType;
     const field = cardType.customFields.find((f) => f.name === FIELD);
     expect(field?.enableOverride).toBe(true);
+  });
+
+  it('a rename-shaped change is judged by the target field, not the new name', async () => {
+    const renamedField = 'decision/fieldTypes/obsoletedByRenamed';
+    const promise = commands.updateCmd.apply({
+      kind: 'edit',
+      target: resourceName('decision/cardTypes/decision'),
+      updateKey: { key: 'customFields' },
+      operation: {
+        name: 'change',
+        target: { name: FIELD, isCalculated: true, enableOverride: true },
+        to: { name: renamedField, isCalculated: true },
+      },
+    });
+    // The guard resolves the field from 'target' (FIELD), not 'to'
+    // (renamedField), so it must still fire and name FIELD and the card.
+    await expect(promise).rejects.toThrow(FIELD);
+    await expect(promise).rejects.toThrow(CARD_KEY);
+
+    // Nothing persisted: the field is neither renamed nor changed.
+    const cardType = commands.project.resources
+      .byType('decision/cardTypes/decision', 'cardTypes')
+      .show() as CardType;
+    expect(cardType.customFields.some((f) => f.name === FIELD)).toBe(true);
+    expect(cardType.customFields.some((f) => f.name === renamedField)).toBe(
+      false,
+    );
   });
 
   // Mutates the fixture's calculation module further, so it runs last

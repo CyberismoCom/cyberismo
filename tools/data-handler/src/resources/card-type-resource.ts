@@ -113,19 +113,24 @@ export class CardTypeResource extends FileResource<CardType> {
   }
 
   // Refuse disabling override on a field that remains calculated while cards
-  // still store override values: those stored values would become invalid
-  // data that validation rejects. Toggling isCalculated off is not this
-  // guard's concern - the field's stored values become plain (legal) values
-  // again; any resulting "other cards now lack this field" gap is a
-  // pre-existing isCalculated-toggle issue, out of scope here.
-  private validateOverrideDisable<Type>(op: ChangeOperation<Type>) {
-    const changed = op.to as unknown as Partial<CustomField>;
-    if (!changed?.name) {
+  // still store override values for it; those values would become invalid.
+  // Toggling isCalculated off is a different guard's concern.
+  private validateOverrideDisable(op: ChangeOperation<unknown>) {
+    if (op.target === undefined) {
+      // handleArray() will throw its own "requires 'target'" error.
       return;
     }
-    const current = this.content.customFields.find(
-      (f) => f.name === changed.name,
-    );
+    // 'target' is the array entry being replaced - the field whose stored
+    // values are at risk. It may be the full entry or a name-only shorthand.
+    const fieldName =
+      typeof op.target === 'object'
+        ? (op.target as Partial<CustomField>).name
+        : (op.target as string);
+    if (!fieldName) {
+      return;
+    }
+    const changed = op.to as Partial<CustomField>;
+    const current = this.content.customFields.find((f) => f.name === fieldName);
     const wasOverridable = !!(current?.isCalculated && current?.enableOverride);
     const disablesOverride = !!changed.isCalculated && !changed.enableOverride;
     if (!wasOverridable || !disablesOverride) {
@@ -137,16 +142,22 @@ export class CardTypeResource extends FileResource<CardType> {
       .filter(
         (card) =>
           card.metadata?.cardType === cardTypeName &&
-          card.metadata?.[changed.name as string] != null,
+          card.metadata?.[fieldName] != null,
       )
       .map((card) => card.key);
-    if (cardsWithOverride.length > 0) {
-      throw new Error(
-        `Cannot disable override for field '${changed.name}': ` +
-          `cards [${cardsWithOverride.join(', ')}] have an override value. ` +
-          `Clear the overrides first.`,
-      );
+    if (cardsWithOverride.length === 0) {
+      return;
     }
+    const shown = cardsWithOverride.slice(0, 10);
+    const more =
+      cardsWithOverride.length > shown.length
+        ? `, ... and ${cardsWithOverride.length - shown.length} more`
+        : '';
+    throw new Error(
+      `Cannot disable override for field '${fieldName}': ` +
+        `cards [${shown.join(', ')}${more}] have an override value. ` +
+        `Clear the overrides first.`,
+    );
   }
 
   // Sets content container values to be either '[]' or with proper values.
@@ -320,7 +331,7 @@ export class CardTypeResource extends FileResource<CardType> {
       } else if (key === 'customFields') {
         await this.validateFieldType(key, op);
         if (op.name === 'change') {
-          this.validateOverrideDisable(op as ChangeOperation<Type>);
+          this.validateOverrideDisable(op);
         }
         content.customFields = super.handleArray(
           op,
