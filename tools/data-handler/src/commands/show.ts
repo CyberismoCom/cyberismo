@@ -660,36 +660,25 @@ export class Show {
    * @param context Calculation context.
    * @returns lightweight summaries of the enabled skills, sorted by name.
    */
+  @read
   public async listSkills(
     options: { cardKey?: string; category?: string } = {},
     context: Context = 'localApp',
   ): Promise<SkillSummary[]> {
-    return this.project.lock.read(async () => {
-      const enabled = await this.project.calculationEngine.runQuery(
-        'enabledSkills',
-        context,
-        { cardKey: options.cardKey },
-      );
-      const globallyEnabled = new Set(
-        (
-          await this.project.calculationEngine.runQuery('globalSkills', context)
-        ).map((row) => row.key),
-      );
-      const summaries: SkillSummary[] = [];
-      for (const { key } of enabled) {
-        const resource = this.project.resources.byType(key, 'skills');
-        if (!resource) continue;
-        const skill = resource.show() as Skill;
-        if (options.category && skill.category !== options.category) continue;
-        summaries.push(
-          this.toSkillSummary(
-            skill,
-            globallyEnabled.has(key) ? 'global' : 'card',
-          ),
-        );
-      }
-      return summaries.sort((a, b) => a.name.localeCompare(b.name));
-    });
+    const enabled = await this.project.calculationEngine.runQuery(
+      'enabledSkills',
+      context,
+      { cardKey: options.cardKey },
+    );
+    const summaries: SkillSummary[] = [];
+    for (const { key, scope } of enabled) {
+      const resource = this.project.resources.byType(key, 'skills');
+      if (!resource) continue;
+      const skill = resource.show();
+      if (options.category && skill.category !== options.category) continue;
+      summaries.push(this.toSkillSummary(skill, scope));
+    }
+    return summaries.sort((a, b) => a.name.localeCompare(b.name));
   }
 
   /**
@@ -703,50 +692,42 @@ export class Show {
    * @param context Calculation context.
    * @returns the rendered skill ('ok'), or a marker ('not-enabled' / 'needs-card').
    */
+  @read
   public async getSkill(
     name: string,
     options: { cardKey?: string } = {},
     context: Context = 'localApp',
   ): Promise<SkillLookupResult> {
-    return this.project.lock.read(async () => {
-      const { cardKey } = options;
-      const enabled = (
-        await this.project.calculationEngine.runQuery(
-          'enabledSkills',
-          context,
-          {
-            cardKey,
-          },
-        )
-      ).map((row) => row.key);
-      if (!enabled.includes(name)) {
-        return { status: 'not-enabled' };
-      }
-      const globallyEnabled = (
-        await this.project.calculationEngine.runQuery('globalSkills', context)
-      ).map((row) => row.key);
-      const scope = globallyEnabled.includes(name) ? 'global' : 'card';
-      // A card-specific skill can't be rendered meaningfully without a cardKey.
-      if (scope === 'card' && !cardKey) {
-        return { status: 'needs-card' };
-      }
-      const resource = this.project.resources.byType(name, 'skills');
-      if (!resource) {
-        return { status: 'not-enabled' };
-      }
-      const skill = resource.show() as Skill;
-      const instructions = await generateReportContent({
-        calculate: this.project.calculationEngine,
-        contentTemplate: skill.content.skillContent,
-        queryTemplate: skill.content.skillQuery,
-        options: { cardKey },
-        context,
-      });
-      return {
-        status: 'ok',
-        skill: { ...this.toSkillSummary(skill, scope), instructions },
-      };
+    const { cardKey } = options;
+    const enabled = await this.project.calculationEngine.runQuery(
+      'enabledSkills',
+      context,
+      { cardKey },
+    );
+    const entry = enabled.find((row) => row.key === name);
+    if (!entry) {
+      return { status: 'not-enabled' };
+    }
+    // A card-specific skill can't be rendered meaningfully without a cardKey.
+    if (entry.scope === 'card' && !cardKey) {
+      return { status: 'needs-card' };
+    }
+    const resource = this.project.resources.byType(name, 'skills');
+    if (!resource) {
+      return { status: 'not-enabled' };
+    }
+    const skill = resource.show();
+    const instructions = await generateReportContent({
+      calculate: this.project.calculationEngine,
+      contentTemplate: skill.content.skillContent,
+      queryTemplate: skill.content.skillQuery,
+      options: { cardKey },
+      context,
     });
+    return {
+      status: 'ok',
+      skill: { ...this.toSkillSummary(skill, entry.scope), instructions },
+    };
   }
 
   /**

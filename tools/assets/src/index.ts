@@ -10,7 +10,6 @@ import commonQueryLanguage from './calculations/common/queryLanguage.lp';
 import commonUtils from './calculations/common/utils.lp';
 import queriesCard from './calculations/queries/card.lp';
 import queriesEnabledSkills from './calculations/queries/enabledSkills.lp';
-import queriesGlobalSkills from './calculations/queries/globalSkills.lp';
 import queriesOnCreation from './calculations/queries/onCreation.lp';
 import queriesOnTransition from './calculations/queries/onTransition.lp';
 import queriesConnectors from './calculations/queries/connectors.lp';
@@ -49,7 +48,6 @@ export const lpFiles = {
     card: queriesCard,
     connectors: queriesConnectors,
     enabledSkills: queriesEnabledSkills,
-    globalSkills: queriesGlobalSkills,
     onCreation: queriesOnCreation,
     onTransition: queriesOnTransition,
     tree: queriesTree,

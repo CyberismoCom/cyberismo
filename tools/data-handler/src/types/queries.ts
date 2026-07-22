@@ -78,7 +78,6 @@ export const queries = [
   'card',
   'connectors',
   'enabledSkills',
-  'globalSkills',
   'onCreation',
   'onTransition',
   'tree',
@@ -89,8 +88,7 @@ export type QueryName = (typeof queries)[number];
 export type QueryMap = {
   card: CardQueryResult;
   connectors: ConnectorQueryResult;
-  enabledSkills: BaseResult;
-  globalSkills: BaseResult;
+  enabledSkills: EnabledSkillQueryResult;
   onCreation: FieldsToUpdateQueryResult;
   onTransition: FieldsToUpdateQueryResult;
   tree: TreeQueryResult;
@@ -122,6 +120,9 @@ interface ConnectorQueryResult extends BaseResult {
   connector?: string;
   itemKey?: string;
   title?: string;
+}
+interface EnabledSkillQueryResult extends BaseResult {
+  scope: 'global' | 'card';
 }
 interface FieldsToUpdateQueryResult extends BaseResult {
   updateFields: UpdateField[];

@@ -4,15 +4,16 @@
 % (enableSkill/2) — never both. If both are defined for the same skill, the
 % global enablement wins and the per-card terms are ignored.
 %
-% Each enabled skill name is surfaced via result/1; the caller looks up the
-% skill metadata separately. When a cardKey is given, per-card skills are
-% limited to that card; otherwise every per-card skill is included.
+% Each enabled skill name is surfaced via result/1, together with its scope
+% ("global" or "card") via resultField/4. When a cardKey is given, per-card
+% skills are limited to that card; otherwise every per-card skill is included.
 
-globallyEnabled(S) :- enableSkill(S).
-
-result(S) :- globallyEnabled(S).
+result(S) :- enableSkill(S).
 {{#if cardKey}}
-result(S) :- enableSkill(S, {{cardKey}}), not globallyEnabled(S).
+result(S) :- enableSkill(S, {{cardKey}}).
 {{else}}
-result(S) :- enableSkill(S, _), not globallyEnabled(S).
+result(S) :- enableSkill(S, _).
 {{/if}}
+
+resultField(S, "scope", "global", "shortText") :- enableSkill(S).
+resultField(S, "scope", "card", "shortText") :- result(S), not enableSkill(S).
