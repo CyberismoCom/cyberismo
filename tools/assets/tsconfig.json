@@ -2,6 +2,8 @@
   "compilerOptions": {
     "target": "ES2023",
     "module": "NodeNext",
+    "incremental": true,
+    "tsBuildInfoFile": "./tsconfig.tsbuildinfo",
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "declaration": true,
