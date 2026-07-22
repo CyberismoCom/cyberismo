@@ -23,7 +23,6 @@ import type {
 } from '../interfaces/project-interfaces.js';
 import type {
   CardType,
-  CardType as CardTypeContent,
   ExternalLink,
   FieldType,
   Link,
@@ -227,10 +226,10 @@ export const createCardFacts = async (card: Card, project: Project) => {
   if (card.metadata?.cardType) {
     try {
       const cardType = project.resources
-        .byType(card.metadata.cardType as string, 'cardTypes')
-        .show() as CardTypeContent;
+        .byType(card.metadata.cardType, 'cardTypes')
+        .show();
       overridableFields = new Set(
-        cardType.customFields
+        (cardType.customFields ?? [])
           .filter(
             (customField) =>
               customField.isCalculated && customField.enableOverride,
