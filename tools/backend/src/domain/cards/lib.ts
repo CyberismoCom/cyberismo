@@ -105,6 +105,13 @@ export async function getCardDetails(
           fieldDescription: fieldType.description,
           dataType: fieldType.dataType,
           isCalculated: customField.isCalculated,
+          isOverridable: !!(
+            customField.isCalculated && customField.enableOverride
+          ),
+          overrideValue:
+            customField.isCalculated && customField.enableOverride
+              ? cardDetailsResponse.metadata[customField.name]
+              : undefined,
           value: cardDetailsResponse.metadata[customField.name],
           enumValues: fieldType.enumValues ?? [],
         });
