@@ -1,0 +1,1 @@
+This card demonstrates that side effects cascade recursively: approving the top-level parent approves the child, whose approval approves this card.

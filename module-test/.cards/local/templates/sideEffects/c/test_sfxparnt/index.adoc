@@ -1,0 +1,1 @@
+Approve or Archive this card: the same transition cascades automatically to the child and grandchild cards.

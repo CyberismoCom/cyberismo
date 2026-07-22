@@ -1,0 +1,6 @@
+{
+    "name": "test/templates/sideEffects",
+    "displayName": "Test transition side effects",
+    "description": "A three-level card tree whose Approve and Archive transitions cascade from parent to children",
+    "category": "Testing"
+}
