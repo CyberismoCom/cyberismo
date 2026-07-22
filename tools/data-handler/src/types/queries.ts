@@ -161,7 +161,12 @@ interface CardQueryField extends BaseResult {
   fieldDescription: string;
   dataType: DataType;
   isCalculated: boolean;
+  isOverridable: boolean;
   value: string | number | boolean | null | EnumValue | ListValueItem[];
+  calculatedValue?:
+    string | number | boolean | null | EnumValue | ListValueItem[];
+  overrideValue?:
+    string | number | boolean | null | EnumValue | ListValueItem[];
   enumValues: EnumDefinition[];
 }
 
