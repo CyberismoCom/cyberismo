@@ -45,6 +45,11 @@
             "description": "Defines if field value is a calculated field.",
             "type": "boolean",
             "default": true
+          },
+          "enableOverride": {
+            "description": "When true on a calculated field, users may enter a value that overrides the calculated value. Has no effect unless isCalculated is true.",
+            "type": "boolean",
+            "default": false
           }
         },
         "required": ["name"]
