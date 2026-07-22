@@ -17,7 +17,9 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { copyDir } from '../../src/utils/file-utils.js';
 import { CommandManager } from '../../src/command-manager.js';
 import { createCardFacts } from '../../src/utils/clingo-facts.js';
+import { resourceName } from '../../src/utils/resource-utils.js';
 import type { Card } from '../../src/index.js';
+import type { CardType } from '../../src/interfaces/resource-interfaces.js';
 
 const FIELD = 'decision/fieldTypes/obsoletedBy';
 const RESPONSIBLE_FIELD = 'decision/fieldTypes/responsible';
@@ -117,6 +119,28 @@ describe('fieldOverride fact generation', () => {
     expect(field.value).toBe('decision_999');
     expect(field.overrideValue).toBe('decision_999');
     expect(field.calculatedValue).toBe('decision_auto');
+  });
+
+  it('disabling enableOverride is refused while cards hold override values', async () => {
+    await expect(
+      commands.updateCmd.apply({
+        kind: 'edit',
+        target: resourceName('decision/cardTypes/decision'),
+        updateKey: { key: 'customFields' },
+        operation: {
+          name: 'change',
+          target: { name: FIELD, isCalculated: true, enableOverride: true },
+          to: { name: FIELD, isCalculated: true },
+        },
+      }),
+    ).rejects.toThrow(/override value/);
+
+    // The guard must refuse before anything is persisted.
+    const cardType = commands.project.resources
+      .byType('decision/cardTypes/decision', 'cardTypes')
+      .show() as CardType;
+    const field = cardType.customFields.find((f) => f.name === FIELD);
+    expect(field?.enableOverride).toBe(true);
   });
 
   // Mutates the fixture's calculation module further, so it runs last
@@ -232,5 +256,29 @@ describe('card query: calculated value without a stored override', () => {
     expect(facts).not.toContain(
       `fieldOverride(${CARD_KEY}, "${RESPONSIBLE_FIELD}"`,
     );
+  });
+
+  // No card stores an override value for FIELD in this fixture, so disabling
+  // its enableOverride flag must be allowed. Placed last: it mutates the
+  // persisted card type, which would break the fixture assumptions above.
+  it('disabling enableOverride succeeds when no card holds an override value', async () => {
+    await expect(
+      commands.updateCmd.apply({
+        kind: 'edit',
+        target: resourceName('decision/cardTypes/decision'),
+        updateKey: { key: 'customFields' },
+        operation: {
+          name: 'change',
+          target: { name: FIELD, isCalculated: true, enableOverride: true },
+          to: { name: FIELD, isCalculated: true },
+        },
+      }),
+    ).resolves.toBeUndefined();
+
+    const cardType = commands.project.resources
+      .byType('decision/cardTypes/decision', 'cardTypes')
+      .show() as CardType;
+    const field = cardType.customFields.find((f) => f.name === FIELD);
+    expect(field?.enableOverride).toBeFalsy();
   });
 });
