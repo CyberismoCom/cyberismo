@@ -2,13 +2,23 @@
 
 Use `pnpm`, never `npm` or `yarn`.
 
+## Fresh clone / worktree setup
+
+- Init submodules **before** `pnpm install`: `git submodule update --init --recursive` — `node-clingo` builds native code from the `clingo` and `BS_thread_pool` submodules during install
+- The native build needs CMake and a C++ toolchain (node-gyp)
+- To skip the native build (e.g. no toolchain, or bindings already built): `pnpm install --ignore-scripts`
+
 ## Common commands
 
 - `pnpm install` — install deps
 - `pnpm build` — build all packages
 - `pnpm test` — run all tests
+- `pnpm test-<package>` — one package's tests (e.g. `pnpm test-data-handler`, `test-cli`, `test-app`, `test-backend`, `test-clingo`, `test-mcp`)
 - `pnpm lint` — eslint all packages
 - `pnpm prettier-check` / `pnpm prettier-fix` — formatting
+- `pnpm dev` — run all packages in dev/watch mode
+- `pnpm cyberismo` — run the CLI from source
+- `pnpm check-licenses` — dependency license allowlist check (run when adding deps; CI enforces)
 
 ## Monorepo structure
 
@@ -37,13 +47,15 @@ Internal deps use `"workspace:*"` and are imported as `@cyberismo/<package>`.
   import { Project } from './containers/project';
   ```
 - Use `node:` prefix on Node built-ins: `import { join } from 'node:path'`
+- New source files start with the AGPL-3.0 copyright header — copy the `/** Cyberismo ... */` block from any existing source file
+- C++ code in `node-clingo` is format-checked in CI: `pnpm --filter node-clingo format:cpp:check`
 
 ## Testing
 
-- **Vitest**: app, backend, mcp, node-clingo
-- **Mocha + Chai**: cli, data-handler
+- Vitest
 - Tests live in `test/` dirs (or `__tests__/` in app)
-- Never commit `.only()` in tests (enforced by `--forbid-only`)
+- Never commit `.only()` in tests
+- `pnpm test-app` runs unit tests **and** Playwright e2e — install browsers first: `pnpm --filter=app exec playwright install --with-deps`
 
 ## Key patterns
 
