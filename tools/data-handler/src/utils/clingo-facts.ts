@@ -57,6 +57,7 @@ export namespace Facts {
     CARD_TYPE = 'cardType',
     CUSTOM_FIELD = 'customField',
     OPTIONALLY_VISIBLE_FIELD = 'optionallyVisibleField',
+    OVERRIDABLE_FIELD = 'overridableField',
   }
 
   export enum FieldType {
@@ -456,6 +457,13 @@ export const createCardTypeFacts = (cardType: CardType) => {
     if (customField.isCalculated) {
       builder.addFact(
         Facts.CardType.CALCULATED_FIELD,
+        cardType.name,
+        customField.name,
+      );
+    }
+    if (customField.isCalculated && customField.enableOverride) {
+      builder.addFact(
+        Facts.CardType.OVERRIDABLE_FIELD,
         cardType.name,
         customField.name,
       );

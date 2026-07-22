@@ -55,6 +55,7 @@ export interface CustomField {
   description?: string;
   displayName?: string;
   isCalculated: boolean;
+  enableOverride?: boolean;
 }
 
 // Supported data types.
