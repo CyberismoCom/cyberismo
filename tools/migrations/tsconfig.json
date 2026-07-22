@@ -1,6 +1,8 @@
 {
   "compilerOptions": {
     "strict": true,
+    "incremental": true,
+    "tsBuildInfoFile": "./tsconfig.tsbuildinfo",
     "allowJs": true,
     "alwaysStrict": true,
     "sourceMap": true,

@@ -1,6 +1,8 @@
 {
   "compilerOptions": {
     "declaration": true,
+    "incremental": true,
+    "tsBuildInfoFile": "./tsconfig.build.tsbuildinfo",
     "outDir": "./dist",
     "rootDir": "src",
     "types": ["node"],
