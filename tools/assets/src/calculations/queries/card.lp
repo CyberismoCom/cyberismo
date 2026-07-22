@@ -74,6 +74,24 @@ field((Card, Field), "isCalculated", false, "boolean") :-
     field(Card, "cardType", CardType),
     not calculatedField(CardType, Field).
 
+dataType((Card, Field), "isOverridable", "boolean") :-
+    childResult(Card, (Card, Field), "fields"),
+    field((Card, Field), "isOverridable", _).
+
+resultField((Card, Field), "isOverridable", true, "boolean") :-
+    result(Card),
+    field(Card, "cardType", CardType),
+    overridableField(CardType, Field).
+
+% Note: unlike the isCalculated false-branch above (which asserts a plain
+% field/4 that no #show statement ever projects, so it never reaches query
+% output), this uses resultField/4 so the "false" case is actually shown.
+resultField((Card, Field), "isOverridable", false, "boolean") :-
+    childResult(Card, (Card, Field), "fields"),
+    result(Card),
+    field(Card, "cardType", CardType),
+    not overridableField(CardType, Field).
+
 % add dataType of field
 resultField((Card, Field), "dataType", DataType, "shortText") :-
     childResult(Card, (Card, Field), "fields"),
@@ -85,6 +103,18 @@ resultField((Card, Field), "value", Value, DataType) :-
     childResult(Card, (Card, Field), "fields"),
     dataType(Card, Field, DataType),
     field(Card, Field, Value).
+
+% add the designer-calculated value (shown as "Automatic value" in the UI)
+resultField((Card, Field), "calculatedValue", Value, DataType) :-
+    childResult(Card, (Card, Field), "fields"),
+    dataType(Card, Field, DataType),
+    fieldCalculated(Card, Field, Value).
+
+% add the user's override value, if any
+resultField((Card, Field), "overrideValue", Value, DataType) :-
+    childResult(Card, (Card, Field), "fields"),
+    dataType(Card, Field, DataType),
+    fieldOverride(Card, Field, Value).
 
 % add cardTypeDisplayName
 resultField(Card, "cardTypeDisplayName", DisplayName, "shortText") :-
