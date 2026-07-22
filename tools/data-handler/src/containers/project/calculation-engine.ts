@@ -42,7 +42,6 @@ import {
   createTemplateFacts,
   createWorkflowFacts,
 } from '../../utils/clingo-facts.js';
-import { Transition } from '../../commands/transition.js';
 import type {
   CardType,
   FieldType,
@@ -389,7 +388,7 @@ export class CalculationEngine {
     }
     const cardKeys = cards.map((item) => item.key);
     const queryResult = await this.creationQuery(cardKeys, 'localApp');
-    await new Transition(this.project).executeSideEffects(
+    await this.project.executeSideEffects(
       queryResult?.at(0),
       // Empty seed: the created cards' initial "Create" transitions already
       // happened during creation itself; a re-entrant "Create" side effect

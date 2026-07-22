@@ -16,7 +16,6 @@ import { join } from 'node:path';
 // cyberismo
 import { Cmd } from '../src/command-handler.js';
 import { Project } from '../src/containers/project.js';
-import { Transition } from '../src/commands/transition.js';
 import {
   cardState,
   setupSideEffectProject,
@@ -115,7 +114,7 @@ describe('transition side effects', () => {
       'cycle-self',
       'onTransitionExecuteTransition(decision_6, "Reject", decision_6, "Reject").',
     );
-    const perform = vi.spyOn(Transition.prototype, 'performTransition');
+    const perform = vi.spyOn(Project.prototype, 'performTransition');
     const result = await commands.command(
       Cmd.transition,
       ['decision_6', 'Reject'],
