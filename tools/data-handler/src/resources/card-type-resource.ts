@@ -19,7 +19,11 @@ import { sortCards } from '../utils/card-utils.js';
 import { removeValue } from '../utils/common-utils.js';
 import { Validate } from '../commands/validate.js';
 
-import type { Operation, RemoveOperation } from './resource-object.js';
+import type {
+  ChangeOperation,
+  Operation,
+  RemoveOperation,
+} from './resource-object.js';
 import type { Card } from '../interfaces/project-interfaces.js';
 import type {
   CardType,
@@ -106,6 +110,39 @@ export class CardTypeResource extends FileResource<CardType> {
     const fieldName = (field ? field.name : target) as string;
     removeValue(content.alwaysVisibleFields, fieldName);
     removeValue(content.optionallyVisibleFields, fieldName);
+  }
+
+  // Refuse turning enableOverride off while cards still store override values:
+  // the stored values would become invalid data that validation rejects.
+  private validateOverrideDisable<Type>(op: ChangeOperation<Type>) {
+    const changed = op.to as unknown as Partial<CustomField>;
+    if (!changed?.name) {
+      return;
+    }
+    const current = this.content.customFields.find(
+      (f) => f.name === changed.name,
+    );
+    const wasOverridable = !!(current?.isCalculated && current?.enableOverride);
+    const staysOverridable = !!(changed.isCalculated && changed.enableOverride);
+    if (!wasOverridable || staysOverridable) {
+      return;
+    }
+    const cardTypeName = resourceNameToString(this.resourceName);
+    const cardsWithOverride = super
+      .cards()
+      .filter(
+        (card) =>
+          card.metadata?.cardType === cardTypeName &&
+          card.metadata?.[changed.name as string] != null,
+      )
+      .map((card) => card.key);
+    if (cardsWithOverride.length > 0) {
+      throw new Error(
+        `Cannot disable override for field '${changed.name}': ` +
+          `cards [${cardsWithOverride.join(', ')}] have an override value. ` +
+          `Clear the overrides first.`,
+      );
+    }
   }
 
   // Sets content container values to be either '[]' or with proper values.
@@ -278,6 +315,9 @@ export class CardTypeResource extends FileResource<CardType> {
         content.workflow = super.handleScalar(op) as string;
       } else if (key === 'customFields') {
         await this.validateFieldType(key, op);
+        if (op.name === 'change') {
+          this.validateOverrideDisable(op as ChangeOperation<Type>);
+        }
         content.customFields = super.handleArray(
           op,
           key,
