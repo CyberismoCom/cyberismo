@@ -138,8 +138,13 @@ describe('fieldOverride fact generation', () => {
       'localApp',
       { cardKey: CARD_KEY },
     );
-    const titles = result.at(0)!.notifications.map((n) => n.title);
-    expect(titles).toContain('Conflicting field values');
+    const conflicts = result
+      .at(0)!
+      .notifications.filter((n) => n.title === 'Conflicting field values');
+    // The ASP rule must not produce duplicate notifications for the same
+    // conflicting field.
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0].message).toContain(FIELD);
   });
 });
 
