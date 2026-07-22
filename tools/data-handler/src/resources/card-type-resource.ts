@@ -14,6 +14,7 @@
 
 import { DefaultContent } from './create-defaults.js';
 import { FileResource } from './file-resource.js';
+import { tryParseJSON } from './array-handler.js';
 import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 import { sortCards } from '../utils/card-utils.js';
 import { removeValue } from '../utils/common-utils.js';
@@ -121,18 +122,22 @@ export class CardTypeResource extends FileResource<CardType> {
       return;
     }
     // 'target' is the array entry being replaced - the field whose stored
-    // values are at risk. It may be the full entry or a name-only shorthand.
+    // values are at risk. It may be the full entry or a name-only shorthand,
+    // and (from the CLI) either can arrive JSON-encoded as a string - parse
+    // it the same way handleChange() does before inspecting it.
+    const target = tryParseJSON(op.target);
     const fieldName =
-      typeof op.target === 'object'
-        ? (op.target as Partial<CustomField>).name
-        : (op.target as string);
+      typeof target === 'object'
+        ? (target as Partial<CustomField> | null)?.name
+        : (target as string);
     if (!fieldName) {
       return;
     }
-    const changed = op.to as Partial<CustomField>;
+    const changed = tryParseJSON(op.to) as Partial<CustomField> | null;
     const current = this.content.customFields.find((f) => f.name === fieldName);
     const wasOverridable = !!(current?.isCalculated && current?.enableOverride);
-    const disablesOverride = !!changed.isCalculated && !changed.enableOverride;
+    const disablesOverride =
+      !!changed?.isCalculated && !changed?.enableOverride;
     if (!wasOverridable || !disablesOverride) {
       return;
     }
