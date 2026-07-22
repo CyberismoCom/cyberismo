@@ -112,8 +112,12 @@ export class CardTypeResource extends FileResource<CardType> {
     removeValue(content.optionallyVisibleFields, fieldName);
   }
 
-  // Refuse turning enableOverride off while cards still store override values:
-  // the stored values would become invalid data that validation rejects.
+  // Refuse disabling override on a field that remains calculated while cards
+  // still store override values: those stored values would become invalid
+  // data that validation rejects. Toggling isCalculated off is not this
+  // guard's concern - the field's stored values become plain (legal) values
+  // again; any resulting "other cards now lack this field" gap is a
+  // pre-existing isCalculated-toggle issue, out of scope here.
   private validateOverrideDisable<Type>(op: ChangeOperation<Type>) {
     const changed = op.to as unknown as Partial<CustomField>;
     if (!changed?.name) {
@@ -123,8 +127,8 @@ export class CardTypeResource extends FileResource<CardType> {
       (f) => f.name === changed.name,
     );
     const wasOverridable = !!(current?.isCalculated && current?.enableOverride);
-    const staysOverridable = !!(changed.isCalculated && changed.enableOverride);
-    if (!wasOverridable || staysOverridable) {
+    const disablesOverride = !!changed.isCalculated && !changed.enableOverride;
+    if (!wasOverridable || !disablesOverride) {
       return;
     }
     const cardTypeName = resourceNameToString(this.resourceName);

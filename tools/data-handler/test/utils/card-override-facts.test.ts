@@ -282,3 +282,67 @@ describe('card query: calculated value without a stored override', () => {
     expect(field?.enableOverride).toBeFalsy();
   });
 });
+
+// Self-contained: proves the guard is narrowed to "field stays calculated
+// but loses override" - turning isCalculated off must not be blocked, even
+// though a card still stores an override value for the field.
+describe('override-disable guard does not fire when isCalculated is turned off', () => {
+  const baseDir = import.meta.dirname;
+  const testDir = join(baseDir, 'tmp-override-uncalc-tests');
+  const projectPath = join(testDir, 'valid/decision-records');
+  let commands: CommandManager;
+
+  beforeAll(async () => {
+    mkdirSync(testDir, { recursive: true });
+    await copyDir('test/test-data/', testDir);
+
+    const cardTypePath = join(
+      projectPath,
+      '.cards/local/cardTypes/decision.json',
+    );
+    const cardType = JSON.parse(readFileSync(cardTypePath, 'utf-8'));
+    const field = cardType.customFields.find(
+      (f: { name: string }) => f.name === FIELD,
+    );
+    field.enableOverride = true;
+    writeFileSync(cardTypePath, JSON.stringify(cardType, null, 4));
+
+    const cardJsonPath = join(
+      projectPath,
+      `cardRoot/decision_5/c/${CARD_KEY}/index.json`,
+    );
+    const metadata = JSON.parse(readFileSync(cardJsonPath, 'utf-8'));
+    metadata[FIELD] = 'decision_999';
+    writeFileSync(cardJsonPath, JSON.stringify(metadata, null, 4));
+
+    commands = new CommandManager(projectPath, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+  });
+
+  afterAll(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('turning isCalculated off is allowed even though a card holds an override value', async () => {
+    await expect(
+      commands.updateCmd.apply({
+        kind: 'edit',
+        target: resourceName('decision/cardTypes/decision'),
+        updateKey: { key: 'customFields' },
+        operation: {
+          name: 'change',
+          target: { name: FIELD, isCalculated: true, enableOverride: true },
+          to: { name: FIELD, isCalculated: false },
+        },
+      }),
+    ).resolves.toBeUndefined();
+
+    const cardType = commands.project.resources
+      .byType('decision/cardTypes/decision', 'cardTypes')
+      .show() as CardType;
+    const field = cardType.customFields.find((f) => f.name === FIELD);
+    expect(field?.isCalculated).toBe(false);
+  });
+});
