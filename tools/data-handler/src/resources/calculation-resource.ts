@@ -85,6 +85,30 @@ export class CalculationResource extends FolderResource<
   }
 
   /**
+   * Validates the calculation: the base metadata schema check plus the logic
+   * program. Surfaces logic-program errors through project validation and the
+   * resource editor, catching .lp files edited by hand or brought in by an
+   * import that bypassed the write-time gate.
+   * @param content Metadata to validate; defaults to this resource's content.
+   * @throws if the metadata or the logic program is invalid.
+   */
+  public async validate(content?: CalculationMetadata) {
+    await super.validate(content);
+    // The logic program lives in a separate .lp file; skip it when content is
+    // not yet loaded (during create the stub .lp is written after validation).
+    const program = this.contentData().calculation;
+    if (program === undefined) {
+      return;
+    }
+    const validation = this.validateLogicProgram(program);
+    if (!validation.valid) {
+      throw new Error(
+        `Invalid logic program for '${resourceNameToString(this.resourceName)}':\n${validation.errors.join('\n')}`,
+      );
+    }
+  }
+
+  /**
    * Updates a file in the resource.
    * Rejects calculation content that is not a valid logic program.
    * @param fileName The name of the file to update.

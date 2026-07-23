@@ -559,17 +559,12 @@ export class Validate {
           }
         }
 
-        // Validate each calculation logic program independently, so that
-        // every broken file is reported; files on disk may have been edited
-        // by hand and bypassed validation at creation or update time.
+        // Validate calculations; files on disk may have been edited by hand
+        // and bypassed validation at creation or update time. Each is checked
+        // independently so all failures are reported.
         for (const calculation of project.resources.calculations()) {
           try {
-            const validation = calculation.validateLogicProgram();
-            if (!validation.valid) {
-              errorMsg.push(
-                `Invalid calculation '${calculation.data!.name}':\n${validation.errors.join('\n')}`,
-              );
-            }
+            await calculation.validate();
           } catch (error) {
             errorMsg.push(errorFunction(error));
           }
