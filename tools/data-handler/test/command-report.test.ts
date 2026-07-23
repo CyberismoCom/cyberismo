@@ -139,6 +139,29 @@ describe('report command', () => {
     expect(result.statusCode).toBe(200);
     expect(result.message).not.toMatch('NE_MATCH:decision_6');
   });
+  it('renders a report without running a query, using math helpers', async () => {
+    const parameters = {
+      name: 'decision/reports/percentageReport',
+      parameters: {
+        cardKey: 'decision_1',
+        value: 55,
+      },
+    };
+    await writeFile(
+      join(testDir, 'report.json'),
+      JSON.stringify(parameters, null, 2),
+      { encoding: 'utf-8' },
+    );
+    const result = await commandHandler.command(
+      Cmd.report,
+      [join(testDir, 'report.json')],
+      optionsDecision,
+    );
+    expect(result.statusCode).toBe(200);
+    expect(result.message).toMatch('Completed: 55%');
+    expect(result.message).toMatch('Remaining: 45%');
+    expect(result.message).toMatch('Doubled: 110');
+  });
   it('try to run test report that does not exist', async () => {
     const parameters = {
       name: 'decision/reports/i-do-not-exist',

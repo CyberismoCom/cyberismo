@@ -98,6 +98,82 @@ export function registerClingoHelpers(instance: typeof Handlebars) {
 }
 
 /**
+ * Coerces a Handlebars helper argument into a finite number.
+ * @param value - The value to coerce (a number or numeric string)
+ * @returns The value as a finite number
+ * @throws Error if the value is not a finite number
+ */
+function toNumber(value: unknown): number {
+  const result = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(result)) {
+    throw new Error(`Expected a number but got '${String(value)}'`);
+  }
+  return result;
+}
+
+/**
+ * Extracts and coerces the numeric arguments passed to a variadic helper.
+ * The final argument is always the Handlebars options object, so it is dropped.
+ * @param args - The arguments Handlebars passed to the helper
+ * @returns The leading arguments as finite numbers
+ * @throws Error if fewer than two operands are given or a value is not numeric
+ */
+function numericArgs(args: unknown[]): number[] {
+  const operands = args.slice(0, -1);
+  if (operands.length < 2) {
+    throw new Error('Expected at least two numeric operands');
+  }
+  return operands.map(toNumber);
+}
+
+/**
+ * Registers basic math helpers with a Handlebars instance.
+ *
+ * These let report templates compute values inline without a logic program, in
+ * both the query template and the content template. Arithmetic uses native
+ * JavaScript numbers and helpers return numbers, so results are never quoted.
+ * `divide` always performs normal (non-integer) division and throws on
+ * divide-by-zero, which surfaces as an inline error where the report macro is
+ * rendered. `round` rounds to the given number of decimal digits (0 by default).
+ * @param instance handlebars instance
+ */
+export function registerMathHelpers(instance: typeof Handlebars) {
+  instance.registerHelper('multiply', (...args: unknown[]) =>
+    numericArgs(args).reduce((a, b) => a * b),
+  );
+  instance.registerHelper('add', (...args: unknown[]) =>
+    numericArgs(args).reduce((a, b) => a + b),
+  );
+  instance.registerHelper(
+    'subtract',
+    (a: unknown, b: unknown) => toNumber(a) - toNumber(b),
+  );
+  instance.registerHelper('divide', (a: unknown, b: unknown) => {
+    const divisor = toNumber(b);
+    if (divisor === 0) {
+      throw new Error('Division by zero');
+    }
+    return toNumber(a) / divisor;
+  });
+  instance.registerHelper('round', (...args: unknown[]) => {
+    const operands = args.slice(0, -1);
+    if (operands.length < 1) {
+      throw new Error('Expected at least one numeric operand');
+    }
+    const value = toNumber(operands[0]);
+    const digits = operands.length > 1 ? toNumber(operands[1]) : 0;
+    const factor = 10 ** digits;
+    return Math.round(value * factor) / factor;
+  });
+  instance.registerHelper('max', (...args: unknown[]) =>
+    Math.max(...numericArgs(args)),
+  );
+  instance.registerHelper('min', (...args: unknown[]) =>
+    Math.min(...numericArgs(args)),
+  );
+}
+
+/**
  * Registers report-specific helpers with a Handlebars instance
  * @param instance handlebars instance
  */

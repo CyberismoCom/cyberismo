@@ -1,0 +1,5 @@
+{
+    "displayName": "Percentage test report",
+    "description": "A report that renders without running a query, using math helpers.",
+    "name": "decision/reports/percentageReport"
+}

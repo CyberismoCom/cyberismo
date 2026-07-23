@@ -1,6 +1,9 @@
 import { expect, it, describe, beforeEach } from 'vitest';
 import Handlebars from 'handlebars';
-import { registerClingoHelpers } from '../../src/utils/handlebars-helpers.js';
+import {
+  registerClingoHelpers,
+  registerMathHelpers,
+} from '../../src/utils/handlebars-helpers.js';
 
 describe('registerClingoHelpers', () => {
   let handlebars: typeof Handlebars;
@@ -42,5 +45,140 @@ describe('registerClingoHelpers', () => {
     expect(render('"{{{clingoEscape value}}}"', { value: undefined })).toBe(
       '""',
     );
+  });
+});
+
+describe('registerMathHelpers', () => {
+  let handlebars: typeof Handlebars;
+
+  beforeEach(() => {
+    handlebars = Handlebars.create();
+    registerMathHelpers(handlebars);
+  });
+
+  const render = (template: string, context: unknown = {}) =>
+    handlebars.compile(template)(context);
+
+  describe('multiply', () => {
+    it('multiplies two integers into an integer', () => {
+      expect(render('{{multiply 6 7}}')).toBe('42');
+    });
+
+    it('multiplies more than two values', () => {
+      expect(render('{{multiply 2 3 4}}')).toBe('24');
+    });
+
+    it('produces a number when any operand is a number', () => {
+      expect(render('{{multiply 2 2.5}}')).toBe('5');
+      expect(render('{{multiply 1.5 1.5}}')).toBe('2.25');
+    });
+
+    it('reads numeric parameters from the context', () => {
+      expect(render('{{multiply value 2}}', { value: 21 })).toBe('42');
+    });
+  });
+
+  describe('add', () => {
+    it('adds two integers', () => {
+      expect(render('{{add 40 2}}')).toBe('42');
+    });
+
+    it('adds more than two values', () => {
+      expect(render('{{add 1 2 3 4}}')).toBe('10');
+    });
+
+    it('produces a number when any operand is a number', () => {
+      expect(render('{{add 1 0.5}}')).toBe('1.5');
+    });
+  });
+
+  describe('subtract', () => {
+    it('subtracts two integers', () => {
+      expect(render('{{subtract 100 55}}')).toBe('45');
+    });
+
+    it('produces a number when any operand is a number', () => {
+      expect(render('{{subtract 1 0.25}}')).toBe('0.75');
+    });
+  });
+
+  describe('divide', () => {
+    it('divides without truncating, even for two integers', () => {
+      expect(render('{{divide 5 2}}')).toBe('2.5');
+      expect(render('{{divide 10 5}}')).toBe('2');
+    });
+
+    it('divides when an operand is a number', () => {
+      expect(render('{{divide 5 2.5}}')).toBe('2');
+      expect(render('{{divide 7.5 3}}')).toBe('2.5');
+    });
+
+    it('throws when dividing by zero', () => {
+      expect(() => render('{{divide 5 0}}')).toThrow();
+    });
+  });
+
+  describe('round', () => {
+    it('rounds to the nearest integer by default', () => {
+      expect(render('{{round 1.5}}')).toBe('2');
+      expect(render('{{round 1.4}}')).toBe('1');
+      expect(render('{{round -1.5}}')).toBe('-1');
+    });
+
+    it('rounds to the given number of decimal digits', () => {
+      expect(render('{{round 2.346 2}}')).toBe('2.35');
+      expect(render('{{round 2.344 2}}')).toBe('2.34');
+    });
+
+    it('leaves a value with fewer digits unchanged', () => {
+      expect(render('{{round 2 2}}')).toBe('2');
+      expect(render('{{round 42}}')).toBe('42');
+    });
+
+    it('reads numeric parameters from the context', () => {
+      expect(render('{{round value}}', { value: 2.7 })).toBe('3');
+    });
+
+    it('throws when the value is not numeric', () => {
+      expect(() => render('{{round "foo"}}')).toThrow();
+    });
+  });
+
+  describe('max', () => {
+    it('returns the largest of two integers', () => {
+      expect(render('{{max 3 7}}')).toBe('7');
+    });
+
+    it('returns the largest of more than two values', () => {
+      expect(render('{{max 3 7 5 9 1}}')).toBe('9');
+    });
+
+    it('preserves the original type of the result', () => {
+      expect(render('{{max 1 2.5}}')).toBe('2.5');
+    });
+  });
+
+  describe('min', () => {
+    it('returns the smallest of two integers', () => {
+      expect(render('{{min 3 7}}')).toBe('3');
+    });
+
+    it('returns the smallest of more than two values', () => {
+      expect(render('{{min 3 7 5 9 1}}')).toBe('1');
+    });
+
+    it('preserves the original type of the result', () => {
+      expect(render('{{min 2 1.5}}')).toBe('1.5');
+    });
+  });
+
+  describe('invalid input', () => {
+    it('throws when a value is not numeric', () => {
+      expect(() => render('{{add 1 "foo"}}')).toThrow();
+    });
+
+    it('throws when a variadic helper gets fewer than two operands', () => {
+      expect(() => render('{{add 1}}')).toThrow();
+    });
   });
 });

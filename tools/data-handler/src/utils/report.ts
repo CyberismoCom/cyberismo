@@ -15,6 +15,7 @@ import { registerEmptyMacros } from '../macros/index.js';
 import type { Context } from '../interfaces/project-interfaces.js';
 import {
   registerComparisonHelpers,
+  registerMathHelpers,
   registerReportHelpers,
 } from './handlebars-helpers.js';
 
@@ -25,7 +26,7 @@ interface GenerateReportContentParams {
   calculate: CalculationEngine;
   contentTemplate: string;
   queryTemplate: string;
-  options: Record<string, string | undefined | boolean>;
+  options: Record<string, string | number | boolean | undefined>;
   context: Context;
 }
 
@@ -45,9 +46,10 @@ export async function generateReportContent(
 
   const handlebars = Handlebars.create();
   registerComparisonHelpers(handlebars);
+  registerMathHelpers(handlebars);
 
   // When the query is empty, skip the logic program entirely and render the
-  // content template using only the parameter context.
+  // content template using only the macro parameter context.
   const result =
     (queryTemplate ?? '').trim() === ''
       ? { results: [], error: null }
