@@ -110,14 +110,14 @@ export function FieldRow({
   const formatValue = (v: MetadataValue) =>
     metadataValueToString(v ?? null, dataType as DataType, t, enumValues);
 
-  const automaticValueLine = (
+  const automaticValueLine = overrideMode ? (
     <Typography level="body-xs" data-cy="automaticValue">
       {t('automaticValue')}:{' '}
       <Typography component="span" fontWeight="bold" color="neutral">
         {formatValue(calculatedValue ?? null)}
       </Typography>
     </Typography>
-  );
+  ) : null;
 
   const editorField = (
     <Controller
@@ -223,6 +223,7 @@ export function FieldRow({
                     size="sm"
                     variant="plain"
                     color="neutral"
+                    disabled={disabled || (initialValue === null && !isDirty)}
                     onClick={() => onSave?.(null)}
                   >
                     {t('clearOverride')}
