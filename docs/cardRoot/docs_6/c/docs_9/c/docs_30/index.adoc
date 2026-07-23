@@ -9,3 +9,22 @@ field(X, "moduleName/fieldTypes/riskLevel", Likelihood * Impact) :-
     field(X, "moduleName/fieldTypes/likelihood", Likelihood),
     field(X, "moduleName/fieldTypes/impact", Impact).
 ----
+
+== Recommended form: fieldCalculated
+
+Define calculated fields with a `{{#xref}}"cardKey":"docs_ob1wsa0g"{{/xref}}` head instead of `field`:
+
+[source]
+----
+fieldCalculated(X, "moduleName/fieldTypes/riskLevel", Likelihood * Impact) :-
+    field(X, "moduleName/fieldTypes/likelihood", Likelihood),
+    field(X, "moduleName/fieldTypes/impact", Impact).
+----
+
+Cyberismo derives the effective `{{#xref}}"cardKey":"docs_8mg8p068"{{/xref}}` value from `fieldCalculated` automatically. A plain `field` head keeps working when the field does not enable override, but `fieldCalculated` is required for fields that enable override, and it keeps the automatic value visible in the user interface even when a user override is in effect.
+
+== Overriding calculated values
+
+A calculated field can allow user overrides by setting *Enable override* on the field in the card type definition (`"enableOverride": true`). Users can then enter a value for the field; the value is stored in the card and Cyberismo generates a `{{#xref}}"cardKey":"docs_6h0t096b"{{/xref}}` fact for it. The override becomes the effective `field` value, and the user interface shows both the automatic value and the override.
+
+If a calculation defines such a field with a plain `field` head instead of `fieldCalculated`, the field ends up with two conflicting values when an override exists; Cyberismo shows a "Conflicting field values" notification on the affected cards.

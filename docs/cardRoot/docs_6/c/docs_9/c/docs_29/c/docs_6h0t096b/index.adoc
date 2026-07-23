@@ -1,0 +1,22 @@
+== Parameters
+
+* `Key`: An identifier of an object. For example, a card key.
+* `Field`: A name of a field
+* `Value`: The override value entered by the user
+
+== Description
+
+The `fieldOverride` predicate declares that a user has overridden the calculated value of a field.
+
+Cyberismo generates `fieldOverride` facts from card data when a calculated field has *Enable override* set in the card type definition and the card stores a value for the field. When a `fieldOverride` fact exists, it becomes the value of the `{{#xref}}"cardKey":"docs_8mg8p068"{{/xref}}` predicate for that field; the calculated value remains available through `{{#xref}}"cardKey":"docs_ob1wsa0g"{{/xref}}`.
+
+Logic programs normally do not need to reference `fieldOverride` directly — reading `field` gives the effective value. Reference it only when a rule must distinguish an override from a calculated value, for example:
+
+[source]
+----
+% use the override if the user has entered one, otherwise the calculated value
+effectiveOwner(Card, Value) :- fieldOverride(Card, "mymodule/fieldTypes/owner", Value).
+effectiveOwner(Card, Value) :-
+    fieldCalculated(Card, "mymodule/fieldTypes/owner", Value),
+    not fieldOverride(Card, "mymodule/fieldTypes/owner", _).
+----
