@@ -14,7 +14,7 @@
 
 #include <mutex>
 
-#include "clingo_solver.h"
+#include "ast_mutex.h"
 
 namespace node_clingo
 {

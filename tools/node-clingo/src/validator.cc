@@ -16,7 +16,7 @@
 
 #include <clingo.hh>
 
-#include "clingo_solver.h" // ast_mutex, MAX_CLINGO_LOG_MESSAGES
+#include "ast_mutex.h"
 
 namespace node_clingo
 {
@@ -31,7 +31,7 @@ namespace node_clingo
         try
         {
             std::lock_guard<std::mutex> lock(ast_mutex());
-            Clingo::Control control{{}, logger, static_cast<unsigned>(MAX_CLINGO_LOG_MESSAGES)};
+            Clingo::Control control{{}, logger, MAX_CLINGO_LOG_MESSAGES};
             control.add("base", {}, content.c_str());
             // Empty parts: runs rewrite + safety check, skips grounding.
             control.ground({});

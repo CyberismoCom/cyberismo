@@ -14,20 +14,10 @@
 
 #include <mutex>
 
+#include "ast_mutex.h"
+
 namespace node_clingo
 {
-
-    // Clingo AST nodes use non-atomic intrusive refcounts (astv2.hh), and the
-    // solve-time AST walk is not read-only: parseRightGuards in clingo's
-    // astv2_parse.cc copies SAST handles of comparison-guard terms by value,
-    // so concurrent builder.add() walks over the same pre-parsed nodes corrupt
-    // refcounts (eventual SIGSEGV). The symbol table itself is internally
-    // mutex-protected in the pinned clingo. Serialize every AST parse/load
-    // phase — including main-thread pre-parsing in program_store.cc — via this
-    // mutex; the expensive ground() step still runs concurrently.
-    static std::mutex g_ast_mutex;
-
-    std::mutex& ast_mutex() { return g_ast_mutex; }
 
     struct ModelCollector : Clingo::SolveEventHandler
     {
@@ -80,7 +70,7 @@ namespace node_clingo
 
         try
         {
-            Clingo::Control control{{}, logger, static_cast<unsigned>(MAX_CLINGO_LOG_MESSAGES)};
+            Clingo::Control control{{}, logger, MAX_CLINGO_LOG_MESSAGES};
 
             std::vector<Clingo::Part> parts;
 
