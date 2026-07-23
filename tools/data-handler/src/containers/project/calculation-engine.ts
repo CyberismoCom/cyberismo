@@ -219,6 +219,16 @@ export class CalculationEngine {
       try {
         const content = calculation.contentData();
         const calc = calculation.show();
+        const validation = calculation.validateLogicProgram(
+          content.calculation,
+        );
+        if (!validation.valid) {
+          this.logger.warn(
+            { errors: validation.errors },
+            `Skipping invalid calculation ${calc.name}`,
+          );
+          continue;
+        }
         this.clingo.setProgram(calc.name, content.calculation, [ALL_CATEGORY]);
       } catch (error) {
         this.logger.warn(

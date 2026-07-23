@@ -1,0 +1,1 @@
+unsafe(X) :- other(Y).

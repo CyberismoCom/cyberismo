@@ -20,6 +20,7 @@
 #include "napi_helpers.h"
 #include "program_store.h"
 #include "solve_task.h"
+#include "validator.h"
 #include "xxhash.h"
 
 // Shared solve result cache — content-addressed, safe to share across all instances.
@@ -244,12 +245,35 @@ Napi::Value ClearCache(const Napi::CallbackInfo& info)
 }
 
 /**
+ * validateProgram(program) — parse + safety-check a logic program without
+ * grounding or solving. Returns { valid, errors, warnings }.
+ */
+Napi::Value ValidateProgram(const Napi::CallbackInfo& info)
+{
+    Napi::Env env = info.Env();
+    if (info.Length() < 1 || !info[0].IsString())
+    {
+        throw Napi::TypeError::New(env, "String argument expected for program");
+    }
+
+    node_clingo::ValidationResult result = node_clingo::validate_program(info[0].As<Napi::String>().Utf8Value());
+
+    Napi::Object resultObj = Napi::Object::New(env);
+    resultObj.Set("valid", Napi::Boolean::New(env, result.valid));
+    node_clingo::NodeClingoLogs logs = node_clingo::parse_clingo_logs(env, result.logs);
+    resultObj.Set("errors", logs.errors);
+    resultObj.Set("warnings", logs.warnings);
+    return resultObj;
+}
+
+/**
  * Module initialization.
  */
 Napi::Object Init(Napi::Env env, Napi::Object exports)
 {
     ClingoContext::Init(env, exports);
     exports.Set(Napi::String::New(env, "clearCache"), Napi::Function::New(env, ClearCache));
+    exports.Set(Napi::String::New(env, "validateProgram"), Napi::Function::New(env, ValidateProgram));
     return exports;
 }
 

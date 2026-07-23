@@ -1,0 +1,5 @@
+{
+  "name": "mini/cardTypes/myCardtype",
+  "displayName": "Test card type",
+  "workflow": "mini/workflows/minimal"
+}

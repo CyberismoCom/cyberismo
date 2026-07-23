@@ -25,7 +25,7 @@ export const resourceFileParamsSchema = resourceParamsSchema.extend({
 export type ResourceFileParams = z.infer<typeof resourceFileParamsSchema>;
 
 export const validateResourceParamsSchema = resourceParamsSchema.extend({
-  type: z.enum(resourceTypes.filter((type) => type !== 'calculations')),
+  type: z.enum(resourceTypes),
 });
 
 export type ValidateResourceParams = z.infer<

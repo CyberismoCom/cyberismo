@@ -1,0 +1,1 @@
+validCalcFact(42).
