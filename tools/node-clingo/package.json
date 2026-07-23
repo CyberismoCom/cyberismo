@@ -12,7 +12,7 @@
     "prepack": "node scripts/manage-publish-manifest.js strip",
     "postpack": "node scripts/manage-publish-manifest.js restore",
     "clean": "rm -rf build dist dist-packages external/clingo/build",
-    "dev": "tsc -p tsconfig.build.json --watch",
+    "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",

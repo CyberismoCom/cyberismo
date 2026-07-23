@@ -20,7 +20,7 @@
     "pretest": "pnpm build",
     "test": "vitest",
     "test-coverage": "c8 pnpm test",
-    "dev": "tsc --watch -p tsconfig.build.json",
+    "dev": "tsc --watch --preserveWatchOutput -p tsconfig.build.json",
     "watch": "pnpm dev"
   },
   "exports": {
