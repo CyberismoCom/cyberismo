@@ -20,7 +20,6 @@ import { readdir } from 'node:fs/promises';
 import { Validator as JSONValidator, type Schema } from 'jsonschema';
 import { Validator as DirectoryValidator } from 'directory-schema-validator';
 import { parentSchema, schemas } from '@cyberismo/assets';
-import { validateProgram } from '@cyberismo/node-clingo';
 
 // data-handler
 import type {
@@ -565,8 +564,7 @@ export class Validate {
         // by hand and bypassed validation at creation or update time.
         for (const calculation of project.resources.calculations()) {
           try {
-            const content = calculation.contentData();
-            const validation = validateProgram(content.calculation);
+            const validation = calculation.validateLogicProgram();
             if (!validation.valid) {
               errorMsg.push(
                 `Invalid calculation '${calculation.data!.name}':\n${validation.errors.join('\n')}`,
