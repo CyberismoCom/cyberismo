@@ -15,8 +15,8 @@ Logic programs normally do not need to reference `fieldOverride` directly — re
 [source]
 ----
 % use the override if the user has entered one, otherwise the calculated value
-effectiveOwner(Card, Value) :- fieldOverride(Card, "mymodule/fieldTypes/owner", Value).
+effectiveOwner(Card, Value) :- fieldOverride(Card, "moduleName/fieldTypes/owner", Value).
 effectiveOwner(Card, Value) :-
-    fieldCalculated(Card, "mymodule/fieldTypes/owner", Value),
-    not fieldOverride(Card, "mymodule/fieldTypes/owner", _).
+    fieldCalculated(Card, "moduleName/fieldTypes/owner", Value),
+    not fieldOverride(Card, "moduleName/fieldTypes/owner", _).
 ----
