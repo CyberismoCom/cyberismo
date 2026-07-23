@@ -1588,6 +1588,40 @@ validateCmd.action(async (options: CommandOptions<'validate'>) => {
   handleResponse(result);
 });
 
+// Install the dynamic skill discovery bootstrap skill + MCP config for an AI agent.
+const installSkillsCmd = new Command('install-skills')
+  .description(
+    'Install the dynamic skill discovery bootstrap skill and MCP server configuration for an AI agent platform. Installs into the current directory by default — run it from (or pass) the directory your AI agent operates in, usually the repository root.',
+  )
+  .argument(
+    '[path]',
+    'Directory to install into. Defaults to the current directory; set it to where your AI agent runs (e.g. the repository root) if that differs from where you run this command.',
+  )
+  .addOption(
+    new Option('-t, --target <platform>', 'Target AI agent platform')
+      .choices(['claude'])
+      .default('claude'),
+  )
+  .option(
+    '--url <url>',
+    'MCP server URL to register',
+    'http://localhost:3000/mcp',
+  );
+program.addCommand(installSkillsCmd);
+installSkillsCmd.action(
+  async (
+    path: string | undefined,
+    options: CommandOptions<'installSkills'>,
+  ) => {
+    const result = await commandHandler.command(
+      Cmd.installSkills,
+      [resolve(path ?? process.cwd())],
+      Object.assign({}, options, program.opts()),
+    );
+    handleResponse(result);
+  },
+);
+
 // Start app command.
 // If there are validation errors, user is prompted to continue or not.
 // There is 10 sec timeout on the prompt. If user does not reply, then

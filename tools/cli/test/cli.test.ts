@@ -2,7 +2,7 @@ import { expect, it, describe, beforeAll, afterAll } from 'vitest';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import { join } from 'node:path';
-import { mkdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync } from 'node:fs';
 
 const execAsync = promisify(exec);
 
@@ -288,5 +288,18 @@ describe('Cli BAT test', function () {
     );
     expect(stdout).toContain('Done');
     expect(stdout).toContain('Project structure validated');
+  });
+  it('Install skill discovery bootstrap (claude target)', async () => {
+    const { stdout } = await execAsync(
+      `cd ${cliPath} && ${cli} install-skills`,
+    );
+    expect(stdout).toContain('Installed skill discovery');
+    expect(stdout).toContain('.claude/skills/dynamic-skill-discovery/SKILL.md');
+    expect(existsSync(join(cliPath, '.mcp.json'))).toBe(true);
+    expect(
+      existsSync(
+        join(cliPath, '.claude/skills/dynamic-skill-discovery/SKILL.md'),
+      ),
+    ).toBe(true);
   });
 }, 100000);
