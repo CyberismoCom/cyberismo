@@ -339,12 +339,13 @@ export function CardTypeFieldsEditor({
     if (!draft || disableAll) return;
 
     const trimmedDisplayName = draft.displayName.trim();
+    const effectiveOverride = draft.isCalculated ? draft.enableOverride : false;
 
     // Check if anything actually changed
     const hasChanges =
       trimmedDisplayName !== field.displayName ||
       draft.isCalculated !== field.isCalculated ||
-      draft.enableOverride !== field.enableOverride;
+      effectiveOverride !== field.enableOverride;
 
     if (!hasChanges) {
       closeEditMode();
@@ -361,7 +362,7 @@ export function CardTypeFieldsEditor({
             name: field.name,
             displayName: trimmedDisplayName,
             isCalculated: draft.isCalculated,
-            enableOverride: draft.isCalculated ? draft.enableOverride : false,
+            enableOverride: effectiveOverride,
           },
         },
       });
@@ -514,7 +515,7 @@ export function CardTypeFieldsEditor({
                 <Checkbox
                   size="sm"
                   label={t('isCalculated')}
-                  checked={!!ctrl.value}
+                  checked={ctrl.value}
                   disabled={rowDisabled}
                   onChange={(event) => ctrl.onChange(event.target.checked)}
                 />
@@ -537,7 +538,7 @@ export function CardTypeFieldsEditor({
                 <Checkbox
                   size="sm"
                   label={t('enableOverride')}
-                  checked={!!editFieldValues.isCalculated && !!ctrl.value}
+                  checked={!!editFieldValues.isCalculated && ctrl.value}
                   disabled={rowDisabled || !editFieldValues.isCalculated}
                   onChange={(event) => ctrl.onChange(event.target.checked)}
                 />
