@@ -103,6 +103,7 @@ describe('transformFields', () => {
   ): QueryResult<'card'>['fields'][number] {
     return {
       key: 'testField',
+      index: 0,
       fieldDisplayName: 'Test Field',
       fieldDescription: '',
       dataType: 'shortText',
@@ -112,15 +113,23 @@ describe('transformFields', () => {
       visibility: 'always',
       enumValues: [],
       ...overrides,
-    } as QueryResult<'card'>['fields'][number];
+    };
   }
 
   test('overridable calculated field is editable', () => {
     const [field] = transformFields(
-      [makeField({ isCalculated: true, isOverridable: true })],
+      [
+        makeField({
+          isCalculated: true,
+          isOverridable: true,
+          calculatedValue: 'auto-value',
+        }),
+      ],
       [],
     );
     expect(field.isEditable).toBe(true);
+    expect(field.isOverridable).toBe(true);
+    expect(field.calculatedValue).toBe('auto-value');
   });
 
   test('non-overridable calculated field is not editable', () => {
