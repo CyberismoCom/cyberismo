@@ -19,6 +19,7 @@ const cliPath = `${tmpPath}/cyberismo-cli`;
 let pageCardKey = '';
 let decisionCardKey = '';
 let newPageCardKey = '';
+let sideEffectCardKeys: string[] = [];
 
 describe('Cli BAT test', function () {
   afterAll(() => {
@@ -89,6 +90,28 @@ describe('Cli BAT test', function () {
     );
     expect(stdout).toContain('Done');
     expect(stdout).toContain('Project structure validated');
+  });
+  it('Create transition side effect demo cards', async () => {
+    const { stdout } = await execAsync(
+      `cd ${cliPath} && ${cli} create card test/templates/sideEffects && ${cli} validate`,
+    );
+    expect(stdout).toContain('Created cards');
+    expect(stdout).toContain('Project structure validated');
+    // Template root card comes first in createCard's output.
+    sideEffectCardKeys = stdout.match(/bat_[a-z0-9]+/g) ?? [];
+    expect(sideEffectCardKeys.length).toBe(3);
+  });
+  it('Approving the parent cascades the transition to its descendants', async () => {
+    const [parent, ...descendants] = sideEffectCardKeys;
+    const { stdout } = await execAsync(
+      `cd ${cliPath} && ${cli} transition ${parent} Approve && ${cli} validate`,
+    );
+    expect(stdout).toContain('Done');
+    expect(stdout).toContain('Project structure validated');
+    for (const key of descendants) {
+      const shown = await execAsync(`cd ${cliPath} && ${cli} show card ${key}`);
+      expect(shown.stdout).toContain('"workflowState": "Approved"');
+    }
   });
   it('Create a new workflow', async () => {
     const { stdout } = await execAsync(
