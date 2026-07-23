@@ -13,7 +13,16 @@
 */
 
 import { useEffect } from 'react';
-import { Accordion, AccordionDetails, Box, IconButton, Stack } from '@mui/joy';
+import { useTranslation } from 'react-i18next';
+import {
+  Accordion,
+  AccordionDetails,
+  Box,
+  Button,
+  IconButton,
+  Stack,
+  Typography,
+} from '@mui/joy';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import { Controller, useForm } from 'react-hook-form';
@@ -21,7 +30,7 @@ import type { DataType, MetadataValue } from '@/lib/definitions';
 import type { EnumDefinition } from '@cyberismo/data-handler/types/queries';
 import EditableField, { FieldLabel } from '@/components/EditableField';
 import FieldEditor from '@/components/FieldEditor';
-import { coerceMetadataValue } from '@/lib/utils';
+import { coerceMetadataValue, metadataValueToString } from '@/lib/utils';
 import { formKeyHandler } from '@/lib/hooks';
 
 export interface FieldRowProps {
@@ -34,6 +43,10 @@ export interface FieldRowProps {
   enumValues?: EnumDefinition[];
   isEditing?: boolean;
   disabled?: boolean;
+  /** True for a calculated field that can be overridden by the user. */
+  overrideMode?: boolean;
+  /** The computed value shown on the "Automatic value" line, when `overrideMode`. */
+  calculatedValue?: MetadataValue;
   onStartEdit?: () => void;
   onSave?: (value: MetadataValue) => void;
   onAutoSave?: (value: MetadataValue) => void;
@@ -50,11 +63,14 @@ export function FieldRow({
   enumValues,
   isEditing,
   disabled,
+  overrideMode,
+  calculatedValue,
   onStartEdit,
   onSave,
   onAutoSave,
   onCancel,
 }: FieldRowProps) {
+  const { t } = useTranslation();
   const initialValue = value ?? null;
 
   const {
@@ -89,6 +105,62 @@ export function FieldRow({
   };
 
   const isClickable = !disabled && !isEditing && !!onStartEdit;
+
+  // Overridable fields are always of a "normal" dataType, never 'label'.
+  const formatValue = (v: MetadataValue) =>
+    metadataValueToString(v ?? null, dataType as DataType, t, enumValues);
+
+  const automaticValueLine = (
+    <Typography level="body-xs" data-cy="automaticValue">
+      {t('automaticValue')}:{' '}
+      <Typography component="span" fontWeight="bold" color="neutral">
+        {formatValue(calculatedValue ?? null)}
+      </Typography>
+    </Typography>
+  );
+
+  const editorField = (
+    <Controller
+      name="value"
+      control={control}
+      render={({ field: { value: formValue, onChange } }) => (
+        <FieldEditor
+          value={formValue}
+          onChange={(e: string | string[] | null) => handleChange(e, onChange)}
+          dataType={dataType}
+          enumValues={enumValues}
+          disabled={disabled}
+          focus={true}
+        />
+      )}
+    />
+  );
+
+  const saveCancelButtons = (
+    <>
+      {onSave && (
+        <IconButton
+          data-cy="fieldSaveButton"
+          size="sm"
+          variant="soft"
+          color="primary"
+          disabled={!isDirty}
+          onClick={handleSave}
+        >
+          <CheckIcon />
+        </IconButton>
+      )}
+      <IconButton
+        data-cy="fieldCancelButton"
+        size="sm"
+        variant="soft"
+        color="neutral"
+        onClick={handleCancel}
+      >
+        <CloseIcon />
+      </IconButton>
+    </>
+  );
 
   return (
     <Accordion
@@ -126,57 +198,86 @@ export function FieldRow({
               disabled={disabled}
               edit={true}
             />
-            <Stack
-              direction="row"
-              alignItems="flex-start"
-              spacing={0.5}
-              sx={{
-                flexGrow: 1,
-                width: { xs: '100%', md: 'auto' },
-                minWidth: 0,
-              }}
-            >
-              <Box flexGrow={1} minWidth={0}>
-                <Controller
-                  name="value"
-                  control={control}
-                  render={({ field: { value: formValue, onChange } }) => (
-                    <FieldEditor
-                      value={formValue}
-                      onChange={(e: string | string[] | null) =>
-                        handleChange(e, onChange)
-                      }
-                      dataType={dataType}
-                      enumValues={enumValues}
-                      disabled={disabled}
-                      focus={true}
-                    />
-                  )}
-                />
-              </Box>
-              {onSave && (
-                <IconButton
-                  data-cy="fieldSaveButton"
-                  size="sm"
-                  variant="soft"
-                  color="primary"
-                  disabled={!isDirty}
-                  onClick={handleSave}
-                >
-                  <CheckIcon />
-                </IconButton>
-              )}
-              <IconButton
-                data-cy="fieldCancelButton"
-                size="sm"
-                variant="soft"
-                color="neutral"
-                onClick={handleCancel}
+            {overrideMode ? (
+              <Stack
+                spacing={0.5}
+                sx={{
+                  flexGrow: 1,
+                  width: { xs: '100%', md: 'auto' },
+                  minWidth: 0,
+                }}
               >
-                <CloseIcon />
-              </IconButton>
-            </Stack>
+                {automaticValueLine}
+                <Stack direction="row" alignItems="flex-start" spacing={0.5}>
+                  <Typography
+                    level="body-xs"
+                    sx={{ flexShrink: 0, alignSelf: 'center' }}
+                  >
+                    {t('override')}:
+                  </Typography>
+                  <Box flexGrow={1} minWidth={0}>
+                    {editorField}
+                  </Box>
+                  <Button
+                    data-cy="fieldClearOverrideButton"
+                    size="sm"
+                    variant="plain"
+                    color="neutral"
+                    onClick={() => onSave?.(null)}
+                  >
+                    {t('clearOverride')}
+                  </Button>
+                  {saveCancelButtons}
+                </Stack>
+              </Stack>
+            ) : (
+              <Stack
+                direction="row"
+                alignItems="flex-start"
+                spacing={0.5}
+                sx={{
+                  flexGrow: 1,
+                  width: { xs: '100%', md: 'auto' },
+                  minWidth: 0,
+                }}
+              >
+                <Box flexGrow={1} minWidth={0}>
+                  {editorField}
+                </Box>
+                {saveCancelButtons}
+              </Stack>
+            )}
           </Stack>
+        ) : overrideMode ? (
+          <Box
+            onClick={isClickable ? onStartEdit : undefined}
+            data-cy="editableFieldRow"
+          >
+            <Stack
+              direction={{ xs: 'column', md: 'row' }}
+              spacing={{ xs: 0.5, md: 4 }}
+            >
+              <FieldLabel
+                label={label}
+                description={description}
+                disabled={disabled}
+                edit={false}
+              />
+              <Stack spacing={0.5}>
+                {automaticValueLine}
+                <Typography level="body-xs" data-cy="overrideValue">
+                  {t('override')}:{' '}
+                  <Typography
+                    component="span"
+                    fontWeight="bold"
+                    color={disabled ? 'neutral' : 'primary'}
+                  >
+                    {formatValue(value ?? null)}
+                  </Typography>
+                </Typography>
+              </Stack>
+            </Stack>
+          </Box>
         ) : (
           <Box
             onClick={isClickable ? onStartEdit : undefined}

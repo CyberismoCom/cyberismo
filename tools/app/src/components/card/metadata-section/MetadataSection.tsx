@@ -168,13 +168,26 @@ export default function MetadataSection({
             fieldDescription,
             visibility,
             isCalculated,
+            isOverridable,
             value,
+            calculatedValue,
+            overrideValue,
           }) => (
             <FieldRow
               key={key}
               id={fieldRowId(key)}
               expanded={visibility === 'always' || expanded}
-              value={getDefaultValue(value)}
+              value={
+                isOverridable
+                  ? getDefaultValue(overrideValue ?? null)
+                  : getDefaultValue(value)
+              }
+              overrideMode={isOverridable}
+              calculatedValue={
+                isOverridable
+                  ? getDefaultValue(calculatedValue ?? null)
+                  : undefined
+              }
               label={fieldDisplayName || key}
               dataType={dataType}
               description={fieldDescription}
@@ -182,7 +195,7 @@ export default function MetadataSection({
               isEditing={editingFieldKey === key}
               disabled={
                 !canEdit ||
-                isCalculated ||
+                (isCalculated && !isOverridable) ||
                 card.deniedOperations.editField
                   .map((f) => f.fieldName)
                   .includes(key)
