@@ -17,10 +17,14 @@
 namespace node_clingo
 {
 
-    // Clingo's AST builder and symbol table use non-thread-safe global state.
-    // Concurrent calls to with_builder/parse_string from worker threads cause
-    // data races and eventual SIGSEGV. Serialize only the AST-loading phase;
-    // the expensive ground() step still runs concurrently.
+    // Clingo AST nodes use non-atomic intrusive refcounts (astv2.hh), and the
+    // solve-time AST walk is not read-only: parseRightGuards in clingo's
+    // astv2_parse.cc copies SAST handles of comparison-guard terms by value,
+    // so concurrent builder.add() walks over the same pre-parsed nodes corrupt
+    // refcounts (eventual SIGSEGV). The symbol table itself is internally
+    // mutex-protected in the pinned clingo. Serialize every AST parse/load
+    // phase — including main-thread pre-parsing in program_store.cc — via this
+    // mutex; the expensive ground() step still runs concurrently.
     static std::mutex g_ast_mutex;
 
     std::mutex& ast_mutex() { return g_ast_mutex; }

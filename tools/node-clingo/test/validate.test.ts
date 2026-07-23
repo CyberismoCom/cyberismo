@@ -46,6 +46,8 @@ describe('validateProgram', () => {
     for (let i = 0; i < 50; i++) {
       validateProgram('c(X) :- a(X), X > 1.');
       validateProgram('broken(');
+      // setProgram pre-parses on the main thread while solves are in flight
+      ctx.setProgram(`scratch${i}`, `d(${i}).`, ['scratch']);
     }
     const results = await Promise.all(solves);
     for (const r of results) {

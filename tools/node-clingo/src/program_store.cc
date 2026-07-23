@@ -12,6 +12,10 @@
 */
 #include "program_store.h"
 
+#include <mutex>
+
+#include "clingo_solver.h"
+
 namespace node_clingo
 {
     static std::vector<Clingo::AST::Node> tryParseToAst(const std::string& content)
@@ -19,6 +23,10 @@ namespace node_clingo
         std::vector<Clingo::AST::Node> nodes;
         try
         {
+            // Runs on the main thread, possibly while worker threads are in
+            // their AST-loading phase. AST nodes use non-atomic refcounts, so
+            // parsing is serialized with the workers via the same mutex.
+            std::lock_guard<std::mutex> lock(ast_mutex());
             Clingo::AST::parse_string(
                 content.c_str(), [&nodes](Clingo::AST::Node node) { nodes.push_back(node.deep_copy()); });
         }
