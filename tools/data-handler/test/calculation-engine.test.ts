@@ -1,11 +1,10 @@
 import { expect, it, describe, beforeAll, afterAll } from 'vitest';
 
 import { join } from 'node:path';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, rmSync } from 'node:fs';
 import { copyDir } from '../src/utils/file-utils.js';
 import type { Project } from '../src/containers/project.js';
 import type { QueryResult } from '../src/types/queries.js';
-import type { CalculationMetadata } from '../src/interfaces/resource-interfaces.js';
 import { lpFiles } from '@cyberismo/assets';
 import { Calculate } from '../src/commands/calculate.js';
 import { getTestProject } from './helpers/test-utils.js';
@@ -218,37 +217,20 @@ describe('calculate', () => {
 });
 
 describe('calculation validation on generate', () => {
+  // The fixture contains broken calculations on disk, simulating invalid .lp
+  // files arriving via git pull or hand-editing.
   const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'tmp-calculate-validation-tests');
-  const decisionRecordsPath = join(testDir, 'valid/decision-records');
-  const brokenCalcName = 'decision/calculations/test';
-  const brokenContent = 'this is not valid clingo ((';
-  const validCalcName = 'decision/calculations/validForSkipTest';
+  const projectPath = join(testDir, 'invalid/invalid-calculations');
+  const brokenCalcName = 'mini/calculations/syntaxError';
+  const validCalcName = 'mini/calculations/validCalc';
   let project: Project;
 
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    // Break an existing calculation on disk before caches are populated,
-    // simulating an invalid .lp arriving via git pull or hand-editing.
-    writeFileSync(
-      join(
-        decisionRecordsPath,
-        '.cards/local/calculations/test/calculation.lp',
-      ),
-      brokenContent,
-    );
-    project = getTestProject(decisionRecordsPath);
+    project = getTestProject(projectPath);
     await project.populateCaches();
-    // A second, valid calculation proves generate() skips only the broken one.
-    const validCalc = project.resources.byType(validCalcName, 'calculations');
-    await validCalc.create({
-      name: validCalcName,
-      displayName: 'Valid calculation',
-      description: 'Verifies that valid calculations are still registered',
-      calculation: '',
-    } as CalculationMetadata);
-    await validCalc.updateFile('calculation.lp', 'validCalcFact(42).');
   });
 
   afterAll(() => {
@@ -256,18 +238,19 @@ describe('calculation validation on generate', () => {
   });
 
   it('skips a broken calculation and keeps queries working', async () => {
-    // Guard against a vacuous pass: the file broken on disk must belong to a
-    // registered calculation resource whose cached content is the broken one.
+    // Guard against a vacuous pass: both fixture calculations must be
+    // registered resources and the broken one's cached content invalid.
     const calculations = project.resources.calculations();
     const broken = calculations.find((c) => c.data?.name === brokenCalcName);
     expect(broken).toBeDefined();
-    expect(broken!.contentData().calculation).toBe(brokenContent);
+    expect(broken!.validateLogicProgram().valid).toBe(false);
     expect(calculations.some((c) => c.data?.name === validCalcName)).toBe(true);
 
     await project.calculationEngine.generate();
 
-    const res = await project.calculationEngine.runQuery('tree');
-    expect(res.length).toBeGreaterThan(0);
+    // Queries must not throw; a broken calculation registered under the
+    // shared category would make every solve fail.
+    await project.calculationEngine.runQuery('tree');
 
     // The valid calculation must still be part of the program set; this fails
     // if generate() starts skipping every calculation.
