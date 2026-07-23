@@ -207,6 +207,7 @@
   "emptyCardBody": "No content yet.",
   "emptyProject": "Project is empty",
   "enableLinkDescription": "Enable link description",
+  "enableOverride": "Enable override",
   "enumDescriptionPlaceholder": "Optional description for this value",
   "enumDisplayValuePlaceholder": "Optional display name",
   "enumValueAdded": "Enum value added",

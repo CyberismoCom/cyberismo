@@ -45,6 +45,7 @@ type FieldView = {
   name: string;
   displayName: string;
   isCalculated: boolean;
+  enableOverride: boolean;
   visibility: VisibilityGroup;
   fieldTypeLabel: string;
 };
@@ -53,12 +54,14 @@ type NewFieldDraft = {
   name: string;
   displayName: string;
   isCalculated: boolean;
+  enableOverride: boolean;
   visibility: VisibilityGroup;
 };
 
 type EditFieldDraft = {
   displayName: string;
   isCalculated: boolean;
+  enableOverride: boolean;
 };
 
 const visibilityToKey: Record<VisibilityGroup, string | null> = {
@@ -103,6 +106,7 @@ export function CardTypeFieldsEditor({
       name: '',
       displayName: '',
       isCalculated: false,
+      enableOverride: false,
       visibility: 'always',
     },
   });
@@ -115,10 +119,12 @@ export function CardTypeFieldsEditor({
     defaultValues: {
       displayName: '',
       isCalculated: false,
+      enableOverride: false,
     },
   });
 
   const newFieldValues = useWatch({ control: newFieldControl });
+  const editFieldValues = useWatch({ control: editFieldControl });
 
   const fieldTypeOptions = useMemo(
     () => getFieldTypeOptions(resourceTree),
@@ -152,6 +158,7 @@ export function CardTypeFieldsEditor({
       name,
       displayName: existing?.displayName ?? '',
       isCalculated: existing?.isCalculated ?? false,
+      enableOverride: existing?.enableOverride ?? false,
       visibility,
       fieldTypeLabel: fieldTypeDisplayNameMap.get(name) ?? name,
     };
@@ -189,6 +196,7 @@ export function CardTypeFieldsEditor({
             name: data.name,
             displayName: data.displayName.trim(),
             isCalculated: data.isCalculated,
+            enableOverride: data.isCalculated ? data.enableOverride : false,
           },
         },
       });
@@ -214,6 +222,7 @@ export function CardTypeFieldsEditor({
         name: '',
         displayName: '',
         isCalculated: false,
+        enableOverride: false,
         visibility: 'always',
       });
     } catch (error) {
@@ -312,7 +321,11 @@ export function CardTypeFieldsEditor({
 
   const closeEditMode = () => {
     cancelEditing();
-    resetEditField({ displayName: '', isCalculated: false });
+    resetEditField({
+      displayName: '',
+      isCalculated: false,
+      enableOverride: false,
+    });
   };
 
   // Allow cancelling edit mode with Escape even when not focused on an input
@@ -330,7 +343,8 @@ export function CardTypeFieldsEditor({
     // Check if anything actually changed
     const hasChanges =
       trimmedDisplayName !== field.displayName ||
-      draft.isCalculated !== field.isCalculated;
+      draft.isCalculated !== field.isCalculated ||
+      draft.enableOverride !== field.enableOverride;
 
     if (!hasChanges) {
       closeEditMode();
@@ -347,6 +361,7 @@ export function CardTypeFieldsEditor({
             name: field.name,
             displayName: trimmedDisplayName,
             isCalculated: draft.isCalculated,
+            enableOverride: draft.isCalculated ? draft.enableOverride : false,
           },
         },
       });
@@ -373,6 +388,7 @@ export function CardTypeFieldsEditor({
     resetEditField({
       displayName: field.displayName,
       isCalculated: field.isCalculated,
+      enableOverride: field.enableOverride,
     });
   };
 
@@ -509,6 +525,29 @@ export function CardTypeFieldsEditor({
               size="sm"
               label={t('isCalculated')}
               checked={field.isCalculated}
+              disabled
+            />
+          )}
+
+          {isEditing ? (
+            <Controller
+              name="enableOverride"
+              control={editFieldControl}
+              render={({ field: ctrl }) => (
+                <Checkbox
+                  size="sm"
+                  label={t('enableOverride')}
+                  checked={!!editFieldValues.isCalculated && !!ctrl.value}
+                  disabled={rowDisabled || !editFieldValues.isCalculated}
+                  onChange={(event) => ctrl.onChange(event.target.checked)}
+                />
+              )}
+            />
+          ) : (
+            <Checkbox
+              size="sm"
+              label={t('enableOverride')}
+              checked={field.isCalculated && field.enableOverride}
               disabled
             />
           )}
@@ -658,6 +697,24 @@ export function CardTypeFieldsEditor({
                   label={t('isCalculated')}
                   checked={field.value}
                   disabled={disableAll || isEditingLocked}
+                  onChange={(event) => field.onChange(event.target.checked)}
+                />
+              )}
+            />
+
+            <Controller
+              control={newFieldControl}
+              name="enableOverride"
+              render={({ field }) => (
+                <Checkbox
+                  size="sm"
+                  label={t('enableOverride')}
+                  checked={!!newFieldValues.isCalculated && field.value}
+                  disabled={
+                    disableAll ||
+                    isEditingLocked ||
+                    !newFieldValues.isCalculated
+                  }
                   onChange={(event) => field.onChange(event.target.checked)}
                 />
               )}
