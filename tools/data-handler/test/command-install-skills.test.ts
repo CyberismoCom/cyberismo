@@ -115,4 +115,16 @@ describe('install-skills command', () => {
     const mcp = JSON.parse(await readFile(join(nested, '.mcp.json'), 'utf-8'));
     expect(mcp.mcpServers.cyberismo).toBeDefined();
   });
+
+  it('reports failure when .mcp.json cannot be written', async () => {
+    // Make .mcp.json a directory so writeFile fails deterministically (EISDIR),
+    // and verify the failure is surfaced instead of reported as success.
+    mkdirSync(mcpPath, { recursive: true });
+    const result = await commandHandler.command(
+      Cmd.installSkills,
+      [testDir],
+      {},
+    );
+    expect(result.statusCode).not.toBe(200);
+  });
 });

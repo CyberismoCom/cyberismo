@@ -23,7 +23,7 @@ import {
   resolveTilde,
   writeFileSafe,
 } from '../utils/file-utils.js';
-import { readJsonFile, writeJsonFile } from '../utils/json.js';
+import { formatJson, readJsonFile } from '../utils/json.js';
 
 import type { InstallSkillsCommandOptions } from '../interfaces/command-options.js';
 
@@ -94,7 +94,7 @@ export class InstallSkills {
       ...config.mcpServers,
       cyberismo: { type: 'http', url },
     };
-    await writeJsonFile(mcpPath, config);
+    await writeFileSafe(mcpPath, formatJson(config));
     written.push('.mcp.json');
 
     const claudeMdPath = join(root, 'CLAUDE.md');
