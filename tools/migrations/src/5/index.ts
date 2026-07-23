@@ -34,6 +34,10 @@ const OLD_SEAL_NAME = /^migrationLog_\d+\.\d+\.\d+\.jsonl$/;
  *   system reads only lineage-named seals
  *   (`migrationLog_<from>_<to>.jsonl`) and ignores the old single-version
  *   files, so they are dead data.
+ * - Introduces calculated custom field override support: card types may
+ *   declare `enableOverride` on calculated custom fields, and cards may store
+ *   override values for them. This requires no file changes; the version bump
+ *   fences older tooling from projects that use the feature.
  *
  * Idempotent: a project without old-format snapshots is left untouched.
  */
@@ -73,7 +77,7 @@ const migration: Migration = {
     return {
       success: true,
       message:
-        'Schema updated to version 5: removed pre-replay migration log snapshots (replay reads only lineage-named seals)',
+        'Schema updated to version 5: removed pre-replay migration log snapshots (replay reads only lineage-named seals) and enabled calculated field override support',
       stepsExecuted,
     };
   },
