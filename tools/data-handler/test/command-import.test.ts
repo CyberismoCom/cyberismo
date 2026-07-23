@@ -1022,28 +1022,80 @@ describe('module update — spec behaviours', () => {
     expect(consumer.workflow).toBe('decision/workflows/resolution');
   }, 30000);
 
-  it('updateModule surfaces ModuleValidationFailedError when a replayed delete breaks a local reference', async () => {
+  it('updateModule replays a sealed workflow delete: dependent local card types and their cards are removed', async () => {
     const { moduleSource, projectDir, commands, installedConfigPath } =
-      await seedReplayHost('replay-invalid-proj', 'rinv');
+      await seedReplayHost('replay-delete-proj', 'rdel');
 
-    // A project card of the consumer card type, so the dangling workflow
-    // reference surfaces in card-level validation after the update.
-    await commands.createCmd.createTemplate('rinv/templates/seed', '');
+    // A template card and a project card of the consumer type; the delete
+    // cascade must remove the card type and both cards.
+    await commands.createCmd.createTemplate('rdel/templates/seed', '');
     await commands.createCmd.addCards(
-      'rinv/cardTypes/consumer',
-      'rinv/templates/seed',
+      'rdel/cardTypes/consumer',
+      'rdel/templates/seed',
     );
-    await commands.createCmd.createCard('rinv/templates/seed');
+    const created = await commands.createCmd.createCard('rdel/templates/seed');
+    expect(created.length).toBeGreaterThan(0);
 
-    // Upstream 2.0.0 deletes the workflow (its own card type now uses the
-    // remaining simplepage workflow, keeping the module self-consistent).
-    // The workflow-delete cascade is a no-op by design, so the LOCAL
-    // consumer's reference cannot be repaired and validation must fail.
+    // Upstream 2.0.0 deletes the workflow; its own card type moves to the
+    // remaining 'simple' workflow, keeping the module self-consistent.
     const sourceLocal = join(moduleSource, '.cards', 'local');
     rmSync(join(sourceLocal, 'workflows', 'decision.json'));
     rewriteJson(join(sourceLocal, 'cardTypes', 'decision.json'), (cardType) => {
-      cardType.workflow = 'decision/workflows/simplepage';
+      cardType.workflow = 'decision/workflows/simple';
     });
+    sealSourceRelease(moduleSource, [
+      {
+        operation: 'resource_delete',
+        target: 'decision/workflows/decision',
+        parameters: { type: 'workflows' },
+      },
+    ]);
+
+    // A card type requires a workflow, so the replayed delete repairs the
+    // consumer by removal: card type and all of its cards. The project is
+    // then valid and the update succeeds.
+    await commands.importCmd.updateModule('decision', undefined, '2.0.0');
+
+    const afterConfig = JSON.parse(readFileSync(installedConfigPath, 'utf-8'));
+    expect(afterConfig.version).toBe('2.0.0');
+    expect(
+      existsSync(
+        join(projectDir, '.cards', 'local', 'cardTypes', 'consumer.json'),
+      ),
+    ).toBe(false);
+    for (const card of created) {
+      expect(existsSync(join(projectDir, 'cardRoot', card.key))).toBe(false);
+    }
+    expect(
+      existsSync(
+        join(
+          projectDir,
+          '.cards',
+          'modules',
+          'decision',
+          'workflows',
+          'decision.json',
+        ),
+      ),
+    ).toBe(false);
+  }, 30000);
+
+  it('updateModule surfaces ModuleValidationFailedError when the update leaves a dangling workflow reference', async () => {
+    const { moduleSource, projectDir, commands, installedConfigPath } =
+      await seedReplayHost('replay-invalid-proj', 'rinv');
+
+    // A project card of the MODULE's own card type. The delete cascade only
+    // repairs LOCAL card types, so this card's type survives pointing at the
+    // deleted workflow and card-level validation must fail.
+    const created = await commands.createCmd.createCard(
+      'decision/templates/decision',
+    );
+    expect(created.length).toBeGreaterThan(0);
+
+    // Upstream ships a broken 2.0.0: the workflow is deleted but the
+    // module's own card type still references it.
+    const sourceLocal = join(moduleSource, '.cards', 'local');
+    rmSync(join(sourceLocal, 'workflows', 'decision.json'));
     sealSourceRelease(moduleSource, [
       {
         operation: 'resource_delete',
