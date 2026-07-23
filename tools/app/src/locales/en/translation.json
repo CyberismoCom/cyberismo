@@ -111,11 +111,13 @@
   },
   "attachment": "Attachment",
   "attachments": "Attachments",
+  "automaticValue": "Automatic value",
   "cancel": "Cancel",
   "cardKey": "Card key",
   "cardNotFound": "Could not find card",
   "cardType": "Card type",
   "category": "Category",
+  "clearOverride": "Clear",
   "close": "Close",
   "configMove": {
     "invalidTarget": "Cannot drop the card here.",
@@ -354,6 +356,7 @@
   "optionallyVisibleFields": "Optionally visible fields",
   "or": "or",
   "outboundDisplayName": "Outbound display name",
+  "override": "Override",
   "overview": {
     "clearFilters": "Clear Filters",
     "createNew": "Create New {{resourceType}}",
