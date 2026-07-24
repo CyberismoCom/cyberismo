@@ -21,3 +21,5 @@ export * from './inventory.js';
 export * from './resolver.js';
 export * from './orphans.js';
 export * from './applier.js';
+export * from './resolve/types.js';
+export * from './resolve/solver.js';

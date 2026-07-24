@@ -24,7 +24,7 @@ import {
   declaredModules,
   installedModules,
   installedModulesWithSources,
-  resolveModules,
+  resolveForApply,
   createSourceLayer,
   FILE_PROTOCOL,
   isFileLocation,
@@ -32,6 +32,7 @@ import {
   stripFileProtocol,
   pickVersion,
   readModuleConfig,
+  toVersion,
   toVersionRange,
   validateVersionAgainstConstraints,
 } from '../modules/index.js';
@@ -50,8 +51,8 @@ import type {
 } from '../interfaces/project-interfaces.js';
 import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
-import type { ModuleDeclaration } from '../modules/types.js';
 import type { ResolvedModule } from '../modules/resolver.js';
+import type { ResolveConflict } from '../modules/resolve/types.js';
 
 /**
  * Coerce a caller-supplied source into the canonical form used by the
@@ -79,6 +80,21 @@ function freshRootStagingName(location: string): string {
     last >= 0 ? location.slice(last + 1).replace(/\.git$/i, '') : location;
   const safe = tail.replace(/[^A-Za-z0-9._-]/g, '_') || 'module';
   return `${safe}.__fresh__`;
+}
+
+/**
+ * Build a human-readable error from the engine's resolution conflicts so a
+ * failed resolve aborts with the culprit ranges before any disk change.
+ */
+function resolutionConflictError(conflicts: ResolveConflict[]): Error {
+  const lines = conflicts.map((c) =>
+    c.downgrade
+      ? `  ${c.module}: cannot downgrade from ${c.downgrade.from} to ${c.downgrade.to} (downgrading is not supported)`
+      : c.demands.length
+        ? `  ${c.module}: ${c.demands.map((d) => `${d.from} requires ${d.range}`).join(', ')}`
+        : `  ${c.module}: no version satisfies its constraints`,
+  );
+  return new Error(`Cannot resolve modules:\n${lines.join('\n')}`);
 }
 
 /**
@@ -266,8 +282,6 @@ export class Import {
       }
     }
 
-    const existing = declaredModules(this.project);
-
     const sourceLayer = createSourceLayer();
 
     // Pre-fetch only to read `cardKeyPrefix`; the resolver does its own
@@ -313,30 +327,17 @@ export class Import {
       }
     }
 
-    const newRoot: ModuleDeclaration = {
-      project: this.project.basePath,
-      name: resolvedName,
-      source: {
-        location,
-        private: options?.private ?? false,
+    const { plan, resolved } = await resolveForApply(
+      this.project,
+      {
+        kind: 'add',
+        name: resolvedName,
+        source: { location, private: options?.private ?? false },
+        range: versionRange,
       },
-      versionRange,
-      parent: undefined,
-    };
-
-    // Include existing top-level declarations so their transitive
-    // subgraphs participate in dedup. Drop the one being re-imported so
-    // its stale version range doesn't compete with the caller's new one.
-    const allRoots: ModuleDeclaration[] = [
-      newRoot,
-      ...existing.filter((d) => d.source.location !== location),
-    ];
-
-    const resolved = await resolveModules(sourceLayer, allRoots, {
-      credentials: options?.credentials,
-      tempDir: this.tempModulesDir,
-    });
-
+      { credentials: options?.credentials, tempDir: this.tempModulesDir },
+    );
+    if (!plan.ok) throw resolutionConflictError(plan.conflicts);
     await this.applyResolvedWithReplay(resolved);
 
     // Validate the project after module has been imported.
@@ -393,9 +394,6 @@ export class Import {
       throw new Error(`Module '${moduleName}' is not part of the project`);
     }
 
-    const sourceLayer = createSourceLayer();
-
-    let overrides: Map<string, string> | undefined;
     if (version) {
       // Validate the override against any declared ranges for this name.
       const constraints = this.collectConstraints(moduleName);
@@ -405,6 +403,7 @@ export class Import {
 
       // Pre-check that the version is actually available on the remote so
       // we surface an actionable error before touching the filesystem.
+      const sourceLayer = createSourceLayer();
       const remoteVersions = await sourceLayer.listRemoteVersions(
         target.source.location,
       );
@@ -414,16 +413,16 @@ export class Import {
             `Available versions: ${remoteVersions.join(', ') || 'none'}`,
         );
       }
-
-      overrides = new Map<string, string>([[moduleName, version]]);
     }
 
-    const resolved = await resolveModules(sourceLayer, declared, {
+    const req = version
+      ? { kind: 'update' as const, module: moduleName, to: toVersion(version) }
+      : { kind: 'update' as const, module: moduleName };
+    const { plan, resolved } = await resolveForApply(this.project, req, {
       credentials,
-      overrides,
       tempDir: this.tempModulesDir,
     });
-
+    if (!plan.ok) throw resolutionConflictError(plan.conflicts);
     await this.applyResolvedWithReplay(resolved);
   }
 
@@ -442,13 +441,12 @@ export class Import {
       throw new Error('No modules in the project!');
     }
 
-    const sourceLayer = createSourceLayer();
-
-    const resolved = await resolveModules(sourceLayer, declared, {
-      credentials,
-      tempDir: this.tempModulesDir,
-    });
-
+    const { plan, resolved } = await resolveForApply(
+      this.project,
+      { kind: 'updateAll' },
+      { credentials, tempDir: this.tempModulesDir },
+    );
+    if (!plan.ok) throw resolutionConflictError(plan.conflicts);
     await this.applyResolvedWithReplay(resolved);
   }
 }
