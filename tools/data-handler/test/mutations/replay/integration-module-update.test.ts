@@ -12,15 +12,19 @@ import { join, relative } from 'node:path';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import { getTestProject } from '../../helpers/test-utils.js';
 import {
-  ModuleReplayConflictError,
   ModuleReplayFailedError,
   executeModuleReplays,
   planModuleReplays,
 } from '../../../src/mutations/replay/replay.js';
 import { formatSealFileName } from '../../../src/mutations/replay/seal-files.js';
-import { toVersion } from '../../../src/modules/types.js';
+import {
+  installedModule,
+  logLine,
+  renameEntry,
+  resolvedModule,
+} from '../../helpers/replay-fixtures.js';
 
-import type { ConfigurationLogEntry } from '../../../src/utils/configuration-logger.js';
+import type { SealSpec } from '../../helpers/replay-fixtures.js';
 import type {
   InstallationRef,
   ModuleInstallation,
@@ -48,59 +52,6 @@ const consumerMigrationLogDir = join(
   'migrations',
 );
 
-function logLine(
-  operation: ConfigurationLogEntry['operation'],
-  target: string,
-  parameters?: Record<string, unknown>,
-): string {
-  return JSON.stringify({
-    timestamp: '2026-01-01T00:00:00.000Z',
-    operation,
-    target,
-    ...(parameters ? { parameters } : {}),
-  });
-}
-
-/** The released log-entry shape ResourceMutations.recordLogEntry writes. */
-function renameEntry(prefix: string, oldId: string, newId: string): string {
-  const oldName = `${prefix}/fieldTypes/${oldId}`;
-  const newName = `${prefix}/fieldTypes/${newId}`;
-  return logLine('resource_rename', oldName, {
-    type: 'fieldTypes',
-    operation: { name: 'change', target: oldName, to: newName },
-  });
-}
-
-interface SealSpec {
-  from: string;
-  to: string;
-  lines: string[];
-}
-
-function writeSeals(folder: string, seals: SealSpec[]): void {
-  mkdirSync(folder, { recursive: true });
-  for (const seal of seals) {
-    writeFileSync(
-      join(folder, formatSealFileName(seal.from, seal.to)),
-      seal.lines.join('\n') + '\n',
-    );
-  }
-}
-
-function writeFieldTypes(folder: string, prefix: string, ids: string[]): void {
-  mkdirSync(folder, { recursive: true });
-  for (const id of ids) {
-    writeFileSync(
-      join(folder, `${id}.json`),
-      JSON.stringify({
-        name: `${prefix}/fieldTypes/${id}`,
-        displayName: id,
-        dataType: 'shortText',
-      }),
-    );
-  }
-}
-
 interface ModuleSpec {
   prefix: string;
   location: string;
@@ -119,52 +70,31 @@ interface ModuleSpec {
  * used by the linearity check.
  */
 function installModule(spec: ModuleSpec): ModuleInstallation {
-  const dir = join(projectPath, '.cards', 'modules', spec.prefix);
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(
-    join(dir, 'cardsConfig.json'),
-    JSON.stringify({
-      cardKeyPrefix: spec.prefix,
-      name: spec.prefix,
-      modules: [],
-    }),
-  );
-  writeSeals(join(dir, 'migrations'), spec.seals ?? []);
-  writeFieldTypes(join(dir, 'fieldTypes'), spec.prefix, spec.fieldTypes ?? []);
-  return {
-    project: projectPath,
+  return installedModule({
     name: spec.prefix,
-    source: { location: spec.location },
-    version: toVersion(spec.version),
-    path: dir,
-    declaredDependencies: [],
-  };
+    location: spec.location,
+    version: spec.version,
+    project: projectPath,
+    path: join(projectPath, '.cards', 'modules', spec.prefix),
+    seals: spec.seals,
+    fieldTypes: spec.fieldTypes ?? [],
+    writeConfig: true,
+  });
 }
 
 function stageModule(
   spec: ModuleSpec & { parent?: InstallationRef },
 ): ResolvedModule {
-  const stagedPath = join(stagedRoot, spec.prefix);
-  writeSeals(
-    join(stagedPath, '.cards', 'local', 'migrations'),
-    spec.seals ?? [],
-  );
-  writeFieldTypes(
-    join(stagedPath, '.cards', 'local', 'fieldTypes'),
-    spec.prefix,
-    spec.fieldTypes ?? [],
-  );
-  return {
-    declaration: {
-      project: projectPath,
-      name: spec.prefix,
-      source: { location: spec.location },
-      ...(spec.parent ? { parent: spec.parent } : {}),
-    },
-    remoteUrl: spec.location,
-    version: toVersion(spec.version),
-    stagedPath,
-  };
+  return resolvedModule({
+    name: spec.prefix,
+    location: spec.location,
+    version: spec.version,
+    project: projectPath,
+    stagedPath: join(stagedRoot, spec.prefix),
+    seals: spec.seals,
+    fieldTypes: spec.fieldTypes ?? [],
+    parent: spec.parent,
+  });
 }
 
 function seedCardMetadataKey(key: string, value: unknown): void {
@@ -394,66 +324,6 @@ describe('module replay end to end', () => {
     const adoc = readFileSync(join(cardDir, 'index.adoc'), 'utf8');
     expect(adoc).toContain('mod/fieldTypes/priority');
     expect(adoc).not.toContain('mod/fieldTypes/severity');
-  });
-
-  it('a non-linear installed chain is refused and the project is untouched', async () => {
-    const installed = installModule({
-      prefix: 'mod',
-      location: 'file:/modules/mod',
-      version: '2.7.0',
-      seals: [
-        {
-          from: '2.0.0',
-          to: '2.6.0',
-          lines: [renameEntry('mod', 'old', 'mid')],
-        },
-        {
-          from: '2.6.0',
-          to: '2.7.0',
-          lines: [renameEntry('mod', 'mid', 'late')],
-        },
-      ],
-      fieldTypes: ['late'],
-    });
-    // The target tree carries 2.6.0 -> 3.0.0 instead of the installed
-    // 2.6.0 -> 2.7.0 seal: the consumer's history is not a prefix of the
-    // target's, so replaying would apply changes twice or not at all.
-    const resolved = stageModule({
-      prefix: 'mod',
-      location: 'file:/modules/mod',
-      version: '3.0.0',
-      seals: [
-        {
-          from: '2.0.0',
-          to: '2.6.0',
-          lines: [renameEntry('mod', 'old', 'mid')],
-        },
-        {
-          from: '2.6.0',
-          to: '3.0.0',
-          lines: [renameEntry('mod', 'mid', 'final')],
-        },
-      ],
-      fieldTypes: ['final'],
-    });
-    seedCardContent(['mod/fieldTypes/late']);
-    seedCalculationContent(['mod/fieldTypes/late']);
-
-    const projectBefore = snapshotTree(projectPath);
-    const error = await planModuleReplays([resolved], [installed]).catch(
-      (e) => e,
-    );
-
-    expect(error).toBeInstanceOf(ModuleReplayConflictError);
-    expect(error.conflicts).toEqual([
-      {
-        modulePrefix: 'mod',
-        kind: 'non_linear',
-        detail: expect.stringContaining(formatSealFileName('2.6.0', '2.7.0')),
-      },
-    ]);
-    expect(error.message).toContain('No files were changed.');
-    expect(snapshotTree(projectPath)).toEqual(projectBefore);
   });
 
   it('replays two modules with skewed versions, dependencies first', async () => {

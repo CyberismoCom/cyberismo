@@ -33,7 +33,7 @@ import {
 } from './helpers/test-utils.js';
 import { toVersionRange } from '../src/modules/types.js';
 import { ModuleValidationFailedError } from '../src/mutations/replay/replay.js';
-import { formatSealFileName } from '../src/mutations/replay/seal-files.js';
+import { logLine, writeSeals } from './helpers/replay-fixtures.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
@@ -938,27 +938,17 @@ describe('module update — spec behaviours', () => {
   /**
    * Turn the SOURCE fixture into its 2.0.0 release: bump the config version
    * and write one seal covering (0.0.0, 2.0.0] with the given released-format
-   * log entries. Callers apply the matching resource changes themselves so
+   * log lines. Callers apply the matching resource changes themselves so
    * the source tree stays self-consistent (upstream already migrated).
    */
-  function sealSourceRelease(
-    moduleSource: string,
-    entries: Record<string, unknown>[],
-  ): void {
+  function sealSourceRelease(moduleSource: string, lines: string[]): void {
     const sourceLocal = join(moduleSource, '.cards', 'local');
     rewriteJson(join(sourceLocal, 'cardsConfig.json'), (config) => {
       config.version = '2.0.0';
     });
-    const migrationsDir = join(sourceLocal, 'migrations');
-    mkdirSync(migrationsDir, { recursive: true });
-    writeFileSync(
-      join(migrationsDir, formatSealFileName('0.0.0', '2.0.0')),
-      entries
-        .map((entry) =>
-          JSON.stringify({ timestamp: '2026-01-01T00:00:00.000Z', ...entry }),
-        )
-        .join('\n') + '\n',
-    );
+    writeSeals(join(sourceLocal, 'migrations'), [
+      { from: '0.0.0', to: '2.0.0', lines },
+    ]);
   }
 
   it('updateModule replays a sealed workflow rename into the consumer (happy path)', async () => {
@@ -982,18 +972,14 @@ describe('module update — spec behaviours', () => {
       cardType.workflow = 'decision/workflows/resolution';
     });
     sealSourceRelease(moduleSource, [
-      {
-        operation: 'resource_rename',
-        target: 'decision/workflows/decision',
-        parameters: {
-          type: 'workflows',
-          operation: {
-            name: 'change',
-            target: 'decision/workflows/decision',
-            to: 'decision/workflows/resolution',
-          },
+      logLine('resource_rename', 'decision/workflows/decision', {
+        type: 'workflows',
+        operation: {
+          name: 'change',
+          target: 'decision/workflows/decision',
+          to: 'decision/workflows/resolution',
         },
-      },
+      }),
     ]);
 
     // plan -> applyModules -> replay -> final validation; must not throw.
@@ -1044,11 +1030,9 @@ describe('module update — spec behaviours', () => {
       cardType.workflow = 'decision/workflows/simple';
     });
     sealSourceRelease(moduleSource, [
-      {
-        operation: 'resource_delete',
-        target: 'decision/workflows/decision',
-        parameters: { type: 'workflows' },
-      },
+      logLine('resource_delete', 'decision/workflows/decision', {
+        type: 'workflows',
+      }),
     ]);
 
     // A card type requires a workflow, so the replayed delete repairs the
@@ -1097,11 +1081,9 @@ describe('module update — spec behaviours', () => {
     const sourceLocal = join(moduleSource, '.cards', 'local');
     rmSync(join(sourceLocal, 'workflows', 'decision.json'));
     sealSourceRelease(moduleSource, [
-      {
-        operation: 'resource_delete',
-        target: 'decision/workflows/decision',
-        parameters: { type: 'workflows' },
-      },
+      logLine('resource_delete', 'decision/workflows/decision', {
+        type: 'workflows',
+      }),
     ]);
 
     const error = await commands.importCmd

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import {
@@ -12,8 +12,13 @@ import {
 } from '../../../src/mutations/replay/replay.js';
 import { formatSealFileName } from '../../../src/mutations/replay/seal-files.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
-import { toVersion } from '../../../src/modules/types.js';
+import {
+  installedModule,
+  logLine,
+  resolvedModule,
+} from '../../helpers/replay-fixtures.js';
 
+import type { SealSpec } from '../../helpers/replay-fixtures.js';
 import type { ConfigurationLogEntry } from '../../../src/utils/configuration-logger.js';
 import type { ModuleInstallation } from '../../../src/modules/types.js';
 import type { Project } from '../../../src/containers/project.js';
@@ -22,52 +27,20 @@ import type { ResolvedModule } from '../../../src/modules/resolver.js';
 
 const tmpDir = join(import.meta.dirname, 'tmp-replay-test');
 
-function logLine(
-  operation: ConfigurationLogEntry['operation'],
-  target: string,
-  parameters?: Record<string, unknown>,
-): string {
-  return JSON.stringify({
-    timestamp: '2026-01-01T00:00:00.000Z',
-    operation,
-    target,
-    ...(parameters ? { parameters } : {}),
-  });
-}
-
-interface SealSpec {
-  from: string;
-  to: string;
-  lines: string[];
-}
-
-async function writeSeals(folder: string, seals: SealSpec[]): Promise<void> {
-  await mkdir(folder, { recursive: true });
-  for (const seal of seals) {
-    await writeFile(
-      join(folder, formatSealFileName(seal.from, seal.to)),
-      seal.lines.join('\n') + '\n',
-    );
-  }
-}
-
 async function makeInstalled(
   name: string,
   location: string,
   version: string | undefined,
   seals: SealSpec[] = [],
 ): Promise<ModuleInstallation> {
-  const path = join(tmpDir, 'installed', name);
-  await mkdir(path, { recursive: true });
-  await writeSeals(join(path, 'migrations'), seals);
-  return {
-    project: tmpDir,
+  return installedModule({
     name,
-    source: { location },
-    version: version === undefined ? undefined : toVersion(version),
-    path,
-    declaredDependencies: [],
-  };
+    location,
+    version,
+    project: tmpDir,
+    path: join(tmpDir, 'installed', name),
+    seals,
+  });
 }
 
 async function makeResolved(
@@ -76,15 +49,14 @@ async function makeResolved(
   version: string | undefined,
   seals: SealSpec[] = [],
 ): Promise<ResolvedModule> {
-  const stagedPath = join(tmpDir, 'staged', name);
-  await mkdir(stagedPath, { recursive: true });
-  await writeSeals(join(stagedPath, '.cards', 'local', 'migrations'), seals);
-  return {
-    declaration: { project: tmpDir, name, source: { location } },
-    remoteUrl: location,
-    version: version === undefined ? undefined : toVersion(version),
-    stagedPath,
-  };
+  return resolvedModule({
+    name,
+    location,
+    version,
+    project: tmpDir,
+    stagedPath: join(tmpDir, 'staged', name),
+    seals,
+  });
 }
 
 describe('planModuleReplays', () => {
