@@ -109,7 +109,4 @@ export interface ModuleInstallation {
 
 /** Per-module status emitted by `CheckUpdates`. */
 export type CheckStatus =
-  | 'up_to_date'
-  | 'update_available'
-  | 'blocked'
-  | 'source_unreachable';
+  'up_to_date' | 'update_available' | 'blocked' | 'source_unreachable';
