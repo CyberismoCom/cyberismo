@@ -88,9 +88,11 @@ function freshRootStagingName(location: string): string {
  */
 function resolutionConflictError(conflicts: ResolveConflict[]): Error {
   const lines = conflicts.map((c) =>
-    c.demands.length
-      ? `  ${c.module}: ${c.demands.map((d) => `${d.from} requires ${d.range}`).join(', ')}`
-      : `  ${c.module}: no version satisfies its constraints`,
+    c.downgrade
+      ? `  ${c.module}: cannot downgrade from ${c.downgrade.from} to ${c.downgrade.to} (downgrading is not supported)`
+      : c.demands.length
+        ? `  ${c.module}: ${c.demands.map((d) => `${d.from} requires ${d.range}`).join(', ')}`
+        : `  ${c.module}: no version satisfies its constraints`,
   );
   return new Error(`Cannot resolve modules:\n${lines.join('\n')}`);
 }
