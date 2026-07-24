@@ -21,7 +21,10 @@ export interface ConflictDemand {
 export interface ResolveConflict {
   module: string;
   demands: ConflictDemand[];
+  // Set when the sole blocker was an explicit older target. A downgrade is
+  // unreachable by replay, so it is reported as its own kind rather than
+  // collapsing into a generic "no satisfying version".
+  downgrade?: { from: Version; to: Version };
 }
 export type ResolveResult =
-  | { ok: true; changes: Change[] }
-  | { ok: false; conflicts: ResolveConflict[] };
+  { ok: true; changes: Change[] } | { ok: false; conflicts: ResolveConflict[] };

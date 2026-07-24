@@ -823,12 +823,12 @@ describe('module update — spec behaviours', () => {
     );
   });
 
-  it('updateModule replay conflict aborts before any disk change', async () => {
-    // A downgrade is a replay-planning conflict. Planning runs BEFORE
-    // applyModules, so the installed tree must be untouched after the
-    // throw. File sources ignore the resolver's ref and report no remote
-    // versions, so the caller's exact-version override flows straight
-    // into the resolver while the installed version is seeded by hand.
+  it('updateModule downgrade aborts before any disk change', async () => {
+    // A downgrade is unreachable by replay, so the resolver refuses it up
+    // front — before applyModules, so the installed tree stays untouched.
+    // File sources ignore the resolver's ref and report no remote versions,
+    // so the caller's exact-version override flows straight into the
+    // resolver while the installed version is seeded by hand.
     const modRoot = join(moduleTestDir, 'fake-downgrade-mod');
     makeFakeModuleFixture(modRoot, { cardKeyPrefix: 'dgmod' });
 
@@ -865,9 +865,9 @@ describe('module update — spec behaviours', () => {
 
     await expect(
       commands.importCmd.updateModule('dgmod', undefined, '0.1.0'),
-    ).rejects.toThrow(/downgrade.*No files were changed/s);
+    ).rejects.toThrow(/cannot downgrade from 1\.0\.0 to 0\.1\.0/i);
 
-    // The conflict fired at plan time: the seeded marker survives.
+    // The refusal fired during resolution: the seeded marker survives.
     const afterConfig = JSON.parse(readFileSync(installedConfigPath, 'utf-8'));
     expect(afterConfig.version).toBe('1.0.0');
   });

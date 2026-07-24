@@ -290,9 +290,17 @@ async function solve(
     const [n, ...rest] = queue;
     if (assign.has(n.name)) return dfs(rest, assign);
     const incoming = dependentRanges(n.name, assign);
+    let downgrade: { from: Version; to: Version } | undefined;
     for (const v of await candidatesFor(n)) {
       if (v !== null && !incoming.every((d) => semver.satisfies(v, d.range)))
         continue;
+      // An explicit older target is a downgrade: unreachable by replay.
+      // Record and skip, so the refusal names it instead of collapsing
+      // into a generic "no satisfying version".
+      if (v !== null && n.installed && semver.lt(v, n.installed)) {
+        downgrade = { from: n.installed, to: v };
+        continue;
+      }
       if (!(await isReplayable(n, v))) continue;
       const { edges } = await readCandidate(n, v);
       if (
@@ -314,7 +322,11 @@ async function solve(
       if (await dfs(next, assign)) return true;
       assign.delete(n.name);
     }
-    conflicts.push({ module: n.name, demands: incoming });
+    conflicts.push({
+      module: n.name,
+      demands: incoming,
+      ...(downgrade && incoming.length === 0 ? { downgrade } : {}),
+    });
     return false;
   };
 
