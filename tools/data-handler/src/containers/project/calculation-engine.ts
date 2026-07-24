@@ -42,7 +42,6 @@ import {
   createTemplateFacts,
   createWorkflowFacts,
 } from '../../utils/clingo-facts.js';
-import { CardMetadataUpdater } from '../../card-metadata-updater.js';
 import type {
   CardType,
   FieldType,
@@ -389,15 +388,14 @@ export class CalculationEngine {
     }
     const cardKeys = cards.map((item) => item.key);
     const queryResult = await this.creationQuery(cardKeys, 'localApp');
-    if (
-      !queryResult ||
-      queryResult.at(0) === undefined ||
-      queryResult.at(0)?.updateFields === undefined
-    ) {
-      return;
-    }
-    const fieldsToUpdate = queryResult.at(0)!.updateFields;
-    await CardMetadataUpdater.apply(this.project, fieldsToUpdate);
+    await this.project.executeSideEffects(
+      queryResult?.at(0),
+      // Empty seed: the created cards' initial "Create" transitions already
+      // happened during creation itself; a re-entrant "Create" side effect
+      // would be rejected anyway by the fromState check, so nothing needs
+      // to be pre-marked visited here.
+      new Set<string>(),
+    );
   }
 
   /**

@@ -90,6 +90,27 @@ describe('Cli BAT test', function () {
     expect(stdout).toContain('Done');
     expect(stdout).toContain('Project structure validated');
   });
+  it('Approving a card cascades transition side effects to its descendants', async () => {
+    const created = await execAsync(
+      `cd ${cliPath} && ${cli} create card test/templates/sideEffects && ${cli} validate`,
+    );
+    expect(created.stdout).toContain('Created cards');
+    expect(created.stdout).toContain('Project structure validated');
+    // Template root card comes first in createCard's output.
+    const [parent, ...descendants] =
+      created.stdout.match(/bat_[a-z0-9]+/g) ?? [];
+    expect(descendants.length).toBe(2);
+
+    const { stdout } = await execAsync(
+      `cd ${cliPath} && ${cli} transition ${parent} Approve && ${cli} validate`,
+    );
+    expect(stdout).toContain('Done');
+    expect(stdout).toContain('Project structure validated');
+    for (const key of descendants) {
+      const shown = await execAsync(`cd ${cliPath} && ${cli} show card ${key}`);
+      expect(shown.stdout).toContain('"workflowState": "Approved"');
+    }
+  });
   it('Create a new workflow', async () => {
     const { stdout } = await execAsync(
       `cd ${cliPath} && ${cli} create workflow workflowTest && ${cli} validate`,
