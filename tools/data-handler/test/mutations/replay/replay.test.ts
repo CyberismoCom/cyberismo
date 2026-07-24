@@ -27,12 +27,12 @@ import type { ResolvedModule } from '../../../src/modules/resolver.js';
 
 const tmpDir = join(import.meta.dirname, 'tmp-replay-test');
 
-async function makeInstalled(
+function makeInstalled(
   name: string,
   location: string,
   version: string | undefined,
   seals: SealSpec[] = [],
-): Promise<ModuleInstallation> {
+): ModuleInstallation {
   return installedModule({
     name,
     location,
@@ -43,12 +43,12 @@ async function makeInstalled(
   });
 }
 
-async function makeResolved(
+function makeResolved(
   name: string,
   location: string,
   version: string | undefined,
   seals: SealSpec[] = [],
-): Promise<ResolvedModule> {
+): ResolvedModule {
   return resolvedModule({
     name,
     location,
@@ -68,7 +68,7 @@ describe('planModuleReplays', () => {
   });
 
   it('bootstrap: no installed entry for the source yields no step', async () => {
-    const resolved = await makeResolved('mod', 'file:/x', '1.0.0', [
+    const resolved = makeResolved('mod', 'file:/x', '1.0.0', [
       {
         from: '0.0.0',
         to: '1.0.0',
@@ -79,8 +79,8 @@ describe('planModuleReplays', () => {
   });
 
   it('installed version missing yields no step', async () => {
-    const installed = await makeInstalled('mod', 'file:/x', undefined);
-    const resolved = await makeResolved('mod', 'file:/x', '1.0.0', [
+    const installed = makeInstalled('mod', 'file:/x', undefined);
+    const resolved = makeResolved('mod', 'file:/x', '1.0.0', [
       {
         from: '0.0.0',
         to: '1.0.0',
@@ -91,8 +91,8 @@ describe('planModuleReplays', () => {
   });
 
   it('resolved version missing yields no step', async () => {
-    const installed = await makeInstalled('mod', 'file:/x', '1.0.0');
-    const resolved = await makeResolved('mod', 'file:/x', undefined, [
+    const installed = makeInstalled('mod', 'file:/x', '1.0.0');
+    const resolved = makeResolved('mod', 'file:/x', undefined, [
       {
         from: '1.0.0',
         to: '2.0.0',
@@ -103,8 +103,8 @@ describe('planModuleReplays', () => {
   });
 
   it('from == to yields no step', async () => {
-    const installed = await makeInstalled('mod', 'file:/x', '1.0.0');
-    const resolved = await makeResolved('mod', 'file:/x', '1.0.0', [
+    const installed = makeInstalled('mod', 'file:/x', '1.0.0');
+    const resolved = makeResolved('mod', 'file:/x', '1.0.0', [
       {
         from: '0.0.0',
         to: '1.0.0',
@@ -115,7 +115,7 @@ describe('planModuleReplays', () => {
   });
 
   it('empty chain in range yields no step', async () => {
-    const installed = await makeInstalled('mod', 'file:/x', '1.0.0', [
+    const installed = makeInstalled('mod', 'file:/x', '1.0.0', [
       {
         from: '0.0.0',
         to: '1.0.0',
@@ -125,7 +125,7 @@ describe('planModuleReplays', () => {
     // A patch jump within one minor line: no seal covers (1.0.0, 1.0.1], and
     // because from and to share a minor line that empty range is a no-op
     // rather than a gap.
-    const resolved = await makeResolved('mod', 'file:/x', '1.0.1', [
+    const resolved = makeResolved('mod', 'file:/x', '1.0.1', [
       {
         from: '0.0.0',
         to: '1.0.0',
@@ -136,8 +136,8 @@ describe('planModuleReplays', () => {
   });
 
   it('downgrade is a conflict', async () => {
-    const installed = await makeInstalled('mod', 'file:/x', '2.0.0');
-    const resolved = await makeResolved('mod', 'file:/x', '1.0.0');
+    const installed = makeInstalled('mod', 'file:/x', '2.0.0');
+    const resolved = makeResolved('mod', 'file:/x', '1.0.0');
     const error = await planModuleReplays([resolved], [installed]).catch(
       (e) => e,
     );
@@ -153,14 +153,14 @@ describe('planModuleReplays', () => {
   });
 
   it('diverged seals are a non_linear conflict naming the missing file', async () => {
-    const installed = await makeInstalled('mod', 'file:/x', '1.1.0', [
+    const installed = makeInstalled('mod', 'file:/x', '1.1.0', [
       {
         from: '1.0.0',
         to: '1.1.0',
         lines: [logLine('resource_delete', 'mod/fieldTypes/a')],
       },
     ]);
-    const resolved = await makeResolved('mod', 'file:/x', '2.0.0', [
+    const resolved = makeResolved('mod', 'file:/x', '2.0.0', [
       {
         from: '1.0.0',
         to: '2.0.0',
@@ -179,9 +179,9 @@ describe('planModuleReplays', () => {
   });
 
   it('a gap in the staged chain is a chain_gap conflict', async () => {
-    const installed = await makeInstalled('mod', 'file:/x', '1.0.0');
+    const installed = makeInstalled('mod', 'file:/x', '1.0.0');
     // The staged chain starts at 2.0.0 but the update begins at 1.0.0.
-    const resolved = await makeResolved('mod', 'file:/x', '3.0.0', [
+    const resolved = makeResolved('mod', 'file:/x', '3.0.0', [
       {
         from: '2.0.0',
         to: '3.0.0',
@@ -198,10 +198,10 @@ describe('planModuleReplays', () => {
   });
 
   it('conflicts from multiple modules are reported together', async () => {
-    const installedA = await makeInstalled('aaa', 'file:/a', '2.0.0');
-    const resolvedA = await makeResolved('aaa', 'file:/a', '1.0.0');
-    const installedB = await makeInstalled('bbb', 'file:/b', '1.0.0');
-    const resolvedB = await makeResolved('bbb', 'file:/b', '3.0.0', [
+    const installedA = makeInstalled('aaa', 'file:/a', '2.0.0');
+    const resolvedA = makeResolved('aaa', 'file:/a', '1.0.0');
+    const installedB = makeInstalled('bbb', 'file:/b', '1.0.0');
+    const resolvedB = makeResolved('bbb', 'file:/b', '3.0.0', [
       {
         from: '2.0.0',
         to: '3.0.0',
@@ -225,8 +225,8 @@ describe('planModuleReplays', () => {
   });
 
   it('happy path: one seal with two entries becomes one step in order', async () => {
-    const installed = await makeInstalled('mod', 'file:/x', '1.0.0');
-    const resolved = await makeResolved('mod', 'file:/x', '2.0.0', [
+    const installed = makeInstalled('mod', 'file:/x', '1.0.0');
+    const resolved = makeResolved('mod', 'file:/x', '2.0.0', [
       {
         from: '1.0.0',
         to: '2.0.0',
@@ -257,8 +257,8 @@ describe('planModuleReplays', () => {
   });
 
   it('cross-module workflow-state change + card-type workflow change is a split_workflow_ownership conflict', async () => {
-    const installedWf = await makeInstalled('wf', 'file:/wf', '1.0.0');
-    const resolvedWf = await makeResolved('wf', 'file:/wf', '2.0.0', [
+    const installedWf = makeInstalled('wf', 'file:/wf', '1.0.0');
+    const resolvedWf = makeResolved('wf', 'file:/wf', '2.0.0', [
       {
         from: '1.0.0',
         to: '2.0.0',
@@ -270,8 +270,8 @@ describe('planModuleReplays', () => {
         ],
       },
     ]);
-    const installedCt = await makeInstalled('ct', 'file:/ct', '1.0.0');
-    const resolvedCt = await makeResolved('ct', 'file:/ct', '2.0.0', [
+    const installedCt = makeInstalled('ct', 'file:/ct', '1.0.0');
+    const resolvedCt = makeResolved('ct', 'file:/ct', '2.0.0', [
       {
         from: '1.0.0',
         to: '2.0.0',
@@ -296,8 +296,8 @@ describe('planModuleReplays', () => {
   });
 
   it('same-module workflow-state + card-type workflow change is not a split conflict', async () => {
-    const installed = await makeInstalled('mod', 'file:/m', '1.0.0');
-    const resolved = await makeResolved('mod', 'file:/m', '2.0.0', [
+    const installed = makeInstalled('mod', 'file:/m', '1.0.0');
+    const resolved = makeResolved('mod', 'file:/m', '2.0.0', [
       {
         from: '1.0.0',
         to: '2.0.0',
@@ -320,8 +320,8 @@ describe('planModuleReplays', () => {
   });
 
   it('correlates by source location: a renamed prefix is an update, not a bootstrap', async () => {
-    const installed = await makeInstalled('mod', 'file:/x', '1.0.0');
-    const resolved = await makeResolved('newmod', 'file:/x', '2.0.0', [
+    const installed = makeInstalled('mod', 'file:/x', '1.0.0');
+    const resolved = makeResolved('newmod', 'file:/x', '2.0.0', [
       {
         from: '1.0.0',
         to: '2.0.0',
@@ -340,8 +340,8 @@ describe('planModuleReplays', () => {
   });
 
   it('a malformed seal line throws at plan time naming module, seal and line', async () => {
-    const installed = await makeInstalled('mod', 'file:/x', '1.0.0');
-    const resolved = await makeResolved('mod', 'file:/x', '2.0.0', [
+    const installed = makeInstalled('mod', 'file:/x', '1.0.0');
+    const resolved = makeResolved('mod', 'file:/x', '2.0.0', [
       {
         from: '1.0.0',
         to: '2.0.0',
@@ -360,8 +360,8 @@ describe('planModuleReplays', () => {
   });
 
   it('an unknown operation throws at plan time naming module, seal, line and operation', async () => {
-    const installed = await makeInstalled('mod', 'file:/x', '1.0.0');
-    const resolved = await makeResolved('mod', 'file:/x', '2.0.0', [
+    const installed = makeInstalled('mod', 'file:/x', '1.0.0');
+    const resolved = makeResolved('mod', 'file:/x', '2.0.0', [
       {
         from: '1.0.0',
         to: '2.0.0',
@@ -388,16 +388,16 @@ describe('planModuleReplays', () => {
   });
 
   it('steps come out in reverse resolved order (dependencies first)', async () => {
-    const installedRoot = await makeInstalled('root', 'file:/root', '1.0.0');
-    const installedDep = await makeInstalled('dep', 'file:/dep', '1.0.0');
-    const resolvedRoot = await makeResolved('root', 'file:/root', '2.0.0', [
+    const installedRoot = makeInstalled('root', 'file:/root', '1.0.0');
+    const installedDep = makeInstalled('dep', 'file:/dep', '1.0.0');
+    const resolvedRoot = makeResolved('root', 'file:/root', '2.0.0', [
       {
         from: '1.0.0',
         to: '2.0.0',
         lines: [logLine('resource_delete', 'root/fieldTypes/a')],
       },
     ]);
-    const resolvedDep = await makeResolved('dep', 'file:/dep', '2.0.0', [
+    const resolvedDep = makeResolved('dep', 'file:/dep', '2.0.0', [
       {
         from: '1.0.0',
         to: '2.0.0',
