@@ -21,7 +21,11 @@ import { Project } from '../containers/project.js';
 import { UserPreferences } from '../utils/user-preferences.js';
 import { write } from '../utils/rw-lock.js';
 
-import type { MetadataContent } from '../interfaces/project-interfaces.js';
+import type {
+  Card,
+  MetadataContent,
+} from '../interfaces/project-interfaces.js';
+import type { CustomField } from '../interfaces/resource-interfaces.js';
 
 export class Edit {
   private project: Project;
@@ -109,10 +113,38 @@ export class Edit {
     }
 
     // check for editing rights
-    if (this.project.findCard(cardKey)) {
+    const card = this.project.findCard(cardKey);
+    if (card) {
+      this.assertFieldIsEditable(card, changedKey);
       const actionGuard = new ActionGuard(this.project.calculationEngine);
       await actionGuard.checkPermission('editField', cardKey, changedKey);
       await this.project.updateCardMetadataKey(cardKey, changedKey, newValue);
+    }
+  }
+
+  /**
+   * Rejects edits to calculated custom fields unless the card type enables
+   * override for that field.
+   * @param card Card being edited.
+   * @param fieldName Metadata key being changed.
+   */
+  private assertFieldIsEditable(card: Card, fieldName: string) {
+    if (!card.metadata?.cardType) {
+      return;
+    }
+    let customField: CustomField | undefined;
+    try {
+      const cardType = this.project.resources
+        .byType(card.metadata.cardType, 'cardTypes')
+        .show();
+      customField = cardType.customFields.find((f) => f.name === fieldName);
+    } catch {
+      return; // unknown card type; project validation reports this separately
+    }
+    if (customField?.isCalculated && !customField.enableOverride) {
+      throw new Error(
+        `Cannot edit calculated field '${fieldName}'; the card type does not enable override for it`,
+      );
     }
   }
 

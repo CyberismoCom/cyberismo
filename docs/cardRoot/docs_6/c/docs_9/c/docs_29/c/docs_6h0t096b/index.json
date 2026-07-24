@@ -1,0 +1,13 @@
+{
+    "title": "fieldOverride(Key, Field, Value)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|l",
+    "lastUpdated": "2026-07-23T05:53:42.146Z",
+    "base/fieldTypes/briefDescription": "A user-entered value that overrides the calculated value of a field",
+    "base/fieldTypes/category": "Cards",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "createdAt": "2026-07-23T05:50:14.446Z",
+    "lastTransitioned": "2026-07-23T05:53:42.146Z"
+}

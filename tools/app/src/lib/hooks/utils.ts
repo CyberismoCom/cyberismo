@@ -256,6 +256,9 @@ export function formKeyHandler({
       if (canSubmit) void onSubmit();
       return;
     }
+    // A button (Cancel, Clear, ...) handles its own Enter-triggered click;
+    // don't let plain Enter here hijack that into a save.
+    if ((e.target as HTMLElement).closest?.('button')) return;
     // Plain Enter saves single-line fields; multiline keeps it for newlines.
     if (e.key === 'Enter' && canSubmit && !e.shiftKey && !multiline) {
       e.preventDefault();

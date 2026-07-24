@@ -1,0 +1,18 @@
+{
+    "title": "fieldCalculated(Key, Field, Value)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|k",
+    "lastUpdated": "2026-07-23T05:53:41.200Z",
+    "base/fieldTypes/briefDescription": "The calculated value of a field, before any user override",
+    "base/fieldTypes/category": "Cards",
+    "links": [
+        {
+            "linkType": "base/linkTypes/relatesTo",
+            "cardKey": "docs_6h0t096b"
+        }
+    ],
+    "templateCardKey": "base_weu9g7lz",
+    "createdAt": "2026-07-23T05:50:06.584Z",
+    "lastTransitioned": "2026-07-23T05:53:41.200Z"
+}

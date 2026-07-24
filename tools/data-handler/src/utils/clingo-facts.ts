@@ -40,6 +40,7 @@ import type { Project } from '../containers/project.js';
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Facts {
   export enum Card {
+    FIELD_OVERRIDE = 'fieldOverride',
     LABEL = 'label',
     LINK = 'userLink',
     PARENT = 'parent',
@@ -57,6 +58,7 @@ export namespace Facts {
     CARD_TYPE = 'cardType',
     CUSTOM_FIELD = 'customField',
     OPTIONALLY_VISIBLE_FIELD = 'optionallyVisibleField',
+    OVERRIDABLE_FIELD = 'overridableField',
   }
 
   export enum FieldType {
@@ -219,6 +221,26 @@ export const createCardFacts = async (card: Card, project: Project) => {
     builder.addCustomFact('card', (b) => b.addLiteralArgument(card.key));
   }
 
+  // Fields whose stored values are user overrides of calculated values.
+  let overridableFields = new Set<string>();
+  if (card.metadata?.cardType) {
+    try {
+      const cardType = project.resources
+        .byType(card.metadata.cardType, 'cardTypes')
+        .show();
+      overridableFields = new Set(
+        (cardType.customFields ?? [])
+          .filter(
+            (customField) =>
+              customField.isCalculated && customField.enableOverride,
+          )
+          .map((customField) => customField.name),
+      );
+    } catch {
+      // Unknown card type; facts fall back to plain field().
+    }
+  }
+
   if (card.metadata) {
     for (const [field, value] of Object.entries(card.metadata)) {
       if (field === 'labels') {
@@ -269,6 +291,10 @@ export const createCardFacts = async (card: Card, project: Project) => {
         }
         // field might be a non-custom field, which cannot use the fieldType method
 
+        const factName = overridableFields.has(field)
+          ? Facts.Card.FIELD_OVERRIDE
+          : Facts.Common.FIELD;
+
         let clingoValue: AllowedClingoType = value.toString();
 
         if (!isPredefinedField(field)) {
@@ -283,7 +309,7 @@ export const createCardFacts = async (card: Card, project: Project) => {
               continue;
             }
             for (const listValue of value) {
-              builder.addCustomFact(Facts.Common.FIELD, (b) =>
+              builder.addCustomFact(factName, (b) =>
                 b
                   .addLiteralArgument(card.key)
                   .addArguments(field, listValue.toString()),
@@ -298,7 +324,7 @@ export const createCardFacts = async (card: Card, project: Project) => {
               : value.toString();
         }
 
-        builder.addCustomFact(Facts.Common.FIELD, (b) =>
+        builder.addCustomFact(factName, (b) =>
           b.addLiteralArgument(card.key).addArguments(field, clingoValue),
         );
       }
@@ -456,6 +482,13 @@ export const createCardTypeFacts = (cardType: CardType) => {
     if (customField.isCalculated) {
       builder.addFact(
         Facts.CardType.CALCULATED_FIELD,
+        cardType.name,
+        customField.name,
+      );
+    }
+    if (customField.isCalculated && customField.enableOverride) {
+      builder.addFact(
+        Facts.CardType.OVERRIDABLE_FIELD,
         cardType.name,
         customField.name,
       );

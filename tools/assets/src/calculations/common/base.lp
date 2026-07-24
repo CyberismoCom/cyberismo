@@ -64,3 +64,20 @@ calculatedLink(Source, Destination, LinkType) :-
 calculatedLink(Source, Destination, LinkType, LinkDescription) :-
     link(Source, Destination, LinkType, LinkDescription),
     not userLink(Source, Destination, LinkType, LinkDescription).
+
+% calculated fields with override support:
+% a user override wins; otherwise the designer-calculated value applies
+field(Card, Field, Value) :- fieldOverride(Card, Field, Value).
+field(Card, Field, Value) :-
+    fieldCalculated(Card, Field, Value),
+    not fieldOverride(Card, Field, _).
+
+% warn when a scalar field ends up with conflicting values, e.g. a calculation
+% still uses a field() head for an override-enabled field
+notification(Card, "Fields", "Conflicting field values", @concatenate("Field ", Field, " has multiple values. If the field is calculated, make sure calculations use fieldCalculated instead of field.")) :-
+    card(Card),
+    field(Card, Field, V1),
+    field(Card, Field, V2),
+    V1 != V2,
+    dataType(Card, Field, DataType),
+    DataType != "list".

@@ -14,12 +14,17 @@
 
 import { DefaultContent } from './create-defaults.js';
 import { FileResource } from './file-resource.js';
+import { tryParseJSON } from './array-handler.js';
 import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 import { sortCards } from '../utils/card-utils.js';
 import { removeValue } from '../utils/common-utils.js';
 import { Validate } from '../commands/validate.js';
 
-import type { Operation, RemoveOperation } from './resource-object.js';
+import type {
+  ChangeOperation,
+  Operation,
+  RemoveOperation,
+} from './resource-object.js';
 import type { Card } from '../interfaces/project-interfaces.js';
 import type {
   CardType,
@@ -106,6 +111,58 @@ export class CardTypeResource extends FileResource<CardType> {
     const fieldName = (field ? field.name : target) as string;
     removeValue(content.alwaysVisibleFields, fieldName);
     removeValue(content.optionallyVisibleFields, fieldName);
+  }
+
+  // Refuse disabling override on a field that remains calculated while cards
+  // still store override values for it; those values would become invalid.
+  // Toggling isCalculated off is a different guard's concern.
+  private validateOverrideDisable(op: ChangeOperation<unknown>) {
+    if (op.target === undefined) {
+      // handleArray() will throw its own "requires 'target'" error.
+      return;
+    }
+    // 'target' is the array entry being replaced - the field whose stored
+    // values are at risk. It may be the full entry or a name-only shorthand,
+    // and (from the CLI) either can arrive JSON-encoded as a string - parse
+    // it the same way handleChange() does before inspecting it.
+    const target = tryParseJSON(op.target);
+    const fieldName =
+      typeof target === 'object'
+        ? (target as Partial<CustomField> | null)?.name
+        : (target as string);
+    if (!fieldName) {
+      return;
+    }
+    const changed = tryParseJSON(op.to) as Partial<CustomField> | null;
+    const current = this.content.customFields.find((f) => f.name === fieldName);
+    const wasOverridable = !!(current?.isCalculated && current?.enableOverride);
+    const disablesOverride =
+      !!changed?.isCalculated && !changed?.enableOverride;
+    if (!wasOverridable || !disablesOverride) {
+      return;
+    }
+    const cardTypeName = resourceNameToString(this.resourceName);
+    const cardsWithOverride = super
+      .cards()
+      .filter(
+        (card) =>
+          card.metadata?.cardType === cardTypeName &&
+          card.metadata?.[fieldName] != null,
+      )
+      .map((card) => card.key);
+    if (cardsWithOverride.length === 0) {
+      return;
+    }
+    const shown = cardsWithOverride.slice(0, 10);
+    const more =
+      cardsWithOverride.length > shown.length
+        ? `, ... and ${cardsWithOverride.length - shown.length} more`
+        : '';
+    throw new Error(
+      `Cannot disable override for field '${fieldName}': ` +
+        `cards [${shown.join(', ')}${more}] have an override value. ` +
+        `Clear the overrides first.`,
+    );
   }
 
   // Sets content container values to be either '[]' or with proper values.
@@ -278,6 +335,9 @@ export class CardTypeResource extends FileResource<CardType> {
         content.workflow = super.handleScalar(op) as string;
       } else if (key === 'customFields') {
         await this.validateFieldType(key, op);
+        if (op.name === 'change') {
+          this.validateOverrideDisable(op);
+        }
         content.customFields = super.handleArray(
           op,
           key,
