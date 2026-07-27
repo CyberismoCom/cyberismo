@@ -93,6 +93,24 @@ describe('HubsSection', () => {
     ).toBeInTheDocument();
   });
 
+  it('ranks the section above the hubs it contains', () => {
+    render(<HubsSection disabled={false} />);
+
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Hubs' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {
+        level: 3,
+        name: 'Hub at https://hub.test/one/',
+      }),
+    ).toBeInTheDocument();
+    // The group label is a label, not a peer of the hub's own name.
+    expect(
+      screen.queryByRole('heading', { name: 'Modules' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('offers one refresh for all hubs rather than one per hub', async () => {
     render(<HubsSection disabled={false} />);
 

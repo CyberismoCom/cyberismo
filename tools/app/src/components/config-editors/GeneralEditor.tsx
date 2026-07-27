@@ -257,7 +257,7 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
 
         <Stack spacing={1}>
           <Stack direction="row" alignItems="center" spacing={1}>
-            <Typography level="title-lg">
+            <Typography level="title-lg" component="h2">
               {t('general.modulesSection')}
             </Typography>
             <Button

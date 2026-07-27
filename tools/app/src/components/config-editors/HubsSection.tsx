@@ -121,7 +121,9 @@ export function HubsSection({ disabled }: HubsSectionProps) {
   return (
     <Stack spacing={1} mt={4}>
       <Stack direction="row" alignItems="center" spacing={1}>
-        <Typography level="title-lg">{t('general.hubsSection')}</Typography>
+        <Typography level="title-lg" component="h2">
+          {t('general.hubsSection')}
+        </Typography>
         {hubs?.length ? (
           <Button
             size="sm"
@@ -184,11 +186,15 @@ export function HubsSection({ disabled }: HubsSectionProps) {
             spacing={1}
           >
             <Stack minWidth={0}>
-              <Typography level="title-sm" noWrap>
+              <Typography level="title-md" component="h3" noWrap>
                 {hub.displayName || hub.location}
               </Typography>
               {hub.displayName && (
-                <Typography level="body-xs" noWrap>
+                <Typography
+                  level="body-xs"
+                  noWrap
+                  sx={{ color: 'text.tertiary' }}
+                >
                   {hub.location}
                 </Typography>
               )}
@@ -209,7 +215,7 @@ export function HubsSection({ disabled }: HubsSectionProps) {
             </Button>
           </Stack>
 
-          <Typography level="title-sm">
+          <Typography level="body-xs" textTransform="uppercase" fontWeight="lg">
             {t('general.modulesSection')}
           </Typography>
           {hub.modules.length === 0 ? (
