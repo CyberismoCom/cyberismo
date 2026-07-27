@@ -11,6 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { resolve, sep } from 'node:path';
 
@@ -219,6 +220,21 @@ export class Fetch {
   @write()
   public async ensureModuleListUpToDate() {
     await this.fetchHubs();
+  }
+
+  /**
+   * Fetches hub data only when no local cache exists yet.
+   *
+   * Unlike 'ensureModuleListUpToDate' this never contacts a hub when the cache
+   * is present, so callers that only display cached data (and offer an explicit
+   * refresh) can populate it once without paying a version check per read.
+   */
+  @write()
+  public async ensureModuleListExists() {
+    if (existsSync(this.moduleListPath)) {
+      return;
+    }
+    await this.fetchHubs(true);
   }
 
   /**

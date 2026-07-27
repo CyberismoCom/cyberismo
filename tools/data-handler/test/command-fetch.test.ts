@@ -266,7 +266,7 @@ describe('fetch command', () => {
       project.configuration.hubs = originalHubs;
     });
 
-    it('showHubDetails returns hubs with their modules', async () => {
+    it('showHubDetails returns hubs with their cached modules', async () => {
       const originalHubs = project.configuration.hubs;
       project.configuration.hubs = [
         { location: 'https://test.com/hub-details' },
@@ -288,8 +288,9 @@ describe('fetch command', () => {
         }),
         headers: new Headers({ 'content-type': 'application/json' }),
       });
+      await fetchCmd.fetchHubs(true);
 
-      const showCmd = new Show(project, fetchCmd);
+      const showCmd = new Show(project);
       const hubs = await showCmd.showHubDetails();
 
       expect(hubs).toHaveLength(1);
@@ -302,24 +303,54 @@ describe('fetch command', () => {
       project.configuration.hubs = originalHubs;
     });
 
-    it('showHubDetails returns hubs without modules when fetching fails', async () => {
+    it('showHubDetails does not contact the hub', async () => {
       const originalHubs = project.configuration.hubs;
       project.configuration.hubs = [
         { location: 'https://unreachable.test.com/hub' },
       ];
 
-      // Remove cached data so that fetching is needed.
+      // Without cached data there is nothing to list the hub's modules from.
       rmSync(join(decisionRecordsPath, MODULE_LIST_FULL_PATH), {
         force: true,
       });
       fetchStub.mockRejectedValue(new Error('network down'));
 
-      const showCmd = new Show(project, fetchCmd);
+      const showCmd = new Show(project);
       const hubs = await showCmd.showHubDetails();
 
       expect(hubs).toHaveLength(1);
       expect(hubs[0].location).toBe('https://unreachable.test.com/hub');
       expect(hubs[0].modules).toHaveLength(0);
+      expect(fetchStub).not.toHaveBeenCalled();
+      project.configuration.hubs = originalHubs;
+    });
+
+    it('ensureModuleListExists fetches only when no cache is present', async () => {
+      const originalHubs = project.configuration.hubs;
+      project.configuration.hubs = [{ location: 'https://test.com/hub-once' }];
+
+      fetchStub.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          description: 'Test hub description',
+          displayName: 'Test Hub',
+          version: 1,
+          modules: [
+            { name: 'base', location: 'https://github.com/test/base.git' },
+          ],
+        }),
+        headers: new Headers({ 'content-type': 'application/json' }),
+      });
+      rmSync(join(decisionRecordsPath, MODULE_LIST_FULL_PATH), {
+        force: true,
+      });
+
+      await fetchCmd.ensureModuleListExists();
+      expect(fetchStub).toHaveBeenCalledTimes(1);
+
+      await fetchCmd.ensureModuleListExists();
+      expect(fetchStub).toHaveBeenCalledTimes(1);
+
       project.configuration.hubs = originalHubs;
     });
 

@@ -133,9 +133,20 @@ export async function deleteModule(commands: CommandManager, module: string) {
   await commands.removeCmd.remove('module', module);
 }
 
+// Hub data is only refreshed on demand, so a project that has never fetched
+// would otherwise show an empty catalogue until the user asks for a refresh.
+async function populateHubCache(commands: CommandManager) {
+  try {
+    await commands.fetchCmd.ensureModuleListExists();
+  } catch {
+    // An unreachable hub must not fail listing the hubs we already know about.
+  }
+}
+
 export async function getImportableModules(
   commands: CommandManager,
 ): Promise<ModuleSettingFromHub[]> {
+  await populateHubCache(commands);
   return commands.showCmd.showImportableModules(false, true);
 }
 
@@ -147,6 +158,7 @@ export async function importModule(
 }
 
 export async function getHubs(commands: CommandManager): Promise<HubInfo[]> {
+  await populateHubCache(commands);
   const hubs = await commands.showCmd.showHubDetails();
   const importedModules = new Set(
     (await commands.showCmd.showModules()).map((mod) => mod.name),
@@ -166,6 +178,12 @@ export async function getHubs(commands: CommandManager): Promise<HubInfo[]> {
 
 export async function addHub(commands: CommandManager, location: string) {
   await commands.createCmd.addHubLocation(location);
+  try {
+    await commands.fetchCmd.fetchHubs(true);
+  } catch {
+    // The hub is configured even when it cannot be reached right now; its
+    // modules appear once a later refresh succeeds.
+  }
 }
 
 export async function removeHub(commands: CommandManager, location: string) {

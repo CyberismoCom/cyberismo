@@ -886,9 +886,13 @@ export class Commands {
         promise = this.commands!.showCmd.showResources(type);
         break;
       case 'importableModules':
-        promise = this.commands!.showCmd.showImportableModules(
-          options?.showAll,
-          options?.details,
+        // The show commands read cached hub data; on the command line a stale
+        // listing is never what the user asked for, so refresh it first.
+        promise = this.commands!.fetchCmd.ensureModuleListUpToDate().then(() =>
+          this.commands!.showCmd.showImportableModules(
+            options?.showAll,
+            options?.details,
+          ),
         );
         break;
       case 'labels':
@@ -898,7 +902,9 @@ export class Commands {
         promise = this.commands!.showCmd.showModule(detail);
         break;
       case 'hubs':
-        promise = this.commands!.showCmd.showHubs();
+        promise = this.commands!.fetchCmd.ensureModuleListUpToDate().then(() =>
+          this.commands!.showCmd.showHubs(),
+        );
         break;
       case 'modules':
         promise = this.commands!.showCmd.showModules();

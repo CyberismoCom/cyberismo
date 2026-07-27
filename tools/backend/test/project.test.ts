@@ -1,4 +1,4 @@
-import { beforeEach, afterEach, describe, expect, test } from 'vitest';
+import { beforeEach, afterEach, describe, expect, test, vi } from 'vitest';
 import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { ProjectRegistry } from '../src/project-registry.js';
@@ -206,6 +206,22 @@ describe('Hub endpoints', () => {
       method: 'DELETE',
     });
     expect(response.status).toBe(400);
+  });
+
+  test('GET /api/project/hubs serves cached data without contacting the hub', async () => {
+    // First read populates the cache; the ones after it must not go out again.
+    await app.request('/api/projects/test/project/hubs');
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    try {
+      const response = await app.request('/api/projects/test/project/hubs');
+      expect(response.status).toBe(200);
+      const result = (await response.json()) as HubResponse;
+      expect(result[0].modules).toHaveLength(4);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+    }
   });
 
   test('POST /api/project/hubs/fetch refetches hub data', async () => {

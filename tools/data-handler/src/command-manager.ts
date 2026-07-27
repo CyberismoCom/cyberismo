@@ -75,7 +75,7 @@ export class CommandManager {
     this.calculateCmd = new Calculate(this.project);
     this.checkUpdatesCmd = new CheckUpdates(this.project);
     this.fetchCmd = new Fetch(this.project);
-    this.showCmd = new Show(this.project, this.fetchCmd);
+    this.showCmd = new Show(this.project);
     this.createCmd = new Create(this.project);
     this.editCmd = new Edit(this.project);
     this.exportCmd = new Export(this.project, this.showCmd);
