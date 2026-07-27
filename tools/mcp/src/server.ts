@@ -17,6 +17,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CommandManager } from '@cyberismo/data-handler';
 import { registerResources } from './resources/index.js';
 import { registerTools } from './tools/index.js';
+import { registerPrompts } from './prompts/index.js';
 import type { ProjectProvider } from './lib/resolve-project.js';
 import packageJson from '../package.json' with { type: 'json' };
 
@@ -65,6 +66,7 @@ export function createMcpServer(
 
   registerResources(server, provider);
   registerTools(server, provider);
+  registerPrompts(server, provider);
 
   return server;
 }

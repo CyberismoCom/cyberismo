@@ -475,6 +475,18 @@ export function registerTools(
       try {
         const commands = resolveCommands(provider, projectPrefix);
         const result = await commands.showCmd.getSkill(name, { cardKey });
+        if (result.status === 'not-found') {
+          return toolResult({
+            enabled: false,
+            message: `Skill '${name}' does not exist. Call list_skills to see the available skills.`,
+          });
+        }
+        if (result.status === 'card-not-found') {
+          return toolResult({
+            enabled: false,
+            message: `Card '${cardKey}' does not exist in this project.`,
+          });
+        }
         if (result.status === 'not-enabled') {
           return toolResult({
             enabled: false,
