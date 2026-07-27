@@ -11,10 +11,10 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Box, Stack, Typography } from '@mui/joy';
+import { Box, Checkbox, Stack, Typography } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import type { ModuleSettingFromHub } from '@cyberismo/data-handler';
-import { CategoryOption } from '../OptionCards';
+import { OptionCard, OptionCardGrid } from '@/components/OptionCard';
 
 interface ModulesStepProps {
   modules: ModuleSettingFromHub[] | undefined;
@@ -42,17 +42,23 @@ export function ModulesStep({
         </Typography>
       </Box>
       {modules && modules.length > 0 && (
-        <CategoryOption
-          multiSelect
-          onOptionSelect={onToggleModule}
-          options={modules.map((mod) => ({
-            name: mod.name,
-            displayName: mod.displayName,
-            description: mod.location,
-            isChosen: selectedModules.has(mod.name),
-            disabled,
-          }))}
-        />
+        <OptionCardGrid>
+          {modules.map((mod) => (
+            <OptionCard
+              key={mod.name}
+              title={mod.displayName ?? mod.name}
+              caption={mod.location}
+              disabled={disabled}
+              onClick={() => onToggleModule(mod.name)}
+              action={
+                <Checkbox
+                  checked={selectedModules.has(mod.name)}
+                  variant="soft"
+                />
+              }
+            />
+          ))}
+        </OptionCardGrid>
       )}
       {modules && modules.length === 0 && (
         <Typography level="body-sm" color="neutral">

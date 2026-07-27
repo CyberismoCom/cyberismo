@@ -108,7 +108,6 @@ export function AddModuleModal({ open, onClose, onAdd }: AddModuleModalProps) {
                 value={urlInput}
                 onChange={(e) => setUrlInput(e.target.value)}
                 disabled={isImporting}
-                data-cy="addModuleUrlInput"
               />
             </FormControl>
           </Stack>

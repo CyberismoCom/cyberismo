@@ -150,7 +150,6 @@ export function HubsSection({ disabled }: HubsSectionProps) {
             onClick={handleFetchHubs}
             loading={isUpdating('update-hubs')}
             disabled={isUpdating() || disabled}
-            data-cy="updateHubsButton"
           >
             {t('general.updateHubs')}
           </Button>
@@ -191,13 +190,7 @@ export function HubsSection({ disabled }: HubsSectionProps) {
       )}
 
       {hubs?.map((hub) => (
-        <Card
-          key={hub.location}
-          size="sm"
-          variant="soft"
-          color="neutral"
-          data-cy="hubCard"
-        >
+        <Card key={hub.location} size="sm" variant="soft" color="neutral">
           <Stack
             direction="row"
             justifyContent="space-between"
@@ -228,7 +221,6 @@ export function HubsSection({ disabled }: HubsSectionProps) {
                 setHubToDelete(hub);
                 openModal('deleteHub')();
               }}
-              data-cy="deleteHubButton"
             >
               {t('delete')}
             </Button>
@@ -245,10 +237,8 @@ export function HubsSection({ disabled }: HubsSectionProps) {
                 <OptionCard
                   key={mod.name}
                   size="sm"
-                  className="hubModuleCard"
-                  data-cy="hubModuleCard"
                   title={mod.displayName || mod.name}
-                  description={`${t('general.cardKeyPrefix')}: ${mod.name}`}
+                  caption={`${t('general.cardKeyPrefix')}: ${mod.name}`}
                   action={
                     mod.imported ? (
                       <Tooltip title={t('general.moduleAlreadyImported')}>
@@ -265,7 +255,6 @@ export function HubsSection({ disabled }: HubsSectionProps) {
                             disabled={disabled || isUpdating()}
                             onClick={() => handleImportModule(mod)}
                             aria-label={t('general.addModule')}
-                            data-cy="importHubModuleButton"
                           >
                             <AddIcon />
                           </IconButton>

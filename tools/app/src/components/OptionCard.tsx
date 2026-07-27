@@ -12,7 +12,7 @@
 */
 
 import type { ReactNode } from 'react';
-import { Box, Card, CardOverflow, Stack, Typography } from '@mui/joy';
+import { Box, Card, CardOverflow, Grid, Stack, Typography } from '@mui/joy';
 
 export type OptionCardSize = 'sm' | 'md';
 
@@ -25,29 +25,39 @@ const RADIUS = 16;
 
 export interface OptionCardProps {
   title: string;
-  description: string;
-  // Rendered in the top right corner: a radio, a checkbox or an action button.
-  action: ReactNode;
+  // First line of the tinted band. Further lines go in children.
+  caption?: string;
+  // Top right corner: a radio, a checkbox, an icon button or a status icon.
+  action?: ReactNode;
+  children?: ReactNode;
   size?: OptionCardSize;
+  // Marks the card as the one in effect, distinct from a pending selection.
+  selected?: boolean;
   disabled?: boolean;
   onClick?: () => void;
+  onDoubleClick?: () => void;
   className?: string;
   'data-cy'?: string;
 }
 
 /**
- * A fixed-size card with a title, a corner action and a tinted footer band.
- * Used wherever the app lists selectable things: templates, project creation
- * methods and modules available from a hub.
+ * One tile in a grid of things to pick from: a fixed box with a title, a
+ * corner control and a tinted caption band.
+ *
+ * Callers render these themselves rather than describing them to a list
+ * component, so each tile carries its own handlers and its own test hooks.
  */
 export function OptionCard({
   title,
-  description,
+  caption,
   action,
+  children,
   size = 'md',
+  selected,
   disabled,
   onClick,
-  className = 'templateCard',
+  onDoubleClick,
+  className,
   'data-cy': dataCy,
 }: OptionCardProps) {
   const { width, height } = SIZES[size];
@@ -63,8 +73,10 @@ export function OptionCard({
         boxShadow: '0px 2px 2px 0px rgba(0, 0, 0, 0.5)',
         cursor: onClick ? (disabled ? 'not-allowed' : 'pointer') : 'default',
         padding: 0,
+        overflow: 'hidden',
         gap: 0,
         borderRadius: RADIUS,
+        ...(selected && { borderColor: 'primary.500', borderWidth: 2 }),
       }}
       onClick={() => {
         if (disabled) {
@@ -72,6 +84,7 @@ export function OptionCard({
         }
         onClick?.();
       }}
+      onDoubleClick={disabled ? undefined : onDoubleClick}
     >
       <Stack
         direction="row"
@@ -105,26 +118,50 @@ export function OptionCard({
         <Box
           bgcolor="neutral.softBg"
           height="100%"
+          paddingLeft={2}
+          paddingTop={1}
+          paddingRight={1}
           sx={{
+            overflow: 'hidden',
             borderBottomLeftRadius: RADIUS,
             borderBottomRightRadius: RADIUS,
           }}
         >
-          <Typography
-            level="body-xs"
-            fontWeight="bold"
-            paddingLeft={2}
-            height="100%"
-            paddingTop={1}
-            sx={{
-              wordBreak: 'break-word',
-            }}
-          >
-            {description}
-          </Typography>
+          {caption && (
+            <Typography
+              level="body-xs"
+              fontWeight="bold"
+              sx={{ wordBreak: 'break-word' }}
+            >
+              {caption}
+            </Typography>
+          )}
+          {children}
         </Box>
       </CardOverflow>
     </Card>
+  );
+}
+
+/**
+ * Lays out option cards as a wrapping grid.
+ */
+export function OptionCardGrid({ children }: { children: ReactNode }) {
+  return (
+    <Grid
+      container
+      spacing={2}
+      columnGap={2}
+      rowGap={2}
+      justifyContent="flex-start"
+      marginTop={2}
+      marginBottom={4}
+      marginLeft={0}
+      paddingRight={1}
+      paddingBottom={1}
+    >
+      {children}
+    </Grid>
   );
 }
 

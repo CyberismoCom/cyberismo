@@ -15,8 +15,6 @@ import { useState } from 'react';
 import {
   Box,
   Button,
-  Card,
-  CardOverflow,
   CircularProgress,
   DialogActions,
   DialogContent,
@@ -35,6 +33,7 @@ import AddIcon from '@mui/icons-material/Add';
 import ClearIcon from '@mui/icons-material/Clear';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
+import { OptionCard } from '@/components/OptionCard';
 import { useAvailableProjects } from '@/lib/api/projects';
 import { getConfig } from '@/lib/utils';
 import { CreateProjectModal } from './CreateProjectModal';
@@ -141,88 +140,44 @@ export function ProjectSelectionModal({
                   paddingRight={1}
                 >
                   {filteredProjects.map((p) => (
-                    <Card
+                    <OptionCard
                       key={p.prefix}
-                      variant="outlined"
-                      sx={{
-                        height: '200px',
-                        width: '200px',
-                        boxShadow: '0px 2px 2px 0px rgba(0, 0, 0, 0.5)',
-                        cursor: 'pointer',
-                        padding: 0,
-                        overflow: 'hidden',
-                        gap: 0,
-                        borderRadius: 16,
-                        ...(p.prefix === currentPrefix && {
-                          borderColor: 'primary.500',
-                          borderWidth: 2,
-                        }),
-                      }}
+                      title={p.name}
+                      caption={p.prefix}
+                      selected={p.prefix === currentPrefix}
                       onClick={() => setSelectedProject(p.prefix)}
                       onDoubleClick={() => handleProjectSelect(p.prefix)}
+                      action={
+                        <Radio
+                          checked={selectedProject === p.prefix}
+                          variant="soft"
+                          tabIndex={-1}
+                          sx={{ pointerEvents: 'none' }}
+                        />
+                      }
                     >
-                      <Stack
-                        direction="row"
-                        padding={0}
-                        sx={{ justifyContent: 'space-between' }}
-                      >
-                        <Typography
-                          level="title-sm"
-                          paddingLeft={2}
-                          fontWeight="bold"
-                          textOverflow="clip"
-                          marginTop="auto"
-                          marginBottom={0.5}
-                        >
-                          {p.name}
+                      {p.category && (
+                        <Typography level="body-xs" sx={{ mt: 0.5 }}>
+                          {p.category}
                         </Typography>
-                        <Box padding={1}>
-                          <Radio
-                            checked={selectedProject === p.prefix}
-                            variant="soft"
-                            tabIndex={-1}
-                            sx={{ pointerEvents: 'none' }}
-                          />
-                        </Box>
-                      </Stack>
-                      <CardOverflow sx={{ flexGrow: 1 }}>
-                        <Box
-                          bgcolor="neutral.softBg"
-                          height="100%"
-                          px={2}
-                          py={1}
+                      )}
+                      {p.description && (
+                        <Typography
+                          level="body-xs"
+                          color="neutral"
+                          sx={{
+                            mt: 0.5,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                          }}
                         >
-                          <Typography
-                            level="body-xs"
-                            fontWeight="bold"
-                            sx={{ wordBreak: 'break-word' }}
-                          >
-                            {p.prefix}
-                          </Typography>
-                          {p.category && (
-                            <Typography level="body-xs" sx={{ mt: 0.5 }}>
-                              {p.category}
-                            </Typography>
-                          )}
-                          {p.description && (
-                            <Typography
-                              level="body-xs"
-                              color="neutral"
-                              sx={{
-                                mt: 0.5,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                display: '-webkit-box',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical',
-                              }}
-                            >
-                              {p.description}
-                            </Typography>
-                          )}
-                        </Box>
-                      </CardOverflow>
-                    </Card>
+                          {p.description}
+                        </Typography>
+                      )}
+                    </OptionCard>
                   ))}
                 </Grid>
               )}
