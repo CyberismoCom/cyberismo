@@ -26,10 +26,23 @@ export const MODULE_LIST_FILE = 'moduleList.json';
  *          string when nothing is left of it.
  */
 export function canonicalHubLocation(location: string): string {
-  const directory = location
-    .trim()
-    .replace(new RegExp(`/?${MODULE_LIST_FILE}$`), '')
-    .replace(/\/+$/, '');
+  // Trailing slashes are counted off by hand rather than matched by regex:
+  // matching a run of them against an end anchor backtracks from every start
+  // position, so a location full of slashes would take quadratic time.
+  const withoutTrailingSlashes = (value: string) => {
+    let end = value.length;
+    while (end > 0 && value[end - 1] === '/') {
+      end -= 1;
+    }
+    return value.slice(0, end);
+  };
+
+  const trimmed = withoutTrailingSlashes(location.trim());
+  const directory = withoutTrailingSlashes(
+    trimmed.endsWith(MODULE_LIST_FILE)
+      ? trimmed.slice(0, -MODULE_LIST_FILE.length)
+      : trimmed,
+  );
   return directory ? `${directory}/` : '';
 }
 

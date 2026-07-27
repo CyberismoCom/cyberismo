@@ -151,6 +151,8 @@ describe('project settings', () => {
     ['a URL that already ends in a slash', 'https://example.com/hub/'],
     ['surrounding whitespace', '  https://example.com/hub  '],
     ['a URL naming the file', 'https://example.com/hub/moduleList.json'],
+    ['repeated trailing slashes', 'https://example.com/hub///'],
+    ['a slash after the file', 'https://example.com/hub/moduleList.json/'],
   ])('should store a hub given as %s canonically', async (name, input) => {
     const configPath = createTestConfig(
       `test-config-add-hub-${name.replace(/\W/g, '-')}.json`,
