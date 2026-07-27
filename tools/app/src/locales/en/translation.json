@@ -11,7 +11,7 @@
   },
   "addModuleModal": {
     "title": "Add module",
-    "subtitle": "Register management",
+    "subtitle": "Import a module from a repository url. Modules published by a hub can be added from the hubs section.",
     "moduleUrl": "Module url",
     "moduleUrlPlaceholder": "https://github.com/your-org/your-module.git",
     "addModule": "Add module",
@@ -244,6 +244,7 @@
     "addModule": "Add module",
     "moduleAlreadyImported": "Module is already imported to the project",
     "hubsSection": "Hubs",
+    "updateHubs": "Update hubs",
     "addHub": "Add hub",
     "hubLocationUrl": "Hub location url",
     "addHubSuccess": "Hub added successfully",

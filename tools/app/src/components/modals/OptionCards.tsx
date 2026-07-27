@@ -11,16 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  Typography,
-  Grid,
-  Box,
-  Card,
-  CardOverflow,
-  Checkbox,
-  Radio,
-  Stack,
-} from '@mui/joy';
+import { Typography, Grid, Checkbox, Radio } from '@mui/joy';
+import { OptionCard } from '@/components/OptionCard';
 
 interface CategoryOptionProps {
   category?: string;
@@ -60,78 +52,20 @@ export const CategoryOption = ({
       paddingBottom={1}
     >
       {options.map((option) => (
-        <Card
-          className="templateCard"
-          variant="outlined"
-          sx={{
-            height: '200px',
-            width: '200px',
-            boxShadow: '0px 2px 2px 0px rgba(0, 0, 0, 0.5)',
-            cursor: option.disabled ? 'not-allowed' : 'pointer',
-            padding: 0,
-            gap: 0,
-            borderRadius: 16,
-          }}
-          onClick={() => {
-            if (option.disabled) {
-              return;
-            }
-            onOptionSelect(option.name);
-          }}
-        >
-          <Stack
-            direction="row"
-            padding={0}
-            height="50%"
-            sx={{
-              justifyContent: 'space-between',
-            }}
-          >
-            <Typography
-              level="title-sm"
-              paddingLeft={2}
-              fontWeight="bold"
-              textOverflow="clip"
-              marginTop="auto"
-              marginBottom={1}
-            >
-              {option.displayName ?? option.name}
-            </Typography>
-            <Box padding={1} height="100%">
-              {multiSelect ? (
-                <Checkbox checked={option.isChosen} variant="soft" />
-              ) : (
-                <Radio checked={option.isChosen} variant="soft" />
-              )}
-            </Box>
-          </Stack>
-          <CardOverflow
-            sx={{
-              height: '50%',
-              borderBottomLeftRadius: 16,
-              borderBottomRightRadius: 16,
-            }}
-          >
-            <Box
-              bgcolor="neutral.softBg"
-              height="100%"
-              sx={{ borderBottomLeftRadius: 16, borderBottomRightRadius: 16 }}
-            >
-              <Typography
-                level="body-xs"
-                fontWeight="bold"
-                paddingLeft={2}
-                height="100%"
-                paddingTop={1}
-                sx={{
-                  wordBreak: 'break-word',
-                }}
-              >
-                {option.description}
-              </Typography>
-            </Box>
-          </CardOverflow>
-        </Card>
+        <OptionCard
+          key={option.name}
+          title={option.displayName ?? option.name}
+          description={option.description}
+          disabled={option.disabled}
+          onClick={() => onOptionSelect(option.name)}
+          action={
+            multiSelect ? (
+              <Checkbox checked={option.isChosen} variant="soft" />
+            ) : (
+              <Radio checked={option.isChosen} variant="soft" />
+            )
+          }
+        />
       ))}
     </Grid>
   </>
