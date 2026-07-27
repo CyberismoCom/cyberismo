@@ -62,6 +62,7 @@ import { evaluateMacros } from '../macros/index.js';
 import { readJsonFile } from '../utils/json.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { buildCardHierarchy, flattenCardArray } from '../utils/card-utils.js';
+import { CardNotFoundError } from '../exceptions/index.js';
 import type { ResourcesFrom } from '../containers/project/resources-from.js';
 
 /**
@@ -699,6 +700,28 @@ export class Show {
     context: Context = 'localApp',
   ): Promise<SkillLookupResult> {
     const { cardKey } = options;
+
+    let exists: boolean;
+    try {
+      exists = this.project.resources.exists(name);
+    } catch {
+      exists = false;
+    }
+    if (!exists) {
+      return { status: 'not-found' };
+    }
+
+    if (cardKey) {
+      try {
+        this.project.findCard(cardKey);
+      } catch (error) {
+        if (error instanceof CardNotFoundError) {
+          return { status: 'card-not-found' };
+        }
+        throw error;
+      }
+    }
+
     const enabled = await this.project.calculationEngine.runQuery(
       'enabledSkills',
       context,
@@ -713,9 +736,6 @@ export class Show {
       return { status: 'needs-card' };
     }
     const resource = this.project.resources.byType(name, 'skills');
-    if (!resource) {
-      return { status: 'not-enabled' };
-    }
     const skill = resource.show();
     const instructions = await generateReportContent({
       calculate: this.project.calculationEngine,

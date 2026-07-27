@@ -13,6 +13,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { z } from 'zod';
+
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import {
   GetPromptRequestSchema,
@@ -22,6 +24,9 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 
 import type { ProjectProvider } from '../lib/resolve-project.js';
+
+// Prompt arguments are untyped on the low-level handler; validate them.
+const promptArguments = z.object({ cardKey: z.string().optional() });
 
 // A minimal single-message prompt result (used for both rendered skills and the
 // not-enabled / needs-card explanations — never an error, per the spec).
@@ -78,40 +83,57 @@ export function registerPrompts(
     GetPromptRequestSchema,
     async (request): Promise<GetPromptResult> => {
       const { name } = request.params;
-      const cardKey = request.params.arguments?.cardKey;
-      // Skill names are prefix-qualified (e.g. `decision/skills/foo`); the first
-      // path segment is the project prefix used to resolve the owning project.
-      const prefix = name.split('/')[0];
-      const commands = provider.get(prefix);
-      if (!commands) {
-        return textResult(`Skill '${name}' is not currently enabled.`);
+      const { cardKey } = promptArguments.parse(request.params.arguments ?? {});
+
+      // A skill may be owned by any registered project (including one it was
+      // imported into as a module, whose prefix differs from the project's), so
+      // resolve by asking each project rather than parsing the name's prefix.
+      let anyDisabled = false;
+      for (const { prefix } of provider.list()) {
+        const commands = provider.get(prefix);
+        if (!commands) {
+          continue;
+        }
+        const result = await commands.showCmd.getSkill(name, { cardKey });
+        if (result.status === 'ok') {
+          const { skill } = result;
+          const relatedTools = skill.relatedTools.length
+            ? skill.relatedTools.map((tool) => `\`${tool}\``).join(', ')
+            : '—';
+          const header = [
+            `# ${skill.displayName}`,
+            '',
+            `- **name:** \`${skill.name}\``,
+            `- **category:** ${skill.category ?? '—'}`,
+            `- **relatedTools:** ${relatedTools}`,
+            '',
+          ].join('\n');
+          return textResult(
+            `${header}\n${skill.instructions}`,
+            skill.description,
+          );
+        }
+        if (result.status === 'needs-card') {
+          return textResult(
+            `Skill '${name}' is enabled for specific cards. Provide a 'cardKey' argument to render it.`,
+          );
+        }
+        if (result.status === 'card-not-found') {
+          return textResult(
+            `Card '${cardKey}' does not exist in project '${prefix}'.`,
+          );
+        }
+        if (result.status === 'not-enabled') {
+          anyDisabled = true;
+        }
+        // 'not-found' — this project does not own the skill; keep looking.
       }
 
-      const result = await commands.showCmd.getSkill(name, { cardKey });
-      if (result.status === 'not-enabled') {
-        return textResult(
-          `Skill '${name}' is not currently enabled. Use prompts/list to see the enabled skills.`,
-        );
-      }
-      if (result.status === 'needs-card') {
-        return textResult(
-          `Skill '${name}' is enabled for specific cards. Provide a 'cardKey' argument to render it.`,
-        );
-      }
-
-      const { skill } = result;
-      const relatedTools = skill.relatedTools.length
-        ? skill.relatedTools.map((tool) => `\`${tool}\``).join(', ')
-        : '—';
-      const header = [
-        `# ${skill.displayName}`,
-        '',
-        `- **name:** \`${skill.name}\``,
-        `- **category:** ${skill.category ?? '—'}`,
-        `- **relatedTools:** ${relatedTools}`,
-        '',
-      ].join('\n');
-      return textResult(`${header}\n${skill.instructions}`, skill.description);
+      return textResult(
+        anyDisabled
+          ? `Skill '${name}' is not currently enabled. Use prompts/list to see the enabled skills.`
+          : `Skill '${name}' is not a known skill. Use prompts/list to see the available skills.`,
+      );
     },
   );
 }

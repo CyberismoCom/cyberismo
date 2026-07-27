@@ -70,6 +70,10 @@ beforeAll(async () => {
     query: 'result({{cardKey}}).\n',
     content: '# Card skill\nApplies to {{cardKey}}.\n',
   });
+  // Exists as a resource but is never enabled, to exercise the not-enabled path.
+  await seedSkill('disabledSkill', {
+    content: '# Disabled skill\nNever enabled.\n',
+  });
   await mkdir(join(calcFolder, 'enable'), { recursive: true });
   await writeFile(
     join(calcFolder, 'enable.json'),
@@ -177,12 +181,43 @@ describe('skill discovery MCP tools', () => {
   test('get_skill reports a not-enabled skill without erroring', async () => {
     const result = await client.callTool({
       name: 'get_skill',
-      arguments: { projectPrefix: 'decision', name: 'decision/skills/nope' },
+      arguments: {
+        projectPrefix: 'decision',
+        name: 'decision/skills/disabledSkill',
+      },
     });
     expect(result.isError).toBeFalsy();
     const parsed = parse(result);
     expect(parsed.enabled).toBe(false);
     expect(parsed.message).toMatch(/not currently enabled/);
+  });
+
+  test('get_skill reports a non-existent skill as not existing', async () => {
+    const result = await client.callTool({
+      name: 'get_skill',
+      arguments: { projectPrefix: 'decision', name: 'decision/skills/nope' },
+    });
+    expect(result.isError).toBeFalsy();
+    const parsed = parse(result);
+    expect(parsed.enabled).toBe(false);
+    expect(parsed.message).toMatch(/does not exist/);
+  });
+
+  test('get_skill reports an invalid cardKey', async () => {
+    const result = await client.callTool({
+      name: 'get_skill',
+      arguments: {
+        projectPrefix: 'decision',
+        name: 'decision/skills/cardSkill',
+        cardKey: 'decision_does_not_exist',
+      },
+    });
+    expect(result.isError).toBeFalsy();
+    const parsed = parse(result);
+    expect(parsed.enabled).toBe(false);
+    expect(parsed.message).toMatch(
+      /Card 'decision_does_not_exist' does not exist/,
+    );
   });
 });
 
@@ -231,7 +266,52 @@ describe('skill discovery MCP prompts', () => {
   });
 
   test('getPrompt reports a not-enabled skill without throwing', async () => {
-    const result = await client.getPrompt({ name: 'decision/skills/nope' });
+    const result = await client.getPrompt({
+      name: 'decision/skills/disabledSkill',
+    });
     expect(promptText(result)).toMatch(/not currently enabled/);
+  });
+
+  test('getPrompt reports a non-existent skill as unknown', async () => {
+    const result = await client.getPrompt({ name: 'decision/skills/nope' });
+    expect(promptText(result)).toMatch(/not a known skill/);
+  });
+
+  test('getPrompt reports an invalid cardKey', async () => {
+    const result = await client.getPrompt({
+      name: 'decision/skills/cardSkill',
+      arguments: { cardKey: 'decision_does_not_exist' },
+    });
+    expect(promptText(result)).toMatch(
+      /Card 'decision_does_not_exist' does not exist/,
+    );
+  });
+
+  // The owning project may be registered under a prefix that differs from the
+  // skill name's prefix (as happens for skills imported from a module). Resolve
+  // by iterating projects, not by parsing the name's first segment.
+  test('getPrompt resolves a skill whose name prefix differs from the provider key', async () => {
+    const moduleLikeProvider = {
+      get: (prefix: string) =>
+        prefix === 'registeredUnderOtherKey' ? commands : undefined,
+      list: () => [{ prefix: 'registeredUnderOtherKey', name: 'decision' }],
+    };
+    const server = createMcpServer(moduleLikeProvider);
+    const [clientTransport, serverTransport] =
+      InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    const moduleClient = new Client({
+      name: 'module-client',
+      version: '1.0.0',
+    });
+    await moduleClient.connect(clientTransport);
+    try {
+      const result = await moduleClient.getPrompt({
+        name: 'decision/skills/globalSkill',
+      });
+      expect(promptText(result)).toContain('Use this any time.');
+    } finally {
+      await moduleClient.close();
+    }
   });
 });

@@ -169,7 +169,9 @@ export interface SkillDetails extends SkillSummary {
 export type SkillLookupResult =
   | { status: 'ok'; skill: SkillDetails }
   | { status: 'not-enabled' }
-  | { status: 'needs-card' };
+  | { status: 'needs-card' }
+  | { status: 'not-found' }
+  | { status: 'card-not-found' };
 
 // Base interface for all resources.
 export interface ResourceBaseMetadata {

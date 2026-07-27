@@ -201,11 +201,19 @@ describe('skill discovery', () => {
       expect(result.status).toBe('not-enabled');
     });
 
-    it('reports not-enabled for an unknown skill', async () => {
+    it('reports not-found for an unknown skill', async () => {
       const result = await commands.showCmd.getSkill(
         'decision/skills/doesNotExist',
       );
-      expect(result.status).toBe('not-enabled');
+      expect(result.status).toBe('not-found');
+    });
+
+    it('reports card-not-found when the cardKey is not a real card', async () => {
+      const result = await commands.showCmd.getSkill(
+        'decision/skills/cardSkill',
+        { cardKey: 'decision_does_not_exist' },
+      );
+      expect(result.status).toBe('card-not-found');
     });
   });
 });
