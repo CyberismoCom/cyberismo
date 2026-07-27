@@ -13,6 +13,7 @@
 
 import {
   type CommandManager,
+  type HubFetchFailure,
   type ModuleSettingFromHub,
 } from '@cyberismo/data-handler';
 
@@ -176,20 +177,22 @@ export async function getHubs(commands: CommandManager): Promise<HubInfo[]> {
   }));
 }
 
-export async function addHub(commands: CommandManager, location: string) {
+export async function addHub(
+  commands: CommandManager,
+  location: string,
+): Promise<HubFetchFailure[]> {
   await commands.createCmd.addHubLocation(location);
-  try {
-    await commands.fetchCmd.fetchHubs(true);
-  } catch {
-    // The hub is configured even when it cannot be reached right now; its
-    // modules appear once a later refresh succeeds.
-  }
+  // The hub is configured even when it cannot be reached right now; its
+  // modules appear once a later refresh succeeds.
+  return commands.fetchCmd.fetchHubs(true);
 }
 
 export async function removeHub(commands: CommandManager, location: string) {
   await commands.removeCmd.remove('hub', location);
 }
 
-export async function fetchHubs(commands: CommandManager) {
-  await commands.fetchCmd.fetchHubs(true);
+export async function fetchHubs(
+  commands: CommandManager,
+): Promise<HubFetchFailure[]> {
+  return commands.fetchCmd.fetchHubs(true);
 }

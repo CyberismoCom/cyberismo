@@ -33,6 +33,7 @@ export type {
   RemoveOperation,
 } from './resources/resource-object.js';
 export type { MutationInput } from './mutations/types.js';
+export type { HubFetchFailure } from './commands/fetch.js';
 import { evaluateMacros } from './macros/index.js';
 import { validBumps } from './commands/version.js';
 import {

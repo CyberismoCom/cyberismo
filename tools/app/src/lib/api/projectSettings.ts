@@ -16,7 +16,7 @@ import useSWR, { mutate } from 'swr';
 import type { ModuleSettingFromHub } from '@cyberismo/data-handler';
 import { projectApiPaths, callApi } from '../swr';
 import { useSWRHook } from './common';
-import type { Hub, ProjectSettingsUpdate } from './types';
+import type { Hub, HubFetchResult, ProjectSettingsUpdate } from './types';
 import { useUpdating } from '../hooks';
 
 export const useProjectSettings = (
@@ -91,9 +91,12 @@ export const useHubs = (projectPrefix?: string) =>
 
 export const addHub = async (location: string, projectPrefix?: string) => {
   const apiPaths = projectApiPaths(projectPrefix);
-  await callApi(apiPaths.projectHubs(), 'POST', { location });
+  const result = await callApi<HubFetchResult>(apiPaths.projectHubs(), 'POST', {
+    location,
+  });
   mutate(apiPaths.projectHubs());
   mutate(apiPaths.projectModulesImportable());
+  return result.unreachable ?? [];
 };
 
 export const removeHub = async (location: string, projectPrefix?: string) => {
@@ -105,9 +108,13 @@ export const removeHub = async (location: string, projectPrefix?: string) => {
 
 export const fetchHubs = async (projectPrefix?: string) => {
   const apiPaths = projectApiPaths(projectPrefix);
-  await callApi(apiPaths.projectHubsFetch(), 'POST');
+  const result = await callApi<HubFetchResult>(
+    apiPaths.projectHubsFetch(),
+    'POST',
+  );
   mutate(apiPaths.projectHubs());
   mutate(apiPaths.projectModulesImportable());
+  return result.unreachable ?? [];
 };
 
 export const useProjectSettingsMutations = (projectPrefix?: string) => {

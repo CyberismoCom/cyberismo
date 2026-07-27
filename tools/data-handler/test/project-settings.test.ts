@@ -144,32 +144,25 @@ describe('project settings', () => {
     );
   });
 
-  it('should add a hub with valid URL', async () => {
-    const configPath = createTestConfig('test-config-add-hub.json');
+  // Locations are stored as a directory URL: without the trailing slash,
+  // resolving moduleList.json against them would drop the last segment.
+  it.each([
+    ['a plain URL', 'https://example.com/hub'],
+    ['a URL that already ends in a slash', 'https://example.com/hub/'],
+    ['surrounding whitespace', '  https://example.com/hub  '],
+    ['a URL naming the file', 'https://example.com/hub/moduleList.json'],
+  ])('should store a hub given as %s canonically', async (name, input) => {
+    const configPath = createTestConfig(
+      `test-config-add-hub-${name.replace(/\W/g, '-')}.json`,
+    );
     const projectSettings = new ProjectConfiguration(configPath, false);
-    await projectSettings.addHub('https://example.com/hub');
+    await projectSettings.addHub(input);
 
     expect(projectSettings.hubs.length).toBe(1);
-    expect(projectSettings.hubs[0].location).toBe('https://example.com/hub');
+    expect(projectSettings.hubs[0].location).toBe('https://example.com/hub/');
 
     const savedConfig = readJsonFileSync(configPath);
     expect(savedConfig.hubs.length).toBe(1);
-  });
-
-  it('should trim whitespace from hub URL', async () => {
-    const configPath = createTestConfig('test-config-hub-trim.json');
-    const projectSettings = new ProjectConfiguration(configPath, false);
-    await projectSettings.addHub('  https://example.com/hub  ');
-
-    expect(projectSettings.hubs[0].location).toBe('https://example.com/hub');
-  });
-
-  it('should strip moduleList.json from hub URL', async () => {
-    const configPath = createTestConfig('test-config-hub-strip.json');
-    const projectSettings = new ProjectConfiguration(configPath, false);
-    await projectSettings.addHub('https://example.com/hub/moduleList.json');
-
-    expect(projectSettings.hubs[0].location).toBe('https://example.com/hub');
   });
 
   it('should reject duplicate hub that differs only by trailing slash', async () => {
@@ -210,7 +203,7 @@ describe('project settings', () => {
     await expect(
       projectSettings.addHub('https://example.com/hub'),
     ).rejects.toThrow(
-      "Hub 'https://example.com/hub' already exists as a hub for the project",
+      "Hub 'https://example.com/hub/' already exists as a hub for the project",
     );
   });
 

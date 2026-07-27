@@ -16,6 +16,7 @@ import { mkdir } from 'node:fs/promises';
 import { resolve, sep } from 'node:path';
 
 import { hubFetch } from '../utils/git-service-client.js';
+import { hubModuleListUrl, MODULE_LIST_FILE } from '../utils/hub-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { readJsonFile, writeJsonFile } from '../utils/json.js';
 import { validateJson } from '../utils/validate.js';
@@ -39,10 +40,15 @@ export interface ModuleListFile {
   hubs: CachedHub[];
 }
 
+// A hub that could not be read during a fetch.
+export interface HubFetchFailure {
+  location: string;
+  message: string;
+}
+
 const FETCH_TIMEOUT_MS = 30 * 1000; // 30s timeout for fetching a hub file.
 const MAX_RESPONSE_SIZE_MB = 1024 * 1024; // 1MB limit for safety
 const HUB_SCHEMA = 'hubSchema';
-const MODULE_LIST_FILE = 'moduleList.json';
 const TEMP_FOLDER = `.temp`;
 
 export const MODULE_LIST_FULL_PATH = `${TEMP_FOLDER}/${MODULE_LIST_FILE}`;
@@ -64,7 +70,7 @@ export class Fetch {
     location: string,
   ): Promise<number | undefined> {
     try {
-      const url = new URL(MODULE_LIST_FILE, location);
+      const url = hubModuleListUrl(location);
       if (!['http:', 'https:'].includes(url.protocol)) {
         return undefined;
       }
@@ -93,7 +99,7 @@ export class Fetch {
   // Fetches one hub's data as JSON.
   private async fetchJSON(location: string, schemaId: string) {
     try {
-      const url = new URL(MODULE_LIST_FILE, location);
+      const url = hubModuleListUrl(location);
       if (!['http:', 'https:'].includes(url.protocol)) {
         throw new Error(
           `Invalid protocol: ${url.protocol}. Only HTTP and HTTPS are supported.`,
@@ -216,10 +222,11 @@ export class Fetch {
 
   /**
    * Ensures the module list is up to date by fetching if needed.
+   * @returns the hubs that could not be read.
    */
   @write()
-  public async ensureModuleListUpToDate() {
-    await this.fetchHubs();
+  public async ensureModuleListUpToDate(): Promise<HubFetchFailure[]> {
+    return this.fetchHubs();
   }
 
   /**
@@ -237,42 +244,78 @@ export class Fetch {
     await this.fetchHubs(true);
   }
 
+  // Hubs already fetched successfully at some point, by location.
+  private async cachedHubs(): Promise<Map<string, CachedHub>> {
+    try {
+      const localData = (await readJsonFile(
+        this.moduleListPath,
+      )) as ModuleListFile;
+      return new Map(
+        (localData.hubs ?? [])
+          .filter((hub) => Array.isArray(hub.modules))
+          .map((hub) => [hub.location, hub]),
+      );
+    } catch {
+      return new Map();
+    }
+  }
+
   /**
    * Fetches modules from modules hub(s) and writes them to a file.
    * Only fetches if the remote version is newer than the local version,
    * unless 'force' is set.
    * In git-service mode, HTTP calls are proxied through the git-service /hub endpoint.
+   *
+   * A hub that cannot be read is reported rather than thrown: one unreachable
+   * hub must not stop the others from being refreshed, nor block the module
+   * operations that refresh the list on their way to doing something else.
+   * Its previously cached modules are kept so it degrades to stale, not gone.
    * @param force Fetch hubs even if the cached data is up to date.
+   * @returns the hubs that could not be read, in configuration order.
    */
   @write(() => 'Fetch hubs')
-  public async fetchHubs(force: boolean = false) {
+  public async fetchHubs(force: boolean = false): Promise<HubFetchFailure[]> {
     if (!force) {
       const needsFetch = await this.fetchModuleList();
       if (!needsFetch) {
-        return;
+        return [];
       }
     }
 
     const hubs = this.project.configuration.hubs;
     const moduleMap: Map<string, ModuleSetting> = new Map([]);
     const cachedHubs: CachedHub[] = [];
+    const failures: HubFetchFailure[] = [];
+    const previous = await this.cachedHubs();
 
     for (const hub of hubs) {
-      const json = await this.fetchJSON(hub.location, HUB_SCHEMA);
-      const hubModules: ModuleSetting[] = json.modules || [];
-      hubModules.forEach((module: ModuleSetting) => {
+      try {
+        const json = await this.fetchJSON(hub.location, HUB_SCHEMA);
+        cachedHubs.push({
+          location: hub.location,
+          version: json.version || 1,
+          displayName: json.displayName,
+          description: json.description,
+          modules: json.modules || [],
+        });
+      } catch (error) {
+        failures.push({
+          location: hub.location,
+          message: error instanceof Error ? error.message : String(error),
+        });
+        const stale = previous.get(hub.location);
+        if (stale) {
+          cachedHubs.push(stale);
+        }
+      }
+    }
+
+    for (const cached of cachedHubs) {
+      for (const module of cached.modules) {
         if (!moduleMap.has(module.name)) {
           moduleMap.set(module.name, module);
         }
-      });
-
-      cachedHubs.push({
-        location: hub.location,
-        version: json.version || 1,
-        displayName: json.displayName,
-        description: json.description,
-        modules: hubModules,
-      });
+      }
     }
 
     try {
@@ -298,5 +341,7 @@ export class Fetch {
       this.logger.error(error, `Failed to write module list to local file`);
       throw error;
     }
+
+    return failures;
   }
 }

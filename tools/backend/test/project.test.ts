@@ -21,6 +21,42 @@ type ProjectResponse = {
 let app: ReturnType<typeof createApp>;
 let tempTestDataPath: string;
 
+const DEFAULT_HUB =
+  'https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/';
+
+const HUB_PAYLOAD = {
+  description: 'Cyberismo default hub',
+  displayName: 'Cyberismo default hub',
+  version: 1,
+  modules: ['base', 'eucra', 'ismsa', 'secdeva'].map((name) => ({
+    name,
+    displayName: `${name} module`,
+    location: `https://github.com/CyberismoCom/module-${name}.git`,
+  })),
+};
+
+// The hub the fixture points at is served locally. Reaching for the real one
+// makes these tests depend on the network, where they flake once several test
+// files fetch it at the same time. Installed before the project is opened,
+// because opening it is itself allowed to populate the hub cache.
+let hubFetch: ReturnType<typeof vi.spyOn>;
+beforeEach(() => {
+  hubFetch = vi
+    .spyOn(globalThis, 'fetch')
+    .mockImplementation(async (input: RequestInfo | URL) => {
+      if (String(input) === `${DEFAULT_HUB}moduleList.json`) {
+        return new Response(JSON.stringify(HUB_PAYLOAD), {
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      throw new Error(`Cannot reach ${String(input)}`);
+    }) as ReturnType<typeof vi.spyOn>;
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 beforeEach(async () => {
   tempTestDataPath = await createTempTestData('module-test');
   const commands = await CommandManager.getInstance(tempTestDataPath);
@@ -143,15 +179,15 @@ describe('Hub endpoints', () => {
     const result = (await response.json()) as HubResponse;
 
     expect(result).toHaveLength(1);
-    expect(result[0].location).toBe(
-      'https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/',
-    );
+    expect(result[0].location).toBe(DEFAULT_HUB);
     expect(result[0].modules).toHaveLength(4);
     expect(result[0].modules.every((mod) => !mod.imported)).toBe(true);
   });
 
   test('POST and DELETE /api/project/hubs add and remove a hub', async () => {
     const location = 'https://example.com/test-hub';
+    // Locations are stored as a directory URL, whichever form they arrive in.
+    const stored = `${location}/`;
 
     const addResponse = await app.request('/api/projects/test/project/hubs', {
       method: 'POST',
@@ -163,7 +199,7 @@ describe('Hub endpoints', () => {
     const listResponse = await app.request('/api/projects/test/project/hubs');
     const hubs = (await listResponse.json()) as HubResponse;
     expect(hubs).toHaveLength(2);
-    const addedHub = hubs.find((hub) => hub.location === location);
+    const addedHub = hubs.find((hub) => hub.location === stored);
     expect(addedHub).toBeDefined();
     // Hub is not reachable, so it has no modules.
     expect(addedHub?.modules).toHaveLength(0);
@@ -211,17 +247,55 @@ describe('Hub endpoints', () => {
   test('GET /api/project/hubs serves cached data without contacting the hub', async () => {
     // First read populates the cache; the ones after it must not go out again.
     await app.request('/api/projects/test/project/hubs');
+    hubFetch.mockClear();
 
-    const fetchSpy = vi.spyOn(globalThis, 'fetch');
-    try {
-      const response = await app.request('/api/projects/test/project/hubs');
-      expect(response.status).toBe(200);
-      const result = (await response.json()) as HubResponse;
-      expect(result[0].modules).toHaveLength(4);
-      expect(fetchSpy).not.toHaveBeenCalled();
-    } finally {
-      fetchSpy.mockRestore();
-    }
+    const response = await app.request('/api/projects/test/project/hubs');
+    expect(response.status).toBe(200);
+    const result = (await response.json()) as HubResponse;
+    expect(result[0].modules).toHaveLength(4);
+    expect(hubFetch).not.toHaveBeenCalled();
+  });
+
+  test('an unreachable hub is reported but leaves the working ones usable', async () => {
+    const broken = 'https://example.com/not-a-hub/';
+    const addResponse = await app.request('/api/projects/test/project/hubs', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ location: broken }),
+    });
+    expect(addResponse.status).toBe(200);
+    const added = (await addResponse.json()) as {
+      unreachable: { location: string }[];
+    };
+    expect(added.unreachable.map((hub) => hub.location)).toEqual([broken]);
+
+    // The working hub still lists its modules...
+    const hubs = (await (
+      await app.request('/api/projects/test/project/hubs')
+    ).json()) as HubResponse;
+    expect(hubs.find((hub) => hub.location === broken)?.modules).toHaveLength(
+      0,
+    );
+    expect(hubs.find((hub) => hub.location !== broken)?.modules).toHaveLength(
+      4,
+    );
+
+    // ...and they are still importable, which the broken hub used to prevent.
+    const importable = await app.request(
+      '/api/projects/test/project/modules/importable',
+    );
+    expect(importable.status).toBe(200);
+    expect((await importable.json()) as unknown[]).toHaveLength(4);
+
+    const fetchResponse = await app.request(
+      '/api/projects/test/project/hubs/fetch',
+      { method: 'POST' },
+    );
+    expect(fetchResponse.status).toBe(200);
+    const fetched = (await fetchResponse.json()) as {
+      unreachable: { location: string }[];
+    };
+    expect(fetched.unreachable.map((hub) => hub.location)).toEqual([broken]);
   });
 
   test('POST /api/project/hubs/fetch refetches hub data', async () => {

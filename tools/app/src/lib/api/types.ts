@@ -150,6 +150,18 @@ export interface Hub {
   modules: HubModule[];
 }
 
+// A hub that could not be read while fetching. Reachable hubs are still
+// refreshed, so this reports rather than fails.
+export interface UnreachableHub {
+  location: string;
+  message: string;
+}
+
+export interface HubFetchResult {
+  message: string;
+  unreachable?: UnreachableHub[];
+}
+
 interface GeneralNode extends BaseResourceNode {
   type: 'general';
   data: GeneralSettings;

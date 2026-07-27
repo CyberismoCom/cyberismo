@@ -26,7 +26,14 @@ export async function createTempTestData(
   const tempDir = await mkdtemp(path.join(tmpdir(), 'cyberismo-test-'));
   const tempTestDataDir = path.join(tempDir, testDataName);
 
-  await cp(sourceDir, tempTestDataDir, { recursive: true });
+  // '.temp' holds the cached hub module list and '.logs' the log output. Both
+  // are generated, gitignored state that earlier runs leave in the source
+  // fixture; copying them in would carry one run's results into the next.
+  const generated = new Set(['.temp', '.logs']);
+  await cp(sourceDir, tempTestDataDir, {
+    recursive: true,
+    filter: (source) => !generated.has(path.basename(source)),
+  });
 
   return tempTestDataDir;
 }

@@ -342,7 +342,16 @@ export class Commands {
         if (target !== 'hubs') {
           throw new Error(`Unknown type to fetch: '${target}'`);
         }
-        await this.commands?.fetchCmd.fetchHubs();
+        const failures = (await this.commands?.fetchCmd.fetchHubs()) ?? [];
+        if (failures.length > 0) {
+          // The reachable hubs were still refreshed; name the ones that were not.
+          return {
+            statusCode: 200,
+            message: failures
+              .map((failure) => `${failure.location}: ${failure.message}`)
+              .join('\n'),
+          };
+        }
       } else if (command === Cmd.import) {
         const target = args.splice(0, 1)[0];
         if (target === 'module') {

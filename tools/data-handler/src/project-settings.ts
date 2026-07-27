@@ -22,6 +22,7 @@ import type {
   ModuleSetting,
   ProjectSettings,
 } from './interfaces/project-interfaces.js';
+import { canonicalHubLocation } from './utils/hub-utils.js';
 import { formatJson } from './utils/json.js';
 import { getChildLogger } from './utils/log-utils.js';
 import { readCardsConfigSync } from './containers/project/cards-config.js';
@@ -116,17 +117,14 @@ export class ProjectConfiguration implements ProjectSettings {
    * @throws if hub is already in the project or URL is invalid
    */
   public async addHub(hubName: string) {
-    // Hub location is the directory that contains moduleList.json; accept
-    // URLs that point to the file itself.
-    const trimmedHub = hubName?.trim().replace(/\/?moduleList\.json$/, '');
+    const trimmedHub = canonicalHubLocation(hubName ?? '');
     if (!trimmedHub) {
       throw new Error(`Cannot add empty hub to the project`);
     }
 
-    // Same hub with and without a trailing slash is a duplicate.
-    const normalize = (location: string) => location.replace(/\/+$/, '');
+    // Locations naming the same directory are the same hub, however written.
     const exists = this.hubs.find(
-      (item) => normalize(item.location) === normalize(trimmedHub),
+      (item) => canonicalHubLocation(item.location) === trimmedHub,
     );
     if (exists) {
       throw new Error(
@@ -197,11 +195,16 @@ export class ProjectConfiguration implements ProjectSettings {
    * @throws if hub is not part of the project
    */
   public async removeHub(hubName: string) {
-    const exists = this.hubs.find((item) => item.location === hubName);
+    // Match the same way adding does, so a hub added before locations were
+    // stored canonically can still be named by either form.
+    const target = canonicalHubLocation(hubName ?? '');
+    const matches = (location: string) =>
+      location === hubName || canonicalHubLocation(location) === target;
+    const exists = this.hubs.find((item) => matches(item.location));
     if (!exists) {
       throw new Error(`Hub '${hubName}' not part of the project`);
     }
-    this.hubs = this.hubs.filter((item) => item.location !== hubName);
+    this.hubs = this.hubs.filter((item) => !matches(item.location));
     return this.save();
   }
 

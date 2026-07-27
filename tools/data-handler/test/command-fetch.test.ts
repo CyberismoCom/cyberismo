@@ -325,6 +325,121 @@ describe('fetch command', () => {
       project.configuration.hubs = originalHubs;
     });
 
+    // A location without a trailing slash used to resolve moduleList.json
+    // against the parent directory, so only one of these three forms worked.
+    it.each([
+      ['with a trailing slash', 'https://test.com/hub/'],
+      ['without a trailing slash', 'https://test.com/hub'],
+      ['pointing at the file', 'https://test.com/hub/moduleList.json'],
+    ])('reads a hub location %s', async (_name, location) => {
+      const originalHubs = project.configuration.hubs;
+      project.configuration.hubs = [{ location }];
+      rmSync(join(decisionRecordsPath, MODULE_LIST_FULL_PATH), {
+        force: true,
+      });
+
+      fetchStub.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          description: 'Test hub description',
+          displayName: 'Test Hub',
+          version: 1,
+          modules: [
+            { name: 'base', location: 'https://github.com/test/base.git' },
+          ],
+        }),
+        headers: new Headers({ 'content-type': 'application/json' }),
+      });
+
+      const failures = await fetchCmd.fetchHubs(true);
+
+      expect(failures).toHaveLength(0);
+      expect(fetchStub).toHaveBeenCalledWith(
+        'https://test.com/hub/moduleList.json',
+        expect.anything(),
+      );
+      project.configuration.hubs = originalHubs;
+    });
+
+    it('keeps fetching the other hubs when one cannot be read', async () => {
+      const originalHubs = project.configuration.hubs;
+      project.configuration.hubs = [
+        { location: 'https://broken.test.com/hub' },
+        { location: 'https://working.test.com/hub' },
+      ];
+      rmSync(join(decisionRecordsPath, MODULE_LIST_FULL_PATH), {
+        force: true,
+      });
+
+      fetchStub
+        .mockRejectedValueOnce(new Error('network down'))
+        .mockResolvedValue({
+          ok: true,
+          json: async () => ({
+            description: 'Working hub',
+            displayName: 'Working hub',
+            version: 1,
+            modules: [
+              { name: 'base', location: 'https://github.com/test/base.git' },
+            ],
+          }),
+          headers: new Headers({ 'content-type': 'application/json' }),
+        });
+
+      const failures = await fetchCmd.fetchHubs(true);
+
+      expect(failures).toHaveLength(1);
+      expect(failures[0].location).toBe('https://broken.test.com/hub');
+
+      const moduleList = JSON.parse(
+        await readFile(join(decisionRecordsPath, MODULE_LIST_FULL_PATH), {
+          encoding: 'utf-8',
+        }),
+      );
+      // The reachable hub is cached and its modules stay importable.
+      expect(moduleList.hubs).toHaveLength(1);
+      expect(moduleList.hubs[0].location).toBe('https://working.test.com/hub');
+      expect(
+        moduleList.modules.map((mod: { name: string }) => mod.name),
+      ).toEqual(['base']);
+
+      project.configuration.hubs = originalHubs;
+    });
+
+    it('keeps cached modules of a hub when a later fetch of it fails', async () => {
+      const originalHubs = project.configuration.hubs;
+      project.configuration.hubs = [{ location: 'https://flaky.test.com/hub' }];
+
+      fetchStub.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          description: 'Flaky hub',
+          displayName: 'Flaky hub',
+          version: 1,
+          modules: [
+            { name: 'base', location: 'https://github.com/test/base.git' },
+          ],
+        }),
+        headers: new Headers({ 'content-type': 'application/json' }),
+      });
+      await fetchCmd.fetchHubs(true);
+
+      fetchStub.mockRejectedValue(new Error('network down'));
+      const failures = await fetchCmd.fetchHubs(true);
+
+      expect(failures).toHaveLength(1);
+      const moduleList = JSON.parse(
+        await readFile(join(decisionRecordsPath, MODULE_LIST_FULL_PATH), {
+          encoding: 'utf-8',
+        }),
+      );
+      // Degraded to stale, not to gone.
+      expect(moduleList.hubs[0].modules).toHaveLength(1);
+      expect(moduleList.modules).toHaveLength(1);
+
+      project.configuration.hubs = originalHubs;
+    });
+
     it('ensureModuleListExists fetches only when no cache is present', async () => {
       const originalHubs = project.configuration.hubs;
       project.configuration.hubs = [{ location: 'https://test.com/hub-once' }];

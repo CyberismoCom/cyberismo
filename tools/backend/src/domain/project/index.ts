@@ -106,8 +106,8 @@ router.post(
   async (c) => {
     const commands = c.get('commands');
     const { location } = c.req.valid('json');
-    await projectService.addHub(commands, location);
-    return c.json({ message: 'Hub added' });
+    const unreachable = await projectService.addHub(commands, location);
+    return c.json({ message: 'Hub added', unreachable });
   },
 );
 
@@ -125,8 +125,8 @@ router.delete(
 
 router.post('/hubs/fetch', requireRole(UserRole.Admin), async (c) => {
   const commands = c.get('commands');
-  await projectService.fetchHubs(commands);
-  return c.json({ message: 'Hubs fetched' });
+  const unreachable = await projectService.fetchHubs(commands);
+  return c.json({ message: 'Hubs fetched', unreachable });
 });
 
 export default router;

@@ -26,7 +26,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import AddIcon from '@mui/icons-material/Add';
 import CheckIcon from '@mui/icons-material/Check';
-import type { Hub, HubModule } from '@/lib/api/types';
+import type { Hub, HubModule, UnreachableHub } from '@/lib/api/types';
 import { useHubs, useProjectSettingsMutations } from '@/lib/api';
 import { useAppDispatch } from '@/lib/hooks';
 import { useModals } from '@/lib/utils';
@@ -68,15 +68,35 @@ export function HubsSection({ disabled }: HubsSectionProps) {
     dispatch(addNotification({ message, type: 'success' }));
   };
 
+  // Reachable hubs are refreshed regardless, so an unreachable one is a
+  // warning about that hub rather than a failure of the whole action.
+  const notifyOutcome = (
+    unreachable: UnreachableHub[],
+    successMessage: string,
+  ) => {
+    if (unreachable.length === 0) {
+      notifySuccess(successMessage);
+      return;
+    }
+    dispatch(
+      addNotification({
+        message: t('general.hubsUnreachable', {
+          hubs: unreachable.map((hub) => hub.location).join(', '),
+        }),
+        type: 'error',
+      }),
+    );
+  };
+
   const handleAddHub = async () => {
     const location = hubUrl.trim();
     if (!location) {
       return;
     }
     try {
-      await addHub(location);
+      const unreachable = await addHub(location);
       setHubUrl('');
-      notifySuccess(t('general.addHubSuccess'));
+      notifyOutcome(unreachable, t('general.addHubSuccess'));
     } catch (error) {
       notifyError(error);
     }
@@ -84,8 +104,7 @@ export function HubsSection({ disabled }: HubsSectionProps) {
 
   const handleFetchHubs = async () => {
     try {
-      await fetchHubs();
-      notifySuccess(t('general.updateHubsSuccess'));
+      notifyOutcome(await fetchHubs(), t('general.updateHubsSuccess'));
     } catch (error) {
       notifyError(error);
     }

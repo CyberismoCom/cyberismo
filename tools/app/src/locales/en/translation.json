@@ -249,6 +249,7 @@
     "hubLocationUrl": "Hub location url",
     "addHubSuccess": "Hub added successfully",
     "updateHubsSuccess": "Hubs updated successfully",
+    "hubsUnreachable": "Could not read hubs: {{hubs}}. Other hubs were updated.",
     "noHubModules": "No modules available from this hub.",
     "gitRemoteUrl": "Git remote URL",
     "gitPushPublicKey": "SSH public key",

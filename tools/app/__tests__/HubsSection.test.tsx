@@ -26,10 +26,11 @@ import type { Hub } from '@/lib/api/types';
 // Hubs are refreshed as a set — the data handler cannot fetch one hub on its
 // own — so the section offers a single Update, not one per hub.
 
-const addHub = vi.fn().mockResolvedValue(undefined);
+const addHub = vi.fn().mockResolvedValue([]);
 const removeHub = vi.fn().mockResolvedValue(undefined);
-const fetchHubs = vi.fn().mockResolvedValue(undefined);
+const fetchHubs = vi.fn().mockResolvedValue([]);
 const addModule = vi.fn().mockResolvedValue(undefined);
+const dispatch = vi.fn();
 let hubs: Hub[] | undefined;
 
 vi.mock('@/lib/api', () => ({
@@ -44,7 +45,7 @@ vi.mock('@/lib/api', () => ({
 }));
 
 vi.mock('@/lib/hooks', () => ({
-  useAppDispatch: () => vi.fn(),
+  useAppDispatch: () => dispatch,
 }));
 
 const { HubsSection } = await import('@/components/config-editors/HubsSection');
@@ -119,6 +120,21 @@ describe('HubsSection', () => {
 
     fireEvent.click(update[0]);
     await waitFor(() => expect(fetchHubs).toHaveBeenCalledTimes(1));
+  });
+
+  it('names the hubs that could not be read instead of claiming success', async () => {
+    fetchHubs.mockResolvedValueOnce([
+      { location: 'https://hub.test/two/', message: 'network down' },
+    ]);
+    render(<HubsSection disabled={false} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Update hubs' }));
+
+    await waitFor(() => expect(dispatch).toHaveBeenCalled());
+    const notification = dispatch.mock.calls.at(-1)?.[0]?.payload;
+    expect(notification.type).toBe('error');
+    expect(notification.message).toContain('https://hub.test/two/');
+    expect(notification.message).toContain('Other hubs were updated');
   });
 
   it('imports a module by its location and offers no import for imported ones', async () => {
