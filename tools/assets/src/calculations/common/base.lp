@@ -66,10 +66,16 @@ calculatedLink(Source, Destination, LinkType, LinkDescription) :-
     not userLink(Source, Destination, LinkType, LinkDescription).
 
 % calculated fields with override support:
-% a user override wins; otherwise the designer-calculated value applies
+% a user override wins; otherwise the designer-calculated value applies.
+% fieldCalculated only takes effect for fields the card type actually declares
+% calculated; otherwise the calculation output is ignored and any stored value
+% stands on its own. This avoids a spurious "conflicting values" warning when a
+% calculation targets a field whose card type omits the isCalculated flag.
 field(Card, Field, Value) :- fieldOverride(Card, Field, Value).
 field(Card, Field, Value) :-
     fieldCalculated(Card, Field, Value),
+    field(Card, "cardType", CardType),
+    calculatedField(CardType, Field),
     not fieldOverride(Card, Field, _).
 
 % warn when a scalar field ends up with conflicting values, e.g. a calculation

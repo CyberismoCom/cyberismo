@@ -222,20 +222,25 @@ export const createCardFacts = async (card: Card, project: Project) => {
   }
 
   // Fields whose stored values are user overrides of calculated values.
-  let overridableFields = new Set<string>();
+  const overridableFields = new Set<string>();
+  // Calculated fields that do NOT allow override. A stored value here is stale
+  // (e.g. left over after a normal field became calculated, or after override
+  // was disabled); it stays dormant so the calculation remains authoritative
+  // and no conflicting field() fact is emitted.
+  const lockedCalculatedFields = new Set<string>();
   if (card.metadata?.cardType) {
     try {
       const cardType = project.resources
         .byType(card.metadata.cardType, 'cardTypes')
         .show();
-      overridableFields = new Set(
-        (cardType.customFields ?? [])
-          .filter(
-            (customField) =>
-              customField.isCalculated && customField.enableOverride,
-          )
-          .map((customField) => customField.name),
-      );
+      for (const customField of cardType.customFields ?? []) {
+        if (!customField.isCalculated) continue;
+        if (customField.enableOverride) {
+          overridableFields.add(customField.name);
+        } else {
+          lockedCalculatedFields.add(customField.name);
+        }
+      }
     } catch {
       // Unknown card type; facts fall back to plain field().
     }
@@ -287,6 +292,12 @@ export const createCardFacts = async (card: Card, project: Project) => {
       } else {
         // Do not write null values
         if (value == null) {
+          continue;
+        }
+        // A stored value on a calculated, non-overridable field is stale: leave
+        // it dormant (emit nothing) so the calculation stays authoritative
+        // instead of colliding with a plain field() fact.
+        if (lockedCalculatedFields.has(field)) {
           continue;
         }
         // field might be a non-custom field, which cannot use the fieldType method

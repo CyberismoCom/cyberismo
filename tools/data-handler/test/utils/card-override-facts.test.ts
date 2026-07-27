@@ -121,86 +121,6 @@ describe('fieldOverride fact generation', () => {
     expect(field.calculatedValue).toBe('decision_auto');
   });
 
-  it('disabling enableOverride is refused while cards hold override values', async () => {
-    const promise = commands.updateCmd.apply({
-      kind: 'edit',
-      target: resourceName('decision/cardTypes/decision'),
-      updateKey: { key: 'customFields' },
-      operation: {
-        name: 'change',
-        target: { name: FIELD, isCalculated: true, enableOverride: true },
-        to: { name: FIELD, isCalculated: true },
-      },
-    });
-    await expect(promise).rejects.toThrow('override value');
-    // Pins that the error lists the offending card key.
-    await expect(promise).rejects.toThrow(CARD_KEY);
-
-    // The guard must refuse before anything is persisted.
-    const cardType = commands.project.resources
-      .byType('decision/cardTypes/decision', 'cardTypes')
-      .show() as CardType;
-    const field = cardType.customFields.find((f) => f.name === FIELD);
-    expect(field?.enableOverride).toBe(true);
-  });
-
-  it('disabling enableOverride is refused when target/to arrive as JSON strings', async () => {
-    // updateCmd.apply() is a public entry point: callers (e.g. the CLI's
-    // command-handler, which JSON-encodes non-scalar operands) may hand it
-    // 'target'/'to' as raw JSON strings rather than parsed objects. The guard
-    // must normalize them the same way handleChange() does before inspecting
-    // them. 'target' uses the name-only shorthand (already a plain string,
-    // same as a CLI caller identifying the field by name); 'to' is the
-    // JSON-encoded new field object, mirroring how the CLI serializes a
-    // non-scalar operand.
-    const promise = commands.updateCmd.apply({
-      kind: 'edit',
-      target: resourceName('decision/cardTypes/decision'),
-      updateKey: { key: 'customFields' },
-      operation: {
-        name: 'change',
-        target: FIELD,
-        to: JSON.stringify({ name: FIELD, isCalculated: true }),
-      },
-    });
-    await expect(promise).rejects.toThrow(/override value/);
-    await expect(promise).rejects.toThrow(CARD_KEY);
-
-    // The guard must refuse before anything is persisted.
-    const cardType = commands.project.resources
-      .byType('decision/cardTypes/decision', 'cardTypes')
-      .show() as CardType;
-    const field = cardType.customFields.find((f) => f.name === FIELD);
-    expect(field?.enableOverride).toBe(true);
-  });
-
-  it('a rename-shaped change is judged by the target field, not the new name', async () => {
-    const renamedField = 'decision/fieldTypes/obsoletedByRenamed';
-    const promise = commands.updateCmd.apply({
-      kind: 'edit',
-      target: resourceName('decision/cardTypes/decision'),
-      updateKey: { key: 'customFields' },
-      operation: {
-        name: 'change',
-        target: { name: FIELD, isCalculated: true, enableOverride: true },
-        to: { name: renamedField, isCalculated: true },
-      },
-    });
-    // The guard resolves the field from 'target' (FIELD), not 'to'
-    // (renamedField), so it must still fire and name FIELD and the card.
-    await expect(promise).rejects.toThrow(FIELD);
-    await expect(promise).rejects.toThrow(CARD_KEY);
-
-    // Nothing persisted: the field is neither renamed nor changed.
-    const cardType = commands.project.resources
-      .byType('decision/cardTypes/decision', 'cardTypes')
-      .show() as CardType;
-    expect(cardType.customFields.some((f) => f.name === FIELD)).toBe(true);
-    expect(cardType.customFields.some((f) => f.name === renamedField)).toBe(
-      false,
-    );
-  });
-
   // Mutates the fixture's calculation module further, so it runs last
   // against a fresh CommandManager to avoid polluting the tests above.
   it('conflicting scalar values raise a notification', async () => {
@@ -341,12 +261,12 @@ describe('card query: calculated value without a stored override', () => {
   });
 });
 
-// Self-contained: proves the guard is narrowed to "field stays calculated
-// but loses override" - turning isCalculated off must not be blocked, even
-// though a card still stores an override value for the field.
-describe('override-disable guard does not fire when isCalculated is turned off', () => {
+// The override-disable block was removed: disabling override on a calculated
+// field that still holds stored values now succeeds (the values become
+// dormant) instead of being refused.
+describe('disabling override on a calculated field that holds values', () => {
   const baseDir = import.meta.dirname;
-  const testDir = join(baseDir, 'tmp-override-uncalc-tests');
+  const testDir = join(baseDir, 'tmp-override-disable-tests');
   const projectPath = join(testDir, 'valid/decision-records');
   let commands: CommandManager;
 
@@ -383,7 +303,7 @@ describe('override-disable guard does not fire when isCalculated is turned off',
     rmSync(testDir, { recursive: true, force: true });
   });
 
-  it('turning isCalculated off is allowed even though a card holds an override value', async () => {
+  it('succeeds and persists instead of refusing on the stored values', async () => {
     await expect(
       commands.updateCmd.apply({
         kind: 'edit',
@@ -392,7 +312,7 @@ describe('override-disable guard does not fire when isCalculated is turned off',
         operation: {
           name: 'change',
           target: { name: FIELD, isCalculated: true, enableOverride: true },
-          to: { name: FIELD, isCalculated: false },
+          to: { name: FIELD, isCalculated: true },
         },
       }),
     ).resolves.toBeUndefined();
@@ -401,6 +321,124 @@ describe('override-disable guard does not fire when isCalculated is turned off',
       .byType('decision/cardTypes/decision', 'cardTypes')
       .show() as CardType;
     const field = cardType.customFields.find((f) => f.name === FIELD);
-    expect(field?.isCalculated).toBe(false);
+    expect(field?.isCalculated).toBe(true);
+    expect(field?.enableOverride).toBeFalsy();
+  });
+});
+
+// A stored value on a calculated, non-overridable field is stale (e.g. left
+// after override was disabled). It must stay dormant so the calculation wins,
+// rather than colliding with it as a "Conflicting field values" notification.
+describe('stored value on a calculated non-overridable field is dormant', () => {
+  const baseDir = import.meta.dirname;
+  const testDir = join(baseDir, 'tmp-locked-calculated-tests');
+  const projectPath = join(testDir, 'valid/decision-records');
+  let commands: CommandManager;
+
+  beforeAll(async () => {
+    mkdirSync(testDir, { recursive: true });
+    await copyDir('test/test-data/', testDir);
+
+    // The decision card type already declares FIELD calculated; leaving
+    // enableOverride unset makes it calculated-but-not-overridable.
+    const cardJsonPath = join(
+      projectPath,
+      `cardRoot/decision_5/c/${CARD_KEY}/index.json`,
+    );
+    const metadata = JSON.parse(readFileSync(cardJsonPath, 'utf-8'));
+    metadata[FIELD] = 'decision_999';
+    writeFileSync(cardJsonPath, JSON.stringify(metadata, null, 4));
+
+    appendFieldCalculatedRule(projectPath);
+
+    commands = new CommandManager(projectPath, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+  });
+
+  afterAll(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('the calculation is effective and no conflict is raised', async () => {
+    const result = await commands.project.calculationEngine.runQuery(
+      'card',
+      'localApp',
+      { cardKey: CARD_KEY },
+    );
+    const card = result.at(0)!;
+    const field = card.fields.find((f) => f.key === FIELD)!;
+    expect(field.isOverridable).toBe(false);
+    expect(field.value).toBe('decision_auto');
+    expect(
+      card.notifications.filter((n) => n.title === 'Conflicting field values'),
+    ).toHaveLength(0);
+  });
+});
+
+// Regression (INTDEV-1276): a fieldCalculated rule targeting a field whose
+// card type does NOT declare it calculated must be ignored. Otherwise the
+// calculation output and the card's stored value both become field() facts
+// and collide, surfacing only as a cryptic "conflicting values" notification
+// after the user edits and saves the field.
+describe('fieldCalculated is ignored for a field the card type does not declare calculated', () => {
+  const baseDir = import.meta.dirname;
+  const testDir = join(baseDir, 'tmp-override-ignored-calc-tests');
+  const projectPath = join(testDir, 'valid/decision-records');
+  let commands: CommandManager;
+
+  beforeAll(async () => {
+    mkdirSync(testDir, { recursive: true });
+    await copyDir('test/test-data/', testDir);
+
+    // Mark the calculated field as NOT calculated in the card type, so it is
+    // treated as an ordinary editable field.
+    const cardTypePath = join(
+      projectPath,
+      '.cards/local/cardTypes/decision.json',
+    );
+    const cardType = JSON.parse(readFileSync(cardTypePath, 'utf-8'));
+    const field = cardType.customFields.find(
+      (f: { name: string }) => f.name === FIELD,
+    );
+    field.isCalculated = false;
+    writeFileSync(cardTypePath, JSON.stringify(cardType, null, 4));
+
+    // A designer calculation still produces a value for that same field...
+    appendFieldCalculatedRule(projectPath);
+
+    // ...and the user has stored a (different) value for it.
+    const cardJsonPath = join(
+      projectPath,
+      `cardRoot/decision_5/c/${CARD_KEY}/index.json`,
+    );
+    const metadata = JSON.parse(readFileSync(cardJsonPath, 'utf-8'));
+    metadata[FIELD] = 'decision_999';
+    writeFileSync(cardJsonPath, JSON.stringify(metadata, null, 4));
+
+    commands = new CommandManager(projectPath, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+  });
+
+  afterAll(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('the stored value stands alone and no conflict notification is raised', async () => {
+    const result = await commands.project.calculationEngine.runQuery(
+      'card',
+      'localApp',
+      { cardKey: CARD_KEY },
+    );
+    const card = result.at(0)!;
+    const field = card.fields.find((f) => f.key === FIELD)!;
+    expect(field.isOverridable).toBe(false);
+    expect(field.value).toBe('decision_999');
+    expect(
+      card.notifications.filter((n) => n.title === 'Conflicting field values'),
+    ).toHaveLength(0);
   });
 });
