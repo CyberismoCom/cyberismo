@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { beforeEach, afterEach, describe, expect, test, vi } from 'vitest';
 import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
@@ -21,19 +22,34 @@ type ProjectResponse = {
 let app: ReturnType<typeof createApp>;
 let tempTestDataPath: string;
 
-const DEFAULT_HUB =
-  'https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/';
+// Whichever hub the fixture project declares is the one served locally, so
+// the mock cannot drift from the fixture. It answers with this repository's
+// own hub content - the file the default hub serves once a change is merged -
+// so a schema change and the hub data it implies are tested together instead
+// of against whatever the published hub still holds.
+const FIXTURE_HUB = (
+  JSON.parse(
+    readFileSync(
+      new URL(
+        '../../../module-test/.cards/local/cardsConfig.json',
+        import.meta.url,
+      ),
+      'utf-8',
+    ),
+  ) as { hubs: { location: string }[] }
+).hubs[0].location;
 
-const HUB_PAYLOAD = {
-  description: 'Cyberismo default hub',
-  displayName: 'Cyberismo default hub',
-  version: 1,
-  modules: ['base', 'eucra', 'ismsa', 'secdeva'].map((name) => ({
-    name,
-    displayName: `${name} module`,
-    location: `https://github.com/CyberismoCom/module-${name}.git`,
-  })),
-};
+const HUB_PAYLOAD = JSON.parse(
+  readFileSync(
+    new URL('../../assets/src/hub/moduleList.json', import.meta.url),
+    'utf-8',
+  ),
+) as { modules: { name: string }[] };
+
+const HUB_FILE_URL = new URL(
+  'moduleList.json',
+  FIXTURE_HUB.endsWith('/') ? FIXTURE_HUB : `${FIXTURE_HUB}/`,
+).toString();
 
 // The hub the fixture points at is served locally. Reaching for the real one
 // makes these tests depend on the network, where they flake once several test
@@ -44,7 +60,7 @@ beforeEach(() => {
   hubFetch = vi
     .spyOn(globalThis, 'fetch')
     .mockImplementation(async (input: RequestInfo | URL) => {
-      if (String(input) === `${DEFAULT_HUB}moduleList.json`) {
+      if (String(input) === HUB_FILE_URL) {
         return new Response(JSON.stringify(HUB_PAYLOAD), {
           headers: { 'content-type': 'application/json' },
         });
@@ -138,7 +154,7 @@ describe('Project endpoints', () => {
     );
     expect(response.status).toBe(200);
     const result = await response.json();
-    expect(result).toHaveLength(4);
+    expect(result).toHaveLength(HUB_PAYLOAD.modules.length);
   });
 
   test('POST /api/project/modules returns 400 for missing source', async () => {
@@ -179,8 +195,8 @@ describe('Hub endpoints', () => {
     const result = (await response.json()) as HubResponse;
 
     expect(result).toHaveLength(1);
-    expect(result[0].location).toBe(DEFAULT_HUB);
-    expect(result[0].modules).toHaveLength(4);
+    expect(result[0].location).toBe(FIXTURE_HUB);
+    expect(result[0].modules).toHaveLength(HUB_PAYLOAD.modules.length);
     expect(result[0].modules.every((mod) => !mod.imported)).toBe(true);
   });
 
@@ -234,8 +250,7 @@ describe('Hub endpoints', () => {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
-        location:
-          'https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/',
+        location: FIXTURE_HUB,
       }),
     });
     expect(response.status).toBe(500);
@@ -256,7 +271,7 @@ describe('Hub endpoints', () => {
     const response = await app.request('/api/projects/test/project/hubs');
     expect(response.status).toBe(200);
     const result = (await response.json()) as HubResponse;
-    expect(result[0].modules).toHaveLength(4);
+    expect(result[0].modules).toHaveLength(HUB_PAYLOAD.modules.length);
     expect(hubFetch).not.toHaveBeenCalled();
   });
 
@@ -289,7 +304,9 @@ describe('Hub endpoints', () => {
       '/api/projects/test/project/modules/importable',
     );
     expect(importable.status).toBe(200);
-    expect((await importable.json()) as unknown[]).toHaveLength(4);
+    expect((await importable.json()) as unknown[]).toHaveLength(
+      HUB_PAYLOAD.modules.length,
+    );
 
     const fetchResponse = await app.request(
       '/api/projects/test/project/hubs/fetch',
