@@ -342,14 +342,18 @@ export class Commands {
         if (target !== 'hubs') {
           throw new Error(`Unknown type to fetch: '${target}'`);
         }
-        const failures = (await this.commands?.fetchCmd.fetchHubs()) ?? [];
+        // An explicit fetch always contacts the hubs; the version-checked path
+        // is for callers that only need the cache to be current.
+        const failures = (await this.commands?.fetchCmd.fetchHubs(true)) ?? [];
         if (failures.length > 0) {
-          // The reachable hubs were still refreshed; name the ones that were not.
           return {
-            statusCode: 200,
-            message: failures
-              .map((failure) => `${failure.location}: ${failure.message}`)
-              .join('\n'),
+            statusCode: 500,
+            message: [
+              ...failures.map(
+                (failure) => `${failure.location}: ${failure.message}`,
+              ),
+              'Modules from the hubs that could be read were refreshed.',
+            ].join('\n'),
           };
         }
       } else if (command === Cmd.import) {

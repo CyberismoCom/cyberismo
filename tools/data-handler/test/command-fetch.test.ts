@@ -15,10 +15,13 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Cmd, Commands } from '../src/command-handler.js';
+import { CommandManager } from '../src/command-manager.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Fetch, MODULE_LIST_FULL_PATH } from '../src/commands/fetch.js';
 import { Show } from '../src/commands/show.js';
 import { Project } from '../src/containers/project.js';
+
+import type { HubSetting } from '../src/interfaces/project-interfaces.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-command-handler-fetch-tests');
@@ -47,6 +50,93 @@ describe('fetch command', () => {
       options,
     );
     expect(result.statusCode).toBe(400);
+  });
+
+  describe('fetch hubs command', () => {
+    let manager: CommandManager;
+    let originalHubs: HubSetting[];
+    let fetchStub: ReturnType<typeof vi.spyOn>;
+
+    function hubResponse(displayName: string, moduleName: string) {
+      return {
+        ok: true,
+        json: async () => ({
+          description: `${displayName} description`,
+          displayName,
+          version: 1,
+          modules: [
+            {
+              name: moduleName,
+              location: `https://github.com/test/${moduleName}.git`,
+            },
+          ],
+        }),
+        headers: new Headers({ 'content-type': 'application/json' }),
+      };
+    }
+
+    beforeEach(async () => {
+      manager = await CommandManager.getInstance(decisionRecordsPath);
+      originalHubs = manager.project.configuration.hubs;
+      fetchStub = vi.spyOn(global, 'fetch');
+    });
+
+    afterEach(() => {
+      manager.project.configuration.hubs = originalHubs;
+      vi.restoreAllMocks();
+    });
+
+    it('fetches the hubs even when the cached module list is up to date', async () => {
+      manager.project.configuration.hubs = [
+        { location: 'https://test.com/hub-command' },
+      ];
+      const fetchModuleListStub = vi
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .spyOn(Fetch.prototype as any, 'fetchModuleList')
+        .mockResolvedValue(false);
+      fetchStub.mockResolvedValue(hubResponse('Test Hub', 'base'));
+
+      const result = await commandHandler.command(Cmd.fetch, ['hubs'], options);
+
+      expect(result.statusCode).toBe(200);
+      expect(fetchModuleListStub).not.toHaveBeenCalled();
+      expect(fetchStub).toHaveBeenCalledTimes(1);
+    });
+
+    it('fails when a hub cannot be read', async () => {
+      manager.project.configuration.hubs = [
+        { location: 'https://broken.test.com/hub' },
+        { location: 'https://working.test.com/hub' },
+      ];
+      fetchStub
+        .mockRejectedValueOnce(new Error('network down'))
+        .mockResolvedValue(hubResponse('Working hub', 'base'));
+
+      const result = await commandHandler.command(Cmd.fetch, ['hubs'], options);
+
+      expect(result.statusCode).toBe(500);
+      expect(result.message).toContain('https://broken.test.com/hub');
+      expect(result.message).toContain('network down');
+      expect(result.message).toContain(
+        'Modules from the hubs that could be read were refreshed.',
+      );
+    });
+
+    it('succeeds when every hub can be read', async () => {
+      manager.project.configuration.hubs = [
+        { location: 'https://test.com/hub1' },
+        { location: 'https://test.com/hub2' },
+      ];
+      fetchStub
+        .mockResolvedValueOnce(hubResponse('Test Hub 1', 'modulea'))
+        .mockResolvedValueOnce(hubResponse('Test Hub 2', 'moduleb'));
+
+      const result = await commandHandler.command(Cmd.fetch, ['hubs'], options);
+
+      expect(result.statusCode).toBe(200);
+      expect(result.message).toBeUndefined();
+      expect(fetchStub).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('hub versions', () => {
