@@ -10,4 +10,4 @@ The `fieldCalculated` predicate declares the automatically calculated value of a
 
 Use `fieldCalculated` in the heads of rules that define calculated fields. Cyberismo derives the effective `{{#xref}}"cardKey":"docs_8mg8p068"{{/xref}}` value from it: if the user has entered an override for the field (see `{{#xref}}"cardKey":"docs_6h0t096b"{{/xref}}`), the override becomes the value of `field`; otherwise the `fieldCalculated` value does.
 
-We recommend using `fieldCalculated` for all calculated fields. A plain `field` head still works when the field does not enable override, but only `fieldCalculated` keeps the automatic value visible when an override is in effect, and it is required for fields that enable override — otherwise the field ends up with conflicting values.
+Defining a calculated field with a plain `field` head is deprecated. It still works when the field does not enable override, but it cannot support overrides: when a user override exists, the calculation and the override produce conflicting values.

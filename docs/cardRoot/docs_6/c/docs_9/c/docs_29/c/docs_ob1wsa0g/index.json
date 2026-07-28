@@ -3,7 +3,7 @@
     "cardType": "base/cardTypes/predicate",
     "workflowState": "Ready",
     "rank": "0|k",
-    "lastUpdated": "2026-07-28T07:29:46.647Z",
+    "lastUpdated": "2026-07-28T07:36:15.157Z",
     "base/fieldTypes/briefDescription": "The calculated value of a field, before any user override",
     "base/fieldTypes/category": "Cards",
     "links": [
