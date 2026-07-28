@@ -14,9 +14,7 @@ Logic programs normally do not need to reference `fieldOverride` directly — re
 
 [source]
 ----
-% notify when a manually entered risk level deviates from the calculated value
-notification(Card, "Risk", "Manual risk level", "The risk level was entered manually and differs from the calculated value.") :-
-    fieldOverride(Card, "moduleName/fieldTypes/riskLevel", Override),
-    fieldCalculated(Card, "moduleName/fieldTypes/riskLevel", Calculated),
-    Override != Calculated.
+% collect cards whose risk level was set manually, e.g. for a report
+manualRiskLevel(Card, Value) :-
+    fieldOverride(Card, "moduleName/fieldTypes/riskLevel", Value).
 ----
