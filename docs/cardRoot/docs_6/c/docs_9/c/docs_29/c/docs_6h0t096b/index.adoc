@@ -14,9 +14,9 @@ Logic programs normally do not need to reference `fieldOverride` directly — re
 
 [source]
 ----
-% use the override if the user has entered one, otherwise the calculated value
-effectiveOwner(Card, Value) :- fieldOverride(Card, "moduleName/fieldTypes/owner", Value).
-effectiveOwner(Card, Value) :-
-    fieldCalculated(Card, "moduleName/fieldTypes/owner", Value),
-    not fieldOverride(Card, "moduleName/fieldTypes/owner", _).
+% notify when a manually entered risk level deviates from the calculated value
+notification(Card, "Risk", "Manual risk level", "The risk level was entered manually and differs from the calculated value.") :-
+    fieldOverride(Card, "moduleName/fieldTypes/riskLevel", Override),
+    fieldCalculated(Card, "moduleName/fieldTypes/riskLevel", Calculated),
+    Override != Calculated.
 ----
