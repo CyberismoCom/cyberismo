@@ -8,6 +8,8 @@
 
 The `field` predicate declares that a field of an object has a specific value.
 
-Cyberismo generates `field` facts for the properties of cards and other resources. Logic programs can use `field` in the heads of rules to define calculated fields.
+Cyberismo generates `field` facts for the properties of cards and other resources. For a calculated field, Cyberismo derives the `field` value automatically: from the `{{#xref}}"cardKey":"docs_ob1wsa0g"{{/xref}}` value, or from the user's `{{#xref}}"cardKey":"docs_6h0t096b"{{/xref}}` value when the field has been overridden.
+
+`field` therefore always holds the effective value of a field — regardless of whether the field is stored or calculated, and whether an override is in effect or not. Whenever a rule needs the value of a field, read `field`. To define the value of a calculated field, use a `{{#xref}}"cardKey":"docs_ob1wsa0g"{{/xref}}` head.
 
 When you define values of fields with facts or rules, the logic program also needs to include information about the data type of the field. If the field is based on a field type configuration, then the data type is available automatically from the field type, but in other cases, you should also define a data type for the field using `{{#xref}}"cardKey":"docs_aozy8cfm"{{/xref}}`.
