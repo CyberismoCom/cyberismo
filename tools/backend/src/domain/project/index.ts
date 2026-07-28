@@ -14,9 +14,10 @@
 import { Hono } from 'hono';
 import { zValidator } from '../../middleware/zvalidator.js';
 import {
-  hubLocationSchema,
+  addHubSchema,
   importModuleSchema,
   moduleParamSchema,
+  removeHubSchema,
   updateProjectSchema,
 } from './schema.js';
 import * as projectService from './service.js';
@@ -102,7 +103,7 @@ router.get('/hubs', requireRole(UserRole.Reader), async (c) => {
 router.post(
   '/hubs',
   requireRole(UserRole.Admin),
-  zValidator('json', hubLocationSchema),
+  zValidator('json', addHubSchema),
   async (c) => {
     const commands = c.get('commands');
     const { location } = c.req.valid('json');
@@ -114,7 +115,7 @@ router.post(
 router.delete(
   '/hubs',
   requireRole(UserRole.Admin),
-  zValidator('query', hubLocationSchema),
+  zValidator('query', removeHubSchema),
   async (c) => {
     const commands = c.get('commands');
     const { location } = c.req.valid('query');

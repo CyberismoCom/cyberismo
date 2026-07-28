@@ -216,11 +216,15 @@ describe('Hub endpoints', () => {
     expect(afterDelete).toHaveLength(1);
   });
 
-  test('POST /api/project/hubs returns 400 for non-HTTP location', async () => {
+  test.each([
+    ['a non-HTTP scheme', 'ftp://example.com/hub'],
+    ['a bare scheme', 'https://'],
+    ['a string with no scheme', 'not-a-url'],
+  ])('POST /api/project/hubs returns 400 for %s', async (_name, location) => {
     const response = await app.request('/api/projects/test/project/hubs', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ location: 'ftp://example.com/hub' }),
+      body: JSON.stringify({ location }),
     });
     expect(response.status).toBe(400);
   });
