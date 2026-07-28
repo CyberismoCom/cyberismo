@@ -181,30 +181,37 @@ describe('edit card', () => {
     ).rejects.toThrow(/Cannot edit calculated field/);
   });
 
-  it('editing a calculated field with override enabled persists the override', async () => {
-    const freshTestDir = join(baseDir, 'tmp-edit-override-test');
+  // Fresh project where 'decision/fieldTypes/obsoletedBy' allows override.
+  async function projectWithOverrideEnabled(testDirName: string) {
+    const freshTestDir = join(baseDir, testDirName);
     mkdirSync(freshTestDir, { recursive: true });
+    await copyDir('test/test-data/', freshTestDir);
+    const projectPath = join(freshTestDir, 'valid/decision-records');
+
+    const cardTypePath = join(
+      projectPath,
+      '.cards/local/cardTypes/decision.json',
+    );
+    const cardType = JSON.parse(readFileSync(cardTypePath, 'utf-8'));
+    const field = cardType.customFields.find(
+      (f: { name: string }) => f.name === 'decision/fieldTypes/obsoletedBy',
+    );
+    expect(field).toBeDefined();
+    field.enableOverride = true;
+    writeFileSync(cardTypePath, JSON.stringify(cardType));
+
+    const freshCommands = new CommandManager(projectPath, {
+      autoSaveConfiguration: false,
+    });
+    await freshCommands.initialize();
+    return { freshTestDir, freshCommands };
+  }
+
+  it('editing a calculated field with override enabled persists the override', async () => {
+    const { freshTestDir, freshCommands } = await projectWithOverrideEnabled(
+      'tmp-edit-override-test',
+    );
     try {
-      await copyDir('test/test-data/', freshTestDir);
-      const projectPath = join(freshTestDir, 'valid/decision-records');
-
-      const cardTypePath = join(
-        projectPath,
-        '.cards/local/cardTypes/decision.json',
-      );
-      const cardType = JSON.parse(readFileSync(cardTypePath, 'utf-8'));
-      const field = cardType.customFields.find(
-        (f: { name: string }) => f.name === 'decision/fieldTypes/obsoletedBy',
-      );
-      expect(field).toBeDefined();
-      field.enableOverride = true;
-      writeFileSync(cardTypePath, JSON.stringify(cardType));
-
-      const freshCommands = new CommandManager(projectPath, {
-        autoSaveConfiguration: false,
-      });
-      await freshCommands.initialize();
-
       await expect(
         freshCommands.editCmd.editCardMetadata(
           'decision_6',
@@ -218,7 +225,7 @@ describe('edit card', () => {
         'decision_999',
       );
 
-      // Clearing the override (saving null) also works.
+      // Clearing the override (saving null) removes the key entirely.
       await expect(
         freshCommands.editCmd.editCardMetadata(
           'decision_6',
@@ -228,7 +235,40 @@ describe('edit card', () => {
       ).resolves.not.toThrow();
 
       const cleared = freshCommands.project.findCard('decision_6');
-      expect(cleared.metadata!['decision/fieldTypes/obsoletedBy']).toBeNull();
+      expect(cleared.metadata!).not.toHaveProperty([
+        'decision/fieldTypes/obsoletedBy',
+      ]);
+
+      const persisted = JSON.parse(
+        readFileSync(join(cleared.path, 'index.json'), 'utf-8'),
+      );
+      expect(persisted).not.toHaveProperty(['decision/fieldTypes/obsoletedBy']);
+    } finally {
+      rmSync(freshTestDir, { recursive: true, force: true });
+    }
+  });
+
+  it('clearing a calculated field with no stored override is a no-op', async () => {
+    const { freshTestDir, freshCommands } = await projectWithOverrideEnabled(
+      'tmp-edit-override-noop-test',
+    );
+    try {
+      const card = freshCommands.project.findCard('decision_6');
+      const metadataFile = join(card.path, 'index.json');
+      const before = readFileSync(metadataFile, 'utf-8');
+      expect(JSON.parse(before)).not.toHaveProperty([
+        'decision/fieldTypes/obsoletedBy',
+      ]);
+
+      await expect(
+        freshCommands.editCmd.editCardMetadata(
+          'decision_6',
+          'decision/fieldTypes/obsoletedBy',
+          null,
+        ),
+      ).resolves.not.toThrow();
+
+      expect(readFileSync(metadataFile, 'utf-8')).toBe(before);
     } finally {
       rmSync(freshTestDir, { recursive: true, force: true });
     }
