@@ -35,7 +35,7 @@ function calculationPath(projectPath: string) {
   return join(projectPath, '.cards/local/calculations/test/calculation.lp');
 }
 
-// Appends a designer calculation for FIELD, applying to every project card,
+// Appends a calculation for FIELD, applying to every project card,
 // so the "calculated value" half of the override/calculated resolution can
 // be exercised alongside a stored override.
 function appendFieldCalculatedRule(projectPath: string) {
@@ -78,7 +78,7 @@ describe('fieldOverride fact generation', () => {
     metadata[FIELD] = 'decision_999';
     writeFileSync(cardJsonPath, JSON.stringify(metadata, null, 4));
 
-    // Add a designer calculation for the same field, so the effective value
+    // Add a calculation for the same field, so the effective value
     // derivation (override wins over calculated) can be exercised too.
     appendFieldCalculatedRule(projectPath);
 
@@ -405,7 +405,7 @@ describe('fieldCalculated is ignored for a field the card type does not declare 
     field.isCalculated = false;
     writeFileSync(cardTypePath, JSON.stringify(cardType, null, 4));
 
-    // A designer calculation still produces a value for that same field...
+    // A calculation still produces a value for that same field...
     appendFieldCalculatedRule(projectPath);
 
     // ...and the user has stored a (different) value for it.

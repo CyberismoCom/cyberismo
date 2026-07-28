@@ -66,7 +66,7 @@ calculatedLink(Source, Destination, LinkType, LinkDescription) :-
     not userLink(Source, Destination, LinkType, LinkDescription).
 
 % calculated fields with override support:
-% a user override wins; otherwise the designer-calculated value applies.
+% a user override wins; otherwise the calculated value applies.
 % fieldCalculated only takes effect for fields the card type actually declares
 % calculated; otherwise the calculation output is ignored and any stored value
 % stands on its own. This avoids a spurious "conflicting values" warning when a

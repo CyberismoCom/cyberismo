@@ -100,7 +100,7 @@ resultField((Card, Field), "value", Value, DataType) :-
     dataType(Card, Field, DataType),
     field(Card, Field, Value).
 
-% add the designer-calculated value (shown as "Automatic value" in the UI)
+% add the calculated value (shown as "Automatic value" in the UI)
 resultField((Card, Field), "calculatedValue", Value, DataType) :-
     childResult(Card, (Card, Field), "fields"),
     dataType(Card, Field, DataType),
