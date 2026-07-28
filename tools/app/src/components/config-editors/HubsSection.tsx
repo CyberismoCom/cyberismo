@@ -190,7 +190,13 @@ export function HubsSection({ disabled }: HubsSectionProps) {
       )}
 
       {hubs?.map((hub) => (
-        <Card key={hub.location} size="sm" variant="soft" color="neutral">
+        <Card
+          key={hub.location}
+          size="sm"
+          variant="soft"
+          color="neutral"
+          data-cy="hubCard"
+        >
           <Stack
             direction="row"
             justifyContent="space-between"
@@ -221,6 +227,7 @@ export function HubsSection({ disabled }: HubsSectionProps) {
                 setHubToDelete(hub);
                 openModal('deleteHub')();
               }}
+              data-cy="deleteHubButton"
             >
               {t('delete')}
             </Button>
@@ -237,6 +244,7 @@ export function HubsSection({ disabled }: HubsSectionProps) {
                 <OptionCard
                   key={mod.name}
                   size="sm"
+                  data-cy="hubModuleCard"
                   title={mod.displayName || mod.name}
                   caption={`${t('general.cardKeyPrefix')}: ${mod.name}`}
                   action={
