@@ -446,8 +446,11 @@ export class Show {
         resolve(this.project.basePath, MODULE_LIST_FULL_PATH),
       )) as ModuleListFile;
       cachedHubs = moduleList.hubs ?? [];
-    } catch {
-      // Module list doesn't exist; hubs are shown without modules.
+    } catch (error) {
+      this.logger.info(
+        error,
+        'No readable module list; showing hubs without modules',
+      );
     }
 
     return this.project.configuration.hubs.map((hub) => {

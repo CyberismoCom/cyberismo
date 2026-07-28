@@ -139,8 +139,9 @@ export async function deleteModule(commands: CommandManager, module: string) {
 async function populateHubCache(commands: CommandManager) {
   try {
     await commands.fetchCmd.ensureModuleListExists();
-  } catch {
+  } catch (error) {
     // An unreachable hub must not fail listing the hubs we already know about.
+    console.warn('Failed to populate the hub cache', error);
   }
 }
 

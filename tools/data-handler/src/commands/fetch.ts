@@ -275,7 +275,8 @@ export class Fetch {
     let cached: ModuleListFile | undefined;
     try {
       cached = (await readJsonFile(this.moduleListPath)) as ModuleListFile;
-    } catch {
+    } catch (error) {
+      this.logger.info(error, 'Not pruning hub cache: no readable module list');
       return;
     }
     if (!Array.isArray(cached?.hubs)) {
@@ -317,7 +318,11 @@ export class Fetch {
           .filter((hub) => Array.isArray(hub.modules))
           .map((hub) => [hub.location, hub]),
       );
-    } catch {
+    } catch (error) {
+      this.logger.info(
+        error,
+        'No readable module list; fetching without cached fallbacks',
+      );
       return new Map();
     }
   }
