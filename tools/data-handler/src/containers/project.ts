@@ -235,8 +235,12 @@ export class Project extends CardContainer {
       return (cardType.customFields ?? []).some(
         (field) => field.name === fieldName && field.isCalculated,
       );
-    } catch {
-      return false; // unknown card type; treat as a normal field
+    } catch (error) {
+      this.logger.warn(
+        error,
+        `Could not resolve card type '${card.metadata.cardType}' of card '${card.key}'; treating field '${fieldName}' as not calculated`,
+      );
+      return false;
     }
   }
 

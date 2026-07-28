@@ -20,12 +20,15 @@ import { ActionGuard } from '../permissions/action-guard.js';
 import { Project } from '../containers/project.js';
 import { UserPreferences } from '../utils/user-preferences.js';
 import { write } from '../utils/rw-lock.js';
+import { getChildLogger } from '../utils/log-utils.js';
 
 import type {
   Card,
   MetadataContent,
 } from '../interfaces/project-interfaces.js';
 import type { CustomField } from '../interfaces/resource-interfaces.js';
+
+const logger = getChildLogger({ module: 'edit' });
 
 export class Edit {
   private project: Project;
@@ -138,8 +141,13 @@ export class Edit {
         .byType(card.metadata.cardType, 'cardTypes')
         .show();
       customField = cardType.customFields.find((f) => f.name === fieldName);
-    } catch {
-      return; // unknown card type; project validation reports this separately
+    } catch (error) {
+      // Project validation reports a broken card type separately.
+      logger.warn(
+        error,
+        `Could not resolve card type '${card.metadata.cardType}' of card '${card.key}'; skipping the calculated-field edit guard`,
+      );
+      return;
     }
     if (customField?.isCalculated && !customField.enableOverride) {
       throw new Error(

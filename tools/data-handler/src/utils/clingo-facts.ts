@@ -35,7 +35,10 @@ import type {
 import { ClingoProgramBuilder } from './clingo-program-builder.js';
 import { isPredefinedField } from './constants.js';
 import { isTemplateCard } from '../utils/card-utils.js';
+import { getChildLogger } from './log-utils.js';
 import type { Project } from '../containers/project.js';
+
+const logger = getChildLogger({ module: 'clingo-facts' });
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Facts {
@@ -241,8 +244,11 @@ export const createCardFacts = async (card: Card, project: Project) => {
           lockedCalculatedFields.add(customField.name);
         }
       }
-    } catch {
-      // Unknown card type; facts fall back to plain field().
+    } catch (error) {
+      logger.warn(
+        error,
+        `Could not resolve card type '${card.metadata.cardType}' of card '${card.key}'; emitting stored values as plain field() facts`,
+      );
     }
   }
 
