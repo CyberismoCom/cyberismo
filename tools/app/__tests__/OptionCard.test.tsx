@@ -62,6 +62,66 @@ describe('OptionCard', () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
+  it('selects on Enter', () => {
+    const onClick = vi.fn();
+    render(<OptionCard title="Pick me" caption="x" onClick={onClick} />);
+
+    fireEvent.keyDown(screen.getByRole('button'), { key: 'Enter' });
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('selects on Space without scrolling the page', () => {
+    const onClick = vi.fn();
+    render(<OptionCard title="Pick me" caption="x" onClick={onClick} />);
+
+    const card = screen.getByRole('button');
+    const defaultPrevented = !fireEvent.keyDown(card, { key: ' ' });
+
+    expect(onClick).toHaveBeenCalledTimes(1);
+    expect(defaultPrevented).toBe(true);
+  });
+
+  it('ignores other keys', () => {
+    const onClick = vi.fn();
+    render(<OptionCard title="Pick me" caption="x" onClick={onClick} />);
+
+    fireEvent.keyDown(screen.getByRole('button'), { key: 'a' });
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it('is a tab stop when clickable', () => {
+    render(<OptionCard title="Pick me" caption="x" onClick={vi.fn()} />);
+
+    expect(screen.getByRole('button')).toHaveAttribute('tabindex', '0');
+  });
+
+  it('is neither focusable nor selectable by keyboard while disabled', () => {
+    const onClick = vi.fn();
+    render(
+      <OptionCard title="Unavailable" caption="x" disabled onClick={onClick} />,
+    );
+
+    const card = screen.getByRole('button');
+    expect(card).toHaveAttribute('tabindex', '-1');
+    expect(card).toHaveAttribute('aria-disabled', 'true');
+
+    fireEvent.keyDown(card, { key: 'Enter' });
+    fireEvent.keyDown(card, { key: ' ' });
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  // HubsSection puts a real button in the action slot, so the card itself must
+  // stay out of the tab order and leave that button as the only interactive
+  // element.
+  it('is not a button without onClick', () => {
+    const { container } = render(
+      <OptionCard title="Just a tile" caption="x" />,
+    );
+
+    expect(screen.queryByRole('button')).toBeNull();
+    expect(container.firstElementChild).not.toHaveAttribute('tabindex');
+  });
+
   // The caller decides its own hooks; the card imposes none.
   it('carries no class of its own unless given one', () => {
     const { container, rerender } = render(<OptionCard title="No class" />);

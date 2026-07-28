@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { ReactNode } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
 import { Box, Card, CardOverflow, Grid, Stack, Typography } from '@mui/joy';
 
 export type OptionCardSize = 'sm' | 'md';
@@ -28,6 +28,9 @@ export interface OptionCardProps {
   // First line of the tinted band. Further lines go in children.
   caption?: string;
   // Top right corner: a radio, a checkbox, an icon button or a status icon.
+  // A clickable card is one tab stop, so anything here that merely reflects
+  // selection must be made inert by its caller (tabIndex -1, no pointer
+  // events); only a genuinely separate action stays focusable.
   action?: ReactNode;
   children?: ReactNode;
   size?: OptionCardSize;
@@ -46,6 +49,10 @@ export interface OptionCardProps {
  *
  * Callers render these themselves rather than describing them to a list
  * component, so each tile carries its own handlers and its own test hooks.
+ *
+ * With `onClick` the whole tile becomes a button, keyboard included. Without
+ * it the tile stays a plain container, leaving whatever sits in `action` as
+ * the only thing to interact with.
  */
 export function OptionCard({
   title,
@@ -61,13 +68,34 @@ export function OptionCard({
   'data-cy': dataCy,
 }: OptionCardProps) {
   const { width, height } = SIZES[size];
+  const clickable = onClick !== undefined;
+
+  const activate = () => {
+    if (disabled) {
+      return;
+    }
+    onClick?.();
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+    // Space would otherwise scroll the dialog behind the card.
+    event.preventDefault();
+    activate();
+  };
 
   return (
     <Card
       className={className}
       variant="outlined"
       data-cy={dataCy}
-      sx={{
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? (disabled ? -1 : 0) : undefined}
+      aria-disabled={clickable && disabled ? true : undefined}
+      onKeyDown={clickable ? handleKeyDown : undefined}
+      sx={(theme) => ({
         height,
         width,
         boxShadow: '0px 2px 2px 0px rgba(0, 0, 0, 0.5)',
@@ -77,13 +105,9 @@ export function OptionCard({
         gap: 0,
         borderRadius: RADIUS,
         ...(selected && { borderColor: 'primary.500', borderWidth: 2 }),
-      }}
-      onClick={() => {
-        if (disabled) {
-          return;
-        }
-        onClick?.();
-      }}
+        ...(clickable && { [theme.focus.selector]: theme.focus.default }),
+      })}
+      onClick={activate}
       onDoubleClick={disabled ? undefined : onDoubleClick}
     >
       <Stack

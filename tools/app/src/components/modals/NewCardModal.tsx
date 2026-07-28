@@ -157,7 +157,10 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
                             action={
                               <Radio
                                 checked={chosenTemplate === template.name}
+                                readOnly
                                 variant="soft"
+                                tabIndex={-1}
+                                sx={{ pointerEvents: 'none' }}
                               />
                             }
                           />

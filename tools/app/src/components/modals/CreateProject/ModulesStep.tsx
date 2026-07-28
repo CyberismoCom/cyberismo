@@ -53,7 +53,10 @@ export function ModulesStep({
               action={
                 <Checkbox
                   checked={selectedModules.has(mod.name)}
+                  readOnly
                   variant="soft"
+                  tabIndex={-1}
+                  sx={{ pointerEvents: 'none' }}
                 />
               }
             />

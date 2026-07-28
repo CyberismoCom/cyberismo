@@ -150,6 +150,7 @@ export function ProjectSelectionModal({
                       action={
                         <Radio
                           checked={selectedProject === p.prefix}
+                          readOnly
                           variant="soft"
                           tabIndex={-1}
                           sx={{ pointerEvents: 'none' }}

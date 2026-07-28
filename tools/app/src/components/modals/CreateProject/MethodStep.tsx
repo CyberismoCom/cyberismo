@@ -31,13 +31,29 @@ export function MethodStep({ onSelect }: MethodStepProps) {
         <OptionCard
           title={t('projectDialog.cloneFromRepo')}
           caption={t('projectDialog.cloneDescription')}
-          action={<Radio checked={false} variant="soft" />}
+          action={
+            <Radio
+              checked={false}
+              readOnly
+              variant="soft"
+              tabIndex={-1}
+              sx={{ pointerEvents: 'none' }}
+            />
+          }
           onClick={() => onSelect('clone')}
         />
         <OptionCard
           title={t('projectDialog.createFromScratch')}
           caption={t('projectDialog.createDescription')}
-          action={<Radio checked={false} variant="soft" />}
+          action={
+            <Radio
+              checked={false}
+              readOnly
+              variant="soft"
+              tabIndex={-1}
+              sx={{ pointerEvents: 'none' }}
+            />
+          }
           onClick={() => onSelect('create')}
         />
       </OptionCardGrid>
