@@ -74,10 +74,6 @@ field((Card, Field), "isCalculated", false, "boolean") :-
     field(Card, "cardType", CardType),
     not calculatedField(CardType, Field).
 
-dataType((Card, Field), "isOverridable", "boolean") :-
-    childResult(Card, (Card, Field), "fields"),
-    field((Card, Field), "isOverridable", _).
-
 resultField((Card, Field), "isOverridable", true, "boolean") :-
     result(Card),
     field(Card, "cardType", CardType),
