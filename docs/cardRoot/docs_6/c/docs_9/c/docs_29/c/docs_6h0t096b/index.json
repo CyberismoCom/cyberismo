@@ -3,7 +3,7 @@
     "cardType": "base/cardTypes/predicate",
     "workflowState": "Ready",
     "rank": "0|l",
-    "lastUpdated": "2026-07-23T05:53:42.146Z",
+    "lastUpdated": "2026-07-28T07:29:46.406Z",
     "base/fieldTypes/briefDescription": "A user-entered value that overrides the calculated value of a field",
     "base/fieldTypes/category": "Cards",
     "links": [],
