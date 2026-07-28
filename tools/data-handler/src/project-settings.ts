@@ -122,6 +122,29 @@ export class ProjectConfiguration implements ProjectSettings {
       throw new Error(`Cannot add empty hub to the project`);
     }
 
+    // Only new hubs are validated: locations already in the configuration are
+    // canonicalized for matching, but never rejected, so that a legacy or
+    // hand-edited entry can still be removed.
+    let hubUrl: URL;
+    try {
+      hubUrl = new URL(trimmedHub);
+    } catch (error) {
+      throw new Error(
+        `Invalid hub URL '${hubName}'. Please provide a valid HTTP or HTTPS URL.`,
+        { cause: error },
+      );
+    }
+    if (!['http:', 'https:'].includes(hubUrl.protocol)) {
+      throw new Error(
+        `Invalid URL protocol '${hubUrl.protocol}'. Only HTTP and HTTPS protocols are supported for hubs.`,
+      );
+    }
+    if (!hubUrl.hostname) {
+      throw new Error(
+        `Invalid hub URL '${hubName}'. Hub URL must have a valid hostname.`,
+      );
+    }
+
     // Locations naming the same directory are the same hub, however written.
     const exists = this.hubs.find(
       (item) => canonicalHubLocation(item.location) === trimmedHub,
@@ -130,26 +153,6 @@ export class ProjectConfiguration implements ProjectSettings {
       throw new Error(
         `Hub '${trimmedHub}' already exists as a hub for the project`,
       );
-    }
-
-    try {
-      const hubUrl = new URL(trimmedHub);
-      if (!['http:', 'https:'].includes(hubUrl.protocol)) {
-        throw new Error(
-          `Invalid URL protocol '${hubUrl.protocol}'. Only HTTP and HTTPS protocols are supported for hubs.`,
-        );
-      }
-      if (!hubUrl.hostname) {
-        throw new Error('Hub URL must have a valid hostname.');
-      }
-    } catch (error) {
-      if (error instanceof TypeError) {
-        throw new Error(
-          `Invalid hub URL '${trimmedHub}'. Please provide a valid HTTP or HTTPS URL.`,
-          { cause: error },
-        );
-      }
-      throw error;
     }
 
     this.hubs.push({ location: trimmedHub });

@@ -37,10 +37,13 @@ export function canonicalHubLocation(location: string): string {
     return value.slice(0, end);
   };
 
+  // Only a whole trailing segment names the file: a location such as
+  // 'https://host/hub/vendor-moduleList.json' is a directory like any other.
+  const fileSegment = `/${MODULE_LIST_FILE}`;
   const trimmed = withoutTrailingSlashes(location.trim());
   const directory = withoutTrailingSlashes(
-    trimmed.endsWith(MODULE_LIST_FILE)
-      ? trimmed.slice(0, -MODULE_LIST_FILE.length)
+    trimmed.endsWith(fileSegment)
+      ? trimmed.slice(0, -fileSegment.length)
       : trimmed,
   );
   return directory ? `${directory}/` : '';
