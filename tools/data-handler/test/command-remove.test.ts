@@ -1,13 +1,18 @@
-import { expect, it, describe, beforeEach, afterEach } from 'vitest';
+import { expect, it, describe, beforeEach, afterEach, vi } from 'vitest';
 
 // node
 import { existsSync, mkdirSync, rmSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { join, sep, resolve as pathResolve } from 'node:path';
 
 // cyberismo
 import { Cmd, Commands, CommandManager } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Fetch, Remove } from '../src/commands/index.js';
+import {
+  MODULE_LIST_FULL_PATH,
+  type ModuleListFile,
+} from '../src/commands/fetch.js';
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
 import { makeFakeModuleFixture } from './helpers/module-fixtures.js';
 
@@ -933,5 +938,129 @@ describe('remove module — spec behaviours', () => {
     expect(commands.project.allModulePrefixes()).not.toContain('drpa');
     expect(commands.project.allModulePrefixes()).not.toContain('drpb');
     expect(commands.project.allModulePrefixes()).not.toContain('drpc');
+  });
+});
+
+describe('remove hub', () => {
+  const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
+  const testDir = join(baseDir, 'tmp-remove-hub-tests');
+  const projectPath = join(testDir, 'valid/decision-records');
+  const cachePath = join(projectPath, MODULE_LIST_FULL_PATH);
+
+  const hubA = 'https://hub-a.test/hub/';
+  const hubB = 'https://hub-b.test/hub/';
+
+  let fetchStub: ReturnType<typeof vi.spyOn>;
+
+  function hubResponse(displayName: string, moduleNames: string[]) {
+    return {
+      ok: true,
+      json: async () => ({
+        description: `${displayName} description`,
+        displayName,
+        version: 1,
+        modules: moduleNames.map((name) => ({
+          name,
+          location: `https://github.com/${displayName}/${name}.git`,
+        })),
+      }),
+      headers: new Headers({ 'content-type': 'application/json' }),
+    };
+  }
+
+  async function projectWithHubs(locations: string[]) {
+    const project = getTestProject(projectPath);
+    await project.populateCaches();
+    project.configuration.hubs = locations.map((location) => ({ location }));
+    const fetchCmd = new Fetch(project);
+    return { project, fetchCmd, removeCmd: new Remove(project, fetchCmd) };
+  }
+
+  async function cachedList(): Promise<ModuleListFile> {
+    return JSON.parse(await readFile(cachePath, 'utf-8'));
+  }
+
+  beforeEach(async () => {
+    mkdirSync(testDir, { recursive: true });
+    await copyDir('test/test-data', testDir);
+    fetchStub = vi.spyOn(global, 'fetch');
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('drops the cached data of the removed hub, keeping the other hub', async () => {
+    const { fetchCmd, removeCmd } = await projectWithHubs([hubA, hubB]);
+    fetchStub
+      .mockResolvedValueOnce(hubResponse('huba', ['alpha']))
+      .mockResolvedValueOnce(hubResponse('hubb', ['beta']));
+    await fetchCmd.fetchHubs(true);
+
+    await removeCmd.remove('hub', hubA);
+
+    const cached = await cachedList();
+    expect(cached.hubs.map((hub) => hub.location)).toEqual([hubB]);
+    expect(cached.modules.map((module) => module.name)).toEqual(['beta']);
+    // Pruning must not reach the network.
+    expect(fetchStub).toHaveBeenCalledTimes(2);
+  });
+
+  it('succeeds when no module list has been cached', async () => {
+    const { project, removeCmd } = await projectWithHubs([hubA, hubB]);
+    expect(existsSync(cachePath)).toBe(false);
+
+    await removeCmd.remove('hub', hubA);
+
+    expect(project.configuration.hubs.map((hub) => hub.location)).toEqual([
+      hubB,
+    ]);
+    expect(existsSync(cachePath)).toBe(false);
+    expect(fetchStub).not.toHaveBeenCalled();
+  });
+
+  it('keeps a module that the remaining hub also offers', async () => {
+    const { fetchCmd, removeCmd } = await projectWithHubs([hubA, hubB]);
+    fetchStub
+      .mockResolvedValueOnce(hubResponse('huba', ['shared', 'alpha']))
+      .mockResolvedValueOnce(hubResponse('hubb', ['shared', 'beta']));
+    await fetchCmd.fetchHubs(true);
+    expect((await cachedList()).modules.map((module) => module.name)).toEqual([
+      'shared',
+      'alpha',
+      'beta',
+    ]);
+
+    await removeCmd.remove('hub', hubA);
+
+    const cached = await cachedList();
+    expect(cached.modules.map((module) => module.name)).toEqual([
+      'shared',
+      'beta',
+    ]);
+    // The surviving entry is the remaining hub's, not the removed hub's.
+    expect(cached.modules[0].location).toBe(
+      'https://github.com/hubb/shared.git',
+    );
+  });
+
+  it('prunes a hub cached under a legacy spelling of its location', async () => {
+    const legacyHubA = 'https://hub-a.test/hub';
+    const { fetchCmd, removeCmd } = await projectWithHubs([legacyHubA, hubB]);
+    fetchStub
+      .mockResolvedValueOnce(hubResponse('huba', ['alpha']))
+      .mockResolvedValueOnce(hubResponse('hubb', ['beta']));
+    await fetchCmd.fetchHubs(true);
+    expect((await cachedList()).hubs.map((hub) => hub.location)).toEqual([
+      legacyHubA,
+      hubB,
+    ]);
+
+    await removeCmd.remove('hub', hubA);
+
+    const cached = await cachedList();
+    expect(cached.hubs.map((hub) => hub.location)).toEqual([hubB]);
+    expect(cached.modules.map((module) => module.name)).toEqual(['beta']);
   });
 });

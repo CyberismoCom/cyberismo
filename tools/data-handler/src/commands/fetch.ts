@@ -16,7 +16,11 @@ import { mkdir } from 'node:fs/promises';
 import { resolve, sep } from 'node:path';
 
 import { hubFetch } from '../utils/git-service-client.js';
-import { hubModuleListUrl, MODULE_LIST_FILE } from '../utils/hub-utils.js';
+import {
+  canonicalHubLocation,
+  hubModuleListUrl,
+  MODULE_LIST_FILE,
+} from '../utils/hub-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { readJsonFile, writeJsonFile } from '../utils/json.js';
 import { validateJson } from '../utils/validate.js';
@@ -244,6 +248,64 @@ export class Fetch {
     await this.fetchHubs(true);
   }
 
+  // Flat view of the modules of the given hubs, deduplicated by module name.
+  // The first hub offering a name wins, so hub order is precedence order.
+  private static mergedModules(hubs: CachedHub[]): ModuleSetting[] {
+    const moduleMap: Map<string, ModuleSetting> = new Map();
+    for (const hub of hubs) {
+      for (const module of hub.modules ?? []) {
+        if (!moduleMap.has(module.name)) {
+          moduleMap.set(module.name, module);
+        }
+      }
+    }
+    return Array.from(moduleMap.values());
+  }
+
+  /**
+   * Drops cached data of hubs that are no longer configured.
+   *
+   * No hub is contacted: the flat module list is recomputed from what stays
+   * cached, so a removed hub's modules stop being offered at once instead of
+   * only at the next fetch. A missing or unreadable cache is not an error,
+   * since nothing can then be offering them either.
+   */
+  @write()
+  public async pruneUnconfiguredHubs() {
+    let cached: ModuleListFile | undefined;
+    try {
+      cached = (await readJsonFile(this.moduleListPath)) as ModuleListFile;
+    } catch {
+      return;
+    }
+    if (!Array.isArray(cached?.hubs)) {
+      return;
+    }
+
+    // Matching against what remains configured rather than against the removed
+    // location: a hub can be removed by any spelling of its location, but the
+    // entries left in the configuration are exactly the ones worth keeping.
+    const configured = new Set(
+      this.project.configuration.hubs.map((hub) =>
+        canonicalHubLocation(hub.location),
+      ),
+    );
+    const hubs = cached.hubs.filter((hub) =>
+      configured.has(canonicalHubLocation(hub.location)),
+    );
+    if (hubs.length === cached.hubs.length) {
+      return;
+    }
+
+    await writeJsonFile(this.moduleListPath, {
+      modules: Fetch.mergedModules(hubs),
+      hubs,
+    });
+    this.logger.info(
+      `Pruned data of unconfigured hubs from: ${this.moduleListPath}`,
+    );
+  }
+
   // Hubs already fetched successfully at some point, by location.
   private async cachedHubs(): Promise<Map<string, CachedHub>> {
     try {
@@ -283,7 +345,6 @@ export class Fetch {
     }
 
     const hubs = this.project.configuration.hubs;
-    const moduleMap: Map<string, ModuleSetting> = new Map([]);
     const cachedHubs: CachedHub[] = [];
     const failures: HubFetchFailure[] = [];
     const previous = await this.cachedHubs();
@@ -310,14 +371,6 @@ export class Fetch {
       }
     }
 
-    for (const cached of cachedHubs) {
-      for (const module of cached.modules) {
-        if (!moduleMap.has(module.name)) {
-          moduleMap.set(module.name, module);
-        }
-      }
-    }
-
     try {
       const normalizedBasePath = resolve(this.project.basePath);
       if (
@@ -333,7 +386,7 @@ export class Fetch {
         recursive: true,
       });
       await writeJsonFile(this.moduleListPath, {
-        modules: Array.from(moduleMap.values()),
+        modules: Fetch.mergedModules(cachedHubs),
         hubs: cachedHubs,
       });
       this.logger.info(`Module list written to: ${this.moduleListPath}`);

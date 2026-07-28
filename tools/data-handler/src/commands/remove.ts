@@ -226,6 +226,9 @@ export class Remove {
   // Remove a hub from project.
   private async removeHubLocation(name: string) {
     await this.project.configuration.removeHub(name);
+    // The cached module list still offers the removed hub's modules until it
+    // is rewritten, and nothing else rewrites it without contacting a hub.
+    await this.fetchCmd.pruneUnconfiguredHubs();
   }
 
   /**
