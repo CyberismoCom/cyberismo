@@ -331,7 +331,7 @@ describe('disabling override on a calculated field that holds values', () => {
 // rather than colliding with it as a "Conflicting field values" notification.
 describe('stored value on a calculated non-overridable field is dormant', () => {
   const baseDir = import.meta.dirname;
-  const testDir = join(baseDir, 'tmp-locked-calculated-tests');
+  const testDir = join(baseDir, 'tmp-dormant-calculated-tests');
   const projectPath = join(testDir, 'valid/decision-records');
   let commands: CommandManager;
 
