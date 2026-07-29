@@ -16,7 +16,7 @@ import { createSlice, nanoid } from '@reduxjs/toolkit';
 export interface Notification {
   id: string;
   message: string;
-  type: 'success' | 'error' | 'info';
+  type: 'success' | 'error' | 'warning' | 'info';
   closed: boolean;
   createdAt: number;
   disableAutoClose: boolean;

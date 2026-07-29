@@ -35,6 +35,7 @@ import { useModals } from '@/lib/utils';
 import { ModuleDeleteModal, AddModuleModal } from '@/components/modals';
 import { addNotification } from '@/lib/slices/notifications';
 import BaseEditor from './BaseEditor';
+import { useCleanPrompt } from './useCleanPrompt';
 import FieldRow from './fields/FieldRow';
 import HubsSection from './HubsSection';
 import TextInput from './fields/TextInput';
@@ -67,6 +68,7 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
   } | null>(null);
   const dispatch = useAppDispatch();
   const isAdmin = useHasMinRole(UserRole.Admin);
+  const { maybePromptClean, cleanPromptModal } = useCleanPrompt();
 
   const isDisabled = Boolean(node.readOnly) || !isAdmin;
 
@@ -284,6 +286,7 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
                         type: 'success',
                       }),
                     );
+                    await maybePromptClean();
                   } catch (error) {
                     dispatch(
                       addNotification({
@@ -325,7 +328,22 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
                     isUpdating() ||
                     isDisabled
                   }
-                  onClick={() => updateModule(mod.cardKeyPrefix)}
+                  onClick={async () => {
+                    try {
+                      await updateModule(mod.cardKeyPrefix);
+                      await maybePromptClean();
+                    } catch (error) {
+                      dispatch(
+                        addNotification({
+                          message:
+                            error instanceof Error
+                              ? error.message
+                              : t('failedToLoad'),
+                          type: 'error',
+                        }),
+                      );
+                    }
+                  }}
                 >
                   {t('update')}
                 </Button>
@@ -369,6 +387,7 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
         onClose={closeModal('addModule')}
         onAdd={addModule}
       />
+      {cleanPromptModal}
     </BaseEditor>
   );
 }

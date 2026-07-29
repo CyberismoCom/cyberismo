@@ -13,7 +13,10 @@
 
 import type { SWRConfiguration } from 'swr';
 import useSWR, { mutate } from 'swr';
-import type { ModuleSettingFromHub } from '@cyberismo/data-handler';
+import type {
+  CleanResult,
+  ModuleSettingFromHub,
+} from '@cyberismo/data-handler';
 import { projectApiPaths, callApi } from '../swr';
 import { useSWRHook } from './common';
 import type { Hub, HubFetchResult, ProjectSettingsUpdate } from './types';
@@ -48,6 +51,27 @@ export const updateProjectModule = async (
   await callApi(apiPaths.projectModuleUpdate(moduleName), 'POST');
   mutate(apiPaths.project());
   mutate(apiPaths.resourceTree());
+};
+
+/**
+ * Reports the field values that cards store but their card types no longer use
+ * and, unless `dryRun` is set, removes them.
+ */
+export const cleanProject = async (
+  dryRun: boolean,
+  projectPrefix?: string,
+): Promise<CleanResult> => {
+  const apiPaths = projectApiPaths(projectPrefix);
+  const result = await callApi<CleanResult>(apiPaths.projectClean(), 'POST', {
+    dryRun,
+  });
+  if (!dryRun) {
+    const cardsKey = apiPaths.cards();
+    mutate((key) => typeof key === 'string' && key.startsWith(cardsKey));
+    // Tree columns are calculated from the stored field values.
+    mutate(apiPaths.tree());
+  }
+  return result;
 };
 
 export const useProjectModulesImportable = (projectPrefix?: string) =>
