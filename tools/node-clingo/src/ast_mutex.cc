@@ -1,6 +1,6 @@
 /**
   Cyberismo
-  Copyright © Cyberismo Ltd and contributors 2025
+  Copyright © Cyberismo Ltd and contributors 2026
   This program is free software: you can redistribute it and/or modify it under
   the terms of the GNU Affero General Public License version 3 as published by
   the Free Software Foundation.
@@ -10,25 +10,11 @@
   details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-#ifndef NODE_CLINGO_CLINGO_SOLVER_H
-#define NODE_CLINGO_CLINGO_SOLVER_H
-
-#include <sstream>
-
-#include <clingo.hh>
-
-#include "function_handlers.h"
-#include "helpers.h"
-#include "program_store.h"
-#include "solve_result_cache.h"
+#include "ast_mutex.h"
 
 namespace node_clingo
 {
+    static std::mutex g_ast_mutex;
 
-    class ClingoSolver {
-      public:
-        SolveResult solve(const Query& query);
-    };
+    std::mutex& ast_mutex() { return g_ast_mutex; }
 } // namespace node_clingo
-
-#endif // NODE_CLINGO_CLINGO_SOLVER_H

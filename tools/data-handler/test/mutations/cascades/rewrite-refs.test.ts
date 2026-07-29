@@ -63,10 +63,12 @@ describe('rewriteContentFileRefs happy path', () => {
       'test',
       'calculation.lp',
     );
-    // Seed a known token before the caches load the content files.
+    // Seed a known token before the caches load the content files. The marker
+    // is wrapped in a clingo fact because updateFile rejects calculation.lp
+    // content that is not a valid logic program.
     for (const file of [reportHbsFile, calculationLpFile]) {
       const original = (await readFile(file)).toString();
-      await writeFile(file, original + '\nMARKER_REWRITE_FROM\n');
+      await writeFile(file, original + '\nmarker("MARKER_REWRITE_FROM").\n');
     }
     project = new Project(fixturePath);
     await project.populateCaches();
@@ -87,6 +89,49 @@ describe('rewriteContentFileRefs happy path', () => {
       expect(updated).toContain('MARKER_REWRITE_TO');
       expect(updated).not.toContain('MARKER_REWRITE_FROM');
     }
+  });
+});
+
+describe('rewriteContentFileRefs with invalid calculation on disk', () => {
+  const invalidTestDir = join(import.meta.dirname, 'tmp-rewrite-invalid-calc');
+  const invalidFixturePath = join(invalidTestDir, 'valid', 'decision-records');
+  let project: Project;
+
+  beforeAll(async () => {
+    await mkdir(invalidTestDir, { recursive: true });
+    await copyDir('test/test-data/', invalidTestDir);
+    // Written directly on disk (the update path rejects invalid programs) so
+    // the cache loads an already-invalid calculation that mentions the name
+    // being renamed, simulating a broken .lp from git pull or hand-editing.
+    await writeFile(
+      join(
+        invalidFixturePath,
+        '.cards',
+        'local',
+        'calculations',
+        'test',
+        'calculation.lp',
+      ),
+      'marker("MARKER_INVALID_FROM") broken((\n',
+    );
+    project = new Project(invalidFixturePath);
+    await project.populateCaches();
+  });
+
+  afterAll(async () => {
+    await deleteDir(invalidTestDir);
+  });
+
+  it('rename cascade fails with an error naming the invalid calculation', async () => {
+    await expect(
+      rewriteContentFileRefs(
+        project,
+        'MARKER_INVALID_FROM',
+        'MARKER_INVALID_TO',
+      ),
+    ).rejects.toThrow(
+      /Invalid logic program for 'decision\/calculations\/test' update:[\s\S]*syntax error/,
+    );
   });
 });
 

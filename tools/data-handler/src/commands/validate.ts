@@ -559,6 +559,17 @@ export class Validate {
           }
         }
 
+        // Validate calculations; files on disk may have been edited by hand
+        // and bypassed validation at creation or update time. Each is checked
+        // independently so all failures are reported.
+        for (const calculation of project.resources.calculations()) {
+          try {
+            await calculation.validate();
+          } catch (error) {
+            errorMsg.push(errorFunction(error));
+          }
+        }
+
         // Finally, validate that each card is correct
         const cards = project.cards();
         cards.push(...project.allTemplateCards());

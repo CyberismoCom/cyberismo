@@ -59,4 +59,18 @@ describe('command-handler: validate command', () => {
       rmSync(tmpDir, { recursive: true, force: true });
     }
   });
+  it('reports every invalid calculation with diagnostics', async () => {
+    // Calculation create/update rejects invalid logic programs; files edited
+    // by hand or brought in by git pull must be caught by project validation,
+    // and each file must be validated independently so all failures are listed.
+    const result = await commandHandler.command(Cmd.validate, [], {
+      projectPath: join(testDir, 'invalid/invalid-calculations'),
+    });
+    expect(result.statusCode).toBe(200);
+    expect(result.message).toContain('mini/calculations/syntaxError');
+    expect(result.message).toContain('syntax error');
+    expect(result.message).toContain('mini/calculations/unsafeVars');
+    expect(result.message).toContain('unsafe variables');
+    expect(result.message).not.toContain('mini/calculations/validCalc');
+  });
 });

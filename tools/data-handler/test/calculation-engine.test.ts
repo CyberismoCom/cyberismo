@@ -215,3 +215,48 @@ describe('calculate', () => {
     });
   });
 });
+
+describe('calculation validation on generate', () => {
+  // The fixture contains broken calculations on disk, simulating invalid .lp
+  // files arriving via git pull or hand-editing.
+  const baseDir = import.meta.dirname;
+  const testDir = join(baseDir, 'tmp-calculate-validation-tests');
+  const projectPath = join(testDir, 'invalid/invalid-calculations');
+  const brokenCalcName = 'mini/calculations/syntaxError';
+  const validCalcName = 'mini/calculations/validCalc';
+  let project: Project;
+
+  beforeAll(async () => {
+    mkdirSync(testDir, { recursive: true });
+    await copyDir('test/test-data/', testDir);
+    project = getTestProject(projectPath);
+    await project.populateCaches();
+  });
+
+  afterAll(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('skips a broken calculation and keeps queries working', async () => {
+    // Guard against a vacuous pass: both fixture calculations must be
+    // registered resources and the broken one's cached content invalid.
+    const calculations = project.resources.calculations();
+    const broken = calculations.find((c) => c.data?.name === brokenCalcName);
+    expect(broken).toBeDefined();
+    expect(broken!.validateLogicProgram().valid).toBe(false);
+    expect(calculations.some((c) => c.data?.name === validCalcName)).toBe(true);
+
+    await project.calculationEngine.generate();
+
+    // Queries must not throw; a broken calculation registered under the
+    // shared category would make every solve fail.
+    await project.calculationEngine.runQuery('tree');
+
+    // The valid calculation must still be part of the program set; this fails
+    // if generate() starts skipping every calculation.
+    const valid = await project.calculationEngine.runLogicProgram(
+      'result(X) :- validCalcFact(X).',
+    );
+    expect(valid.results.map((r) => r.key)).toEqual(['42']);
+  });
+});

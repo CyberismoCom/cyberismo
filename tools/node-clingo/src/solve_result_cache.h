@@ -29,6 +29,10 @@
 
 namespace node_clingo
 {
+    // Message limit passed to Clingo::Control loggers (unsigned to match the
+    // clingo API's message_limit parameter).
+    const unsigned MAX_CLINGO_LOG_MESSAGES = 50;
+
     struct ClingoLogMessage
     {
         Clingo::WarningCode code;

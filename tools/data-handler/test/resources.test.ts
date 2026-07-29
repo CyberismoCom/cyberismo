@@ -1,7 +1,7 @@
 import { expect, describe, it, beforeAll, afterAll } from 'vitest';
 
 import { join } from 'node:path';
-import { mkdirSync, rmSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync } from 'node:fs';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { getTestProject } from './helpers/test-utils.js';
@@ -1851,6 +1851,54 @@ describe('resources', function () {
       );
       const data = await res.show();
       expect(data.content.calculation).toBe(newCalculationContent);
+    });
+    it('update calculation - valid logic program is written to disk', async () => {
+      const name = 'decision/calculations/newCALCWithContent';
+      const res = project.resources.byType(name, 'calculations');
+      const validContent = 'validGateFact(42).';
+      await res.update(
+        { key: 'content', subKey: 'calculation' },
+        {
+          name: 'change',
+          target: '',
+          to: validContent,
+        },
+      );
+      const calculationFile = join(
+        decisionRecordsPath,
+        '.cards/local/calculations/newCALCWithContent/calculation.lp',
+      );
+      expect(readFileSync(calculationFile, 'utf-8')).toBe(validContent);
+    });
+    it('update calculation - invalid logic program is rejected and file unchanged', async () => {
+      const name = 'decision/calculations/newCALCWithContent';
+      const res = project.resources.byType(name, 'calculations');
+      const baselineContent = 'gateBaselineFact(1).';
+      await res.update(
+        { key: 'content', subKey: 'calculation' },
+        {
+          name: 'change',
+          target: '',
+          to: baselineContent,
+        },
+      );
+      await expect(
+        res.update(
+          { key: 'content', subKey: 'calculation' },
+          {
+            name: 'change',
+            target: '',
+            to: 'broken((',
+          },
+        ),
+      ).rejects.toThrow(
+        /Invalid logic program for 'decision\/calculations\/newCALCWithContent' update:[\s\S]*syntax error/,
+      );
+      const calculationFile = join(
+        decisionRecordsPath,
+        '.cards/local/calculations/newCALCWithContent/calculation.lp',
+      );
+      expect(readFileSync(calculationFile, 'utf-8')).toBe(baselineContent);
     });
     it('update calculation - name', async () => {
       const name = 'decision/calculations/calcForRename';

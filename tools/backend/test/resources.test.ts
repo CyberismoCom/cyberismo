@@ -69,6 +69,18 @@ test('/api/projects/decision/resources/decision/cardTypes/decision/validate retu
   expect(result.errors).toEqual([]);
 });
 
+test('/api/projects/decision/resources/decision/calculations/test/validate returns validation result for valid calculation', async () => {
+  const response = await app.request(
+    '/api/projects/decision/resources/decision/calculations/test/validate',
+  );
+  expect(response).not.toBe(null);
+
+  const result = await response.json();
+  expect(response.status).toBe(200);
+  expect(result).toHaveProperty('errors');
+  expect(result.errors).toEqual([]);
+});
+
 test('/api/projects/decision/resources/decision/cardTypes/decision/operation performs change operation successfully', async () => {
   const cardTypeBefore = await getCardTypeByName('decision/cardTypes/decision');
   expect(cardTypeBefore.displayName).toBeDefined();

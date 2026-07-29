@@ -21,10 +21,15 @@ describe('validate cmd tests', () => {
   const testDir = join(baseDir, 'test-data');
   const validateCmd = Validate.getInstance();
   let validProject: Project;
+  let invalidCalcProject: Project;
 
   beforeAll(async () => {
     validProject = getTestProject('test/test-data/valid/decision-records');
     await validProject.populateCaches();
+    invalidCalcProject = getTestProject(
+      'test/test-data/invalid/invalid-calculations',
+    );
+    await invalidCalcProject.populateCaches();
   });
 
   it('validate() - decision-records (success)', async () => {
@@ -544,5 +549,24 @@ describe('validate cmd tests', () => {
     const result = await validateCmd.validateResource(resource, validProject);
     expect(result).toBe('');
     expect(result.length).toBe(0);
+  });
+
+  it('validateResource() - valid calculation (success)', async () => {
+    const resource = resourceName('mini/calculations/validCalc');
+    const result = await validateCmd.validateResource(
+      resource,
+      invalidCalcProject,
+    );
+    expect(result).toBe('');
+  });
+
+  it('validateResource() - calculation with invalid logic program (failure)', async () => {
+    const resource = resourceName('mini/calculations/syntaxError');
+    const result = await validateCmd.validateResource(
+      resource,
+      invalidCalcProject,
+    );
+    expect(result).toContain('mini/calculations/syntaxError');
+    expect(result).toContain('syntax error');
   });
 });

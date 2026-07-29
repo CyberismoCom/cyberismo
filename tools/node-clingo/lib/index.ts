@@ -36,9 +36,19 @@ export interface ClingoOptions {
   preParsing?: boolean;
 }
 
+/**
+ * Result of validating a logic program without solving it.
+ */
+export interface ClingoValidationResult {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
 interface NativeBinding {
   ClingoContext: new (options?: ClingoOptions) => NativeClingoContext;
   clearCache(): void;
+  validateProgram(program: string): ClingoValidationResult;
 }
 
 const require = createRequire(import.meta.url);
@@ -215,6 +225,15 @@ export class ClingoContext {
  */
 export function clearCache(): void {
   nativeBinding!.clearCache();
+}
+
+/**
+ * Validates a logic program without grounding or solving it.
+ * Catches syntax errors and safety errors (e.g. unsafe variables).
+ * Invalid input is reported in the result, not thrown.
+ */
+export function validateProgram(program: string): ClingoValidationResult {
+  return nativeBinding!.validateProgram(program);
 }
 
 export default ClingoContext;
