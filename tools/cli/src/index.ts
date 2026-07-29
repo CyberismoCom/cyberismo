@@ -1735,4 +1735,18 @@ publishCmd.action(async (options: CommandOptions<'publish'>) => {
   handleResponse(result);
 });
 
+// Clean command - removes field values that are not used by card types
+const cleanCmd = new CommandWithPath('clean')
+  .description(
+    'Remove field values that card types no longer use (null placeholders, removed fields, values on calculated fields)',
+  )
+  .option('--dry-run', 'Show what would be cleaned without cleaning');
+program.addCommand(cleanCmd);
+cleanCmd.action(async (options: CommandOptions<'clean'>) => {
+  const mergedOptions = Object.assign({}, options, program.opts());
+  const args = [options.dryRun ? 'true' : 'false'];
+  const result = await commandHandler.command(Cmd.clean, args, mergedOptions);
+  handleResponse(result);
+});
+
 export default program;

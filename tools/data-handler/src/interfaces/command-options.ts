@@ -114,6 +114,11 @@ export interface UpdateCommandOptions extends BaseCommandOptions {
 // Options for 'checkUpdates' command
 export type CheckUpdatesCommandOptions = BaseCommandOptions;
 
+// Options for 'clean' command
+export interface CleanCommandOptions extends BaseCommandOptions {
+  dryRun?: boolean;
+}
+
 // Options for 'updateModules' command
 export type UpdateModulesCommandOptions = BaseCommandOptions;
 
@@ -131,6 +136,7 @@ export type AllCommandOptions =
   | AddCommandOptions
   | CalcCommandOptions
   | CheckUpdatesCommandOptions
+  | CleanCommandOptions
   | CreateCommandOptions
   | EditCommandOptions
   | ExportCommandOptions
@@ -157,6 +163,7 @@ export type CommandOptions<T extends CmdKey> = {
   add: AddCommandOptions;
   calc: CalcCommandOptions;
   checkUpdates: CheckUpdatesCommandOptions;
+  clean: CleanCommandOptions;
   create: CreateCommandOptions;
   edit: EditCommandOptions;
   export: ExportCommandOptions;

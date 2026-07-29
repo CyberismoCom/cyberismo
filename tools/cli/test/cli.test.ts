@@ -2,7 +2,7 @@ import { expect, it, describe, beforeAll, afterAll } from 'vitest';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import { join } from 'node:path';
-import { existsSync, mkdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 
 const execAsync = promisify(exec);
 
@@ -302,6 +302,21 @@ describe('Cli BAT test', function () {
     expect(stdout).toContain(
       "Would publish v1.0.0 (create tag and push to remote 'origin')",
     );
+  });
+  it('Clean dry-run', async () => {
+    // Runs against a copy: a regressed --dry-run would write, and the tracked
+    // module-test fixture must not be the thing it writes to.
+    const dormantCard =
+      '.cards/local/templates/allDataTypes/c/test_y4i5enly/index.json';
+    const before = readFileSync(join(moduleTestPath, dormantCard), 'utf-8');
+    const { stdout } = await execAsync(
+      `cd ${cliPath} && cp -r ${moduleTestPath} clean-fixture && cd clean-fixture && ${cli} clean --dry-run`,
+    );
+    expect(stdout).toContain('(null-value)');
+    expect(stdout).toContain('Would remove');
+    expect(
+      readFileSync(join(cliPath, 'clean-fixture', dormantCard), 'utf-8'),
+    ).toBe(before);
   });
   it('Add default hub and check hub version', async () => {
     const { stdout } = await execAsync(
