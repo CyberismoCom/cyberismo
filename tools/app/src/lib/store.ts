@@ -27,7 +27,9 @@ import storage from 'redux-persist/es/storage';
 const persistConfig = {
   key: 'root',
   storage,
-  blacklist: ['notifications', 'swr', 'page', 'card', 'session'],
+  // Transient UI state is not persisted: rehydrating it would replay a prompt or
+  // a notification on a later visit, detached from the edit that raised it.
+  blacklist: ['notifications', 'cleanPrompt', 'swr', 'page', 'card', 'session'],
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

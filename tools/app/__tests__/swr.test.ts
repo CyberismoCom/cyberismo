@@ -67,6 +67,11 @@ describe('projectApiPaths', () => {
       );
     });
 
+    it('builds project clean path', () => {
+      const paths = projectApiPaths('TST');
+      expect(paths.projectClean()).toBe('/api/projects/TST/project/clean');
+    });
+
     it('builds project module paths', () => {
       const paths = projectApiPaths('TST');
       expect(paths.project()).toBe('/api/projects/TST/project');

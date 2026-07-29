@@ -34,6 +34,11 @@ export type {
 } from './resources/resource-object.js';
 export type { MutationInput } from './mutations/types.js';
 export type { HubFetchFailure } from './commands/fetch.js';
+export type {
+  CleanFinding,
+  CleanReason,
+  CleanResult,
+} from './commands/clean.js';
 import { evaluateMacros } from './macros/index.js';
 import { validBumps } from './commands/version.js';
 import {

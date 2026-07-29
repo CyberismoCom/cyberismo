@@ -37,6 +37,7 @@ import { addNotification } from '@/lib/slices/notifications';
 import { GenericConfirmModal } from '@/components/modals';
 import type { CardType } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import { getFieldTypeOptions } from '../resourceFieldConfigs';
+import { useCleanPrompt } from '../useCleanPrompt';
 import { EditableRowActions } from './EditableRowActions';
 import { ListRow } from './ListRow';
 import { ReorderButton, ReorderButtonContainer } from './ReorderButtons';
@@ -86,6 +87,7 @@ export function CardTypeFieldsEditor({
     updateFieldVisibility: updateVisibility,
     isUpdating: isVisibilityUpdating,
   } = useCardTypeMutations(cardType.name);
+  const { maybePromptClean } = useCleanPrompt();
 
   const {
     editingItem: editingField,
@@ -249,6 +251,7 @@ export function CardTypeFieldsEditor({
           type: 'success',
         }),
       );
+      await maybePromptClean();
     } catch (error) {
       dispatch(
         addNotification({
@@ -373,6 +376,13 @@ export function CardTypeFieldsEditor({
         }),
       );
       closeEditMode();
+
+      const orphansValues =
+        (draft.isCalculated && !field.isCalculated) ||
+        (field.enableOverride && !effectiveOverride);
+      if (orphansValues) {
+        await maybePromptClean();
+      }
     } catch (error) {
       dispatch(
         addNotification({
@@ -744,10 +754,11 @@ export function CardTypeFieldsEditor({
         open={fieldToDelete !== null}
         onClose={clearItemToDelete}
         onConfirm={async () => {
-          if (fieldToDelete) {
-            await handleDeleteField(fieldToDelete);
-          }
+          const field = fieldToDelete;
           clearItemToDelete();
+          if (field) {
+            await handleDeleteField(field);
+          }
         }}
         title={t('deleteCustomField')}
         content={t('deleteCustomFieldConfirm', { field: fieldToDelete })}
