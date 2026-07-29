@@ -235,7 +235,7 @@ export class CardContainer {
   /**
    * Removes non-metadata fields that should not be persisted.
    *
-   * @param metadata The metadata object to sanitize
+   * @param card The card whose metadata is sanitized
    * @returns Clean metadata object with only valid metadata fields
    */
   private static sanitizeMetadata(card: Card): CardMetadata {
@@ -243,6 +243,11 @@ export class CardContainer {
 
     if (card.metadata) {
       for (const [key, value] of Object.entries(card.metadata)) {
+        // JSON.stringify drops undefined, so drop it here too: the cache must
+        // not retain keys the file lacks.
+        if (value === undefined) {
+          continue;
+        }
         // Keys are not filtered out if they are: predefined, or field types
         if (isPredefinedField(key) || key.includes('/')) {
           sanitized[key] = value;
