@@ -235,9 +235,18 @@ async function solve(
       : newestFirst;
     const fromInstalled = (): Version[] => {
       const asc = [...avail].sort(semver.compare) as Version[];
-      return n.installed
+      const base = n.installed
         ? [n.installed, ...asc.filter((v) => v !== n.installed)]
         : asc;
+      // A root's declared range is a hard constraint, not just a preference:
+      // never move a bystander past its own pin to satisfy someone else's
+      // transitive demand — surface a conflict instead. The installed version
+      // is always retained so a pre-existing drift doesn't force a move here.
+      return n.declaredRange
+        ? base.filter(
+            (v) => v === n.installed || semver.satisfies(v, n.declaredRange!),
+          )
+        : base;
     };
     switch (req.kind) {
       case 'verify':
