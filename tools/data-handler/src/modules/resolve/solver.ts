@@ -62,6 +62,15 @@ interface Decision {
 }
 type Assignment = Map<string, Decision>;
 
+/** Versions a node may take, in preference order, and the range still to enforce. */
+interface Candidates {
+  versions: (Version | null)[];
+  /** Range the search must enforce; null when the request overrides it. */
+  pin: VersionRange | null;
+  /** Whether the installed version is exempt from `pin` (pre-existing drift). */
+  keepInstalled: boolean;
+}
+
 /** Solver internals shared between {@link resolve} and {@link resolveForApply}. */
 interface SolveOutcome {
   result: ResolveResult;
@@ -226,43 +235,57 @@ async function solve(
     return remote;
   };
 
-  const candidatesFor = async (n: Node): Promise<(Version | null)[]> => {
+  const candidatesFor = async (n: Node): Promise<Candidates> => {
     const avail = await availableVersions(n);
-    if (avail.length === 0) return [null]; // unversioned / tagless: install-as-is
+    // unversioned / tagless: install-as-is
+    if (avail.length === 0)
+      return { versions: [null], pin: null, keepInstalled: false };
     const newestFirst = [...avail].sort(semver.rcompare) as Version[];
-    const inRange = n.declaredRange
-      ? newestFirst.filter((v) => semver.satisfies(v, n.declaredRange!))
-      : newestFirst;
-    const fromInstalled = (): Version[] => {
+    // A declared range is a hard constraint wherever it applies, so it is
+    // handed to the search instead of pre-filtered here: the DFS can then
+    // report the version a pin excluded rather than collapsing into a generic
+    // "no version satisfies its constraints".
+    const inRange = (): Candidates => ({
+      versions: newestFirst,
+      pin: n.declaredRange,
+      keepInstalled: false,
+    });
+    // A bystander is offered its installed version first, so an update
+    // disturbs the rest of the tree as little as possible, and keeps it even
+    // when a pre-existing drift put it outside its own range.
+    const fromInstalled = (): Candidates => {
       const asc = [...avail].sort(semver.compare) as Version[];
-      const base = n.installed
-        ? [n.installed, ...asc.filter((v) => v !== n.installed)]
-        : asc;
-      // A root's declared range is a hard constraint, not just a preference:
-      // never move a bystander past its own pin to satisfy someone else's
-      // transitive demand — surface a conflict instead. The installed version
-      // is always retained so a pre-existing drift doesn't force a move here.
-      return n.declaredRange
-        ? base.filter(
-            (v) => v === n.installed || semver.satisfies(v, n.declaredRange!),
-          )
-        : base;
+      return {
+        versions: n.installed
+          ? [n.installed, ...asc.filter((v) => v !== n.installed)]
+          : asc,
+        pin: n.declaredRange,
+        keepInstalled: true,
+      };
     };
     switch (req.kind) {
       case 'verify':
         // An installed module with no version is unversioned (install-as-is),
         // not a conflict — even if its remote happens to list tags.
-        return n.installed !== null ? [n.installed] : [null];
+        return {
+          versions: n.installed !== null ? [n.installed] : [null],
+          pin: null,
+          keepInstalled: false,
+        };
       case 'update':
         if (n.name !== req.module) return fromInstalled();
-        return req.to ? [req.to] : inRange;
+        // An explicit target overrides the declaration; updateModule validates
+        // it against the project's own ranges before the engine runs.
+        return req.to
+          ? { versions: [req.to], pin: null, keepInstalled: false }
+          : inRange();
       case 'add':
-        return n.name === req.name ? inRange : fromInstalled();
+        return n.name === req.name ? inRange() : fromInstalled();
       case 'updateAll':
-        return inRange; // everything to newest-in-range, transitive included
+        return inRange(); // everything to newest-in-range, transitive included
       case 'availability': {
-        if (!req.module) return inRange; // "can I update all?" → everything to newest
-        return n.name === req.module ? inRange : fromInstalled();
+        if (!req.module) return inRange(); // "can I update all?" → newest
+        return n.name === req.module ? inRange() : fromInstalled();
       }
     }
   };
@@ -300,9 +323,24 @@ async function solve(
     if (assign.has(n.name)) return dfs(rest, assign);
     const incoming = dependentRanges(n.name, assign);
     let downgrade: { from: Version; to: Version } | undefined;
-    for (const v of await candidatesFor(n)) {
+    let pinned: { range: VersionRange; wouldNeed: Version } | undefined;
+    const { versions, pin, keepInstalled } = await candidatesFor(n);
+    for (const v of versions) {
       if (v !== null && !incoming.every((d) => semver.satisfies(v, d.range)))
         continue;
+      // Only versions that satisfy every demand on this node get here, so a
+      // pin block is actionable: widening the declared range would unblock the
+      // tree. Keep the lowest such version — the smallest move that would work.
+      if (
+        v !== null &&
+        pin &&
+        !(keepInstalled && v === n.installed) &&
+        !semver.satisfies(v, pin)
+      ) {
+        if (!pinned || semver.lt(v, pinned.wouldNeed))
+          pinned = { range: pin, wouldNeed: v };
+        continue;
+      }
       // An explicit older target is a downgrade: unreachable by replay.
       // Record and skip, so the refusal names it instead of collapsing
       // into a generic "no satisfying version".
@@ -335,6 +373,7 @@ async function solve(
       module: n.name,
       demands: incoming,
       ...(downgrade && incoming.length === 0 ? { downgrade } : {}),
+      ...(pinned ? { pinned } : {}),
     });
     return false;
   };
@@ -345,15 +384,22 @@ async function solve(
     assign,
   );
   if (!ok) {
-    // Dedupe by module: keep the richest demand set, drop dead-branch noise.
+    // Dedupe by module: keep the most informative frame, drop dead-branch
+    // noise. Demands dominate; a recorded pin or downgrade breaks ties.
+    const rank = (c: ResolveConflict) =>
+      c.demands.length * 2 + (c.pinned ? 1 : 0) + (c.downgrade ? 1 : 0);
     const byModule = new Map<string, ResolveConflict>();
     for (const c of conflicts) {
       const prev = byModule.get(c.module);
-      if (!prev || c.demands.length > prev.demands.length)
-        byModule.set(c.module, c);
+      if (!prev || rank(c) > rank(prev)) byModule.set(c.module, c);
     }
+    const all = [...byModule.values()];
+    // A frame that failed with nothing to say is an artifact of backtracking
+    // past it, not a conflict. Fall back to the full set rather than reporting
+    // a refusal with no explanation at all.
+    const informative = all.filter((c) => rank(c) > 0);
     return {
-      result: { ok: false, conflicts: [...byModule.values()] },
+      result: { ok: false, conflicts: informative.length ? informative : all },
       nodes,
       assign,
     };

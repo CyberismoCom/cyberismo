@@ -82,18 +82,31 @@ function freshRootStagingName(location: string): string {
   return `${safe}.__fresh__`;
 }
 
+function conflictReason(c: ResolveConflict): string {
+  if (c.downgrade)
+    return `cannot downgrade from ${c.downgrade.from} to ${c.downgrade.to} (downgrading is not supported)`;
+  const parts: string[] = [];
+  if (c.demands.length)
+    parts.push(
+      c.demands.map((d) => `${d.from} requires ${d.range}`).join(', '),
+    );
+  // Named separately from the demands because this is the one blocker the
+  // project itself can lift.
+  if (c.pinned)
+    parts.push(
+      `declared as '${c.pinned.range}' in this project, but ${c.pinned.wouldNeed} is needed`,
+    );
+  return parts.length
+    ? parts.join('; ')
+    : 'no version satisfies its constraints';
+}
+
 /**
  * Build a human-readable error from the engine's resolution conflicts so a
  * failed resolve aborts with the culprit ranges before any disk change.
  */
 function resolutionConflictError(conflicts: ResolveConflict[]): Error {
-  const lines = conflicts.map((c) =>
-    c.downgrade
-      ? `  ${c.module}: cannot downgrade from ${c.downgrade.from} to ${c.downgrade.to} (downgrading is not supported)`
-      : c.demands.length
-        ? `  ${c.module}: ${c.demands.map((d) => `${d.from} requires ${d.range}`).join(', ')}`
-        : `  ${c.module}: no version satisfies its constraints`,
-  );
+  const lines = conflicts.map((c) => `  ${c.module}: ${conflictReason(c)}`);
   return new Error(`Cannot resolve modules:\n${lines.join('\n')}`);
 }
 
