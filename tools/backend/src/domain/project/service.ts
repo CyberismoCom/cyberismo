@@ -12,10 +12,13 @@
 */
 
 import {
+  type CleanResult,
   type CommandManager,
   type HubFetchFailure,
   type ModuleSettingFromHub,
 } from '@cyberismo/data-handler';
+
+export type { CleanResult } from '@cyberismo/data-handler';
 
 export interface ProjectModule {
   name: string;
@@ -196,4 +199,11 @@ export async function fetchHubs(
   commands: CommandManager,
 ): Promise<HubFetchFailure[]> {
   return commands.fetchCmd.fetchHubs(true);
+}
+
+export async function cleanProject(
+  commands: CommandManager,
+  dryRun: boolean,
+): Promise<CleanResult> {
+  return commands.cleanCmd.clean(dryRun);
 }

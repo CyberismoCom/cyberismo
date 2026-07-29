@@ -44,6 +44,13 @@ export const removeHubSchema = z.object({
   location: z.string().min(1),
 });
 
+// 'dryRun' is required so that a request whose body did not arrive fails with
+// 400 instead of defaulting into the destructive real clean. The command's
+// 'cardType' narrowing is deliberately not exposed yet.
+export const cleanSchema = z.object({
+  dryRun: z.boolean(),
+});
+
 export const importModuleSchema = z.object({
   source: z
     .string()

@@ -1,9 +1,12 @@
 import { readFileSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import { beforeEach, afterEach, describe, expect, test, vi } from 'vitest';
 import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { ProjectRegistry } from '../src/project-registry.js';
-import { MockAuthProvider } from '../src/auth/mock.js';
+import { MockAuthProvider, MOCK_ROLE_COOKIE } from '../src/auth/mock.js';
+import type { CleanResult } from '../src/domain/project/service.js';
 import { cleanupTempTestData, createTempTestData } from './test-utils.js';
 
 type ProjectResponse = {
@@ -18,6 +21,18 @@ type ProjectResponse = {
     readOnly: boolean;
   }[];
 };
+
+// A local template card of the fixture that stores null placeholders.
+const TEMPLATE_CARD_KEY = 'test_y4i5enly';
+const TEMPLATE_CARD_FILE = path.join(
+  '.cards',
+  'local',
+  'templates',
+  'allDataTypes',
+  'c',
+  TEMPLATE_CARD_KEY,
+  'index.json',
+);
 
 let app: ReturnType<typeof createApp>;
 let tempTestDataPath: string;
@@ -173,6 +188,97 @@ describe('Project endpoints', () => {
       body: JSON.stringify({ source: 'not-a-git-url' }),
     });
     expect(response.status).toBe(400);
+  });
+
+  test('POST /api/project/clean with dryRun reports findings without changing cards', async () => {
+    const cardFile = path.join(tempTestDataPath, TEMPLATE_CARD_FILE);
+    const before = await readFile(cardFile, 'utf-8');
+
+    const response = await app.request('/api/projects/test/project/clean', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ dryRun: true }),
+    });
+
+    expect(response.status).toBe(200);
+    const result = (await response.json()) as CleanResult;
+    expect(result.dryRun).toBe(true);
+    expect(result.findings.length).toBeGreaterThan(0);
+    expect(result.findings[0].reason).toBe('null-value');
+    expect(result.findings.map((finding) => finding.cardKey)).toContain(
+      TEMPLATE_CARD_KEY,
+    );
+    expect(result.cardCount).toBeGreaterThan(0);
+    expect(result.skippedCards).toEqual([]);
+    expect(await readFile(cardFile, 'utf-8')).toBe(before);
+  });
+
+  test('POST /api/project/clean with dryRun false removes the unused values', async () => {
+    const cardFile = path.join(tempTestDataPath, TEMPLATE_CARD_FILE);
+
+    const response = await app.request('/api/projects/test/project/clean', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ dryRun: false }),
+    });
+
+    expect(response.status).toBe(200);
+    const result = (await response.json()) as CleanResult;
+    expect(result.dryRun).toBe(false);
+    expect(result.findings.length).toBeGreaterThan(0);
+    expect(result.failedCards).toEqual([]);
+
+    const metadata = JSON.parse(await readFile(cardFile, 'utf-8'));
+    expect(Object.values(metadata)).not.toContain(null);
+  });
+
+  test('POST /api/project/clean returns 400 for a non-boolean dryRun', async () => {
+    const response = await app.request('/api/projects/test/project/clean', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ dryRun: 'yes' }),
+    });
+
+    expect(response.status).toBe(400);
+  });
+
+  // A request without a body must not fall through to a real clean.
+  test('POST /api/project/clean returns 400 without a body', async () => {
+    const cardFile = path.join(tempTestDataPath, TEMPLATE_CARD_FILE);
+    const before = await readFile(cardFile, 'utf-8');
+
+    const response = await app.request('/api/projects/test/project/clean', {
+      method: 'POST',
+    });
+
+    expect(response.status).toBe(400);
+    expect(await readFile(cardFile, 'utf-8')).toBe(before);
+  });
+
+  test('POST /api/project/clean blocks Editor role', async () => {
+    const response = await app.request('/api/projects/test/project/clean', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        cookie: `${MOCK_ROLE_COOKIE}=editor`,
+      },
+      body: JSON.stringify({ dryRun: true }),
+    });
+
+    expect(response.status).toBe(403);
+  });
+
+  test('POST /api/project/clean blocks Reader role', async () => {
+    const response = await app.request('/api/projects/test/project/clean', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        cookie: `${MOCK_ROLE_COOKIE}=reader`,
+      },
+      body: JSON.stringify({ dryRun: true }),
+    });
+
+    expect(response.status).toBe(403);
   });
 });
 

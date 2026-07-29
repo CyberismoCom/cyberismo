@@ -15,6 +15,7 @@ import { Hono } from 'hono';
 import { zValidator } from '../../middleware/zvalidator.js';
 import {
   addHubSchema,
+  cleanSchema,
   importModuleSchema,
   moduleParamSchema,
   removeHubSchema,
@@ -129,5 +130,20 @@ router.post('/hubs/fetch', requireRole(UserRole.Admin), async (c) => {
   const unreachable = await projectService.fetchHubs(commands);
   return c.json({ message: 'Hubs fetched', unreachable });
 });
+
+// A non-empty 'failedCards' in the response is a partial success, not an error:
+// the command collects per-card failures instead of throwing, so the report of
+// what was and was not removed is returned with 200.
+router.post(
+  '/clean',
+  requireRole(UserRole.Admin),
+  zValidator('json', cleanSchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const { dryRun } = c.req.valid('json');
+    const result = await projectService.cleanProject(commands, dryRun);
+    return c.json(result);
+  },
+);
 
 export default router;
