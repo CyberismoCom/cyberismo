@@ -258,6 +258,100 @@ describe('resolve solver', () => {
     expect(froms.has('C')).toBe(true);
   });
 
+  it('surgical update refuses to push a bystander past its own declared pin', async () => {
+    // Same shape as the unsatisfiable case, but C has an out-of-pin escape
+    // hatch (2.0.0, outside its declared ^1.0.0). The engine must NOT take it
+    // to dodge the conflict: a bystander's own pin is a hard constraint, so
+    // this resolves to the same B conflict rather than silently moving C.
+    const project = buildProjectWithModules([
+      {
+        name: 'A',
+        location: 'https://x/A.git',
+        version: '^1.0.0',
+        private: false,
+      },
+      {
+        name: 'C',
+        location: 'https://x/C.git',
+        version: '^1.0.0',
+        private: false,
+      },
+    ]);
+    await installModule(project, {
+      name: 'A',
+      version: '1.6.0',
+      modules: [{ name: 'B', location: 'https://x/B.git', version: '>=1.3.0' }],
+    });
+    await installModule(project, {
+      name: 'C',
+      version: '1.2.0',
+      modules: [{ name: 'B', location: 'https://x/B.git', version: '~1.3.0' }],
+    });
+    await installModule(project, { name: 'B', version: '1.3.0' });
+
+    const configs = new Map<string, FakeModuleConfig>([
+      [
+        'https://x/A.git@v1.8.0',
+        {
+          cardKeyPrefix: 'A',
+          name: 'A',
+          version: '1.8.0',
+          modules: [
+            { name: 'B', location: 'https://x/B.git', version: '>=1.4.0' },
+          ],
+        } as FakeModuleConfig,
+      ],
+      // The only C compatible with B>=1.4.0 is 2.0.0 — outside C's ^1.0.0 pin.
+      // Seals are provided so that, absent the pin check, C→2.0.0 would be a
+      // replayable (and thus accepted) move; the test guards the pin, not
+      // replayability.
+      [
+        'https://x/C.git@v2.0.0',
+        {
+          cardKeyPrefix: 'C',
+          name: 'C',
+          version: '2.0.0',
+          modules: [
+            { name: 'B', location: 'https://x/B.git', version: '>=1.4.0' },
+          ],
+        } as FakeModuleConfig,
+      ],
+      [
+        'https://x/B.git@v1.4.0',
+        {
+          cardKeyPrefix: 'B',
+          name: 'B',
+          version: '1.4.0',
+          modules: [],
+        } as FakeModuleConfig,
+      ],
+    ]);
+    const available = new Map([
+      ['https://x/A.git', ['1.8.0', '1.6.0']],
+      ['https://x/C.git', ['2.0.0', '1.2.0']],
+      ['https://x/B.git', ['1.4.0', '1.3.0']],
+    ]);
+    const seals = new Map<string, Array<[string, string]>>([
+      ['https://x/A.git@v1.8.0', [['1.6.0', '1.8.0']]],
+      ['https://x/C.git@v2.0.0', [['1.2.0', '2.0.0']]],
+      ['https://x/B.git@v1.4.0', [['1.3.0', '1.4.0']]],
+    ]);
+    const source = new InMemorySource(configs, available, new Map(), seals);
+
+    const result = await resolve(
+      project,
+      { kind: 'update', module: 'A', to: '1.8.0' as Version },
+      { sourceLayer: source, tempDir: testDir },
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    const bConflict = result.conflicts.find((c) => c.module === 'B');
+    expect(bConflict).toBeDefined();
+    const froms = new Set(bConflict!.demands.map((d) => d.from));
+    expect(froms.has('A')).toBe(true);
+    expect(froms.has('C')).toBe(true);
+  });
+
   it('replayability prune blocks a non-linear upgrade', async () => {
     const project = buildProjectWithModules([
       {
