@@ -213,7 +213,6 @@ describe('create command', () => {
     );
     expect(result.statusCode).toBe(200);
 
-    // Check that created card contains custom fields, but not calculated fields
     const createdCard = result.affectsCards?.at(0) || '';
     const cardDetails = (
       await commandHandler.command(Cmd.show, ['card', createdCard], options)
@@ -222,7 +221,7 @@ describe('create command', () => {
       expect((cardDetails as Card).metadata).to.not.include.keys(
         'decision/fieldTypes/obsoletedBy',
       );
-      expect((cardDetails as Card).metadata).to.include.keys(
+      expect((cardDetails as Card).metadata).to.not.include.keys(
         'decision/fieldTypes/admins',
       );
     }
@@ -1213,6 +1212,77 @@ describe('create command', () => {
     expect(defaultCard.rank).toBe('0|b');
     expect(defaultCard.title).toBe('Untitled');
     expect(defaultCard.workflowState).toBe('');
+  });
+});
+
+describe('created cards and custom field values', () => {
+  const testRoot = join(import.meta.dirname, 'tmp-create-no-nulls-tests');
+  const projectPath = join(testRoot, 'valid/decision-records');
+  const templateName = 'decision/templates/decision';
+  let commands: CommandManager;
+
+  beforeAll(async () => {
+    mkdirSync(testRoot, { recursive: true });
+    await copyDir('test/test-data/', testRoot);
+    commands = new CommandManager(projectPath, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+  });
+
+  afterAll(() => {
+    rmSync(testRoot, { recursive: true, force: true });
+  });
+
+  it('new cards do not contain null custom-field placeholders', async () => {
+    const created = await commands.createCmd.createCard(
+      templateName,
+      undefined,
+    );
+    const card = commands.project.findCard(created[0].key);
+    const nullCustomFieldKeys = (metadata: object) =>
+      Object.entries(metadata)
+        .filter(([key, value]) => value === null && key.includes('/'))
+        .map(([key]) => key);
+
+    expect(nullCustomFieldKeys(card.metadata!)).toEqual([]);
+
+    const persisted = JSON.parse(
+      readFileSync(join(card.path, 'index.json'), 'utf-8'),
+    );
+    expect(nullCustomFieldKeys(persisted)).toEqual([]);
+  });
+
+  it('cards added to a template get no null placeholders', async () => {
+    // 'decision/cardTypes/decision' declares eight non-calculated custom fields;
+    // the empty template keeps this out of the way of the tests below.
+    const added = await commands.createCmd.addCards(
+      'decision/cardTypes/decision',
+      'decision/templates/empty',
+    );
+    const card = commands.project.findCard(added[0]);
+    const customFieldKeys = Object.keys(card.metadata!).filter((key) =>
+      key.includes('/'),
+    );
+    expect(customFieldKeys).toEqual([]);
+  });
+
+  it('falsy template values survive instantiation', async () => {
+    // Mutates the shared template card, so this test must stay last.
+    const templateCards = commands.project.templateCards(templateName);
+    const templateCard = templateCards.at(0)!;
+    await commands.editCmd.editCardMetadata(
+      templateCard.key,
+      'decision/fieldTypes/finished',
+      false,
+    );
+
+    const created = await commands.createCmd.createCard(
+      templateName,
+      undefined,
+    );
+    const card = commands.project.findCard(created[0].key);
+    expect(card.metadata!['decision/fieldTypes/finished']).toBe(false);
   });
 });
 
