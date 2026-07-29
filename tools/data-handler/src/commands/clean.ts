@@ -24,7 +24,9 @@ import type {
 } from '../interfaces/project-interfaces.js';
 import type { CustomField } from '../interfaces/resource-interfaces.js';
 
-const logger = getChildLogger({ module: 'clean' });
+// The logger is initialized while the project loads, so the child logger is
+// taken at call time; binding it at module scope would keep the silent default.
+const logger = () => getChildLogger({ module: 'clean' });
 
 export type CleanReason = 'null-value' | 'undeclared' | 'calculated-locked';
 
@@ -100,7 +102,7 @@ export class Clean {
         try {
           await this.project.updateCardMetadata(card, card.metadata);
         } catch (error) {
-          logger.warn(error, `Could not clean card '${card.key}'`);
+          logger().warn(error, `Could not clean card '${card.key}'`);
           failedCards.push(card.key);
         }
       }
@@ -138,7 +140,7 @@ export class Clean {
         this.project.resources.byType(cardTypeName, 'cardTypes').show()
           .customFields ?? [];
     } catch (error) {
-      logger.warn(
+      logger().warn(
         error,
         `Could not resolve card type '${cardTypeName}' of card '${card.key}'; skipping the card`,
       );

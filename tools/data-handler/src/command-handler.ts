@@ -62,7 +62,8 @@ import { Project } from './containers/project.js';
 import { pathExists, resolveTilde } from './utils/file-utils.js';
 import { errorFunction } from './utils/error-utils.js';
 import { readJsonFile } from './utils/json.js';
-import { resourceName } from './utils/resource-utils.js';
+import { getChildLogger } from './utils/log-utils.js';
+import { resourceName, resourceNameToString } from './utils/resource-utils.js';
 
 import { type Level } from 'pino';
 import { type Context } from './interfaces/project-interfaces.js';
@@ -367,6 +368,10 @@ export class Commands {
             credentials,
             version,
           );
+          const note = await this.cleanRecommendation();
+          if (note) {
+            return note;
+          }
         }
         if (target === 'csv') {
           const [csvFile, cardKey] = args;
@@ -482,9 +487,10 @@ export class Commands {
           }
         }
 
+        const target = resourceName(resource);
         await this.commands?.updateCmd.apply({
           kind: 'edit',
-          target: resourceName(resource),
+          target,
           updateKey: parseUpdateKey(key),
           operation: buildOperation(
             operation as UpdateOperations,
@@ -493,6 +499,21 @@ export class Commands {
             mappingTable,
           ),
         });
+
+        // Dropping or replacing a custom field leaves the cards' values in
+        // place; only those two operations can create something to clean.
+        if (
+          target.type === 'cardTypes' &&
+          key === 'customFields' &&
+          (operation === 'remove' || operation === 'change')
+        ) {
+          const note = await this.cleanRecommendation(
+            resourceNameToString(target),
+          );
+          if (note) {
+            return note;
+          }
+        }
       } else if (command === Cmd.updateModules) {
         const [module, targetVersion] = args;
         if (module) {
@@ -508,6 +529,10 @@ export class Commands {
             );
           }
           await this.commands?.importCmd.updateAllModules(credentials);
+        }
+        const note = await this.cleanRecommendation();
+        if (note) {
+          return note;
         }
       } else if (command === Cmd.checkUpdates) {
         const [moduleName] = args;
@@ -664,6 +689,38 @@ export class Commands {
       statusCode: 200,
       message: `Bumped to v${result.newVersion}${previousInfo}`,
     };
+  }
+
+  // A recommendation when the project holds dormant field values, or undefined
+  // when there is nothing to clean. Never fails the parent operation.
+  private async cleanRecommendation(
+    cardType?: string,
+  ): Promise<requestStatus | undefined> {
+    if (!this.commands) {
+      return undefined;
+    }
+    try {
+      const result = await this.commands.cleanCmd.clean(true, cardType);
+      if (result.findings.length === 0) {
+        return undefined;
+      }
+      // The CLI prints 'Done' only when a command returns no message, so a note
+      // has to carry the success line itself.
+      return {
+        statusCode: 200,
+        message:
+          `Done\n${result.findings.length} unused field value(s) from ${result.cardCount} card(s) — ` +
+          `run 'cyberismo clean --dry-run' to list them, 'cyberismo clean' to remove them`,
+      };
+    } catch (error) {
+      // The logger is initialized while the project loads, so the child logger
+      // is taken here rather than at module scope.
+      getChildLogger({ module: 'command-handler' }).warn(
+        error,
+        'Could not scan for unused field values',
+      );
+      return undefined;
+    }
   }
 
   // Removes field values that are not used by card types.

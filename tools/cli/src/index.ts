@@ -1557,6 +1557,9 @@ checkUpdatesCmd.action(
       message: `Apply ${autoUpdatable.length} available update(s)?`,
     });
     if (shouldUpdate) {
+      // Every successful update reports the same project-wide state, so the
+      // last note is printed once after the loop instead of per module.
+      let note: string | undefined;
       for (const mod of autoUpdatable) {
         const target = mod.latestSatisfyingConstraint ?? mod.latestVersion!;
         const updateResult = await commandHandler.command(
@@ -1567,11 +1570,17 @@ checkUpdatesCmd.action(
         );
         if (updateResult.statusCode === 200) {
           console.log(`  Updated ${mod.name} to ${target}`);
+          note = updateResult.message ?? note;
         } else {
           console.error(
             `  Failed to update ${mod.name}: ${updateResult.message}`,
           );
         }
+      }
+      if (note) {
+        // The note carries a leading 'Done' for the single-module update path,
+        // which already has its own success lines here.
+        console.log(`\n${note.replace(/^Done\n/, '')}`);
       }
     }
   },
