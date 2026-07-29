@@ -793,27 +793,16 @@ export class Validate {
         );
         continue;
       }
-      if (field.isCalculated) {
-        const value = card.metadata[field.name];
-        const hasStoredValue = value !== undefined && value !== null;
-        if (!hasStoredValue) {
-          // Absent or null: no override; nothing further to check.
-          continue;
-        }
-        if (!field.enableOverride) {
-          validationErrors.push(
-            `Card '${card.key}' not allowed to have a value in a calculated field '${field.name}'`,
-          );
-          continue;
-        }
-        // Stored override: fall through to the type check below.
-      } else {
-        if (card.metadata[field.name] === undefined) {
-          validationErrors.push(
-            `Card '${card.key}' is missing custom field '${field.name}'`,
-          );
-          continue;
-        }
+      const value = card.metadata[field.name];
+      if (value === undefined || value === null) {
+        // Absent and null both mean 'no value'.
+        continue;
+      }
+      if (field.isCalculated && !field.enableOverride) {
+        // Dormant value: the field became calculated, or override was
+        // disabled. Preserved on disk, excluded from facts; 'cyberismo clean'
+        // removes it.
+        continue;
       }
 
       if (!this.validType(card.metadata[field.name], fieldType)) {
@@ -856,7 +845,10 @@ export class Validate {
       }
     }
 
-    // Validate that all metadata keys are either predefined fields or valid field type names
+    // Validate that all metadata keys are either predefined fields or valid
+    // field type names. Keys the card type does not declare are dormant, so
+    // their field type does not have to exist; declared fields with a missing
+    // field type are reported by the loop above.
     for (const key of Object.keys(card.metadata)) {
       if (isPredefinedField(key) as boolean) {
         continue;
@@ -866,19 +858,6 @@ export class Validate {
       } catch {
         validationErrors.push(
           `Card '${card.key}' has invalid metadata key '${key}'`,
-        );
-        continue;
-      }
-      // Check that the card's fieldType exists in the project
-      let fieldType;
-      try {
-        fieldType = await project.resources.byType(key, 'fieldTypes').show();
-      } catch {
-        fieldType = undefined;
-      }
-      if (!fieldType) {
-        validationErrors.push(
-          `Card '${card.key}' has field '${key}' that does not exist in the project`,
         );
       }
     }
