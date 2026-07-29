@@ -1,0 +1,8 @@
+{
+    "name": "test/cardTypes/sideEffects",
+    "displayName": "Test transition side effects",
+    "workflow": "test/workflows/test",
+    "customFields": [],
+    "alwaysVisibleFields": [],
+    "optionallyVisibleFields": []
+}

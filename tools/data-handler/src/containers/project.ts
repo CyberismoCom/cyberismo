@@ -48,6 +48,8 @@ import {
   isModulePath,
   isTemplateCard,
 } from '../utils/card-utils.js';
+import { ActionGuard } from '../permissions/action-guard.js';
+import { applySideEffects, type SideEffects } from '../side-effects.js';
 import { ProjectConfiguration } from '../project-settings.js';
 import { ProjectPaths } from './project/project-paths.js';
 import { readCardsConfig } from './project/cards-config.js';
@@ -1271,6 +1273,124 @@ export class Project extends CardContainer {
     card.metadata = changedMetadata;
     if (await this.saveCardMetadata(card)) {
       await this.handleCardChanged(card);
+    }
+  }
+
+  // Wrapper to run onTransition query.
+  private async transitionChangesQuery(cardKey: string, transition: string) {
+    if (!cardKey || !transition) return undefined;
+    return this.calculationEngine.runQuery('onTransition', 'localApp', {
+      cardKey,
+      transition,
+    });
+  }
+
+  /**
+   * Performs a single workflow transition without cascading, and returns
+   * its side effects for the caller to execute. Throws if the card is
+   * missing, the transition is not available from the card's current state,
+   * or the transition is denied.
+   *
+   * Must run inside a write-lock context (the transition command, or the
+   * creation flow's side-effect execution).
+   */
+  public async performTransition(
+    cardKey: string,
+    transitionName: string,
+  ): Promise<SideEffects | undefined> {
+    const card = this.findCard(cardKey);
+
+    if (!card.metadata?.cardType) {
+      throw new Error(`Card does not have card type`);
+    }
+    // Card type
+    const cardType = this.resources
+      .byType(card.metadata?.cardType, 'cardTypes')
+      .show();
+
+    // Workflow
+    const workflow = this.resources
+      .byType(cardType.workflow, 'workflows')
+      .show();
+
+    const currentState = card.metadata.workflowState;
+
+    // A transition is identified by its (unique) name and leads to a single
+    // target state, though it may be available from several states or all
+    // states ('*'). Find it by name, then check it can be made from the
+    // card's current state.
+    const byName = workflow.transitions.filter(
+      (item) => item.name === transitionName,
+    );
+    if (byName.length === 0) {
+      const transitionNames = workflow.transitions.map((item) => item.name);
+      throw new Error(`Card's workflow '${cardType.workflow}' does not contain state transition '${transitionName}'.
+                          \nThe available transitions are: ${transitionNames.join(', ')}`);
+    }
+
+    const found = byName.find(
+      (item) =>
+        item.fromState.includes(currentState) || item.fromState.includes('*'),
+    );
+    if (!found) {
+      throw new Error(
+        `Card's workflow '${cardType.workflow}' does not contain state transition from state '${currentState}' for '${transitionName}'`,
+      );
+    }
+
+    const actionGuard = new ActionGuard(this.calculationEngine);
+    await actionGuard.checkPermission('transition', cardKey, transitionName);
+
+    card.metadata.workflowState = found.toState;
+    // lastUpdated is stamped by saveCardMetadata on every save; only
+    // lastTransitioned needs to be set here.
+    card.metadata.lastTransitioned = new Date().toISOString();
+    await this.updateCardMetadata(card, card.metadata);
+
+    // A broken module calculation must not fail the transition itself.
+    try {
+      const queryResult = await this.transitionChangesQuery(
+        cardKey,
+        transitionName,
+      );
+      return queryResult?.at(0);
+    } catch (error) {
+      this.logger.warn(
+        {
+          cardKey,
+          transition: transitionName,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        'onTransition query failed; side effects skipped',
+      );
+      return undefined;
+    }
+  }
+
+  /**
+   * Executes a transition's side effects (field updates and cascading
+   * transitions on other cards). Never throws: module calculation problems
+   * must not fail the user's primary action.
+   * @param effects Side effects from an onTransition/onCreation query.
+   * @param visited `cardKey:transitionName` pairs already attempted in this
+   *                cascade.
+   */
+  public async executeSideEffects(
+    effects: SideEffects | undefined,
+    visited: Set<string>,
+  ): Promise<void> {
+    try {
+      await applySideEffects(this, effects, visited, (card, name) =>
+        this.performTransition(card, name),
+      );
+    } catch (error) {
+      this.logger.warn(
+        {
+          attempted: [...visited],
+          error: error instanceof Error ? error.message : String(error),
+        },
+        'Applying transition side effects failed',
+      );
     }
   }
 }

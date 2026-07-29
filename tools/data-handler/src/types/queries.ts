@@ -125,7 +125,8 @@ interface EnabledSkillQueryResult extends BaseResult {
   scope: 'global' | 'card';
 }
 interface FieldsToUpdateQueryResult extends BaseResult {
-  updateFields: UpdateField[];
+  updateFields?: UpdateField[];
+  executeTransition?: ExecuteTransition[];
 }
 interface TreeQueryResult extends BaseResult {
   progress?: string;
@@ -140,6 +141,11 @@ export interface UpdateField {
   card: string;
   field: string;
   newValue: string;
+}
+
+export interface ExecuteTransition {
+  card: string;
+  transitionToExecute: string;
 }
 
 interface EnumValue {

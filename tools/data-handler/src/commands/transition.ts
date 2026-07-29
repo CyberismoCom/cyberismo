@@ -11,8 +11,6 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ActionGuard } from '../permissions/action-guard.js';
-import { CardMetadataUpdater } from '../card-metadata-updater.js';
 import type { Project } from '../containers/project.js';
 import { write } from '../utils/rw-lock.js';
 
@@ -26,84 +24,21 @@ export class Transition {
    */
   constructor(private project: Project) {}
 
-  // Wrapper to run onTransition query.
-  private async transitionChangesQuery(cardKey: string, transition: string) {
-    if (!cardKey || !transition) return undefined;
-    return this.project.calculationEngine.runQuery('onTransition', 'localApp', {
-      cardKey,
-      transition,
-    });
-  }
-
   /**
-   * Transitions a card from its current state to a new state.
+   * Transitions a card from its current state to a new state, then executes
+   * any side effects modules have declared for the transition.
    * @param cardKey card key
    * @param transitionName name of the transition to do
    */
   @write((cardKey) => `Transition card ${cardKey}`)
   public async cardTransition(cardKey: string, transitionName: string) {
-    const card = this.project.findCard(cardKey);
-
-    if (!card.metadata?.cardType) {
-      throw new Error(`Card does not have card type`);
-    }
-    // Card type
-    const cardType = this.project.resources
-      .byType(card.metadata?.cardType, 'cardTypes')
-      .show();
-
-    // Workflow
-    const workflow = this.project.resources
-      .byType(cardType.workflow, 'workflows')
-      .show();
-
-    const currentState = card.metadata.workflowState;
-
-    // A transition is identified by its (unique) name and leads to a single
-    // target state, though it may be available from several states or all
-    // states ('*'). Find it by name, then check it can be made from the
-    // card's current state.
-    const byName = workflow.transitions.filter(
-      (item) => item.name === transitionName,
+    const effects = await this.project.performTransition(
+      cardKey,
+      transitionName,
     );
-    if (byName.length === 0) {
-      const transitionNames = workflow.transitions.map((item) => item.name);
-      throw new Error(`Card's workflow '${cardType.workflow}' does not contain state transition '${transitionName}'.
-                          \nThe available transitions are: ${transitionNames.join(', ')}`);
-    }
-
-    const found = byName.find(
-      (item) =>
-        item.fromState.includes(currentState) || item.fromState.includes('*'),
+    await this.project.executeSideEffects(
+      effects,
+      new Set([`${cardKey}:${transitionName}`]),
     );
-    if (!found) {
-      throw new Error(
-        `Card's workflow '${cardType.workflow}' does not contain state transition from state '${currentState}' for '${transitionName}'`,
-      );
-    }
-
-    const actionGuard = new ActionGuard(this.project.calculationEngine);
-    await actionGuard.checkPermission('transition', cardKey, transitionName);
-
-    if (card.metadata) {
-      card.metadata.workflowState = found.toState;
-      card.metadata.lastUpdated = new Date().toISOString();
-      card.metadata.lastTransitioned = new Date().toISOString();
-      return this.project
-        .updateCardMetadata(card, card.metadata)
-        .then(async () => this.transitionChangesQuery(cardKey, transitionName))
-        .then(async (queryResult) => {
-          if (
-            !queryResult ||
-            queryResult.at(0) === undefined ||
-            queryResult.at(0)?.updateFields === undefined
-          ) {
-            return;
-          }
-          const fieldsToUpdate = queryResult.at(0)!.updateFields;
-          return CardMetadataUpdater.apply(this.project, fieldsToUpdate);
-        })
-        .catch((error) => console.error(error));
-    }
   }
 }

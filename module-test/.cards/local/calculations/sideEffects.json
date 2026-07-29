@@ -1,0 +1,5 @@
+{
+    "name": "test/calculations/sideEffects",
+    "displayName": "Transition side effects",
+    "description": "Approving or archiving a card cascades the same transition to its children"
+}
