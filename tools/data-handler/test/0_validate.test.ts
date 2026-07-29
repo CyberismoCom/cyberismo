@@ -301,9 +301,9 @@ describe('validate cmd tests', () => {
   it('validate card custom fields - undeclared key whose fieldType is gone is dormant', async () => {
     // The card type does not declare the key, so the leftover value is
     // dormant: preserved on disk, ignored by logic, not a validation error.
-    const path = 'test/test-data/invalid/invalid-card-missing-fieldtype';
+    const path = 'test/test-data/valid/card-with-dormant-field';
     const valid = await validateCmd.validate(path, () => getTestProject(path));
-    expect(valid).to.not.include('decision/fieldTypes/nonExistentField');
+    expect(valid).toBe('');
   });
   it('try to validate card custom fields - declared field missing from project', async () => {
     // Dropping the fieldType existence check for undeclared keys must not hide
@@ -337,7 +337,11 @@ describe('validate cmd tests', () => {
       const result = await validateCmd.validate(projectPath, () =>
         getTestProject(projectPath),
       );
-      expect(result).to.not.equal(undefined); // all of the invalid projects have validation errors
+      // all of the invalid projects have validation errors
+      expect(
+        result.length,
+        `${projectPath} reported no errors`,
+      ).toBeGreaterThan(0);
     }
   });
   it('try to validate resource that has name conflicts with filename', async () => {
