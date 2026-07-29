@@ -1485,6 +1485,20 @@ updateModulesCmd.action(
   },
 );
 
+type BlockedConflict = NonNullable<ModuleUpdateStatus['blocked']>[number];
+
+function blockedReason(c: BlockedConflict): string {
+  if (c.downgrade)
+    return `cannot downgrade ${c.downgrade.from} → ${c.downgrade.to}`;
+  const parts: string[] = [];
+  if (c.demands.length)
+    parts.push(c.demands.map((d) => `${d.from} wants ${d.range}`).join(', '));
+  // The only blocker the project itself can lift, so it is worth naming.
+  if (c.pinned)
+    parts.push(`pinned to ${c.pinned.range}, needs ${c.pinned.wouldNeed}`);
+  return parts.length ? parts.join('; ') : 'no version satisfies its range';
+}
+
 // Check updates command
 const checkUpdatesCmd = new CommandWithPath('check-updates')
   .description('Check if updates are available for installed modules')
@@ -1511,39 +1525,47 @@ checkUpdatesCmd.action(
 
     // Display summary
     for (const mod of updates) {
-      if (mod.status === 'up_to_date') {
-        if (!mod.isGitModule) {
-          console.log(`  ${mod.name}    (local module)`);
-        } else {
+      switch (mod.status) {
+        case 'up_to_date':
           console.log(
-            `  ${mod.name}    ${mod.installedVersion ?? 'unknown'}  (up to date)`,
+            mod.isGitModule
+              ? `  ${mod.name}    ${mod.installedVersion ?? 'unknown'}  (up to date)`
+              : `  ${mod.name}    (local module)`,
           );
+          break;
+        case 'update_available': {
+          const cascadeOthers = (mod.cascade ?? [])
+            .filter((c) => c.module !== mod.name)
+            .map((c) => c.module);
+          const cascadeSuffix =
+            cascadeOthers.length > 0
+              ? `  (also updates: ${cascadeOthers.join(', ')})`
+              : '';
+          console.log(
+            `  ${mod.name}    ${mod.installedVersion ?? 'unversioned'}  →  ${mod.reachableVersion}${cascadeSuffix}`,
+          );
+          break;
         }
-      } else if (mod.status === 'update_available') {
-        const cascadeOthers = (mod.cascade ?? [])
-          .filter((c) => c.module !== mod.name)
-          .map((c) => c.module);
-        const cascadeSuffix =
-          cascadeOthers.length > 0
-            ? `  (also updates: ${cascadeOthers.join(', ')})`
-            : '';
-        console.log(
-          `  ${mod.name}    ${mod.installedVersion ?? 'unversioned'}  →  ${mod.reachableVersion}${cascadeSuffix}`,
-        );
-      } else if (mod.status === 'blocked') {
-        const conflicts = mod.blocked ?? [];
-        const reasons = conflicts
-          .map((c) => {
-            if (c.demands.length === 0) {
-              return `(no version satisfies its range)`;
-            }
-            return `needs ${c.demands.map((d) => `${d.from} wants ${d.range}`).join('; ')}`;
-          })
-          .join('; ');
-        const reasonSuffix = reasons ? `  ${reasons}` : '';
-        console.log(`  ${mod.name}    blocked${reasonSuffix}`);
-      } else if (mod.status === 'source_unreachable') {
-        console.log(`  ${mod.name}    (source unreachable)`);
+        case 'blocked': {
+          // Name the module each reason belongs to: the blocker is often a
+          // transitive dep, not the row being reported.
+          const reasons = (mod.blocked ?? [])
+            .map((c) => `${c.module}: ${blockedReason(c)}`)
+            .join('; ');
+          console.log(
+            `  ${mod.name}    blocked${reasons ? `  ${reasons}` : ''}`,
+          );
+          break;
+        }
+        case 'source_unreachable':
+          console.log(`  ${mod.name}    (source unreachable)`);
+          break;
+        default: {
+          // A status this renderer has not been taught must still appear in
+          // the listing rather than vanishing from it.
+          const unhandled: never = mod.status;
+          console.log(`  ${mod.name}    (${String(unhandled)})`);
+        }
       }
     }
 
