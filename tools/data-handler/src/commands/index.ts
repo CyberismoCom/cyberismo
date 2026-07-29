@@ -13,6 +13,7 @@
 
 import { Calculate } from './calculate.js';
 import { CheckUpdates } from './check-updates.js';
+import { Clean } from './clean.js';
 import { Create } from './create.js';
 import { Edit } from './edit.js';
 import { Export } from './export.js';
@@ -31,6 +32,7 @@ import { Version } from './version.js';
 export {
   Calculate,
   CheckUpdates,
+  Clean,
   Create,
   Edit,
   Export,

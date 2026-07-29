@@ -74,6 +74,7 @@ export const Cmd = {
   add: 'add',
   calc: 'calc',
   checkUpdates: 'check-updates',
+  clean: 'clean',
   create: 'create',
   edit: 'edit',
   export: 'export',
@@ -515,6 +516,8 @@ export class Commands {
           credentials,
         );
         return { statusCode: 200, payload: results };
+      } else if (command === Cmd.clean) {
+        return this.clean(args);
       } else if (command === Cmd.validate) {
         return this.validate();
       } else {
@@ -660,6 +663,46 @@ export class Commands {
     return {
       statusCode: 200,
       message: `Bumped to v${result.newVersion}${previousInfo}`,
+    };
+  }
+
+  // Removes field values that are not used by card types.
+  private async clean(args: string[]): Promise<requestStatus> {
+    if (!this.commands) {
+      return { statusCode: 500, message: 'Commands not initialized' };
+    }
+
+    const [dryRunFlag] = args;
+    const dryRun = dryRunFlag === 'true';
+
+    const result = await this.commands.cleanCmd.clean(dryRun);
+
+    const skipped = result.skippedCards.length
+      ? `\nSkipped ${result.skippedCards.length} card(s) with unresolvable card types: ${result.skippedCards.join(', ')}`
+      : '';
+    if (result.findings.length === 0) {
+      return { statusCode: 200, message: `Nothing to clean${skipped}` };
+    }
+
+    const failed = result.failedCards.length
+      ? `\nCould not update ${result.failedCards.length} card(s); their values were not removed: ${result.failedCards.join(', ')}`
+      : '';
+    const lines = result.findings.map(
+      (finding) => `  ${finding.cardKey}: ${finding.field} (${finding.reason})`,
+    );
+
+    // The headline counts what actually changed, so a partial failure cannot
+    // report a card as cleaned.
+    const failedCards = new Set(result.failedCards);
+    const removed = result.findings.filter(
+      (finding) => !failedCards.has(finding.cardKey),
+    );
+    const removedCards = new Set(removed.map((finding) => finding.cardKey))
+      .size;
+    const verb = dryRun ? 'Would remove' : 'Removed';
+    return {
+      statusCode: 200,
+      message: `${lines.join('\n')}\n${verb} ${removed.length} field value(s) from ${removedCards} card(s)${skipped}${failed}`,
     };
   }
 
