@@ -355,7 +355,7 @@ export function registerTools(
         - fields: Array of field metadata including:
           - key, displayName, description, dataType, value
           - isCalculated, isEditable, visibility
-          - isOverridable: calculated field that accepts a user override - edit it like a normal field, set null to clear the override
+          - isOverridable: calculated field that accepts a user override - edit it like a normal field, set null to clear the override (the stored value is removed and the field reverts to calculatedValue)
           - calculatedValue: the calculated value that an override may be hiding
           - enumValues: For enum/list fields, array of {value, displayValue, description}
         - labels, links, children, parent, attachments
