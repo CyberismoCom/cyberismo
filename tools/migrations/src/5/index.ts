@@ -38,6 +38,11 @@ const OLD_SEAL_NAME = /^migrationLog_\d+\.\d+\.\d+\.jsonl$/;
  *   declare `enableOverride` on calculated custom fields, and cards may store
  *   override values for them. This requires no file changes; the version bump
  *   fences older tooling from projects that use the feature.
+ * - Custom fields no longer require null placeholders: absent and null both
+ *   mean "no value", card-type field changes leave stored values dormant, and
+ *   'cyberismo clean' removes them. This requires no file changes; the version
+ *   bump fences older tooling (which requires the placeholders) from projects
+ *   written without them.
  *
  * Idempotent: a project without old-format snapshots is left untouched.
  */
