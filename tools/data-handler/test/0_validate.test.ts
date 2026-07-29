@@ -298,13 +298,33 @@ describe('validate cmd tests', () => {
       '(docs_r0brt7n1,base/fieldTypes/informationClassification)',
     );
   });
-  it('try to validate card custom fields - fieldType not defined in the project', async () => {
+  it('validate card custom fields - undeclared key whose fieldType is gone is dormant', async () => {
+    // The card type does not declare the key, so the leftover value is
+    // dormant: preserved on disk, ignored by logic, not a validation error.
     const path = 'test/test-data/invalid/invalid-card-missing-fieldtype';
     const valid = await validateCmd.validate(path, () => getTestProject(path));
-    expect(valid.length).toBeGreaterThan(0);
-    expect(valid).to.include(
-      "Card 'decision_5' has field 'decision/fieldTypes/nonExistentField' that does not exist in the project",
-    );
+    expect(valid).to.not.include('decision/fieldTypes/nonExistentField');
+  });
+  it('try to validate card custom fields - declared field missing from project', async () => {
+    // Dropping the fieldType existence check for undeclared keys must not hide
+    // a card type declaring a custom field that has no field type.
+    const tmp = join(baseDir, 'tmp-declared-field-missing');
+    rmSync(tmp, { recursive: true, force: true });
+    mkdirSync(tmp, { recursive: true });
+    try {
+      await copyDir('test/test-data/valid/decision-records', tmp);
+      const cardTypePath = join(tmp, '.cards/local/cardTypes/decision.json');
+      const cardType = await readJsonFile(cardTypePath);
+      cardType.customFields.push({ name: 'decision/fieldTypes/deletedField' });
+      await writeFile(cardTypePath, JSON.stringify(cardType), 'utf-8');
+
+      const valid = await validateCmd.validate(tmp, () => getTestProject(tmp));
+      expect(valid).to.include(
+        "field 'decision/fieldTypes/deletedField' is missing from project",
+      );
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
   });
   it('try to validate invalid projects', async () => {
     const pathToInvalidProject = resolve('test/test-data/invalid');
