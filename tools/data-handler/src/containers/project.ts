@@ -65,7 +65,7 @@ import { getCommitContext } from '../utils/commit-context.js';
 import type { MigrationResult } from '@cyberismo/migrations';
 import type { Template } from './template.js';
 
-import { ROOT } from '../utils/constants.js';
+import { isPredefinedField, ROOT } from '../utils/constants.js';
 
 /**
  * Options for Project initialization.
@@ -220,27 +220,6 @@ export class Project extends CardContainer {
       if (newAttachments) {
         this.cardCache.updateCardAttachments(cardKey, newAttachments);
       }
-    }
-  }
-
-  // Checks if a metadata key is a calculated custom field in the card's card type.
-  private isCalculatedField(card: Card, fieldName: string): boolean {
-    if (!card.metadata?.cardType) {
-      return false;
-    }
-    try {
-      const cardType = this.resources
-        .byType(card.metadata.cardType, 'cardTypes')
-        .show();
-      return (cardType.customFields ?? []).some(
-        (field) => field.name === fieldName && field.isCalculated,
-      );
-    } catch (error) {
-      this.logger.warn(
-        error,
-        `Could not resolve card type '${card.metadata.cardType}' of card '${card.key}'; treating field '${fieldName}' as not calculated`,
-      );
-      return false;
     }
   }
 
@@ -1191,10 +1170,9 @@ export class Project extends CardContainer {
       return;
     }
 
-    // Clearing a calculated field removes the stored override entirely, so
-    // that no null residue remains and the calculated value applies again.
-    const removeKey =
-      newValue == null && this.isCalculatedField(card, changedKey);
+    // Clearing a custom field removes the key entirely: absent and null both
+    // mean "no value". Predefined fields keep their stored representation.
+    const removeKey = newValue == null && !isPredefinedField(changedKey);
     if (removeKey) {
       if (!(changedKey in card.metadata)) {
         return;
@@ -1211,7 +1189,9 @@ export class Project extends CardContainer {
     if (removeKey) {
       delete cardAsRecord[changedKey];
     } else {
-      cardAsRecord[changedKey] = newValue;
+      // A predefined field is never removed, so undefined must land as null:
+      // an undefined value would be dropped from both the file and the cache.
+      cardAsRecord[changedKey] = newValue ?? null;
     }
 
     const invalidCard = isTemplateCard(card)

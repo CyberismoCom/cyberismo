@@ -364,4 +364,113 @@ describe('edit card', () => {
       rmSync(freshTestDir, { recursive: true, force: true });
     }
   });
+
+  // Own project copy: these tests clear stored metadata, which must not leak
+  // into the suite-wide project. Each test establishes its own precondition, so
+  // they do not depend on each other's order either.
+  describe('clearing a field', () => {
+    const RESPONSIBLE = 'decision/fieldTypes/responsible';
+    const clearTestDir = join(baseDir, 'tmp-edit-clear-tests');
+    let clearCommands: CommandManager;
+
+    beforeAll(async () => {
+      mkdirSync(clearTestDir, { recursive: true });
+      await copyDir('test/test-data/', clearTestDir);
+      clearCommands = new CommandManager(
+        join(clearTestDir, 'valid/decision-records'),
+        { autoSaveConfiguration: false },
+      );
+      await clearCommands.initialize();
+    });
+
+    afterAll(() => {
+      rmSync(clearTestDir, { recursive: true, force: true });
+    });
+
+    // Gives RESPONSIBLE a real value, so that clearing it removes an actual
+    // value rather than null residue.
+    async function cardWithResponsibleSet(): Promise<Card> {
+      await clearCommands.editCmd.editCardMetadata(
+        'decision_6',
+        RESPONSIBLE,
+        'someone@example.com',
+      );
+      const card = clearCommands.project.findCard('decision_6');
+      expect(card.metadata![RESPONSIBLE]).toBeTruthy();
+      return card;
+    }
+
+    it('clearing a regular custom field removes the key from index.json', async () => {
+      const card = await cardWithResponsibleSet();
+      const keysBefore = Object.keys(card.metadata!).sort();
+
+      await clearCommands.editCmd.editCardMetadata(card.key, RESPONSIBLE, null);
+
+      const changed = clearCommands.project.findCard(card.key);
+      expect(changed.metadata!).not.toHaveProperty([RESPONSIBLE]);
+      const onDisk = readFileSync(join(changed.path, 'index.json'), 'utf-8');
+      expect(onDisk).not.toContain(RESPONSIBLE);
+
+      // Only the cleared key is gone; its siblings survive.
+      expect(Object.keys(changed.metadata!).sort()).toEqual(
+        keysBefore.filter((key) => key !== RESPONSIBLE),
+      );
+    });
+
+    it('clearing a regular custom field with undefined removes the key too', async () => {
+      const card = await cardWithResponsibleSet();
+
+      await clearCommands.editCmd.editCardMetadata(
+        card.key,
+        RESPONSIBLE,
+        undefined,
+      );
+
+      const changed = clearCommands.project.findCard(card.key);
+      expect(changed.metadata!).not.toHaveProperty([RESPONSIBLE]);
+      const onDisk = readFileSync(join(changed.path, 'index.json'), 'utf-8');
+      expect(onDisk).not.toContain(RESPONSIBLE);
+    });
+
+    it('clearing a predefined field does not delete the key', async () => {
+      await clearCommands.editCmd.editCardMetadata(
+        'decision_6',
+        'title',
+        'a real title',
+      );
+
+      // Key deletion covers custom fields; predefined fields are out of scope.
+      await clearCommands.editCmd.editCardMetadata('decision_6', 'title', null);
+
+      const changed = clearCommands.project.findCard('decision_6');
+      expect('title' in changed.metadata!).toBe(true);
+      expect(changed.metadata!.title).toBeNull();
+      const onDisk = JSON.parse(
+        readFileSync(join(changed.path, 'index.json'), 'utf-8'),
+      );
+      expect(onDisk).toHaveProperty('title', null);
+    });
+
+    it('writing undefined to a predefined field stores null', async () => {
+      await clearCommands.editCmd.editCardMetadata(
+        'decision_6',
+        'title',
+        'a real title',
+      );
+
+      await clearCommands.editCmd.editCardMetadata(
+        'decision_6',
+        'title',
+        undefined,
+      );
+
+      const changed = clearCommands.project.findCard('decision_6');
+      expect('title' in changed.metadata!).toBe(true);
+      expect(changed.metadata!.title).toBeNull();
+      const onDisk = JSON.parse(
+        readFileSync(join(changed.path, 'index.json'), 'utf-8'),
+      );
+      expect(onDisk).toHaveProperty('title', null);
+    });
+  });
 });
