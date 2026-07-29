@@ -132,7 +132,6 @@ describe('command-handler: validate command', () => {
     }
   });
   it('missing non-calculated custom field passes validation', async () => {
-    // An absent key means "no value", exactly like a null one.
     const tmpDir = join(baseDir, 'tmp-command-validate-tests-absent-field');
     mkdirSync(tmpDir, { recursive: true });
     try {

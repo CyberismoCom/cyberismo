@@ -447,7 +447,6 @@ export class Validate {
     if (field === 'person') {
       // Accept empty names
       return (
-        value === undefined ||
         EmailValidator.validate(<string>value) ||
         this.length(<string>value) === 0
       );
@@ -795,7 +794,6 @@ export class Validate {
       }
       const value = card.metadata[field.name];
       if (value === undefined || value === null) {
-        // Absent and null both mean 'no value'.
         continue;
       }
       if (field.isCalculated && !field.enableOverride) {
@@ -805,13 +803,11 @@ export class Validate {
         continue;
       }
 
-      if (!this.validType(card.metadata[field.name], fieldType)) {
-        const typeOfValue = typeof card.metadata[field.name];
-        let fieldValue = card.metadata[field.name];
+      if (!this.validType(value, fieldType)) {
+        const typeOfValue = typeof value;
+        let fieldValue = value;
         if (typeOfValue === 'string') {
-          fieldValue = card.metadata[field.name]
-            ? `"${card.metadata[field.name]}"`
-            : '""';
+          fieldValue = value ? `"${value}"` : '""';
         }
         if (fieldType.dataType === 'enum') {
           const listOfEnumValues = fieldType.enumValues?.map(
@@ -824,18 +820,17 @@ export class Validate {
         }
         if (fieldType.dataType === 'person') {
           validationErrors.push(
-            `In card '${card.key}' field '${field.name}' value '${card.metadata[field.name]}' cannot be used as '${fieldType.dataType}'. Not a valid email address.'`,
+            `In card '${card.key}' field '${field.name}' value '${value}' cannot be used as '${fieldType.dataType}'. Not a valid email address.'`,
           );
           continue;
         }
         if (
           fieldType.dataType === 'shortText' &&
           typeOfValue === 'string' &&
-          this.length(card.metadata[field.name] as string) >
-            SHORT_TEXT_MAX_LENGTH
+          this.length(value as string) > SHORT_TEXT_MAX_LENGTH
         ) {
           validationErrors.push(
-            `In card '${card.key}' field '${field.name}' value exceeds the maximum length for 'shortText': ${SHORT_TEXT_MAX_LENGTH} characters allowed, but value has ${this.length(card.metadata[field.name] as string)} characters\n`,
+            `In card '${card.key}' field '${field.name}' value exceeds the maximum length for 'shortText': ${SHORT_TEXT_MAX_LENGTH} characters allowed, but value has ${this.length(value as string)} characters\n`,
           );
           continue;
         }
