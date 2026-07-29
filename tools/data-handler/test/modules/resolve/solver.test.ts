@@ -339,6 +339,10 @@ describe('resolve solver', () => {
     const froms = new Set(bConflict!.demands.map((d) => d.from));
     expect(froms.has('A')).toBe(true);
     expect(froms.has('C')).toBe(true);
+    // Nothing here is fixable from the project config — no C exists that would
+    // satisfy B — so no pin is reported, and the frames A and C failed on
+    // while backtracking carry nothing and are dropped.
+    expect(result.conflicts.map((c) => c.module)).toEqual(['B']);
   });
 
   it('surgical update refuses to push a bystander past its own declared pin', async () => {
@@ -359,6 +363,12 @@ describe('resolve solver', () => {
     const froms = new Set(bConflict!.demands.map((d) => d.from));
     expect(froms.has('A')).toBe(true);
     expect(froms.has('C')).toBe(true);
+    // Unlike the unsatisfiable case this one IS fixable from the project
+    // config, so the refusal has to say which pin to widen and to what.
+    expect(result.conflicts.find((c) => c.module === 'C')?.pinned).toEqual({
+      range: '^1.0.0',
+      wouldNeed: '2.0.0',
+    });
   });
 
   it('availability reports no reachable update when the only path breaks a pin', async () => {
@@ -458,6 +468,10 @@ describe('resolve solver', () => {
     const froms = new Set(bConflict!.demands.map((d) => d.from));
     expect(froms.has('D')).toBe(true);
     expect(froms.has('C')).toBe(true);
+    expect(result.conflicts.find((c) => c.module === 'C')?.pinned).toEqual({
+      range: '^1.0.0',
+      wouldNeed: '2.0.0',
+    });
   });
 
   it('replayability prune blocks a non-linear upgrade', async () => {

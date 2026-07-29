@@ -39,6 +39,11 @@ export interface ResolveConflict {
   // unreachable by replay, so it is reported as its own kind rather than
   // collapsing into a generic "no satisfying version".
   downgrade?: { from: Version; to: Version };
+  // Set when a version satisfying every demand on this module existed, but
+  // fell outside the module's own declared range. Unlike the other kinds this
+  // one is fixable from the project config: widening `range` admits
+  // `wouldNeed` and unblocks the resolution.
+  pinned?: { range: VersionRange; wouldNeed: Version };
 }
 export type ResolveResult =
   { ok: true; changes: Change[] } | { ok: false; conflicts: ResolveConflict[] };
