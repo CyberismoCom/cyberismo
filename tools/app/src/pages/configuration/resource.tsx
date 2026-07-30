@@ -36,6 +36,7 @@ const resourceMap: Partial<ResourceRendererMap> = {
   graphViews: (node, key) => <ResourceEditor node={node} key={key} />,
   linkTypes: (node, key) => <ResourceEditor node={node} key={key} />,
   reports: (node, key) => <ResourceEditor node={node} key={key} />,
+  skills: (node, key) => <ResourceEditor node={node} key={key} />,
   templates: (node, key) => <ResourceEditor node={node} key={key} />,
   workflows: (node, key) => <ResourceEditor node={node} key={key} />,
 };

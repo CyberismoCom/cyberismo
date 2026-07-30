@@ -22,10 +22,12 @@ import { resourceNameToString } from '../utils/resource-utils.js';
 import { sortCards } from '../utils/card-utils.js';
 
 import type { Card } from '../interfaces/project-interfaces.js';
+import type { Operation } from './resource-object.js';
 import type { Project } from '../containers/project.js';
 import type { SkillContent } from '../interfaces/folder-content-interfaces.js';
 import type { SkillMetadata } from '../interfaces/resource-interfaces.js';
 import type { ResourceName } from '../utils/resource-utils.js';
+import type { UpdateKey } from '../interfaces/resource-interfaces.js';
 
 /**
  * Skill resource class.
@@ -63,6 +65,29 @@ export class SkillResource extends FolderResource<SkillMetadata, SkillContent> {
     const defaultSkillLocation = await this.getDefaultSkillLocation();
     await copyDir(defaultSkillLocation, this.internalFolder);
     await this.loadContentFiles();
+  }
+
+  /**
+   * Handles the skill specific 'relatedTools' property.
+   * @param content Content to modify in place.
+   * @param updateKey Key to modify.
+   * @param op Operation to perform on 'key'.
+   * @returns true if the key was handled, false if it is unknown.
+   */
+  protected updateAdditionalProperty<Type, K extends string>(
+    content: SkillMetadata,
+    updateKey: UpdateKey<K>,
+    op: Operation<Type>,
+  ): boolean {
+    if (updateKey.key !== 'relatedTools') {
+      return false;
+    }
+    content.relatedTools = super.handleArray(
+      op,
+      updateKey.key,
+      content.relatedTools as Type[],
+    ) as string[];
+    return true;
   }
 
   /**

@@ -1160,3 +1160,35 @@
   max-width: 100%;
   height: auto;
 }
+
+/*
+ * Markdown content. The rules above target Asciidoctor's generated
+ * classes, so plain tables and lists from Markdown need their own styling.
+ */
+.doc.markdown table {
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+  font-size: 0.83333rem;
+  border-collapse: collapse;
+}
+.doc.markdown table th,
+.doc.markdown table td {
+  padding: 0.5rem;
+  border: 1px solid var(--joy-palette-divider, #e1e1e1);
+}
+.doc.markdown table th {
+  background: var(--joy-palette-background-level1, #fbfcfe);
+}
+.doc.markdown ol,
+.doc.markdown ul {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+  list-style-position: outside;
+}
+.doc.markdown ul {
+  list-style-type: disc;
+}
+.doc.markdown ol {
+  list-style-type: decimal;
+}

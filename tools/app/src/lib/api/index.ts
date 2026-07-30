@@ -27,6 +27,7 @@ export * from './graphModel';
 export * from './graphView';
 export * from './templates';
 export * from './report';
+export * from './skill';
 export * from './workflow';
 export * from './labels';
 export * from './user';

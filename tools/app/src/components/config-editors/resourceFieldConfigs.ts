@@ -28,6 +28,7 @@ export type FieldType =
   | 'boolean'
   | 'cardFields'
   | 'enumValues'
+  | 'relatedTools'
   | 'workflowStates'
   | 'workflowGraph';
 
@@ -145,6 +146,14 @@ export const resourceFieldConfigs: Record<ResourceNode['type'], FieldConfig[]> =
     graphModels: [...commonFields],
     graphViews: [...commonFields],
     reports: [...commonFields],
+    skills: [
+      ...commonFields,
+      {
+        key: 'relatedTools',
+        type: 'relatedTools',
+        label: 'relatedTools',
+      },
+    ],
     templates: [...commonFields],
     workflows: [
       ...commonFields,
