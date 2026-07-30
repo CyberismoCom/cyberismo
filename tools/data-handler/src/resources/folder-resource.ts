@@ -216,6 +216,25 @@ export abstract class FolderResource<
   }
 
   /**
+   * Handles a property that is specific to a subclass of FolderResource.
+   * The base class knows only the properties shared by all resources; subclasses
+   * override this to claim their own ones.
+   * @param _content Content to modify in place.
+   * @param _updateKey Key to modify.
+   * @param _op Operation to perform on 'key'.
+   * @returns true if the key was handled, false if it is unknown.
+   */
+  /* eslint-disable @typescript-eslint/no-unused-vars -- signature only; subclasses use the parameters */
+  protected updateAdditionalProperty<Type, K extends string>(
+    _content: T,
+    _updateKey: UpdateKey<K>,
+    _op: Operation<Type>,
+  ): boolean {
+    return false;
+  }
+  /* eslint-enable @typescript-eslint/no-unused-vars */
+
+  /**
    * Updates resource.
    * @param updateKey Key to modify
    * @param op Operation to perform on 'key'
@@ -249,7 +268,7 @@ export abstract class FolderResource<
       content.description = super.handleScalar(op) as string;
     } else if (key === 'category') {
       content.category = super.handleScalar(op) as string;
-    } else {
+    } else if (!this.updateAdditionalProperty(content, updateKey, op)) {
       throw new Error(`Unknown property '${key}' for folder resource`);
     }
 

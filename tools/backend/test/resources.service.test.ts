@@ -376,6 +376,54 @@ describe('Resources Service', () => {
       ]);
     });
 
+    test('includes skills with their content files as children', async () => {
+      const mockSkillData = {
+        name: 'test/skills/manageRiskRegister',
+        displayName: 'Manage Risk Register',
+        description: 'Review the project risk register',
+        category: 'risk-assessment',
+        relatedTools: ['query_cards'],
+        content: {
+          skillContent: '# Manage Risk Register\n',
+          skillQuery: '',
+        },
+      };
+      const mockCommands = createMockCommandManager({
+        showCmd: {
+          showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
+          showResources: vi
+            .fn()
+            .mockImplementation((type) =>
+              Promise.resolve(
+                type === 'skills' ? ['test/skills/manageRiskRegister'] : [],
+              ),
+            ),
+          showResource: vi.fn().mockResolvedValue(mockSkillData),
+          showAllTemplateCards: vi.fn().mockResolvedValue([]),
+        },
+      });
+
+      const result = (await buildResourceTree(
+        mockCommands,
+      )) as testObjectNode[];
+
+      expect(result).toHaveLength(2); // general + skills group
+      expect(result[1].name).toBe('skills');
+      const skillNode = result[1].children[0].children[0];
+      expect(skillNode.name).toBe('test/skills/manageRiskRegister');
+      expect(skillNode.type).toBe('skills');
+
+      // The two content files become editable file children, keyed by content
+      // property name rather than filename.
+      expect(skillNode.children.map((child) => child.name)).toEqual([
+        'test/skills/manageRiskRegister/skillContent',
+        'test/skills/manageRiskRegister/skillQuery',
+      ]);
+      expect(skillNode.children.every((child) => child.type === 'file')).toBe(
+        true,
+      );
+    });
+
     test('should handle mixed root and module templates', async () => {
       const mockCommands = createMockCommandManager({
         showCmd: {

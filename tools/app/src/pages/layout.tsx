@@ -29,6 +29,7 @@ import {
   NewGraphViewModal,
   NewLinkTypeModal,
   NewReportModal,
+  NewSkillModal,
   NewTemplateModal,
   NewWorkflowModal,
 } from '../components/modals/resource-forms';
@@ -69,6 +70,7 @@ export default function Layout() {
     graphViews: false,
     linkTypes: false,
     reports: false,
+    skills: false,
     templates: false,
     workflows: false,
     templateCard: false,
@@ -170,6 +172,7 @@ export default function Layout() {
         open={modalOpen.reports}
         onClose={closeModal('reports')}
       />
+      <NewSkillModal open={modalOpen.skills} onClose={closeModal('skills')} />
       <NewTemplateModal
         open={modalOpen.templates}
         onClose={closeModal('templates')}

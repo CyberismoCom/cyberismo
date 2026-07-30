@@ -20,6 +20,8 @@ import { resourceParamsSchema } from '../../common/validationSchemas.js';
 import { zValidator } from '../../middleware/zvalidator.js';
 import {
   validateResourceParamsSchema,
+  skillPreviewBodySchema,
+  skillPreviewParamsSchema,
   updateOperationBodySchema,
   workflowGraphParamsSchema,
   workflowGraphQuerySchema,
@@ -207,6 +209,88 @@ router.get(
         return c.json({ error: error.message }, 404);
       }
       throw error;
+    }
+  },
+);
+
+/**
+ * @swagger
+ * /api/resources/{prefix}/skills/{identifier}/preview:
+ *   post:
+ *     summary: Render a skill's instructions for the configuration editor
+ *     description: Applies Handlebars templating to the skill content and
+ *                  returns the rendered markdown. For template skills the
+ *                  logic program in query.lp is executed first and its result
+ *                  is used as the template context. Unlike the MCP get_skill
+ *                  tool, the skill does not need to be enabled by the logic
+ *                  programs. Pass skillContent and/or skillQuery to render
+ *                  unsaved editor content instead of what is stored on disk.
+ *     parameters:
+ *       - in: path
+ *         name: prefix
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: identifier
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               skillContent:
+ *                 type: string
+ *                 description: Unsaved skill.md content to render.
+ *               skillQuery:
+ *                 type: string
+ *                 description: Unsaved query.lp content to run.
+ *               cardKey:
+ *                 type: string
+ *                 description: Card context for a card-specific skill.
+ *     responses:
+ *       200:
+ *         description: Rendered instructions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 instructions:
+ *                   type: string
+ *                   description: The rendered skill content as markdown.
+ *       400:
+ *         description: Invalid path parameters, or the query or template failed
+ *       404:
+ *         description: Skill or card not found
+ */
+router.post(
+  '/:prefix/skills/:identifier/preview',
+  requireRole(UserRole.Admin),
+  zValidator('param', skillPreviewParamsSchema),
+  zValidator('json', skillPreviewBodySchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const { prefix, identifier } = c.req.valid('param');
+    const body = c.req.valid('json');
+    const skillName = `${prefix}/skills/${identifier}`;
+    try {
+      const instructions = await resourceService.previewSkill(
+        commands,
+        skillName,
+        body,
+      );
+      return c.json({ instructions });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      if (message.includes('not found')) {
+        return c.json({ error: message }, 404);
+      }
+      return c.json({ error: message }, 400);
     }
   },
 );

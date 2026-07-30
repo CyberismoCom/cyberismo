@@ -23,6 +23,7 @@ import graphModelsRouter from './domain/graphModels/index.js';
 import graphViewsRouter from './domain/graphViews/index.js';
 import linkTypesRouter from './domain/linkTypes/index.js';
 import reportsRouter from './domain/reports/index.js';
+import skillsRouter from './domain/skills/index.js';
 import templatesRouter from './domain/templates/index.js';
 import treeRouter from './domain/tree/index.js';
 import workflowsRouter from './domain/workflows/index.js';
@@ -64,6 +65,7 @@ function createProjectScopedRoutes(
   projectScoped.route('/graphViews', graphViewsRouter);
   projectScoped.route('/linkTypes', linkTypesRouter);
   projectScoped.route('/reports', reportsRouter);
+  projectScoped.route('/skills', skillsRouter);
   projectScoped.route('/templates', templatesRouter);
   projectScoped.route('/tree', treeRouter);
   projectScoped.route('/workflows', workflowsRouter);

@@ -25,6 +25,7 @@ import {
   EnumValuesEditor,
   IdentifierInput,
   MultiSelectInput,
+  RelatedToolsEditor,
   TextareaInput,
   TextInput,
   SelectInput,
@@ -33,6 +34,7 @@ import {
 } from './fields';
 import type {
   FieldType,
+  Skill,
   Workflow,
 } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import FieldRow from './fields/FieldRow';
@@ -145,6 +147,13 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
             readOnly={isDisabled}
           />
         );
+      case 'relatedTools':
+        return (
+          <RelatedToolsEditor
+            skill={node.data as Skill}
+            readOnly={isDisabled}
+          />
+        );
       case 'workflowStates':
         return (
           <WorkflowStatesEditor
@@ -193,6 +202,7 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
         {constrainedConfigs.map((fieldConfig) =>
           fieldConfig.type === 'cardFields' ||
           fieldConfig.type === 'enumValues' ||
+          fieldConfig.type === 'relatedTools' ||
           fieldConfig.type === 'workflowStates' ? (
             <div key={fieldConfig.key}>{renderField(fieldConfig)}</div>
           ) : (

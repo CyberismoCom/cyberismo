@@ -18,6 +18,21 @@ export const workflowGraphQuerySchema = z.object({
 
 export type WorkflowGraphQuery = z.infer<typeof workflowGraphQuerySchema>;
 
+export const skillPreviewParamsSchema = z.object({
+  prefix: z.string(),
+  identifier: identifierSchema,
+});
+
+export type SkillPreviewParams = z.infer<typeof skillPreviewParamsSchema>;
+
+export const skillPreviewBodySchema = z.object({
+  skillContent: z.string().optional(),
+  skillQuery: z.string().optional(),
+  cardKey: z.string().optional(),
+});
+
+export type SkillPreviewBody = z.infer<typeof skillPreviewBodySchema>;
+
 export const resourceFileParamsSchema = resourceParamsSchema.extend({
   file: z.string(),
 });

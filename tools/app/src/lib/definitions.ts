@@ -112,6 +112,9 @@ export type CreateLinkTypeData = CreateWithIdentifier;
 // Data for creating a new report
 export type CreateReportData = CreateWithIdentifier;
 
+// Data for creating a new skill
+export type CreateSkillData = CreateWithIdentifier;
+
 // Data for creating a new template
 export type CreateTemplateData = CreateWithIdentifier;
 

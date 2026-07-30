@@ -216,4 +216,80 @@ describe('skill discovery', () => {
       expect(result.status).toBe('card-not-found');
     });
   });
+
+  describe('renderSkill', () => {
+    it('renders stored content', async () => {
+      const rendered = await commands.showCmd.renderSkill(
+        'decision/skills/globalSkill',
+      );
+      expect(rendered).toContain('Use this any time.');
+    });
+
+    it('renders a per-card skill with the cardKey interpolated', async () => {
+      const rendered = await commands.showCmd.renderSkill(
+        'decision/skills/cardSkill',
+        { cardKey: 'decision_5' },
+      );
+      expect(rendered).toContain('Applies to decision_5.');
+    });
+
+    it('ignores enablement, unlike getSkill', async () => {
+      // cardSkill is enabled for decision_5 only, so getSkill refuses this
+      // card. The preview must still render it for the author.
+      expect(
+        (
+          await commands.showCmd.getSkill('decision/skills/cardSkill', {
+            cardKey: 'decision_1',
+          })
+        ).status,
+      ).toBe('not-enabled');
+      const rendered = await commands.showCmd.renderSkill(
+        'decision/skills/cardSkill',
+        { cardKey: 'decision_1' },
+      );
+      expect(rendered).toContain('Applies to decision_1.');
+    });
+
+    it('renders unsaved content instead of what is stored', async () => {
+      const rendered = await commands.showCmd.renderSkill(
+        'decision/skills/globalSkill',
+        { skillContent: '# Draft\nStill being written.\n' },
+      );
+      expect(rendered).toContain('Still being written.');
+      expect(rendered).not.toContain('Use this any time.');
+    });
+
+    it('runs an unsaved query and uses its result as context', async () => {
+      const rendered = await commands.showCmd.renderSkill(
+        'decision/skills/globalSkill',
+        {
+          skillQuery: 'result(decision_5).\n',
+          skillContent: '{{#each results}}Found {{key}}.{{/each}}',
+        },
+      );
+      expect(rendered).toContain('Found decision_5.');
+    });
+
+    it('throws for an unknown skill', async () => {
+      await expect(
+        commands.showCmd.renderSkill('decision/skills/doesNotExist'),
+      ).rejects.toThrow(/does not exist/);
+    });
+
+    it('throws for an unknown card', async () => {
+      await expect(
+        commands.showCmd.renderSkill('decision/skills/globalSkill', {
+          cardKey: 'decision_does_not_exist',
+        }),
+      ).rejects.toThrow();
+    });
+
+    it('surfaces an error from a broken query', async () => {
+      await expect(
+        commands.showCmd.renderSkill('decision/skills/globalSkill', {
+          skillQuery: 'this is not a logic program',
+        }),
+      ).rejects.toThrow();
+    });
+  });
 });

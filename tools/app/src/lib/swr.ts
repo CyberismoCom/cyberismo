@@ -72,6 +72,9 @@ export function projectApiPaths(projectPrefix?: string) {
     cardParse: (cardKey: string) => `${base}/cards/${cardKey}/parse`,
     linkTypes: () => `${base}/linkTypes`,
     reports: () => `${base}/reports`,
+    skills: () => `${base}/skills`,
+    skillPreview: (resourceName: string) =>
+      `${base}/resources/${resourceName}/preview`,
     workflows: () => `${base}/workflows`,
     resources: (type: string) => `${base}/resources/${type}`,
     resourceTree: () => `${base}/resources/tree`,

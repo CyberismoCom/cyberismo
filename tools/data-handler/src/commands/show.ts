@@ -762,19 +762,52 @@ export class Show {
     if (entry.scope === 'card' && !cardKey) {
       return { status: 'needs-card' };
     }
-    const resource = this.project.resources.byType(name, 'skills');
-    const skill = resource.show();
-    const instructions = await generateReportContent({
-      calculate: this.project.calculationEngine,
-      contentTemplate: skill.content.skillContent,
-      queryTemplate: skill.content.skillQuery,
-      options: { cardKey },
-      context,
-    });
+    const skill = this.project.resources.byType(name, 'skills').show();
+    const instructions = await this.renderSkill(name, { cardKey }, context);
     return {
       status: 'ok',
       skill: { ...this.toSkillSummary(skill, entry.scope), instructions },
     };
+  }
+
+  /**
+   * Renders a skill's instructions without checking whether it is enabled.
+   *
+   * This is what the configuration editor previews: the author is still working
+   * on the skill, so its enablement state is irrelevant. Passing 'skillContent'
+   * or 'skillQuery' renders unsaved editor content instead of what is on disk.
+   * @param name Full skill resource name.
+   * @param options.cardKey Card context for per-card template rendering.
+   * @param options.skillContent Overrides the stored skill.md content.
+   * @param options.skillQuery Overrides the stored query.lp content.
+   * @param context Calculation context.
+   * @returns the rendered instructions.
+   * @throws if the skill or the card does not exist, or if rendering fails.
+   */
+  @read
+  public async renderSkill(
+    name: string,
+    options: {
+      cardKey?: string;
+      skillContent?: string;
+      skillQuery?: string;
+    } = {},
+    context: Context = 'localApp',
+  ): Promise<string> {
+    const { cardKey, skillContent, skillQuery } = options;
+    const skill = this.project.resources.byType(name, 'skills').show();
+
+    if (cardKey) {
+      this.project.findCard(cardKey);
+    }
+
+    return generateReportContent({
+      calculate: this.project.calculationEngine,
+      contentTemplate: skillContent ?? skill.content.skillContent,
+      queryTemplate: skillQuery ?? skill.content.skillQuery,
+      options: { cardKey },
+      context,
+    });
   }
 
   /**
