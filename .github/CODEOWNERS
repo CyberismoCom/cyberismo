@@ -2,4 +2,4 @@
 # Last matching pattern wins. See https://docs.github.com/articles/about-code-owners
 
 # Default owners for everything in the repo
-*       @samutoljamo @CyberJML @tminkkinen
+*       @samutoljamo @CyberJML
