@@ -36,6 +36,7 @@ import { ModuleDeleteModal, AddModuleModal } from '@/components/modals';
 import { addNotification } from '@/lib/slices/notifications';
 import BaseEditor from './BaseEditor';
 import FieldRow from './fields/FieldRow';
+import HubsSection from './HubsSection';
 import TextInput from './fields/TextInput';
 import TextareaInput from './fields/TextareaInput';
 import { UserRole, useHasMinRole } from '@/lib/auth';
@@ -256,7 +257,7 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
 
         <Stack spacing={1}>
           <Stack direction="row" alignItems="center" spacing={1}>
-            <Typography level="title-lg">
+            <Typography level="title-lg" component="h2">
               {t('general.modulesSection')}
             </Typography>
             <Button
@@ -347,6 +348,8 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
             </Card>
           ))}
         </Stack>
+
+        <HubsSection disabled={isDisabled} />
       </Stack>
       {moduleToDelete && (
         <ModuleDeleteModal

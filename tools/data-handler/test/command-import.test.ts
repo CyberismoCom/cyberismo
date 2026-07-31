@@ -21,7 +21,7 @@ import { join, resolve as pathResolve } from 'node:path';
 import { CommandManager } from '../src/command-manager.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Cmd, Commands } from '../src/command-handler.js';
-import { Fetch, Show } from '../src/commands/index.js';
+import { Show } from '../src/commands/index.js';
 import { GitManager } from '../src/utils/git-manager.js';
 import {
   makeFakeModuleFixture,
@@ -68,8 +68,7 @@ describe('import csv command', () => {
 
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
-    const fetchCmd = new Fetch(project);
-    const show = new Show(project, fetchCmd);
+    const show = new Show(project);
     const card1 = await show.showCardDetails(key1);
     const card2 = await show.showCardDetails(key2);
     expect(card1.metadata!.title).toBe('Title1');

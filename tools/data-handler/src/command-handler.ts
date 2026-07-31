@@ -342,7 +342,20 @@ export class Commands {
         if (target !== 'hubs') {
           throw new Error(`Unknown type to fetch: '${target}'`);
         }
-        await this.commands?.fetchCmd.fetchHubs();
+        // An explicit fetch always contacts the hubs; the version-checked path
+        // is for callers that only need the cache to be current.
+        const failures = (await this.commands?.fetchCmd.fetchHubs(true)) ?? [];
+        if (failures.length > 0) {
+          return {
+            statusCode: 500,
+            message: [
+              ...failures.map(
+                (failure) => `${failure.location}: ${failure.message}`,
+              ),
+              'Modules from the hubs that could be read were refreshed.',
+            ].join('\n'),
+          };
+        }
       } else if (command === Cmd.import) {
         const target = args.splice(0, 1)[0];
         if (target === 'module') {
@@ -886,9 +899,13 @@ export class Commands {
         promise = this.commands!.showCmd.showResources(type);
         break;
       case 'importableModules':
-        promise = this.commands!.showCmd.showImportableModules(
-          options?.showAll,
-          options?.details,
+        // The show commands read cached hub data; on the command line a stale
+        // listing is never what the user asked for, so refresh it first.
+        promise = this.commands!.fetchCmd.ensureModuleListUpToDate().then(() =>
+          this.commands!.showCmd.showImportableModules(
+            options?.showAll,
+            options?.details,
+          ),
         );
         break;
       case 'labels':
@@ -898,7 +915,9 @@ export class Commands {
         promise = this.commands!.showCmd.showModule(detail);
         break;
       case 'hubs':
-        promise = this.commands!.showCmd.showHubs();
+        promise = this.commands!.fetchCmd.ensureModuleListUpToDate().then(() =>
+          this.commands!.showCmd.showHubs(),
+        );
         break;
       case 'modules':
         promise = this.commands!.showCmd.showModules();

@@ -144,24 +144,73 @@ describe('project settings', () => {
     );
   });
 
-  it('should add a hub with valid URL', async () => {
-    const configPath = createTestConfig('test-config-add-hub.json');
+  // Locations are stored as a directory URL: without the trailing slash,
+  // resolving moduleList.json against them would drop the last segment.
+  it.each([
+    ['a plain URL', 'https://example.com/hub', 'https://example.com/hub/'],
+    [
+      'a URL that already ends in a slash',
+      'https://example.com/hub/',
+      'https://example.com/hub/',
+    ],
+    [
+      'surrounding whitespace',
+      '  https://example.com/hub  ',
+      'https://example.com/hub/',
+    ],
+    [
+      'a URL naming the file',
+      'https://example.com/hub/moduleList.json',
+      'https://example.com/hub/',
+    ],
+    [
+      'repeated trailing slashes',
+      'https://example.com/hub///',
+      'https://example.com/hub/',
+    ],
+    [
+      'a slash after the file',
+      'https://example.com/hub/moduleList.json/',
+      'https://example.com/hub/',
+    ],
+    // Only a whole segment names the module list; this one is a directory.
+    [
+      'a segment merely ending in the file name',
+      'https://example.com/hub/foo-moduleList.json',
+      'https://example.com/hub/foo-moduleList.json/',
+    ],
+  ])(
+    'should store a hub given as %s canonically',
+    async (name, input, expected) => {
+      const configPath = createTestConfig(
+        `test-config-add-hub-${name.replace(/\W/g, '-')}.json`,
+      );
+      const projectSettings = new ProjectConfiguration(configPath, false);
+      await projectSettings.addHub(input);
+
+      expect(projectSettings.hubs.length).toBe(1);
+      expect(projectSettings.hubs[0].location).toBe(expected);
+
+      const savedConfig = readJsonFileSync(configPath);
+      expect(savedConfig.hubs.length).toBe(1);
+    },
+  );
+
+  it('should reject duplicate hub that differs only by trailing slash', async () => {
+    const configPath = createTestConfig(
+      'test-config-hub-slash-duplicate.json',
+      {
+        hubs: [{ location: 'https://example.com/hub/' }],
+      },
+    );
     const projectSettings = new ProjectConfiguration(configPath, false);
-    await projectSettings.addHub('https://example.com/hub');
 
-    expect(projectSettings.hubs.length).toBe(1);
-    expect(projectSettings.hubs[0].location).toBe('https://example.com/hub');
-
-    const savedConfig = readJsonFileSync(configPath);
-    expect(savedConfig.hubs.length).toBe(1);
-  });
-
-  it('should trim whitespace from hub URL', async () => {
-    const configPath = createTestConfig('test-config-hub-trim.json');
-    const projectSettings = new ProjectConfiguration(configPath, false);
-    await projectSettings.addHub('  https://example.com/hub  ');
-
-    expect(projectSettings.hubs[0].location).toBe('https://example.com/hub');
+    await expect(
+      projectSettings.addHub('https://example.com/hub'),
+    ).rejects.toThrow('already exists as a hub for the project');
+    await expect(
+      projectSettings.addHub('https://example.com/hub/moduleList.json'),
+    ).rejects.toThrow('already exists as a hub for the project');
   });
 
   it('should reject empty hub URL', async () => {
@@ -185,17 +234,25 @@ describe('project settings', () => {
     await expect(
       projectSettings.addHub('https://example.com/hub'),
     ).rejects.toThrow(
-      "Hub 'https://example.com/hub' already exists as a hub for the project",
+      "Hub 'https://example.com/hub/' already exists as a hub for the project",
     );
   });
 
-  it('should reject invalid hub URL', async () => {
-    const configPath = createTestConfig('test-config-hub-invalid.json');
+  it.each([
+    ['a bare scheme', 'https://'],
+    ['a bare http scheme', 'http://'],
+    ['a string with no scheme', 'not-a-url'],
+    ['a path only', '/hub/'],
+  ])('should reject %s as a hub URL', async (name, input) => {
+    const configPath = createTestConfig(
+      `test-config-hub-invalid-${name.replace(/\W/g, '-')}.json`,
+    );
     const projectSettings = new ProjectConfiguration(configPath, false);
 
-    await expect(projectSettings.addHub('not-a-valid-url')).rejects.toThrow(
-      'Invalid hub URL',
+    await expect(projectSettings.addHub(input)).rejects.toThrow(
+      `Invalid hub URL '${input}'`,
     );
+    expect(projectSettings.hubs).toEqual([]);
   });
 
   it('should reject non-HTTP/HTTPS protocols', async () => {

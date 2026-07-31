@@ -13,6 +13,7 @@
 
 import {
   type CommandManager,
+  type HubFetchFailure,
   type ModuleSettingFromHub,
 } from '@cyberismo/data-handler';
 
@@ -36,6 +37,20 @@ export interface ProjectUpdatePayload {
   description?: string;
   category?: string;
   gitRemoteUrl?: string;
+}
+
+export interface HubModuleInfo {
+  name: string;
+  displayName?: string;
+  location: string;
+  imported: boolean;
+}
+
+export interface HubInfo {
+  location: string;
+  displayName?: string;
+  description?: string;
+  modules: HubModuleInfo[];
 }
 
 async function toModuleInfo(
@@ -119,9 +134,21 @@ export async function deleteModule(commands: CommandManager, module: string) {
   await commands.removeCmd.remove('module', module);
 }
 
+// Hub data is only refreshed on demand, so a project that has never fetched
+// would otherwise show an empty catalogue until the user asks for a refresh.
+async function populateHubCache(commands: CommandManager) {
+  try {
+    await commands.fetchCmd.ensureModuleListExists();
+  } catch (error) {
+    // An unreachable hub must not fail listing the hubs we already know about.
+    console.warn('Failed to populate the hub cache', error);
+  }
+}
+
 export async function getImportableModules(
   commands: CommandManager,
 ): Promise<ModuleSettingFromHub[]> {
+  await populateHubCache(commands);
   return commands.showCmd.showImportableModules(false, true);
 }
 
@@ -130,4 +157,43 @@ export async function importModule(
   source: string,
 ): Promise<void> {
   await commands.importCmd.importModule(source);
+}
+
+export async function getHubs(commands: CommandManager): Promise<HubInfo[]> {
+  await populateHubCache(commands);
+  const hubs = await commands.showCmd.showHubDetails();
+  const importedModules = new Set(
+    (await commands.showCmd.showModules()).map((mod) => mod.name),
+  );
+  return hubs.map((hub) => ({
+    location: hub.location,
+    displayName: hub.displayName,
+    description: hub.description,
+    modules: hub.modules.map((mod) => ({
+      name: mod.name,
+      displayName: mod.displayName,
+      location: mod.location,
+      imported: importedModules.has(mod.name),
+    })),
+  }));
+}
+
+export async function addHub(
+  commands: CommandManager,
+  location: string,
+): Promise<HubFetchFailure[]> {
+  await commands.createCmd.addHubLocation(location);
+  // The hub is configured even when it cannot be reached right now; its
+  // modules appear once a later refresh succeeds.
+  return commands.fetchCmd.fetchHubs(true);
+}
+
+export async function removeHub(commands: CommandManager, location: string) {
+  await commands.removeCmd.remove('hub', location);
+}
+
+export async function fetchHubs(
+  commands: CommandManager,
+): Promise<HubFetchFailure[]> {
+  return commands.fetchCmd.fetchHubs(true);
 }

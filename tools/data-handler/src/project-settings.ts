@@ -22,6 +22,7 @@ import type {
   ModuleSetting,
   ProjectSettings,
 } from './interfaces/project-interfaces.js';
+import { canonicalHubLocation } from './utils/hub-utils.js';
 import { formatJson } from './utils/json.js';
 import { getChildLogger } from './utils/log-utils.js';
 import { readCardsConfigSync } from './containers/project/cards-config.js';
@@ -116,36 +117,42 @@ export class ProjectConfiguration implements ProjectSettings {
    * @throws if hub is already in the project or URL is invalid
    */
   public async addHub(hubName: string) {
-    const trimmedHub = hubName?.trim();
+    const trimmedHub = canonicalHubLocation(hubName ?? '');
     if (!trimmedHub) {
       throw new Error(`Cannot add empty hub to the project`);
     }
 
-    const exists = this.hubs.find((item) => item.location === trimmedHub);
+    // Only new hubs are validated: locations already in the configuration are
+    // canonicalized for matching, but never rejected, so that a legacy or
+    // hand-edited entry can still be removed.
+    let hubUrl: URL;
+    try {
+      hubUrl = new URL(trimmedHub);
+    } catch (error) {
+      throw new Error(
+        `Invalid hub URL '${hubName}'. Please provide a valid HTTP or HTTPS URL.`,
+        { cause: error },
+      );
+    }
+    if (!['http:', 'https:'].includes(hubUrl.protocol)) {
+      throw new Error(
+        `Invalid URL protocol '${hubUrl.protocol}'. Only HTTP and HTTPS protocols are supported for hubs.`,
+      );
+    }
+    if (!hubUrl.hostname) {
+      throw new Error(
+        `Invalid hub URL '${hubName}'. Hub URL must have a valid hostname.`,
+      );
+    }
+
+    // Locations naming the same directory are the same hub, however written.
+    const exists = this.hubs.find(
+      (item) => canonicalHubLocation(item.location) === trimmedHub,
+    );
     if (exists) {
       throw new Error(
         `Hub '${trimmedHub}' already exists as a hub for the project`,
       );
-    }
-
-    try {
-      const hubUrl = new URL(trimmedHub);
-      if (!['http:', 'https:'].includes(hubUrl.protocol)) {
-        throw new Error(
-          `Invalid URL protocol '${hubUrl.protocol}'. Only HTTP and HTTPS protocols are supported for hubs.`,
-        );
-      }
-      if (!hubUrl.hostname) {
-        throw new Error('Hub URL must have a valid hostname.');
-      }
-    } catch (error) {
-      if (error instanceof TypeError) {
-        throw new Error(
-          `Invalid hub URL '${trimmedHub}'. Please provide a valid HTTP or HTTPS URL.`,
-          { cause: error },
-        );
-      }
-      throw error;
     }
 
     this.hubs.push({ location: trimmedHub });
@@ -191,11 +198,16 @@ export class ProjectConfiguration implements ProjectSettings {
    * @throws if hub is not part of the project
    */
   public async removeHub(hubName: string) {
-    const exists = this.hubs.find((item) => item.location === hubName);
+    // Match the same way adding does, so a hub added before locations were
+    // stored canonically can still be named by either form.
+    const target = canonicalHubLocation(hubName ?? '');
+    const matches = (location: string) =>
+      location === hubName || canonicalHubLocation(location) === target;
+    const exists = this.hubs.find((item) => matches(item.location));
     if (!exists) {
       throw new Error(`Hub '${hubName}' not part of the project`);
     }
-    this.hubs = this.hubs.filter((item) => item.location !== hubName);
+    this.hubs = this.hubs.filter((item) => !matches(item.location));
     return this.save();
   }
 

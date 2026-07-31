@@ -18,7 +18,7 @@ import { join, resolve } from 'node:path';
 import { spawn } from 'node:child_process';
 import { writeFile } from 'node:fs/promises';
 
-import { type Fetch, MODULE_LIST_FULL_PATH } from './fetch.js';
+import { type ModuleListFile, MODULE_LIST_FULL_PATH } from './fetch.js';
 import { installedModules } from '../modules/index.js';
 
 import { CardLocation } from '../interfaces/project-interfaces.js';
@@ -32,6 +32,7 @@ import type {
   Context,
   FetchCardDetails,
   FileContentType,
+  HubDetails,
   HubSetting,
   ModuleContent,
   ModuleInfo,
@@ -54,7 +55,7 @@ import type { ResourceName } from '../utils/resource-utils.js';
 import type { ResourceMap } from '../containers/project/resource-cache.js';
 
 import { UserPreferences } from '../utils/user-preferences.js';
-import { read, write } from '../utils/rw-lock.js';
+import { read } from '../utils/rw-lock.js';
 import ReportMacro from '../macros/report/index.js';
 import { generateReportContent } from '../utils/report.js';
 import TaskQueue from '../macros/task-queue.js';
@@ -85,10 +86,7 @@ export class Show {
     workflows: (from) => this.resourceNames('workflows', from),
   };
 
-  constructor(
-    private project: Project,
-    private fetchCmd: Fetch,
-  ) {}
+  constructor(private project: Project) {}
 
   private get logger() {
     return getChildLogger({
@@ -347,16 +345,14 @@ export class Show {
    *          with 'showDetails' true, instead of name, the list consists of full details of the modules
    *          with 'showAll' true, the list consists of all modules in the hubs, even if they have already been imported
    *          Note that the two boolean options can be combined.
+   * @note Reads the cached hub data as-is; refreshing it is the caller's call.
    */
-  @write()
+  @read
   public async showImportableModules(
     showAll?: boolean,
     showDetails?: boolean,
   ): Promise<ModuleSettingFromHub[]> {
     try {
-      // Ensure module list is up to date before showing
-      await this.fetchCmd.ensureModuleListUpToDate();
-
       const moduleList = (
         await readJsonFile(
           resolve(this.project.basePath, MODULE_LIST_FULL_PATH),
@@ -433,11 +429,40 @@ export class Show {
    * Shows hubs of the project.
    * @returns list of hubs.
    */
-  @write()
+  @read
   public async showHubs(): Promise<HubSetting[]> {
-    // Ensure module list is up to date before showing
-    await this.fetchCmd.ensureModuleListUpToDate();
     return this.project.configuration.hubs;
+  }
+
+  /**
+   * Shows hubs of the project with the modules available from each hub.
+   * @returns list of hubs with their available modules.
+   * @note Reads the cached hub data as-is; refreshing it is the caller's call.
+   */
+  @read
+  public async showHubDetails(): Promise<HubDetails[]> {
+    let cachedHubs: ModuleListFile['hubs'] = [];
+    try {
+      const moduleList = (await readJsonFile(
+        resolve(this.project.basePath, MODULE_LIST_FULL_PATH),
+      )) as ModuleListFile;
+      cachedHubs = moduleList.hubs ?? [];
+    } catch (error) {
+      this.logger.info(
+        error,
+        'No readable module list; showing hubs without modules',
+      );
+    }
+
+    return this.project.configuration.hubs.map((hub) => {
+      const cached = cachedHubs.find((item) => item.location === hub.location);
+      return {
+        location: hub.location,
+        displayName: hub.displayName ?? cached?.displayName,
+        description: hub.description ?? cached?.description,
+        modules: (cached?.modules ?? []) as ModuleSettingFromHub[],
+      };
+    });
   }
 
   /**

@@ -14,8 +14,10 @@
 import { Hono } from 'hono';
 import { zValidator } from '../../middleware/zvalidator.js';
 import {
+  addHubSchema,
   importModuleSchema,
   moduleParamSchema,
+  removeHubSchema,
   updateProjectSchema,
 } from './schema.js';
 import * as projectService from './service.js';
@@ -91,5 +93,41 @@ router.delete(
     return c.json({ message: 'Module removed' });
   },
 );
+
+router.get('/hubs', requireRole(UserRole.Reader), async (c) => {
+  const commands = c.get('commands');
+  const hubs = await projectService.getHubs(commands);
+  return c.json(hubs);
+});
+
+router.post(
+  '/hubs',
+  requireRole(UserRole.Admin),
+  zValidator('json', addHubSchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const { location } = c.req.valid('json');
+    const unreachable = await projectService.addHub(commands, location);
+    return c.json({ message: 'Hub added', unreachable });
+  },
+);
+
+router.delete(
+  '/hubs',
+  requireRole(UserRole.Admin),
+  zValidator('query', removeHubSchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const { location } = c.req.valid('query');
+    await projectService.removeHub(commands, location);
+    return c.json({ message: 'Hub removed' });
+  },
+);
+
+router.post('/hubs/fetch', requireRole(UserRole.Admin), async (c) => {
+  const commands = c.get('commands');
+  const unreachable = await projectService.fetchHubs(commands);
+  return c.json({ message: 'Hubs fetched', unreachable });
+});
 
 export default router;

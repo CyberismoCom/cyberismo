@@ -42,5 +42,5 @@ export function getTestProject(path: string): InstanceType<typeof Project> {
 export function mockEnsureModuleListUpToDate(): ReturnType<typeof vi.spyOn> {
   return vi
     .spyOn(Fetch.prototype, 'ensureModuleListUpToDate')
-    .mockResolvedValue(undefined);
+    .mockResolvedValue([]);
 }

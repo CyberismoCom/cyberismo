@@ -30,6 +30,20 @@ export const updateProjectSchema = z.object({
     .optional(),
 });
 
+export const addHubSchema = z.object({
+  location: z.url({
+    protocol: /^https?$/,
+    error: 'Hub location must be a valid HTTP or HTTPS URL',
+  }),
+});
+
+// Removal accepts any stored location: configurations written before locations
+// were validated may hold entries this schema would otherwise refuse, and those
+// have to stay removable.
+export const removeHubSchema = z.object({
+  location: z.string().min(1),
+});
+
 export const importModuleSchema = z.object({
   source: z
     .string()

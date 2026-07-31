@@ -5,7 +5,7 @@ import { join } from 'node:path';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { Cmd, Commands } from '../src/command-handler.js';
-import { Fetch, Show } from '../src/commands/index.js';
+import { Show } from '../src/commands/index.js';
 import { getTestProject } from './helpers/test-utils.js';
 
 // Create test artifacts in a temp folder.
@@ -74,10 +74,7 @@ describe('rank command', () => {
 
       const project = getTestProject(options.projectPath!);
       await project.populateCaches();
-      const fetchCmd = new Fetch(project);
-      const details = await new Show(project, fetchCmd).showCardDetails(
-        rankBefore,
-      );
+      const details = await new Show(project).showCardDetails(rankBefore);
       expect(details.metadata?.rank).toBe('0|c');
     });
     it('rank card in root (success)', async () => {
@@ -94,10 +91,7 @@ describe('rank command', () => {
 
       const project = getTestProject(options.projectPath!);
       await project.populateCaches();
-      const fetchCmd = new Fetch(project);
-      const details = await new Show(project, fetchCmd).showCardDetails(
-        rankBefore,
-      );
+      const details = await new Show(project).showCardDetails(rankBefore);
       // Just verify that a rank was assigned (the exact value can vary based on existing cards)
       expect(details.metadata!.rank).toMatch(/^0\|[a-z0-9]+$/);
     });
@@ -112,8 +106,7 @@ describe('rank command', () => {
 
       const project = getTestProject(options.projectPath!);
       await project.populateCaches();
-      const fetchCmd = new Fetch(project);
-      const details = await new Show(project, fetchCmd).showCardDetails(key);
+      const details = await new Show(project).showCardDetails(key);
 
       expect(details.metadata!.rank).toBe('0|a');
     });
@@ -151,8 +144,7 @@ describe('rank command', () => {
       expect(result.statusCode).toBe(200);
       const project = getTestProject(options.projectPath!);
       await project.populateCaches();
-      const fetchCmd = new Fetch(project);
-      const details = await new Show(project, fetchCmd).showCardDetails(key);
+      const details = await new Show(project).showCardDetails(key);
       expect(details.metadata!.rank).toBe('0|a');
     });
 
@@ -166,8 +158,7 @@ describe('rank command', () => {
       expect(result.statusCode).toBe(200);
       const project = getTestProject(options.projectPath!);
       await project.populateCaches();
-      const fetchCmd = new Fetch(project);
-      const details = await new Show(project, fetchCmd).showCardDetails(key);
+      const details = await new Show(project).showCardDetails(key);
       expect(details.metadata!.rank).toBe('0|a');
     });
   });

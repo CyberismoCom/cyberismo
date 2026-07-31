@@ -90,6 +90,10 @@ export function projectApiPaths(projectPrefix?: string) {
       `${base}/project/modules/${encodeURIComponent(module)}`,
     projectModulesAdd: () => `${base}/project/modules`,
     projectModulesImportable: () => `${base}/project/modules/importable`,
+    projectHubs: () => `${base}/project/hubs`,
+    projectHubDelete: (location: string) =>
+      `${base}/project/hubs?location=${encodeURIComponent(location)}`,
+    projectHubsFetch: () => `${base}/project/hubs/fetch`,
     presence: (cardKey: string, mode: string) =>
       `${base}/cards/${encodeURIComponent(cardKey)}/presence?mode=${mode}`,
     exportCard: () => `${base}/cards/export-pdf`,

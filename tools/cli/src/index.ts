@@ -632,9 +632,12 @@ createCmd
             ['hubs'],
             commandOptions,
           );
+          // The project already exists at this point and hubs that could be
+          // read were still refreshed, so an unreachable hub only narrows the
+          // module selection below; it must not fail the creation.
           if (fetchResult.statusCode !== 200) {
-            program.error(
-              `Project creation failed: could not fetch hub data - ${fetchResult.message || 'Unknown error'}`,
+            console.warn(
+              `Could not fetch hub data - ${fetchResult.message || 'Unknown error'}`,
             );
           }
 

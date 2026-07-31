@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import {
   Box,
   Modal,
@@ -33,7 +33,7 @@ import { useAppRouter } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
 import type { TemplateConfiguration } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import RadioGroup from '@mui/joy/RadioGroup';
-import { CategoryOption } from './OptionCards';
+import { OptionCard, OptionCardGrid } from '@/components/OptionCard';
 
 interface NewCardModalProps {
   open: boolean;
@@ -141,17 +141,32 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
               Object.entries(categories).map(
                 ([category, templates]) =>
                   templates.length > 0 && (
-                    <CategoryOption
-                      key={category}
-                      category={category}
-                      options={templates.map((template) => ({
-                        name: template.name,
-                        displayName: template.displayName,
-                        description: template.description ?? '',
-                        isChosen: chosenTemplate === template.name,
-                      }))}
-                      onOptionSelect={setChosenTemplate}
-                    />
+                    <Fragment key={category}>
+                      <Typography level="title-sm" color="neutral">
+                        {category}
+                      </Typography>
+                      <OptionCardGrid>
+                        {templates.map((template) => (
+                          // e2e picks templates by this class.
+                          <OptionCard
+                            key={template.name}
+                            className="templateCard"
+                            title={template.displayName ?? template.name}
+                            caption={template.description ?? ''}
+                            onClick={() => setChosenTemplate(template.name)}
+                            action={
+                              <Radio
+                                checked={chosenTemplate === template.name}
+                                readOnly
+                                variant="soft"
+                                tabIndex={-1}
+                                sx={{ pointerEvents: 'none' }}
+                              />
+                            }
+                          />
+                        ))}
+                      </OptionCardGrid>
+                    </Fragment>
                   ),
               )
             )}

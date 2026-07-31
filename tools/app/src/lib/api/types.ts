@@ -136,6 +136,32 @@ export type ProjectSettingsUpdate = Partial<
   Pick<GeneralSettings, 'name' | 'cardKeyPrefix' | 'description' | 'category'>
 > & { gitRemoteUrl?: string };
 
+export interface HubModule {
+  name: string;
+  displayName?: string;
+  location: string;
+  imported: boolean;
+}
+
+export interface Hub {
+  location: string;
+  displayName?: string;
+  description?: string;
+  modules: HubModule[];
+}
+
+// A hub that could not be read while fetching. Reachable hubs are still
+// refreshed, so this reports rather than fails.
+export interface UnreachableHub {
+  location: string;
+  message: string;
+}
+
+export interface HubFetchResult {
+  message: string;
+  unreachable?: UnreachableHub[];
+}
+
 interface GeneralNode extends BaseResourceNode {
   type: 'general';
   data: GeneralSettings;

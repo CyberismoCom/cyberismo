@@ -5,7 +5,7 @@ import { join, sep } from 'node:path';
 
 import { Cmd, CommandManager, Commands } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
-import { Fetch, Show } from '../src/commands/index.js';
+import { Show } from '../src/commands/index.js';
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
 
 // Create test artifacts in a temp folder.
@@ -82,8 +82,7 @@ describe('move command', () => {
   it('move card to root (success)', async () => {
     const project = getTestProject(options.projectPath!);
     await project.populateCaches();
-    const fetchCmd = new Fetch(project);
-    const cards = await new Show(project, fetchCmd).showProjectCards();
+    const cards = await new Show(project).showProjectCards();
 
     // Use the card created in beforeEach
     const sourceId = cards[cards.length - 1].key;
@@ -98,8 +97,7 @@ describe('move command', () => {
   it('move card to another card (success)', async () => {
     const project = getTestProject(options.projectPath!);
     await project.populateCaches();
-    const fetchCmd = new Fetch(project);
-    const cards = await new Show(project, fetchCmd).showProjectCards();
+    const cards = await new Show(project).showProjectCards();
     expect(cards).toHaveLength(2);
 
     const sourceId = cards[cards.length - 1].key;

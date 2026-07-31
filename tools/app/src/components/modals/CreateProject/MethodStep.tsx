@@ -11,9 +11,9 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Stack, Typography } from '@mui/joy';
+import { Radio, Stack, Typography } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
-import { CategoryOption } from '../OptionCards';
+import { OptionCard, OptionCardGrid } from '@/components/OptionCard';
 
 interface MethodStepProps {
   onSelect: (method: 'clone' | 'create') => void;
@@ -27,25 +27,36 @@ export function MethodStep({ onSelect }: MethodStepProps) {
       <Typography level="title-md">
         {t('projectDialog.selectMethod')}
       </Typography>
-      <CategoryOption
-        onOptionSelect={(name) =>
-          onSelect(name === 'clone' ? 'clone' : 'create')
-        }
-        options={[
-          {
-            name: 'clone',
-            displayName: t('projectDialog.cloneFromRepo'),
-            description: t('projectDialog.cloneDescription'),
-            isChosen: false,
-          },
-          {
-            name: 'create',
-            displayName: t('projectDialog.createFromScratch'),
-            description: t('projectDialog.createDescription'),
-            isChosen: false,
-          },
-        ]}
-      />
+      <OptionCardGrid>
+        <OptionCard
+          title={t('projectDialog.cloneFromRepo')}
+          caption={t('projectDialog.cloneDescription')}
+          action={
+            <Radio
+              checked={false}
+              readOnly
+              variant="soft"
+              tabIndex={-1}
+              sx={{ pointerEvents: 'none' }}
+            />
+          }
+          onClick={() => onSelect('clone')}
+        />
+        <OptionCard
+          title={t('projectDialog.createFromScratch')}
+          caption={t('projectDialog.createDescription')}
+          action={
+            <Radio
+              checked={false}
+              readOnly
+              variant="soft"
+              tabIndex={-1}
+              sx={{ pointerEvents: 'none' }}
+            />
+          }
+          onClick={() => onSelect('create')}
+        />
+      </OptionCardGrid>
     </Stack>
   );
 }

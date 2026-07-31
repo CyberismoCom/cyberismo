@@ -12,7 +12,6 @@
 */
 
 import { useState } from 'react';
-import useSWR from 'swr';
 import {
   Modal,
   ModalDialog,
@@ -29,9 +28,6 @@ import {
   Divider,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
-import { projectApiPaths } from '@/lib/swr';
-import type { ModuleSettingFromHub } from '@cyberismo/data-handler';
-import { CategoryOption } from './OptionCards';
 import { addNotification } from '@/lib/slices/notifications';
 import { useAppDispatch } from '@/lib/hooks';
 
@@ -44,40 +40,16 @@ interface AddModuleModalProps {
 export function AddModuleModal({ open, onClose, onAdd }: AddModuleModalProps) {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
-  const [selectedModule, setSelectedModule] =
-    useState<ModuleSettingFromHub | null>(null);
   const [urlInput, setUrlInput] = useState('');
   const [isImporting, setIsImporting] = useState(false);
 
-  const { data: hubModules } = useSWR<ModuleSettingFromHub[]>(
-    projectApiPaths().projectModulesImportable(),
-  );
-
-  const handleSelectModule = (moduleName: string) => {
-    setUrlInput('');
-    if (moduleName === selectedModule?.name) {
-      setSelectedModule(null);
-      return;
-    }
-    const module = hubModules?.find((mod) => mod.name === moduleName);
-    if (module) {
-      setSelectedModule(module);
-    }
-  };
-
-  const handleUrlChange = (value: string) => {
-    setSelectedModule(null);
-    setUrlInput(value);
-  };
-
   const handleClose = () => {
-    setSelectedModule(null);
     setUrlInput('');
     onClose();
   };
 
   const handleAdd = async () => {
-    const source = selectedModule?.location ?? urlInput.trim();
+    const source = urlInput.trim();
     if (!source) return;
     setIsImporting(true);
     try {
@@ -100,7 +72,7 @@ export function AddModuleModal({ open, onClose, onAdd }: AddModuleModalProps) {
     setIsImporting(false);
   };
 
-  const canSubmit = Boolean(selectedModule || urlInput.trim());
+  const canSubmit = Boolean(urlInput.trim());
 
   return (
     <Modal
@@ -129,24 +101,12 @@ export function AddModuleModal({ open, onClose, onAdd }: AddModuleModalProps) {
         <Divider />
         <DialogContent>
           <Stack spacing={2}>
-            {hubModules && (
-              <CategoryOption
-                onOptionSelect={handleSelectModule}
-                options={hubModules.map((module) => ({
-                  name: module.name,
-                  displayName: module.displayName,
-                  description: module.location,
-                  isChosen: selectedModule?.name === module.name,
-                  disabled: isImporting,
-                }))}
-              />
-            )}
             <FormControl>
               <FormLabel>{t('addModuleModal.moduleUrl')} *</FormLabel>
               <Input
                 placeholder={t('addModuleModal.moduleUrlPlaceholder')}
                 value={urlInput}
-                onChange={(e) => handleUrlChange(e.target.value)}
+                onChange={(e) => setUrlInput(e.target.value)}
                 disabled={isImporting}
               />
             </FormControl>

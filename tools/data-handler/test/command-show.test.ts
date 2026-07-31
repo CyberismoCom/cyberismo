@@ -9,7 +9,7 @@ import { readFile } from 'node:fs/promises';
 import { Cmd, Commands, CommandManager } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
-import { Fetch, Show } from '../src/commands/index.js';
+import { Show } from '../src/commands/index.js';
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
 import type { ModuleContent } from '../src/interfaces/project-interfaces.js';
 import type { ShowCommandOptions } from '../src/interfaces/command-options.js';
@@ -51,8 +51,7 @@ describe('shows command', () => {
       // No commandHandler command for getting attachment files, so using Show directly
       const project = getTestProject(decisionRecordsPath);
       await project.populateCaches();
-      const fetchCmd = new Fetch(project);
-      const showCommand = new Show(project, fetchCmd);
+      const showCommand = new Show(project);
       const result = await showCommand.showAttachment(
         'decision_1',
         'the-needle.heic',
@@ -65,8 +64,7 @@ describe('shows command', () => {
       // No commandHandler command for getting attachment files, so using Show directly
       const project = getTestProject(decisionRecordsPath);
       await project.populateCaches();
-      const fetch = new Fetch(project);
-      const showCommand = new Show(project, fetch);
+      const showCommand = new Show(project);
       await expect(
         showCommand.showAttachment('invalid_key', 'does-not-exist.png'),
       ).rejects.toThrow(CardNotFoundError);
@@ -75,8 +73,7 @@ describe('shows command', () => {
       // No commandHandler command for getting attachment files, so using Show directly
       const project = getTestProject(decisionRecordsPath);
       await project.populateCaches();
-      const fetchCmd = new Fetch(project);
-      const showCommand = new Show(project, fetchCmd);
+      const showCommand = new Show(project);
       await expect(
         showCommand.showAttachment('decision_1', 'does-not-exist.png'),
       ).rejects.toThrow(
