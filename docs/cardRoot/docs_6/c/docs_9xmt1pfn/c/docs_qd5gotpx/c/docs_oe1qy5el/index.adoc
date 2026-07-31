@@ -1,0 +1,9 @@
+== Parameters
+
+* `Skill`: the name of a skill
+* `"displayName"`: the string `"displayName"` that denotes the displayName field
+* `DisplayName`: a display name of the skill
+
+== Description
+
+A skill has a display name.

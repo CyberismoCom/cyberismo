@@ -92,3 +92,16 @@ The MCP server exposes the following tools, grouped by category.
 | `run_graph` | Generate a graph visualization from a model and view | `model`, `view`
 | `run_logic_program` | Execute a custom Clingo/ASP logic program | `query`
 |===
+
+== Skills
+
+[cols="1,3,2", options="header"]
+|===
+| Tool | Description | Required parameters
+| `list_skills` | List the skills currently enabled for the project, as lightweight summaries. Optional `category` and `cardKey` parameters narrow the result | —
+| `get_skill` | Get the full rendered instructions of a single enabled skill. Pass `cardKey` for a skill whose scope is `card` | `name`
+|===
+
+The project logic programs decide which skills are enabled, so the result of `list_skills` depends on the current state of the project and may change between calls. Each enabled skill is also exposed as an MCP prompt, which lets a client apply a skill directly without calling `get_skill`.
+
+See xref:docs_qd5gotpx.adoc[Managing skills] for how to write skills and how to enable them.

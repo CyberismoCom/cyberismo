@@ -1,0 +1,12 @@
+{
+    "title": "field(Skill, \"description\", Description)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Draft",
+    "rank": "0|d",
+    "lastUpdated": "2026-07-31T12:04:29.097Z",
+    "base/fieldTypes/briefDescription": "Defines a description for a skill",
+    "base/fieldTypes/category": "Skills",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "createdAt": "2026-07-31T12:04:29.097Z"
+}

@@ -1,0 +1,12 @@
+{
+    "title": "Managing skills",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Draft",
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "public",
+    "rank": "0|p",
+    "lastUpdated": "2026-07-31T12:03:54.179Z",
+    "links": [],
+    "templateCardKey": "base_2",
+    "createdAt": "2026-07-31T12:03:54.178Z"
+}
