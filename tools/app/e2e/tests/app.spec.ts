@@ -689,6 +689,35 @@ test.describe('Navigation', () => {
     await expect(page.getByTestId('contentSaveButton')).toBeDisabled();
   });
 
+  test('template card editor shows the resource create button', async ({
+    page,
+  }) => {
+    const keys = JSON.parse(
+      readFileSync(
+        join(import.meta.dirname, '..', 'assets', 'e2e-keys.json'),
+        'utf8',
+      ),
+    ) as { localTemplateCardKey: string };
+    const url = page.url();
+    const projectPrefix = url.split('/projects/')[1].split('/')[0];
+    await page.goto(
+      `/configuration/${projectPrefix}/cards/${keys.localTemplateCardKey}`,
+    );
+    await expect(page.getByTestId('metadataView')).toBeVisible();
+
+    await expect(page.getByTestId('createNewButton')).toHaveCount(0);
+
+    // Template card creation is available, because a template card is being
+    // viewed.
+    await page.getByRole('button', { name: t.toolbar.newResource }).click();
+    await page.getByRole('menuitem', { name: t.templateCard }).click();
+    await expect(
+      page.getByRole('dialog').getByRole('heading', { name: t.templateCard }),
+    ).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+  });
+
   test('test notifications and policy checks', async ({ page }) => {
     await page.getByTestId('createNewButton').click();
     await page
