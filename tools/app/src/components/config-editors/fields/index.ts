@@ -18,6 +18,7 @@ export { default as TextareaInput } from './TextareaInput';
 export { default as TextInput } from './TextInput';
 export { default as CardTypeFieldsEditor } from './CardTypeFieldsEditor';
 export { default as EnumValuesEditor } from './EnumValuesEditor';
+export { default as RelatedToolsEditor } from './RelatedToolsEditor';
 export { default as WorkflowStatesEditor } from './WorkflowStatesEditor';
 export { default as WorkflowGraph } from './WorkflowGraph';
 export { EditableRowActions } from './EditableRowActions';

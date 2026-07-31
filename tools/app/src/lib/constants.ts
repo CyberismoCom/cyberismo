@@ -26,6 +26,7 @@ export const RESOURCES = [
   'graphViews',
   'linkTypes',
   'reports',
+  'skills',
   'templates',
   'workflows',
 ] as const;
