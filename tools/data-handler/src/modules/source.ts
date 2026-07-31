@@ -19,8 +19,11 @@ import { GitSourceLayer } from './source-git.js';
 import {
   type RemoteQueryOutcome,
   type Source,
+  type Version,
   type VersionRange,
 } from './types.js';
+import type { ProjectSettings } from '../interfaces/project-interfaces.js';
+import type { SealFile } from '../mutations/replay/seal-files.js';
 
 /** A concrete fetch target. `remoteUrl` is pre-built with any credentials injected. */
 export interface FetchTarget {
@@ -61,6 +64,22 @@ export interface SourceLayer {
     source: Source,
     options?: { remoteUrl?: string; range?: VersionRange | string },
   ): Promise<RemoteQueryOutcome>;
+
+  /**
+   * Read a version's manifest + seal filenames WITHOUT a full checkout.
+   * Git: read the tag from a per-repo blobless clone reused across candidates.
+   * File: read the source dir.
+   * Pass `null` for `version` to read the default branch / install-as-is state
+   * (for unversioned modules: file sources, or git remotes with no tags).
+   */
+  readMetadata(
+    source: Source,
+    version: Version | null,
+    remoteUrl?: string,
+  ): Promise<{ config: ProjectSettings; seals: SealFile[] }>;
+
+  /** Optional: release any cached working clones (git layer). No-op otherwise. */
+  dispose?(): Promise<void>;
 }
 
 /**

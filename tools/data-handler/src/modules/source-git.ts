@@ -12,8 +12,9 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { mkdir, rm } from 'node:fs/promises';
-import { join } from 'node:path';
+import { mkdtemp, mkdir, rm } from 'node:fs/promises';
+import { basename, join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 import { simpleGit, type SimpleGit } from 'simple-git';
 
@@ -24,9 +25,19 @@ import {
   resolveGitServiceClonePath,
 } from '../utils/git-service-client.js';
 import { GitManager } from '../utils/git-manager.js';
-import { pickVersion } from './version.js';
+import {
+  parseSealFileName,
+  type SealFile,
+} from '../mutations/replay/seal-files.js';
+import { pickVersion, versionToTag } from './version.js';
 import type { FetchTarget, SourceLayer } from './source.js';
-import type { RemoteQueryOutcome, Source, VersionRange } from './types.js';
+import type {
+  RemoteQueryOutcome,
+  Source,
+  Version,
+  VersionRange,
+} from './types.js';
+import type { ProjectSettings } from '../interfaces/project-interfaces.js';
 
 function cloneOptions(ref?: string): string[] {
   const options = ['--depth', '1'];
@@ -130,5 +141,81 @@ export class GitSourceLayer implements SourceLayer {
       latest,
       latestSatisfying,
     };
+  }
+
+  // Per-repo blobless clones reused across readMetadata calls.
+  private repos = new Map<string, Promise<string>>();
+
+  private ensureRepo(url: string): Promise<string> {
+    let p = this.repos.get(url);
+    if (!p) {
+      p = (async () => {
+        const dir = await mkdtemp(join(tmpdir(), 'cyb-meta-'));
+        try {
+          const git = simpleGit({ timeout: { block: gitTimeout() } }).env({
+            ...NON_INTERACTIVE_GIT_ENV,
+          });
+          // All refs, no checkout, blobs lazy. Fall back to a full clone if the
+          // server rejects partial clone.
+          try {
+            await git.clone(url, dir, ['--no-checkout', '--filter=blob:none']);
+          } catch {
+            await git.clone(url, dir, ['--no-checkout']);
+          }
+          return dir;
+        } catch (e) {
+          this.repos.delete(url); // don't cache the failure
+          await rm(dir, { recursive: true, force: true }).catch(() => {});
+          throw e;
+        }
+      })();
+      this.repos.set(url, p);
+    }
+    return p;
+  }
+
+  async readMetadata(
+    source: Source,
+    version: Version | null,
+    remoteUrl?: string,
+  ): Promise<{ config: ProjectSettings; seals: SealFile[] }> {
+    const ref = version === null ? 'HEAD' : versionToTag(version);
+    const g = simpleGit(
+      await this.ensureRepo(remoteUrl ?? source.location),
+    ).env({ ...NON_INTERACTIVE_GIT_ENV });
+    const config = JSON.parse(
+      await g.raw(['cat-file', '-p', `${ref}:.cards/local/cardsConfig.json`]),
+    ) as ProjectSettings;
+    let seals: SealFile[];
+    try {
+      const listing = await g.raw([
+        'ls-tree',
+        '--name-only',
+        ref,
+        '.cards/local/migrations/',
+      ]);
+      seals = listing
+        .split('\n')
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((s) => parseSealFileName(basename(s)))
+        .filter((s): s is SealFile => s !== undefined);
+    } catch {
+      seals = [];
+    }
+    return { config, seals };
+  }
+
+  /** Remove cached clones; called once a solve finishes. */
+  async dispose(): Promise<void> {
+    const paths = [...this.repos.values()];
+    this.repos.clear();
+    for (const p of paths) {
+      try {
+        await rm(await p, { recursive: true, force: true });
+      } catch {
+        /* best effort */
+      }
+    }
   }
 }
