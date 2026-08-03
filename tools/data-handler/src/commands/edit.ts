@@ -111,27 +111,39 @@ export class Edit {
     if (!changedKey) {
       throw new Error(`Changed key cannot be empty`);
     }
+
+    const card = this.project.findCard(cardKey);
+    this.assertFieldIsEditable(card, changedKey, newValue);
+
     if (this.project.hasTemplateCard(cardKey)) {
       return this.project.updateCardMetadataKey(cardKey, changedKey, newValue);
     }
 
     // check for editing rights
-    const card = this.project.findCard(cardKey);
-    if (card) {
-      this.assertFieldIsEditable(card, changedKey);
-      const actionGuard = new ActionGuard(this.project.calculationEngine);
-      await actionGuard.checkPermission('editField', cardKey, changedKey);
-      await this.project.updateCardMetadataKey(cardKey, changedKey, newValue);
-    }
+    const actionGuard = new ActionGuard(this.project.calculationEngine);
+    await actionGuard.checkPermission('editField', cardKey, changedKey);
+    await this.project.updateCardMetadataKey(cardKey, changedKey, newValue);
   }
 
   /**
    * Rejects edits to calculated custom fields unless the card type enables
-   * override for that field.
+   * override for that field. Applies to project and template cards alike, so
+   * that the CLI, MCP and the API agree with what the editors allow.
    * @param card Card being edited.
    * @param fieldName Metadata key being changed.
+   * @param newValue Value being written.
    */
-  private assertFieldIsEditable(card: Card, fieldName: string) {
+  private assertFieldIsEditable(
+    card: Card,
+    fieldName: string,
+    newValue: MetadataContent,
+  ) {
+    // Clearing is always allowed: removing a stored value can only move the
+    // card towards validity, and it is the only way out when a card type
+    // change has turned an existing value into a validation error.
+    if (newValue == null) {
+      return;
+    }
     if (!card.metadata?.cardType) {
       return;
     }

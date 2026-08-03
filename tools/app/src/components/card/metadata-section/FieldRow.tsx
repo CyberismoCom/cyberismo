@@ -14,15 +14,7 @@
 
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  Accordion,
-  AccordionDetails,
-  Box,
-  Button,
-  IconButton,
-  Stack,
-  Typography,
-} from '@mui/joy';
+import { Accordion, AccordionDetails, Box, IconButton, Stack } from '@mui/joy';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import { Controller, useForm } from 'react-hook-form';
@@ -30,6 +22,7 @@ import type { DataType, MetadataValue } from '@/lib/definitions';
 import type { EnumDefinition } from '@cyberismo/data-handler/types/queries';
 import EditableField, { FieldLabel } from '@/components/EditableField';
 import FieldEditor from '@/components/FieldEditor';
+import { OverrideEditorFrame } from './OverrideEditorFrame';
 import { coerceMetadataValue, metadataValueToString } from '@/lib/utils';
 import { formKeyHandler } from '@/lib/hooks';
 
@@ -189,53 +182,18 @@ export function FieldRow({
               edit={true}
             />
             {overrideMode ? (
-              <Stack
-                spacing={0.5}
-                sx={{
-                  flexGrow: 1,
-                  width: { xs: '100%', md: 'auto' },
-                  minWidth: 0,
-                }}
-              >
-                {/* Overridable fields are always of a "normal" dataType, never 'label'. */}
-                <Typography level="body-xs" data-cy="automaticValue">
-                  {t('automaticValue')}:{' '}
-                  <Typography
-                    component="span"
-                    fontWeight="bold"
-                    color="neutral"
-                  >
-                    {metadataValueToString(
-                      calculatedValue ?? null,
-                      dataType as DataType,
-                      t,
-                      enumValues,
-                    )}
-                  </Typography>
-                </Typography>
-                <Stack direction="row" alignItems="flex-start" spacing={0.5}>
-                  <Typography
-                    level="body-xs"
-                    sx={{ flexShrink: 0, alignSelf: 'center' }}
-                  >
-                    {t('override')}:
-                  </Typography>
-                  <Box flexGrow={1} minWidth={0}>
-                    {editorField}
-                  </Box>
-                  <Button
-                    data-cy="fieldClearOverrideButton"
-                    size="sm"
-                    variant="plain"
-                    color="neutral"
-                    disabled={disabled || (initialValue === null && !isDirty)}
-                    onClick={() => onSave?.(null)}
-                  >
-                    {t('clearOverride')}
-                  </Button>
-                  {saveCancelButtons}
-                </Stack>
-              </Stack>
+              <OverrideEditorFrame
+                automaticValue={metadataValueToString(
+                  calculatedValue ?? null,
+                  dataType as DataType,
+                  t,
+                  enumValues,
+                )}
+                editor={editorField}
+                clearDisabled={disabled || (initialValue === null && !isDirty)}
+                onClear={() => onSave?.(null)}
+                actions={saveCancelButtons}
+              />
             ) : (
               <Stack
                 direction="row"

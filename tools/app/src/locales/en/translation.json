@@ -112,6 +112,7 @@
   "attachment": "Attachment",
   "attachments": "Attachments",
   "automaticValue": "Automatic value",
+  "calculatedForEachCard": "calculated for each card",
   "cancel": "Cancel",
   "cardKey": "Card key",
   "cardNotFound": "Could not find card",

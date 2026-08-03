@@ -12,10 +12,16 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { useTranslation } from 'react-i18next';
 import { Box, IconButton, Stack } from '@mui/joy';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
-import EditableField from '@/components/EditableField';
+import EditableField, { FieldLabel } from '@/components/EditableField';
+import FieldEditor from '@/components/FieldEditor';
+import {
+  ClearOverrideButton,
+  OverrideEditorFrame,
+} from '@/components/card/metadata-section/OverrideEditorFrame';
 import type { DataType, MetadataValue } from '@/lib/definitions';
 import type { EnumDefinition } from '@cyberismo/data-handler/types/queries';
 import { metadataValuesEqual } from '@/lib/utils';
@@ -26,6 +32,12 @@ import { formKeyHandler } from '@/lib/hooks';
  * (`value`) and dirty-checked against the saved value (`saved`). Reuses the
  * shared `EditableField` for the label + editor; Save and Cancel are both
  * disabled until the field actually changes.
+ *
+ * An overridable calculated field is presented as an override instead, matching
+ * the card metadata row, so that it is clear that the value entered here stays
+ * an override on every card created from the template. A template card has no
+ * calculated value of its own, so the automatic value is described rather than
+ * shown.
  */
 export function MetadataFieldRow({
   id,
@@ -36,9 +48,12 @@ export function MetadataFieldRow({
   value,
   saved,
   editable,
+  overrideMode,
+  clearable,
   onChange,
   onSave,
   onCancel,
+  onClear,
 }: {
   id?: string;
   label: string;
@@ -48,11 +63,41 @@ export function MetadataFieldRow({
   value: MetadataValue;
   saved: MetadataValue;
   editable: boolean;
+  overrideMode?: boolean;
+  clearable?: boolean;
   onChange: (raw: string | string[] | null) => void;
   onSave: () => void;
   onCancel: () => void;
+  onClear?: () => void;
 }) {
+  const { t } = useTranslation();
   const dirty = !metadataValuesEqual(value, saved);
+
+  const actionButtons = editable && (
+    <Stack direction="row" spacing={0.5}>
+      <IconButton
+        data-cy="fieldSaveButton"
+        size="sm"
+        variant="soft"
+        color="primary"
+        disabled={!dirty}
+        onClick={onSave}
+      >
+        <CheckIcon />
+      </IconButton>
+      <IconButton
+        data-cy="fieldCancelButton"
+        size="sm"
+        variant="soft"
+        color="neutral"
+        disabled={!dirty}
+        onClick={onCancel}
+      >
+        <CloseIcon />
+      </IconButton>
+    </Stack>
+  );
+
   return (
     <Box
       id={id}
@@ -70,45 +115,47 @@ export function MetadataFieldRow({
         multiline: dataType === 'longText' || dataType === 'label',
       })}
     >
-      <Stack direction="row" alignItems="flex-start" spacing={0.5}>
-        <Box flexGrow={1} minWidth={0}>
-          <EditableField
-            label={label}
-            dataType={dataType}
-            description={description}
-            enumValues={enumValues}
-            value={value}
-            edit={editable}
-            disabled={!editable}
-            focus={false}
-            onChange={onChange}
+      {overrideMode && editable ? (
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          spacing={{ xs: 0.5, md: 4 }}
+        >
+          <FieldLabel label={label} description={description} edit={true} />
+          <OverrideEditorFrame
+            automaticValue={t('calculatedForEachCard')}
+            editor={
+              <FieldEditor
+                value={value}
+                onChange={onChange}
+                dataType={dataType}
+                enumValues={enumValues}
+                focus={false}
+              />
+            }
+            clearDisabled={saved == null && !dirty}
+            onClear={() => onClear?.()}
+            actions={actionButtons}
           />
-        </Box>
-        {editable && (
-          <Stack direction="row" spacing={0.5}>
-            <IconButton
-              data-cy="fieldSaveButton"
-              size="sm"
-              variant="soft"
-              color="primary"
-              disabled={!dirty}
-              onClick={onSave}
-            >
-              <CheckIcon />
-            </IconButton>
-            <IconButton
-              data-cy="fieldCancelButton"
-              size="sm"
-              variant="soft"
-              color="neutral"
-              disabled={!dirty}
-              onClick={onCancel}
-            >
-              <CloseIcon />
-            </IconButton>
-          </Stack>
-        )}
-      </Stack>
+        </Stack>
+      ) : (
+        <Stack direction="row" alignItems="flex-start" spacing={0.5}>
+          <Box flexGrow={1} minWidth={0}>
+            <EditableField
+              label={label}
+              dataType={dataType}
+              description={description}
+              enumValues={enumValues}
+              value={value}
+              edit={editable}
+              disabled={!editable}
+              focus={false}
+              onChange={onChange}
+            />
+          </Box>
+          {clearable && <ClearOverrideButton onClick={() => onClear?.()} />}
+          {actionButtons}
+        </Stack>
+      )}
     </Box>
   );
 }

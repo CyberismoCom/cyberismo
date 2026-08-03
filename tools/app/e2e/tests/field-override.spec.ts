@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures.js';
 import t from '../../src/locales/en/translation.json' with { type: 'json' };
@@ -116,5 +118,56 @@ test.describe('Calculated field override', () => {
 
     // The override is gone, so the row falls back to the computed value.
     await expect(row.getByTestId('editableFieldRow')).toContainText('5');
+  });
+});
+
+// A template card carries an override the same way a project card does. It has
+// no calculated value of its own, so the automatic value is described rather
+// than shown, and the framing stays visible because the editor is edit-first.
+test.describe('Calculated field override on a template card', () => {
+  const { localTemplateCardKey } = JSON.parse(
+    readFileSync(
+      join(import.meta.dirname, '..', 'assets', 'e2e-keys.json'),
+      'utf8',
+    ),
+  ) as { localTemplateCardKey: string };
+
+  const overrideRow = (page: Page) =>
+    page
+      .getByTestId('metadataView')
+      .locator('[id="metadata-field-test/fieldTypes/aPlusB"]');
+
+  async function openTemplateCard(page: Page) {
+    await page.goto('/');
+    await expect(page).toHaveURL(/\/projects\//);
+    const projectPrefix = page.url().split('/projects/')[1].split('/')[0];
+    await page.goto(
+      `/configuration/${projectPrefix}/cards/${localTemplateCardKey}`,
+    );
+    await expect(page.getByTestId('metadataView')).toBeVisible();
+  }
+
+  test('sets and clears an override on a template card', async ({ page }) => {
+    await openTemplateCard(page);
+    const row = overrideRow(page);
+
+    await expect(row.getByTestId('automaticValue')).toHaveText(
+      `${t.automaticValue}: ${t.calculatedForEachCard}`,
+    );
+    // Nothing stored yet.
+    await expect(row.getByTestId('fieldClearOverrideButton')).toBeDisabled();
+
+    await row.getByRole('spinbutton').fill('42');
+    await row.getByTestId('fieldSaveButton').click();
+    await expect(row.getByTestId('fieldSaveButton')).toBeDisabled();
+
+    // The override persists across a reload of the editor.
+    await openTemplateCard(page);
+    await expect(overrideRow(page).getByRole('spinbutton')).toHaveValue('42');
+
+    const clear = overrideRow(page).getByTestId('fieldClearOverrideButton');
+    await expect(clear).toBeEnabled();
+    await clear.click();
+    await expect(overrideRow(page).getByRole('spinbutton')).toHaveValue('');
   });
 });
