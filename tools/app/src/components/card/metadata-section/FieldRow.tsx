@@ -45,7 +45,9 @@ export interface FieldRowProps {
   disabled?: boolean;
   /** True for a calculated field that can be overridden by the user. */
   overrideMode?: boolean;
-  /** The computed value shown on the "Automatic value" line, when `overrideMode`. */
+  /** The stored override, edited when `overrideMode`. `value` stays the effective value. */
+  overrideValue?: MetadataValue;
+  /** The computed value shown on the "Automatic value" line while editing, when `overrideMode`. */
   calculatedValue?: MetadataValue;
   onStartEdit?: () => void;
   onSave?: (value: MetadataValue) => void;
@@ -64,6 +66,7 @@ export function FieldRow({
   isEditing,
   disabled,
   overrideMode,
+  overrideValue,
   calculatedValue,
   onStartEdit,
   onSave,
@@ -71,7 +74,7 @@ export function FieldRow({
   onCancel,
 }: FieldRowProps) {
   const { t } = useTranslation();
-  const initialValue = value ?? null;
+  const initialValue = (overrideMode ? overrideValue : value) ?? null;
 
   const {
     control,
@@ -105,19 +108,6 @@ export function FieldRow({
   };
 
   const isClickable = !disabled && !isEditing && !!onStartEdit;
-
-  // Overridable fields are always of a "normal" dataType, never 'label'.
-  const formatValue = (v: MetadataValue) =>
-    metadataValueToString(v ?? null, dataType as DataType, t, enumValues);
-
-  const automaticValueLine = overrideMode ? (
-    <Typography level="body-xs" data-cy="automaticValue">
-      {t('automaticValue')}:{' '}
-      <Typography component="span" fontWeight="bold" color="neutral">
-        {formatValue(calculatedValue ?? null)}
-      </Typography>
-    </Typography>
-  ) : null;
 
   const editorField = (
     <Controller
@@ -207,7 +197,22 @@ export function FieldRow({
                   minWidth: 0,
                 }}
               >
-                {automaticValueLine}
+                {/* Overridable fields are always of a "normal" dataType, never 'label'. */}
+                <Typography level="body-xs" data-cy="automaticValue">
+                  {t('automaticValue')}:{' '}
+                  <Typography
+                    component="span"
+                    fontWeight="bold"
+                    color="neutral"
+                  >
+                    {metadataValueToString(
+                      calculatedValue ?? null,
+                      dataType as DataType,
+                      t,
+                      enumValues,
+                    )}
+                  </Typography>
+                </Typography>
                 <Stack direction="row" alignItems="flex-start" spacing={0.5}>
                   <Typography
                     level="body-xs"
@@ -249,36 +254,6 @@ export function FieldRow({
               </Stack>
             )}
           </Stack>
-        ) : overrideMode ? (
-          <Box
-            onClick={isClickable ? onStartEdit : undefined}
-            data-cy="editableFieldRow"
-          >
-            <Stack
-              direction={{ xs: 'column', md: 'row' }}
-              spacing={{ xs: 0.5, md: 4 }}
-            >
-              <FieldLabel
-                label={label}
-                description={description}
-                disabled={disabled}
-                edit={false}
-              />
-              <Stack spacing={0.5}>
-                {automaticValueLine}
-                <Typography level="body-xs" data-cy="overrideValue">
-                  {t('override')}:{' '}
-                  <Typography
-                    component="span"
-                    fontWeight="bold"
-                    color={disabled ? 'neutral' : 'primary'}
-                  >
-                    {formatValue(value ?? null)}
-                  </Typography>
-                </Typography>
-              </Stack>
-            </Stack>
-          </Box>
         ) : (
           <Box
             onClick={isClickable ? onStartEdit : undefined}

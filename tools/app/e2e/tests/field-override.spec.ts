@@ -45,7 +45,7 @@ test.describe('Calculated field override', () => {
     ).toBeVisible();
   });
 
-  test('shows the automatic value of an overridable calculated field', async ({
+  test('shows the calculated value of an overridable field with no override', async ({
     page,
   }) => {
     // Create a project card from the "All data types" template.
@@ -70,12 +70,11 @@ test.describe('Calculated field override', () => {
     await fillIntegerField(page, 'test/fieldTypes/a', '2');
     await fillIntegerField(page, 'test/fieldTypes/b', '3');
 
-    // The overridable row shows the computed value and an empty override.
+    // With no override stored, the row reads like any other field: just the
+    // computed value, no automatic/override breakdown.
     const row = fieldRow(page, 'test/fieldTypes/aPlusB');
-    await expect(row.getByTestId('automaticValue')).toHaveText(
-      `${t.automaticValue}: 5`,
-    );
-    await expect(row.getByTestId('overrideValue')).toHaveText(`${t.override}:`);
+    await expect(row.getByTestId('editableFieldRow')).toContainText('5');
+    await expect(row.getByTestId('automaticValue')).toHaveCount(0);
   });
 
   test('saves an override value', async ({ page }) => {
@@ -95,12 +94,9 @@ test.describe('Calculated field override', () => {
     await row.getByTestId('fieldSaveButton').click();
     await expect(row.getByRole('spinbutton')).toHaveCount(0);
 
-    await expect(row.getByTestId('automaticValue')).toHaveText(
-      `${t.automaticValue}: 5`,
-    );
-    await expect(row.getByTestId('overrideValue')).toHaveText(
-      `${t.override}: 42`,
-    );
+    // Back in read mode the override is the value shown, on its own.
+    await expect(row.getByTestId('editableFieldRow')).toContainText('42');
+    await expect(row.getByTestId('automaticValue')).toHaveCount(0);
   });
 
   test('clears a stored override', async ({ page }) => {
@@ -108,20 +104,17 @@ test.describe('Calculated field override', () => {
 
     // The override persisted across the page load.
     const row = fieldRow(page, 'test/fieldTypes/aPlusB');
-    await expect(row.getByTestId('overrideValue')).toHaveText(
-      `${t.override}: 42`,
-    );
+    await expect(row.getByTestId('editableFieldRow')).toContainText('42');
 
     await row.getByTestId('editableFieldRow').click();
+    // The stored override prefills the editor.
+    await expect(row.getByRole('spinbutton')).toHaveValue('42');
     const clearButton = row.getByTestId('fieldClearOverrideButton');
     await expect(clearButton).toBeEnabled();
     await clearButton.click();
     await expect(row.getByRole('spinbutton')).toHaveCount(0);
 
-    // The override is gone and the automatic value still shows.
-    await expect(row.getByTestId('overrideValue')).toHaveText(`${t.override}:`);
-    await expect(row.getByTestId('automaticValue')).toHaveText(
-      `${t.automaticValue}: 5`,
-    );
+    // The override is gone, so the row falls back to the computed value.
+    await expect(row.getByTestId('editableFieldRow')).toContainText('5');
   });
 });

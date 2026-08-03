@@ -177,12 +177,13 @@ export default function MetadataSection({
               key={key}
               id={fieldRowId(key)}
               expanded={visibility === 'always' || expanded}
-              value={
+              value={getDefaultValue(value)}
+              overrideMode={isOverridable}
+              overrideValue={
                 isOverridable
                   ? getDefaultValue(overrideValue ?? null)
-                  : getDefaultValue(value)
+                  : undefined
               }
-              overrideMode={isOverridable}
               calculatedValue={
                 isOverridable
                   ? getDefaultValue(calculatedValue ?? null)

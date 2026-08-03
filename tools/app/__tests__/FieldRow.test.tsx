@@ -25,10 +25,11 @@ describe('FieldRow', () => {
   });
 
   describe('overrideMode (read mode)', () => {
-    it('shows both the automatic value and the override value', () => {
+    it('shows the override value alone when an override exists', () => {
       render(
         <FieldRow
           value="person2@example.com"
+          overrideValue="person2@example.com"
           calculatedValue="person1@example.com"
           overrideMode
           label="Owner"
@@ -37,32 +38,27 @@ describe('FieldRow', () => {
       );
 
       expect(screen.getByText('Owner')).toBeInTheDocument();
-      expect(screen.getByText(/Automatic value/)).toBeInTheDocument();
-      expect(screen.getByText('person1@example.com')).toBeInTheDocument();
-      expect(screen.getByText(/Override/)).toBeInTheDocument();
       expect(screen.getByText('person2@example.com')).toBeInTheDocument();
+      expect(screen.queryByText(/Automatic value/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Override/)).not.toBeInTheDocument();
+      expect(screen.queryByText('person1@example.com')).not.toBeInTheDocument();
     });
 
-    it('renders the automatic value and the override value the same way a regular field renders an empty value', () => {
-      const { container } = render(
+    it('shows the automatic value alone when no override exists', () => {
+      render(
         <FieldRow
-          value={null}
-          calculatedValue={null}
+          value="person1@example.com"
+          overrideValue={null}
+          calculatedValue="person1@example.com"
           overrideMode
           label="Owner"
           dataType="person"
         />,
       );
 
-      const automaticValue = container.querySelector(
-        '[data-cy="automaticValue"]',
-      );
-      expect(automaticValue?.textContent?.trim()).toBe('Automatic value:');
-
-      const overrideValue = container.querySelector(
-        '[data-cy="overrideValue"]',
-      );
-      expect(overrideValue?.textContent?.trim()).toBe('Override:');
+      expect(screen.getByText('person1@example.com')).toBeInTheDocument();
+      expect(screen.queryByText(/Automatic value/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Override/)).not.toBeInTheDocument();
     });
   });
 
@@ -70,7 +66,8 @@ describe('FieldRow', () => {
     it('does not prefill the editor from the calculated value', () => {
       render(
         <FieldRow
-          value={null}
+          value="person1@example.com"
+          overrideValue={null}
           calculatedValue="person1@example.com"
           overrideMode
           label="Owner"
@@ -89,7 +86,8 @@ describe('FieldRow', () => {
     it('disables Clear when there is no existing override and nothing has been typed', () => {
       render(
         <FieldRow
-          value={null}
+          value="person1@example.com"
+          overrideValue={null}
           calculatedValue="person1@example.com"
           overrideMode
           label="Owner"
@@ -108,6 +106,7 @@ describe('FieldRow', () => {
       render(
         <FieldRow
           value="person2@example.com"
+          overrideValue="person2@example.com"
           calculatedValue="person1@example.com"
           overrideMode
           label="Owner"
@@ -129,7 +128,8 @@ describe('FieldRow', () => {
       const onSave = vi.fn();
       render(
         <FieldRow
-          value={null}
+          value="person1@example.com"
+          overrideValue={null}
           calculatedValue="person1@example.com"
           overrideMode
           label="Owner"
@@ -168,7 +168,8 @@ describe('FieldRow', () => {
       const onSave = vi.fn();
       render(
         <FieldRow
-          value={null}
+          value="person1@example.com"
+          overrideValue={null}
           calculatedValue="person1@example.com"
           overrideMode
           label="Owner"
