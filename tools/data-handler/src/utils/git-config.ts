@@ -19,9 +19,9 @@ export const NON_INTERACTIVE_GIT_ENV = {
   GCM_INTERACTIVE: 'never',
 } as const;
 
-/** 15s base, doubled in CI, plus a 50% bump on Windows. */
+/** 30s base, doubled in CI, plus a 50% bump on Windows. */
 export function gitTimeout(): number {
-  const baseTimeout = 15000;
+  const baseTimeout = 30000;
   const isCI = process.env.CI;
   const isWindows = process.platform === 'win32';
 

@@ -401,7 +401,7 @@ describe('Resource cache', () => {
       const modules = commands.project.resources.moduleNames();
       const foundModule = modules.find((m) => m === 'base');
       expect(foundModule).not.toBeUndefined();
-    }, 10000);
+    }, 60000);
     it('should get module names', async () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
 
@@ -414,7 +414,7 @@ describe('Resource cache', () => {
       modules.forEach((module) => {
         expect(module.length).toBeGreaterThan(0);
       });
-    }, 10000);
+    }, 60000);
     it('should invalidate module resources', async () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
 
@@ -432,7 +432,7 @@ describe('Resource cache', () => {
 
       const remainingModuleNames = commands.project.resources.moduleNames();
       expect(remainingModuleNames).not.toContain('base');
-    }, 10000);
+    }, 60000);
     it('should get resource names from specific module', async () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
       await commands.importCmd.importModule(baseModule);
@@ -450,7 +450,7 @@ describe('Resource cache', () => {
         expect(name).to.be.a('string');
         expect(name.length).to.be.greaterThan(0);
       });
-    }, 10000);
+    }, 60000);
     it('should return empty array for non-existent module', () => {
       const resourceHandler = commands.project.resources;
       const workflowNames = resourceHandler.moduleResourceNames(
@@ -488,7 +488,7 @@ describe('Resource cache', () => {
       expect(localOnlyAfter).toBe(localOnlyBefore);
       // Total count should increase since it includes module resources
       expect(allAfter).toBeGreaterThan(allBefore);
-    }, 10000);
+    }, 60000);
     it('should get module-only resources', async () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
       await commands.importCmd.importModule(baseModule);
@@ -514,7 +514,7 @@ describe('Resource cache', () => {
         );
         expect(foundInLocal).toBeUndefined();
       });
-    }, 10000);
+    }, 60000);
   });
 
   describe('resource property validation', () => {
