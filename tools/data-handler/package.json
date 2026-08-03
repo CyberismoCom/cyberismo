@@ -56,7 +56,7 @@
     "email-validator": "^2.0.4",
     "entities": "^8.0.0",
     "handlebars": "^4.7.9",
-    "jsdom": "^29.0.1",
+    "jsdom": "^30.0.1",
     "json-schema": "^0.4.0",
     "jsonschema": "^1.5.0",
     "mime-types": "^3.0.2",
