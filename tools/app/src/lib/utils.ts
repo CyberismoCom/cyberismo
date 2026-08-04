@@ -601,7 +601,8 @@ export function metadataValueToString(
     }
     return metadata ? t('yes') : t('no');
   } else {
-    return metadata ? metadata.toLocaleString() : '';
+    // Not a truthiness check: 0 is a value to show, not a missing one.
+    return metadata != null ? metadata.toLocaleString() : '';
   }
 }
 
