@@ -56,15 +56,28 @@ export function BaseTreeComponent<T>({
   const { height: titleHeight, ref: titleRef } = useResizeObserver();
   const canEdit = useHasMinRole(UserRole.Editor) && !readOnly;
 
+  // Undefined until the container has been measured. react-arborist falls back
+  // to a 500px viewport when height is missing, so the tree is only rendered
+  // once the real height is known — see the effect below.
+  const listHeight =
+    height === undefined ? undefined : Math.max(0, height - (titleHeight ?? 0));
+
   useEffect(() => {
     const tree = treeRef.current as unknown as TreeApi<T> | null;
+    // Selecting scrolls the node into view, and react-window computes that
+    // scroll offset from the height it currently has. Against the 500px
+    // fallback it can compute an offset the real (taller) viewport cannot
+    // scroll to; the browser clamps the scrollTop assignment, no scroll event
+    // fires, and react-window keeps rendering rows for the offset it thinks it
+    // has — leaving a blank gap above them. So wait for the measured height.
+    if (listHeight === undefined) return;
     if (selectedId && tree && !tree.selectedIds.has(selectedId)) {
       tree.openParents(selectedId);
       tree.open(selectedId);
       tree.update(tree.props);
       tree.select(selectedId);
     }
-  }, [selectedId]);
+  }, [selectedId, listHeight]);
 
   const handleMove = useCallback(
     (moveData: {
@@ -115,31 +128,34 @@ export function BaseTreeComponent<T>({
           {titleRightSlot}
         </Stack>
       )}
-      <Tree
-        ref={treeRef}
-        data={data || []}
-        openByDefault={openByDefault}
-        disableDrag={
-          !canEdit || !onMove
-            ? true
-            : (node: T) => (node as { readOnly?: boolean })?.readOnly === true
-        }
-        disableDrop={
-          !canEdit || !onMove
-            ? true
-            : ({ parentNode }) =>
-                (parentNode?.data as { readOnly?: boolean })?.readOnly === true
-        }
-        idAccessor={idAccessor}
-        childrenAccessor={childrenAccessor}
-        indent={16}
-        width={width}
-        height={height ? height - (titleHeight ?? 0) : undefined}
-        rowHeight={28}
-        onMove={handleMove}
-      >
-        {renderNode}
-      </Tree>
+      {listHeight !== undefined && (
+        <Tree
+          ref={treeRef}
+          data={data || []}
+          openByDefault={openByDefault}
+          disableDrag={
+            !canEdit || !onMove
+              ? true
+              : (node: T) => (node as { readOnly?: boolean })?.readOnly === true
+          }
+          disableDrop={
+            !canEdit || !onMove
+              ? true
+              : ({ parentNode }) =>
+                  (parentNode?.data as { readOnly?: boolean })?.readOnly ===
+                  true
+          }
+          idAccessor={idAccessor}
+          childrenAccessor={childrenAccessor}
+          indent={16}
+          width={width}
+          height={listHeight}
+          rowHeight={28}
+          onMove={handleMove}
+        >
+          {renderNode}
+        </Tree>
+      )}
     </Stack>
   );
 }
