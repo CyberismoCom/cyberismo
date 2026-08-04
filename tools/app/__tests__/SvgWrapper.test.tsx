@@ -12,17 +12,20 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom';
 import { withRouter } from './helpers/router';
 import type * as libHooksModule from '@/lib/hooks';
+
+// A stable safePush across renders so navigation targets can be asserted
+const { safePush } = vi.hoisted(() => ({ safePush: vi.fn() }));
 
 vi.mock('@/lib/hooks', async (importOriginal) => {
   const actual = await importOriginal<typeof libHooksModule>();
   const { mockAppRouter } = await import('./helpers/router');
   return {
     ...actual,
-    useAppRouter: vi.fn(mockAppRouter),
+    useAppRouter: vi.fn(() => ({ ...mockAppRouter(), safePush })),
   };
 });
 
@@ -116,5 +119,53 @@ describe('SvgWrapper', () => {
 
     // The inline diagram plus its serialized copy inside the viewer modal
     expect(document.querySelectorAll('svg#diagram')).toHaveLength(2);
+  });
+
+  describe('links inside the diagram', () => {
+    // Graph macro SVGs use xlink:href, which the content parser does not turn
+    // into router links — SvgWrapper intercepts the clicks instead.
+    const diagram = (href: string) => (
+      <SvgWrapper>
+        <svg
+          viewBox="0 0 10 10"
+          dangerouslySetInnerHTML={{
+            __html: `<a xlink:href="${href}"><text>target card</text></a>`,
+          }}
+        />
+      </SvgWrapper>
+    );
+
+    beforeEach(() => {
+      safePush.mockClear();
+    });
+
+    it('routes a root-relative link through the router', () => {
+      render(withRouter(diagram('/cards/csecdev_6wccziw3')));
+
+      fireEvent.click(screen.getByText('target card'));
+
+      expect(safePush).toHaveBeenCalledWith('/cards/csecdev_6wccziw3');
+    });
+
+    // Regression: the absolute URL was pushed to the router as-is, which
+    // resolved it relative to the current location.
+    it('routes an absolute same-origin link as an origin-relative path', () => {
+      const href = `${window.location.origin}/projects/csecdev/cards/csecdev_6wccziw3`;
+      render(withRouter(diagram(href)));
+
+      fireEvent.click(screen.getByText('target card'));
+
+      expect(safePush).toHaveBeenCalledWith(
+        '/projects/csecdev/cards/csecdev_6wccziw3',
+      );
+    });
+
+    it('leaves external links to the browser', () => {
+      render(withRouter(diagram('https://example.com/cards/x')));
+
+      fireEvent.click(screen.getByText('target card'));
+
+      expect(safePush).not.toHaveBeenCalled();
+    });
   });
 });

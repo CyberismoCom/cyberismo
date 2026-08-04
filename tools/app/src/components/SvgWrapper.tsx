@@ -19,7 +19,7 @@ import OpenInFullIcon from '@mui/icons-material/OpenInFull';
 
 import SvgViewerModal from '@/components/modals/svgViewerModal';
 import { useAppRouter } from '@/lib/hooks';
-import { isAppUrl } from '@/lib/utils';
+import { appRoutePath } from '@/lib/utils';
 
 export interface SvgWrapperProps {
   /** The SVG content (already sanitized). */
@@ -92,9 +92,10 @@ function SvgWrapper({ children, downloadName }: SvgWrapperProps) {
     if (!anchor) return;
     const href =
       anchor.getAttribute('href') ?? anchor.getAttribute('xlink:href');
-    if (!href || !isAppUrl(href)) return;
+    const routePath = href ? appRoutePath(href) : null;
+    if (!routePath) return;
     e.preventDefault();
-    router.safePush(href);
+    router.safePush(routePath);
   };
 
   return (

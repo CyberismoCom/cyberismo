@@ -9,6 +9,7 @@ import type { ExpandedLinkType } from '@/lib/definitions';
 import { expect, test, describe } from 'vitest';
 
 import {
+  appRoutePath,
   countChildren,
   deepCopy,
   isSafeRedirectPath,
@@ -835,5 +836,53 @@ describe('getInitials', () => {
 
   test('handles whitespace-only input', () => {
     expect(getInitials('   ')).toBe('');
+  });
+});
+
+describe('appRoutePath', () => {
+  const origin = window.location.origin;
+
+  test('returns the path unchanged for a root-relative path', () => {
+    expect(appRoutePath('/cards/csecdev_6wccziw3')).toBe(
+      '/cards/csecdev_6wccziw3',
+    );
+  });
+
+  // Regression: an absolute same-origin URL used to be handed to the router
+  // as-is, which resolved it relative to the current location and produced
+  // e.g. /cards/x/http:/localhost:3000/cards/x
+  test('strips the origin from an absolute same-origin URL', () => {
+    expect(
+      appRoutePath(`${origin}/projects/csecdev/cards/csecdev_6wccziw3`),
+    ).toBe('/projects/csecdev/cards/csecdev_6wccziw3');
+  });
+
+  test('keeps search and hash when stripping the origin', () => {
+    expect(appRoutePath(`${origin}/cards/x?tab=links#section`)).toBe(
+      '/cards/x?tab=links#section',
+    );
+  });
+
+  test('normalizes relative segments in a same-origin URL', () => {
+    expect(appRoutePath(`${origin}/cards/../cards/x`)).toBe('/cards/x');
+  });
+
+  test.each([
+    'https://example.com/cards/x',
+    'http://localhost:4000/cards/x',
+    'mailto:someone@example.com',
+    'tel:+358401234567',
+    'javascript:alert(1)',
+    '#_section_title',
+    '/api',
+    '/api/cards/csecdev_6wccziw3',
+    `${window.location.origin}/api/cards/csecdev_6wccziw3`,
+    '',
+  ])('returns null for %s so the browser handles it', (href) => {
+    expect(appRoutePath(href)).toBeNull();
+  });
+
+  test('returns null for a missing href', () => {
+    expect(appRoutePath(undefined)).toBeNull();
   });
 });
