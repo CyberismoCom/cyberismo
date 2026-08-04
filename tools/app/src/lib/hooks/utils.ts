@@ -13,7 +13,7 @@
 import { useMemo, useEffect, useState, useCallback, useRef } from 'react';
 import { findParentCard } from '../utils';
 import { useTree } from '../api';
-import { useLocation, useParams } from 'react-router';
+import { useLocation, useMatch, useParams } from 'react-router';
 import { useResourceTree } from '../api/resources';
 import type { AnyNode } from '../api/types';
 
@@ -340,11 +340,14 @@ export function useDocumentTitle(title: string) {
 
 /**
  * This hook is used to check if the current location is in the cards page.
+ * Matches the cards routes explicitly, since configuration routes of template
+ * cards also contain a `cards` segment (e.g. /configuration/module/cards/key).
  * @returns true if the current location is in the cards page, false otherwise
  */
 export function useIsInCards() {
-  const location = useLocation();
-  return location.pathname.includes('/cards');
+  return (
+    useMatch({ path: '/projects/:projectPrefix/cards', end: false }) !== null
+  );
 }
 
 /**

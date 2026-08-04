@@ -2,7 +2,7 @@ import { describe, expect, test, vi, beforeEach } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { render, screen } from '@testing-library/react';
 
-import { useConfigTemplateCreationContext } from '@/lib/hooks';
+import { useConfigTemplateCreationContext, useIsInCards } from '@/lib/hooks';
 import { formKeyHandler } from '@/lib/hooks/utils';
 import type { AnyNode } from '@/lib/api/types';
 
@@ -178,15 +178,53 @@ function HookProbe() {
   );
 }
 
-function renderAt(pathname: string) {
+function renderAt(
+  pathname: string,
+  element: React.ReactElement = <HookProbe />,
+) {
   return render(
     <MemoryRouter initialEntries={[pathname]}>
       <Routes>
-        <Route path="*" element={<HookProbe />} />
+        <Route path="*" element={element} />
       </Routes>
     </MemoryRouter>,
   );
 }
+
+function InCardsProbe() {
+  return <div data-testid="inCards">{String(useIsInCards())}</div>;
+}
+
+function renderInCardsAt(pathname: string) {
+  renderAt(pathname, <InCardsProbe />);
+  return screen.getByTestId('inCards').textContent;
+}
+
+describe('useIsInCards', () => {
+  test('is true in the card tree view', () => {
+    expect(renderInCardsAt('/projects/test/cards')).toBe('true');
+  });
+
+  test('is true in a card view', () => {
+    expect(renderInCardsAt('/projects/test/cards/test_1')).toBe('true');
+  });
+
+  test('is false in the configuration view', () => {
+    expect(renderInCardsAt('/projects/test/configuration')).toBe('false');
+  });
+
+  test('is false in a template card editor', () => {
+    expect(
+      renderInCardsAt('/projects/test/configuration/test/cards/test_1'),
+    ).toBe('false');
+  });
+
+  test('is false in a template editor', () => {
+    expect(
+      renderInCardsAt('/projects/test/configuration/test/templates/mytemplate'),
+    ).toBe('false');
+  });
+});
 
 describe('useConfigTemplateCreationContext', () => {
   beforeEach(() => {
