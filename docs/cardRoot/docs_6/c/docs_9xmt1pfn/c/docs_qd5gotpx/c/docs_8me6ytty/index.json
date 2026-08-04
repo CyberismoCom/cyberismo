@@ -1,0 +1,12 @@
+{
+    "title": "skillRelatedTool(Skill, Tool)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Draft",
+    "rank": "0|f",
+    "lastUpdated": "2026-07-31T12:04:30.836Z",
+    "base/fieldTypes/briefDescription": "Defines an MCP tool that a skill uses",
+    "base/fieldTypes/category": "Skills",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "createdAt": "2026-07-31T12:04:30.835Z"
+}

@@ -1,0 +1,10 @@
+== Parameters
+
+* `Skill`: the name of a skill
+* `CardKey`: the card key of the card that the skill is enabled for
+
+== Description
+
+The skill is enabled for a single card. The scope of the skill is `card`, and an AI assistant needs to give the card key when it asks for the instructions of the skill.
+
+Define this term in a calculation to make a skill available for the cards that it applies to.
