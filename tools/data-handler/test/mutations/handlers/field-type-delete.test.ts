@@ -109,10 +109,13 @@ describe('FieldTypeDeleteHandler', () => {
     ).toBe(false);
   });
 
-  it('removes the field key from every affected card', async () => {
+  // The card type stops declaring the field, which leaves the stored value
+  // dormant rather than deleting it - the same outcome as removing the field
+  // from the card type directly. 'cyberismo clean' reports it as 'undeclared'.
+  it('leaves the stored value dormant on every affected card', async () => {
     const before = project
       .cards(undefined)
-      .filter((c) => c.metadata && fieldName() in c.metadata);
+      .filter((c) => c.metadata?.[fieldName()] === 'a value');
     expect(before.length).toBeGreaterThan(0);
 
     await new ResourceMutations(project).apply({
@@ -122,8 +125,8 @@ describe('FieldTypeDeleteHandler', () => {
 
     const after = project
       .cards(undefined)
-      .filter((c) => c.metadata && fieldName() in c.metadata);
-    expect(after).toHaveLength(0);
+      .filter((c) => c.metadata?.[fieldName()] === 'a value');
+    expect(after).toHaveLength(before.length);
   });
 
   it('rejects deleting a module-owned field type', async () => {

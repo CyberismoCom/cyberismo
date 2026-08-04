@@ -16,15 +16,19 @@ import type { Handler, MutationContext } from '../handler.js';
 import type { DeleteInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
-import type { Card } from '../../interfaces/project-interfaces.js';
 import type { Operation } from '../../resources/resource-object.js';
 
 /**
- * Deleting a field type is a breaking change (data loss). The handler owns the
+ * Deleting a field type is a breaking change: card types that declare the field
+ * and content that references it lose their target. The handler owns the
  * cascade: the field is stripped from every local card type that declares it
- * (CardTypeResource.update also drops it from the visible-field arrays) and the
- * field key is removed from every affected local card. resource.delete() is a
- * pure primitive that no longer refuses on usage.
+ * (CardTypeResource.update also drops it from the visible-field arrays).
+ * resource.delete() is a pure primitive that no longer refuses on usage.
+ *
+ * Cards keep their stored values. Once no card type declares the field the
+ * values are dormant: excluded from facts, accepted by validation, and reported
+ * by 'cyberismo clean' as 'undeclared'. This matches removing the field from a
+ * card type directly, which also leaves the value in place.
  */
 export class FieldTypeDeleteHandler implements Handler<DeleteInput> {
   async apply(ctx: MutationContext<DeleteInput>): Promise<void> {
@@ -44,8 +48,7 @@ export class FieldTypeDeleteHandler implements Handler<DeleteInput> {
     await resource.delete();
   }
 
-  // Cascade: strip the field from every local card type declaring it, and drop
-  // the field key from every affected local card.
+  // Cascade: strip the field from every local card type declaring it.
   async applyCascade(ctx: MutationContext<DeleteInput>): Promise<void> {
     const name = resourceNameToString(ctx.input.target);
 
@@ -59,31 +62,5 @@ export class FieldTypeDeleteHandler implements Handler<DeleteInput> {
         target: { name },
       } as Operation<unknown>);
     }
-
-    const declaringNames = new Set(
-      declaringCardTypes.map((ct) => ct.data!.name),
-    );
-    for (const card of this.affectedCards(ctx, declaringNames)) {
-      if (card.metadata && name in card.metadata) {
-        delete card.metadata[name];
-        await ctx.project.updateCardMetadata(card, card.metadata);
-      }
-    }
-  }
-
-  // Cards whose card type declared the field: local project cards plus local
-  // template cards.
-  private affectedCards(
-    ctx: MutationContext,
-    cardTypeNames: Set<string>,
-  ): Card[] {
-    if (cardTypeNames.size === 0) return [];
-    const project = [...ctx.project.cards(undefined)];
-    const templates = ctx.project.resources
-      .templates(ResourcesFrom.localOnly)
-      .flatMap((t) => t.templateObject().cards());
-    return [...project, ...templates].filter(
-      (c) => c.metadata?.cardType && cardTypeNames.has(c.metadata.cardType),
-    );
   }
 }
