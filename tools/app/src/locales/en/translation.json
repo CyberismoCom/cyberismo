@@ -111,8 +111,8 @@
   },
   "attachment": "Attachment",
   "attachments": "Attachments",
-  "automaticValue": "Automatic value",
   "calculatedForEachCard": "calculated for each card",
+  "calculatedValue": "Calculated value",
   "cancel": "Cancel",
   "cardKey": "Card key",
   "cardNotFound": "Could not find card",
@@ -373,6 +373,8 @@
   "optionallyVisibleFields": "Optionally visible fields",
   "or": "or",
   "outboundDisplayName": "Outbound display name",
+  "overridden": "Overridden",
+  "overriddenWithCalculatedValue": "Overridden. Calculated value: {{value}}",
   "override": "Override",
   "overview": {
     "clearFilters": "Clear Filters",

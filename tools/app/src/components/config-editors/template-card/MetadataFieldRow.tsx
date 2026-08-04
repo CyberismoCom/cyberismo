@@ -21,6 +21,7 @@ import FieldEditor from '@/components/FieldEditor';
 import {
   ClearOverrideButton,
   OverrideEditorFrame,
+  OverriddenMarker,
 } from '@/components/card/metadata-section/OverrideEditorFrame';
 import type { DataType, MetadataValue } from '@/lib/definitions';
 import type { EnumDefinition } from '@cyberismo/data-handler/types/queries';
@@ -36,8 +37,7 @@ import { formKeyHandler } from '@/lib/hooks';
  * An overridable calculated field is presented as an override instead, matching
  * the card metadata row, so that it is clear that the value entered here stays
  * an override on every card created from the template. A template card has no
- * calculated value of its own, so the automatic value is described rather than
- * shown.
+ * calculated value of its own, so it is described rather than shown.
  */
 export function MetadataFieldRow({
   id,
@@ -122,7 +122,7 @@ export function MetadataFieldRow({
         >
           <FieldLabel label={label} description={description} edit={true} />
           <OverrideEditorFrame
-            automaticValue={t('calculatedForEachCard')}
+            calculatedValue={t('calculatedForEachCard')}
             editor={
               <FieldEditor
                 value={value}
@@ -150,6 +150,14 @@ export function MetadataFieldRow({
               disabled={!editable}
               focus={false}
               onChange={onChange}
+              valueDecorator={
+                // An empty list generates no fieldOverride facts, so it is not
+                // an override however it got stored.
+                overrideMode &&
+                (Array.isArray(value) ? value.length > 0 : value != null) ? (
+                  <OverriddenMarker />
+                ) : undefined
+              }
             />
           </Box>
           {clearable && <ClearOverrideButton onClick={() => onClear?.()} />}

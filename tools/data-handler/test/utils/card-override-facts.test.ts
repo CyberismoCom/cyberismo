@@ -108,7 +108,7 @@ describe('fieldOverride fact generation', () => {
     expect(facts).not.toContain(`fieldOverride(${CARD_KEY}, "title"`);
   });
 
-  it('card query: override wins as effective value; calculatedValue shows the automatic value', async () => {
+  it('card query: override wins as effective value; calculatedValue shows the calculated value', async () => {
     const result = await commands.project.calculationEngine.runQuery(
       'card',
       'localApp',

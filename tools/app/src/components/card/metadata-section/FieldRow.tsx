@@ -22,7 +22,7 @@ import type { DataType, MetadataValue } from '@/lib/definitions';
 import type { EnumDefinition } from '@cyberismo/data-handler/types/queries';
 import EditableField, { FieldLabel } from '@/components/EditableField';
 import FieldEditor from '@/components/FieldEditor';
-import { OverrideEditorFrame } from './OverrideEditorFrame';
+import { OverrideEditorFrame, OverriddenMarker } from './OverrideEditorFrame';
 import { coerceMetadataValue, metadataValueToString } from '@/lib/utils';
 import { formKeyHandler } from '@/lib/hooks';
 
@@ -40,7 +40,7 @@ export interface FieldRowProps {
   overrideMode?: boolean;
   /** The stored override, edited when `overrideMode`. `value` stays the effective value. */
   overrideValue?: MetadataValue;
-  /** The computed value shown on the "Automatic value" line while editing, when `overrideMode`. */
+  /** The computed value shown on the "Calculated value" line while editing, when `overrideMode`. */
   calculatedValue?: MetadataValue;
   onStartEdit?: () => void;
   onSave?: (value: MetadataValue) => void;
@@ -68,6 +68,11 @@ export function FieldRow({
 }: FieldRowProps) {
   const { t } = useTranslation();
   const initialValue = (overrideMode ? overrideValue : value) ?? null;
+  const isOverridden = !!overrideMode && overrideValue != null;
+
+  // Overridable fields are always of a "normal" dataType, never 'label'.
+  const formatValue = (v: MetadataValue) =>
+    metadataValueToString(v ?? null, dataType as DataType, t, enumValues);
 
   const {
     control,
@@ -183,12 +188,7 @@ export function FieldRow({
             />
             {overrideMode ? (
               <OverrideEditorFrame
-                automaticValue={metadataValueToString(
-                  calculatedValue ?? null,
-                  dataType as DataType,
-                  t,
-                  enumValues,
-                )}
+                calculatedValue={formatValue(calculatedValue ?? null)}
                 editor={editorField}
                 clearDisabled={disabled || (initialValue === null && !isDirty)}
                 onClear={() => onSave?.(null)}
@@ -225,6 +225,13 @@ export function FieldRow({
               enumValues={enumValues}
               edit={false}
               disabled={disabled}
+              valueDecorator={
+                isOverridden ? (
+                  <OverriddenMarker
+                    calculatedValue={formatValue(calculatedValue ?? null)}
+                  />
+                ) : undefined
+              }
             />
           </Box>
         )}

@@ -73,10 +73,10 @@ test.describe('Calculated field override', () => {
     await fillIntegerField(page, 'test/fieldTypes/b', '3');
 
     // With no override stored, the row reads like any other field: just the
-    // computed value, no automatic/override breakdown.
+    // computed value, no calculated/override breakdown.
     const row = fieldRow(page, 'test/fieldTypes/aPlusB');
     await expect(row.getByTestId('editableFieldRow')).toContainText('5');
-    await expect(row.getByTestId('automaticValue')).toHaveCount(0);
+    await expect(row.getByTestId('calculatedValue')).toHaveCount(0);
   });
 
   test('saves an override value', async ({ page }) => {
@@ -87,9 +87,9 @@ test.describe('Calculated field override', () => {
 
     // No override stored and nothing typed yet: Clear is disabled.
     await expect(row.getByTestId('fieldClearOverrideButton')).toBeDisabled();
-    // The automatic value stays visible while editing.
-    await expect(row.getByTestId('automaticValue')).toHaveText(
-      `${t.automaticValue}: 5`,
+    // The calculated value stays visible while editing.
+    await expect(row.getByTestId('calculatedValue')).toHaveText(
+      `${t.calculatedValue}: 5`,
     );
 
     await row.getByRole('spinbutton').fill('42');
@@ -98,7 +98,7 @@ test.describe('Calculated field override', () => {
 
     // Back in read mode the override is the value shown, on its own.
     await expect(row.getByTestId('editableFieldRow')).toContainText('42');
-    await expect(row.getByTestId('automaticValue')).toHaveCount(0);
+    await expect(row.getByTestId('calculatedValue')).toHaveCount(0);
   });
 
   test('clears a stored override', async ({ page }) => {
@@ -122,7 +122,7 @@ test.describe('Calculated field override', () => {
 });
 
 // A template card carries an override the same way a project card does. It has
-// no calculated value of its own, so the automatic value is described rather
+// no calculated value of its own, so it is described rather
 // than shown, and the framing stays visible because the editor is edit-first.
 test.describe('Calculated field override on a template card', () => {
   const { localTemplateCardKey } = JSON.parse(
@@ -151,8 +151,8 @@ test.describe('Calculated field override on a template card', () => {
     await openTemplateCard(page);
     const row = overrideRow(page);
 
-    await expect(row.getByTestId('automaticValue')).toHaveText(
-      `${t.automaticValue}: ${t.calculatedForEachCard}`,
+    await expect(row.getByTestId('calculatedValue')).toHaveText(
+      `${t.calculatedValue}: ${t.calculatedForEachCard}`,
     );
     // Nothing stored yet.
     await expect(row.getByTestId('fieldClearOverrideButton')).toBeDisabled();

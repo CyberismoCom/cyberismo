@@ -10,6 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import type { ReactNode } from 'react';
 import { Stack, Tooltip, Typography } from '@mui/joy';
 import type { DataType, MetadataValue } from '../lib/definitions';
 import FieldEditor from './FieldEditor';
@@ -87,6 +88,8 @@ export type EditableFieldProps = {
   disabled?: boolean;
   enumValues?: EnumDefinition[];
   focus?: boolean;
+  /** Rendered inline after the read-mode value, e.g. the overridden marker. */
+  valueDecorator?: ReactNode;
 };
 
 const EditableField = ({
@@ -99,6 +102,7 @@ const EditableField = ({
   enumValues,
   disabled,
   focus,
+  valueDecorator,
 }: EditableFieldProps) => {
   const { t } = useTranslation();
   return (
@@ -128,6 +132,7 @@ const EditableField = ({
           {dataType === 'label'
             ? (value as string[] | null)?.join(', ')
             : metadataValueToString(value, dataType, t, enumValues)}
+          {valueDecorator}
         </Typography>
       )}
     </Stack>

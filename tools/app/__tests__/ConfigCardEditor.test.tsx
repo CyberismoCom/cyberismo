@@ -291,7 +291,7 @@ describe('ConfigCardEditor (template card editor)', () => {
   // An overridable field is presented as an override rather than as a plain
   // field, so that the value reads as what it is: it stays an override on every
   // card created from the template. A template card has no calculated value
-  // behind it, so the automatic value is described instead of shown.
+  // behind it, so the calculated value is described instead of shown.
   describe('overridable calculated fields', () => {
     const overridable = {
       key: 'fover',
@@ -322,7 +322,7 @@ describe('ConfigCardEditor (template card editor)', () => {
         'stored override',
       );
       expect(
-        row.querySelector('[data-cy="automaticValue"]')?.textContent,
+        row.querySelector('[data-cy="calculatedValue"]')?.textContent,
       ).toContain('calculatedForEachCard');
       expect(
         row.querySelector('[data-cy="fieldClearOverrideButton"]'),
@@ -360,7 +360,7 @@ describe('ConfigCardEditor (template card editor)', () => {
       ) as HTMLElement;
 
       expect(within(row).queryByRole('textbox')).toBeNull();
-      expect(row.querySelector('[data-cy="automaticValue"]')).toBeNull();
+      expect(row.querySelector('[data-cy="calculatedValue"]')).toBeNull();
 
       fireEvent.click(
         rowButton(container, 'flocked', 'fieldClearOverrideButton'),

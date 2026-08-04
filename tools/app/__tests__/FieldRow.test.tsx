@@ -39,12 +39,9 @@ describe('FieldRow', () => {
 
       expect(screen.getByText('Owner')).toBeInTheDocument();
       expect(screen.getByText('person2@example.com')).toBeInTheDocument();
-      expect(screen.queryByText(/Automatic value/)).not.toBeInTheDocument();
-      expect(screen.queryByText(/Override/)).not.toBeInTheDocument();
-      expect(screen.queryByText('person1@example.com')).not.toBeInTheDocument();
     });
 
-    it('shows the automatic value alone when no override exists', () => {
+    it('shows the calculated value alone when no override exists', () => {
       render(
         <FieldRow
           value="person1@example.com"
@@ -57,7 +54,7 @@ describe('FieldRow', () => {
       );
 
       expect(screen.getByText('person1@example.com')).toBeInTheDocument();
-      expect(screen.queryByText(/Automatic value/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Calculated value/)).not.toBeInTheDocument();
       expect(screen.queryByText(/Override/)).not.toBeInTheDocument();
     });
   });
