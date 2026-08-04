@@ -13,6 +13,7 @@
 */
 
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Accordion, AccordionDetails, Box, IconButton, Stack } from '@mui/joy';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
@@ -21,7 +22,8 @@ import type { DataType, MetadataValue } from '@/lib/definitions';
 import type { EnumDefinition } from '@cyberismo/data-handler/types/queries';
 import EditableField, { FieldLabel } from '@/components/EditableField';
 import FieldEditor from '@/components/FieldEditor';
-import { coerceMetadataValue } from '@/lib/utils';
+import { OverrideEditorFrame, OverriddenMarker } from './OverrideEditorFrame';
+import { coerceMetadataValue, metadataValueToString } from '@/lib/utils';
 import { formKeyHandler } from '@/lib/hooks';
 
 export interface FieldRowProps {
@@ -34,6 +36,12 @@ export interface FieldRowProps {
   enumValues?: EnumDefinition[];
   isEditing?: boolean;
   disabled?: boolean;
+  /** True for a calculated field that can be overridden by the user. */
+  overrideMode?: boolean;
+  /** The stored override, edited when `overrideMode`. `value` stays the effective value. */
+  overrideValue?: MetadataValue;
+  /** The computed value shown on the "Calculated value" line while editing, when `overrideMode`. */
+  calculatedValue?: MetadataValue;
   onStartEdit?: () => void;
   onSave?: (value: MetadataValue) => void;
   onAutoSave?: (value: MetadataValue) => void;
@@ -50,12 +58,21 @@ export function FieldRow({
   enumValues,
   isEditing,
   disabled,
+  overrideMode,
+  overrideValue,
+  calculatedValue,
   onStartEdit,
   onSave,
   onAutoSave,
   onCancel,
 }: FieldRowProps) {
-  const initialValue = value ?? null;
+  const { t } = useTranslation();
+  const initialValue = (overrideMode ? overrideValue : value) ?? null;
+  const isOverridden = !!overrideMode && overrideValue != null;
+
+  // Overridable fields are always of a "normal" dataType, never 'label'.
+  const formatValue = (v: MetadataValue) =>
+    metadataValueToString(v ?? null, dataType as DataType, t, enumValues);
 
   const {
     control,
@@ -89,6 +106,49 @@ export function FieldRow({
   };
 
   const isClickable = !disabled && !isEditing && !!onStartEdit;
+
+  const editorField = (
+    <Controller
+      name="value"
+      control={control}
+      render={({ field: { value: formValue, onChange } }) => (
+        <FieldEditor
+          value={formValue}
+          onChange={(e: string | string[] | null) => handleChange(e, onChange)}
+          dataType={dataType}
+          enumValues={enumValues}
+          disabled={disabled}
+          focus={true}
+        />
+      )}
+    />
+  );
+
+  const saveCancelButtons = (
+    <>
+      {onSave && (
+        <IconButton
+          data-cy="fieldSaveButton"
+          size="sm"
+          variant="soft"
+          color="primary"
+          disabled={!isDirty}
+          onClick={handleSave}
+        >
+          <CheckIcon />
+        </IconButton>
+      )}
+      <IconButton
+        data-cy="fieldCancelButton"
+        size="sm"
+        variant="soft"
+        color="neutral"
+        onClick={handleCancel}
+      >
+        <CloseIcon />
+      </IconButton>
+    </>
+  );
 
   return (
     <Accordion
@@ -126,56 +186,31 @@ export function FieldRow({
               disabled={disabled}
               edit={true}
             />
-            <Stack
-              direction="row"
-              alignItems="flex-start"
-              spacing={0.5}
-              sx={{
-                flexGrow: 1,
-                width: { xs: '100%', md: 'auto' },
-                minWidth: 0,
-              }}
-            >
-              <Box flexGrow={1} minWidth={0}>
-                <Controller
-                  name="value"
-                  control={control}
-                  render={({ field: { value: formValue, onChange } }) => (
-                    <FieldEditor
-                      value={formValue}
-                      onChange={(e: string | string[] | null) =>
-                        handleChange(e, onChange)
-                      }
-                      dataType={dataType}
-                      enumValues={enumValues}
-                      disabled={disabled}
-                      focus={true}
-                    />
-                  )}
-                />
-              </Box>
-              {onSave && (
-                <IconButton
-                  data-cy="fieldSaveButton"
-                  size="sm"
-                  variant="soft"
-                  color="primary"
-                  disabled={!isDirty}
-                  onClick={handleSave}
-                >
-                  <CheckIcon />
-                </IconButton>
-              )}
-              <IconButton
-                data-cy="fieldCancelButton"
-                size="sm"
-                variant="soft"
-                color="neutral"
-                onClick={handleCancel}
+            {overrideMode ? (
+              <OverrideEditorFrame
+                calculatedValue={formatValue(calculatedValue ?? null)}
+                editor={editorField}
+                clearDisabled={disabled || (initialValue === null && !isDirty)}
+                onClear={() => onSave?.(null)}
+                actions={saveCancelButtons}
+              />
+            ) : (
+              <Stack
+                direction="row"
+                alignItems="flex-start"
+                spacing={0.5}
+                sx={{
+                  flexGrow: 1,
+                  width: { xs: '100%', md: 'auto' },
+                  minWidth: 0,
+                }}
               >
-                <CloseIcon />
-              </IconButton>
-            </Stack>
+                <Box flexGrow={1} minWidth={0}>
+                  {editorField}
+                </Box>
+                {saveCancelButtons}
+              </Stack>
+            )}
           </Stack>
         ) : (
           <Box
@@ -190,6 +225,13 @@ export function FieldRow({
               enumValues={enumValues}
               edit={false}
               disabled={disabled}
+              valueDecorator={
+                isOverridden ? (
+                  <OverriddenMarker
+                    calculatedValue={formatValue(calculatedValue ?? null)}
+                  />
+                ) : undefined
+              }
             />
           </Box>
         )}

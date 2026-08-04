@@ -1,6 +1,6 @@
 import { expect, it, describe, beforeAll, afterAll } from 'vitest';
 import { join } from 'node:path';
-import { mkdirSync, rmSync } from 'node:fs';
+import { mkdirSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
@@ -169,5 +169,199 @@ describe('edit card', () => {
     await expect(
       EditCmd.editCardMetadata('card-key-does-not-exist', 'whoopie', 'whoopie'),
     ).rejects.toThrow();
+  });
+
+  it('editing a calculated field without override is rejected', async () => {
+    await expect(
+      editCmd.editCardMetadata(
+        'decision_6',
+        'decision/fieldTypes/obsoletedBy',
+        'decision_999',
+      ),
+    ).rejects.toThrow(/Cannot edit calculated field/);
+  });
+
+  // Fresh project where 'decision/fieldTypes/obsoletedBy' allows override.
+  async function projectWithOverrideEnabled(testDirName: string) {
+    const freshTestDir = join(baseDir, testDirName);
+    mkdirSync(freshTestDir, { recursive: true });
+    await copyDir('test/test-data/', freshTestDir);
+    const projectPath = join(freshTestDir, 'valid/decision-records');
+
+    const cardTypePath = join(
+      projectPath,
+      '.cards/local/cardTypes/decision.json',
+    );
+    const cardType = JSON.parse(readFileSync(cardTypePath, 'utf-8'));
+    const field = cardType.customFields.find(
+      (f: { name: string }) => f.name === 'decision/fieldTypes/obsoletedBy',
+    );
+    expect(field).toBeDefined();
+    field.enableOverride = true;
+    writeFileSync(cardTypePath, JSON.stringify(cardType));
+
+    const freshCommands = new CommandManager(projectPath, {
+      autoSaveConfiguration: false,
+    });
+    await freshCommands.initialize();
+    return { freshTestDir, freshCommands };
+  }
+
+  it('editing a calculated field with override enabled persists the override', async () => {
+    const { freshTestDir, freshCommands } = await projectWithOverrideEnabled(
+      'tmp-edit-override-test',
+    );
+    try {
+      await expect(
+        freshCommands.editCmd.editCardMetadata(
+          'decision_6',
+          'decision/fieldTypes/obsoletedBy',
+          'decision_999',
+        ),
+      ).resolves.not.toThrow();
+
+      const changed = freshCommands.project.findCard('decision_6');
+      expect(changed.metadata!['decision/fieldTypes/obsoletedBy']).toBe(
+        'decision_999',
+      );
+
+      // Clearing the override (saving null) removes the key entirely.
+      await expect(
+        freshCommands.editCmd.editCardMetadata(
+          'decision_6',
+          'decision/fieldTypes/obsoletedBy',
+          null,
+        ),
+      ).resolves.not.toThrow();
+
+      const cleared = freshCommands.project.findCard('decision_6');
+      expect(cleared.metadata!).not.toHaveProperty([
+        'decision/fieldTypes/obsoletedBy',
+      ]);
+
+      const persisted = JSON.parse(
+        readFileSync(join(cleared.path, 'index.json'), 'utf-8'),
+      );
+      expect(persisted).not.toHaveProperty(['decision/fieldTypes/obsoletedBy']);
+    } finally {
+      rmSync(freshTestDir, { recursive: true, force: true });
+    }
+  });
+
+  it('editing a calculated field of a template card is rejected too', async () => {
+    const templateCards = commands.project.templateCards(
+      'decision/templates/decision',
+    );
+    const templateCard = templateCards.at(0) as Card;
+
+    await expect(
+      editCmd.editCardMetadata(
+        templateCard.key,
+        'decision/fieldTypes/obsoletedBy',
+        'decision_999',
+      ),
+    ).rejects.toThrow(/Cannot edit calculated field/);
+  });
+
+  it('a template card can hold an override, and clearing removes it', async () => {
+    const { freshTestDir, freshCommands } = await projectWithOverrideEnabled(
+      'tmp-edit-override-template-test',
+    );
+    try {
+      const templateCard = freshCommands.project
+        .templateCards('decision/templates/decision')
+        .at(0) as Card;
+
+      await expect(
+        freshCommands.editCmd.editCardMetadata(
+          templateCard.key,
+          'decision/fieldTypes/obsoletedBy',
+          'decision_999',
+        ),
+      ).resolves.not.toThrow();
+
+      const metadataFile = join(templateCard.path, 'index.json');
+      expect(JSON.parse(readFileSync(metadataFile, 'utf-8'))).toHaveProperty(
+        ['decision/fieldTypes/obsoletedBy'],
+        'decision_999',
+      );
+
+      await expect(
+        freshCommands.editCmd.editCardMetadata(
+          templateCard.key,
+          'decision/fieldTypes/obsoletedBy',
+          null,
+        ),
+      ).resolves.not.toThrow();
+
+      expect(
+        JSON.parse(readFileSync(metadataFile, 'utf-8')),
+      ).not.toHaveProperty(['decision/fieldTypes/obsoletedBy']);
+    } finally {
+      rmSync(freshTestDir, { recursive: true, force: true });
+    }
+  });
+
+  it('clearing is allowed even when the field does not enable override', async () => {
+    // A value stored before the card type changed is a validation error, so
+    // removing it has to stay possible even though setting one is rejected.
+    const freshTestDir = join(baseDir, 'tmp-edit-clear-locked-test');
+    mkdirSync(freshTestDir, { recursive: true });
+    await copyDir('test/test-data/', freshTestDir);
+    const projectPath = join(freshTestDir, 'valid/decision-records');
+    const metadataFile = join(
+      projectPath,
+      'cardRoot/decision_5/c/decision_6/index.json',
+    );
+    const metadata = JSON.parse(readFileSync(metadataFile, 'utf-8'));
+    metadata['decision/fieldTypes/obsoletedBy'] = 'decision_999';
+    writeFileSync(metadataFile, JSON.stringify(metadata));
+
+    const freshCommands = new CommandManager(projectPath, {
+      autoSaveConfiguration: false,
+    });
+    await freshCommands.initialize();
+
+    try {
+      await expect(
+        freshCommands.editCmd.editCardMetadata(
+          'decision_6',
+          'decision/fieldTypes/obsoletedBy',
+          null,
+        ),
+      ).resolves.not.toThrow();
+
+      expect(
+        JSON.parse(readFileSync(metadataFile, 'utf-8')),
+      ).not.toHaveProperty(['decision/fieldTypes/obsoletedBy']);
+    } finally {
+      rmSync(freshTestDir, { recursive: true, force: true });
+    }
+  });
+
+  it('clearing a calculated field with no stored override is a no-op', async () => {
+    const { freshTestDir, freshCommands } = await projectWithOverrideEnabled(
+      'tmp-edit-override-noop-test',
+    );
+    try {
+      const card = freshCommands.project.findCard('decision_6');
+      const metadataFile = join(card.path, 'index.json');
+      const before = readFileSync(metadataFile, 'utf-8');
+      expect(JSON.parse(before)).not.toHaveProperty([
+        'decision/fieldTypes/obsoletedBy',
+      ]);
+
+      await expect(
+        freshCommands.editCmd.editCardMetadata(
+          'decision_6',
+          'decision/fieldTypes/obsoletedBy',
+          null,
+        ),
+      ).resolves.not.toThrow();
+
+      expect(readFileSync(metadataFile, 'utf-8')).toBe(before);
+    } finally {
+      rmSync(freshTestDir, { recursive: true, force: true });
+    }
   });
 });

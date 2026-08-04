@@ -20,8 +20,15 @@ import { ActionGuard } from '../permissions/action-guard.js';
 import { Project } from '../containers/project.js';
 import { UserPreferences } from '../utils/user-preferences.js';
 import { write } from '../utils/rw-lock.js';
+import { getChildLogger } from '../utils/log-utils.js';
 
-import type { MetadataContent } from '../interfaces/project-interfaces.js';
+import type {
+  Card,
+  MetadataContent,
+} from '../interfaces/project-interfaces.js';
+import type { CustomField } from '../interfaces/resource-interfaces.js';
+
+const logger = getChildLogger({ module: 'edit' });
 
 export class Edit {
   private project: Project;
@@ -104,15 +111,60 @@ export class Edit {
     if (!changedKey) {
       throw new Error(`Changed key cannot be empty`);
     }
+
+    const card = this.project.findCard(cardKey);
+    this.assertFieldIsEditable(card, changedKey, newValue);
+
     if (this.project.hasTemplateCard(cardKey)) {
       return this.project.updateCardMetadataKey(cardKey, changedKey, newValue);
     }
 
     // check for editing rights
-    if (this.project.findCard(cardKey)) {
-      const actionGuard = new ActionGuard(this.project.calculationEngine);
-      await actionGuard.checkPermission('editField', cardKey, changedKey);
-      await this.project.updateCardMetadataKey(cardKey, changedKey, newValue);
+    const actionGuard = new ActionGuard(this.project.calculationEngine);
+    await actionGuard.checkPermission('editField', cardKey, changedKey);
+    await this.project.updateCardMetadataKey(cardKey, changedKey, newValue);
+  }
+
+  /**
+   * Rejects edits to calculated custom fields unless the card type enables
+   * override for that field. Applies to project and template cards alike, so
+   * that the CLI, MCP and the API agree with what the editors allow.
+   * @param card Card being edited.
+   * @param fieldName Metadata key being changed.
+   * @param newValue Value being written.
+   */
+  private assertFieldIsEditable(
+    card: Card,
+    fieldName: string,
+    newValue: MetadataContent,
+  ) {
+    // Clearing is always allowed: removing a stored value can only move the
+    // card towards validity, and it is the only way out when a card type
+    // change has turned an existing value into a validation error.
+    if (newValue == null) {
+      return;
+    }
+    if (!card.metadata?.cardType) {
+      return;
+    }
+    let customField: CustomField | undefined;
+    try {
+      const cardType = this.project.resources
+        .byType(card.metadata.cardType, 'cardTypes')
+        .show();
+      customField = cardType.customFields.find((f) => f.name === fieldName);
+    } catch (error) {
+      // Project validation reports a broken card type separately.
+      logger.warn(
+        error,
+        `Could not resolve card type '${card.metadata.cardType}' of card '${card.key}'; skipping the calculated-field edit guard`,
+      );
+      return;
+    }
+    if (customField?.isCalculated && !customField.enableOverride) {
+      throw new Error(
+        `Cannot edit calculated field '${fieldName}'; the card type does not enable override for it`,
+      );
     }
   }
 

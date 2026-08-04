@@ -37,7 +37,7 @@ describe('import command — live git', () => {
     const modules = await commands.showCmd.showModules();
     expect(modules.length).toBe(1);
     expect(modules[0].name).toBe('base');
-  }, 60000);
+  }, 120000);
   it('import git module with no version pins ^<latest tagged version>', async () => {
     // npm-install-style default: no caller range means pin to the highest
     // remote tag with a caret. The persisted range must be a valid caret
@@ -54,7 +54,7 @@ describe('import command — live git', () => {
     expect(
       satisfies(modules[0].version as string, persisted!.version as string),
     ).toBe(true);
-  }, 60000);
+  }, 120000);
   it('import git module at a pinned version installs that version', async () => {
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';
     await commands.importCmd.importModule(gitModule, { version: '1.0.0' });
@@ -75,7 +75,7 @@ describe('import command — live git', () => {
       ),
     );
     expect(installedConfig.version).toBe('1.0.0');
-  }, 60000);
+  }, 120000);
   it.skipIf(skipTest)(
     'import git module using credentials',
     async () => {
@@ -90,7 +90,7 @@ describe('import command — live git', () => {
       const modules = await commands.showCmd.showModules();
       expect(modules.length).toBe(1);
     },
-    60000,
+    120000,
   );
   it('re-importing a git module is upsert', async () => {
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';
@@ -98,7 +98,7 @@ describe('import command — live git', () => {
     await commands.importCmd.importModule(gitModule);
     const modules = await commands.showCmd.showModules();
     expect(modules.length).toBe(1);
-  }, 60000);
+  }, 120000);
   it.skipIf(skipTest)(
     'try to import from incorrect git path',
     async () => {
@@ -108,7 +108,7 @@ describe('import command — live git', () => {
         'Failed to clone module',
       );
     },
-    60000,
+    120000,
   );
   it('try to import from incorrect private git path', async () => {
     const gitModule = 'https://github.com/CyberismoCom/i-do-not-exist.git';
@@ -122,7 +122,7 @@ describe('import command — live git', () => {
     await expect(
       commands.importCmd.importModule(gitModule, options),
     ).rejects.toThrow('Failed to clone module');
-  }, 60000);
+  }, 120000);
   it('update all modules', async () => {
     let modules = await commands.showCmd.showModules();
     expect(modules.length).toBe(0);
@@ -143,5 +143,5 @@ describe('import command — live git', () => {
     await commands.importCmd.updateAllModules();
     modules = await commands.showCmd.showModules();
     expect(modules.length).toBe(2);
-  }, 60000);
+  }, 120000);
 });

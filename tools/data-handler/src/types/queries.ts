@@ -160,6 +160,9 @@ interface ListValueItem {
   value: string;
 }
 
+type CardFieldValue =
+  string | number | boolean | null | EnumValue | ListValueItem[];
+
 interface CardQueryField extends BaseResult {
   visibility: 'always' | 'optional';
   index: number;
@@ -167,7 +170,10 @@ interface CardQueryField extends BaseResult {
   fieldDescription: string;
   dataType: DataType;
   isCalculated: boolean;
-  value: string | number | boolean | null | EnumValue | ListValueItem[];
+  isOverridable: boolean;
+  value: CardFieldValue;
+  calculatedValue?: CardFieldValue;
+  overrideValue?: CardFieldValue;
   enumValues: EnumDefinition[];
 }
 

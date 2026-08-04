@@ -69,8 +69,20 @@ export function MetadataFields({
         />
         {(card.fields ?? []).map((f) => {
           const rowEditable =
-            editable && !f.isCalculated && !deniedFields.includes(f.key);
+            editable &&
+            (!f.isCalculated || f.isOverridable) &&
+            !deniedFields.includes(f.key);
           const saved = getDefaultValue(f.value);
+          // A calculated field that does not allow override cannot be edited,
+          // but a value stored before the card type changed has to be removable:
+          // it is a validation error, and it would be inherited by every card
+          // created from this template.
+          const clearable =
+            editable && f.isCalculated && !f.isOverridable && saved != null;
+          const clear = () => {
+            onChange(f.key, null);
+            onSave(f.key, null);
+          };
           return (
             <MetadataFieldRow
               key={f.key}
@@ -82,11 +94,14 @@ export function MetadataFields({
               value={draft[f.key]}
               saved={saved}
               editable={rowEditable}
+              overrideMode={f.isOverridable}
+              clearable={clearable}
               onChange={(raw) =>
                 onChange(f.key, coerceMetadataValue(raw, f.dataType))
               }
               onSave={() => onSave(f.key, draft[f.key])}
               onCancel={() => onCancel(f.key, saved)}
+              onClear={clear}
             />
           );
         })}

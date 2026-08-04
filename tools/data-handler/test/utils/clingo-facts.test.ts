@@ -1,11 +1,13 @@
 import { expect, it, describe } from 'vitest';
 import {
+  createCardTypeFacts,
   createContextFacts,
   createSkillFacts,
   createWorkflowFacts,
 } from '../../src/utils/clingo-facts.js';
 import {
   WorkflowCategory,
+  type CardType,
   type SkillMetadata,
   type Workflow,
 } from '../../src/interfaces/resource-interfaces.js';
@@ -83,6 +85,59 @@ describe('clingo-facts', () => {
       };
 
       expect(createSkillFacts(skill)).not.toContain('skillRelatedTool(');
+    });
+  });
+
+  describe('createCardTypeFacts', () => {
+    const base: CardType = {
+      name: 'mod/cardTypes/ct',
+      displayName: 'ct',
+      workflow: 'mod/workflows/wf',
+      customFields: [],
+      alwaysVisibleFields: [],
+      optionallyVisibleFields: [],
+    };
+
+    it('emits overridableField for calculated fields with enableOverride', () => {
+      const cardType: CardType = {
+        ...base,
+        customFields: [
+          {
+            name: 'mod/fieldTypes/owner',
+            isCalculated: true,
+            enableOverride: true,
+          },
+        ],
+      };
+      const facts = createCardTypeFacts(cardType);
+      expect(facts).toContain(
+        'calculatedField("mod/cardTypes/ct", "mod/fieldTypes/owner").',
+      );
+      expect(facts).toContain(
+        'overridableField("mod/cardTypes/ct", "mod/fieldTypes/owner").',
+      );
+    });
+
+    it('does not emit overridableField without enableOverride', () => {
+      const cardType: CardType = {
+        ...base,
+        customFields: [{ name: 'mod/fieldTypes/owner', isCalculated: true }],
+      };
+      expect(createCardTypeFacts(cardType)).not.toContain('overridableField(');
+    });
+
+    it('does not emit overridableField for non-calculated fields', () => {
+      const cardType: CardType = {
+        ...base,
+        customFields: [
+          {
+            name: 'mod/fieldTypes/owner',
+            isCalculated: false,
+            enableOverride: true,
+          },
+        ],
+      };
+      expect(createCardTypeFacts(cardType)).not.toContain('overridableField(');
     });
   });
 });

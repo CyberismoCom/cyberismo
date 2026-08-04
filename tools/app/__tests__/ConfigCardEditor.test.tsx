@@ -101,6 +101,7 @@ const baseCard = {
       fieldDescription: '',
       enumValues: [],
       isCalculated: false,
+      isOverridable: false,
       visibility: 'always',
       value: null,
     },
@@ -115,13 +116,20 @@ const baseCard = {
         { enumValue: 'option2', enumDisplayValue: 'Option 2' },
       ],
       isCalculated: false,
+      isOverridable: false,
       visibility: 'always',
       value: ['option1'],
     },
   ],
 };
 
-const renderEditor = (overrides?: Partial<typeof baseCard>, node?: object) => {
+// Fields are typed loosely so a test can supply its own set without having to
+// satisfy the union inferred from baseCard's literals.
+type CardFixture = Omit<typeof baseCard, 'fields'> & {
+  fields: Array<Record<string, unknown>>;
+};
+
+const renderEditor = (overrides?: Partial<CardFixture>, node?: object) => {
   useRawCard.mockReturnValue({
     card: { ...baseCard, ...overrides },
     isLoading: false,
@@ -278,5 +286,95 @@ describe('ConfigCardEditor (template card editor)', () => {
   it('is read-only for a read-only node (no save controls)', () => {
     const { container } = renderEditor(undefined, { readOnly: true });
     expect(container.querySelector('[data-cy="fieldSaveButton"]')).toBeNull();
+  });
+
+  // An overridable field is presented as an override rather than as a plain
+  // field, so that the value reads as what it is: it stays an override on every
+  // card created from the template. A template card has no calculated value
+  // behind it, so the calculated value is described instead of shown.
+  describe('overridable calculated fields', () => {
+    const overridable = {
+      key: 'fover',
+      dataType: 'shortText',
+      fieldDisplayName: 'Overridable',
+      fieldDescription: '',
+      enumValues: [],
+      isCalculated: true,
+      isOverridable: true,
+      visibility: 'always',
+      value: 'stored override',
+    };
+    const locked = {
+      ...overridable,
+      key: 'flocked',
+      fieldDisplayName: 'Locked',
+      isOverridable: false,
+      value: 'stale value',
+    };
+
+    it('is editable and framed as an override, with no calculated value to show', () => {
+      const { container } = renderEditor({ fields: [overridable] });
+      const row = container.querySelector(
+        '#metadata-field-fover',
+      ) as HTMLElement;
+
+      expect((within(row).getByRole('textbox') as HTMLInputElement).value).toBe(
+        'stored override',
+      );
+      expect(
+        row.querySelector('[data-cy="calculatedValue"]')?.textContent,
+      ).toContain('calculatedForEachCard');
+      expect(
+        row.querySelector('[data-cy="fieldClearOverrideButton"]'),
+      ).not.toBeDisabled();
+    });
+
+    it('clearing removes the stored value and empties the draft', () => {
+      const { container } = renderEditor({ fields: [overridable] });
+
+      fireEvent.click(
+        rowButton(container, 'fover', 'fieldClearOverrideButton'),
+      );
+
+      expect(updateCard).toHaveBeenCalledWith({ metadata: { fover: null } });
+      // The editor follows the save; a draft left behind keeps the row dirty
+      // holding a value that is no longer stored.
+      expect((fieldInput(container, 'fover') as HTMLInputElement).value).toBe(
+        '',
+      );
+    });
+
+    it('offers no Clear until something is stored or typed', () => {
+      const { container } = renderEditor({
+        fields: [{ ...overridable, value: null }],
+      });
+      expect(
+        rowButton(container, 'fover', 'fieldClearOverrideButton'),
+      ).toBeDisabled();
+    });
+
+    it('a calculated field without override stays read-only but can be cleared', () => {
+      const { container } = renderEditor({ fields: [locked] });
+      const row = container.querySelector(
+        '#metadata-field-flocked',
+      ) as HTMLElement;
+
+      expect(within(row).queryByRole('textbox')).toBeNull();
+      expect(row.querySelector('[data-cy="calculatedValue"]')).toBeNull();
+
+      fireEvent.click(
+        rowButton(container, 'flocked', 'fieldClearOverrideButton'),
+      );
+      expect(updateCard).toHaveBeenCalledWith({ metadata: { flocked: null } });
+    });
+
+    it('offers no Clear on a read-only calculated field with nothing stored', () => {
+      const { container } = renderEditor({
+        fields: [{ ...locked, value: null }],
+      });
+      expect(
+        rowButton(container, 'flocked', 'fieldClearOverrideButton'),
+      ).toBeNull();
+    });
   });
 });

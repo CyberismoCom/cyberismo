@@ -223,6 +223,27 @@ export class Project extends CardContainer {
     }
   }
 
+  // Checks if a metadata key is a calculated custom field in the card's card type.
+  private isCalculatedField(card: Card, fieldName: string): boolean {
+    if (!card.metadata?.cardType) {
+      return false;
+    }
+    try {
+      const cardType = this.resources
+        .byType(card.metadata.cardType, 'cardTypes')
+        .show();
+      return (cardType.customFields ?? []).some(
+        (field) => field.name === fieldName && field.isCalculated,
+      );
+    } catch (error) {
+      this.logger.warn(
+        error,
+        `Could not resolve card type '${card.metadata.cardType}' of card '${card.key}'; treating field '${fieldName}' as not calculated`,
+      );
+      return false;
+    }
+  }
+
   // Determines the parent card key from a card's filesystem path.
   // todo: could be moved to card-utils
   private parentFromPath(cardPath: string): string {
@@ -1166,7 +1187,19 @@ export class Project extends CardContainer {
     newValue: MetadataContent,
   ) {
     const card = this.findCard(cardKey);
-    if (!card.metadata || card.metadata[changedKey] === newValue) {
+    if (!card.metadata) {
+      return;
+    }
+
+    // Clearing a calculated field removes the stored override entirely, so
+    // that no null residue remains and the calculated value applies again.
+    const removeKey =
+      newValue == null && this.isCalculatedField(card, changedKey);
+    if (removeKey) {
+      if (!(changedKey in card.metadata)) {
+        return;
+      }
+    } else if (card.metadata[changedKey] === newValue) {
       return;
     }
 
@@ -1175,7 +1208,11 @@ export class Project extends CardContainer {
     const previousParent = isRankChange ? card.parent : undefined;
 
     const cardAsRecord: Record<string, MetadataContent> = card.metadata;
-    cardAsRecord[changedKey] = newValue;
+    if (removeKey) {
+      delete cardAsRecord[changedKey];
+    } else {
+      cardAsRecord[changedKey] = newValue;
+    }
 
     const invalidCard = isTemplateCard(card)
       ? ''

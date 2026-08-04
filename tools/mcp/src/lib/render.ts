@@ -40,7 +40,9 @@ export interface FieldInfo {
   dataType: string;
   value: unknown;
   isCalculated: boolean;
+  isOverridable: boolean;
   isEditable: boolean;
+  calculatedValue?: unknown;
   visibility: 'always' | 'optional';
   enumValues?: EnumOption[];
 }
@@ -328,7 +330,7 @@ async function computeAvailableTransitions(
 /**
  * Transform card query fields to FieldInfo with enum values
  */
-function transformFields(
+export function transformFields(
   fields: QueryResult<'card'>['fields'],
   deniedEditFields: Array<{ fieldName: string; errorMessage: string }>,
 ): FieldInfo[] {
@@ -341,7 +343,11 @@ function transformFields(
     dataType: field.dataType,
     value: field.value,
     isCalculated: field.isCalculated,
-    isEditable: !field.isCalculated && !deniedFieldNames.has(field.key),
+    isOverridable: field.isOverridable,
+    isEditable:
+      (!field.isCalculated || field.isOverridable) &&
+      !deniedFieldNames.has(field.key),
+    calculatedValue: field.calculatedValue,
     visibility: field.visibility,
     enumValues: field.enumValues?.map((ev) => ({
       value: ev.enumValue,

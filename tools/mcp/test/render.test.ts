@@ -15,9 +15,11 @@
 
 import { beforeAll, afterAll, describe, expect, test } from 'vitest';
 import { CommandManager } from '@cyberismo/data-handler';
+import type { QueryResult } from '@cyberismo/data-handler/types/queries';
 import {
   renderCard,
   getCardTree,
+  transformFields,
   type RenderedCard,
 } from '../src/lib/render.js';
 import { testDataPath } from './test-utils.js';
@@ -92,6 +94,64 @@ describe('renderCard', () => {
     expect(card.rawContent).toBeDefined();
     // Raw mode should return empty transitions (no async work)
     expect(card.availableTransitions).toEqual([]);
+  });
+});
+
+describe('transformFields', () => {
+  function makeField(
+    overrides: Partial<QueryResult<'card'>['fields'][number]>,
+  ): QueryResult<'card'>['fields'][number] {
+    return {
+      key: 'testField',
+      index: 0,
+      fieldDisplayName: 'Test Field',
+      fieldDescription: '',
+      dataType: 'shortText',
+      value: 'value',
+      isCalculated: false,
+      isOverridable: false,
+      visibility: 'always',
+      enumValues: [],
+      ...overrides,
+    };
+  }
+
+  test('overridable calculated field is editable', () => {
+    const [field] = transformFields(
+      [
+        makeField({
+          isCalculated: true,
+          isOverridable: true,
+          calculatedValue: 'auto-value',
+        }),
+      ],
+      [],
+    );
+    expect(field.isEditable).toBe(true);
+    expect(field.isOverridable).toBe(true);
+    expect(field.calculatedValue).toBe('auto-value');
+  });
+
+  test('non-overridable calculated field is not editable', () => {
+    const [field] = transformFields(
+      [makeField({ isCalculated: true, isOverridable: false })],
+      [],
+    );
+    expect(field.isEditable).toBe(false);
+  });
+
+  test('overridable calculated field denied by policy is not editable', () => {
+    const [field] = transformFields(
+      [
+        makeField({
+          key: 'testField',
+          isCalculated: true,
+          isOverridable: true,
+        }),
+      ],
+      [{ fieldName: 'testField', errorMessage: 'denied' }],
+    );
+    expect(field.isEditable).toBe(false);
   });
 });
 

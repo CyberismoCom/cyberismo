@@ -697,7 +697,7 @@ describe('Card cache', () => {
         expect(cachedCard).toBeDefined();
         expect(cachedCard!.key).toBe(templateCard.key);
       }
-    }, 10000);
+    }, 60000);
 
     it('should remove base module and verify template cards are gone from the cache', async () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
@@ -736,6 +736,6 @@ describe('Card cache', () => {
       for (const card of baseTemplateCards) {
         expect(commands.project.hasCard(card.key)).toBe(false);
       }
-    }, 10000);
+    }, 60000);
   });
 });

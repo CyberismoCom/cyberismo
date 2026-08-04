@@ -40,7 +40,8 @@
     },
     {
       "name": "test/fieldTypes/aPlusB",
-      "isCalculated": true
+      "isCalculated": true,
+      "enableOverride": true
     }
   ],
   "alwaysVisibleFields": [
