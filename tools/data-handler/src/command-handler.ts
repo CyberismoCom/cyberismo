@@ -368,10 +368,10 @@ export class Commands {
             credentials,
             version,
           );
-          const note = await this.cleanRecommendation();
-          if (note) {
-            return note;
-          }
+          return {
+            statusCode: 200,
+            note: await this.cleanRecommendation(),
+          };
         }
         if (target === 'csv') {
           const [csvFile, cardKey] = args;
@@ -507,12 +507,10 @@ export class Commands {
           key === 'customFields' &&
           (operation === 'remove' || operation === 'change')
         ) {
-          const note = await this.cleanRecommendation(
-            resourceNameToString(target),
-          );
-          if (note) {
-            return note;
-          }
+          return {
+            statusCode: 200,
+            note: await this.cleanRecommendation(resourceNameToString(target)),
+          };
         }
       } else if (command === Cmd.updateModules) {
         const [module, targetVersion] = args;
@@ -530,10 +528,10 @@ export class Commands {
           }
           await this.commands?.importCmd.updateAllModules(credentials);
         }
-        const note = await this.cleanRecommendation();
-        if (note) {
-          return note;
-        }
+        return {
+          statusCode: 200,
+          note: await this.cleanRecommendation(),
+        };
       } else if (command === Cmd.checkUpdates) {
         const [moduleName] = args;
         const results = await this.commands?.checkUpdatesCmd.checkUpdates(
@@ -693,9 +691,14 @@ export class Commands {
 
   // A recommendation when the project holds dormant field values, or undefined
   // when there is nothing to clean. Never fails the parent operation.
+  //
+  // The scan reports the project (or card type), not the caller's change: it
+  // counts values that were already dormant, and an operation that stranded
+  // nothing still reports whatever was dormant before it. The note therefore
+  // states what the project holds and never claims the operation caused it.
   private async cleanRecommendation(
     cardType?: string,
-  ): Promise<requestStatus | undefined> {
+  ): Promise<string | undefined> {
     if (!this.commands) {
       return undefined;
     }
@@ -704,14 +707,10 @@ export class Commands {
       if (result.findings.length === 0) {
         return undefined;
       }
-      // The CLI prints 'Done' only when a command returns no message, so a note
-      // has to carry the success line itself.
-      return {
-        statusCode: 200,
-        message:
-          `Done\n${result.findings.length} unused field value(s) from ${result.cardCount} card(s) — ` +
-          `run 'cyberismo clean --dry-run' to list them, 'cyberismo clean' to remove them`,
-      };
+      return (
+        `This project has ${result.findings.length} unused field value(s) on ${result.cardCount} card(s) — ` +
+        `run 'cyberismo clean --dry-run' to list them, 'cyberismo clean' to remove them`
+      );
     } catch (error) {
       // The logger is initialized while the project loads, so the child logger
       // is taken here rather than at module scope.

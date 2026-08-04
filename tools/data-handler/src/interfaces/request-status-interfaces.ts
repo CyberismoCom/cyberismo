@@ -21,6 +21,9 @@ export interface requestStatus {
   message?: string;
   affectsCards?: string[];
   payload?: object | attachmentPayload;
+  // Advice printed after the outcome, when the command left something the user
+  // may want to act on. Separate from 'message' so it never replaces it.
+  note?: string;
 }
 
 // todo: this should be someplace else

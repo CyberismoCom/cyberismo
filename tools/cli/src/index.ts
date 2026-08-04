@@ -107,6 +107,9 @@ function handleResponse(response: requestStatus) {
     } else {
       console.log('Done');
     }
+    if (response.note) {
+      console.log(`\n${response.note}`);
+    }
   } else {
     if (response.message) {
       program.error(response.message);
@@ -1570,7 +1573,7 @@ checkUpdatesCmd.action(
         );
         if (updateResult.statusCode === 200) {
           console.log(`  Updated ${mod.name} to ${target}`);
-          note = updateResult.message ?? note;
+          note = updateResult.note ?? note;
         } else {
           console.error(
             `  Failed to update ${mod.name}: ${updateResult.message}`,
@@ -1578,9 +1581,7 @@ checkUpdatesCmd.action(
         }
       }
       if (note) {
-        // The note carries a leading 'Done' for the single-module update path,
-        // which already has its own success lines here.
-        console.log(`\n${note.replace(/^Done\n/, '')}`);
+        console.log(`\n${note}`);
       }
     }
   },

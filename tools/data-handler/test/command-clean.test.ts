@@ -323,7 +323,8 @@ describe('clean recommendation', () => {
   const baseDir = import.meta.dirname;
   const DECISION = 'decision/cardTypes/decision';
   const RECOMMENDATION = "'cyberismo clean' to remove them";
-  const COUNTS = /\d+ unused field value\(s\) from \d+ card\(s\)/;
+  const COUNTS =
+    /this project has \d+ unused field value\(s\) on \d+ card\(s\)/i;
 
   // Each test gets its own project folder: the CommandManager instance the
   // handler uses is keyed by project path, so a reused path would be served
@@ -357,10 +358,11 @@ describe('clean recommendation', () => {
       );
 
       expect(result.statusCode).toBe(200);
-      // The note carries the success line, which the CLI would otherwise print.
-      expect(result.message).toContain('Done');
-      expect(result.message).toMatch(COUNTS);
-      expect(result.message).toContain(RECOMMENDATION);
+      // The note travels beside 'message' so the CLI keeps printing its own
+      // success line.
+      expect(result.message).toBeUndefined();
+      expect(result.note).toMatch(COUNTS);
+      expect(result.note).toContain(RECOMMENDATION);
     } finally {
       rmSync(testDir, { recursive: true, force: true });
     }
@@ -389,8 +391,9 @@ describe('clean recommendation', () => {
       );
 
       expect(result.statusCode).toBe(200);
-      expect(result.message).toMatch(COUNTS);
-      expect(result.message).toContain(RECOMMENDATION);
+      expect(result.message).toBeUndefined();
+      expect(result.note).toMatch(COUNTS);
+      expect(result.note).toContain(RECOMMENDATION);
     } finally {
       rmSync(testDir, { recursive: true, force: true });
     }
@@ -423,7 +426,7 @@ describe('clean recommendation', () => {
       );
 
       expect(result.statusCode).toBe(200);
-      expect(result.message).toBeUndefined();
+      expect(result.note).toBeUndefined();
     } finally {
       rmSync(testDir, { recursive: true, force: true });
     }
@@ -470,7 +473,7 @@ describe('clean recommendation', () => {
       );
 
       expect(result.statusCode).toBe(200);
-      expect(result.message).toBeUndefined();
+      expect(result.note).toBeUndefined();
     } finally {
       rmSync(testDir, { recursive: true, force: true });
     }
@@ -489,11 +492,11 @@ describe('clean recommendation', () => {
         options,
       );
       expect(imported.statusCode).toBe(200);
-      expect(imported.message).toContain(RECOMMENDATION);
+      expect(imported.note).toContain(RECOMMENDATION);
 
       const updated = await handler.command(Cmd.updateModules, [], options);
       expect(updated.statusCode).toBe(200);
-      expect(updated.message).toContain(RECOMMENDATION);
+      expect(updated.note).toContain(RECOMMENDATION);
     } finally {
       rmSync(testDir, { recursive: true, force: true });
     }
@@ -522,7 +525,7 @@ describe('clean recommendation', () => {
 
       expect(failingScan).toHaveBeenCalled();
       expect(result.statusCode).toBe(200);
-      expect(result.message).toBeUndefined();
+      expect(result.note).toBeUndefined();
     } finally {
       vi.restoreAllMocks();
       rmSync(testDir, { recursive: true, force: true });
