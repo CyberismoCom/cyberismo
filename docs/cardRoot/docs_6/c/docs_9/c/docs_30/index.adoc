@@ -16,7 +16,7 @@ Defining a calculated field with a plain `field` head is deprecated. It still wo
 
 == Overriding calculated values
 
-A calculated field can allow user overrides by setting *Enable override* on the field in the card type definition (`"enableOverride": true`). Users can then enter a value for the field; the value is stored in the card and Cyberismo generates a `{{#xref}}"cardKey":"docs_6h0t096b"{{/xref}}` fact for it. The override becomes the effective `field` value, which is what the user interface shows for the field, marked with an asterisk whose tooltip names the calculated value being hidden. When the field is being edited, the user interface shows the calculated value next to the override being edited.
+A calculated field can allow user overrides by setting *Enable override* on the field in the card type definition (`"enableOverride": true`). Users can then enter a value for the field; the value is stored in the card and Cyberismo generates a `{{#xref}}"cardKey":"docs_6h0t096b"{{/xref}}` fact for it. The override becomes the effective `field` value, which is what the user interface shows for the field, marked as overridden. When the field is being edited, the user interface shows the calculated value next to the override being edited.
 
 An override can also be set on a template card. A template card has no calculated value of its own, so the field is presented as an override with no calculated value. Every card created from the template starts with that override in place: the card shows the override rather than its own calculated value until someone clears it.
 
