@@ -79,10 +79,26 @@ jobs:
       run: pnpm --filter @cyberismo/node-clingo run build:binding
     - name: Install Playwright browsers and OS deps (cross-browser)
       run: pnpm --filter=app exec playwright install --with-deps chromium firefox webkit
+    # Restored after install: the task cache lives under node_modules, which
+    # `pnpm install` may rewrite. Rolling key so each run saves a fresh entry;
+    # the prefix restore-key picks up the newest compatible one.
+    - name: Restore Vite+ task cache
+      uses: actions/cache/restore@v4
+      with:
+        path: node_modules/.vite/task-cache
+        key: vite-task-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: |
+          vite-task-${{ runner.os }}-${{ runner.arch }}-
     - run: pnpm prettier-check
     - run: pnpm lint
     - run: pnpm --filter node-clingo format:cpp:check
     - run: pnpm build
+    - name: Save Vite+ task cache
+      if: always()
+      uses: actions/cache/save@v4
+      with:
+        path: node_modules/.vite/task-cache
+        key: vite-task-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}-${{ github.run_attempt }}
     - run: pnpm test
       env:
         CYBERISMO_GIT_USER: ${{ secrets.CYBERISMO_GIT_USER }}
