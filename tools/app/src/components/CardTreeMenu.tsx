@@ -36,7 +36,7 @@ export const CardTreeMenu = () => {
               {t('exportProject')}
             </MenuItem>
           )}
-          <MenuItem onClick={() => router.safePush('/configuration')}>
+          <MenuItem onClick={() => router.push('/configuration')}>
             {t('configuration')}
           </MenuItem>
         </Menu>

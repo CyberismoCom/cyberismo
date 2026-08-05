@@ -58,7 +58,7 @@ export default function AppLayout() {
     () => {
       const key = tree?.[0]?.key;
       if (key) {
-        router.safePush(`/cards/${key}`);
+        router.push(`/cards/${key}`);
       }
     },
   );
@@ -103,7 +103,7 @@ export default function AppLayout() {
           }}
           onCardSelect={(node) => {
             if (node.data.key) {
-              router.safePush(`/cards/${node.data.key}`);
+              router.push(`/cards/${node.data.key}`);
               setDrawerOpen(false);
             }
           }}

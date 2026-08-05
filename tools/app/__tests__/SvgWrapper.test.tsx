@@ -17,15 +17,15 @@ import '@testing-library/jest-dom';
 import { withRouter } from './helpers/router';
 import type * as libHooksModule from '@/lib/hooks';
 
-// A stable safePush across renders so navigation targets can be asserted
-const { safePush } = vi.hoisted(() => ({ safePush: vi.fn() }));
+// A stable push across renders so navigation targets can be asserted
+const { push } = vi.hoisted(() => ({ push: vi.fn() }));
 
 vi.mock('@/lib/hooks', async (importOriginal) => {
   const actual = await importOriginal<typeof libHooksModule>();
   const { mockAppRouter } = await import('./helpers/router');
   return {
     ...actual,
-    useAppRouter: vi.fn(() => ({ ...mockAppRouter(), safePush })),
+    useAppRouter: vi.fn(() => ({ ...mockAppRouter(), push })),
   };
 });
 
@@ -136,7 +136,7 @@ describe('SvgWrapper', () => {
     );
 
     beforeEach(() => {
-      safePush.mockClear();
+      push.mockClear();
     });
 
     it('routes a root-relative link through the router', () => {
@@ -144,7 +144,7 @@ describe('SvgWrapper', () => {
 
       fireEvent.click(screen.getByText('target card'));
 
-      expect(safePush).toHaveBeenCalledWith('/cards/csecdev_6wccziw3');
+      expect(push).toHaveBeenCalledWith('/cards/csecdev_6wccziw3');
     });
 
     // Regression: the absolute URL was pushed to the router as-is, which
@@ -155,7 +155,7 @@ describe('SvgWrapper', () => {
 
       fireEvent.click(screen.getByText('target card'));
 
-      expect(safePush).toHaveBeenCalledWith(
+      expect(push).toHaveBeenCalledWith(
         '/projects/csecdev/cards/csecdev_6wccziw3',
       );
     });
@@ -165,7 +165,7 @@ describe('SvgWrapper', () => {
 
       fireEvent.click(screen.getByText('target card'));
 
-      expect(safePush).not.toHaveBeenCalled();
+      expect(push).not.toHaveBeenCalled();
     });
   });
 });

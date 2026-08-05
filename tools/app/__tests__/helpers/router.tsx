@@ -16,21 +16,17 @@ import { BrowserRouter } from 'react-router';
 import type { ReactNode } from 'react';
 
 /**
- * A fully stubbed `useAppRouter` return value, with every navigation method
- * mocked. Call inside a `vi.mock('@/lib/hooks', ...)` factory:
+ * A stubbed `useAppRouter` return value. Call inside a
+ * `vi.mock('@/lib/hooks', ...)` factory:
  *
  *   const { mockAppRouter } = await import('./helpers/router');
  *   return { ...actual, useAppRouter: vi.fn(mockAppRouter) };
+ *
+ * Pass your own `push` when the navigation target has to be asserted — a fresh
+ * mock is created per call, so the one here cannot be inspected afterwards.
  */
 export const mockAppRouter = () => ({
   push: vi.fn(),
-  replace: vi.fn(),
-  back: vi.fn(),
-  forward: vi.fn(),
-  safePush: vi.fn(),
-  safeReplace: vi.fn(),
-  safeBack: vi.fn(),
-  safeForward: vi.fn(),
 });
 
 /** Wrap UI in a router so components using router hooks can render. */

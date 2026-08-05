@@ -14,9 +14,8 @@ import { useDispatch, useSelector, useStore } from 'react-redux';
 import type { RootState, AppDispatch, AppStore } from '../store';
 import { setIsUpdating } from '../slices/swr';
 import { addNotification } from '../slices/notifications';
-import { useNavigate } from 'react-router';
+import { useBlocker, useNavigate } from 'react-router';
 import { useEffect, useCallback } from 'react';
-import { createFunctionGuard } from './utils';
 import { useTranslation } from 'react-i18next';
 
 export const useAppDispatch = useDispatch.withTypes<AppDispatch>();
@@ -25,59 +24,57 @@ export const useAppStore = useStore.withTypes<AppStore>();
 
 type AppRouter = {
   push: (path: string) => void;
-  replace: (path: string) => void;
-  back: () => void;
-  forward: () => void;
-  safePush: (path: string) => void;
-  safeReplace: (path: string) => void;
-  safeBack: () => void;
-  safeForward: () => void;
 };
 
 /**
- * A hook that returns a router object with additional functionality
- * that prevents navigation when there is edited content on the page
+ * Confirms before leaving unsaved edits — both in-app navigation and closing or
+ * reloading the tab. Covers navigation the app does not initiate itself, such as
+ * browser back/forward and plain <Link> clicks.
+ *
+ * Mount exactly once, above the routes that host editors: React Router supports
+ * only one blocker per router.
  */
-export const useAppRouter = (): AppRouter => {
-  const navigate = useNavigate();
+export const useNavigationGuard = (): void => {
   const isEdited = useAppSelector((state) => state.page.isEdited);
   const { t } = useTranslation();
 
   const dialogMsg = t('navigationDialogMsg');
 
+  const blocker = useBlocker(isEdited);
   useEffect(() => {
-    if (isEdited) {
-      const handleUnload = (e: BeforeUnloadEvent) => {
-        e.preventDefault();
-        e.returnValue = t('beforeUnload'); // for legacy browsers
-      };
-      window.addEventListener('beforeunload', handleUnload);
-      return () => {
-        window.removeEventListener('beforeunload', handleUnload);
-      };
+    if (blocker.state !== 'blocked') return;
+    if (window.confirm(dialogMsg)) {
+      blocker.proceed();
+    } else {
+      blocker.reset();
     }
+  }, [blocker, dialogMsg]);
+
+  useEffect(() => {
+    if (!isEdited) return;
+    const handleUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = t('beforeUnload'); // for legacy browsers
+    };
+    window.addEventListener('beforeunload', handleUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload);
+    };
   }, [isEdited, t]);
+};
+
+/**
+ * A hook that returns a router object.
+ *
+ * Navigation is not guarded here — unsaved-changes confirmation lives in
+ * useNavigationGuard, which covers every navigation including the ones this
+ * hook has no part in.
+ */
+export const useAppRouter = (): AppRouter => {
+  const navigate = useNavigate();
 
   return {
     push: (path: string) => navigate(path),
-    replace: (path: string) => navigate(path, { replace: true }),
-    back: () => navigate(-1),
-    forward: () => navigate(1),
-    safePush: isEdited
-      ? createFunctionGuard((path: string) => navigate(path), dialogMsg)
-      : (path: string) => navigate(path),
-    safeReplace: isEdited
-      ? createFunctionGuard(
-          (path: string) => navigate(path, { replace: true }),
-          dialogMsg,
-        )
-      : (path: string) => navigate(path, { replace: true }),
-    safeBack: isEdited
-      ? createFunctionGuard(() => navigate(-1), dialogMsg)
-      : () => navigate(-1),
-    safeForward: isEdited
-      ? createFunctionGuard(() => navigate(1), dialogMsg)
-      : () => navigate(1),
   };
 };
 

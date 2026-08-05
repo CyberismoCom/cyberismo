@@ -61,7 +61,7 @@ export default function ConfigMenu() {
     selectedName && resourceTree
       ? findResourceNodeByName(resourceTree, selectedName)?.id
       : undefined;
-  const { safePush } = useAppRouter();
+  const { push } = useAppRouter();
   const isAdmin = useHasMinRole(UserRole.Admin);
 
   const handleMove = useCallback(
@@ -101,7 +101,7 @@ export default function ConfigMenu() {
     <BaseTreeComponent
       title={`Configuration - ${project?.name}`}
       linkTo="/configuration"
-      onBackClick={() => safePush(`/projects/${projectPrefix}/cards`)}
+      onBackClick={() => push(`/projects/${projectPrefix}/cards`)}
       backLabel={t('configTree.backToCards')}
       data={resourceTree}
       nodeRenderer={ConfigTreeNode}
@@ -112,19 +112,19 @@ export default function ConfigMenu() {
       readOnly={!isAdmin}
       onNodeClick={(node) => {
         if (node.data.type === 'general') {
-          safePush('/configuration/general');
+          push('/configuration/general');
           return;
         }
         if (node.data.type === 'resourceGroup') {
           if ((RESOURCES as readonly string[]).includes(node.data.name)) {
-            safePush(`/configuration/${node.data.name}`);
+            push(`/configuration/${node.data.name}`);
           }
           return;
         }
         if (node.data.type === 'module') {
           const group = findAncestorResourceGroup(node);
           if (group && (RESOURCES as readonly string[]).includes(group.name)) {
-            safePush(
+            push(
               `/configuration/${group.name}?modules=${encodeURIComponent(node.data.name)}`,
             );
           }
@@ -133,7 +133,7 @@ export default function ConfigMenu() {
         if (!node.data.name.includes('/')) {
           return;
         }
-        safePush(`/configuration/${node.data.name}`);
+        push(`/configuration/${node.data.name}`);
       }}
     />
   );
