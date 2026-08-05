@@ -8,8 +8,7 @@
     "start-e2e": "cross-env AUTH_MODE=mock node dist/main.js",
     "dev": "cross-env AUTH_MODE=mock tsx watch src/main.ts",
     "debug": "tsx --inspect-brk src/main.ts",
-    "export": "pnpm build && node dist/main.js --export",
-    "build": "tsc -p tsconfig.build.json && shx rm -rf ./dist/public && shx cp -r ../app/dist ./dist/public",
+    "export": "vp run build && node dist/main.js --export",
     "test": "vp test run --silent",
     "lint": "vp lint ."
   },

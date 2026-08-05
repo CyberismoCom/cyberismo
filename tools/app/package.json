@@ -13,7 +13,6 @@
     "e2e:chromium": "playwright test --project=chromium",
     "test-env-dev": "cross-env NODE_ENV=test npm_config_project_path=../../.tmp/cyberismo-bat pnpm --filter backend start-e2e",
     "dev": "vp dev",
-    "build": "tsc -b && vp build",
     "start": "vp dev",
     "lint": "vp lint .",
     "preview": "vp preview",
