@@ -22,10 +22,13 @@ import {
 import '@testing-library/jest-dom';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
+import type * as AppHooks from '@/lib/hooks';
 import type { CleanResult } from '@cyberismo/data-handler';
 
 const update = vi.fn().mockResolvedValue(undefined);
 const cleanProject = vi.fn();
+const deleteResource = vi.fn().mockResolvedValue(undefined);
+const routerPush = vi.fn();
 
 vi.mock('@/lib/api', () => ({
   useResource: () => ({ update, isUpdating: () => false }),
@@ -37,10 +40,22 @@ vi.mock('@/lib/api', () => ({
     cleanProject(dryRun, projectPrefix),
 }));
 
+vi.mock('@/lib/api/resources', () => ({
+  useResource: () => ({ deleteResource }),
+}));
+
+// The prompt reaches the app shell through the store, so the real redux hooks
+// are used here; only the router is stubbed.
+vi.mock('@/lib/hooks', async () => {
+  const actual = await vi.importActual<typeof AppHooks>('@/lib/hooks');
+  return { ...actual, useAppRouter: () => ({ push: routerPush }) };
+});
+
 import rootReducer from '@/lib/slices';
 import { setProjectPrefix } from '@/lib/slices/project';
 import { CardTypeFieldsEditor } from '@/components/config-editors/fields/CardTypeFieldsEditor';
 import { CleanPrompt } from '@/components/CleanPrompt';
+import { ResourceDeleteModal } from '@/components/modals/Delete/ResourceDeleteModal';
 
 let store: ReturnType<typeof configureStore>;
 
@@ -109,6 +124,19 @@ const renderEditor = (field = customField()) =>
     </Provider>,
   );
 
+const renderResourceDelete = (resourceType: string, onClose = () => {}) =>
+  render(
+    <Provider store={store}>
+      <ResourceDeleteModal
+        open
+        onClose={onClose}
+        resourceName="base/fieldTypes/owner"
+        resourceType={resourceType}
+      />
+      <CleanPrompt />
+    </Provider>,
+  );
+
 const iconButton = (icon: string) =>
   screen.getByTestId(icon).closest('button') as HTMLButtonElement;
 
@@ -152,6 +180,8 @@ describe('clean prompt after card type field changes', () => {
   beforeEach(() => {
     update.mockClear();
     cleanProject.mockReset();
+    deleteResource.mockClear();
+    routerPush.mockClear();
     store = configureStore({ reducer: rootReducer });
     // The route loader sets the active project before any editor renders.
     store.dispatch(setProjectPrefix(PREFIX));
@@ -374,5 +404,86 @@ describe('clean prompt after card type field changes', () => {
 
     await waitFor(() => expect(update).toHaveBeenCalled());
     expect(cleanProject).not.toHaveBeenCalled();
+  });
+});
+
+describe('clean prompt after deleting a resource', () => {
+  beforeEach(() => {
+    cleanProject.mockReset();
+    deleteResource.mockClear();
+    routerPush.mockClear();
+    store = configureStore({ reducer: rootReducer });
+  });
+
+  const confirmDelete = () =>
+    fireEvent.click(
+      document.querySelector(
+        '[data-cy="confirmDeleteResourceButton"]',
+      ) as HTMLButtonElement,
+    );
+
+  it('offers to remove the unused values left by deleting a field type', async () => {
+    cleanProject.mockResolvedValue(oneFinding);
+    renderResourceDelete('fieldTypes');
+
+    confirmDelete();
+
+    expect(
+      await screen.findByText('Unused field values in this project'),
+    ).toBeInTheDocument();
+    expect(cleanProject).toHaveBeenNthCalledWith(1, true);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove' }));
+
+    await waitFor(() => expect(cleanProject).toHaveBeenNthCalledWith(2, false));
+    expect(notifications()).toContainEqual({
+      message: 'Unused field values removed',
+      type: 'success',
+    });
+  });
+
+  // The prompt is dispatched to the store, so it must outlive the modal that
+  // asked for it: deleting the resource navigates away, which unmounts the
+  // toolbar that owns that modal.
+  it('keeps the prompt up once the modal that asked for it is gone', async () => {
+    cleanProject.mockResolvedValue(oneFinding);
+    const onClose = vi.fn();
+    const { rerender } = renderResourceDelete('fieldTypes', onClose);
+
+    confirmDelete();
+
+    expect(
+      await screen.findByText('Unused field values in this project'),
+    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(routerPush).toHaveBeenCalledWith('/configuration'),
+    );
+    expect(onClose).toHaveBeenCalled();
+
+    // What navigation does: the delete modal and its owner go away.
+    rerender(
+      <Provider store={store}>
+        <CleanPrompt />
+      </Provider>,
+    );
+
+    expect(
+      screen.getByText('Unused field values in this project'),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+    await waitFor(() => expect(cleanProject).toHaveBeenNthCalledWith(2, false));
+  });
+
+  it('does not scan when the deleted resource cannot strand a value', async () => {
+    cleanProject.mockResolvedValue(oneFinding);
+    renderResourceDelete('workflows');
+
+    confirmDelete();
+
+    await waitFor(() => expect(deleteResource).toHaveBeenCalled());
+    expect(cleanProject).not.toHaveBeenCalled();
+    expect(
+      screen.queryByText('Unused field values in this project'),
+    ).not.toBeInTheDocument();
   });
 });
