@@ -24,6 +24,7 @@ import { UserRole, useHasMinRole } from '@/lib/auth';
 import type { MetadataValue } from '@/lib/definitions';
 
 type CardTitleProps = {
+  cardKey: string;
   title: string;
   disabled?: boolean;
   preview?: boolean;
@@ -33,6 +34,7 @@ type CardTitleProps = {
 };
 
 export const CardTitle: React.FC<CardTitleProps> = ({
+  cardKey,
   title,
   disabled,
   preview,
@@ -48,6 +50,16 @@ export const CardTitle: React.FC<CardTitleProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const canEdit = !preview && !!onSave && !disabled && canEditRole;
+
+  // The component is reused when navigating to a card that is already cached,
+  // so drop an open title editor instead of letting it (and its draft value)
+  // follow along to the next card.
+  const [prevCardKey, setPrevCardKey] = useState(cardKey);
+  if (prevCardKey !== cardKey) {
+    setPrevCardKey(cardKey);
+    setEditing(false);
+    setValue(title);
+  }
 
   const handleStartEdit = (e: React.MouseEvent) => {
     if (!canEdit) return;

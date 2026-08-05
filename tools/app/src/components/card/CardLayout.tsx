@@ -330,6 +330,7 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
           <Stack spacing={2}>
             {header}
             <CardTitle
+              cardKey={card.key}
               title={card.title}
               preview={preview}
               disabled={card.deniedOperations.editField

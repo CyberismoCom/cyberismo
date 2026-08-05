@@ -27,6 +27,7 @@ import {
   useParentCard,
 } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
+import { isEdited } from '@/lib/slices/pageState';
 import { expandLinkTypes } from '@/lib/utils';
 import { Box, Stack, Typography } from '@mui/joy';
 import { useEffect, useRef, useState } from 'react';
@@ -67,6 +68,12 @@ export default function Page() {
   }
 
   const layoutRef = useRef<CardLayoutHandle>(null);
+
+  // The card editors drop their drafts when the card changes, so the
+  // unsaved-changes navigation guard must be cleared with them.
+  useEffect(() => {
+    dispatch(isEdited(false));
+  }, [key, dispatch]);
 
   useEffect(() => {
     if (listCard) {
