@@ -1,2 +1,24 @@
 packages:
   - 'tools/*'
+ignoredOptionalDependencies:
+  - '@cyberismo/node-clingo-darwin-arm64'
+  - '@cyberismo/node-clingo-darwin-x64'
+  - '@cyberismo/node-clingo-linux-arm64-gnu'
+  - '@cyberismo/node-clingo-linux-arm64-musl'
+  - '@cyberismo/node-clingo-linux-x64-gnu'
+  - '@cyberismo/node-clingo-linux-x64-musl'
+  - '@cyberismo/node-clingo-win32-x64'
+catalog:
+  vite: npm:@voidzero-dev/vite-plus-core@0.2.8
+  vitest: 4.1.10
+  vite-plus: 0.2.8
+overrides:
+  vite: 'catalog:'
+  vitest: 'catalog:'
+peerDependencyRules:
+  allowAny:
+    - vite
+    - vitest
+  allowedVersions:
+    vite: '*'
+    vitest: '*'
