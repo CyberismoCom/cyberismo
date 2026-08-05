@@ -99,6 +99,18 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
 
     const canEdit = !preview && !!onContentSave && canEditRole;
 
+    // Navigating to a cached card re-renders this component instead of
+    // remounting it, so drop the open editor and its draft — otherwise a save
+    // would write the previous card's content onto the card now being viewed.
+    const [prevCardKey, setPrevCardKey] = useState(card.key);
+    if (prevCardKey !== card.key) {
+      setPrevCardKey(card.key);
+      setEditing(false);
+      setPreviewing(false);
+      setPreviewHtml(null);
+      editContentRef.current = card.rawContent || '';
+    }
+
     useEffect(() => {
       onEditingChange?.(editing);
     }, [editing, onEditingChange]);

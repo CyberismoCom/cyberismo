@@ -14,9 +14,8 @@ import { useDispatch, useSelector, useStore } from 'react-redux';
 import type { RootState, AppDispatch, AppStore } from '../store';
 import { setIsUpdating } from '../slices/swr';
 import { addNotification } from '../slices/notifications';
-import { useNavigate } from 'react-router';
+import { useBlocker, useNavigate } from 'react-router';
 import { useEffect, useCallback } from 'react';
-import { createFunctionGuard } from './utils';
 import { useTranslation } from 'react-i18next';
 
 export const useAppDispatch = useDispatch.withTypes<AppDispatch>();
@@ -45,6 +44,20 @@ export const useAppRouter = (): AppRouter => {
 
   const dialogMsg = t('navigationDialogMsg');
 
+  // useBlocker intercepts ALL navigation — including the browser back/forward
+  // buttons — unlike the safePush/safeBack wrappers which only guard
+  // programmatic calls.
+  const blocker = useBlocker(isEdited);
+  useEffect(() => {
+    if (blocker.state === 'blocked') {
+      if (window.confirm(dialogMsg)) {
+        blocker.proceed();
+      } else {
+        blocker.reset();
+      }
+    }
+  }, [blocker.state]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (isEdited) {
       const handleUnload = (e: BeforeUnloadEvent) => {
@@ -63,21 +76,10 @@ export const useAppRouter = (): AppRouter => {
     replace: (path: string) => navigate(path, { replace: true }),
     back: () => navigate(-1),
     forward: () => navigate(1),
-    safePush: isEdited
-      ? createFunctionGuard((path: string) => navigate(path), dialogMsg)
-      : (path: string) => navigate(path),
-    safeReplace: isEdited
-      ? createFunctionGuard(
-          (path: string) => navigate(path, { replace: true }),
-          dialogMsg,
-        )
-      : (path: string) => navigate(path, { replace: true }),
-    safeBack: isEdited
-      ? createFunctionGuard(() => navigate(-1), dialogMsg)
-      : () => navigate(-1),
-    safeForward: isEdited
-      ? createFunctionGuard(() => navigate(1), dialogMsg)
-      : () => navigate(1),
+    safePush: (path: string) => navigate(path),
+    safeReplace: (path: string) => navigate(path, { replace: true }),
+    safeBack: () => navigate(-1),
+    safeForward: () => navigate(1),
   };
 };
 
