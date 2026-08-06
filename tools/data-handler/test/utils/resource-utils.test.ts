@@ -42,6 +42,21 @@ describe('resource utils', () => {
         expect(() => resourceName(invalidName)).toThrow();
       },
     );
+    it('folds the context into the empty-name error message', () => {
+      expect(() => resourceName('', false, "file 'foo.json'")).toThrow(
+        "Must define resource name to query its details (file 'foo.json')",
+      );
+    });
+    it('folds the context into the invalid-name error message', () => {
+      expect(() => resourceName('a/b', false, "file 'foo.json'")).toThrow(
+        "Name 'a/b' is not valid resource name (file 'foo.json')",
+      );
+    });
+    it('omits the context suffix entirely when none is given', () => {
+      expect(() => resourceName('')).toThrow(
+        /^Must define resource name to query its details$/,
+      );
+    });
   });
   describe('resourceNameToString', () => {
     it('returns the resource name when provided a valid ResourceName', () => {
