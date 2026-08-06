@@ -121,9 +121,18 @@ export class ProjectRegistry implements ProjectProvider {
   ): Promise<ProjectRegistry> {
     const entries: ProjectRegistryEntry[] = [];
     for (const project of projects) {
-      const commands = new CommandManager(project.path, options);
-      await commands.initialize();
-      entries.push({ prefix: project.prefix, commands });
+      try {
+        const commands = new CommandManager(project.path, options);
+        await commands.initialize();
+        entries.push({ prefix: project.prefix, commands });
+      } catch (error) {
+        throw new Error(
+          `Failed to initialize project '${project.prefix}' at '${project.path}': ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          { cause: error },
+        );
+      }
     }
     return new ProjectRegistry(entries, options);
   }

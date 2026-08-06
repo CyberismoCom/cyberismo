@@ -14,7 +14,7 @@
 import fs from 'node:fs/promises';
 
 import type { CommandManager } from '@cyberismo/data-handler';
-import { createApp } from './app.js';
+import { createApp, PROJECT_PREFIX_HEADER } from './app.js';
 import { MockAuthProvider } from './auth/mock.js';
 import type { ProjectRegistry } from './project-registry.js';
 import { cp } from 'node:fs/promises';
@@ -73,6 +73,20 @@ export async function getCardQueryResult(
 }
 
 /**
+ * Reads the owning project prefix stamped onto export-mode responses by
+ * createApp()'s per-prefix mounting loop (see app.ts). toSSG responses are
+ * synthetic (created via app.request()), so `response.url` is empty and
+ * cannot be parsed for the prefix.
+ * @param response - A response received by a toSSG hook.
+ * @returns the project prefix, or undefined if the header is absent.
+ */
+export function projectPrefixFromResponse(
+  response: Response,
+): string | undefined {
+  return response.headers.get(PROJECT_PREFIX_HEADER) ?? undefined;
+}
+
+/**
  * Export the site to a given directory.
  * Note: Do not call this function in parallel.
  * @param registry - ProjectRegistry holding all project CommandManagers.
@@ -84,12 +98,18 @@ export async function getCardQueryResult(
  * @param onProgress - Optional progress callback function.
  * @returns An object containing any errors that occurred during export.
  */
+export interface ExportSiteError {
+  /** Project prefix the failing request belonged to, if it could be determined. */
+  prefix?: string;
+  error: string;
+}
+
 export async function exportSite(
   registry: ProjectRegistry,
   exportDir?: string,
   options?: ExportSiteOptions,
   onProgress?: (current: number, total: number) => void,
-): Promise<{ errors: string[] }> {
+): Promise<{ errors: ExportSiteError[] }> {
   exportDir = exportDir || 'static';
   const { defaultProject, ...treeOpts } = options ?? {};
   const opts: TreeOptions = {
@@ -128,7 +148,7 @@ export async function exportSite(
   // Actual export with progress reporting
   let done = 0;
   onProgress?.(done, total);
-  const errors: string[] = [];
+  const errors: ExportSiteError[] = [];
   await toSSG(app, fs, {
     dir: exportDir,
     concurrency: 5,
@@ -155,7 +175,10 @@ export async function exportSite(
               'error' in error &&
               typeof error.error === 'string'
             ) {
-              errors.push(error.error);
+              errors.push({
+                prefix: projectPrefixFromResponse(response),
+                error: error.error,
+              });
             }
             return false; // ignore route
           }
