@@ -22,7 +22,7 @@ import {
   listSealFiles,
   type SealFile,
 } from '../mutations/replay/seal-files.js';
-import { readModuleConfig } from './resolver.js';
+import { readModuleConfig } from '../containers/project/cards-config.js';
 
 import { isFileLocation, stripFileProtocol } from './location.js';
 import type { FetchTarget, SourceLayer } from './source.js';

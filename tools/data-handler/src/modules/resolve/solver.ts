@@ -32,13 +32,13 @@ import {
   type VersionRange,
 } from '../types.js';
 import { createSourceLayer, type SourceLayer } from '../source.js';
-import type { ResolvedModule } from '../resolver.js';
 import type { Project } from '../../containers/project.js';
 import type { Credentials } from '../../interfaces/project-interfaces.js';
 import type {
   Change,
   ConflictDemand,
   ResolveConflict,
+  ResolvedModule,
   ResolveResult,
   UpdateRequest,
 } from './types.js';
