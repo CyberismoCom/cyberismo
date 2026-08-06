@@ -1197,7 +1197,7 @@ describe('resources', function () {
       const name = 'decision/templates/newTEMP';
       const res = project.resources.byType(name, 'templates');
       const data = await res.show();
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // oxlint-disable-next-line @typescript-eslint/no-unused-vars
       const { path, ...others } = data;
       expect(others).to.deep.equal({
         description: undefined,

@@ -91,7 +91,7 @@ describe('fetch command', () => {
         { location: 'https://test.com/hub-command' },
       ];
       const fetchModuleListStub = vi
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // oxlint-disable-next-line @typescript-eslint/no-explicit-any
         .spyOn(Fetch.prototype as any, 'fetchModuleList')
         .mockResolvedValue(false);
       fetchStub.mockResolvedValue(hubResponse('Test Hub', 'base'));
@@ -162,7 +162,7 @@ describe('fetch command', () => {
 
       // return true; indicating fetch is needed
       fetchModuleListStub = vi
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // oxlint-disable-next-line @typescript-eslint/no-explicit-any
         .spyOn(fetchCmd as any, 'fetchModuleList')
         .mockResolvedValue(true);
 
@@ -196,7 +196,7 @@ describe('fetch command', () => {
     it('should skip fetch when local version matches remote version', async () => {
       // no fetch needed
       fetchModuleListStub = vi
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // oxlint-disable-next-line @typescript-eslint/no-explicit-any
         .spyOn(fetchCmd as any, 'fetchModuleList')
         .mockResolvedValue(false);
 
@@ -211,7 +211,7 @@ describe('fetch command', () => {
 
       // file doesn't exist locally
       fetchModuleListStub = vi
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // oxlint-disable-next-line @typescript-eslint/no-explicit-any
         .spyOn(fetchCmd as any, 'fetchModuleList')
         .mockResolvedValue(true);
 
@@ -245,7 +245,7 @@ describe('fetch command', () => {
 
       // would return false; indicating fetch is not needed
       fetchModuleListStub = vi
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // oxlint-disable-next-line @typescript-eslint/no-explicit-any
         .spyOn(fetchCmd as any, 'fetchModuleList')
         .mockResolvedValue(false);
 
@@ -562,7 +562,7 @@ describe('fetch command', () => {
     it('should fetch when any hub has a newer version (multiple hubs)', async () => {
       // one hub has newer version
       fetchModuleListStub = vi
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // oxlint-disable-next-line @typescript-eslint/no-explicit-any
         .spyOn(fetchCmd as any, 'fetchModuleList')
         .mockResolvedValue(true);
 

@@ -143,7 +143,7 @@ export class ArrayHandler<T> {
       remove: (op: RemoveOperation<T>) => this.handleRemove(op, array),
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // oxlint-disable-next-line @typescript-eslint/no-explicit-any
     return handlers[operation.name](operation as any);
   }
 }

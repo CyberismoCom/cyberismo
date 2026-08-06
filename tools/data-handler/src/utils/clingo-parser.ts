@@ -82,7 +82,7 @@ class ClingoParser {
    * All of them will get parameters as strings
    * You can trust that clingo will always provide the correct number of parameters / types
    */
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+  // oxlint-disable-next-line @typescript-eslint/no-unsafe-function-type
   private commandHandlers: Record<string, Function> = {
     queryError: (message: string, ...params: string[]) => {
       this.result.error = `${message}${params.length > 1 ? ` ${params.join(', ')}` : ''}`;

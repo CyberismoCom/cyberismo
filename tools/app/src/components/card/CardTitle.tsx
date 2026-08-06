@@ -118,7 +118,7 @@ export const CardTitle: React.FC<CardTitleProps> = ({
     return () => {
       document.removeEventListener('mousedown', handleClickAway);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [editing, value, title, onSave]);
 
   useEffect(() => {

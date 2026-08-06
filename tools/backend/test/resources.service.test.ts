@@ -24,7 +24,7 @@ interface testObjectNode {
 }
 
 // Create mock CommandManager
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// oxlint-disable-next-line @typescript-eslint/no-explicit-any
 const createMockCommandManager = (overrides: any = {}) => {
   return {
     consistent: vi.fn().mockImplementation((fn: () => unknown) => fn()),

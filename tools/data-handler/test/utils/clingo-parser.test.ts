@@ -22,7 +22,7 @@ const fieldTypeTests = [
   ['boolean', 'false', false],
 ] as const;
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* oxlint-disable @typescript-eslint/no-explicit-any */
 
 describe('ClingoParser', () => {
   const parser = new ClingoParser();

@@ -12,7 +12,7 @@ export default defineConfig({
           file: path.join(__dirname, 'dist', 'THIRD-PARTY.txt'),
         },
       },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // oxlint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any,
   ],
   resolve: {

@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
+/* oxlint-disable @typescript-eslint/no-unused-vars */
 
 // node
 import { mkdir, rename } from 'node:fs/promises';

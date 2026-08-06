@@ -820,7 +820,7 @@ router.get(
         key,
         filename,
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // oxlint-disable-next-line @typescript-eslint/no-explicit-any
       const payload = attachmentResponse as any;
 
       return new Response(payload.fileBuffer, {

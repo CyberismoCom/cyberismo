@@ -37,9 +37,9 @@ const useCardData = (
   const apiPaths = projectApiPaths(projectPrefix);
   const {
     // TODO: get rid of these functions from useSWRHook
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // oxlint-disable-next-line @typescript-eslint/no-unused-vars
     callUpdate: _callUpdate,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // oxlint-disable-next-line @typescript-eslint/no-unused-vars
     isUpdating: _isUpdating,
     ...rest
   } = useSWRHook(

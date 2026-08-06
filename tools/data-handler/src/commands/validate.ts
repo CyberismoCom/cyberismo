@@ -45,7 +45,7 @@ import { readJsonFile } from '../utils/json.js';
 import { type ResourceName, resourceName } from '../utils/resource-utils.js';
 
 const invalidNames = new RegExp(
-  '[<>:"/\\|?*\x00-\x1F]|^(?:aux|con|clock$|nul|prn|com[1-9]|lpt[1-9])$', // eslint-disable-line no-control-regex
+  '[<>:"/\\|?*\x00-\x1F]|^(?:aux|con|clock$|nul|prn|com[1-9]|lpt[1-9])$', // oxlint-disable-line no-control-regex
 );
 
 const SHORT_TEXT_MAX_LENGTH = 80;

@@ -246,7 +246,7 @@ export class Remove {
   public async remove(
     type: RemovableResourceTypes,
     targetName: string,
-    ...rest: any[] // eslint-disable-line @typescript-eslint/no-explicit-any
+    ...rest: any[] // oxlint-disable-line @typescript-eslint/no-explicit-any
   ) {
     // Ensure module list is up to date when removing modules
     if (type === 'module') {
