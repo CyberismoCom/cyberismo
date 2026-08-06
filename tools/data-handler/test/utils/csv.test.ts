@@ -1,4 +1,4 @@
-import { expect, describe, it } from 'vitest';
+import { expect, describe, it } from 'vite-plus/test';
 
 import { escapeCsvField, readCsvFile } from '../../src/utils/csv.js';
 

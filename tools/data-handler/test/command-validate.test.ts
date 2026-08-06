@@ -1,5 +1,5 @@
 // testing
-import { expect, it, describe, vi } from 'vitest';
+import { expect, it, describe, vi } from 'vite-plus/test';
 
 // node
 import { join } from 'node:path';

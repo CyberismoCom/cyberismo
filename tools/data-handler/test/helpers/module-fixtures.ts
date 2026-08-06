@@ -15,7 +15,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { vi } from 'vitest';
+import { vi } from 'vite-plus/test';
 
 import { ProjectPaths } from '../../src/containers/project/project-paths.js';
 import type { Project } from '../../src/containers/project.js';

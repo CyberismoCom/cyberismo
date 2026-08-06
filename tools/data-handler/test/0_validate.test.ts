@@ -2,7 +2,7 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { readdir, writeFile } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
 
-import { expect, describe, it, beforeAll } from 'vitest';
+import { expect, describe, it, beforeAll } from 'vite-plus/test';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { readJsonFile } from '../src/utils/json.js';

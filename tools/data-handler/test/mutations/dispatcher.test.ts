@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'vite-plus/test';
 import { dispatch } from '../../src/mutations/dispatcher.js';
 import { resourceName } from '../../src/utils/resource-utils.js';
 import type { Project } from '../../src/containers/project.js';

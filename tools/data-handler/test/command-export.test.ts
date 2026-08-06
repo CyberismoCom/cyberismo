@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { Cmd, Commands } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import type { ExportCommandOptions } from '../src/interfaces/command-options.js';
-import { beforeAll, expect, afterAll, it, describe, beforeEach } from 'vitest';
+import { beforeAll, expect, afterAll, it, describe, beforeEach } from 'vite-plus/test';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-export-tests');

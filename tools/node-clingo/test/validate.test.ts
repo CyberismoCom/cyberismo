@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import { ClingoContext, validateProgram } from '../lib/index.js';
 
 describe('validateProgram', () => {

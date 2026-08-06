@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vite-plus';
 import babel, { defineRolldownBabelPreset } from '@rolldown/plugin-babel';
 
 // Vite 8's Oxc transformer does not lower TC39 stage-3 decorators

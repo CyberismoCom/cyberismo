@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeAll, afterAll } from 'vitest';
+import { describe, expect, it, beforeAll, afterAll } from 'vite-plus/test';
 import { cp, rm, writeFile, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { CommandManager } from '@cyberismo/data-handler';

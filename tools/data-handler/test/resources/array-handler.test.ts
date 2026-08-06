@@ -1,4 +1,4 @@
-import { expect, describe, it } from 'vitest';
+import { expect, describe, it } from 'vite-plus/test';
 import { ArrayHandler } from '../../src/resources/array-handler.js';
 const testObject1 = {
   first: 'value1',

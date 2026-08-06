@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach, beforeEach } from 'vitest';
+import { describe, it, expect, afterEach, beforeEach } from 'vite-plus/test';
 import { ClingoContext, clearCache } from '../lib/index.js';
 
 describe('Clingo solver', () => {

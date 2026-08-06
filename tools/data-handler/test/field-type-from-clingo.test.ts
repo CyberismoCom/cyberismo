@@ -14,7 +14,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { expect, it, describe } from 'vitest';
+import { expect, it, describe } from 'vite-plus/test';
 
 import { FieldTypeResource as FT } from '../src/resources/field-type-resource.js';
 

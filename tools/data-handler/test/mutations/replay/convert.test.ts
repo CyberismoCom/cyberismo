@@ -12,7 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'vite-plus/test';
 import { entryToMutationInput } from '../../../src/mutations/replay/convert.js';
 import type { ConfigurationLogEntry } from '../../../src/utils/configuration-logger.js';
 

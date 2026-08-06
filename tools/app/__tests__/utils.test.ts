@@ -6,7 +6,7 @@ import type {
 } from '@cyberismo/data-handler/types/queries';
 import type { ExpandedLinkType } from '@/lib/definitions';
 
-import { expect, test, describe } from 'vitest';
+import { expect, test, describe } from 'vite-plus/test';
 
 import {
   countChildren,

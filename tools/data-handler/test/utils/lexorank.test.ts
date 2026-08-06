@@ -5,7 +5,7 @@ import {
   rebalanceRanks,
   getRankBefore,
 } from '../../src/utils/lexorank.js';
-import { expect, it, describe } from 'vitest';
+import { expect, it, describe } from 'vite-plus/test';
 
 describe('lexorank', () => {
   describe('getRankBetween', () => {

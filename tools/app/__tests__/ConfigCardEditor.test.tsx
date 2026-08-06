@@ -12,7 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vite-plus/test';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import type * as Utils from '@/lib/utils';
 import type * as HooksUtils from '@/lib/hooks/utils';

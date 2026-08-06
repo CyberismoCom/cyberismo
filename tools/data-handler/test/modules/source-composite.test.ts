@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 
 import { createSourceLayer } from '../../src/modules/source.js';
 import { CompositeSourceLayer } from '../../src/modules/source-composite.js';

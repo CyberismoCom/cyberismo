@@ -1,4 +1,4 @@
-import { expect, describe, it, beforeEach, afterEach } from 'vitest';
+import { expect, describe, it, beforeEach, afterEach } from 'vite-plus/test';
 
 import {
   existsSync,

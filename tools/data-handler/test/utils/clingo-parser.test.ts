@@ -1,4 +1,4 @@
-import { expect, describe, it } from 'vitest';
+import { expect, describe, it } from 'vite-plus/test';
 import ClingoParser, {
   decodeClingoValue,
 } from '../../src/utils/clingo-parser.js';

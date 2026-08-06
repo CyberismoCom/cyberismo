@@ -1,7 +1,7 @@
 import { render, fireEvent } from '@testing-library/react';
 import { EditorSelection, EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import AsciiDocToolbar from '@/components/AsciiDocToolbar';
 import '@/lib/i18n';
 

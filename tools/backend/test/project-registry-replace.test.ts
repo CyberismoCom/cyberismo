@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import { ProjectRegistry } from '../src/project-registry.js';
 import type { CommandManager } from '@cyberismo/data-handler';
 

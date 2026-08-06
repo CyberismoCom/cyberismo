@@ -6,7 +6,7 @@ import {
   expect,
   it,
   vi,
-} from 'vitest';
+} from 'vite-plus/test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';

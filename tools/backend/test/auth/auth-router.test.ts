@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vite-plus/test';
 import { Hono } from 'hono';
 import { createAuthRouter } from '../../src/domain/auth/index.js';
 import { createAuthMiddleware } from '../../src/middleware/auth.js';

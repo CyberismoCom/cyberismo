@@ -1,4 +1,4 @@
-import { expect, it, describe, beforeAll, afterAll } from 'vitest';
+import { expect, it, describe, beforeAll, afterAll } from 'vite-plus/test';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import { join } from 'node:path';

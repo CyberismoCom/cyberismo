@@ -1,4 +1,4 @@
-import { expect, it, describe } from 'vitest';
+import { expect, it, describe } from 'vite-plus/test';
 import type { CalculationEngine } from '../../src/containers/project/calculation-engine.js';
 import { generateReportContent } from '../../src/utils/report.js';
 

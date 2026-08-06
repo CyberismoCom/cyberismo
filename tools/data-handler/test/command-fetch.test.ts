@@ -8,7 +8,7 @@ import {
   beforeEach,
   afterEach,
   vi,
-} from 'vitest';
+} from 'vite-plus/test';
 
 import { mkdirSync, rmSync } from 'node:fs';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';

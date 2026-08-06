@@ -11,7 +11,7 @@
   <https://www.gnu.org/licenses/>.
 */
 
-import { expect, describe, it } from 'vitest';
+import { expect, describe, it } from 'vite-plus/test';
 
 import { hasCode, errorFunction } from '../../src/utils/error-utils.js';
 

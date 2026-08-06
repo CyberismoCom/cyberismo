@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vite-plus';
 import react from '@vitejs/plugin-react';
 import license from 'rollup-plugin-license';
 import * as path from 'path';
