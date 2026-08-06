@@ -11,9 +11,13 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import AppToolbar from '../components/AppToolbar';
-import { useNavigationGuard, useOptionalKeyParam } from '@/lib/hooks';
+import {
+  useNavigationGuard,
+  useOptionalKeyParam,
+  useAppDispatch,
+} from '@/lib/hooks';
 import { Stack, styled } from '@mui/joy';
-import { Outlet } from 'react-router';
+import { Outlet, useLocation, useParams } from 'react-router';
 import {
   NewCardModal,
   NewFieldTypeModal,
@@ -35,7 +39,8 @@ import { useConfigTemplateCreationContext } from '@/lib/hooks';
 import { AppModalsProvider } from '@/lib/contexts/AppModalsProvider';
 import { UserRole, useHasMinRole } from '@/lib/auth';
 import type { ResourceName } from '@/lib/constants';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { deriveLastPath, setLastPathForPrefix } from '@/lib/slices/project';
 
 export type AppLayoutOutletContext = {
   drawerOpen: boolean;
@@ -69,6 +74,17 @@ export default function Layout() {
     templateCard: false,
   });
   const key = useOptionalKeyParam();
+  const location = useLocation();
+  const { projectPrefix } = useParams();
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    if (!projectPrefix) return;
+    const lastPath = deriveLastPath(location.pathname, projectPrefix);
+    if (lastPath) {
+      dispatch(setLastPathForPrefix({ prefix: projectPrefix, path: lastPath }));
+    }
+  }, [projectPrefix, location.pathname, dispatch]);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [prevInCards, setPrevInCards] = useState(inCards);
