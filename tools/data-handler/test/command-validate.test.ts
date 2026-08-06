@@ -3,7 +3,13 @@ import { expect, it, describe, vi } from 'vitest';
 
 // node
 import { join } from 'node:path';
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  appendFileSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 
 // cyberismo
 import { copyDir } from '../src/utils/file-utils.js';
@@ -54,6 +60,49 @@ describe('command-handler: validate command', () => {
       expect(result.statusCode).toBe(200);
       expect(result.message).toContain(
         "has several transitions named 'Branch'; transition names must be unique",
+      );
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+  it('reports the offending file when a resource name is malformed, instead of aborting', async () => {
+    const tmpDir = join(baseDir, 'tmp-command-validate-tests-bad-name');
+    mkdirSync(tmpDir, { recursive: true });
+    try {
+      await copyDir(join(testDir, 'valid/decision-records'), tmpDir);
+      const workflowPath = join(tmpDir, '.cards/local/workflows/decision.json');
+      const workflow = JSON.parse(readFileSync(workflowPath, 'utf-8'));
+      workflow.name = 'decision/workflows'; // malformed: missing the identifier part
+      writeFileSync(workflowPath, JSON.stringify(workflow));
+
+      const result = await commandHandler.command(Cmd.validate, [], {
+        projectPath: tmpDir,
+      });
+      expect(result.statusCode).toBe(200);
+      expect(result.message).toContain(workflowPath);
+      expect(result.message).toContain('is not valid resource name');
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+  it('reports a macro error against its card, instead of aborting the whole run', async () => {
+    const tmpDir = join(baseDir, 'tmp-command-validate-tests-macro-error');
+    mkdirSync(tmpDir, { recursive: true });
+    try {
+      await copyDir(join(testDir, 'valid/decision-records'), tmpDir);
+      const cardPath = join(tmpDir, 'cardRoot/decision_5/index.adoc');
+      appendFileSync(
+        cardPath,
+        '\n{{#graph}}"model": "decision/graphModels/test", "view": ""{{/graph}}\n',
+      );
+
+      const result = await commandHandler.command(Cmd.validate, [], {
+        projectPath: tmpDir,
+      });
+      expect(result.statusCode).toBe(200);
+      expect(result.message).toContain("Card 'decision_5'");
+      expect(result.message).toContain(
+        'Must define resource name to query its details',
       );
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
