@@ -1,4 +1,4 @@
-import { expect, describe, it } from 'vitest';
+import { expect, describe, it } from 'vite-plus/test';
 import { generateRandomString } from '../../src/utils/random.js';
 
 describe('generate random string', () => {

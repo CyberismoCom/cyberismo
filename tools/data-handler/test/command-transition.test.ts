@@ -1,5 +1,12 @@
 // testing
-import { expect, it, describe, beforeEach, afterEach, vi } from 'vitest';
+import {
+  expect,
+  it,
+  describe,
+  beforeEach,
+  afterEach,
+  vi,
+} from 'vite-plus/test';
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';

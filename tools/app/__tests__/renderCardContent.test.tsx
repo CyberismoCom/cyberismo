@@ -12,7 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import { render, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router';
 import type * as libHooksModule from '@/lib/hooks';

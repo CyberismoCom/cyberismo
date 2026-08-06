@@ -1,4 +1,4 @@
-import { describe, expect, test, vi, beforeEach } from 'vitest';
+import { describe, expect, test, vi, beforeEach } from 'vite-plus/test';
 import { renderHook, act } from '@testing-library/react';
 
 let mockMode: 'system' | 'light' | 'dark' = 'system';

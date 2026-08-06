@@ -12,7 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'vite-plus/test';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { readFileSync } from 'node:fs';

@@ -1,5 +1,5 @@
 // testing
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 
 // cyberismo
 import { applySideEffects, type SideEffects } from '../src/side-effects.js';

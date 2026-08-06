@@ -1,4 +1,4 @@
-import { expect, describe, it, beforeAll, afterAll } from 'vitest';
+import { expect, describe, it, beforeAll, afterAll } from 'vite-plus/test';
 
 import { join } from 'node:path';
 import { mkdirSync, readFileSync, rmSync } from 'node:fs';
@@ -52,7 +52,10 @@ type ResourceConfig = {
   type: ResourceType;
   identifier: string;
   createMethod?:
-    'create' | 'createCardType' | 'createFieldType' | 'createReport';
+    | 'create'
+    | 'createCardType'
+    | 'createFieldType'
+    | 'createReport';
   createArgs?: string[];
   createContent?: unknown;
   expectedData?: unknown;
@@ -1197,7 +1200,7 @@ describe('resources', function () {
       const name = 'decision/templates/newTEMP';
       const res = project.resources.byType(name, 'templates');
       const data = await res.show();
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // oxlint-disable-next-line @typescript-eslint/no-unused-vars
       const { path, ...others } = data;
       expect(others).to.deep.equal({
         description: undefined,

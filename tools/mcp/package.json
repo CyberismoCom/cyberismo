@@ -5,8 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "test": "vitest run",
-    "lint": "eslint ."
+    "test": "vp test run",
+    "lint": "vp lint ."
   },
   "keywords": [
     "mcp",
@@ -31,9 +31,7 @@
     "@modelcontextprotocol/sdk": "^1.30.0",
     "zod": "^4.3.6"
   },
-  "devDependencies": {
-    "vitest": "^4.1.10"
-  },
+  "devDependencies": {},
   "types": "dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js"

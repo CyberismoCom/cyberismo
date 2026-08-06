@@ -1,4 +1,4 @@
-import { expect, describe, it } from 'vitest';
+import { expect, describe, it } from 'vite-plus/test';
 
 import { RWLock, read, write } from '../src/utils/rw-lock.js';
 import { getCommitContext } from '../src/utils/commit-context.js';

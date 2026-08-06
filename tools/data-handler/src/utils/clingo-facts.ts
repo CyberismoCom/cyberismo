@@ -40,7 +40,7 @@ import type { Project } from '../containers/project.js';
 
 const logger = getChildLogger({ module: 'clingo-facts' });
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
+// oxlint-disable-next-line @typescript-eslint/no-namespace
 export namespace Facts {
   export enum Card {
     FIELD_OVERRIDE = 'fieldOverride',

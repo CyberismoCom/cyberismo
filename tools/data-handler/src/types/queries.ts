@@ -161,7 +161,12 @@ interface ListValueItem {
 }
 
 type CardFieldValue =
-  string | number | boolean | null | EnumValue | ListValueItem[];
+  | string
+  | number
+  | boolean
+  | null
+  | EnumValue
+  | ListValueItem[];
 
 interface CardQueryField extends BaseResult {
   visibility: 'always' | 'optional';

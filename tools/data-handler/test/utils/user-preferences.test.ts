@@ -1,4 +1,4 @@
-import { expect, describe, it, beforeEach, afterEach } from 'vitest';
+import { expect, describe, it, beforeEach, afterEach } from 'vite-plus/test';
 
 import { UserPreferences } from '../../src/utils/user-preferences.js';
 import { platform, tmpdir } from 'os';

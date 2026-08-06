@@ -1,4 +1,4 @@
-import { expect, describe, it } from 'vitest';
+import { expect, describe, it } from 'vite-plus/test';
 import ClingoParser, {
   decodeClingoValue,
 } from '../../src/utils/clingo-parser.js';
@@ -22,7 +22,7 @@ const fieldTypeTests = [
   ['boolean', 'false', false],
 ] as const;
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* oxlint-disable @typescript-eslint/no-explicit-any */
 
 describe('ClingoParser', () => {
   const parser = new ClingoParser();

@@ -288,7 +288,7 @@ function getEntryValue(entry: ResizeObserverEntry, value: 'width' | 'height') {
     ? contentBoxSize[0][accessor]
     : // The below is a hack because some browsers did not implement the feature as specified
       // and instead returned an array-like object with direct accessor property
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // oxlint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       contentBoxSize[accessor];
 }

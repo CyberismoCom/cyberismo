@@ -13,7 +13,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { beforeAll, afterAll, describe, expect, test } from 'vitest';
+import { beforeAll, afterAll, describe, expect, test } from 'vite-plus/test';
 import { CommandManager } from '@cyberismo/data-handler';
 import { createMcpServer, singleProjectProvider } from '../src/server.js';
 import { testDataPath } from './test-utils.js';

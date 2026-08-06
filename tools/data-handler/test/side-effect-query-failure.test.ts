@@ -7,7 +7,7 @@ import {
   expect,
   it,
   vi,
-} from 'vitest';
+} from 'vite-plus/test';
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';

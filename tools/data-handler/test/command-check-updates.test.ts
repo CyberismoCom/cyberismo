@@ -7,7 +7,7 @@ import {
   beforeEach,
   afterEach,
   vi,
-} from 'vitest';
+} from 'vite-plus/test';
 
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';

@@ -83,7 +83,7 @@ export default function MetadataSection({
       });
     }
     onFieldFocused?.();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [focusFieldKey, card.key]);
 
   const canEdit = canEditRole && !!onUpdate;

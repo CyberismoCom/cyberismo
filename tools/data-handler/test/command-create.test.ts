@@ -1,5 +1,5 @@
 // testing
-import { expect, it, describe, beforeAll, afterAll } from 'vitest';
+import { expect, it, describe, beforeAll, afterAll } from 'vite-plus/test';
 
 // node
 import { access } from 'node:fs/promises';

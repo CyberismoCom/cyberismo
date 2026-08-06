@@ -5,9 +5,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "shx mkdir -p dist && pnpm script:schemas && node scripts/build.js && tsc && shx cp -r src/static dist/",
-    "dev": "pnpm build && chokidar 'src/**/*' -i 'src/schemas.ts' -c 'pnpm build'",
-    "script:schemas": "node scripts/generateSchemaImports && prettier --write src/schemas.ts"
+    "dev": "vp run build && chokidar 'src/**/*' -i 'src/schemas.ts' -c 'vp run build'",
+    "script:schemas": "node scripts/generateSchemaImports && vp fmt src/schemas.ts"
   },
   "keywords": [],
   "author": "sami.merila@cyberismo.com",

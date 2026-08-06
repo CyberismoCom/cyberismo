@@ -12,7 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vite-plus/test';
 import { render, screen } from '@testing-library/react';
 
 import { parseRole, roleSatisfies, UserRole } from '@/lib/auth/roles';

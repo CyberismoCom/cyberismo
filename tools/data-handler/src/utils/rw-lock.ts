@@ -257,13 +257,13 @@ export function write<This extends object, Args extends unknown[], Return>(): (
 ) => (this: This, ...args: Args) => Promise<Return>;
 
 export function write<This extends object, Args extends unknown[], Return>(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // oxlint-disable-next-line @typescript-eslint/no-explicit-any
   message: (...args: any[]) => string,
 ): (
   target: (this: This, ...args: Args) => Promise<Return>,
 ) => (this: This, ...args: Args) => Promise<Return>;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// oxlint-disable-next-line @typescript-eslint/no-explicit-any
 export function write(message?: (...args: any[]) => string): unknown {
   return function (target: (...args: unknown[]) => Promise<unknown>) {
     return function (this: object, ...args: unknown[]) {

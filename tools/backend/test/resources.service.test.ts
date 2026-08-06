@@ -1,4 +1,4 @@
-import { expect, test, describe, vi, beforeEach } from 'vitest';
+import { expect, test, describe, vi, beforeEach } from 'vite-plus/test';
 import { buildResourceTree } from '../src/domain/resources/service.js';
 import type { CommandManager } from '@cyberismo/data-handler';
 import type {
@@ -24,7 +24,7 @@ interface testObjectNode {
 }
 
 // Create mock CommandManager
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// oxlint-disable-next-line @typescript-eslint/no-explicit-any
 const createMockCommandManager = (overrides: any = {}) => {
   return {
     consistent: vi.fn().mockImplementation((fn: () => unknown) => fn()),

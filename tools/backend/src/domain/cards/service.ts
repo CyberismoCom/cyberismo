@@ -49,7 +49,7 @@ export async function getProjectInfo(commands: CommandManager) {
 export async function updateCard(
   commands: CommandManager,
   key: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // oxlint-disable-next-line @typescript-eslint/no-explicit-any
   body: any,
 ) {
   await commands.atomic(async () => {

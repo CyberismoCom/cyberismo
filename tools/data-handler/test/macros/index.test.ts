@@ -6,7 +6,7 @@ import {
   beforeEach,
   afterEach,
   afterAll,
-} from 'vitest';
+} from 'vite-plus/test';
 import { stub } from 'sinon';
 import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';

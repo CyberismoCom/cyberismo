@@ -1,4 +1,4 @@
-import { expect, it, describe } from 'vitest';
+import { expect, it, describe } from 'vite-plus/test';
 
 import { Migrate } from '../src/commands/migrate.js';
 import { SCHEMA_VERSION } from '@cyberismo/assets';

@@ -1,9 +1,21 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vite-plus';
 import react from '@vitejs/plugin-react';
 import license from 'rollup-plugin-license';
 import * as path from 'path';
 // https://vite.dev/config/
 export default defineConfig({
+  run: {
+    tasks: {
+      // Defined here rather than in package.json so the tsc build-info can be
+      // excluded from fingerprinting — tsc reads and rewrites it, which would
+      // otherwise make the whole task uncacheable.
+      build: {
+        command: 'tsc -b && vp build',
+        input: [{ auto: true }, '!**/*.tsbuildinfo'],
+        output: [{ auto: true }, '!**/*.tsbuildinfo'],
+      },
+    },
+  },
   plugins: [
     react(),
     license({
@@ -12,7 +24,7 @@ export default defineConfig({
           file: path.join(__dirname, 'dist', 'THIRD-PARTY.txt'),
         },
       },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // oxlint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any,
   ],
   resolve: {

@@ -1,4 +1,11 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeEach,
+  afterEach,
+} from 'vite-plus/test';
 
 import { rewriteAsciidocCardXrefs } from '../../src/utils/asciidoc-xref.js';
 import type { Project } from '../../src/containers/project.js';

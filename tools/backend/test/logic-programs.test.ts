@@ -1,4 +1,4 @@
-import { expect, test, beforeAll } from 'vitest';
+import { expect, test, beforeAll } from 'vite-plus/test';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CommandManager } from '@cyberismo/data-handler';

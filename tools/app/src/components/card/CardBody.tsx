@@ -199,7 +199,7 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
           header.scrollIntoView();
         }
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+      // oxlint-disable-next-line react-hooks/exhaustive-deps
     }, [contentRef]);
 
     const setRef = useCallback((node: HTMLDivElement | null) => {

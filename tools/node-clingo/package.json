@@ -13,9 +13,9 @@
     "postpack": "node scripts/manage-publish-manifest.js restore",
     "clean": "rm -rf build dist dist-packages external/clingo/build",
     "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "lint": "eslint .",
+    "test": "vp test run",
+    "test:watch": "vp test",
+    "lint": "vp lint .",
     "format:cpp": "clang-format -i src/*.cc src/*.h",
     "format:cpp:check": "clang-format --dry-run --Werror src/*.cc src/*.h"
   },

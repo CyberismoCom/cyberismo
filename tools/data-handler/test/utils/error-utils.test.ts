@@ -11,7 +11,7 @@
   <https://www.gnu.org/licenses/>.
 */
 
-import { expect, describe, it } from 'vitest';
+import { expect, describe, it } from 'vite-plus/test';
 
 import { hasCode, errorFunction } from '../../src/utils/error-utils.js';
 
@@ -19,7 +19,7 @@ describe('error utils', () => {
   describe('hasCode type guard', () => {
     it('should return true for error with code property', () => {
       const error = new Error('test error');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // oxlint-disable-next-line @typescript-eslint/no-explicit-any
       (error as any).code = 'ENOENT';
       const result = hasCode(error);
       expect(result).toBe(true);

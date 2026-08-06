@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vite-plus/test';
 import { ResourceMutations } from '../../src/mutations/resource-mutations.js';
 import { _registerHandlerForTest } from '../../src/mutations/dispatcher.js';
 import type { MutationContext } from '../../src/mutations/handler.js';

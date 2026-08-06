@@ -1,4 +1,4 @@
-import { expect, it, describe } from 'vitest';
+import { expect, it, describe } from 'vite-plus/test';
 import {
   runWithCommitContext,
   getCommitContext,

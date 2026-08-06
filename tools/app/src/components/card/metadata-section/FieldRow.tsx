@@ -84,7 +84,7 @@ export function FieldRow({
   const serializedInitial = JSON.stringify(initialValue);
   useEffect(() => {
     reset({ value: initialValue });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [serializedInitial, reset, isEditing]);
 
   const handleChange = (

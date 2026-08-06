@@ -1,4 +1,4 @@
-import { expect, it, describe, beforeEach } from 'vitest';
+import { expect, it, describe, beforeEach } from 'vite-plus/test';
 import Handlebars from 'handlebars';
 import {
   registerClingoHelpers,

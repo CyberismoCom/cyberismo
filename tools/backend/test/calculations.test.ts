@@ -1,4 +1,4 @@
-import { expect, test, beforeEach, afterEach } from 'vitest';
+import { expect, test, beforeEach, afterEach } from 'vite-plus/test';
 import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { ProjectRegistry } from '../src/project-registry.js';

@@ -1,4 +1,4 @@
-import { expect, describe, it, beforeEach, afterEach } from 'vitest';
+import { expect, describe, it, beforeEach, afterEach } from 'vite-plus/test';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { scanForProjects } from '../src/project-scanner.js';

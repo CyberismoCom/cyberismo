@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vite-plus/test';
 import { access, mkdir, rm, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 

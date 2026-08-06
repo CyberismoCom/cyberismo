@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 import { resolveConfigTreeMove } from '@/lib/configTreeMove';
 import type { AnyNode } from '@/lib/api/types';
 

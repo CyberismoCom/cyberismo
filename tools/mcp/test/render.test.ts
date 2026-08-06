@@ -13,7 +13,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { beforeAll, afterAll, describe, expect, test } from 'vitest';
+import { beforeAll, afterAll, describe, expect, test } from 'vite-plus/test';
 import { CommandManager } from '@cyberismo/data-handler';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
 import {

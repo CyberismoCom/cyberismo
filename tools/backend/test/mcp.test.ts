@@ -13,7 +13,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { beforeAll, describe, expect, test } from 'vitest';
+import { beforeAll, describe, expect, test } from 'vite-plus/test';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CommandManager } from '@cyberismo/data-handler';

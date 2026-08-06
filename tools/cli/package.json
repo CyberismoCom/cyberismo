@@ -14,8 +14,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "clean": "rm -rf node_modules",
-    "lint": "eslint .",
-    "test": "vitest"
+    "lint": "vp lint .",
+    "test": "vp test"
   },
   "keywords": [],
   "author": "sami.merila@cyberismo.com",

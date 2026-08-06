@@ -1,4 +1,4 @@
-import { beforeEach, describe, it } from 'vitest';
+import { beforeEach, describe, it } from 'vite-plus/test';
 import type * as libHooksModule from '../src/lib/hooks';
 import type * as reactRouterModule from 'react-router';
 import { TreeMenu } from '../src/components/TreeMenu';
@@ -9,7 +9,7 @@ import StateSelector from '@/components/StateSelector';
 import { LABEL_SPLITTER } from '@/lib/constants';
 import { WorkflowCategory } from '../../data-handler/src/interfaces/resource-interfaces';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
-import { expect, vi } from 'vitest';
+import { expect, vi } from 'vite-plus/test';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router';

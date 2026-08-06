@@ -13,7 +13,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 import { toolResult, toolError } from '../src/lib/mcp-helpers.js';
 
 describe('toolResult', () => {

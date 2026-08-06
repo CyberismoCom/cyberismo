@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vite-plus/test';
 import { join } from 'node:path';
 
 import type { Project } from '../../src/containers/project.js';

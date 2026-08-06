@@ -16,9 +16,9 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "clean": "rm -rf node_modules",
-    "lint": "eslint .",
+    "lint": "vp lint .",
     "pretest": "pnpm build",
-    "test": "vitest",
+    "test": "vp test",
     "test-coverage": "c8 pnpm test",
     "dev": "tsc --watch --preserveWatchOutput -p tsconfig.build.json",
     "watch": "pnpm dev"
