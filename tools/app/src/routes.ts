@@ -28,6 +28,7 @@ import {
   selectProjectPrefix,
   setProjectPrefix,
   addRecentProject,
+  selectLastPathForPrefix,
 } from './lib/slices/project.js';
 import { fetchAvailableProjects } from './lib/projectUtils.js';
 import type { AvailableProject } from './lib/projectUtils.js';
@@ -63,7 +64,10 @@ export function createAppRouter() {
       path: '/',
       loader: async () => {
         const { prefix } = await resolveProject();
-        if (prefix) return redirect(`/projects/${prefix}/cards`);
+        if (prefix) {
+          const lastPath = selectLastPathForPrefix(prefix)(store.getState());
+          return redirect(`/projects/${prefix}${lastPath}`);
+        }
         // No prefix resolved — show project selection page
         return null;
       },
@@ -81,7 +85,11 @@ export function createAppRouter() {
       children: [
         {
           index: true,
-          loader: () => redirect('cards'),
+          loader: ({ params }) => {
+            const prefix = params.projectPrefix!;
+            const lastPath = selectLastPathForPrefix(prefix)(store.getState());
+            return redirect(`/projects/${prefix}${lastPath}`);
+          },
         },
         {
           Component: CardsLayout,
