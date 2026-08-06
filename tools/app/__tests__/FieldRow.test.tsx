@@ -184,4 +184,213 @@ describe('FieldRow', () => {
       expect(onSave).toHaveBeenCalledWith('person2@example.com');
     });
   });
+
+  describe('save-on-blur (INTDEV-1377)', () => {
+    it('calls onSave on blur when the field is dirty', () => {
+      const onSave = vi.fn();
+      render(
+        <FieldRow
+          value="original"
+          label="Short text"
+          dataType="shortText"
+          isEditing
+          expanded
+          onSave={onSave}
+          onCancel={vi.fn()}
+        />,
+      );
+
+      const input = screen.getByRole('textbox');
+      fireEvent.change(input, { target: { value: 'changed' } });
+      fireEvent.blur(input);
+
+      expect(onSave).toHaveBeenCalledWith('changed');
+    });
+
+    it('still saves when focus moves to a button outside this row', () => {
+      const onSave = vi.fn();
+      render(
+        <>
+          <button type="button">Unrelated toolbar button</button>
+          <FieldRow
+            value="original"
+            label="Short text"
+            dataType="shortText"
+            isEditing
+            expanded
+            onSave={onSave}
+            onCancel={vi.fn()}
+          />
+        </>,
+      );
+
+      const input = screen.getByRole('textbox');
+      fireEvent.change(input, { target: { value: 'changed' } });
+      fireEvent.blur(input, {
+        relatedTarget: screen.getByRole('button', {
+          name: 'Unrelated toolbar button',
+        }),
+      });
+
+      expect(onSave).toHaveBeenCalledWith('changed');
+    });
+
+    it('does not save when focus moves to this row’s own Cancel button', () => {
+      const onSave = vi.fn();
+      const { container } = render(
+        <FieldRow
+          value="original"
+          label="Short text"
+          dataType="shortText"
+          isEditing
+          expanded
+          onSave={onSave}
+          onCancel={vi.fn()}
+        />,
+      );
+
+      const input = screen.getByRole('textbox');
+      fireEvent.change(input, { target: { value: 'changed' } });
+      fireEvent.blur(input, {
+        relatedTarget: container.querySelector(
+          '[data-cy="fieldCancelButton"]',
+        ) as HTMLElement,
+      });
+
+      expect(onSave).not.toHaveBeenCalled();
+    });
+
+    it('does not save while focus is inside a Select’s listbox popup', () => {
+      const onSave = vi.fn();
+      render(
+        <FieldRow
+          value="original"
+          label="Short text"
+          dataType="shortText"
+          isEditing
+          expanded
+          onSave={onSave}
+          onCancel={vi.fn()}
+        />,
+      );
+
+      // A Joy Select renders its listbox in a portal outside the row, and
+      // focuses an option while open — the field is still being edited.
+      const listbox = document.createElement('ul');
+      listbox.setAttribute('role', 'listbox');
+      const option = document.createElement('li');
+      listbox.appendChild(option);
+      document.body.appendChild(listbox);
+
+      const input = screen.getByRole('textbox');
+      fireEvent.change(input, { target: { value: 'changed' } });
+      fireEvent.blur(input, { relatedTarget: option });
+
+      expect(onSave).not.toHaveBeenCalled();
+      document.body.removeChild(listbox);
+    });
+
+    it('does not call onSave on blur when the field is unchanged', () => {
+      const onSave = vi.fn();
+      render(
+        <FieldRow
+          value="original"
+          label="Short text"
+          dataType="shortText"
+          isEditing
+          expanded
+          onSave={onSave}
+          onCancel={vi.fn()}
+        />,
+      );
+
+      fireEvent.blur(screen.getByRole('textbox'));
+      expect(onSave).not.toHaveBeenCalled();
+    });
+
+    it('Save and Cancel prevent the default mousedown action, so clicking them cannot be pre-empted by a blur-save', () => {
+      const onSave = vi.fn();
+      const { container } = render(
+        <FieldRow
+          value="original"
+          label="Short text"
+          dataType="shortText"
+          isEditing
+          expanded
+          onSave={onSave}
+          onCancel={vi.fn()}
+        />,
+      );
+
+      fireEvent.change(screen.getByRole('textbox'), {
+        target: { value: 'changed' },
+      });
+
+      const saveButton = container.querySelector(
+        '[data-cy="fieldSaveButton"]',
+      )!;
+      const cancelButton = container.querySelector(
+        '[data-cy="fieldCancelButton"]',
+      )!;
+      expect(fireEvent.mouseDown(saveButton)).toBe(false);
+      expect(fireEvent.mouseDown(cancelButton)).toBe(false);
+    });
+
+    it('seeds the editor fresh each time a field is (re)opened for editing', () => {
+      const { rerender } = render(
+        <FieldRow
+          value="v1"
+          label="Short text"
+          dataType="shortText"
+          isEditing={false}
+          expanded={false}
+          onSave={vi.fn()}
+          onCancel={vi.fn()}
+        />,
+      );
+      rerender(
+        <FieldRow
+          value="v1"
+          label="Short text"
+          dataType="shortText"
+          isEditing
+          expanded
+          onSave={vi.fn()}
+          onCancel={vi.fn()}
+        />,
+      );
+      expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe(
+        'v1',
+      );
+
+      // Closed (e.g. editingFieldKey moved to a different field), then the
+      // saved value moves on before this field is reopened — reopening must
+      // show the latest value.
+      rerender(
+        <FieldRow
+          value="v2"
+          label="Short text"
+          dataType="shortText"
+          isEditing={false}
+          expanded={false}
+          onSave={vi.fn()}
+          onCancel={vi.fn()}
+        />,
+      );
+      rerender(
+        <FieldRow
+          value="v2"
+          label="Short text"
+          dataType="shortText"
+          isEditing
+          expanded
+          onSave={vi.fn()}
+          onCancel={vi.fn()}
+        />,
+      );
+      expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe(
+        'v2',
+      );
+    });
+  });
 });
