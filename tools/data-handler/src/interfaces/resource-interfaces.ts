@@ -132,7 +132,9 @@ export interface Report extends ReportMetadata {
 
 // Resource-specific content names
 export type ReportContentPropertyName =
-  'contentTemplate' | 'queryTemplate' | 'schema';
+  | 'contentTemplate'
+  | 'queryTemplate'
+  | 'schema';
 
 // Metadata for report
 export type ReportMetadata = ResourceBaseMetadata;
@@ -225,7 +227,8 @@ type PropertyUpdateKey<K extends string = string> = {
 };
 
 export type UpdateKey<K extends string = string> =
-  ContentUpdateKey | PropertyUpdateKey<K>;
+  | ContentUpdateKey
+  | PropertyUpdateKey<K>;
 
 export function isContentKey(key: UpdateKey): key is ContentUpdateKey {
   return key.key === 'content';

@@ -54,7 +54,8 @@ export async function readCardsConfig(
   configPath: string,
 ): Promise<ProjectSettings> {
   const settings = (await readJsonFile(configPath)) as
-    ProjectSettings | undefined;
+    | ProjectSettings
+    | undefined;
   return validate(settings, configPath);
 }
 

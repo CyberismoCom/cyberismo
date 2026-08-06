@@ -79,7 +79,10 @@ export type RemoveOperation<T> = BaseOperation<T> & {
 };
 
 export type Operation<T> =
-  AddOperation<T> | ChangeOperation<T> | RankOperation<T> | RemoveOperation<T>;
+  | AddOperation<T>
+  | ChangeOperation<T>
+  | RankOperation<T>
+  | RemoveOperation<T>;
 
 // Utility mapping from operation name to its concrete operation type
 export type OperationMap<T> = {
