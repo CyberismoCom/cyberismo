@@ -216,6 +216,33 @@ describe('calculate', () => {
   });
 });
 
+describe('urlPath calculated field', () => {
+  const baseDir = import.meta.dirname;
+  const testDir = join(baseDir, 'tmp-urlpath-tests');
+  const decisionRecordsPath = join(testDir, 'valid/decision-records');
+  let project: Project;
+
+  beforeAll(async () => {
+    mkdirSync(testDir, { recursive: true });
+    await copyDir('test/test-data/', testDir);
+    project = getTestProject(decisionRecordsPath);
+    await project.populateCaches();
+    await project.calculationEngine.generate();
+  });
+
+  afterAll(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('computes an app-routable path for a project card', async () => {
+    const res = await project.calculationEngine.runLogicProgram(
+      'result(Path) :- field(decision_6, "urlPath", Path).',
+    );
+    expect(res.results).toHaveLength(1);
+    expect(res.results[0].key).toBe('/projects/decision/cards/decision_6');
+  });
+});
+
 describe('calculation validation on generate', () => {
   // The fixture contains broken calculations on disk, simulating invalid .lp
   // files arriving via git pull or hand-editing.
