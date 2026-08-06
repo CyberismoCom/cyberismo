@@ -101,7 +101,11 @@ export default function MetadataSection({
     if (!onUpdate) return;
     try {
       await onUpdate({ metadata: { [metadataKey]: value } });
-      setEditingFieldKey(null);
+      // A blur-triggered save resolves after the click that opened the next
+      // field, so only close the editor if this field is still the open one.
+      setEditingFieldKey((current) =>
+        current === metadataKey ? null : current,
+      );
     } catch (error) {
       notifyError(error);
     }

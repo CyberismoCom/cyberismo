@@ -33,6 +33,7 @@ export function ClearOverrideButton({
       color="neutral"
       disabled={disabled}
       onClick={onClick}
+      onMouseDown={(e) => e.preventDefault()}
     >
       {t('clearOverride')}
     </Button>

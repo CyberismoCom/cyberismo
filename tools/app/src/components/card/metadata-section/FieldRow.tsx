@@ -12,7 +12,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import type { FocusEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Accordion, AccordionDetails, Box, IconButton, Stack } from '@mui/joy';
 import CheckIcon from '@mui/icons-material/Check';
@@ -81,11 +82,24 @@ export function FieldRow({
     formState: { isDirty },
   } = useForm({ defaultValues: { value: initialValue } });
 
+  // Reseed the form only when a field is freshly opened for editing (the
+  // rising edge of `isEditing`) — not on every change, and specifically not
+  // when it is closed by the parent switching `editingFieldKey` to a
+  // different field. Resetting unconditionally there would silently wipe an
+  // in-flight, not-yet-saved draft out from under the onBlur-triggered save
+  // below.
   const serializedInitial = JSON.stringify(initialValue);
+  /** The editing row, used to tell "focus left the editor" from "focus moved to this row's own buttons". */
+  const rowRef = useRef<HTMLDivElement>(null);
+  const wasEditingRef = useRef(isEditing);
   useEffect(() => {
-    reset({ value: initialValue });
+    const enteringEdit = isEditing && !wasEditingRef.current;
+    wasEditingRef.current = isEditing;
+    if (enteringEdit) {
+      reset({ value: initialValue });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serializedInitial, reset, isEditing]);
+  }, [isEditing, serializedInitial, reset]);
 
   const handleChange = (
     rawValue: string | string[] | null,
@@ -98,6 +112,38 @@ export function FieldRow({
 
   const handleSave = () => {
     onSave?.(getValues('value'));
+  };
+
+  const isValueDirty = () =>
+    JSON.stringify(getValues('value')) !== serializedInitial;
+
+  const handleBlur = (event: FocusEvent) => {
+    if (!isDirty) {
+      return;
+    }
+    const next = event.relatedTarget as HTMLElement | null;
+    if (next && rowRef.current?.contains(next)) {
+      // Focus moved to this row's own controls (Save, Cancel, Clear). That
+      // button decides the outcome, so do not pre-empt it with a save. Scoped
+      // to this row deliberately: focus landing on any *other* button in the
+      // app is a genuine "leaving the editor" and must still save.
+      return;
+    }
+    if (next?.closest('[role="listbox"]')) {
+      // A Select moves focus into its portalled listbox while open, so the
+      // field is still being edited. `handleCommit` saves once it closes.
+      return;
+    }
+    handleSave();
+  };
+
+  // A Select's listbox has closed: interaction with the dropdown is over.
+  // Reads the live form value rather than `isDirty`, because the closing
+  // option click updates the value in the same tick as this callback.
+  const handleCommit = () => {
+    if (isValueDirty()) {
+      handleSave();
+    }
   };
 
   const handleCancel = () => {
@@ -115,6 +161,8 @@ export function FieldRow({
         <FieldEditor
           value={formValue}
           onChange={(e: string | string[] | null) => handleChange(e, onChange)}
+          onBlur={handleBlur}
+          onCommit={handleCommit}
           dataType={dataType}
           enumValues={enumValues}
           disabled={disabled}
@@ -134,6 +182,7 @@ export function FieldRow({
           color="primary"
           disabled={!isDirty}
           onClick={handleSave}
+          onMouseDown={(e) => e.preventDefault()}
         >
           <CheckIcon />
         </IconButton>
@@ -144,6 +193,7 @@ export function FieldRow({
         variant="soft"
         color="neutral"
         onClick={handleCancel}
+        onMouseDown={(e) => e.preventDefault()}
       >
         <CloseIcon />
       </IconButton>
@@ -171,6 +221,7 @@ export function FieldRow({
       <AccordionDetails>
         {isEditing ? (
           <Stack
+            ref={rowRef}
             direction={{ xs: 'column', md: 'row' }}
             spacing={{ xs: 0.5, md: 4 }}
             onKeyDown={formKeyHandler({

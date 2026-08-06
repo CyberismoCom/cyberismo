@@ -44,8 +44,9 @@ export const CardTitle: React.FC<CardTitleProps> = ({
 
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(title);
-  const editBoxRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  /** The editing frame, used to tell "focus left the editor" from "focus moved to Save/Cancel". */
+  const editBoxRef = useRef<HTMLDivElement>(null);
 
   const canEdit = !preview && !!onSave && !disabled && canEditRole;
 
@@ -104,22 +105,22 @@ export const CardTitle: React.FC<CardTitleProps> = ({
     dispatch(isEdited(false));
   };
 
-  useEffect(() => {
-    if (!editing) return;
-    const handleClickAway = (e: MouseEvent) => {
-      if (
-        editBoxRef.current &&
-        !editBoxRef.current.contains(e.target as Node)
-      ) {
-        handleCancel();
-      }
-    };
-    document.addEventListener('mousedown', handleClickAway);
-    return () => {
-      document.removeEventListener('mousedown', handleClickAway);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editing, value, title, onSave]);
+  const dirty = value.trim() !== title;
+
+  const handleBlur = (event: React.FocusEvent<HTMLTextAreaElement>) => {
+    const next = event.relatedTarget as HTMLElement | null;
+    if (next && editBoxRef.current?.contains(next)) {
+      // Focus moved to this editor's own Save/Cancel buttons; let the button
+      // decide. Mouse clicks are already covered by their onMouseDown
+      // preventDefault, this covers keyboard Tab.
+      return;
+    }
+    if (dirty) {
+      void handleSave();
+    } else {
+      handleCancel();
+    }
+  };
 
   useEffect(() => {
     if (!editing) return;
@@ -158,6 +159,7 @@ export const CardTitle: React.FC<CardTitleProps> = ({
               setValue(e.target.value);
               dispatch(isEdited(true));
             }}
+            onBlur={handleBlur}
             sx={{
               fontWeight: 'bold',
               fontSize: '1.8rem',
@@ -173,6 +175,7 @@ export const CardTitle: React.FC<CardTitleProps> = ({
               color="neutral"
               data-cy="cardTitleCancelButton"
               onClick={handleCancel}
+              onMouseDown={(e) => e.preventDefault()}
             >
               {t('cancel')}
             </Button>
@@ -183,6 +186,7 @@ export const CardTitle: React.FC<CardTitleProps> = ({
               data-cy="cardTitleSaveButton"
               startDecorator={<EditIcon />}
               onClick={handleSave}
+              onMouseDown={(e) => e.preventDefault()}
               disabled={value.trim() === ''}
             >
               {t('save')}
