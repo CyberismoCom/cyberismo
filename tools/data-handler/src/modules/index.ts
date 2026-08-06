@@ -18,7 +18,6 @@ export * from './version.js';
 export * from './remote-url.js';
 export * from './source.js';
 export * from './inventory.js';
-export * from './resolver.js';
 export * from './orphans.js';
 export * from './applier.js';
 export * from './resolve/types.js';

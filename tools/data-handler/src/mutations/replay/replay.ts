@@ -30,7 +30,7 @@ import type { ConfigurationLogEntry } from '../../utils/configuration-logger.js'
 import type { ModuleInstallation } from '../../modules/types.js';
 import type { MutationInput } from '../types.js';
 import type { Project } from '../../containers/project.js';
-import type { ResolvedModule } from '../../modules/resolver.js';
+import type { ResolvedModule } from '../../modules/resolve/types.js';
 import type { SealFile } from './seal-files.js';
 
 /** A reason one module's update cannot be replayed safely. */

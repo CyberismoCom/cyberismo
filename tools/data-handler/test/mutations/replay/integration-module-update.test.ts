@@ -29,7 +29,7 @@ import type {
   InstallationRef,
   ModuleInstallation,
 } from '../../../src/modules/types.js';
-import type { ResolvedModule } from '../../../src/modules/resolver.js';
+import type { ResolvedModule } from '../../../src/modules/resolve/types.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-replay-integration');

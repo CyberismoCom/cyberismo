@@ -23,7 +23,7 @@ import type {
   InstallationRef,
   ModuleInstallation,
 } from '../../src/modules/types.js';
-import type { ResolvedModule } from '../../src/modules/resolver.js';
+import type { ResolvedModule } from '../../src/modules/resolve/types.js';
 
 // ---------------------------------------------------------------------------
 // Released-format migration log lines and on-disk seal / module fixtures

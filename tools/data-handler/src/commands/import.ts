@@ -31,11 +31,11 @@ import {
   isGitLocation,
   stripFileProtocol,
   pickVersion,
-  readModuleConfig,
   toVersion,
   toVersionRange,
   validateVersionAgainstConstraints,
 } from '../modules/index.js';
+import { readModuleConfig } from '../containers/project/cards-config.js';
 import { cleanOrphans } from '../modules/orphans.js';
 import {
   executeModuleReplays,
@@ -51,8 +51,10 @@ import type {
 } from '../interfaces/project-interfaces.js';
 import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
-import type { ResolvedModule } from '../modules/resolver.js';
-import type { ResolveConflict } from '../modules/resolve/types.js';
+import type {
+  ResolveConflict,
+  ResolvedModule,
+} from '../modules/resolve/types.js';
 
 /**
  * Coerce a caller-supplied source into the canonical form used by the
