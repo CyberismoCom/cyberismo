@@ -12,13 +12,63 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-export * from './types.js';
-export * from './location.js';
-export * from './version.js';
-export * from './remote-url.js';
-export * from './source.js';
-export * from './inventory.js';
-export * from './orphans.js';
-export * from './applier.js';
-export * from './resolve/types.js';
-export * from './resolve/solver.js';
+/**
+ * Public API of the modules subsystem.
+ *
+ * Exports are named rather than re-exported wholesale: everything reachable
+ * from here is something callers outside `modules/` are meant to use, and
+ * anything absent is an implementation detail. Widening the surface should be
+ * a deliberate edit to this file.
+ */
+
+// Vocabulary: the types that appear in the signatures below.
+export type {
+  CheckStatus,
+  InstallationRef,
+  ModuleDeclaration,
+  ModuleInstallation,
+  RemoteQueryOutcome,
+  Source,
+  Version,
+  VersionRange,
+} from './types.js';
+export type { FetchTarget, SourceLayer } from './source.js';
+export type {
+  Change,
+  ConflictDemand,
+  ResolveConflict,
+  ResolvedModule,
+  ResolveResult,
+  UpdateRequest,
+} from './resolve/types.js';
+export type { ApplyOptions } from './applier.js';
+export type { CleanOrphansOptions } from './orphans.js';
+
+// Version and location primitives.
+export { toVersion, toVersionRange } from './types.js';
+export {
+  FILE_PROTOCOL,
+  isFileLocation,
+  isGitLocation,
+  stripFileProtocol,
+} from './location.js';
+export {
+  pickVersion,
+  stripTagPrefix,
+  validateVersionAgainstConstraints,
+  versionToTag,
+} from './version.js';
+export { buildRemoteUrl } from './remote-url.js';
+
+// Reading what a project declares and what it has installed.
+export {
+  declaredModules,
+  installedModules,
+  installedModulesWithSources,
+} from './inventory.js';
+
+// Fetching, resolving and applying.
+export { createSourceLayer } from './source.js';
+export { resolve, resolveForApply } from './resolve/solver.js';
+export { applyModules } from './applier.js';
+export { cleanOrphans } from './orphans.js';
