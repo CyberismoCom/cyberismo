@@ -86,6 +86,27 @@ function truncateMessage(
   return [...array.slice(0, limit - 1), '...'];
 }
 
+// Groups export errors by project prefix for CLI display, matching the
+// "Validation errors in project '<name>':" convention used at CLI startup.
+export function formatExportErrors(
+  errors: { prefix?: string; error: string }[],
+): string {
+  const grouped = new Map<string, string[]>();
+  for (const { prefix, error } of errors) {
+    const key = prefix ?? 'unknown project';
+    if (!grouped.has(key)) {
+      grouped.set(key, []);
+    }
+    grouped.get(key)!.push(error);
+  }
+  const lines: string[] = [];
+  for (const [prefix, messages] of grouped) {
+    lines.push(`Errors in project '${prefix}':`);
+    lines.push(...truncateMessage(messages.join('\n')));
+  }
+  return lines.join('\n');
+}
+
 // Sets up credentials for git operations.
 function credentials(): Credentials | undefined {
   return {
@@ -907,8 +928,7 @@ exportCmd
           progress.stop();
           if (errors.length > 0) {
             console.log(
-              'Export completed with errors:\n' +
-                truncateMessage(errors.join('\n')).join('\n'),
+              'Export completed with errors:\n' + formatExportErrors(errors),
             );
             return;
           }
