@@ -39,6 +39,7 @@ Commands:
   update-modules [options] [moduleName]                                    Updates to latest versions either all modules or a specific module
   validate [options]                                                       Validate project structure
   app [options]                                                            Starts the cyberismo app, accessible with a web browser at http://localhost:3000
+  clean [options]                                                          Remove dormant field values: values a card stores but that are not shown and not visible to logic programs (empty placeholders, fields the card type no longer declares, values on calculated fields)
   help [command]                                                           display help for command
 ----
 
@@ -76,4 +77,24 @@ To get detailed help for any command, add `help` after the command name:
 [source,console]
 ----
 $ cyberismo show help
+----
+
+== Removing dormant field values
+
+The cards of a project may contain custom field values that nothing reads, for example the values of a field that has been removed from the card type. Such values are dormant: they stay in the card files, but they are not shown in the user interface and they are not visible to logic programs, as described in xref:docs_27.adoc[Managing card types]. To remove them, enter the following command in the Cyberismo project directory:
+
+[source,console]
+----
+$ cyberismo clean
+----
+
+The command lists every value that it removes and the reason for removing it: `undeclared` for a field that the card type does not define, `calculated-locked` for a value of a calculated field that does not allow overrides, and `null-value` for a custom field whose stored value is empty.
+
+The command updates the cards of the project and the cards of the templates that the project itself defines. Cards that come from imported modules are read-only and are never changed.
+
+To see what the command would remove without changing any card, add the `--dry-run` option:
+
+[source,console]
+----
+$ cyberismo clean --dry-run
 ----

@@ -130,11 +130,23 @@ The `customFields` property of a card type is an array of objects that have the 
 
 |**isCalculated**
 |`boolean`
-|Defines whether the field value is a calculated field that the user cannot modify. Optional. Defaults to false: the field is considered editable and not a calculated field if this property is omitted.
+|Defines whether the field value is a calculated field. A user cannot enter a value for a calculated field unless the field also enables overrides. Optional. Defaults to false: the field is considered editable and not a calculated field if this property is omitted.
+| No
+
+|**enableOverride**
+|`boolean`
+|Defines whether users may enter a value that overrides the calculated value of a calculated field. The value entered by the user becomes the effective value of the field, and the user interface shows both the calculated value and the override. Has no effect unless `isCalculated` is true. Optional. Defaults to false.
 | No
 
 |===
 
+== Custom field values on cards
+
+A card file contains a key for a custom field only when that field has a value; Cyberismo does not write placeholder keys for empty fields. A card does not need to contain a key for every custom field of its card type: a missing key and an empty value mean the same thing.
+
+Changing the custom fields of a card type does not change the cards of that type. A stored value that nothing reads is _dormant_: it stays in the card file, but it is not shown in the user interface, it is not visible to logic programs, and it does not cause a validation error. A value becomes dormant when its field is removed from the card type, or when its field is changed into a calculated field that does not allow overrides (see xref:docs_30.adoc[Calculated fields]). A stored value that is empty is dormant as well, whether or not the card type still declares its field. Because the values are kept, adding a custom field back to a card type restores the values that the cards had stored for it.
+
+To remove dormant values from a project, use the `cyberismo clean` command, which is described in xref:docs_3.adoc[Using the Cyberismo command line interface].
 
 == Mapping to a logic program
 

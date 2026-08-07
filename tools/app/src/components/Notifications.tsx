@@ -23,12 +23,14 @@ const colorMap = {
   error: 'danger',
   info: 'primary',
   success: 'success',
+  warning: 'warning',
 } as const;
 
 const durationMap = {
   error: 10000,
   info: 4000,
   success: 4000,
+  warning: 10000,
 } as const;
 
 export function Notifications() {

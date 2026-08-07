@@ -18,6 +18,7 @@ import page from './pageState';
 import card from './card';
 import session from './session';
 import project from './project';
+import cleanPrompt from './cleanPrompt';
 
 const rootReducer = combineReducers({
   recentlyViewed,
@@ -27,6 +28,7 @@ const rootReducer = combineReducers({
   card,
   session,
   project,
+  cleanPrompt,
 });
 
 export default rootReducer;
