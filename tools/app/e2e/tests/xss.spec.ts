@@ -329,4 +329,88 @@ base.describe('XSS Prevention', () => {
       },
     );
   });
+
+  base.describe('Content-Security-Policy for iframes', () => {
+    base('serves a frame-src CSP meta tag', async ({ page }) => {
+      await createPageCard(page);
+      const csp = page.locator('meta[http-equiv="Content-Security-Policy"]');
+      await expect(csp).toHaveAttribute(
+        'content',
+        'frame-src https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com',
+      );
+    });
+
+    base(
+      'blocks an iframe whose src is not on the frame-src allowlist',
+      async ({ page, request }) => {
+        const violations: string[] = [];
+        await page.exposeFunction(
+          '__reportCspViolation',
+          (directive: string) => {
+            violations.push(directive);
+          },
+        );
+        await page.addInitScript(() => {
+          document.addEventListener('securitypolicyviolation', (e) => {
+            (
+              window as unknown as {
+                __reportCspViolation: (directive: string) => void;
+              }
+            ).__reportCspViolation(e.violatedDirective);
+          });
+        });
+
+        await createPageCard(page);
+        await patchCardContent(
+          page,
+          request,
+          passthroughContent(
+            '<iframe src="https://evil.example.com"></iframe><p>Safe</p>',
+          ),
+        );
+
+        await expect.poll(() => violations).toContain('frame-src');
+        await expect(page.locator('.doc').getByText('Safe')).toBeVisible();
+      },
+    );
+
+    base(
+      'does not block an allowed youtube iframe embed',
+      async ({ page, request }) => {
+        const violations: string[] = [];
+        await page.exposeFunction(
+          '__reportCspViolation',
+          (directive: string) => {
+            violations.push(directive);
+          },
+        );
+        await page.addInitScript(() => {
+          document.addEventListener('securitypolicyviolation', (e) => {
+            (
+              window as unknown as {
+                __reportCspViolation: (directive: string) => void;
+              }
+            ).__reportCspViolation(e.violatedDirective);
+          });
+        });
+
+        await createPageCard(page);
+        await patchCardContent(
+          page,
+          request,
+          passthroughContent(
+            '<iframe src="https://www.youtube.com/embed/test" allowfullscreen></iframe>',
+          ),
+        );
+
+        const iframe = page.locator('.doc iframe');
+        await expect(iframe).toHaveCount(1);
+        await expect(iframe).toHaveAttribute(
+          'src',
+          'https://www.youtube.com/embed/test',
+        );
+        expect(violations).toEqual([]);
+      },
+    );
+  });
 });
