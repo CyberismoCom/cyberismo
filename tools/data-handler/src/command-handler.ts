@@ -62,7 +62,8 @@ import { Project } from './containers/project.js';
 import { pathExists, resolveTilde } from './utils/file-utils.js';
 import { errorFunction } from './utils/error-utils.js';
 import { readJsonFile } from './utils/json.js';
-import { resourceName } from './utils/resource-utils.js';
+import { getChildLogger } from './utils/log-utils.js';
+import { resourceName, resourceNameToString } from './utils/resource-utils.js';
 
 import { type Level } from 'pino';
 import { type Context } from './interfaces/project-interfaces.js';
@@ -74,6 +75,7 @@ export const Cmd = {
   add: 'add',
   calc: 'calc',
   checkUpdates: 'check-updates',
+  clean: 'clean',
   create: 'create',
   edit: 'edit',
   export: 'export',
@@ -366,6 +368,10 @@ export class Commands {
             credentials,
             version,
           );
+          return {
+            statusCode: 200,
+            note: await this.cleanRecommendation(),
+          };
         }
         if (target === 'csv') {
           const [csvFile, cardKey] = args;
@@ -481,9 +487,10 @@ export class Commands {
           }
         }
 
+        const target = resourceName(resource);
         await this.commands?.updateCmd.apply({
           kind: 'edit',
-          target: resourceName(resource),
+          target,
           updateKey: parseUpdateKey(key),
           operation: buildOperation(
             operation as UpdateOperations,
@@ -492,6 +499,19 @@ export class Commands {
             mappingTable,
           ),
         });
+
+        // Dropping or replacing a custom field leaves the cards' values in
+        // place; only those two operations can create something to clean.
+        if (
+          target.type === 'cardTypes' &&
+          key === 'customFields' &&
+          (operation === 'remove' || operation === 'change')
+        ) {
+          return {
+            statusCode: 200,
+            note: await this.cleanRecommendation(resourceNameToString(target)),
+          };
+        }
       } else if (command === Cmd.updateModules) {
         const [module, targetVersion] = args;
         if (module) {
@@ -508,6 +528,10 @@ export class Commands {
           }
           await this.commands?.importCmd.updateAllModules(credentials);
         }
+        return {
+          statusCode: 200,
+          note: await this.cleanRecommendation(),
+        };
       } else if (command === Cmd.checkUpdates) {
         const [moduleName] = args;
         const results = await this.commands?.checkUpdatesCmd.checkUpdates(
@@ -515,6 +539,8 @@ export class Commands {
           credentials,
         );
         return { statusCode: 200, payload: results };
+      } else if (command === Cmd.clean) {
+        return this.clean(args);
       } else if (command === Cmd.validate) {
         return this.validate();
       } else {
@@ -660,6 +686,79 @@ export class Commands {
     return {
       statusCode: 200,
       message: `Bumped to v${result.newVersion}${previousInfo}`,
+    };
+  }
+
+  // A recommendation when the project holds dormant field values, or undefined
+  // when there is nothing to clean. Never fails the parent operation.
+  //
+  // The scan reports the project (or card type), not the caller's change: it
+  // counts values that were already dormant, and an operation that stranded
+  // nothing still reports whatever was dormant before it. The note therefore
+  // states what the project holds and never claims the operation caused it.
+  private async cleanRecommendation(
+    cardType?: string,
+  ): Promise<string | undefined> {
+    if (!this.commands) {
+      return undefined;
+    }
+    try {
+      const result = await this.commands.cleanCmd.clean(true, cardType);
+      if (result.findings.length === 0) {
+        return undefined;
+      }
+      return (
+        `This project has ${result.findings.length} dormant field value(s) on ${result.cardCount} card(s) — ` +
+        `run 'cyberismo clean --dry-run' to list them, 'cyberismo clean' to remove them`
+      );
+    } catch (error) {
+      // The logger is initialized while the project loads, so the child logger
+      // is taken here rather than at module scope.
+      getChildLogger({ module: 'command-handler' }).warn(
+        error,
+        'Could not scan for dormant field values',
+      );
+      return undefined;
+    }
+  }
+
+  // Removes field values that are not used by card types.
+  private async clean(args: string[]): Promise<requestStatus> {
+    if (!this.commands) {
+      return { statusCode: 500, message: 'Commands not initialized' };
+    }
+
+    const [dryRunFlag] = args;
+    const dryRun = dryRunFlag === 'true';
+
+    const result = await this.commands.cleanCmd.clean(dryRun);
+
+    const skipped = result.skippedCards.length
+      ? `\nSkipped ${result.skippedCards.length} card(s) with unresolvable card types: ${result.skippedCards.join(', ')}`
+      : '';
+    if (result.findings.length === 0) {
+      return { statusCode: 200, message: `Nothing to clean${skipped}` };
+    }
+
+    const failed = result.failedCards.length
+      ? `\nCould not update ${result.failedCards.length} card(s); their values were not removed: ${result.failedCards.join(', ')}`
+      : '';
+    const lines = result.findings.map(
+      (finding) => `  ${finding.cardKey}: ${finding.field} (${finding.reason})`,
+    );
+
+    // The headline counts what actually changed, so a partial failure cannot
+    // report a card as cleaned.
+    const failedCards = new Set(result.failedCards);
+    const removed = result.findings.filter(
+      (finding) => !failedCards.has(finding.cardKey),
+    );
+    const removedCards = new Set(removed.map((finding) => finding.cardKey))
+      .size;
+    const verb = dryRun ? 'Would remove' : 'Removed';
+    return {
+      statusCode: 200,
+      message: `${lines.join('\n')}\n${verb} ${removed.length} field value(s) from ${removedCards} card(s)${skipped}${failed}`,
     };
   }
 

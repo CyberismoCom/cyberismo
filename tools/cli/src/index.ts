@@ -107,6 +107,9 @@ function handleResponse(response: requestStatus) {
     } else {
       console.log('Done');
     }
+    if (response.note) {
+      console.log(`\n${response.note}`);
+    }
   } else {
     if (response.message) {
       program.error(response.message);
@@ -1557,6 +1560,9 @@ checkUpdatesCmd.action(
       message: `Apply ${autoUpdatable.length} available update(s)?`,
     });
     if (shouldUpdate) {
+      // Every successful update reports the same project-wide state, so the
+      // last note is printed once after the loop instead of per module.
+      let note: string | undefined;
       for (const mod of autoUpdatable) {
         const target = mod.latestSatisfyingConstraint ?? mod.latestVersion!;
         const updateResult = await commandHandler.command(
@@ -1567,11 +1573,15 @@ checkUpdatesCmd.action(
         );
         if (updateResult.statusCode === 200) {
           console.log(`  Updated ${mod.name} to ${target}`);
+          note = updateResult.note ?? note;
         } else {
           console.error(
             `  Failed to update ${mod.name}: ${updateResult.message}`,
           );
         }
+      }
+      if (note) {
+        console.log(`\n${note}`);
       }
     }
   },
@@ -1732,6 +1742,20 @@ publishCmd.action(async (options: CommandOptions<'publish'>) => {
   const mergedOptions = Object.assign({}, options, program.opts());
   const args = [options.dryRun ? 'true' : 'false', options.remote ?? ''];
   const result = await commandHandler.command(Cmd.publish, args, mergedOptions);
+  handleResponse(result);
+});
+
+// Clean command - removes dormant field values
+const cleanCmd = new CommandWithPath('clean')
+  .description(
+    'Remove dormant field values: values a card stores but that are not shown and not visible to logic programs (empty placeholders, fields the card type no longer declares, values on calculated fields)',
+  )
+  .option('--dry-run', 'Show what would be cleaned without cleaning');
+program.addCommand(cleanCmd);
+cleanCmd.action(async (options: CommandOptions<'clean'>) => {
+  const mergedOptions = Object.assign({}, options, program.opts());
+  const args = [options.dryRun ? 'true' : 'false'];
+  const result = await commandHandler.command(Cmd.clean, args, mergedOptions);
   handleResponse(result);
 });
 
