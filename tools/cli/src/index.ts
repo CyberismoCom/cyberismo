@@ -1745,10 +1745,10 @@ publishCmd.action(async (options: CommandOptions<'publish'>) => {
   handleResponse(result);
 });
 
-// Clean command - removes field values that are not used by card types
+// Clean command - removes dormant field values
 const cleanCmd = new CommandWithPath('clean')
   .description(
-    'Remove field values that card types no longer use (null placeholders, removed fields, values on calculated fields)',
+    'Remove dormant field values: values a card stores but that are not shown and not visible to logic programs (empty placeholders, fields the card type no longer declares, values on calculated fields)',
   )
   .option('--dry-run', 'Show what would be cleaned without cleaning');
 program.addCommand(cleanCmd);

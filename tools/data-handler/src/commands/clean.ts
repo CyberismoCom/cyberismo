@@ -83,7 +83,7 @@ export class Clean {
     return this.scan(true, cardType);
   }
 
-  @write(() => 'Clean unused field values')
+  @write(() => 'Remove dormant field values')
   private async removeUnused(cardType?: string): Promise<CleanResult> {
     return this.scan(false, cardType);
   }

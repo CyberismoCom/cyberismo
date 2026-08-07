@@ -350,7 +350,7 @@ describe('clean recommendation', () => {
   const DECISION = 'decision/cardTypes/decision';
   const RECOMMENDATION = "'cyberismo clean' to remove them";
   const COUNTS =
-    /this project has \d+ unused field value\(s\) on \d+ card\(s\)/i;
+    /this project has \d+ dormant field value\(s\) on \d+ card\(s\)/i;
 
   // Each test gets its own project folder: the CommandManager instance the
   // handler uses is keyed by project path, so a reused path would be served

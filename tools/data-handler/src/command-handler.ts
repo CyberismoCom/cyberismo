@@ -708,7 +708,7 @@ export class Commands {
         return undefined;
       }
       return (
-        `This project has ${result.findings.length} unused field value(s) on ${result.cardCount} card(s) — ` +
+        `This project has ${result.findings.length} dormant field value(s) on ${result.cardCount} card(s) — ` +
         `run 'cyberismo clean --dry-run' to list them, 'cyberismo clean' to remove them`
       );
     } catch (error) {
@@ -716,7 +716,7 @@ export class Commands {
       // is taken here rather than at module scope.
       getChildLogger({ module: 'command-handler' }).warn(
         error,
-        'Could not scan for unused field values',
+        'Could not scan for dormant field values',
       );
       return undefined;
     }
