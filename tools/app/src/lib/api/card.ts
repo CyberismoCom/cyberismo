@@ -228,6 +228,8 @@ export async function deleteCard(key: string, projectPrefix?: string) {
   mutate(apiPaths.rawCard(key), undefined, false);
 
   mutate(apiPaths.tree());
+  // Template-card deletes also affect the configuration tree.
+  mutate(apiPaths.resourceTree());
 }
 
 export async function createCard(
