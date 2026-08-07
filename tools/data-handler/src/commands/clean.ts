@@ -15,7 +15,7 @@ import type { Project } from '../containers/project.js';
 import { ResourcesFrom } from '../containers/project/resources-from.js';
 import { isPredefinedField } from '../utils/constants.js';
 import { getChildLogger } from '../utils/log-utils.js';
-import { write } from '../utils/rw-lock.js';
+import { read, write } from '../utils/rw-lock.js';
 
 import type {
   Card,
@@ -65,15 +65,32 @@ export class Clean {
    * safe. Since per-card errors are handled here rather than raised, an
    * '--autocommit' run commits a partial clean instead of rolling it back.
    *
-   * A dry run takes the write lock as well, so that the report cannot be taken
-   * while another command is halfway through changing the cards.
+   * A dry run takes the read lock, which already excludes writers, so the
+   * report still cannot be taken mid-write. Taking the write lock instead
+   * would give a dry run a writer's side effects: an autocommit run would
+   * commit and, on a failed scan, roll the working tree back.
    * @param dryRun If true, reports the findings without changing any card.
    * @param cardType Optional. Limits the scan to cards of this card type. Must
    *   be a full resource name, e.g. 'decision/cardTypes/decision'.
    * @returns What was removed, or would be removed in a dry run.
    */
-  @write(() => 'Clean unused field values')
   public async clean(dryRun: boolean, cardType?: string): Promise<CleanResult> {
+    return dryRun ? this.report(cardType) : this.removeUnused(cardType);
+  }
+
+  @read
+  private async report(cardType?: string): Promise<CleanResult> {
+    return this.scan(true, cardType);
+  }
+
+  @write(() => 'Clean unused field values')
+  private async removeUnused(cardType?: string): Promise<CleanResult> {
+    return this.scan(false, cardType);
+  }
+
+  // Walks the cleanable cards, collecting the unused values and, unless this
+  // is a dry run, removing them.
+  private async scan(dryRun: boolean, cardType?: string): Promise<CleanResult> {
     const findings: CleanFinding[] = [];
     const skippedCards: string[] = [];
     const failedCards: string[] = [];

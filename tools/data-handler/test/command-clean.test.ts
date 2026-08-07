@@ -168,6 +168,32 @@ describe('clean command', () => {
     }
   });
 
+  it('a dry run takes the read lock, not the write lock', async () => {
+    const { freshTestDir, freshCommands } =
+      await freshProject('tmp-clean-lock');
+    try {
+      // The write lock's after-write hooks commit and recalculate; a dry run
+      // changes nothing and must not trigger either.
+      const afterWrite = vi.fn().mockResolvedValue(undefined);
+      freshCommands.project.lock.onAfterWrite(afterWrite);
+
+      await freshCommands.cleanCmd.clean(true);
+      expect(afterWrite).not.toHaveBeenCalled();
+
+      // A read lock is reentrant from a read context; a write lock throws.
+      const nested = await freshCommands.project.lock.read(() =>
+        freshCommands.cleanCmd.clean(true),
+      );
+      expect(nested.findings.length).toBeGreaterThan(0);
+      expect(afterWrite).not.toHaveBeenCalled();
+
+      await freshCommands.cleanCmd.clean(false);
+      expect(afterWrite).toHaveBeenCalled();
+    } finally {
+      rmSync(freshTestDir, { recursive: true, force: true });
+    }
+  });
+
   it('skips cards whose card type cannot be resolved', async () => {
     const { freshTestDir, freshCommands } = await freshProject(
       'tmp-clean-skipped',
