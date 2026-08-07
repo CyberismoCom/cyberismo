@@ -21,7 +21,7 @@ import { selectProjectPrefix } from '@/lib/slices/project';
 import { GenericConfirmModal } from '@/components/modals';
 
 /**
- * Renders the offer to remove unused field values, for whichever edit asked for
+ * Renders the offer to remove dormant field values, for whichever edit asked for
  * it via `useCleanPrompt`. Lives in the app shell so that an edit which
  * navigates away - deleting a field type, for one - still gets a prompt.
  *

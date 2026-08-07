@@ -54,8 +54,8 @@ export const updateProjectModule = async (
 };
 
 /**
- * Reports the field values that cards store but their card types no longer use
- * and, unless `dryRun` is set, removes them.
+ * Reports the dormant field values a project holds - stored, but not shown and
+ * not visible to logic programs - and, unless `dryRun` is set, removes them.
  */
 export const cleanProject = async (
   dryRun: boolean,

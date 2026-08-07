@@ -39,7 +39,7 @@ Commands:
   update-modules [options] [moduleName]                                    Updates to latest versions either all modules or a specific module
   validate [options]                                                       Validate project structure
   app [options]                                                            Starts the cyberismo app, accessible with a web browser at http://localhost:3000
-  clean [options]                                                          Remove field values that card types no longer use (null placeholders, removed fields, values on calculated fields)
+  clean [options]                                                          Remove dormant field values: values a card stores but that are not shown and not visible to logic programs (empty placeholders, fields the card type no longer declares, values on calculated fields)
   help [command]                                                           display help for command
 ----
 
@@ -79,9 +79,9 @@ To get detailed help for any command, add `help` after the command name:
 $ cyberismo show help
 ----
 
-== Removing unused field values
+== Removing dormant field values
 
-The cards of a project may contain custom field values that their card type no longer uses, for example the values of a field that has been removed from the card type. Such values are dormant: they stay in the card files, but they are not shown in the user interface and they are not visible to logic programs, as described in xref:docs_27.adoc[Managing card types]. To remove them, enter the following command in the Cyberismo project directory:
+The cards of a project may contain custom field values that nothing reads, for example the values of a field that has been removed from the card type. Such values are dormant: they stay in the card files, but they are not shown in the user interface and they are not visible to logic programs, as described in xref:docs_27.adoc[Managing card types]. To remove them, enter the following command in the Cyberismo project directory:
 
 [source,console]
 ----

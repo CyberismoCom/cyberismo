@@ -164,13 +164,11 @@ describe('clean prompt after card type field changes', () => {
     deleteField();
 
     expect(
-      await screen.findByText('Unused field values in this project'),
+      await screen.findByText('Dormant field values in this project'),
     ).toBeInTheDocument();
     expect(cleanProject).toHaveBeenNthCalledWith(1, true, PREFIX);
     expect(
-      screen.getByText(
-        /1 field value on 1 card that its card type no longer uses/,
-      ),
+      screen.getByText(/1 dormant field value on 1 card/),
     ).toBeInTheDocument();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Remove' }));
@@ -180,11 +178,11 @@ describe('clean prompt after card type field changes', () => {
     );
     await waitFor(() =>
       expect(
-        screen.queryByText('Unused field values in this project'),
+        screen.queryByText('Dormant field values in this project'),
       ).not.toBeInTheDocument(),
     );
     expect(notifications()).toContainEqual({
-      message: 'Unused field values removed',
+      message: 'Dormant field values removed',
       type: 'success',
     });
   });
@@ -202,16 +200,16 @@ describe('clean prompt after card type field changes', () => {
     await waitFor(() =>
       expect(notifications()).toContainEqual({
         message:
-          'Unused field values removed, but 2 cards could not be updated',
+          'Dormant field values removed, but 2 cards could not be updated',
         type: 'warning',
       }),
     );
     expect(notifications()).not.toContainEqual({
-      message: 'Unused field values removed',
+      message: 'Dormant field values removed',
       type: 'success',
     });
     expect(
-      screen.queryByText('Unused field values in this project'),
+      screen.queryByText('Dormant field values in this project'),
     ).not.toBeInTheDocument();
   });
 
@@ -232,7 +230,7 @@ describe('clean prompt after card type field changes', () => {
       }),
     );
     expect(
-      screen.queryByText('Unused field values in this project'),
+      screen.queryByText('Dormant field values in this project'),
     ).not.toBeInTheDocument();
   });
 
@@ -250,7 +248,7 @@ describe('clean prompt after card type field changes', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
     expect(
-      screen.getByText('Unused field values in this project'),
+      screen.getByText('Dormant field values in this project'),
     ).toBeInTheDocument();
 
     finishClean();
@@ -261,7 +259,7 @@ describe('clean prompt after card type field changes', () => {
     ]);
     await waitFor(() =>
       expect(
-        screen.queryByText('Unused field values in this project'),
+        screen.queryByText('Dormant field values in this project'),
       ).not.toBeInTheDocument(),
     );
   });
@@ -275,7 +273,7 @@ describe('clean prompt after card type field changes', () => {
 
     deleteField();
     expect(
-      await screen.findByText('Unused field values in this project'),
+      await screen.findByText('Dormant field values in this project'),
     ).toBeInTheDocument();
 
     act(() => {
@@ -284,7 +282,7 @@ describe('clean prompt after card type field changes', () => {
 
     await waitFor(() =>
       expect(
-        screen.queryByText('Unused field values in this project'),
+        screen.queryByText('Dormant field values in this project'),
       ).not.toBeInTheDocument(),
     );
     expect(
@@ -305,7 +303,7 @@ describe('clean prompt after card type field changes', () => {
       expect(cleanProject).toHaveBeenCalledWith(true, PREFIX),
     );
     expect(
-      screen.queryByText('Unused field values in this project'),
+      screen.queryByText('Dormant field values in this project'),
     ).not.toBeInTheDocument();
   });
 
@@ -320,7 +318,7 @@ describe('clean prompt after card type field changes', () => {
     );
     expect(update).toHaveBeenCalled();
     expect(
-      screen.queryByText('Unused field values in this project'),
+      screen.queryByText('Dormant field values in this project'),
     ).not.toBeInTheDocument();
   });
 
@@ -337,7 +335,7 @@ describe('clean prompt after card type field changes', () => {
     fireEvent.click(saveRowButton());
 
     expect(
-      await screen.findByText('Unused field values in this project'),
+      await screen.findByText('Dormant field values in this project'),
     ).toBeInTheDocument();
     expect(cleanProject).toHaveBeenCalledWith(true, PREFIX);
   });
@@ -356,7 +354,7 @@ describe('clean prompt after card type field changes', () => {
     fireEvent.click(saveRowButton());
 
     expect(
-      await screen.findByText('Unused field values in this project'),
+      await screen.findByText('Dormant field values in this project'),
     ).toBeInTheDocument();
     expect(cleanProject).toHaveBeenCalledWith(true, PREFIX);
   });
