@@ -23,6 +23,8 @@ import type { CardType } from '../../src/interfaces/resource-interfaces.js';
 
 const FIELD = 'decision/fieldTypes/obsoletedBy';
 const RESPONSIBLE_FIELD = 'decision/fieldTypes/responsible';
+// Declared by the card type below, but no such fieldTypes resource exists.
+const DANGLING_FIELD = 'decision/fieldTypes/deletedFieldType';
 
 // Note: the fixture's only top-level card (decision_5) uses the
 // "simplepage" card type, which has no custom fields at all. The
@@ -374,6 +376,58 @@ describe('stored value on a calculated non-overridable field is dormant', () => 
     expect(
       card.notifications.filter((n) => n.title === 'Conflicting field values'),
     ).toHaveLength(0);
+  });
+});
+
+// Regression (INTDEV-1363): a card type may declare a custom field whose
+// fieldTypes resource is gone - deleted, renamed or misspelled. Resolving it
+// throws, and an unguarded lookup let a single such declaration abort fact
+// generation for the whole project, so CommandManager.initialize() failed with
+// a bare "Must define resource name to query its details" and 'validate' never
+// got to report the dangling reference.
+describe('a declared field whose field type resource is missing', () => {
+  const baseDir = import.meta.dirname;
+  const testDir = join(baseDir, 'tmp-dangling-field-type-tests');
+  const projectPath = join(testDir, 'valid/decision-records');
+  let commands: CommandManager;
+
+  beforeAll(async () => {
+    mkdirSync(testDir, { recursive: true });
+    await copyDir('test/test-data/', testDir);
+
+    const cardTypePath = join(
+      projectPath,
+      '.cards/local/cardTypes/decision.json',
+    );
+    const cardType = JSON.parse(readFileSync(cardTypePath, 'utf-8'));
+    cardType.customFields.push({ name: DANGLING_FIELD });
+    writeFileSync(cardTypePath, JSON.stringify(cardType, null, 4));
+
+    const cardJsonPath = join(
+      projectPath,
+      `cardRoot/decision_5/c/${CARD_KEY}/index.json`,
+    );
+    const metadata = JSON.parse(readFileSync(cardJsonPath, 'utf-8'));
+    metadata[DANGLING_FIELD] = 'stored value';
+    writeFileSync(cardJsonPath, JSON.stringify(metadata, null, 4));
+
+    commands = new CommandManager(projectPath, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+  });
+
+  afterAll(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('is omitted while the rest of the card still produces facts', async () => {
+    const card = commands.project.findCard(CARD_KEY) as Card;
+
+    const facts = await createCardFacts(card, commands.project);
+
+    expect(facts).toContain(`field(${CARD_KEY}, "title"`);
+    expect(facts).not.toContain(DANGLING_FIELD);
   });
 });
 
