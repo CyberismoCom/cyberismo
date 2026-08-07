@@ -413,6 +413,8 @@ describe('clean prompt after deleting a resource', () => {
     deleteResource.mockClear();
     routerPush.mockClear();
     store = configureStore({ reducer: rootReducer });
+    // The route loader sets the active project before any editor renders.
+    store.dispatch(setProjectPrefix(PREFIX));
   });
 
   const confirmDelete = () =>
@@ -431,11 +433,13 @@ describe('clean prompt after deleting a resource', () => {
     expect(
       await screen.findByText('Unused field values in this project'),
     ).toBeInTheDocument();
-    expect(cleanProject).toHaveBeenNthCalledWith(1, true);
+    expect(cleanProject).toHaveBeenNthCalledWith(1, true, PREFIX);
 
     fireEvent.click(await screen.findByRole('button', { name: 'Remove' }));
 
-    await waitFor(() => expect(cleanProject).toHaveBeenNthCalledWith(2, false));
+    await waitFor(() =>
+      expect(cleanProject).toHaveBeenNthCalledWith(2, false, PREFIX),
+    );
     expect(notifications()).toContainEqual({
       message: 'Unused field values removed',
       type: 'success',
@@ -471,7 +475,9 @@ describe('clean prompt after deleting a resource', () => {
       screen.getByText('Unused field values in this project'),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
-    await waitFor(() => expect(cleanProject).toHaveBeenNthCalledWith(2, false));
+    await waitFor(() =>
+      expect(cleanProject).toHaveBeenNthCalledWith(2, false, PREFIX),
+    );
   });
 
   it('does not scan when the deleted resource cannot strand a value', async () => {
