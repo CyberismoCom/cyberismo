@@ -431,7 +431,7 @@ describe('clean prompt after deleting a resource', () => {
     confirmDelete();
 
     expect(
-      await screen.findByText('Unused field values in this project'),
+      await screen.findByText('Dormant field values in this project'),
     ).toBeInTheDocument();
     expect(cleanProject).toHaveBeenNthCalledWith(1, true, PREFIX);
 
@@ -441,7 +441,7 @@ describe('clean prompt after deleting a resource', () => {
       expect(cleanProject).toHaveBeenNthCalledWith(2, false, PREFIX),
     );
     expect(notifications()).toContainEqual({
-      message: 'Unused field values removed',
+      message: 'Dormant field values removed',
       type: 'success',
     });
   });
@@ -457,7 +457,7 @@ describe('clean prompt after deleting a resource', () => {
     confirmDelete();
 
     expect(
-      await screen.findByText('Unused field values in this project'),
+      await screen.findByText('Dormant field values in this project'),
     ).toBeInTheDocument();
     await waitFor(() =>
       expect(routerPush).toHaveBeenCalledWith('/configuration'),
@@ -472,7 +472,7 @@ describe('clean prompt after deleting a resource', () => {
     );
 
     expect(
-      screen.getByText('Unused field values in this project'),
+      screen.getByText('Dormant field values in this project'),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
     await waitFor(() =>
@@ -489,7 +489,7 @@ describe('clean prompt after deleting a resource', () => {
     await waitFor(() => expect(deleteResource).toHaveBeenCalled());
     expect(cleanProject).not.toHaveBeenCalled();
     expect(
-      screen.queryByText('Unused field values in this project'),
+      screen.queryByText('Dormant field values in this project'),
     ).not.toBeInTheDocument();
   });
 });
