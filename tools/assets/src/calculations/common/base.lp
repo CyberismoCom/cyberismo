@@ -36,10 +36,8 @@ field(Card, "workflowStateCategory", Category) :-
     field(CardType, "workflow", Workflow),
     workflowState(Workflow, State, Category).
 
-% urlPath: the app-relative path used to navigate to a card, e.g. as the
-% href attribute in graph model views (INTDEV-1293). Project cards only —
-% template cards live under /configuration/..., not /cards/:key, so they
-% are deliberately excluded.
+% app-relative path for navigating to a card, e.g. as an href in a graph view.
+% Only project cards have one; template cards are viewed under /configuration.
 field(Card, "urlPath", @concatenate("/projects/", ProjectPrefix, "/cards/", Card)) :-
     projectCard(Card),
     project(ProjectPrefix).
