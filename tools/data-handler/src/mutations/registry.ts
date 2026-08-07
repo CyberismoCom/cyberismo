@@ -22,8 +22,6 @@ import type {
 } from './types.js';
 
 import { PlainHandler, PlainDeleteHandler } from './handlers/plain-handler.js';
-import { CardTypeAddCustomFieldHandler } from './handlers/card-type-add-custom-field.js';
-import { CardTypeRemoveCustomFieldHandler } from './handlers/card-type-remove-custom-field.js';
 import { CardTypeWorkflowChangeHandler } from './handlers/card-type-workflow-change.js';
 import { CardTypeRenameHandler } from './handlers/card-type-rename.js';
 import { CardTypeDeleteHandler } from './handlers/card-type-delete.js';
@@ -73,8 +71,6 @@ export type Registration =
 const plain = new PlainHandler();
 const plainDelete = new PlainDeleteHandler();
 
-const cardTypeAddCustomField = new CardTypeAddCustomFieldHandler();
-const cardTypeRemoveCustomField = new CardTypeRemoveCustomFieldHandler();
 const cardTypeWorkflowChange = new CardTypeWorkflowChangeHandler();
 const cardTypeRename = new CardTypeRenameHandler();
 const cardTypeDelete = new CardTypeDeleteHandler();
@@ -151,21 +147,6 @@ const wildcardEditKeys: Record<string, string[]> = {
 
 export const ROUTES: Registration[] = [
   // EDIT — specific (exact op) rows.
-  {
-    route: { kind: 'edit', type: 'cardTypes', key: 'customFields', op: 'add' },
-    handler: cardTypeAddCustomField,
-    breaking: true,
-  },
-  {
-    route: {
-      kind: 'edit',
-      type: 'cardTypes',
-      key: 'customFields',
-      op: 'remove',
-    },
-    handler: cardTypeRemoveCustomField,
-    breaking: true,
-  },
   {
     route: { kind: 'edit', type: 'cardTypes', key: 'workflow', op: 'change' },
     handler: cardTypeWorkflowChange,

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdirSync, rmSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { copyDir } from '../../src/utils/file-utils.js';
@@ -85,5 +85,66 @@ describe('CardType mutation engine end-to-end', () => {
 
     const entries = await ConfigurationLogger.entries(project.basePath);
     expect(entries).toHaveLength(0);
+  });
+
+  const cardOnDisk = (path: string) =>
+    JSON.parse(readFileSync(path, 'utf-8')) as Record<string, unknown>;
+
+  const declares = (cardType: string, field: string) =>
+    project.resources
+      .byType(cardType, 'cardTypes')
+      .data?.customFields?.some((f) => f.name === field) ?? false;
+
+  it('adding a customField writes no key onto existing cards (no log entry)', async () => {
+    // The decision card type already declares every local field type, so the
+    // only genuinely undeclared pairing is simplepage + 'finished'.
+    const cardType = `${project.projectPrefix}/cardTypes/simplepage`;
+    const field = `${project.projectPrefix}/fieldTypes/finished`;
+    const cardPath = join(
+      decisionRecordsPath,
+      'cardRoot/decision_5/index.json',
+    );
+    expect(cardOnDisk(cardPath).cardType).toBe(cardType);
+    expect(field in cardOnDisk(cardPath)).toBe(false);
+
+    await new ResourceMutations(project).apply({
+      kind: 'edit',
+      target: resourceName(cardType),
+      updateKey: { key: 'customFields' },
+      operation: { name: 'add', target: { name: field } },
+    });
+
+    // The definition write landed, but the card gained no null placeholder.
+    expect(declares(cardType, field)).toBe(true);
+    expect(field in cardOnDisk(cardPath)).toBe(false);
+    expect(await ConfigurationLogger.entries(project.basePath)).toHaveLength(0);
+  });
+
+  it('removing a customField leaves the stored value dormant (no log entry)', async () => {
+    const cardType = `${project.projectPrefix}/cardTypes/decision`;
+    const field = `${project.projectPrefix}/fieldTypes/finished`;
+    const cardPath = join(
+      decisionRecordsPath,
+      'cardRoot/decision_5/c/decision_6/index.json',
+    );
+    // The fixture stores null here, which would make a surviving-value
+    // assertion vacuous; seed a real value and reload so the card cache sees it.
+    writeFileSync(
+      cardPath,
+      JSON.stringify({ ...cardOnDisk(cardPath), [field]: true }, null, 4),
+    );
+    project = getTestProject(decisionRecordsPath);
+    await project.populateCaches();
+
+    await new ResourceMutations(project).apply({
+      kind: 'edit',
+      target: resourceName(cardType),
+      updateKey: { key: 'customFields' },
+      operation: { name: 'remove', target: { name: field } },
+    });
+
+    expect(declares(cardType, field)).toBe(false);
+    expect(cardOnDisk(cardPath)[field]).toBe(true);
+    expect(await ConfigurationLogger.entries(project.basePath)).toHaveLength(0);
   });
 });

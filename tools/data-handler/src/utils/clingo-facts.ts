@@ -23,6 +23,7 @@ import type {
 } from '../interfaces/project-interfaces.js';
 import type {
   CardType,
+  CustomField,
   ExternalLink,
   FieldType,
   Link,
@@ -224,26 +225,19 @@ export const createCardFacts = async (card: Card, project: Project) => {
     builder.addCustomFact('card', (b) => b.addLiteralArgument(card.key));
   }
 
-  // Fields whose stored values are user overrides of calculated values.
-  const overridableFields = new Set<string>();
-  // Calculated fields that do NOT allow override. A stored value here is stale
-  // (e.g. left over after a normal field became calculated, or after override
-  // was disabled); it stays dormant so the calculation remains authoritative
-  // and no conflicting field() fact is emitted.
-  const lockedCalculatedFields = new Set<string>();
+  // Custom fields declared by the card's card type. Stored metadata keys the
+  // card type does not require stay dormant: preserved on disk, no facts.
+  const declaredFields = new Map<string, CustomField>();
+  let cardTypeResolved = false;
   if (card.metadata?.cardType) {
     try {
       const cardType = project.resources
         .byType(card.metadata.cardType, 'cardTypes')
         .show();
       for (const customField of cardType.customFields ?? []) {
-        if (!customField.isCalculated) continue;
-        if (customField.enableOverride) {
-          overridableFields.add(customField.name);
-        } else {
-          lockedCalculatedFields.add(customField.name);
-        }
+        declaredFields.set(customField.name, customField);
       }
+      cardTypeResolved = true;
     } catch (error) {
       logger.warn(
         error,
@@ -300,25 +294,38 @@ export const createCardFacts = async (card: Card, project: Project) => {
         if (value == null) {
           continue;
         }
-        // A stored value on a calculated, non-overridable field is stale: leave
-        // it dormant (emit nothing) so the calculation stays authoritative
-        // instead of colliding with a plain field() fact.
-        if (lockedCalculatedFields.has(field)) {
-          continue;
-        }
-        // field might be a non-custom field, which cannot use the fieldType method
 
-        const factName = overridableFields.has(field)
-          ? Facts.Card.FIELD_OVERRIDE
-          : Facts.Common.FIELD;
-
+        let factName: Facts.Common.FIELD | Facts.Card.FIELD_OVERRIDE =
+          Facts.Common.FIELD;
         let clingoValue: AllowedClingoType = value.toString();
 
+        // field might be a non-custom field, which cannot use the fieldType method
         if (!isPredefinedField(field)) {
-          // field is a custom field, find it
-          const fieldType = project.resources
-            .byType(field, 'fieldTypes')
-            .show();
+          if (cardTypeResolved) {
+            const declared = declaredFields.get(field);
+            if (!declared) {
+              // Dormant: the card type does not declare this field.
+              continue;
+            }
+            if (declared.isCalculated) {
+              if (!declared.enableOverride) {
+                // Dormant: the calculation stays authoritative.
+                continue;
+              }
+              factName = Facts.Card.FIELD_OVERRIDE;
+            }
+          }
+
+          let fieldType: FieldType;
+          try {
+            fieldType = project.resources.byType(field, 'fieldTypes').show();
+          } catch (error) {
+            logger.warn(
+              error,
+              `Could not resolve field type '${field}' of card '${card.key}'; skipping the field`,
+            );
+            continue;
+          }
 
           // if it's a list, let's generate multiple values
           if (fieldType.dataType === 'list') {
