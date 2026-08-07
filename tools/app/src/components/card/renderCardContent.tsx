@@ -28,7 +28,7 @@ import { macros as UImacros } from '@/components/macros';
 import Mermaid from '@/components/macros/Mermaid';
 import { SafeRouterLink } from '@/components/SafeRouterLink';
 import SvgWrapper from '@/components/SvgWrapper';
-import { isAppUrl, parseDataAttributes } from '@/lib/utils';
+import { appRoutePath, parseDataAttributes } from '@/lib/utils';
 
 // Derive allowed macro tags from the frontend macro definitions so they survive sanitization
 const MACRO_TAGS = Object.values(macroMetadata)
@@ -98,9 +98,10 @@ export function renderCardHtml(html: string, options: RenderCardHtmlOptions) {
     }
     if (node.name === 'a') {
       const href = node.attribs?.href;
-      if (href && isAppUrl(href)) {
+      const routePath = href ? appRoutePath(href) : null;
+      if (routePath) {
         return (
-          <SafeRouterLink to={href}>
+          <SafeRouterLink to={routePath}>
             {domToReact(node.children as DOMNode[])}
           </SafeRouterLink>
         );
