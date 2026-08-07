@@ -45,7 +45,8 @@ export default function ConfigMenu() {
   const { t } = useTranslation();
   const dispatch = useDispatch();
 
-  const { module, type, resource, file, resourceType } = useParams();
+  const { module, type, resource, file, resourceType, projectPrefix } =
+    useParams();
 
   const selectedName = (() => {
     if (module && type && resource) {
@@ -100,6 +101,8 @@ export default function ConfigMenu() {
     <BaseTreeComponent
       title={`Configuration - ${project?.name}`}
       linkTo="/configuration"
+      onBackClick={() => safePush(`/projects/${projectPrefix}/cards`)}
+      backLabel={t('configTree.backToCards')}
       data={resourceTree}
       nodeRenderer={ConfigTreeNode}
       selectedId={selectedId}
