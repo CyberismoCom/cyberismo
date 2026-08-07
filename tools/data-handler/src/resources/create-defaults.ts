@@ -12,7 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Card } from '../interfaces/project-interfaces.js';
+import type { Card, CardMetadata } from '../interfaces/project-interfaces.js';
 import type {
   CalculationMetadata,
   CardType,
@@ -55,22 +55,18 @@ function latestRank(cards: Card[]): string {
 export abstract class DefaultContent {
   /**
    * Returns card with default content. Card is automatically ranked last, if siblings are provided.
-   * @param cardType Card type; custom values from card type are set to null.
+   * @param cardType Card type of the new card.
    * @param siblings Optional. If given, content will have been ranked last.
    * @returns card with default content.
    */
-  static card(cardType: CardType, siblings?: Card[]) {
-    return Object.assign(
-      {
-        title: 'Untitled',
-        cardType: cardType.name,
-        workflowState: '',
-        rank: siblings ? latestRank(siblings) : '',
-      },
-      ...cardType.customFields
-        .filter((field) => !field.isCalculated)
-        .map((field) => ({ [field.name]: null })),
-    );
+  static card(cardType: CardType, siblings?: Card[]): CardMetadata {
+    return {
+      title: 'Untitled',
+      cardType: cardType.name,
+      workflowState: '',
+      links: [],
+      rank: siblings ? latestRank(siblings) : '',
+    };
   }
 
   /**

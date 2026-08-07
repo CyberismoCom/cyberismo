@@ -38,7 +38,7 @@ import { isModulePath } from '../utils/card-utils.js';
 import { Project } from './project.js';
 import { isInitialTransition, resourceName } from '../utils/resource-utils.js';
 
-import { ROOT } from '../utils/constants.js';
+import { isPredefinedField, ROOT } from '../utils/constants.js';
 
 // @todo: Fix the constructor to not use Resource.
 import type { Resource } from './project/resource-cache.js';
@@ -223,13 +223,6 @@ export class Template extends CardContainer {
     }
 
     const cardWithRank = parentCards.find((c) => c.key === card.key);
-    const customFields = cardType.customFields.reduce((acc, curr) => {
-      if (curr.isCalculated) return acc;
-      return {
-        ...acc,
-        [curr.name]: card.metadata?.[curr.name] || null,
-      };
-    }, {});
 
     let templateCardKey;
     for (const [key, value] of templateIDMap) {
@@ -240,13 +233,19 @@ export class Template extends CardContainer {
     }
     const newMetadata = {
       ...card.metadata,
-      ...customFields,
       templateCardKey,
       workflowState: initialWorkflowState.toState,
       cardType: cardType.name,
       createdAt: new Date().toISOString(),
       rank: cardWithRank?.metadata?.rank || card.metadata.rank || EMPTY_RANK,
     };
+
+    // Null custom-field values on the template card are a 'no value' marker, not content.
+    for (const [key, value] of Object.entries(newMetadata)) {
+      if (value === null && !isPredefinedField(key)) {
+        delete (newMetadata as Record<string, unknown>)[key];
+      }
+    }
 
     return { ...card, metadata: newMetadata };
   }
