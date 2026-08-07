@@ -108,6 +108,19 @@ describe('fieldOverride fact generation', () => {
     expect(facts).not.toContain(`fieldOverride(${CARD_KEY}, "title"`);
   });
 
+  it('unresolvable field name is omitted instead of aborting fact generation', async () => {
+    const card = commands.project.findCard(CARD_KEY) as Card;
+    const cardWithBadField = {
+      ...card,
+      metadata: { ...card.metadata!, '': 'Development team' },
+    } as Card;
+
+    const facts = await createCardFacts(cardWithBadField, commands.project);
+
+    expect(facts).toContain(`field(${CARD_KEY}, "title"`);
+    expect(facts).not.toContain('"Development team"');
+  });
+
   it('card query: override wins as effective value; calculatedValue shows the calculated value', async () => {
     const result = await commands.project.calculationEngine.runQuery(
       'card',

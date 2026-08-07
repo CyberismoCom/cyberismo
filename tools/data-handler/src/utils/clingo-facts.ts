@@ -316,9 +316,18 @@ export const createCardFacts = async (card: Card, project: Project) => {
 
         if (!isPredefinedField(field)) {
           // field is a custom field, find it
-          const fieldType = project.resources
-            .byType(field, 'fieldTypes')
-            .show();
+          let fieldType;
+          try {
+            fieldType = project.resources.byType(field, 'fieldTypes').show();
+          } catch (error) {
+            // A malformed or dangling field name must not abort fact generation
+            // for the whole project; 'validate' reports it against the card.
+            logger.warn(
+              error,
+              `Could not resolve field type '${field}' of card '${card.key}'; omitting the field`,
+            );
+            continue;
+          }
 
           // if it's a list, let's generate multiple values
           if (fieldType.dataType === 'list') {
