@@ -146,11 +146,7 @@ export class Validate {
       }
       let identifier: string, prefix: string, type: string;
       try {
-        ({ identifier, prefix, type } = resourceName(
-          namedContent.name,
-          false,
-          `file '${fullFileNameWithPath}'`,
-        ));
+        ({ identifier, prefix, type } = resourceName(namedContent.name));
       } catch (error) {
         errors.push(
           `File '${fullFileNameWithPath}' has an invalid 'name' property '${namedContent.name}': ${errorFunction(error)}`,
