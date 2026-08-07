@@ -341,15 +341,6 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
             padding={{ xs: 1, sm: 1.5 }}
             position="relative"
             minHeight={56}
-            sx={
-              canEdit
-                ? {
-                    '&:hover .edit-icon-button': {
-                      opacity: 1,
-                    },
-                  }
-                : undefined
-            }
           >
             {canEdit && (
               <Box
@@ -371,8 +362,7 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
                     position: 'absolute',
                     top: 0,
                     right: 0,
-                    opacity: isEmpty ? 1 : { xs: 1, md: 0 },
-                    transition: 'opacity 0.15s',
+                    opacity: 1,
                   }}
                 >
                   <EditIcon fontSize="small" />
