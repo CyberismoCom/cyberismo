@@ -26,7 +26,8 @@ vi.mock('react-router', async (importOriginal) => {
 // mock useAppRouter and useResizeObserver
 vi.mock('../src/lib/hooks', async (importOriginal) => {
   const actual = await importOriginal<typeof libHooksModule>();
-  const { selectRecentPrefixes } = await import('../src/lib/slices/project');
+  const { selectRecentPrefixes, selectLastPathByPrefix } =
+    await import('../src/lib/slices/project');
   const { mockAppRouter } = await import('./helpers/router');
   let callCount = 0;
   return {
@@ -34,6 +35,7 @@ vi.mock('../src/lib/hooks', async (importOriginal) => {
     useAppRouter: vi.fn(mockAppRouter),
     useAppSelector: vi.fn((selector) => {
       if (selector === selectRecentPrefixes) return [];
+      if (selector === selectLastPathByPrefix) return {};
       return 'decision';
     }),
     useAppDispatch: vi.fn(() => vi.fn()),

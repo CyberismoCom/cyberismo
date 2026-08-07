@@ -38,7 +38,11 @@ import { useAvailableProjects } from '../lib/api/projects';
 import type { AvailableProject } from '../lib/projectUtils';
 import { ProjectSelectionModal } from './modals/ProjectSelectionModal';
 import { useAppSelector } from '../lib/hooks';
-import { selectRecentPrefixes } from '../lib/slices/project';
+import {
+  selectRecentPrefixes,
+  selectLastPathByPrefix,
+  projectEntryPath,
+} from '../lib/slices/project';
 
 type SearchableTreeMenuProps = {
   titleRightSlot?: React.ReactNode;
@@ -98,6 +102,7 @@ export const SearchableTreeMenu = ({
   const projects = data?.projects;
   const canCreateProjects = data?.canCreateProjects ?? false;
   const recentPrefixes = useAppSelector(selectRecentPrefixes);
+  const lastPathByPrefix = useAppSelector(selectLastPathByPrefix);
 
   // Single-project mode: only one project and can't create more
   const isSingleProject = projects?.length === 1 && !canCreateProjects;
@@ -159,7 +164,10 @@ export const SearchableTreeMenu = ({
                 selected
                 variant="soft"
                 sx={{ borderRadius: 'sm' }}
-                onClick={() => navigate(`/projects/${currentPrefix}/cards`)}
+                onClick={() =>
+                  currentPrefix &&
+                  navigate(projectEntryPath(currentPrefix, lastPathByPrefix))
+                }
               >
                 <ListItemDecorator>
                   <FolderOpenOutlined sx={{ fontSize: '1.1rem' }} />
@@ -176,7 +184,9 @@ export const SearchableTreeMenu = ({
               <ListItem key={p.prefix}>
                 <ListItemButton
                   sx={{ borderRadius: 'sm' }}
-                  onClick={() => navigate(`/projects/${p.prefix}/cards`)}
+                  onClick={() =>
+                    navigate(projectEntryPath(p.prefix, lastPathByPrefix))
+                  }
                 >
                   <ListItemDecorator>
                     <FolderOpenOutlined sx={{ fontSize: '1.1rem' }} />

@@ -36,6 +36,8 @@ import { useNavigate, useParams } from 'react-router';
 import { OptionCard } from '@/components/OptionCard';
 import { useAvailableProjects } from '@/lib/api/projects';
 import { getConfig } from '@/lib/utils';
+import { useAppSelector } from '@/lib/hooks';
+import { selectLastPathByPrefix, projectEntryPath } from '@/lib/slices/project';
 import { CreateProjectModal } from './CreateProjectModal';
 
 interface ProjectSelectionModalProps {
@@ -53,6 +55,7 @@ export function ProjectSelectionModal({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { projectPrefix: currentPrefix } = useParams();
+  const lastPathByPrefix = useAppSelector(selectLastPathByPrefix);
   const { data, isLoading } = useAvailableProjects();
   const projects = data?.projects;
   const canCreateProjects = data?.canCreateProjects ?? false;
@@ -77,7 +80,7 @@ export function ProjectSelectionModal({
   };
 
   const handleProjectSelect = (projectPrefix: string) => {
-    navigate(`/projects/${projectPrefix}/cards`);
+    navigate(projectEntryPath(projectPrefix, lastPathByPrefix));
     handleClose();
   };
 
