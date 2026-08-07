@@ -107,9 +107,9 @@ describe('command-handler: validate command', () => {
       rmSync(tmpDir, { recursive: true, force: true });
     }
   });
-  it('calculated field with stored value but no enableOverride fails validation', async () => {
-    // Without enableOverride, a stored value in a calculated field is still
-    // disallowed, matching current behavior.
+  it('stored value on a calculated field without override passes validation', async () => {
+    // Without enableOverride the stored value is dormant: preserved on disk,
+    // ignored by logic, removed by 'cyberismo clean'. Not a validation error.
     const tmpDir = join(baseDir, 'tmp-command-validate-tests-override-none');
     mkdirSync(tmpDir, { recursive: true });
     try {
@@ -126,9 +126,52 @@ describe('command-handler: validate command', () => {
         projectPath: tmpDir,
       });
       expect(result.statusCode).toBe(200);
-      expect(result.message).toContain(
-        'not allowed to have a value in a calculated field',
+      expect(result.message).toBe('Project structure validated');
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+  it('missing non-calculated custom field passes validation', async () => {
+    const tmpDir = join(baseDir, 'tmp-command-validate-tests-absent-field');
+    mkdirSync(tmpDir, { recursive: true });
+    try {
+      await copyDir(join(testDir, 'valid/decision-records'), tmpDir);
+      const cardPath = join(
+        tmpDir,
+        'cardRoot/decision_5/c/decision_6/index.json',
       );
+      const card = JSON.parse(readFileSync(cardPath, 'utf-8'));
+      expect(card['decision/fieldTypes/responsible']).not.toBeUndefined();
+      delete card['decision/fieldTypes/responsible'];
+      writeFileSync(cardPath, JSON.stringify(card));
+
+      const result = await commandHandler.command(Cmd.validate, [], {
+        projectPath: tmpDir,
+      });
+      expect(result.statusCode).toBe(200);
+      expect(result.message).toBe('Project structure validated');
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+  it('metadata key not declared by the card type passes validation', async () => {
+    // decision_5 is a simplepage card, which declares no custom fields, so
+    // the key is dormant even though the field type exists.
+    const tmpDir = join(baseDir, 'tmp-command-validate-tests-undeclared-key');
+    mkdirSync(tmpDir, { recursive: true });
+    try {
+      await copyDir(join(testDir, 'valid/decision-records'), tmpDir);
+      const cardPath = join(tmpDir, 'cardRoot/decision_5/index.json');
+      const card = JSON.parse(readFileSync(cardPath, 'utf-8'));
+      expect(card.cardType).toBe('decision/cardTypes/simplepage');
+      card['decision/fieldTypes/obsoletedBy'] = 'decision_999';
+      writeFileSync(cardPath, JSON.stringify(card));
+
+      const result = await commandHandler.command(Cmd.validate, [], {
+        projectPath: tmpDir,
+      });
+      expect(result.statusCode).toBe(200);
+      expect(result.message).toBe('Project structure validated');
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
     }
