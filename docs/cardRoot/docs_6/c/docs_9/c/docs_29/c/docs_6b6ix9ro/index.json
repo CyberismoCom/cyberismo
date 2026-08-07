@@ -1,0 +1,13 @@
+{
+    "title": "field(CardKey, \"urlPath\", Path)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|m",
+    "lastUpdated": "2026-08-07T13:13:08.272Z",
+    "base/fieldTypes/briefDescription": "The path for navigating to a card in the app",
+    "base/fieldTypes/category": "Cards",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "createdAt": "2026-08-07T13:11:56.459Z",
+    "lastTransitioned": "2026-08-07T13:13:08.272Z"
+}

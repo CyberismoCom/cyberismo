@@ -1,0 +1,20 @@
+== Parameters
+
+* `CardKey`: The card key of a project card
+* `Path`: The path of the card in the Cyberismo app
+
+== Description
+
+Cyberismo defines a built-in calculated field `urlPath` for every project card. Its value is an application-relative path that navigates to the card, for example `/projects/example/cards/example_2`. The path works both in the Cyberismo app and in an exported static site.
+
+Use this field instead of constructing the path yourself, so that your logic programs keep working when the paths of the application change. For example, the nodes of a graph can be made clickable as follows:
+
+----
+attr(node, Card, "href", Path) :-
+    node(Card, _),
+    field(Card, "urlPath", Path).
+----
+
+See {{#xref}}"cardKey":"docs_hbskjelr"{{/xref}} for more information about implementing graphs.
+
+Template cards do not have a `urlPath` field, because template cards are viewed in the configuration section of the app.

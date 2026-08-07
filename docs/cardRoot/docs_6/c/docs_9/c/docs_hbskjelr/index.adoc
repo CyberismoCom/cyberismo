@@ -159,6 +159,20 @@ Cyberismo keeps track of the ordering of cards in the navigation tree with the b
 
 If you generate your graph so that nodes and subgraphs are cards, then these elements will automatically have a `rank` field. Otherwise, if you want to influence the ordering of the DOT file, you can define terms of the format `field(Element, "rank", Rank)` to set a rank. The exact format of the rank does not matter, as long as the elements can be ordered by their rank.
 
+== Linking nodes to cards
+
+If the nodes of your graph are cards, you can make the nodes clickable by setting the Graphviz `href` attribute from the built-in xref:docs_6b6ix9ro.adoc[`urlPath`] field of the card:
+
+----
+attr(node, Card, "href", Path) :-
+    node(Card, _),
+    field(Card, "urlPath", Path).
+----
+
+Do not construct the path yourself, as the paths of the application may change.
+
+Only project cards have a `urlPath` field. If your graph also contains nodes that are not cards, or nodes that are template cards, the rule above leaves those nodes without a link.
+
 == Comparison with Clingraph
 
 Cyberismo's graph support is based on https://github.com/potassco/clingraph[Clingraph], the graph visualiser from the Potassco collection. However, Cyberismo does not use the Python implementation of Clingraph but includes its own implementation, which is internally a Cyberismo report that produces Graphviz DOT format. If you are familiar with Clingraph, it is useful to understand the following differences:
