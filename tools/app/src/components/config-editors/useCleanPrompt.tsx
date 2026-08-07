@@ -12,8 +12,9 @@
 */
 
 import { cleanProject } from '@/lib/api';
-import { useAppDispatch } from '@/lib/hooks';
+import { useAppDispatch, useAppSelector } from '@/lib/hooks';
 import { showCleanPrompt } from '@/lib/slices/cleanPrompt';
+import { selectProjectPrefix } from '@/lib/slices/project';
 
 /**
  * Offers to remove the field values that cards store but their card types no
@@ -23,12 +24,16 @@ import { showCleanPrompt } from '@/lib/slices/cleanPrompt';
  */
 export function useCleanPrompt() {
   const dispatch = useAppDispatch();
+  const projectPrefix = useAppSelector(selectProjectPrefix);
 
   const maybePromptClean = async () => {
+    // The scan names its project rather than letting the request resolve one
+    // from the URL, which an edit that navigates can already have changed.
+    if (!projectPrefix) return;
     try {
-      const result = await cleanProject(true);
-      if (result.findings.length > 0) {
-        dispatch(showCleanPrompt(result));
+      const findings = await cleanProject(true, projectPrefix);
+      if (findings.findings.length > 0) {
+        dispatch(showCleanPrompt({ findings, projectPrefix }));
       }
     } catch {
       // Unused values are harmless, so a failed scan must not break the edit flow.

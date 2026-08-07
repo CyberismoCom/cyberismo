@@ -12,7 +12,13 @@
 */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
@@ -27,14 +33,18 @@ vi.mock('@/lib/api', () => ({
     updateFieldVisibility: vi.fn(),
     isUpdating: () => false,
   }),
-  cleanProject: (dryRun: boolean) => cleanProject(dryRun),
+  cleanProject: (dryRun: boolean, projectPrefix?: string) =>
+    cleanProject(dryRun, projectPrefix),
 }));
 
 import rootReducer from '@/lib/slices';
+import { setProjectPrefix } from '@/lib/slices/project';
 import { CardTypeFieldsEditor } from '@/components/config-editors/fields/CardTypeFieldsEditor';
 import { CleanPrompt } from '@/components/CleanPrompt';
 
 let store: ReturnType<typeof configureStore>;
+
+const PREFIX = 'test';
 
 const fieldName = 'base/fieldTypes/owner';
 
@@ -143,6 +153,8 @@ describe('clean prompt after card type field changes', () => {
     update.mockClear();
     cleanProject.mockReset();
     store = configureStore({ reducer: rootReducer });
+    // The route loader sets the active project before any editor renders.
+    store.dispatch(setProjectPrefix(PREFIX));
   });
 
   it('offers to remove the unused values found after deleting a field', async () => {
@@ -154,7 +166,7 @@ describe('clean prompt after card type field changes', () => {
     expect(
       await screen.findByText('Unused field values in this project'),
     ).toBeInTheDocument();
-    expect(cleanProject).toHaveBeenNthCalledWith(1, true);
+    expect(cleanProject).toHaveBeenNthCalledWith(1, true, PREFIX);
     expect(
       screen.getByText(
         /1 field value on 1 card that its card type no longer uses/,
@@ -163,7 +175,9 @@ describe('clean prompt after card type field changes', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Remove' }));
 
-    await waitFor(() => expect(cleanProject).toHaveBeenNthCalledWith(2, false));
+    await waitFor(() =>
+      expect(cleanProject).toHaveBeenNthCalledWith(2, false, PREFIX),
+    );
     await waitFor(() =>
       expect(
         screen.queryByText('Unused field values in this project'),
@@ -241,12 +255,44 @@ describe('clean prompt after card type field changes', () => {
 
     finishClean();
     await waitFor(() => expect(cleanProject).toHaveBeenCalledTimes(2));
-    expect(cleanProject.mock.calls).toEqual([[true], [false]]);
+    expect(cleanProject.mock.calls).toEqual([
+      [true, PREFIX],
+      [false, PREFIX],
+    ]);
     await waitFor(() =>
       expect(
         screen.queryByText('Unused field values in this project'),
       ).not.toBeInTheDocument(),
     );
+  });
+
+  // The prompt sits in the app shell, so nothing unmounts it when the user
+  // switches project. Without the scanned prefix it would keep offering one
+  // project's findings and clean whichever project the URL then named.
+  it('drops the offer when the active project changes', async () => {
+    cleanProject.mockResolvedValue(oneFinding);
+    renderEditor();
+
+    deleteField();
+    expect(
+      await screen.findByText('Unused field values in this project'),
+    ).toBeInTheDocument();
+
+    act(() => {
+      store.dispatch(setProjectPrefix('other'));
+    });
+
+    await waitFor(() =>
+      expect(
+        screen.queryByText('Unused field values in this project'),
+      ).not.toBeInTheDocument(),
+    );
+    expect(
+      (store.getState() as { cleanPrompt: { findings: CleanResult | null } })
+        .cleanPrompt.findings,
+    ).toBeNull();
+    // Only the dry run ran; nothing was cleaned from either project.
+    expect(cleanProject.mock.calls).toEqual([[true, PREFIX]]);
   });
 
   it('does not prompt when the scan finds nothing', async () => {
@@ -255,7 +301,9 @@ describe('clean prompt after card type field changes', () => {
 
     deleteField();
 
-    await waitFor(() => expect(cleanProject).toHaveBeenCalledWith(true));
+    await waitFor(() =>
+      expect(cleanProject).toHaveBeenCalledWith(true, PREFIX),
+    );
     expect(
       screen.queryByText('Unused field values in this project'),
     ).not.toBeInTheDocument();
@@ -267,7 +315,9 @@ describe('clean prompt after card type field changes', () => {
 
     deleteField();
 
-    await waitFor(() => expect(cleanProject).toHaveBeenCalledWith(true));
+    await waitFor(() =>
+      expect(cleanProject).toHaveBeenCalledWith(true, PREFIX),
+    );
     expect(update).toHaveBeenCalled();
     expect(
       screen.queryByText('Unused field values in this project'),
@@ -289,7 +339,7 @@ describe('clean prompt after card type field changes', () => {
     expect(
       await screen.findByText('Unused field values in this project'),
     ).toBeInTheDocument();
-    expect(cleanProject).toHaveBeenCalledWith(true);
+    expect(cleanProject).toHaveBeenCalledWith(true, PREFIX);
   });
 
   it('offers to remove the unused values after override is disabled', async () => {
@@ -308,7 +358,7 @@ describe('clean prompt after card type field changes', () => {
     expect(
       await screen.findByText('Unused field values in this project'),
     ).toBeInTheDocument();
-    expect(cleanProject).toHaveBeenCalledWith(true);
+    expect(cleanProject).toHaveBeenCalledWith(true, PREFIX);
   });
 
   it('does not scan when only the display name changes', async () => {
