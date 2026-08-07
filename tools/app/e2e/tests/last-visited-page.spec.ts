@@ -61,6 +61,9 @@ base.describe('Remember last visited page per project', () => {
       ).toBeVisible();
       await page.getByTestId('notificationClose').first().click();
 
+      // NewCardModal dispatches the success toast before it routes to the new
+      // card, so the toast being visible does not imply the URL has settled.
+      await expect(page).toHaveURL(/\/cards\/[\w-]+$/);
       const cardUrl = page.url();
       const cardKey = cardUrl.split('/cards/')[1]!;
       await page.waitForFunction((key) => {
@@ -69,8 +72,9 @@ base.describe('Remember last visited page per project', () => {
       }, cardKey);
 
       await page.getByTestId('contextMenuButton').click();
+      // A card still in `recentlyCreated` deletes without the confirm modal,
+      // so there is no confirmDeleteButton to click here.
       await page.getByTestId('deleteCardButton').click();
-      await page.getByTestId('confirmDeleteButton').click();
       await expect(
         page.getByRole('presentation').filter({ hasText: 'deleted' }),
       ).toBeVisible();
