@@ -18,6 +18,7 @@ import { Typography } from '@mui/joy';
 import { useResource } from '@/lib/api/resources';
 import { useAppDispatch, useAppRouter } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
+import { useCleanPrompt } from '@/components/config-editors/useCleanPrompt';
 
 export interface ResourceDeleteModalProps {
   open: boolean;
@@ -37,6 +38,7 @@ export function ResourceDeleteModal({
   const dispatch = useAppDispatch();
   const [isDeleting, setIsDeleting] = useState(false);
   const router = useAppRouter();
+  const { maybePromptClean } = useCleanPrompt();
 
   const content = useMemo(
     () => (
@@ -70,6 +72,11 @@ export function ResourceDeleteModal({
               type: 'success',
             }),
           );
+          // Card types stop declaring a deleted field type, so the values its
+          // cards stored are left dormant.
+          if (resourceType === 'fieldTypes') {
+            await maybePromptClean();
+          }
           onClose();
           router.push('/configuration');
         } catch (error) {

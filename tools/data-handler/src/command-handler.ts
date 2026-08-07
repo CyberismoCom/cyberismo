@@ -409,11 +409,18 @@ export class Commands {
         }
       } else if (command === Cmd.remove) {
         const [type, target, ...rest] = args;
-        await this.remove(
-          this.commandType(type),
-          this.commandTarget(type, target),
-          rest,
-        );
+        const removed = this.commandType<RemovableResourceTypes>(type);
+        await this.remove(removed, this.commandTarget(type, target), rest);
+
+        // Card types stop declaring a deleted field type, so the values its
+        // cards stored are left in place; nothing else removed here can strand
+        // a value that 'clean' would find.
+        if (removed === 'fieldType') {
+          return {
+            statusCode: 200,
+            note: await this.cleanRecommendation(),
+          };
+        }
       } else if (command === Cmd.rename) {
         const [to] = args;
         await this.commands?.renameCmd.rename(to);
