@@ -166,6 +166,12 @@ export class Import {
     if (executable.length === 0) return;
 
     await executeModuleReplays(this.project, executable);
+    for (const step of executable) {
+      console.log(
+        `Replayed migrations for module '${step.modulePrefix}': ` +
+          `${step.fromVersion} -> ${step.toVersion} (${step.seals.length} seal(s))`,
+      );
+    }
 
     const validationErrors = await Validate.getInstance().validate(
       this.project.basePath,
