@@ -49,6 +49,10 @@ export interface ResolveConflict {
   // one is fixable from the project config: widening `range` admits
   // `wouldNeed` and unblocks the resolution.
   pinned?: { range: VersionRange; wouldNeed: Version };
+  // Set when a version satisfying every demand (and pin) existed, but the
+  // migration seal chain cannot bridge the installed version to it, so the
+  // move is unreachable by replay.
+  nonReplayable?: { from: Version; to: Version };
 }
 export type ResolveResult =
   { ok: true; changes: Change[] } | { ok: false; conflicts: ResolveConflict[] };

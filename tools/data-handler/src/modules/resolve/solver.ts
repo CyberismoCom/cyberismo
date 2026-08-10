@@ -324,6 +324,7 @@ async function solve(
     const incoming = dependentRanges(n.name, assign);
     let downgrade: { from: Version; to: Version } | undefined;
     let pinned: { range: VersionRange; wouldNeed: Version } | undefined;
+    let nonReplayable: { from: Version; to: Version } | undefined;
     const { versions, pin, keepInstalled } = await candidatesFor(n);
     for (const v of versions) {
       if (v !== null && !incoming.every((d) => semver.satisfies(v, d.range)))
@@ -348,7 +349,14 @@ async function solve(
         downgrade = { from: n.installed, to: v };
         continue;
       }
-      if (!(await isReplayable(n, v))) continue;
+      if (!(await isReplayable(n, v))) {
+        // A refusal here implies an installed→v move (isReplayable is total
+        // for null/fresh/no-op candidates), so the seal chain is the blocker.
+        // Keep the first — most preferred — candidate lost this way.
+        if (!nonReplayable && v !== null && n.installed)
+          nonReplayable = { from: n.installed, to: v };
+        continue;
+      }
       const { edges } = await readCandidate(n, v);
       if (
         edges.some((e) => {
@@ -374,6 +382,7 @@ async function solve(
       demands: incoming,
       ...(downgrade && incoming.length === 0 ? { downgrade } : {}),
       ...(pinned ? { pinned } : {}),
+      ...(nonReplayable ? { nonReplayable } : {}),
     });
     return false;
   };
@@ -387,7 +396,10 @@ async function solve(
     // Dedupe by module: keep the most informative frame, drop dead-branch
     // noise. Demands dominate; a recorded pin or downgrade breaks ties.
     const rank = (c: ResolveConflict) =>
-      c.demands.length * 2 + (c.pinned ? 1 : 0) + (c.downgrade ? 1 : 0);
+      c.demands.length * 2 +
+      (c.pinned ? 1 : 0) +
+      (c.downgrade ? 1 : 0) +
+      (c.nonReplayable ? 1 : 0);
     const byModule = new Map<string, ResolveConflict>();
     for (const c of conflicts) {
       const prev = byModule.get(c.module);

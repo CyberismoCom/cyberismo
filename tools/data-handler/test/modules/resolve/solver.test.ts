@@ -529,6 +529,52 @@ describe('resolve solver', () => {
       { sourceLayer: source, tempDir: testDir },
     );
     expect(result.ok).toBe(false);
+    if (result.ok) return;
+    // The refusal names the replay gap instead of a generic no-version.
+    const bConflict = result.conflicts.find((c) => c.module === 'B');
+    expect(bConflict?.nonReplayable).toEqual({ from: '1.3.0', to: '1.5.0' });
+  });
+
+  it('update to an explicit version without a replay path names the gap', async () => {
+    const project = buildProjectWithModules([
+      {
+        name: 'A',
+        location: 'https://x/A.git',
+        version: '^1.0.0',
+        private: false,
+      },
+    ]);
+    await installModule(project, { name: 'A', version: '1.6.0' });
+
+    const configs = new Map<string, FakeModuleConfig>([
+      [
+        'https://x/A.git@v1.8.0',
+        {
+          cardKeyPrefix: 'A',
+          name: 'A',
+          version: '1.8.0',
+          modules: [],
+        } as FakeModuleConfig,
+      ],
+    ]);
+    const available = new Map([['https://x/A.git', ['1.8.0', '1.6.0']]]);
+    // No seals anywhere: the 1.6.0 → 1.8.0 move cannot be replayed.
+    const source = new InMemorySource(configs, available);
+
+    const result = await resolve(
+      project,
+      { kind: 'update', module: 'A', to: '1.8.0' as Version },
+      { sourceLayer: source, tempDir: testDir },
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.conflicts).toEqual([
+      {
+        module: 'A',
+        demands: [],
+        nonReplayable: { from: '1.6.0', to: '1.8.0' },
+      },
+    ]);
   });
 
   it('add: fresh import seeds a new root and installs its transitive closure', async () => {

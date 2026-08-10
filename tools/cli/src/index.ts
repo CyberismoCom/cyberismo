@@ -1496,6 +1496,10 @@ function blockedReason(c: BlockedConflict): string {
   // The only blocker the project itself can lift, so it is worth naming.
   if (c.pinned)
     parts.push(`pinned to ${c.pinned.range}, needs ${c.pinned.wouldNeed}`);
+  if (c.nonReplayable)
+    parts.push(
+      `no migration path ${c.nonReplayable.from} → ${c.nonReplayable.to}`,
+    );
   return parts.length ? parts.join('; ') : 'no version satisfies its range';
 }
 

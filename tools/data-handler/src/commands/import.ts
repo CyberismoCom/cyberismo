@@ -98,6 +98,10 @@ function conflictReason(c: ResolveConflict): string {
     parts.push(
       `declared as '${c.pinned.range}' in this project, but ${c.pinned.wouldNeed} is needed`,
     );
+  if (c.nonReplayable)
+    parts.push(
+      `no migration path from installed ${c.nonReplayable.from} to ${c.nonReplayable.to}`,
+    );
   return parts.length
     ? parts.join('; ')
     : 'no version satisfies its constraints';
