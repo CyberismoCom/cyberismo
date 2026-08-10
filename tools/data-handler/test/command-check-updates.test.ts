@@ -184,6 +184,48 @@ describe('check-updates', () => {
     expect(status.status).toBe('source_unreachable');
   });
 
+  it('an unreachable bystander root does not poison other rows', async () => {
+    // Each row's availability solve walks the whole declared graph, so a
+    // broken remote on one root must freeze that bystander, not fail every
+    // other module's check.
+    const brokenLoc = 'https://example.com/broken.git';
+    const okLoc = 'https://example.com/ok.git';
+    const project = buildProjectWithModules([
+      {
+        name: 'broken',
+        location: brokenLoc,
+        version: '^1.0.0',
+        private: false,
+      },
+      { name: 'ok', location: okLoc, version: '^1.0.0', private: false },
+    ]);
+    installModule(project, { name: 'broken', version: '1.0.0' });
+    installModule(project, { name: 'ok', version: '1.0.0' });
+
+    const configs = new Map<string, FakeModuleConfig>([
+      [`${okLoc}@v1.1.0`, { name: 'ok', cardKeyPrefix: 'ok', modules: [] }],
+    ]);
+    const available = new Map([[okLoc, ['1.1.0', '1.0.0']]]);
+    const seals = new Map([
+      [`${okLoc}@v1.1.0`, [['1.0.0', '1.1.0'] as [string, string]]],
+    ]);
+    const source = new InMemorySource(
+      configs,
+      available,
+      new Map(),
+      seals,
+      new Set([brokenLoc]),
+    );
+
+    const statuses = await new CheckUpdates(project, source).checkUpdates();
+
+    const broken = statuses.find((s) => s.name === 'broken');
+    const ok = statuses.find((s) => s.name === 'ok');
+    expect(broken?.status).toBe('source_unreachable');
+    expect(ok?.status).toBe('update_available');
+    expect(ok?.reachableVersion).toBe('1.1.0');
+  });
+
   it('marks non-git (local) modules as such and skips version checks', async () => {
     const location = 'file:/some/path';
     const project = buildProjectWithModules([

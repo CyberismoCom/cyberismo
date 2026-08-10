@@ -226,9 +226,25 @@ async function solve(
     if (!source.supportsVersioning(n.source.location))
       return n.installed ? [n.installed] : [];
     const url = buildRemoteUrl(n.source, credentials);
-    const remote = (
-      await source.listRemoteVersions(n.source.location, url)
-    ).map(toVersion);
+    let listed: string[];
+    try {
+      listed = await source.listRemoteVersions(n.source.location, url);
+    } catch (error) {
+      // Availability is a read-only "what could move" query: an unreachable
+      // bystander must not poison the answer for the module actually being
+      // checked. Freeze it at its installed version. The checked module
+      // itself — and every apply path — still propagates the failure.
+      if (
+        req.kind === 'availability' &&
+        req.module !== undefined &&
+        req.module !== n.name &&
+        n.installed !== null
+      ) {
+        return [n.installed];
+      }
+      throw error;
+    }
+    const remote = listed.map(toVersion);
     // An installed versioned module stays a candidate even if the remote
     // currently lists no tags — only a genuinely tagless source is unversioned.
     if (remote.length === 0 && n.installed) return [n.installed];

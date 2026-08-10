@@ -577,6 +577,81 @@ describe('resolve solver', () => {
     ]);
   });
 
+  it('availability: an unreachable bystander is frozen, not fatal', async () => {
+    // R1's remote is down; asking about R2 must still answer. Asking about
+    // R1 itself still surfaces the failure so check-updates can report
+    // source_unreachable rather than a false up-to-date.
+    const project = buildProjectWithModules([
+      {
+        name: 'R1',
+        location: 'https://x/R1.git',
+        version: '^1.0.0',
+        private: false,
+      },
+      {
+        name: 'R2',
+        location: 'https://x/R2.git',
+        version: '^1.0.0',
+        private: false,
+      },
+    ]);
+    await installModule(project, { name: 'R1', version: '1.0.0' });
+    await installModule(project, { name: 'R2', version: '1.0.0' });
+
+    const configs = new Map<string, FakeModuleConfig>([
+      [
+        'https://x/R2.git@v1.1.0',
+        {
+          cardKeyPrefix: 'R2',
+          name: 'R2',
+          version: '1.1.0',
+          modules: [],
+        } as FakeModuleConfig,
+      ],
+    ]);
+    const available = new Map([['https://x/R2.git', ['1.1.0', '1.0.0']]]);
+    const seals = new Map<string, Array<[string, string]>>([
+      ['https://x/R2.git@v1.1.0', [['1.0.0', '1.1.0']]],
+    ]);
+    const source = new InMemorySource(
+      configs,
+      available,
+      new Map(),
+      seals,
+      new Set(['https://x/R1.git']),
+    );
+
+    const result = await resolve(
+      project,
+      { kind: 'availability', module: 'R2' },
+      { sourceLayer: source, tempDir: testDir },
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.changes).toEqual([
+      {
+        module: 'R2',
+        from: '1.0.0',
+        to: '1.1.0',
+        replay: [
+          {
+            from: '1.0.0',
+            to: '1.1.0',
+            fileName: 'migrationLog_1.0.0_1.1.0.jsonl',
+          },
+        ],
+      },
+    ]);
+
+    await expect(
+      resolve(
+        project,
+        { kind: 'availability', module: 'R1' },
+        { sourceLayer: source, tempDir: testDir },
+      ),
+    ).rejects.toThrow('remote unreachable');
+  });
+
   it('add: fresh import seeds a new root and installs its transitive closure', async () => {
     const project = buildProjectWithModules([]);
 
