@@ -1485,24 +1485,6 @@ updateModulesCmd.action(
   },
 );
 
-type BlockedConflict = NonNullable<ModuleUpdateStatus['blocked']>[number];
-
-function blockedReason(c: BlockedConflict): string {
-  if (c.downgrade)
-    return `cannot downgrade ${c.downgrade.from} → ${c.downgrade.to}`;
-  const parts: string[] = [];
-  if (c.demands.length)
-    parts.push(c.demands.map((d) => `${d.from} wants ${d.range}`).join(', '));
-  // The only blocker the project itself can lift, so it is worth naming.
-  if (c.pinned)
-    parts.push(`pinned to ${c.pinned.range}, needs ${c.pinned.wouldNeed}`);
-  if (c.nonReplayable)
-    parts.push(
-      `no migration path ${c.nonReplayable.from} → ${c.nonReplayable.to}`,
-    );
-  return parts.length ? parts.join('; ') : 'no version satisfies its range';
-}
-
 // Check updates command
 const checkUpdatesCmd = new CommandWithPath('check-updates')
   .description('Check if updates are available for installed modules')
@@ -1553,8 +1535,8 @@ checkUpdatesCmd.action(
         case 'blocked': {
           // Name the module each reason belongs to: the blocker is often a
           // transitive dep, not the row being reported.
-          const reasons = (mod.blocked ?? [])
-            .map((c) => `${c.module}: ${blockedReason(c)}`)
+          const reasons = (mod.conflicts ?? [])
+            .map((c) => `${c.module}: ${c.reason}`)
             .join('; ');
           console.log(
             `  ${mod.name}    blocked${reasons ? `  ${reasons}` : ''}`,

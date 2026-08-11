@@ -13,6 +13,7 @@
 
 import { read } from '../utils/rw-lock.js';
 import {
+  conflictReason,
   declaredModules,
   installedModules,
   createSourceLayer,
@@ -119,7 +120,10 @@ export class CheckUpdates {
             return {
               ...base,
               status: 'blocked',
-              blocked: plan.conflicts,
+              conflicts: plan.conflicts.map((c) => ({
+                module: c.module,
+                reason: conflictReason(c),
+              })),
             } satisfies ModuleUpdateStatus;
           }
 

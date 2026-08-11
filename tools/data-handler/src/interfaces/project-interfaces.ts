@@ -18,7 +18,6 @@ import type {
   TemplateConfiguration,
 } from './resource-interfaces.js';
 import type { CheckStatus } from '../modules/types.js';
-import type { ResolveConflict } from '../modules/resolve/types.js';
 
 // Single card; either in project or in template.
 export interface Card {
@@ -248,7 +247,7 @@ export interface ModuleUpdateStatus {
   // The full set of modules that would move if this update were applied.
   cascade?: { module: string; from: string | null; to: string | null }[];
   // Conflicts that prevent the update (set when status === 'blocked').
-  blocked?: ResolveConflict[];
+  conflicts?: { module: string; reason: string }[];
 }
 
 // Resources that are possible to remove.

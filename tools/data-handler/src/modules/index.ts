@@ -70,5 +70,6 @@ export {
 // Fetching, resolving and applying.
 export { createSourceLayer } from './source.js';
 export { resolve, resolveForApply } from './resolve/solver.js';
+export { conflictReason } from './resolve/format.js';
 export { applyModules } from './applier.js';
 export { cleanOrphans } from './orphans.js';

@@ -21,6 +21,7 @@ import { write } from '../utils/rw-lock.js';
 import {
   applyModules,
   buildRemoteUrl,
+  conflictReason,
   declaredModules,
   installedModules,
   installedModulesWithSources,
@@ -84,29 +85,6 @@ function freshRootStagingName(location: string): string {
   return `${safe}.__fresh__`;
 }
 
-function conflictReason(c: ResolveConflict): string {
-  if (c.downgrade)
-    return `cannot downgrade from ${c.downgrade.from} to ${c.downgrade.to} (downgrading is not supported)`;
-  const parts: string[] = [];
-  if (c.demands.length)
-    parts.push(
-      c.demands.map((d) => `${d.from} requires ${d.range}`).join(', '),
-    );
-  // Named separately from the demands because this is the one blocker the
-  // project itself can lift.
-  if (c.pinned)
-    parts.push(
-      `declared as '${c.pinned.range}' in this project, but ${c.pinned.wouldNeed} is needed`,
-    );
-  if (c.nonReplayable)
-    parts.push(
-      `no migration path from installed ${c.nonReplayable.from} to ${c.nonReplayable.to}`,
-    );
-  return parts.length
-    ? parts.join('; ')
-    : 'no version satisfies its constraints';
-}
-
 /**
  * Build a human-readable error from the engine's resolution conflicts so a
  * failed resolve aborts with the culprit ranges before any disk change.
@@ -157,7 +135,7 @@ export class Import {
 
     if (steps.length === 0) return;
 
-    // A module whose apply failed still has its OLD files installed;
+    // A module whose apply failed still has its old files installed;
     // replaying its chain would cascade changes those files do not
     // reflect. Run replays only for modules that actually landed.
     const { executable, dropped } = filterStepsToApplied(steps, appliedModules);

@@ -153,9 +153,11 @@ describe('check-updates', () => {
 
     expect(status.name).toBe('base');
     expect(status.status).toBe('blocked');
-    expect(status.blocked).toBeDefined();
-    expect(status.blocked!.length).toBeGreaterThan(0);
-    expect(status.blocked!.some((c) => c.module === 'base')).toBe(true);
+    expect(status.conflicts).toBeDefined();
+    expect(status.conflicts!.length).toBeGreaterThan(0);
+    const own = status.conflicts!.find((c) => c.module === 'base');
+    expect(own).toBeDefined();
+    expect(own!.reason.length).toBeGreaterThan(0);
   });
 
   it('reports source_unreachable when the remote version listing throws', async () => {
