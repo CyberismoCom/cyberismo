@@ -12,7 +12,8 @@
 */
 
 import { useEffect, useRef, useCallback } from 'react';
-import { Stack, Typography } from '@mui/joy';
+import { Link as JoyLink, Stack, Typography } from '@mui/joy';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import type { NodeRendererProps, NodeApi, TreeApi } from 'react-arborist';
 import { Tree } from 'react-arborist';
 import { Link } from 'react-router';
@@ -23,6 +24,10 @@ export interface BaseTreeProps<T> {
   title?: string;
   titleRightSlot?: React.ReactNode;
   linkTo?: string;
+  /** When set, renders a back link above the title that calls this handler. */
+  onBackClick?: () => void;
+  /** Visible label for the back link. Defaults to "Back". */
+  backLabel?: string;
   data: T[] | null;
   selectedId?: string | null;
   nodeRenderer: React.ComponentType<
@@ -41,6 +46,8 @@ export function BaseTreeComponent<T>({
   title,
   titleRightSlot,
   linkTo,
+  onBackClick,
+  backLabel = 'Back',
   data,
   selectedId,
   nodeRenderer: NodeRenderer,
@@ -116,15 +123,27 @@ export function BaseTreeComponent<T>({
           justifyContent="space-between"
           alignItems="flex-start"
         >
-          <Link
-            to={linkTo || ''}
-            style={{ textDecoration: 'none' }}
-            ref={titleRef}
-          >
-            <Typography level="h4" marginBottom={2}>
-              {title}
-            </Typography>
-          </Link>
+          <Stack alignItems="flex-start" ref={titleRef}>
+            {onBackClick && (
+              <JoyLink
+                data-cy="configBackButton"
+                component="button"
+                type="button"
+                level="body-sm"
+                color="neutral"
+                startDecorator={<ArrowBackIcon fontSize="small" />}
+                onClick={onBackClick}
+                sx={{ marginBottom: 0.5 }}
+              >
+                {backLabel}
+              </JoyLink>
+            )}
+            <Link to={linkTo || ''} style={{ textDecoration: 'none' }}>
+              <Typography level="h4" marginBottom={2}>
+                {title}
+              </Typography>
+            </Link>
+          </Stack>
           {titleRightSlot}
         </Stack>
       )}
