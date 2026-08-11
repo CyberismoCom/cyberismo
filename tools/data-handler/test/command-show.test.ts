@@ -639,8 +639,7 @@ describe('show', () => {
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    commands = new CommandManager(decisionRecordsPath, {
-    });
+    commands = new CommandManager(decisionRecordsPath, {});
     await commands.initialize();
     showCmd = commands.showCmd;
   });

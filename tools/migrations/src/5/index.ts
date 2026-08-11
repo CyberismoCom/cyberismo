@@ -53,9 +53,7 @@ const migration: Migration = {
       `Migrating from schema version ${context.fromVersion} to ${context.toVersion}`,
     );
 
-    const sweepTargets = [
-      join(context.cardsConfigPath, 'local', 'migrations'),
-    ];
+    const sweepTargets = [join(context.cardsConfigPath, 'local', 'migrations')];
     const modulesFolder = join(context.cardsConfigPath, 'modules');
     for (const name of await readdirOrEmpty(modulesFolder)) {
       sweepTargets.push(join(modulesFolder, name, 'migrations'));

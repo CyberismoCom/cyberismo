@@ -21,8 +21,7 @@ describe('clean command', () => {
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    commands = new CommandManager(decisionRecordsPath, {
-    });
+    commands = new CommandManager(decisionRecordsPath, {});
     await commands.initialize();
     cleanCmd = commands.cleanCmd;
   });
@@ -43,8 +42,7 @@ describe('clean command', () => {
     const projectPath = join(freshTestDir, 'valid/decision-records');
     prepare?.(projectPath);
 
-    const freshCommands = new CommandManager(projectPath, {
-    });
+    const freshCommands = new CommandManager(projectPath, {});
     await freshCommands.initialize();
     return { freshTestDir, freshCommands };
   }
@@ -264,8 +262,10 @@ describe('clean command', () => {
     const moduleTestDir = join(baseDir, 'tmp-clean-module');
     mkdirSync(moduleTestDir, { recursive: true });
     await copyDir('test/test-data/', moduleTestDir);
-    const importing = new CommandManager(join(moduleTestDir, 'valid/minimal'), {
-    });
+    const importing = new CommandManager(
+      join(moduleTestDir, 'valid/minimal'),
+      {},
+    );
     await importing.initialize();
     try {
       // The imported project's template card carries null placeholders.

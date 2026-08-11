@@ -35,7 +35,7 @@ A migration owns the **entire** `.cards` tree it is given:
   `cyberismo migrate` is the only thing that moves it forward, so a
   structural change must be applied to installed module trees too.
 
-The same script also runs against *staged module checkouts* during
+The same script also runs against _staged module checkouts_ during
 `cyberismo import module` / `cyberismo update modules`: a module released
 at an older schema version is migrated in the staging directory before its
 resources are copied into the project. Only the `migrate` step runs there

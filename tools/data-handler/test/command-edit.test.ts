@@ -19,8 +19,7 @@ describe('edit card', () => {
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    commands = new CommandManager(decisionRecordsPath, {
-    });
+    commands = new CommandManager(decisionRecordsPath, {});
     await commands.initialize();
     editCmd = commands.editCmd;
   });
@@ -95,8 +94,7 @@ describe('edit card', () => {
       freshTestDir,
       'valid/decision-records',
     );
-    const freshCommands = new CommandManager(freshDecisionRecordsPath, {
-    });
+    const freshCommands = new CommandManager(freshDecisionRecordsPath, {});
     await freshCommands.initialize();
     const freshEditCmd = freshCommands.editCmd;
 
@@ -198,8 +196,7 @@ describe('edit card', () => {
     field.enableOverride = true;
     writeFileSync(cardTypePath, JSON.stringify(cardType));
 
-    const freshCommands = new CommandManager(projectPath, {
-    });
+    const freshCommands = new CommandManager(projectPath, {});
     await freshCommands.initialize();
     return { freshTestDir, freshCommands };
   }
@@ -314,8 +311,7 @@ describe('edit card', () => {
     metadata['decision/fieldTypes/obsoletedBy'] = 'decision_999';
     writeFileSync(metadataFile, JSON.stringify(metadata));
 
-    const freshCommands = new CommandManager(projectPath, {
-    });
+    const freshCommands = new CommandManager(projectPath, {});
     await freshCommands.initialize();
 
     try {

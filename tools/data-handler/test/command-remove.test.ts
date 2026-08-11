@@ -629,8 +629,7 @@ describe('remove card', () => {
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    commands = new CommandManager(decisionRecordsPath, {
-    });
+    commands = new CommandManager(decisionRecordsPath, {});
     await commands.initialize();
   });
 
@@ -782,8 +781,7 @@ describe('remove module — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const commands = new CommandManager(projectDir, {
-    });
+    const commands = new CommandManager(projectDir, {});
     await commands.initialize();
 
     await commands.importCmd.importModule(hostRoot);
@@ -825,8 +823,7 @@ describe('remove module — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const commands = new CommandManager(projectDir, {
-    });
+    const commands = new CommandManager(projectDir, {});
     await commands.initialize();
 
     await expect(
@@ -859,8 +856,7 @@ describe('remove module — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const commands = new CommandManager(projectDir, {
-    });
+    const commands = new CommandManager(projectDir, {});
     await commands.initialize();
 
     await commands.importCmd.importModule(aRoot);
@@ -916,8 +912,7 @@ describe('remove module — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const commands = new CommandManager(projectDir, {
-    });
+    const commands = new CommandManager(projectDir, {});
     await commands.initialize();
 
     await commands.importCmd.importModule(aRoot);

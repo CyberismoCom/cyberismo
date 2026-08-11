@@ -565,8 +565,7 @@ describe('module update — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const commands = new CommandManager(projectDir, {
-    });
+    const commands = new CommandManager(projectDir, {});
     await commands.initialize();
 
     await commands.importCmd.importModule(hostRoot);
@@ -612,8 +611,7 @@ describe('module update — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const commands = new CommandManager(projectDir, {
-    });
+    const commands = new CommandManager(projectDir, {});
     await commands.initialize();
 
     // First import: host is declared, dep is installed transitively on disk.
@@ -674,8 +672,7 @@ describe('module update — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const commands = new CommandManager(projectDir, {
-    });
+    const commands = new CommandManager(projectDir, {});
     await commands.initialize();
 
     await commands.importCmd.importModule(hostRoot);
@@ -717,8 +714,7 @@ describe('module update — spec behaviours', () => {
     const depRoot = join(moduleTestDir, 'fake-override-mod');
     makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'ovmod' });
 
-    const commands = new CommandManager(projectDir, {
-    });
+    const commands = new CommandManager(projectDir, {});
     await commands.initialize();
     await commands.importCmd.importModule(depRoot);
 
@@ -753,8 +749,7 @@ describe('module update — spec behaviours', () => {
     const depRoot = join(moduleTestDir, 'fake-override-mod-ok');
     makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'ovkmod' });
 
-    const commands = new CommandManager(projectDir, {
-    });
+    const commands = new CommandManager(projectDir, {});
     await commands.initialize();
     await commands.importCmd.importModule(depRoot);
 
@@ -800,8 +795,7 @@ describe('module update — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const commands = new CommandManager(projectDir, {
-    });
+    const commands = new CommandManager(projectDir, {});
     await commands.initialize();
 
     await commands.importCmd.importModule(hostRoot);
@@ -836,8 +830,7 @@ describe('module update — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const commands = new CommandManager(projectDir, {
-    });
+    const commands = new CommandManager(projectDir, {});
     await commands.initialize();
     await commands.importCmd.importModule(modRoot);
 
@@ -970,8 +963,7 @@ describe('module update — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const commands = new CommandManager(projectDir, {
-    });
+    const commands = new CommandManager(projectDir, {});
     await commands.initialize();
     await commands.importCmd.importModule(moduleSource);
 

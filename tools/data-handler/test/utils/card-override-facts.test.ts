@@ -84,8 +84,7 @@ describe('fieldOverride fact generation', () => {
     // derivation (override wins over calculated) can be exercised too.
     appendFieldCalculatedRule(projectPath);
 
-    commands = new CommandManager(projectPath, {
-    });
+    commands = new CommandManager(projectPath, {});
     await commands.initialize();
   });
 
@@ -132,8 +131,7 @@ describe('fieldOverride fact generation', () => {
         `\nfield(Card, "${FIELD}", "conflicting") :- projectCard(Card).\n`,
     );
 
-    const fresh = new CommandManager(projectPath, {
-    });
+    const fresh = new CommandManager(projectPath, {});
     await fresh.initialize();
     const result = await fresh.project.calculationEngine.runQuery(
       'card',
@@ -191,8 +189,7 @@ describe('card query: calculated value without a stored override', () => {
 
     appendFieldCalculatedRule(projectPath);
 
-    commands = new CommandManager(projectPath, {
-    });
+    commands = new CommandManager(projectPath, {});
     await commands.initialize();
   });
 
@@ -292,8 +289,7 @@ describe('disabling override on a calculated field that holds values', () => {
     metadata[FIELD] = 'decision_999';
     writeFileSync(cardJsonPath, JSON.stringify(metadata, null, 4));
 
-    commands = new CommandManager(projectPath, {
-    });
+    commands = new CommandManager(projectPath, {});
     await commands.initialize();
   });
 
@@ -349,8 +345,7 @@ describe('stored value on a calculated non-overridable field is dormant', () => 
 
     appendFieldCalculatedRule(projectPath);
 
-    commands = new CommandManager(projectPath, {
-    });
+    commands = new CommandManager(projectPath, {});
     await commands.initialize();
   });
 
@@ -466,8 +461,7 @@ describe('fieldCalculated is ignored for a field the card type does not declare 
     metadata[FIELD] = 'decision_999';
     writeFileSync(cardJsonPath, JSON.stringify(metadata, null, 4));
 
-    commands = new CommandManager(projectPath, {
-    });
+    commands = new CommandManager(projectPath, {});
     await commands.initialize();
   });
 
