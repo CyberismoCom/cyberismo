@@ -36,6 +36,12 @@ field(Card, "workflowStateCategory", Category) :-
     field(CardType, "workflow", Workflow),
     workflowState(Workflow, State, Category).
 
+% app-relative path for navigating to a card, e.g. as an href in a graph view.
+% Only project cards have one; template cards are viewed under /configuration.
+field(Card, "urlPath", @concatenate("/projects/", ProjectPrefix, "/cards/", Card)) :-
+    projectCard(Card),
+    project(ProjectPrefix).
+
 
 % data types of fields
 dataType(Key, Field, DataType) :-
