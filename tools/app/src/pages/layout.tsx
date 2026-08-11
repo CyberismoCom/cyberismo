@@ -33,6 +33,11 @@ import { useModals } from '@/lib/utils';
 import { NewTemplateCardModal } from '../components/modals/resource-forms/NewTemplateCardModal';
 import { useConfigTemplateCreationContext } from '@/lib/hooks';
 import { AppModalsProvider } from '@/lib/contexts/AppModalsProvider';
+import {
+  ReadOnlyBanner,
+  READ_ONLY_BANNER_HEIGHT,
+} from '../components/ReadOnlyBanner';
+import { useProjectReadOnlyMode } from '@/lib/api';
 import { UserRole, useHasMinRole } from '@/lib/auth';
 import type { ResourceName } from '@/lib/constants';
 import { useCallback, useState } from 'react';
@@ -42,13 +47,18 @@ export type AppLayoutOutletContext = {
   setDrawerOpen: (open: boolean) => void;
 };
 
-const Main = styled('main')(() => ({
-  height: 'calc(100vh - 44px)', // 44px is the height of the toolbar
+const Main = styled('main', {
+  shouldForwardProp: (prop) => prop !== 'bannerHeight',
+})<{ bannerHeight: number }>(({ bannerHeight }) => ({
+  // 44px is the height of the toolbar; the read-only banner, when shown, sits
+  // between the toolbar and the main area and takes its own slice.
+  height: `calc(100vh - 44px - ${bannerHeight}px)`,
   flexGrow: 1,
 }));
 
 export default function Layout() {
   const inCards = useIsInCards();
+  const readOnlyMode = useProjectReadOnlyMode();
   const canEdit = useHasMinRole(UserRole.Editor);
   const isAdmin = useHasMinRole(UserRole.Admin);
   const { templateResource, parentCardKey } =
@@ -103,12 +113,13 @@ export default function Layout() {
         }}
         onMenuClick={() => setDrawerOpen(true)}
       />
+      <ReadOnlyBanner />
       <AppModalsProvider
         value={{
           openCreateResourceModal,
         }}
       >
-        <Main>
+        <Main bannerHeight={readOnlyMode ? READ_ONLY_BANNER_HEIGHT : 0}>
           <Outlet
             context={
               { drawerOpen, setDrawerOpen } satisfies AppLayoutOutletContext

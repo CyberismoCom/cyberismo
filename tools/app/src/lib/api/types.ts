@@ -130,6 +130,11 @@ export interface GeneralSettings {
     cardKeyPrefix: string;
   }[];
   gitRemoteUrl: string | null;
+  /**
+   * Admin-enabled read-only mode. While on, every non-admin acts as a reader
+   * so the project can be pulled from its remote without concurrent writes.
+   */
+  readOnlyMode: boolean;
 }
 
 export type ProjectSettingsUpdate = Partial<

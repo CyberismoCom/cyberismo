@@ -40,6 +40,7 @@ import projectRouter from './domain/project/index.js';
 import { createMcpRouter } from './domain/mcp/index.js';
 import { createAuthRouter } from './domain/auth/index.js';
 import { createAuthMiddleware } from './middleware/auth.js';
+import { readOnlyMode } from './middleware/readOnly.js';
 import type { AuthProvider } from './auth/types.js';
 import { MockAuthProvider, mockRoleCookieMiddleware } from './auth/mock.js';
 import type { ProjectRegistry } from './project-registry.js';
@@ -55,6 +56,8 @@ function createProjectScopedRoutes(
 ): Hono<{ Variables: AppVars }> {
   const projectScoped = new Hono<{ Variables: AppVars }>();
   projectScoped.use('*', middleware);
+  // After the registry middleware, which resolves the project the flag is on.
+  projectScoped.use('*', readOnlyMode());
   projectScoped.route('/calculations', calculationsRouter);
   projectScoped.route('/cards', cardsRouter);
   projectScoped.route('/cardTypes', cardTypesRouter);

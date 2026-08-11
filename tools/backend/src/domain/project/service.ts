@@ -34,6 +34,11 @@ export interface ProjectInfo {
   gitRemoteUrl: string | null;
 }
 
+/** `ProjectInfo` plus the runtime-only flags the route layer adds. */
+export type ProjectInfoResponse = ProjectInfo & {
+  readOnlyMode: boolean;
+};
+
 export interface ProjectUpdatePayload {
   name?: string;
   cardKeyPrefix?: string;

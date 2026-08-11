@@ -33,6 +33,25 @@ export const useProjectSettings = (
     options,
   );
 
+/**
+ * Whether the current project is in admin-enabled read-only mode.
+ *
+ * Shares the project-settings SWR key, so this costs no extra request wherever
+ * the settings are already loaded. Outside a project route there is no prefix
+ * to resolve — `projectApiPaths` throws there — which is reported as "not read
+ * only" rather than blowing up pages that have no project at all.
+ */
+export const useProjectReadOnlyMode = (projectPrefix?: string): boolean => {
+  let swrKey: string | null;
+  try {
+    swrKey = projectApiPaths(projectPrefix).project();
+  } catch {
+    swrKey = null;
+  }
+  const { general } = useSWRHook<'general'>(swrKey, 'general', null);
+  return general?.readOnlyMode ?? false;
+};
+
 export const updateProjectSettings = async (
   body: ProjectSettingsUpdate,
   projectPrefix?: string,
@@ -41,6 +60,20 @@ export const updateProjectSettings = async (
   await callApi(apiPaths.project(), 'PATCH', body);
   mutate(apiPaths.project());
   mutate(apiPaths.resourceTree());
+};
+
+/**
+ * Turn admin-managed read-only mode on or off. The project settings response
+ * carries the flag, so revalidating it is what flips the banner and the role
+ * cap for everyone polling this project.
+ */
+export const setProjectReadOnlyMode = async (
+  readOnlyMode: boolean,
+  projectPrefix?: string,
+) => {
+  const apiPaths = projectApiPaths(projectPrefix);
+  await callApi(apiPaths.projectReadOnly(), 'PUT', { readOnlyMode });
+  mutate(apiPaths.project());
 };
 
 export const updateProjectModule = async (
@@ -148,6 +181,11 @@ export const useProjectSettingsMutations = (projectPrefix?: string) => {
     isUpdating: (action?: string) => isUpdating(action),
     updateProject: (body: ProjectSettingsUpdate, action: string = 'update') =>
       call(() => updateProjectSettings(body, projectPrefix), action),
+    setReadOnlyMode: (readOnlyMode: boolean) =>
+      call(
+        () => setProjectReadOnlyMode(readOnlyMode, projectPrefix),
+        'update-readOnlyMode',
+      ),
     updateModule: (moduleName: string) =>
       call(
         () => updateProjectModule(moduleName, projectPrefix),

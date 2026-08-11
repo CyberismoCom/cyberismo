@@ -18,6 +18,7 @@ import {
   cleanSchema,
   importModuleSchema,
   moduleParamSchema,
+  readOnlyModeSchema,
   removeHubSchema,
   updateProjectSchema,
 } from './schema.js';
@@ -31,8 +32,26 @@ router.get('/', requireRole(UserRole.Reader), async (c) => {
   const commands = c.get('commands');
 
   const project = await projectService.getProject(commands);
-  return c.json(project);
+  return c.json({
+    ...project,
+    readOnlyMode: c.get('registry').isReadOnly(c.get('projectPrefix')),
+  });
 });
+
+/**
+ * Turn read-only mode on or off for this project. Admin only — and admins are
+ * not downgraded by the mode, so this stays reachable once it is on.
+ */
+router.put(
+  '/read-only',
+  requireRole(UserRole.Admin),
+  zValidator('json', readOnlyModeSchema),
+  async (c) => {
+    const { readOnlyMode } = c.req.valid('json');
+    c.get('registry').setReadOnly(c.get('projectPrefix'), readOnlyMode);
+    return c.json({ readOnlyMode });
+  },
+);
 
 router.patch(
   '/',

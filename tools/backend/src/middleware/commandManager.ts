@@ -20,6 +20,7 @@ declare module 'hono' {
   interface ContextVariableMap {
     commands: CommandManager;
     projectPath: string;
+    projectPrefix: string;
     registry: ProjectRegistry;
   }
 }
@@ -73,6 +74,7 @@ export const attachProjectRegistry = (
     if (!commands) {
       return c.json({ error: `Project '${prefix}' not found` }, 404);
     }
+    c.set('projectPrefix', prefix);
     return runWithCommands(c, commands, next);
   };
 };
