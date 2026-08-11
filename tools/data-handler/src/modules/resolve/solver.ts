@@ -360,9 +360,11 @@ async function solve(
       }
       // An explicit older target is a downgrade: unreachable by replay.
       // Record and skip, so the refusal names it instead of collapsing
-      // into a generic "no satisfying version".
+      // into a generic "no satisfying version". Keep the highest such
+      // version — the nearest one below the installed.
       if (v !== null && n.installed && semver.lt(v, n.installed)) {
-        downgrade = { from: n.installed, to: v };
+        if (!downgrade || semver.gt(v, downgrade.to))
+          downgrade = { from: n.installed, to: v };
         continue;
       }
       if (!(await isReplayable(n, v))) {

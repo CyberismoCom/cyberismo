@@ -19,9 +19,14 @@ import type { ResolveConflict } from './types.js';
  * resolution error messages and the check-updates listing.
  */
 export function conflictReason(c: ResolveConflict): string {
-  if (c.downgrade)
-    return `cannot downgrade from ${c.downgrade.from} to ${c.downgrade.to} (downgrading is not supported)`;
   const parts: string[] = [];
+  // A downgrade often coexists with a pin block (installed drifted above the
+  // range: everything below is a downgrade, everything above breaks the pin),
+  // so it joins the other parts instead of replacing them.
+  if (c.downgrade)
+    parts.push(
+      `cannot downgrade from ${c.downgrade.from} to ${c.downgrade.to} (downgrading is not supported)`,
+    );
   if (c.demands.length)
     parts.push(
       c.demands.map((d) => `${d.from} requires ${d.range}`).join(', '),

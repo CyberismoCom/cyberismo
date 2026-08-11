@@ -11,6 +11,7 @@ import {
   resolve,
   resolveForApply,
 } from '../../../src/modules/resolve/solver.js';
+import { conflictReason } from '../../../src/modules/resolve/format.js';
 import type { Version } from '../../../src/modules/types.js';
 import type { ModuleSetting } from '../../../src/interfaces/project-interfaces.js';
 
@@ -1170,5 +1171,76 @@ describe('resolve solver', () => {
 
     expect(plan.ok).toBe(false);
     expect(resolved).toEqual([]);
+  });
+
+  describe('refusals for a module drifted above its range', () => {
+    it('update: a downgrade refusal cites the nearest version, not the oldest', async () => {
+      const project = buildProjectWithModules([
+        {
+          name: 'A',
+          location: 'https://x/A.git',
+          version: '^1.0.0',
+          private: false,
+        },
+      ]);
+      await installModule(project, { name: 'A', version: '2.0.0' });
+
+      const source = new InMemorySource(
+        new Map(),
+        new Map([['https://x/A.git', ['1.3.0', '1.2.0', '1.0.0']]]),
+      );
+      const result = await resolve(
+        project,
+        { kind: 'update', module: 'A' },
+        { sourceLayer: source, tempDir: testDir },
+      );
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.conflicts).toHaveLength(1);
+      expect(result.conflicts[0].downgrade).toEqual({
+        from: '2.0.0',
+        to: '1.3.0',
+      });
+    });
+
+    it('update: a downgrade does not mask a coexisting pin block', async () => {
+      const project = buildProjectWithModules([
+        {
+          name: 'C',
+          location: 'https://x/C.git',
+          version: '^1.0.0',
+          private: false,
+        },
+      ]);
+      await installModule(project, { name: 'C', version: '2.0.0' });
+
+      const source = new InMemorySource(
+        new Map(),
+        new Map([['https://x/C.git', ['2.5.0', '1.3.0']]]),
+      );
+      const result = await resolve(
+        project,
+        { kind: 'update', module: 'C' },
+        { sourceLayer: source, tempDir: testDir },
+      );
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.conflicts).toHaveLength(1);
+      expect(result.conflicts[0].downgrade).toEqual({
+        from: '2.0.0',
+        to: '1.3.0',
+      });
+      expect(result.conflicts[0].pinned).toEqual({
+        range: '^1.0.0',
+        wouldNeed: '2.5.0',
+      });
+      const reason = conflictReason(result.conflicts[0]);
+      expect(reason).toContain('cannot downgrade from 2.0.0 to 1.3.0');
+      expect(reason).toContain(
+        "declared as '^1.0.0' in this project, but 2.5.0 is needed",
+      );
+    });
   });
 });
