@@ -31,6 +31,8 @@ import {
   getTestProject,
   mockEnsureModuleListUpToDate,
 } from './helpers/test-utils.js';
+import { readJsonFileSync } from '../src/utils/json.js';
+import { SCHEMA_VERSION } from '@cyberismo/assets';
 import { toVersionRange } from '../src/modules/types.js';
 import { ModuleValidationFailedError } from '../src/mutations/replay/replay.js';
 import { logLine, writeSeals } from './helpers/replay-fixtures.js';
@@ -1170,4 +1172,81 @@ describe('module update — spec behaviours', () => {
       ),
     ).toBe(false);
   }, 30000);
+});
+
+describe('module schema version enforcement on import', () => {
+  const schemaTestDir = join(baseDir, 'tmp-import-schema-tests');
+  const hostPath = join(schemaTestDir, 'valid/minimal');
+  const modulePath = join(schemaTestDir, 'valid/decision-records');
+  const moduleConfigPath = join(
+    modulePath,
+    '.cards',
+    'local',
+    'cardsConfig.json',
+  );
+  const installedConfigPath = join(
+    hostPath,
+    '.cards',
+    'modules',
+    'decision',
+    'cardsConfig.json',
+  );
+
+  function setModuleSchemaVersion(version: number | undefined) {
+    const config = readJsonFileSync(moduleConfigPath) as Record<
+      string,
+      unknown
+    >;
+    if (version === undefined) {
+      delete config.schemaVersion;
+    } else {
+      config.schemaVersion = version;
+    }
+    writeFileSync(moduleConfigPath, JSON.stringify(config, null, 4));
+  }
+
+  beforeEach(async () => {
+    rmSync(schemaTestDir, { recursive: true, force: true });
+    mkdirSync(schemaTestDir, { recursive: true });
+    await copyDir('test/test-data', schemaTestDir);
+    mockEnsureModuleListUpToDate();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    rmSync(schemaTestDir, { recursive: true, force: true });
+  });
+
+  it('migrates an older module before installing it', async () => {
+    setModuleSchemaVersion(4);
+    const commands = new CommandManager(hostPath);
+    await commands.initialize();
+    await commands.importCmd.importModule(modulePath);
+    const installed = readJsonFileSync(installedConfigPath) as {
+      schemaVersion: number;
+    };
+    expect(installed.schemaVersion).toBe(SCHEMA_VERSION);
+    commands.project.dispose();
+  });
+
+  it('refuses a module newer than the tool, before any disk change', async () => {
+    setModuleSchemaVersion(SCHEMA_VERSION + 1);
+    const commands = new CommandManager(hostPath);
+    await commands.initialize();
+    await expect(commands.importCmd.importModule(modulePath)).rejects.toThrow(
+      'Upgrade cyberismo',
+    );
+    expect(existsSync(installedConfigPath)).toBe(false);
+    commands.project.dispose();
+  });
+
+  it('refuses a module without a schema version', async () => {
+    setModuleSchemaVersion(undefined);
+    const commands = new CommandManager(hostPath);
+    await commands.initialize();
+    await expect(commands.importCmd.importModule(modulePath)).rejects.toThrow(
+      "no 'schemaVersion'",
+    );
+    commands.project.dispose();
+  });
 });

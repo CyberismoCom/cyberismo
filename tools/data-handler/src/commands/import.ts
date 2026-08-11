@@ -23,6 +23,7 @@ import {
   buildRemoteUrl,
   conflictReason,
   declaredModules,
+  ensureStagedSchemas,
   installedModules,
   installedModulesWithSources,
   resolveForApply,
@@ -127,6 +128,10 @@ export class Import {
     resolved: ResolvedModule[],
     backfill: ModuleSetting[] = [],
   ): Promise<void> {
+    // Staged trees older than the tool are migrated in place (still in
+    // staging); a newer or unversioned tree aborts before any disk change.
+    await ensureStagedSchemas(resolved);
+
     const installedBefore = await installedModulesWithSources(this.project);
     const steps = await planModuleReplays(resolved, installedBefore);
 
