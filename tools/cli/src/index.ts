@@ -38,6 +38,7 @@ import {
   validBumps,
   validContexts,
 } from '@cyberismo/data-handler';
+import { checkUpdatesSummary } from './check-updates-summary.js';
 import { ResourceTypeParser as Parser } from './resource-type-parser.js';
 import {
   startServer,
@@ -1555,19 +1556,11 @@ checkUpdatesCmd.action(
       }
     }
 
+    console.log(`\n${checkUpdatesSummary(updates).join('\n')}`);
+
     const updatable = updates.filter((m) => m.status === 'update_available');
     if (updatable.length === 0) {
-      console.log('\nAll modules are up to date.');
       return;
-    }
-
-    const blockedModules = updates.filter((m) => m.status === 'blocked');
-
-    console.log(`\n${updatable.length} module(s) have updates available.`);
-    if (blockedModules.length > 0) {
-      console.log(
-        `${blockedModules.length} module(s) are blocked — resolve conflicts before upgrading.`,
-      );
     }
 
     const shouldUpdate = await confirm({
