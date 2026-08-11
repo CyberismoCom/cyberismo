@@ -37,7 +37,6 @@ import { DEFAULT_HUB } from '@cyberismo/assets';
 
 export interface CommandManagerOptions {
   watchResourceChanges?: boolean;
-  autoSaveConfiguration?: boolean;
   logLevel?: Level;
   autocommit?: boolean;
 }
@@ -68,7 +67,6 @@ export class CommandManager {
 
   constructor(path: string, options?: CommandManagerOptions) {
     this.project = new Project(path, {
-      autoSave: options?.autoSaveConfiguration,
       watchResourceChanges: options?.watchResourceChanges,
       autocommit: options?.autocommit,
     });

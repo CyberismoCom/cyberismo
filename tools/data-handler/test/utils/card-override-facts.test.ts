@@ -85,7 +85,6 @@ describe('fieldOverride fact generation', () => {
     appendFieldCalculatedRule(projectPath);
 
     commands = new CommandManager(projectPath, {
-      autoSaveConfiguration: false,
     });
     await commands.initialize();
   });
@@ -134,7 +133,6 @@ describe('fieldOverride fact generation', () => {
     );
 
     const fresh = new CommandManager(projectPath, {
-      autoSaveConfiguration: false,
     });
     await fresh.initialize();
     const result = await fresh.project.calculationEngine.runQuery(
@@ -194,7 +192,6 @@ describe('card query: calculated value without a stored override', () => {
     appendFieldCalculatedRule(projectPath);
 
     commands = new CommandManager(projectPath, {
-      autoSaveConfiguration: false,
     });
     await commands.initialize();
   });
@@ -296,7 +293,6 @@ describe('disabling override on a calculated field that holds values', () => {
     writeFileSync(cardJsonPath, JSON.stringify(metadata, null, 4));
 
     commands = new CommandManager(projectPath, {
-      autoSaveConfiguration: false,
     });
     await commands.initialize();
   });
@@ -354,7 +350,6 @@ describe('stored value on a calculated non-overridable field is dormant', () => 
     appendFieldCalculatedRule(projectPath);
 
     commands = new CommandManager(projectPath, {
-      autoSaveConfiguration: false,
     });
     await commands.initialize();
   });
@@ -472,7 +467,6 @@ describe('fieldCalculated is ignored for a field the card type does not declare 
     writeFileSync(cardJsonPath, JSON.stringify(metadata, null, 4));
 
     commands = new CommandManager(projectPath, {
-      autoSaveConfiguration: false,
     });
     await commands.initialize();
   });

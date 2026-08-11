@@ -619,7 +619,6 @@ describe('Card cache', () => {
       decisionProjectPath = join(tempDir, 'valid', 'decision-records');
 
       commands = new CommandManager(decisionProjectPath, {
-        autoSaveConfiguration: false,
       });
       await commands.initialize();
     });

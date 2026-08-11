@@ -230,7 +230,6 @@ describe('create command', () => {
     const parentCard = 'decision_5';
     const templateName = 'decision/templates/simplepage';
     const commands = new CommandManager(decisionRecordsPath, {
-      autoSaveConfiguration: false,
     });
     await commands.initialize();
     const createdCards = await commands.createCmd.createCard(
@@ -1225,7 +1224,6 @@ describe('created cards and custom field values', () => {
     mkdirSync(testRoot, { recursive: true });
     await copyDir('test/test-data/', testRoot);
     commands = new CommandManager(projectPath, {
-      autoSaveConfiguration: false,
     });
     await commands.initialize();
   });

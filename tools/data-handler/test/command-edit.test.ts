@@ -20,7 +20,6 @@ describe('edit card', () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
     commands = new CommandManager(decisionRecordsPath, {
-      autoSaveConfiguration: false,
     });
     await commands.initialize();
     editCmd = commands.editCmd;
@@ -97,7 +96,6 @@ describe('edit card', () => {
       'valid/decision-records',
     );
     const freshCommands = new CommandManager(freshDecisionRecordsPath, {
-      autoSaveConfiguration: false,
     });
     await freshCommands.initialize();
     const freshEditCmd = freshCommands.editCmd;
@@ -121,7 +119,7 @@ describe('edit card', () => {
     await copyDir('test/test-data/', freshTestDir);
     const freshCommands = new CommandManager(
       join(freshTestDir, 'valid/decision-records'),
-      { autoSaveConfiguration: false },
+      {},
     );
     await freshCommands.initialize();
 
@@ -201,7 +199,6 @@ describe('edit card', () => {
     writeFileSync(cardTypePath, JSON.stringify(cardType));
 
     const freshCommands = new CommandManager(projectPath, {
-      autoSaveConfiguration: false,
     });
     await freshCommands.initialize();
     return { freshTestDir, freshCommands };
@@ -318,7 +315,6 @@ describe('edit card', () => {
     writeFileSync(metadataFile, JSON.stringify(metadata));
 
     const freshCommands = new CommandManager(projectPath, {
-      autoSaveConfiguration: false,
     });
     await freshCommands.initialize();
 
@@ -378,7 +374,7 @@ describe('edit card', () => {
       await copyDir('test/test-data/', clearTestDir);
       clearCommands = new CommandManager(
         join(clearTestDir, 'valid/decision-records'),
-        { autoSaveConfiguration: false },
+        {},
       );
       await clearCommands.initialize();
     });

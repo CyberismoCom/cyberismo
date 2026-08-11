@@ -630,7 +630,6 @@ describe('remove card', () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
     commands = new CommandManager(decisionRecordsPath, {
-      autoSaveConfiguration: false,
     });
     await commands.initialize();
   });
@@ -784,7 +783,6 @@ describe('remove module — spec behaviours', () => {
     expect(create.statusCode).toBe(200);
 
     const commands = new CommandManager(projectDir, {
-      autoSaveConfiguration: false,
     });
     await commands.initialize();
 
@@ -828,7 +826,6 @@ describe('remove module — spec behaviours', () => {
     expect(create.statusCode).toBe(200);
 
     const commands = new CommandManager(projectDir, {
-      autoSaveConfiguration: false,
     });
     await commands.initialize();
 
@@ -863,7 +860,6 @@ describe('remove module — spec behaviours', () => {
     expect(create.statusCode).toBe(200);
 
     const commands = new CommandManager(projectDir, {
-      autoSaveConfiguration: false,
     });
     await commands.initialize();
 
@@ -921,7 +917,6 @@ describe('remove module — spec behaviours', () => {
     expect(create.statusCode).toBe(200);
 
     const commands = new CommandManager(projectDir, {
-      autoSaveConfiguration: false,
     });
     await commands.initialize();
 

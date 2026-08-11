@@ -22,7 +22,6 @@ describe('import command — live git', () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
     commands = new CommandManager(decisionRecordsPath, {
-      autoSaveConfiguration: false,
     });
     await commands.initialize();
   });

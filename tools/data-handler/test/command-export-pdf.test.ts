@@ -18,7 +18,6 @@ describe('PDF export — AsciiDoc source assembly', () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
     commands = new CommandManager(decisionRecordsPath, {
-      autoSaveConfiguration: false,
     });
     await commands.initialize();
     exportCmd = commands.exportCmd;

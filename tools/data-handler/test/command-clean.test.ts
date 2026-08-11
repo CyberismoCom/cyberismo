@@ -22,7 +22,6 @@ describe('clean command', () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
     commands = new CommandManager(decisionRecordsPath, {
-      autoSaveConfiguration: false,
     });
     await commands.initialize();
     cleanCmd = commands.cleanCmd;
@@ -45,7 +44,6 @@ describe('clean command', () => {
     prepare?.(projectPath);
 
     const freshCommands = new CommandManager(projectPath, {
-      autoSaveConfiguration: false,
     });
     await freshCommands.initialize();
     return { freshTestDir, freshCommands };
@@ -267,7 +265,6 @@ describe('clean command', () => {
     mkdirSync(moduleTestDir, { recursive: true });
     await copyDir('test/test-data/', moduleTestDir);
     const importing = new CommandManager(join(moduleTestDir, 'valid/minimal'), {
-      autoSaveConfiguration: false,
     });
     await importing.initialize();
     try {

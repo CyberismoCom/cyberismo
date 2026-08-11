@@ -564,7 +564,6 @@ describe('module update — spec behaviours', () => {
     expect(create.statusCode).toBe(200);
 
     const commands = new CommandManager(projectDir, {
-      autoSaveConfiguration: false,
     });
     await commands.initialize();
 
@@ -612,7 +611,6 @@ describe('module update — spec behaviours', () => {
     expect(create.statusCode).toBe(200);
 
     const commands = new CommandManager(projectDir, {
-      autoSaveConfiguration: false,
     });
     await commands.initialize();
 
@@ -675,7 +673,6 @@ describe('module update — spec behaviours', () => {
     expect(create.statusCode).toBe(200);
 
     const commands = new CommandManager(projectDir, {
-      autoSaveConfiguration: false,
     });
     await commands.initialize();
 
@@ -719,7 +716,6 @@ describe('module update — spec behaviours', () => {
     makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'ovmod' });
 
     const commands = new CommandManager(projectDir, {
-      autoSaveConfiguration: false,
     });
     await commands.initialize();
     await commands.importCmd.importModule(depRoot);
@@ -756,7 +752,6 @@ describe('module update — spec behaviours', () => {
     makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'ovkmod' });
 
     const commands = new CommandManager(projectDir, {
-      autoSaveConfiguration: false,
     });
     await commands.initialize();
     await commands.importCmd.importModule(depRoot);
@@ -804,7 +799,6 @@ describe('module update — spec behaviours', () => {
     expect(create.statusCode).toBe(200);
 
     const commands = new CommandManager(projectDir, {
-      autoSaveConfiguration: false,
     });
     await commands.initialize();
 
@@ -841,7 +835,6 @@ describe('module update — spec behaviours', () => {
     expect(create.statusCode).toBe(200);
 
     const commands = new CommandManager(projectDir, {
-      autoSaveConfiguration: false,
     });
     await commands.initialize();
     await commands.importCmd.importModule(modRoot);
@@ -976,7 +969,6 @@ describe('module update — spec behaviours', () => {
     expect(create.statusCode).toBe(200);
 
     const commands = new CommandManager(projectDir, {
-      autoSaveConfiguration: false,
     });
     await commands.initialize();
     await commands.importCmd.importModule(moduleSource);

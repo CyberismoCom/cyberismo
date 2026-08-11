@@ -382,7 +382,6 @@ describe('Resource cache', () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
       commands = new CommandManager(testProjectPath, {
-        autoSaveConfiguration: false,
       });
       await commands.initialize();
     });
