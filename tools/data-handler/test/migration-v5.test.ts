@@ -31,6 +31,13 @@ const localDir = join(cardsConfigPath, 'local');
 const migrationsDir = join(localDir, 'migrations');
 const currentDir = join(migrationsDir, 'current');
 
+const moduleMigrationsDir = join(
+  cardsConfigPath,
+  'modules',
+  'base',
+  'migrations',
+);
+
 const oldSnapshot = 'migrationLog_1.0.0.jsonl';
 const lineageSeal = 'migrationLog_0.0.0_1.0.0.jsonl';
 const currentLog = 'migrationLog.jsonl';
@@ -42,6 +49,9 @@ describe('migration v5 (remove pre-replay migration log snapshots)', () => {
     writeFileSync(join(migrationsDir, oldSnapshot), '{}\n', 'utf-8');
     writeFileSync(join(migrationsDir, lineageSeal), '{}\n', 'utf-8');
     writeFileSync(join(currentDir, currentLog), '{}\n', 'utf-8');
+    mkdirSync(moduleMigrationsDir, { recursive: true });
+    writeFileSync(join(moduleMigrationsDir, oldSnapshot), '{}\n', 'utf-8');
+    writeFileSync(join(moduleMigrationsDir, lineageSeal), '{}\n', 'utf-8');
   });
 
   afterEach(() => {
@@ -68,6 +78,14 @@ describe('migration v5 (remove pre-replay migration log snapshots)', () => {
     expect(existsSync(join(migrationsDir, oldSnapshot))).toBe(false);
     expect(existsSync(join(migrationsDir, lineageSeal))).toBe(true);
     expect(existsSync(join(currentDir, currentLog))).toBe(true);
+  });
+
+  it('removes old snapshots from installed module trees too', async () => {
+    const result = await v5().migrate(ctx);
+    expect(result.success).toBe(true);
+
+    expect(existsSync(join(moduleMigrationsDir, oldSnapshot))).toBe(false);
+    expect(existsSync(join(moduleMigrationsDir, lineageSeal))).toBe(true);
   });
 
   it('reports removed files in stepsExecuted', async () => {
