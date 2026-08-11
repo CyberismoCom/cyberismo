@@ -150,7 +150,7 @@ export class Commands {
       creatingNewProject || command === Cmd.installSkills;
     if (!projectNotRequired) {
       try {
-        await this.doSetProject(options);
+        await this.doSetProject(options, command === Cmd.migrate);
       } catch (error) {
         return { statusCode: 400, message: errorFunction(error) };
       }
@@ -176,7 +176,10 @@ export class Commands {
   }
 
   // Handles initializing the project so that it can be used in the class.
-  private async doSetProject(options: AllCommandOptions) {
+  private async doSetProject(
+    options: AllCommandOptions,
+    skipSchemaVersionCheck = false,
+  ) {
     const path = options.projectPath || '';
     this.projectPath = resolveTilde(await this.setProjectPath(path));
     if (!Validate.validateFolder(this.projectPath)) {
@@ -196,15 +199,10 @@ export class Commands {
       watchResourceChanges: (options as StartCommandOptions)
         .watchResourceChanges,
       autocommit: options.autocommit,
+      skipSchemaVersionCheck,
     });
     if (!this.commands) {
       throw new Error('Cannot get instance of CommandManager');
-    }
-
-    // Check schema version and log warning if there's a mismatch
-    const versionCheck = this.commands.checkSchemaVersion();
-    if (!versionCheck.isCompatible) {
-      console.error(versionCheck.message);
     }
   }
 
