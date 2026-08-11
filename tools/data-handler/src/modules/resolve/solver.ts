@@ -200,7 +200,7 @@ async function solve(
     if (hit) return hit;
     let edges: Edge[];
     let seals: SealFile[];
-    // updateAll on an unversioned (to === null) installed module tracks a
+    // updateAll on an unversioned (v === null) installed module tracks a
     // moving source, so its transitive set may have drifted from the vendored
     // copy. Re-read from source to surface added/dropped deps; otherwise the
     // cheaper installed-config read is authoritative.
@@ -436,8 +436,8 @@ async function solve(
   const changes: Change[] = [];
   for (const [name, decision] of assign) {
     const node = nodes.get(name)!;
-    const from = node.installed; // Version | null
-    const to = decision.version; // Version | null
+    const from = node.installed;
+    const to = decision.version;
     const wasInstalled = node.path !== null;
     // An unversioned module (to === null) tracks a moving source, so its
     // refreshed config may have changed even though from === to === null —
@@ -485,7 +485,7 @@ export async function resolve(
   try {
     return (await solve(project, req, source, opts?.credentials)).result;
   } finally {
-    if (ownsSource) await source.dispose?.(); // release reused clones (no-op for fakes/file sources)
+    if (ownsSource) await source.dispose?.();
   }
 }
 
@@ -521,7 +521,7 @@ export async function resolveForApply(
       const node = nodes.get(change.module)!;
       const remoteUrl = buildRemoteUrl(node.source, opts?.credentials);
       const ref = change.to ? versionToTag(change.to) : undefined;
-      // FULL fetch — the apply path needs the whole module tree, not metadata.
+      // Full fetch — the apply path needs the whole module tree, not metadata.
       const stagedPath = await source.fetch(
         { location: node.source.location, remoteUrl, ref },
         tempDir,

@@ -40,18 +40,24 @@ export interface ConflictDemand {
 export interface ResolveConflict {
   module: string;
   demands: ConflictDemand[];
-  // Set when the sole blocker was an explicit older target. A downgrade is
-  // unreachable by replay, so it is reported as its own kind rather than
-  // collapsing into a generic "no satisfying version".
+  /**
+   * Set when the sole blocker was an explicit older target. A downgrade is
+   * unreachable by replay, so it is reported as its own kind rather than
+   * collapsing into a generic "no satisfying version".
+   */
   downgrade?: { from: Version; to: Version };
-  // Set when a version satisfying every demand on this module existed, but
-  // fell outside the module's own declared range. Unlike the other kinds this
-  // one is fixable from the project config: widening `range` admits
-  // `wouldNeed` and unblocks the resolution.
+  /**
+   * Set when a version satisfying every demand on this module existed, but
+   * fell outside the module's own declared range. Unlike the other kinds this
+   * one is fixable from the project config: widening `range` admits
+   * `wouldNeed` and unblocks the resolution.
+   */
   pinned?: { range: VersionRange; wouldNeed: Version };
-  // Set when a version satisfying every demand (and pin) existed, but the
-  // migration seal chain cannot bridge the installed version to it, so the
-  // move is unreachable by replay.
+  /**
+   * Set when a version satisfying every demand (and pin) existed, but the
+   * migration seal chain cannot bridge the installed version to it, so the
+   * move is unreachable by replay.
+   */
   nonReplayable?: { from: Version; to: Version };
 }
 export type ResolveResult =

@@ -103,7 +103,7 @@ async function buildOutOfPinFixture() {
         modules: [
           { name: 'B', location: 'https://x/B.git', version: '>=1.4.0' },
         ],
-      } as FakeModuleConfig,
+      },
     ],
     [
       'https://x/C.git@v2.0.0',
@@ -114,7 +114,7 @@ async function buildOutOfPinFixture() {
         modules: [
           { name: 'B', location: 'https://x/B.git', version: '>=1.4.0' },
         ],
-      } as FakeModuleConfig,
+      },
     ],
     [
       'https://x/B.git@v1.4.0',
@@ -123,7 +123,7 @@ async function buildOutOfPinFixture() {
         name: 'B',
         version: '1.4.0',
         modules: [],
-      } as FakeModuleConfig,
+      },
     ],
   ]);
   const available = new Map([
@@ -220,7 +220,7 @@ describe('resolve solver', () => {
           modules: [
             { name: 'B', location: 'https://x/B.git', version: '>=1.4.0' },
           ],
-        } as FakeModuleConfig,
+        },
       ],
       [
         'https://x/C.git@v1.3.0',
@@ -231,7 +231,7 @@ describe('resolve solver', () => {
           modules: [
             { name: 'B', location: 'https://x/B.git', version: '>=1.4.0' },
           ],
-        } as FakeModuleConfig,
+        },
       ],
       [
         'https://x/B.git@v1.4.0',
@@ -240,7 +240,7 @@ describe('resolve solver', () => {
           name: 'B',
           version: '1.4.0',
           modules: [],
-        } as FakeModuleConfig,
+        },
       ],
     ]);
     const available = new Map([
@@ -304,7 +304,7 @@ describe('resolve solver', () => {
           modules: [
             { name: 'B', location: 'https://x/B.git', version: '>=2.0.0' },
           ],
-        } as FakeModuleConfig,
+        },
       ],
       [
         'https://x/B.git@v2.0.0',
@@ -313,7 +313,7 @@ describe('resolve solver', () => {
           name: 'B',
           version: '2.0.0',
           modules: [],
-        } as FakeModuleConfig,
+        },
       ],
     ]);
     const available = new Map([
@@ -417,7 +417,7 @@ describe('resolve solver', () => {
           modules: [
             { name: 'B', location: 'https://x/B.git', version: '>=1.4.0' },
           ],
-        } as FakeModuleConfig,
+        },
       ],
       [
         'https://x/C.git@v2.0.0',
@@ -428,7 +428,7 @@ describe('resolve solver', () => {
           modules: [
             { name: 'B', location: 'https://x/B.git', version: '>=1.4.0' },
           ],
-        } as FakeModuleConfig,
+        },
       ],
       [
         'https://x/B.git@v1.4.0',
@@ -437,7 +437,7 @@ describe('resolve solver', () => {
           name: 'B',
           version: '1.4.0',
           modules: [],
-        } as FakeModuleConfig,
+        },
       ],
     ]);
     const available = new Map([
@@ -500,7 +500,7 @@ describe('resolve solver', () => {
           modules: [
             { name: 'B', location: 'https://x/B.git', version: '>=1.5.0' },
           ],
-        } as FakeModuleConfig,
+        },
       ],
       [
         'https://x/B.git@v1.5.0',
@@ -509,7 +509,7 @@ describe('resolve solver', () => {
           name: 'B',
           version: '1.5.0',
           modules: [],
-        } as FakeModuleConfig,
+        },
       ],
     ]);
     const available = new Map([
@@ -554,7 +554,7 @@ describe('resolve solver', () => {
           name: 'A',
           version: '1.8.0',
           modules: [],
-        } as FakeModuleConfig,
+        },
       ],
     ]);
     const available = new Map([['https://x/A.git', ['1.8.0', '1.6.0']]]);
@@ -606,7 +606,7 @@ describe('resolve solver', () => {
           name: 'R2',
           version: '1.1.0',
           modules: [],
-        } as FakeModuleConfig,
+        },
       ],
     ]);
     const available = new Map([['https://x/R2.git', ['1.1.0', '1.0.0']]]);
@@ -665,7 +665,7 @@ describe('resolve solver', () => {
           modules: [
             { name: 'D', location: 'https://x/D.git', version: '>=1.0.0' },
           ],
-        } as FakeModuleConfig,
+        },
       ],
       [
         'https://x/D.git@v1.0.0',
@@ -674,7 +674,7 @@ describe('resolve solver', () => {
           name: 'D',
           version: '1.0.0',
           modules: [],
-        } as FakeModuleConfig,
+        },
       ],
     ]);
     const available = new Map([
@@ -732,7 +732,7 @@ describe('resolve solver', () => {
           name: 'B',
           version: '1.2.0',
           modules: [],
-        } as FakeModuleConfig,
+        },
       ],
     ]);
     const available = new Map([
@@ -779,7 +779,7 @@ describe('resolve solver', () => {
           name: 'B',
           version: '1.2.0',
           modules: [],
-        } as FakeModuleConfig,
+        },
       ],
     ]);
     const available = new Map([
@@ -839,7 +839,7 @@ describe('resolve solver', () => {
           modules: [
             { name: 'B', location: 'https://x/B.git', version: '>=1.4.0' },
           ],
-        } as FakeModuleConfig,
+        },
       ],
       [
         'https://x/C.git@v1.3.0',
@@ -850,7 +850,7 @@ describe('resolve solver', () => {
           modules: [
             { name: 'B', location: 'https://x/B.git', version: '>=1.4.0' },
           ],
-        } as FakeModuleConfig,
+        },
       ],
       [
         'https://x/B.git@v1.4.0',
@@ -859,7 +859,7 @@ describe('resolve solver', () => {
           name: 'B',
           version: '1.4.0',
           modules: [],
-        } as FakeModuleConfig,
+        },
       ],
     ]);
     const available = new Map([
@@ -923,10 +923,7 @@ describe('resolve solver', () => {
     // file: location ⇒ supportsVersioning false ⇒ no available versions ⇒
     // unversioned. The fake reads readMetadata(source, null) from the bare key.
     const configs = new Map<string, FakeModuleConfig>([
-      [
-        'file:/m/F',
-        { cardKeyPrefix: 'F', name: 'F', modules: [] } as FakeModuleConfig,
-      ],
+      ['file:/m/F', { cardKeyPrefix: 'F', name: 'F', modules: [] }],
     ]);
     const source = new InMemorySource(configs, new Map(), new Map(), new Map());
 
@@ -956,12 +953,9 @@ describe('resolve solver', () => {
           cardKeyPrefix: 'F',
           name: 'F',
           modules: [{ name: 'G', location: 'file:/m/G', private: false }],
-        } as FakeModuleConfig,
+        },
       ],
-      [
-        'file:/m/G',
-        { cardKeyPrefix: 'G', name: 'G', modules: [] } as FakeModuleConfig,
-      ],
+      ['file:/m/G', { cardKeyPrefix: 'G', name: 'G', modules: [] }],
     ]);
     const source = new InMemorySource(configs, new Map(), new Map(), new Map());
 
@@ -1014,12 +1008,9 @@ describe('resolve solver', () => {
           name: 'A',
           version: '1.1.0',
           modules: [{ name: 'F', location: 'file:/m/F', private: false }],
-        } as FakeModuleConfig,
+        },
       ],
-      [
-        'file:/m/F',
-        { cardKeyPrefix: 'F', name: 'F', modules: [] } as FakeModuleConfig,
-      ],
+      ['file:/m/F', { cardKeyPrefix: 'F', name: 'F', modules: [] }],
     ]);
     const available = new Map([['https://x/A.git', ['1.1.0', '1.0.0']]]);
     const seals = new Map<string, Array<[string, string]>>([
@@ -1045,10 +1036,7 @@ describe('resolve solver', () => {
     const project = buildProjectWithModules([]);
 
     const configs = new Map<string, FakeModuleConfig>([
-      [
-        'file:/m/F',
-        { cardKeyPrefix: 'F', name: 'F', modules: [] } as FakeModuleConfig,
-      ],
+      ['file:/m/F', { cardKeyPrefix: 'F', name: 'F', modules: [] }],
     ]);
     const source = new InMemorySource(configs, new Map(), new Map(), new Map());
 
@@ -1151,7 +1139,7 @@ describe('resolve solver', () => {
           modules: [
             { name: 'B', location: 'https://x/B.git', version: '>=2.0.0' },
           ],
-        } as FakeModuleConfig,
+        },
       ],
       [
         'https://x/B.git@v2.0.0',
@@ -1160,7 +1148,7 @@ describe('resolve solver', () => {
           name: 'B',
           version: '2.0.0',
           modules: [],
-        } as FakeModuleConfig,
+        },
       ],
     ]);
     const available = new Map([

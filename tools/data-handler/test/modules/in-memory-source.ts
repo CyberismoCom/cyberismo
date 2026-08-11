@@ -12,6 +12,7 @@ import { versionToTag } from '../../src/modules/version.js';
 export interface FakeModuleConfig {
   cardKeyPrefix?: string;
   name?: string;
+  version?: string;
   modules?: Array<{
     name: string;
     location: string;
@@ -118,7 +119,7 @@ export class InMemorySource implements SourceLayer {
         ? this.configs.get(`${location}@${tag}`)
         : undefined) ??
       this.configs.get(location) ??
-      ({ cardKeyPrefix: 'unknown', modules: [] } as FakeModuleConfig);
+      ({ cardKeyPrefix: 'unknown', modules: [] } satisfies FakeModuleConfig);
     return raw as unknown as ProjectSettings;
   }
 
