@@ -25,6 +25,7 @@ import { installedModulesWithSources, declaredModules } from '../inventory.js';
 import { buildRemoteUrl } from '../remote-url.js';
 import { versionToTag } from '../version.js';
 import {
+  DEFAULT_VERSION_RANGE,
   toVersion,
   toVersionRange,
   type Source,
@@ -69,6 +70,8 @@ interface Candidates {
   pin: VersionRange | null;
   /** Whether the installed version is exempt from `pin` (pre-existing drift). */
   keepInstalled: boolean;
+  /** Whether `pin` is the assumed default, not a range written in the config. */
+  pinAssumed?: boolean;
 }
 
 /** Solver internals shared between {@link resolve} and {@link resolveForApply}. */
@@ -104,9 +107,10 @@ function toEdges(config: {
     .map((d) => ({
       name: d.name,
       source: { location: d.location, private: d.private ?? false },
-      range: toVersionRange(
-        d.version && d.version.length > 0 ? d.version : '*',
-      ),
+      range:
+        d.version && d.version.length > 0
+          ? toVersionRange(d.version)
+          : DEFAULT_VERSION_RANGE,
     }));
 }
 
@@ -257,14 +261,20 @@ async function solve(
     if (avail.length === 0)
       return { versions: [null], pin: null, keepInstalled: false };
     const newestFirst = [...avail].sort(semver.rcompare) as Version[];
+    // A root that declares no range is still bound: a missing version means
+    // 1.x, so no operation silently crosses a major. Transitives are instead
+    // constrained by their parents' edges (defaulted the same way in toEdges).
+    const pin = n.declaredRange ?? (n.isRoot ? DEFAULT_VERSION_RANGE : null);
+    const pinAssumed = pin !== null && n.declaredRange === null;
     // A declared range is a hard constraint wherever it applies, so it is
     // handed to the search instead of pre-filtered here: the DFS can then
     // report the version a pin excluded rather than collapsing into a generic
     // "no version satisfies its constraints".
     const inRange = (): Candidates => ({
       versions: newestFirst,
-      pin: n.declaredRange,
+      pin,
       keepInstalled: false,
+      pinAssumed,
     });
     // A bystander is offered its installed version first, so an update
     // disturbs the rest of the tree as little as possible, and keeps it even
@@ -275,8 +285,9 @@ async function solve(
         versions: n.installed
           ? [n.installed, ...asc.filter((v) => v !== n.installed)]
           : asc,
-        pin: n.declaredRange,
+        pin,
         keepInstalled: true,
+        pinAssumed,
       };
     };
     switch (req.kind) {
@@ -339,9 +350,9 @@ async function solve(
     if (assign.has(n.name)) return dfs(rest, assign);
     const incoming = dependentRanges(n.name, assign);
     let downgrade: { from: Version; to: Version } | undefined;
-    let pinned: { range: VersionRange; wouldNeed: Version } | undefined;
+    let pinned: ResolveConflict['pinned'];
     let nonReplayable: { from: Version; to: Version } | undefined;
-    const { versions, pin, keepInstalled } = await candidatesFor(n);
+    const { versions, pin, keepInstalled, pinAssumed } = await candidatesFor(n);
     for (const v of versions) {
       if (v !== null && !incoming.every((d) => semver.satisfies(v, d.range)))
         continue;
@@ -361,7 +372,11 @@ async function solve(
           !(n.installed && semver.lt(v, n.installed)) &&
           (!pinned || semver.lt(v, pinned.wouldNeed))
         )
-          pinned = { range: pin, wouldNeed: v };
+          pinned = {
+            range: pin,
+            wouldNeed: v,
+            ...(pinAssumed ? { assumed: true } : {}),
+          };
         continue;
       }
       // An explicit older target is a downgrade: unreachable by replay.

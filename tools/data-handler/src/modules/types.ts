@@ -52,6 +52,13 @@ export function toVersionRange(range: string): VersionRange {
   return range as VersionRange;
 }
 
+/**
+ * Range assumed for a dependency declared without a version: bound to 1.x,
+ * never floated across majors. Compat guard for configs written before
+ * version support existed.
+ */
+export const DEFAULT_VERSION_RANGE = '1.x' as VersionRange;
+
 // ---------------------------------------------------------------------------
 // Entities
 // ---------------------------------------------------------------------------

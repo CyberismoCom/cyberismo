@@ -35,7 +35,9 @@ export function conflictReason(c: ResolveConflict): string {
   // project itself can lift.
   if (c.pinned)
     parts.push(
-      `declared as '${c.pinned.range}' in this project, but ${c.pinned.wouldNeed} is needed`,
+      c.pinned.assumed
+        ? `no version declared in this project (assumed '${c.pinned.range}'), but ${c.pinned.wouldNeed} is needed`
+        : `declared as '${c.pinned.range}' in this project, but ${c.pinned.wouldNeed} is needed`,
     );
   if (c.nonReplayable)
     parts.push(

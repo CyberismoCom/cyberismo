@@ -50,9 +50,10 @@ export interface ResolveConflict {
    * Set when a version satisfying every demand on this module existed, but
    * fell outside the module's own declared range. Unlike the other kinds this
    * one is fixable from the project config: widening `range` admits
-   * `wouldNeed` and unblocks the resolution.
+   * `wouldNeed` and unblocks the resolution. `assumed` marks a range the
+   * project never wrote — the default for a declaration without a version.
    */
-  pinned?: { range: VersionRange; wouldNeed: Version };
+  pinned?: { range: VersionRange; wouldNeed: Version; assumed?: boolean };
   /**
    * Set when a version satisfying every demand (and pin) existed, but the
    * migration seal chain cannot bridge the installed version to it, so the

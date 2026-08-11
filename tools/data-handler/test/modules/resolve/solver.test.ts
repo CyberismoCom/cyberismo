@@ -1505,4 +1505,190 @@ describe('resolve solver', () => {
       );
     });
   });
+
+  describe('missing version defaults to 1.x', () => {
+    it('update: a root declared without a version stays within 1.x', async () => {
+      const project = buildProjectWithModules([
+        { name: 'A', location: 'https://x/A.git', private: false },
+      ]);
+      await installModule(project, { name: 'A', version: '1.2.0' });
+
+      const configs = new Map<string, FakeModuleConfig>([
+        [
+          'https://x/A.git@v1.6.0',
+          { cardKeyPrefix: 'A', name: 'A', version: '1.6.0', modules: [] },
+        ],
+        [
+          'https://x/A.git@v2.0.0',
+          { cardKeyPrefix: 'A', name: 'A', version: '2.0.0', modules: [] },
+        ],
+      ]);
+      const available = new Map([
+        ['https://x/A.git', ['2.0.0', '1.6.0', '1.2.0']],
+      ]);
+      // Both moves are sealed, so the assumed range is the only discriminator.
+      const seals = new Map<string, Array<[string, string]>>([
+        ['https://x/A.git@v1.6.0', [['1.2.0', '1.6.0']]],
+        ['https://x/A.git@v2.0.0', [['1.2.0', '2.0.0']]],
+      ]);
+      const source = new InMemorySource(configs, available, new Map(), seals);
+
+      const result = await resolve(
+        project,
+        { kind: 'update', module: 'A' },
+        { sourceLayer: source, tempDir: testDir },
+      );
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.changes).toHaveLength(1);
+      expect(result.changes[0]).toMatchObject({
+        module: 'A',
+        from: '1.2.0',
+        to: '1.6.0',
+      });
+    });
+
+    it('updateAll: a dependency edge without a version demands 1.x', async () => {
+      const project = buildProjectWithModules([
+        {
+          name: 'A',
+          location: 'https://x/A.git',
+          version: '^1.0.0',
+          private: false,
+        },
+      ]);
+      await installModule(project, {
+        name: 'A',
+        version: '1.0.0',
+        modules: [{ name: 'B', location: 'https://x/B.git' }],
+      });
+      await installModule(project, { name: 'B', version: '1.0.0' });
+
+      const configs = new Map<string, FakeModuleConfig>([
+        [
+          'https://x/B.git@v1.5.0',
+          { cardKeyPrefix: 'B', name: 'B', version: '1.5.0', modules: [] },
+        ],
+        [
+          'https://x/B.git@v2.0.0',
+          { cardKeyPrefix: 'B', name: 'B', version: '2.0.0', modules: [] },
+        ],
+      ]);
+      const available = new Map([
+        ['https://x/A.git', ['1.0.0']],
+        ['https://x/B.git', ['2.0.0', '1.5.0', '1.0.0']],
+      ]);
+      // Both moves are sealed, so the assumed range is the only discriminator.
+      const seals = new Map<string, Array<[string, string]>>([
+        ['https://x/B.git@v1.5.0', [['1.0.0', '1.5.0']]],
+        ['https://x/B.git@v2.0.0', [['1.0.0', '2.0.0']]],
+      ]);
+      const source = new InMemorySource(configs, available, new Map(), seals);
+
+      const result = await resolve(
+        project,
+        { kind: 'updateAll' },
+        { sourceLayer: source, tempDir: testDir },
+      );
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      const b = result.changes.find((c) => c.module === 'B');
+      expect(b).toMatchObject({ from: '1.0.0', to: '1.5.0' });
+    });
+
+    it('availability: a pin conflict names the assumed 1.x range', async () => {
+      const project = buildProjectWithModules([
+        { name: 'E', location: 'https://x/E.git', private: false },
+      ]);
+      await installModule(project, { name: 'E', version: '1.0.0' });
+
+      const configs = new Map<string, FakeModuleConfig>([
+        [
+          'https://x/E.git@v2.0.0',
+          { cardKeyPrefix: 'E', name: 'E', version: '2.0.0', modules: [] },
+        ],
+      ]);
+      const available = new Map([['https://x/E.git', ['2.0.0']]]);
+      const seals = new Map<string, Array<[string, string]>>([
+        ['https://x/E.git@v2.0.0', [['1.0.0', '2.0.0']]],
+      ]);
+      const source = new InMemorySource(configs, available, new Map(), seals);
+
+      const result = await resolve(
+        project,
+        { kind: 'availability', module: 'E' },
+        { sourceLayer: source, tempDir: testDir },
+      );
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.conflicts).toHaveLength(1);
+      expect(result.conflicts[0].pinned).toEqual({
+        range: '1.x',
+        wouldNeed: '2.0.0',
+        assumed: true,
+      });
+      expect(conflictReason(result.conflicts[0])).toContain("assumed '1.x'");
+    });
+
+    it('verify: an installed root outside the assumed 1.x is not flagged', async () => {
+      const project = buildProjectWithModules([
+        { name: 'G', location: 'https://x/G.git', private: false },
+      ]);
+      await installModule(project, { name: 'G', version: '2.0.0' });
+
+      const source = new InMemorySource(
+        new Map(),
+        new Map([['https://x/G.git', ['2.0.0']]]),
+      );
+      const result = await resolve(
+        project,
+        { kind: 'verify' },
+        { sourceLayer: source, tempDir: testDir },
+      );
+
+      expect(result).toEqual({ ok: true, changes: [] });
+    });
+
+    it('update: a bystander outside the assumed 1.x keeps its installed version', async () => {
+      const project = buildProjectWithModules([
+        {
+          name: 'A',
+          location: 'https://x/A.git',
+          version: '^1.0.0',
+          private: false,
+        },
+        { name: 'H', location: 'https://x/H.git', private: false },
+      ]);
+      await installModule(project, { name: 'A', version: '1.0.0' });
+      await installModule(project, { name: 'H', version: '2.0.0' });
+
+      const configs = new Map<string, FakeModuleConfig>([
+        [
+          'https://x/A.git@v1.1.0',
+          { cardKeyPrefix: 'A', name: 'A', version: '1.1.0', modules: [] },
+        ],
+      ]);
+      const available = new Map([
+        ['https://x/A.git', ['1.1.0', '1.0.0']],
+        ['https://x/H.git', ['2.0.0', '1.0.0']],
+      ]);
+      const seals = new Map<string, Array<[string, string]>>([
+        ['https://x/A.git@v1.1.0', [['1.0.0', '1.1.0']]],
+      ]);
+      const source = new InMemorySource(configs, available, new Map(), seals);
+
+      const result = await resolve(
+        project,
+        { kind: 'update', module: 'A' },
+        { sourceLayer: source, tempDir: testDir },
+      );
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.changes.map((c) => c.module)).toEqual(['A']);
+    });
+  });
 });
