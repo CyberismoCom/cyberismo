@@ -12,7 +12,7 @@ import {
   resolveForApply,
 } from '../../../src/modules/resolve/solver.js';
 import { conflictReason } from '../../../src/modules/resolve/format.js';
-import type { Version } from '../../../src/modules/types.js';
+import type { Version, VersionRange } from '../../../src/modules/types.js';
 import type { ModuleSetting } from '../../../src/interfaces/project-interfaces.js';
 
 const baseDir = import.meta.dirname;
@@ -1171,6 +1171,65 @@ describe('resolve solver', () => {
 
     expect(plan.ok).toBe(false);
     expect(resolved).toEqual([]);
+  });
+
+  it('add: an undemanded bystander contributes no pin frame to the refusal', async () => {
+    const project = buildProjectWithModules([
+      {
+        name: 'E',
+        location: 'https://x/E.git',
+        version: '^1.4.0',
+        private: false,
+      },
+    ]);
+    await installModule(project, {
+      name: 'E',
+      version: '1.4.0',
+      modules: [{ name: 'C', location: 'https://x/C.git', version: '1.0.0' }],
+    });
+    await installModule(project, { name: 'C', version: '1.0.0' });
+
+    const configs = new Map<string, FakeModuleConfig>([
+      [
+        'https://x/L.git@v2.0.0',
+        {
+          cardKeyPrefix: 'L',
+          name: 'L',
+          version: '2.0.0',
+          modules: [
+            { name: 'C', location: 'https://x/C.git', version: '~1.1.0' },
+          ],
+        },
+      ],
+    ]);
+    const available = new Map([
+      ['https://x/E.git', ['1.4.0', '1.0.0']],
+      ['https://x/L.git', ['2.0.0', '1.0.0']],
+      ['https://x/C.git', ['1.1.0', '1.0.0']],
+    ]);
+    const source = new InMemorySource(configs, available);
+
+    const result = await resolve(
+      project,
+      {
+        kind: 'add',
+        name: 'L',
+        source: { location: 'https://x/L.git', private: false },
+        range: '2.0.0' as VersionRange,
+      },
+      { sourceLayer: source, tempDir: testDir },
+    );
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    // C (the genuinely over-constrained dep) and L (whose pin excludes the
+    // workable 1.0.0) explain the refusal; bystander E, which nothing
+    // demanded to move, must not surface a frame.
+    expect(result.conflicts.map((c) => c.module).sort()).toEqual(['C', 'L']);
+    const c = result.conflicts.find((x) => x.module === 'C')!;
+    expect(c.demands).toHaveLength(2);
+    const l = result.conflicts.find((x) => x.module === 'L')!;
+    expect(l.pinned).toEqual({ range: '2.0.0', wouldNeed: '1.0.0' });
   });
 
   describe('refusals for a module drifted above its range', () => {

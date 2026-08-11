@@ -348,13 +348,19 @@ async function solve(
       // Only versions that satisfy every demand on this node get here, so a
       // pin block is actionable: widening the declared range would unblock the
       // tree. Keep the lowest such version — the smallest move that would work.
+      // Actionable only upward, though: a candidate below the installed
+      // version stays unreachable (downgrade) no matter the range, so it is
+      // skipped unrecorded rather than reported as a pin block.
       if (
         v !== null &&
         pin &&
         !(keepInstalled && v === n.installed) &&
         !semver.satisfies(v, pin)
       ) {
-        if (!pinned || semver.lt(v, pinned.wouldNeed))
+        if (
+          !(n.installed && semver.lt(v, n.installed)) &&
+          (!pinned || semver.lt(v, pinned.wouldNeed))
+        )
           pinned = { range: pin, wouldNeed: v };
         continue;
       }
