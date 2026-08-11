@@ -25,6 +25,28 @@ For example, migrating from version 1 to version 3 would:
 3. Execute migration in `3/index.ts` (v2 → v3)
 4. Update project schemaVersion to 3
 
+## Migration scope
+
+A migration owns the **entire** `.cards` tree it is given:
+
+- `.cards/local/` — the project's own resources.
+- `.cards/modules/<prefix>/` — every installed module. Installed module
+  content is always at the same schema level as the project, and
+  `cyberismo migrate` is the only thing that moves it forward, so a
+  structural change must be applied to installed module trees too.
+
+The same script also runs against *staged module checkouts* during
+`cyberismo import module` / `cyberismo update modules`: a module released
+at an older schema version is migrated in the staging directory before its
+resources are copied into the project. Only the `migrate` step runs there
+(no `before`/`backup`/`after`). Therefore:
+
+- Do not assume the tree is the host project.
+- Tolerate a missing `cardRoot` — staged file-source modules stage only
+  the resources folder.
+- Migrations must be structural and idempotent: they transform file
+  layout and format, never project-specific content.
+
 ## Creating a new migration
 
 ### 1. Generate migration scaffolding
