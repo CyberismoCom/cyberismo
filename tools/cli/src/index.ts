@@ -38,7 +38,10 @@ import {
   validBumps,
   validContexts,
 } from '@cyberismo/data-handler';
-import { checkUpdatesSummary } from './check-updates-summary.js';
+import {
+  checkUpdatesRow,
+  checkUpdatesSummary,
+} from './check-updates-summary.js';
 import { ResourceTypeParser as Parser } from './resource-type-parser.js';
 import {
   startServer,
@@ -1512,48 +1515,7 @@ checkUpdatesCmd.action(
 
     // Display summary
     for (const mod of updates) {
-      switch (mod.status) {
-        case 'up_to_date':
-          console.log(
-            mod.isGitModule
-              ? `  ${mod.name}    ${mod.installedVersion ?? 'unknown'}  (up to date)`
-              : `  ${mod.name}    (local module)`,
-          );
-          break;
-        case 'update_available': {
-          const cascadeOthers = (mod.cascade ?? [])
-            .filter((c) => c.module !== mod.name)
-            .map((c) => c.module);
-          const cascadeSuffix =
-            cascadeOthers.length > 0
-              ? `  (also updates: ${cascadeOthers.join(', ')})`
-              : '';
-          console.log(
-            `  ${mod.name}    ${mod.installedVersion ?? 'unversioned'}  →  ${mod.reachableVersion}${cascadeSuffix}`,
-          );
-          break;
-        }
-        case 'blocked': {
-          // Name the module each reason belongs to: the blocker is often a
-          // transitive dep, not the row being reported.
-          const reasons = (mod.conflicts ?? [])
-            .map((c) => `${c.module}: ${c.reason}`)
-            .join('; ');
-          console.log(
-            `  ${mod.name}    blocked${reasons ? `  ${reasons}` : ''}`,
-          );
-          break;
-        }
-        case 'source_unreachable':
-          console.log(`  ${mod.name}    (source unreachable)`);
-          break;
-        default: {
-          // A status this renderer has not been taught must still appear in
-          // the listing rather than vanishing from it.
-          const unhandled: never = mod.status;
-          console.log(`  ${mod.name}    (${String(unhandled)})`);
-        }
-      }
+      console.log(checkUpdatesRow(mod));
     }
 
     console.log(`\n${checkUpdatesSummary(updates).join('\n')}`);
