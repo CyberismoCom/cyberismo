@@ -11,13 +11,17 @@
   program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import semver from 'semver';
+
 import { read } from '../utils/rw-lock.js';
 import {
+  buildRemoteUrl,
   conflictReason,
   declaredModules,
   installedModules,
   createSourceLayer,
   isGitLocation,
+  pickVersion,
   resolve,
 } from '../modules/index.js';
 import { getChildLogger } from '../utils/log-utils.js';
@@ -27,7 +31,10 @@ import type {
   ModuleUpdateStatus,
 } from '../interfaces/project-interfaces.js';
 import type { Project } from '../containers/project.js';
-import type { ModuleInstallation } from '../modules/types.js';
+import type {
+  ModuleDeclaration,
+  ModuleInstallation,
+} from '../modules/types.js';
 import type { SourceLayer } from '../modules/source.js';
 
 /**
@@ -128,10 +135,17 @@ export class CheckUpdates {
           }
 
           const own = plan.changes.find((c) => c.module === decl.name);
+          const latestAvailable = await latestBeyondRange(
+            sourceLayer,
+            decl,
+            own?.to ?? installedVersion,
+            credentials,
+          );
           if (!own) {
             return {
               ...base,
               status: 'up_to_date',
+              ...(latestAvailable ? { latestAvailable } : {}),
             } satisfies ModuleUpdateStatus;
           }
 
@@ -144,6 +158,7 @@ export class CheckUpdates {
               from: c.from,
               to: c.to,
             })),
+            ...(latestAvailable ? { latestAvailable } : {}),
           } satisfies ModuleUpdateStatus;
         }),
       );
@@ -152,5 +167,39 @@ export class CheckUpdates {
     } finally {
       if (ownsSource) await sourceLayer.dispose?.();
     }
+  }
+}
+
+/**
+ * Newest remote version the declared range excludes — the informational
+ * "held back" annotation for a successfully resolved row. A raw remote fact,
+ * deliberately not solve-derived: it must fire even though staying put is a
+ * valid solve. Best-effort — any listing failure yields undefined rather
+ * than demoting a healthy row.
+ */
+async function latestBeyondRange(
+  sourceLayer: SourceLayer,
+  decl: ModuleDeclaration,
+  baseline: string | undefined,
+  credentials?: Credentials,
+): Promise<{ version: string; range: string } | undefined> {
+  if (!decl.versionRange || !baseline) return undefined;
+  if (!isGitLocation(decl.source.location)) return undefined;
+  try {
+    const listed = await sourceLayer.listRemoteVersions(
+      decl.source.location,
+      buildRemoteUrl(decl.source, credentials),
+    );
+    const latest = pickVersion(listed);
+    if (
+      !latest ||
+      semver.satisfies(latest, decl.versionRange) ||
+      !semver.gt(latest, baseline)
+    ) {
+      return undefined;
+    }
+    return { version: latest, range: decl.versionRange };
+  } catch {
+    return undefined;
   }
 }

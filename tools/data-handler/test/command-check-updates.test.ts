@@ -351,4 +351,126 @@ describe('check-updates', () => {
     expect(statuses).toHaveLength(1);
     expect(statuses[0].name).toBe('base');
   });
+
+  describe('latestAvailable annotation', () => {
+    it('surfaces the absolute latest when an exact pin blocks auto-update', async () => {
+      const location = 'https://example.com/base.git';
+      const project = buildProjectWithModules([
+        { name: 'base', location, version: '1.0.0', private: false },
+      ]);
+      installModule(project, { name: 'base', version: '1.0.0' });
+
+      const available = new Map([[location, ['2.0.0', '1.0.0']]]);
+      const source = new InMemorySource(new Map(), available);
+
+      const [status] = await new CheckUpdates(project, source).checkUpdates();
+
+      expect(status.status).toBe('up_to_date');
+      expect(status.latestAvailable).toEqual({
+        version: '2.0.0',
+        range: '1.0.0',
+      });
+    });
+
+    it('coexists with update_available when a newer major sits outside the range', async () => {
+      const location = 'https://example.com/base.git';
+      const project = buildProjectWithModules([
+        { name: 'base', location, version: '^1.0.0', private: false },
+      ]);
+      installModule(project, { name: 'base', version: '1.0.0' });
+
+      const configs = new Map<string, FakeModuleConfig>([
+        [
+          `${location}@v1.1.0`,
+          { name: 'base', cardKeyPrefix: 'base', modules: [] },
+        ],
+      ]);
+      const available = new Map([[location, ['2.0.0', '1.1.0', '1.0.0']]]);
+      const seals = new Map([
+        [`${location}@v1.1.0`, [['1.0.0', '1.1.0'] as [string, string]]],
+      ]);
+      const source = new InMemorySource(configs, available, new Map(), seals);
+
+      const [status] = await new CheckUpdates(project, source).checkUpdates();
+
+      expect(status.status).toBe('update_available');
+      expect(status.reachableVersion).toBe('1.1.0');
+      expect(status.latestAvailable).toEqual({
+        version: '2.0.0',
+        range: '^1.0.0',
+      });
+    });
+
+    it('stays silent when the latest is in range but blocked by replay', async () => {
+      const location = 'https://example.com/base.git';
+      const project = buildProjectWithModules([
+        { name: 'base', location, version: '^1.0.0', private: false },
+      ]);
+      installModule(project, { name: 'base', version: '1.0.0' });
+
+      // 1.1.0 satisfies the range but ships no seal bridging 1.0.0 → 1.1.0.
+      const configs = new Map<string, FakeModuleConfig>([
+        [
+          `${location}@v1.1.0`,
+          { name: 'base', cardKeyPrefix: 'base', modules: [] },
+        ],
+      ]);
+      const available = new Map([[location, ['1.1.0', '1.0.0']]]);
+      const source = new InMemorySource(configs, available);
+
+      const [status] = await new CheckUpdates(project, source).checkUpdates();
+
+      expect(status.status).toBe('up_to_date');
+      expect(status.latestAvailable).toBeUndefined();
+    });
+
+    it('stays silent when the declaration carries no range', async () => {
+      const location = 'https://example.com/base.git';
+      const project = buildProjectWithModules([
+        { name: 'base', location, private: false },
+      ]);
+      installModule(project, { name: 'base', version: '1.0.0' });
+
+      const configs = new Map<string, FakeModuleConfig>([
+        [
+          `${location}@v2.0.0`,
+          { name: 'base', cardKeyPrefix: 'base', modules: [] },
+        ],
+      ]);
+      const available = new Map([[location, ['2.0.0', '1.0.0']]]);
+      const source = new InMemorySource(configs, available);
+
+      const [status] = await new CheckUpdates(project, source).checkUpdates();
+
+      expect(status.status).toBe('up_to_date');
+      expect(status.latestAvailable).toBeUndefined();
+    });
+
+    it('a listing failure during annotation never demotes a healthy row', async () => {
+      const location = 'https://example.com/base.git';
+      const project = buildProjectWithModules([
+        { name: 'base', location, version: '1.0.0', private: false },
+      ]);
+      installModule(project, { name: 'base', version: '1.0.0' });
+
+      const available = new Map([[location, ['2.0.0', '1.0.0']]]);
+      const source = new InMemorySource(new Map(), available);
+      // The solve's own listing (first call) succeeds; the annotation's
+      // re-listing afterwards fails. The row must stay up_to_date.
+      const original = source.listRemoteVersions.bind(source);
+      let calls = 0;
+      vi.spyOn(source, 'listRemoteVersions').mockImplementation(
+        async (loc, url) => {
+          calls += 1;
+          if (calls > 1) throw new Error('remote went away');
+          return original(loc, url);
+        },
+      );
+
+      const [status] = await new CheckUpdates(project, source).checkUpdates();
+
+      expect(status.status).toBe('up_to_date');
+      expect(status.latestAvailable).toBeUndefined();
+    });
+  });
 });

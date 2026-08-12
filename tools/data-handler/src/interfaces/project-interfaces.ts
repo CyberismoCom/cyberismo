@@ -248,6 +248,9 @@ export interface ModuleUpdateStatus {
   cascade?: { module: string; from: string | null; to: string | null }[];
   // Conflicts that prevent the update (set when status === 'blocked').
   conflicts?: { module: string; reason: string }[];
+  // Newest remote version the declared range excludes (informational; set on
+  // up_to_date / update_available rows when the remote has moved past the range).
+  latestAvailable?: { version: string; range: string };
 }
 
 // Resources that are possible to remove.
