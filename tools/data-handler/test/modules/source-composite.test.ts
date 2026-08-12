@@ -11,11 +11,10 @@ describe('modules/source-composite', () => {
     vi.restoreAllMocks();
   });
 
-  it('createSourceLayer exposes fetch / listRemoteVersions / queryRemote', () => {
+  it('createSourceLayer exposes fetch / listRemoteVersions', () => {
     const layer = createSourceLayer();
     expect(typeof layer.fetch).toBe('function');
     expect(typeof layer.listRemoteVersions).toBe('function');
-    expect(typeof layer.queryRemote).toBe('function');
   });
 
   it('dispatches file: URLs to the file layer (no git involvement)', async () => {
@@ -62,38 +61,6 @@ describe('modules/source-composite', () => {
     expect(gitSpy).not.toHaveBeenCalled();
   });
 
-  it('queryRemote on a file: source is reachable with no versions', async () => {
-    const layer = createSourceLayer();
-
-    const outcome = await layer.queryRemote({
-      location: 'file:/tmp/whatever',
-      private: false,
-    });
-    expect(outcome).toEqual({
-      reachable: true,
-      latest: undefined,
-      latestSatisfying: undefined,
-    });
-  });
-
-  it('queryRemote on a git source delegates to the git layer', async () => {
-    vi.spyOn(GitManager, 'listRemoteVersionTags').mockResolvedValue([
-      '2.0.0',
-      '1.0.0',
-    ]);
-    const layer = createSourceLayer();
-
-    const outcome = await layer.queryRemote(
-      { location: 'https://example.com/repo.git', private: false },
-      { range: '^1.0.0' },
-    );
-    expect(outcome).toEqual({
-      reachable: true,
-      latest: '2.0.0',
-      latestSatisfying: '1.0.0',
-    });
-  });
-
   it('picks the first matching route', async () => {
     // Build an explicit composite where a fake "always matches" route
     // shadows the default file/git layers.
@@ -105,7 +72,6 @@ describe('modules/source-composite', () => {
           fetch: async () => 'custom',
           supportsVersioning: () => true,
           listRemoteVersions: async () => sentinel,
-          queryRemote: async () => ({ reachable: true }),
           readMetadata: async () => {
             throw new Error('readMetadata not used in this test');
           },

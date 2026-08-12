@@ -26,15 +26,14 @@ import { readModuleConfig } from '../containers/project/cards-config.js';
 
 import { isFileLocation, stripFileProtocol } from './location.js';
 import type { FetchTarget, SourceLayer } from './source.js';
-import type { RemoteQueryOutcome, Source } from './types.js';
+import type { Source } from './types.js';
 import type { ProjectSettings } from '../interfaces/project-interfaces.js';
 
 /**
  * Source layer for `file:` URLs and bare filesystem paths.
  *
  * File sources do not support versioning: `supportsVersioning` returns
- * `false`, `listRemoteVersions` returns `[]`, and `queryRemote` always
- * reports `reachable: true` with no version information. `fetch` stages
+ * `false` and `listRemoteVersions` returns `[]`. `fetch` stages
  * the referenced project's resources into `destRoot/<nameHint>/.cards/local/`
  * so the applier can treat every staged module uniformly — there is no
  * longer a "live checkout" path that must not be touched. Only the
@@ -92,14 +91,6 @@ export class FileSourceLayer implements SourceLayer {
 
   async listRemoteVersions(): Promise<string[]> {
     return [];
-  }
-
-  async queryRemote(): Promise<RemoteQueryOutcome> {
-    return {
-      reachable: true,
-      latest: undefined,
-      latestSatisfying: undefined,
-    };
   }
 
   async readMetadata(

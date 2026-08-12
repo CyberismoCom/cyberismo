@@ -29,14 +29,9 @@ import {
   parseSealFileName,
   type SealFile,
 } from '../mutations/replay/seal-files.js';
-import { pickVersion, versionToTag } from './version.js';
+import { versionToTag } from './version.js';
 import type { FetchTarget, SourceLayer } from './source.js';
-import type {
-  RemoteQueryOutcome,
-  Source,
-  Version,
-  VersionRange,
-} from './types.js';
+import type { Source, Version } from './types.js';
 import type { ProjectSettings } from '../interfaces/project-interfaces.js';
 
 function cloneOptions(ref?: string): string[] {
@@ -113,34 +108,6 @@ export class GitSourceLayer implements SourceLayer {
     remoteUrl?: string,
   ): Promise<string[]> {
     return GitManager.listRemoteVersionTags(remoteUrl ?? location);
-  }
-
-  async queryRemote(
-    source: Source,
-    options?: { remoteUrl?: string; range?: VersionRange | string },
-  ): Promise<RemoteQueryOutcome> {
-    let available: string[];
-    try {
-      available = await this.listRemoteVersions(
-        source.location,
-        options?.remoteUrl,
-      );
-    } catch {
-      // Any failure reaching the remote becomes an unreachable outcome.
-      return { reachable: false };
-    }
-
-    const latest = pickVersion(available);
-    const latestSatisfying =
-      options?.range !== undefined
-        ? pickVersion(available, options.range)
-        : undefined;
-
-    return {
-      reachable: true,
-      latest,
-      latestSatisfying,
-    };
   }
 
   // Per-repo blobless clones reused across readMetadata calls.

@@ -13,12 +13,7 @@
 */
 
 import type { FetchTarget, SourceLayer } from './source.js';
-import type {
-  RemoteQueryOutcome,
-  Source,
-  Version,
-  VersionRange,
-} from './types.js';
+import type { Source, Version } from './types.js';
 import type { SealFile } from '../mutations/replay/seal-files.js';
 import type { ProjectSettings } from '../interfaces/project-interfaces.js';
 
@@ -68,13 +63,6 @@ export class CompositeSourceLayer implements SourceLayer {
     remoteUrl?: string,
   ): Promise<string[]> {
     return this.pick(location).listRemoteVersions(location, remoteUrl);
-  }
-
-  async queryRemote(
-    source: Source,
-    options?: { remoteUrl?: string; range?: VersionRange | string },
-  ): Promise<RemoteQueryOutcome> {
-    return this.pick(source.location).queryRemote(source, options);
   }
 
   async readMetadata(

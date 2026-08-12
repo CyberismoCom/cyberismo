@@ -27,7 +27,6 @@ export type {
   InstallationRef,
   ModuleDeclaration,
   ModuleInstallation,
-  RemoteQueryOutcome,
   Source,
   Version,
   VersionRange,

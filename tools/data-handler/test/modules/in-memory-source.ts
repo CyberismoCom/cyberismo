@@ -98,10 +98,6 @@ export class InMemorySource implements SourceLayer {
     return this.availableByLocation.get(location) ?? [];
   }
 
-  async queryRemote(): Promise<never> {
-    throw new Error('queryRemote not used in tests');
-  }
-
   async readMetadata(
     source: Source,
     version: Version | null,

@@ -52,16 +52,6 @@ export function toVersionRange(range: string): VersionRange {
   return range as VersionRange;
 }
 
-/**
- * Outcome of querying a remote for available versions. Tolerant: when the
- * remote is unreachable, `reachable` is false and the version fields are absent.
- */
-export interface RemoteQueryOutcome {
-  reachable: boolean;
-  latest?: Version;
-  latestSatisfying?: Version;
-}
-
 // ---------------------------------------------------------------------------
 // Entities
 // ---------------------------------------------------------------------------
