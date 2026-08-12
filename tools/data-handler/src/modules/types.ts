@@ -52,16 +52,6 @@ export function toVersionRange(range: string): VersionRange {
   return range as VersionRange;
 }
 
-/**
- * Outcome of querying a remote for available versions. Tolerant: when the
- * remote is unreachable, `reachable` is false and the version fields are absent.
- */
-export interface RemoteQueryOutcome {
-  reachable: boolean;
-  latest?: Version;
-  latestSatisfying?: Version;
-}
-
 // ---------------------------------------------------------------------------
 // Entities
 // ---------------------------------------------------------------------------
@@ -109,36 +99,4 @@ export interface ModuleInstallation {
 
 /** Per-module status emitted by `CheckUpdates`. */
 export type CheckStatus =
-  | 'up_to_date'
-  | 'update_available'
-  | 'range_blocks_update'
-  | 'range_unsatisfiable'
-  | 'source_unreachable'
-  | 'drifted';
-
-/** Read-only per-module report produced by `CheckUpdates`. */
-export interface ModuleCheckReport {
-  project: string;
-  declaration: ModuleDeclaration;
-  installation?: ModuleInstallation;
-  latestVersion?: Version;
-  latestSatisfying?: Version;
-  status: CheckStatus;
-}
-
-// ---------------------------------------------------------------------------
-// Transitive resolution diagnostics
-// ---------------------------------------------------------------------------
-
-/**
- * Emitted by the resolver when a later transitive declaration's range rejects
- * a version already chosen for the same name. First resolution wins; the
- * conflict surfaces as a structured event instead of aborting.
- */
-export interface DiamondVersionConflict {
-  project: string;
-  name: string;
-  installedVersion: { kind: 'pinned'; value: Version };
-  rejectingRange: VersionRange;
-  rejectingParent?: InstallationRef;
-}
+  'up_to_date' | 'update_available' | 'blocked' | 'source_unreachable';

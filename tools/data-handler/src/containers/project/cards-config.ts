@@ -13,6 +13,7 @@
 */
 
 import { readJsonFile, readJsonFileSync } from '../../utils/json.js';
+import { ProjectPaths } from './project-paths.js';
 
 import type { ProjectSettings } from '../../interfaces/project-interfaces.js';
 
@@ -56,6 +57,19 @@ export async function readCardsConfig(
   const settings = (await readJsonFile(configPath)) as
     ProjectSettings | undefined;
   return validate(settings, configPath);
+}
+
+/**
+ * Read a fetched or installed module's `cardsConfig.json` from its base
+ * directory, resolving the path that {@link readCardsConfig} expects.
+ *
+ * @throws if the file does not exist or is empty, or if any name fails
+ *         filesystem-safety validation.
+ */
+export async function readModuleConfig(
+  basePath: string,
+): Promise<ProjectSettings> {
+  return readCardsConfig(new ProjectPaths(basePath).configurationFile);
 }
 
 /** Synchronous variant of {@link readCardsConfig}. */

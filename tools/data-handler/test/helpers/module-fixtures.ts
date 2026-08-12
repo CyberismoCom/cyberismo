@@ -22,11 +22,6 @@ import type { Project } from '../../src/containers/project.js';
 import { isGitLocation } from '../../src/modules/location.js';
 import type { FetchTarget, SourceLayer } from '../../src/modules/source.js';
 import type { ModuleSetting } from '../../src/interfaces/project-interfaces.js';
-import type {
-  RemoteQueryOutcome,
-  Source,
-  VersionRange,
-} from '../../src/modules/types.js';
 
 // ---------------------------------------------------------------------------
 // Fake on-disk module fixture.
@@ -113,14 +108,6 @@ export interface InMemorySourceOptions {
    * by the "fetch reuse" tests that assert call counts.
    */
   onFetch?: (target: FetchTarget) => void;
-  /**
-   * Override `queryRemote`. Defaults to always-reachable which is what
-   * the existing integration tests need.
-   */
-  queryRemote?: (
-    source: Source,
-    options?: { remoteUrl?: string; range?: VersionRange | string },
-  ) => Promise<RemoteQueryOutcome>;
 }
 
 /**
@@ -129,12 +116,7 @@ export interface InMemorySourceOptions {
  * command-import integration tests.
  */
 export function inMemorySource(opts: InMemorySourceOptions): SourceLayer {
-  const {
-    configs,
-    availableByLocation,
-    onFetch,
-    queryRemote = async () => ({ reachable: true }),
-  } = opts;
+  const { configs, availableByLocation, onFetch } = opts;
 
   return {
     async fetch(target, destRoot, nameHint) {
@@ -155,7 +137,6 @@ export function inMemorySource(opts: InMemorySourceOptions): SourceLayer {
     async listRemoteVersions(location) {
       return availableByLocation.get(location) ?? [];
     },
-    queryRemote,
     async readMetadata() {
       throw new Error('readMetadata not implemented in inMemorySource stub');
     },

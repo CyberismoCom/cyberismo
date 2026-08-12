@@ -48,8 +48,8 @@
     },
     "version": {
       "type": "string",
-      "description": "Project version (semver)",
-      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"
+      "description": "Project version (semver). An empty string means unversioned, same as omitting the field.",
+      "pattern": "^$|^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"
     },
     "modules": {
       "description": "List of modules that have been included in the project",

@@ -16,12 +16,7 @@ import { isGitLocation } from './location.js';
 import { CompositeSourceLayer } from './source-composite.js';
 import { FileSourceLayer } from './source-file.js';
 import { GitSourceLayer } from './source-git.js';
-import {
-  type RemoteQueryOutcome,
-  type Source,
-  type Version,
-  type VersionRange,
-} from './types.js';
+import { type Source, type Version } from './types.js';
 import type { ProjectSettings } from '../interfaces/project-interfaces.js';
 import type { SealFile } from '../mutations/replay/seal-files.js';
 
@@ -55,15 +50,6 @@ export interface SourceLayer {
 
   /** Remote version tags in descending semver order; `[]` for file sources. */
   listRemoteVersions(location: string, remoteUrl?: string): Promise<string[]>;
-
-  /**
-   * Query a remote for available versions. Always resolves: transient
-   * failures yield `{ reachable: false }` rather than throwing.
-   */
-  queryRemote(
-    source: Source,
-    options?: { remoteUrl?: string; range?: VersionRange | string },
-  ): Promise<RemoteQueryOutcome>;
 
   /**
    * Read a version's manifest + seal filenames WITHOUT a full checkout.

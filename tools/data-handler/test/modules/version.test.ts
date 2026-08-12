@@ -6,7 +6,6 @@ import {
   validateVersionAgainstConstraints,
   versionToTag,
 } from '../../src/modules/version.js';
-import { toVersionRange } from '../../src/modules/types.js';
 
 describe('modules/version', () => {
   describe('tag helpers', () => {
@@ -28,25 +27,15 @@ describe('modules/version', () => {
   describe('pickVersion', () => {
     it('returns undefined for an empty list', () => {
       expect(pickVersion([])).toBeUndefined();
-      expect(pickVersion([], toVersionRange('^1.0.0'))).toBeUndefined();
     });
 
-    it('returns the highest version when no range is given', () => {
+    it('returns the highest version', () => {
       expect(pickVersion(['2.0.0', '1.5.0', '1.0.0'])).toBe('2.0.0');
     });
 
-    it('returns the highest version satisfying the range', () => {
-      expect(
-        pickVersion(['2.0.0', '1.5.0', '1.0.0'], toVersionRange('^1.0.0')),
-      ).toBe('1.5.0');
-    });
-
-    it('returns undefined when nothing satisfies the range', () => {
-      expect(pickVersion(['2.0.0'], toVersionRange('^3.0.0'))).toBeUndefined();
-    });
-
-    it('accepts a raw string range (callers not yet branded)', () => {
-      expect(pickVersion(['1.2.3', '1.2.4'], '~1.2.0')).toBe('1.2.4');
+    it('ignores entries that are not valid semver', () => {
+      expect(pickVersion(['not-a-version', '1.5.0'])).toBe('1.5.0');
+      expect(pickVersion(['not-a-version'])).toBeUndefined();
     });
   });
 

@@ -23,7 +23,7 @@ import type { ConfigurationLogEntry } from '../../../src/utils/configuration-log
 import type { ModuleInstallation } from '../../../src/modules/types.js';
 import type { Project } from '../../../src/containers/project.js';
 import type { ReplayStep } from '../../../src/mutations/replay/replay.js';
-import type { ResolvedModule } from '../../../src/modules/resolver.js';
+import type { ResolvedModule } from '../../../src/modules/resolve/types.js';
 
 const tmpDir = join(import.meta.dirname, 'tmp-replay-test');
 

@@ -38,6 +38,10 @@ import {
   validBumps,
   validContexts,
 } from '@cyberismo/data-handler';
+import {
+  checkUpdatesRow,
+  checkUpdatesSummary,
+} from './check-updates-summary.js';
 import { ResourceTypeParser as Parser } from './resource-type-parser.js';
 import {
   startServer,
@@ -1511,60 +1515,25 @@ checkUpdatesCmd.action(
 
     // Display summary
     for (const mod of updates) {
-      if (mod.updateAvailable) {
-        const from = mod.installedVersion || 'unversioned';
-        const blocked = mod.constraintBlocksUpdate
-          ? `  (constraint "${mod.versionConstraint}" blocks auto-update)`
-          : '';
-        console.log(
-          `  ${mod.name}    ${from}  →  ${mod.latestVersion}${blocked}`,
-        );
-      } else if (!mod.isGitModule) {
-        console.log(`  ${mod.name}    (local module, skipped)`);
-      } else if (mod.noMatchingVersion) {
-        console.log(
-          `  ${mod.name}    (no version matches constraint ${mod.versionConstraint})`,
-        );
-      } else if (mod.availableVersions.length === 0) {
-        console.log(
-          `  ${mod.name}    ${mod.installedVersion || 'unknown'}  (no version tags)`,
-        );
-      } else {
-        console.log(
-          `  ${mod.name}    ${mod.installedVersion || 'unknown'}  (up to date)`,
-        );
-      }
+      console.log(checkUpdatesRow(mod));
     }
 
-    const updatable = updates.filter((m) => m.updateAvailable);
+    console.log(`\n${checkUpdatesSummary(updates).join('\n')}`);
+
+    const updatable = updates.filter((m) => m.status === 'update_available');
     if (updatable.length === 0) {
-      console.log('\nAll modules are up to date.');
-      return;
-    }
-
-    const autoUpdatable = updatable.filter((m) => !m.constraintBlocksUpdate);
-    const blocked = updatable.filter((m) => m.constraintBlocksUpdate);
-
-    console.log(`\n${updatable.length} module(s) have updates available.`);
-    if (blocked.length > 0) {
-      console.log(
-        `${blocked.length} module(s) are blocked by version constraints — edit the constraint in cardsConfig.json to upgrade.`,
-      );
-    }
-
-    if (autoUpdatable.length === 0) {
       return;
     }
 
     const shouldUpdate = await confirm({
-      message: `Apply ${autoUpdatable.length} available update(s)?`,
+      message: `Apply ${updatable.length} available update(s)?`,
     });
     if (shouldUpdate) {
       // Every successful update reports the same project-wide state, so the
       // last note is printed once after the loop instead of per module.
       let note: string | undefined;
-      for (const mod of autoUpdatable) {
-        const target = mod.latestSatisfyingConstraint ?? mod.latestVersion!;
+      for (const mod of updatable) {
+        const target = mod.reachableVersion!;
         const updateResult = await commandHandler.command(
           Cmd.updateModules,
           [mod.name, target],

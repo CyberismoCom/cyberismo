@@ -48,32 +48,6 @@ describe('modules/source-file', () => {
     expect(versions).toEqual([]);
   });
 
-  it('queryRemote on a file: source is reachable with no versions', async () => {
-    const layer: SourceLayer = new FileSourceLayer();
-    const outcome = await layer.queryRemote({
-      location: 'file:/tmp/whatever',
-      private: false,
-    });
-    expect(outcome).toEqual({
-      reachable: true,
-      latest: undefined,
-      latestSatisfying: undefined,
-    });
-  });
-
-  it('queryRemote ignores range for a file: source', async () => {
-    const layer: SourceLayer = new FileSourceLayer();
-    const outcome = await layer.queryRemote(
-      { location: 'file:/tmp/whatever', private: false },
-      { range: '^1.0.0' },
-    );
-    expect(outcome).toEqual({
-      reachable: true,
-      latest: undefined,
-      latestSatisfying: undefined,
-    });
-  });
-
   it('fetch on a file: source stages the resources subfolder and leaves the original untouched', async () => {
     const layer: SourceLayer = new FileSourceLayer();
     const destRoot = join(tmpRoot, 'file-dest');
