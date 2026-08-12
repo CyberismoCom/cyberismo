@@ -14,7 +14,7 @@
 
 import semver from 'semver';
 
-import { toVersion, type Version, type VersionRange } from './types.js';
+import { toVersion, type Version } from './types.js';
 
 /** Pure semver helpers used by the module system. */
 
@@ -31,22 +31,12 @@ export function stripTagPrefix(tag: string): string {
   return tag.startsWith(TAG_PREFIX) ? tag.substring(TAG_PREFIX.length) : tag;
 }
 
-/** Pick the highest version from `available` that satisfies `range`. */
-export function pickVersion(
-  available: string[],
-  range?: VersionRange | string,
-): Version | undefined {
-  if (available.length === 0) {
-    return undefined;
-  }
-  if (range === undefined) {
-    const sorted = [...available]
-      .filter((candidate) => semver.valid(candidate) !== null)
-      .sort(semver.rcompare);
-    const best = sorted[0];
-    return best ? toVersion(best) : undefined;
-  }
-  const best = semver.maxSatisfying(available, range);
+/** Pick the highest valid semver version from `available`. */
+export function pickVersion(available: string[]): Version | undefined {
+  const sorted = available
+    .filter((candidate) => semver.valid(candidate) !== null)
+    .sort(semver.rcompare);
+  const best = sorted[0];
   return best ? toVersion(best) : undefined;
 }
 
