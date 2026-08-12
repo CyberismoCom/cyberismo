@@ -268,6 +268,108 @@ describe('resolve solver', () => {
     ).toEqual({ A: '1.8.0', B: '1.4.0', C: '1.3.0' });
   });
 
+  it('a forced bystander moves the smallest step that works', async () => {
+    // Both C 1.3.0 and C 1.5.0 tolerate B 1.4.0 and sit inside C's own pin, so
+    // the cascade has a choice. It has to take 1.3.0 — the least disturbance to
+    // a module the user never asked to move.
+    const project = buildProjectWithModules([
+      {
+        name: 'A',
+        location: 'https://x/A.git',
+        version: '^1.0.0',
+        private: false,
+      },
+      {
+        name: 'C',
+        location: 'https://x/C.git',
+        version: '^1.0.0',
+        private: false,
+      },
+    ]);
+    await installModule(project, {
+      name: 'A',
+      version: '1.6.0',
+      modules: [{ name: 'B', location: 'https://x/B.git', version: '>=1.3.0' }],
+    });
+    await installModule(project, {
+      name: 'C',
+      version: '1.2.0',
+      modules: [{ name: 'B', location: 'https://x/B.git', version: '~1.3.0' }],
+    });
+    await installModule(project, { name: 'B', version: '1.3.0' });
+
+    const configs = new Map<string, FakeModuleConfig>([
+      [
+        'https://x/A.git@v1.8.0',
+        {
+          cardKeyPrefix: 'A',
+          name: 'A',
+          version: '1.8.0',
+          modules: [
+            { name: 'B', location: 'https://x/B.git', version: '>=1.4.0' },
+          ],
+        },
+      ],
+      [
+        'https://x/C.git@v1.3.0',
+        {
+          cardKeyPrefix: 'C',
+          name: 'C',
+          version: '1.3.0',
+          modules: [
+            { name: 'B', location: 'https://x/B.git', version: '>=1.4.0' },
+          ],
+        },
+      ],
+      [
+        'https://x/C.git@v1.5.0',
+        {
+          cardKeyPrefix: 'C',
+          name: 'C',
+          version: '1.5.0',
+          modules: [
+            { name: 'B', location: 'https://x/B.git', version: '>=1.4.0' },
+          ],
+        },
+      ],
+      [
+        'https://x/B.git@v1.4.0',
+        {
+          cardKeyPrefix: 'B',
+          name: 'B',
+          version: '1.4.0',
+          modules: [],
+        },
+      ],
+    ]);
+    const available = new Map([
+      ['https://x/A.git', ['1.8.0', '1.6.0']],
+      ['https://x/C.git', ['1.5.0', '1.3.0', '1.2.0']],
+      ['https://x/B.git', ['1.4.0', '1.3.0']],
+    ]);
+    // 1.5.0 is sealed too, so it stays a genuine alternative: nothing but the
+    // smallest-step preference keeps the plan off it.
+    const seals = new Map<string, Array<[string, string]>>([
+      ['https://x/A.git@v1.8.0', [['1.6.0', '1.8.0']]],
+      ['https://x/C.git@v1.3.0', [['1.2.0', '1.3.0']]],
+      ['https://x/C.git@v1.5.0', [['1.2.0', '1.5.0']]],
+      ['https://x/B.git@v1.4.0', [['1.3.0', '1.4.0']]],
+    ]);
+    const source = new InMemorySource(configs, available, new Map(), seals);
+
+    const result = await resolve(
+      project,
+      { kind: 'update', module: 'A', to: '1.8.0' as Version },
+      { sourceLayer: source, tempDir: testDir },
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(
+      Object.fromEntries(result.changes.map((c) => [c.module, c.to])),
+    ).toEqual({ A: '1.8.0', B: '1.4.0', C: '1.3.0' });
+  });
+
   it('unsatisfiable update reports a conflict naming the culprits', async () => {
     const project = buildProjectWithModules([
       {
@@ -366,6 +468,107 @@ describe('resolve solver', () => {
     expect(froms.has('C')).toBe(true);
     // Unlike the unsatisfiable case this one IS fixable from the project
     // config, so the refusal has to say which pin to widen and to what.
+    expect(result.conflicts.find((c) => c.module === 'C')?.pinned).toEqual({
+      range: '^1.0.0',
+      wouldNeed: '2.0.0',
+    });
+  });
+
+  it('a pin block cites the lowest blocked version, not the highest', async () => {
+    // The out-of-pin fixture with a second escape hatch: C 2.0.0 and C 3.0.0
+    // both tolerate B 1.4.0 and both sit outside C's ^1.0.0. The refusal has to
+    // name 2.0.0 — the smallest widening that would unblock the tree.
+    const project = buildProjectWithModules([
+      {
+        name: 'A',
+        location: 'https://x/A.git',
+        version: '^1.0.0',
+        private: false,
+      },
+      {
+        name: 'C',
+        location: 'https://x/C.git',
+        version: '^1.0.0',
+        private: false,
+      },
+    ]);
+    await installModule(project, {
+      name: 'A',
+      version: '1.6.0',
+      modules: [{ name: 'B', location: 'https://x/B.git', version: '>=1.3.0' }],
+    });
+    await installModule(project, {
+      name: 'C',
+      version: '1.2.0',
+      modules: [{ name: 'B', location: 'https://x/B.git', version: '~1.3.0' }],
+    });
+    await installModule(project, { name: 'B', version: '1.3.0' });
+
+    const configs = new Map<string, FakeModuleConfig>([
+      [
+        'https://x/A.git@v1.8.0',
+        {
+          cardKeyPrefix: 'A',
+          name: 'A',
+          version: '1.8.0',
+          modules: [
+            { name: 'B', location: 'https://x/B.git', version: '>=1.4.0' },
+          ],
+        },
+      ],
+      [
+        'https://x/C.git@v2.0.0',
+        {
+          cardKeyPrefix: 'C',
+          name: 'C',
+          version: '2.0.0',
+          modules: [
+            { name: 'B', location: 'https://x/B.git', version: '>=1.4.0' },
+          ],
+        },
+      ],
+      [
+        'https://x/C.git@v3.0.0',
+        {
+          cardKeyPrefix: 'C',
+          name: 'C',
+          version: '3.0.0',
+          modules: [
+            { name: 'B', location: 'https://x/B.git', version: '>=1.4.0' },
+          ],
+        },
+      ],
+      [
+        'https://x/B.git@v1.4.0',
+        {
+          cardKeyPrefix: 'B',
+          name: 'B',
+          version: '1.4.0',
+          modules: [],
+        },
+      ],
+    ]);
+    const available = new Map([
+      ['https://x/A.git', ['1.8.0', '1.6.0']],
+      ['https://x/C.git', ['3.0.0', '2.0.0', '1.2.0']],
+      ['https://x/B.git', ['1.4.0', '1.3.0']],
+    ]);
+    const seals = new Map<string, Array<[string, string]>>([
+      ['https://x/A.git@v1.8.0', [['1.6.0', '1.8.0']]],
+      ['https://x/C.git@v2.0.0', [['1.2.0', '2.0.0']]],
+      ['https://x/C.git@v3.0.0', [['1.2.0', '3.0.0']]],
+      ['https://x/B.git@v1.4.0', [['1.3.0', '1.4.0']]],
+    ]);
+    const source = new InMemorySource(configs, available, new Map(), seals);
+
+    const result = await resolve(
+      project,
+      { kind: 'update', module: 'A', to: '1.8.0' as Version },
+      { sourceLayer: source, tempDir: testDir },
+    );
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
     expect(result.conflicts.find((c) => c.module === 'C')?.pinned).toEqual({
       range: '^1.0.0',
       wouldNeed: '2.0.0',
