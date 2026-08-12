@@ -11,7 +11,7 @@ let tempTestDataPath: string;
 const asRole = (role: string) => ({ cookie: `${MOCK_ROLE_COOKIE}=${role}` });
 
 const setReadOnly = (readOnlyMode: boolean, role = 'admin') =>
-  app.request('/api/projects/test/project/read-only', {
+  app.request('/api/projects/decision/project/read-only', {
     method: 'PUT',
     headers: { 'content-type': 'application/json', ...asRole(role) },
     body: JSON.stringify({ readOnlyMode }),
@@ -20,14 +20,14 @@ const setReadOnly = (readOnlyMode: boolean, role = 'admin') =>
 // Any editor-gated write serves to show the cap applies to every route, since
 // they all gate through the same requireRole/context user.
 const editorWrite = (role = 'editor') =>
-  app.request('/api/projects/test/cards/test_epbqa73j', {
+  app.request('/api/projects/decision/cards/decision_5', {
     method: 'PATCH',
     headers: { 'content-type': 'application/json', ...asRole(role) },
     body: JSON.stringify({ metadata: { title: 'Written while read-only' } }),
   });
 
 beforeEach(async () => {
-  tempTestDataPath = await createTempTestData('module-test');
+  tempTestDataPath = await createTempTestData('decision-records');
   const commands = await CommandManager.getInstance(tempTestDataPath);
   app = createApp(
     new MockAuthProvider(),
@@ -41,7 +41,7 @@ afterEach(async () => {
 
 describe('read-only mode', () => {
   test('is off by default and reported by the project endpoint', async () => {
-    const response = await app.request('/api/projects/test/project');
+    const response = await app.request('/api/projects/decision/project');
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ readOnlyMode: false });
   });
@@ -49,7 +49,7 @@ describe('read-only mode', () => {
   test('an admin can turn it on and the project endpoint reflects it', async () => {
     expect((await setReadOnly(true)).status).toBe(200);
 
-    const response = await app.request('/api/projects/test/project');
+    const response = await app.request('/api/projects/decision/project');
     expect(await response.json()).toMatchObject({ readOnlyMode: true });
   });
 
@@ -57,7 +57,7 @@ describe('read-only mode', () => {
     expect((await setReadOnly(true, 'editor')).status).toBe(403);
     expect((await setReadOnly(true, 'reader')).status).toBe(403);
 
-    const response = await app.request('/api/projects/test/project');
+    const response = await app.request('/api/projects/decision/project');
     expect(await response.json()).toMatchObject({ readOnlyMode: false });
   });
 
@@ -75,7 +75,7 @@ describe('read-only mode', () => {
     await setReadOnly(true);
 
     const response = await app.request(
-      '/api/projects/test/cards/test_epbqa73j',
+      '/api/projects/decision/cards/decision_5',
       {
         headers: asRole('editor'),
       },

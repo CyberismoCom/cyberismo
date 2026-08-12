@@ -34,7 +34,7 @@ export interface ScannedProject {
 
 export class ProjectRegistry implements ProjectProvider {
   private projects: Map<string, CommandManager> = new Map();
- 
+
   private readOnlyProjects: Set<string> = new Set();
   readonly options: ConstructorParameters<typeof CommandManager>[1];
 
