@@ -105,14 +105,14 @@ describe('ReadOnlyBanner', () => {
     expect(screen.getByText('readOnlyMode.banner')).toBeInTheDocument();
   });
 
-  // An admin still has every edit control, so the banner has to say the mode
-  // is on for everyone else rather than that editing is off.
-  it('tells admins the mode applies to everyone but them', () => {
+  // Admins are not downgraded, so the banner is their only signal that the
+  // mode is on — they get the same message as everyone else.
+  it('shows the same banner to admins', () => {
     state.role = 'admin';
     state.readOnlyMode = true;
 
     render(<ReadOnlyBanner />);
 
-    expect(screen.getByText('readOnlyMode.bannerAdmin')).toBeInTheDocument();
+    expect(screen.getByText('readOnlyMode.banner')).toBeInTheDocument();
   });
 });

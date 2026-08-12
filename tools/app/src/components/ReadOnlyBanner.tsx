@@ -11,12 +11,11 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Typography } from '@mui/joy';
+import { Sheet, Stack, Typography } from '@mui/joy';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { useTranslation } from 'react-i18next';
 
 import { useProjectReadOnlyMode } from '@/lib/api';
-import { UserRole, useHasMinRole } from '@/lib/auth';
 
 /** Height reserved for the banner, so the main area can subtract it. */
 export const READ_ONLY_BANNER_HEIGHT = 32;
@@ -31,32 +30,35 @@ export const READ_ONLY_BANNER_HEIGHT = 32;
 export function ReadOnlyBanner() {
   const { t } = useTranslation();
   const readOnlyMode = useProjectReadOnlyMode();
-  const isAdmin = useHasMinRole(UserRole.Admin);
 
   if (!readOnlyMode) return null;
 
   return (
-    <Typography
+    <Sheet
       data-cy="readOnlyBanner"
       role="status"
-      level="body-sm"
-      startDecorator={<VisibilityIcon fontSize="small" />}
+      color="warning"
+      variant="soft"
       sx={{
         height: READ_ONLY_BANNER_HEIGHT,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 1,
-        paddingX: 2,
-        textAlign: 'center',
-        color: 'warning.softColor',
-        backgroundColor: 'warning.softBg',
+        px: 2,
         borderBottom: '1px solid',
-        borderColor: 'warning.outlinedBorder',
+        borderColor: 'divider',
       }}
     >
-      {isAdmin ? t('readOnlyMode.bannerAdmin') : t('readOnlyMode.banner')}
-    </Typography>
+      <Stack
+        height="100%"
+        direction="row"
+        alignItems="center"
+        justifyContent="center"
+        gap={1}
+      >
+        <VisibilityIcon fontSize="small" />
+        <Typography level="body-sm" textColor="inherit">
+          {t('readOnlyMode.banner')}
+        </Typography>
+      </Stack>
+    </Sheet>
   );
 }
 

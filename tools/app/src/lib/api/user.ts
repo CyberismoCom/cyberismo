@@ -27,13 +27,9 @@ const STATIC_READER_USER: User = {
 };
 
 /**
- * The current user, with their role capped to reader while the project is in
- * read-only mode.
- *
- * Capping here rather than at each permission check mirrors what static mode
- * already does above, and means every `useHasMinRole` / `<Gate>` call site
- * follows without changes. Admins are exempt: they must stay able to turn the
- * mode back off, and the banner is what tells them it is on.
+ * The current user. Capping the role here in read-only mode means every
+ * `useHasMinRole` call site follows without changes; admins are exempt so they
+ * can still turn the mode off.
  */
 export const useUser = (options?: SWRConfiguration) => {
   const staticMode = getConfig().staticMode;

@@ -471,11 +471,10 @@
   },
   "readOnlyMode": {
     "title": "Read-only mode",
-    "description": "While read-only mode is on, everyone except administrators can only view this project. Use it to pull changes from the remote without anyone editing at the same time. The setting is cleared when the server restarts.",
+    "description": "While read-only mode is on, everyone except administrators can only view this project. Use it to pull changes from the remote without anyone editing at the same time.",
     "on": "On",
     "off": "Off",
-    "banner": "This project is in read-only mode. Editing is temporarily disabled.",
-    "bannerAdmin": "This project is in read-only mode.",
+    "banner": "This project is in read-only mode.",
     "updateFailed": "Could not change read-only mode"
   },
   "recents": "Recents",

@@ -34,16 +34,7 @@ export interface ScannedProject {
 
 export class ProjectRegistry implements ProjectProvider {
   private projects: Map<string, CommandManager> = new Map();
-  /**
-   * Prefixes of projects an admin has switched to read-only mode.
-   *
-   * Deliberately in-memory rather than persisted into the project: the flag
-   * exists so a project can be pulled from its remote without anyone writing
-   * to it meanwhile, and storing it in `cardsConfig.json` would make enabling
-   * the mode a tracked change that has to be merged — the very thing it is
-   * meant to prevent. A restart therefore clears it, which is the safe default
-   * for a mode that is only ever meant to be temporary.
-   */
+ 
   private readOnlyProjects: Set<string> = new Set();
   readonly options: ConstructorParameters<typeof CommandManager>[1];
 

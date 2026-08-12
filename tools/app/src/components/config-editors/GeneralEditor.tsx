@@ -227,33 +227,37 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
           />
         </FieldRow>
 
-        <Stack spacing={0.5} mb={4.5}>
-          <Typography level="title-md">{t('readOnlyMode.title')}</Typography>
-          <Typography level="body-sm" textColor="text.tertiary">
-            {t('readOnlyMode.description')}
-          </Typography>
-          <Switch
-            data-cy="readOnlyModeSwitch"
-            checked={general?.readOnlyMode ?? false}
-            disabled={isDisabled || isUpdating('update-readOnlyMode')}
-            onChange={(event) =>
-              setReadOnlyMode(event.currentTarget.checked).catch(() =>
-                dispatch(
-                  addNotification({
-                    message: t('readOnlyMode.updateFailed'),
-                    type: 'error',
-                  }),
-                ),
-              )
-            }
-            endDecorator={
-              general?.readOnlyMode
-                ? t('readOnlyMode.on')
-                : t('readOnlyMode.off')
-            }
-            sx={{ alignSelf: 'flex-start', marginTop: 1 }}
-          />
-        </Stack>
+        {/* Admin only: the endpoint behind it rejects everyone else, and the
+            banner is what tells the rest that the mode is on. */}
+        {isAdmin && (
+          <Stack spacing={0.5} mb={4.5}>
+            <Typography level="title-md">{t('readOnlyMode.title')}</Typography>
+            <Typography level="body-sm" textColor="text.tertiary">
+              {t('readOnlyMode.description')}
+            </Typography>
+            <Switch
+              data-cy="readOnlyModeSwitch"
+              checked={general?.readOnlyMode ?? false}
+              disabled={isDisabled || isUpdating('update-readOnlyMode')}
+              onChange={(event) =>
+                setReadOnlyMode(event.currentTarget.checked).catch(() =>
+                  dispatch(
+                    addNotification({
+                      message: t('readOnlyMode.updateFailed'),
+                      type: 'error',
+                    }),
+                  ),
+                )
+              }
+              endDecorator={
+                general?.readOnlyMode
+                  ? t('readOnlyMode.on')
+                  : t('readOnlyMode.off')
+              }
+              sx={{ alignSelf: 'flex-start', marginTop: 1 }}
+            />
+          </Stack>
+        )}
 
         {isGitRepo && publicKey && (
           <Stack spacing={0.5} mb={4.5}>
