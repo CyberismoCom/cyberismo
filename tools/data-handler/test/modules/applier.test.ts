@@ -110,6 +110,45 @@ describe('modules/applier', () => {
     expect(persisted.location).toBe('https://example.com/A.git');
   });
 
+  it('writes backfilled declarations for roots that did not move', async () => {
+    const stagedPath = await stage(tempDir, 'A', {
+      'cardsConfig.json': JSON.stringify({
+        cardKeyPrefix: 'A',
+        name: 'A',
+        version: '1.2.3',
+        modules: [],
+      }),
+    });
+    const { project, modules } = makeProjectStub({
+      basePath: projectDir,
+      modules: [{ name: 'H', location: 'https://example.com/H.git' }],
+    });
+
+    const resolved = [
+      buildResolved('A', 'https://example.com/A.git', stagedPath, {
+        version: '1.2.3',
+        range: '^1.0.0',
+      }),
+    ];
+
+    const applied = await applyModules(project, resolved, {
+      tempDir,
+      backfill: [
+        {
+          name: 'H',
+          location: 'https://example.com/H.git',
+          private: false,
+          version: '1.x',
+        },
+      ],
+    });
+
+    // H is not installed by this apply — only its declaration is written.
+    expect(applied).toEqual(['A']);
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'H'))).toBe(false);
+    expect(modules.find((m) => m.name === 'H')?.version).toBe('1.x');
+  });
+
   it('does not persist a transitive declaration (parent defined)', async () => {
     const stagedA = await stage(tempDir, 'A', {
       'cardsConfig.json': JSON.stringify({

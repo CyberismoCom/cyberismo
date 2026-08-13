@@ -48,6 +48,7 @@ import {
 import type { Create } from './create.js';
 import type {
   Credentials,
+  ModuleSetting,
   ModuleSettingOptions,
 } from '../interfaces/project-interfaces.js';
 import type { Fetch } from './fetch.js';
@@ -124,12 +125,14 @@ export class Import {
    */
   private async applyResolvedWithReplay(
     resolved: ResolvedModule[],
+    backfill: ModuleSetting[] = [],
   ): Promise<void> {
     const installedBefore = await installedModulesWithSources(this.project);
     const steps = await planModuleReplays(resolved, installedBefore);
 
     const appliedModules = await applyModules(this.project, resolved, {
       tempDir: this.tempModulesDir,
+      backfill,
     });
     await cleanOrphans(this.project);
 
@@ -330,7 +333,7 @@ export class Import {
       }
     }
 
-    const { plan, resolved } = await resolveForApply(
+    const { plan, resolved, backfill } = await resolveForApply(
       this.project,
       {
         kind: 'add',
@@ -341,7 +344,7 @@ export class Import {
       { credentials: options?.credentials, tempDir: this.tempModulesDir },
     );
     if (!plan.ok) throw resolutionConflictError(plan.conflicts);
-    await this.applyResolvedWithReplay(resolved);
+    await this.applyResolvedWithReplay(resolved, backfill);
 
     // Validate the project after module has been imported.
     const afterImportValidateErrors = await Validate.getInstance().validate(
@@ -421,12 +424,16 @@ export class Import {
     const req = version
       ? { kind: 'update' as const, module: moduleName, to: toVersion(version) }
       : { kind: 'update' as const, module: moduleName };
-    const { plan, resolved } = await resolveForApply(this.project, req, {
-      credentials,
-      tempDir: this.tempModulesDir,
-    });
+    const { plan, resolved, backfill } = await resolveForApply(
+      this.project,
+      req,
+      {
+        credentials,
+        tempDir: this.tempModulesDir,
+      },
+    );
     if (!plan.ok) throw resolutionConflictError(plan.conflicts);
-    await this.applyResolvedWithReplay(resolved);
+    await this.applyResolvedWithReplay(resolved, backfill);
   }
 
   /**
@@ -444,12 +451,12 @@ export class Import {
       throw new Error('No modules in the project!');
     }
 
-    const { plan, resolved } = await resolveForApply(
+    const { plan, resolved, backfill } = await resolveForApply(
       this.project,
       { kind: 'updateAll' },
       { credentials, tempDir: this.tempModulesDir },
     );
     if (!plan.ok) throw resolutionConflictError(plan.conflicts);
-    await this.applyResolvedWithReplay(resolved);
+    await this.applyResolvedWithReplay(resolved, backfill);
   }
 }

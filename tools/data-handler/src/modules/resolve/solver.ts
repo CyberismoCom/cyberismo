@@ -25,6 +25,7 @@ import { installedModulesWithSources, declaredModules } from '../inventory.js';
 import { buildRemoteUrl } from '../remote-url.js';
 import { versionToTag } from '../version.js';
 import {
+  DEFAULT_VERSION_RANGE,
   toVersion,
   toVersionRange,
   type Source,
@@ -33,7 +34,10 @@ import {
 } from '../types.js';
 import { createSourceLayer, type SourceLayer } from '../source.js';
 import type { Project } from '../../containers/project.js';
-import type { Credentials } from '../../interfaces/project-interfaces.js';
+import type {
+  Credentials,
+  ModuleSetting,
+} from '../../interfaces/project-interfaces.js';
 import type {
   Change,
   ConflictDemand,
@@ -62,6 +66,28 @@ interface Decision {
 }
 type Assignment = Map<string, Decision>;
 
+/**
+ * Range to persist for a root that declared none. The assumption is only
+ * written down where it actually governs, so the config never states
+ * something untrue:
+ *
+ * - a source with no tags is left alone, matching the same choice `import`
+ *   makes for a fresh one — a range there would bind the module the moment
+ *   its source gains tags;
+ * - a root drifted above 1.x is exempt from the assumed pin as pre-existing
+ *   drift, so 1.x is not what holds it.
+ */
+function assumedRangeFor(
+  version: Version | null | undefined,
+  versionedSource: boolean,
+): VersionRange | undefined {
+  return versionedSource &&
+    version != null &&
+    semver.satisfies(version, DEFAULT_VERSION_RANGE)
+    ? DEFAULT_VERSION_RANGE
+    : undefined;
+}
+
 /** Versions a node may take, in preference order, and the range still to enforce. */
 interface Candidates {
   versions: (Version | null)[];
@@ -69,6 +95,8 @@ interface Candidates {
   pin: VersionRange | null;
   /** Whether the installed version is exempt from `pin` (pre-existing drift). */
   keepInstalled: boolean;
+  /** Whether `pin` is the assumed default, not a range written in the config. */
+  pinAssumed?: boolean;
 }
 
 /** Solver internals shared between {@link resolve} and {@link resolveForApply}. */
@@ -104,9 +132,10 @@ function toEdges(config: {
     .map((d) => ({
       name: d.name,
       source: { location: d.location, private: d.private ?? false },
-      range: toVersionRange(
-        d.version && d.version.length > 0 ? d.version : '*',
-      ),
+      range:
+        d.version && d.version.length > 0
+          ? toVersionRange(d.version)
+          : DEFAULT_VERSION_RANGE,
     }));
 }
 
@@ -257,14 +286,20 @@ async function solve(
     if (avail.length === 0)
       return { versions: [null], pin: null, keepInstalled: false };
     const newestFirst = [...avail].sort(semver.rcompare) as Version[];
+    // A root that declares no range is still bound: a missing version means
+    // 1.x, so no operation silently crosses a major. Transitives are instead
+    // constrained by their parents' edges (defaulted the same way in toEdges).
+    const pin = n.declaredRange ?? (n.isRoot ? DEFAULT_VERSION_RANGE : null);
+    const pinAssumed = pin !== null && n.declaredRange === null;
     // A declared range is a hard constraint wherever it applies, so it is
     // handed to the search instead of pre-filtered here: the DFS can then
     // report the version a pin excluded rather than collapsing into a generic
     // "no version satisfies its constraints".
     const inRange = (): Candidates => ({
       versions: newestFirst,
-      pin: n.declaredRange,
+      pin,
       keepInstalled: false,
+      pinAssumed,
     });
     // A bystander is offered its installed version first, so an update
     // disturbs the rest of the tree as little as possible, and keeps it even
@@ -275,8 +310,9 @@ async function solve(
         versions: n.installed
           ? [n.installed, ...asc.filter((v) => v !== n.installed)]
           : asc,
-        pin: n.declaredRange,
+        pin,
         keepInstalled: true,
+        pinAssumed,
       };
     };
     switch (req.kind) {
@@ -339,9 +375,9 @@ async function solve(
     if (assign.has(n.name)) return dfs(rest, assign);
     const incoming = dependentRanges(n.name, assign);
     let downgrade: { from: Version; to: Version } | undefined;
-    let pinned: { range: VersionRange; wouldNeed: Version } | undefined;
+    let pinned: ResolveConflict['pinned'];
     let nonReplayable: { from: Version; to: Version } | undefined;
-    const { versions, pin, keepInstalled } = await candidatesFor(n);
+    const { versions, pin, keepInstalled, pinAssumed } = await candidatesFor(n);
     for (const v of versions) {
       if (v !== null && !incoming.every((d) => semver.satisfies(v, d.range)))
         continue;
@@ -361,7 +397,11 @@ async function solve(
           !(n.installed && semver.lt(v, n.installed)) &&
           (!pinned || semver.lt(v, pinned.wouldNeed))
         )
-          pinned = { range: pin, wouldNeed: v };
+          pinned = {
+            range: pin,
+            wouldNeed: v,
+            ...(pinAssumed ? { assumed: true } : {}),
+          };
         continue;
       }
       // An explicit older target is a downgrade: unreachable by replay.
@@ -511,7 +551,16 @@ export async function resolveForApply(
     tempDir?: string;
     credentials?: Credentials;
   },
-): Promise<{ plan: ResolveResult; resolved: ResolvedModule[] }> {
+): Promise<{
+  plan: ResolveResult;
+  resolved: ResolvedModule[];
+  /**
+   * Declarations to rewrite for roots that keep their installed version but
+   * never wrote down a range. Empty on a refused plan — nothing is persisted
+   * when nothing is applied.
+   */
+  backfill: ModuleSetting[];
+}> {
   const ownsSource = !opts?.sourceLayer;
   const source = opts?.sourceLayer ?? createSourceLayer();
   const tempDir = opts?.tempDir ?? join(project.paths.tempFolder, 'resolve');
@@ -522,7 +571,7 @@ export async function resolveForApply(
       source,
       opts?.credentials,
     );
-    if (!result.ok) return { plan: result, resolved: [] };
+    if (!result.ok) return { plan: result, resolved: [], backfill: [] };
 
     const resolved: ResolvedModule[] = [];
     for (const change of result.changes) {
@@ -548,7 +597,11 @@ export async function resolveForApply(
           name: change.module,
           source: node.source,
           versionRange: node.isRoot
-            ? (node.declaredRange ?? undefined)
+            ? (node.declaredRange ??
+              assumedRangeFor(
+                change.to,
+                source.supportsVersioning(node.source.location),
+              ))
             : undefined,
           parent: referrer
             ? { project: project.basePath, name: referrer }
@@ -560,7 +613,29 @@ export async function resolveForApply(
         stagedPath,
       });
     }
-    return { plan: result, resolved };
+    // Roots the plan leaves in place never reach `resolved`, so their
+    // assumed range would survive forever. Sweep them here — the solve
+    // already listed every root's versions, so this costs no extra fetch.
+    const moved = new Set(result.changes.map((c) => c.module));
+    const backfill: ModuleSetting[] = [];
+    for (const [name, decision] of assign) {
+      if (moved.has(name)) continue;
+      const node = nodes.get(name)!;
+      if (!node.isRoot || node.declaredRange !== null) continue;
+      const range = assumedRangeFor(
+        decision.version,
+        source.supportsVersioning(node.source.location),
+      );
+      if (!range) continue;
+      backfill.push({
+        name,
+        location: node.source.location,
+        private: node.source.private ?? false,
+        version: range,
+      });
+    }
+
+    return { plan: result, resolved, backfill };
   } finally {
     if (ownsSource) await source.dispose?.();
   }

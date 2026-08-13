@@ -871,6 +871,72 @@ describe('module update — spec behaviours', () => {
     expect(afterConfig.version).toBe('1.0.0');
   });
 
+  it('updateAllModules writes the assumed 1.x into a version-less declaration', async () => {
+    // The shim's exit: a legacy declaration (written before version support
+    // existed) is converted the next time any module operation runs, even
+    // though this module has nowhere to move.
+    const projectDir = join(moduleTestDir, 'proj-backfill');
+    const handler = new Commands();
+    const create = await handler.command(
+      Cmd.create,
+      ['project', 'backfill-proj', 'bkf'],
+      { projectPath: projectDir },
+    );
+    expect(create.statusCode).toBe(200);
+
+    const depRoot = join(moduleTestDir, 'fake-backfill-mod');
+    makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'bkfmod' });
+
+    const commands = new CommandManager(projectDir, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+    await commands.importCmd.importModule(depRoot);
+
+    // Reshape the persisted declaration into the legacy form: a versioned
+    // (git) source with no declared range. Importing from a file source
+    // already leaves the range off, so only the location has to change.
+    const declaration = commands.project.configuration.modules.find(
+      (m) => m.name === 'bkfmod',
+    );
+    expect(declaration).toBeDefined();
+    expect(declaration!.version).toBeUndefined();
+    declaration!.location = 'https://example.com/bkfmod.git';
+
+    // Seed the installed version so the module resolves to 1.0.0.
+    const installedConfigPath = join(
+      projectDir,
+      '.cards',
+      'modules',
+      'bkfmod',
+      'cardsConfig.json',
+    );
+    rewriteJson(installedConfigPath, (config) => {
+      config.version = '1.0.0';
+    });
+
+    mockEnsureModuleListUpToDate();
+    // 1.0.0 is the only tag, so the module stays exactly where it is.
+    vi.spyOn(GitManager, 'listRemoteVersionTags').mockResolvedValue(['1.0.0']);
+
+    await commands.importCmd.updateAllModules();
+
+    const persisted = JSON.parse(
+      readFileSync(
+        join(projectDir, '.cards', 'local', 'cardsConfig.json'),
+        'utf-8',
+      ),
+    );
+    const entry = persisted.modules.find(
+      (m: { name: string }) => m.name === 'bkfmod',
+    );
+    expect(entry.version).toBe('1.x');
+    // Still installed at the version it had — this is a declaration-only
+    // rewrite, not an update.
+    const installed = JSON.parse(readFileSync(installedConfigPath, 'utf-8'));
+    expect(installed.version).toBe('1.0.0');
+  });
+
   // --- updateModule replay end to end -------------------------------------
   //
   // File sources expose no remote versions (`listRemoteVersions` → []), and
