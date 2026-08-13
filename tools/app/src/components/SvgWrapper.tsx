@@ -95,7 +95,7 @@ function SvgWrapper({ children, downloadName }: SvgWrapperProps) {
     const routePath = href ? appRoutePath(href) : null;
     if (!routePath) return;
     e.preventDefault();
-    router.safePush(routePath);
+    router.push(routePath);
   };
 
   return (

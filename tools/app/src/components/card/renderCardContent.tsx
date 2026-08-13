@@ -20,13 +20,13 @@ import CheckBoxOutlineBlank from '@mui/icons-material/CheckBoxOutlineBlank';
 import createDOMPurify from 'dompurify';
 import parseReact, { domToReact } from 'html-react-parser';
 import type { DOMNode } from 'html-react-parser';
+import { Link } from 'react-router';
 
 import { macroMetadata } from '@cyberismo/data-handler/macros/common';
 
 import type { UIMacroName } from '@/components/macros';
 import { macros as UImacros } from '@/components/macros';
 import Mermaid from '@/components/macros/Mermaid';
-import { SafeRouterLink } from '@/components/SafeRouterLink';
 import SvgWrapper from '@/components/SvgWrapper';
 import { appRoutePath, parseDataAttributes } from '@/lib/utils';
 
@@ -101,9 +101,7 @@ export function renderCardHtml(html: string, options: RenderCardHtmlOptions) {
       const routePath = href ? appRoutePath(href) : null;
       if (routePath) {
         return (
-          <SafeRouterLink to={routePath}>
-            {domToReact(node.children as DOMNode[])}
-          </SafeRouterLink>
+          <Link to={routePath}>{domToReact(node.children as DOMNode[])}</Link>
         );
       }
     }

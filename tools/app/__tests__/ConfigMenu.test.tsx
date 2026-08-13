@@ -15,18 +15,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/react';
 
-const safePush = vi.fn();
+const push = vi.fn();
 vi.mock('@/lib/hooks', () => ({
-  useAppRouter: () => ({
-    push: vi.fn(),
-    replace: vi.fn(),
-    back: vi.fn(),
-    forward: vi.fn(),
-    safePush,
-    safeReplace: vi.fn(),
-    safeBack: vi.fn(),
-    safeForward: vi.fn(),
-  }),
+  useAppRouter: () => ({ push }),
 }));
 
 vi.mock('react-redux', () => ({
@@ -67,11 +58,11 @@ import ConfigMenu from '@/components/ConfigMenu';
 
 describe('ConfigMenu back button', () => {
   beforeEach(() => {
-    safePush.mockClear();
+    push.mockClear();
     baseTreeProps = {};
   });
 
-  it('navigates to the project-scoped cards route via safePush when back is triggered', () => {
+  it('navigates to the project-scoped cards route when back is triggered', () => {
     render(<ConfigMenu />);
 
     expect(baseTreeProps.title).toBe('Configuration - Test Project');
@@ -79,6 +70,6 @@ describe('ConfigMenu back button', () => {
 
     baseTreeProps.onBackClick?.();
 
-    expect(safePush).toHaveBeenCalledWith('/projects/proj/cards');
+    expect(push).toHaveBeenCalledWith('/projects/proj/cards');
   });
 });

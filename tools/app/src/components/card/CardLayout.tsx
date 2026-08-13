@@ -330,6 +330,7 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
           <Stack spacing={2}>
             {header}
             <CardTitle
+              key={`title-${card.key}`}
               title={card.title}
               preview={preview}
               disabled={card.deniedOperations.editField
@@ -405,6 +406,7 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
               </SidebarPanelAccordion>
             )}
             <CardBody
+              key={`body-${card.key}`}
               ref={bodyRef}
               card={card}
               preview={preview}

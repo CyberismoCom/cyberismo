@@ -15,19 +15,6 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router';
-import type * as libHooksModule from '@/lib/hooks';
-
-// A stable safePush across renders so navigation targets can be asserted
-const { safePush } = vi.hoisted(() => ({ safePush: vi.fn() }));
-
-vi.mock('@/lib/hooks', async (importOriginal) => {
-  const actual = await importOriginal<typeof libHooksModule>();
-  const { mockAppRouter } = await import('./helpers/router');
-  return {
-    ...actual,
-    useAppRouter: vi.fn(() => ({ ...mockAppRouter(), safePush })),
-  };
-});
 
 vi.mock('@/lib/hooks/theme', () => ({
   useIsDarkMode: vi.fn(() => false),
@@ -120,12 +107,15 @@ describe('renderCardHtml', () => {
     );
   });
 
+  // In-app anchors become react-router <Link>s, so what is asserted here is the
+  // path the router ends up on. Anything left to the browser keeps its original
+  // href and does not move the location.
   describe('links', () => {
     const link = (href: string) =>
       `<div class="paragraph"><p><a href="${href}">target card</a></p></div>`;
 
     beforeEach(() => {
-      safePush.mockClear();
+      window.history.replaceState({}, '', '/');
     });
 
     it('routes a root-relative link through the router', () => {
@@ -133,20 +123,25 @@ describe('renderCardHtml', () => {
 
       fireEvent.click(screen.getByText('target card'));
 
-      expect(safePush).toHaveBeenCalledWith('/cards/csecdev_6wccziw3');
+      expect(window.location.pathname).toBe('/cards/csecdev_6wccziw3');
     });
 
-    // Regression: pasting a full app URL into card content navigated to
-    // <current path>/http:/localhost:3000/... because the absolute URL was
-    // passed to the router, which resolves non-slash-prefixed targets
-    // relative to the current location.
+    // A full app URL must reach the Link already stripped to an origin-relative
+    // path. Router-side navigation copes with either form, but the origin is
+    // what the rendered href — and so hover, copy-link and middle-click — shows.
     it('routes an absolute same-origin link as an origin-relative path', () => {
       const href = `${window.location.origin}/projects/csecdev/cards/csecdev_6wccziw3`;
       render(<Content html={link(href)} />);
 
-      fireEvent.click(screen.getByText('target card'));
+      const anchor = screen.getByText('target card');
+      expect(anchor).toHaveAttribute(
+        'href',
+        '/projects/csecdev/cards/csecdev_6wccziw3',
+      );
 
-      expect(safePush).toHaveBeenCalledWith(
+      fireEvent.click(anchor);
+
+      expect(window.location.pathname).toBe(
         '/projects/csecdev/cards/csecdev_6wccziw3',
       );
     });
@@ -155,18 +150,18 @@ describe('renderCardHtml', () => {
       render(<Content html={link('https://example.com/cards/x')} />);
 
       const anchor = screen.getByText('target card');
-      fireEvent.click(anchor);
 
-      expect(safePush).not.toHaveBeenCalled();
       expect(anchor).toHaveAttribute('href', 'https://example.com/cards/x');
+      expect(window.location.pathname).toBe('/');
     });
 
     it('leaves anchor fragments to the browser', () => {
       render(<Content html={link('#_section_title')} />);
 
-      fireEvent.click(screen.getByText('target card'));
+      const anchor = screen.getByText('target card');
 
-      expect(safePush).not.toHaveBeenCalled();
+      expect(anchor).toHaveAttribute('href', '#_section_title');
+      expect(window.location.pathname).toBe('/');
     });
   });
 });

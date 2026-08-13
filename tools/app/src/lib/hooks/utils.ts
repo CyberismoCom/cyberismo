@@ -42,27 +42,6 @@ export function useParentCard(key: string | null) {
   );
 }
 
-export function handleUnload(event: BeforeUnloadEvent) {
-  event.preventDefault();
-  event.returnValue = true; // for legacy browsers
-}
-/**
- * This function creates a method that looks like the orignal method, but it will show a confirmation dialog before executing the original method.
- * @param fn - the function to wrap
- * @param msg - the message to show in the confirmation dialog
- * @returns the wrapped function
- */
-export function createFunctionGuard<T extends unknown[], U>(
-  fn: (...args: T) => U,
-  msg: string,
-) {
-  return (...args: T) => {
-    if (window.confirm(msg)) {
-      return fn(...args);
-    }
-  };
-}
-
 /**
  * A defined keyboard combination
  */

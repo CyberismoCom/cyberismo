@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import AppToolbar from '../components/AppToolbar';
-import { useOptionalKeyParam } from '@/lib/hooks';
+import { useNavigationGuard, useOptionalKeyParam } from '@/lib/hooks';
 import { Stack, styled } from '@mui/joy';
 import { Outlet } from 'react-router';
 import {
@@ -48,6 +48,8 @@ const Main = styled('main')(() => ({
 }));
 
 export default function Layout() {
+  useNavigationGuard();
+
   const inCards = useIsInCards();
   const canEdit = useHasMinRole(UserRole.Editor);
   const isAdmin = useHasMinRole(UserRole.Admin);

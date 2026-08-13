@@ -403,6 +403,47 @@ test.describe('Navigation', () => {
     ).toBeVisible();
   });
 
+  test('inline body edit does not follow navigation to another card', async ({
+    page,
+  }) => {
+    // Visit both cards first so the target is in the SWR cache — a cache miss
+    // renders the loading gate, which remounts (and thereby resets) the editor.
+    await page.locator('p').filter({ hasText: 'Updated title' }).click();
+    await expect(
+      page.getByRole('heading', { level: 1, name: /^Updated title$/ }),
+    ).toBeVisible();
+    await page
+      .locator('p')
+      .filter({ hasText: /^Untitled page$/ })
+      .click();
+    await expect(
+      page.getByRole('heading', { level: 1, name: /^Untitled page$/ }),
+    ).toBeVisible();
+    await page.locator('p').filter({ hasText: 'Updated title' }).click();
+
+    await editPage(page);
+    await expect(page.locator('.cm-editor')).toBeVisible();
+
+    // Navigating to the cached parent card must close the editor
+    await page
+      .locator('p')
+      .filter({ hasText: /^Untitled page$/ })
+      .click();
+    await expect(
+      page.getByRole('heading', { level: 1, name: /^Untitled page$/ }),
+    ).toBeVisible();
+    await expect(page.locator('.cm-editor')).toHaveCount(0);
+
+    // ...and so must going back to the card that was being edited
+    await editPage(page);
+    await expect(page.locator('.cm-editor')).toBeVisible();
+    await page.goBack();
+    await expect(
+      page.getByRole('heading', { level: 1, name: /^Updated title$/ }),
+    ).toBeVisible();
+    await expect(page.locator('.cm-editor')).toHaveCount(0);
+  });
+
   test('select card statuses', async ({ page }) => {
     await page
       .locator('p')
