@@ -53,11 +53,10 @@
         },
         {
             "name": "Done",
+            "toState": "Closed as done",
             "fromState": [
-                "In progress",
-                "Changes required"
-            ],
-            "toState": "Closed as done"
+                "In progress"
+            ]
         },
         {
             "name": "Review as OK",
@@ -72,6 +71,20 @@
                 "*"
             ],
             "toState": "Closed as not applicable"
+        },
+        {
+            "name": "Changes implemented",
+            "toState": "Closed as done",
+            "fromState": [
+                "Changes required"
+            ]
+        },
+        {
+            "name": "Mark as done",
+            "toState": "Closed as done",
+            "fromState": [
+                "Open"
+            ]
         }
     ],
     "displayName": "Review task",

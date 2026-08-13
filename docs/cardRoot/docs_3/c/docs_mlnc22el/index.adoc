@@ -63,12 +63,7 @@ To import a module from a public Git repository, use the following command:
 $ cyberismo import module <https git URL>
 ----
 
-By default, the `main` branch is used. To use another branch, add an additional parameter to the command:
-
-[source,console]
-----
-$ cyberismo import module <https git URL> [branch name]
-----
+By default, Cyberismo imports the latest published version of the module and pins your project to that major version. To import a specific version or version range instead, append `@<version>` to the source. See the "Selecting a module version" section below.
 
 === Importing a private module from Git
 
@@ -76,11 +71,18 @@ If the Git service requires authentication, you must provide access token creden
 
 Alternatively, if you have Git with SSH configured, you can use the Git protocol for module locations. In these cases, the `private` information from the module is not used.
 
-To import a private module, use the following command:
+To import a private module, use the following command. The final `true` argument tells Cyberismo to use the credentials when cloning:
 
 [source,console]
 ----
-$ cyberismo import module <https git URL> [branch name] true
+$ cyberismo import module <https git URL> true
+----
+
+You can combine credentials with a version by appending `@<version>` to the URL:
+
+[source,console]
+----
+$ cyberismo import module <https git URL>@<version> true
 ----
 
 NOTE: At the moment, Cyberismo supports only one set of access credentials, so you can only import private modules using a single access token.
@@ -97,6 +99,68 @@ $ cyberismo import module <local file path to the module>
 The path can be either an absolute or a relative path.
 
 NOTE: The path is relative to the present working directory.
+
+== Selecting a module version
+
+Cyberismo modules are versioned with https://semver.org/[semantic versioning] (semver). Module authors publish versions as Git tags of the form `v<major>.<minor>.<patch>`, for example `v1.2.0`. Version selection therefore works only for modules that are imported from a Git repository that has such version tags. Modules imported from the local file system, or from a Git repository that has no version tags, are always installed as-is and cannot be pinned to a version.
+
+=== Pinning a version when importing
+
+When you import a module, you can pin it to a specific version or version range by appending `@<version>` to the source:
+
+[source,console]
+----
+$ cyberismo import module <source>@<version>
+----
+
+The source can be a hub module prefix, a Git URL, or a local file path. The following table shows the most common version expressions:
+
+[cols="1,2"]
+|===
+|Expression |Meaning
+
+|`@1.2.3`
+|Exactly version 1.2.3.
+
+|`@^1.2.0`
+|The latest 1.x version that is at least 1.2.0, without changing the major version. This is the recommended way to bind to the latest minor and patch releases of a given major version.
+
+|`@~1.2.0`
+|The latest 1.2.x version that is at least 1.2.0, that is, patch updates only.
+
+|`@">=1.2.0 <2.0.0"`
+|Any version within the given range. Quote the expression so that the shell does not misinterpret the spaces and special characters.
+
+|`@"*"`
+|Any version. Cyberismo installs the newest available version and allows it to move across major versions on update.
+|===
+
+NOTE: There is no `latest` keyword, and branch names cannot be used as versions. To track the newest release regardless of the major version, use a wide range such as `@"*"`.
+
+=== Default version binding
+
+If you import a module without specifying a version, Cyberismo imports the latest published version and records a caret range for its major version in `cardsConfig.json`. For example, if the latest version is 1.4.2, Cyberismo records `^1.4.2`, so that later updates stay on the 1.x major version.
+
+If the module has no version tags (a local file module, or a Git repository without version tags), no version is recorded, and the module is installed as-is.
+
+NOTE: A project that imports a module without declaring a version is treated as depending on version 1.x of that module. Cyberismo never crosses a major version boundary automatically. The next module operation writes this assumption (`1.x`) into `cardsConfig.json`.
+
+=== Where the version binding is stored
+
+The version binding of each module is stored in the project's `cardsConfig.json` file (under `.cards/local/`), in the `modules` array:
+
+[source,json]
+----
+"modules": [
+  {
+    "name": "base",
+    "location": "https://github.com/CyberismoCom/module-base.git",
+    "version": "^1.0.0"
+  }
+]
+----
+
+The `version` field holds a semver version or range constraint. You can edit it by hand to change the binding — for example, to allow a new major version — and then run `cyberismo update-modules <prefix>` to apply the change. See the "Changing a module's version binding" section below.
 
 == Removing a module
 
@@ -118,30 +182,72 @@ To remove all imported modules, iterate over the modules that `cyberismo show mo
 
 == Updating modules
 
-Cyberismo can update the modules to their latest versions. When you execute the `update-modules` command, Cyberismo downloads the latest versions of all modules from the origin that you specified when you imported the module.
+Cyberismo can update modules to newer versions within the version range that you bound them to. When you run the `update-modules` command, Cyberismo fetches the available versions of each module from the origin that you specified when you imported the module, and updates to the newest version that satisfies the module's version binding in `cardsConfig.json`.
 
 NOTE: The modules that were imported from the local file system must reside in the same directory from which they were imported.
 
 NOTE: To update modules that were imported from the local file system, you must run the update command in the same working directory as you used when you imported the module.
 
-NOTE: Before importing modules from hubs, you must first fetch the data from the hubs with the `cyberismo fetch` command.
+NOTE: Before importing or updating modules from hubs, you must first fetch the module lists from the hubs with the `cyberismo fetch hubs` command.
 
-To update all modules, including their dependencies where applicable, execute the following command:
+To update all modules, including their dependencies where applicable, to the newest versions allowed by their bindings, execute the following command:
 
 [source,console]
 ----
 $ cyberismo update-modules
 ----
 
-You can also update a specific module with the following command:
+To update a single module to the newest version allowed by its binding, give its prefix:
 
 [source,console]
 ----
-$ cyberismo update-module <module prefix>
+$ cyberismo update-modules <module prefix>
 ----
+
+To update a single module to a specific version, give the prefix and the target version:
+
+[source,console]
+----
+$ cyberismo update-modules <module prefix> <version>
+----
+
+The target version must be an exact version, not a range. It must be available in the module's origin, and it must satisfy the module's version binding in `cardsConfig.json`. Updating to a specific version does not change the recorded binding.
+
+NOTE: Cyberismo does not downgrade modules. The target version must be the same as, or newer than, the installed version.
+
+NOTE: A target version can only be given together with a module prefix. Running `cyberismo update-modules <version>` on its own is not valid.
+
+=== Checking for available updates
+
+To see which modules have newer versions available without applying anything, run:
+
+[source,console]
+----
+$ cyberismo check-updates
+----
+
+You can also check a single module:
+
+[source,console]
+----
+$ cyberismo check-updates <module prefix>
+----
+
+For each module, Cyberismo reports the installed version and the newest version reachable within its binding. If a newer version exists outside the binding, for example a new major version, it is reported as held back. After printing the summary, Cyberismo asks whether to apply the available in-range updates.
+
+=== Changing a module's version binding
+
+Updating a module never crosses the version range that it is bound to. To move a module to a version outside its current binding — most commonly, to adopt a new major version — edit the `version` field of that module in `cardsConfig.json` (for example, change `^1.0.0` to `^2.0.0`), and then run:
+
+[source,console]
+----
+$ cyberismo update-modules <module prefix>
+----
+
+NOTE: If a module version requires a newer schema version than your Cyberismo tool supports, the import or update fails with a message stating the required schema version. Upgrade the Cyberismo tool, or pin the module to an older version that your tool supports.
 
 == Handling dependencies of modules
 
 If you import a module that has dependencies, Cyberismo automatically imports the dependencies. This works recursively, so that the dependencies of dependencies are also included.
 
-If the dependencies of modules include the same module multiple times, identified by the module prefix, the module is imported only once. Note that such a module must be imported using an identical Git URL and branch or an identical local file system path; otherwise, the import or update operation fails.
+If the dependencies of modules include the same module multiple times, identified by the module prefix, the module is imported only once. Note that such a module must be imported using an identical Git URL or an identical local file system path; otherwise, the import or update operation fails. Cyberismo resolves the version bindings declared by the different dependants together and installs a single version that satisfies all of them. If no such version exists, the import or update operation fails and reports the conflicting constraints.

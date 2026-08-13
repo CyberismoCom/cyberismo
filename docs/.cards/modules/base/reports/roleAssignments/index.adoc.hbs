@@ -1,10 +1,13 @@
-{{#if results}}
+{{#each results}}
 
+{{#if activeAssignments}}
+[caption=]
+.Active role assignments
 [cols="5,5,2"]
 |===
 | Role | Assignee | Status
 
-{{#each results}}
+{{#each activeAssignments}}
 |xref:{{this.key}}.adoc[{{this.title}}]
 |{{this.[base/fieldTypes/owner]}}
 |{{this.workflowState}}
@@ -13,3 +16,23 @@
 |===
 
 {{/if}}
+
+{{#if archivedAssignments}}
+
+.Archived role assignments
+[%collapsible]
+=====
+[cols="5,5,2"]
+|===
+| Role | Assignee | Status
+
+{{#each archivedAssignments}}
+|xref:{{this.key}}.adoc[{{this.title}}]
+|{{this.[base/fieldTypes/owner]}}
+|{{this.workflowState}}
+{{/each}}
+
+|===
+=====
+{{/if}}
+{{/each}}

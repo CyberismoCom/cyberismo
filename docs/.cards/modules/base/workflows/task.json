@@ -54,6 +54,13 @@
                 "In progress"
             ],
             "toState": "Closed as not applicable"
+        },
+        {
+            "name": "Mark as done",
+            "toState": "Closed as done",
+            "fromState": [
+                "Open"
+            ]
         }
     ],
     "displayName": "Task",
