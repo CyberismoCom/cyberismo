@@ -144,7 +144,15 @@ export class Validate {
         );
         return errors;
       }
-      const { identifier, prefix, type } = resourceName(namedContent.name);
+      let identifier: string, prefix: string, type: string;
+      try {
+        ({ identifier, prefix, type } = resourceName(namedContent.name));
+      } catch (error) {
+        errors.push(
+          `File '${fullFileNameWithPath}' has an invalid 'name' property '${namedContent.name}': ${errorFunction(error)}`,
+        );
+        return errors;
+      }
       const filenameWithoutExtension = parse(file.name).name;
 
       if (!projectPrefixes.includes(prefix)) {
@@ -608,14 +616,19 @@ export class Validate {
             errorMsg.push(validLabels);
           }
 
-          // Validate macros in content
+          // Validate macros in content. Each card is isolated: a macro
+          // failure must not abort validation of the rest of the project.
           if (card.content) {
-            await evaluateMacros(card.content, {
-              context: 'localApp',
-              mode: 'validate',
-              project: project,
-              cardKey: card.key,
-            });
+            try {
+              await evaluateMacros(card.content, {
+                context: 'localApp',
+                mode: 'validate',
+                project: project,
+                cardKey: card.key,
+              });
+            } catch (error) {
+              errorMsg.push(`Card '${card.key}': ${errorFunction(error)}`);
+            }
           }
         }
         // Validate that there are no duplicate card keys
