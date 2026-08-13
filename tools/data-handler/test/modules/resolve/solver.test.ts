@@ -1691,4 +1691,188 @@ describe('resolve solver', () => {
       expect(result.changes.map((c) => c.module)).toEqual(['A']);
     });
   });
+
+  describe('the assumed 1.x is written back as a declaration', () => {
+    /**
+     * Root A pinned `^1.0.0` and installed 1.0.0, with 1.1.0 available and
+     * sealed — so `update A` always has one move to make. The second root is
+     * supplied by the caller and never moves, which is the point: it is the
+     * bystander whose declaration the sweep has to reach.
+     */
+    async function buildSweepFixture(bystander: {
+      setting: ModuleSetting;
+      installed: string;
+      available?: string[];
+    }) {
+      const project = buildProjectWithModules([
+        {
+          name: 'A',
+          location: 'https://x/A.git',
+          version: '^1.0.0',
+          private: false,
+        },
+        bystander.setting,
+      ]);
+      await installModule(project, { name: 'A', version: '1.0.0' });
+      await installModule(project, {
+        name: bystander.setting.name,
+        version: bystander.installed,
+      });
+
+      const configs = new Map<string, FakeModuleConfig>([
+        [
+          'https://x/A.git@v1.1.0',
+          { cardKeyPrefix: 'A', name: 'A', version: '1.1.0', modules: [] },
+        ],
+      ]);
+      const available = new Map([['https://x/A.git', ['1.1.0', '1.0.0']]]);
+      if (bystander.available) {
+        available.set(bystander.setting.location, bystander.available);
+      }
+      const seals = new Map<string, Array<[string, string]>>([
+        ['https://x/A.git@v1.1.0', [['1.0.0', '1.1.0']]],
+      ]);
+      return {
+        project,
+        source: new InMemorySource(configs, available, new Map(), seals),
+      };
+    }
+
+    it('update: a version-less root that moves carries 1.x into its declaration', async () => {
+      const project = buildProjectWithModules([
+        { name: 'A', location: 'https://x/A.git', private: false },
+      ]);
+      await installModule(project, { name: 'A', version: '1.2.0' });
+
+      const configs = new Map<string, FakeModuleConfig>([
+        [
+          'https://x/A.git@v1.6.0',
+          { cardKeyPrefix: 'A', name: 'A', version: '1.6.0', modules: [] },
+        ],
+      ]);
+      const available = new Map([['https://x/A.git', ['1.6.0', '1.2.0']]]);
+      const seals = new Map<string, Array<[string, string]>>([
+        ['https://x/A.git@v1.6.0', [['1.2.0', '1.6.0']]],
+      ]);
+      const source = new InMemorySource(configs, available, new Map(), seals);
+
+      const { plan, resolved } = await resolveForApply(
+        project,
+        { kind: 'update', module: 'A' },
+        { sourceLayer: source, tempDir: testDir },
+      );
+
+      expect(plan.ok).toBe(true);
+      expect(resolved).toHaveLength(1);
+      // The applier persists `declaration.versionRange` verbatim, so the
+      // assumption reaches cardsConfig.json through the moved entry itself.
+      expect(resolved[0].declaration.versionRange).toBe('1.x');
+    });
+
+    it('update: a version-less root that stays put is returned as a backfill', async () => {
+      const { project, source } = await buildSweepFixture({
+        setting: { name: 'H', location: 'https://x/H.git', private: false },
+        installed: '1.0.0',
+        available: ['1.0.0'],
+      });
+
+      const { plan, resolved, backfill } = await resolveForApply(
+        project,
+        { kind: 'update', module: 'A' },
+        { sourceLayer: source, tempDir: testDir },
+      );
+
+      expect(plan.ok).toBe(true);
+      // H never moves, so it is not re-fetched or re-installed...
+      expect(resolved.map((r) => r.declaration.name)).toEqual(['A']);
+      // ...but its assumed range is still written down.
+      expect(backfill).toEqual([
+        {
+          name: 'H',
+          location: 'https://x/H.git',
+          private: false,
+          version: '1.x',
+        },
+      ]);
+    });
+
+    it('a tagless root is left without a declared version', async () => {
+      const { project, source } = await buildSweepFixture({
+        setting: { name: 'H', location: 'file:/somewhere/H', private: false },
+        installed: '1.0.0',
+      });
+
+      const { backfill } = await resolveForApply(
+        project,
+        { kind: 'update', module: 'A' },
+        { sourceLayer: source, tempDir: testDir },
+      );
+
+      // A source with no tags is never asked for versions, so nothing binds
+      // it — and a written range would, the moment it grows tags. `import`
+      // declines to write one for the same reason.
+      expect(backfill).toEqual([]);
+    });
+
+    it('a root drifted above the assumed range is left alone', async () => {
+      const { project, source } = await buildSweepFixture({
+        setting: { name: 'H', location: 'https://x/H.git', private: false },
+        installed: '2.0.0',
+        available: ['2.0.0'],
+      });
+
+      const { backfill } = await resolveForApply(
+        project,
+        { kind: 'update', module: 'A' },
+        { sourceLayer: source, tempDir: testDir },
+      );
+
+      // 2.0.0 is exempt from the assumed pin as pre-existing drift, so 1.x is
+      // not what governs H — writing it down would be a false declaration.
+      expect(backfill).toEqual([]);
+    });
+
+    it('an explicitly declared range is never rewritten', async () => {
+      const { project, source } = await buildSweepFixture({
+        setting: {
+          name: 'H',
+          location: 'https://x/H.git',
+          version: '^1.0.0',
+          private: false,
+        },
+        installed: '1.0.0',
+        available: ['1.0.0'],
+      });
+
+      const { backfill } = await resolveForApply(
+        project,
+        { kind: 'update', module: 'A' },
+        { sourceLayer: source, tempDir: testDir },
+      );
+
+      expect(backfill).toEqual([]);
+    });
+
+    it('a refused resolution writes nothing back', async () => {
+      const { project, source } = await buildOutOfPinFixture();
+      // Give the drifted-in bystander a version-less declaration, so a
+      // successful resolve would have backfilled it.
+      project.configuration.modules.push({
+        name: 'D',
+        location: 'https://x/D.git',
+        private: false,
+      });
+      await installModule(project, { name: 'D', version: '1.0.0' });
+
+      const { plan, resolved, backfill } = await resolveForApply(
+        project,
+        { kind: 'update', module: 'A', to: '1.8.0' as Version },
+        { sourceLayer: source, tempDir: testDir },
+      );
+
+      expect(plan.ok).toBe(false);
+      expect(resolved).toEqual([]);
+      expect(backfill).toEqual([]);
+    });
+  });
 });

@@ -70,7 +70,7 @@
             "type": "boolean"
           },
           "version": {
-            "description": "Semver version or range constraint (e.g., '1.0.0', '^1.0.0', '>=1.2.0 <2.0.0'). When omitted, the module is assumed to be bound to version 1.x.",
+            "description": "Semver version or range constraint (e.g., '1.0.0', '^1.0.0', '>=1.2.0 <2.0.0'). When omitted, the module is assumed to be bound to version 1.x, and the next module operation writes that assumption here.",
             "type": "string"
           }
         },

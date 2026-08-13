@@ -32,6 +32,12 @@ const logger = getChildLogger({ module: 'applier' });
 export interface ApplyOptions {
   /** Directory holding each entry's `stagedPath` tree. */
   tempDir: string;
+  /**
+   * Declarations to rewrite for modules this apply does not install —
+   * roots that stayed at their installed version but never wrote down a
+   * version range. Persisted verbatim, no files touched.
+   */
+  backfill?: ModuleSetting[];
 }
 
 interface StagedModule {
@@ -124,6 +130,12 @@ export async function applyModules(
       continue;
     }
     await project.configuration.upsertModule(toPersistedSetting(entry));
+  }
+
+  // Declaration-only rewrites: these modules keep the files they already
+  // have, so they are persisted regardless of what landed above.
+  for (const setting of options.backfill ?? []) {
+    await project.configuration.upsertModule(setting);
   }
 
   await Promise.all(

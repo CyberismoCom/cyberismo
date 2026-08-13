@@ -56,6 +56,12 @@ export function toVersionRange(range: string): VersionRange {
  * Range assumed for a dependency declared without a version: bound to 1.x,
  * never floated across majors. Compat guard for configs written before
  * version support existed.
+ *
+ * The assumption is meant to be temporary. Wherever it governs a project's
+ * own declaration, the next module operation writes it into
+ * `cardsConfig.json`, so a config only stays version-less until it is next
+ * touched. Dependency edges inside an installed module's own config are not
+ * rewritten — that file belongs to the module, not the project.
  */
 export const DEFAULT_VERSION_RANGE = '1.x' as VersionRange;
 
