@@ -12,7 +12,6 @@
 */
 
 import { writeJsonFile as atomicWrite } from 'write-json-file';
-import { writeFileSync } from 'node:fs';
 
 import { resolve } from 'node:path';
 import { URL } from 'node:url';
@@ -23,7 +22,6 @@ import type {
   ProjectSettings,
 } from './interfaces/project-interfaces.js';
 import { canonicalHubLocation } from './utils/hub-utils.js';
-import { formatJson } from './utils/json.js';
 import { getChildLogger } from './utils/log-utils.js';
 import { readCardsConfigSync } from './containers/project/cards-config.js';
 import { Validate } from './commands/validate.js';
@@ -43,30 +41,15 @@ export class ProjectConfiguration implements ProjectSettings {
   hubs: HubSetting[];
   private logger = getChildLogger({ module: 'Project' });
   private settingPath: string;
-  private autoSave: boolean = false;
 
-  constructor(path: string, autoSave: boolean = true) {
+  constructor(path: string) {
     this.name = '';
     this.settingPath = path;
     this.cardKeyPrefix = '';
     this.description = '';
     this.modules = [];
     this.hubs = [];
-    this.autoSave = autoSave;
     this.readSettings();
-    this.ensureSchemaVersionAndSave();
-  }
-
-  // Ensures that schemaVersion is set in the project configuration.
-  // If missing, sets it to the current SCHEMA_VERSION and marks for auto-save.
-  private ensureSchemaVersionAndSave() {
-    if (this.schemaVersion === undefined) {
-      this.schemaVersion = SCHEMA_VERSION;
-      // Auto-saves the configuration, if schema version was updated.
-      if (this.autoSave) {
-        this.saveSync();
-      }
-    }
   }
 
   // Sets configuration values from file.
@@ -81,20 +64,6 @@ export class ProjectConfiguration implements ProjectSettings {
     this.version = settings.version;
     this.modules = settings.modules || [];
     this.hubs = settings.hubs || [];
-  }
-
-  // Synchronously persists configuration file to disk.
-  private saveSync() {
-    if (this.cardKeyPrefix === '') {
-      throw new Error('wrong configuration');
-    }
-    try {
-      writeFileSync(this.settingPath, formatJson(this.toJSON()), 'utf-8');
-    } catch (error) {
-      if (error instanceof Error) {
-        this.logger.error({ error }, 'Cannot write project configuration');
-      }
-    }
   }
 
   // Return the configuration as object
@@ -166,22 +135,23 @@ export class ProjectConfiguration implements ProjectSettings {
   public checkSchemaVersion(): { isCompatible: boolean; message: string } {
     if (this.schemaVersion === undefined) {
       return {
-        isCompatible: true,
-        message: '',
+        isCompatible: false,
+        message:
+          "Project's cardsConfig.json has no 'schemaVersion'. Set it manually to the schema version the project conforms to, then run 'cyberismo migrate'.",
       };
     }
 
     if (this.schemaVersion < SCHEMA_VERSION) {
       return {
         isCompatible: false,
-        message: `Schema version mismatch: Project schema version (${this.schemaVersion}) is older than the application schema version (${SCHEMA_VERSION}). A migration is needed. Run 'cyberismo migrate' to update the project schema.`,
+        message: `Schema version mismatch: project is at schema version ${this.schemaVersion}, this tool requires ${SCHEMA_VERSION}. Run 'cyberismo migrate' to update the project.`,
       };
     }
 
     if (this.schemaVersion > SCHEMA_VERSION) {
       return {
         isCompatible: false,
-        message: `Schema version mismatch: Project schema version (${this.schemaVersion}) is newer than the application schema version (${SCHEMA_VERSION}). Please update the application.`,
+        message: `Schema version mismatch: project is at schema version ${this.schemaVersion}, this tool supports up to ${SCHEMA_VERSION}. Upgrade cyberismo.`,
       };
     }
 

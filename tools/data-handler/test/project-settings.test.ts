@@ -53,7 +53,7 @@ describe('project settings', () => {
 
   it('should load valid configuration file', () => {
     const configPath = createTestConfig('test-config-load.json');
-    const projectSettings = new ProjectConfiguration(configPath, false);
+    const projectSettings = new ProjectConfiguration(configPath);
 
     expect(projectSettings).not.toBeUndefined();
     expect(projectSettings.cardKeyPrefix).toBe('test');
@@ -70,7 +70,7 @@ describe('project settings', () => {
       category: 'Development',
       description: 'A test project with category and description',
     });
-    const projectSettings = new ProjectConfiguration(configPath, false);
+    const projectSettings = new ProjectConfiguration(configPath);
 
     expect(projectSettings.category).toBe('Development');
     expect(projectSettings.description).toBe(
@@ -86,28 +86,27 @@ describe('project settings', () => {
         description: '',
       },
     );
-    const projectSettings = new ProjectConfiguration(configPath, false);
+    const projectSettings = new ProjectConfiguration(configPath);
 
     expect(projectSettings.category).toBe('');
     expect(projectSettings.description).toBe('');
   });
 
-  // Test disabled for now to avoid getting the schemaVersion to test files.
-  it('should auto-add schema version when missing', () => {
+  it('should not modify file when schema version is missing', () => {
     const configPath = createTestConfig('test-config-no-schema.json', {
       schemaVersion: undefined as unknown as number,
     });
 
-    const config = new ProjectConfiguration(configPath, true);
-    expect(config.schemaVersion).toBe(SCHEMA_VERSION);
+    const config = new ProjectConfiguration(configPath);
+    expect(config.schemaVersion).toBe(undefined);
     const savedConfig = readJsonFileSync(configPath);
-    expect(savedConfig.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(savedConfig.schemaVersion).toBe(undefined);
   });
 
   it('should not modify file when schema version already exists', () => {
     const configPath = createTestConfig('test-config-with-schema.json');
     const initialContent = readJsonFileSync(configPath);
-    new ProjectConfiguration(configPath, false);
+    new ProjectConfiguration(configPath);
     const finalContent = readJsonFileSync(configPath);
     expect(finalContent).to.deep.equal(initialContent);
   });
@@ -116,7 +115,7 @@ describe('project settings', () => {
     const configPath = createTestConfig('test-config-remove-module.json', {
       modules: [{ name: 'test-module', location: 'https://example.com' }],
     });
-    const projectSettings = new ProjectConfiguration(configPath, false);
+    const projectSettings = new ProjectConfiguration(configPath);
     expect(projectSettings.modules.length).toBe(1);
 
     await projectSettings.removeModule('test-module');
@@ -128,7 +127,7 @@ describe('project settings', () => {
 
   it('should reject removing non-existent module', async () => {
     const configPath = createTestConfig('test-config-remove-missing.json');
-    const projectSettings = new ProjectConfiguration(configPath, false);
+    const projectSettings = new ProjectConfiguration(configPath);
 
     await expect(projectSettings.removeModule('non-existent')).rejects.toThrow(
       "Module 'non-existent' is not imported",
@@ -137,7 +136,7 @@ describe('project settings', () => {
 
   it('should reject removing module with empty name', async () => {
     const configPath = createTestConfig('test-config-remove-empty.json');
-    const projectSettings = new ProjectConfiguration(configPath, false);
+    const projectSettings = new ProjectConfiguration(configPath);
 
     await expect(projectSettings.removeModule('')).rejects.toThrow(
       'Name must be provided to remove module',
@@ -185,7 +184,7 @@ describe('project settings', () => {
       const configPath = createTestConfig(
         `test-config-add-hub-${name.replace(/\W/g, '-')}.json`,
       );
-      const projectSettings = new ProjectConfiguration(configPath, false);
+      const projectSettings = new ProjectConfiguration(configPath);
       await projectSettings.addHub(input);
 
       expect(projectSettings.hubs.length).toBe(1);
@@ -203,7 +202,7 @@ describe('project settings', () => {
         hubs: [{ location: 'https://example.com/hub/' }],
       },
     );
-    const projectSettings = new ProjectConfiguration(configPath, false);
+    const projectSettings = new ProjectConfiguration(configPath);
 
     await expect(
       projectSettings.addHub('https://example.com/hub'),
@@ -215,7 +214,7 @@ describe('project settings', () => {
 
   it('should reject empty hub URL', async () => {
     const configPath = createTestConfig('test-config-hub-empty.json');
-    const projectSettings = new ProjectConfiguration(configPath, false);
+    const projectSettings = new ProjectConfiguration(configPath);
 
     await expect(projectSettings.addHub('')).rejects.toThrow(
       'Cannot add empty hub to the project',
@@ -229,7 +228,7 @@ describe('project settings', () => {
     const configPath = createTestConfig('test-config-hub-duplicate.json', {
       hubs: [{ location: 'https://example.com/hub' }],
     });
-    const projectSettings = new ProjectConfiguration(configPath, false);
+    const projectSettings = new ProjectConfiguration(configPath);
 
     await expect(
       projectSettings.addHub('https://example.com/hub'),
@@ -247,7 +246,7 @@ describe('project settings', () => {
     const configPath = createTestConfig(
       `test-config-hub-invalid-${name.replace(/\W/g, '-')}.json`,
     );
-    const projectSettings = new ProjectConfiguration(configPath, false);
+    const projectSettings = new ProjectConfiguration(configPath);
 
     await expect(projectSettings.addHub(input)).rejects.toThrow(
       `Invalid hub URL '${input}'`,
@@ -257,7 +256,7 @@ describe('project settings', () => {
 
   it('should reject non-HTTP/HTTPS protocols', async () => {
     const configPath = createTestConfig('test-config-hub-protocol.json');
-    const projectSettings = new ProjectConfiguration(configPath, false);
+    const projectSettings = new ProjectConfiguration(configPath);
 
     await expect(
       projectSettings.addHub('ftp://example.com/hub'),
@@ -268,7 +267,7 @@ describe('project settings', () => {
     const configPath = createTestConfig('test-config-remove-hub.json', {
       hubs: [{ location: 'https://example.com/hub' }],
     });
-    const projectSettings = new ProjectConfiguration(configPath, false);
+    const projectSettings = new ProjectConfiguration(configPath);
     expect(projectSettings.hubs.length).toBe(1);
 
     await projectSettings.removeHub('https://example.com/hub');
@@ -280,7 +279,7 @@ describe('project settings', () => {
 
   it('should reject removing non-existent hub', async () => {
     const configPath = createTestConfig('test-config-remove-missing-hub.json');
-    const projectSettings = new ProjectConfiguration(configPath, false);
+    const projectSettings = new ProjectConfiguration(configPath);
 
     await expect(
       projectSettings.removeHub('https://example.com/hub'),
@@ -291,7 +290,7 @@ describe('project settings', () => {
     const configPath = createTestConfig('test-config-set-prefix.json', {
       cardKeyPrefix: 'old',
     });
-    const projectSettings = new ProjectConfiguration(configPath, false);
+    const projectSettings = new ProjectConfiguration(configPath);
     await projectSettings.setCardPrefix('newprefix');
     expect(projectSettings.cardKeyPrefix).toBe('newprefix');
 
@@ -303,7 +302,7 @@ describe('project settings', () => {
     const configPath = createTestConfig('test-config-invalid-prefix.json', {
       cardKeyPrefix: 'valid',
     });
-    const projectSettings = new ProjectConfiguration(configPath, false);
+    const projectSettings = new ProjectConfiguration(configPath);
     await expect(projectSettings.setCardPrefix('UPPERCASE')).rejects.toThrow(
       'is not valid prefix',
     );
@@ -317,7 +316,7 @@ describe('project settings', () => {
 
   it('should set and persist category', async () => {
     const configPath = createTestConfig('test-config-set-category.json');
-    const projectSettings = new ProjectConfiguration(configPath, false);
+    const projectSettings = new ProjectConfiguration(configPath);
     await projectSettings.setCategory('Security');
     expect(projectSettings.category).toBe('Security');
 
@@ -327,7 +326,7 @@ describe('project settings', () => {
 
   it('should set and persist description', async () => {
     const configPath = createTestConfig('test-config-set-description.json');
-    const projectSettings = new ProjectConfiguration(configPath, false);
+    const projectSettings = new ProjectConfiguration(configPath);
     await projectSettings.setDescription('A detailed project description');
     expect(projectSettings.description).toBe('A detailed project description');
 
@@ -343,7 +342,7 @@ describe('project settings', () => {
         description: 'Some description',
       },
     );
-    const projectSettings = new ProjectConfiguration(configPath, false);
+    const projectSettings = new ProjectConfiguration(configPath);
     await projectSettings.setCategory('');
     await projectSettings.setDescription('');
     expect(projectSettings.category).toBe('');
@@ -356,48 +355,47 @@ describe('project settings', () => {
 
   it('should report compatible when schema versions match', () => {
     const configPath = createTestConfig('test-config-schema-match.json');
-    const projectSettings = new ProjectConfiguration(configPath, false);
+    const projectSettings = new ProjectConfiguration(configPath);
     const result = projectSettings.checkSchemaVersion();
     expect(result.isCompatible).toBe(true);
     expect(result.message).toBe('');
   });
 
-  it('should report compatible when schema version is undefined', () => {
+  it('should report incompatible when schema version is undefined', () => {
     const configPath = createTestConfig('test-config-schema-undefined.json', {
       schemaVersion: undefined as unknown as number,
     });
-    const projectSettings = new ProjectConfiguration(configPath, false);
+    const projectSettings = new ProjectConfiguration(configPath);
     const result = projectSettings.checkSchemaVersion();
-    expect(result.isCompatible).toBe(true);
+    expect(result.isCompatible).toBe(false);
+    expect(result.message).to.include("no 'schemaVersion'");
   });
 
   it('should report incompatible when project schema is older', () => {
     const configPath = createTestConfig('test-config-schema-old.json', {
       schemaVersion: SCHEMA_VERSION - 1,
     });
-    const projectSettings = new ProjectConfiguration(configPath, false);
+    const projectSettings = new ProjectConfiguration(configPath);
     const result = projectSettings.checkSchemaVersion();
     expect(result.isCompatible).toBe(false);
-    expect(result.message).to.include('older');
-    expect(result.message).to.include('migration');
+    expect(result.message).to.include("Run 'cyberismo migrate'");
   });
 
   it('should report incompatible when project schema is newer', () => {
     const configPath = createTestConfig('test-config-schema-new.json', {
       schemaVersion: SCHEMA_VERSION + 1,
     });
-    const projectSettings = new ProjectConfiguration(configPath, false);
+    const projectSettings = new ProjectConfiguration(configPath);
     const result = projectSettings.checkSchemaVersion();
     expect(result.isCompatible).toBe(false);
-    expect(result.message).to.include('newer');
-    expect(result.message).to.include('update the application');
+    expect(result.message).to.include('Upgrade cyberismo');
   });
 
   it('should reject saving with empty card prefix', async () => {
     const configPath = createTestConfig('test-config-empty-prefix.json', {
       cardKeyPrefix: 'valid',
     });
-    const projectSettings = new ProjectConfiguration(configPath, false);
+    const projectSettings = new ProjectConfiguration(configPath);
     projectSettings.cardKeyPrefix = '';
     await expect(projectSettings.save()).rejects.toThrow('wrong configuration');
   });
@@ -413,7 +411,7 @@ describe('project settings', () => {
         { name: 'other', location: 'https://example.com/other.git' },
       ],
     });
-    const projectSettings = new ProjectConfiguration(configPath, false);
+    const projectSettings = new ProjectConfiguration(configPath);
 
     await projectSettings.upsertModule({
       name: 'newname',
@@ -436,7 +434,7 @@ describe('project settings', () => {
 
   it('should persist all configuration changes', async () => {
     const configPath = createTestConfig('test-config-persist.json');
-    const projectSettings = new ProjectConfiguration(configPath, false);
+    const projectSettings = new ProjectConfiguration(configPath);
     await projectSettings.upsertModule({
       name: 'module1',
       location: 'https://example.com',

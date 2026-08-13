@@ -37,9 +37,10 @@ import { DEFAULT_HUB } from '@cyberismo/assets';
 
 export interface CommandManagerOptions {
   watchResourceChanges?: boolean;
-  autoSaveConfiguration?: boolean;
   logLevel?: Level;
   autocommit?: boolean;
+  /** Bypass the schema-version gate. Only the migrate path may set this. */
+  skipSchemaVersionCheck?: boolean;
 }
 
 // Handles commands and ensures that no extra instances are created.
@@ -68,10 +69,16 @@ export class CommandManager {
 
   constructor(path: string, options?: CommandManagerOptions) {
     this.project = new Project(path, {
-      autoSave: options?.autoSaveConfiguration,
       watchResourceChanges: options?.watchResourceChanges,
       autocommit: options?.autocommit,
     });
+    if (!options?.skipSchemaVersionCheck) {
+      const compat = this.project.configuration.checkSchemaVersion();
+      if (!compat.isCompatible) {
+        this.project.dispose();
+        throw new Error(compat.message);
+      }
+    }
     this.validateCmd = Validate.getInstance();
 
     this.calculateCmd = new Calculate(this.project);
@@ -172,6 +179,16 @@ export class CommandManager {
     if (!CommandManager.instance) {
       CommandManager.instance = new CommandManager(path, options);
       await CommandManager.instance.initialize();
+    }
+
+    // A cached instance may have been created with the migrate bypass;
+    // re-check so reuse does not silently extend the bypass to other
+    // commands.
+    if (!options?.skipSchemaVersionCheck) {
+      const compat = CommandManager.instance.checkSchemaVersion();
+      if (!compat.isCompatible) {
+        throw new Error(compat.message);
+      }
     }
 
     return CommandManager.instance;

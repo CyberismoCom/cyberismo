@@ -229,9 +229,7 @@ describe('create command', () => {
   it('card with parent returns root cards sorted first by rank', async () => {
     const parentCard = 'decision_5';
     const templateName = 'decision/templates/simplepage';
-    const commands = new CommandManager(decisionRecordsPath, {
-      autoSaveConfiguration: false,
-    });
+    const commands = new CommandManager(decisionRecordsPath, {});
     await commands.initialize();
     const createdCards = await commands.createCmd.createCard(
       templateName,
@@ -1224,9 +1222,7 @@ describe('created cards and custom field values', () => {
   beforeAll(async () => {
     mkdirSync(testRoot, { recursive: true });
     await copyDir('test/test-data/', testRoot);
-    commands = new CommandManager(projectPath, {
-      autoSaveConfiguration: false,
-    });
+    commands = new CommandManager(projectPath, {});
     await commands.initialize();
   });
 

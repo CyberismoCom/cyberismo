@@ -25,10 +25,10 @@ export function getTestBaseDir(
 }
 
 /**
- * Creates a project for tests with auto-save disabled and schema version injected.
+ * Creates a project for tests with schema version injected when missing.
  */
 export function getTestProject(path: string): InstanceType<typeof Project> {
-  const project = new Project(path, { autoSave: false });
+  const project = new Project(path);
   if (project.configuration.schemaVersion === undefined) {
     project.configuration.schemaVersion = SCHEMA_VERSION;
   }

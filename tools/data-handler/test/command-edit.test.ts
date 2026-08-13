@@ -19,9 +19,7 @@ describe('edit card', () => {
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    commands = new CommandManager(decisionRecordsPath, {
-      autoSaveConfiguration: false,
-    });
+    commands = new CommandManager(decisionRecordsPath, {});
     await commands.initialize();
     editCmd = commands.editCmd;
   });
@@ -96,9 +94,7 @@ describe('edit card', () => {
       freshTestDir,
       'valid/decision-records',
     );
-    const freshCommands = new CommandManager(freshDecisionRecordsPath, {
-      autoSaveConfiguration: false,
-    });
+    const freshCommands = new CommandManager(freshDecisionRecordsPath, {});
     await freshCommands.initialize();
     const freshEditCmd = freshCommands.editCmd;
 
@@ -121,7 +117,7 @@ describe('edit card', () => {
     await copyDir('test/test-data/', freshTestDir);
     const freshCommands = new CommandManager(
       join(freshTestDir, 'valid/decision-records'),
-      { autoSaveConfiguration: false },
+      {},
     );
     await freshCommands.initialize();
 
@@ -200,9 +196,7 @@ describe('edit card', () => {
     field.enableOverride = true;
     writeFileSync(cardTypePath, JSON.stringify(cardType));
 
-    const freshCommands = new CommandManager(projectPath, {
-      autoSaveConfiguration: false,
-    });
+    const freshCommands = new CommandManager(projectPath, {});
     await freshCommands.initialize();
     return { freshTestDir, freshCommands };
   }
@@ -317,9 +311,7 @@ describe('edit card', () => {
     metadata['decision/fieldTypes/obsoletedBy'] = 'decision_999';
     writeFileSync(metadataFile, JSON.stringify(metadata));
 
-    const freshCommands = new CommandManager(projectPath, {
-      autoSaveConfiguration: false,
-    });
+    const freshCommands = new CommandManager(projectPath, {});
     await freshCommands.initialize();
 
     try {
@@ -378,7 +370,7 @@ describe('edit card', () => {
       await copyDir('test/test-data/', clearTestDir);
       clearCommands = new CommandManager(
         join(clearTestDir, 'valid/decision-records'),
-        { autoSaveConfiguration: false },
+        {},
       );
       await clearCommands.initialize();
     });

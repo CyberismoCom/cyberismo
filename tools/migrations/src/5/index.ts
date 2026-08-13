@@ -30,8 +30,9 @@ const OLD_SEAL_NAME = /^migrationLog_\d+\.\d+\.\d+\.jsonl$/;
  *
  * Changes:
  * - Removes pre-replay migration log snapshots
- *   (`.cards/local/migrations/migrationLog_<version>.jsonl`). The replay
- *   system reads only lineage-named seals
+ *   (`migrationLog_<version>.jsonl`) from `.cards/local/migrations/` and
+ *   from every installed module tree's `.cards/modules/<prefix>/migrations/`.
+ *   The replay system reads only lineage-named seals
  *   (`migrationLog_<from>_<to>.jsonl`) and ignores the old single-version
  *   files, so they are dead data.
  * - Introduces calculated custom field override support: card types may
@@ -52,29 +53,22 @@ const migration: Migration = {
       `Migrating from schema version ${context.fromVersion} to ${context.toVersion}`,
     );
 
-    const migrationsFolder = join(
-      context.cardsConfigPath,
-      'local',
-      'migrations',
-    );
-
-    let entries: string[] = [];
-    try {
-      entries = await readdir(migrationsFolder);
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        throw error;
-      }
+    const sweepTargets = [join(context.cardsConfigPath, 'local', 'migrations')];
+    const modulesFolder = join(context.cardsConfigPath, 'modules');
+    for (const name of await readdirOrEmpty(modulesFolder)) {
+      sweepTargets.push(join(modulesFolder, name, 'migrations'));
     }
 
     const stepsExecuted: string[] = [];
-    const oldSnapshots = entries.filter((name) => OLD_SEAL_NAME.test(name));
-    for (const name of oldSnapshots) {
-      await rm(join(migrationsFolder, name));
-      console.log(`Removed pre-replay migration log snapshot '${name}'.`);
-      stepsExecuted.push(`Removed pre-replay migration log snapshot ${name}`);
+    for (const folder of sweepTargets) {
+      const entries = await readdirOrEmpty(folder);
+      for (const name of entries.filter((n) => OLD_SEAL_NAME.test(n))) {
+        await rm(join(folder, name));
+        console.log(`Removed pre-replay migration log snapshot '${name}'.`);
+        stepsExecuted.push(`Removed pre-replay migration log snapshot ${name}`);
+      }
     }
-    if (oldSnapshots.length === 0) {
+    if (stepsExecuted.length === 0) {
       console.log('No pre-replay migration log snapshots found.');
     }
     stepsExecuted.push('Schema version incremented');
@@ -87,5 +81,16 @@ const migration: Migration = {
     };
   },
 };
+
+async function readdirOrEmpty(dir: string): Promise<string[]> {
+  try {
+    return await readdir(dir);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      throw error;
+    }
+    return [];
+  }
+}
 
 export default migration;

@@ -69,11 +69,9 @@ import { isPredefinedField, ROOT } from '../utils/constants.js';
 
 /**
  * Options for Project initialization.
- * autoSave - If project configuration changes are saved automatically. Default true.
  * watchResourceChanges - If project refresh automatically to filesystem changes. Default false.
  */
 export interface ProjectOptions {
-  autoSave?: boolean;
   watchResourceChanges?: boolean;
   autocommit?: boolean;
 }
@@ -96,13 +94,11 @@ export class Project extends CardContainer {
   constructor(
     path: string,
     private options: ProjectOptions = {
-      autoSave: true,
       watchResourceChanges: false,
     },
   ) {
     const settings = new ProjectConfiguration(
       join(path, '.cards', 'local', Project.projectConfigFileName),
-      options.autoSave ?? true,
     );
     super(path, settings.cardKeyPrefix);
     this.settings = settings;

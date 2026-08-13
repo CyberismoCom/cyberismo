@@ -1,7 +1,13 @@
-import { expect, it, describe } from 'vitest';
+import { afterEach, beforeEach, expect, it, describe } from 'vitest';
+
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 import { Migrate } from '../src/commands/migrate.js';
 import { SCHEMA_VERSION } from '@cyberismo/assets';
+import { Cmd, Commands } from '../src/command-handler.js';
+import { copyDir } from '../src/utils/file-utils.js';
+import { readJsonFileSync } from '../src/utils/json.js';
 
 import type { MigrationResult } from '@cyberismo/migrations';
 import type { Project } from '../src/containers/project.js';
@@ -165,5 +171,43 @@ describe('Migrate command', () => {
     await migrateCmd.migrate(targetVersion, undefined, customTimeout);
     expect(capturedTimeout).toBe(customTimeout);
     expect(mockProject.configuration.schemaVersion).toBe(targetVersion);
+  });
+});
+
+describe('schema version gate via command handler', () => {
+  const testDir = join(import.meta.dirname, 'tmp-command-migrate-gate-tests');
+  const projectPath = join(testDir, 'valid/decision-records');
+  const configPath = join(projectPath, '.cards', 'local', 'cardsConfig.json');
+
+  beforeEach(async () => {
+    rmSync(testDir, { recursive: true, force: true });
+    mkdirSync(testDir, { recursive: true });
+    await copyDir('test/test-data', testDir);
+    const config = readJsonFileSync(configPath) as Record<string, unknown>;
+    config.schemaVersion = SCHEMA_VERSION - 1;
+    writeFileSync(configPath, JSON.stringify(config, null, 4));
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('refuses other commands on an older project but lets migrate through', async () => {
+    const commandHandler = new Commands();
+    const refused = await commandHandler.command(Cmd.validate, [], {
+      projectPath,
+    });
+    expect(refused.statusCode).toBe(400);
+    expect(refused.message).toContain("Run 'cyberismo migrate'");
+
+    const migrated = await commandHandler.command(Cmd.migrate, [], {
+      projectPath,
+    });
+    expect(migrated.statusCode).toBe(200);
+
+    const allowed = await commandHandler.command(Cmd.validate, [], {
+      projectPath,
+    });
+    expect(allowed.statusCode).toBe(200);
   });
 });
