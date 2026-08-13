@@ -38,8 +38,9 @@ A migration owns the **entire** `.cards` tree it is given:
 The same script also runs against _staged module checkouts_ during
 `cyberismo import module` / `cyberismo update modules`: a module released
 at an older schema version is migrated in the staging directory before its
-resources are copied into the project. Only the `migrate` step runs there
-(no `before`/`backup`/`after`). Therefore:
+resources are copied into the project. Only the `migrate` step runs there —
+the in-process runner refuses a migration that defines
+`before`/`backup`/`after` rather than silently skipping them. Therefore:
 
 - Do not assume the tree is the host project.
 - Tolerate a missing `cardRoot` — staged file-source modules stage only
