@@ -1,5 +1,64 @@
 # Changelog
 
+## [1.1.0] — 2026-08-13
+
+### Highlights
+
+Cyberismo projects can now teach AI agents how to work with them: a new `skill` resource type carries project-specific instructions, and agents discover the currently enabled ones over MCP — point Claude Code at a project with `cyberismo install-skills` and it picks up the project's own guidance. Module updates also became trustworthy: a real constraint solver resolves module versions across the whole dependency closure, and breaking changes recorded by a module publisher are now replayed into your project automatically on update.
+
+### Breaking changes
+
+- The tool now requires the project schema version to match its own rather than prompting for migrations; run `cyberismo migrate` after upgrading. Importing or updating a module whose schema is newer than your tool now fails with an explicit error — upgrade the CLI instead (#1533)
+- Project schema bumped 4 → 5, dropping the obsolete single-version `migrationLog_<version>.jsonl` snapshots that the replay system no longer reads; run `cyberismo migrate` (the migration is idempotent and leaves projects without those files untouched) (#1468)
+- Module version resolution now refuses an incoherent set with an explained conflict instead of silently taking the first-encountered version — projects whose module version ranges are incompatible must widen or align them before `import` / `update` will succeed (#1474)
+- A project that imports modules without declaring a version is now treated as depending on `1.x`; declare an explicit range if you rely on a different major (#1532)
+
+### Features
+
+- New `skill` resource type stored in `.cards/local/skills`, with full CLI management (`create` / `show` / `list` / `remove`, plus rename and edit) (#1473)
+- Agents can discover a project's enabled skills over MCP via the `list_skills` and `get_skill` tools, with enablement driven by the project's own logic programs (#1475)
+- Each enabled skill is also exposed as an MCP prompt, so clients can list and inject skill context before an agent starts reasoning (#1489)
+- New `cyberismo install-skills` command installs the skill-discovery bootstrap skill and MCP server configuration for an agent, idempotently (#1476)
+- Module version resolution is now a backtracking constraint solver over the installed closure, shared by `check-updates` and the `import` / `update` / `update-all` apply paths (#1474)
+- Breaking changes recorded by a module are replayed into the consumer project on update, with downgrade, non-linear and chain-gap conflicts detected up front (#1467, #1466)
+- A module's configuration-change log is sealed on every minor and major version bump, so consumers can replay those changes on update (#1464)
+- Calculated fields can now be overridden per card; calculations should emit `fieldCalculated` facts instead of setting `field` directly, though existing calculations keep working (#1491)
+- New built-in `urlPath` calculated field for cards (#1528)
+- `onTransitionExecuteTransition` side effects now run, both when creating a card and when transitioning it; a failed side effect does not fail the main request, and cycles are prevented (#1487)
+- Hubs can be managed from the configuration UI (#1457)
+- The report macro works without a logic program query, and new math helpers allow inline computation in report templates (#1460)
+- Calculation logic programs are now validated before use, so a runaway calculation can no longer take down the backend (#1490)
+- `validate` now attributes problems to the offending file or card and collects them all instead of stopping at the first bad resource name or macro (#1522)
+- Service accounts can authenticate against the APIs (#1465)
+- SaaS Git service support (#1454)
+- The configuration editor tree gained a "back to cards" button (#1523)
+- A content security policy now restricts embedded iframes to YouTube and Vimeo (#1526)
+
+### Fixes
+
+- `validate` no longer errors on missing or dormant custom-field values (#1496)
+- Internal app links no longer render as doubled absolute URLs (#1513)
+- Missing items in the navigation tree now appear (#1515)
+- The template card editor no longer shows the wrong create button (#1503)
+- Inline editors no longer break when navigating between cards (#1519)
+- Always show the card-content edit button (#1521)
+- The configuration resource tree is revalidated after a template card is deleted (#1520)
+
+### Dependencies
+
+- Clingo updated to 5.8.1 (#1531)
+- undici bumped to 7.28.0 for a security advisory (#1472)
+- 19 dependency updates from Dependabot
+
+### Internal
+
+- Mutation handling refactored into a declarative routing registry, with cascade and deletion policy moved into the handlers (#1462, #1441)
+- Module metadata can be read at arbitrary versions, backing the new resolution engine (#1493)
+- End-to-end tests for module-update replay (#1469)
+- Dependency license allowlist check in CI (#1463)
+- Fixed a `pnpm dev` startup race and enabled incremental builds for most packages (#1488)
+- Updated `AGENTS.md` (#1486) and CODEOWNERS (#1501)
+
 ## [1.0.0] — 2026-06-15
 
 ### Highlights
