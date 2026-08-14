@@ -39,6 +39,7 @@ import {
   validContexts,
 } from '@cyberismo/data-handler';
 import { ResourceTypeParser as Parser } from './resource-type-parser.js';
+import { formatExportErrors, truncateMessage } from './format-errors.js';
 import {
   startServer,
   exportSite,
@@ -49,8 +50,6 @@ import {
 import type { MockUserConfig } from '@cyberismo/backend';
 import { simpleGit } from 'simple-git';
 
-// How many validation errors are shown when staring app, if any.
-const VALIDATION_ERROR_ROW_LIMIT = 10;
 import { DEFAULT_HUB } from '@cyberismo/assets';
 
 // To avoid duplication, fetch description and version from package.json file.
@@ -63,48 +62,6 @@ async function getGitUserConfig(): Promise<MockUserConfig> {
   const name = (await git.getConfig('user.name')).value || undefined;
   const email = (await git.getConfig('user.email')).value || undefined;
   return { name, email };
-}
-
-// Truncates a multi-row message to an array of items.
-// Logs maximum of 'limit' items to console. If there are more items than
-// 'limit', the last element is replaced with "..." to indicate truncation.
-// Returns the potentially truncated array.
-function truncateMessage(
-  messages: string,
-  limit: number = VALIDATION_ERROR_ROW_LIMIT,
-): string[] {
-  const array = messages.split('\n');
-  if (array.length < limit) {
-    return [...array];
-  }
-  if (limit <= 0) {
-    return [];
-  }
-  if (limit === 1) {
-    return ['...'];
-  }
-  return [...array.slice(0, limit - 1), '...'];
-}
-
-// Groups export errors by project prefix for CLI display, matching the
-// "Validation errors in project '<name>':" convention used at CLI startup.
-export function formatExportErrors(
-  errors: { prefix?: string; error: string }[],
-): string {
-  const grouped = new Map<string, string[]>();
-  for (const { prefix, error } of errors) {
-    const key = prefix ?? 'unknown project';
-    if (!grouped.has(key)) {
-      grouped.set(key, []);
-    }
-    grouped.get(key)!.push(error);
-  }
-  const lines: string[] = [];
-  for (const [prefix, messages] of grouped) {
-    lines.push(`Errors in project '${prefix}':`);
-    lines.push(...truncateMessage(messages.join('\n')));
-  }
-  return lines.join('\n');
 }
 
 // Sets up credentials for git operations.

@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import { describe, expect, it } from 'vitest';
-import { formatExportErrors } from '../src/index.js';
+import { formatExportErrors } from '../src/format-errors.js';
 
 describe('formatExportErrors', () => {
   it('groups errors under their project prefix', () => {
