@@ -2,6 +2,7 @@ import { expect, it, describe, beforeAll, afterAll } from 'vitest';
 import { join } from 'node:path';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import {
+  createCalculatedFieldRules,
   createCardFacts,
   createCardTypeFacts,
   createContextFacts,
@@ -145,6 +146,94 @@ describe('clingo-facts', () => {
         ],
       };
       expect(createCardTypeFacts(cardType)).not.toContain('overridableField(');
+    });
+  });
+
+  describe('createCalculatedFieldRules', () => {
+    const base: CardType = {
+      name: 'mod/cardTypes/ct',
+      displayName: 'ct',
+      workflow: 'mod/workflows/wf',
+      customFields: [],
+      alwaysVisibleFields: [],
+      optionallyVisibleFields: [],
+    };
+
+    it('binds the field name as a constant in every literal', () => {
+      const cardType: CardType = {
+        ...base,
+        customFields: [
+          {
+            name: 'mod/fieldTypes/owner',
+            isCalculated: true,
+            enableOverride: true,
+          },
+        ],
+      };
+
+      expect(createCalculatedFieldRules([cardType])).to.equal(
+        `field(Card, "mod/fieldTypes/owner", Value) :-
+    fieldCalculated(Card, "mod/fieldTypes/owner", Value),
+    field(Card, "cardType", CardType),
+    calculatedField(CardType, "mod/fieldTypes/owner"),
+    not fieldOverride(Card, "mod/fieldTypes/owner", _).
+`,
+      );
+    });
+
+    it('emits one rule per field name, regardless of how many card types declare it', () => {
+      const customFields = [
+        { name: 'mod/fieldTypes/owner', isCalculated: true },
+      ];
+      const rules = createCalculatedFieldRules([
+        { ...base, name: 'mod/cardTypes/a', customFields },
+        { ...base, name: 'mod/cardTypes/b', customFields },
+      ]);
+
+      expect(rules.match(/^field\(Card, /gm)).to.have.length(1);
+    });
+
+    it('sorts the rules so the program is stable across runs', () => {
+      const rules = createCalculatedFieldRules([
+        {
+          ...base,
+          customFields: [
+            { name: 'mod/fieldTypes/owner', isCalculated: true },
+            { name: 'mod/fieldTypes/assessment', isCalculated: true },
+          ],
+        },
+      ]);
+
+      expect(rules.indexOf('mod/fieldTypes/assessment')).to.be.lessThan(
+        rules.indexOf('mod/fieldTypes/owner'),
+      );
+    });
+
+    it('skips custom fields that are not calculated', () => {
+      const cardType: CardType = {
+        ...base,
+        customFields: [
+          { name: 'mod/fieldTypes/owner', isCalculated: false },
+          { name: 'mod/fieldTypes/notes' },
+        ],
+      };
+
+      expect(createCalculatedFieldRules([cardType])).to.equal('');
+    });
+
+    it('returns an empty program when there are no card types', () => {
+      expect(createCalculatedFieldRules([])).to.equal('');
+    });
+
+    it('encodes characters that would break the clingo string', () => {
+      const cardType: CardType = {
+        ...base,
+        customFields: [{ name: 'mod/fieldTypes/"odd"', isCalculated: true }],
+      };
+
+      expect(createCalculatedFieldRules([cardType])).toContain(
+        'field(Card, "mod/fieldTypes/\\"odd\\"", Value) :-',
+      );
     });
   });
 });
