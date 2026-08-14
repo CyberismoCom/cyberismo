@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.1] — 2026-08-14
+
+### Highlights
+
+A patch release that restores calculation performance. The calculated-field override support added in 1.1.0 left a generic rule in `base.lp` that made every `not field(...)` condition in every calculation undecidable at grounding time; the rule is now generated per calculated field name instead, so grounding is fast again.
+
+### Fixes
+
+- Calculations no longer slow down from the generic calculated-field rule in `base.lp` — the `fieldCalculated` → `field` bridge is now generated per field name (#1538)
+
 ## [1.1.0] — 2026-08-13
 
 ### Highlights
