@@ -15,6 +15,7 @@ import { sep } from 'node:path';
 import {
   type AllowedClingoType,
   ClingoFactBuilder,
+  encodeClingoValue,
 } from './clingo-fact-builder.js';
 import type {
   Card,
@@ -546,6 +547,38 @@ export const createCardTypeFacts = (cardType: CardType) => {
     }
   }
   return builder.buildAll();
+};
+
+/**
+ * Creates the rules that bridge calculated values to the effective field value,
+ * one per distinct calculated field name. The field name must be a constant in
+ * the rule head; a generic field/3 head makes every `not field(...)` in every
+ * calculation undecidable at grounding time.
+ * @param cardTypes Card types of the project
+ * @returns clingo rules as a string
+ */
+export const createCalculatedFieldRules = (cardTypes: CardType[]) => {
+  const fields = new Set<string>();
+  for (const cardType of cardTypes) {
+    for (const customField of cardType.customFields) {
+      if (customField.isCalculated) {
+        fields.add(customField.name);
+      }
+    }
+  }
+
+  const rules = [...fields].sort().map((field) => {
+    const name = `"${encodeClingoValue(field)}"`;
+    return [
+      `field(Card, ${name}, Value) :-`,
+      `    fieldCalculated(Card, ${name}, Value),`,
+      `    field(Card, "cardType", CardType),`,
+      `    calculatedField(CardType, ${name}),`,
+      `    not fieldOverride(Card, ${name}, _).`,
+    ].join('\n');
+  });
+
+  return rules.length > 0 ? rules.join('\n\n') + '\n' : '';
 };
 
 export const createContextFacts = (context: Context) => {

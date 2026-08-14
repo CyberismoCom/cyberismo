@@ -30,6 +30,7 @@ import Handlebars from 'handlebars';
 import type { Project } from '../../containers/project.js';
 import { getChildLogger } from '../../utils/log-utils.js';
 import {
+  createCalculatedFieldRules,
   createCardFacts,
   createCardTypeFacts,
   createContextFacts,
@@ -136,14 +137,21 @@ export class CalculationEngine {
     return content;
   }
 
-  // Sets individual CardType programs
+  // Sets individual CardType programs, plus the calculated field rules that are
+  // derived from all of them together.
   private async setCardTypesPrograms() {
-    const cardTypes = this.project.resources.cardTypes();
+    const cardTypes = this.project.resources
+      .cardTypes()
+      .map((cardType) => cardType.show());
     for (const cardType of cardTypes) {
-      const ct = cardType.show();
-      const cardTypeContent = createCardTypeFacts(ct);
-      this.clingo.setProgram(ct.name, cardTypeContent, [ALL_CATEGORY]);
+      const cardTypeContent = createCardTypeFacts(cardType);
+      this.clingo.setProgram(cardType.name, cardTypeContent, [ALL_CATEGORY]);
     }
+    this.clingo.setProgram(
+      'calculatedFields',
+      createCalculatedFieldRules(cardTypes),
+      [ALL_CATEGORY],
+    );
   }
 
   // Sets individual FieldType programs
