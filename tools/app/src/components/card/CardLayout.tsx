@@ -311,6 +311,7 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
         onScroll={handleScroll}
       >
         <Box
+          data-cy="cardContentScroll"
           width="100%"
           padding={{ xs: 2, sm: 3 }}
           flexGrow={1}
