@@ -26,8 +26,8 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { addNotification } from '@/lib/slices/notifications';
-import { useAppDispatch, useAppSelector } from '@/lib/hooks';
-import { selectLastPathByPrefix, projectEntryPath } from '@/lib/slices/project';
+import { useAppDispatch } from '@/lib/hooks';
+import { projectEntryPath } from '@/lib/slices/project';
 import { useProjectMutations } from '@/lib/api/projects';
 import { useProjectModulesImportable } from '@/lib/api/projectSettings';
 import { addModule } from '@/lib/api/projectSettings';
@@ -51,7 +51,6 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const lastPathByPrefix = useAppSelector(selectLastPathByPrefix);
 
   const [step, setStep] = useState<WizardStep>('method');
   const [isLoading, setIsLoading] = useState(false);
@@ -86,7 +85,9 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
   };
 
   const handleNavigateToProject = (prefix: string) => {
-    navigate(projectEntryPath(prefix, lastPathByPrefix));
+    // Always the card list: this project was just created or cloned, so any
+    // remembered path under its prefix belongs to an older, unrelated project.
+    navigate(projectEntryPath(prefix, undefined));
     handleClose();
   };
 

@@ -28,8 +28,10 @@ import {
   selectProjectPrefix,
   setProjectPrefix,
   addRecentProject,
-  selectLastPathForPrefix,
+  selectLastPathByPrefix,
+  projectEntryPath,
 } from './lib/slices/project.js';
+import { PROJECT_NOT_FOUND_ROUTE_ID } from './lib/constants.js';
 import { fetchAvailableProjects } from './lib/projectUtils.js';
 import type { AvailableProject } from './lib/projectUtils.js';
 import { getConfig } from './lib/utils.js';
@@ -65,8 +67,9 @@ export function createAppRouter() {
       loader: async () => {
         const { prefix } = await resolveProject();
         if (prefix) {
-          const lastPath = selectLastPathForPrefix(prefix)(store.getState());
-          return redirect(`/projects/${prefix}${lastPath}`);
+          return redirect(
+            projectEntryPath(prefix, selectLastPathByPrefix(store.getState())),
+          );
         }
         // No prefix resolved — show project selection page
         return null;
@@ -85,11 +88,13 @@ export function createAppRouter() {
       children: [
         {
           index: true,
-          loader: ({ params }) => {
-            const prefix = params.projectPrefix!;
-            const lastPath = selectLastPathForPrefix(prefix)(store.getState());
-            return redirect(`/projects/${prefix}${lastPath}`);
-          },
+          loader: ({ params }) =>
+            redirect(
+              projectEntryPath(
+                params.projectPrefix!,
+                selectLastPathByPrefix(store.getState()),
+              ),
+            ),
         },
         {
           Component: CardsLayout,
@@ -142,6 +147,7 @@ export function createAppRouter() {
           ],
         },
         {
+          id: PROJECT_NOT_FOUND_ROUTE_ID,
           path: '*',
           Component: NotFoundPage,
         },

@@ -16,10 +16,11 @@ import type { RootState } from '../store';
 
 const MAX_RECENT_PROJECTS = 5;
 
-// Only these top-level sections are ever remembered as a project's "last
-// visited page". This keeps a stale, manually-typed, or otherwise
-// unmatched URL shape from ever being persisted and later replayed as a
-// redirect target (see INTDEV-1340's stale-path risk).
+// Shape guard for a project's remembered "last visited page": only these
+// top-level sections are worth returning to. It says nothing about whether
+// the path resolves — a deep path like /cards/A/B matches here but renders
+// the not-found page, so the recorder in layout.tsx additionally skips
+// locations that matched no route.
 const KNOWN_SECTION_PATH = /^\/(cards|configuration)(\/.*)?$/;
 
 export interface ProjectState {
@@ -103,7 +104,4 @@ export const selectRecentPrefixes = (state: RootState) =>
 const NO_LAST_PATHS: Record<string, string> = {};
 export const selectLastPathByPrefix = (state: RootState) =>
   state.project.lastPathByPrefix ?? NO_LAST_PATHS;
-export const selectLastPathForPrefix =
-  (prefix: string | undefined) => (state: RootState) =>
-    (prefix && state.project.lastPathByPrefix?.[prefix]) || '/cards';
 export default projectSlice.reducer;

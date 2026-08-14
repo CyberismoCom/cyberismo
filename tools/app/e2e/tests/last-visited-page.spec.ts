@@ -88,8 +88,23 @@ base.describe('Remember last visited page per project', () => {
       // produce (deriveLastPath only ever stores /cards... shapes), and it
       // must degrade to card-view's inline error, not the hard 404 page.
       await page.goto(cardUrl);
+      await expect(page).toHaveURL(cardUrl);
       await expect(page.getByTestId('createNewButton')).toBeVisible();
       await expect(page.getByText('Page not found')).toHaveCount(0);
+
+      // Landing on a dead card must also un-remember it, or every reopen
+      // replays the same error. Wait for that reset to reach localStorage.
+      await page.waitForFunction((key) => {
+        const raw = localStorage.getItem('persist:root');
+        if (!raw) return false;
+        const project = JSON.parse(JSON.parse(raw).project ?? '{}');
+        return !Object.values(
+          (project.lastPathByPrefix ?? {}) as Record<string, string>,
+        ).some((path) => path.includes(key));
+      }, cardKey);
+
+      await page.goto('/');
+      await expect(page).toHaveURL(/\/projects\/.+\/cards$/);
     },
   );
 });

@@ -28,10 +28,12 @@ import {
 } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
 import { isEdited } from '@/lib/slices/pageState';
+import { setLastPathForPrefix } from '@/lib/slices/project';
 import { expandLinkTypes } from '@/lib/utils';
 import { Box, Stack, Typography } from '@mui/joy';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useParams } from 'react-router';
 import { useRequiredKeyParam } from '@/lib/hooks';
 
 export const dynamic = 'force-dynamic';
@@ -39,6 +41,7 @@ export const dynamic = 'force-dynamic';
 export default function Page() {
   // use params from the url, it should always have a key
   const key = useRequiredKeyParam();
+  const { projectPrefix } = useParams();
 
   const { card, error, createLink, deleteLink, editLink, updateCard } =
     useCard(key);
@@ -86,6 +89,16 @@ export default function Page() {
       );
     }
   }, [listCard, dispatch]);
+
+  // A card that no longer resolves must not stay the project's remembered
+  // entry point, or every reopen replays it and lands back on this error.
+  // Cards deleted in-app are handled by afterDelete below; this covers the
+  // ones that disappeared elsewhere (another session, the CLI).
+  useEffect(() => {
+    if (error && projectPrefix) {
+      dispatch(setLastPathForPrefix({ prefix: projectPrefix, path: '/cards' }));
+    }
+  }, [error, projectPrefix, dispatch]);
 
   if (error) {
     let errorMessage = t('unknownError');

@@ -19,7 +19,6 @@ import projectReducer, {
   initialState,
   projectEntryPath,
   selectLastPathByPrefix,
-  selectLastPathForPrefix,
   setLastPathForPrefix,
 } from '@/lib/slices/project';
 
@@ -103,10 +102,6 @@ describe('rehydration from a state persisted before lastPathByPrefix existed', (
     expect(next.lastPathByPrefix).toEqual({ decision: '/cards/DEC-5' });
   });
 
-  it('selectLastPathForPrefix falls back to /cards', () => {
-    expect(selectLastPathForPrefix('decision')(legacyState)).toBe('/cards');
-  });
-
   it('selectLastPathByPrefix returns a stable empty map', () => {
     expect(selectLastPathByPrefix(legacyState)).toEqual({});
     expect(selectLastPathByPrefix(legacyState)).toBe(
@@ -132,18 +127,6 @@ describe('selectors', () => {
 
   it('selectLastPathByPrefix returns the whole map', () => {
     expect(selectLastPathByPrefix(state)).toEqual({ decision: '/cards/DEC-5' });
-  });
-
-  it('selectLastPathForPrefix returns the stored path when present', () => {
-    expect(selectLastPathForPrefix('decision')(state)).toBe('/cards/DEC-5');
-  });
-
-  it('selectLastPathForPrefix falls back to /cards when nothing is stored', () => {
-    expect(selectLastPathForPrefix('unknown')(state)).toBe('/cards');
-  });
-
-  it('selectLastPathForPrefix falls back to /cards for an undefined prefix', () => {
-    expect(selectLastPathForPrefix(undefined)(state)).toBe('/cards');
   });
 });
 

@@ -17,7 +17,7 @@ import {
   useAppDispatch,
 } from '@/lib/hooks';
 import { Stack, styled } from '@mui/joy';
-import { Outlet, useLocation, useParams } from 'react-router';
+import { Outlet, useLocation, useMatches, useParams } from 'react-router';
 import {
   NewCardModal,
   NewFieldTypeModal,
@@ -38,7 +38,7 @@ import { NewTemplateCardModal } from '../components/modals/resource-forms/NewTem
 import { useConfigTemplateCreationContext } from '@/lib/hooks';
 import { AppModalsProvider } from '@/lib/contexts/AppModalsProvider';
 import { UserRole, useHasMinRole } from '@/lib/auth';
-import type { ResourceName } from '@/lib/constants';
+import { PROJECT_NOT_FOUND_ROUTE_ID, type ResourceName } from '@/lib/constants';
 import { useCallback, useEffect, useState } from 'react';
 import { deriveLastPath, setLastPathForPrefix } from '@/lib/slices/project';
 
@@ -77,14 +77,17 @@ export default function Layout() {
   const location = useLocation();
   const { projectPrefix } = useParams();
   const dispatch = useAppDispatch();
+  const notFound = useMatches().some(
+    (match) => match.id === PROJECT_NOT_FOUND_ROUTE_ID,
+  );
 
   useEffect(() => {
-    if (!projectPrefix) return;
+    if (!projectPrefix || notFound) return;
     const lastPath = deriveLastPath(location.pathname, projectPrefix);
     if (lastPath) {
       dispatch(setLastPathForPrefix({ prefix: projectPrefix, path: lastPath }));
     }
-  }, [projectPrefix, location.pathname, dispatch]);
+  }, [projectPrefix, location.pathname, notFound, dispatch]);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [prevInCards, setPrevInCards] = useState(inCards);
