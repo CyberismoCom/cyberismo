@@ -17,7 +17,7 @@ import { Box, Button, IconButton, Stack, Textarea, Typography } from '@mui/joy';
 import EditIcon from '@mui/icons-material/Edit';
 import { useTranslation } from 'react-i18next';
 
-import { useAppDispatch, formKeyHandler } from '@/lib/hooks';
+import { useAppDispatch, focusLeftEditor, formKeyHandler } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
 import { isEdited } from '@/lib/slices/pageState';
 import { UserRole, useHasMinRole } from '@/lib/auth';
@@ -45,7 +45,6 @@ export const CardTitle: React.FC<CardTitleProps> = ({
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(title);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  /** The editing frame, used to tell "focus left the editor" from "focus moved to Save/Cancel". */
   const editBoxRef = useRef<HTMLDivElement>(null);
 
   const canEdit = !preview && !!onSave && !disabled && canEditRole;
@@ -107,12 +106,8 @@ export const CardTitle: React.FC<CardTitleProps> = ({
 
   const dirty = value.trim() !== title;
 
-  const handleBlur = (event: React.FocusEvent<HTMLTextAreaElement>) => {
-    const next = event.relatedTarget as HTMLElement | null;
-    if (next && editBoxRef.current?.contains(next)) {
-      // Focus moved to this editor's own Save/Cancel buttons; let the button
-      // decide. Mouse clicks are already covered by their onMouseDown
-      // preventDefault, this covers keyboard Tab.
+  const handleBlur = (event: React.FocusEvent) => {
+    if (!focusLeftEditor(event, editBoxRef.current)) {
       return;
     }
     if (dirty) {
@@ -140,6 +135,7 @@ export const CardTitle: React.FC<CardTitleProps> = ({
         borderColor="primary.outlinedBorder"
         borderRadius={6}
         padding={{ xs: 1, sm: 1.5 }}
+        onBlur={handleBlur}
         onKeyDown={formKeyHandler({
           canSubmit: true,
           onSubmit: handleSave,
@@ -159,7 +155,6 @@ export const CardTitle: React.FC<CardTitleProps> = ({
               setValue(e.target.value);
               dispatch(isEdited(true));
             }}
-            onBlur={handleBlur}
             sx={{
               fontWeight: 'bold',
               fontSize: '1.8rem',

@@ -154,9 +154,6 @@ describe('FieldRow', () => {
         fireEvent.click(clearButton);
       }
 
-      // Before the fix, the row's onKeyDown treats plain Enter as "save the
-      // dirty form value", so onSave gets called with the typed override
-      // instead of null — this assertion catches that regression.
       expect(onSave).toHaveBeenCalledTimes(1);
       expect(onSave).toHaveBeenCalledWith(null);
     });

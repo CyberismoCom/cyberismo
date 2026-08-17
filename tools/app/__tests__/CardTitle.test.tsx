@@ -125,8 +125,7 @@ describe('CardTitle', () => {
     const cancelButton = container.querySelector(
       '[data-cy="cardTitleCancelButton"]',
     )!;
-    // A real click on the button fires `mousedown` (which our fix must
-    // preventDefault on) before the `click` that runs handleCancel.
+    // A real click fires mousedown before the click that runs handleCancel.
     const notCancelled = fireEvent.mouseDown(cancelButton);
     expect(notCancelled).toBe(false); // preventDefault() was called
     fireEvent.click(cancelButton);

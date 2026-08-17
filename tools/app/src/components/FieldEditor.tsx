@@ -19,17 +19,14 @@ import type {
 import { useTranslation } from 'react-i18next';
 import Person from '@mui/icons-material/Person';
 import LabelEditor from './LabelEditor';
-import type { FocusEvent } from 'react';
 
 export interface FieldEditorProps {
   value: MetadataValue;
   dataType?: DataType | 'label';
   onChange?: (value: string | string[] | null) => void;
-  onBlur?: (e: FocusEvent) => void;
   /**
-   * Called when a dropdown editor finishes interaction (its listbox closes).
-   * A `Select` moves focus into a portalled listbox while it is open, so its
-   * `onBlur` cannot be used to decide when editing is over.
+   * Fires when a Select's listbox closes. Selects move focus into a
+   * portalled listbox, so blur can't tell when dropdown editing ends.
    */
   onCommit?: () => void;
   enumValues?: Array<EnumDefinition>;
@@ -40,7 +37,6 @@ export interface FieldEditorProps {
 export default function FieldEditor({
   value,
   onChange,
-  onBlur,
   onCommit,
   dataType,
   enumValues,
@@ -57,7 +53,6 @@ export default function FieldEditor({
       return (
         <Input
           onChange={(e) => onChange?.(e.target.value)}
-          onBlur={onBlur}
           disabled={disabled}
           value={(value as number | null) ?? ''}
           type="number"
@@ -79,7 +74,6 @@ export default function FieldEditor({
           value={value?.toString() ?? ''}
           disabled={disabled}
           onChange={(_, value) => onChange?.(value)}
-          onBlur={onBlur}
           onListboxOpenChange={handleListboxOpenChange}
           color="primary"
           sx={{
@@ -100,7 +94,6 @@ export default function FieldEditor({
           value={(value as string | null) ?? ''}
           disabled={disabled}
           onChange={(_, value) => onChange?.(value)}
-          onBlur={onBlur}
           onListboxOpenChange={handleListboxOpenChange}
           color="primary"
           sx={{
@@ -126,7 +119,6 @@ export default function FieldEditor({
           value={(value as string[] | null) ?? []}
           multiple
           onChange={(_, value) => onChange?.(value)}
-          onBlur={onBlur}
           onListboxOpenChange={handleListboxOpenChange}
           color="primary"
           sx={{
@@ -148,7 +140,6 @@ export default function FieldEditor({
       return (
         <Input
           onChange={(e) => onChange?.(e.target.value)}
-          onBlur={onBlur}
           disabled={disabled}
           value={(value as string | null) ?? ''}
           type="date"
@@ -162,7 +153,6 @@ export default function FieldEditor({
       return (
         <Input
           onChange={(e) => onChange?.(e.target.value)}
-          onBlur={onBlur}
           disabled={disabled}
           value={(value as string | null) ?? ''}
           type="datetime-local"
@@ -176,7 +166,6 @@ export default function FieldEditor({
       return (
         <Input
           onChange={(e) => onChange?.(e.target.value)}
-          onBlur={onBlur}
           disabled={disabled}
           value={(value as string | null) ?? ''}
           color="primary"
@@ -191,7 +180,6 @@ export default function FieldEditor({
       return (
         <Textarea
           onChange={(e) => onChange?.(e.target.value)}
-          onBlur={onBlur}
           disabled={disabled}
           value={(value as string | null) ?? ''}
           color="primary"
@@ -218,7 +206,6 @@ export default function FieldEditor({
       return (
         <Input
           onChange={(e) => onChange?.(e.target.value)}
-          onBlur={onBlur}
           disabled={disabled}
           value={(value as string | null) ?? ''}
           color="primary"

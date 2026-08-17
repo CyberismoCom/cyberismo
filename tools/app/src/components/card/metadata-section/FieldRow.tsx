@@ -25,7 +25,7 @@ import EditableField, { FieldLabel } from '@/components/EditableField';
 import FieldEditor from '@/components/FieldEditor';
 import { OverrideEditorFrame, OverriddenMarker } from './OverrideEditorFrame';
 import { coerceMetadataValue, metadataValueToString } from '@/lib/utils';
-import { formKeyHandler } from '@/lib/hooks';
+import { focusLeftEditor, formKeyHandler } from '@/lib/hooks';
 
 export interface FieldRowProps {
   id?: string;
@@ -82,14 +82,9 @@ export function FieldRow({
     formState: { isDirty },
   } = useForm({ defaultValues: { value: initialValue } });
 
-  // Reseed the form only when a field is freshly opened for editing (the
-  // rising edge of `isEditing`) — not on every change, and specifically not
-  // when it is closed by the parent switching `editingFieldKey` to a
-  // different field. Resetting unconditionally there would silently wipe an
-  // in-flight, not-yet-saved draft out from under the onBlur-triggered save
-  // below.
+  // Reseed only when editing opens (rising edge). Resetting when the parent
+  // closes the row would wipe a draft before the blur-triggered save reads it.
   const serializedInitial = JSON.stringify(initialValue);
-  /** The editing row, used to tell "focus left the editor" from "focus moved to this row's own buttons". */
   const rowRef = useRef<HTMLDivElement>(null);
   const wasEditingRef = useRef(isEditing);
   useEffect(() => {
@@ -121,25 +116,13 @@ export function FieldRow({
     if (!isDirty) {
       return;
     }
-    const next = event.relatedTarget as HTMLElement | null;
-    if (next && rowRef.current?.contains(next)) {
-      // Focus moved to this row's own controls (Save, Cancel, Clear). That
-      // button decides the outcome, so do not pre-empt it with a save. Scoped
-      // to this row deliberately: focus landing on any *other* button in the
-      // app is a genuine "leaving the editor" and must still save.
-      return;
+    if (focusLeftEditor(event, rowRef.current)) {
+      handleSave();
     }
-    if (next?.closest('[role="listbox"]')) {
-      // A Select moves focus into its portalled listbox while open, so the
-      // field is still being edited. `handleCommit` saves once it closes.
-      return;
-    }
-    handleSave();
   };
 
-  // A Select's listbox has closed: interaction with the dropdown is over.
-  // Reads the live form value rather than `isDirty`, because the closing
-  // option click updates the value in the same tick as this callback.
+  // Reads the live value rather than `isDirty`: the option click that closes
+  // the listbox updates the value in the same tick as this callback.
   const handleCommit = () => {
     if (isValueDirty()) {
       handleSave();
@@ -161,7 +144,6 @@ export function FieldRow({
         <FieldEditor
           value={formValue}
           onChange={(e: string | string[] | null) => handleChange(e, onChange)}
-          onBlur={handleBlur}
           onCommit={handleCommit}
           dataType={dataType}
           enumValues={enumValues}
@@ -224,6 +206,7 @@ export function FieldRow({
             ref={rowRef}
             direction={{ xs: 'column', md: 'row' }}
             spacing={{ xs: 0.5, md: 4 }}
+            onBlur={handleBlur}
             onKeyDown={formKeyHandler({
               canSubmit: !!onSave && isDirty,
               onSubmit: handleSave,

@@ -247,6 +247,27 @@ export function formKeyHandler({
 }
 
 /**
+ * Whether a focusout event means focus truly left the inline editor rooted
+ * at `container`. Attach on the container — React's onBlur bubbles.
+ * Not counted as leaving: the editor's own buttons (they decide the outcome;
+ * their mousedown must preventDefault since Safari leaves relatedTarget null
+ * for clicked buttons) and a Select's portalled listbox (commit-on-close
+ * owns that save).
+ */
+export function focusLeftEditor(
+  event: React.FocusEvent,
+  container: HTMLElement | null,
+): boolean {
+  const next = event.relatedTarget as HTMLElement | null;
+  if (next && container?.contains(next)) return false;
+  if (next?.closest('[role="listbox"]')) return false;
+  if ((event.target as HTMLElement | null)?.closest('[role="listbox"]')) {
+    return false;
+  }
+  return true;
+}
+
+/**
  * This function is used to get the value of a ResizeObserverEntry.
  * @param entry - the ResizeObserverEntry
  * @param value - the value to get
