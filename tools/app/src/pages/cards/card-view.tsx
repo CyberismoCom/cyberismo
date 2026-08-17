@@ -111,7 +111,6 @@ export default function Page() {
         linkButtonDisabled={expandedLinkTypes.length === 0}
         onAttachmentAdded={() => layoutRef.current?.enterBodyEdit()}
         presenceMode={isEditing ? 'editing' : 'viewing'}
-        refetchOnPresenceChange={true}
       />
       <Box flexGrow={1} minHeight={0}>
         <LoadingGate values={[card, tree]}>

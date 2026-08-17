@@ -12,7 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import type * as SwrModule from 'swr';
 
@@ -21,6 +21,12 @@ vi.mock('swr', async (importOriginal) => {
   const actual = await importOriginal<typeof SwrModule>();
   return { ...actual, mutate: (...args: unknown[]) => mutateMock(...args) };
 });
+
+vi.mock('@/lib/api/user', () => ({
+  useUser: () => ({
+    user: { id: 'me', email: '', name: 'Me', role: 'editor' },
+  }),
+}));
 
 import { useRefetchCardOnPresenceChange } from '@/lib/api/presence';
 import type { PresenceEntry } from '@/lib/api/presence';
@@ -36,25 +42,22 @@ const viewing = (userId: string): PresenceEntry => ({
   mode: 'viewing',
 });
 
+const renderPresence = (initial: PresenceEntry[]) =>
+  renderHook(
+    ({ presence }: { presence: PresenceEntry[] }) =>
+      useRefetchCardOnPresenceChange(presence, 'TST_1', 'TST'),
+    { initialProps: { presence: initial } },
+  );
+
 describe('useRefetchCardOnPresenceChange', () => {
   beforeEach(() => {
     mutateMock.mockClear();
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
   });
 
   it('refetches the card when another user stops editing', () => {
-    const { rerender } = renderHook(
-      ({ presence }: { presence: PresenceEntry[] }) =>
-        useRefetchCardOnPresenceChange(presence, 'me', 'TST_1', true, 'TST'),
-      { initialProps: { presence: [editing('other')] } },
-    );
+    const { rerender } = renderPresence([editing('other')]);
 
     rerender({ presence: [viewing('other')] });
-    vi.advanceTimersByTime(500);
 
     expect(mutateMock).toHaveBeenCalledWith('/api/projects/TST/cards/TST_1');
     expect(mutateMock).toHaveBeenCalledWith(
@@ -62,61 +65,41 @@ describe('useRefetchCardOnPresenceChange', () => {
     );
   });
 
+  it('refetches when an editing user disconnects without switching mode', () => {
+    const { rerender } = renderPresence([editing('other')]);
+
+    // Closing the tab drops the presence entry; the backend does not emit a
+    // 'viewing' entry for it.
+    rerender({ presence: [] });
+
+    expect(mutateMock).toHaveBeenCalledWith('/api/projects/TST/cards/TST_1');
+  });
+
   it('ignores the local user finishing their own edit', () => {
-    const { rerender } = renderHook(
-      ({ presence }: { presence: PresenceEntry[] }) =>
-        useRefetchCardOnPresenceChange(presence, 'me', 'TST_1', true, 'TST'),
-      { initialProps: { presence: [editing('me')] } },
-    );
+    const { rerender } = renderPresence([editing('me')]);
 
     rerender({ presence: [viewing('me')] });
-    vi.advanceTimersByTime(500);
 
     expect(mutateMock).not.toHaveBeenCalled();
   });
 
-  it('does nothing when disabled', () => {
-    const { rerender } = renderHook(
-      ({ presence }: { presence: PresenceEntry[] }) =>
-        useRefetchCardOnPresenceChange(presence, 'me', 'TST_1', false, 'TST'),
-      { initialProps: { presence: [editing('other')] } },
-    );
-
-    rerender({ presence: [viewing('other')] });
-    vi.advanceTimersByTime(500);
-
-    expect(mutateMock).not.toHaveBeenCalled();
-  });
-
-  it('a reconnect blip (presence list going empty) does not itself trigger a refetch', () => {
-    const { rerender } = renderHook(
-      ({ presence }: { presence: PresenceEntry[] }) =>
-        useRefetchCardOnPresenceChange(presence, 'me', 'TST_1', true, 'TST'),
-      { initialProps: { presence: [editing('other')] } },
-    );
-
-    // Local EventSource reconnect (e.g. this user's own mode changed) blips
-    // the list to empty before the new connection repopulates it.
-    rerender({ presence: [] });
-    rerender({ presence: [editing('other')] });
-    vi.advanceTimersByTime(500);
-
-    expect(mutateMock).not.toHaveBeenCalled();
-  });
-
-  it('collapses two rapid transitions into a single refetch', () => {
-    const { rerender } = renderHook(
-      ({ presence }: { presence: PresenceEntry[] }) =>
-        useRefetchCardOnPresenceChange(presence, 'me', 'TST_1', true, 'TST'),
-      { initialProps: { presence: [editing('a'), editing('b')] } },
-    );
+  it('waits for the last other editor before refetching', () => {
+    const { rerender } = renderPresence([editing('a'), editing('b')]);
 
     rerender({ presence: [viewing('a'), editing('b')] });
-    vi.advanceTimersByTime(100);
-    rerender({ presence: [viewing('a'), viewing('b')] });
-    vi.advanceTimersByTime(500);
+    expect(mutateMock).not.toHaveBeenCalled();
 
-    // One refetch (card + rawCard = 2 mutate calls), not two.
+    rerender({ presence: [viewing('a'), viewing('b')] });
+    // One refetch: card + rawCard.
     expect(mutateMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not refetch while nobody else has been editing', () => {
+    const { rerender } = renderPresence([viewing('other')]);
+
+    rerender({ presence: [] });
+    rerender({ presence: [viewing('other'), viewing('another')] });
+
+    expect(mutateMock).not.toHaveBeenCalled();
   });
 });

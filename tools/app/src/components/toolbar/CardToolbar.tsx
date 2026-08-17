@@ -43,13 +43,6 @@ interface CardToolbarProps {
   afterDelete?: () => void;
   onAttachmentAdded?: () => void;
   presenceMode?: 'viewing' | 'editing';
-  /**
-   * Opt-in: revalidate this card's SWR cache when another user finishes
-   * editing it. Only safe for views that render content straight from SWR
-   * data. Do NOT enable for TemplateCardEditor until INTDEV-1368 lands
-   * (see presence.ts's useRefetchCardOnPresenceChange doc comment).
-   */
-  refetchOnPresenceChange?: boolean;
 }
 
 export function CardToolbar({
@@ -59,7 +52,6 @@ export function CardToolbar({
   linkButtonDisabled,
   onAttachmentAdded,
   presenceMode = 'viewing',
-  refetchOnPresenceChange = false,
 }: CardToolbarProps) {
   const { t } = useTranslation();
 
@@ -68,13 +60,7 @@ export function CardToolbar({
   const { card, updateWorkFlowState, isUpdating } = useCard(cardKey);
   const { user } = useUser();
   const presence = usePresence(cardKey, presenceMode);
-
-  useRefetchCardOnPresenceChange(
-    presence,
-    user?.id,
-    cardKey,
-    refetchOnPresenceChange,
-  );
+  useRefetchCardOnPresenceChange(presence, cardKey);
 
   const dispatch = useAppDispatch();
   const canEdit = useHasMinRole(UserRole.Editor);

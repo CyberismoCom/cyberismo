@@ -16,6 +16,7 @@ import { mutate } from 'swr';
 import { getConfig } from '@/lib/utils';
 import { projectApiPaths } from '@/lib/swr.js';
 import { UserRole, useHasMinRole } from '@/lib/auth';
+import { useUser } from './user';
 import { z } from 'zod';
 
 const presenceEntrySchema = z.object({
@@ -86,80 +87,41 @@ export function usePresence(
   return editors;
 }
 
-const PRESENCE_REFETCH_DEBOUNCE_MS = 500;
-
 /**
- * Refetches a card's content when a *different* user finishes editing it.
+ * Refetches a card once no other user is editing it any more.
  *
- * Watches the presence list (as returned by `usePresence`) for a transition
- * where another user's mode moves from 'editing' to 'viewing', then
- * revalidates the card's SWR cache entries so views that render straight
- * from SWR data (e.g. the project card view) pick up the change without a
- * manual reload. The local user's own transitions are ignored.
+ * Watches the presence list (as returned by `usePresence`) for the edge where
+ * the last *other* editor leaves edit mode — either by switching to 'viewing'
+ * or by dropping off the list entirely (closing the tab drops the presence
+ * entry, it does not transition it) — and revalidates the card's SWR entries
+ * so the view picks up the change without a manual reload.
  *
- * A local mode change reconnects this client's presence EventSource, which
- * can produce a rapid burst of presence updates (including a transient
- * empty list while reconnecting); the refetch is debounced so a burst like
- * that collapses into at most one revalidation.
- *
- * Callers must opt in via `enabled`. Only enable this for views that read
- * card content straight from SWR data. Editors that seed a local draft from
- * the card once and don't re-sync it (e.g. TemplateCardEditor, see
- * INTDEV-1368) must NOT enable this yet: revalidating the underlying SWR
- * entry behind their back would make their already-stale draft look dirty
- * against fresh data it never adopted, corrupting the unsaved-changes check.
+ * Deliberately biased towards refetching once too often: a presence
+ * EventSource reconnect blips the list empty, which reads as "nobody else is
+ * editing" and costs one redundant GET. Missing a refetch would leave stale
+ * content on screen, which is the thing this hook exists to prevent.
  *
  * @param presence - Current presence list, as returned by `usePresence`
- * @param currentUserId - The local user's id, so their own transitions are ignored
  * @param cardKey - The card whose SWR cache entries should be revalidated
- * @param enabled - Opt-in switch; `false` (the default posture) is a no-op
  * @param projectPrefix - Optional project prefix override, see `usePresence`
  */
 export function useRefetchCardOnPresenceChange(
   presence: PresenceEntry[],
-  currentUserId: string | undefined,
   cardKey: string | null,
-  enabled: boolean,
   projectPrefix?: string,
 ): void {
-  const previousModesRef = useRef<Map<string, PresenceEntry['mode']>>(
-    new Map(),
+  const { user } = useUser();
+  const othersEditing = presence.some(
+    (entry) => entry.userId !== user?.id && entry.mode === 'editing',
   );
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const othersWereEditingRef = useRef(false);
 
   useEffect(() => {
-    const previousModes = previousModesRef.current;
-    const currentModes = new Map(presence.map((e) => [e.userId, e.mode]));
-
-    const someoneElseStoppedEditing = presence.some(
-      (entry) =>
-        entry.userId !== currentUserId &&
-        entry.mode === 'viewing' &&
-        previousModes.get(entry.userId) === 'editing',
-    );
-
-    previousModesRef.current = currentModes;
-
-    if (!enabled || !cardKey || !someoneElseStoppedEditing) {
-      return;
-    }
-
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-    debounceRef.current = setTimeout(() => {
+    if (othersWereEditingRef.current && !othersEditing && cardKey) {
       const apiPaths = projectApiPaths(projectPrefix);
       mutate(apiPaths.card(cardKey));
       mutate(apiPaths.rawCard(cardKey));
-    }, PRESENCE_REFETCH_DEBOUNCE_MS);
-  }, [presence, currentUserId, cardKey, enabled, projectPrefix]);
-
-  useEffect(
-    () => () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-    },
-    [],
-  );
+    }
+    othersWereEditingRef.current = othersEditing;
+  }, [othersEditing, cardKey, projectPrefix]);
 }
