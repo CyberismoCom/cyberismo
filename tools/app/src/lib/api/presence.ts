@@ -11,10 +11,12 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { mutate } from 'swr';
 import { getConfig } from '@/lib/utils';
 import { projectApiPaths } from '@/lib/swr.js';
 import { UserRole, useHasMinRole } from '@/lib/auth';
+import { useUser } from './user';
 import { z } from 'zod';
 
 const presenceEntrySchema = z.object({
@@ -83,4 +85,43 @@ export function usePresence(
   }, [url]);
 
   return editors;
+}
+
+/**
+ * Refetches a card once no other user is editing it any more.
+ *
+ * Watches the presence list (as returned by `usePresence`) for the edge where
+ * the last *other* editor leaves edit mode — either by switching to 'viewing'
+ * or by dropping off the list entirely (closing the tab drops the presence
+ * entry, it does not transition it) — and revalidates the card's SWR entries
+ * so the view picks up the change without a manual reload.
+ *
+ * Deliberately biased towards refetching once too often: a presence
+ * EventSource reconnect blips the list empty, which reads as "nobody else is
+ * editing" and costs one redundant GET. Missing a refetch would leave stale
+ * content on screen, which is the thing this hook exists to prevent.
+ *
+ * @param presence - Current presence list, as returned by `usePresence`
+ * @param cardKey - The card whose SWR cache entries should be revalidated
+ * @param projectPrefix - Optional project prefix override, see `usePresence`
+ */
+export function useRefetchCardOnPresenceChange(
+  presence: PresenceEntry[],
+  cardKey: string | null,
+  projectPrefix?: string,
+): void {
+  const { user } = useUser();
+  const othersEditing = presence.some(
+    (entry) => entry.userId !== user?.id && entry.mode === 'editing',
+  );
+  const othersWereEditingRef = useRef(false);
+
+  useEffect(() => {
+    if (othersWereEditingRef.current && !othersEditing && cardKey) {
+      const apiPaths = projectApiPaths(projectPrefix);
+      mutate(apiPaths.card(cardKey));
+      mutate(apiPaths.rawCard(cardKey));
+    }
+    othersWereEditingRef.current = othersEditing;
+  }, [othersEditing, cardKey, projectPrefix]);
 }
