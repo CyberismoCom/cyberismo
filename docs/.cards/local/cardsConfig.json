@@ -1,12 +1,14 @@
 {
-    "schemaVersion": 4,
+    "schemaVersion": 5,
     "cardKeyPrefix": "docs",
     "name": "Cyberismo documentation",
     "description": "Documentation for the Cyberismo solution",
     "modules": [
         {
             "name": "base",
-            "location": "https://github.com/CyberismoCom/module-base.git"
+            "location": "https://github.com/CyberismoCom/module-base.git",
+            "version": "1.x",
+            "private": false
         }
     ],
     "hubs": []

@@ -20,9 +20,8 @@ transitionDenied(Document, "Approve", "Fill in the information classification fi
     field(Document, "cardType", "base/cardTypes/controlledDocument"),
     not field(Document, "base/fieldTypes/informationClassification", _).
 
-transitionDenied(Document, "Approve", "Fill in the approval date field before approving") :-
-    field(Document, "cardType", "base/cardTypes/controlledDocument"),
-    not field(Document, "base/fieldTypes/approvalDate", _).
+onTransitionSetField(Document, "Approve", Document, "base/fieldTypes/approvalDate", @today) :-
+    field(Document, "cardType", "base/cardTypes/controlledDocument").
 
 transitionDenied(Document, "Approve", "Complete the review task(s) before approving") :-
     field(Document, "cardType", "base/cardTypes/controlledDocument"),
@@ -90,3 +89,13 @@ policyCheckFailure(ReviewTask, "Document control", "Reviewer cannot be the same 
     field(Document, "base/fieldTypes/owner", DocumentOwner),
     field(ReviewTask, "base/fieldTypes/owner", Reviewer),
     DocumentOwner = Reviewer.
+
+policyCheckFailure(Document, "Document control", "Review has expired", "Complete a new review of this document.") :-
+    field(Document, "cardType", "base/cardTypes/controlledDocument"),
+    field(Document, "workflowState", "Approved"),
+    field(Document, "base/fieldTypes/reviewPeriod", ReviewPeriod),
+    @daysSince(LastReviewed) > ReviewPeriod :
+    parent(ReviewTask, Document),
+    field(ReviewTask, "cardType", "base/cardTypes/reviewTask"),
+    field(ReviewTask, "workflowState", "Closed as done"),
+    field(ReviewTask, "base/fieldTypes/lastReviewed", LastReviewed).

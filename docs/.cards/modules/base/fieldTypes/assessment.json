@@ -1,0 +1,28 @@
+{
+    "name": "base/fieldTypes/assessment",
+    "displayName": "Assessment",
+    "dataType": "enum",
+    "enumValues": [
+        {
+            "enumValue": "open",
+            "enumDisplayValue": "Open",
+            "enumDescription": ""
+        },
+        {
+            "enumValue": "ok",
+            "enumDisplayValue": "OK",
+            "enumDescription": ""
+        },
+        {
+            "enumValue": "notOk",
+            "enumDisplayValue": "Not OK",
+            "enumDescription": ""
+        },
+        {
+            "enumValue": "notApplicable",
+            "enumDisplayValue": "Not applicable",
+            "enumDescription": ""
+        }
+    ],
+    "description": "An automatic assessment of the card"
+}

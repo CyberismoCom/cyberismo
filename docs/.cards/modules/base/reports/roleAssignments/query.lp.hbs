@@ -1,7 +1,17 @@
 select("title";"base/fieldTypes/owner";"workflowState").
 
-result(Card) :-
-    ancestor(Card, {{cardKey}}),
-    field(Card, "cardType", "base/cardTypes/roleAssignment").
+result(result).
 
-orderBy("rank", "ASC").
+childResult(result, Card, "activeAssignments") :-
+    ancestor(Card, {{cardKey}}),
+    field(Card, "cardType", "base/cardTypes/roleAssignment"),
+    not field(Card, "workflowState", "Archived").
+
+childResult(result, Card, "archivedAssignments") :-
+    ancestor(Card, {{cardKey}}),
+    field(Card, "cardType", "base/cardTypes/roleAssignment"),
+    field(Card, "workflowState", "Archived").
+
+order(2, "activeAssignments", 1, "workflowState", "ASC").
+order(2, "activeAssignments", 2, "title", "ASC").
+order(2, "archivedAssignments", 1, "title", "ASC").
