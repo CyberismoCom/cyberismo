@@ -26,8 +26,6 @@ import { readdirSync } from 'node:fs';
 // base class
 import { CardContainer } from './card-container.js';
 
-import { writeJsonFile as atomicWriteJson } from 'write-json-file';
-
 import { CalculationEngine } from './project/calculation-engine.js';
 import {
   type Card,
@@ -41,7 +39,6 @@ import {
   type ProjectFetchCardDetails,
 } from '../interfaces/project-interfaces.js';
 import { pathExists } from '../utils/file-utils.js';
-import { readJsonFile } from '../utils/json.js';
 import { generateRandomString } from '../utils/random.js';
 import {
   cardPathParts,
@@ -57,12 +54,10 @@ import { ResourceHandler } from './project/resource-handler.js';
 import { Validate } from '../commands/validate.js';
 import { ContentWatcher } from './project/project-content-watcher.js';
 import { getChildLogger } from '../utils/log-utils.js';
-import { MigrationExecutor } from '../migrations/migration-executor.js';
 import { RWLock } from '../utils/rw-lock.js';
 import { GitManager } from '../utils/git-manager.js';
 import { getCommitContext } from '../utils/commit-context.js';
 
-import type { MigrationResult } from '@cyberismo/migrations';
 import type { Template } from './template.js';
 
 import { isPredefinedField, ROOT } from '../utils/constants.js';
@@ -1054,59 +1049,6 @@ export class Project extends CardContainer {
    */
   public get resources(): ResourceHandler {
     return this.resourceHandler;
-  }
-
-  /**
-   * Run migrations to bring project schema to target version.
-   * @param fromVersion Current schema version
-   * @param toVersion Target schema version
-   * @param backupDir Optional directory for backups. If undefined, no backup is created.
-   * @param timeoutMilliSeconds Optional timeout in milliseconds. If undefined, uses default (2 minutes).
-   * @returns Migration result
-   */
-  public async runMigrations(
-    fromVersion: number,
-    toVersion: number,
-    backupDir?: string,
-    timeoutMilliSeconds?: number,
-  ): Promise<MigrationResult> {
-    this.logger.info({ fromVersion, toVersion }, 'Starting schema migration');
-
-    const executor = new MigrationExecutor(
-      this,
-      backupDir,
-      timeoutMilliSeconds,
-    );
-    const result = await executor.migrate(
-      fromVersion,
-      toVersion,
-      async (version: number) => {
-        // Persist the new schemaVersion via raw file I/O rather than
-        // settings.save(). The migration that just ran may have rewritten
-        // cardsConfig.json on disk; settings.save() would re-serialize the
-        // pre-migration in-memory state and clobber those changes.
-        const configPath = this.paths.configurationFile;
-        const raw = await readJsonFile(configPath);
-        if (!raw) throw new Error(`Cannot read ${configPath}`);
-        raw.schemaVersion = version;
-        await atomicWriteJson(configPath, raw, { indent: 4 });
-        this.settings.schemaVersion = version;
-      },
-    );
-
-    if (result.success) {
-      this.logger.info(
-        { fromVersion, toVersion },
-        'Migration completed successfully',
-      );
-    } else {
-      this.logger.error(
-        { error: result.error, message: result.message },
-        'Migration failed',
-      );
-    }
-
-    return result;
   }
 
   /**

@@ -1,213 +1,82 @@
-import { afterEach, beforeEach, expect, it, describe } from 'vitest';
+/**
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2026
+
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
+*/
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
-import { Migrate } from '../src/commands/migrate.js';
 import { SCHEMA_VERSION } from '@cyberismo/assets';
-import { Cmd, Commands } from '../src/command-handler.js';
-import { copyDir } from '../src/utils/file-utils.js';
-import { readJsonFileSync } from '../src/utils/json.js';
+import { migrate } from '../src/commands/migrate.js';
+import { runMigrationChain } from '../src/migrations/run-chain.js';
 
-import type { MigrationResult } from '@cyberismo/migrations';
-import type { Project } from '../src/containers/project.js';
-import { RWLock } from '../src/utils/rw-lock.js';
+vi.mock('../src/migrations/run-chain.js', () => ({
+  runMigrationChain: vi.fn(async () => {}),
+}));
 
-// Mock Project for testing
-class MockProject {
-  basePath = '/test/path';
-  configuration = { schemaVersion: 1 };
-  lock = new RWLock();
+const runChainMock = vi.mocked(runMigrationChain);
 
-  async runMigrations(
-    fromVersion?: number,
-    toVersion?: number,
-  ): Promise<MigrationResult> {
-    const current = this.configuration.schemaVersion!;
-    const from = fromVersion ?? current;
-    const to = toVersion ?? from + 1;
-    this.configuration.schemaVersion = to;
-    return {
-      success: true,
-      stepsExecuted: ['migrate'],
-    };
-  }
+const testDir = join(import.meta.dirname, 'tmp-command-migrate-tests');
+const configFile = join(testDir, '.cards', 'local', 'cardsConfig.json');
+
+function writeConfig(config: Record<string, unknown>) {
+  mkdirSync(dirname(configFile), { recursive: true });
+  writeFileSync(configFile, JSON.stringify(config, null, 4));
 }
 
-describe('Migrate command', () => {
-  const mockProject = new MockProject();
-
-  it('should reject when project has no schema version', async () => {
-    mockProject.configuration.schemaVersion = undefined as unknown as number;
-    const migrateCmd = new Migrate(mockProject as unknown as Project);
-    await expect(migrateCmd.migrate()).rejects.toThrow('no schema version');
-  });
-
-  it('should report project already at target version', async () => {
-    const version = SCHEMA_VERSION;
-    mockProject.configuration.schemaVersion = version;
-    const migrateCmd = new Migrate(mockProject as unknown as Project);
-    const result = await migrateCmd.migrate(version);
-    expect(result.success).toBe(true);
-    expect(result.message).toContain('already at version');
-    expect(mockProject.configuration.schemaVersion).toBe(version);
-  });
-
-  it('should reject downgrading', async () => {
-    const currentVersion = 5;
-    const targetVersion = 2;
-    mockProject.configuration.schemaVersion = currentVersion;
-    const migrateCmd = new Migrate(mockProject as unknown as Project);
-    await expect(migrateCmd.migrate(targetVersion)).rejects.toThrow(
-      'Cannot downgrade',
-    );
-    expect(mockProject.configuration.schemaVersion).toBe(currentVersion);
-  });
-
-  it('should reject skipping versions when specific version provided', async () => {
-    const currentVersion = SCHEMA_VERSION;
-    const targetVersion = SCHEMA_VERSION + 2;
-    mockProject.configuration.schemaVersion = currentVersion;
-    const migrateCmd = new Migrate(mockProject as unknown as Project);
-    await expect(migrateCmd.migrate(targetVersion)).rejects.toThrow(
-      `Cannot migrate to version ${targetVersion}. Current application supports up to version ${SCHEMA_VERSION}.`,
-    );
-    expect(mockProject.configuration.schemaVersion).toBe(currentVersion);
-  });
-
-  it('should allow migrating to next sequential version', async () => {
-    const currentVersion = SCHEMA_VERSION - 1;
-    const targetVersion = SCHEMA_VERSION;
-    mockProject.configuration.schemaVersion = currentVersion;
-    const migrateCmd = new Migrate(mockProject as unknown as Project);
-    const result = await migrateCmd.migrate(targetVersion);
-    expect(result.success).toBe(true);
-    expect(mockProject.configuration.schemaVersion).toBe(targetVersion);
-  });
-
-  it('should allow migrating to latest without version check', async () => {
-    const currentVersion = SCHEMA_VERSION;
-    mockProject.configuration.schemaVersion = currentVersion;
-    // Override to simulate migrating multiple versions at once
-    mockProject.runMigrations = async () => {
-      mockProject.configuration.schemaVersion = SCHEMA_VERSION;
-      return {
-        success: true,
-        stepsExecuted: ['migrate'],
-      };
-    };
-    const migrateCmd = new Migrate(mockProject as unknown as Project);
-
-    // No target version specified - should migrate to latest without skip check
-    const result = await migrateCmd.migrate();
-    expect(result.success).toBe(true);
-    expect(mockProject.configuration.schemaVersion).toBe(SCHEMA_VERSION);
-  });
-
-  it('should pass backup directory to runMigrations', async () => {
-    // Test migration to current SCHEMA_VERSION
-
-    const currentVersion = SCHEMA_VERSION - 1;
-    const targetVersion = SCHEMA_VERSION;
-    mockProject.configuration.schemaVersion = currentVersion;
-    let capturedBackupDir: string | undefined;
-    mockProject.runMigrations = async (
-      fromVersion: number,
-      toVersion: number,
-      backupDir?: string,
-    ) => {
-      capturedBackupDir = backupDir;
-      mockProject.configuration.schemaVersion = toVersion;
-      return {
-        success: true,
-        stepsExecuted: ['migrate'],
-      };
-    };
-    const migrateCmd = new Migrate(mockProject as unknown as Project);
-    await migrateCmd.migrate(targetVersion, '/custom/backup');
-    expect(capturedBackupDir).toBe('/custom/backup');
-    expect(mockProject.configuration.schemaVersion).toBe(targetVersion);
-  });
-
-  it('should handle migration failure', async () => {
-    const currentVersion = SCHEMA_VERSION - 1;
-    const targetVersion = SCHEMA_VERSION;
-    mockProject.configuration.schemaVersion = currentVersion;
-    mockProject.runMigrations = async () => {
-      // Don't update version on failure
-      return {
-        success: false,
-        message: 'Migration validation failed',
-        stepsExecuted: ['pre-validation'],
-      };
-    };
-    const migrateCmd = new Migrate(mockProject as unknown as Project);
-    const result = await migrateCmd.migrate(targetVersion);
-    expect(result.success).toBe(false);
-    expect(result.message).toContain('Migration validation failed');
-    expect(mockProject.configuration.schemaVersion).toBe(currentVersion);
-  });
-
-  it('should pass timeout to runMigrations', async () => {
-    const currentVersion = SCHEMA_VERSION - 1;
-    const targetVersion = SCHEMA_VERSION;
-    mockProject.configuration.schemaVersion = currentVersion;
-    let capturedTimeout: number | undefined;
-    mockProject.runMigrations = async (
-      fromVersion: number,
-      toVersion: number,
-      backupDir?: string,
-      timeoutMs?: number,
-    ) => {
-      capturedTimeout = timeoutMs;
-      mockProject.configuration.schemaVersion = toVersion;
-      return {
-        success: true,
-        stepsExecuted: ['migrate'],
-      };
-    };
-    const migrateCmd = new Migrate(mockProject as unknown as Project);
-    const customTimeout = 5 * 60 * 1000; // 5 minutes in milliseconds
-    await migrateCmd.migrate(targetVersion, undefined, customTimeout);
-    expect(capturedTimeout).toBe(customTimeout);
-    expect(mockProject.configuration.schemaVersion).toBe(targetVersion);
-  });
-});
-
-describe('schema version gate via command handler', () => {
-  const testDir = join(import.meta.dirname, 'tmp-command-migrate-gate-tests');
-  const projectPath = join(testDir, 'valid/decision-records');
-  const configPath = join(projectPath, '.cards', 'local', 'cardsConfig.json');
-
-  beforeEach(async () => {
+describe('migrate command', () => {
+  beforeEach(() => {
+    runChainMock.mockClear();
+    runChainMock.mockResolvedValue(undefined);
     rmSync(testDir, { recursive: true, force: true });
-    mkdirSync(testDir, { recursive: true });
-    await copyDir('test/test-data', testDir);
-    const config = readJsonFileSync(configPath) as Record<string, unknown>;
-    config.schemaVersion = SCHEMA_VERSION - 1;
-    writeFileSync(configPath, JSON.stringify(config, null, 4));
   });
 
   afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
-  it('refuses other commands on an older project but lets migrate through', async () => {
-    const commandHandler = new Commands();
-    const refused = await commandHandler.command(Cmd.validate, [], {
-      projectPath,
-    });
-    expect(refused.statusCode).toBe(400);
-    expect(refused.message).toContain("Run 'cyberismo migrate'");
+  it('rejects when project has no schema version', async () => {
+    writeConfig({ cardKeyPrefix: 'demo' });
+    await expect(migrate(testDir)).rejects.toThrow('no schema version');
+    expect(runChainMock).not.toHaveBeenCalled();
+  });
 
-    const migrated = await commandHandler.command(Cmd.migrate, [], {
-      projectPath,
-    });
-    expect(migrated.statusCode).toBe(200);
+  it('reports project already at the latest version', async () => {
+    writeConfig({ schemaVersion: SCHEMA_VERSION });
+    const message = await migrate(testDir);
+    expect(message).toContain('already at version');
+    expect(runChainMock).not.toHaveBeenCalled();
+  });
 
-    const allowed = await commandHandler.command(Cmd.validate, [], {
-      projectPath,
-    });
-    expect(allowed.statusCode).toBe(200);
+  it('rejects a project newer than the tool', async () => {
+    writeConfig({ schemaVersion: SCHEMA_VERSION + 1 });
+    await expect(migrate(testDir)).rejects.toThrow('Upgrade cyberismo');
+    expect(runChainMock).not.toHaveBeenCalled();
+  });
+
+  it('runs the chain from the current version to the latest', async () => {
+    writeConfig({ schemaVersion: 1 });
+    const message = await migrate(testDir);
+    expect(runChainMock).toHaveBeenCalledWith(testDir, 1);
+    expect(message).toContain('Successfully migrated');
+  });
+
+  it('propagates a failed chain', async () => {
+    writeConfig({ schemaVersion: SCHEMA_VERSION - 1 });
+    runChainMock.mockRejectedValueOnce(
+      new Error('Migration to schema 5 failed: boom'),
+    );
+    await expect(migrate(testDir)).rejects.toThrow('boom');
   });
 });

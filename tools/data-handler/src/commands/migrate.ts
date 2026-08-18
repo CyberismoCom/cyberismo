@@ -12,79 +12,42 @@
 */
 
 import { SCHEMA_VERSION } from '@cyberismo/assets';
-import type { MigrationResult } from '@cyberismo/migrations';
-import type { Project } from '../containers/project.js';
-import { write } from '../utils/rw-lock.js';
+
+import { ProjectPaths } from '../containers/project/project-paths.js';
+import { readJsonFile } from '../utils/json.js';
+import { runMigrationChain } from '../migrations/run-chain.js';
 
 /**
- * Command that handles schema migration operations.
+ * Migrate a project's schema to the tool's current version.
+ *
+ * Deliberately independent of Project and CommandManager: migrate must
+ * work on trees written by older schemas, which current project loading
+ * may not accept. Reads schemaVersion via raw file I/O and delegates to
+ * the in-process chain runner. Migrations modify the project in place;
+ * version control is the safety net for recovering from a failure.
+ *
+ * @param projectRoot Absolute path to the project root
+ * @returns Human-readable result message; throws on failure
  */
-export class Migrate {
-  /**
-   * Constructs instance of Migrate command.
-   * @param project Project instance to use.
-   */
-  constructor(private project: Project) {}
+export async function migrate(projectRoot: string): Promise<string> {
+  const paths = new ProjectPaths(projectRoot);
+  const config = await readJsonFile(paths.configurationFile);
+  const currentVersion: unknown = config?.schemaVersion;
+  if (typeof currentVersion !== 'number') {
+    throw new Error('Project has no schema version set');
+  }
 
-  /**
-   * Run migrations to bring project to target schema version.
-   * @param toVersion Target version (defaults to latest)
-   * @param backupDir Optional directory for backups
-   * @param timeoutMilliSeconds Optional timeout in milliseconds (defaults to 2 minutes)
-   * @returns Migration result
-   */
-  @write(() => 'Migrate project')
-  public async migrate(
-    toVersion?: number,
-    backupDir?: string,
-    timeoutMilliSeconds?: number,
-  ): Promise<MigrationResult> {
-    const currentVersion = this.project.configuration.schemaVersion;
-    if (currentVersion === undefined) {
-      throw new Error('Project has no schema version set');
-    }
-
-    const targetVersion = toVersion ?? SCHEMA_VERSION;
-
-    // Prevent downgrading
-    if (targetVersion < currentVersion) {
-      throw new Error(
-        `Cannot downgrade from version ${currentVersion} to ${targetVersion}. Downgrading is not supported.`,
-      );
-    }
-
-    // Cannot migrate beyond current application schema
-    if (targetVersion > SCHEMA_VERSION) {
-      throw new Error(
-        `Cannot migrate to version ${targetVersion}. Current application supports up to version ${SCHEMA_VERSION}.`,
-      );
-    }
-
-    // No migration needed
-    if (currentVersion === targetVersion) {
-      return {
-        success: true,
-        message: `Project is already at version ${currentVersion}. No migration needed.`,
-        stepsExecuted: [],
-      };
-    }
-
-    // Prevent skipping migrations when a specific target version is provided
-    // If no version specified, migrate to the latest
-    if (toVersion !== undefined && toVersion !== SCHEMA_VERSION) {
-      // Only allow next sequential version
-      if (targetVersion !== currentVersion + 1) {
-        throw new Error(
-          `Cannot skip to version ${targetVersion}. Project is at version ${currentVersion}, next version is ${currentVersion + 1}. Migrate one version at a time with 'cyberismo migrate ${currentVersion + 1}', or use 'cyberismo migrate' (without a version) to migrate to the latest version.`,
-        );
-      }
-    }
-
-    return await this.project.runMigrations(
-      currentVersion,
-      targetVersion,
-      backupDir,
-      timeoutMilliSeconds,
+  if (currentVersion > SCHEMA_VERSION) {
+    throw new Error(
+      `Schema version mismatch: project is at schema version ${currentVersion}, this tool supports up to ${SCHEMA_VERSION}. Upgrade cyberismo.`,
     );
   }
+
+  if (currentVersion === SCHEMA_VERSION) {
+    return `Project is already at version ${currentVersion}. No migration needed.`;
+  }
+
+  await runMigrationChain(projectRoot, currentVersion);
+
+  return `Successfully migrated from version ${currentVersion} to ${SCHEMA_VERSION}. Run 'cyberismo validate' to check the project.`;
 }
