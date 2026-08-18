@@ -1,0 +1,211 @@
+== Introduction
+
+A skill is a set of instructions that an AI assistant follows when it works on a task in your Cyberismo project. Skills let you capture the way your organisation works -- how to maintain a risk register, how to handle an incident, or how to review a control -- and make those instructions available to AI assistants through the xref:docs_yfl6es9l.adoc[Cyberismo MCP server].
+
+Skills are dynamic. Instead of being always available, each skill is enabled by the logic programs of the project, so the skills that an AI assistant sees depend on the current state of the project. A skill can be enabled for the whole project or only for specific cards. See <<Enabling skills>>.
+
+An AI assistant lists the currently enabled skills with the `list_skills` tool and retrieves the instructions of a single skill with the `get_skill` tool. Each enabled skill is also exposed as an MCP prompt. See xref:docs_bt50wayx.adoc[Tools] for the tools and xref:docs_q8np0w9d.adoc[Setup] for connecting an AI assistant to the MCP server.
+
+== Managing skills using the configuration editor
+
+Use the configuration editor to manage skills.
+
+=== Creating a skill
+
+To create a new skill:
+
+1. Open the **configuration editor** in the Cyberismo app.
+2. Select **Skills** from the tree menu on the left, or use the **New Resource** menu in the toolbar.
+3. Click **Create new** on the Skills overview page.
+4. Enter an identifier for the new skill and confirm.
+
+The new skill will be created with default files and the editor will open.
+
+When choosing a name for your skill, see xref:docs_8.adoc[Naming conventions].
+
+=== Editing skill metadata
+
+In the skill editor, you can edit the following properties:
+
+* **Identifier**: The technical name of the skill. Renaming is supported.
+* **Display name**: The name shown in user interfaces (e.g., "Manage risk register").
+* **Description**: A description of the skill, which an AI assistant uses to decide whether the skill applies to the task at hand.
+* **Category**: The category of the skill (e.g., "risk assessment").
+* **Related tools**: The MCP tools that the instructions of the skill use.
+
+The individual fields have their own save and cancel buttons that appear when you make changes.
+
+**Related tools** is a list. Enter the name of an MCP tool and click **Add** to append it to the list, and use the buttons on each row to edit or delete a tool. Changes to the list are saved immediately, and the same tool cannot be added twice.
+
+=== Editing skill files
+
+A skill consists of two files that can be edited using the built-in text editor in the configuration editor. In the tree menu, expand the skill to see its files:
+
+* **Instructions** (`skill.md`): The instructions that the AI assistant follows.
+* **Query** (`query.lp`): The logic program that collects the data for the instructions.
+
+Click on either file in the tree to open it in the text editor.
+
+=== Previewing the instructions
+
+The instructions are a template, so what an AI assistant receives is not necessarily what you see in the editor. Click the **Preview** button above the text editor to see the rendered instructions, and the **Edit** button to return to the template.
+
+The preview renders the content that is currently in the editor, including unsaved changes, so you can see the result of a change before you save it. The query of the skill is executed first, and its results are applied to the template.
+
+To preview a skill that is enabled for specific cards, enter a card key in the **Card key** field. The preview then renders the instructions in the context of that card.
+
+The preview does not check whether the skill is enabled, as an unfinished skill is usually not enabled yet.
+
+=== Deleting a skill
+
+To delete a skill, open it in the editor and use the context menu (three-dot button) in the toolbar to select **Delete Resource**.
+
+== Managing skills using the command-line tool
+
+You can also manage skills using the Cyberismo command-line tool.
+
+To see a list of the available skills, use the following command:
+
+  $ cyberismo show skills
+
+To see the help for how to create a skill, use the following command:
+
+  $ cyberismo create skill --help
+
+To create a new skill, for example `mySkill`, use the following command:
+
+  $ cyberismo create skill mySkill
+
+Cyberismo will create the following files:
+
+* Skill metadata file `.cards/local/skills/mySkill.json`
+* Directory `.cards/local/skills/mySkill/`
+* Instruction file `.cards/local/skills/mySkill/skill.md`
+* Query file `.cards/local/skills/mySkill/query.lp`
+
+If the card prefix of your Cyberismo project is `example`, then the full name of the new skill will be `example/skills/mySkill`.
+
+To see the metadata of a single skill, give the full name of the skill:
+
+  $ cyberismo show skill example/skills/mySkill
+
+To delete a skill, also give the full name of the skill:
+
+  $ cyberismo remove skill example/skills/mySkill
+
+== Instruction file
+
+The instruction file `skill.md` contains the instructions that the AI assistant follows when it applies the skill. Write the instructions in Markdown, as an AI assistant consumes them directly instead of rendering them as a card.
+
+The instruction file is a https://handlebarsjs.com/[Handlebars] template. Cyberismo executes the query of the skill and renders the instruction file with the results of the query, in the same way as it renders the content template of a report. This means that you can include current project data in the instructions. For example, the following instruction file lists the cards that the query returned:
+
+```
+{{#raw}}
+
+# Review the open risks
+
+Review each of the following risks and update its residual risk level:
+
+{{#each results}}
+- {{this.title}} ({{this.key}})
+{{/each}}
+
+{{/raw}}
+
+```
+
+If the skill was requested for a specific card, the card key is available in the template as `{{#raw}}{{cardKey}}{{/raw}}`.
+
+Use the **Preview** button of the configuration editor to see how the instructions render. See <<Previewing the instructions>>.
+
+== Query file
+
+The query file `query.lp` is a xref:docs_33.adoc[Cyberismo query] that collects the data that the instruction file needs. Like the query of a report, it is a Handlebars template, so it can be parameterised with the card key of the card that the skill was requested for:
+
+```
+{{#raw}}
+
+select("title").
+result(Card) :- parent(Card, {{cardKey}}).
+
+{{/raw}}
+
+```
+
+If the query file is empty, Cyberismo skips the logic program entirely and renders the instruction file without query results. Leave the file empty if your instructions do not depend on project data.
+
+See xref:docs_chclhxsk.adoc[Structure and execution of logic programs] for a detailed description of how Cyberismo executes logic programs, and xref:docs_j1ldnk0s.adoc[Implementing reports] for a longer tutorial on writing queries and templates.
+
+== Enabling skills
+
+A skill is available to an AI assistant only when the logic programs of the project enable it. Write the rules that enable your skills in a xref:docs_o9qt6t0j.adoc[calculation].
+
+There are two ways to enable a skill:
+
+* `enableSkill(Skill)` enables the skill for the whole project. The skill has the scope `global`.
+* `enableSkill(Skill, CardKey)` enables the skill for a specific card. The skill has the scope `card`.
+
+For example, the following rules enable one skill for the whole project, and another skill for every risk card that is in the state `Draft`:
+
+----
+enableSkill("example/skills/mySkill").
+
+enableSkill("example/skills/assessRisk", Card) :-
+    field(Card, "cardType", "example/cardTypes/risk"),
+    field(Card, "workflowState", "Draft").
+----
+
+If both `enableSkill(Skill)` and `enableSkill(Skill, CardKey)` are defined for the same skill, the project-wide enablement wins and the card-specific rules are ignored.
+
+Cyberismo evaluates the enabling rules against the current state of the project every time an AI assistant asks for the skills, so the set of enabled skills changes as the project changes. An AI assistant should therefore check the available skills again before each task.
+
+A card-specific skill cannot be rendered without a card. When an AI assistant requests such a skill without a card key, Cyberismo asks it to retry with a card key instead of returning the instructions.
+
+== Skill JSON file format
+
+Basic metadata for a skill is defined in a JSON file that follows the https://github.com/CyberismoCom/cyberismo/blob/main/tools/assets/src/schema/resources/skillSchema.json[skill schema], as described in the following table.
+
+NOTE: Do not edit the JSON files directly. The configuration editor provides a graphical interface for managing skill metadata and a built-in text editor for the instructions and the query.
+
+.The properties of a skill JSON file
+|===
+|Property|Type|Description|Required
+
+|**name**
+|`string`
+|The technical name of the skill
+| &#10003; Yes
+
+|**displayName**
+|`string`
+|The name of the skill as it should be displayed in the user interface. For example, 'Manage risk register'.
+| &#10003; Yes
+
+|**description**
+|`string`
+|A brief summary of what the skill does and when it applies. An AI assistant uses the description to decide whether the skill is relevant to the task at hand.
+| No
+
+|**category**
+|`string`
+|The grouping category of the skill. For example, 'risk assessment', 'compliance' or 'incident response'. An AI assistant can list the skills of a single category.
+| No
+
+|**relatedTools**
+|`array` of `string`
+|The MCP tool names that the instructions of the skill refer to, for example `["get_card", "transition_card"]`. Lets an AI assistant see which tools the skill needs without reading the instructions. Use an empty array if the skill needs no tools.
+| &#10003; Yes
+
+|===
+
+Additional properties are not allowed.
+
+== Mapping to a logic program
+
+Skills are mapped to logic program facts using the following function terms. Cyberismo generates the `skill` and `skillRelatedTool` terms and the `field` terms from the skill metadata. You define the `enableSkill` terms yourself in a calculation.
+
+{{#report}}
+    "name": "base/reports/predicates",
+    "category": "Skills",
+    "orderBy": "rank"
+{{/report}}

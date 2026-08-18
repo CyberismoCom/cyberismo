@@ -1,0 +1,9 @@
+== Parameters
+
+* `Skill`: the name of a skill
+* `"description"`: the string `"description"` that denotes the description field
+* `Description`: a description of the skill
+
+== Description
+
+A skill may have a description that summarises what the skill does and when it applies.
