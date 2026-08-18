@@ -17,7 +17,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mkdirSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { migration as getMigration } from '@cyberismo/migrations';
+import { migration as getMigration } from '../src/index.js';
 
 const testDir = join(import.meta.dirname, 'tmp-migration-v4-tests');
 const cardsConfigPath = join(testDir, '.cards');

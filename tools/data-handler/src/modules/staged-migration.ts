@@ -12,10 +12,9 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { SCHEMA_VERSION } from '@cyberismo/assets';
+import { runMigrationChain, SCHEMA_VERSION } from '@cyberismo/migrations';
 
 import { readModuleConfig } from '../containers/project/cards-config.js';
-import { runMigrationChain } from '../migrations/run-chain.js';
 
 import type { ResolvedModule } from './resolve/types.js';
 

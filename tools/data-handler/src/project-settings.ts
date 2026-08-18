@@ -25,7 +25,7 @@ import { canonicalHubLocation } from './utils/hub-utils.js';
 import { getChildLogger } from './utils/log-utils.js';
 import { readCardsConfigSync } from './containers/project/cards-config.js';
 import { Validate } from './commands/validate.js';
-import { SCHEMA_VERSION } from '@cyberismo/assets';
+import { SCHEMA_VERSION } from '@cyberismo/migrations';
 
 /**
  * Represents Project's cardsConfig.json file.

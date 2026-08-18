@@ -17,7 +17,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { vi } from 'vitest';
 
-import { SCHEMA_VERSION } from '@cyberismo/assets';
+import { SCHEMA_VERSION } from '@cyberismo/migrations';
 import { ProjectPaths } from '../../src/containers/project/project-paths.js';
 import type { Project } from '../../src/containers/project.js';
 import { isGitLocation } from '../../src/modules/location.js';

@@ -433,9 +433,13 @@ importers:
 
   tools/migrations:
     dependencies:
-      '@cyberismo/assets':
-        specifier: workspace:*
-        version: link:../assets
+      write-json-file:
+        specifier: ^7.0.0
+        version: 7.0.0
+    devDependencies:
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@types/node@26.1.1)(jsdom@30.0.1)(vite@8.2.0(@types/node@26.1.1)(esbuild@0.28.1)(tsx@4.23.1))
 
   tools/node-clingo:
     dependencies:

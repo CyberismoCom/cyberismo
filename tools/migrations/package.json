@@ -5,9 +5,10 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc && node scripts/generate-version.mjs",
+    "build": "tsc -p tsconfig.build.json",
     "clean": "rm -rf dist",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "vitest run"
   },
   "keywords": [],
   "author": "sami.merila@cyberismo.com",
@@ -23,7 +24,10 @@
   },
   "type": "module",
   "dependencies": {
-    "@cyberismo/assets": "workspace:*"
+    "write-json-file": "^7.0.0"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.10"
   },
   "files": [
     "dist",

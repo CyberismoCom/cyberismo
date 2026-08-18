@@ -9,17 +9,4 @@ export default [
       },
     },
   },
-  {
-    files: ['scripts/**/*.mjs'],
-    languageOptions: {
-      globals: {
-        console: 'readonly',
-        process: 'readonly',
-      },
-    },
-    rules: {
-      'no-console': 'off',
-      'no-process-exit': 'off',
-    },
-  },
 ];

@@ -17,21 +17,22 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import { SCHEMA_VERSION } from '@cyberismo/assets';
-import { runMigrationChain } from '../../src/migrations/run-chain.js';
+import { runMigrationChain } from '../src/run-chain.js';
 
-import type { Migration } from '@cyberismo/migrations';
+import type { Migration } from '../src/migration-interfaces.js';
 
-const registry = vi.hoisted(() => ({
+const mocked = vi.hoisted(() => ({
+  SCHEMA_VERSION: 7,
   migrations: {} as Record<number, Migration>,
 }));
 
-vi.mock('@cyberismo/migrations', () => ({
+vi.mock('../src/registry.js', () => ({
+  SCHEMA_VERSION: mocked.SCHEMA_VERSION,
   availableMigrations: () =>
-    Object.keys(registry.migrations)
+    Object.keys(mocked.migrations)
       .map(Number)
       .sort((a, b) => a - b),
-  migration: (version: number) => registry.migrations[version],
+  migration: (version: number) => mocked.migrations[version],
 }));
 
 const testDir = join(import.meta.dirname, 'tmp-run-chain-tests');
@@ -58,8 +59,8 @@ describe('runMigrationChain', () => {
     };
 
   function fillRegistry() {
-    for (let v = 2; v <= SCHEMA_VERSION; v++) {
-      registry.migrations[v] = recording(v);
+    for (let v = 2; v <= mocked.SCHEMA_VERSION; v++) {
+      mocked.migrations[v] = recording(v);
     }
   }
 
@@ -71,7 +72,7 @@ describe('runMigrationChain', () => {
 
   afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
-    registry.migrations = {};
+    mocked.migrations = {};
     vi.restoreAllMocks();
   });
 
@@ -79,22 +80,22 @@ describe('runMigrationChain', () => {
     fillRegistry();
     await runMigrationChain(testDir, 1);
     expect(calls).toEqual(
-      Array.from({ length: SCHEMA_VERSION - 1 }, (_, i) => i + 2),
+      Array.from({ length: mocked.SCHEMA_VERSION - 1 }, (_, i) => i + 2),
     );
-    expect(storedVersion()).toBe(SCHEMA_VERSION);
+    expect(storedVersion()).toBe(mocked.SCHEMA_VERSION);
   });
 
   it('starts after fromVersion', async () => {
     fillRegistry();
-    writeConfig(SCHEMA_VERSION - 1);
-    await runMigrationChain(testDir, SCHEMA_VERSION - 1);
-    expect(calls).toEqual([SCHEMA_VERSION]);
-    expect(storedVersion()).toBe(SCHEMA_VERSION);
+    writeConfig(mocked.SCHEMA_VERSION - 1);
+    await runMigrationChain(testDir, mocked.SCHEMA_VERSION - 1);
+    expect(calls).toEqual([mocked.SCHEMA_VERSION]);
+    expect(storedVersion()).toBe(mocked.SCHEMA_VERSION);
   });
 
   it('refuses a gapped chain before running anything', async () => {
     fillRegistry();
-    delete registry.migrations[3];
+    delete mocked.migrations[3];
     await expect(runMigrationChain(testDir, 1)).rejects.toThrow(
       'migration 3 is missing',
     );
@@ -104,7 +105,7 @@ describe('runMigrationChain', () => {
 
   it('stops at a failing migration; earlier steps stay stamped', async () => {
     fillRegistry();
-    registry.migrations[3] = async () => {
+    mocked.migrations[3] = async () => {
       throw new Error('boom');
     };
     await expect(runMigrationChain(testDir, 1)).rejects.toThrow(

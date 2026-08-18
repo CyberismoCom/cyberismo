@@ -1,44 +1,26 @@
 /**
- * Central registry of all available migrations.
- *
- * Each migration is exported with its version number as the key.
- * Data-handler imports this to discover and load migrations.
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2026
+
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
+*/
+
+/**
+ * Public surface of the migrations package: the migration contract,
+ * the version registry, and the in-process chain runner.
  */
-
-import type { Migration } from './migration-interfaces.js';
-import migration2 from './2/index.js';
-import migration3 from './3/index.js';
-import migration4 from './4/index.js';
-import migration5 from './5/index.js';
-
-// Re-export migration interfaces
 export type { Migration, MigrationContext } from './migration-interfaces.js';
-
-/**
- * Map of migration version to migration implementation.
- */
-export const migrations: Record<number, Migration> = {
-  2: migration2,
-  3: migration3,
-  4: migration4,
-  5: migration5,
-};
-
-/**
- * Get all available migration versions in sorted order.
- * @returns Array of migration version numbers
- */
-export function availableMigrations(): number[] {
-  return Object.keys(migrations)
-    .map(Number)
-    .sort((a, b) => a - b);
-}
-
-/**
- * Get a specific migration by version number.
- * @param version The migration version to retrieve
- * @returns The migration implementation or undefined if not found
- */
-export function migration(version: number): Migration | undefined {
-  return migrations[version];
-}
+export {
+  availableMigrations,
+  migration,
+  migrations,
+  SCHEMA_VERSION,
+} from './registry.js';
+export { runMigrationChain } from './run-chain.js';

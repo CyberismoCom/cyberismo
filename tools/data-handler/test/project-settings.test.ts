@@ -8,7 +8,7 @@ import type {
 } from '../src/interfaces/project-interfaces.js';
 
 import { ProjectConfiguration } from '../src/project-settings.js';
-import { SCHEMA_VERSION } from '@cyberismo/assets';
+import { SCHEMA_VERSION } from '@cyberismo/migrations';
 import { readJsonFileSync } from '../src/utils/json.js';
 
 describe('project settings', () => {

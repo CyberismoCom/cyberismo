@@ -11,11 +11,10 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { SCHEMA_VERSION } from '@cyberismo/assets';
+import { runMigrationChain, SCHEMA_VERSION } from '@cyberismo/migrations';
 
 import { ProjectPaths } from '../containers/project/project-paths.js';
 import { readJsonFile } from '../utils/json.js';
-import { runMigrationChain } from '../migrations/run-chain.js';
 
 /**
  * Migrate a project's schema to the tool's current version.

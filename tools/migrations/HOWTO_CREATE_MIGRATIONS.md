@@ -1,29 +1,33 @@
 # Schema Migrations
 
-This directory contains schema migrations for the Cyberismo tool.
+This package contains schema migrations for the Cyberismo tool: the
+migration contract (`src/migration-interfaces.ts`), the version registry
+(`src/registry.ts`), and the in-process chain runner (`src/run-chain.ts`).
 
-## Directory Structure
+## Directory structure
 
-Each migration is stored in a numbered subdirectory corresponding to the target schema version:
+Each migration is a numbered subdirectory named after the target schema
+version:
 
 ```
-migrations/
+src/
 ├── 2/
 │   └── index.ts    (migration from v1 to v2)
-└── 3/
-    └── index.ts    (migration from v2 to v3)
+├── 3/
+│   └── index.ts    (migration from v2 to v3)
 ...
 ```
 
 ## Migration execution order
 
-Migrations are executed sequentially in ascending order.
-For example, migrating from version 1 to version 3 would:
+Migrations run sequentially in ascending order. For example, migrating
+from version 1 to version 3:
 
-1. Execute migration in `2/index.ts` (v1 → v2)
-2. Update project schemaVersion to 2
-3. Execute migration in `3/index.ts` (v2 → v3)
-4. Update project schemaVersion to 3
+1. Run `2/index.ts` (v1 → v2), then stamp schemaVersion 2
+2. Run `3/index.ts` (v2 → v3), then stamp schemaVersion 3
+
+The chain must be contiguous: the runner refuses to run if any
+intermediate migration is missing.
 
 ## Migration scope
 
@@ -35,12 +39,10 @@ A migration owns the **entire** `.cards` tree it is given:
   `cyberismo migrate` is the only thing that moves it forward, so a
   structural change must be applied to installed module trees too.
 
-The same script also runs against _staged module checkouts_ during
+The same migration also runs against _staged module checkouts_ during
 `cyberismo import module` / `cyberismo update modules`: a module released
 at an older schema version is migrated in the staging directory before its
-resources are copied into the project. Only the `migrate` step runs there —
-the in-process runner refuses a migration that defines
-`before`/`backup`/`after` rather than silently skipping them. Therefore:
+resources are copied into the project. Therefore:
 
 - Do not assume the tree is the host project.
 - Tolerate a missing `cardRoot` — staged file-source modules stage only
@@ -50,107 +52,38 @@ the in-process runner refuses a migration that defines
 
 ## Creating a new migration
 
-### 1. Generate migration scaffolding
+A migration is a single async function that transforms the tree in place
+and throws on failure:
 
-From the project root directory, run:
+```typescript
+import type { Migration } from '../migration-interfaces.js';
 
+const migration: Migration = async (context) => {
+  console.log(
+    `Migrating from schema version ${context.fromVersion} to ${context.toVersion}`,
+  );
+  // transform files under context.cardsConfigPath / context.cardRootPath
+};
+
+export default migration;
 ```
-pnpm create-migration
-```
 
-This command will:
+1. Copy the newest `src/<N>/index.ts` to `src/<N+1>/index.ts` and edit it.
+2. Register it in `src/registry.ts` (import + map entry). `SCHEMA_VERSION`
+   is derived from the registry, so it updates automatically.
+3. Add tests under `test/`.
 
-- Automatically determine the next migration number
-- Create a new directory under `tools/migrations/src`
-- Generate an `index.ts` file with complete scaffolding and inline documentation
+The `MigrationContext` provides `cardRootPath`, `cardsConfigPath`,
+`fromVersion` and `toVersion`. Access files directly with `node:fs` —
+there is no Project API during migration.
 
-### 2. Implement migration logic
+## Best practices
 
-Open the generated `index.ts` file and implement your migration logic. The file contains four functions with detailed guidelines:
-
-#### `before(context)` - Pre-migration validation (optional)
-
-**Purpose**: Validate that migration can proceed safely
-
-**What to include**:
-
-- Check project structure is correct (use `validateProjectStructure()` helper)
-- Verify prerequisites specific to this migration
-- Check that resources needed for migration are accessible
-- Return `{ success: false }` with error message if migration cannot proceed
-
-#### `backup(context)` - Create backup (optional)
-
-**Purpose**: Create backup before making changes
-
-**What to include**:
-
-- Use the standard `createBackup()` helper function
-- Or, implement custom backup logic if needed
-
-#### `migrate(context)` - Perform migration (required)
-
-**Purpose**: Execute the actual migration
-
-**What to include**:
-
-- Modify files in `cardRoot` and `.cards` directories as needed, using direct filesystem access.
-- Use the paths provided in the `MigrationContext` (such as `cardRootPath`, `cardsConfigPath`, etc.) to locate and update resources (cardTypes, workflows, etc.).
-- There is currently no Project API or `project` field in the context; access and update files directly as required by your migration.
-- Log progress for visibility during migration
-- Handle errors with descriptive messages
-- Be idempotent: migration should handle being run multiple times safely
-
-#### `after(context)` - Post-migration verification (optional)
-
-**Purpose**: Verify migration succeeded and clean up
-
-**What to include**:
-
-- Verify that migration succeeded (check file changes, data integrity, etc.)
-- Clean up temporary files or data if needed
-- Run validation checks on migrated data
-- Return `{ success: false }` if verification fails
-
-### 3. Migration Context
-
-The `MigrationContext` object passed to each migration function provides:
-
-- `cardRootPath`: Absolute path to the project's cardRoot directory
-- `cardsConfigPath`: Absolute path to the .cards directory
-- `fromVersion`: Current schema version before migration
-- `toVersion`: Target schema version after migration
-- `backupDir`: Optional parent directory for backups (if user specified one)
-
-## Working with Project Resources
-
-Migrations interact with project resources directly via the filesystem. Use the paths provided in `MigrationContext` (such as `cardRootPath` and `cardsConfigPath`) along with Node.js modules like `fs` and `path` to read, modify, or write files as needed during migration. There is no Project API instance available during migration execution.
-
-## Best Practices
-
-1. **Be idempotent**: Migrations should handle being run multiple times safely
-2. **Log progress**: Use `console.log()` or a logger to provide feedback during migration
-3. **Handle errors**: Return proper error messages and Error objects
-4. **Test thoroughly**: Test migrations on sample projects before deploying
-5. **Document changes**: Add comments explaining what the migration does
-6. **One migration, one change**: Better to make small migrations that make one change than merge multiple changes to one big migration.
-
-## Troubleshooting
-
-### Migration fails to load
-
-- Ensure `index.ts` exports a default object
-- Check that the migration implements at least the `migrate()` function
-- Verify imports are correct
-
-### Migration fails during execution
-
-- Check the error message in the result
-- Verify backup was created
-- Restore from backup if needed: copy backup files back to original location
-
-### Schema version not updating
-
-- Ensure migration returns `{ success: true }`
-- Check that `ProjectConfiguration.save()` is being called
-- Verify file permissions on cardsConfig.json
+1. **Be idempotent**: a migration must handle being run multiple times
+   safely.
+2. **Log progress**: `console.log()` what changed.
+3. **Throw on failure** with a descriptive message. The runner stamps
+   `schemaVersion` only after a step succeeds, so a failed run leaves a
+   consistent, resumable tree; version control is the recovery mechanism.
+4. **One migration, one change**: prefer small migrations over one big
+   one.
