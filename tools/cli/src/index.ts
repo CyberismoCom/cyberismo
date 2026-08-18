@@ -275,7 +275,8 @@ program
       .choices(['trace', 'debug', 'info', 'warn', 'error', 'fatal'])
       .default('fatal'),
   )
-  .option('--autocommit', 'Enable git-backed transactional writes');
+  .option('--autocommit', 'Enable git-backed transactional writes')
+  .option('--autopush', 'Push autocommitted changes to the remote');
 
 const addCmd = new CommandWithPath('add').description(
   'Add items to the project',
@@ -1558,7 +1559,8 @@ const appCmd = new CommandWithPath('app')
     '-w, --watch-resource-changes',
     'Project watches changes in .cards folder resources',
   )
-  .option('--autocommit', 'Enable git-backed transactional writes');
+  .option('--autocommit', 'Enable git-backed transactional writes')
+  .option('--autopush', 'Push autocommitted changes to the remote');
 program.addCommand(appCmd);
 appCmd.action(async (options: CommandOptions<'start'>) => {
   const basePath = options.projectPath || process.cwd();
@@ -1628,6 +1630,7 @@ appCmd.action(async (options: CommandOptions<'start'>) => {
   const mergedOptions = Object.assign({}, options, program.opts());
   const registry = await ProjectRegistry.fromScannedProjects(projects, {
     autocommit: mergedOptions.autocommit,
+    autopush: mergedOptions.autopush,
     watchResourceChanges: mergedOptions.watchResourceChanges,
   });
 

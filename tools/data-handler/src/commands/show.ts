@@ -61,6 +61,7 @@ import { generateReportContent } from '../utils/report.js';
 import TaskQueue from '../macros/task-queue.js';
 import { evaluateMacros } from '../macros/index.js';
 import { readJsonFile } from '../utils/json.js';
+import { sleep } from '../utils/common-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { buildCardHierarchy, flattenCardArray } from '../utils/card-utils.js';
 import { CardNotFoundError } from '../exceptions/index.js';
@@ -261,8 +262,9 @@ export class Show {
       },
     );
 
-    // wait for the application to open the attachment
-    await new Promise((resolve) => setTimeout(resolve, waitDelay));
+    // wait for the application to open the attachment. Not unref'd: the exit
+    // code is checked below, so the process has to stay alive for the wait.
+    await sleep(waitDelay);
 
     // If the application exists with a non-zero exit code, open the attachment using the operating system's default application
     if (processHandle.exitCode !== 0 && processHandle.exitCode !== null) {

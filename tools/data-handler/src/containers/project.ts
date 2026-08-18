@@ -55,6 +55,7 @@ import { Validate } from '../commands/validate.js';
 import { ContentWatcher } from './project/project-content-watcher.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { RWLock } from '../utils/rw-lock.js';
+import { GitSync } from '../utils/git-sync.js';
 import { GitManager } from '../utils/git-manager.js';
 import { getCommitContext } from '../utils/commit-context.js';
 
@@ -63,12 +64,19 @@ import type { Template } from './template.js';
 import { isPredefinedField, ROOT } from '../utils/constants.js';
 
 /**
- * Options for Project initialization.
- * watchResourceChanges - If project refresh automatically to filesystem changes. Default false.
+ * Options for Project initialization. All default to off.
+ *
+ * watchResourceChanges - Project refreshes automatically on filesystem
+ *   changes in `.cards`. Unrelated to git.
+ * autocommit - Make writes git transactions: commit after a successful write,
+ *   roll back to the last commit after a failed one.
+ * autopush - Also push each autocommit to the remote, in the background.
+ *   Requires autocommit; see the note in the constructor.
  */
 export interface ProjectOptions {
   watchResourceChanges?: boolean;
   autocommit?: boolean;
+  autopush?: boolean;
 }
 
 /**
@@ -78,6 +86,7 @@ export class Project extends CardContainer {
   public readonly lock = new RWLock();
   public calculationEngine: CalculationEngine;
   private gitManager: GitManager;
+  private readonly gitSync: GitSync;
   private logger = getChildLogger({ module: 'Project' });
   private projectPaths: ProjectPaths;
   private resourceHandler: ResourceHandler;
@@ -97,6 +106,12 @@ export class Project extends CardContainer {
     );
     super(path, settings.cardKeyPrefix);
     this.settings = settings;
+
+    // Pushing only makes sense for commits this process makes, and both
+    // autopush call sites sit inside the autocommit branch below, so autopush
+    // on its own would be inert. Normalised here rather than at each entry
+    // point, so the CLI and the server cannot disagree about it.
+    this.options.autopush = this.options.autocommit && this.options.autopush;
 
     this.logger.info({ path }, 'Initializing project');
 
@@ -140,6 +155,8 @@ export class Project extends CardContainer {
       await this.calculationEngine.generate();
     });
 
+    this.gitSync = new GitSync(this.gitManager);
+
     if (this.options.autocommit) {
       // Commit after successful writes
       this.lock.onAfterWrite(async () => {
@@ -148,6 +165,7 @@ export class Project extends CardContainer {
           context.message ?? 'Autocommit',
           context.author,
         );
+        if (this.options.autopush) void this.gitSync.push();
       });
 
       // Rollback on failed writes
@@ -948,6 +966,7 @@ export class Project extends CardContainer {
     if (this.options.autocommit) {
       await this.gitManager.initialize(getCommitContext().author);
     }
+    if (this.options.autopush) void this.gitSync.push();
   }
 
   /**

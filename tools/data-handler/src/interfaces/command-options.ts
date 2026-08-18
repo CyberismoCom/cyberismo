@@ -20,6 +20,7 @@ export interface BaseCommandOptions {
   projectPath?: string;
   logLevel?: Level;
   autocommit?: boolean;
+  autopush?: boolean;
 }
 
 // Options for commands that need context

@@ -15,12 +15,12 @@ import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { resolve, sep } from 'node:path';
 
-import { hubFetch } from '../utils/git-service-client.js';
 import {
   canonicalHubLocation,
   hubModuleListUrl,
   MODULE_LIST_FILE,
 } from '../utils/hub-utils.js';
+import { egressFetch } from '../utils/egress.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { readJsonFile, writeJsonFile } from '../utils/json.js';
 import { validateJson } from '../utils/validate.js';
@@ -79,7 +79,7 @@ export class Fetch {
         return undefined;
       }
 
-      const response = await hubFetch(url.toString(), {
+      const response = await egressFetch(url.toString(), {
         method: 'GET',
         headers: {
           Accept: 'application/json',
@@ -111,7 +111,7 @@ export class Fetch {
       }
 
       this.logger.info(`Fetching module list from hub: ${url.toString()}`);
-      const response = await hubFetch(url.toString(), {
+      const response = await egressFetch(url.toString(), {
         method: 'GET',
         headers: {
           Accept: 'application/json',
@@ -331,7 +331,6 @@ export class Fetch {
    * Fetches modules from modules hub(s) and writes them to a file.
    * Only fetches if the remote version is newer than the local version,
    * unless 'force' is set.
-   * In git-service mode, HTTP calls are proxied through the git-service /hub endpoint.
    *
    * A hub that cannot be read is reported rather than thrown: one unreachable
    * hub must not stop the others from being refreshed, nor block the module

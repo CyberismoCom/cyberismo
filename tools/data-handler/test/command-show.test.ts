@@ -6,6 +6,7 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { readFile } from 'node:fs/promises';
 
+import { sleep } from '../src/utils/common-utils.js';
 import { Cmd, Commands, CommandManager } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
@@ -525,7 +526,7 @@ describe('shows command', () => {
       );
       const modules = Object.values(result.payload!);
       if (modules.length === 0) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await sleep(100);
       }
     });
 

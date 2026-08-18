@@ -211,6 +211,7 @@ export class Commands {
       watchResourceChanges: (options as StartCommandOptions)
         .watchResourceChanges,
       autocommit: options.autocommit,
+      autopush: options.autopush,
     });
     if (!this.commands) {
       throw new Error('Cannot get instance of CommandManager');
