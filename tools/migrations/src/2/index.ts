@@ -12,11 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type {
-  Migration,
-  MigrationContext,
-  MigrationResult,
-} from '../migration-interfaces.js';
+import type { Migration } from '../migration-interfaces.js';
 
 /**
  * Migration from schema version 1 to 2
@@ -26,29 +22,13 @@ import type {
  *
  * Since both fields are optional, no data transformation is required.
  */
-const migration: Migration = {
-  /**
-   * Perform the migration from version 1 to 2.
-   * This is an empty migration - the schema changes are additive only.
-   *
-   * @param context Migration context
-   * @returns Migration result
-   */
-  async migrate(context: MigrationContext): Promise<MigrationResult> {
-    console.log(
-      `Migrating from schema version ${context.fromVersion} to ${context.toVersion}`,
-    );
-    console.log('Schema changes:');
-    console.log('  - Added empty "description" field to cardsConfig.json');
-    console.log('No data transformation required.');
-
-    return {
-      success: true,
-      message:
-        'Schema updated to version 2: support for "category" and "description" fields in project configuration',
-      stepsExecuted: ['Schema version incremented'],
-    };
-  },
+const migration: Migration = async (context) => {
+  console.log(
+    `Migrating from schema version ${context.fromVersion} to ${context.toVersion}`,
+  );
+  console.log('Schema changes:');
+  console.log('  - Added empty "description" field to cardsConfig.json');
+  console.log('No data transformation required.');
 };
 
 export default migration;

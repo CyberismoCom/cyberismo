@@ -72,8 +72,7 @@ describe('migration v5 (remove pre-replay migration log snapshots)', () => {
   };
 
   it('removes old single-version snapshots only', async () => {
-    const result = await v5().migrate(ctx);
-    expect(result.success).toBe(true);
+    await v5()(ctx);
 
     expect(existsSync(join(migrationsDir, oldSnapshot))).toBe(false);
     expect(existsSync(join(migrationsDir, lineageSeal))).toBe(true);
@@ -81,28 +80,16 @@ describe('migration v5 (remove pre-replay migration log snapshots)', () => {
   });
 
   it('removes old snapshots from installed module trees too', async () => {
-    const result = await v5().migrate(ctx);
-    expect(result.success).toBe(true);
+    await v5()(ctx);
 
     expect(existsSync(join(moduleMigrationsDir, oldSnapshot))).toBe(false);
     expect(existsSync(join(moduleMigrationsDir, lineageSeal))).toBe(true);
   });
 
-  it('reports removed files in stepsExecuted', async () => {
-    const result = (await v5().migrate(ctx)) as {
-      success: boolean;
-      stepsExecuted: string[];
-    };
-    expect(
-      result.stepsExecuted.some((step) => step.includes(oldSnapshot)),
-    ).toBe(true);
-  });
-
   it('removes multiple old snapshots', async () => {
     writeFileSync(join(migrationsDir, 'migrationLog_0.2.10.jsonl'), '{}\n');
 
-    const result = await v5().migrate(ctx);
-    expect(result.success).toBe(true);
+    await v5()(ctx);
 
     expect(readdirSync(migrationsDir).sort()).toEqual(['current', lineageSeal]);
   });
@@ -111,7 +98,7 @@ describe('migration v5 (remove pre-replay migration log snapshots)', () => {
     writeFileSync(join(migrationsDir, 'notes.txt'), 'keep me\n');
     writeFileSync(join(migrationsDir, 'migrationLog_abc.jsonl'), '{}\n');
 
-    await v5().migrate(ctx);
+    await v5()(ctx);
 
     expect(existsSync(join(migrationsDir, 'notes.txt'))).toBe(true);
     expect(existsSync(join(migrationsDir, 'migrationLog_abc.jsonl'))).toBe(
@@ -122,16 +109,14 @@ describe('migration v5 (remove pre-replay migration log snapshots)', () => {
   it('succeeds when the migrations folder does not exist', async () => {
     rmSync(migrationsDir, { recursive: true, force: true });
 
-    const result = await v5().migrate(ctx);
-    expect(result.success).toBe(true);
+    await v5()(ctx);
   });
 
   it('is idempotent when run twice', async () => {
-    await v5().migrate(ctx);
+    await v5()(ctx);
     const afterFirst = readdirSync(migrationsDir).sort();
 
-    const result = await v5().migrate(ctx);
-    expect(result.success).toBe(true);
+    await v5()(ctx);
     expect(readdirSync(migrationsDir).sort()).toEqual(afterFirst);
     expect(existsSync(join(migrationsDir, lineageSeal))).toBe(true);
     expect(existsSync(join(currentDir, currentLog))).toBe(true);

@@ -31,8 +31,6 @@ const logger = getChildLogger({ module: 'run-migration-chain' });
  * timeouts, backups or validation — and `schemaVersion` is stamped into
  * cardsConfig.json after each successful step. Callers own validation
  * policy. The tree may lack `cardRoot`; migrations tolerate its absence.
- * A migration that declares `before`, `backup` or `after` is refused
- * rather than partially executed.
  */
 export async function runMigrationChain(
   root: string,
@@ -65,29 +63,21 @@ export async function runMigrationChain(
     if (!step) {
       throw new Error(`Migration ${v} is not registered`);
     }
-    // The harness steps are never run here; refuse rather than silently
-    // change a migration's semantics for this code path.
-    const skipped = (['before', 'backup', 'after'] as const).filter(
-      (name) => step[name] !== undefined,
-    );
-    if (skipped.length > 0) {
-      throw new Error(
-        `Migration ${v} defines ${skipped.join(', ')} step(s), which the in-process chain runner does not execute`,
-      );
-    }
     logger.info(
       { root, fromVersion: current, toVersion: v },
       'running migration step',
     );
-    const result = await step.migrate({
-      cardRootPath: paths.cardRootFolder,
-      cardsConfigPath: paths.internalRootFolder,
-      fromVersion: current,
-      toVersion: v,
-    });
-    if (!result.success) {
+    try {
+      await step({
+        cardRootPath: paths.cardRootFolder,
+        cardsConfigPath: paths.internalRootFolder,
+        fromVersion: current,
+        toVersion: v,
+      });
+    } catch (error) {
       throw new Error(
-        `Migration to schema ${v} failed: ${result.message ?? 'unknown error'}`,
+        `Migration to schema ${v} failed: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error },
       );
     }
     // Raw file I/O: the migration may have rewritten cardsConfig.json on

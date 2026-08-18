@@ -69,8 +69,7 @@ describe('migration v4 (strip branch field)', () => {
       hubs: [],
     });
 
-    const result = await v4().migrate(ctx);
-    expect(result.success).toBe(true);
+    await v4()(ctx);
 
     const after = readConfig();
     expect(after.modules).toEqual([
@@ -95,7 +94,7 @@ describe('migration v4 (strip branch field)', () => {
       hubs: [],
     });
 
-    await v4().migrate(ctx);
+    await v4()(ctx);
 
     const [mod] = readConfig().modules as Array<Record<string, unknown>>;
     expect(mod).toEqual({
@@ -119,7 +118,7 @@ describe('migration v4 (strip branch field)', () => {
       hubs: [],
     });
 
-    await v4().migrate(ctx);
+    await v4()(ctx);
 
     const modules = readConfig().modules as Array<Record<string, unknown>>;
     expect(modules.every((m) => !('branch' in m))).toBe(true);
@@ -137,8 +136,7 @@ describe('migration v4 (strip branch field)', () => {
     writeConfig(original);
     const before = readFileSync(configPath, 'utf-8');
 
-    const result = await v4().migrate(ctx);
-    expect(result.success).toBe(true);
+    await v4()(ctx);
 
     expect(readFileSync(configPath, 'utf-8')).toBe(before);
   });
@@ -152,8 +150,7 @@ describe('migration v4 (strip branch field)', () => {
       hubs: [],
     });
 
-    const result = await v4().migrate(ctx);
-    expect(result.success).toBe(true);
+    await v4()(ctx);
     expect(readConfig().modules).toEqual([]);
   });
 
@@ -165,8 +162,7 @@ describe('migration v4 (strip branch field)', () => {
       hubs: [],
     });
 
-    const result = await v4().migrate(ctx);
-    expect(result.success).toBe(true);
+    await v4()(ctx);
     expect(readConfig().modules).toBeUndefined();
   });
 
@@ -179,9 +175,9 @@ describe('migration v4 (strip branch field)', () => {
       hubs: [],
     });
 
-    await v4().migrate(ctx);
+    await v4()(ctx);
     const afterFirst = readFileSync(configPath, 'utf-8');
-    await v4().migrate(ctx);
+    await v4()(ctx);
     expect(readFileSync(configPath, 'utf-8')).toBe(afterFirst);
   });
 });
