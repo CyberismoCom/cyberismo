@@ -25,10 +25,9 @@ import type { ResolvedModule } from './resolve/types.js';
  * aborts the whole operation.
  *
  * Migrations run in-process via the chain runner. The staged tree never
- * touches the project, so the interactive executor's workers, backups,
- * disk-space checks and per-step validation are deliberately skipped —
- * the import flow validates the project after apply. Staged file-source
- * trees may lack `cardRoot`; migrations tolerate its absence.
+ * touches the project; the import flow validates the project after
+ * apply. Staged file-source trees may lack `cardRoot`; migrations
+ * tolerate its absence.
  */
 export async function ensureStagedSchemas(
   resolved: ResolvedModule[],
