@@ -47,6 +47,9 @@ import { CommandManager, scanForProjects } from '@cyberismo/data-handler';
 import { createProjectsRouter } from './domain/projects/index.js';
 import { simpleMcpAuthRouter } from '@hono/mcp';
 
+/** Response header carrying the owning project's prefix in export mode. */
+export const PROJECT_PREFIX_HEADER = 'X-Cyberismo-Project';
+
 /**
  * Create a Hono sub-app with all project-scoped routes.
  */
@@ -202,6 +205,14 @@ export function createApp(
     // Export mode: mount at each concrete prefix so SSG sees
     // static routes instead of dynamic :prefix patterns it would skip.
     for (const { prefix } of registry.list()) {
+      // Stamp the owning project onto every response from this subtree so
+      // the static-site exporter can attribute failures per project —
+      // toSSG's responses come from app.request(), so response.url is
+      // empty and a header is the only reliable carrier.
+      app.use(`/api/projects/${prefix}/*`, async (c, next) => {
+        await next();
+        c.res.headers.set(PROJECT_PREFIX_HEADER, prefix);
+      });
       const scoped = createProjectScopedRoutes(
         attachProjectRegistry(registry, prefix),
       );
