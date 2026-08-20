@@ -32,10 +32,6 @@ interface NativeClingoContext {
   buildProgram(program: string, categories: string[]): string;
 }
 
-export interface ClingoOptions {
-  preParsing?: boolean;
-}
-
 /**
  * Result of validating a logic program without solving it.
  */
@@ -46,7 +42,7 @@ export interface ClingoValidationResult {
 }
 
 interface NativeBinding {
-  ClingoContext: new (options?: ClingoOptions) => NativeClingoContext;
+  ClingoContext: new () => NativeClingoContext;
   clearCache(): void;
   validateProgram(program: string): ClingoValidationResult;
 }
@@ -122,25 +118,14 @@ export interface ClingoResult {
 }
 
 /**
- * Options for creating a ClingoContext
- */
-export interface ClingoOptions {
-  /**
-   * When false, programs store raw text and AST parsing happens at solve time.
-   * Default: true
-   */
-  preParsing?: boolean;
-}
-
-/**
  * A Clingo solver instance with its own isolated program store.
  * The solve result cache is shared globally across all instances.
  */
 export class ClingoContext {
   private _ctx: NativeClingoContext;
 
-  constructor(options?: ClingoOptions) {
-    this._ctx = new nativeBinding!.ClingoContext(options);
+  constructor() {
+    this._ctx = new nativeBinding!.ClingoContext();
   }
 
   /**

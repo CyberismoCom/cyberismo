@@ -183,6 +183,24 @@ describe('Clingo solver', () => {
     }
   });
 
+  it('reports the program key when stored content fails to parse', async () => {
+    // Content that fails to parse is stored without an AST. solve() then
+    // re-parses the raw text with its logger attached, which is where the
+    // failing program's key becomes available for the error.
+    ctx.setProgram('malformed', 'fact(1', ['broken']);
+
+    try {
+      await ctx.solve('result(X) :- fact(X).', ['broken']);
+      expect.fail('Expected solve to throw an error');
+    } catch (error: unknown) {
+      const clingoError = error as {
+        details: { errors: string[]; program?: string };
+      };
+      expect(clingoError.details.program).toBe('malformed');
+      expect(clingoError.details.errors.join('\n')).toContain('syntax error');
+    }
+  });
+
   describe('Resource parsing functions', () => {
     beforeEach(() => {
       // Set up a base program that shows common result predicates
@@ -610,35 +628,6 @@ describe('Clingo solver', () => {
         // @ts-expect-error Testing invalid argument type
         ctx.buildProgram('test', ['valid', 123, 'also_valid']),
       ).toThrow('All refs must be strings');
-    });
-  });
-
-  describe('Pre-parsing option', () => {
-    it('should produce correct results without pre-parsing', async () => {
-      const ctxNoParse = new ClingoContext({ preParsing: false });
-
-      ctxNoParse.setProgram('base', 'fact(value).');
-      const result = await ctxNoParse.solve('test :- fact(value).', ['base']);
-
-      expect(result.answers[0]).toContain('test');
-      expect(result.answers[0]).toContain('fact(value)');
-    });
-
-    it('should produce identical results with and without pre-parsing', async () => {
-      const baseContent = 'color(red). color(blue). shape(circle).';
-      const query = 'valid :- color(X), shape(Y).';
-
-      const ctxWithParse = new ClingoContext({ preParsing: true });
-      ctxWithParse.setProgram('base', baseContent);
-      clearCache();
-      const withPreParse = await ctxWithParse.solve(query, ['base']);
-
-      const ctxNoParse = new ClingoContext({ preParsing: false });
-      ctxNoParse.setProgram('base', baseContent);
-      clearCache();
-      const withoutPreParse = await ctxNoParse.solve(query, ['base']);
-
-      expect(withoutPreParse.answers).toEqual(withPreParse.answers);
     });
   });
 });
