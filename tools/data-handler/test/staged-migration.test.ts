@@ -16,7 +16,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { SCHEMA_VERSION } from '@cyberismo/assets';
+import { SCHEMA_VERSION } from '@cyberismo/migrations';
 import { ensureStagedSchemas } from '../src/modules/staged-migration.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { readJsonFileSync } from '../src/utils/json.js';

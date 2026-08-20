@@ -32,7 +32,7 @@ import {
   mockEnsureModuleListUpToDate,
 } from './helpers/test-utils.js';
 import { readJsonFileSync } from '../src/utils/json.js';
-import { SCHEMA_VERSION } from '@cyberismo/assets';
+import { SCHEMA_VERSION } from '@cyberismo/migrations';
 import { toVersionRange } from '../src/modules/types.js';
 import { ModuleValidationFailedError } from '../src/mutations/replay/replay.js';
 import { logLine, writeSeals } from './helpers/replay-fixtures.js';

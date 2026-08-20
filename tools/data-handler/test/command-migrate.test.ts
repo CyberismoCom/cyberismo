@@ -17,11 +17,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import { SCHEMA_VERSION } from '@cyberismo/assets';
+import { runMigrationChain, SCHEMA_VERSION } from '@cyberismo/migrations';
 import { migrate } from '../src/commands/migrate.js';
-import { runMigrationChain } from '../src/migrations/run-chain.js';
 
-vi.mock('../src/migrations/run-chain.js', () => ({
+import type * as migrations from '@cyberismo/migrations';
+
+vi.mock('@cyberismo/migrations', async (importOriginal) => ({
+  ...(await importOriginal<typeof migrations>()),
   runMigrationChain: vi.fn(async () => {}),
 }));
 

@@ -12,31 +12,28 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { writeJsonFile as atomicWriteJson } from 'write-json-file';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 
-import { SCHEMA_VERSION } from '@cyberismo/assets';
-import { availableMigrations, migration } from '@cyberismo/migrations';
+import { writeJsonFile } from 'write-json-file';
 
-import { ProjectPaths } from '../containers/project/project-paths.js';
-import { getChildLogger } from '../utils/log-utils.js';
-import { readJsonFile } from '../utils/json.js';
-
-const logger = getChildLogger({ module: 'run-migration-chain' });
+import { availableMigrations, migration, SCHEMA_VERSION } from './registry.js';
 
 /**
  * Run the contiguous migration chain from `fromVersion` up to
  * SCHEMA_VERSION against a bare `.cards` tree, in-process.
  *
- * Mechanism only: each migration's `migrate` runs directly — no workers,
- * timeouts, backups or validation — and `schemaVersion` is stamped into
- * cardsConfig.json after each successful step. Callers own validation
- * policy. The tree may lack `cardRoot`; migrations tolerate its absence.
+ * Mechanism only: each migration runs directly and `schemaVersion` is
+ * stamped into cardsConfig.json after each successful step. Callers own
+ * validation policy. The tree may lack `cardRoot`; migrations tolerate
+ * its absence.
  */
 export async function runMigrationChain(
   root: string,
   fromVersion: number,
 ): Promise<void> {
-  const paths = new ProjectPaths(root);
+  const cardsConfigPath = join(root, '.cards');
+  const configFile = join(cardsConfigPath, 'local', 'cardsConfig.json');
   const versions = availableMigrations().filter(
     (v) => v > fromVersion && v <= SCHEMA_VERSION,
   );
@@ -63,14 +60,10 @@ export async function runMigrationChain(
     if (!step) {
       throw new Error(`Migration ${v} is not registered`);
     }
-    logger.info(
-      { root, fromVersion: current, toVersion: v },
-      'running migration step',
-    );
     try {
       await step({
-        cardRootPath: paths.cardRootFolder,
-        cardsConfigPath: paths.internalRootFolder,
+        cardRootPath: join(root, 'cardRoot'),
+        cardsConfigPath,
         fromVersion: current,
         toVersion: v,
       });
@@ -82,12 +75,12 @@ export async function runMigrationChain(
     }
     // Raw file I/O: the migration may have rewritten cardsConfig.json on
     // disk, so no in-memory settings object can be trusted to re-save it.
-    const raw = await readJsonFile(paths.configurationFile);
-    if (!raw) {
-      throw new Error(`Cannot read ${paths.configurationFile}`);
-    }
+    const raw = JSON.parse(await readFile(configFile, 'utf-8')) as Record<
+      string,
+      unknown
+    >;
     raw.schemaVersion = v;
-    await atomicWriteJson(paths.configurationFile, raw, { indent: 4 });
+    await writeJsonFile(configFile, raw, { indent: 4 });
     current = v;
   }
 }

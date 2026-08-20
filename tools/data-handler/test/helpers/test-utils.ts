@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { vi } from 'vitest';
 import { Project } from '../../src/containers/project.js';
 import { Fetch } from '../../src/commands/index.js';
-import { SCHEMA_VERSION } from '@cyberismo/assets';
+import { SCHEMA_VERSION } from '@cyberismo/migrations';
 
 /**
  * Get the base directory for the calling test file.

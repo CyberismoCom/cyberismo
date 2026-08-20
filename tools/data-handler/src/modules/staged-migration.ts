@@ -12,10 +12,9 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { SCHEMA_VERSION } from '@cyberismo/assets';
+import { runMigrationChain, SCHEMA_VERSION } from '@cyberismo/migrations';
 
 import { readModuleConfig } from '../containers/project/cards-config.js';
-import { runMigrationChain } from '../migrations/run-chain.js';
 
 import type { ResolvedModule } from './resolve/types.js';
 
@@ -26,10 +25,9 @@ import type { ResolvedModule } from './resolve/types.js';
  * aborts the whole operation.
  *
  * Migrations run in-process via the chain runner. The staged tree never
- * touches the project, so the interactive executor's workers, backups,
- * disk-space checks and per-step validation are deliberately skipped —
- * the import flow validates the project after apply. Staged file-source
- * trees may lack `cardRoot`; migrations tolerate its absence.
+ * touches the project; the import flow validates the project after
+ * apply. Staged file-source trees may lack `cardRoot`; migrations
+ * tolerate its absence.
  */
 export async function ensureStagedSchemas(
   resolved: ResolvedModule[],

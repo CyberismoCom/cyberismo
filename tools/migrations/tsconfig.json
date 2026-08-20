@@ -1,22 +1,16 @@
 {
   "compilerOptions": {
     "strict": true,
-    "incremental": true,
-    "tsBuildInfoFile": "./tsconfig.tsbuildinfo",
     "allowJs": true,
     "alwaysStrict": true,
     "sourceMap": true,
     "target": "es2023",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "outDir": "./dist",
-    "rootDir": "./src",
     "types": ["node"],
-    "declaration": true,
-    "declarationMap": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "test/**/*.ts"]
 }

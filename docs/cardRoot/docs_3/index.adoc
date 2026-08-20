@@ -26,7 +26,7 @@ Commands:
   export [options] <format> <output> [cardKey]                             Export a project or a card
   fetch [options]                                                          Retrieve external data to local file system.
   import [options]                                                         Import modules and data into the project
-  migrate [options] [version]                                              Migrate project schema to a newer version.
+  migrate [options]                                                        Migrate project schema to the latest version.
   move [options] [source] [destination]                                    Moves a card from root to under another card, from under another card to root, or from under a one card to another.
   preview [dir]                                                            Preview the exported site
   rank [options]                                                           Manage card ranking and ordering

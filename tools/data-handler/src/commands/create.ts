@@ -17,7 +17,7 @@ import { mkdir, mkdtemp, rename, rm, writeFile } from 'node:fs/promises';
 
 import { simpleGit } from 'simple-git';
 
-import { SCHEMA_VERSION } from '@cyberismo/assets';
+import { SCHEMA_VERSION } from '@cyberismo/migrations';
 import { scanForProjects } from '../project-scanner.js';
 import { errorFunction } from '../utils/error-utils.js';
 import { NON_INTERACTIVE_GIT_ENV, gitTimeout } from '../utils/git-config.js';

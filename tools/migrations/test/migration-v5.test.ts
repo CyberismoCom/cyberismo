@@ -23,7 +23,7 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 
-import { migration as getMigration } from '@cyberismo/migrations';
+import { migration as getMigration } from '../src/index.js';
 
 const testDir = join(import.meta.dirname, 'tmp-migration-v5-tests');
 const cardsConfigPath = join(testDir, '.cards');
