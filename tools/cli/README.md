@@ -4,10 +4,11 @@ The Cyberismo CLI is an open-source command-line tool that enables Security-as-C
 
 ### Prerequisites
 
-- **Clingo (required)**
-  - **macOS (Homebrew)**: `brew install clingo`
-  - **Ubuntu/Debian**: `sudo apt-get update && sudo apt-get install -y gringo`
-  - **Windows**: Included
+- **Node.js (required)**: v22 LTS or later.
+
+  The Clingo answer set solver is bundled as a prebuilt native binary for
+  Linux and macOS on x64 and arm64 and for Windows on x64, so no compiler,
+  toolchain or separate Clingo installation is needed.
 
 - **Asciidoctor PDF (optional, for PDF export)**
   - **macOS**: `brew install ruby && gem install --no-document asciidoctor-pdf rouge`
