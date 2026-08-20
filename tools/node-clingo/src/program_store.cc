@@ -12,10 +12,6 @@
 */
 #include "program_store.h"
 
-#include <mutex>
-
-#include "ast_mutex.h"
-
 namespace node_clingo
 {
     static std::vector<Clingo::AST::Node> tryParseToAst(const std::string& content)
@@ -23,10 +19,10 @@ namespace node_clingo
         std::vector<Clingo::AST::Node> nodes;
         try
         {
-            // Runs on the main thread, possibly while worker threads are in
-            // their AST-loading phase. AST nodes use non-atomic refcounts, so
-            // parsing is serialized with the workers via the same mutex.
-            std::lock_guard<std::mutex> lock(ast_mutex());
+            // Every parse mints fresh nodes, so the stored tree is reachable
+            // only from this Program. Replay mutates node refcounts, and that
+            // exclusivity is what lets the lock be per program
+            // (see Program::ast_mutex).
             Clingo::AST::parse_string(
                 content.c_str(), [&nodes](Clingo::AST::Node node) { nodes.push_back(node.deep_copy()); });
         }

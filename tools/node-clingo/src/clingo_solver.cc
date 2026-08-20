@@ -14,8 +14,6 @@
 
 #include <mutex>
 
-#include "ast_mutex.h"
-
 namespace node_clingo
 {
 
@@ -74,29 +72,31 @@ namespace node_clingo
 
             std::vector<Clingo::Part> parts;
 
-            {
-                std::lock_guard<std::mutex> lock(ast_mutex());
-                Clingo::AST::with_builder(control, [&](Clingo::AST::ProgramBuilder& builder) {
-                    for (const auto& program : query.programs)
+            Clingo::AST::with_builder(control, [&](Clingo::AST::ProgramBuilder& builder) {
+                for (const auto& program : query.programs)
+                {
+                    currentKey = program->key;
+                    if (!program->ast_nodes.empty())
                     {
-                        currentKey = program->key;
-                        if (!program->ast_nodes.empty())
+                        // One program at a time, so the fixed visit order
+                        // cannot deadlock. See Program::ast_mutex.
+                        std::lock_guard<std::mutex> lock(program->ast_mutex);
+                        for (const auto& node : program->ast_nodes)
                         {
-                            for (const auto& node : program->ast_nodes)
-                            {
-                                builder.add(node);
-                            }
-                        }
-                        else
-                        {
-                            Clingo::AST::parse_string(
-                                program->content.c_str(),
-                                [&builder](Clingo::AST::Node node) { builder.add(node); },
-                                logger);
+                            builder.add(node);
                         }
                     }
-                });
-            }
+                    else
+                    {
+                        // Content that did not pre-parse; its nodes are
+                        // local to this call.
+                        Clingo::AST::parse_string(
+                            program->content.c_str(),
+                            [&builder](Clingo::AST::Node node) { builder.add(node); },
+                            logger);
+                    }
+                }
+            });
             parts.emplace_back("base", Clingo::SymbolSpan{});
 
             auto timeAfterAdd = std::chrono::high_resolution_clock::now();
