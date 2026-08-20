@@ -1,8 +1,0 @@
-name: cyberismo
-channels:
-  - conda-forge
-  - potassco
-  - defaults
-dependencies:
-  - python=3.12
-  - clingo
