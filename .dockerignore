@@ -20,6 +20,9 @@ vendor/
 # production
 **/build
 **/dist
+# tsc's incremental state must not outlive the dist/ it describes, or the
+# build inside the image emits nothing and dependent packages fail to compile
+**/*.tsbuildinfo
 
 # misc
 .DS_Store
