@@ -68,23 +68,4 @@ describe('CommandManager schema version gate', () => {
     setSchemaVersion(undefined);
     expect(() => new CommandManager(projectPath)).toThrow("no 'schemaVersion'");
   });
-
-  it('skipSchemaVersionCheck bypasses the gate', () => {
-    setSchemaVersion(SCHEMA_VERSION - 1);
-    const commands = new CommandManager(projectPath, {
-      skipSchemaVersionCheck: true,
-    });
-    expect(commands.checkSchemaVersion().isCompatible).toBe(false);
-    commands.project.dispose();
-  });
-
-  it('getInstance re-checks when reusing a cached instance', async () => {
-    setSchemaVersion(SCHEMA_VERSION - 1);
-    await CommandManager.getInstance(projectPath, {
-      skipSchemaVersionCheck: true,
-    });
-    await expect(CommandManager.getInstance(projectPath)).rejects.toThrow(
-      "Run 'cyberismo migrate'",
-    );
-  });
 });

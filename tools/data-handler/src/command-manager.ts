@@ -18,7 +18,6 @@ import { Edit } from './commands/edit.js';
 import { Export } from './commands/export.js';
 import { Fetch } from './commands/fetch.js';
 import { Import } from './commands/import.js';
-import { Migrate } from './commands/migrate.js';
 import { Move } from './commands/move.js';
 import { Publish } from './commands/publish.js';
 import { Remove } from './commands/remove.js';
@@ -39,8 +38,6 @@ export interface CommandManagerOptions {
   watchResourceChanges?: boolean;
   logLevel?: Level;
   autocommit?: boolean;
-  /** Bypass the schema-version gate. Only the migrate path may set this. */
-  skipSchemaVersionCheck?: boolean;
 }
 
 // Handles commands and ensures that no extra instances are created.
@@ -56,7 +53,6 @@ export class CommandManager {
   public exportCmd: Export;
   public fetchCmd: Fetch;
   public importCmd: Import;
-  public migrateCmd: Migrate;
   public moveCmd: Move;
   public publishCmd: Publish;
   public removeCmd: Remove;
@@ -72,12 +68,10 @@ export class CommandManager {
       watchResourceChanges: options?.watchResourceChanges,
       autocommit: options?.autocommit,
     });
-    if (!options?.skipSchemaVersionCheck) {
-      const compat = this.project.configuration.checkSchemaVersion();
-      if (!compat.isCompatible) {
-        this.project.dispose();
-        throw new Error(compat.message);
-      }
+    const compat = this.project.configuration.checkSchemaVersion();
+    if (!compat.isCompatible) {
+      this.project.dispose();
+      throw new Error(compat.message);
     }
     this.validateCmd = Validate.getInstance();
 
@@ -90,7 +84,6 @@ export class CommandManager {
     this.editCmd = new Edit(this.project);
     this.exportCmd = new Export(this.project, this.showCmd);
     this.importCmd = new Import(this.project, this.createCmd, this.fetchCmd);
-    this.migrateCmd = new Migrate(this.project);
     this.moveCmd = new Move(this.project);
     this.publishCmd = new Publish(this.project);
     this.removeCmd = new Remove(this.project, this.fetchCmd);
@@ -179,16 +172,6 @@ export class CommandManager {
     if (!CommandManager.instance) {
       CommandManager.instance = new CommandManager(path, options);
       await CommandManager.instance.initialize();
-    }
-
-    // A cached instance may have been created with the migrate bypass;
-    // re-check so reuse does not silently extend the bypass to other
-    // commands.
-    if (!options?.skipSchemaVersionCheck) {
-      const compat = CommandManager.instance.checkSchemaVersion();
-      if (!compat.isCompatible) {
-        throw new Error(compat.message);
-      }
     }
 
     return CommandManager.instance;

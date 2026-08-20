@@ -7,7 +7,6 @@
   "scripts": {
     "build": "tsc && node scripts/generate-version.mjs",
     "clean": "rm -rf dist",
-    "create-migration": "node scripts/create-migration.mjs",
     "lint": "eslint ."
   },
   "keywords": [],

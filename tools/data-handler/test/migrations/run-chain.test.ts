@@ -34,8 +34,6 @@ vi.mock('@cyberismo/migrations', () => ({
   migration: (version: number) => registry.migrations[version],
 }));
 
-const okStep = async () => ({ success: true });
-
 const testDir = join(import.meta.dirname, 'tmp-run-chain-tests');
 const configFile = join(testDir, '.cards', 'local', 'cardsConfig.json');
 
@@ -53,12 +51,11 @@ function storedVersion(): number {
 describe('runMigrationChain', () => {
   let calls: number[] = [];
 
-  const recording = (version: number): Migration => ({
-    migrate: async () => {
+  const recording =
+    (version: number): Migration =>
+    async () => {
       calls.push(version);
-      return { success: true };
-    },
-  });
+    };
 
   function fillRegistry() {
     for (let v = 2; v <= SCHEMA_VERSION; v++) {
@@ -107,33 +104,13 @@ describe('runMigrationChain', () => {
 
   it('stops at a failing migration; earlier steps stay stamped', async () => {
     fillRegistry();
-    registry.migrations[3] = {
-      migrate: async () => ({ success: false, message: 'boom' }),
+    registry.migrations[3] = async () => {
+      throw new Error('boom');
     };
     await expect(runMigrationChain(testDir, 1)).rejects.toThrow(
       'Migration to schema 3 failed: boom',
     );
     expect(calls).toEqual([2]);
     expect(storedVersion()).toBe(2);
-  });
-});
-
-describe('runMigrationChain step guard', () => {
-  afterEach(() => {
-    registry.migrations = {};
-    vi.restoreAllMocks();
-  });
-
-  it('refuses a migration that defines steps this runner does not execute', async () => {
-    const migrate = vi.fn(okStep);
-    registry.migrations = {
-      [SCHEMA_VERSION]: { before: okStep, after: okStep, migrate },
-    };
-    await expect(
-      runMigrationChain('/nonexistent', SCHEMA_VERSION - 1),
-    ).rejects.toThrow(
-      `Migration ${SCHEMA_VERSION} defines before, after step(s)`,
-    );
-    expect(migrate).not.toHaveBeenCalled();
   });
 });

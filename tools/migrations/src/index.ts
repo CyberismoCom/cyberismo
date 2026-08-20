@@ -11,17 +11,8 @@ import migration3 from './3/index.js';
 import migration4 from './4/index.js';
 import migration5 from './5/index.js';
 
-// Re-export migration interfaces and utilities
-export type {
-  Migration,
-  MigrationContext,
-  MigrationResult,
-  MigrationStepResult,
-} from './migration-interfaces.js';
-export {
-  validateProjectStructure,
-  createBackup,
-} from './migration-interfaces.js';
+// Re-export migration interfaces
+export type { Migration, MigrationContext } from './migration-interfaces.js';
 
 /**
  * Map of migration version to migration implementation.

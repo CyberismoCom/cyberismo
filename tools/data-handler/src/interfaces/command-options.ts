@@ -61,10 +61,7 @@ export type FetchCommandOptions = BaseCommandOptions;
 export type ImportCommandOptions = BaseCommandOptions;
 
 // Options for 'migrate' command
-export interface MigrateCommandOptions extends BaseCommandOptions {
-  backup?: string;
-  timeout?: number;
-}
+export type MigrateCommandOptions = BaseCommandOptions;
 
 // Options for 'move' command
 export type MoveCommandOptions = BaseCommandOptions;

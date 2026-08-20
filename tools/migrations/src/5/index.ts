@@ -15,11 +15,7 @@
 import { readdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type {
-  Migration,
-  MigrationContext,
-  MigrationResult,
-} from '../migration-interfaces.js';
+import type { Migration } from '../migration-interfaces.js';
 
 // Pre-replay seals carry a single version (migrationLog_<version>.jsonl).
 // Lineage-named seals (migrationLog_<from>_<to>.jsonl) must not match.
@@ -47,39 +43,29 @@ const OLD_SEAL_NAME = /^migrationLog_\d+\.\d+\.\d+\.jsonl$/;
  *
  * Idempotent: a project without old-format snapshots is left untouched.
  */
-const migration: Migration = {
-  async migrate(context: MigrationContext): Promise<MigrationResult> {
-    console.log(
-      `Migrating from schema version ${context.fromVersion} to ${context.toVersion}`,
-    );
+const migration: Migration = async (context) => {
+  console.log(
+    `Migrating from schema version ${context.fromVersion} to ${context.toVersion}`,
+  );
 
-    const sweepTargets = [join(context.cardsConfigPath, 'local', 'migrations')];
-    const modulesFolder = join(context.cardsConfigPath, 'modules');
-    for (const name of await readdirOrEmpty(modulesFolder)) {
-      sweepTargets.push(join(modulesFolder, name, 'migrations'));
-    }
+  const sweepTargets = [join(context.cardsConfigPath, 'local', 'migrations')];
+  const modulesFolder = join(context.cardsConfigPath, 'modules');
+  for (const name of await readdirOrEmpty(modulesFolder)) {
+    sweepTargets.push(join(modulesFolder, name, 'migrations'));
+  }
 
-    const stepsExecuted: string[] = [];
-    for (const folder of sweepTargets) {
-      const entries = await readdirOrEmpty(folder);
-      for (const name of entries.filter((n) => OLD_SEAL_NAME.test(n))) {
-        await rm(join(folder, name));
-        console.log(`Removed pre-replay migration log snapshot '${name}'.`);
-        stepsExecuted.push(`Removed pre-replay migration log snapshot ${name}`);
-      }
+  let removed = 0;
+  for (const folder of sweepTargets) {
+    const entries = await readdirOrEmpty(folder);
+    for (const name of entries.filter((n) => OLD_SEAL_NAME.test(n))) {
+      await rm(join(folder, name));
+      console.log(`Removed pre-replay migration log snapshot '${name}'.`);
+      removed++;
     }
-    if (stepsExecuted.length === 0) {
-      console.log('No pre-replay migration log snapshots found.');
-    }
-    stepsExecuted.push('Schema version incremented');
-
-    return {
-      success: true,
-      message:
-        'Schema updated to version 5: removed pre-replay migration log snapshots (replay reads only lineage-named seals) and enabled calculated field override support',
-      stepsExecuted,
-    };
-  },
+  }
+  if (removed === 0) {
+    console.log('No pre-replay migration log snapshots found.');
+  }
 };
 
 async function readdirOrEmpty(dir: string): Promise<string[]> {

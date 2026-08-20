@@ -40,7 +40,6 @@ import type {
   CalcCommandOptions,
   ExportCommandOptions,
   InstallSkillsCommandOptions,
-  MigrateCommandOptions,
   ReportCommandOptions,
   ShowCommandOptions,
   StartCommandOptions,
@@ -51,6 +50,7 @@ import type { requestStatus } from './interfaces/request-status-interfaces.js';
 
 import { Create } from './commands/create.js';
 import { InstallSkills } from './commands/install-skills.js';
+import { migrate as migrateProject } from './commands/migrate.js';
 import { Validate } from './commands/validate.js';
 import { CommandManager } from './command-manager.js';
 import type {
@@ -146,16 +146,26 @@ export class Commands {
     const creatingNewProject = command === Cmd.create && args[0] === 'project';
     // install-skills writes into a target directory (often a repo root, not a
     // Cyberismo project), so it does not load/validate a project.
+    // migrate must not depend on loading the project it is about to migrate;
+    // it only needs a resolved project path.
     const projectNotRequired =
-      creatingNewProject || command === Cmd.installSkills;
+      creatingNewProject ||
+      command === Cmd.installSkills ||
+      command === Cmd.migrate;
     if (!projectNotRequired) {
       try {
-        await this.doSetProject(options, command === Cmd.migrate);
+        await this.doSetProject(options);
       } catch (error) {
         return { statusCode: 400, message: errorFunction(error) };
       }
     } else if (creatingNewProject) {
       this.projectPath = options.projectPath || '';
+    } else if (command === Cmd.migrate) {
+      try {
+        await this.resolveProjectPath(options);
+      } catch (error) {
+        return { statusCode: 400, message: errorFunction(error) };
+      }
     }
     return await this.doHandleCommand(command, args, options, credentials);
   }
@@ -175,11 +185,8 @@ export class Commands {
     return resource.type ? type : target;
   }
 
-  // Handles initializing the project so that it can be used in the class.
-  private async doSetProject(
-    options: AllCommandOptions,
-    skipSchemaVersionCheck = false,
-  ) {
+  // Resolves and validates the project path without loading the project.
+  private async resolveProjectPath(options: AllCommandOptions) {
     const path = options.projectPath || '';
     this.projectPath = resolveTilde(await this.setProjectPath(path));
     if (!Validate.validateFolder(this.projectPath)) {
@@ -193,13 +200,17 @@ export class Commands {
     if (!pathExists(this.projectPath)) {
       throw new Error(`Input validation error: cannot find project '${path}'`);
     }
+  }
+
+  // Handles initializing the project so that it can be used in the class.
+  private async doSetProject(options: AllCommandOptions) {
+    await this.resolveProjectPath(options);
 
     this.commands = await CommandManager.getInstance(this.projectPath, {
       logLevel: options.logLevel,
       watchResourceChanges: (options as StartCommandOptions)
         .watchResourceChanges,
       autocommit: options.autocommit,
-      skipSchemaVersionCheck,
     });
     if (!this.commands) {
       throw new Error('Cannot get instance of CommandManager');
@@ -376,11 +387,7 @@ export class Commands {
           return await this.importCsv(csvFile, cardKey);
         }
       } else if (command === Cmd.migrate) {
-        const [toVersion] = args;
-        return await this.migrate(
-          toVersion ? parseInt(toVersion, 10) : undefined,
-          options as MigrateCommandOptions,
-        );
+        return await this.migrate();
       } else if (command === Cmd.move) {
         const [source, destination] = args;
         await this.commands?.moveCmd.moveCard(source, destination);
@@ -1077,26 +1084,11 @@ export class Commands {
     return { statusCode: 200 };
   }
 
-  // Run migrations to bring project to target schema version
-  private async migrate(
-    toVersion?: number,
-    options?: { backup?: string; timeout?: number },
-  ): Promise<requestStatus> {
-    if (!this.commands) {
-      return { statusCode: 500, message: 'Commands not initialized' };
-    }
-
-    const timeout = options?.timeout;
+  // Run migrations to bring project schema to the tool's current version
+  private async migrate(): Promise<requestStatus> {
     try {
-      const result = await this.commands.migrateCmd.migrate(
-        toVersion,
-        options?.backup,
-        timeout,
-      );
-      return {
-        statusCode: 200,
-        message: result.message || 'Migration completed successfully',
-      };
+      const message = await migrateProject(this.projectPath);
+      return { statusCode: 200, message };
     } catch (e) {
       return { statusCode: 500, message: errorFunction(e) };
     }
