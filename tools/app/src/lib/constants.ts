@@ -90,3 +90,7 @@ export const NEW_CARD = ''; // Empty string represents new card
 
 // Max width for form fields in config editors
 export const FORM_FIELD_MAX_WIDTH = 720;
+
+// Route id of the in-project catch-all, so components can tell that the
+// current location matched no real route.
+export const PROJECT_NOT_FOUND_ROUTE_ID = 'projectNotFound';
