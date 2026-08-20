@@ -201,6 +201,33 @@ describe('Clingo solver', () => {
     }
   });
 
+  describe('setProgram on an existing key', () => {
+    it('applies new content under an existing key', async () => {
+      ctx.setProgram('p', 'fact(1).', ['cat']);
+      await ctx.solve('out(X) :- fact(X).', ['cat']);
+
+      ctx.setProgram('p', 'fact(2).', ['cat']);
+      const result = await ctx.solve('out(X) :- fact(X).', ['cat']);
+
+      expect(result.answers[0]).toContain('out(2)');
+      expect(result.answers[0]).not.toContain('out(1)');
+    });
+
+    it('applies new categories when content is unchanged', async () => {
+      ctx.setProgram('p', 'fact(1).', ['before']);
+      // Re-set identically first, so the skipped path is exercised before the
+      // category move that must still take effect.
+      ctx.setProgram('p', 'fact(1).', ['before']);
+      ctx.setProgram('p', 'fact(1).', ['after']);
+
+      expect(ctx.buildProgram('', ['before'])).not.toContain('fact(1).');
+      expect(ctx.buildProgram('', ['after'])).toContain('fact(1).');
+
+      const result = await ctx.solve('out(X) :- fact(X).', ['after']);
+      expect(result.answers[0]).toContain('out(1)');
+    });
+  });
+
   describe('Resource parsing functions', () => {
     beforeEach(() => {
       // Set up a base program that shows common result predicates

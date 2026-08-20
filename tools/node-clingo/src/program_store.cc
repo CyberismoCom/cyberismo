@@ -63,15 +63,26 @@ namespace node_clingo
 
         KeyHash hash = getOrCreateHash(key);
 
-        // remove the previous program
-        removeProgram(hash);
-
         std::vector<KeyHash> categories_hashed;
         categories_hashed.reserve(categories.size());
         std::transform(
             categories.begin(), categories.end(), std::back_inserter(categories_hashed), [this](auto const& category) {
                 return getOrCreateHash(category);
             });
+
+        // A card move re-sets the whole card tree, so an unchanged program keeps
+        // its parsed AST rather than being parsed again. The hash rejects
+        // cheaply and content then confirms, so a collision cannot quietly
+        // serve a stale program.
+        auto existing = programs.find(hash);
+        if (existing != programs.end() && existing->second->hash == content_hash &&
+            existing->second->content == content && existing->second->categories == categories_hashed)
+        {
+            return;
+        }
+
+        // remove the previous program
+        removeProgram(hash);
 
         auto ast = tryParseToAst(content);
         auto shared_program =
