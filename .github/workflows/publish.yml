@@ -166,7 +166,7 @@ jobs:
           # Three layers pinning the registry to whichever target the mode
           # selects: env var, CLI flag, and (dry-run) no NPM_TOKEN in env.
           NPM_REGISTRY: ${{ env.DRYRUN == 'true' && 'http://localhost:4873/' || 'https://registry.npmjs.org/' }}
-          npm_config_registry: ${{ env.DRYRUN == 'true' && 'http://localhost:4873/' || 'https://registry.npmjs.org/' }}
+          pnpm_config_registry: ${{ env.DRYRUN == 'true' && 'http://localhost:4873/' || 'https://registry.npmjs.org/' }}
         run: pnpm --filter '!app' --filter '!@cyberismo/node-clingo' publish --access public --no-git-checks --registry "$NPM_REGISTRY"
 
       - name: Smoke test installed cli (dry-run only)
