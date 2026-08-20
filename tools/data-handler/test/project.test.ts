@@ -658,7 +658,7 @@ describe('project', () => {
       'local',
       Project.projectConfigFileName,
     );
-    const projectSettings = new ProjectConfiguration(configFile, false);
+    const projectSettings = new ProjectConfiguration(configFile);
     expect(projectSettings).not.toBeUndefined();
     expect(projectSettings.modules.length).toBe(0);
 
