@@ -23,8 +23,7 @@ namespace node_clingo
             // only from this Program. Replay mutates node refcounts, and that
             // exclusivity is what lets the lock be per program
             // (see Program::ast_mutex).
-            Clingo::AST::parse_string(
-                content.c_str(), [&nodes](Clingo::AST::Node node) { nodes.push_back(node.deep_copy()); });
+            Clingo::AST::parse_string(content.c_str(), [&nodes](Clingo::AST::Node node) { nodes.push_back(node); });
         }
         catch (...)
         {
