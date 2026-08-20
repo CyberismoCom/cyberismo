@@ -11,7 +11,7 @@ Install the following:
 
   $ xcode-select --install
 
-* CMake 3.x and Python 3. With https://brew.sh[Homebrew]:
+* CMake 3.x or newer and Python 3. With https://brew.sh[Homebrew]:
 
   $ brew install cmake python
 
@@ -24,6 +24,7 @@ Take the following steps:
 . Clone the source repository, including the Clingo submodule:
 
   $ git clone --recurse-submodules https://github.com/CyberismoCom/cyberismo.git
+  $ cd cyberismo
 
 +
 If you previously cloned the repository, change to the source directory and pull the latest changes:
@@ -32,17 +33,33 @@ If you previously cloned the repository, change to the source directory and pull
   $ git pull origin main
   $ git submodule update --init --recursive
 
-. Install pnpm with the npm command:
+. Enable pnpm. Cyberismo pins the pnpm version it is built with, and corepack, which ships with Node.js, picks that version automatically:
 
-  $ npm install -g pnpm
+  $ corepack enable
 
-. Execute the following commands:
++
+Corepack installs the `pnpm` command next to the Node.js binary. If Node.js is installed system-wide rather than through Homebrew or a version manager, the command fails with a permission error, and you need to run it as root:
+
+  $ sudo corepack enable
+
++
+If your Node.js installation does not include corepack, run `npm install -g pnpm` instead, with the same privileges.
+
+. Set up the directory that pnpm installs global commands into:
 
   $ pnpm setup
+
++
+This adds the directory to `PATH` in your shell startup file, which only affects shells started afterwards, so open a new terminal before continuing.
+
+. In the new terminal, build Cyberismo and install the `cyberismo` command:
+
+  $ cd cyberismo
   $ pnpm install
   $ pnpm build
-  $ pnpm link -g
+  $ pnpm add -g .
 
++
 `pnpm install` builds the bundled Clingo runtime as part of installing the `@cyberismo/node-clingo` workspace package.
 
 === Running

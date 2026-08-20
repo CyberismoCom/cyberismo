@@ -47,6 +47,16 @@ Afterward, you can run the application using the following command:
 
 *Windows*
 
-The Windows environment does not support aliases like Linux and macOS do, so the command to use Podman is:
+In PowerShell, run the image directly:
 
-  $ podman run --rm -it --userns=keep-id -v .:/project -p 127.0.0.1:3000:3000 docker.io/cyberismo/cyberismo cyberismo --help
+  > podman run --init --rm -it -e HOME=/tmp -v ${PWD}:/project -p 127.0.0.1:3000:3000 docker.io/cyberismo/cyberismo:latest cyberismo --help
+
+The `--userns=keep-id` flag of the Linux and macOS alias is not used here: it applies to rootless Podman on a Linux host, whereas on Windows the containers run inside the Podman virtual machine.
+
+For the same convenience that the alias gives on Linux and macOS, add a function to your PowerShell profile (`$PROFILE`):
+
+  > function cyberismo { podman run --init --rm -it -e HOME=/tmp -v ${PWD}:/project -p 127.0.0.1:3000:3000 docker.io/cyberismo/cyberismo:latest cyberismo @args }
+
+Afterward, you can run the application from any directory:
+
+  > cyberismo --help
