@@ -33,6 +33,18 @@ export const useProjectSettings = (
     options,
   );
 
+export const useProjectReadOnlyMode = (projectPrefix?: string): boolean => {
+  let swrKey: string | null;
+  try {
+    swrKey = projectApiPaths(projectPrefix).project();
+  } catch {
+    // No project in the URL, so nothing can be read-only.
+    swrKey = null;
+  }
+  const { general } = useSWRHook<'general'>(swrKey, 'general', null);
+  return general?.readOnlyMode ?? false;
+};
+
 export const updateProjectSettings = async (
   body: ProjectSettingsUpdate,
   projectPrefix?: string,
@@ -41,6 +53,15 @@ export const updateProjectSettings = async (
   await callApi(apiPaths.project(), 'PATCH', body);
   mutate(apiPaths.project());
   mutate(apiPaths.resourceTree());
+};
+
+export const setProjectReadOnlyMode = async (
+  readOnlyMode: boolean,
+  projectPrefix?: string,
+) => {
+  const apiPaths = projectApiPaths(projectPrefix);
+  await callApi(apiPaths.projectReadOnly(), 'PUT', { readOnlyMode });
+  mutate(apiPaths.project());
 };
 
 export const updateProjectModule = async (
@@ -148,6 +169,11 @@ export const useProjectSettingsMutations = (projectPrefix?: string) => {
     isUpdating: (action?: string) => isUpdating(action),
     updateProject: (body: ProjectSettingsUpdate, action: string = 'update') =>
       call(() => updateProjectSettings(body, projectPrefix), action),
+    setReadOnlyMode: (readOnlyMode: boolean) =>
+      call(
+        () => setProjectReadOnlyMode(readOnlyMode, projectPrefix),
+        'update-readOnlyMode',
+      ),
     updateModule: (moduleName: string) =>
       call(
         () => updateProjectModule(moduleName, projectPrefix),

@@ -34,6 +34,8 @@ export interface ScannedProject {
 
 export class ProjectRegistry implements ProjectProvider {
   private projects: Map<string, CommandManager> = new Map();
+
+  private readOnlyProjects: Set<string> = new Set();
   readonly options: ConstructorParameters<typeof CommandManager>[1];
 
   constructor(
@@ -59,6 +61,20 @@ export class ProjectRegistry implements ProjectProvider {
       throw new Error(`Project '${prefix}' is already registered`);
     }
     this.projects.set(prefix, commands);
+  }
+
+  /** True when the project is in admin-enabled read-only mode. */
+  isReadOnly(prefix: string): boolean {
+    return this.readOnlyProjects.has(prefix);
+  }
+
+  /** Turn read-only mode on or off for a single project. */
+  setReadOnly(prefix: string, readOnly: boolean): void {
+    if (readOnly) {
+      this.readOnlyProjects.add(prefix);
+    } else {
+      this.readOnlyProjects.delete(prefix);
+    }
   }
 
   list(): ProjectListItem[] {
@@ -97,6 +113,7 @@ export class ProjectRegistry implements ProjectProvider {
       commands.project.dispose();
     }
     this.projects.clear();
+    this.readOnlyProjects.clear();
     for (const entry of entries) {
       this.projects.set(entry.prefix, entry.commands);
     }

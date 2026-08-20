@@ -469,6 +469,14 @@
     "description": "The project you are looking for does not exist or is not available.",
     "browseProjects": "Browse projects"
   },
+  "readOnlyMode": {
+    "title": "Read-only mode",
+    "description": "While read-only mode is on, everyone except administrators can only view this project. Use it to pull changes from the remote without anyone editing at the same time.",
+    "on": "On",
+    "off": "Off",
+    "banner": "This project is in read-only mode.",
+    "updateFailed": "Could not change read-only mode"
+  },
   "recents": "Recents",
   "removeLabel": "Remove label",
 

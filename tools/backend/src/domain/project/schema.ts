@@ -30,6 +30,10 @@ export const updateProjectSchema = z.object({
     .optional(),
 });
 
+export const readOnlyModeSchema = z.object({
+  readOnlyMode: z.boolean(),
+});
+
 export const addHubSchema = z.object({
   location: z.url({
     protocol: /^https?$/,

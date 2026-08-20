@@ -14,6 +14,7 @@
 import { useSWRHook } from './common';
 import { globalApiPaths } from '../swr';
 import { getConfig } from '../utils';
+import { useProjectReadOnlyMode } from './projectSettings';
 import type { User } from './types';
 
 import type { SWRConfiguration } from 'swr';
@@ -25,12 +26,23 @@ const STATIC_READER_USER: User = {
   role: 'reader',
 };
 
+/**
+ * The current user. Capping the role here in read-only mode means every
+ * `useHasMinRole` call site follows without changes; admins are exempt so they
+ * can still turn the mode off.
+ */
 export const useUser = (options?: SWRConfiguration) => {
   const staticMode = getConfig().staticMode;
-  return useSWRHook<'user', User | null>(
+  const result = useSWRHook<'user', User | null>(
     staticMode ? null : globalApiPaths.user(),
     'user',
     staticMode ? STATIC_READER_USER : null,
     options,
   );
+  const readOnlyMode = useProjectReadOnlyMode();
+
+  if (readOnlyMode && result.user && result.user.role !== 'admin') {
+    return { ...result, user: { ...result.user, role: 'reader' } };
+  }
+  return result;
 };
