@@ -24,6 +24,11 @@ export interface FieldEditorProps {
   value: MetadataValue;
   dataType?: DataType | 'label';
   onChange?: (value: string | string[] | null) => void;
+  /**
+   * Fires when a Select's listbox closes. Selects move focus into a
+   * portalled listbox, so blur can't tell when dropdown editing ends.
+   */
+  onCommit?: () => void;
   enumValues?: Array<EnumDefinition>;
   disabled?: boolean;
   focus?: boolean;
@@ -32,12 +37,16 @@ export interface FieldEditorProps {
 export default function FieldEditor({
   value,
   onChange,
+  onCommit,
   dataType,
   enumValues,
   disabled,
   focus,
 }: FieldEditorProps) {
   const { t } = useTranslation();
+  const handleListboxOpenChange = (open: boolean) => {
+    if (!open) onCommit?.();
+  };
   switch (dataType) {
     case 'integer':
     case 'number':
@@ -65,6 +74,7 @@ export default function FieldEditor({
           value={value?.toString() ?? ''}
           disabled={disabled}
           onChange={(_, value) => onChange?.(value)}
+          onListboxOpenChange={handleListboxOpenChange}
           color="primary"
           sx={{
             width: '100%',
@@ -84,6 +94,7 @@ export default function FieldEditor({
           value={(value as string | null) ?? ''}
           disabled={disabled}
           onChange={(_, value) => onChange?.(value)}
+          onListboxOpenChange={handleListboxOpenChange}
           color="primary"
           sx={{
             width: '100%',
@@ -108,6 +119,7 @@ export default function FieldEditor({
           value={(value as string[] | null) ?? []}
           multiple
           onChange={(_, value) => onChange?.(value)}
+          onListboxOpenChange={handleListboxOpenChange}
           color="primary"
           sx={{
             width: '100%',

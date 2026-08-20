@@ -17,7 +17,7 @@ import { Box, Button, IconButton, Stack, Textarea, Typography } from '@mui/joy';
 import EditIcon from '@mui/icons-material/Edit';
 import { useTranslation } from 'react-i18next';
 
-import { useAppDispatch, formKeyHandler } from '@/lib/hooks';
+import { useAppDispatch, focusLeftEditor, formKeyHandler } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
 import { isEdited } from '@/lib/slices/pageState';
 import { UserRole, useHasMinRole } from '@/lib/auth';
@@ -44,8 +44,8 @@ export const CardTitle: React.FC<CardTitleProps> = ({
 
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(title);
-  const editBoxRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editBoxRef = useRef<HTMLDivElement>(null);
 
   const canEdit = !preview && !!onSave && !disabled && canEditRole;
 
@@ -104,22 +104,18 @@ export const CardTitle: React.FC<CardTitleProps> = ({
     dispatch(isEdited(false));
   };
 
-  useEffect(() => {
-    if (!editing) return;
-    const handleClickAway = (e: MouseEvent) => {
-      if (
-        editBoxRef.current &&
-        !editBoxRef.current.contains(e.target as Node)
-      ) {
-        handleCancel();
-      }
-    };
-    document.addEventListener('mousedown', handleClickAway);
-    return () => {
-      document.removeEventListener('mousedown', handleClickAway);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editing, value, title, onSave]);
+  const dirty = value.trim() !== title;
+
+  const handleBlur = (event: React.FocusEvent) => {
+    if (!focusLeftEditor(event, editBoxRef.current)) {
+      return;
+    }
+    if (dirty) {
+      void handleSave();
+    } else {
+      handleCancel();
+    }
+  };
 
   useEffect(() => {
     if (!editing) return;
@@ -139,6 +135,7 @@ export const CardTitle: React.FC<CardTitleProps> = ({
         borderColor="primary.outlinedBorder"
         borderRadius={6}
         padding={{ xs: 1, sm: 1.5 }}
+        onBlur={handleBlur}
         onKeyDown={formKeyHandler({
           canSubmit: true,
           onSubmit: handleSave,
@@ -173,6 +170,7 @@ export const CardTitle: React.FC<CardTitleProps> = ({
               color="neutral"
               data-cy="cardTitleCancelButton"
               onClick={handleCancel}
+              onMouseDown={(e) => e.preventDefault()}
             >
               {t('cancel')}
             </Button>
@@ -183,6 +181,7 @@ export const CardTitle: React.FC<CardTitleProps> = ({
               data-cy="cardTitleSaveButton"
               startDecorator={<EditIcon />}
               onClick={handleSave}
+              onMouseDown={(e) => e.preventDefault()}
               disabled={value.trim() === ''}
             >
               {t('save')}
