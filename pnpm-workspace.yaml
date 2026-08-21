@@ -1,2 +1,21 @@
 packages:
   - 'tools/*'
+
+engineStrict: true
+
+# node-clingo is built from source in this workspace, so the prebuilt
+# platform packages that the published package depends on must not be
+# installed here.
+ignoredOptionalDependencies:
+  - '@cyberismo/node-clingo-darwin-arm64'
+  - '@cyberismo/node-clingo-darwin-x64'
+  - '@cyberismo/node-clingo-linux-arm64-gnu'
+  - '@cyberismo/node-clingo-linux-arm64-musl'
+  - '@cyberismo/node-clingo-linux-x64-gnu'
+  - '@cyberismo/node-clingo-linux-x64-musl'
+  - '@cyberismo/node-clingo-win32-x64'
+
+# esbuild's postinstall only re-validates a binary that its platform
+# optional dependency already provides, so it stays denied.
+allowBuilds:
+  esbuild: false

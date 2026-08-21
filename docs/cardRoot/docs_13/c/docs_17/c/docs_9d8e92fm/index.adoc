@@ -7,7 +7,7 @@ See {{#xref}}"cardKey":"docs_17"{{/xref}} for information about common prerequis
 Install the following:
 
 * Node.js v22 LTS or later, downloadable from https://nodejs.org/.
-* A C++20 toolchain (GCC 14+ or recent Clang), CMake 3.x, GNU Make, and Python 3. These are used to build the bundled Clingo answer set programming runtime from source.
+* A C++20 toolchain (GCC 13 or newer, or a recent Clang), CMake 3.x or newer, GNU Make, and Python 3. These are used to build the bundled Clingo answer set programming runtime from source.
 
 Install the build tools using your distribution's package manager:
 
@@ -23,6 +23,7 @@ Take the following steps:
 . Clone the source repository, including the Clingo submodule:
 
   $ git clone --recurse-submodules https://github.com/CyberismoCom/cyberismo.git
+  $ cd cyberismo
 
 +
 If you previously cloned the repository, change to the source directory and pull the latest changes:
@@ -31,17 +32,33 @@ If you previously cloned the repository, change to the source directory and pull
   $ git pull origin main
   $ git submodule update --init --recursive
 
-. Install pnpm with the npm command:
+. Enable pnpm. Cyberismo pins the pnpm version it is built with, and corepack, which ships with Node.js, picks that version automatically:
 
-  $ npm install -g pnpm
+  $ corepack enable
 
-. Execute the following commands:
++
+Corepack installs the `pnpm` command next to the Node.js binary. If Node.js is installed system-wide, the command fails with a permission error, and you need to run it as root:
+
+  $ sudo corepack enable
+
++
+If your Node.js installation does not include corepack, run `npm install -g pnpm` instead, with the same privileges.
+
+. Set up the directory that pnpm installs global commands into:
 
   $ pnpm setup
+
++
+This adds the directory to `PATH` in your shell startup file, which only affects shells started afterwards, so open a new terminal before continuing.
+
+. In the new terminal, build Cyberismo and install the `cyberismo` command:
+
+  $ cd cyberismo
   $ pnpm install
   $ pnpm build
-  $ pnpm link -g
+  $ pnpm add -g .
 
++
 `pnpm install` builds the bundled Clingo runtime as part of installing the `@cyberismo/node-clingo` workspace package.
 
 === Running

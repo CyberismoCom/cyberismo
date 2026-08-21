@@ -10,7 +10,8 @@ RUN cmake -P tools/node-clingo/scripts/build-clingo.cmake
 
 FROM node:22-alpine AS builder
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# pnpm version comes from the packageManager field in package.json
+RUN corepack enable
 RUN apk add --no-cache g++ python3 make
 
 WORKDIR /app
@@ -31,7 +32,7 @@ FROM node:22-alpine AS runtime
 
 # required environment variables for pnpm
 ENV SHELL=/bin/bash
-ENV PATH=/usr/local/share/pnpm:$PATH
+ENV PATH=/usr/local/share/pnpm/bin:$PATH
 ENV PNPM_HOME=/usr/local/share/pnpm
 
 # bind the backend to all interfaces so published ports are reachable
@@ -42,8 +43,9 @@ WORKDIR /app
 # make sure logs directory exists and is writable
 RUN mkdir /app/logs && chmod 777 /app/logs
 
-# enable corepack to use pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# enable corepack to use pnpm; the version comes from the packageManager
+# field in package.json
+RUN corepack enable
 
 # Copy monorepo root manifest files
 COPY --from=builder /app/package.json ./package.json
@@ -110,6 +112,6 @@ COPY --from=builder /app/tools/node-clingo/build ./tools/node-clingo/build
 
 # setup bin
 RUN pnpm setup
-RUN pnpm link -g
+RUN pnpm add -g .
 
 WORKDIR /project

@@ -45,7 +45,7 @@ It installs all system dependencies automatically.
 4. Wait for the container to build and the post-create script to finish
 5. Run `pnpm dev` to start the development servers
 
-The dev container automatically installs all system dependencies (Clingo, Ruby, C++ build tools), Node.js 22, pnpm, and project dependencies.
+The dev container automatically installs all system dependencies (Ruby, C++ build tools, CMake), Node.js 22, pnpm, and project dependencies.
 
 === Manual Setup
 
@@ -57,45 +57,58 @@ If you prefer not to use a Dev Container, install the following system dependenc
 [source, shell]
 ----
 sudo apt-get update
-sudo apt-get install -y ruby-full build-essential g++-14 python3 make
+sudo apt-get install -y build-essential cmake python3 ruby-full
 sudo gem install --no-document asciidoctor-pdf rouge
 ----
 
 **Linux (Fedora)**
 [source, shell]
 ----
-sudo dnf install ruby rubygems gcc-c++ python3 make
+sudo dnf install gcc-c++ make cmake python3 ruby rubygems
 sudo gem install --no-document asciidoctor-pdf rouge
 ----
 
 **macOS**
 [source, shell]
 ----
-brew install clingo ruby
+xcode-select --install
+brew install cmake python ruby
 gem install --no-document asciidoctor-pdf rouge
 ----
-Xcode Command Line Tools are also required (`xcode-select --install`).
 
 **Windows**
 
-Install https://nodejs.org[Node.js] with the "Tools for Native Modules" option.
-Install Clingo via conda using the `environment.yml` at the repo root:
-[source, shell]
-----
-conda env create -f environment.yml
-conda activate cyberismo
-----
+Install https://nodejs.org[Node.js] with the "Tools for Native Modules" option, which brings the MSVC toolchain and Python, and install https://cmake.org[CMake].
+
+The C++ toolchain, CMake, Make and Python are used to build the bundled Clingo answer set programming runtime from source during `pnpm install`.
+Ruby and the asciidoctor-pdf gem are only needed for PDF export.
 
 ==== Node.js and pnpm
 
-Install https://nodejs.org[Node.js] 22 LTS, then enable pnpm via corepack:
+Install https://nodejs.org[Node.js] 22 LTS, then enable pnpm via corepack, which picks up the pnpm version pinned in *package.json*:
 [source, shell]
 ----
 corepack enable
 ----
 
+Corepack installs the `pnpm` command next to the Node.js binary, so prefix the command with `sudo` if Node.js is installed system-wide.
+
 ==== Install Dependencies and Build
 
+Clone the repository with its submodules. `@cyberismo/node-clingo` builds its native addon from the *clingo* and *BS_thread_pool* submodules, so they have to be in place before `pnpm install`:
+[source, shell]
+----
+git clone --recurse-submodules https://github.com/CyberismoCom/cyberismo.git
+cd cyberismo
+----
+
+In an existing clone, initialize them with:
+[source, shell]
+----
+git submodule update --init --recursive
+----
+
+Then install and build:
 [source, shell]
 ----
 pnpm install
@@ -108,7 +121,16 @@ Copy *env.example* files to respective *.env* files:
 cp tools/backend/env.example tools/backend/.env
 ----
 
-CLI related dependencies: link:tools/cli/README.md[README.md]
+==== Run Tests
+
+The app tests include Playwright end-to-end tests, so install the browsers once:
+[source, shell]
+----
+pnpm --filter=app exec playwright install --with-deps
+pnpm test
+----
+
+Optional extras, such as the Mermaid CLI for rendering diagrams in PDF exports, are described in link:tools/cli/README.md[the CLI package readme].
 
 === Run Project
 [source, shell]
