@@ -12,18 +12,18 @@
 */
 
 import semver from 'semver';
-import { simpleGit, type SimpleGit } from 'simple-git';
-import { NON_INTERACTIVE_GIT_ENV, gitTimeout } from './git-config.js';
-import { fetchTags, isGitServiceEnabled } from './git-service-client.js';
+import { createGit, gitTimeout } from './git-config.js';
 import { getChildLogger } from './log-utils.js';
 import { stripTagPrefix, versionToTag } from '../modules/version.js';
 
 export class GitManager {
-  private git: SimpleGit;
+  private git: ReturnType<typeof createGit>;
   private logger = getChildLogger({ module: 'GitManager' });
 
   constructor(projectPath: string) {
-    this.git = simpleGit(projectPath, {
+    this.git = createGit({
+      baseDir: projectPath,
+      timeout: gitTimeout(),
       config: ['user.name=Cyberismo Bot', 'user.email=bot@cyberismo.com'],
     });
   }
@@ -163,16 +163,34 @@ export class GitManager {
     this.logger.info({ remoteName, url }, 'Remote URL updated');
   }
 
-  /** Push current branch and optionally tags to remote. */
+  /**
+   * Push current branch and optionally tags to remote.
+   *
+   * Failures are deliberately not interpreted here. A missing remote, an
+   * unreachable host and a remote that has moved on independently all surface
+   * as the git error, which says more than anything this could add, and says
+   * it without matching on git's message text.
+   *
+   * @param options `remote` to push to, and whether to carry tags along.
+   */
   async push(options: { tags?: boolean; remote: string }): Promise<void> {
     const { remote } = options;
-    this.logger.info({ remote }, 'Pushing to remote');
     const branch = (await this.git.branch()).current;
-    const args = ['-u', remote, branch];
+    if (!branch) {
+      // Otherwise the push runs as `git push -u <remote> ''`.
+      throw new Error('Cannot push: no branch is checked out');
+    }
+    // Debug, not info: with autopush this runs once per card edit.
+    this.logger.debug({ remote, branch }, 'Pushing to remote');
+    // `--progress` because git suppresses transfer progress when stderr is not
+    // a terminal, which it never is under the server. Without it a large push
+    // is silent for its whole upload and the idle timeout cannot tell it apart
+    // from a stalled connection.
+    const args = ['-u', '--progress', remote, branch];
     if (options?.tags) {
       args.push('--follow-tags');
     }
-    await this.git.env({ ...NON_INTERACTIVE_GIT_ENV }).push(args);
+    await this.git.push(args);
   }
 
   /**
@@ -182,18 +200,8 @@ export class GitManager {
    * @returns Semver version strings sorted descending (e.g. ["2.1.0", "1.0.0"])
    */
   static async listRemoteVersionTags(remoteUrl: string): Promise<string[]> {
-    if (isGitServiceEnabled()) {
-      const tags = await fetchTags(remoteUrl);
-      const versions = tags
-        .map((tag) => stripTagPrefix(tag))
-        .filter((tag): tag is string => semver.valid(tag) !== null);
-      return versions.sort(semver.rcompare);
-    }
-
-    const git = simpleGit({ timeout: { block: gitTimeout() } });
-    const output = await git
-      .env({ ...NON_INTERACTIVE_GIT_ENV })
-      .listRemote(['--tags', '--refs', remoteUrl]);
+    const git = createGit({ timeout: gitTimeout() });
+    const output = await git.listRemote(['--tags', '--refs', remoteUrl]);
     if (!output.trim()) {
       return [];
     }

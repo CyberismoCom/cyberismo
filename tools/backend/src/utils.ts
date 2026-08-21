@@ -61,3 +61,13 @@ function testPort(port: number) {
     }, 2000);
   });
 }
+
+export function gitOptionsFromEnv(): {
+  autocommit: boolean;
+  autopush: boolean;
+} {
+  return {
+    autocommit: process.env.CYBERISMO_AUTOCOMMIT === 'true',
+    autopush: process.env.CYBERISMO_AUTOPUSH === 'true',
+  };
+}

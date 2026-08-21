@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import { Hono, type MiddlewareHandler } from 'hono';
-import { staticFrontendDirRelative } from './utils.js';
+import { gitOptionsFromEnv, staticFrontendDirRelative } from './utils.js';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { attachProjectRegistry } from './middleware/commandManager.js';
 import calculationsRouter from './domain/calculations/index.js';
@@ -163,7 +163,6 @@ export function createApp(
       }
       await fs.rm(resolvedProject, { recursive: true, force: true });
       await fs.cp(goldenPath, resolvedProject, { recursive: true });
-      const autocommit = process.env.CYBERISMO_AUTOCOMMIT === 'true';
       const projects = await scanForProjects(resolvedProject);
 
       if (projects.length === 0) {
@@ -176,7 +175,7 @@ export function createApp(
       }
       const entries = [];
       for (const project of projects) {
-        const commands = new CommandManager(project.path, { autocommit });
+        const commands = new CommandManager(project.path, gitOptionsFromEnv());
         await commands.initialize();
         entries.push({ prefix: project.prefix, commands });
       }
@@ -189,7 +188,7 @@ export function createApp(
     if (!multiProjectRoot) return c.json({ publicKey: null });
     try {
       const content = await readFile(
-        join(multiProjectRoot, '.git-service', 'id_rsa.pub'),
+        join(multiProjectRoot, '.keyholder', 'id_rsa.pub'),
         'utf-8',
       );
       return c.json({ publicKey: content.trim() });

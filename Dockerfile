@@ -30,6 +30,8 @@ RUN cd /app/tools/node-clingo && pnpm run build:binding
 FROM node:22-alpine AS runtime
 
 # required environment variables for pnpm
+# `pnpm setup` below needs a shell whose rc file it can write; with plain sh it
+# demands $ENV and fails. Reset to a shell that exists once setup is done.
 ENV SHELL=/bin/bash
 ENV PATH=/usr/local/share/pnpm:$PATH
 ENV PNPM_HOME=/usr/local/share/pnpm
@@ -62,7 +64,7 @@ ENV PUPPETEER_SKIP_DOWNLOAD=true
 # install tools needed for PDF export
 # - ruby & rubygems for installing asciidoctor/asciidoctor-pdf
 # - chromium for mermaid CLI (mmdc) diagram rendering
-RUN apk add --no-cache git ruby-full chromium \
+RUN apk add --no-cache git openssh-client socat ruby-full chromium \
   && gem install --no-document asciidoctor-pdf rouge \
   && npm install -g @mermaid-js/mermaid-cli
 
@@ -111,5 +113,10 @@ COPY --from=builder /app/tools/node-clingo/build ./tools/node-clingo/build
 # setup bin
 RUN pnpm setup
 RUN pnpm link -g
+
+# From here on SHELL is a runtime setting, and alpine has no bash. ssh runs
+# ProxyCommand through $SHELL, so pointing it at a missing binary breaks every
+# `git@` clone with a misleading "connection closed" error.
+ENV SHELL=/bin/sh
 
 WORKDIR /project

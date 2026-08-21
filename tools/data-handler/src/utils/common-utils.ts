@@ -67,3 +67,23 @@ export function removeValue<T>(array: T[], value: T): T[] {
   }
   return array;
 }
+
+/**
+ * Resolves after a delay.
+ * @param ms Milliseconds to wait.
+ * @param options Set `unref` when nothing should be kept waiting on the timer:
+ *        an unref'd timer lets the process exit rather than holding it open,
+ *        which is what a fire-and-forget retry backoff wants. It also means the
+ *        promise never settles in that case, so leave it off whenever the
+ *        caller has work to do after the wait.
+ * @returns A promise that resolves once the delay has elapsed.
+ */
+export function sleep(
+  ms: number,
+  options?: { unref?: boolean },
+): Promise<void> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(resolve, ms);
+    if (options?.unref) timer.unref?.();
+  });
+}

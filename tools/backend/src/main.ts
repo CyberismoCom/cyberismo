@@ -17,6 +17,7 @@ import { MockAuthProvider } from './auth/mock.js';
 import { KeycloakAuthProvider } from './auth/keycloak.js';
 import type { AuthProvider } from './auth/types.js';
 import { ProjectRegistry } from './project-registry.js';
+import { gitOptionsFromEnv } from './utils.js';
 import { parseArgs } from 'node:util';
 import dotenv from 'dotenv';
 
@@ -91,10 +92,10 @@ if (args.export) {
         : undefined,
   });
 } else {
-  const autocommit = process.env.CYBERISMO_AUTOCOMMIT === 'true';
-  const registry = await ProjectRegistry.fromScannedProjects(projects, {
-    autocommit,
-  });
+  const registry = await ProjectRegistry.fromScannedProjects(
+    projects,
+    gitOptionsFromEnv(),
+  );
   const authProvider = createAuthProvider();
   await startServer(authProvider, registry, true, projectPath);
 }

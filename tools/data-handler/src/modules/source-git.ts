@@ -16,14 +16,7 @@ import { mkdtemp, mkdir, rm } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import { simpleGit, type SimpleGit } from 'simple-git';
-
-import { NON_INTERACTIVE_GIT_ENV, gitTimeout } from '../utils/git-config.js';
-import {
-  clone as cloneFromGitService,
-  isGitServiceEnabled,
-  resolveGitServiceClonePath,
-} from '../utils/git-service-client.js';
+import { createGit, gitTimeout } from '../utils/git-config.js';
 import { GitManager } from '../utils/git-manager.js';
 import {
   parseSealFileName,
@@ -55,37 +48,17 @@ export class GitSourceLayer implements SourceLayer {
   ): Promise<string> {
     const destinationPath = join(destRoot, nameHint);
 
-    if (isGitServiceEnabled()) {
-      try {
-        const clonePath = await cloneFromGitService({
-          url: target.remoteUrl,
-          ref: target.ref,
-          shallow: true,
-        });
-
-        return resolveGitServiceClonePath(clonePath);
-      } catch (error) {
-        if (error instanceof Error) {
-          throw new Error(
-            `Failed to clone module '${nameHint}': ${error.message}`,
-            { cause: error },
-          );
-        }
-        throw error;
-      }
-    }
-
     await mkdir(destRoot, { recursive: true });
     await rm(destinationPath, { recursive: true, force: true });
 
-    const git: SimpleGit = simpleGit({
-      timeout: { block: gitTimeout() },
-    });
+    const git = createGit({ timeout: gitTimeout() });
 
     try {
-      await git
-        .env({ ...NON_INTERACTIVE_GIT_ENV })
-        .clone(target.remoteUrl, destinationPath, cloneOptions(target.ref));
+      await git.clone(
+        target.remoteUrl,
+        destinationPath,
+        cloneOptions(target.ref),
+      );
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(
@@ -119,9 +92,7 @@ export class GitSourceLayer implements SourceLayer {
       p = (async () => {
         const dir = await mkdtemp(join(tmpdir(), 'cyb-meta-'));
         try {
-          const git = simpleGit({ timeout: { block: gitTimeout() } }).env({
-            ...NON_INTERACTIVE_GIT_ENV,
-          });
+          const git = createGit({ timeout: gitTimeout() });
           // All refs, no checkout, blobs lazy. Fall back to a full clone if the
           // server rejects partial clone.
           try {
@@ -147,9 +118,9 @@ export class GitSourceLayer implements SourceLayer {
     remoteUrl?: string,
   ): Promise<{ config: ProjectSettings; seals: SealFile[] }> {
     const ref = version === null ? 'HEAD' : versionToTag(version);
-    const g = simpleGit(
-      await this.ensureRepo(remoteUrl ?? source.location),
-    ).env({ ...NON_INTERACTIVE_GIT_ENV });
+    const g = createGit({
+      baseDir: await this.ensureRepo(remoteUrl ?? source.location),
+    });
     const config = JSON.parse(
       await g.raw(['cat-file', '-p', `${ref}:.cards/local/cardsConfig.json`]),
     ) as ProjectSettings;

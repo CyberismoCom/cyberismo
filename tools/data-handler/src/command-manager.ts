@@ -38,6 +38,7 @@ export interface CommandManagerOptions {
   watchResourceChanges?: boolean;
   logLevel?: Level;
   autocommit?: boolean;
+  autopush?: boolean;
 }
 
 // Handles commands and ensures that no extra instances are created.
@@ -67,6 +68,7 @@ export class CommandManager {
     this.project = new Project(path, {
       watchResourceChanges: options?.watchResourceChanges,
       autocommit: options?.autocommit,
+      autopush: options?.autopush,
     });
     const compat = this.project.configuration.checkSchemaVersion();
     if (!compat.isCompatible) {

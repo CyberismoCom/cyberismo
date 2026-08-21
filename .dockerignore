@@ -40,7 +40,10 @@ yarn-error.log*
 .vercel
 
 # typescript
-*.tsbuildinfo
+# Nested too: `dist` is excluded above, so a stale build-info file copied into
+# the image makes tsc report "Done" and emit nothing, producing an image whose
+# workspace packages have no dist at all.
+**/*.tsbuildinfo
 next-env.d.ts
 
 **/.idea

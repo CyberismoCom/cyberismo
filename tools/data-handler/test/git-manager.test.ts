@@ -16,15 +16,6 @@ function testGit(dir: string) {
 describe('GitManager', () => {
   let dir: string;
   let gm: GitManager;
-  const originalGitServiceUrl = process.env.GIT_SERVICE_URL;
-
-  function restoreGitServiceUrl() {
-    if (originalGitServiceUrl === undefined) {
-      delete process.env.GIT_SERVICE_URL;
-      return;
-    }
-    process.env.GIT_SERVICE_URL = originalGitServiceUrl;
-  }
 
   beforeEach(async () => {
     dir = await mkdtemp(join(tmpdir(), 'git-manager-test-'));
@@ -40,7 +31,6 @@ describe('GitManager', () => {
   });
 
   afterEach(async () => {
-    restoreGitServiceUrl();
     vi.unstubAllGlobals();
     await rm(dir, { recursive: true, force: true });
   });
@@ -261,33 +251,28 @@ describe('GitManager', () => {
       expect(dirty).toBe(false);
     });
   });
+  describe('push()', () => {
+    it('pushes the branch and sets its upstream', async () => {
+      // Covers the argument list itself, which carries `-u` and `--progress`
+      // alongside the refspec. `origin` is a bare repo on disk, so no network.
+      const origin = await mkdtemp(join(tmpdir(), 'git-manager-origin-'));
+      try {
+        await simpleGit(origin).init(true);
+        await gm.setRemoteUrl(origin);
 
-  describe('listRemoteVersionTags()', () => {
-    it('uses git-service when GIT_SERVICE_URL is set', async () => {
-      process.env.GIT_SERVICE_URL = 'http://git-service:8080';
-      const fetchMock = vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ tags: ['v2.0.0', 'v1.0.0'] }), {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        }),
-      );
-      vi.stubGlobal('fetch', fetchMock);
+        await gm.push({ remote: 'origin' });
 
-      vi.resetModules();
-      const { GitManager: FreshManager } =
-        await import('../src/utils/git-manager.js');
-
-      const tags = await FreshManager.listRemoteVersionTags(
-        'https://example.com/repo.git',
-      );
-
-      expect(tags).toEqual(['2.0.0', '1.0.0']);
-      expect(fetchMock).toHaveBeenCalledWith(
-        'http://git-service:8080/tags?url=https%3A%2F%2Fexample.com%2Frepo.git',
-        expect.objectContaining({
-          headers: expect.objectContaining({ Accept: 'application/json' }),
-        }),
-      );
+        const local = await testGit(dir).revparse(['HEAD']);
+        expect(await simpleGit(origin).revparse(['HEAD'])).toBe(local);
+        const branch = (await testGit(dir).branch()).current;
+        expect(
+          (
+            await testGit(dir).revparse(['--abbrev-ref', `${branch}@{u}`])
+          ).trim(),
+        ).toBe(`origin/${branch}`);
+      } finally {
+        await rm(origin, { recursive: true, force: true });
+      }
     });
   });
 });
