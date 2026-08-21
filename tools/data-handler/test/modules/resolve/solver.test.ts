@@ -1435,6 +1435,309 @@ describe('resolve solver', () => {
     expect(l.pinned).toEqual({ range: '2.0.0', wouldNeed: '1.0.0' });
   });
 
+  describe('transitives float to the newest their parents allow', () => {
+    it('add: a fresh transitive takes the newest in range, not the oldest', async () => {
+      const project = buildProjectWithModules([]);
+
+      // Every B satisfies S's floorless '1.x', so only the candidate ordering
+      // decides which one lands.
+      const configs = new Map<string, FakeModuleConfig>([
+        [
+          'https://x/S.git@v1.3.0',
+          {
+            cardKeyPrefix: 'S',
+            name: 'S',
+            version: '1.3.0',
+            modules: [
+              { name: 'B', location: 'https://x/B.git', version: '1.x' },
+            ],
+          },
+        ],
+        [
+          'https://x/B.git@v1.4.0',
+          { cardKeyPrefix: 'B', name: 'B', version: '1.4.0', modules: [] },
+        ],
+        [
+          'https://x/B.git@v1.0.0',
+          { cardKeyPrefix: 'B', name: 'B', version: '1.0.0', modules: [] },
+        ],
+      ]);
+      const available = new Map([
+        ['https://x/S.git', ['1.3.0']],
+        ['https://x/B.git', ['1.4.0', '1.0.0']],
+      ]);
+      const source = new InMemorySource(
+        configs,
+        available,
+        new Map(),
+        new Map(),
+      );
+
+      const result = await resolve(
+        project,
+        {
+          kind: 'add',
+          name: 'S',
+          source: { location: 'https://x/S.git', private: false },
+          range: undefined,
+        },
+        { sourceLayer: source, tempDir: testDir },
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      const byModule = new Map(result.changes.map((c) => [c.module, c]));
+      expect(byModule.get('B')).toMatchObject({ from: null, to: '1.4.0' });
+    });
+
+    it('add: an installed transitive is carried up by an unrelated add', async () => {
+      const project = buildProjectWithModules([
+        {
+          name: 'S',
+          location: 'https://x/S.git',
+          version: '^1.3.0',
+          private: false,
+        },
+      ]);
+      await installModule(project, {
+        name: 'S',
+        version: '1.3.0',
+        modules: [{ name: 'B', location: 'https://x/B.git', version: '1.x' }],
+      });
+      await installModule(project, { name: 'B', version: '1.3.0' });
+
+      // Nothing about adding E forces B to move.
+      const configs = new Map<string, FakeModuleConfig>([
+        [
+          'https://x/E.git@v1.0.0',
+          { cardKeyPrefix: 'E', name: 'E', version: '1.0.0', modules: [] },
+        ],
+        [
+          'https://x/S.git@v1.3.0',
+          {
+            cardKeyPrefix: 'S',
+            name: 'S',
+            version: '1.3.0',
+            modules: [
+              { name: 'B', location: 'https://x/B.git', version: '1.x' },
+            ],
+          },
+        ],
+        [
+          'https://x/B.git@v1.4.0',
+          { cardKeyPrefix: 'B', name: 'B', version: '1.4.0', modules: [] },
+        ],
+        [
+          'https://x/B.git@v1.3.0',
+          { cardKeyPrefix: 'B', name: 'B', version: '1.3.0', modules: [] },
+        ],
+      ]);
+      const available = new Map([
+        ['https://x/E.git', ['1.0.0']],
+        ['https://x/S.git', ['1.3.0']],
+        ['https://x/B.git', ['1.4.0', '1.3.0']],
+      ]);
+      const seals = new Map<string, Array<[string, string]>>([
+        ['https://x/B.git@v1.4.0', [['1.3.0', '1.4.0']]],
+      ]);
+      const source = new InMemorySource(configs, available, new Map(), seals);
+
+      const result = await resolve(
+        project,
+        {
+          kind: 'add',
+          name: 'E',
+          source: { location: 'https://x/E.git', private: false },
+          range: undefined,
+        },
+        { sourceLayer: source, tempDir: testDir },
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      const byModule = new Map(result.changes.map((c) => [c.module, c]));
+      expect(byModule.get('B')).toMatchObject({ from: '1.3.0', to: '1.4.0' });
+    });
+
+    it('add: a transitive missing from disk takes the newest in range', async () => {
+      const project = buildProjectWithModules([
+        {
+          name: 'S',
+          location: 'https://x/S.git',
+          version: '^1.3.0',
+          private: false,
+        },
+      ]);
+      await installModule(project, {
+        name: 'S',
+        version: '1.3.0',
+        modules: [{ name: 'B', location: 'https://x/B.git', version: '1.x' }],
+      });
+
+      // S is not moving, so only the not-installed clause frees B: it was
+      // declared by S but never vendored (a partial install, a hand-deleted
+      // module dir, or a dep added without re-installing).
+      const configs = new Map<string, FakeModuleConfig>([
+        [
+          'https://x/E.git@v1.0.0',
+          { cardKeyPrefix: 'E', name: 'E', version: '1.0.0', modules: [] },
+        ],
+        [
+          'https://x/S.git@v1.3.0',
+          {
+            cardKeyPrefix: 'S',
+            name: 'S',
+            version: '1.3.0',
+            modules: [
+              { name: 'B', location: 'https://x/B.git', version: '1.x' },
+            ],
+          },
+        ],
+        [
+          'https://x/B.git@v1.4.0',
+          { cardKeyPrefix: 'B', name: 'B', version: '1.4.0', modules: [] },
+        ],
+        [
+          'https://x/B.git@v1.3.0',
+          { cardKeyPrefix: 'B', name: 'B', version: '1.3.0', modules: [] },
+        ],
+      ]);
+      const available = new Map([
+        ['https://x/E.git', ['1.0.0']],
+        ['https://x/S.git', ['1.3.0']],
+        ['https://x/B.git', ['1.4.0', '1.3.0']],
+      ]);
+      const seals = new Map<string, Array<[string, string]>>([
+        ['https://x/B.git@v1.4.0', [['1.3.0', '1.4.0']]],
+      ]);
+      const source = new InMemorySource(configs, available, new Map(), seals);
+
+      const result = await resolve(
+        project,
+        {
+          kind: 'add',
+          name: 'E',
+          source: { location: 'https://x/E.git', private: false },
+          range: undefined,
+        },
+        { sourceLayer: source, tempDir: testDir },
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      const byModule = new Map(result.changes.map((c) => [c.module, c]));
+      expect(byModule.get('B')).toMatchObject({ from: null, to: '1.4.0' });
+    });
+
+    it('update: an installed transitive follows its moving parent', async () => {
+      const project = buildProjectWithModules([
+        {
+          name: 'S',
+          location: 'https://x/S.git',
+          version: '^1.0.0',
+          private: false,
+        },
+      ]);
+      await installModule(project, {
+        name: 'S',
+        version: '1.0.0',
+        modules: [{ name: 'B', location: 'https://x/B.git', version: '1.x' }],
+      });
+      await installModule(project, { name: 'B', version: '1.3.0' });
+
+      // S 1.1.0 still declares only '1.x' for B, so B 1.3.0 satisfies every
+      // edge. Nothing forces B up -- S moving is what frees it.
+      const configs = new Map<string, FakeModuleConfig>([
+        [
+          'https://x/S.git@v1.1.0',
+          {
+            cardKeyPrefix: 'S',
+            name: 'S',
+            version: '1.1.0',
+            modules: [
+              { name: 'B', location: 'https://x/B.git', version: '1.x' },
+            ],
+          },
+        ],
+        [
+          'https://x/B.git@v1.4.0',
+          { cardKeyPrefix: 'B', name: 'B', version: '1.4.0', modules: [] },
+        ],
+        [
+          'https://x/B.git@v1.3.0',
+          { cardKeyPrefix: 'B', name: 'B', version: '1.3.0', modules: [] },
+        ],
+      ]);
+      const available = new Map([
+        ['https://x/S.git', ['1.1.0', '1.0.0']],
+        ['https://x/B.git', ['1.4.0', '1.3.0']],
+      ]);
+      const seals = new Map<string, Array<[string, string]>>([
+        ['https://x/S.git@v1.1.0', [['1.0.0', '1.1.0']]],
+        ['https://x/B.git@v1.4.0', [['1.3.0', '1.4.0']]],
+      ]);
+      const source = new InMemorySource(configs, available, new Map(), seals);
+
+      const result = await resolve(
+        project,
+        { kind: 'update', module: 'S' },
+        { sourceLayer: source, tempDir: testDir },
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      const byModule = new Map(result.changes.map((c) => [c.module, c]));
+      expect(byModule.get('S')).toMatchObject({ from: '1.0.0', to: '1.1.0' });
+      expect(byModule.get('B')).toMatchObject({ from: '1.3.0', to: '1.4.0' });
+    });
+
+    it('add: a bystanding root keeps its installed version', async () => {
+      const project = buildProjectWithModules([
+        {
+          name: 'R',
+          location: 'https://x/R.git',
+          version: '1.x',
+          private: false,
+        },
+      ]);
+      await installModule(project, { name: 'R', version: '1.3.0' });
+
+      // Same shape as the transitive above, but R is a root: it stays put.
+      const configs = new Map<string, FakeModuleConfig>([
+        [
+          'https://x/E.git@v1.0.0',
+          { cardKeyPrefix: 'E', name: 'E', version: '1.0.0', modules: [] },
+        ],
+        [
+          'https://x/R.git@v1.4.0',
+          { cardKeyPrefix: 'R', name: 'R', version: '1.4.0', modules: [] },
+        ],
+        [
+          'https://x/R.git@v1.3.0',
+          { cardKeyPrefix: 'R', name: 'R', version: '1.3.0', modules: [] },
+        ],
+      ]);
+      const available = new Map([
+        ['https://x/E.git', ['1.0.0']],
+        ['https://x/R.git', ['1.4.0', '1.3.0']],
+      ]);
+      const seals = new Map<string, Array<[string, string]>>([
+        ['https://x/R.git@v1.4.0', [['1.3.0', '1.4.0']]],
+      ]);
+      const source = new InMemorySource(configs, available, new Map(), seals);
+
+      const result = await resolve(
+        project,
+        {
+          kind: 'add',
+          name: 'E',
+          source: { location: 'https://x/E.git', private: false },
+          range: undefined,
+        },
+        { sourceLayer: source, tempDir: testDir },
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.changes.find((c) => c.module === 'R')).toBeUndefined();
+    });
+  });
+
   describe('refusals for a module drifted above its range', () => {
     it('update: a downgrade refusal cites the nearest version, not the oldest', async () => {
       const project = buildProjectWithModules([
