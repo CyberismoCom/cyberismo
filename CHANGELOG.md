@@ -1,5 +1,36 @@
 # Changelog
 
+## [1.1.2] — 2026-08-21
+
+### Highlights
+
+Editing got less lossy and calculations got faster: inline card edits now save when you click away instead of being discarded, the app reopens the page you last visited in each project, and Clingo no longer re-parses logic programs that haven't changed between edits — lifting solver throughput toward the physical core count. This release also actually delivers the Clingo 5.8.1 upgrade: 1.1.1 claimed node-clingo 1.8.0 but its pinned platform binaries were never bumped past 1.7.0, so the new solver never reached installs until now. `cyberismo migrate` is simpler and stricter in exchange: it always migrates to the latest schema version, and its target-version argument, `--backup` and `--timeout` options are gone, with Git as the recovery mechanism and `cyberismo validate` as the validation step.
+
+### Breaking changes
+
+- `cyberismo migrate` no longer accepts a target `[version]` argument and always migrates to the latest schema version — drop the argument from any scripted invocation (#1543)
+- `cyberismo migrate` dropped `-b, --backup <directory>` and `-t, --timeout <minutes>` — commit or stash before migrating and recover through Git, then run `cyberismo validate` instead of relying on the removed pre/post-validation (#1543)
+
+### Features
+
+- Transitive modules now float to the newest version allowed by the dependency closure instead of preferring the installed one; declare a module as a root dependency to pin it (#1549)
+- New `--autopush` flag on the root command and `cyberismo app` pushes autocommitted changes to the remote, alongside broader SaaS git support (#1541)
+- The app remembers the last visited page per project and returns you there when you reopen it (#1524)
+
+### Fixes
+
+- Inline edits in the card view now save on focus loss instead of being cancelled (#1530)
+- Calculations no longer re-parse unchanged logic programs on every edit, and a per-program AST replay lock lets Clingo reach roughly the physical core count (#1546)
+- The prebuilt native packages now match the `@cyberismo/node-clingo` version, so the Clingo 5.8.1 upgrade actually reaches installs — 1.1.1 published node-clingo 1.8.0 while its `optionalDependencies` still pinned the 1.7.0 platform binaries, so installs kept resolving the older native build (#1546, #1531)
+
+### Internal
+
+- Replaced the worker-based migration executor with a simple in-process chain runner; `migrate` no longer loads the project tree it is about to migrate (#1543)
+- `@cyberismo/migrations` is now self-contained, deriving `SCHEMA_VERSION` from the migration registry at runtime instead of a generated `version.json` in the assets package (#1544)
+- Characterized the migration chain runner with tests ahead of the refactor (#1542)
+- Updated the documentation about module updates and versioning (#1537)
+- Removed a superfluous trailing constructor argument flagged by code scanning (#1536)
+
 ## [1.1.1] — 2026-08-14
 
 ### Highlights
