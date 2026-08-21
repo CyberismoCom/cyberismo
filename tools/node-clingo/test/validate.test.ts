@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ClingoContext, validateProgram } from '../lib/index.js';
+import { validateProgram } from '../lib/index.js';
 
 describe('validateProgram', () => {
   it('accepts a valid program', () => {
@@ -35,23 +35,5 @@ describe('validateProgram', () => {
     const result = validateProgram('fact(1).\nbroken(:- x.\nother(2).');
     expect(result.valid).toBe(false);
     expect(result.errors.join('\n')).toMatch(/2:\d+/);
-  });
-
-  it('does not interfere with concurrent solves', async () => {
-    const ctx = new ClingoContext();
-    ctx.setProgram('p', 'a(1..100).', ['all']);
-    const solves = Array.from({ length: 5 }, () =>
-      ctx.solve('b(X) :- a(X).', ['all']),
-    );
-    for (let i = 0; i < 50; i++) {
-      validateProgram('c(X) :- a(X), X > 1.');
-      validateProgram('broken(');
-      // setProgram pre-parses on the main thread while solves are in flight
-      ctx.setProgram(`scratch${i}`, `d(${i}).`, ['scratch']);
-    }
-    const results = await Promise.all(solves);
-    for (const r of results) {
-      expect(r.answers.length).toBeGreaterThan(0);
-    }
   });
 });

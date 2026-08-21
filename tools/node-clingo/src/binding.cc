@@ -87,21 +87,7 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
         return exports;
     }
 
-    /**
-     * Constructor. Accepts an optional options object:
-     *   { preParsing?: boolean }
-     */
-    ClingoContext(const Napi::CallbackInfo& info) : Napi::ObjectWrap<ClingoContext>(info)
-    {
-        if (info.Length() > 0 && info[0].IsObject())
-        {
-            Napi::Object opts = info[0].As<Napi::Object>();
-            if (opts.Has("preParsing") && opts.Get("preParsing").IsBoolean())
-            {
-                m_store.preParsing = opts.Get("preParsing").As<Napi::Boolean>().Value();
-            }
-        }
-    }
+    ClingoContext(const Napi::CallbackInfo& info) : Napi::ObjectWrap<ClingoContext>(info) {}
 
     node_clingo::ProgramStore m_store;
 

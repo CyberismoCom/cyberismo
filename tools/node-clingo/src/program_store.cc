@@ -12,10 +12,6 @@
 */
 #include "program_store.h"
 
-#include <mutex>
-
-#include "ast_mutex.h"
-
 namespace node_clingo
 {
     static std::vector<Clingo::AST::Node> tryParseToAst(const std::string& content)
@@ -23,12 +19,11 @@ namespace node_clingo
         std::vector<Clingo::AST::Node> nodes;
         try
         {
-            // Runs on the main thread, possibly while worker threads are in
-            // their AST-loading phase. AST nodes use non-atomic refcounts, so
-            // parsing is serialized with the workers via the same mutex.
-            std::lock_guard<std::mutex> lock(ast_mutex());
-            Clingo::AST::parse_string(
-                content.c_str(), [&nodes](Clingo::AST::Node node) { nodes.push_back(node.deep_copy()); });
+            // Every parse mints fresh nodes, so the stored tree is reachable
+            // only from this Program. Replay mutates node refcounts, and that
+            // exclusivity is what lets the lock be per program
+            // (see Program::ast_mutex).
+            Clingo::AST::parse_string(content.c_str(), [&nodes](Clingo::AST::Node node) { nodes.push_back(node); });
         }
         catch (...)
         {
@@ -67,9 +62,6 @@ namespace node_clingo
 
         KeyHash hash = getOrCreateHash(key);
 
-        // remove the previous program
-        removeProgram(hash);
-
         std::vector<KeyHash> categories_hashed;
         categories_hashed.reserve(categories.size());
         std::transform(
@@ -77,7 +69,21 @@ namespace node_clingo
                 return getOrCreateHash(category);
             });
 
-        auto ast = preParsing ? tryParseToAst(content) : std::vector<Clingo::AST::Node>{};
+        // A card move re-sets the whole card tree, so an unchanged program keeps
+        // its parsed AST rather than being parsed again. The hash rejects
+        // cheaply and content then confirms, so a collision cannot quietly
+        // serve a stale program.
+        auto existing = programs.find(hash);
+        if (existing != programs.end() && existing->second->hash == content_hash &&
+            existing->second->content == content && existing->second->categories == categories_hashed)
+        {
+            return;
+        }
+
+        // remove the previous program
+        removeProgram(hash);
+
+        auto ast = tryParseToAst(content);
         auto shared_program =
             std::make_shared<const Program>(key, content, std::move(ast), categories_hashed, content_hash);
         programs[hash] = shared_program;
@@ -159,7 +165,7 @@ namespace node_clingo
         auto programs = programByReferences(categories);
 
         // add the main program
-        auto ast = preParsing ? tryParseToAst(query) : std::vector<Clingo::AST::Node>{};
+        auto ast = tryParseToAst(query);
         programs.push_back(
             std::make_shared<const Program>("__program__", query, std::move(ast), std::vector<KeyHash>(), 0));
 

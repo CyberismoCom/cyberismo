@@ -11,7 +11,6 @@
         "src/helpers.cc",
         "src/function_handlers.cc",
         "external/xxhash/xxhash.c",
-        "src/ast_mutex.cc",
         "src/clingo_solver.cc",
         "src/program_store.cc",
         "src/validator.cc",

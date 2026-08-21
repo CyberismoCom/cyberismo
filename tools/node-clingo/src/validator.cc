@@ -12,11 +12,7 @@
 */
 #include "validator.h"
 
-#include <mutex>
-
 #include <clingo.hh>
-
-#include "ast_mutex.h"
 
 namespace node_clingo
 {
@@ -30,7 +26,8 @@ namespace node_clingo
         bool valid = true;
         try
         {
-            std::lock_guard<std::mutex> lock(ast_mutex());
+            // Control::add parses text with this control's own parser and
+            // never reaches a stored AST, so concurrent solves are unaffected.
             Clingo::Control control{{}, logger, MAX_CLINGO_LOG_MESSAGES};
             control.add("base", {}, content.c_str());
             // Empty parts: runs rewrite + safety check, skips grounding.
