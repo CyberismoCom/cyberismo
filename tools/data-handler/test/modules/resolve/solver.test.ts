@@ -1436,6 +1436,10 @@ describe('resolve solver', () => {
   });
 
   describe('transitives float to the newest their parents allow', () => {
+    // Unconditional: a transitive floats whether or not it is installed and
+    // whether or not a parent is moving. Gating it on a moved parent was
+    // considered and dropped -- the cheap check is not accurate enough to be
+    // worth a second rule -- so an unrelated add can carry a transitive up.
     it('add: a fresh transitive takes the newest in range, not the oldest', async () => {
       const project = buildProjectWithModules([]);
 
@@ -1572,9 +1576,9 @@ describe('resolve solver', () => {
         modules: [{ name: 'B', location: 'https://x/B.git', version: '1.x' }],
       });
 
-      // S is not moving, so only the not-installed clause frees B: it was
-      // declared by S but never vendored (a partial install, a hand-deleted
-      // module dir, or a dep added without re-installing).
+      // B is declared by S but was never vendored -- a partial install, a
+      // hand-deleted module dir, or a dep added without re-installing -- so it
+      // reports from: null rather than a move.
       const configs = new Map<string, FakeModuleConfig>([
         [
           'https://x/E.git@v1.0.0',
@@ -1626,7 +1630,7 @@ describe('resolve solver', () => {
       expect(byModule.get('B')).toMatchObject({ from: null, to: '1.4.0' });
     });
 
-    it('update: an installed transitive follows its moving parent', async () => {
+    it('update: a moving parent and its transitive both move', async () => {
       const project = buildProjectWithModules([
         {
           name: 'S',
@@ -1643,7 +1647,7 @@ describe('resolve solver', () => {
       await installModule(project, { name: 'B', version: '1.3.0' });
 
       // S 1.1.0 still declares only '1.x' for B, so B 1.3.0 satisfies every
-      // edge. Nothing forces B up -- S moving is what frees it.
+      // edge: nothing forces B up, and both moves land in one plan.
       const configs = new Map<string, FakeModuleConfig>([
         [
           'https://x/S.git@v1.1.0',
