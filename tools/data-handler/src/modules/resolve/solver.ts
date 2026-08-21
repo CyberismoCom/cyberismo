@@ -289,6 +289,7 @@ async function solve(
     // A root that declares no range is still bound: a missing version means
     // 1.x, so no operation silently crosses a major. Transitives are instead
     // constrained by their parents' edges (defaulted the same way in toEdges).
+    // A declaredRange implies isRoot, so pin is always null for a transitive.
     const pin = n.declaredRange ?? (n.isRoot ? DEFAULT_VERSION_RANGE : null);
     const pinAssumed = pin !== null && n.declaredRange === null;
     // A declared range is a hard constraint wherever it applies, so it is
@@ -303,8 +304,11 @@ async function solve(
     });
     // A bystander is offered its installed version first, so an update
     // disturbs the rest of the tree as little as possible, and keeps it even
-    // when a pre-existing drift put it outside its own range.
+    // when a pre-existing drift put it outside its own range. Only a root
+    // carries such a declaration; a transitive is taken in range. Declaring
+    // it as a root is how a project pins one.
     const fromInstalled = (): Candidates => {
+      if (!n.isRoot) return inRange();
       const asc = [...avail].sort(semver.compare) as Version[];
       return {
         versions: n.installed
