@@ -11,3 +11,6 @@
 .logs
 *-debug.log
 *-error.log
+
+# Read-only mode and other settings of a running project
+.cyberismo/
