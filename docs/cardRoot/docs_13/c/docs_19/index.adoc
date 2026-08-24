@@ -15,7 +15,7 @@ Or with Podman:
   $ podman pull docker.io/cyberismo/cyberismo:latest
 
 == Local installation
-If you installed Cyberismo by building it locally from source, you can update it to the latest version by running the following commands. This pulls the latest changes from the upstream repository, updates the Clingo submodule to the revision that the new sources expect, and rebuilds the software:
+If you installed Cyberismo by building it locally from source, you can update it to the latest version by running the following commands. This pulls the latest changes from the upstream repository, updates the Clingo submodule, and rebuilds the software:
 
   $ cd cyberismo
   $ git pull
