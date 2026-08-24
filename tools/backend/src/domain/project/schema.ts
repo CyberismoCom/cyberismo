@@ -12,7 +12,6 @@
 */
 
 import { z } from 'zod';
-import { readOnlySettingsSchema } from '../../deployment-settings.js';
 
 export const moduleParamSchema = z.object({
   module: z.string().min(1),
@@ -31,16 +30,9 @@ export const updateProjectSchema = z.object({
     .optional(),
 });
 
-// A patch of the project's deployment settings: every key optional, but at
-// least one required, so a request whose body did not arrive fails with 400
-// instead of being accepted as a no-op.
-export const deploymentSettingsPatchSchema = z
-  .object({
-    readOnly: readOnlySettingsSchema.optional(),
-  })
-  .refine((patch) => Object.keys(patch).length > 0, {
-    message: 'At least one setting must be given',
-  });
+export const readOnlyModeSchema = z.object({
+  readOnlyMode: z.boolean(),
+});
 
 export const addHubSchema = z.object({
   location: z.url({

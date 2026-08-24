@@ -18,8 +18,6 @@ import {
   type ModuleSettingFromHub,
 } from '@cyberismo/data-handler';
 
-import type { EffectiveDeploymentSettings } from '../../deployment-settings.js';
-
 export type { CleanResult } from '@cyberismo/data-handler';
 
 export interface ProjectModule {
@@ -36,9 +34,9 @@ export interface ProjectInfo {
   gitRemoteUrl: string | null;
 }
 
-/** `ProjectInfo` plus the deployment settings the route layer adds. */
+/** `ProjectInfo` plus the runtime-only flags the route layer adds. */
 export type ProjectInfoResponse = ProjectInfo & {
-  deployment: EffectiveDeploymentSettings;
+  readOnlyMode: boolean;
 };
 
 export interface ProjectUpdatePayload {

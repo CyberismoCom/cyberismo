@@ -42,7 +42,7 @@ export const useProjectReadOnlyMode = (projectPrefix?: string): boolean => {
     swrKey = null;
   }
   const { general } = useSWRHook<'general'>(swrKey, 'general', null);
-  return general?.deployment?.readOnly.enabled ?? false;
+  return general?.readOnlyMode ?? false;
 };
 
 export const updateProjectSettings = async (
@@ -56,13 +56,11 @@ export const updateProjectSettings = async (
 };
 
 export const setProjectReadOnlyMode = async (
-  enabled: boolean,
+  readOnlyMode: boolean,
   projectPrefix?: string,
 ) => {
   const apiPaths = projectApiPaths(projectPrefix);
-  await callApi(apiPaths.projectDeploymentSettings(), 'PATCH', {
-    readOnly: { enabled },
-  });
+  await callApi(apiPaths.projectReadOnly(), 'PUT', { readOnlyMode });
   mutate(apiPaths.project());
 };
 
@@ -171,9 +169,9 @@ export const useProjectSettingsMutations = (projectPrefix?: string) => {
     isUpdating: (action?: string) => isUpdating(action),
     updateProject: (body: ProjectSettingsUpdate, action: string = 'update') =>
       call(() => updateProjectSettings(body, projectPrefix), action),
-    setReadOnlyMode: (enabled: boolean) =>
+    setReadOnlyMode: (readOnlyMode: boolean) =>
       call(
-        () => setProjectReadOnlyMode(enabled, projectPrefix),
+        () => setProjectReadOnlyMode(readOnlyMode, projectPrefix),
         'update-readOnlyMode',
       ),
     updateModule: (moduleName: string) =>

@@ -47,7 +47,7 @@ function Probe({ role }: { role: UserRole }) {
   return <span>{allowed ? 'yes' : 'no'}</span>;
 }
 
-function can(role: UserRole) {
+function hasAtLeast(role: UserRole) {
   const { unmount } = render(<Probe role={role} />);
   const allowed = screen.getByText(/^(yes|no)$/).textContent === 'yes';
   unmount();
@@ -61,32 +61,31 @@ beforeEach(() => {
 
 describe('read-only mode role cap', () => {
   it('leaves permissions alone while the mode is off', () => {
-    expect(can(UserRole.Reader)).toBe(true);
-    expect(can(UserRole.Editor)).toBe(true);
-    expect(can(UserRole.Admin)).toBe(false);
+    expect(hasAtLeast(UserRole.Reader)).toBe(true);
+    expect(hasAtLeast(UserRole.Editor)).toBe(true);
+    expect(hasAtLeast(UserRole.Admin)).toBe(false);
   });
 
   it('drops an editor to reader while the mode is on', () => {
     state.readOnlyMode = true;
 
-    expect(can(UserRole.Reader)).toBe(true);
-    expect(can(UserRole.Editor)).toBe(false);
+    expect(hasAtLeast(UserRole.Reader)).toBe(true);
+    expect(hasAtLeast(UserRole.Editor)).toBe(false);
   });
 
-  // Admins are exempt so the mode can always be switched back off.
   it('leaves an admin untouched while the mode is on', () => {
     state.role = 'admin';
     state.readOnlyMode = true;
 
-    expect(can(UserRole.Editor)).toBe(true);
-    expect(can(UserRole.Admin)).toBe(true);
+    expect(hasAtLeast(UserRole.Editor)).toBe(true);
+    expect(hasAtLeast(UserRole.Admin)).toBe(true);
   });
 
   it('grants nothing to a signed-out user either way', () => {
     state.role = null;
     state.readOnlyMode = true;
 
-    expect(can(UserRole.Reader)).toBe(false);
+    expect(hasAtLeast(UserRole.Reader)).toBe(false);
   });
 });
 
@@ -105,8 +104,6 @@ describe('ReadOnlyBanner', () => {
     expect(screen.getByText('readOnlyMode.banner')).toBeInTheDocument();
   });
 
-  // Admins are not downgraded, so the banner is their only signal that the
-  // mode is on — they get the same message as everyone else.
   it('shows the same banner to admins', () => {
     state.role = 'admin';
     state.readOnlyMode = true;

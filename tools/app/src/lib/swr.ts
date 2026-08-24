@@ -83,7 +83,7 @@ export function projectApiPaths(projectPrefix?: string) {
     validateResource: (resourceName: string) =>
       `${base}/resources/${resourceName}/validate`,
     project: () => `${base}/project`,
-    projectDeploymentSettings: () => `${base}/project/deployment-settings`,
+    projectReadOnly: () => `${base}/project/read-only`,
     projectClean: () => `${base}/project/clean`,
     projectModulesUpdate: () => `${base}/project/modules/update`,
     projectModuleUpdate: (module: string) =>
