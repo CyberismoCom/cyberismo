@@ -16,9 +16,9 @@ import { zValidator } from '../../middleware/zvalidator.js';
 import {
   addHubSchema,
   cleanSchema,
+  deploymentSettingsPatchSchema,
   importModuleSchema,
   moduleParamSchema,
-  readOnlyModeSchema,
   removeHubSchema,
   updateProjectSchema,
 } from './schema.js';
@@ -34,22 +34,24 @@ router.get('/', requireRole(UserRole.Reader), async (c) => {
   const project = await projectService.getProject(commands);
   return c.json({
     ...project,
-    readOnlyMode: c.get('registry').isReadOnly(c.get('projectPrefix')),
+    deployment: c.get('registry').deploymentSettings(c.get('projectPrefix')),
   });
 });
 
 /**
- * Turn read-only mode on or off for this project. Admin only — and admins are
- * not downgraded by the mode, so this stays reachable once it is on.
+ * Patch this project's deployment settings — read-only mode today, more later.
+ * Admin only, and admins are not downgraded by read-only mode, so this stays
+ * reachable once the mode is on.
  */
-router.put(
-  '/read-only',
+router.patch(
+  '/deployment-settings',
   requireRole(UserRole.Admin),
-  zValidator('json', readOnlyModeSchema),
+  zValidator('json', deploymentSettingsPatchSchema),
   async (c) => {
-    const { readOnlyMode } = c.req.valid('json');
-    c.get('registry').setReadOnly(c.get('projectPrefix'), readOnlyMode);
-    return c.json({ readOnlyMode });
+    const settings = c
+      .get('registry')
+      .updateDeploymentSettings(c.get('projectPrefix'), c.req.valid('json'));
+    return c.json(settings);
   },
 );
 

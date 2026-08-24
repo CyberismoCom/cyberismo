@@ -76,6 +76,7 @@ export class Create {
 
   static gitIgnoreContent: string[] = [
     '.calc',
+    '.cyberismo/',
     '.asciidoctor',
     '.vscode',
     '*.html',

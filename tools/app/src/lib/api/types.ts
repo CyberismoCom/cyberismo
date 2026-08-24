@@ -120,6 +120,17 @@ interface BaseResourceNode {
   readOnly?: boolean;
 }
 
+export interface DeploymentSettings {
+  /**
+   * Admin-enabled read-only mode. While on, every non-admin acts as a reader
+   * so the project can be pulled from its remote without concurrent writes.
+   */
+  readOnly: {
+    enabled: boolean;
+    message?: string;
+  };
+}
+
 export interface GeneralSettings {
   name: string;
   cardKeyPrefix: string;
@@ -131,10 +142,10 @@ export interface GeneralSettings {
   }[];
   gitRemoteUrl: string | null;
   /**
-   * Admin-enabled read-only mode. While on, every non-admin acts as a reader
-   * so the project can be pulled from its remote without concurrent writes.
+   * Settings that belong to this deployment of the project rather than to the
+   * committed project configuration, so they are never part of a commit.
    */
-  readOnlyMode: boolean;
+  deployment: DeploymentSettings;
 }
 
 export type ProjectSettingsUpdate = Partial<

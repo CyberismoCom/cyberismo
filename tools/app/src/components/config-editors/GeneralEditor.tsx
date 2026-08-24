@@ -237,7 +237,7 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
             </Typography>
             <Switch
               data-cy="readOnlyModeSwitch"
-              checked={general?.readOnlyMode ?? false}
+              checked={general?.deployment?.readOnly.enabled ?? false}
               disabled={isDisabled || isUpdating('update-readOnlyMode')}
               onChange={(event) =>
                 setReadOnlyMode(event.currentTarget.checked).catch(() =>
@@ -250,7 +250,7 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
                 )
               }
               endDecorator={
-                general?.readOnlyMode
+                general?.deployment?.readOnly.enabled
                   ? t('readOnlyMode.on')
                   : t('readOnlyMode.off')
               }

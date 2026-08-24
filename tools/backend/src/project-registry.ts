@@ -12,6 +12,14 @@
 */
 
 import { CommandManager, type ProjectProvider } from '@cyberismo/data-handler';
+import {
+  deploymentSettingsFile,
+  effectiveDeploymentSettings,
+  readDeploymentSettings,
+  writeDeploymentSettings,
+  type DeploymentSettings,
+  type EffectiveDeploymentSettings,
+} from './deployment-settings.js';
 
 export type ProjectRegistryEntry = {
   prefix: string;
@@ -35,7 +43,9 @@ export interface ScannedProject {
 export class ProjectRegistry implements ProjectProvider {
   private projects: Map<string, CommandManager> = new Map();
 
-  private readOnlyProjects: Set<string> = new Set();
+  /** Settings as stored on disk, keyed by prefix. The file is the source of
+   * truth; this map is the read cache, and the API is its only writer. */
+  private deployment: Map<string, DeploymentSettings> = new Map();
   readonly options: ConstructorParameters<typeof CommandManager>[1];
 
   constructor(
@@ -61,20 +71,43 @@ export class ProjectRegistry implements ProjectProvider {
       throw new Error(`Project '${prefix}' is already registered`);
     }
     this.projects.set(prefix, commands);
+    this.deployment.set(
+      prefix,
+      readDeploymentSettings(deploymentSettingsFile(commands.project.basePath)),
+    );
+  }
+
+  /** Deployment settings for a project, with defaults filled in. */
+  deploymentSettings(prefix: string): EffectiveDeploymentSettings {
+    return effectiveDeploymentSettings(this.deployment.get(prefix) ?? {});
+  }
+
+  /**
+   * Merge a patch into the stored settings and persist it. The merge is shallow
+   * on purpose: each top-level key is one setting, so a patch replaces that
+   * setting outright and leaves the others, including ones this version does
+   * not know about, untouched.
+   */
+  updateDeploymentSettings(
+    prefix: string,
+    patch: DeploymentSettings,
+  ): EffectiveDeploymentSettings {
+    const commands = this.projects.get(prefix);
+    if (!commands) {
+      throw new Error(`Project '${prefix}' is not registered`);
+    }
+    const updated = { ...(this.deployment.get(prefix) ?? {}), ...patch };
+    writeDeploymentSettings(
+      deploymentSettingsFile(commands.project.basePath),
+      updated,
+    );
+    this.deployment.set(prefix, updated);
+    return effectiveDeploymentSettings(updated);
   }
 
   /** True when the project is in admin-enabled read-only mode. */
   isReadOnly(prefix: string): boolean {
-    return this.readOnlyProjects.has(prefix);
-  }
-
-  /** Turn read-only mode on or off for a single project. */
-  setReadOnly(prefix: string, readOnly: boolean): void {
-    if (readOnly) {
-      this.readOnlyProjects.add(prefix);
-    } else {
-      this.readOnlyProjects.delete(prefix);
-    }
+    return this.deploymentSettings(prefix).readOnly.enabled;
   }
 
   list(): ProjectListItem[] {
@@ -101,6 +134,7 @@ export class ProjectRegistry implements ProjectProvider {
       commands.project.dispose();
     }
     this.projects.clear();
+    this.deployment.clear();
   }
 
   /**
@@ -113,9 +147,9 @@ export class ProjectRegistry implements ProjectProvider {
       commands.project.dispose();
     }
     this.projects.clear();
-    this.readOnlyProjects.clear();
+    this.deployment.clear();
     for (const entry of entries) {
-      this.projects.set(entry.prefix, entry.commands);
+      this.add(entry.prefix, entry.commands);
     }
   }
 
