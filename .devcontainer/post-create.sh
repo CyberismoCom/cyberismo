@@ -24,13 +24,13 @@ git config --global --add safe.directory "${containerWorkspaceFolder:-/workspace
 echo "=== Running pnpm setup ==="
 SHELL="${SHELL:-/bin/bash}" pnpm setup
 export PNPM_HOME="${PNPM_HOME:-$HOME/.local/share/pnpm}"
-export PATH="$PNPM_HOME:$PATH"
+export PATH="$PNPM_HOME/bin:$PATH"
 
 echo "=== Building project ==="
 pnpm build
 
 echo "=== Linking packages globally ==="
-pnpm link -g
+pnpm add -g .
 
 echo "=== Installing Playwright browsers ==="
 pnpm --filter=app exec playwright install --with-deps

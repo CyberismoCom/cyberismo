@@ -43,6 +43,16 @@ Afterward, you can run the application using the following command:
 
 *Windows*
 
-The Windows environment does not support aliases like Linux and macOS do, so the command to use Docker is:
+In PowerShell, run the image directly:
 
-  $ docker run --rm -it --user $(id -u):$(id -g) -v .:/project -p 127.0.0.1:3000:3000 cyberismo/cyberismo cyberismo --help
+  > docker run --init --rm -it -e HOME=/tmp -v ${PWD}:/project -p 127.0.0.1:3000:3000 cyberismo/cyberismo:latest cyberismo --help
+
+The `--user` flag of the Linux and macOS alias is not used here: on Windows, file ownership in the mounted directory is handled by the Docker Desktop virtual machine.
+
+For the same convenience that the alias gives on Linux and macOS, add a function to your PowerShell profile (`$PROFILE`):
+
+  > function cyberismo { docker run --init --rm -it -e HOME=/tmp -v ${PWD}:/project -p 127.0.0.1:3000:3000 cyberismo/cyberismo:latest cyberismo @args }
+
+Afterward, you can run the application from any directory:
+
+  > cyberismo --help

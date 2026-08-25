@@ -10,7 +10,8 @@ RUN cmake -P tools/node-clingo/scripts/build-clingo.cmake
 
 FROM node:22-alpine AS builder
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# pnpm version comes from the packageManager field in package.json
+RUN corepack enable
 RUN apk add --no-cache g++ python3 make
 
 WORKDIR /app
@@ -33,7 +34,7 @@ FROM node:22-alpine AS runtime
 # `pnpm setup` below needs a shell whose rc file it can write; with plain sh it
 # demands $ENV and fails. Reset to a shell that exists once setup is done.
 ENV SHELL=/bin/bash
-ENV PATH=/usr/local/share/pnpm:$PATH
+ENV PATH=/usr/local/share/pnpm/bin:$PATH
 ENV PNPM_HOME=/usr/local/share/pnpm
 
 # bind the backend to all interfaces so published ports are reachable
@@ -44,8 +45,9 @@ WORKDIR /app
 # make sure logs directory exists and is writable
 RUN mkdir /app/logs && chmod 777 /app/logs
 
-# enable corepack to use pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# enable corepack to use pnpm; the version comes from the packageManager
+# field in package.json
+RUN corepack enable
 
 # Copy monorepo root manifest files
 COPY --from=builder /app/package.json ./package.json
@@ -112,7 +114,7 @@ COPY --from=builder /app/tools/node-clingo/build ./tools/node-clingo/build
 
 # setup bin
 RUN pnpm setup
-RUN pnpm link -g
+RUN pnpm add -g .
 
 # From here on SHELL is a runtime setting, and alpine has no bash. ssh runs
 # ProxyCommand through $SHELL, so pointing it at a missing binary breaks every

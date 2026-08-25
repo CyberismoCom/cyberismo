@@ -8,7 +8,7 @@ Install the following:
 
 * Node.js v22 LTS or later, downloadable from https://nodejs.org/.
 * Visual Studio Build Tools 2022 with the "Desktop development with C++" workload (provides MSVC and Windows SDK).
-* CMake 3.x, downloadable from https://cmake.org/.
+* CMake 3.x or newer, downloadable from https://cmake.org/.
 * Python 3, downloadable from https://www.python.org/.
 
 These tools are used to build the bundled Clingo answer set programming runtime from source as part of `pnpm install`.
@@ -20,6 +20,7 @@ Take the following steps:
 . Clone the source repository, including the Clingo submodule:
 
   $ git clone --recurse-submodules https://github.com/CyberismoCom/cyberismo.git
+  $ cd cyberismo
 
 +
 If you previously cloned the repository, change to the source directory and pull the latest changes:
@@ -28,17 +29,31 @@ If you previously cloned the repository, change to the source directory and pull
   $ git pull origin main
   $ git submodule update --init --recursive
 
-. Install pnpm with the npm command:
+. Enable pnpm. Cyberismo pins the pnpm version it is built with, and corepack, which ships with Node.js, picks that version automatically:
 
-  $ npm install -g pnpm
+  $ corepack enable
 
-. Execute the following commands:
++
+Corepack installs the `pnpm` command next to the Node.js binary. If Node.js was installed for all users, run the command from a terminal started as administrator.
+
++
+If your Node.js installation does not include corepack, run `npm install -g pnpm` instead, with the same privileges.
+
+. Set up the directory that pnpm installs global commands into:
 
   $ pnpm setup
+
++
+This adds the directory to the `PATH` of your user account, which only affects terminals started afterwards, so open a new terminal before continuing.
+
+. In the new terminal, build Cyberismo and install the `cyberismo` command:
+
+  $ cd cyberismo
   $ pnpm install
   $ pnpm build
-  $ pnpm link -g
+  $ pnpm add -g .
 
++
 `pnpm install` builds the bundled Clingo runtime as part of installing the `@cyberismo/node-clingo` workspace package.
 
 === Running
