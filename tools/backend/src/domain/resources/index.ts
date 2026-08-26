@@ -20,10 +20,9 @@ import { resourceParamsSchema } from '../../common/validationSchemas.js';
 import { zValidator } from '../../middleware/zvalidator.js';
 import {
   validateResourceParamsSchema,
+  prefixIdentifierParamsSchema,
   skillPreviewBodySchema,
-  skillPreviewParamsSchema,
   updateOperationBodySchema,
-  workflowGraphParamsSchema,
   workflowGraphQuerySchema,
 } from './schema.js';
 import { requireRole } from '../../middleware/auth.js';
@@ -190,7 +189,7 @@ router.get(
     const commands = c.get('commands');
     return resourceService.listWorkflowGraphParams(commands);
   }),
-  zValidator('param', workflowGraphParamsSchema),
+  zValidator('param', prefixIdentifierParamsSchema),
   zValidator('query', workflowGraphQuerySchema),
   async (c) => {
     const commands = c.get('commands');
@@ -271,7 +270,7 @@ router.get(
 router.post(
   '/:prefix/skills/:identifier/preview',
   requireRole(UserRole.Admin),
-  zValidator('param', skillPreviewParamsSchema),
+  zValidator('param', prefixIdentifierParamsSchema),
   zValidator('json', skillPreviewBodySchema),
   async (c) => {
     const commands = c.get('commands');

@@ -39,9 +39,10 @@ vi.mock('@/lib/hooks', async () => {
   };
 });
 
+let isAdmin = true;
 vi.mock('@/lib/auth', () => ({
   UserRole: { Reader: 0, Editor: 1, Admin: 2 },
-  useHasMinRole: () => true,
+  useHasMinRole: () => isAdmin,
 }));
 
 vi.mock('@/lib/utils', async (orig) => ({
@@ -144,6 +145,7 @@ describe('SkillPreview', () => {
 describe('TextEditor preview toggle', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    isAdmin = true;
     previewSkill.mockResolvedValue('## Rendered\n');
   });
 
@@ -177,5 +179,28 @@ describe('TextEditor preview toggle', () => {
     expect(
       screen.queryByRole('button', { name: 'preview' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('does not offer a preview to a non-admin, whose request would be denied', () => {
+    isAdmin = false;
+    render(<TextEditor node={skillFileNode} />);
+
+    expect(
+      screen.queryByRole('button', { name: 'preview' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('stays in preview when the resource tree refetches', async () => {
+    const { rerender } = render(<TextEditor node={skillFileNode} />);
+    fireEvent.click(screen.getByRole('button', { name: 'preview' }));
+    await screen.findByRole('heading', { name: 'Rendered' });
+
+    // Saving mutates the tree, so the page hands down an equal-but-new node.
+    rerender(<TextEditor node={{ ...skillFileNode }} />);
+
+    expect(
+      screen.getByRole('heading', { name: 'Rendered' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('codemirror')).not.toBeInTheDocument();
   });
 });

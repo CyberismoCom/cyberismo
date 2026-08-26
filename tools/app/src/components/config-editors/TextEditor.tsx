@@ -39,11 +39,12 @@ export function TextEditor({ node }: { node: FileNode }) {
   if (node !== prevNode) {
     setPrevNode(node);
     setContent(node.data.content);
-    setIsPreview(false);
   }
 
+  // The preview posts to an Admin-only route, so a lesser role would only ever
+  // get a 403 out of the toggle.
   const canPreview =
-    node.fileName === 'skillContent' && !getConfig().staticMode;
+    isAdmin && node.fileName === 'skillContent' && !getConfig().staticMode;
 
   const { update, isUpdating } = useResource(node.resourceName);
 

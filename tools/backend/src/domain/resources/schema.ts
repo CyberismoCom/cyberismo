@@ -5,25 +5,20 @@ import {
   resourceTypes,
 } from '../../common/validationSchemas.js';
 
-export const workflowGraphParamsSchema = z.object({
+export const prefixIdentifierParamsSchema = z.object({
   prefix: z.string(),
   identifier: identifierSchema,
 });
 
-export type WorkflowGraphParams = z.infer<typeof workflowGraphParamsSchema>;
+export type PrefixIdentifierParams = z.infer<
+  typeof prefixIdentifierParamsSchema
+>;
 
 export const workflowGraphQuerySchema = z.object({
   card: z.string().optional(),
 });
 
 export type WorkflowGraphQuery = z.infer<typeof workflowGraphQuerySchema>;
-
-export const skillPreviewParamsSchema = z.object({
-  prefix: z.string(),
-  identifier: identifierSchema,
-});
-
-export type SkillPreviewParams = z.infer<typeof skillPreviewParamsSchema>;
 
 export const skillPreviewBodySchema = z.object({
   skillContent: z.string().optional(),

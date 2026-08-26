@@ -58,6 +58,7 @@ import { UserPreferences } from '../utils/user-preferences.js';
 import { read } from '../utils/rw-lock.js';
 import ReportMacro from '../macros/report/index.js';
 import { generateReportContent } from '../utils/report.js';
+import type { SkillContent } from '../interfaces/folder-content-interfaces.js';
 import TaskQueue from '../macros/task-queue.js';
 import { evaluateMacros } from '../macros/index.js';
 import { readJsonFile } from '../utils/json.js';
@@ -763,7 +764,11 @@ export class Show {
       return { status: 'needs-card' };
     }
     const skill = this.project.resources.byType(name, 'skills').show();
-    const instructions = await this.renderSkill(name, { cardKey }, context);
+    const instructions = await this.renderSkillTemplates(
+      skill.content,
+      { cardKey },
+      context,
+    );
     return {
       status: 'ok',
       skill: { ...this.toSkillSummary(skill, entry.scope), instructions },
@@ -794,18 +799,34 @@ export class Show {
     } = {},
     context: Context = 'localApp',
   ): Promise<string> {
-    const { cardKey, skillContent, skillQuery } = options;
     const skill = this.project.resources.byType(name, 'skills').show();
 
-    if (cardKey) {
-      this.project.findCard(cardKey);
+    if (options.cardKey) {
+      this.project.findCard(options.cardKey);
     }
 
+    return this.renderSkillTemplates(skill.content, options, context);
+  }
+
+  /**
+   * Renders skill templates that have already been looked up.
+   * @param content The skill's stored content.
+   * @param options.cardKey Card context for per-card template rendering.
+   * @param options.skillContent Overrides the stored skill.md content.
+   * @param options.skillQuery Overrides the stored query.lp content.
+   * @param context Calculation context.
+   * @returns the rendered instructions.
+   */
+  private async renderSkillTemplates(
+    content: SkillContent,
+    options: { cardKey?: string; skillContent?: string; skillQuery?: string },
+    context: Context,
+  ): Promise<string> {
     return generateReportContent({
       calculate: this.project.calculationEngine,
-      contentTemplate: skillContent ?? skill.content.skillContent,
-      queryTemplate: skillQuery ?? skill.content.skillQuery,
-      options: { cardKey },
+      contentTemplate: options.skillContent ?? content.skillContent,
+      queryTemplate: options.skillQuery ?? content.skillQuery,
+      options: { cardKey: options.cardKey },
       context,
     });
   }

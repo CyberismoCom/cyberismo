@@ -565,7 +565,13 @@ export async function previewSkill(
       try {
         await commands.showCmd.showCardDetails(cardKey);
       } catch (error) {
-        throw new Error(`Card '${cardKey}' not found`, { cause: error });
+        if (
+          error instanceof Error &&
+          error.message.includes('does not exist')
+        ) {
+          throw new Error(`Card '${cardKey}' not found`, { cause: error });
+        }
+        throw error;
       }
     }
     return commands.showCmd.renderSkill(skillName, {
