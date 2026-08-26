@@ -19,6 +19,7 @@ import type {
   GraphModel,
   GraphView,
   Report,
+  Skill,
   TemplateConfiguration,
   Workflow,
 } from '@cyberismo/data-handler/interfaces/resource-interfaces';
@@ -217,6 +218,11 @@ interface ReportNode extends BaseResourceNode {
   data: Report;
 }
 
+interface SkillNode extends BaseResourceNode {
+  type: 'skills';
+  data: Skill;
+}
+
 interface GraphModelNode extends BaseResourceNode {
   type: 'graphModels';
   data: GraphModel;
@@ -268,6 +274,7 @@ export type NodeTypeMap = {
   module: ModuleNode;
   reports: ReportNode;
   resourceGroup: ResourceGroupNode;
+  skills: SkillNode;
   templates: TemplateNode;
   workflows: WorkflowNode;
 };
@@ -282,6 +289,7 @@ export type ResourceNode =
   | GraphViewNode
   | LinkTypeNode
   | ReportNode
+  | SkillNode
   | WorkflowNode
   | TemplateNode;
 export type NodeType = AnyNode['type'];

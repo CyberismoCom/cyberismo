@@ -12,6 +12,7 @@
 */
 
 import CodeMirror from '@uiw/react-codemirror';
+import { Stack } from '@mui/joy';
 import type { FileNode } from '@/lib/api/types';
 import { useCallback, useEffect, useState } from 'react';
 import BaseEditor from './BaseEditor';
@@ -23,6 +24,9 @@ import { CODE_MIRROR_CONFIG_PROPS, CODE_MIRROR_THEMES } from '@/lib/constants';
 import { useResource } from '@/lib/api';
 import { useIsDarkMode } from '@/lib/hooks';
 import { UserRole, useHasMinRole } from '@/lib/auth';
+import { getConfig } from '@/lib/utils';
+import SkillPreview from './SkillPreview';
+import { PreviewToggle } from './template-card/PreviewToggle';
 
 export function TextEditor({ node }: { node: FileNode }) {
   const dispatch = useAppDispatch();
@@ -30,11 +34,17 @@ export function TextEditor({ node }: { node: FileNode }) {
   const isDarkMode = useIsDarkMode();
   const isAdmin = useHasMinRole(UserRole.Admin);
   const [content, setContent] = useState(node.data.content);
+  const [isPreview, setIsPreview] = useState(false);
   const [prevNode, setPrevNode] = useState(node);
   if (node !== prevNode) {
     setPrevNode(node);
     setContent(node.data.content);
   }
+
+  // The preview posts to an Admin-only route, so a lesser role would only ever
+  // get a 403 out of the toggle.
+  const canPreview =
+    isAdmin && node.fileName === 'skillContent' && !getConfig().staticMode;
 
   const { update, isUpdating } = useResource(node.resourceName);
 
@@ -88,13 +98,27 @@ export function TextEditor({ node }: { node: FileNode }) {
       }}
       loading={isUpdating()}
     >
-      <CodeMirror
-        {...CODE_MIRROR_CONFIG_PROPS}
-        theme={isDarkMode ? CODE_MIRROR_THEMES.dark : CODE_MIRROR_THEMES.light}
-        readOnly={node.readOnly || !isAdmin}
-        value={content}
-        onChange={(value: string) => setContent(value)}
-      />
+      <Stack spacing={2}>
+        {canPreview && (
+          <PreviewToggle
+            isPreview={isPreview}
+            onToggle={() => setIsPreview((previous) => !previous)}
+          />
+        )}
+        {canPreview && isPreview ? (
+          <SkillPreview resourceName={node.resourceName} content={content} />
+        ) : (
+          <CodeMirror
+            {...CODE_MIRROR_CONFIG_PROPS}
+            theme={
+              isDarkMode ? CODE_MIRROR_THEMES.dark : CODE_MIRROR_THEMES.light
+            }
+            readOnly={node.readOnly || !isAdmin}
+            value={content}
+            onChange={(value: string) => setContent(value)}
+          />
+        )}
+      </Stack>
     </BaseEditor>
   );
 }

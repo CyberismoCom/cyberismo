@@ -26,7 +26,11 @@ import {
   resourceNameToString,
 } from '@cyberismo/data-handler';
 import type { ResourceParams } from '../../common/validationSchemas.js';
-import type { ValidateResourceParams, UpdateOperationBody } from './schema.js';
+import type {
+  SkillPreviewBody,
+  UpdateOperationBody,
+  ValidateResourceParams,
+} from './schema.js';
 
 const resourceTypes: ResourceFolderType[] = [
   'calculations',
@@ -36,6 +40,7 @@ const resourceTypes: ResourceFolderType[] = [
   'graphViews',
   'linkTypes',
   'reports',
+  'skills',
   'templates',
   'workflows',
 ];
@@ -526,6 +531,53 @@ export async function getWorkflowGraph(
     }
     return commands.calculateCmd.runWorkflowGraph(workflowName, {
       currentState,
+    });
+  });
+}
+
+/**
+ * Renders a skill's instructions for the configuration editor preview.
+ * Unlike the MCP `get_skill` tool, this does not require the skill to be
+ * enabled by the logic programs — the author is still working on it. When
+ * `skillContent` or `skillQuery` is given, that unsaved editor content is
+ * rendered instead of what is stored on disk. The lookups and the rendering
+ * share one consistency window so the preview matches a single project state.
+ * @returns the rendered instructions as markdown.
+ * @throws Error with 'not found' in the message when the skill or card cannot
+ *   be resolved; any other error means the template or query failed to render.
+ */
+export async function previewSkill(
+  commands: CommandManager,
+  skillName: string,
+  body: SkillPreviewBody,
+): Promise<string> {
+  const { cardKey, skillContent, skillQuery } = body;
+  return commands.consistent(async () => {
+    try {
+      await commands.showCmd.showResource(skillName, 'skills');
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('does not exist')) {
+        throw new Error(`Skill '${skillName}' not found`, { cause: error });
+      }
+      throw error;
+    }
+    if (cardKey) {
+      try {
+        await commands.showCmd.showCardDetails(cardKey);
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message.includes('does not exist')
+        ) {
+          throw new Error(`Card '${cardKey}' not found`, { cause: error });
+        }
+        throw error;
+      }
+    }
+    return commands.showCmd.renderSkill(skillName, {
+      cardKey,
+      skillContent,
+      skillQuery,
     });
   });
 }

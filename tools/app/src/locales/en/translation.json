@@ -141,6 +141,8 @@
       "contentTemplate": "Content template",
       "queryTemplate": "Query template",
       "schema": "Schema",
+      "skillContent": "Instructions",
+      "skillQuery": "Query",
       "viewTemplate": "View template"
     }
   },
@@ -210,6 +212,8 @@
     "warning": "I acknowledge that removing \"{{moduleName}}\" ({{cardKeyPrefix}}) will delete all resources it provides.",
     "success": "Module \"{{moduleName}}\" removed successfully"
   },
+  "deleteRelatedTool": "Delete related tool",
+  "deleteRelatedToolConfirm": "Are you sure you want to delete the related tool \"{{value}}\"?",
   "deleteResource": "Delete resource",
   "deleteResourceModal": {
     "title": "Delete resource",
@@ -351,6 +355,9 @@
     "reports": {
       "name": "Report"
     },
+    "skills": {
+      "name": "Skill"
+    },
     "calculations": {
       "name": "Calculation"
     },
@@ -370,6 +377,7 @@
   "noHubs": "Project does not contain any hubs.",
   "noLinkedCards": "No linked items",
   "noModules": "Project does not contain any modules.",
+  "noRelatedTools": "No related tools yet",
   "none": "None",
   "notFound": {
     "title": "Page not found",
@@ -470,6 +478,13 @@
     "browseProjects": "Browse projects"
   },
   "recents": "Recents",
+  "relatedTool": "Related tool",
+  "relatedToolAdded": "Related tool added",
+  "relatedToolDeleted": "Related tool deleted",
+  "relatedToolExists": "This tool is already listed",
+  "relatedToolPlaceholder": "Name of an MCP tool, for example query_cards",
+  "relatedToolUpdated": "Related tool updated",
+  "relatedTools": "Related tools",
   "removeLabel": "Remove label",
 
   "resourceFileContentUpdated": "Resource file content updated",
@@ -483,6 +498,7 @@
     "linkTypes": "Link types",
     "modules": "Modules",
     "reports": "Reports",
+    "skills": "Skills",
     "templates": "Templates",
     "workflows": "Workflows"
   },
@@ -501,6 +517,11 @@
   "sessionExpiredLogIn": "Log in",
   "showLess": "Show less",
   "showMore": "Show more",
+  "skillPreview": {
+    "cardKey": "Card key (optional)",
+    "cardKeyPlaceholder": "Preview a card-specific skill for this card",
+    "empty": "The skill renders to empty content."
+  },
   "sourceCardTypes": "Source card types",
   "svgViewerHelpWindow": "Pinch or Shift+Wheel = Zoom • Scroll/Drag = Pan",
   "tableOfContents": "Table of contents",
