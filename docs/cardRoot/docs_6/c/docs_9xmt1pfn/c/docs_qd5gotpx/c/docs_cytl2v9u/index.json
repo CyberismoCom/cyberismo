@@ -1,0 +1,12 @@
+{
+    "title": "enableSkill(Skill, CardKey)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Draft",
+    "rank": "0|h",
+    "lastUpdated": "2026-07-31T12:04:32.574Z",
+    "base/fieldTypes/briefDescription": "A skill is enabled for a card",
+    "base/fieldTypes/category": "Skills",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "createdAt": "2026-07-31T12:04:32.573Z"
+}
