@@ -30,6 +30,14 @@ import { CardNotFoundError } from '../../exceptions/index.js';
 import { deleteDir } from '../../utils/file-utils.js';
 import { getChildLogger } from '../../utils/log-utils.js';
 import { writeJsonFile } from '../../utils/json.js';
+import {
+  EMPTY_RANK,
+  FIRST_RANK,
+  getRankAfter,
+  getRankBetween,
+  rebalanceRanks,
+  sortItems,
+} from '../../utils/lexorank.js';
 
 import type { CardFactContext } from '../../utils/clingo-facts.js';
 import type { CardKeyRegistry } from './card-keys.js';
@@ -80,6 +88,19 @@ export interface CardTreeOptions {
   emitsCardFact: boolean;
   validationApplies: boolean;
   keys: CardKeyRegistry;
+}
+
+/**
+ * A rank the caller is to persist: which card, and what its rank becomes.
+ *
+ * The tree computes rank values; it does not write them. Persisting a rank
+ * validates the card and notifies the calculation engine, neither of which is
+ * the tree's business — so the rank methods hand back the changes in the order
+ * they must be applied and the command applies them.
+ */
+export interface RankChange {
+  cardKey: string;
+  rank: string;
 }
 
 /**
@@ -451,6 +472,198 @@ export class CardTree {
    */
   public attachmentFolderOf(cardKey: string): string {
     return join(this.pathOf(cardKey), ATTACHMENT_FOLDER);
+  }
+
+  // ---------------------------------------------------------------------
+  // Ranks.
+  //
+  // A rank orders a card among its siblings. All of the arithmetic lives in
+  // utils/lexorank; what the tree adds is the only thing lexorank cannot know
+  // - which cards are siblings, and what ranks they hold. Callers decide the
+  // intent ("after this card", "first", "a block of five"); the tree turns it
+  // into values.
+  // ---------------------------------------------------------------------
+
+  /**
+   * The keys under a parent, in rank order.
+   * @param parentKey Parent card key, or 'root' for the tree's root cards.
+   */
+  public siblingsUnder(parentKey: string): string[] {
+    const keys =
+      parentKey === ROOT
+        ? this.cache
+            .cards()
+            .filter((card) => card.parent === ROOT || !card.parent)
+            .map((card) => card.key)
+        : this.cache.childrenOf(parentKey);
+    return sortItems(keys, (key) => this.rankOf(key) ?? EMPTY_RANK);
+  }
+
+  /**
+   * The keys of a card's siblings, in rank order. The card itself is one of
+   * them.
+   * @param cardKey Card key whose sibling set to return.
+   * @throws CardNotFoundError if the tree does not hold the card
+   */
+  public siblingsOf(cardKey: string): string[] {
+    return this.siblingsUnder(this.cached(cardKey).parent);
+  }
+
+  // The rank a card holds, or undefined if it holds none. An empty string and
+  // EMPTY_RANK both mean 'no rank': EMPTY_RANK is the placeholder a card gets
+  // when there was nothing to rank it against, and it is not a position -
+  // getRankAfter cannot extend it (it carries the '1|' bucket prefix, which
+  // the arithmetic does not understand).
+  private rankOf(cardKey: string): string | undefined {
+    const rank = this.cache.getCard(cardKey)?.metadata?.rank;
+    if (typeof rank !== 'string' || rank === '' || rank === EMPTY_RANK) {
+      return undefined;
+    }
+    return rank;
+  }
+
+  /**
+   * Ranks for a block of new cards placed after everything already ranked
+   * under a parent.
+   *
+   * The one allocator for "append here": a card being moved in, a card being
+   * added to a template, and a whole template instantiation all take their
+   * ranks from it.
+   * @param parentKey Parent the cards will sit under, or 'root'.
+   * @param count How many ranks to allocate.
+   * @returns the ranks, in increasing order.
+   */
+  public rankBlock(parentKey: string, count: number): string[] {
+    // FIRST_RANK is the anchor rather than the first value handed out, so
+    // '0|a' stays free for rankFirst to claim without having to demote
+    // whoever holds it.
+    let previous = this.lastRankUnder(parentKey) ?? FIRST_RANK;
+    const ranks: string[] = [];
+    for (let index = 0; index < count; index++) {
+      previous = getRankAfter(previous);
+      ranks.push(previous);
+    }
+    return ranks;
+  }
+
+  // The highest rank held under a parent, or undefined when nothing there
+  // holds one.
+  private lastRankUnder(parentKey: string): string | undefined {
+    const ranks = this.siblingsUnder(parentKey)
+      .map((key) => this.rankOf(key))
+      .filter((rank): rank is string => rank !== undefined);
+    return sortItems(ranks, (rank) => rank).pop();
+  }
+
+  /**
+   * Places a card immediately after one of its siblings.
+   * @param cardKey Card to rank.
+   * @param afterKey Sibling to place it after.
+   * @returns the ranks to persist, in order. Ranks that have drifted into
+   *   duplicates or inversions are rebalanced first, so the result may name
+   *   siblings other than the ranked card.
+   * @throws CardNotFoundError if the tree does not hold either card
+   */
+  public rankAfter(cardKey: string, afterKey: string): RankChange[] {
+    this.cached(cardKey);
+    const siblings = this.siblingsOf(afterKey);
+    const index = siblings.indexOf(afterKey);
+    return this.withUsableRanks(siblings, (rankAt) =>
+      index === siblings.length - 1
+        ? [{ cardKey, rank: getRankAfter(rankAt(index)) }]
+        : [{ cardKey, rank: getRankBetween(rankAt(index), rankAt(index + 1)) }],
+    );
+  }
+
+  /**
+   * Places a card first among its siblings.
+   * @param cardKey Card to rank.
+   * @returns the ranks to persist, in order; empty if the card already holds
+   *   the first position. Freeing FIRST_RANK may take demoting whoever holds
+   *   it, which is then the first change in the result.
+   * @throws CardNotFoundError if the tree does not hold the card
+   */
+  public rankFirst(cardKey: string): RankChange[] {
+    const siblings = this.siblingsOf(cardKey);
+    const firstKey = siblings[0];
+    if (firstKey === cardKey && this.rankOf(cardKey)) {
+      return [];
+    }
+    if (this.rankOf(firstKey) !== FIRST_RANK) {
+      return [{ cardKey, rank: FIRST_RANK }];
+    }
+    // The first card is already at FIRST_RANK; demote it to a rank between
+    // itself and the second card to free FIRST_RANK for the target card.
+    if (siblings.length < 2) {
+      throw new Error(`Second rank not found`);
+    }
+    return this.withUsableRanks(siblings, (rankAt) => [
+      { cardKey: firstKey, rank: getRankBetween(rankAt(0), rankAt(1)) },
+      { cardKey, rank: FIRST_RANK },
+    ]);
+  }
+
+  /**
+   * Even ranks for the cards under a parent, spread across the whole rank
+   * space.
+   * @param parentKey Parent whose children to rebalance, or 'root'.
+   * @returns the ranks to persist, in order.
+   */
+  public rebalanceUnder(parentKey: string): RankChange[] {
+    const siblings = this.siblingsUnder(parentKey);
+    const ranks = rebalanceRanks(siblings.length);
+    return siblings.map((cardKey, index) => ({
+      cardKey,
+      rank: ranks[index],
+    }));
+  }
+
+  /**
+   * Even ranks for everything below a parent, level by level.
+   * @param parentKey Parent whose subtree to rebalance, or 'root' for the
+   *   whole tree.
+   * @returns the ranks to persist, in order.
+   */
+  public rebalanceSubtree(parentKey: string): RankChange[] {
+    const changes = this.rebalanceUnder(parentKey);
+    for (const change of [...changes]) {
+      if (this.childrenOf(change.cardKey).length > 0) {
+        changes.push(...this.rebalanceSubtree(change.cardKey));
+      }
+    }
+    return changes;
+  }
+
+  // Runs a rank computation against the sibling ranks, and keeps it honest
+  // about ranks the arithmetic cannot work with.
+  //
+  // A sibling set drifts: a card can be left without a rank, and two can end
+  // up sharing one or holding an inverted pair - all of which getRankBetween
+  // refuses rather than inventing an answer for. When that happens the set is
+  // rebalanced into evenly spread ranks and the computation is run again
+  // against those, with the rebalance prepended to the changes so the caller
+  // persists the repair along with the placement. A healthy sibling set - the
+  // normal case - pays nothing for this.
+  private withUsableRanks(
+    siblings: string[],
+    compute: (rankAt: (index: number) => string) => RankChange[],
+  ): RankChange[] {
+    const ranks = siblings.map((key) => this.rankOf(key));
+    if (ranks.every((rank) => rank !== undefined)) {
+      try {
+        return compute((index) => ranks[index]!);
+      } catch {
+        // Drifted ranks. Fall through to the rebalance and retry.
+      }
+    }
+    const rebalanced = rebalanceRanks(siblings.length);
+    return [
+      ...siblings.map((cardKey, index) => ({
+        cardKey,
+        rank: rebalanced[index],
+      })),
+      ...compute((index) => rebalanced[index]),
+    ];
   }
 
   /**

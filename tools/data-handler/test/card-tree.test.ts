@@ -31,8 +31,17 @@ const cardRoot = join(testDir, 'cardRoot');
 const CARD_KEY = 'test_1';
 const ATTACHMENT = 'diagram.png';
 
-function createCard(cardKey: string, attachments: string[] = []) {
-  const cardPath = join(cardRoot, cardKey);
+// Writes a card folder under 'parentPath', which defaults to the tree root.
+// A rank of '' leaves the card unranked.
+function createCardAt(
+  cardKey: string,
+  options: {
+    parentPath?: string;
+    rank?: string;
+    attachments?: string[];
+  } = {},
+) {
+  const cardPath = join(options.parentPath ?? cardRoot, cardKey);
   mkdirSync(cardPath, { recursive: true });
   writeFileSync(
     join(cardPath, 'index.json'),
@@ -40,7 +49,7 @@ function createCard(cardKey: string, attachments: string[] = []) {
       title: 'Card',
       cardType: 'test/cardTypes/page',
       workflowState: 'Draft',
-      rank: '0|a',
+      rank: options.rank ?? '0|a',
       links: [
         {
           linkType: 'test/linkTypes/rel',
@@ -51,6 +60,7 @@ function createCard(cardKey: string, attachments: string[] = []) {
   );
   writeFileSync(join(cardPath, 'index.adoc'), `image::${ATTACHMENT}[]\n`);
 
+  const attachments = options.attachments ?? [];
   if (attachments.length > 0) {
     mkdirSync(join(cardPath, 'a'), { recursive: true });
     for (const attachment of attachments) {
@@ -60,6 +70,21 @@ function createCard(cardKey: string, attachments: string[] = []) {
   return cardPath;
 }
 
+function createCard(cardKey: string, attachments: string[] = []) {
+  return createCardAt(cardKey, { attachments });
+}
+
+function newTree(): CardTree {
+  return new CardTree({
+    name: 'project',
+    rootPath: cardRoot,
+    writable: true,
+    emitsCardFact: true,
+    validationApplies: true,
+    keys: new CardKeyRegistry(() => 'test'),
+  });
+}
+
 describe('CardTree.renameAttachment', () => {
   let tree: CardTree;
   let cardPath: string;
@@ -67,14 +92,7 @@ describe('CardTree.renameAttachment', () => {
   beforeEach(async () => {
     mkdirSync(cardRoot, { recursive: true });
     cardPath = createCard(CARD_KEY, [ATTACHMENT]);
-    tree = new CardTree({
-      name: 'project',
-      rootPath: cardRoot,
-      writable: true,
-      emitsCardFact: true,
-      validationApplies: true,
-      keys: new CardKeyRegistry(() => 'test'),
-    });
+    tree = newTree();
     await tree.load();
   });
 
@@ -137,14 +155,7 @@ describe('CardTree read boundary', () => {
   beforeEach(async () => {
     mkdirSync(cardRoot, { recursive: true });
     createCard(CARD_KEY, [ATTACHMENT]);
-    tree = new CardTree({
-      name: 'project',
-      rootPath: cardRoot,
-      writable: true,
-      emitsCardFact: true,
-      validationApplies: true,
-      keys: new CardKeyRegistry(() => 'test'),
-    });
+    tree = newTree();
     await tree.load();
   });
 
@@ -216,5 +227,181 @@ describe('CardTree read boundary', () => {
         'path',
       ]);
     }
+  });
+});
+
+describe('CardTree ranks', () => {
+  let tree: CardTree;
+
+  beforeEach(() => {
+    mkdirSync(cardRoot, { recursive: true });
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  // Loads a tree over root cards with the given ranks, keyed test_1..test_n.
+  async function withRootRanks(...ranks: string[]): Promise<string[]> {
+    const keys = ranks.map((rank, index) => {
+      const key = `test_${index + 1}`;
+      createCardAt(key, { rank });
+      return key;
+    });
+    tree = newTree();
+    await tree.load();
+    return keys;
+  }
+
+  it('orders siblings by rank, unranked last', async () => {
+    await withRootRanks('0|c', '', '0|a', '0|b');
+    expect(tree.siblingsUnder('root')).toEqual([
+      'test_3',
+      'test_4',
+      'test_1',
+      'test_2',
+    ]);
+  });
+
+  it('allocates a block after the last ranked sibling', async () => {
+    await withRootRanks('0|a', '0|b');
+    expect(tree.rankBlock('root', 3)).toEqual(['0|c', '0|d', '0|e']);
+  });
+
+  it('allocates a block after FIRST_RANK when nothing is ranked', async () => {
+    // '0|a' stays free so rankFirst can claim it without demoting anyone.
+    expect(newTree().rankBlock('root', 2)).toEqual(['0|b', '0|c']);
+  });
+
+  it('allocates a block under a parent card', async () => {
+    createCardAt('test_1', { rank: '0|a' });
+    createCardAt('test_2', {
+      parentPath: join(cardRoot, 'test_1', 'c'),
+      rank: '0|f',
+    });
+    tree = newTree();
+    await tree.load();
+
+    expect(tree.rankBlock('test_1', 2)).toEqual(['0|g', '0|h']);
+    // The parent's own sibling set is a different one.
+    expect(tree.rankBlock('root', 1)).toEqual(['0|b']);
+  });
+
+  it('ranks a card after the last sibling', async () => {
+    const [first, , third] = await withRootRanks('0|a', '0|b', '0|c');
+    expect(tree.rankAfter(first, third)).toEqual([
+      { cardKey: first, rank: '0|d' },
+    ]);
+  });
+
+  it('ranks a card between two siblings', async () => {
+    const [first, second] = await withRootRanks('0|a', '0|b', '0|c');
+    expect(tree.rankAfter(first, second)).toEqual([
+      { cardKey: first, rank: '0|bn' },
+    ]);
+  });
+
+  it('ranks a card first, and demotes whoever holds the first rank', async () => {
+    const [first, , third] = await withRootRanks('0|a', '0|m', '0|z');
+    expect(tree.rankFirst(third)).toEqual([
+      { cardKey: first, rank: '0|g' },
+      { cardKey: third, rank: '0|a' },
+    ]);
+  });
+
+  it('leaves a card that is already first alone', async () => {
+    const [first] = await withRootRanks('0|a', '0|b');
+    expect(tree.rankFirst(first)).toEqual([]);
+  });
+
+  it('takes the first rank directly when nobody holds it', async () => {
+    const [, second] = await withRootRanks('0|b', '0|c');
+    expect(tree.rankFirst(second)).toEqual([{ cardKey: second, rank: '0|a' }]);
+  });
+
+  // Duplicate ranks are drift the arithmetic refuses to work with, so the
+  // sibling set is repaired first and the placement computed against the
+  // repaired ranks.
+  it('rebalances drifted sibling ranks before placing a card', async () => {
+    const [first, second, third] = await withRootRanks('0|a', '0|b', '0|b');
+    expect(tree.rankAfter(first, second)).toEqual([
+      { cardKey: first, rank: '0|a' },
+      { cardKey: second, rank: '0|m' },
+      { cardKey: third, rank: '0|z' },
+      { cardKey: first, rank: '0|s' },
+    ]);
+  });
+
+  it('rebalances an unranked sibling set', async () => {
+    const [first, second] = await withRootRanks('', '');
+    expect(tree.rankAfter(second, first)).toEqual([
+      { cardKey: first, rank: '0|a' },
+      { cardKey: second, rank: '0|z' },
+      // Then placed between the repaired ranks of the two siblings.
+      { cardKey: second, rank: '0|m' },
+    ]);
+  });
+
+  it('spreads a rebalance across the whole rank space', async () => {
+    const keys = await withRootRanks('0|a', '0|b', '0|c');
+    expect(tree.rebalanceUnder('root')).toEqual([
+      { cardKey: keys[0], rank: '0|a' },
+      { cardKey: keys[1], rank: '0|m' },
+      { cardKey: keys[2], rank: '0|z' },
+    ]);
+  });
+
+  it('rebalances a subtree level by level', async () => {
+    createCardAt('test_1', { rank: '0|a' });
+    createCardAt('test_2', { rank: '0|b' });
+    const children = join(cardRoot, 'test_1', 'c');
+    createCardAt('test_3', { parentPath: children, rank: '0|y' });
+    createCardAt('test_4', { parentPath: children, rank: '0|z' });
+    tree = newTree();
+    await tree.load();
+
+    expect(tree.rebalanceSubtree('root')).toEqual([
+      { cardKey: 'test_1', rank: '0|a' },
+      { cardKey: 'test_2', rank: '0|z' },
+      { cardKey: 'test_3', rank: '0|a' },
+      { cardKey: 'test_4', rank: '0|z' },
+    ]);
+  });
+
+  // 500 appends is past the 158-card ceiling the Number-based rank arithmetic
+  // saturated at: there getRankAfter started returning its own input, so the
+  // 159th card and every card after it got the 158th card's rank.
+  it('appends 500 cards to the same parent without repeating a rank', async () => {
+    await withRootRanks('0|a');
+    const seen = new Set<string>(['0|a']);
+    let previous = '0|a';
+
+    for (let index = 0; index < 500; index++) {
+      const [rank] = tree.rankBlock('root', 1);
+      expect(seen.has(rank), `rank ${rank} was handed out twice`).toBe(false);
+      expect(rank > previous, `${rank} must be after ${previous}`).toBe(true);
+      seen.add(rank);
+      previous = rank;
+
+      // Into the tree, so the next allocation sees it as the last sibling.
+      const cardKey = `test_append${index}`;
+      tree.insert({
+        key: cardKey,
+        path: tree.pathFor('root', cardKey),
+        parent: 'root',
+        children: [],
+        attachments: [],
+        content: '',
+        metadata: {
+          title: 'Card',
+          cardType: 'test/cardTypes/page',
+          workflowState: 'Draft',
+          rank,
+          links: [],
+        },
+      });
+    }
+
+    expect(seen.size).toBe(501);
   });
 });

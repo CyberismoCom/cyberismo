@@ -4,6 +4,7 @@ import {
   getRankAfter,
   rebalanceRanks,
   getRankBefore,
+  FIRST_RANK,
 } from '../../src/utils/lexorank.js';
 import { expect, it, describe } from 'vitest';
 
@@ -64,6 +65,29 @@ describe('lexorank', () => {
     it('regression: getRankAfter(EMPTY_RANK) returns malformed "0|"', () => {
       expect(getRankAfter('1|a')).toBe('0|');
     });
+
+    // Base-26 rank arithmetic used to run on Number, so debase summed
+    // 26^k terms: at 12 characters that exceeds Number.MAX_SAFE_INTEGER and
+    // 'num + 1' stops being a different number. Sequential appends reach 12
+    // characters after 158 cards, and there getRankAfter stepped *backwards*
+    // once and then returned its own input forever - so no card could be
+    // appended after the last one. A 226-root-card project reaches this.
+    it('appends 500 times without saturating', () => {
+      const ranks: string[] = [];
+      let rank = FIRST_RANK;
+      for (let index = 0; index < 500; index++) {
+        rank = getRankAfter(rank);
+        ranks.push(rank);
+      }
+
+      expect(new Set(ranks).size).toBe(500);
+      for (let index = 1; index < ranks.length; index++) {
+        expect(
+          ranks[index] > ranks[index - 1],
+          `rank ${index} (${ranks[index]}) must be after rank ${index - 1} (${ranks[index - 1]})`,
+        ).toBe(true);
+      }
+    });
   });
 
   describe('getRankBefore', () => {
@@ -104,5 +128,25 @@ describe('lexorank', () => {
     it('rebalanceRanks with 1 item', () => {
       expect(rebalanceRanks(1)).toEqual(['0|a']);
     });
+
+    // The intermediate ranks were not padded to the block's level count, so
+    // they sorted by their first character: with two levels, 'z' (25) landed
+    // after 'ba' (26) and a rebalanced block of more than 26 cards was not in
+    // increasing order at all - a rebalance that reorders the cards it is
+    // supposed to be leaving in place.
+    it.each([27, 156, 500, 700])(
+      'rebalanceRanks(%d) is strictly increasing',
+      (rankAmount) => {
+        const ranks = rebalanceRanks(rankAmount);
+        expect(ranks).toHaveLength(rankAmount);
+        expect(new Set(ranks).size).toBe(rankAmount);
+        for (let index = 1; index < ranks.length; index++) {
+          expect(
+            ranks[index] > ranks[index - 1],
+            `rank ${index} (${ranks[index]}) must be after rank ${index - 1} (${ranks[index - 1]})`,
+          ).toBe(true);
+        }
+      },
+    );
   });
 });

@@ -16,17 +16,9 @@ import { join } from 'node:path';
 
 import { ActionGuard } from '../permissions/action-guard.js';
 import { copyDir, deleteDir } from '../utils/file-utils.js';
-import type { Card } from '../interfaces/project-interfaces.js';
 import type { Project } from '../containers/project.js';
+import type { RankChange } from '../containers/project/card-tree.js';
 import { write } from '../utils/rw-lock.js';
-import {
-  EMPTY_RANK,
-  FIRST_RANK,
-  getRankAfter,
-  getRankBetween,
-  rebalanceRanks,
-  sortItems,
-} from '../utils/lexorank.js';
 import {
   isModuleCard,
   isModulePath,
@@ -43,6 +35,11 @@ export class Move {
     return this.project.treeOf(cardKey).name;
   }
 
+  // Whether a card is one of the project's own, as opposed to a template's.
+  private isProjectCard(cardKey: string): boolean {
+    return this.containerOf(cardKey) === 'project';
+  }
+
   // The template a template card belongs to.
   private templateOf(cardKey: string): string {
     const container = this.containerOf(cardKey);
@@ -52,85 +49,14 @@ export class Move {
     return container;
   }
 
-  // Returns children of a parent card or root cards
-  private getSiblings(card: Card): Card[] {
-    const parentCardKey = card.parent || ROOT;
-
-    // since we don't know if 'root' is templateRoot or cardRoot, we need to check the card
-    if (parentCardKey === ROOT) {
-      if (isTemplateCard(card)) {
-        if (isModuleCard(card)) {
-          throw new Error(`Cannot rank module cards`);
-        }
-        return this.project
-          .templateTree(this.templateOf(card.key))
-          .cards()
-          .filter((item) => item.parent === ROOT || !item.parent);
-      }
-    }
-
-    let parentCard;
-    if (parentCardKey !== ROOT) {
-      parentCard = this.project.findCard(parentCardKey);
-      return this.project.cardKeysToCards(parentCard.children);
-    }
-
-    return this.project.cardTree
-      .rootCards()
-      .filter((item) => item.parent === 'root' || item.parent === '');
-  }
-
-  // Returns `getRankBetween(siblings[loIndex], siblings[hiIndex])`. If the call
-  // throws because the two adjacent ranks are equal or inverted (data drift),
-  // rebalances the siblings to dedupe ranks and retries once.
-  private async safeRankBetween(
-    siblings: Card[],
-    loIndex: number,
-    hiIndex: number,
-  ): Promise<string> {
-    const lo = siblings[loIndex].metadata?.rank as string;
-    const hi = siblings[hiIndex].metadata?.rank as string;
-    try {
-      return getRankBetween(lo, hi);
-    } catch {
-      await this.rebalanceCards(siblings);
-      const refreshed = sortItems(
-        this.project.cardKeysToCards(siblings.map((c) => c.key)),
-        (c) => c.metadata?.rank || EMPTY_RANK,
+  // Persists the ranks a tree computed, in the order it gave them.
+  private async applyRanks(changes: RankChange[]) {
+    for (const change of changes) {
+      await this.project.updateCardMetadataKey(
+        change.cardKey,
+        'rank',
+        change.rank,
       );
-      return getRankBetween(
-        refreshed[loIndex].metadata?.rank as string,
-        refreshed[hiIndex].metadata?.rank as string,
-      );
-    }
-  }
-
-  // Rebalances cards
-  private async rebalanceCards(cards: Card[]) {
-    const ranks = rebalanceRanks(cards.length);
-
-    cards = sortItems(cards, (item) => item.metadata?.rank || 'z');
-
-    for (let i = 0; i < cards.length; i++) {
-      const card = cards[i];
-      await this.project.updateCardMetadataKey(card.key, 'rank', ranks[i]);
-    }
-  }
-
-  // Rebalances the project recursively.
-  private async rebalanceProjectRecursively(cards: Card[]) {
-    const ranks = rebalanceRanks(cards.length);
-
-    cards = sortItems(cards, (item) => item.metadata?.rank || 'z');
-
-    for (let i = 0; i < cards.length; i++) {
-      const card = cards[i];
-      await this.project.updateCardMetadataKey(card.key, 'rank', ranks[i]);
-      if (card.children && card.children.length > 0) {
-        await this.rebalanceProjectRecursively(
-          this.project.cardKeysToCards(card.children),
-        );
-      }
     }
   }
 
@@ -224,6 +150,12 @@ export class Move {
       );
     }
 
+    // Which container the card lands in: the template the sentinel named, the
+    // project root, or whatever container the destination card is in.
+    const destinationContainer = movingToRoot
+      ? (targetTemplateName ?? 'project')
+      : this.containerOf(destination);
+
     const destinationPath = movingToRoot
       ? movingToProjectRoot
         ? join(this.project.paths.cardRootFolder, sourceCard.key)
@@ -239,34 +171,12 @@ export class Move {
     const actionGuard = new ActionGuard(this.project.calculationEngine);
     await actionGuard.checkPermission('move', source);
 
-    // re-rank the card in the new location
-    // it will be the last one in the new location
-    let children;
-    if (!movingToRoot) {
-      const parent = this.project.findCard(destination);
-      children = this.project.cardKeysToCards(parent.children);
-    } else if (movingToProjectRoot) {
-      children = this.project.cardTree
-        .rootCards()
-        .filter((item) => item.parent === ROOT || !item.parent);
-    } else {
-      children = this.project
-        .templateTree(targetTemplateName!)
-        .cards()
-        .filter((item) => item.parent === ROOT || !item.parent);
-    }
-
-    if (!children) {
-      throw new Error(`Children not found from card ${destination}`);
-    }
-
-    children = sortItems(children, (item) => item?.metadata?.rank || '1|z');
-    const lastChild = children[children.length - 1];
-
-    const rank =
-      lastChild && lastChild.metadata
-        ? getRankAfter(lastChild.metadata.rank)
-        : FIRST_RANK;
+    // The card lands last in its new location. Taken before the structure
+    // update, so the card being moved is not one of the siblings it is
+    // ranked against.
+    const [rank] = this.project
+      .containerTree(destinationContainer)
+      .rankBlock(movingToRoot ? ROOT : destination, 1);
 
     // First do the file operations, then the tree position
     await copyDir(sourceCard.path, destinationPath);
@@ -278,11 +188,7 @@ export class Move {
     this.project.relocateCard(
       source,
       movingToRoot ? ROOT : destination,
-      // Which container the card lands in: the template the sentinel named,
-      // the project root, or whatever container the destination card is in.
-      movingToRoot
-        ? (targetTemplateName ?? 'project')
-        : this.containerOf(destination),
+      destinationContainer,
     );
 
     // Rank the card in its new place. Persists the metadata to the card's new
@@ -308,24 +214,11 @@ export class Move {
       return;
     }
 
-    const card = this.project.findCard(cardKey);
-    if (!card.parent) {
-      throw new Error(`Parent card ${cardKey} not found from project`);
-    }
-
-    const children = sortItems(
-      this.getSiblings(card),
-      (item) => item.metadata?.rank || EMPTY_RANK,
-    );
-
-    if (!children || children.length === 0) {
-      throw new Error(`Children not found from card ${card.parent}`);
-    }
-
-    if (children.length < index) {
+    const siblings = this.project.treeOf(cardKey).siblingsOf(cardKey);
+    if (siblings.length < index) {
       throw new Error(`Index ${index} is out of bounds`);
     }
-    await this.rankCard(cardKey, children[index - 1].key);
+    await this.rankCard(cardKey, siblings[index - 1]);
   }
 
   /**
@@ -335,50 +228,21 @@ export class Move {
    */
   @write((cardKey) => `Reorder card ${cardKey}`)
   public async rankCard(cardKey: string, beforeCardKey: string) {
-    const card = this.project.findCard(cardKey);
-    const beforeCard = this.project.findCard(beforeCardKey);
-
-    if (beforeCard.parent !== card.parent) {
-      throw new Error(`Cards must be from the same parent`);
-    }
-
-    const children = sortItems(
-      this.getSiblings(beforeCard),
-      (item) => item.metadata?.rank || EMPTY_RANK,
-    );
-
-    if (!children) {
-      throw new Error(`Children not found from card ${beforeCard.parent}`);
-    }
-
-    const beforeCardIndex = children.findIndex(
-      (child) => child.key === beforeCard.key,
-    );
-
-    if (beforeCardIndex === -1) {
-      throw new Error(
-        `Card ${beforeCardKey} is not a child of ${beforeCard.parent}`,
-      );
-    }
-
-    if (children[beforeCardIndex].key === cardKey) {
+    if (cardKey === beforeCardKey) {
       throw new Error(`Card cannot be ranked after itself`);
     }
 
-    if (beforeCardIndex === children.length - 1) {
-      await this.project.updateCardMetadataKey(
-        cardKey,
-        'rank',
-        getRankAfter(beforeCard.metadata?.rank as string),
-      );
-    } else {
-      const newRank = await this.safeRankBetween(
-        children,
-        beforeCardIndex,
-        beforeCardIndex + 1,
-      );
-      await this.project.updateCardMetadataKey(cardKey, 'rank', newRank);
+    const tree = this.project.treeOf(cardKey);
+    // Same tree and same parent: ranks only order siblings, and two cards in
+    // different containers are never siblings even when both sit at 'root'.
+    if (
+      tree !== this.project.treeOf(beforeCardKey) ||
+      tree.node(beforeCardKey).parent !== tree.node(cardKey).parent
+    ) {
+      throw new Error(`Cards must be from the same parent`);
     }
+
+    await this.applyRanks(tree.rankAfter(cardKey, beforeCardKey));
   }
 
   /**
@@ -387,44 +251,7 @@ export class Move {
    */
   @write((cardKey) => `Rank card ${cardKey} first`)
   public async rankFirst(cardKey: string) {
-    const card = this.project.findCard(cardKey);
-    const children = sortItems(
-      this.getSiblings(card),
-      (item) => item.metadata?.rank || EMPTY_RANK,
-    );
-
-    if (!children || children.length === 0) {
-      throw new Error(`Children not found from card ${card.parent}`);
-    }
-
-    if (children[0].key === cardKey && children[0].metadata?.rank) {
-      return;
-    }
-
-    const firstRank = children[0].metadata?.rank;
-    if (!firstRank) {
-      await this.project.updateCardMetadataKey(cardKey, 'rank', FIRST_RANK);
-      return;
-    }
-
-    // Set the rank to be the first one
-    if (firstRank === FIRST_RANK) {
-      // The first card is already at FIRST_RANK; demote it to a rank between
-      // itself and the second card to free FIRST_RANK for the target card.
-      if (!children[1]?.metadata?.rank) {
-        throw new Error(`Second rank not found`);
-      }
-      const rankBetween = await this.safeRankBetween(children, 0, 1);
-      await this.project.updateCardMetadataKey(
-        children[0].key,
-        'rank',
-        rankBetween,
-      );
-      await this.project.updateCardMetadataKey(cardKey, 'rank', firstRank);
-    } else {
-      // if the card is not at the first rank, we just use the first rank
-      await this.project.updateCardMetadataKey(cardKey, 'rank', FIRST_RANK);
-    }
+    await this.applyRanks(this.project.treeOf(cardKey).rankFirst(cardKey));
   }
 
   /**
@@ -433,12 +260,8 @@ export class Move {
    */
   @write((parentCardKey) => `Rebalance children of ${parentCardKey}`)
   public async rebalanceChildren(parentCardKey: string) {
-    const parentCard = this.project.findCard(parentCardKey);
-    if (!parentCard || !parentCard.children) {
-      throw new Error(`Card ${parentCardKey} not found from project`);
-    }
-    await this.rebalanceCards(
-      this.project.cardKeysToCards(parentCard.children),
+    await this.applyRanks(
+      this.project.treeOf(parentCardKey).rebalanceUnder(parentCardKey),
     );
   }
 
@@ -448,28 +271,15 @@ export class Move {
    */
   @write(() => 'Rebalance project')
   public async rebalanceProject() {
-    const cards = this.project.cardTree.rootCards();
-
-    await this.rebalanceProjectRecursively(cards);
-
-    const templateCards = this.project.allTemplateCards();
-    const cardGroups = templateCards.reduce(
-      (result, card) => {
-        // template card root cards always have a parent(, thus this shouldn't happen
-        if (!card.parent) {
-          return result;
-        }
-        if (!result[card.parent]) {
-          result[card.parent] = [];
-        }
-        result[card.parent].push(card);
-        return result;
-      },
-      {} as Record<string, Card[]>,
-    );
-
-    for (const [, cards] of Object.entries(cardGroups)) {
-      await this.rebalanceCards(cards);
+    // Every tree, level by level. A module's tree refuses writes, so there is
+    // nothing to rebalance in it.
+    for (const tree of [
+      this.project.cardTree,
+      ...this.project.templateTrees(),
+    ]) {
+      if (tree.writable) {
+        await this.applyRanks(tree.rebalanceSubtree(ROOT));
+      }
     }
   }
 }
