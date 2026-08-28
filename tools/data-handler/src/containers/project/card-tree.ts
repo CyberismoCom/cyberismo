@@ -337,6 +337,27 @@ export class CardTree {
     }
   }
 
+  // A card may not be placed under itself or under one of its own
+  // descendants.
+  //
+  // This is an integrity invariant, not a usability check. Paths are derived
+  // by walking parent edges up to the root, so a cycle does not give a wrong
+  // answer - it gives no answer: pathOf never terminates, and neither does
+  // anything built on it. The friendly "Card cannot be moved to inside
+  // itself" belongs to the move command, which validates before it gets
+  // here; this is what makes the invariant hold for every other caller too.
+  private assertNoCycle(cardKey: string, parent: string) {
+    let ancestor: string | undefined = parent;
+    while (ancestor && ancestor !== ROOT) {
+      if (ancestor === cardKey) {
+        throw new Error(
+          `Card '${cardKey}' cannot be placed under '${parent}', which is the card itself or one of its descendants`,
+        );
+      }
+      ancestor = this.cache.getCard(ancestor)?.parent;
+    }
+  }
+
   /**
    * Every card in the tree, fully hydrated.
    *
@@ -692,6 +713,7 @@ export class CardTree {
    */
   public insert(card: Card) {
     this.assertWritable();
+    this.assertNoCycle(card.key, card.parent || ROOT);
     this.options.keys.claim([card.key], this);
     this.cache.put({
       key: card.key,
@@ -728,10 +750,13 @@ export class CardTree {
    * from it, so nothing needs rewriting below it.
    * @param cardKey Card to move.
    * @param parent New parent card key, or 'root'.
+   * @throws if the card would end up under itself or under one of its own
+   *   descendants
    */
   public relocate(cardKey: string, parent: string) {
     this.assertWritable();
     this.cached(cardKey);
+    this.assertNoCycle(cardKey, parent);
     this.cache.relocate(cardKey, parent);
   }
 
@@ -771,12 +796,21 @@ export class CardTree {
    * @param cards The subtree's cards, parents before children.
    * @param parent New parent for the subtree's root card, or 'root'.
    * @throws DuplicateCardKeyError if any of the keys is already held
+   * @throws if the new parent is one of the cards being grafted
    */
   public graft(cards: StoredCard[], parent: string) {
     this.assertWritable();
     if (cards.length === 0) {
       return;
     }
+    // The grafted cards are not in this tree yet, so the ancestor walk cannot
+    // see them: a parent taken from the subtree itself has to be caught here.
+    if (cards.some((card) => card.key === parent)) {
+      throw new Error(
+        `Card '${cards[0].key}' cannot be grafted under '${parent}', which is part of the subtree being grafted`,
+      );
+    }
+    this.assertNoCycle(cards[0].key, parent);
     this.options.keys.claim(
       cards.map((card) => card.key),
       this,

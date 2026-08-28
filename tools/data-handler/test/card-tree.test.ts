@@ -405,3 +405,76 @@ describe('CardTree ranks', () => {
     expect(seen.size).toBe(501);
   });
 });
+
+describe('CardTree structural integrity', () => {
+  let tree: CardTree;
+
+  // A three-generation line: test_1 -> test_2 -> test_3.
+  beforeEach(async () => {
+    mkdirSync(cardRoot, { recursive: true });
+    createCardAt('test_1');
+    createCardAt('test_2', { parentPath: join(cardRoot, 'test_1', 'c') });
+    createCardAt('test_3', {
+      parentPath: join(cardRoot, 'test_1', 'c', 'test_2', 'c'),
+    });
+    tree = newTree();
+    await tree.load();
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  // Card paths are derived by walking parent edges up to the root, so a cycle
+  // is not a wrong path - it is no path: pathOf would never terminate.
+  it.each([
+    ['its own child', 'test_1', 'test_2'],
+    ['its own grandchild', 'test_1', 'test_3'],
+    ['itself', 'test_2', 'test_2'],
+  ])('refuses to relocate a card under %s', (_case, cardKey, parent) => {
+    expect(() => tree.relocate(cardKey, parent)).toThrow(
+      `Card '${cardKey}' cannot be placed under '${parent}'`,
+    );
+    // And the tree is unchanged, so paths still resolve.
+    expect(tree.pathOf('test_3')).toBe(
+      join(cardRoot, 'test_1', 'c', 'test_2', 'c', 'test_3'),
+    );
+  });
+
+  it('allows relocating a card under an unrelated card', () => {
+    createCardAt('test_9');
+    tree.insert({
+      key: 'test_9',
+      path: join(cardRoot, 'test_9'),
+      parent: 'root',
+      children: [],
+      attachments: [],
+      content: '',
+      metadata: {
+        title: 'Card',
+        cardType: 'test/cardTypes/page',
+        workflowState: 'Draft',
+        rank: '0|b',
+        links: [],
+      },
+    });
+
+    tree.relocate('test_1', 'test_9');
+    expect(tree.pathOf('test_3')).toBe(
+      join(cardRoot, 'test_9', 'c', 'test_1', 'c', 'test_2', 'c', 'test_3'),
+    );
+  });
+
+  it('refuses to graft a subtree under one of its own cards', () => {
+    const subtree = tree.uproot('test_1');
+    expect(subtree.map((card) => card.key)).toEqual([
+      'test_1',
+      'test_2',
+      'test_3',
+    ]);
+
+    expect(() => tree.graft(subtree, 'test_2')).toThrow(
+      `Card 'test_1' cannot be grafted under 'test_2'`,
+    );
+  });
+});
