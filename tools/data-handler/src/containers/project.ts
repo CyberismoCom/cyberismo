@@ -401,7 +401,7 @@ export class Project extends CardContainer {
    * @returns Card data to the given card keys
    */
   public cardKeysToCards(cardIds: string[]): Card[] {
-    return this.cardTree.liveCardsFor(cardIds);
+    return this.cardTree.cardsFor(cardIds);
   }
 
   /**
@@ -1032,7 +1032,20 @@ export class Project extends CardContainer {
     if (templateName === 'project') {
       return [];
     }
-    return this.cardTree.liveCardsIn(templateName);
+    return this.cardTree.cardsIn(templateName);
+  }
+
+  /**
+   * Metadata-level view of a single template's cards: identity, tree position
+   * and metadata, without the content or the attachment listing.
+   * @param templateName Name of the template.
+   * @returns nodes of the cards in that template.
+   */
+  public templateCardNodes(templateName: string): CardNode[] {
+    if (templateName === 'project') {
+      return [];
+    }
+    return this.cardTree.cardNodesIn(templateName);
   }
 
   /**
@@ -1117,29 +1130,7 @@ export class Project extends CardContainer {
     oldBasePath: string,
     newBasePath: string,
   ): void {
-    const card = this.cardTree.liveCard(cardKey);
-    if (!card) return;
-
-    if (card.path.startsWith(oldBasePath)) {
-      card.path = card.path.replace(oldBasePath, newBasePath);
-
-      if (card.attachments && card.attachments.length > 0) {
-        for (const attachment of card.attachments) {
-          if (attachment.path.startsWith(oldBasePath)) {
-            attachment.path = attachment.path.replace(oldBasePath, newBasePath);
-          }
-        }
-      }
-
-      this.cardCache.updateCard(card.key, card);
-    }
-
-    // Recursively update children
-    if (card.children && card.children.length > 0) {
-      for (const childKey of card.children) {
-        this.updateDescendantPathsAfterMove(childKey, oldBasePath, newBasePath);
-      }
-    }
+    this.cardTree.rebaseSubtreePaths(cardKey, oldBasePath, newBasePath);
   }
 
   /**
@@ -1148,7 +1139,11 @@ export class Project extends CardContainer {
    * @param card The card with updated information (path, parent, metadata, etc.)
    */
   public async updateCard(card: Card) {
-    const cachedCard = this.cardTree.liveCard(card.key);
+    // A copy, read only to compare against: this method's job is to work out
+    // what the caller changed.
+    const cachedCard = this.cardTree.has(card.key)
+      ? this.cardTree.card(card.key)
+      : undefined;
     const pathChange = cachedCard && cachedCard.path !== card.path;
 
     const metadataChanged =

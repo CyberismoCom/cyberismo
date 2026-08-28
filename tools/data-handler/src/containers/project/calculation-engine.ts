@@ -254,7 +254,7 @@ export class CalculationEngine {
   // reads metadata, so the cheap read is enough.
   private getCards(templateName?: string): CardNode[] {
     if (templateName) {
-      return this.project.templateCards(templateName);
+      return this.project.templateCardNodes(templateName);
     }
 
     return this.project.cardNodes();

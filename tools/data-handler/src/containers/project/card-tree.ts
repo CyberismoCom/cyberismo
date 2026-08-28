@@ -142,27 +142,34 @@ export class CardTree {
   }
 
   // Identity and tree position, with the store-internal 'location' dropped.
-  // The metadata is shared with the store, so a node is a read-only view: its
-  // callers are audited and none of them writes to what they get back.
-  // Callers that modify metadata use cardsIn()/card(), which hand out a copy.
+  //
+  // The metadata object is shared with the store, deliberately: this is the
+  // cheap read, taken once per card on the fact-projection path, and cloning
+  // there is the cost that was measured away. Sharing is safe because stored
+  // metadata is frozen (see CardCache.normalizedMetadata) — a caller that
+  // tries to write to it gets a TypeError instead of silently editing the
+  // store. Callers that need to modify metadata use cardsIn()/card(), which
+  // hand out an unfrozen copy. 'children' is copied: it is the adjacency
+  // index's own array, and it is small.
   private static nodeView(card: Card): CardNode {
     return {
       key: card.key,
       path: card.path,
-      children: card.children,
+      children: [...card.children],
       metadata: card.metadata,
       parent: card.parent,
     };
   }
 
-  // The fully hydrated card: identity, tree position, a copy of the metadata,
-  // and the content and attachment listing shared with the store.
+  // The fully hydrated card: identity, tree position, and copies of everything
+  // a caller might modify. Content is a string, so sharing it is sharing a
+  // value.
   private static cardView(card: Card): Card {
     return {
       ...CardTree.nodeView(card),
       metadata: structuredClone(card.metadata),
       content: card.content,
-      attachments: card.attachments,
+      attachments: card.attachments.map((attachment) => ({ ...attachment })),
     };
   }
 
@@ -207,19 +214,6 @@ export class CardTree {
   }
 
   /**
-   * The stored card objects in a location, not copies.
-   *
-   * Transitional, and the reason it is named this way: several callers still
-   * modify what they read here, and the branch that flips the read boundary to
-   * immutable snapshots needs them enumerated rather than hidden behind the
-   * same name as the copying reads.
-   * @param location 'project', or a full template name.
-   */
-  public liveCardsIn(location: string): Card[] {
-    return this.cache.cardsAtLocation(location);
-  }
-
-  /**
    * How many cards a location holds.
    * @param location 'project', or a full template name.
    */
@@ -236,7 +230,11 @@ export class CardTree {
     this.cache
       .cardsAtLocation(location)
       .filter((card) => card.attachments.length > 0)
-      .forEach((card) => attachments.push(...card.attachments));
+      .forEach((card) =>
+        attachments.push(
+          ...card.attachments.map((attachment) => ({ ...attachment })),
+        ),
+      );
     return attachments;
   }
 
@@ -255,7 +253,11 @@ export class CardTree {
         !card.parent ||
         this.locationOfCard(card.parent) !== location
       ) {
-        rootCards.push({ ...card, children: card.children });
+        // Built through cardView rather than by spreading the stored card:
+        // spreading also copied out the store-internal 'location' field, which
+        // is not part of Card and leaked into anything that serialised the
+        // result.
+        rootCards.push(CardTree.cardView(card));
       }
     }
     return rootCards;
@@ -266,7 +268,7 @@ export class CardTree {
    * location.
    */
   public allTemplateCards(): Card[] {
-    return this.cache.getAllTemplateCards();
+    return this.cache.getAllTemplateCards().map(CardTree.cardView);
   }
 
   /**
@@ -303,30 +305,21 @@ export class CardTree {
    * @throws CardNotFoundError if the tree does not hold the card
    */
   public attachmentsOf(cardKey: string): CardAttachment[] {
-    return this.cached(cardKey).attachments;
+    return this.cached(cardKey).attachments.map((attachment) => ({
+      ...attachment,
+    }));
   }
 
   /**
-   * The stored card object, not a copy, or undefined if the tree does not hold
-   * it. Same transitional caveat as liveCardsIn: the callers left on this
-   * accessor are the ones that modify what they read.
-   * @param cardKey Card key to read.
-   */
-  public liveCard(cardKey: string): Card | undefined {
-    return this.cache.getCard(cardKey);
-  }
-
-  /**
-   * The stored cards for the given keys, not copies. Keys the tree does not
-   * hold are skipped.
+   * The cards for the given keys. Keys the tree does not hold are skipped.
    * @param cardKeys Card keys to read.
    */
-  public liveCardsFor(cardKeys: string[]): Card[] {
+  public cardsFor(cardKeys: string[]): Card[] {
     const cards: Card[] = [];
     for (const cardKey of cardKeys) {
       const card = this.cache.getCard(cardKey);
       if (card) {
-        cards.push(card);
+        cards.push(CardTree.cardView(card));
       }
     }
     return cards;
@@ -547,6 +540,46 @@ export class CardTree {
     attachment.fileName = newFileName;
     attachment.mimeType = mime.lookup(newFileName) || null;
     this.cache.updateCardAttachments(cardKey, card.attachments);
+  }
+
+  /**
+   * Rewrites the stored paths of a subtree after its folder has moved on disk,
+   * so cached paths point at where the files actually are.
+   *
+   * Lives in the tree because it edits stored structure: the caller cannot do
+   * this through a read without holding a store-internal object.
+   * @param cardKey Root of the subtree to rebase.
+   * @param oldBasePath Path prefix the subtree had before the move.
+   * @param newBasePath Path prefix it has now.
+   */
+  public rebaseSubtreePaths(
+    cardKey: string,
+    oldBasePath: string,
+    newBasePath: string,
+  ): void {
+    const card = this.cache.getCard(cardKey);
+    if (!card) {
+      return;
+    }
+
+    if (card.path.startsWith(oldBasePath)) {
+      this.cache.updateCard(cardKey, {
+        ...card,
+        path: card.path.replace(oldBasePath, newBasePath),
+        attachments: card.attachments.map((attachment) =>
+          attachment.path.startsWith(oldBasePath)
+            ? {
+                ...attachment,
+                path: attachment.path.replace(oldBasePath, newBasePath),
+              }
+            : attachment,
+        ),
+      });
+    }
+
+    for (const childKey of this.childrenOf(cardKey)) {
+      this.rebaseSubtreePaths(childKey, oldBasePath, newBasePath);
+    }
   }
 
   /**

@@ -473,7 +473,7 @@ export class Template extends CardContainer {
       this.logger.warn('A non-used variable was used in the cards method');
     }
 
-    return this.project.cardsCache.cardsAtLocation(this.fullTemplateName);
+    return this.project.templateCards(this.fullTemplateName);
   }
 
   /**
@@ -616,7 +616,7 @@ export class Template extends CardContainer {
       ? `${this.basePath.split(`${sep}modules${sep}`)[1].split(`${sep}templates`)[0]}/templates/${this.templateName}`
       : `${this.project.projectPrefix}/templates/${this.templateName}`;
 
-    return this.project.cardsCache.cardsAtLocation(fullTemplateName);
+    return this.project.templateCards(fullTemplateName);
   }
 
   /**
