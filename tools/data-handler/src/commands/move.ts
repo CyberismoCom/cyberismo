@@ -268,7 +268,11 @@ export class Move {
     this.project.relocateCard(
       source,
       movingToRoot ? ROOT : destination,
-      targetTemplateName ?? undefined,
+      // Which container the card lands in: the template the sentinel named,
+      // the project root, or whatever container the destination card is in.
+      movingToRoot
+        ? (targetTemplateName ?? 'project')
+        : this.project.locationOfCard(destination)!,
     );
 
     // Rank the card in its new place. Persists the metadata to the card's new

@@ -86,8 +86,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
    * Also removes template cards from the project's card cache.
    */
   public async delete() {
-    const templateName = resourceNameToString(this.resourceName);
-    this.project.removeCardsAtLocation(templateName);
+    this.project.removeTemplateTree(resourceNameToString(this.resourceName));
     return super.delete();
   }
 
@@ -104,10 +103,10 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
   public async rename(newIdentifier: string) {
     const oldName = resourceNameToString(this.resourceName);
     await super.rename(newIdentifier);
-    // The cards move with the template: out of the old name, in under the new
-    // one, from the folder the rename moved them to.
-    this.project.removeCardsAtLocation(oldName);
-    await this.project.reloadCardsAtLocation(
+    // The cards move with the template: same cards, new name, new folder. No
+    // reload, because their paths are derived from the folder.
+    this.project.renameTemplateTree(
+      oldName,
       resourceNameToString(this.resourceName),
       this.cardsFolder,
     );

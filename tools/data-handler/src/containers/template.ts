@@ -73,9 +73,16 @@ export class Template extends CardContainer {
     this.templateCardsPath = join(this.templatePath, 'c');
   }
 
+  /** The template's own cards live in the project's tree for this template. */
+  protected get cardTree() {
+    return this.project.templateTree(
+      this.fullTemplateName,
+      this.templateCardsPath,
+    );
+  }
+
   private async buildCardKeyMap(cards: Card[]): Promise<Map<string, string>> {
-    const cardIds = await this.project.listCardIds();
-    const newCardIds = this.project.newCardKeys(cards.length, cardIds);
+    const newCardIds = this.project.newCardKeys(cards.length);
     const cardsByKey = new Map<string, string>();
     cards.forEach((card, index) => {
       cardsByKey.set(card.key, newCardIds.at(index) || '');
@@ -406,10 +413,8 @@ export class Template extends CardContainer {
 
       // Keys and ranks are allocated here, in one pass, before anything is
       // written. Allocating them per card inside a concurrent fan-out gave
-      // every card the same sibling snapshot — and therefore the same rank —
-      // and drew each key from its own private set of the keys in use.
-      const cardIds = await this.project.listCardIds();
-      const newCardKeys = this.project.newCardKeys(count, cardIds);
+      // every card the same sibling snapshot — and therefore the same rank.
+      const newCardKeys = this.project.newCardKeys(count);
 
       const siblings = parentCard
         ? this.project.cardKeysToCards(parentCard.children)
@@ -496,7 +501,7 @@ export class Template extends CardContainer {
    * @returns the number of cards in the template.
    */
   public cardCount(): number {
-    return this.project.cardsCache.cardCountAtLocation(this.fullTemplateName);
+    return this.cardTree.count;
   }
 
   /**
@@ -546,6 +551,11 @@ export class Template extends CardContainer {
       );
       createdPaths.push(...instantiated.map((card) => card.path));
 
+      // The instantiated cards are project cards, so they are created in the
+      // project's tree - not in the template's, which for a module template
+      // refuses writes.
+      const destination = this.project.containerTree('project');
+
       // Process all cards in parallel
       // allSettled, not all: compensation may only run once every branch has
       // stopped touching the filesystem, or it races the writes it is undoing.
@@ -563,7 +573,7 @@ export class Template extends CardContainer {
           // processAttachments only creates one when the card has attachments.
           // The content used to be written with a raw writeFile here, which is
           // why content never went through the tree at all.
-          await this.createNode(processedCard);
+          await destination.createNode(processedCard);
           return processedCard;
         }),
       );
@@ -621,7 +631,7 @@ export class Template extends CardContainer {
    * @returns true if card with a given card key exists in the template, false otherwise.
    */
   public hasTemplateCard(cardKey: string): boolean {
-    return this.project.hasTemplateCard(cardKey);
+    return this.cardTree.has(cardKey);
   }
 
   /**

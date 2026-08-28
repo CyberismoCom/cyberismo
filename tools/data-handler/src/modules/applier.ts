@@ -142,9 +142,12 @@ export async function applyModules(
     applied.map((stage) => cleanupStage(stage, options.tempDir)),
   );
 
-  await project.refreshAfterModuleChange();
+  // Only the modules that landed changed on disk, so only their templates are
+  // reread.
+  const appliedNames = applied.map((stage) => stage.name);
+  await project.refreshAfterModuleChange(appliedNames);
 
-  return applied.map((stage) => stage.name);
+  return appliedNames;
 }
 
 function toStagedModule(entry: ResolvedModule): StagedModule {

@@ -31,7 +31,7 @@ describe('rank command', () => {
     // copy: an operation that writes to every cached card (rank rebalance)
     // would otherwise write to folders that no longer exist.
     const shared = await CommandManager.getInstance(decisionRecordsPath);
-    shared.project.cardsCache.clear();
+    shared.project.clearCards();
     await shared.project.populateCaches();
 
     // Create a few cards to play with.

@@ -20,6 +20,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { CardTree } from '../src/containers/project/card-tree.js';
+import { CardKeyRegistry } from '../src/containers/project/card-keys.js';
 import { CardNotFoundError } from '../src/exceptions/index.js';
 import type { CardMetadata } from '../src/interfaces/project-interfaces.js';
 
@@ -66,8 +67,15 @@ describe('CardTree.renameAttachment', () => {
   beforeEach(async () => {
     mkdirSync(cardRoot, { recursive: true });
     cardPath = createCard(CARD_KEY, [ATTACHMENT]);
-    tree = new CardTree(cardRoot);
-    await tree.load(cardRoot, 'project');
+    tree = new CardTree({
+      name: 'project',
+      rootPath: cardRoot,
+      writable: true,
+      emitsCardFact: true,
+      validationApplies: true,
+      keys: new CardKeyRegistry(() => 'test'),
+    });
+    await tree.load();
   });
 
   afterEach(() => {
@@ -129,8 +137,15 @@ describe('CardTree read boundary', () => {
   beforeEach(async () => {
     mkdirSync(cardRoot, { recursive: true });
     createCard(CARD_KEY, [ATTACHMENT]);
-    tree = new CardTree(cardRoot);
-    await tree.load(cardRoot, 'project');
+    tree = new CardTree({
+      name: 'project',
+      rootPath: cardRoot,
+      writable: true,
+      emitsCardFact: true,
+      validationApplies: true,
+      keys: new CardKeyRegistry(() => 'test'),
+    });
+    await tree.load();
   });
 
   afterEach(() => {
@@ -184,14 +199,22 @@ describe('CardTree read boundary', () => {
     expect(tree.childrenOf(CARD_KEY)).toHaveLength(0);
   });
 
-  it('does not leak the store-internal location field', () => {
+  it('hands out only the fields a Card has', () => {
     for (const card of [
       tree.card(CARD_KEY),
-      ...tree.cardsIn('project'),
-      ...tree.rootCardsIn('project'),
+      ...tree.cards(),
+      ...tree.rootCards(),
       ...tree.cardsFor([CARD_KEY]),
     ]) {
-      expect(card).not.toHaveProperty('location');
+      expect(Object.keys(card).sort()).toEqual([
+        'attachments',
+        'children',
+        'content',
+        'key',
+        'metadata',
+        'parent',
+        'path',
+      ]);
     }
   });
 });

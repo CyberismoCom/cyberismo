@@ -12,6 +12,7 @@ import { join, sep } from 'node:path';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { CardTree } from '../src/containers/project/card-tree.js';
+import { CardKeyRegistry } from '../src/containers/project/card-keys.js';
 import {
   CardNotFoundError,
   DuplicateCardKeyError,
@@ -21,6 +22,7 @@ import type {
   Card,
   CardMetadata,
 } from '../src/interfaces/project-interfaces.js';
+import type { StoredCard } from '../src/containers/project/card-cache.js';
 import { CommandManager } from '../src/command-manager.js';
 
 // Helper function to create test cards
@@ -111,7 +113,38 @@ function createTestData(testCardsPath: string, testTemplateCardsPath: string) {
   );
 }
 
-const TEMPLATE_LOCATION = 'test/templates/test';
+const TEMPLATE_NAME = 'test/templates/test';
+
+// Trees as the project builds them: one registry, shared by all of them.
+function projectTree(
+  rootPath: string,
+  keys = new CardKeyRegistry(() => 'test'),
+) {
+  return new CardTree({
+    name: 'project',
+    rootPath,
+    writable: true,
+    emitsCardFact: true,
+    validationApplies: true,
+    keys,
+  });
+}
+
+function templateTree(
+  name: string,
+  rootPath: string,
+  keys: CardKeyRegistry,
+  writable = true,
+) {
+  return new CardTree({
+    name,
+    rootPath,
+    writable,
+    emitsCardFact: false,
+    validationApplies: false,
+    keys,
+  });
+}
 
 describe('Card store', () => {
   const baseDir = import.meta.dirname;
@@ -127,12 +160,22 @@ describe('Card store', () => {
     'c',
   );
 
-  // A tree over the fixture above, with both of its locations loaded.
+  // The fixture's two trees, loaded, sharing one key registry.
+  async function loadedTrees(): Promise<{
+    tree: CardTree;
+    template: CardTree;
+    keys: CardKeyRegistry;
+  }> {
+    const keys = new CardKeyRegistry(() => 'test');
+    const tree = projectTree(testCardsPath, keys);
+    const template = templateTree(TEMPLATE_NAME, testTemplateCardsPath, keys);
+    await tree.load();
+    await template.load();
+    return { tree, template, keys };
+  }
+
   async function loadedTree(): Promise<CardTree> {
-    const tree = new CardTree(testCardsPath);
-    await tree.load(testCardsPath, 'project');
-    await tree.load(testTemplateCardsPath, TEMPLATE_LOCATION);
-    return tree;
+    return (await loadedTrees()).tree;
   }
 
   async function createFixture() {
@@ -150,33 +193,33 @@ describe('Card store', () => {
     });
 
     it('should create a tree that is not populated yet', () => {
-      const tree = new CardTree(testCardsPath);
+      const tree = projectTree(testCardsPath);
       expect(tree).toBeInstanceOf(CardTree);
       expect(tree.isPopulated).toBe(false);
     });
 
     it('should populate the store from a filesystem path', async () => {
-      const tree = new CardTree(testCardsPath);
+      const tree = projectTree(testCardsPath);
       expect(tree.isPopulated).toBe(false);
-      await tree.load(testCardsPath, 'project');
+      await tree.load();
 
       expect(tree.isPopulated).toBe(true);
-      expect(tree.store.getCards().length).toBeGreaterThan(0);
+      expect(tree.store.cards().length).toBeGreaterThan(0);
     });
 
     it('should handle invalid path gracefully', async () => {
-      const tree = new CardTree(testCardsPath);
-      await tree.load('/invalid/path/that/does/not/exist', 'project');
+      const tree = projectTree('/invalid/path/that/does/not/exist');
+      await tree.load();
 
       expect(tree.isPopulated).toBe(true);
-      expect(tree.store.getCards()).toHaveLength(0);
+      expect(tree.store.cards()).toHaveLength(0);
     });
 
     it('should clear the store and reset populated state', async () => {
       const tree = await loadedTree();
 
       expect(tree.isPopulated).toBe(true);
-      expect(tree.store.getCards().length).toBeGreaterThan(0);
+      expect(tree.store.cards().length).toBeGreaterThan(0);
 
       tree.clear();
       expect(tree.isPopulated).toBe(false);
@@ -185,10 +228,11 @@ describe('Card store', () => {
 
   describe('accessing a card', () => {
     let tree: CardTree;
+    let template: CardTree;
 
     beforeAll(async () => {
       await createFixture();
-      tree = await loadedTree();
+      ({ tree, template } = await loadedTrees());
     });
     afterAll(() => {
       rmSync(testDir, { recursive: true, force: true });
@@ -215,7 +259,9 @@ describe('Card store', () => {
       expect(tree.pathOf('test_2')).toBe(
         join(testCardsPath, 'test_1', 'c', 'test_2'),
       );
-      expect(tree.pathOf('test_9')).toBe(join(testTemplateCardsPath, 'test_9'));
+      expect(template.pathOf('test_9')).toBe(
+        join(testTemplateCardsPath, 'test_9'),
+      );
     });
 
     it('derives an attachment path from its card', () => {
@@ -230,17 +276,19 @@ describe('Card store', () => {
 
   describe('accessing cards', () => {
     let tree: CardTree;
+    let template: CardTree;
+    let keys: CardKeyRegistry;
 
     beforeAll(async () => {
       await createFixture();
-      tree = await loadedTree();
+      ({ tree, template, keys } = await loadedTrees());
     });
     afterAll(() => {
       rmSync(testDir, { recursive: true, force: true });
     });
 
     it('should return all cards', () => {
-      const cards = tree.store.getCards();
+      const cards = tree.store.cards();
 
       expect(cards).toBeInstanceOf(Array);
       expect(cards.length).toBeGreaterThan(0);
@@ -254,30 +302,26 @@ describe('Card store', () => {
     });
 
     it('should return only template cards', () => {
-      const templateCards = tree.allTemplateCards();
-      expect(templateCards.map((card) => card.key)).toEqual(['test_9']);
-      for (const card of templateCards) {
-        expect(tree.locationOfCard(card.key)).not.toBe('project');
-      }
+      expect(template.cards().map((card) => card.key)).toEqual(['test_9']);
+      // Each card belongs to exactly one tree, and the registry knows which.
+      expect(keys.ownerOf('test_9')).toBe(template);
+      expect(keys.ownerOf('test_1')).toBe(tree);
     });
 
-    it('should return the cards of one location', () => {
-      expect(tree.cardKeysIn('project')).toEqual([
-        'test_1',
-        'test_2',
-        'test_3',
-      ]);
-      expect(tree.cardKeysIn(TEMPLATE_LOCATION)).toEqual(['test_9']);
-      expect(tree.cardCountIn(TEMPLATE_LOCATION)).toBe(1);
+    it('should return the cards of one container', () => {
+      expect(tree.keys()).toEqual(['test_1', 'test_2', 'test_3']);
+      expect(template.keys()).toEqual(['test_9']);
+      expect(template.count).toBe(1);
     });
   });
 
   describe('store updates', () => {
     let tree: CardTree;
+    let template: CardTree;
 
     beforeAll(async () => {
       await createFixture();
-      tree = await loadedTree();
+      ({ tree, template } = await loadedTrees());
     });
     afterAll(() => {
       rmSync(testDir, { recursive: true, force: true });
@@ -298,23 +342,20 @@ describe('Card store', () => {
       const newCardKey = 'test_new';
       expect(tree.has(newCardKey)).toBe(false);
 
-      tree.insert(
-        {
-          key: newCardKey,
-          path: join(testCardsPath, newCardKey),
-          parent: 'root',
-          children: [],
-          attachments: [],
-          metadata: {
-            title: 'New Card',
-            cardType: 'test/cardTypes/page',
-            workflowState: 'Draft',
-            rank: '1',
-            links: [],
-          },
+      tree.insert({
+        key: newCardKey,
+        path: join(testCardsPath, newCardKey),
+        parent: 'root',
+        children: [],
+        attachments: [],
+        metadata: {
+          title: 'New Card',
+          cardType: 'test/cardTypes/page',
+          workflowState: 'Draft',
+          rank: '1',
+          links: [],
         },
-        'project',
-      );
+      });
 
       expect(tree.has(newCardKey)).toBe(true);
       expect(tree.card(newCardKey).metadata!.title).toBe('New Card');
@@ -380,14 +421,41 @@ describe('Card store', () => {
       );
     });
 
-    it('relocating a card into another location takes its descendants along', () => {
-      tree.relocate('test_1', 'root', TEMPLATE_LOCATION);
+    it('moving a card to another tree takes its descendants along', () => {
+      template.graft(tree.uproot('test_1'), 'root');
 
       for (const cardKey of ['test_1', 'test_2', 'test_3']) {
-        expect(tree.locationOfCard(cardKey)).toBe(TEMPLATE_LOCATION);
+        expect(tree.has(cardKey)).toBe(false);
+        expect(template.has(cardKey)).toBe(true);
       }
-      expect(tree.pathOf('test_3')).toBe(
+      // The subtree keeps its shape, and its paths are rederived from the
+      // destination's root.
+      expect(template.pathOf('test_3')).toBe(
         join(testTemplateCardsPath, 'test_1', 'c', 'test_3'),
+      );
+      expect(template.pathOf('test_2')).toBe(
+        join(testTemplateCardsPath, 'test_1', 'c', 'test_3', 'c', 'test_2'),
+      );
+    });
+
+    it('a read-only tree refuses writes', async () => {
+      const keys = new CardKeyRegistry(() => 'test');
+      const module = templateTree(
+        'mod/templates/page',
+        testTemplateCardsPath,
+        keys,
+        false,
+      );
+      await module.load();
+
+      expect(() => module.relocate('test_9', 'root')).toThrow(
+        'Cannot modify imported module',
+      );
+      await expect(module.deleteSubtree('test_9')).rejects.toThrow(
+        'Cannot modify imported module',
+      );
+      await expect(module.writeMetadata(module.card('test_9'))).rejects.toThrow(
+        'Cannot modify imported module',
       );
     });
   });
@@ -523,8 +591,8 @@ describe('Card store', () => {
       );
       writeFileSync(join(invalidCardPath, 'index.adoc'), 'Content');
 
-      const newTree = new CardTree(testCardsPath);
-      await expect(newTree.load(testCardsPath, 'project')).rejects.toThrow(
+      const newTree = projectTree(testCardsPath);
+      await expect(newTree.load()).rejects.toThrow(
         `Invalid JSON in file '${join(invalidCardPath, 'index.json')}'`,
       );
 
@@ -544,11 +612,11 @@ describe('Card store', () => {
     });
 
     it('should return correct population status', async () => {
-      const fresh = new CardTree(testCardsPath);
+      const fresh = projectTree(testCardsPath);
 
       expect(fresh.isPopulated).toBe(false);
 
-      await fresh.load(testCardsPath, 'project');
+      await fresh.load();
       expect(fresh.isPopulated).toBe(true);
 
       fresh.clear();
@@ -569,39 +637,31 @@ describe('Card store', () => {
   });
 
   describe('index consistency', () => {
-    // Locations the randomized sequence spreads cards over: the project, plus
-    // two templates.
-    const locationNames = ['project', 'alpha', 'beta'];
+    // The containers the randomized sequence spreads cards over: the project,
+    // plus two templates. Each is its own tree, and they share one key
+    // registry — which is what keeps card keys unique across all of them.
+    const treeNames = ['project', 'alpha', 'beta'];
 
-    function expectedLocation(location: string): string {
-      return location === 'project' ? 'project' : `test/templates/${location}`;
-    }
-
-    // Recomputes both indexes from scratch, the way the store's deleted
-    // full-rebuild pass and its deleted per-call location filters did: read the
-    // cards in store order and group them.
-    function recompute(cards: ReturnType<CardTree['store']['getCards']>) {
+    // Recomputes the adjacency index from scratch, the way the store's deleted
+    // full-rebuild pass did: read the cards in store order and group them.
+    function recompute(cards: StoredCard[]) {
       const children = new Map<string, string[]>();
-      const byLocation = new Map<string, string[]>();
       for (const card of cards) {
         if (card.parent) {
           const siblings = children.get(card.parent) ?? [];
           siblings.push(card.key);
           children.set(card.parent, siblings);
         }
-        const inLocation = byLocation.get(card.location) ?? [];
-        inLocation.push(card.key);
-        byLocation.set(card.location, inLocation);
       }
-      return { children, byLocation };
+      return children;
     }
 
-    // Compares the whole shape of each index in one assertion, so a mismatch
+    // Compares the whole shape of the index in one assertion, so a mismatch
     // reports contents *and* order.
-    function assertIndexesMatchRecomputation(tree: CardTree, step: string) {
+    function assertIndexMatchesRecomputation(tree: CardTree, step: string) {
       const store = tree.store;
-      const cards = store.getCards();
-      const { children, byLocation } = recompute(cards);
+      const cards = store.cards();
+      const children = recompute(cards);
 
       const parentKeys = [
         ...new Set([...children.keys(), ...cards.map((card) => card.key)]),
@@ -612,42 +672,44 @@ describe('Card store', () => {
         indexedChildren[parentKey] = store.childrenOf(parentKey);
         expectedChildren[parentKey] = children.get(parentKey) ?? [];
       }
-      expect(indexedChildren, `${step}: children index`).toEqual(
-        expectedChildren,
-      );
+      expect(
+        indexedChildren,
+        `${step}: children index of ${tree.name}`,
+      ).toEqual(expectedChildren);
 
       // Each card's own 'children' field mirrors the index.
       for (const card of cards) {
-        expect(card.children, `${step}: children of ${card.key}`).toEqual(
-          expectedChildren[card.key],
-        );
+        expect(
+          card.children,
+          `${step}: children of ${card.key} in ${tree.name}`,
+        ).toEqual(expectedChildren[card.key]);
       }
+    }
 
-      const locationKeys = [
-        ...new Set([
-          ...byLocation.keys(),
-          ...locationNames.map(expectedLocation),
-        ]),
-      ].sort();
-      const indexedLocations: Record<string, string[]> = {};
-      const expectedLocations: Record<string, string[]> = {};
-      for (const location of locationKeys) {
-        indexedLocations[location] = store.keysAtLocation(location);
-        expectedLocations[location] = byLocation.get(location) ?? [];
+    // Every key is owned by exactly the tree that holds it. This is the
+    // invariant that replaced the merged store's location index.
+    function assertOwnershipMatches(
+      trees: CardTree[],
+      keys: CardKeyRegistry,
+      step: string,
+    ) {
+      const owners = new Map<string, CardTree>();
+      for (const tree of trees) {
+        for (const cardKey of tree.store.keys()) {
+          expect(
+            owners.has(cardKey),
+            `${step}: ${cardKey} is in two trees`,
+          ).toBe(false);
+          owners.set(cardKey, tree);
+        }
       }
-      expect(indexedLocations, `${step}: location index`).toEqual(
-        expectedLocations,
+      expect([...keys.inUse()].sort(), `${step}: keys in use`).toEqual(
+        [...owners.keys()].sort(),
       );
-
-      for (const location of locationKeys) {
-        expect(
-          store.cardsAtLocation(location).map((card) => card.key),
-          `${step}: cards at ${location}`,
-        ).toEqual(expectedLocations[location]);
-        expect(
-          store.cardCountAtLocation(location),
-          `${step}: count at ${location}`,
-        ).toBe(expectedLocations[location].length);
+      for (const [cardKey, tree] of owners) {
+        expect(keys.ownerOf(cardKey), `${step}: owner of ${cardKey}`).toBe(
+          tree,
+        );
       }
     }
 
@@ -680,78 +742,94 @@ describe('Card store', () => {
       };
     }
 
-    it('both indexes match a from-scratch recomputation after a randomized op sequence', () => {
-      const keys = Array.from({ length: 24 }, (_, index) => `test_${index}`);
-      const counts = { add: 0, reparent: 0, relocate: 0, remove: 0 };
+    it('the indexes match a from-scratch recomputation after a randomized op sequence', () => {
+      const keyNames = Array.from(
+        { length: 24 },
+        (_, index) => `test_${index}`,
+      );
+      const counts = { add: 0, reparent: 0, move: 0, remove: 0 };
 
       for (const seed of [1, 7, 42, 1337]) {
         const next = random(seed);
         const pick = <T>(items: T[]) =>
           items[Math.floor(next() * items.length)];
-        const tree = new CardTree(testCardsPath);
+        const keys = new CardKeyRegistry(() => 'test');
+        const trees = treeNames.map((name) =>
+          name === 'project'
+            ? projectTree(testCardsPath, keys)
+            : templateTree(`test/templates/${name}`, testCardsPath, keys),
+        );
+
+        // Candidate parents exclude the card and its descendants: a tree does
+        // not stop a caller from making a cycle (the command layer
+        // pre-validates that), and a cycle would make 'the path of a card'
+        // meaningless.
+        const subtreeOf = (tree: CardTree, cardKey: string): string[] => [
+          cardKey,
+          ...tree
+            .childrenOf(cardKey)
+            .flatMap((childKey) => subtreeOf(tree, childKey)),
+        ];
 
         for (let step = 0; step < 250; step++) {
-          const cards = tree.store.getCards();
-          const present = cards.map((card) => card.key);
-          const absent = keys.filter((key) => !present.includes(key));
-          // Candidate parents within a location: its own cards, or the root.
-          const parentsIn = (location: string) => [
-            ...cards
-              .filter((card) => card.location === expectedLocation(location))
-              .map((card) => card.key),
-            'root',
-          ];
+          const present = trees.flatMap((tree) => tree.store.keys());
+          const absent = keyNames.filter((key) => !present.includes(key));
+          // Candidate parents within a tree: its own cards, or the root.
+          const parentsIn = (tree: CardTree) => [...tree.store.keys(), 'root'];
           const roll = next();
           const label = `seed ${seed} step ${step}`;
 
           if (absent.length > 0 && (roll < 0.45 || present.length === 0)) {
-            const location = pick(locationNames);
-            const key = pick(absent);
-            tree.insert(
-              cardAt(key, pick(parentsIn(location))),
-              expectedLocation(location),
-            );
+            const tree = pick(trees);
+            tree.insert(cardAt(pick(absent), pick(parentsIn(tree))));
             counts.add++;
           } else if (roll < 0.7) {
-            // Re-parent inside the card's own location.
-            const card = pick(cards);
-            const location =
-              locationNames.find(
-                (item) => expectedLocation(item) === card.location,
-              ) ?? 'project';
+            // Re-parent inside the card's own tree.
+            const cardKey = pick(present);
+            const tree = keys.ownerOf(cardKey)!;
+            const subtree = subtreeOf(tree, cardKey);
             tree.relocate(
-              card.key,
-              pick(parentsIn(location).filter((item) => item !== card.key)),
+              cardKey,
+              pick(parentsIn(tree).filter((item) => !subtree.includes(item))),
             );
             counts.reparent++;
           } else if (roll < 0.85) {
-            // Relocate: a card and its descendants change location, and it
-            // takes a parent from the destination.
-            const card = pick(cards);
-            const location = pick(locationNames);
-            tree.relocate(
-              card.key,
-              pick(parentsIn(location).filter((item) => item !== card.key)),
-              expectedLocation(location),
+            // Move a card and its descendants into another tree.
+            const cardKey = pick(present);
+            const source = keys.ownerOf(cardKey)!;
+            const destination = pick(trees);
+            const uprooted = source.uproot(cardKey);
+            destination.graft(
+              uprooted,
+              pick(
+                parentsIn(destination).filter(
+                  (item) => !uprooted.some((card) => card.key === item),
+                ),
+              ),
             );
-            counts.relocate++;
+            counts.move++;
           } else {
-            tree.store.deleteCard(pick(present));
+            const cardKey = pick(present);
+            const tree = keys.ownerOf(cardKey)!;
+            tree.uproot(cardKey);
             counts.remove++;
           }
 
-          assertIndexesMatchRecomputation(tree, label);
+          for (const tree of trees) {
+            assertIndexMatchesRecomputation(tree, label);
+          }
+          assertOwnershipMatches(trees, keys, label);
         }
 
-        // The sequence must have produced real nesting and more than one
-        // location, or it would not exercise either index.
-        const cards = tree.store.getCards();
+        // The sequence must have produced real nesting and used more than one
+        // tree, or it would not exercise either invariant.
+        const cards = trees.flatMap((tree) => tree.store.cards());
         expect(
           cards.filter((card) => card.parent && card.parent !== 'root').length,
         ).toBeGreaterThan(0);
-        expect(
-          new Set(cards.map((card) => card.location)).size,
-        ).toBeGreaterThan(1);
+        expect(trees.filter((tree) => tree.count > 0).length).toBeGreaterThan(
+          1,
+        );
       }
 
       // Guard against a roll distribution that stops exercising an operation.
@@ -922,14 +1000,18 @@ describe('Card store', () => {
       createTestCard('test_1', dupCardsPath, cardMetadata, 'project card');
       createTestCard('test_1', dupTemplatePath, cardMetadata, 'template card');
 
-      const tree = new CardTree(dupCardsPath);
-      await tree.load(dupCardsPath, 'project');
+      const keys = new CardKeyRegistry(() => 'test');
+      const tree = projectTree(dupCardsPath, keys);
+      const template = templateTree(
+        'test/templates/dup',
+        dupTemplatePath,
+        keys,
+      );
+      await tree.load();
       expect(tree.content('test_1')).toBe('project card');
 
-      // The template batch carries a key the project batch already claimed.
-      await expect(
-        tree.load(dupTemplatePath, 'test/templates/dup'),
-      ).rejects.toThrow(DuplicateCardKeyError);
+      // The template's tree carries a key the project's tree already claimed.
+      await expect(template.load()).rejects.toThrow(DuplicateCardKeyError);
 
       // The card that was there first must not have been overwritten.
       expect(tree.content('test_1')).toBe('project card');
@@ -942,10 +1024,8 @@ describe('Card store', () => {
       mkdirSync(nested, { recursive: true });
       createTestCard('test_1', nested, cardMetadata, 'nested card');
 
-      const tree = new CardTree(dupCardsPath);
-      await expect(tree.load(dupCardsPath, 'project')).rejects.toThrow(
-        DuplicateCardKeyError,
-      );
+      const tree = projectTree(dupCardsPath);
+      await expect(tree.load()).rejects.toThrow(DuplicateCardKeyError);
     });
   });
 

@@ -742,9 +742,9 @@ describe('project', () => {
   it('should card cache populated', async () => {
     const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
     const project = getTestProject(decisionRecordsPath);
-    expect(project.cardsCache.hasCard('decision_5')).toBe(false);
+    expect(project.hasCard('decision_5')).toBe(false);
     await project.populateCaches();
-    expect(project.cardsCache.hasCard('decision_5')).toBe(true);
+    expect(project.hasCard('decision_5')).toBe(true);
   });
   it('should have card folder', async () => {
     const decisionRecordsPath = join(testDir, 'valid', 'decision-records');
