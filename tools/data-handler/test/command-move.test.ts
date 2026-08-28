@@ -1,6 +1,6 @@
 import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 
-import { mkdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { join, sep } from 'node:path';
 
 import { Cmd, CommandManager, Commands } from '../src/command-handler.js';
@@ -333,6 +333,149 @@ describe('move command', () => {
       `templates${sep}simplepage${sep}c${sep}decision_4`,
     );
     expect(after.path).not.toContain(`decision_3${sep}c${sep}decision_4`);
+  });
+
+  // A card's children live in its 'c' folder. When the last one leaves, that
+  // folder is no longer part of the tree, and leaving it behind meant every
+  // move of an only child dropped a stray empty folder into the repository.
+  it('removes the vacated child folder, and recreates it on the way back', async () => {
+    const template = 'decision/templates/decision';
+    const parentResult = await commandHandler.command(
+      Cmd.create,
+      ['card', template, ''],
+      options,
+    );
+    const parent = parentResult.affectsCards!.at(0) as string;
+    const childResult = await commandHandler.command(
+      Cmd.create,
+      ['card', template, parent],
+      options,
+    );
+    const child = childResult.affectsCards!.at(0) as string;
+
+    const cardRoot = join(decisionRecordsPath, 'cardRoot');
+    const childFolder = join(cardRoot, parent, 'c');
+    expect(existsSync(join(childFolder, child))).toBe(true);
+
+    let result = await commandHandler.command(
+      Cmd.move,
+      [child, 'root'],
+      options,
+    );
+    expect(result.statusCode).toBe(200);
+    expect(existsSync(join(cardRoot, child))).toBe(true);
+    expect(existsSync(childFolder)).toBe(false);
+
+    // Moving back in has to create it again.
+    result = await commandHandler.command(Cmd.move, [child, parent], options);
+    expect(result.statusCode).toBe(200);
+    expect(existsSync(join(childFolder, child))).toBe(true);
+  });
+
+  // A parent that still has other children keeps its 'c' folder.
+  it('keeps the child folder when other children remain', async () => {
+    const template = 'decision/templates/decision';
+    const parentResult = await commandHandler.command(
+      Cmd.create,
+      ['card', template, ''],
+      options,
+    );
+    const parent = parentResult.affectsCards!.at(0) as string;
+    const keys: string[] = [];
+    for (let index = 0; index < 2; index++) {
+      const created = await commandHandler.command(
+        Cmd.create,
+        ['card', template, parent],
+        options,
+      );
+      keys.push(created.affectsCards!.at(0) as string);
+    }
+
+    const childFolder = join(decisionRecordsPath, 'cardRoot', parent, 'c');
+    const result = await commandHandler.command(
+      Cmd.move,
+      [keys[0], 'root'],
+      options,
+    );
+    expect(result.statusCode).toBe(200);
+    expect(existsSync(childFolder)).toBe(true);
+    expect(existsSync(join(childFolder, keys[1]))).toBe(true);
+  });
+
+  // A move is three writes - the rank, the folder rename, the tree edge - and
+  // only the rename is atomic. What makes that safe is the order: the rank is
+  // persisted into the folder that is about to be renamed, so every state a
+  // failure can leave behind is one a retry of the same move completes.
+  it('completes the move on a retry after the rank write fails', async () => {
+    const template = 'decision/templates/decision';
+    const parentResult = await commandHandler.command(
+      Cmd.create,
+      ['card', template, ''],
+      options,
+    );
+    const parent = parentResult.affectsCards!.at(0) as string;
+    const childResult = await commandHandler.command(
+      Cmd.create,
+      ['card', template, parent],
+      options,
+    );
+    const child = childResult.affectsCards!.at(0) as string;
+
+    const cardRoot = join(decisionRecordsPath, 'cardRoot');
+    const childFolder = join(cardRoot, parent, 'c');
+    const rankAt = (folder: string) =>
+      JSON.parse(readFileSync(join(folder, 'index.json'), 'utf-8')).rank;
+
+    // The same instance the command handler uses.
+    const commandManager = await CommandManager.getInstance(
+      options.projectPath!,
+    );
+    const project = commandManager.project;
+    // What the move will rank the card as: last under the destination, which
+    // a failed attempt must not change.
+    const expectedRank = project.cardTree.rankBlock('root', 1)[0];
+    const rankBefore = rankAt(join(childFolder, child));
+    expect(expectedRank).not.toBe(rankBefore);
+
+    // One failed rank write; the retry below runs against the real thing.
+    const updateCardMetadataKey = project.updateCardMetadataKey.bind(project);
+    let failRankWrite = true;
+    project.updateCardMetadataKey = async (cardKey, changedKey, newValue) => {
+      if (failRankWrite && changedKey === 'rank') {
+        failRankWrite = false;
+        throw new Error('rank write failed');
+      }
+      return updateCardMetadataKey(cardKey, changedKey, newValue);
+    };
+
+    const failed = await commandHandler.command(
+      Cmd.move,
+      [child, 'root'],
+      options,
+    );
+    expect(failed.statusCode).toBe(400);
+    expect(failed.message).toContain('rank write failed');
+
+    // The rename either happened or did not, so the subtree is in exactly one
+    // place - and it still holds the rank it started with, wherever it is.
+    const paths = [join(childFolder, child), join(cardRoot, child)].filter(
+      (path) => existsSync(path),
+    );
+    expect(paths).toHaveLength(1);
+    expect(rankAt(paths[0])).toBe(rankBefore);
+
+    // The retry has to finish the move: the folder, the tree edge, and the
+    // rank - whichever of them the failed attempt left undone.
+    const retried = await commandHandler.command(
+      Cmd.move,
+      [child, 'root'],
+      options,
+    );
+    expect(retried.statusCode).toBe(200);
+    expect(existsSync(join(cardRoot, child))).toBe(true);
+    expect(project.cardTree.childrenOf(parent)).not.toContain(child);
+    expect(project.cardTree.siblingsUnder('root')).toContain(child);
+    expect(rankAt(join(cardRoot, child))).toBe(expectedRank);
   });
 
   it('verify card cache after move operation', async () => {

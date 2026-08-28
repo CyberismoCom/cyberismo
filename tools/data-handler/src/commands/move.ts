@@ -12,41 +12,64 @@
 */
 
 // node
-import { join } from 'node:path';
+import { dirname } from 'node:path';
+import { mkdir, rename, rmdir } from 'node:fs/promises';
 
 import { ActionGuard } from '../permissions/action-guard.js';
 import { copyDir, deleteDir } from '../utils/file-utils.js';
+import type { CardTree, RankChange } from '../containers/project/card-tree.js';
 import type { Project } from '../containers/project.js';
-import type { RankChange } from '../containers/project/card-tree.js';
 import { write } from '../utils/rw-lock.js';
-import {
-  isModuleCard,
-  isModulePath,
-  isTemplateCard,
-} from '../utils/card-utils.js';
 
 import { ROOT } from '../utils/constants.js';
 
 export class Move {
   constructor(private project: Project) {}
 
-  // The container a card belongs to: 'project', or a template's full name.
-  private containerOf(cardKey: string): string {
-    return this.project.treeOf(cardKey).name;
-  }
-
-  // Whether a card is one of the project's own, as opposed to a template's.
-  private isProjectCard(cardKey: string): boolean {
-    return this.containerOf(cardKey) === 'project';
-  }
-
-  // The template a template card belongs to.
-  private templateOf(cardKey: string): string {
-    const container = this.containerOf(cardKey);
-    if (container === 'project') {
-      throw new Error(`Card '${cardKey}' is not part of a template`);
+  // Moves a card's folder, and with it every descendant and every attachment
+  // under it, to where the card is going.
+  //
+  // One rename. The bytes do not move - only the folder's directory entry
+  // does - so a card with a hundred descendants costs exactly what a single
+  // card costs, and this step is atomic: there is no window in which the
+  // subtree exists twice or not at all. What it replaces was a hand-rolled
+  // recursive copy followed by a recursive delete, which read and wrote every
+  // byte of every card, and failed *unsafe*: a delete that failed after the
+  // copy had succeeded left the whole subtree duplicated in two places.
+  //
+  // rename cannot cross filesystems. A card root that spans a mount point is
+  // the only way to see EXDEV, and there copying is the only thing left to
+  // do.
+  // @param from The card's current folder.
+  // @param to Where the folder is going.
+  // @param vacatedChildFolder The 'c' folder the card is leaving, if it is
+  //   leaving another card's children. Removed when the card was the last
+  //   one in it.
+  private async relocateFolder(
+    from: string,
+    to: string,
+    vacatedChildFolder?: string,
+  ) {
+    // Moving a card into another card creates that card's 'c' folder: the
+    // destination's parent folder need not exist yet.
+    await mkdir(dirname(to), { recursive: true });
+    try {
+      await rename(from, to);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'EXDEV') {
+        throw error;
+      }
+      await copyDir(from, to);
+      await deleteDir(from);
     }
-    return container;
+
+    if (vacatedChildFolder) {
+      // A 'c' folder with no cards left in it is not part of the tree, and
+      // leaving it behind made every move of an only child leave a stray
+      // empty folder in the repository. rmdir refuses to remove a folder that
+      // still holds anything, which is exactly the condition wanted here.
+      await rmdir(vacatedChildFolder).catch(() => {});
+    }
   }
 
   // Persists the ranks a tree computed, in the order it gave them.
@@ -74,7 +97,14 @@ export class Move {
       throw new Error(`Card cannot be moved to itself`);
     }
 
-    const sourceCard = this.project.findCard(source);
+    // Which tree the card is in answers everything the card's path used to be
+    // sniffed for: whether it is a template card ('project' or a template's
+    // name), and whether it may be written at all (a module's tree is not
+    // writable). The tree knows; the filesystem does not have to be asked.
+    const sourceTree = this.project.treeOf(source);
+    const sourceCard = sourceTree.card(source);
+    const sourceIsTemplate = sourceTree.name !== 'project';
+
     const movingToRoot =
       destination === ROOT || destination.startsWith('root:');
     let targetTemplateName: string | undefined;
@@ -82,8 +112,9 @@ export class Move {
 
     if (movingToRoot) {
       if (destination === ROOT) {
-        if (isTemplateCard(sourceCard)) {
-          targetTemplateName = this.templateOf(sourceCard.key);
+        // Bare 'root' means the root of the card's own container.
+        if (sourceIsTemplate) {
+          targetTemplateName = sourceTree.name;
         } else {
           movingToProjectRoot = true;
         }
@@ -94,33 +125,28 @@ export class Move {
       }
     }
 
-    const destinationCard = !movingToRoot
-      ? this.project.findCard(destination)
-      : undefined;
+    const destinationTree = movingToRoot
+      ? undefined
+      : this.project.treeOf(destination);
+    const destinationCard = destinationTree?.card(destination);
 
     // Prevent moving card to inside its descendants
     if (
       destinationCard &&
-      this.project
-        .treeOf(destinationCard.key)
-        .ancestorsOf(destinationCard.key)
-        .includes(source)
+      destinationTree!.ancestorsOf(destinationCard.key).includes(source)
     ) {
       throw new Error(`Card cannot be moved to inside itself`);
     }
 
     // Imported templates cannot be modified.
-    if (
-      (destinationCard && isModuleCard(destinationCard)) ||
-      isModuleCard(sourceCard)
-    ) {
+    if (!sourceTree.writable || destinationTree?.writable === false) {
       throw new Error(`Cannot modify imported module templates`);
     }
 
-    // Resolve the target template (when moving to a template root) and its
-    // cards folder. Reject if the resolved template belongs to an imported
-    // module — those are read-only.
-    let templateCardsFolder: string | undefined;
+    // Resolve the target template (when moving to a template root). Reject if
+    // the resolved template belongs to an imported module — those are
+    // read-only.
+    let targetTemplateTree: CardTree | undefined;
     if (targetTemplateName) {
       const template = this.project.templateResource(targetTemplateName);
       if (!template) {
@@ -128,19 +154,18 @@ export class Move {
           `Template ${targetTemplateName} not found in this project`,
         );
       }
-      templateCardsFolder = template.templateCardsFolder();
-      if (isModulePath(templateCardsFolder)) {
+      targetTemplateTree = template.cardTree;
+      if (!targetTemplateTree.writable) {
         throw new Error(`Cannot modify imported module templates`);
       }
     }
 
-    const sourceIsTemplate = isTemplateCard(sourceCard);
     const destIsProject =
       movingToProjectRoot ||
-      (destinationCard !== undefined && !isTemplateCard(destinationCard));
+      (destinationTree !== undefined && destinationTree.name === 'project');
     const destIsTemplate =
       targetTemplateName !== undefined ||
-      (destinationCard !== undefined && isTemplateCard(destinationCard));
+      (destinationTree !== undefined && destinationTree.name !== 'project');
     if (
       (sourceIsTemplate && destIsProject) ||
       (!sourceIsTemplate && destIsTemplate)
@@ -150,19 +175,16 @@ export class Move {
       );
     }
 
-    // Which container the card lands in: the template the sentinel named, the
-    // project root, or whatever container the destination card is in.
-    const destinationContainer = movingToRoot
-      ? (targetTemplateName ?? 'project')
-      : this.containerOf(destination);
+    // The tree the card lands in, and where in it. The destination folder is
+    // the tree's own answer to "where would a child of this parent live",
+    // which is the same rule it derives every other card path with.
+    const targetTree =
+      targetTemplateTree ?? destinationTree ?? this.project.cardTree;
+    const newParent = movingToRoot ? ROOT : destination;
+    const destinationPath = targetTree.pathFor(newParent, source);
 
-    const destinationPath = movingToRoot
-      ? movingToProjectRoot
-        ? join(this.project.paths.cardRootFolder, sourceCard.key)
-        : join(templateCardsFolder!, sourceCard.key)
-      : join(destinationCard!.path, 'c', sourceCard.key);
-
-    // if the card is already in the destination, do nothing
+    // The card is already where it is going, and its rank was persisted
+    // before it got there (see below), so there is nothing left to do.
     if (sourceCard.path === destinationPath) {
       return;
     }
@@ -174,26 +196,39 @@ export class Move {
     // The card lands last in its new location. Taken before the structure
     // update, so the card being moved is not one of the siblings it is
     // ranked against.
-    const [rank] = this.project
-      .containerTree(destinationContainer)
-      .rankBlock(movingToRoot ? ROOT : destination, 1);
+    const [rank] = targetTree.rankBlock(newParent, 1);
 
-    // First do the file operations, then the tree position
-    await copyDir(sourceCard.path, destinationPath);
-    await deleteDir(sourceCard.path);
+    // The rank goes first, into the folder that is about to be renamed: the
+    // metadata file travels with the folder, so a card that has arrived at
+    // its destination has its destination rank. That is what makes a retry
+    // finish the move.
+    //
+    // Only the rename is atomic; the move as a whole is not, and does not try
+    // to be. What it is instead is ordered, so that every state a failure can
+    // leave behind is one a retry of the same move completes: a failed rank
+    // write leaves the card where it was, to be moved by the retry, and a
+    // failed rename leaves it there with the rank it will hold once it
+    // arrives. The reverse order - rename, then rank - had no such state: the
+    // rename committed the move and a failed rank write left the card in its
+    // new place holding a rank from the sibling set it had left, where a
+    // retry returned early on 'already at the destination' and never repaired
+    // it.
+    await this.project.updateCardMetadataKey(source, 'rank', rank);
+
+    await this.relocateFolder(
+      sourceCard.path,
+      destinationPath,
+      // The folder the card is leaving behind, when it is leaving another
+      // card's children rather than a container root.
+      sourceCard.parent && sourceCard.parent !== ROOT
+        ? dirname(sourceCard.path)
+        : undefined,
+    );
 
     // One edge update is the whole structure change: the tree derives paths
     // from its edges, so every descendant and every attachment of the moved
     // card follows it without being rewritten.
-    this.project.relocateCard(
-      source,
-      movingToRoot ? ROOT : destination,
-      destinationContainer,
-    );
-
-    // Rank the card in its new place. Persists the metadata to the card's new
-    // folder and notifies the calculation engine about the change.
-    await this.project.updateCardMetadataKey(source, 'rank', rank);
+    this.project.relocateCard(source, newParent, targetTree.name);
 
     // Notify the project about the move (calculation engine tree rebuild)
     await this.project.handleCardMoved(this.project.cardNode(source));
