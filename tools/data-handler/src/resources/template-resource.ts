@@ -108,8 +108,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
     // Evict before loading: the cards keep their keys, and the cache rejects a
     // key it already holds.
     this.project.cardsCache.deleteCardsFromTemplate(oldName);
-    await this.project.cardsCache.populateFromPath(this.cardsFolder, false);
-    this.project.cardsCache.populateChildrenRelationships();
+    await this.project.cardsCache.populateFromPath(this.cardsFolder);
   }
 
   /**

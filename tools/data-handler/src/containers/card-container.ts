@@ -180,8 +180,10 @@ export class CardContainer {
   protected async removeCard(cardKey: string): Promise<boolean> {
     const card = this.cardCache.getCard(cardKey);
     if (card) {
-      // Children must removed first
-      const children = card.children;
+      // Children must removed first. The list is a snapshot: removing a child
+      // replaces the parent's list in the adjacency index rather than mutating
+      // the array this loop walks.
+      const children = this.cardCache.childrenOf(cardKey);
       for (const child of children) {
         await this.removeCard(child);
       }
