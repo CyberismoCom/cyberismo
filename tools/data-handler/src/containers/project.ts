@@ -1044,12 +1044,14 @@ export class Project extends CardContainer {
     const card = this.findCard(cardKey);
     card.content = content;
 
-    // Update lastUpdated timestamp in metadata
-    if (card.metadata) {
-      card.metadata.lastUpdated = new Date().toISOString();
-    }
-
-    await this.saveCard(card);
+    // Both files, deliberately. The metadata write is what bumps
+    // 'lastUpdated', which a content edit is expected to do -- see the
+    // 'edit card content (success)' case in command-edit.test.ts, which fails
+    // if only the content file is written. Spelled out as two primitive calls
+    // rather than saveCard() so that the second write is visible at the call
+    // site instead of looking like an accident.
+    await this.saveCardContent(card);
+    await this.saveCardMetadata(card);
     await this.handleCardChanged(card);
   }
 
@@ -1080,9 +1082,6 @@ export class Project extends CardContainer {
       return;
     }
 
-    const isRankChange = changedKey === 'rank';
-    const previousPath = isRankChange ? card.path : undefined;
-
     const cardAsRecord: Record<string, MetadataContent> = card.metadata;
     if (removeKey) {
       delete cardAsRecord[changedKey];
@@ -1099,16 +1098,11 @@ export class Project extends CardContainer {
       throw new Error(invalidCard);
     }
 
-    const updated = await this.saveCardMetadata(card);
-    if (!updated) return;
-
-    // For rank changes, check if path changed (indicating a move)
-    if (isRankChange) {
-      const updatedCard = this.findCard(cardKey);
-      if (updatedCard.path !== previousPath) {
-        this.cardCache.updateCard(updatedCard.key, updatedCard);
-      }
-    }
+    // A metadata write cannot relocate a card, so there is nothing structural
+    // to follow up here: the rank-change branch that re-read the card and
+    // compared its path against the pre-write path could never see a
+    // difference. Moving a card is moveCard's job.
+    await this.saveCardMetadata(card);
   }
 
   /**

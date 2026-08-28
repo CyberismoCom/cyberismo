@@ -156,6 +156,14 @@ export class CardContainer {
   }
 
   /**
+   * Creates a card's folder on disk and writes its files.
+   * @param card Card to create.
+   */
+  protected async createNode(card: Card): Promise<void> {
+    return this.cardTree.createNode(card);
+  }
+
+  /**
    * Persists the whole card.
    * @param card Card to persist
    */

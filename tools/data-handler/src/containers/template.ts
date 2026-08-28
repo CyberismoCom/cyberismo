@@ -14,7 +14,7 @@
 // node
 import { basename, join, resolve, sep } from 'node:path';
 import { type Dirent, readdirSync } from 'node:fs';
-import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, rm } from 'node:fs/promises';
 
 // Base class
 import { CardContainer } from './card-container.js';
@@ -35,7 +35,7 @@ import {
 } from '../utils/lexorank.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { isModulePath } from '../utils/card-utils.js';
-import { Project } from './project.js';
+import type { Project } from './project.js';
 import { isInitialTransition, resourceName } from '../utils/resource-utils.js';
 
 import { isPredefinedField, ROOT } from '../utils/constants.js';
@@ -426,12 +426,7 @@ export class Template extends CardContainer {
         });
       }
 
-      await Promise.all(
-        newCards.map(async (card) => {
-          await mkdir(card.path, { recursive: true });
-          await this.saveCard(card);
-        }),
-      );
+      await Promise.all(newCards.map((card) => this.createNode(card)));
       await this.project.handleNewCards(newCards);
       return newCardKeys;
     } catch (error) {
@@ -536,18 +531,15 @@ export class Template extends CardContainer {
           // what is returned and what is cached must be the same thing.
           // Chained, not run in parallel: processAttachments rewrites the
           // content and the attachment list of the object it is handed.
-          await mkdir(card.path, { recursive: true });
           const processedCard = await this.processAttachments(
             await this.processMetadata(card, rootCardRanks, cardKeyMap),
           );
 
-          await Promise.all([
-            this.saveCardMetadata(processedCard),
-            writeFile(
-              join(processedCard.path, Project.cardContentFile),
-              processedCard.content || '',
-            ),
-          ]);
+          // Through the creation primitive, which also makes the card folder;
+          // processAttachments only creates one when the card has attachments.
+          // The content used to be written with a raw writeFile here, which is
+          // why content never went through the tree at all.
+          await this.createNode(processedCard);
           return processedCard;
         }),
       );

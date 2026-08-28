@@ -355,13 +355,16 @@ export class CardTree {
    *
    * Does not put the card into the store: adding a created card is the
    * caller's notification step, which also runs the creation query and its
-   * side effects, and neither belongs to the tree.
+   * side effects, and neither belongs to the tree. The store is therefore not
+   * consulted either — a node being created is by definition not in it yet.
    * @param card Card to create. Its 'path' is where the folder goes.
    */
   public async createNode(card: Card): Promise<void> {
     await mkdir(card.path, { recursive: true });
-    await this.writeContent(card);
-    await this.writeMetadata(card);
+    // A card folder without a content file cannot be loaded back, so the file
+    // is always written, empty when the card has no content.
+    await this.writeContentFile(card.path, card.content ?? '');
+    await this.persistMetadata(card);
   }
 
   /**
@@ -370,11 +373,10 @@ export class CardTree {
    * @returns true if the store was updated; false if the card has no content.
    */
   public async writeContent(card: Card): Promise<boolean> {
-    if (card.content == null) {
+    if (!(await this.persistContent(card))) {
       return false;
     }
-    await writeFile(join(card.path, CARD_CONTENT_FILE), card.content);
-    return this.cache.updateCardContent(card.key, card.content);
+    return this.cache.updateCardContent(card.key, card.content!);
   }
 
   /**
@@ -385,15 +387,39 @@ export class CardTree {
    * @throws if the metadata file cannot be written.
    */
   public async writeMetadata(card: Card): Promise<boolean> {
-    if (card.metadata == null) {
+    const sanitizedMetadata = await this.persistMetadata(card);
+    if (!sanitizedMetadata) {
       return false;
+    }
+    return this.cache.updateCardMetadata(card.key, sanitizedMetadata);
+  }
+
+  // The single place that knows where a card's content lives.
+  private async writeContentFile(cardPath: string, content: string) {
+    await writeFile(join(cardPath, CARD_CONTENT_FILE), content);
+  }
+
+  // Writes the card's content file, if it has content. The store is left alone.
+  private async persistContent(card: Card): Promise<boolean> {
+    if (card.content == null) {
+      return false;
+    }
+    await this.writeContentFile(card.path, card.content);
+    return true;
+  }
+
+  // Writes the card's metadata file and stamps 'lastUpdated'. The store is
+  // left alone; the sanitized object is returned so the caller can cache
+  // exactly what was written.
+  private async persistMetadata(card: Card): Promise<CardMetadata | undefined> {
+    if (card.metadata == null) {
+      return undefined;
     }
     card.metadata.lastUpdated = new Date().toISOString();
 
-    // Cache the same object that was written, so store and disk agree.
     const sanitizedMetadata = CardTree.sanitizeMetadata(card);
     await writeJsonFile(join(card.path, CARD_METADATA_FILE), sanitizedMetadata);
-    return this.cache.updateCardMetadata(card.key, sanitizedMetadata);
+    return sanitizedMetadata;
   }
 
   /**
