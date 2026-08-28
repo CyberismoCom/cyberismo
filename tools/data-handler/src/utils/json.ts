@@ -110,19 +110,36 @@ export function trimReplacer(_: string, value: unknown) {
  * Writes and formats a JSON file.
  * @param filename file name (and path) to write.
  * @param json JSON object to format.
- * @param options Optional, write options
- * @return true if write succeeded, false otherwise.
+ * @throws if the file cannot be written.
  */
 export async function writeJsonFile(
   filename: string | FileHandle,
   json: object,
-  options?: object,
-) {
+): Promise<void> {
+  await writeFile(filename, formatJson(json));
+}
+
+/**
+ * Writes and formats a JSON file, unless it already exists.
+ *
+ * Used for the '.schema' files that are seeded once per resource folder and
+ * must never be overwritten by a later write of the same resource.
+ * @param filename file name (and path) to write.
+ * @param json JSON object to format.
+ * @returns true if the file was written; false if it already existed.
+ * @throws if the file cannot be written for any other reason.
+ */
+export async function writeJsonFileIfAbsent(
+  filename: string,
+  json: object,
+): Promise<boolean> {
   try {
-    await writeFile(filename, formatJson(json), options);
+    await writeFile(filename, formatJson(json), { flag: 'wx' });
     return true;
-  } catch {
-    // do nothing, file didn't exist, or no permissions to write
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException)?.code === 'EEXIST') {
+      return false;
+    }
+    throw error;
   }
-  return false;
 }

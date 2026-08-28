@@ -4,7 +4,7 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { copyDir } from '../src/utils/file-utils.js';
-import { Cmd, Commands } from '../src/command-handler.js';
+import { Cmd, CommandManager, Commands } from '../src/command-handler.js';
 import { Show } from '../src/commands/index.js';
 import { getTestProject } from './helpers/test-utils.js';
 
@@ -24,6 +24,15 @@ describe('rank command', () => {
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data', testDir);
+
+    // CommandManager is a singleton per project path, so the instance from the
+    // previous test survives afterEach's wipe of testDir and its card cache
+    // still lists the cards that test created. Rebuild it against the fresh
+    // copy: an operation that writes to every cached card (rank rebalance)
+    // would otherwise write to folders that no longer exist.
+    const shared = await CommandManager.getInstance(decisionRecordsPath);
+    shared.project.cardsCache.clear();
+    await shared.project.populateCaches();
 
     // Create a few cards to play with.
     const template = 'decision/templates/decision';

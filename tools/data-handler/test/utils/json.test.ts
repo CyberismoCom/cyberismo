@@ -1,5 +1,7 @@
-import { expect, describe, it } from 'vitest';
+import { expect, describe, it, afterAll } from 'vitest';
 
+import { mkdirSync, rmSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import {
@@ -7,6 +9,8 @@ import {
   readADocFileSync,
   readJsonFile,
   readJsonFileSync,
+  writeJsonFile,
+  writeJsonFileIfAbsent,
 } from '../../src/utils/json.js';
 import { formatJson } from '../../src/utils/json.js';
 
@@ -118,5 +122,46 @@ describe('Json', () => {
     const input = 'Simple text';
     const result = escapeJsonString(input);
     expect(result).toBe('Simple text');
+  });
+});
+
+describe('writeJsonFile', () => {
+  const testDir = join(import.meta.dirname, 'tmp-write-json-tests');
+
+  afterAll(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('writes formatted JSON', async () => {
+    mkdirSync(testDir, { recursive: true });
+    const file = join(testDir, 'written.json');
+    await writeJsonFile(file, { title: 'Untitled' });
+    expect(await readFile(file, 'utf-8')).toBe('{\n    "title": "Untitled"\n}');
+  });
+
+  it('throws when the target cannot be written', async () => {
+    // A directory is an unwritable target for any user, root included.
+    const target = join(testDir, 'unwritable');
+    mkdirSync(target, { recursive: true });
+    await expect(writeJsonFile(target, { title: 'Untitled' })).rejects.toThrow(
+      /EISDIR/,
+    );
+  });
+
+  it('writeJsonFileIfAbsent keeps an existing file and reports it', async () => {
+    mkdirSync(testDir, { recursive: true });
+    const file = join(testDir, 'seeded.json');
+
+    expect(await writeJsonFileIfAbsent(file, { seeded: true })).toBe(true);
+    expect(await writeJsonFileIfAbsent(file, { seeded: false })).toBe(false);
+    expect(await readFile(file, 'utf-8')).toBe('{\n    "seeded": true\n}');
+  });
+
+  it('writeJsonFileIfAbsent throws on failures other than an existing file', async () => {
+    mkdirSync(testDir, { recursive: true });
+    const target = join(testDir, 'no-such-folder', 'seeded.json');
+    await expect(
+      writeJsonFileIfAbsent(target, { title: 'Untitled' }),
+    ).rejects.toThrow(/ENOENT/);
   });
 });
