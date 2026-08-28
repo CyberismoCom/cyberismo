@@ -18,7 +18,6 @@ import { writeFile } from 'node:fs/promises';
 
 import type { CardCache } from './project/card-cache.js';
 import { CardTree } from './project/card-tree.js';
-import { CardNotFoundError } from '../exceptions/index.js';
 import { deleteDir } from '../utils/file-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { writeJsonFile } from '../utils/json.js';
@@ -30,7 +29,7 @@ import type {
   CardNode,
 } from '../interfaces/project-interfaces.js';
 
-import { isPredefinedField, ROOT } from '../utils/constants.js';
+import { isPredefinedField } from '../utils/constants.js';
 
 /**
  * Card container base class. Used for both Project and Template.
@@ -62,32 +61,6 @@ export class CardContainer {
     return this.cardTree.store;
   }
 
-  // Identity and tree position, with the cache-internal 'location' dropped.
-  // The metadata is shared with the cache, so a node is a read-only view: its
-  // callers are audited (see the branch's commit log) and none of them writes
-  // to what they get back. Callers that modify metadata use cards() or
-  // findCard(), which hand out a copy.
-  private static nodeView(card: Card): CardNode {
-    return {
-      key: card.key,
-      path: card.path,
-      children: card.children,
-      metadata: card.metadata,
-      parent: card.parent,
-    };
-  }
-
-  // The fully hydrated card: identity, tree position, a copy of the metadata,
-  // and the content and attachment listing shared with the cache.
-  private static cardView(card: Card): Card {
-    return {
-      ...CardContainer.nodeView(card),
-      metadata: structuredClone(card.metadata),
-      content: card.content,
-      attachments: card.attachments,
-    };
-  }
-
   /**
    * Determines the container from a given path.
    * @param path The filesystem path to analyze
@@ -113,14 +86,7 @@ export class CardContainer {
    * @returns attachments from the container.
    */
   protected attachments(path: string): CardAttachment[] {
-    const attachments: CardAttachment[] = [];
-
-    const targetLocation = this.determineContainer(path);
-    const cards = this.cardCache.cardsAtLocation(targetLocation);
-    cards
-      .filter((card) => card.attachments.length > 0)
-      .forEach((item) => attachments.push(...item.attachments));
-    return attachments;
+    return this.cardTree.attachmentsIn(this.determineContainer(path));
   }
 
   /**
@@ -129,7 +95,7 @@ export class CardContainer {
    * @returns all cards from the container
    */
   protected cards(path: string): Card[] {
-    return this.cachedCards(path).map(CardContainer.cardView);
+    return this.cardTree.cardsIn(this.determineContainer(path));
   }
 
   /**
@@ -139,7 +105,7 @@ export class CardContainer {
    * @returns nodes of all cards from the container
    */
   protected cardNodes(path: string): CardNode[] {
-    return this.cachedCards(path).map(CardContainer.nodeView);
+    return this.cardTree.cardNodesIn(this.determineContainer(path));
   }
 
   /**
@@ -148,7 +114,7 @@ export class CardContainer {
    * @returns keys of all cards from the container
    */
   protected cardKeys(path: string): string[] {
-    return this.cachedCards(path).map((card) => card.key);
+    return this.cardTree.cardKeysIn(this.determineContainer(path));
   }
 
   /**
@@ -157,11 +123,7 @@ export class CardContainer {
    * @throws if card does not exist in the container
    */
   protected cardNode(cardKey: string): CardNode {
-    const cachedCard = this.cardCache.getCard(cardKey);
-    if (!cachedCard) {
-      throw new CardNotFoundError(cardKey);
-    }
-    return CardContainer.nodeView(cachedCard);
+    return this.cardTree.node(cardKey);
   }
 
   /**
@@ -171,11 +133,7 @@ export class CardContainer {
    * @throws if card does not exist in the container
    */
   protected cardContent(cardKey: string): string | undefined {
-    const cachedCard = this.cardCache.getCard(cardKey);
-    if (!cachedCard) {
-      throw new CardNotFoundError(cardKey);
-    }
-    return cachedCard.content;
+    return this.cardTree.content(cardKey);
   }
 
   /**
@@ -185,11 +143,7 @@ export class CardContainer {
    * @throws if card does not exist in the container
    */
   protected cardAttachments(cardKey: string): CardAttachment[] {
-    const cachedCard = this.cardCache.getCard(cardKey);
-    if (!cachedCard) {
-      throw new CardNotFoundError(cardKey);
-    }
-    return cachedCard.attachments;
+    return this.cardTree.attachmentsOf(cardKey);
   }
 
   /**
@@ -198,20 +152,7 @@ export class CardContainer {
    * @throws if card does not exist in the container
    */
   protected findCard(cardKey: string): Card {
-    const cachedCard = this.cardCache.getCard(cardKey);
-    if (cachedCard) {
-      return CardContainer.cardView(cachedCard);
-    }
-    throw new CardNotFoundError(cardKey);
-  }
-
-  // The cached cards belonging to the container the path points at.
-  private cachedCards(path: string): Card[] {
-    if (!this.cardTree.isPopulated) {
-      throw new Error('Cards cache is not populated!');
-    }
-
-    return this.cardCache.cardsAtLocation(this.determineContainer(path));
+    return this.cardTree.card(cardKey);
   }
 
   /**
@@ -314,28 +255,7 @@ export class CardContainer {
    * @returns an array of root-level cards (each with their children populated).
    */
   protected showCards(path: string): Card[] {
-    const container = this.determineContainer(path);
-    const rootCards: Card[] = [];
-    const relevantCards = this.cardCache.cardsAtLocation(container);
-
-    relevantCards.forEach((card) => {
-      // A card is a root of this container if it says so, or if its parent is
-      // not a card of this container. The parent lookup goes through the cache
-      // rather than scanning the container's cards, which made this O(k^2).
-      if (
-        card.parent === ROOT ||
-        !card.parent ||
-        this.cardTree.locationOfCard(card.parent) !== container
-      ) {
-        const cardWithChildren: Card = {
-          ...card,
-          children: card.children,
-        };
-        rootCards.push(cardWithChildren);
-      }
-    });
-
-    return rootCards;
+    return this.cardTree.rootCardsIn(this.determineContainer(path));
   }
 
   /**

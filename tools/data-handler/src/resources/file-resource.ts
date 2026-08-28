@@ -13,12 +13,8 @@
 
 import { resourceName } from '../utils/resource-utils.js';
 import { ResourceObject } from './resource-object.js';
-import { ResourcesFrom } from '../containers/project/resources-from.js';
 
-import type {
-  Card,
-  ResourceFolderType,
-} from '../interfaces/project-interfaces.js';
+import type { ResourceFolderType } from '../interfaces/project-interfaces.js';
 import type { Project } from '../containers/project.js';
 import type { ResourceBaseMetadata } from '../interfaces/resource-interfaces.js';
 import type { ResourceName } from '../utils/resource-utils.js';
@@ -34,43 +30,6 @@ export abstract class FileResource<
   constructor(project: Project, name: ResourceName, type: ResourceFolderType) {
     super(project, name, type);
     this.initialize();
-  }
-  /**
-   * Collects cards that match the given filter function.
-   * @param resourceName The resource name to filter by
-   * @param filterFn Function that returns true for cards to include
-   * @returns Array of cards that match the filter
-   */
-  protected async collectCards(
-    resourceName: string,
-    filterFn: (card: Card, resourceName: string) => boolean,
-  ): Promise<Card[]> {
-    function filteredCards(
-      cardSource: Card[],
-      resourceName: string,
-      filterFn: (card: Card, resourceName: string) => boolean,
-    ): Card[] {
-      return cardSource.filter((card) => filterFn(card, resourceName));
-    }
-
-    // Collect both project cards ...
-    const projectCards = filteredCards(
-      this.project.cards(this.project.paths.cardRootFolder),
-      resourceName,
-      filterFn,
-    );
-    // ... and cards from each template that would be affected.
-    const templates = this.project.resources.templates(ResourcesFrom.localOnly);
-    const templateCards = templates.map((template) => {
-      const templateObject = template.templateObject();
-      return filteredCards(templateObject.cards(), resourceName, filterFn);
-    });
-    // Return all affected cards
-    const cards = [projectCards, ...templateCards].reduce(
-      (accumulator, value) => accumulator.concat(value),
-      [],
-    );
-    return cards;
   }
 
   /**

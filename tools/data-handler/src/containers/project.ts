@@ -347,7 +347,7 @@ export class Project extends CardContainer {
    * @returns all the template cards from the project
    */
   public allTemplateCards(): Card[] {
-    return this.cardCache.getAllTemplateCards();
+    return this.cardTree.allTemplateCards();
   }
 
   /**
@@ -455,14 +455,7 @@ export class Project extends CardContainer {
    * @returns Card data to the given card keys
    */
   public cardKeysToCards(cardIds: string[]): Card[] {
-    const cards: Card[] = [];
-    for (const cardId of cardIds) {
-      const card = this.cardCache.getCard(cardId);
-      if (card) {
-        cards.push(card);
-      }
-    }
-    return cards;
+    return this.cardTree.liveCardsFor(cardIds);
   }
 
   /**
@@ -532,22 +525,6 @@ export class Project extends CardContainer {
    */
   public get cardsCache() {
     return this.cardCache;
-  }
-
-  /**
-   * Returns children of a given card; as Card array
-   * @param card Parent card to fetch children from
-   * @returns children of a given card; as Card array
-   */
-  public childrenCards(card: Card): Card[] {
-    const cards: Card[] = [];
-    for (const child of card.children) {
-      const card = this.cardCache.getCard(child);
-      if (card) {
-        cards.push(card);
-      }
-    }
-    return cards;
   }
 
   /**
@@ -640,18 +617,18 @@ export class Project extends CardContainer {
   public async handleCardDeleted(deletedCard: Card) {
     // Delete children from the cache first
     if (deletedCard.children && deletedCard.children.length > 0) {
-      const parentCachedCard = this.cardCache.getCard(deletedCard.key);
-      const parentLocation = parentCachedCard?.location || 'project';
+      const parentLocation =
+        this.cardTree.locationOfCard(deletedCard.key) || 'project';
 
       for (const child of deletedCard.children) {
         try {
           const childCard = this.findCard(child);
-          const childCachedCard = this.cardCache.getCard(child);
+          const childLocation = this.cardTree.locationOfCard(child);
 
           // Safety check: only delete children from the same location (project or template)
-          if (childCachedCard && childCachedCard.location !== parentLocation) {
+          if (childLocation !== undefined && childLocation !== parentLocation) {
             const errorMessage =
-              `Cannot delete child card '${child}' from different location '${childCachedCard.location}' ` +
+              `Cannot delete child card '${child}' from different location '${childLocation}' ` +
               `than parent card '${deletedCard.key}' from '${parentLocation}'`;
             this.logger.error(errorMessage);
             throw new Error(errorMessage);
@@ -975,7 +952,7 @@ export class Project extends CardContainer {
    * Populates the card cache, if it has not been populated.
    */
   public async populateCaches() {
-    if (!this.cardCache.isPopulated) {
+    if (!this.cardTree.isPopulated) {
       // Only collect modules that are registered in the project configuration
       if (this.configuration.modules && this.configuration.modules.length > 0) {
         this.resources.changedModules();
@@ -1089,7 +1066,7 @@ export class Project extends CardContainer {
     if (templateName === 'project') {
       return [];
     }
-    return this.cardCache.cardsAtLocation(templateName);
+    return this.cardTree.liveCardsIn(templateName);
   }
 
   /**
@@ -1180,7 +1157,7 @@ export class Project extends CardContainer {
     oldBasePath: string,
     newBasePath: string,
   ): void {
-    const card = this.cardCache.getCard(cardKey);
+    const card = this.cardTree.liveCard(cardKey);
     if (!card) return;
 
     if (card.path.startsWith(oldBasePath)) {
@@ -1211,7 +1188,7 @@ export class Project extends CardContainer {
    * @param card The card with updated information (path, parent, metadata, etc.)
    */
   public async updateCard(card: Card) {
-    const cachedCard = this.cardCache.getCard(card.key);
+    const cachedCard = this.cardTree.liveCard(card.key);
     const pathChange = cachedCard && cachedCard.path !== card.path;
 
     const metadataChanged =

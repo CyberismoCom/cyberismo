@@ -780,7 +780,7 @@ describe('project', () => {
 
     // Check that children Card data can be retrieved
     const parentCard = project.findCard('decision_5');
-    const childCards = project.childrenCards(parentCard);
+    const childCards = project.cardKeysToCards(parentCard.children);
     expect(childCards.length).toBe(1);
     expect(childCards.at(0)!.key).toBe('decision_6');
   });
