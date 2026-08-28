@@ -20,6 +20,7 @@ import type {
   Card,
   CardAttachment,
   CardMetadata,
+  MetadataContent,
 } from '../../interfaces/project-interfaces.js';
 import { CardNameRegEx } from '../../interfaces/project-interfaces.js';
 import { cardPathParts, parentCard } from '../../utils/card-utils.js';
@@ -284,13 +285,41 @@ export class CardCache {
   // array) regardless of how the metadata was produced. Applied to every
   // metadata object entering the cache; on-disk files and in-memory
   // producers may both omit 'links'.
+  //
+  // Always a fresh, frozen object. Fresh, because the cache must not alias
+  // metadata its caller still holds — it used to return the caller's object
+  // unchanged whenever 'links' was already present. Frozen, because the
+  // metadata-level read (CardTree.nodeView) hands this object straight to its
+  // callers rather than cloning it: freezing is what makes that sharing safe,
+  // at no cost on the read path. Anything that tries to edit stored metadata
+  // now throws instead of silently rewriting the cache.
   private static normalizedMetadata(
     metadata?: CardMetadata,
   ): CardMetadata | undefined {
-    if (!metadata || metadata.links) {
+    if (!metadata) {
       return metadata;
     }
-    return { ...metadata, links: [] };
+    const stored: Record<string, MetadataContent> = {};
+    for (const [key, value] of Object.entries(metadata)) {
+      stored[key] = Array.isArray(value) ? CardCache.frozenList(value) : value;
+    }
+    if (!Array.isArray(stored.links)) {
+      stored.links = CardCache.frozenList([]);
+    }
+    return Object.freeze(stored) as CardMetadata;
+  }
+
+  // A frozen copy of a metadata array, with its object elements frozen too:
+  // 'links' and 'externalLinks' hold objects, and a frozen array whose
+  // elements are writable would still let a reader edit the cache.
+  private static frozenList(values: unknown[]): MetadataContent {
+    return Object.freeze(
+      values.map((item) =>
+        item !== null && typeof item === 'object'
+          ? Object.freeze({ ...item })
+          : item,
+      ),
+    ) as MetadataContent;
   }
 
   // Builds the card cache from filesystem.

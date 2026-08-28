@@ -41,8 +41,13 @@ function createCard(cardKey: string, attachments: string[] = []) {
       cardType: 'test/cardTypes/page',
       workflowState: 'Draft',
       rank: '0|a',
-      links: [],
-    } as CardMetadata),
+      links: [
+        {
+          linkType: 'test/linkTypes/rel',
+          cardKey: 'test_2',
+        },
+      ],
+    } as unknown as CardMetadata),
   );
   writeFileSync(join(cardPath, 'index.adoc'), `image::${ATTACHMENT}[]\n`);
 
@@ -116,5 +121,78 @@ describe('CardTree.renameAttachment', () => {
     await expect(
       tree.renameAttachment('test_999', ATTACHMENT, 'other.png'),
     ).rejects.toThrow(CardNotFoundError);
+  });
+});
+
+describe('CardTree read boundary', () => {
+  let tree: CardTree;
+
+  beforeEach(async () => {
+    mkdirSync(cardRoot, { recursive: true });
+    createCard(CARD_KEY, [ATTACHMENT]);
+    tree = new CardTree(prefix);
+    await tree.load(cardRoot);
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  // The metadata-level read shares the stored metadata object rather than
+  // cloning it, so the store freezes what it holds. Without the freeze this
+  // assignment silently rewrites the cache.
+  it('refuses writes to the metadata a node read shares', () => {
+    const node = tree.node(CARD_KEY);
+    expect(Object.isFrozen(node.metadata)).toBe(true);
+    expect(() => {
+      node.metadata!.title = 'edited';
+    }).toThrow(TypeError);
+    expect(tree.node(CARD_KEY).metadata!.title).toBe('Card');
+  });
+
+  it('refuses writes to the arrays and link objects inside stored metadata', () => {
+    const links = tree.node(CARD_KEY).metadata!.links;
+    expect(() => links.push({ linkType: 'x', cardKey: 'test_9' })).toThrow(
+      TypeError,
+    );
+    expect(() => {
+      links[0].linkType = 'edited';
+    }).toThrow(TypeError);
+    expect(tree.node(CARD_KEY).metadata!.links[0].linkType).toBe(
+      'test/linkTypes/rel',
+    );
+  });
+
+  it('hands out a card whose metadata can be edited without touching the store', () => {
+    const card = tree.card(CARD_KEY);
+    expect(Object.isFrozen(card.metadata)).toBe(false);
+
+    card.metadata!.title = 'edited';
+    card.metadata!.links.push({ linkType: 'x', cardKey: 'test_9' });
+
+    expect(tree.card(CARD_KEY).metadata!.title).toBe('Card');
+    expect(tree.card(CARD_KEY).metadata!.links).toHaveLength(1);
+  });
+
+  it('hands out attachments and children that can be edited without touching the store', () => {
+    const card = tree.card(CARD_KEY);
+    card.attachments[0].fileName = 'edited.png';
+    card.children.push('test_9');
+
+    expect(tree.card(CARD_KEY).attachments[0].fileName).toBe(ATTACHMENT);
+    expect(tree.attachmentsOf(CARD_KEY)[0].fileName).toBe(ATTACHMENT);
+    expect(tree.card(CARD_KEY).children).toHaveLength(0);
+    expect(tree.childrenOf(CARD_KEY)).toHaveLength(0);
+  });
+
+  it('does not leak the store-internal location field', () => {
+    for (const card of [
+      tree.card(CARD_KEY),
+      ...tree.cardsIn('project'),
+      ...tree.rootCardsIn('project'),
+      ...tree.cardsFor([CARD_KEY]),
+    ]) {
+      expect(card).not.toHaveProperty('location');
+    }
   });
 });
