@@ -65,9 +65,11 @@ const CHILDREN_FOLDER = 'c';
  * emitsCardFact - whether the tree's cards get the card(Key) fact. Only the
  *   project's do, which is what makes template cards invisible to every query
  *   predicated on card(K).
- * validationApplies - whether a metadata write is validated against the card's
- *   workflow and card type. Template cards are exempt: they carry an empty
- *   workflow state by construction.
+ * validationApplies - whether the tree's cards take part in workflow
+ *   semantics: metadata validation against the card's workflow and card type,
+ *   and the transition permissions built on it. Template cards are exempt -
+ *   they carry an empty workflow state by construction, so there is nothing to
+ *   validate and no transition to permit.
  * keys - the project-level card key registry. Card keys are unique across the
  *   project and all of its templates, so this is shared by every tree.
  */
@@ -141,8 +143,8 @@ export class CardTree {
   }
 
   /**
-   * Whether a metadata write to one of the tree's cards is validated against
-   * the card's workflow and card type.
+   * Whether the tree's cards take part in workflow semantics: metadata
+   * validation, and the permissions built on it.
    */
   public get validationApplies(): boolean {
     return this.options.validationApplies;

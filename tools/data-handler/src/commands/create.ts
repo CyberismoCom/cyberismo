@@ -115,17 +115,16 @@ export class Create {
       templateName,
       'templates',
     );
-    const templateObject = templateResource.templateObject();
-    const specificCard = card ? templateObject.findCard(card) : undefined;
+    const specificCard = card ? templateResource.templateCard(card) : undefined;
 
-    if (isModulePath(templateObject.templateFolder())) {
+    if (isModulePath(templateResource.templateFolder())) {
       throw new Error(`Cannot add cards to imported module templates`);
     }
 
     // One call, not a per-card fan-out: keys and ranks must be allocated
     // before any card is written, or every card in the batch reads the same
     // sibling snapshot and lands on the same rank.
-    const cardsContainer = await templateObject.addCards(
+    const cardsContainer = await templateResource.addCards(
       cardTypeName,
       count,
       specificCard,
@@ -212,12 +211,11 @@ export class Create {
     const specificCard = parentCardKey
       ? this.project.findCard(parentCardKey)
       : undefined;
-    const templateObject = templateResource.templateObject();
-    if (!templateObject || !templateObject.isCreated()) {
+    if (!templateResource.isCreated()) {
       throw new Error(`Template '${templateName}' not found from project`);
     }
 
-    const createdCards = await templateObject.createCards(specificCard);
+    const createdCards = await templateResource.createCards(specificCard);
 
     if (createdCards.length > 0) {
       // This command holds the write lock, so the creation query and the side

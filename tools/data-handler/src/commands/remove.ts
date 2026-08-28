@@ -78,8 +78,9 @@ export class Remove {
       throw new Error(`Cannot modify imported module`);
     }
 
-    // Make sure card can be removed if it's a project card
-    if (this.project.hasProjectCard(cardKey)) {
+    // Make sure card can be removed if it takes part in a workflow; a
+    // template card has no state to transition out of.
+    if (this.project.treeOf(cardKey).validationApplies) {
       const actionGuard = new ActionGuard(this.project.calculationEngine);
       await actionGuard.checkPermission('delete', cardKey);
     }
