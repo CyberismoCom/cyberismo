@@ -580,7 +580,7 @@ export class Validate {
         // Finally, validate that each card is correct.
         //
         // Duplicate card keys are not checked here: both sources are views of
-        // the card cache, which is keyed by card key, so a duplicate can never
+        // the card store, which is keyed by card key, so a duplicate can never
         // appear twice in this list. The condition is detected where it is
         // visible — when the cache is loaded, above — and surfaces through the
         // populateCaches() call as a validation error.

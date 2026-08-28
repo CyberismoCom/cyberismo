@@ -170,7 +170,7 @@ async function updateCardAttachments(
 ): Promise<string | undefined> {
   if (!isTemplateCard(card)) {
     // A snapshot of the file names: the rename primitive updates the cached
-    // attachment objects, which this array shares with the card cache.
+    // attachment objects, which this array shares with the card store.
     const fileNames = (card.attachments ?? []).map((item) => item.fileName);
     await Promise.all(
       fileNames.map(async (fileName) => {

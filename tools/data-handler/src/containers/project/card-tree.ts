@@ -24,8 +24,8 @@ import {
 
 import mime from 'mime-types';
 
-import { CardCache } from './card-cache.js';
-import type { StoredAttachment, StoredCard } from './card-cache.js';
+import { CardStore } from './card-store.js';
+import type { StoredAttachment, StoredCard } from './card-store.js';
 import { CardNotFoundError } from '../../exceptions/index.js';
 import { deleteDir } from '../../utils/file-utils.js';
 import { getChildLogger } from '../../utils/log-utils.js';
@@ -123,23 +123,12 @@ export interface RankChange {
  * but the key registry.
  */
 export class CardTree {
-  private readonly cache: CardCache;
+  private readonly store: CardStore;
   private treeName: string;
 
   constructor(private readonly options: CardTreeOptions) {
     this.treeName = options.name;
-    this.cache = new CardCache(options.rootPath);
-  }
-
-  /**
-   * The tree's store: its card map and the adjacency index over it.
-   *
-   * The tree is the store's only writer; this is here so the store's own
-   * invariants can be asserted directly. Production code goes through the
-   * tree's surface.
-   */
-  public get store(): CardCache {
-    return this.cache;
+    this.store = new CardStore(options.rootPath);
   }
 
   /**
@@ -153,7 +142,7 @@ export class CardTree {
    * The folder the tree's cards are rooted at.
    */
   public get rootPath(): string {
-    return this.cache.root;
+    return this.store.root;
   }
 
   /**
@@ -189,7 +178,7 @@ export class CardTree {
    */
   public rebase(name: string, rootPath: string) {
     this.treeName = name;
-    this.cache.rebase(rootPath);
+    this.store.rebase(rootPath);
   }
 
   /**
@@ -198,7 +187,7 @@ export class CardTree {
    * @returns child card keys, in tree insertion order.
    */
   public childrenOf(cardKey: string): string[] {
-    return this.cache.childrenOf(cardKey);
+    return this.store.childrenOf(cardKey);
   }
 
   /**
@@ -207,10 +196,10 @@ export class CardTree {
    */
   public ancestorsOf(cardKey: string): string[] {
     const ancestors: string[] = [];
-    let card = this.cache.getCard(cardKey);
+    let card = this.store.getCard(cardKey);
     while (card && card.parent !== ROOT) {
       ancestors.push(card.parent);
-      card = this.cache.getCard(card.parent);
+      card = this.store.getCard(card.parent);
     }
     return ancestors;
   }
@@ -220,14 +209,14 @@ export class CardTree {
    * @param cardKey Card key to check.
    */
   public has(cardKey: string): boolean {
-    return this.cache.hasCard(cardKey);
+    return this.store.hasCard(cardKey);
   }
 
   /**
    * Whether the tree has been loaded.
    */
   public get isPopulated(): boolean {
-    return this.cache.isPopulated;
+    return this.store.isPopulated;
   }
 
   /**
@@ -236,7 +225,7 @@ export class CardTree {
    * @throws CardNotFoundError if the tree does not hold the card
    */
   public pathOf(cardKey: string): string {
-    return this.pathOfStored(this.cached(cardKey));
+    return this.pathOfStored(this.stored(cardKey));
   }
 
   // The folder a stored card's files live in, walked out of the edges.
@@ -245,7 +234,7 @@ export class CardTree {
     let current: StoredCard = card;
     while (current.parent !== ROOT) {
       segments.push(current.key, CHILDREN_FOLDER);
-      const parent = this.cache.getCard(current.parent);
+      const parent = this.store.getCard(current.parent);
       if (!parent) {
         throw new Error(
           `Card '${card.key}' has parent '${current.parent}' which is not in tree '${this.treeName}'`,
@@ -254,7 +243,7 @@ export class CardTree {
       current = parent;
     }
     segments.push(current.key);
-    return join(this.cache.root, ...segments.reverse());
+    return join(this.store.root, ...segments.reverse());
   }
 
   /**
@@ -263,7 +252,7 @@ export class CardTree {
    */
   public childFolderOf(parentKey: string = ROOT): string {
     return parentKey === ROOT
-      ? this.cache.root
+      ? this.store.root
       : join(this.pathOf(parentKey), CHILDREN_FOLDER);
   }
 
@@ -281,7 +270,7 @@ export class CardTree {
   // The metadata object is shared with the store, deliberately: this is the
   // cheap read, taken once per card on the fact-projection path, and cloning
   // there is the cost that was measured away. Sharing is safe because stored
-  // metadata is frozen (see CardCache.normalizedMetadata) — a caller that
+  // metadata is frozen (see CardStore.normalizedMetadata) — a caller that
   // tries to write to it gets a TypeError instead of silently editing the
   // store. Callers that need to modify metadata use cards()/card(), which
   // hand out an unfrozen copy. 'children' is copied: it is the adjacency
@@ -354,7 +343,7 @@ export class CardTree {
           `Card '${cardKey}' cannot be placed under '${parent}', which is the card itself or one of its descendants`,
         );
       }
-      ancestor = this.cache.getCard(ancestor)?.parent;
+      ancestor = this.store.getCard(ancestor)?.parent;
     }
   }
 
@@ -367,7 +356,7 @@ export class CardTree {
    * @returns hydrated cards, in tree insertion order.
    */
   public cards(): Card[] {
-    return this.cache.cards().map((card) => this.cardView(card));
+    return this.store.cards().map((card) => this.cardView(card));
   }
 
   /**
@@ -375,21 +364,21 @@ export class CardTree {
    * listing.
    */
   public nodes(): CardNode[] {
-    return this.cache.cards().map((card) => this.nodeView(card));
+    return this.store.cards().map((card) => this.nodeView(card));
   }
 
   /**
    * The card keys in the tree.
    */
   public keys(): string[] {
-    return this.cache.keys();
+    return this.store.keys();
   }
 
   /**
    * How many cards the tree holds.
    */
   public get count(): number {
-    return this.cache.count;
+    return this.store.count;
   }
 
   /**
@@ -397,7 +386,7 @@ export class CardTree {
    */
   public attachments(): CardAttachment[] {
     const attachments: CardAttachment[] = [];
-    for (const card of this.cache.cards()) {
+    for (const card of this.store.cards()) {
       if (card.attachments.length === 0) {
         continue;
       }
@@ -415,7 +404,7 @@ export class CardTree {
    * The tree's root cards, each with its children populated.
    */
   public rootCards(): Card[] {
-    return this.cache
+    return this.store
       .cards()
       .filter((card) => card.parent === ROOT || !card.parent)
       .map((card) => this.cardView(card));
@@ -427,7 +416,7 @@ export class CardTree {
    * @throws CardNotFoundError if the tree does not hold the card
    */
   public card(cardKey: string): Card {
-    return this.cardView(this.cached(cardKey));
+    return this.cardView(this.stored(cardKey));
   }
 
   /**
@@ -436,7 +425,7 @@ export class CardTree {
    * @throws CardNotFoundError if the tree does not hold the card
    */
   public node(cardKey: string): CardNode {
-    return this.nodeView(this.cached(cardKey));
+    return this.nodeView(this.stored(cardKey));
   }
 
   /**
@@ -446,7 +435,7 @@ export class CardTree {
    * @throws CardNotFoundError if the tree does not hold the card
    */
   public content(cardKey: string): string | undefined {
-    return this.cached(cardKey).content;
+    return this.stored(cardKey).content;
   }
 
   /**
@@ -455,7 +444,7 @@ export class CardTree {
    * @throws CardNotFoundError if the tree does not hold the card
    */
   public attachmentsOf(cardKey: string): CardAttachment[] {
-    const card = this.cached(cardKey);
+    const card = this.stored(cardKey);
     const path = this.pathOfStored(card);
     return card.attachments.map((attachment) =>
       CardTree.attachmentView(cardKey, path, attachment),
@@ -469,7 +458,7 @@ export class CardTree {
   public cardsFor(cardKeys: string[]): Card[] {
     const cards: Card[] = [];
     for (const cardKey of cardKeys) {
-      const card = this.cache.getCard(cardKey);
+      const card = this.store.getCard(cardKey);
       if (card) {
         cards.push(this.cardView(card));
       }
@@ -478,8 +467,8 @@ export class CardTree {
   }
 
   // The stored card, or a CardNotFoundError.
-  private cached(cardKey: string): StoredCard {
-    const card = this.cache.getCard(cardKey);
+  private stored(cardKey: string): StoredCard {
+    const card = this.store.getCard(cardKey);
     if (!card) {
       throw new CardNotFoundError(cardKey);
     }
@@ -512,11 +501,11 @@ export class CardTree {
   public siblingsUnder(parentKey: string): string[] {
     const keys =
       parentKey === ROOT
-        ? this.cache
+        ? this.store
             .cards()
             .filter((card) => card.parent === ROOT || !card.parent)
             .map((card) => card.key)
-        : this.cache.childrenOf(parentKey);
+        : this.store.childrenOf(parentKey);
     return sortItems(keys, (key) => this.rankOf(key) ?? EMPTY_RANK);
   }
 
@@ -527,7 +516,7 @@ export class CardTree {
    * @throws CardNotFoundError if the tree does not hold the card
    */
   public siblingsOf(cardKey: string): string[] {
-    return this.siblingsUnder(this.cached(cardKey).parent);
+    return this.siblingsUnder(this.stored(cardKey).parent);
   }
 
   // The rank a card holds, or undefined if it holds none. An empty string and
@@ -536,7 +525,7 @@ export class CardTree {
   // getRankAfter cannot extend it (it carries the '1|' bucket prefix, which
   // the arithmetic does not understand).
   private rankOf(cardKey: string): string | undefined {
-    const rank = this.cache.getCard(cardKey)?.metadata?.rank;
+    const rank = this.store.getCard(cardKey)?.metadata?.rank;
     if (typeof rank !== 'string' || rank === '' || rank === EMPTY_RANK) {
       return undefined;
     }
@@ -586,7 +575,7 @@ export class CardTree {
    * @throws CardNotFoundError if the tree does not hold either card
    */
   public rankAfter(cardKey: string, afterKey: string): RankChange[] {
-    this.cached(cardKey);
+    this.stored(cardKey);
     const siblings = this.siblingsOf(afterKey);
     const index = siblings.indexOf(afterKey);
     return this.withUsableRanks(siblings, (rankAt) =>
@@ -715,7 +704,7 @@ export class CardTree {
     this.assertWritable();
     this.assertNoCycle(card.key, card.parent || ROOT);
     this.options.keys.claim([card.key], this);
-    this.cache.put({
+    this.store.put({
       key: card.key,
       parent: card.parent || ROOT,
       metadata: card.metadata,
@@ -755,9 +744,9 @@ export class CardTree {
    */
   public relocate(cardKey: string, parent: string) {
     this.assertWritable();
-    this.cached(cardKey);
+    this.stored(cardKey);
     this.assertNoCycle(cardKey, parent);
-    this.cache.relocate(cardKey, parent);
+    this.store.relocate(cardKey, parent);
   }
 
   /**
@@ -773,7 +762,7 @@ export class CardTree {
     this.assertWritable();
     const uprooted: StoredCard[] = [];
     const collect = (key: string) => {
-      const card = this.cache.getCard(key);
+      const card = this.store.getCard(key);
       if (!card) {
         return;
       }
@@ -785,7 +774,7 @@ export class CardTree {
     collect(cardKey);
     // Children first, so a parent's child list is empty by the time it goes.
     for (const card of [...uprooted].reverse()) {
-      this.cache.deleteCard(card.key);
+      this.store.deleteCard(card.key);
     }
     this.options.keys.release(uprooted.map((card) => card.key));
     return uprooted;
@@ -816,7 +805,7 @@ export class CardTree {
       this,
     );
     for (const [index, card] of cards.entries()) {
-      this.cache.put({
+      this.store.put({
         ...card,
         parent: index === 0 ? parent : card.parent,
       });
@@ -834,7 +823,7 @@ export class CardTree {
       return false;
     }
     await this.writeContentFile(this.pathOf(card.key), card.content);
-    return this.cache.updateCardContent(card.key, card.content);
+    return this.store.updateCardContent(card.key, card.content);
   }
 
   /**
@@ -853,7 +842,7 @@ export class CardTree {
     if (!sanitizedMetadata) {
       return false;
     }
-    return this.cache.updateCardMetadata(card.key, sanitizedMetadata);
+    return this.store.updateCardMetadata(card.key, sanitizedMetadata);
   }
 
   // The single place that knows where a card's content lives.
@@ -862,7 +851,7 @@ export class CardTree {
   }
 
   // Writes the card's metadata file and stamps 'lastUpdated'. The store is
-  // left alone; the sanitized object is returned so the caller can cache
+  // left alone; the sanitized object is returned so the caller can store
   // exactly what was written.
   private async persistMetadata(
     card: Card,
@@ -886,7 +875,7 @@ export class CardTree {
    * @returns true if the card was in the tree; false otherwise.
    */
   public async deleteSubtree(cardKey: string): Promise<boolean> {
-    const card = this.cache.getCard(cardKey);
+    const card = this.store.getCard(cardKey);
     if (!card) {
       return false;
     }
@@ -899,7 +888,7 @@ export class CardTree {
     }
     await deleteDir(path);
     this.options.keys.release([cardKey]);
-    return this.cache.deleteCard(cardKey);
+    return this.store.deleteCard(cardKey);
   }
 
   /**
@@ -936,7 +925,7 @@ export class CardTree {
       }
     }
 
-    this.cache.addAttachment(cardKey, fileName);
+    this.store.addAttachment(cardKey, fileName);
   }
 
   /**
@@ -966,7 +955,7 @@ export class CardTree {
       CardTree.logger.error({ error }, 'Removing card attachment');
       throw new Error(`Attachment not found: ${fileName}`, { cause: error });
     }
-    this.cache.deleteAttachment(cardKey, fileName);
+    this.store.deleteAttachment(cardKey, fileName);
   }
 
   /**
@@ -987,7 +976,7 @@ export class CardTree {
     newFileName: string,
   ): Promise<void> {
     this.assertWritable();
-    const card = this.cached(cardKey);
+    const card = this.stored(cardKey);
     const attachment = card.attachments.find(
       (item) => item.fileName === fileName,
     );
@@ -1005,7 +994,7 @@ export class CardTree {
     );
     await rename(join(folder, fileName), join(folder, newFileName));
 
-    this.cache.renameAttachment(cardKey, fileName, newFileName);
+    this.store.renameAttachment(cardKey, fileName, newFileName);
   }
 
   /**
@@ -1014,7 +1003,7 @@ export class CardTree {
    *   tree
    */
   public async load(): Promise<void> {
-    const loaded = await this.cache.populate();
+    const loaded = await this.store.populate();
     this.options.keys.claim(
       loaded.map((card) => card.key),
       this,
@@ -1026,7 +1015,7 @@ export class CardTree {
    */
   public clear() {
     this.options.keys.releaseOwner(this);
-    this.cache.clear();
+    this.store.clear();
   }
 
   /**

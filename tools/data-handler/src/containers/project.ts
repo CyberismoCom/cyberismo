@@ -189,7 +189,7 @@ export class Project {
         await this.gitManager.rollback();
         // Invalidate caches after rollback since filesystem state changed
         this.cardTree.clear();
-        await this.populateCardsCache();
+        await this.loadCardStores();
         this.resources.changed();
         await this.calculationEngine.generate();
       });
@@ -397,7 +397,7 @@ export class Project {
   }
 
   /**
-   * Populate template cards into the card cache.
+   * Populate template cards into their card stores.
    */
   private async populateTemplateCards(templateNames?: string[]): Promise<void> {
     try {
@@ -428,21 +428,22 @@ export class Project {
     } catch (error) {
       // A duplicate card key is a defect in the project, not a broken
       // template that can be skipped: with two cards claiming one key the
-      // cache cannot represent both, so the caller has to hear about it.
+      // store cannot represent both, so the caller has to hear about it.
       if (error instanceof DuplicateCardKeyError) {
         throw error;
       }
       this.logger.error(
         { error },
-        'Failed to populate template cards into the card cache',
+        'Failed to populate template cards into their card stores',
       );
     }
   }
 
   /**
-   * Populate both the project cards, and all template cards into card cache.
+   * Load both the project's cards and every template's cards into their
+   * card stores.
    */
-  private async populateCardsCache(): Promise<void> {
+  private async loadCardStores(): Promise<void> {
     await this.cardTree.reload();
     await this.populateTemplateCards();
   }
@@ -977,7 +978,7 @@ export class Project {
   }
 
   /**
-   * Populates the card cache, if it has not been populated.
+   * Loads the project's cards, if they have not been loaded.
    */
   public async populateCaches() {
     if (!this.cardTree.isPopulated) {
@@ -985,7 +986,7 @@ export class Project {
       if (this.configuration.modules && this.configuration.modules.length > 0) {
         this.resources.changedModules();
       }
-      await this.populateCardsCache();
+      await this.loadCardStores();
     }
   }
 
@@ -1038,7 +1039,7 @@ export class Project {
   }
 
   /**
-   * Renames a card's attachment file, keeping the card cache in step with it.
+   * Renames a card's attachment file, keeping the card store in step with it.
    * @param cardKey Card whose attachment is renamed.
    * @param fileName Current attachment file name.
    * @param newFileName New attachment file name.

@@ -12,6 +12,7 @@ import { join, sep } from 'node:path';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { CardTree } from '../src/containers/project/card-tree.js';
+import { CardStore } from '../src/containers/project/card-store.js';
 import { CardKeyRegistry } from '../src/containers/project/card-keys.js';
 import {
   CardNotFoundError,
@@ -22,7 +23,6 @@ import type {
   Card,
   CardMetadata,
 } from '../src/interfaces/project-interfaces.js';
-import type { StoredCard } from '../src/containers/project/card-cache.js';
 import { CommandManager } from '../src/command-manager.js';
 
 // Helper function to create test cards
@@ -204,7 +204,7 @@ describe('Card store', () => {
       await tree.load();
 
       expect(tree.isPopulated).toBe(true);
-      expect(tree.store.cards().length).toBeGreaterThan(0);
+      expect(tree.count).toBeGreaterThan(0);
     });
 
     it('should handle invalid path gracefully', async () => {
@@ -212,14 +212,14 @@ describe('Card store', () => {
       await tree.load();
 
       expect(tree.isPopulated).toBe(true);
-      expect(tree.store.cards()).toHaveLength(0);
+      expect(tree.cards()).toHaveLength(0);
     });
 
     it('should clear the store and reset populated state', async () => {
       const tree = await loadedTree();
 
       expect(tree.isPopulated).toBe(true);
-      expect(tree.store.cards().length).toBeGreaterThan(0);
+      expect(tree.count).toBeGreaterThan(0);
 
       tree.clear();
       expect(tree.isPopulated).toBe(false);
@@ -246,7 +246,7 @@ describe('Card store', () => {
 
     it('should throw for non-existing card', () => {
       expect(() => tree.card('non_existing_card')).toThrow(CardNotFoundError);
-      expect(tree.store.getCard('non_existing_card')).toBeUndefined();
+      expect(tree.has('non_existing_card')).toBe(false);
     });
 
     it('should check if card exists', () => {
@@ -288,7 +288,7 @@ describe('Card store', () => {
     });
 
     it('should return all cards', () => {
-      const cards = tree.store.cards();
+      const cards = tree.cards();
 
       expect(cards).toBeInstanceOf(Array);
       expect(cards.length).toBeGreaterThan(0);
@@ -327,13 +327,11 @@ describe('Card store', () => {
       rmSync(testDir, { recursive: true, force: true });
     });
 
-    it('should update existing card', () => {
+    it('should update existing card', async () => {
       const original = tree.card('test_1');
+      original.metadata!.title = 'Updated Title';
 
-      tree.store.updateCardMetadata('test_1', {
-        ...original.metadata!,
-        title: 'Updated Title',
-      });
+      await tree.writeMetadata(original);
 
       expect(tree.card('test_1').metadata!.title).toBe('Updated Title');
     });
@@ -363,20 +361,17 @@ describe('Card store', () => {
       expect(tree.pathOf(newCardKey)).toBe(join(testCardsPath, newCardKey));
     });
 
-    it('should update card content for existing card', () => {
+    it('should update card content for existing card', async () => {
       const newContent = 'Updated content for test_1';
+      const card = tree.card('test_1');
 
-      expect(tree.store.updateCardContent('test_1', newContent)).toBe(true);
+      expect(await tree.writeContent({ ...card, content: newContent })).toBe(
+        true,
+      );
       expect(tree.content('test_1')).toBe(newContent);
     });
 
-    it('content update returns false for non-existing card', () => {
-      expect(
-        tree.store.updateCardContent('non_existing_card', 'some content'),
-      ).toBe(false);
-    });
-
-    it('should update card metadata for existing card', () => {
+    it('should update card metadata for existing card', async () => {
       const newMetadata: CardMetadata = {
         title: 'Updated Metadata Title',
         cardType: 'test/cardTypes/updated',
@@ -385,27 +380,18 @@ describe('Card store', () => {
         links: [],
       };
 
-      expect(tree.store.updateCardMetadata('test_1', newMetadata)).toBe(true);
+      expect(
+        await tree.writeMetadata({
+          ...tree.card('test_1'),
+          metadata: newMetadata,
+        }),
+      ).toBe(true);
       const updated = tree.card('test_1');
       expect(updated.metadata!.title).toBe('Updated Metadata Title');
       expect(updated.metadata!.workflowState).toBe('Published');
     });
 
-    it('metadata update returns false for non-existing card', () => {
-      const metadata: CardMetadata = {
-        title: 'Some title',
-        cardType: 'some/type',
-        workflowState: 'Draft',
-        rank: '1',
-        links: [],
-      };
-
-      expect(tree.store.updateCardMetadata('non_existing_card', metadata)).toBe(
-        false,
-      );
-    });
-
-    it('relocating a card moves its whole subtree with it', () => {
+    it('relocating a card moves its whole subtree with it', async () => {
       // test_2 and test_3 are children of test_1; move test_2 under test_3.
       tree.relocate('test_2', 'test_3');
 
@@ -415,7 +401,7 @@ describe('Card store', () => {
         join(testCardsPath, 'test_1', 'c', 'test_3', 'c', 'test_2'),
       );
       // Attachments follow the card without being rewritten.
-      tree.store.addAttachment('test_2', 'moved.txt');
+      await tree.addAttachment('test_2', 'moved.txt', Buffer.from('moved'));
       expect(tree.attachmentsOf('test_2')[0].path).toBe(
         join(tree.pathOf('test_2'), 'a'),
       );
@@ -471,16 +457,16 @@ describe('Card store', () => {
       rmSync(testDir, { recursive: true, force: true });
     });
 
-    it('should delete existing card', () => {
+    it('should delete existing card', async () => {
       expect(tree.has('test_2')).toBe(true);
 
-      expect(tree.store.deleteCard('test_2')).toBe(true);
+      expect(await tree.deleteSubtree('test_2')).toBe(true);
 
       expect(tree.has('test_2')).toBe(false);
     });
 
-    it('should return false for non-existing card', () => {
-      expect(tree.store.deleteCard('non_existing_card')).toBe(false);
+    it('should return false for non-existing card', async () => {
+      expect(await tree.deleteSubtree('non_existing_card')).toBe(false);
     });
 
     it('deleting a subtree deletes the folders too', async () => {
@@ -516,55 +502,112 @@ describe('Card store', () => {
       );
     });
 
-    it('should add attachment to existing card', () => {
+    it('should add attachment to existing card', async () => {
       const fileName = 'new-attachment.pdf';
 
-      expect(tree.store.addAttachment('test_1', fileName)).toBe(true);
+      await tree.addAttachment('test_1', fileName, Buffer.from('a pdf'));
       expect(
         tree.attachmentsOf('test_1').some((a) => a.fileName === fileName),
       ).toBe(true);
     });
 
-    it('should not add duplicate attachment', () => {
-      const fileName = 'duplicate.txt';
-
-      expect(tree.store.addAttachment('test_1', fileName)).toBe(true);
-      expect(tree.store.addAttachment('test_1', fileName)).toBe(false);
-
-      const duplicateCount = tree
-        .attachmentsOf('test_1')
-        .filter((a) => a.fileName === fileName).length;
-      expect(duplicateCount).toBe(1);
-    });
-
-    it('adding to a non-existing card returns false', () => {
-      expect(tree.store.addAttachment('non_existing_card', 'file.txt')).toBe(
-        false,
-      );
-    });
-
-    it('should remove attachment from existing card', () => {
+    it('should remove attachment from existing card', async () => {
       const fileName = 'to-be-deleted.txt';
       const has = () =>
         tree.attachmentsOf('test_1').some((a) => a.fileName === fileName);
 
-      tree.store.addAttachment('test_1', fileName);
+      await tree.addAttachment('test_1', fileName, Buffer.from('bye'));
       expect(has()).toBe(true);
 
-      expect(tree.store.deleteAttachment('test_1', fileName)).toBe(true);
+      await tree.removeAttachment('test_1', fileName);
       expect(has()).toBe(false);
+    });
+  });
+
+  // Store-level invariants that the tree's surface cannot express. For a card
+  // it does not hold, CardTree throws CardNotFoundError before the store ever
+  // gets to answer, and CardTree.addAttachment writes the file with the 'wx'
+  // flag, so a duplicate fails at the filesystem rather than reaching the
+  // store at all. CardStore is an exported class of its own, so these
+  // construct one directly rather than reaching into a tree's internals.
+  describe('CardStore', () => {
+    // A store holding one card, built without touching the filesystem.
+    function storeWithCard(): CardStore {
+      const store = new CardStore(testCardsPath);
+      store.put({
+        key: 'test_1',
+        parent: 'root',
+        metadata: {
+          title: 'Card',
+          cardType: 'test/cardTypes/page',
+          workflowState: 'Draft',
+          rank: '1',
+          links: [],
+        },
+        content: 'content',
+        attachments: [],
+      });
+      return store;
+    }
+
+    it('holds no entry for a card it was never given', () => {
+      const store = storeWithCard();
+      expect(store.hasCard('test_1')).toBe(true);
+      expect(store.getCard('non_existing_card')).toBeUndefined();
+    });
+
+    it('content update returns false for non-existing card', () => {
+      expect(
+        storeWithCard().updateCardContent('non_existing_card', 'some content'),
+      ).toBe(false);
+    });
+
+    it('metadata update returns false for non-existing card', () => {
+      const metadata: CardMetadata = {
+        title: 'Some title',
+        cardType: 'some/type',
+        workflowState: 'Draft',
+        rank: '1',
+        links: [],
+      };
+
+      expect(
+        storeWithCard().updateCardMetadata('non_existing_card', metadata),
+      ).toBe(false);
+    });
+
+    it('should not add duplicate attachment', () => {
+      const fileName = 'duplicate.txt';
+      const store = storeWithCard();
+
+      expect(store.addAttachment('test_1', fileName)).toBe(true);
+      expect(store.addAttachment('test_1', fileName)).toBe(false);
+
+      const duplicateCount = store
+        .getCard('test_1')!
+        .attachments.filter((a) => a.fileName === fileName).length;
+      expect(duplicateCount).toBe(1);
+    });
+
+    it('adding to a non-existing card returns false', () => {
+      expect(
+        storeWithCard().addAttachment('non_existing_card', 'file.txt'),
+      ).toBe(false);
     });
 
     it('should return false when trying to delete non-existing attachment', () => {
       expect(
-        tree.store.deleteAttachment('test_1', 'non_existing_attachment.txt'),
+        storeWithCard().deleteAttachment(
+          'test_1',
+          'non_existing_attachment.txt',
+        ),
       ).toBe(false);
     });
 
     it('deleting from a non-existing card returns false', () => {
-      expect(tree.store.deleteAttachment('non_existing_card', 'file.txt')).toBe(
-        false,
-      );
+      expect(
+        storeWithCard().deleteAttachment('non_existing_card', 'file.txt'),
+      ).toBe(false);
     });
   });
 
@@ -644,7 +687,7 @@ describe('Card store', () => {
 
     // Recomputes the adjacency index from scratch, the way the store's deleted
     // full-rebuild pass did: read the cards in store order and group them.
-    function recompute(cards: StoredCard[]) {
+    function recompute(cards: Card[]) {
       const children = new Map<string, string[]>();
       for (const card of cards) {
         if (card.parent) {
@@ -659,8 +702,7 @@ describe('Card store', () => {
     // Compares the whole shape of the index in one assertion, so a mismatch
     // reports contents *and* order.
     function assertIndexMatchesRecomputation(tree: CardTree, step: string) {
-      const store = tree.store;
-      const cards = store.cards();
+      const cards = tree.cards();
       const children = recompute(cards);
 
       const parentKeys = [
@@ -669,7 +711,7 @@ describe('Card store', () => {
       const indexedChildren: Record<string, string[]> = {};
       const expectedChildren: Record<string, string[]> = {};
       for (const parentKey of parentKeys) {
-        indexedChildren[parentKey] = store.childrenOf(parentKey);
+        indexedChildren[parentKey] = tree.childrenOf(parentKey);
         expectedChildren[parentKey] = children.get(parentKey) ?? [];
       }
       expect(
@@ -695,7 +737,7 @@ describe('Card store', () => {
     ) {
       const owners = new Map<string, CardTree>();
       for (const tree of trees) {
-        for (const cardKey of tree.store.keys()) {
+        for (const cardKey of tree.keys()) {
           expect(
             owners.has(cardKey),
             `${step}: ${cardKey} is in two trees`,
@@ -772,10 +814,10 @@ describe('Card store', () => {
         ];
 
         for (let step = 0; step < 250; step++) {
-          const present = trees.flatMap((tree) => tree.store.keys());
+          const present = trees.flatMap((tree) => tree.keys());
           const absent = keyNames.filter((key) => !present.includes(key));
           // Candidate parents within a tree: its own cards, or the root.
-          const parentsIn = (tree: CardTree) => [...tree.store.keys(), 'root'];
+          const parentsIn = (tree: CardTree) => [...tree.keys(), 'root'];
           const roll = next();
           const label = `seed ${seed} step ${step}`;
 
@@ -823,7 +865,7 @@ describe('Card store', () => {
 
         // The sequence must have produced real nesting and used more than one
         // tree, or it would not exercise either invariant.
-        const cards = trees.flatMap((tree) => tree.store.cards());
+        const cards = trees.flatMap((tree) => tree.cards());
         expect(
           cards.filter((card) => card.parent && card.parent !== 'root').length,
         ).toBeGreaterThan(0);

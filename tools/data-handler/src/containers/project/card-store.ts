@@ -69,20 +69,20 @@ const attachmentFolder = 'a';
  * Not a cache — nothing invalidates it on a timer and nothing falls back to
  * disk on a miss. It is the tree's state, and CardTree is its owner.
  */
-export class CardCache {
-  private cardCache: Map<string, StoredCard> = new Map();
+export class CardStore {
+  private storedCards: Map<string, StoredCard> = new Map();
   // Adjacency index: parent card key (or 'root') -> child card keys. Only
   // parents that have at least one child have an entry, and an entry may be
-  // keyed by a card that is not (yet) in the cache, so a card inserted after
+  // keyed by a card that is not (yet) in the store, so a card inserted after
   // its children still picks them up.
   private childrenIndex: Map<string, string[]> = new Map();
-  // Position of a card key in the cache, assigned on first insert and kept for
-  // as long as the card stays cached. Child lists are ordered by it, which is
-  // what the deleted full rebuild produced (it read the cache in insertion
+  // Position of a card key in the store, assigned on first insert and kept for
+  // as long as the card stays stored. Child lists are ordered by it, which is
+  // what the deleted full rebuild produced (it read the store in insertion
   // order), so a parent change cannot reorder unrelated siblings.
   private insertionOrder: Map<string, number> = new Map();
   private nextInsertion: number = 0;
-  private cachePopulated: boolean = false;
+  private populated: boolean = false;
 
   /**
    * @param rootPath Folder this store's cards are rooted at. This is what makes
@@ -92,7 +92,7 @@ export class CardCache {
   constructor(private rootPath: string) {}
 
   // Installs a new child list for a parent, in the index and on the parent
-  // card itself (a cached card's 'children' is the very array the index holds,
+  // card itself (a stored card's 'children' is the very array the index holds,
   // so the two cannot drift). Replacing the array rather than mutating it is
   // required whenever a child is removed: callers walk a parent's child list
   // while removing cards from it (handleCardDeleted and removeCard both do),
@@ -103,13 +103,13 @@ export class CardCache {
     } else {
       this.childrenIndex.set(parentKey, children);
     }
-    const parent = this.cardCache.get(parentKey);
+    const parent = this.storedCards.get(parentKey);
     if (parent) {
       parent.children = children;
     }
   }
 
-  // Adds a card to its parent's child list, at the position its cache
+  // Adds a card to its parent's child list, at the position its store
   // insertion order dictates. Only called when the card's parent actually
   // changed, so the card is never already in the list.
   private attachToParent(cardKey: string, parentKey?: string) {
@@ -122,7 +122,7 @@ export class CardCache {
       return;
     }
     const position = this.positionOf(cardKey);
-    // A card entering the cache for the first time has the highest position of
+    // A card entering the store for the first time has the highest position of
     // all its siblings, so it appends - in place, which keeps populating a flat
     // tree linear instead of quadratic. Only a card that changed parent can
     // land mid-list, and that case pays for a copy.
@@ -160,13 +160,13 @@ export class CardCache {
   // The only write path into the card map: stores a card and keeps the
   // adjacency index in step with its 'parent'.
   private store(cardKey: string, card: StoredCard) {
-    const previous = this.cardCache.get(cardKey);
+    const previous = this.storedCards.get(cardKey);
     if (!previous) {
       this.insertionOrder.set(cardKey, this.nextInsertion++);
     }
     // Children are owned by the index, never by the incoming card object.
     card.children = this.childrenIndex.get(cardKey) ?? [];
-    this.cardCache.set(cardKey, card);
+    this.storedCards.set(cardKey, card);
     if (previous?.parent !== card.parent) {
       this.detachFromParent(cardKey, previous?.parent);
       this.attachToParent(cardKey, card.parent);
@@ -176,11 +176,11 @@ export class CardCache {
   // The only removal path out of the card map. The card's own child list stays
   // in the index: its children (if any survive) still name it as their parent.
   private unstore(cardKey: string): boolean {
-    const card = this.cardCache.get(cardKey);
+    const card = this.storedCards.get(cardKey);
     if (!card) {
       return false;
     }
-    this.cardCache.delete(cardKey);
+    this.storedCards.delete(cardKey);
     this.insertionOrder.delete(cardKey);
     this.detachFromParent(cardKey, card.parent);
     return true;
@@ -191,7 +191,7 @@ export class CardCache {
     try {
       return await readdir(path, { withFileTypes: true, recursive: true });
     } catch (error) {
-      CardCache.logger.error({ error }, 'Reading entries');
+      CardStore.logger.error({ error }, 'Reading entries');
       return [];
     }
   }
@@ -203,7 +203,7 @@ export class CardCache {
   ): Promise<StoredAttachment[]> {
     const attachmentPath = join(currentPath, attachmentFolder);
     if (!pathExists(attachmentPath)) {
-      CardCache.logger.info(`No attachment path for ${currentPath}`);
+      CardStore.logger.info(`No attachment path for ${currentPath}`);
       return [];
     }
 
@@ -220,8 +220,8 @@ export class CardCache {
         seenAttachments.add(attachmentKey);
         attachments.push({ fileName: attachment.name, dir });
       } else {
-        CardCache.logger.warn(
-          `Duplicate attachment found during cache population: ${attachment.name} for card ${basename(currentPath)}`,
+        CardStore.logger.warn(
+          `Duplicate attachment found while loading the store: ${attachment.name} for card ${basename(currentPath)}`,
         );
       }
     });
@@ -245,16 +245,16 @@ export class CardCache {
 
   // Guarantees invariants the CardMetadata type promises (links is always an
   // array) regardless of how the metadata was produced. Applied to every
-  // metadata object entering the cache; on-disk files and in-memory
+  // metadata object entering the store; on-disk files and in-memory
   // producers may both omit 'links'.
   //
-  // Always a fresh, frozen object. Fresh, because the cache must not alias
+  // Always a fresh, frozen object. Fresh, because the store must not alias
   // metadata its caller still holds — it used to return the caller's object
   // unchanged whenever 'links' was already present. Frozen, because the
   // metadata-level read (CardTree.nodeView) hands this object straight to its
   // callers rather than cloning it: freezing is what makes that sharing safe,
   // at no cost on the read path. Anything that tries to edit stored metadata
-  // now throws instead of silently rewriting the cache.
+  // now throws instead of silently rewriting the store.
   private static normalizedMetadata(
     metadata?: CardMetadata,
   ): CardMetadata | undefined {
@@ -263,17 +263,17 @@ export class CardCache {
     }
     const stored: Record<string, MetadataContent> = {};
     for (const [key, value] of Object.entries(metadata)) {
-      stored[key] = Array.isArray(value) ? CardCache.frozenList(value) : value;
+      stored[key] = Array.isArray(value) ? CardStore.frozenList(value) : value;
     }
     if (!Array.isArray(stored.links)) {
-      stored.links = CardCache.frozenList([]);
+      stored.links = CardStore.frozenList([]);
     }
     return Object.freeze(stored) as CardMetadata;
   }
 
   // A frozen copy of a metadata array, with its object elements frozen too:
   // 'links' and 'externalLinks' hold objects, and a frozen array whose
-  // elements are writable would still let a reader edit the cache.
+  // elements are writable would still let a reader edit the store.
   private static frozenList(values: unknown[]): MetadataContent {
     return Object.freeze(
       values.map((item) =>
@@ -314,7 +314,7 @@ export class CardCache {
         metadata = JSON.parse(cardMetadata);
       } catch (error) {
         const metadataPath = join(currentPath, cardMetadataFile);
-        CardCache.logger.error(
+        CardStore.logger.error(
           { error, metadataPath },
           `Incorrect card metadata file`,
         );
@@ -331,7 +331,7 @@ export class CardCache {
         key: entry.name,
         attachments: cardAttachments,
         content: cardContent,
-        metadata: CardCache.normalizedMetadata(metadata),
+        metadata: CardStore.normalizedMetadata(metadata),
         parent,
       };
     });
@@ -340,33 +340,33 @@ export class CardCache {
     return Promise.all(cardPromises);
   }
 
-  // Populates the cache from the given array of cards
+  // Fills the store from the given array of cards
   private populateFromCards(cards: StoredCardInput[]) {
     for (const card of cards) {
       this.put(card);
     }
 
-    this.cachePopulated = true;
-    CardCache.logger.info(`Card cache populated`);
+    this.populated = true;
+    CardStore.logger.info(`Card store populated`);
   }
 
   // Returns instance of logger.
   private static get logger() {
     return getChildLogger({
-      module: 'cardCache',
+      module: 'cardStore',
     });
   }
 
   /**
-   * Adds attachment to a card in the cache.
+   * Adds attachment to a card in the store.
    * @param cardKey card key for which to add new attachment
    * @param fileName attachment fileName
-   * @returns true, if attachment was added to the cache; false otherwise.
+   * @returns true, if attachment was added to the store; false otherwise.
    */
   public addAttachment(cardKey: string, fileName: string) {
-    const card = this.cardCache.get(cardKey);
+    const card = this.storedCards.get(cardKey);
     if (!card) {
-      CardCache.logger.warn(
+      CardStore.logger.warn(
         `Cannot add attachment to card '${cardKey}. Card does not exist.'`,
       );
       return false;
@@ -377,7 +377,7 @@ export class CardCache {
       (existing) => existing.dir === '' && existing.fileName === fileName,
     );
     if (isDuplicate) {
-      CardCache.logger.warn(
+      CardStore.logger.warn(
         `Duplicate attachment prevented: ${fileName} for card ${cardKey}`,
       );
       return false;
@@ -388,34 +388,34 @@ export class CardCache {
   }
 
   /**
-   * Empties the cache.
+   * Empties the store.
    */
   public clear() {
-    CardCache.logger.info(`Card cache cleared`);
-    this.cachePopulated = false;
-    this.cardCache.clear();
+    CardStore.logger.info(`Card store cleared`);
+    this.populated = false;
+    this.storedCards.clear();
     this.childrenIndex.clear();
     this.insertionOrder.clear();
     this.nextInsertion = 0;
   }
 
   /**
-   * Removes a card from the cache.
+   * Removes a card from the store.
    * @param cardKey card key to remove
-   * @returns true, if card was removed from the cache; false otherwise
+   * @returns true, if card was removed from the store; false otherwise
    */
   public deleteCard(cardKey: string) {
     return this.unstore(cardKey);
   }
 
   /**
-   * Removes attachment from a card in the cache.
+   * Removes attachment from a card in the store.
    * @param cardKey card key of card from which attachment is to be removed
    * @param filename attachment filename to remove
-   * @returns true, if attachment was removed from the cache; false otherwise
+   * @returns true, if attachment was removed from the store; false otherwise
    */
   public deleteAttachment(cardKey: string, filename: string): boolean {
-    const card = this.cardCache.get(cardKey);
+    const card = this.storedCards.get(cardKey);
     if (!card) {
       return false;
     }
@@ -428,7 +428,7 @@ export class CardCache {
   }
 
   /**
-   * Renames an attachment of a card in the cache.
+   * Renames an attachment of a card in the store.
    * @param cardKey card key of the card holding the attachment
    * @param fileName current attachment file name
    * @param newFileName new attachment file name
@@ -439,7 +439,7 @@ export class CardCache {
     fileName: string,
     newFileName: string,
   ): boolean {
-    const card = this.cardCache.get(cardKey);
+    const card = this.storedCards.get(cardKey);
     const attachment = card?.attachments.find(
       (item) => item.fileName === fileName,
     );
@@ -459,53 +459,53 @@ export class CardCache {
    * Returns the cards in the store, in insertion order.
    */
   public cards(): StoredCard[] {
-    return Array.from(this.cardCache.values());
+    return Array.from(this.storedCards.values());
   }
 
   /**
    * How many cards the store holds.
    */
   public get count(): number {
-    return this.cardCache.size;
+    return this.storedCards.size;
   }
 
   /**
    * The card keys in the store, in insertion order.
    */
   public keys(): string[] {
-    return Array.from(this.cardCache.keys());
+    return Array.from(this.storedCards.keys());
   }
 
   /**
-   * Returns a card from the cache.
+   * Returns a card from the store.
    * @param cardKey card key to find
-   * @returns card from the cache; if not found then returns undefined.
+   * @returns card from the store; if not found then returns undefined.
    */
   public getCard(cardKey: string): StoredCard | undefined {
-    return this.cardCache.get(cardKey);
+    return this.storedCards.get(cardKey);
   }
 
   /**
-   * Checks if card is in the cache; false otherwise.
+   * Checks if the store holds a card.
    * @param cardKey card key to check
-   * @returns true if card is in the cache; false otherwise
+   * @returns true if the store holds the card; false otherwise
    */
   public hasCard(cardKey: string): boolean {
-    return this.cardCache.has(cardKey);
+    return this.storedCards.has(cardKey);
   }
 
   /**
-   * Checks if cache has been already populated.
-   * @returns true if cache has already been populated; otherwise false
+   * Checks if the store has been loaded.
+   * @returns true if the store has been loaded; otherwise false
    */
   public get isPopulated(): boolean {
-    return this.cachePopulated;
+    return this.populated;
   }
 
   /**
    * Returns the child card keys of a given card.
    * @param cardKey Card key whose children to return.
-   * @returns child card keys, in cache insertion order.
+   * @returns child card keys, in store insertion order.
    */
   public childrenOf(cardKey: string): string[] {
     return this.childrenIndex.get(cardKey) ?? [];
@@ -534,17 +534,17 @@ export class CardCache {
   public async populate(): Promise<StoredCard[]> {
     const cards = await this.fetchFileEntries();
     this.populateFromCards(cards);
-    return cards.map((card) => this.cardCache.get(card.key)!);
+    return cards.map((card) => this.storedCards.get(card.key)!);
   }
 
   /**
-   * Stores a card, inserting it if the cache does not hold it yet.
+   * Stores a card, inserting it if the store does not hold it yet.
    * @param card Card to store.
    */
   public put(card: StoredCardInput) {
     this.store(card.key, {
       ...card,
-      metadata: CardCache.normalizedMetadata(card.metadata),
+      metadata: CardStore.normalizedMetadata(card.metadata),
       children: [],
     });
   }
@@ -558,7 +558,7 @@ export class CardCache {
    * @returns true, if the card was in the store; false otherwise.
    */
   public relocate(cardKey: string, parent: string): boolean {
-    const card = this.cardCache.get(cardKey);
+    const card = this.storedCards.get(cardKey);
     if (!card) {
       return false;
     }
@@ -567,15 +567,15 @@ export class CardCache {
   }
 
   /**
-   * Updates card's content in the cache.
+   * Updates card's content in the store.
    * @param cardKey card key of a card to update.
    * @param content New content for the card.
    * @returns true, if update succeeded; false otherwise.
    */
   public updateCardContent(cardKey: string, content: string) {
-    const card = this.cardCache.get(cardKey);
+    const card = this.storedCards.get(cardKey);
     if (!card) {
-      CardCache.logger.warn(`Card '${cardKey}' not found`);
+      CardStore.logger.warn(`Card '${cardKey}' not found`);
       return false;
     }
     card.content = content;
@@ -583,18 +583,18 @@ export class CardCache {
   }
 
   /**
-   * Updates card's metadata in the cache.
+   * Updates card's metadata in the store.
    * @param cardKey card key of a card to update.
    * @param metadata New metadata for the card.
    * @returns true, if update succeeded; false otherwise.
    */
   public updateCardMetadata(cardKey: string, metadata: CardMetadata) {
-    const card = this.cardCache.get(cardKey);
+    const card = this.storedCards.get(cardKey);
     if (!card) {
-      CardCache.logger.warn(`Card '${cardKey}' not found`);
+      CardStore.logger.warn(`Card '${cardKey}' not found`);
       return false;
     }
-    card.metadata = CardCache.normalizedMetadata(metadata);
+    card.metadata = CardStore.normalizedMetadata(metadata);
     return true;
   }
 }
