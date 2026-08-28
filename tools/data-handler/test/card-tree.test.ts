@@ -654,3 +654,82 @@ describe('CardTree fact changes', () => {
     expect(changes.changed.sort()).toEqual(['test_1', 'test_2', 'test_3']);
   });
 });
+
+// Attachment listings come out of the one recursive sweep the load already
+// does, rather than a per-card existsSync plus readdir.
+describe('CardTree attachment listings', () => {
+  let tree: CardTree;
+
+  beforeEach(() => {
+    mkdirSync(cardRoot, { recursive: true });
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  function attach(cardPath: string, name: string, dir = '') {
+    const folder = join(cardPath, 'a', dir);
+    mkdirSync(folder, { recursive: true });
+    writeFileSync(join(folder, name), `body of ${name}`);
+  }
+
+  it('lists a card with no attachments as having none', async () => {
+    createCardAt('test_1');
+    tree = newTree();
+    await tree.load();
+
+    expect(tree.attachmentsOf('test_1')).toEqual([]);
+  });
+
+  it('records the folder an attachment sits in below the card', async () => {
+    const cardPath = createCardAt('test_1');
+    attach(cardPath, 'flat.png');
+    attach(cardPath, 'nested.png', 'deep');
+    tree = newTree();
+    await tree.load();
+
+    const attachments = tree.attachmentsOf('test_1');
+    expect(
+      attachments.map((item) => [item.fileName, item.path]).sort(),
+    ).toEqual([
+      ['deep', join(cardPath, 'a')],
+      ['flat.png', join(cardPath, 'a')],
+      ['nested.png', join(cardPath, 'a', 'deep')],
+    ]);
+  });
+
+  // The sweep sees every 'a' folder in the tree at once, so an attachment has
+  // to be traced back to the card whose folder it is actually in.
+  it('gives a nested card its own attachments', async () => {
+    const parentPath = createCardAt('test_1');
+    const childPath = createCardAt('test_2', {
+      parentPath: join(cardRoot, 'test_1', 'c'),
+    });
+    attach(parentPath, 'parent.png');
+    attach(childPath, 'child.png');
+    tree = newTree();
+    await tree.load();
+
+    expect(tree.attachmentsOf('test_1').map((item) => item.fileName)).toEqual([
+      'parent.png',
+    ]);
+    const child = tree.attachmentsOf('test_2');
+    expect(child.map((item) => item.fileName)).toEqual(['child.png']);
+    expect(child[0].path).toBe(join(childPath, 'a'));
+  });
+
+  // A card's own files are not attachments, and neither is anything in the
+  // children folder.
+  it('leaves a card own files out of the listing', async () => {
+    const cardPath = createCardAt('test_1');
+    createCardAt('test_2', { parentPath: join(cardRoot, 'test_1', 'c') });
+    attach(cardPath, 'real.png');
+    tree = newTree();
+    await tree.load();
+
+    expect(tree.attachmentsOf('test_1').map((item) => item.fileName)).toEqual([
+      'real.png',
+    ]);
+  });
+});

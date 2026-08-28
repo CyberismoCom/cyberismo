@@ -13,7 +13,7 @@
 
 // node
 import type { Dirent } from 'node:fs';
-import { basename, dirname, join, relative, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { readdir, readFile } from 'node:fs/promises';
 
 import type {
@@ -22,7 +22,6 @@ import type {
 } from '../../interfaces/project-interfaces.js';
 import { CardNameRegEx } from '../../interfaces/project-interfaces.js';
 import { getChildLogger } from '../../utils/log-utils.js';
-import { pathExists } from '../../utils/file-utils.js';
 
 import { ROOT } from '../../utils/constants.js';
 
@@ -196,37 +195,73 @@ export class CardStore {
     }
   }
 
-  // Gets attachments from disk, as file names relative to the card's own
-  // attachment folder.
-  private async fetchAttachments(
-    currentPath: string,
-  ): Promise<StoredAttachment[]> {
-    const attachmentPath = join(currentPath, attachmentFolder);
-    if (!pathExists(attachmentPath)) {
-      CardStore.logger.info(`No attachment path for ${currentPath}`);
-      return [];
+  // Every card's attachment listing, taken out of the listing the load already
+  // has.
+  //
+  // The recursive sweep over the tree root has already returned every 'a'
+  // folder and everything in it, so going back to disk per card - a
+  // synchronous existsSync plus a readdir, N times - was reading the same
+  // directories a second time.
+  private static attachmentsByCard(
+    allEntries: Dirent[],
+    cardFolders: Map<string, string>,
+    root: string,
+  ): Map<string, StoredAttachment[]> {
+    const attachments = new Map<string, StoredAttachment[]>();
+    const seen = new Set<string>();
+
+    for (const entry of allEntries) {
+      const position = CardStore.attachmentPosition(entry, cardFolders, root);
+      if (!position) {
+        continue;
+      }
+      const { cardKey, dir } = position;
+      const attachmentKey = `${cardKey}:${dir}:${entry.name}`;
+      if (seen.has(attachmentKey)) {
+        CardStore.logger.warn(
+          `Duplicate attachment found while loading the store: ${entry.name} for card ${cardKey}`,
+        );
+        continue;
+      }
+      seen.add(attachmentKey);
+      const listing = attachments.get(cardKey);
+      if (listing) {
+        listing.push({ fileName: entry.name, dir });
+      } else {
+        attachments.set(cardKey, [{ fileName: entry.name, dir }]);
+      }
     }
 
-    const fileAttachments = await this.entries(attachmentPath);
-    const attachments: StoredAttachment[] = [];
-    const seenAttachments = new Set<string>();
-
-    fileAttachments.forEach((attachment) => {
-      const dir = relative(attachmentPath, attachment.parentPath);
-      const attachmentKey = `${dir}:${attachment.name}`;
-
-      // Skip duplicate attachments based on path and filename
-      if (!seenAttachments.has(attachmentKey)) {
-        seenAttachments.add(attachmentKey);
-        attachments.push({ fileName: attachment.name, dir });
-      } else {
-        CardStore.logger.warn(
-          `Duplicate attachment found while loading the store: ${attachment.name} for card ${basename(currentPath)}`,
-        );
-      }
-    });
-
     return attachments;
+  }
+
+  // Which card an entry is an attachment of, and where it sits relative to
+  // that card's attachment folder — or undefined when the entry is not inside
+  // one. Walks the entry's folder up to the tree root looking for an 'a'
+  // folder that belongs to a card.
+  private static attachmentPosition(
+    entry: Dirent,
+    cardFolders: Map<string, string>,
+    root: string,
+  ): { cardKey: string; dir: string } | undefined {
+    let dir = '';
+    let folder = resolve(entry.parentPath);
+    while (folder !== root) {
+      const name = basename(folder);
+      const parent = dirname(folder);
+      if (parent === folder) {
+        return undefined;
+      }
+      if (name === attachmentFolder) {
+        const cardKey = cardFolders.get(parent);
+        if (cardKey) {
+          return { cardKey, dir };
+        }
+      }
+      dir = dir === '' ? name : join(name, dir);
+      folder = parent;
+    }
+    return undefined;
   }
 
   // Gets content from disk.
@@ -296,6 +331,20 @@ export class CardStore {
       (entry) => entry.isDirectory() && CardNameRegEx.test(entry.name),
     );
 
+    // Card folder -> card key, so that an entry can be traced back to the card
+    // whose attachment folder it sits in.
+    const cardFolders = new Map<string, string>(
+      cardEntries.map((entry) => [
+        resolve(join(entry.parentPath, entry.name)),
+        entry.name,
+      ]),
+    );
+    const attachments = CardStore.attachmentsByCard(
+      allEntries,
+      cardFolders,
+      root,
+    );
+
     // Process all card entries in parallel
     const cardPromises = cardEntries.map(async (entry) => {
       const currentPath = join(entry.parentPath, entry.name);
@@ -303,10 +352,9 @@ export class CardStore {
       const parent =
         parentFolder === root ? ROOT : basename(dirname(parentFolder));
 
-      const [cardContent, cardMetadata, cardAttachments] = await Promise.all([
+      const [cardContent, cardMetadata] = await Promise.all([
         this.fetchContent(currentPath),
         this.fetchMetadata(currentPath),
-        this.fetchAttachments(currentPath),
       ]);
 
       let metadata;
@@ -329,7 +377,7 @@ export class CardStore {
 
       return {
         key: entry.name,
-        attachments: cardAttachments,
+        attachments: attachments.get(entry.name) ?? [],
         content: cardContent,
         metadata: CardStore.normalizedMetadata(metadata),
         parent,
