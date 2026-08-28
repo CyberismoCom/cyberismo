@@ -175,7 +175,7 @@ export class Show {
    */
   @read
   public async showAttachments(): Promise<CardAttachment[]> {
-    const attachments = this.project.attachments();
+    const attachments = this.project.cardTree.attachments();
     const templateAttachments = await this.attachmentsFromTemplates();
     attachments.push(...templateAttachments);
     return attachments;
@@ -374,7 +374,7 @@ export class Show {
   @read
   public async showLabels(): Promise<string[]> {
     const cards = flattenCardArray(
-      this.project.showProjectCards(),
+      this.project.cardTree.rootCards(),
       this.project,
     );
     const templateCards = this.project.allTemplateCards();
@@ -453,7 +453,7 @@ export class Show {
    */
   @read
   public async showProjectCards(): Promise<Card[]> {
-    return this.project.showProjectCards();
+    return this.project.cardTree.rootCards();
   }
 
   /**

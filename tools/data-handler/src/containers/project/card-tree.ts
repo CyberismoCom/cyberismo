@@ -111,11 +111,11 @@ export class CardTree {
   }
 
   /**
-   * The underlying store.
+   * The tree's store: its card map and the adjacency index over it.
    *
-   * Transitional: callers that still reach past the tree for the raw store go
-   * through here, so the migration can proceed one call site at a time. New
-   * code must use the tree's own surface instead.
+   * The tree is the store's only writer; this is here so the store's own
+   * invariants can be asserted directly. Production code goes through the
+   * tree's surface.
    */
   public get store(): CardCache {
     return this.cache;

@@ -226,7 +226,7 @@ export abstract class ResourceObject<
    */
   protected cards(): Card[] {
     return [
-      ...this.project.cards(undefined),
+      ...this.project.cardTree.cards(),
       ...this.project.allTemplateCards(),
     ];
   }
@@ -556,7 +556,7 @@ export abstract class ResourceObject<
         `Resource '${this.resourceName.identifier}' does not exist in the project`,
       );
     }
-    const cardArray = cards?.length ? cards : this.project.cards(undefined);
+    const cardArray = cards?.length ? cards : this.project.cardTree.cards();
 
     return cardArray
       .filter((card) =>

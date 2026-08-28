@@ -39,7 +39,7 @@ describe('ProjectRenameHandler', () => {
 
     expect(project.projectPrefix).toBe(newPrefix);
 
-    for (const card of project.cards(undefined)) {
+    for (const card of project.cardTree.cards()) {
       // Cards that referenced cardTypes under oldPrefix must now reference newPrefix.
       if (card.metadata?.cardType?.startsWith(`${oldPrefix}/`)) {
         expect.fail(`card '${card.key}' still references old prefix`);
@@ -54,7 +54,7 @@ describe('ProjectRenameHandler', () => {
 
     await mutations.apply({ kind: 'project_rename', newPrefix });
 
-    for (const card of project.cards(undefined)) {
+    for (const card of project.cardTree.cards()) {
       const adoc = join(card.path, 'index.adoc');
       let content: string;
       try {
@@ -110,7 +110,7 @@ describe('ProjectRenameHandler', () => {
 
     await mutations.apply({ kind: 'project_rename', newPrefix });
 
-    for (const card of project.cards(undefined)) {
+    for (const card of project.cardTree.cards()) {
       expect(card.key.startsWith(`${oldPrefix}_`)).toBe(false);
     }
   });

@@ -102,11 +102,11 @@ describe('template', () => {
       attachments: [],
     };
 
-    const cardCountBefore = project.cards(project.paths.cardRootFolder).length;
+    const cardCountBefore = project.cardTree.cards().length;
 
     await expect(template.createCards(nonExistingCard)).rejects.toThrow(Error);
 
-    const cardCountAfter = project.cards(project.paths.cardRootFolder).length;
+    const cardCountAfter = project.cardTree.cards().length;
     expect(cardCountAfter).toBe(cardCountBefore);
   });
 

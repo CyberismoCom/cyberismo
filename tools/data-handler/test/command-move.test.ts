@@ -338,7 +338,7 @@ describe('move command', () => {
     // Verify initial state - both cards should be findable in the same project instance used by commandHandler
     const parentBefore = project.findCard(parentCardKey!);
     const childBefore = project.findCard(childCardKey!);
-    const allCardsBefore = project.cards(undefined);
+    const allCardsBefore = project.cardTree.cards();
 
     expect(
       parentBefore,
@@ -351,7 +351,7 @@ describe('move command', () => {
     expect(childBefore!.parent).toBe('root'); // Should be at root initially
     expect(
       allCardsBefore.some((c) => c.key === childCardKey),
-      'Child should be found in project.cards() result',
+      'Child should be found in project.cardTree.cards() result',
     ).toBe(true);
 
     // Move child under parent
@@ -365,7 +365,7 @@ describe('move command', () => {
     // Verify state after move
     const parentAfter = project.findCard(parentCardKey!);
     const childAfter = project.findCard(childCardKey!);
-    const allCardsAfter = project.cards(undefined);
+    const allCardsAfter = project.cardTree.cards();
 
     // Verify expectations
     expect(
@@ -384,7 +384,7 @@ describe('move command', () => {
     ).toContain(childCardKey);
     expect(
       allCardsAfter.some((c) => c.key === childCardKey),
-      'Child should be found in project.cards() result after move',
+      'Child should be found in project.cardTree.cards() result after move',
     ).toBe(true);
   });
 

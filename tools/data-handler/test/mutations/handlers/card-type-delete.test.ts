@@ -27,8 +27,8 @@ describe('CardTypeDeleteHandler', () => {
   const cardTypeName = () => `${project.projectPrefix}/cardTypes/decision`;
 
   it('deletes every card of this type', async () => {
-    const before = project
-      .cards(undefined)
+    const before = project.cardTree
+      .cards()
       .filter((c) => c.metadata?.cardType === cardTypeName());
     expect(before.length).toBeGreaterThan(0);
 
@@ -39,8 +39,8 @@ describe('CardTypeDeleteHandler', () => {
     });
     // Re-read after apply (caches were invalidated by removeCard calls).
     await project.populateCaches();
-    const after = project
-      .cards(undefined)
+    const after = project.cardTree
+      .cards()
       .filter((c) => c.metadata?.cardType === cardTypeName());
     expect(after).toHaveLength(0);
   });

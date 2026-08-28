@@ -584,7 +584,7 @@ export class Validate {
         // appear twice in this list. The condition is detected where it is
         // visible — when the cache is loaded, above — and surfaces through the
         // populateCaches() call as a validation error.
-        const cards = project.cards();
+        const cards = project.cardTree.cards();
         cards.push(...project.allTemplateCards());
 
         const allPrefixes = project.allModulePrefixes();

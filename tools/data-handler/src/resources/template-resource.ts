@@ -215,7 +215,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
       // Keys and ranks are allocated here, in one pass, before anything is
       // written. Allocating them per card inside a concurrent fan-out gave
       // every card the same sibling snapshot — and therefore the same rank.
-      const newCardKeys = this.project.newCardKeys(count);
+      const newCardKeys = this.project.cardKeyRegistry.allocate(count);
 
       const siblings = parentCard
         ? this.project.cardKeysToCards(parentCard.children)
@@ -346,7 +346,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
 
   // Fresh keys for the instantiated copies, keyed by template card key.
   private buildCardKeyMap(cards: Card[]): Map<string, string> {
-    const newCardIds = this.project.newCardKeys(cards.length);
+    const newCardIds = this.project.cardKeyRegistry.allocate(cards.length);
     const cardsByKey = new Map<string, string>();
     cards.forEach((card, index) => {
       cardsByKey.set(card.key, newCardIds.at(index) || '');
@@ -372,7 +372,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
 
     const futureSiblings = parentCard
       ? this.project.cardKeysToCards(parentCard.children)
-      : this.project.showProjectCards();
+      : this.project.cardTree.rootCards();
 
     let latestRank =
       sortItems(
@@ -637,13 +637,10 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
   public async write() {
     await super.write();
 
-    // The template's cards are rooted at its 'c' folder. Registered on every
-    // write, so a card created into a template that has just been created -
-    // or just renamed - has somewhere to be derived from.
-    this.project.registerTemplateCardsFolder(
-      this.fullName,
-      this.templateCardsFolder(),
-    );
+    // The template's cards are rooted at its 'c' folder. Its tree is asked for
+    // on every write, so a card created into a template that has just been
+    // created - or just renamed - has a tree to go into.
+    this.project.templateTree(this.fullName, this.templateCardsFolder());
 
     // Create folder for cards and put proper content schema file there
     const schemaContentFile = join(this.templateCardsFolder(), '.schema');
