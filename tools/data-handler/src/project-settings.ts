@@ -41,6 +41,9 @@ export class ProjectConfiguration implements ProjectSettings {
   hubs: HubSetting[];
   private logger = getChildLogger({ module: 'Project' });
   private settingPath: string;
+  // Told after every successful save. The project's prefix and its module list
+  // are projected into clingo facts, and nothing else would notice they moved.
+  private savedListeners: (() => void)[] = [];
 
   constructor(path: string) {
     this.name = '';
@@ -198,6 +201,14 @@ export class ProjectConfiguration implements ProjectSettings {
     return this.save();
   }
 
+  /**
+   * Registers a listener to be called after the configuration is saved.
+   * @param listener What to do once the file has been written.
+   */
+  public onSaved(listener: () => void) {
+    this.savedListeners.push(listener);
+  }
+
   // Persists configuration file to disk.
   public async save() {
     if (this.cardKeyPrefix === '') {
@@ -209,6 +220,9 @@ export class ProjectConfiguration implements ProjectSettings {
       if (error instanceof Error) {
         this.logger.error({ error }, 'Could not write project configuration');
       }
+    }
+    for (const listener of this.savedListeners) {
+      listener();
     }
   }
 

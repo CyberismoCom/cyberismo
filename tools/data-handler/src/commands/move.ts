@@ -229,9 +229,6 @@ export class Move {
     // from its edges, so every descendant and every attachment of the moved
     // card follows it without being rewritten.
     this.project.relocateCard(source, newParent, targetTree.name);
-
-    // Notify the project about the move (calculation engine tree rebuild)
-    await this.project.handleCardMoved(this.project.cardNode(source));
   }
 
   /**

@@ -143,7 +143,8 @@ export class CommandManager {
     this.project.resources.changedModules();
     await this.project.populateCaches();
     await this.project.initializeGit();
-    await this.project.calculationEngine.generate();
+    // No fact generation here: the program is built by the first solve, so a
+    // command that never queries never pays for one.
   }
 
   /**
