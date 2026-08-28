@@ -12,24 +12,15 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-// node
-import { join } from 'node:path';
-import { writeFile } from 'node:fs/promises';
-
 import type { CardCache } from './project/card-cache.js';
 import { CardTree } from './project/card-tree.js';
-import { deleteDir } from '../utils/file-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
-import { writeJsonFile } from '../utils/json.js';
 
 import type {
   CardAttachment,
   Card,
-  CardMetadata,
   CardNode,
 } from '../interfaces/project-interfaces.js';
-
-import { isPredefinedField } from '../utils/constants.js';
 
 /**
  * Card container base class. Used for both Project and Template.
@@ -161,19 +152,7 @@ export class CardContainer {
    * @returns true, if card was removed; false otherwise
    */
   protected async removeCard(cardKey: string): Promise<boolean> {
-    const card = this.cardCache.getCard(cardKey);
-    if (card) {
-      // Children must removed first. The list is a snapshot: removing a child
-      // replaces the parent's list in the adjacency index rather than mutating
-      // the array this loop walks.
-      const children = this.cardTree.childrenOf(cardKey);
-      for (const child of children) {
-        await this.removeCard(child);
-      }
-      await deleteDir(card.path);
-      return this.cardCache.deleteCard(cardKey);
-    }
-    return false;
+    return this.cardTree.deleteSubtree(cardKey);
   }
 
   /**
@@ -191,12 +170,7 @@ export class CardContainer {
    * @returns true if card was updated; false otherwise.
    */
   protected async saveCardContent(card: Card): Promise<boolean> {
-    if (card.content != null) {
-      const contentFile = join(card.path, CardContainer.cardContentFile);
-      await writeFile(contentFile, card.content);
-      return this.cardCache.updateCardContent(card.key, card.content);
-    }
-    return false;
+    return this.cardTree.writeContent(card);
   }
 
   /**
@@ -206,47 +180,7 @@ export class CardContainer {
    * @throws if the metadata file cannot be written.
    */
   protected async saveCardMetadata(card: Card): Promise<boolean> {
-    if (card.metadata != null) {
-      const metadataFile = join(card.path, CardContainer.cardMetadataFile);
-      card.metadata!.lastUpdated = new Date().toISOString();
-
-      // Cache the same object that was written, so cache and disk agree.
-      const sanitizedMetadata = CardContainer.sanitizeMetadata(card);
-      await writeJsonFile(metadataFile, sanitizedMetadata);
-      return this.cardCache.updateCardMetadata(card.key, sanitizedMetadata);
-    }
-    return false;
-  }
-
-  /**
-   * Removes non-metadata fields that should not be persisted.
-   *
-   * @param card The card whose metadata is sanitized
-   * @returns Clean metadata object with only valid metadata fields
-   */
-  private static sanitizeMetadata(card: Card): CardMetadata {
-    const sanitized: Record<string, unknown> = {};
-
-    if (card.metadata) {
-      for (const [key, value] of Object.entries(card.metadata)) {
-        // JSON.stringify drops undefined, so drop it here too: the cache must
-        // not retain keys the file lacks.
-        if (value === undefined) {
-          continue;
-        }
-        // Keys are not filtered out if they are: predefined, or field types
-        if (isPredefinedField(key) || key.includes('/')) {
-          sanitized[key] = value;
-        } else {
-          this.logger.warn(
-            `Card ${card.key} had extra metadata key ${key} with value ${value}. Key was removed`,
-          );
-        }
-        // Everything else is filtered out
-      }
-    }
-
-    return sanitized as CardMetadata;
+    return this.cardTree.writeMetadata(card);
   }
 
   /*

@@ -162,26 +162,31 @@ async function renameCards(
   const re = new RegExp(`${from}(?!.*${from})`);
 
   for (const card of sortedCards) {
-    card.content = await updateCardAttachments(re, card, to);
+    card.content = await updateCardAttachments(ctx, re, card, to);
     await renameOneCard(ctx, re, card, from, to);
   }
 }
 
 async function updateCardAttachments(
+  ctx: MutationContext,
   re: RegExp,
   card: Card,
   to: string,
 ): Promise<string | undefined> {
   if (!isTemplateCard(card)) {
-    const attachments = card.attachments ?? [];
+    // A snapshot of the file names: the rename primitive updates the cached
+    // attachment objects, which this array shares with the card cache.
+    const fileNames = (card.attachments ?? []).map((item) => item.fileName);
     await Promise.all(
-      attachments.map(async (attachment) => {
-        const newAttachmentFileName = attachment.fileName.replace(re, to);
-        await renameFile(
-          join(attachment.path, attachment.fileName),
-          join(attachment.path, newAttachmentFileName),
-        );
+      fileNames.map(async (fileName) => {
+        // Through the primitive, so the cache's attachment fileName follows
+        // the file on disk rather than going stale.
         // NOTE: file contents are rewritten by updateFiles.
+        await ctx.project.renameCardAttachment(
+          card.key,
+          fileName,
+          fileName.replace(re, to),
+        );
       }),
     );
   }

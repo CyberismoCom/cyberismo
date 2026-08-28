@@ -13,14 +13,7 @@
 */
 
 // node
-import { basename, join, resolve, sep } from 'node:path';
-import {
-  constants as fsConstants,
-  copyFile,
-  mkdir,
-  unlink,
-  writeFile,
-} from 'node:fs/promises';
+import { join, resolve } from 'node:path';
 import { readdirSync } from 'node:fs';
 
 // base class
@@ -172,7 +165,7 @@ export class Project extends CardContainer {
       this.lock.onWriteError(async () => {
         await this.gitManager.rollback();
         // Invalidate caches after rollback since filesystem state changed
-        this.cardCache.clear();
+        this.cardTree.clear();
         await this.populateCardsCache();
         this.resources.changed();
         await this.calculationEngine.generate();
@@ -201,24 +194,6 @@ export class Project extends CardContainer {
       name: moduleName,
       path: join(this.paths.modulesFolder, moduleConfig.name),
     };
-  }
-
-  // Handles attachment changes after filesystem operations.
-  private async handleAttachmentChange(
-    cardKey: string,
-    operation: 'added' | 'removed' | 'refresh',
-    fileName: string,
-  ): Promise<void> {
-    if (operation === 'added') {
-      this.cardCache.addAttachment(cardKey, fileName);
-    } else if (operation === 'removed') {
-      this.cardCache.deleteAttachment(cardKey, fileName);
-    } else if (operation === 'refresh') {
-      const newAttachments = this.cardCache.getCardAttachments(cardKey);
-      if (newAttachments) {
-        this.cardCache.updateCardAttachments(cardKey, newAttachments);
-      }
-    }
   }
 
   // Determines the parent card key from a card's filesystem path.
@@ -289,7 +264,7 @@ export class Project extends CardContainer {
     try {
       // Evict any stale template cards from a prior population — templates may
       // have been removed (e.g. via module removal) and would otherwise linger.
-      this.cardCache.deleteAllTemplateCards();
+      this.cardTree.evictAllTemplateCards();
 
       const templateResources = this.resources.templates();
       const prefixes = this.allModulePrefixes();
@@ -314,9 +289,7 @@ export class Project extends CardContainer {
           return;
         }
 
-        await this.cardCache.populateFromPath(
-          templateObject.templateCardsFolder(),
-        );
+        await this.cardTree.load(templateObject.templateCardsFolder());
       });
 
       await Promise.all(loadPromises);
@@ -338,7 +311,7 @@ export class Project extends CardContainer {
    * Populate both the project cards, and all template cards into card cache.
    */
   protected async populateCardsCache(): Promise<void> {
-    await this.cardCache.populateFromPath(this.paths.cardRootFolder);
+    await this.cardTree.load(this.paths.cardRootFolder);
     await this.populateTemplateCards();
   }
 
@@ -374,8 +347,7 @@ export class Project extends CardContainer {
    * @returns path to a card's attachment folder.
    */
   public cardAttachmentFolder(cardKey: string): string {
-    const pathToCard = this.findCard(cardKey).path;
-    return join(pathToCard, 'a');
+    return this.cardTree.attachmentFolderOf(cardKey);
   }
 
   /**
@@ -390,38 +362,12 @@ export class Project extends CardContainer {
     attachmentName: string,
     attachmentData: string | Buffer,
   ): Promise<void> {
-    const attachmentFolder = this.cardAttachmentFolder(cardKey);
-
     // Check if this is a module template
-    if (isModulePath(attachmentFolder)) {
+    if (isModulePath(this.cardAttachmentFolder(cardKey))) {
       throw new Error(`Cannot modify imported module`);
     }
 
-    // Create the attachment folder if it doesn't exist
-    await mkdir(attachmentFolder, { recursive: true });
-
-    const attachmentPath = join(attachmentFolder, basename(attachmentName));
-
-    if (Buffer.isBuffer(attachmentData)) {
-      await writeFile(attachmentPath, attachmentData, { flag: 'wx' });
-    } else {
-      try {
-        await copyFile(
-          attachmentData,
-          attachmentPath,
-          fsConstants.COPYFILE_EXCL,
-        );
-      } catch {
-        throw new Error(`Attachment file not found: ${attachmentData}`);
-      }
-    }
-
-    // Update cache
-    await this.handleAttachmentChange(
-      cardKey,
-      'added',
-      basename(attachmentName),
-    );
+    await this.cardTree.addAttachment(cardKey, attachmentName, attachmentData);
   }
 
   /**
@@ -1006,27 +952,27 @@ export class Project extends CardContainer {
     cardKey: string,
     fileName: string,
   ): Promise<void> {
-    const attachmentFolder = this.cardAttachmentFolder(cardKey);
-
     // Modules cannot be modified.
-    if (isModulePath(attachmentFolder)) {
+    if (isModulePath(this.cardAttachmentFolder(cardKey))) {
       throw new Error(`Cannot modify imported module`);
     }
 
-    const attachmentPath = resolve(attachmentFolder, fileName);
+    await this.cardTree.removeAttachment(cardKey, fileName);
+  }
 
-    // Prevent path traversal
-    if (!attachmentPath.startsWith(resolve(attachmentFolder) + sep)) {
-      throw new Error(`Invalid attachment filename: ${fileName}`);
-    }
-
-    try {
-      await unlink(attachmentPath);
-    } catch (error) {
-      this.logger.error({ error }, 'Removing card attachment');
-      throw new Error(`Attachment not found: ${fileName}`, { cause: error });
-    }
-    await this.handleAttachmentChange(cardKey, 'removed', fileName);
+  /**
+   * Renames a card's attachment file, keeping the card cache in step with it.
+   * @param cardKey Card whose attachment is renamed.
+   * @param fileName Current attachment file name.
+   * @param newFileName New attachment file name.
+   * @throws if the card or the attachment does not exist.
+   */
+  public async renameCardAttachment(
+    cardKey: string,
+    fileName: string,
+    newFileName: string,
+  ): Promise<void> {
+    await this.cardTree.renameAttachment(cardKey, fileName, newFileName);
   }
 
   /**
@@ -1039,6 +985,26 @@ export class Project extends CardContainer {
     this.resources.changedModules();
     this.refreshAllModulePrefixes();
     await this.populateTemplateCards();
+  }
+
+  /**
+   * Drops a location's cards from the card cache.
+   * @param location 'project', or a full template name.
+   */
+  public removeCardsAtLocation(location: string): void {
+    this.cardTree.evictLocation(location);
+  }
+
+  /**
+   * Reloads one location's cards from disk into the card cache.
+   * @param location 'project', or a full template name.
+   * @param cardsFolder Folder the location's cards live in.
+   */
+  public async reloadCardsAtLocation(
+    location: string,
+    cardsFolder: string,
+  ): Promise<void> {
+    await this.cardTree.reloadLocation(location, cardsFolder);
   }
 
   /**
