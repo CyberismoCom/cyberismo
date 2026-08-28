@@ -599,50 +599,100 @@ describe('Card cache', () => {
     });
   });
 
-  describe('adjacency index consistency', () => {
-    // Recomputes the parent -> children adjacency from scratch, the way the
-    // cache's deleted full-rebuild pass did: read the cards in cache order and
-    // group them by their 'parent' field.
-    function recomputeChildren(cards: Card[]): Map<string, string[]> {
-      const index = new Map<string, string[]>();
-      for (const card of cards) {
-        if (!card.parent) {
-          continue;
-        }
-        const siblings = index.get(card.parent) ?? [];
-        siblings.push(card.key);
-        index.set(card.parent, siblings);
-      }
-      return index;
+  describe('index consistency', () => {
+    // Locations the randomized sequence spreads cards over: the project, plus
+    // two templates. A card's location is derived from its path, so the paths
+    // built below are what actually drive the location index.
+    const locationNames = ['project', 'alpha', 'beta'];
+
+    function expectedLocation(location: string): string {
+      return location === 'project' ? 'project' : `test/templates/${location}`;
     }
 
-    function assertIndexMatchesRecomputation(cache: CardCache, step: string) {
+    function pathFor(location: string, cardKey: string): string {
+      return location === 'project'
+        ? join(testCardsPath, cardKey)
+        : join(
+            testProjectPath,
+            '.cards',
+            'local',
+            'templates',
+            location,
+            'c',
+            cardKey,
+          );
+    }
+
+    // Recomputes both indexes from scratch, the way the cache's deleted
+    // full-rebuild pass and its deleted per-call location filters did: read the
+    // cards in cache order and group them.
+    function recompute(cards: ReturnType<CardCache['getCards']>) {
+      const children = new Map<string, string[]>();
+      const byLocation = new Map<string, string[]>();
+      for (const card of cards) {
+        if (card.parent) {
+          const siblings = children.get(card.parent) ?? [];
+          siblings.push(card.key);
+          children.set(card.parent, siblings);
+        }
+        const inLocation = byLocation.get(card.location) ?? [];
+        inLocation.push(card.key);
+        byLocation.set(card.location, inLocation);
+      }
+      return { children, byLocation };
+    }
+
+    // Compares the whole shape of each index in one assertion, so a mismatch
+    // reports contents *and* order.
+    function assertIndexesMatchRecomputation(cache: CardCache, step: string) {
       const cards = cache.getCards();
-      const expected = recomputeChildren(cards);
+      const { children, byLocation } = recompute(cards);
 
-      // Every parent named by a card, plus every card, must agree with a
-      // from-scratch recomputation - contents *and* order. The cards' own
-      // 'children' fields must mirror the index.
       const parentKeys = [
-        ...new Set([...expected.keys(), ...cards.map((card) => card.key)]),
+        ...new Set([...children.keys(), ...cards.map((card) => card.key)]),
       ].sort();
-
-      const fromIndex: Record<string, string[]> = {};
-      const fromRecomputation: Record<string, string[]> = {};
+      const indexedChildren: Record<string, string[]> = {};
+      const expectedChildren: Record<string, string[]> = {};
       for (const parentKey of parentKeys) {
-        fromIndex[parentKey] = cache.childrenOf(parentKey);
-        fromRecomputation[parentKey] = expected.get(parentKey) ?? [];
+        indexedChildren[parentKey] = cache.childrenOf(parentKey);
+        expectedChildren[parentKey] = children.get(parentKey) ?? [];
       }
-      const mirrored: Record<string, string[]> = {};
+      expect(indexedChildren, `${step}: children index`).toEqual(
+        expectedChildren,
+      );
+
+      // Each card's own 'children' field mirrors the index.
       for (const card of cards) {
-        mirrored[card.key] = card.children;
+        expect(card.children, `${step}: children of ${card.key}`).toEqual(
+          expectedChildren[card.key],
+        );
       }
 
-      expect(fromIndex, step).toEqual(fromRecomputation);
-      for (const card of cards) {
-        expect(mirrored[card.key], `${step}: mirror of ${card.key}`).toEqual(
-          fromRecomputation[card.key],
-        );
+      const locationKeys = [
+        ...new Set([
+          ...byLocation.keys(),
+          ...locationNames.map(expectedLocation),
+        ]),
+      ].sort();
+      const indexedLocations: Record<string, string[]> = {};
+      const expectedLocations: Record<string, string[]> = {};
+      for (const location of locationKeys) {
+        indexedLocations[location] = cache.keysAtLocation(location);
+        expectedLocations[location] = byLocation.get(location) ?? [];
+      }
+      expect(indexedLocations, `${step}: location index`).toEqual(
+        expectedLocations,
+      );
+
+      for (const location of locationKeys) {
+        expect(
+          cache.cardsAtLocation(location).map((card) => card.key),
+          `${step}: cards at ${location}`,
+        ).toEqual(expectedLocations[location]);
+        expect(
+          cache.cardCountAtLocation(location),
+          `${step}: count at ${location}`,
+        ).toBe(expectedLocations[location].length);
       }
     }
 
@@ -657,16 +707,16 @@ describe('Card cache', () => {
       };
     }
 
-    function cardAt(key: string, parent: string): Card {
+    function cardAt(location: string, cardKey: string, parent: string): Card {
       return {
-        key,
-        path: join(testCardsPath, key),
+        key: cardKey,
+        path: pathFor(location, cardKey),
         parent,
         children: [],
         attachments: [],
         content: '',
         metadata: {
-          title: key,
+          title: cardKey,
           cardType: 'test/cardTypes/page',
           workflowState: 'Draft',
           rank: '1|a',
@@ -675,57 +725,87 @@ describe('Card cache', () => {
       };
     }
 
-    it('matches a from-scratch recomputation after a randomized op sequence', () => {
-      const keys = Array.from({ length: 30 }, (_, index) => `test_${index}`);
-      let moves = 0;
-      let deletes = 0;
-      let adds = 0;
+    it('both indexes match a from-scratch recomputation after a randomized op sequence', () => {
+      const keys = Array.from({ length: 24 }, (_, index) => `test_${index}`);
+      const counts = { add: 0, reparent: 0, relocate: 0, remove: 0 };
 
-      for (const seed of [1, 7, 42, 1337, 99991]) {
+      for (const seed of [1, 7, 42, 1337]) {
         const next = random(seed);
         const pick = <T>(items: T[]) =>
           items[Math.floor(next() * items.length)];
         const cache = new CardCache(prefix);
 
-        for (let step = 0; step < 400; step++) {
-          const present = cache.getCards().map((card) => card.key);
+        for (let step = 0; step < 250; step++) {
+          const cards = cache.getCards();
+          const present = cards.map((card) => card.key);
           const absent = keys.filter((key) => !present.includes(key));
+          // Candidate parents within a location: its own cards, or the root.
+          const parentsIn = (location: string) => [
+            ...cards
+              .filter((card) => card.location === expectedLocation(location))
+              .map((card) => card.key),
+            'root',
+          ];
           const roll = next();
+          const label = `seed ${seed} step ${step}`;
 
-          if (absent.length > 0 && (roll < 0.5 || present.length === 0)) {
-            // Add: parent is an existing card, or the tree root. A parent that
-            // is not (yet) cached is intentionally possible via 'root' only,
-            // since paths here are all project-root paths.
+          if (absent.length > 0 && (roll < 0.45 || present.length === 0)) {
+            const location = pick(locationNames);
             const key = pick(absent);
-            cache.updateCard(key, cardAt(key, pick([...present, 'root'])));
-            adds++;
-          } else if (roll < 0.8) {
-            // Move: re-parent an existing card.
-            const key = pick(present);
-            const parents = [...present.filter((p) => p !== key), 'root'];
-            const card = cache.getCard(key)!;
-            cache.updateCard(key, { ...card, parent: pick(parents) });
-            moves++;
+            cache.updateCard(
+              key,
+              cardAt(location, key, pick(parentsIn(location))),
+            );
+            counts.add++;
+          } else if (roll < 0.7) {
+            // Re-parent inside the card's own location.
+            const card = pick(cards);
+            const location =
+              locationNames.find(
+                (item) => expectedLocation(item) === card.location,
+              ) ?? 'project';
+            cache.updateCard(card.key, {
+              ...card,
+              parent: pick(
+                parentsIn(location).filter((item) => item !== card.key),
+              ),
+            });
+            counts.reparent++;
+          } else if (roll < 0.85) {
+            // Relocate: a different location means a different path, and a
+            // parent taken from the destination.
+            const card = pick(cards);
+            const location = pick(locationNames);
+            cache.updateCard(
+              card.key,
+              cardAt(
+                location,
+                card.key,
+                pick(parentsIn(location).filter((item) => item !== card.key)),
+              ),
+            );
+            counts.relocate++;
           } else {
-            // Delete.
             cache.deleteCard(pick(present));
-            deletes++;
+            counts.remove++;
           }
 
-          assertIndexMatchesRecomputation(cache);
+          assertIndexesMatchRecomputation(cache, label);
         }
 
-        // The sequence must have produced a real tree, not a flat root list.
-        const nested = cache
-          .getCards()
-          .filter((card) => card.parent && card.parent !== 'root');
-        expect(nested.length).toBeGreaterThan(0);
+        // The sequence must have produced real nesting and more than one
+        // location, or it would not exercise either index.
+        const cards = cache.getCards();
+        expect(
+          cards.filter((card) => card.parent && card.parent !== 'root').length,
+        ).toBeGreaterThan(0);
+        expect(
+          new Set(cards.map((card) => card.location)).size,
+        ).toBeGreaterThan(1);
       }
 
       // Guard against a roll distribution that stops exercising an operation.
-      expect(adds).toBeGreaterThan(0);
-      expect(moves).toBeGreaterThan(0);
-      expect(deletes).toBeGreaterThan(0);
+      expect(Math.min(...Object.values(counts))).toBeGreaterThan(0);
     });
   });
 

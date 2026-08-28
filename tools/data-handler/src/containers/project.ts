@@ -1045,13 +1045,10 @@ export class Project extends CardContainer {
    * @returns List of cards from template.
    */
   public templateCards(templateName: string): Card[] {
-    const templateCards = this.cardCache.getAllTemplateCards();
-    return templateCards.filter((cachedCard) => {
-      if (cachedCard.location === 'project') {
-        return false;
-      }
-      return cachedCard.location === templateName;
-    });
+    if (templateName === 'project') {
+      return [];
+    }
+    return this.cardCache.cardsAtLocation(templateName);
   }
 
   /**
