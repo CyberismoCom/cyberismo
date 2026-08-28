@@ -478,3 +478,179 @@ describe('CardTree structural integrity', () => {
     );
   });
 });
+
+describe('CardTree fact changes', () => {
+  let tree: CardTree;
+
+  // A three-generation line: test_1 -> test_2 -> test_3.
+  beforeEach(async () => {
+    mkdirSync(cardRoot, { recursive: true });
+    createCardAt('test_1');
+    createCardAt('test_2', { parentPath: join(cardRoot, 'test_1', 'c') });
+    createCardAt('test_3', {
+      parentPath: join(cardRoot, 'test_1', 'c', 'test_2', 'c'),
+    });
+    tree = newTree();
+    await tree.load();
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  // The tree is loaded in beforeEach, so every test that wants to observe one
+  // operation's marks starts from a drained tree.
+  function drain() {
+    tree.takeFactChanges();
+  }
+
+  function newCard(cardKey: string, parent = 'root') {
+    return {
+      key: cardKey,
+      path: tree.pathFor(parent, cardKey),
+      parent,
+      children: [],
+      attachments: [],
+      content: '',
+      metadata: {
+        title: 'Card',
+        cardType: 'test/cardTypes/page',
+        workflowState: 'Draft',
+        rank: '0|c',
+        links: [],
+      },
+    };
+  }
+
+  it('marks every loaded card', () => {
+    expect(tree.hasFactChanges).toBe(true);
+    const changes = tree.takeFactChanges();
+    expect(changes.changed.sort()).toEqual(['test_1', 'test_2', 'test_3']);
+    expect(changes.removed).toEqual([]);
+  });
+
+  it('leaves the tree clean once the changes are taken', () => {
+    tree.takeFactChanges();
+    expect(tree.hasFactChanges).toBe(false);
+    expect(tree.takeFactChanges()).toEqual({ changed: [], removed: [] });
+  });
+
+  it('marks an inserted card', () => {
+    drain();
+    createCardAt('test_4');
+    tree.insert(newCard('test_4'));
+    expect(tree.takeFactChanges()).toEqual({
+      changed: ['test_4'],
+      removed: [],
+    });
+  });
+
+  it('marks a card whose metadata was written', async () => {
+    drain();
+    const card = tree.card('test_2');
+    card.metadata!.title = 'Renamed';
+    await tree.writeMetadata(card);
+    expect(tree.takeFactChanges()).toEqual({
+      changed: ['test_2'],
+      removed: [],
+    });
+  });
+
+  // A card's facts are built from its metadata, not from its content, so a
+  // content write has nothing to reproject.
+  it('marks nothing for a content write', async () => {
+    drain();
+    const card = tree.card('test_2');
+    card.content = 'new body';
+    await tree.writeContent(card);
+    expect(tree.hasFactChanges).toBe(false);
+  });
+
+  // Nor from its attachments.
+  it('marks nothing for an attachment write', async () => {
+    drain();
+    await tree.addAttachment('test_2', 'picture.png', Buffer.from('x'));
+    expect(tree.hasFactChanges).toBe(false);
+  });
+
+  // Only the moved card: a descendant's parent edge is untouched, and paths
+  // are not projected.
+  it('marks only the relocated card', () => {
+    drain();
+    tree.relocate('test_2', 'root');
+    expect(tree.takeFactChanges()).toEqual({
+      changed: ['test_2'],
+      removed: [],
+    });
+  });
+
+  it('marks a deleted subtree as removed', async () => {
+    drain();
+    await tree.deleteSubtree('test_2');
+    const changes = tree.takeFactChanges();
+    expect(changes.changed).toEqual([]);
+    expect(changes.removed.sort()).toEqual(['test_2', 'test_3']);
+  });
+
+  it('marks an uprooted subtree as removed and a grafted one as changed', () => {
+    drain();
+    const subtree = tree.uproot('test_2');
+    const uprooted = tree.takeFactChanges();
+    expect(uprooted.changed).toEqual([]);
+    expect(uprooted.removed.sort()).toEqual(['test_2', 'test_3']);
+
+    tree.graft(subtree, 'root');
+    expect(tree.takeFactChanges()).toEqual({
+      changed: ['test_2', 'test_3'],
+      removed: [],
+    });
+  });
+
+  it('marks a card changed after it was marked removed', async () => {
+    drain();
+    await tree.deleteSubtree('test_3');
+    createCardAt('test_3');
+    tree.insert(newCard('test_3'));
+    expect(tree.takeFactChanges()).toEqual({
+      changed: ['test_3'],
+      removed: [],
+    });
+  });
+
+  it('marks every card of a cleared tree as removed', () => {
+    drain();
+    tree.clear();
+    const changes = tree.takeFactChanges();
+    expect(changes.changed).toEqual([]);
+    expect(changes.removed.sort()).toEqual(['test_1', 'test_2', 'test_3']);
+  });
+
+  // A reload keeps the cards it reads: they are changed, not removed.
+  it('marks a reloaded card changed rather than removed', async () => {
+    drain();
+    await tree.reload();
+    const changes = tree.takeFactChanges();
+    expect(changes.changed.sort()).toEqual(['test_1', 'test_2', 'test_3']);
+    expect(changes.removed).toEqual([]);
+  });
+
+  // A card that disappeared from disk between the clear and the load stays
+  // removed.
+  it('keeps a card that a reload no longer finds removed', async () => {
+    drain();
+    rmSync(join(cardRoot, 'test_1'), { recursive: true, force: true });
+    await tree.reload();
+    expect(tree.takeFactChanges()).toEqual({
+      changed: [],
+      removed: ['test_1', 'test_2', 'test_3'],
+    });
+  });
+
+  // A template's root cards name the template itself as their parent.
+  it('marks every card when the tree is renamed', () => {
+    drain();
+    tree.rebase('test/templates/other', cardRoot);
+    const changes = tree.takeFactChanges();
+    expect(changes.changed.sort()).toEqual(['test_1', 'test_2', 'test_3']);
+  });
+});

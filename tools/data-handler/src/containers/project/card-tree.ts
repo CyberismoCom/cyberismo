@@ -122,13 +122,72 @@ export interface RankChange {
  * template, including the templates that come from modules. They share nothing
  * but the key registry.
  */
+/**
+ * Cards whose facts a tree has stopped matching: those to reproject, and those
+ * whose facts must go.
+ */
+export interface CardFactChanges {
+  changed: string[];
+  removed: string[];
+}
+
 export class CardTree {
   private readonly store: CardStore;
   private treeName: string;
+  // Cards whose facts the tree no longer matches. The tree marks; whoever is
+  // about to solve drains (see CalculationEngine's pull). Nothing here is a
+  // fact by itself - these are the keys a projection has to be redone for.
+  private changedFacts: Set<string> = new Set();
+  private removedFacts: Set<string> = new Set();
 
   constructor(private readonly options: CardTreeOptions) {
     this.treeName = options.name;
     this.store = new CardStore(options.rootPath);
+  }
+
+  // A card's facts are built from its key, its parent edge, its metadata and
+  // its tree's fact context - see createCardFacts. Content and attachments are
+  // deliberately absent from that list, which is why writing either of them
+  // marks nothing.
+  private factsChanged(cardKey: string) {
+    this.removedFacts.delete(cardKey);
+    this.changedFacts.add(cardKey);
+  }
+
+  private factsRemoved(cardKey: string) {
+    this.changedFacts.delete(cardKey);
+    this.removedFacts.add(cardKey);
+  }
+
+  // Every card the tree currently holds has to be reprojected. Used when the
+  // change is the tree's own, not any one card's.
+  private allFactsChanged() {
+    for (const cardKey of this.store.keys()) {
+      this.factsChanged(cardKey);
+    }
+  }
+
+  /**
+   * Takes the tree's pending fact changes, leaving it clean.
+   *
+   * Draining is the point: a card is reprojected once per change, not once per
+   * solve.
+   */
+  public takeFactChanges(): CardFactChanges {
+    const changes = {
+      changed: [...this.changedFacts],
+      removed: [...this.removedFacts],
+    };
+    this.changedFacts.clear();
+    this.removedFacts.clear();
+    return changes;
+  }
+
+  /**
+   * Whether the tree has fact changes nobody has picked up yet.
+   */
+  public get hasFactChanges(): boolean {
+    return this.changedFacts.size > 0 || this.removedFacts.size > 0;
   }
 
   /**
@@ -179,6 +238,9 @@ export class CardTree {
   public rebase(name: string, rootPath: string) {
     this.treeName = name;
     this.store.rebase(rootPath);
+    // A template's root cards name the template itself as their parent, so
+    // renaming the tree changes what its cards project.
+    this.allFactsChanged();
   }
 
   /**
@@ -711,6 +773,7 @@ export class CardTree {
       content: card.content,
       attachments: CardTree.storedAttachments(card),
     });
+    this.factsChanged(card.key);
   }
 
   // The attachments of a card being inserted, as folder-relative names. The
@@ -747,6 +810,9 @@ export class CardTree {
     this.stored(cardKey);
     this.assertNoCycle(cardKey, parent);
     this.store.relocate(cardKey, parent);
+    // Only the moved card: its descendants keep the parent they had, and a
+    // card's path is not something it projects.
+    this.factsChanged(cardKey);
   }
 
   /**
@@ -775,6 +841,7 @@ export class CardTree {
     // Children first, so a parent's child list is empty by the time it goes.
     for (const card of [...uprooted].reverse()) {
       this.store.deleteCard(card.key);
+      this.factsRemoved(card.key);
     }
     this.options.keys.release(uprooted.map((card) => card.key));
     return uprooted;
@@ -809,6 +876,9 @@ export class CardTree {
         ...card,
         parent: index === 0 ? parent : card.parent,
       });
+      // The whole subtree, not just its root: the cards changed container, and
+      // a card's container is one of the things it projects.
+      this.factsChanged(card.key);
     }
   }
 
@@ -842,7 +912,11 @@ export class CardTree {
     if (!sanitizedMetadata) {
       return false;
     }
-    return this.store.updateCardMetadata(card.key, sanitizedMetadata);
+    const stored = this.store.updateCardMetadata(card.key, sanitizedMetadata);
+    if (stored) {
+      this.factsChanged(card.key);
+    }
+    return stored;
   }
 
   // The single place that knows where a card's content lives.
@@ -888,7 +962,11 @@ export class CardTree {
     }
     await deleteDir(path);
     this.options.keys.release([cardKey]);
-    return this.store.deleteCard(cardKey);
+    const removed = this.store.deleteCard(cardKey);
+    if (removed) {
+      this.factsRemoved(cardKey);
+    }
+    return removed;
   }
 
   /**
@@ -1008,12 +1086,18 @@ export class CardTree {
       loaded.map((card) => card.key),
       this,
     );
+    for (const card of loaded) {
+      this.factsChanged(card.key);
+    }
   }
 
   /**
    * Empties the tree.
    */
   public clear() {
+    for (const cardKey of this.store.keys()) {
+      this.factsRemoved(cardKey);
+    }
     this.options.keys.releaseOwner(this);
     this.store.clear();
   }

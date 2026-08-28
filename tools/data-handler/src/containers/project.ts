@@ -97,6 +97,10 @@ export class Project {
   private settings: ProjectConfiguration;
   private validator: Validate;
   private cachedAllModulePrefixes: string[] = [];
+  // Fact removals belonging to trees the project has dropped. A dropped tree
+  // is nobody's to drain any more, but the programs its cards left behind in
+  // clingo still have to go.
+  private retiredFactRemovals: Set<string> = new Set();
 
   constructor(
     path: string,
@@ -287,7 +291,10 @@ export class Project {
     // A tree may already have been created under the new name by a read that
     // ran between the folder rename and this call; it is empty, and the cards
     // are in the tree being renamed.
-    this.templateCardTrees.get(newName)?.clear();
+    const displaced = this.templateCardTrees.get(newName);
+    if (displaced) {
+      this.retireTree(displaced);
+    }
     this.templateCardTrees.delete(oldName);
     tree.rebase(newName, cardsFolder);
     this.templateCardTrees.set(newName, tree);
@@ -298,8 +305,53 @@ export class Project {
    * @param templateName Full name of the template.
    */
   public removeTemplateTree(templateName: string) {
-    this.templateCardTrees.get(templateName)?.clear();
+    const tree = this.templateCardTrees.get(templateName);
+    if (tree) {
+      this.retireTree(tree);
+    }
     this.templateCardTrees.delete(templateName);
+  }
+
+  // Empties a tree the project is about to stop holding, and takes over its
+  // pending fact removals: after this call nothing else can drain them.
+  private retireTree(tree: CardTree) {
+    tree.clear();
+    const { removed } = tree.takeFactChanges();
+    for (const cardKey of removed) {
+      this.retiredFactRemovals.add(cardKey);
+    }
+  }
+
+  /**
+   * Takes the pending fact changes of every tree the project holds.
+   *
+   * The pull side of fact projection: the trees mark what changed, and this is
+   * what a solve drains before it runs. A card that moved between two trees is
+   * reported as changed rather than removed - its program is rewritten, not
+   * dropped.
+   * @returns the cards to reproject, and the card keys whose facts must go.
+   */
+  public takeCardFactChanges(): { changed: CardNode[]; removed: string[] } {
+    const removed = new Set(this.retiredFactRemovals);
+    this.retiredFactRemovals.clear();
+    const changed: CardNode[] = [];
+    for (const tree of [this.cardTree, ...this.templateTrees()]) {
+      const changes = tree.takeFactChanges();
+      for (const cardKey of changes.removed) {
+        removed.add(cardKey);
+      }
+      for (const cardKey of changes.changed) {
+        // A key marked and then taken out of the tree by a later operation in
+        // the same batch has nothing left to project.
+        if (tree.has(cardKey)) {
+          changed.push(tree.node(cardKey));
+        }
+      }
+    }
+    for (const node of changed) {
+      removed.delete(node.key);
+    }
+    return { changed, removed: [...removed] };
   }
 
   /**
