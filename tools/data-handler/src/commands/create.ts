@@ -135,6 +135,10 @@ export class Create {
       throw new Error(`Invalid value for 'repeat:' "${count}"`);
     }
 
+    // This command holds the write lock, so the creation query and the side
+    // effects it asks for run here rather than inside the template container.
+    await this.project.runCreationSideEffects(cardsContainer);
+
     return cardsContainer;
   }
 
@@ -214,7 +218,15 @@ export class Create {
     }
 
     const createdCards = await templateObject.createCards(specificCard);
+
     if (createdCards.length > 0) {
+      // This command holds the write lock, so the creation query and the side
+      // effects it asks for run here rather than inside the template
+      // container.
+      await this.project.runCreationSideEffects(
+        createdCards.map((card) => card.key),
+      );
+
       const rootParent = specificCard?.key ?? ROOT;
       const rootCards: Card[] = [];
       const childCards: Card[] = [];

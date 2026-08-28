@@ -427,7 +427,9 @@ export class Template extends CardContainer {
       }
 
       await Promise.all(newCards.map((card) => this.createNode(card)));
-      await this.project.handleNewCards(newCards);
+      // Storage and facts only. The creating command runs the creation query
+      // and its side effects.
+      await this.project.addCreatedCards(newCards);
       return newCardKeys;
     } catch (error) {
       this.logger.error({ error });
@@ -550,7 +552,10 @@ export class Template extends CardContainer {
       const processedCards = results.map(
         (result) => (result as PromiseFulfilledResult<Card>).value,
       );
-      await this.project.handleNewCards(processedCards);
+      // Storage and facts only, and inside this try so a failure here is
+      // still compensated. The creating command runs the creation query and
+      // its side effects.
+      await this.project.addCreatedCards(processedCards);
       return processedCards;
     } catch (error) {
       // Compensation must not replace the failure that triggered it.
