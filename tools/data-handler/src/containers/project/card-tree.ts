@@ -12,7 +12,7 @@
 */
 
 // node
-import { basename, join, resolve, sep } from 'node:path';
+import { basename, join, relative, resolve, sep } from 'node:path';
 import {
   constants as fsConstants,
   copyFile,
@@ -25,8 +25,8 @@ import {
 import mime from 'mime-types';
 
 import { CardCache } from './card-cache.js';
+import type { StoredAttachment, StoredCard } from './card-cache.js';
 import { CardNotFoundError } from '../../exceptions/index.js';
-import { cardPathParts } from '../../utils/card-utils.js';
 import { deleteDir } from '../../utils/file-utils.js';
 import { getChildLogger } from '../../utils/log-utils.js';
 import { writeJsonFile } from '../../utils/json.js';
@@ -48,6 +48,8 @@ const CARD_CONTENT_FILE = 'index.adoc';
 const CARD_METADATA_FILE = 'index.json';
 // A card's attachment folder, inside its folder.
 const ATTACHMENT_FOLDER = 'a';
+// A card's children live in this folder, inside its folder.
+const CHILDREN_FOLDER = 'c';
 
 /**
  * Owner of the project's cards: their storage, their structure, their indexes
@@ -59,22 +61,31 @@ const ATTACHMENT_FOLDER = 'a';
  * belongs above this class. The one test that keeps the boundary honest: if it
  * needs a clingo answer, it is not a tree operation.
  *
+ * Card paths are derived, never stored: a root card sits directly in its
+ * location's root folder, and every other card sits in its parent's 'c'
+ * folder. That is what makes a folder move a single edge update instead of a
+ * recursive string rewrite over every descendant and every attachment.
+ *
  * Still a single merged tree holding the project's cards and every template's
  * cards, keyed by a 'location'. Splitting it into one tree per template is a
- * later step; until then the tree wraps one CardCache, which remains the
- * store (map plus adjacency and location indexes).
+ * later step; until then each location registers the folder its cards are
+ * rooted at when it is loaded.
  */
 export class CardTree {
   private readonly cache: CardCache;
 
-  constructor(private readonly prefix: string) {
-    this.cache = new CardCache(prefix);
+  constructor(rootPath: string) {
+    this.cache = new CardCache();
+    // Registered up front rather than at load time: the path-addressed reads
+    // must be able to resolve the project's own root before anything is
+    // loaded.
+    this.cache.registerRoot(PROJECT_LOCATION, rootPath);
   }
 
   /**
    * The underlying store.
    *
-   * Transitional: callers that still reach past the tree for the raw cache go
+   * Transitional: callers that still reach past the tree for the raw store go
    * through here, so the migration can proceed one call site at a time. New
    * code must use the tree's own surface instead.
    */
@@ -86,9 +97,10 @@ export class CardTree {
    * The location a card at the given filesystem path belongs to.
    * @param path Filesystem path of a card, or of a folder holding cards.
    * @returns 'project' for project cards, otherwise the full template name.
+   * @throws if the path is not inside any of the tree's locations
    */
   public locationOf(path: string): string {
-    return cardPathParts(this.prefix, path).template || PROJECT_LOCATION;
+    return this.cache.locationForPath(path);
   }
 
   /**
@@ -107,6 +119,20 @@ export class CardTree {
    */
   public childrenOf(cardKey: string): string[] {
     return this.cache.childrenOf(cardKey);
+  }
+
+  /**
+   * The keys of a card's ancestors, nearest first.
+   * @param cardKey Card key whose ancestors to return.
+   */
+  public ancestorsOf(cardKey: string): string[] {
+    const ancestors: string[] = [];
+    let card = this.cache.getCard(cardKey);
+    while (card && card.parent !== ROOT) {
+      ancestors.push(card.parent);
+      card = this.cache.getCard(card.parent);
+    }
+    return ancestors;
   }
 
   /**
@@ -141,6 +167,64 @@ export class CardTree {
     return this.cache.isPopulated;
   }
 
+  /**
+   * The folder a card's own files live in.
+   * @param cardKey Card key to locate.
+   * @throws CardNotFoundError if the tree does not hold the card
+   */
+  public pathOf(cardKey: string): string {
+    return this.pathOfStored(this.cached(cardKey));
+  }
+
+  // The folder a stored card's files live in, walked out of the edges.
+  private pathOfStored(card: StoredCard): string {
+    const segments: string[] = [];
+    let current: StoredCard | undefined = card;
+    while (current && current.parent !== ROOT) {
+      segments.push(current.key, CHILDREN_FOLDER);
+      const parent: StoredCard | undefined = this.cache.getCard(current.parent);
+      if (!parent) {
+        throw new Error(
+          `Card '${card.key}' has parent '${current.parent}' which is not in the tree`,
+        );
+      }
+      current = parent;
+    }
+    segments.push(current!.key);
+    const root = this.cache.rootOf(current!.location);
+    if (!root) {
+      throw new Error(`Location '${current!.location}' has no root folder`);
+    }
+    return join(root, ...segments.reverse());
+  }
+
+  /**
+   * The folder a new child of the given parent would be created in.
+   * @param location 'project', or a full template name.
+   * @param parentKey Parent card key, or 'root' for a location's own root.
+   * @throws if the location is not known to the tree
+   */
+  public childFolderOf(location: string, parentKey: string = ROOT): string {
+    if (parentKey !== ROOT) {
+      return join(this.pathOf(parentKey), CHILDREN_FOLDER);
+    }
+    const root = this.cache.rootOf(location);
+    if (!root) {
+      throw new Error(`Location '${location}' has no root folder`);
+    }
+    return root;
+  }
+
+  /**
+   * The folder a card with the given position would live in.
+   * @param location 'project', or a full template name.
+   * @param parentKey Parent card key, or 'root'.
+   * @param cardKey Key of the card to be created.
+   */
+  public pathFor(location: string, parentKey: string, cardKey: string): string {
+    return join(this.childFolderOf(location, parentKey), cardKey);
+  }
+
   // Identity and tree position, with the store-internal 'location' dropped.
   //
   // The metadata object is shared with the store, deliberately: this is the
@@ -151,10 +235,10 @@ export class CardTree {
   // store. Callers that need to modify metadata use cardsIn()/card(), which
   // hand out an unfrozen copy. 'children' is copied: it is the adjacency
   // index's own array, and it is small.
-  private static nodeView(card: Card): CardNode {
+  private nodeView(card: StoredCard): CardNode {
     return {
       key: card.key,
-      path: card.path,
+      path: this.pathOfStored(card),
       children: [...card.children],
       metadata: card.metadata,
       parent: card.parent,
@@ -164,12 +248,33 @@ export class CardTree {
   // The fully hydrated card: identity, tree position, and copies of everything
   // a caller might modify. Content is a string, so sharing it is sharing a
   // value.
-  private static cardView(card: Card): Card {
+  private cardView(card: StoredCard): Card {
+    const path = this.pathOfStored(card);
     return {
-      ...CardTree.nodeView(card),
+      key: card.key,
+      path,
+      children: [...card.children],
+      parent: card.parent,
       metadata: structuredClone(card.metadata),
       content: card.content,
-      attachments: card.attachments.map((attachment) => ({ ...attachment })),
+      attachments: card.attachments.map((attachment) =>
+        CardTree.attachmentView(card.key, path, attachment),
+      ),
+    };
+  }
+
+  // An attachment as callers see it: its own folder and its mime type are
+  // derived from the card's path and the file's name.
+  private static attachmentView(
+    cardKey: string,
+    cardPath: string,
+    attachment: StoredAttachment,
+  ): CardAttachment {
+    return {
+      card: cardKey,
+      path: join(cardPath, ATTACHMENT_FOLDER, attachment.dir),
+      fileName: attachment.fileName,
+      mimeType: mime.lookup(attachment.fileName) || null,
     };
   }
 
@@ -177,7 +282,7 @@ export class CardTree {
   // would answer 'no cards' rather than 'not known yet'.
   private assertPopulated() {
     if (!this.isPopulated) {
-      throw new Error('Cards cache is not populated!');
+      throw new Error('Card tree is not populated!');
     }
   }
 
@@ -189,7 +294,9 @@ export class CardTree {
    */
   public cardsIn(location: string): Card[] {
     this.assertPopulated();
-    return this.cache.cardsAtLocation(location).map(CardTree.cardView);
+    return this.cache
+      .cardsAtLocation(location)
+      .map((card) => this.cardView(card));
   }
 
   /**
@@ -200,7 +307,9 @@ export class CardTree {
    */
   public cardNodesIn(location: string): CardNode[] {
     this.assertPopulated();
-    return this.cache.cardsAtLocation(location).map(CardTree.nodeView);
+    return this.cache
+      .cardsAtLocation(location)
+      .map((card) => this.nodeView(card));
   }
 
   /**
@@ -227,14 +336,17 @@ export class CardTree {
    */
   public attachmentsIn(location: string): CardAttachment[] {
     const attachments: CardAttachment[] = [];
-    this.cache
-      .cardsAtLocation(location)
-      .filter((card) => card.attachments.length > 0)
-      .forEach((card) =>
-        attachments.push(
-          ...card.attachments.map((attachment) => ({ ...attachment })),
+    for (const card of this.cache.cardsAtLocation(location)) {
+      if (card.attachments.length === 0) {
+        continue;
+      }
+      const path = this.pathOfStored(card);
+      attachments.push(
+        ...card.attachments.map((attachment) =>
+          CardTree.attachmentView(card.key, path, attachment),
         ),
       );
+    }
     return attachments;
   }
 
@@ -253,11 +365,7 @@ export class CardTree {
         !card.parent ||
         this.locationOfCard(card.parent) !== location
       ) {
-        // Built through cardView rather than by spreading the stored card:
-        // spreading also copied out the store-internal 'location' field, which
-        // is not part of Card and leaked into anything that serialised the
-        // result.
-        rootCards.push(CardTree.cardView(card));
+        rootCards.push(this.cardView(card));
       }
     }
     return rootCards;
@@ -268,7 +376,7 @@ export class CardTree {
    * location.
    */
   public allTemplateCards(): Card[] {
-    return this.cache.getAllTemplateCards().map(CardTree.cardView);
+    return this.cache.getAllTemplateCards().map((card) => this.cardView(card));
   }
 
   /**
@@ -277,7 +385,7 @@ export class CardTree {
    * @throws CardNotFoundError if the tree does not hold the card
    */
   public card(cardKey: string): Card {
-    return CardTree.cardView(this.cached(cardKey));
+    return this.cardView(this.cached(cardKey));
   }
 
   /**
@@ -286,7 +394,7 @@ export class CardTree {
    * @throws CardNotFoundError if the tree does not hold the card
    */
   public node(cardKey: string): CardNode {
-    return CardTree.nodeView(this.cached(cardKey));
+    return this.nodeView(this.cached(cardKey));
   }
 
   /**
@@ -305,9 +413,11 @@ export class CardTree {
    * @throws CardNotFoundError if the tree does not hold the card
    */
   public attachmentsOf(cardKey: string): CardAttachment[] {
-    return this.cached(cardKey).attachments.map((attachment) => ({
-      ...attachment,
-    }));
+    const card = this.cached(cardKey);
+    const path = this.pathOfStored(card);
+    return card.attachments.map((attachment) =>
+      CardTree.attachmentView(cardKey, path, attachment),
+    );
   }
 
   /**
@@ -319,14 +429,14 @@ export class CardTree {
     for (const cardKey of cardKeys) {
       const card = this.cache.getCard(cardKey);
       if (card) {
-        cards.push(CardTree.cardView(card));
+        cards.push(this.cardView(card));
       }
     }
     return cards;
   }
 
   // The stored card, or a CardNotFoundError.
-  private cached(cardKey: string): Card {
+  private cached(cardKey: string): StoredCard {
     const card = this.cache.getCard(cardKey);
     if (!card) {
       throw new CardNotFoundError(cardKey);
@@ -340,7 +450,7 @@ export class CardTree {
    * @throws CardNotFoundError if the tree does not hold the card
    */
   public attachmentFolderOf(cardKey: string): string {
-    return join(this.cached(cardKey).path, ATTACHMENT_FOLDER);
+    return join(this.pathOf(cardKey), ATTACHMENT_FOLDER);
   }
 
   /**
@@ -349,7 +459,8 @@ export class CardTree {
    * Does not put the card into the store: adding a created card is the
    * caller's notification step, which also runs the creation query and its
    * side effects, and neither belongs to the tree. The store is therefore not
-   * consulted either — a node being created is by definition not in it yet.
+   * consulted either — a node being created is by definition not in it yet,
+   * so its folder comes from the card and not from the edges.
    * @param card Card to create. Its 'path' is where the folder goes.
    */
   public async createNode(card: Card): Promise<void> {
@@ -357,7 +468,57 @@ export class CardTree {
     // A card folder without a content file cannot be loaded back, so the file
     // is always written, empty when the card has no content.
     await this.writeContentFile(card.path, card.content ?? '');
-    await this.persistMetadata(card);
+    await this.persistMetadata(card, card.path);
+  }
+
+  /**
+   * Puts a card the caller has created into the store.
+   * @param card Card to insert.
+   * @param location 'project', or the full name of the template it belongs to.
+   */
+  public insert(card: Card, location: string) {
+    this.cache.put({
+      key: card.key,
+      parent: card.parent || ROOT,
+      location,
+      metadata: card.metadata,
+      content: card.content,
+      attachments: CardTree.storedAttachments(card),
+    });
+  }
+
+  // The attachments of a card being inserted, as folder-relative names. The
+  // card's own path comes from the card rather than from the edges: it is not
+  // in the store yet.
+  private static storedAttachments(card: Card): StoredAttachment[] {
+    const attachmentFolder = join(card.path, ATTACHMENT_FOLDER);
+    return card.attachments.map((attachment) => {
+      const dir = attachment.path
+        ? relative(attachmentFolder, attachment.path)
+        : '';
+      if (dir.startsWith('..')) {
+        CardTree.logger.warn(
+          `Attachment '${attachment.fileName}' of card '${card.key}' is outside the card's attachment folder`,
+        );
+        return { fileName: attachment.fileName, dir: '' };
+      }
+      return { fileName: attachment.fileName, dir };
+    });
+  }
+
+  /**
+   * Moves a card to a new position in the tree.
+   *
+   * Only the moved card's own edge changes: its descendants' paths are derived
+   * from it, so nothing needs rewriting below it.
+   * @param cardKey Card to move.
+   * @param parent New parent card key, or 'root'.
+   * @param location Location the card now belongs to. Defaults to the card's
+   *   current one.
+   */
+  public relocate(cardKey: string, parent: string, location?: string) {
+    const card = this.cached(cardKey);
+    this.cache.relocate(cardKey, parent, location ?? card.location);
   }
 
   /**
@@ -366,10 +527,11 @@ export class CardTree {
    * @returns true if the store was updated; false if the card has no content.
    */
   public async writeContent(card: Card): Promise<boolean> {
-    if (!(await this.persistContent(card))) {
+    if (card.content == null) {
       return false;
     }
-    return this.cache.updateCardContent(card.key, card.content!);
+    await this.writeContentFile(this.pathOf(card.key), card.content);
+    return this.cache.updateCardContent(card.key, card.content);
   }
 
   /**
@@ -380,7 +542,10 @@ export class CardTree {
    * @throws if the metadata file cannot be written.
    */
   public async writeMetadata(card: Card): Promise<boolean> {
-    const sanitizedMetadata = await this.persistMetadata(card);
+    const sanitizedMetadata = await this.persistMetadata(
+      card,
+      this.pathOf(card.key),
+    );
     if (!sanitizedMetadata) {
       return false;
     }
@@ -392,26 +557,20 @@ export class CardTree {
     await writeFile(join(cardPath, CARD_CONTENT_FILE), content);
   }
 
-  // Writes the card's content file, if it has content. The store is left alone.
-  private async persistContent(card: Card): Promise<boolean> {
-    if (card.content == null) {
-      return false;
-    }
-    await this.writeContentFile(card.path, card.content);
-    return true;
-  }
-
   // Writes the card's metadata file and stamps 'lastUpdated'. The store is
   // left alone; the sanitized object is returned so the caller can cache
   // exactly what was written.
-  private async persistMetadata(card: Card): Promise<CardMetadata | undefined> {
+  private async persistMetadata(
+    card: Card,
+    cardPath: string,
+  ): Promise<CardMetadata | undefined> {
     if (card.metadata == null) {
       return undefined;
     }
     card.metadata.lastUpdated = new Date().toISOString();
 
     const sanitizedMetadata = CardTree.sanitizeMetadata(card);
-    await writeJsonFile(join(card.path, CARD_METADATA_FILE), sanitizedMetadata);
+    await writeJsonFile(join(cardPath, CARD_METADATA_FILE), sanitizedMetadata);
     return sanitizedMetadata;
   }
 
@@ -427,12 +586,13 @@ export class CardTree {
     if (!card) {
       return false;
     }
+    const path = this.pathOfStored(card);
     // The child list is a snapshot: removing a child replaces the parent's
     // list in the adjacency index rather than mutating the array walked here.
     for (const child of this.childrenOf(cardKey)) {
       await this.deleteSubtree(child);
     }
-    await deleteDir(card.path);
+    await deleteDir(path);
     return this.cache.deleteCard(cardKey);
   }
 
@@ -529,66 +689,24 @@ export class CardTree {
       return;
     }
 
-    await rename(
-      join(attachment.path, fileName),
-      join(attachment.path, newFileName),
+    const folder = join(
+      this.pathOfStored(card),
+      ATTACHMENT_FOLDER,
+      attachment.dir,
     );
+    await rename(join(folder, fileName), join(folder, newFileName));
 
-    // Updated in place rather than by replacing the array: concurrent renames
-    // of a card's attachments each touch their own element, and every holder
-    // of the listing shares that array with the store.
-    attachment.fileName = newFileName;
-    attachment.mimeType = mime.lookup(newFileName) || null;
-    this.cache.updateCardAttachments(cardKey, card.attachments);
+    this.cache.renameAttachment(cardKey, fileName, newFileName);
   }
 
   /**
-   * Rewrites the stored paths of a subtree after its folder has moved on disk,
-   * so cached paths point at where the files actually are.
-   *
-   * Lives in the tree because it edits stored structure: the caller cannot do
-   * this through a read without holding a store-internal object.
-   * @param cardKey Root of the subtree to rebase.
-   * @param oldBasePath Path prefix the subtree had before the move.
-   * @param newBasePath Path prefix it has now.
-   */
-  public rebaseSubtreePaths(
-    cardKey: string,
-    oldBasePath: string,
-    newBasePath: string,
-  ): void {
-    const card = this.cache.getCard(cardKey);
-    if (!card) {
-      return;
-    }
-
-    if (card.path.startsWith(oldBasePath)) {
-      this.cache.updateCard(cardKey, {
-        ...card,
-        path: card.path.replace(oldBasePath, newBasePath),
-        attachments: card.attachments.map((attachment) =>
-          attachment.path.startsWith(oldBasePath)
-            ? {
-                ...attachment,
-                path: attachment.path.replace(oldBasePath, newBasePath),
-              }
-            : attachment,
-        ),
-      });
-    }
-
-    for (const childKey of this.childrenOf(cardKey)) {
-      this.rebaseSubtreePaths(childKey, oldBasePath, newBasePath);
-    }
-  }
-
-  /**
-   * Loads the cards under a filesystem path into the tree.
-   * @param path Folder to load cards from, recursively.
+   * Loads the cards of a location into the tree.
+   * @param path Folder the location's cards are rooted at.
+   * @param location 'project', or a full template name.
    * @throws DuplicateCardKeyError if a loaded card key is already in the tree
    */
-  public async load(path: string): Promise<void> {
-    await this.cache.populateFromPath(path);
+  public async load(path: string, location: string): Promise<void> {
+    await this.cache.populateFromPath(path, location);
   }
 
   /**
@@ -596,6 +714,15 @@ export class CardTree {
    */
   public clear() {
     this.cache.clear();
+  }
+
+  /**
+   * Registers the folder a location's cards are rooted at.
+   * @param location 'project', or a full template name.
+   * @param rootPath Folder the location's cards live in.
+   */
+  public registerRoot(location: string, rootPath: string) {
+    this.cache.registerRoot(location, rootPath);
   }
 
   /**
@@ -626,7 +753,7 @@ export class CardTree {
     cardsFolder: string,
   ): Promise<void> {
     this.evictLocation(location);
-    await this.load(cardsFolder);
+    await this.load(cardsFolder, location);
   }
 
   // Removes non-metadata fields that should not be persisted.

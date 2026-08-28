@@ -84,8 +84,12 @@ export class CalculationEngine {
    * @returns The logic program content for the card
    */
   public async cardLogicProgram(cardKey: string): Promise<string> {
-    const card = this.project.findCard(cardKey);
-    return createCardFacts(card, this.project);
+    const card = this.project.cardNode(cardKey);
+    return createCardFacts(
+      card,
+      this.project,
+      this.project.cardFactContext(cardKey),
+    );
   }
 
   /**
@@ -133,7 +137,11 @@ export class CalculationEngine {
   }
 
   private async setCardContent(card: CardNode) {
-    const cardContent = await createCardFacts(card, this.project);
+    const cardContent = await createCardFacts(
+      card,
+      this.project,
+      this.project.cardFactContext(card.key),
+    );
     this.clingo.setProgram(card.key, cardContent, [ALL_CATEGORY]);
   }
 
@@ -226,10 +234,8 @@ export class CalculationEngine {
     for (const template of templates) {
       const tem = template.show();
       const templateContent = createTemplateFacts(tem);
-      const cards = this.getCards(tem.name);
-      for (const card of cards) {
-        const cardContent = await createCardFacts(card, this.project);
-        this.clingo.setProgram(card.key, cardContent, [ALL_CATEGORY]);
+      for (const card of this.getCards(tem.name)) {
+        await this.setCardContent(card);
       }
       this.clingo.setProgram(tem.name, templateContent, [ALL_CATEGORY]);
     }
@@ -374,7 +380,7 @@ export class CalculationEngine {
    * When card changes, update the card specific calculations.
    * @param changedCard Card that was changed.
    */
-  public async handleCardChanged(changedCard: Card) {
+  public async handleCardChanged(changedCard: CardNode) {
     await this.setCardContent(changedCard);
   }
 

@@ -26,7 +26,6 @@ import type { CardMetadata } from '../src/interfaces/project-interfaces.js';
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-card-tree-tests');
 const cardRoot = join(testDir, 'cardRoot');
-const prefix = 'test';
 
 const CARD_KEY = 'test_1';
 const ATTACHMENT = 'diagram.png';
@@ -67,8 +66,8 @@ describe('CardTree.renameAttachment', () => {
   beforeEach(async () => {
     mkdirSync(cardRoot, { recursive: true });
     cardPath = createCard(CARD_KEY, [ATTACHMENT]);
-    tree = new CardTree(prefix);
-    await tree.load(cardRoot);
+    tree = new CardTree(cardRoot);
+    await tree.load(cardRoot, 'project');
   });
 
   afterEach(() => {
@@ -130,8 +129,8 @@ describe('CardTree read boundary', () => {
   beforeEach(async () => {
     mkdirSync(cardRoot, { recursive: true });
     createCard(CARD_KEY, [ATTACHMENT]);
-    tree = new CardTree(prefix);
-    await tree.load(cardRoot);
+    tree = new CardTree(cardRoot);
+    await tree.load(cardRoot, 'project');
   });
 
   afterEach(() => {

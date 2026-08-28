@@ -28,7 +28,6 @@ import {
   sortItems,
 } from '../utils/lexorank.js';
 import {
-  cardPathParts,
   isModuleCard,
   isModulePath,
   isTemplateCard,
@@ -38,6 +37,15 @@ import { ROOT } from '../utils/constants.js';
 
 export class Move {
   constructor(private project: Project) {}
+
+  // The template a template card belongs to.
+  private templateOf(cardKey: string): string {
+    const location = this.project.locationOfCard(cardKey);
+    if (!location || location === 'project') {
+      throw new Error(`Card '${cardKey}' is not part of a template`);
+    }
+    return location;
+  }
 
   // Returns children of a parent card or root cards
   private getSiblings(card: Card): Card[] {
@@ -49,12 +57,8 @@ export class Move {
         if (isModuleCard(card)) {
           throw new Error(`Cannot rank module cards`);
         }
-        const { template } = cardPathParts(
-          this.project.projectPrefix,
-          card.path,
-        );
         return this.project
-          .templateCards(template)
+          .templateCards(this.templateOf(card.key))
           .filter((item) => item.parent === ROOT || !item.parent);
       }
     }
@@ -147,11 +151,7 @@ export class Move {
     if (movingToRoot) {
       if (destination === ROOT) {
         if (isTemplateCard(sourceCard)) {
-          const { template } = cardPathParts(
-            this.project.projectPrefix,
-            sourceCard.path,
-          );
-          targetTemplateName = template;
+          targetTemplateName = this.templateOf(sourceCard.key);
         } else {
           movingToProjectRoot = true;
         }
@@ -167,14 +167,11 @@ export class Move {
       : undefined;
 
     // Prevent moving card to inside its descendants
-    if (destinationCard) {
-      const { parents } = cardPathParts(
-        this.project.projectPrefix,
-        destinationCard.path,
-      );
-      if (parents.includes(source)) {
-        throw new Error(`Card cannot be moved to inside itself`);
-      }
+    if (
+      destinationCard &&
+      this.project.ancestorsOf(destinationCard.key).includes(source)
+    ) {
+      throw new Error(`Card cannot be moved to inside itself`);
     }
 
     // Imported templates cannot be modified.
@@ -261,48 +258,25 @@ export class Move {
         ? getRankAfter(lastChild.metadata.rank)
         : FIRST_RANK;
 
-    // Save old path before moving (needed to update descendant paths)
-    const oldPath = sourceCard.path;
-
-    // First do the file operations, then update metadata
+    // First do the file operations, then the tree position
     await copyDir(sourceCard.path, destinationPath);
     await deleteDir(sourceCard.path);
 
-    // Update card with new path, parent, and rank
-    sourceCard.path = destinationPath!;
-    sourceCard.parent = movingToRoot ? ROOT : destination;
-    if (sourceCard.metadata) {
-      sourceCard.metadata.rank = rank;
-    }
+    // One edge update is the whole structure change: the tree derives paths
+    // from its edges, so every descendant and every attachment of the moved
+    // card follows it without being rewritten.
+    this.project.relocateCard(
+      source,
+      movingToRoot ? ROOT : destination,
+      targetTemplateName ?? undefined,
+    );
 
-    // Update attachment paths for the moved card
-    if (sourceCard.attachments && sourceCard.attachments.length > 0) {
-      for (const attachment of sourceCard.attachments) {
-        if (attachment.path.startsWith(oldPath)) {
-          attachment.path = attachment.path.replace(oldPath, destinationPath);
-        }
-      }
-    }
+    // Rank the card in its new place. Persists the metadata to the card's new
+    // folder and notifies the calculation engine about the change.
+    await this.project.updateCardMetadataKey(source, 'rank', rank);
 
-    // Handle cache update and persistence
-    await this.project.updateCard(sourceCard);
-
-    // Update all descendant card paths in the cache to reflect the new filesystem location.
-    // This is critical: files have been moved on disk, but children's cached paths
-    // still point to the old location. Without this, operations on children
-    // (like edit or delete) would target non-existent paths, leaving orphaned files.
-    if (sourceCard.children && sourceCard.children.length > 0) {
-      for (const childKey of sourceCard.children) {
-        this.project.updateDescendantPathsAfterMove(
-          childKey,
-          oldPath,
-          destinationPath,
-        );
-      }
-    }
-
-    // Notify the project about the move (cache and CE tree rebuild)
-    await this.project.handleCardMoved(sourceCard);
+    // Notify the project about the move (calculation engine tree rebuild)
+    await this.project.handleCardMoved(this.project.cardNode(source));
   }
 
   /**

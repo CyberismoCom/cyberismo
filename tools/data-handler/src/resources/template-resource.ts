@@ -104,7 +104,13 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
   public async rename(newIdentifier: string) {
     const oldName = resourceNameToString(this.resourceName);
     await super.rename(newIdentifier);
-    await this.project.reloadCardsAtLocation(oldName, this.cardsFolder);
+    // The cards move with the template: out of the old name, in under the new
+    // one, from the folder the rename moved them to.
+    this.project.removeCardsAtLocation(oldName);
+    await this.project.reloadCardsAtLocation(
+      resourceNameToString(this.resourceName),
+      this.cardsFolder,
+    );
   }
 
   /**
@@ -162,6 +168,14 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
     if (this.cardContainerName !== resourceNameToString(this.resourceName)) {
       this.cardContainer = this.createCardContainer();
     }
+
+    // The template's cards are rooted at its 'c' folder. Registered on every
+    // write, so a card created into a template that has just been created -
+    // or just renamed - has somewhere to be derived from.
+    this.project.registerTemplateCardsFolder(
+      resourceNameToString(this.resourceName),
+      this.cardsFolder,
+    );
 
     // Create folder for cards and put proper content schema file there
     const schemaContentFile = join(this.cardsFolder, '.schema');

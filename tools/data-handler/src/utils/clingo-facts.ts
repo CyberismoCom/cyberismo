@@ -10,8 +10,6 @@
   details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-import { sep } from 'node:path';
-
 import {
   type AllowedClingoType,
   ClingoFactBuilder,
@@ -35,12 +33,30 @@ import type {
   Workflow,
 } from '../interfaces/resource-interfaces.js';
 import { ClingoProgramBuilder } from './clingo-program-builder.js';
-import { isPredefinedField } from './constants.js';
-import { isTemplateCard } from '../utils/card-utils.js';
+import { isPredefinedField, ROOT } from './constants.js';
 import { getChildLogger } from './log-utils.js';
 import type { Project } from '../containers/project.js';
 
 const logger = getChildLogger({ module: 'clingo-facts' });
+
+/**
+ * How a card container is projected into facts.
+ *
+ * emitsCardFact - whether the container's cards get the card(Key) fact, which
+ *   is what every query predicated on card(K) sees. Only project cards do.
+ * name - what the container's root cards name as their parent. A template's
+ *   root cards name the template; a project's root cards name nothing.
+ */
+export interface CardFactContext {
+  emitsCardFact: boolean;
+  name: string;
+}
+
+// The project's own cards.
+export const PROJECT_CARD_FACTS: CardFactContext = {
+  emitsCardFact: true,
+  name: 'project',
+};
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Facts {
@@ -176,53 +192,22 @@ export const createWorkflowFacts = (workflow: Workflow) => {
  * @param project Project information
  * @returns clingo facts as a string
  */
-export const createCardFacts = async (card: CardNode, project: Project) => {
-  // Small helper to deduce parent path
-  // todo: Should use card-utils
-  function parentPath(cardPath: string) {
-    const pathParts = cardPath.split(sep);
-    if (pathParts.at(pathParts.length - 2) === 'cardRoot') {
-      return '';
-    } else {
-      return pathParts.at(pathParts.length - 3);
-    }
-  }
-
-  // Helper to deduce template parent path.
-  // todo: Should use card-utils
-  function parentPathFromTemplate(card: CardNode) {
-    const cardPath = card.path;
-    const pathParts = cardPath.split(sep);
-    if (pathParts.length <= 6) {
-      // template or module template paths should have a minimum of seven parts.
-      return '';
-    }
-    if (isTemplateCard(card)) {
-      // Parent is a card
-      if (pathParts.at(pathParts.length - 4) === 'c') {
-        return pathParts.at(pathParts.length - 3);
-      }
-      // Parent is a template
-      const prefix =
-        pathParts.at(pathParts.length - 5) === 'local'
-          ? project.projectPrefix
-          : pathParts.at(pathParts.length - 5);
-      const resourceType = pathParts.at(pathParts.length - 4);
-      const templateName = pathParts.at(pathParts.length - 3);
-      return `"${prefix}/${resourceType}/${templateName}"`;
-    }
-  }
-
-  // Use card.parent if available, otherwise fall back to path-based calculation
+export const createCardFacts = async (
+  card: CardNode,
+  project: Project,
+  container: CardFactContext = PROJECT_CARD_FACTS,
+) => {
+  // A card names its parent card, or — when it is a root card of a template —
+  // the template itself. Project root cards name nothing.
   const parentsPath =
-    card.parent && card.parent !== 'root'
+    card.parent && card.parent !== ROOT
       ? card.parent
-      : isTemplateCard(card)
-        ? parentPathFromTemplate(card)
-        : parentPath(card.path);
+      : container.emitsCardFact
+        ? ''
+        : `"${container.name}"`;
 
   const builder = new ClingoProgramBuilder().addComment(card.key);
-  if (!isTemplateCard(card)) {
+  if (container.emitsCardFact) {
     builder.addCustomFact('card', (b) => b.addLiteralArgument(card.key));
   }
 
@@ -356,7 +341,7 @@ export const createCardFacts = async (card: CardNode, project: Project) => {
     }
   }
 
-  if (parentsPath !== undefined && parentsPath !== '') {
+  if (parentsPath !== '') {
     builder.addCustomFact(Facts.Card.PARENT, (b) =>
       b.addLiteralArguments(card.key, parentsPath),
     );
@@ -364,7 +349,10 @@ export const createCardFacts = async (card: CardNode, project: Project) => {
   builder.addCustomFact(Facts.Common.FIELD, (b) =>
     b
       .addLiteralArgument(card.key)
-      .addArguments('container', isTemplateCard(card) ? 'template' : 'project'),
+      .addArguments(
+        'container',
+        container.emitsCardFact ? 'project' : 'template',
+      ),
   );
 
   return builder.buildAll();

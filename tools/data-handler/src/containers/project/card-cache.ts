@@ -13,43 +13,71 @@
 
 // node
 import type { Dirent } from 'node:fs';
-import { basename, join } from 'node:path';
+import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { readdir, readFile } from 'node:fs/promises';
 
 import type {
-  Card,
-  CardAttachment,
   CardMetadata,
   MetadataContent,
 } from '../../interfaces/project-interfaces.js';
 import { CardNameRegEx } from '../../interfaces/project-interfaces.js';
-import { cardPathParts, parentCard } from '../../utils/card-utils.js';
 import { DuplicateCardKeyError } from '../../exceptions/index.js';
 import { getChildLogger } from '../../utils/log-utils.js';
 import { pathExists } from '../../utils/file-utils.js';
 
-import mime from 'mime-types';
+import { ROOT } from '../../utils/constants.js';
 
 /**
- * Extended card interface that includes location metadata.
- * For project cards: location = 'project'
- * For template cards: location = template name (e.g., 'decision/templates/decision')
+ * An attachment as the store holds it: the file's name, and the folder it sits
+ * in relative to its card's attachment folder (empty for the common case).
+ *
+ * No path: an attachment's path is its card's path plus 'a', and the card's
+ * path is derived from the tree's edges. Storing it made a second source of
+ * truth that every folder move had to remember to rewrite.
  */
-interface CachedCard extends Card {
-  location: string;
+export interface StoredAttachment {
+  fileName: string;
+  dir: string;
 }
+
+/**
+ * A card as the store holds it: identity, tree position, and the card's own
+ * data.
+ *
+ * Neither the card's path nor its attachments' paths are stored — both are
+ * derived from the edges (see CardTree.pathOf). 'location' is the project or
+ * the full name of the template the card belongs to; it is what tells the
+ * derivation which folder the card's tree is rooted at.
+ */
+export interface StoredCard {
+  key: string;
+  parent: string;
+  location: string;
+  children: string[];
+  metadata?: CardMetadata;
+  content?: string;
+  attachments: StoredAttachment[];
+}
+
+/** A card being stored: its child list is the store's to maintain. */
+export type StoredCardInput = Omit<StoredCard, 'children'>;
 
 const cardMetadataFile = 'index.json';
 const cardContentFile = 'index.adoc';
+const attachmentFolder = 'a';
 
 // The location of cards that are not in a template.
 const PROJECT_LOCATION = 'project';
 
 /**
+ * The card store: the map of cards, the indexes over it, and the loader that
+ * builds it from disk.
  *
+ * Not a cache — nothing invalidates it on a timer and nothing falls back to
+ * disk on a miss. It is the project's card state, and CardTree is its owner.
  */
 export class CardCache {
-  private cardCache: Map<string, CachedCard> = new Map();
+  private cardCache: Map<string, StoredCard> = new Map();
   // Adjacency index: parent card key (or 'root') -> child card keys. Only
   // parents that have at least one child have an entry, and an entry may be
   // keyed by a card that is not (yet) in the cache, so a card inserted after
@@ -68,8 +96,16 @@ export class CardCache {
   // card entering the cache for the first time - can append to its location
   // without inspecting the whole set.
   private locationHighWater: Map<string, number> = new Map();
+  // The folder each location's cards are rooted at, registered when the
+  // location is created or loaded. This is what makes card paths derivable: a
+  // root card's path is its location's root plus its key, and every other
+  // card's path is its parent's path plus 'c' plus its key.
+  //
+  // Kept when a location's cards are evicted: a reload, or a card created
+  // straight into an empty template, still needs to know where the location is
+  // rooted.
+  private locationRoots: Map<string, string> = new Map();
   private cachePopulated: boolean = false;
-  constructor(private prefix: string) {}
 
   // Installs a new child list for a parent, in the index and on the parent
   // card itself (a cached card's 'children' is the very array the index holds,
@@ -181,7 +217,7 @@ export class CardCache {
 
   // The only write path into the card map: stores a card and keeps the
   // adjacency and location indexes in step with its 'parent' and 'location'.
-  private store(cardKey: string, card: CachedCard) {
+  private store(cardKey: string, card: StoredCard) {
     const previous = this.cardCache.get(cardKey);
     if (!previous) {
       this.insertionOrder.set(cardKey, this.nextInsertion++);
@@ -213,11 +249,6 @@ export class CardCache {
     return true;
   }
 
-  // Determines the location from a given path: 'project' for project cards, template name for template cards
-  private determineLocationFromPath(path: string): string {
-    return cardPathParts(this.prefix, path).template || PROJECT_LOCATION;
-  }
-
   // Gets all directory entries recursively.
   private async entries(path: string): Promise<Dirent[]> {
     try {
@@ -228,36 +259,32 @@ export class CardCache {
     }
   }
 
-  // Gets attachments from disk.
+  // Gets attachments from disk, as file names relative to the card's own
+  // attachment folder.
   private async fetchAttachments(
     currentPath: string,
-  ): Promise<CardAttachment[]> {
-    const attachmentPath = join(currentPath, 'a');
+  ): Promise<StoredAttachment[]> {
+    const attachmentPath = join(currentPath, attachmentFolder);
     if (!pathExists(attachmentPath)) {
       CardCache.logger.info(`No attachment path for ${currentPath}`);
       return [];
     }
 
     const fileAttachments = await this.entries(attachmentPath);
-    const attachments: CardAttachment[] = [];
+    const attachments: StoredAttachment[] = [];
     const seenAttachments = new Set<string>();
 
     fileAttachments.forEach((attachment) => {
-      const cardKey = basename(currentPath);
-      const attachmentKey = `${cardKey}:${attachment.parentPath}:${attachment.name}`;
+      const dir = relative(attachmentPath, attachment.parentPath);
+      const attachmentKey = `${dir}:${attachment.name}`;
 
-      // Skip duplicate attachments based on card, path, and filename
+      // Skip duplicate attachments based on path and filename
       if (!seenAttachments.has(attachmentKey)) {
         seenAttachments.add(attachmentKey);
-        attachments.push({
-          card: cardKey,
-          fileName: attachment.name,
-          path: attachment.parentPath,
-          mimeType: mime.lookup(attachment.name) || null,
-        });
+        attachments.push({ fileName: attachment.name, dir });
       } else {
         CardCache.logger.warn(
-          `Duplicate attachment found during cache population: ${attachment.name} for card ${cardKey}`,
+          `Duplicate attachment found during cache population: ${attachment.name} for card ${basename(currentPath)}`,
         );
       }
     });
@@ -266,9 +293,7 @@ export class CardCache {
   }
 
   // Gets content from disk.
-  private async fetchContent(
-    currentPath: string,
-  ): Promise<string | CardAttachment[] | Card[]> {
+  private async fetchContent(currentPath: string): Promise<string> {
     return readFile(join(currentPath, cardContentFile), {
       encoding: 'utf-8',
     });
@@ -322,9 +347,17 @@ export class CardCache {
     ) as MetadataContent;
   }
 
-  // Builds the card cache from filesystem.
-  private async fetchFileEntries(path: string) {
-    const allEntries = await this.entries(path);
+  // Reads every card under a location's root folder.
+  //
+  // A card's parent comes from where its folder sits, not from a parser over
+  // the path string: a folder directly under the root is a root card, and
+  // anything else sits in its parent's 'c' folder.
+  private async fetchFileEntries(
+    rootPath: string,
+    location: string,
+  ): Promise<StoredCardInput[]> {
+    const root = resolve(rootPath);
+    const allEntries = await this.entries(rootPath);
     const cardEntries = allEntries.filter(
       (entry) => entry.isDirectory() && CardNameRegEx.test(entry.name),
     );
@@ -332,7 +365,9 @@ export class CardCache {
     // Process all card entries in parallel
     const cardPromises = cardEntries.map(async (entry) => {
       const currentPath = join(entry.parentPath, entry.name);
-      const location = this.determineLocationFromPath(currentPath);
+      const parentFolder = resolve(entry.parentPath);
+      const parent =
+        parentFolder === root ? ROOT : basename(dirname(parentFolder));
 
       const [cardContent, cardMetadata, cardAttachments] = await Promise.all([
         this.fetchContent(currentPath),
@@ -360,23 +395,20 @@ export class CardCache {
 
       return {
         key: entry.name,
-        path: currentPath,
-        children: [],
-        attachments: Array.isArray(cardAttachments) ? cardAttachments : [],
-        content: typeof cardContent === 'string' ? cardContent : '',
+        attachments: cardAttachments,
+        content: cardContent,
         metadata: CardCache.normalizedMetadata(metadata),
-        parent: parentCard(currentPath),
-        location: location,
+        parent,
+        location,
       };
     });
 
     // Wait for all cards to be processed and add them to the cards array
-    const processedCards = await Promise.all(cardPromises);
-    return processedCards;
+    return Promise.all(cardPromises);
   }
 
   // Populates the cache from the given array of cards
-  private populateFromCards(cards: CachedCard[]) {
+  private populateFromCards(cards: StoredCardInput[]) {
     // Card keys must be unique across the whole cache, not just within this
     // batch. The project cards and each template's cards arrive as separate
     // batches merged into one map, so checking only the incoming batch let a
@@ -398,7 +430,7 @@ export class CardCache {
     }
 
     for (const card of cards) {
-      this.store(card.key, card);
+      this.put(card);
     }
 
     this.cachePopulated = true;
@@ -426,31 +458,19 @@ export class CardCache {
       );
       return false;
     }
-    const attachmentFolder = join(card.path, 'a');
-    const attachment: CardAttachment = {
-      card: cardKey,
-      path: attachmentFolder,
-      fileName: fileName,
-      mimeType: mime.lookup(fileName!) || null,
-    };
 
-    // Check for duplicate attachments based on card, path, and filename
+    // Check for duplicate attachments based on folder and filename
     const isDuplicate = card.attachments.some(
-      (existingAttachment) =>
-        existingAttachment.card === attachment.card &&
-        existingAttachment.path === attachment.path &&
-        existingAttachment.fileName === attachment.fileName,
+      (existing) => existing.dir === '' && existing.fileName === fileName,
     );
-
     if (isDuplicate) {
       CardCache.logger.warn(
-        `Duplicate attachment prevented: ${attachment.fileName} for card ${cardKey}`,
+        `Duplicate attachment prevented: ${fileName} for card ${cardKey}`,
       );
       return false;
     }
 
-    card.attachments.push(attachment);
-    this.store(cardKey, card);
+    card.attachments = [...card.attachments, { fileName, dir: '' }];
     return true;
   }
 
@@ -466,6 +486,7 @@ export class CardCache {
     this.nextInsertion = 0;
     this.locationIndex.clear();
     this.locationHighWater.clear();
+    this.locationRoots.clear();
   }
 
   /**
@@ -484,17 +505,44 @@ export class CardCache {
    * @returns true, if attachment was removed from the cache; false otherwise
    */
   public deleteAttachment(cardKey: string, filename: string): boolean {
-    const cachedCard = this.cardCache.get(cardKey);
-    if (cachedCard && cachedCard.attachments) {
-      const attachmentExists = cachedCard.attachments.find(
-        (item) => item.fileName === filename,
-      );
-      cachedCard.attachments = cachedCard.attachments.filter(
-        (attachment) => attachment.fileName !== filename,
-      );
-      return attachmentExists ? true : false;
+    const card = this.cardCache.get(cardKey);
+    if (!card) {
+      return false;
     }
-    return false;
+    const remaining = card.attachments.filter(
+      (attachment) => attachment.fileName !== filename,
+    );
+    const removed = remaining.length !== card.attachments.length;
+    card.attachments = remaining;
+    return removed;
+  }
+
+  /**
+   * Renames an attachment of a card in the cache.
+   * @param cardKey card key of the card holding the attachment
+   * @param fileName current attachment file name
+   * @param newFileName new attachment file name
+   * @returns true, if the attachment was renamed; false otherwise
+   */
+  public renameAttachment(
+    cardKey: string,
+    fileName: string,
+    newFileName: string,
+  ): boolean {
+    const card = this.cardCache.get(cardKey);
+    const attachment = card?.attachments.find(
+      (item) => item.fileName === fileName,
+    );
+    if (!card || !attachment) {
+      return false;
+    }
+    // A new array, not a mutation in place: attachment listings handed out to
+    // callers are copies, but the array itself must not be shared with a
+    // reader that is iterating it.
+    card.attachments = card.attachments.map((item) =>
+      item === attachment ? { ...item, fileName: newFileName } : item,
+    );
+    return true;
   }
 
   /**
@@ -527,7 +575,7 @@ export class CardCache {
    *   work, and the scan keeps the cards in global cache order - which callers
    *   that concatenate them after the project cards depend on.
    */
-  public getAllTemplateCards(): CachedCard[] {
+  public getAllTemplateCards(): StoredCard[] {
     return Array.from(this.cardCache.values()).filter(
       (item) => item.location !== PROJECT_LOCATION,
     );
@@ -538,8 +586,8 @@ export class CardCache {
    * @param location 'project', or a full template name.
    * @returns the cards in that location, in cache insertion order.
    */
-  public cardsAtLocation(location: string): CachedCard[] {
-    const cards: CachedCard[] = [];
+  public cardsAtLocation(location: string): StoredCard[] {
+    const cards: StoredCard[] = [];
     for (const cardKey of this.locationIndex.get(location) ?? []) {
       const card = this.cardCache.get(cardKey);
       if (card) {
@@ -572,7 +620,7 @@ export class CardCache {
    * @param cardKey card key to find
    * @returns card from the cache; if not found then returns undefined.
    */
-  public getCard(cardKey: string): CachedCard | undefined {
+  public getCard(cardKey: string): StoredCard | undefined {
     return this.cardCache.get(cardKey);
   }
 
@@ -580,22 +628,8 @@ export class CardCache {
    * Returns all the cards in the cache.
    * @returns all the cards in the cache
    */
-  public getCards(): CachedCard[] {
+  public getCards(): StoredCard[] {
     return Array.from(this.cardCache.values());
-  }
-
-  /**
-   * Returns all the attachments in the cache for a given card key.
-   * @param cardKey Card key for which to fetch all the attachments for.
-   * @returns all the attachments in the cache for a given card key.
-   */
-  public getCardAttachments(cardKey: string): CardAttachment[] | undefined {
-    const card = this.cardCache.get(cardKey);
-    if (!card) {
-      CardCache.logger.warn(`Card '${cardKey}' not found`);
-      return undefined;
-    }
-    return card.attachments;
   }
 
   /**
@@ -605,24 +639,6 @@ export class CardCache {
    */
   public hasCard(cardKey: string): boolean {
     return this.cardCache.has(cardKey);
-  }
-
-  /**
-   * Checks if card in cache has attachment.
-   * @param cardKey card key to check
-   * @param filename attachment file name to find
-   * @returns true, if card in cache has attachment; false otherwise.
-   */
-  public hasCardAttachment(cardKey: string, filename: string): boolean {
-    const card = this.cardCache.get(cardKey);
-    if (!card) {
-      CardCache.logger.warn(`Card '${cardKey}' not found`);
-      return false;
-    }
-    const attachment = card.attachments.find(
-      (item) => item.fileName === filename,
-    );
-    return attachment ? true : false;
   }
 
   /**
@@ -643,69 +659,91 @@ export class CardCache {
   }
 
   /**
-   * Populates the cache from a given path
-   * @param path File system path where the cache should be built from.
+   * The folder a location's cards are rooted at.
+   * @param location 'project', or a full template name.
+   * @returns the location's root folder, or undefined if it is not loaded.
    */
-  public async populateFromPath(path: string) {
-    const cards = await this.fetchFileEntries(path);
+  public rootOf(location: string): string | undefined {
+    return this.locationRoots.get(location);
+  }
+
+  /**
+   * Registers the folder a location's cards are rooted at.
+   * @param location 'project', or a full template name.
+   * @param rootPath Folder the location's cards live in.
+   */
+  public registerRoot(location: string, rootPath: string) {
+    this.locationRoots.set(location, resolve(rootPath));
+  }
+
+  /**
+   * The location a filesystem path belongs to.
+   * @param path Path of a card, or of a folder holding cards.
+   * @returns the location whose root folder contains the path.
+   * @throws if the path is not inside any loaded location
+   */
+  public locationForPath(path: string): string {
+    const target = resolve(path);
+    let match: { location: string; length: number } | undefined;
+    for (const [location, root] of this.locationRoots) {
+      if (target !== root && !target.startsWith(root + sep)) {
+        continue;
+      }
+      if (!match || root.length > match.length) {
+        match = { location, length: root.length };
+      }
+    }
+    if (!match) {
+      throw new Error(`Path '${path}' is not part of any loaded card location`);
+    }
+    return match.location;
+  }
+
+  /**
+   * Loads a location's cards from the given folder.
+   * @param rootPath Folder the location's cards live in.
+   * @param location 'project', or a full template name.
+   * @throws DuplicateCardKeyError if a loaded key is already in the cache
+   */
+  public async populateFromPath(rootPath: string, location: string) {
+    this.registerRoot(location, rootPath);
+    const cards = await this.fetchFileEntries(rootPath, location);
     this.populateFromCards(cards);
   }
 
   /**
-   * Updates, or adds a card to cache.
-   * @param cardKey Card key
-   * @param cardData Updated data.
+   * Stores a card, inserting it if the cache does not hold it yet.
+   * @param card Card to store.
    */
-  public updateCard(cardKey: string, cardData: Card) {
-    const card = this.cardCache.get(cardKey);
-    if (!card) {
-      const targetLocation = this.determineLocationFromPath(cardData.path);
-      const extendedCard: CachedCard = {
-        ...cardData,
-        metadata: CardCache.normalizedMetadata(cardData.metadata),
-        location: targetLocation,
-      };
-      this.store(cardKey, extendedCard);
-      return;
-    }
-    if (!card?.path) {
-      CardCache.logger.info(`Missing path for a card '${cardKey}'`);
-      throw new Error(`No path in card!`);
-    }
-    if (!cardData?.path) {
-      CardCache.logger.info(`Missing path for a card data '${cardKey}'`);
-      throw new Error(`No path in card data!`);
-    }
-    const targetLocation = this.determineLocationFromPath(cardData.path);
-
-    const extendedCard: CachedCard = {
-      ...card, // Existing card data
-      ...cardData, // Override with new data
-      location: targetLocation,
-      // Explicitly preserve certain data if it exists in the cached card but not in cardData
-      metadata: CardCache.normalizedMetadata(
-        cardData.metadata ?? card.metadata,
-      ),
-      content: cardData.content ?? card.content,
-      attachments: cardData.attachments ?? card.attachments,
-    };
-    this.store(cardKey, extendedCard);
+  public put(card: StoredCardInput) {
+    this.store(card.key, {
+      ...card,
+      metadata: CardCache.normalizedMetadata(card.metadata),
+      children: [],
+    });
   }
 
   /**
-   * Updates card's attachments.
-   * @param cardKey card key of a card to update
-   * @param attachments Attachments to use in the card.
-   * @returns true, if update succeeded; false otherwise.
+   * Moves a card to a new position in the tree.
+   *
+   * Descendants need no update: their paths are derived from this card's, and
+   * their location follows it here.
+   * @param cardKey Card to move.
+   * @param parent New parent card key, or 'root'.
+   * @param location Location the card now belongs to.
+   * @returns true, if the card was in the cache; false otherwise.
    */
-  public updateCardAttachments(cardKey: string, attachments: CardAttachment[]) {
+  public relocate(cardKey: string, parent: string, location: string): boolean {
     const card = this.cardCache.get(cardKey);
     if (!card) {
-      CardCache.logger.warn(`Card '${cardKey}' not found`);
       return false;
     }
-    card.attachments = attachments;
-    this.store(cardKey, card);
+    this.store(cardKey, { ...card, parent, location });
+    if (card.location !== location) {
+      for (const childKey of this.childrenOf(cardKey)) {
+        this.relocate(childKey, cardKey, location);
+      }
+    }
     return true;
   }
 
@@ -722,7 +760,6 @@ export class CardCache {
       return false;
     }
     card.content = content;
-    this.store(cardKey, card);
     return true;
   }
 
@@ -739,7 +776,6 @@ export class CardCache {
       return false;
     }
     card.metadata = CardCache.normalizedMetadata(metadata);
-    this.store(cardKey, card);
     return true;
   }
 }

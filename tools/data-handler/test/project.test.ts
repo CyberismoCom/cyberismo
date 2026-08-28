@@ -15,7 +15,6 @@ import { CardLocation } from '../src/interfaces/project-interfaces.js';
 import {
   buildCardHierarchy,
   flattenCardArray,
-  cardPathParts,
   isTemplateCard,
 } from '../src/utils/card-utils.js';
 import { Project } from '../src/containers/project.js';
@@ -554,72 +553,61 @@ describe('project', () => {
     const modules = project.resources.moduleNames();
     expect(modules.length).toBe(0);
   });
-  it('parse card path - project root card', async () => {
+  it('card position - project root card', async () => {
     const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     const cardId = 'decision_5';
     const card = project.findCard(cardId);
-    const { template, cardKey, prefix, parents } = cardPathParts(
-      project.projectPrefix,
-      card.path,
-    );
-    expect(prefix).toBe('decision');
-    expect(cardKey).toBe(cardId);
-    expect(template).toBe(''); // not a template card
-    expect(parents.length).toBe(0); // no parents; root card
+    expect(card.key).toBe(cardId);
+    expect(card.parent).toBe('root'); // root card
+    expect(project.ancestorsOf(cardId)).toHaveLength(0);
+    expect(project.locationOfCard(cardId)).toBe('project'); // not a template card
+    expect(card.path).toBe(join(project.paths.cardRootFolder, cardId));
   });
-  it('parse card path - project non-root card', async () => {
+  it('card position - project non-root card', async () => {
     const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     const cardId = 'decision_6';
     const card = project.findCard(cardId);
-    const { template, cardKey, prefix, parents } = cardPathParts(
-      project.projectPrefix,
-      card.path,
+    expect(card.key).toBe(cardId);
+    expect(project.locationOfCard(cardId)).toBe('project'); // not a template card
+    expect(project.ancestorsOf(cardId)).toHaveLength(1);
+    expect(card.path).toBe(
+      join(project.paths.cardRootFolder, card.parent!, 'c', cardId),
     );
-    expect(prefix).toBe('decision');
-    expect(cardKey).toBe(cardId);
-    expect(template).toBe(''); // not a template card
-    expect(parents.length).toBe(1);
   });
-  it('parse card path - template root card', async () => {
+  it('card position - template root card', async () => {
     const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     const cardId = 'decision_1';
     const card = project.findCard(cardId);
-    const { template, cardKey, prefix, parents } = cardPathParts(
-      project.projectPrefix,
-      card.path,
-    );
-    expect(prefix).toBe('decision');
-    expect(cardKey).toBe(cardId);
-    expect(template).toBe('decision/templates/decision');
-    expect(parents.length).toBe(0); // no parents; root card
+    expect(card.key).toBe(cardId);
+    expect(card.parent).toBe('root'); // root card
+    expect(project.ancestorsOf(cardId)).toHaveLength(0);
+    expect(project.locationOfCard(cardId)).toBe('decision/templates/decision');
   });
-  it('parse card path - template non-root card', async () => {
+  it('card position - template non-root card', async () => {
     const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     const cardId = 'decision_4';
     const card = project.findCard(cardId);
-    const { template, cardKey, prefix, parents } = cardPathParts(
-      project.projectPrefix,
-      card.path,
+    expect(card.key).toBe(cardId);
+    expect(project.ancestorsOf(cardId)).toHaveLength(1);
+    expect(project.locationOfCard(cardId)).toBe(
+      'decision/templates/simplepage',
     );
-    expect(prefix).toBe('decision');
-    expect(cardKey).toBe(cardId);
-    expect(template).toBe('decision/templates/simplepage');
-    expect(parents.length).toBe(1);
   });
 
-  it('parse card path - invalid card', async () => {
+  it('card position - invalid card', async () => {
     const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
-    expect(() => cardPathParts(project.projectPrefix, 'decision_99')).toThrow();
+    expect(() => project.findCard('decision_99')).toThrow();
+    expect(project.locationOfCard('decision_99')).toBeUndefined();
   });
   it('add module to project', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
@@ -715,7 +703,7 @@ describe('project', () => {
 
     // Verify that attachment is visible by other means as well
     const projectAttachmentsVerified = project
-      .attachmentsByPath(project.paths.cardRootFolder)
+      .cardAttachments('decision_5')
       .map((item) => item.fileName);
     expect(projectAttachmentsVerified).toContain('newAttachment.heic');
 
@@ -723,7 +711,7 @@ describe('project', () => {
     await project.removeCardAttachment('decision_5', 'newAttachment.heic');
     // Verify that attachment is no longer available
     const projectAttachmentsRemoved = project
-      .attachmentsByPath(project.paths.cardRootFolder)
+      .attachments()
       .map((item) => item.fileName);
     expect(projectAttachmentsRemoved).not.toContain('newAttachment.heic');
 

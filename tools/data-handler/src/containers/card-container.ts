@@ -40,10 +40,10 @@ export class CardContainer {
   static projectConfigFileName = 'cardsConfig.json';
   static schemaContentFile = '.schema';
 
-  constructor(path: string, prefix: string) {
+  constructor(path: string, prefix: string, cardRootPath: string = path) {
     this.basePath = path;
     this.prefix = prefix;
-    this.cardTree = new CardTree(this.prefix);
+    this.cardTree = new CardTree(cardRootPath);
   }
 
   // The tree's store. Transitional: the call sites that have not moved onto
