@@ -56,24 +56,27 @@ export class CardContainer {
     this.cardCache = new CardCache(this.prefix);
   }
 
-  // Identity, tree position and metadata. Cache-internal fields (location) are
-  // dropped and the metadata is copied; nothing else of the cached card is
-  // reachable from the result.
+  // Identity and tree position, with the cache-internal 'location' dropped.
+  // The metadata is shared with the cache, so a node is a read-only view: its
+  // callers are audited (see the branch's commit log) and none of them writes
+  // to what they get back. Callers that modify metadata use cards() or
+  // findCard(), which hand out a copy.
   private static nodeView(card: Card): CardNode {
     return {
       key: card.key,
       path: card.path,
       children: card.children,
-      metadata: structuredClone(card.metadata),
+      metadata: card.metadata,
       parent: card.parent,
     };
   }
 
-  // The fully hydrated card: a node view plus the content and the attachment
-  // listing, both shared with the cache.
+  // The fully hydrated card: identity, tree position, a copy of the metadata,
+  // and the content and attachment listing shared with the cache.
   private static cardView(card: Card): Card {
     return {
       ...CardContainer.nodeView(card),
+      metadata: structuredClone(card.metadata),
       content: card.content,
       attachments: card.attachments,
     };
@@ -131,6 +134,15 @@ export class CardContainer {
    */
   protected cardNodes(path: string): CardNode[] {
     return this.cachedCards(path).map(CardContainer.nodeView);
+  }
+
+  /**
+   * Card keys of every card in the container.
+   * @param path Path where cards should be listed.
+   * @returns keys of all cards from the container
+   */
+  protected cardKeys(path: string): string[] {
+    return this.cachedCards(path).map((card) => card.key);
   }
 
   /**

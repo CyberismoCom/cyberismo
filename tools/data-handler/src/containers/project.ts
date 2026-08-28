@@ -488,6 +488,15 @@ export class Project extends CardContainer {
   }
 
   /**
+   * Card keys of every card at the given path.
+   * @param path Path from which to fetch the keys.
+   * @returns keys of all cards from the given path in the project.
+   */
+  public cardKeys(path: string = this.paths.cardRootFolder): string[] {
+    return super.cardKeys(path);
+  }
+
+  /**
    * Metadata-level view of one card: identity, tree position and metadata,
    * without the content or the attachment listing.
    * @param cardKey Card key to read.
@@ -784,13 +793,10 @@ export class Project extends CardContainer {
       cardsFrom === CardLocation.all ||
       cardsFrom === CardLocation.projectOnly
     ) {
-      const projectCards = super
-        .cards(this.paths.cardRootFolder)
-        .map((item) => item.key);
       cardListContainer.push({
         name: this.projectName,
         type: 'project',
-        cards: projectCards,
+        cards: super.cardKeys(this.paths.cardRootFolder),
       });
     }
 
