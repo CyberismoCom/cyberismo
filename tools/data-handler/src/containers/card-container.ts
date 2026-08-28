@@ -27,7 +27,6 @@ import type {
   CardAttachment,
   Card,
   CardMetadata,
-  FetchCardDetails,
 } from '../interfaces/project-interfaces.js';
 
 import { isPredefinedField, ROOT } from '../utils/constants.js';
@@ -56,48 +55,18 @@ export class CardContainer {
     this.cardCache = new CardCache(this.prefix);
   }
 
-  // Filters one card to only include the details requested.
-  private filterCardDetails(
-    card: Card,
-    details: FetchCardDetails = {
-      attachments: true,
-      children: true,
-      content: true,
-      metadata: true,
-      parent: true,
-    },
-  ): Card {
-    const filteredCard: Card = {
+  // The card as read paths hand it out: cache-internal fields (location)
+  // dropped, metadata copied, everything else shared with the cache.
+  private static cardView(card: Card): Card {
+    return {
       key: card.key,
       path: card.path,
-      children: details.children ? card.children : [],
-      attachments: details.attachments ? card.attachments : [],
+      children: card.children,
+      attachments: card.attachments,
+      content: card.content,
+      metadata: structuredClone(card.metadata),
+      parent: card.parent,
     };
-
-    if (details.content) {
-      filteredCard.content = card.content;
-    }
-    if (details.metadata) {
-      filteredCard.metadata = structuredClone(card.metadata);
-    }
-    if (details.parent) {
-      filteredCard.parent = card.parent;
-    }
-    if (details.calculations) {
-      filteredCard.calculations = card.calculations;
-    }
-
-    return filteredCard;
-  }
-
-  // Filters cards to only include the details requested.
-  private filterCardsDetails(
-    cards: Card[],
-    details?: FetchCardDetails,
-  ): Card[] {
-    return cards.map((card) => {
-      return this.filterCardDetails(card, details);
-    });
   }
 
   /**
@@ -136,31 +105,30 @@ export class CardContainer {
   }
 
   /**
-   * Shows all cards from the container with the given details (by default all of them).
+   * Shows all cards from the container.
    * @param path Path where cards should be listed.
-   * @param details Which details of the card should be included
    * @returns all cards from the container
    */
-  protected cards(path: string, details?: FetchCardDetails): Card[] {
+  protected cards(path: string): Card[] {
     if (!this.cardCache.isPopulated) {
       throw new Error('Cards cache is not populated!');
     }
 
     const targetLocation = this.determineContainer(path);
-    const relevantCards = this.cardCache.cardsAtLocation(targetLocation);
-    return this.filterCardsDetails(relevantCards, details);
+    return this.cardCache
+      .cardsAtLocation(targetLocation)
+      .map(CardContainer.cardView);
   }
 
   /**
    * Finds a specific card.
    * @param cardKey Card key to find
-   * @param details Card details to be included in the card
    * @throws if card does not exist in the container
    */
-  protected findCard(cardKey: string, details?: FetchCardDetails): Card {
+  protected findCard(cardKey: string): Card {
     const cachedCard = this.cardCache.getCard(cardKey);
     if (cachedCard) {
-      return this.filterCardDetails(cachedCard, details);
+      return CardContainer.cardView(cachedCard);
     }
     throw new CardNotFoundError(cardKey);
   }

@@ -34,10 +34,8 @@ import {
   CardLocation,
   type CardListContainer,
   type CardMetadata,
-  type FetchCardDetails,
   type MetadataContent,
   type ModuleContent,
-  type ProjectFetchCardDetails,
 } from '../interfaces/project-interfaces.js';
 import { pathExists } from '../utils/file-utils.js';
 import { generateRandomString } from '../utils/random.js';
@@ -470,14 +468,10 @@ export class Project extends CardContainer {
    * Returns an array of all the cards in the project.
    * @note These are project cards only, by default (unless path dictates otherwise).
    * @param path Path from which to fetch the cards. Generally it is best to fetch from Project root, e.g. Project.cardRootFolder
-   * @param details Which details to include in the cards; by default all details are included.
    * @returns all cards from the given path in the project.
    */
-  public cards(
-    path: string = this.paths.cardRootFolder,
-    details?: FetchCardDetails,
-  ): Card[] {
-    return super.cards(path, details);
+  public cards(path: string = this.paths.cardRootFolder): Card[] {
+    return super.cards(path);
   }
 
   /**
@@ -554,11 +548,10 @@ export class Project extends CardContainer {
   /**
    * Returns specific card.
    * @param cardToFind Card key to find
-   * @param details Defines which card details are included in the return values.
    * @returns specific card details, or undefined if card is not part of the project.
    */
-  public findCard(cardToFind: string, details?: ProjectFetchCardDetails): Card {
-    return super.findCard(cardToFind, details);
+  public findCard(cardToFind: string): Card {
+    return super.findCard(cardToFind);
   }
 
   /**

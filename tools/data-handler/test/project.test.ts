@@ -10,10 +10,7 @@ import {
 import { basename, join, resolve, sep } from 'node:path';
 
 import { copyDir } from '../src/utils/file-utils.js';
-import {
-  CardLocation,
-  type FileContentType,
-} from '../src/interfaces/project-interfaces.js';
+import { CardLocation } from '../src/interfaces/project-interfaces.js';
 
 import {
   buildCardHierarchy,
@@ -156,15 +153,7 @@ describe('project', () => {
     expect(card.metadata!.title).toBe('Decision Records');
     expect(card.metadata!.cardType).toBe('decision/cardTypes/simplepage');
     expect(card.metadata!.workflowState).toBe('Created');
-    const details = {
-      contentType: 'adoc' as FileContentType,
-      content: true,
-      metadata: true,
-      children: true,
-      parent: true,
-      attachments: true,
-    };
-    const additionalCardDetails = project.findCard(cardToOperateOn, details);
+    const additionalCardDetails = project.findCard(cardToOperateOn);
     expect(additionalCardDetails).not.toBeUndefined();
     expect(additionalCardDetails.metadata!.title).toBe('Decision Records');
     expect(additionalCardDetails.metadata!.cardType).toBe(
@@ -466,18 +455,7 @@ describe('project', () => {
     const template = project.createTemplateObjectFromCard(templateCards.at(0)!);
     expect(template).not.toBeUndefined();
   });
-  it('find certain card from project - content as adoc (success)', async () => {
-    const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = getTestProject(decisionRecordsPath);
-    await project.populateCaches();
-    expect(project).not.toBeUndefined();
-    const existingCard = project.findCard('decision_5', {
-      content: true,
-      contentType: 'adoc',
-    });
-    expect(existingCard).not.toBeUndefined();
-  });
-  it('find certain card from project - content as html (success)', async () => {
+  it('find certain card from project - with content (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
@@ -487,21 +465,18 @@ describe('project', () => {
       project.findCard('idontexist');
     }).toThrow(CardNotFoundError);
 
-    const existingCard = project.findCard('decision_5', {
-      content: true,
-      contentType: 'html',
-    });
+    const existingCard = project.findCard('decision_5');
     expect(existingCard).not.toBeUndefined();
+    expect(existingCard.content).not.toBeUndefined();
   });
   it('find certain card from project - card is from template (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).not.toBeUndefined();
-    const existingCard = project.findCard('decision_1', {
-      content: true,
-    });
+    const existingCard = project.findCard('decision_1');
     expect(existingCard).not.toBeUndefined();
+    expect(existingCard.content).not.toBeUndefined();
   });
   it('check if project is created (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
