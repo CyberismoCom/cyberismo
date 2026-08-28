@@ -30,6 +30,14 @@ export interface Card {
   attachments: CardAttachment[];
 }
 
+/**
+ * A card without its file contents: identity, tree position and metadata.
+ * This is what the cheap read path returns. Callers that need the card's
+ * text or attachment listing ask for them explicitly, with
+ * Project.cardContent() / Project.cardAttachments().
+ */
+export type CardNode = Omit<Card, 'content' | 'attachments'>;
+
 // Single card, but childrenCards as Card array
 export interface CardWithChildrenCards extends Card {
   childrenCards: CardWithChildrenCards[];

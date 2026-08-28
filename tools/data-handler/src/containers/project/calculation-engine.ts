@@ -23,7 +23,11 @@ import type {
   QueryName,
   QueryResult,
 } from '../../types/queries.js';
-import type { Card, Context } from '../../interfaces/project-interfaces.js';
+import type {
+  Card,
+  CardNode,
+  Context,
+} from '../../interfaces/project-interfaces.js';
 import ClingoParser from '../../utils/clingo-parser.js';
 
 import Handlebars from 'handlebars';
@@ -116,7 +120,7 @@ export class CalculationEngine {
     }
   }
 
-  private async setCardContent(card: Card) {
+  private async setCardContent(card: CardNode) {
     const cardContent = await createCardFacts(card, this.project);
     this.clingo.setProgram(card.key, cardContent, [ALL_CATEGORY]);
   }
@@ -246,13 +250,14 @@ export class CalculationEngine {
     }
   }
 
-  // Gets either all the cards (no parent), or a subtree.
-  private getCards(templateName?: string): Card[] {
+  // Gets either all the cards (no parent), or a subtree. Fact projection only
+  // reads metadata, so the cheap read is enough.
+  private getCards(templateName?: string): CardNode[] {
     if (templateName) {
       return this.project.templateCards(templateName);
     }
 
-    return this.project.cards();
+    return this.project.cardNodes();
   }
 
   // Checks that Clingo successfully returned result.

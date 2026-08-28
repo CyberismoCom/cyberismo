@@ -198,7 +198,7 @@ export const flattenCardArray = (array: Card[], project: Project) => {
  * @param card Card object to check
  * @returns true if card exists in a module; false otherwise
  */
-export const isModuleCard = (card: Card) => {
+export const isModuleCard = (card: Pick<Card, 'path'>) => {
   return card.path.includes(`${sep}modules${sep}`);
 };
 
@@ -216,7 +216,7 @@ export const isModulePath = (path: string) => {
  * @param card card object to check
  * @returns true if card exists in a template; false otherwise
  */
-export const isTemplateCard = (card: Card) => {
+export const isTemplateCard = (card: Pick<Card, 'path'>) => {
   return (
     card.path.includes(`${sep}templates${sep}`) ||
     card.path.includes(`${sep}modules${sep}`)

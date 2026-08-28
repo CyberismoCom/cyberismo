@@ -27,6 +27,7 @@ import type {
   CardAttachment,
   Card,
   CardMetadata,
+  CardNode,
 } from '../interfaces/project-interfaces.js';
 
 import { isPredefinedField, ROOT } from '../utils/constants.js';
@@ -55,17 +56,26 @@ export class CardContainer {
     this.cardCache = new CardCache(this.prefix);
   }
 
-  // The card as read paths hand it out: cache-internal fields (location)
-  // dropped, metadata copied, everything else shared with the cache.
-  private static cardView(card: Card): Card {
+  // Identity, tree position and metadata. Cache-internal fields (location) are
+  // dropped and the metadata is copied; nothing else of the cached card is
+  // reachable from the result.
+  private static nodeView(card: Card): CardNode {
     return {
       key: card.key,
       path: card.path,
       children: card.children,
-      attachments: card.attachments,
-      content: card.content,
       metadata: structuredClone(card.metadata),
       parent: card.parent,
+    };
+  }
+
+  // The fully hydrated card: a node view plus the content and the attachment
+  // listing, both shared with the cache.
+  private static cardView(card: Card): Card {
+    return {
+      ...CardContainer.nodeView(card),
+      content: card.content,
+      attachments: card.attachments,
     };
   }
 
@@ -105,23 +115,67 @@ export class CardContainer {
   }
 
   /**
-   * Shows all cards from the container.
+   * Shows all cards from the container, fully hydrated.
    * @param path Path where cards should be listed.
    * @returns all cards from the container
    */
   protected cards(path: string): Card[] {
-    if (!this.cardCache.isPopulated) {
-      throw new Error('Cards cache is not populated!');
-    }
-
-    const targetLocation = this.determineContainer(path);
-    return this.cardCache
-      .cardsAtLocation(targetLocation)
-      .map(CardContainer.cardView);
+    return this.cachedCards(path).map(CardContainer.cardView);
   }
 
   /**
-   * Finds a specific card.
+   * Metadata-level view of every card in the container: no content, no
+   * attachment listing.
+   * @param path Path where cards should be listed.
+   * @returns nodes of all cards from the container
+   */
+  protected cardNodes(path: string): CardNode[] {
+    return this.cachedCards(path).map(CardContainer.nodeView);
+  }
+
+  /**
+   * Metadata-level view of one card: no content, no attachment listing.
+   * @param cardKey Card key to find
+   * @throws if card does not exist in the container
+   */
+  protected cardNode(cardKey: string): CardNode {
+    const cachedCard = this.cardCache.getCard(cardKey);
+    if (!cachedCard) {
+      throw new CardNotFoundError(cardKey);
+    }
+    return CardContainer.nodeView(cachedCard);
+  }
+
+  /**
+   * Content of one card.
+   * @param cardKey Card key to read
+   * @returns the card's content, or undefined if it has none
+   * @throws if card does not exist in the container
+   */
+  protected cardContent(cardKey: string): string | undefined {
+    const cachedCard = this.cardCache.getCard(cardKey);
+    if (!cachedCard) {
+      throw new CardNotFoundError(cardKey);
+    }
+    return cachedCard.content;
+  }
+
+  /**
+   * Attachment listing of one card.
+   * @param cardKey Card key to read
+   * @returns the card's attachments
+   * @throws if card does not exist in the container
+   */
+  protected cardAttachments(cardKey: string): CardAttachment[] {
+    const cachedCard = this.cardCache.getCard(cardKey);
+    if (!cachedCard) {
+      throw new CardNotFoundError(cardKey);
+    }
+    return cachedCard.attachments;
+  }
+
+  /**
+   * Finds a specific card, fully hydrated.
    * @param cardKey Card key to find
    * @throws if card does not exist in the container
    */
@@ -131,6 +185,15 @@ export class CardContainer {
       return CardContainer.cardView(cachedCard);
     }
     throw new CardNotFoundError(cardKey);
+  }
+
+  // The cached cards belonging to the container the path points at.
+  private cachedCards(path: string): Card[] {
+    if (!this.cardCache.isPopulated) {
+      throw new Error('Cards cache is not populated!');
+    }
+
+    return this.cardCache.cardsAtLocation(this.determineContainer(path));
   }
 
   /**
