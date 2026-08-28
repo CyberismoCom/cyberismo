@@ -34,6 +34,7 @@ import type {
  */
 export class TemplateResource extends FolderResource<TemplateMetadata, never> {
   private cardContainer: Template;
+  private cardContainerName = '';
   private cardsFolder = '';
   private cardsSchema = super.contentSchemaContent('cardBaseSchema');
 
@@ -49,11 +50,17 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
 
     this.cardsFolder = join(this.internalFolder, 'c');
+    this.cardContainer = this.createCardContainer();
+  }
 
-    // Each template resource contains a template card container (with template cards).
-    // todo: Fix Template constructor not to use Resource, but just this filename with path
-    this.cardContainer = new Template(this.project, {
-      name: resourceNameToString(this.resourceName),
+  // Each template resource contains a template card container (with template
+  // cards). The container bakes in the resource's name and path, so it has to
+  // be rebuilt whenever either of those changes.
+  // todo: Fix Template constructor not to use Resource, but just this filename with path
+  private createCardContainer(): Template {
+    this.cardContainerName = resourceNameToString(this.resourceName);
+    return new Template(this.project, {
+      name: this.cardContainerName,
       path: dirname(this.fileName),
     });
   }
@@ -82,6 +89,27 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
     const templateName = resourceNameToString(this.resourceName);
     this.project.cardsCache.deleteCardsFromTemplate(templateName);
     return super.delete();
+  }
+
+  /**
+   * Renames the template and reloads its cards into the project's card cache.
+   *
+   * A template card is cached under its template's name and under its path on
+   * disk, and renaming the template moves the folder and changes the name.
+   * Without this, every card of the renamed template stays in the cache
+   * pointing at a folder that no longer exists, and the template reads as
+   * empty for the rest of the session.
+   * @param newIdentifier New identifier for the template.
+   */
+  public async rename(newIdentifier: string) {
+    const oldName = resourceNameToString(this.resourceName);
+    await super.rename(newIdentifier);
+
+    // Evict before loading: the cards keep their keys, and the cache rejects a
+    // key it already holds.
+    this.project.cardsCache.deleteCardsFromTemplate(oldName);
+    await this.project.cardsCache.populateFromPath(this.cardsFolder, false);
+    this.project.cardsCache.populateChildrenRelationships();
   }
 
   /**
@@ -132,6 +160,13 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
   public async write() {
     await super.write();
     this.cardsFolder = join(this.internalFolder, 'c');
+
+    // super.write() renames the metadata file and the content folder when the
+    // resource's name has changed; the card container still points at the old
+    // name and the old folder until it is rebuilt.
+    if (this.cardContainerName !== resourceNameToString(this.resourceName)) {
+      this.cardContainer = this.createCardContainer();
+    }
 
     // Create folder for cards and put proper content schema file there
     const schemaContentFile = join(this.cardsFolder, '.schema');
