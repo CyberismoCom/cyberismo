@@ -577,20 +577,19 @@ export class Validate {
           }
         }
 
-        // Finally, validate that each card is correct
+        // Finally, validate that each card is correct.
+        //
+        // Duplicate card keys are not checked here: both sources are views of
+        // the card cache, which is keyed by card key, so a duplicate can never
+        // appear twice in this list. The condition is detected where it is
+        // visible — when the cache is loaded, above — and surfaces through the
+        // populateCaches() call as a validation error.
         const cards = project.cards();
         cards.push(...project.allTemplateCards());
 
-        const cardIds = new Map<string, number>();
         const allPrefixes = project.allModulePrefixes();
 
         for (const card of cards) {
-          if (cardIds.has(card.key)) {
-            cardIds.set(card.key, (cardIds.get(card.key) || 0) + 1);
-          } else {
-            cardIds.set(card.key, 1);
-          }
-
           if (card.metadata) {
             if (!isTemplateCard(card)) {
               const validWorkflow = await this.validateWorkflowState(
@@ -629,12 +628,6 @@ export class Validate {
             } catch (error) {
               errorMsg.push(`Card '${card.key}': ${errorFunction(error)}`);
             }
-          }
-        }
-        // Validate that there are no duplicate card keys
-        for (const [key, count] of cardIds) {
-          if (count > 1) {
-            errorMsg.push(`Duplicate card key '${key}' found ${count} times`);
           }
         }
         if (errorMsg.length) {

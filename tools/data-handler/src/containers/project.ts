@@ -27,6 +27,7 @@ import { readdirSync } from 'node:fs';
 import { CardContainer } from './card-container.js';
 
 import { CalculationEngine } from './project/calculation-engine.js';
+import { DuplicateCardKeyError } from '../exceptions/index.js';
 import {
   type Card,
   type CardAttachment,
@@ -362,6 +363,12 @@ export class Project extends CardContainer {
       // Once all templates have been fetched, build child-parent relationships.
       this.cardCache.populateChildrenRelationships();
     } catch (error) {
+      // A duplicate card key is a defect in the project, not a broken
+      // template that can be skipped: with two cards claiming one key the
+      // cache cannot represent both, so the caller has to hear about it.
+      if (error instanceof DuplicateCardKeyError) {
+        throw error;
+      }
       this.logger.error(
         { error },
         'Failed to populate template cards into the card cache',

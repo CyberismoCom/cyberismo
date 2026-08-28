@@ -33,6 +33,18 @@ export class CardNotFoundError extends Error {
     super(`Card '${cardKey}' does not exist in the project`);
   }
 }
+
+/**
+ * Thrown while loading cards when a card key is not unique. Keys must be
+ * unique across the project and all of its templates, so loading cannot pick
+ * a winner: the condition has to reach the caller.
+ */
+export class DuplicateCardKeyError extends Error {
+  constructor(public readonly cardKeys: string[]) {
+    super(`Duplicate card keys found: ${cardKeys.join(', ')}`);
+    this.name = 'DuplicateCardKeyError';
+  }
+}
 /**
  * Stores the context of a macro error that originated from another macro
  */

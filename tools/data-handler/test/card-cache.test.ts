@@ -12,6 +12,8 @@ import { join, sep } from 'node:path';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { CardCache } from '../src/containers/project/card-cache.js';
+import { DuplicateCardKeyError } from '../src/exceptions/index.js';
+import { getTestProject } from './helpers/test-utils.js';
 import type {
   Card,
   CardAttachment,
@@ -735,5 +737,106 @@ describe('Card cache', () => {
         expect(commands.project.hasCard(card.key)).toBe(false);
       }
     }, 60000);
+  });
+
+  describe('duplicate card keys', () => {
+    const dupDir = join(testDir, 'duplicate-key-project');
+    const dupCardsPath = join(dupDir, 'cardRoot');
+    const dupTemplatePath = join(
+      dupDir,
+      '.cards',
+      'local',
+      'templates',
+      'dup',
+      'c',
+    );
+
+    const cardMetadata = {
+      title: 'Card',
+      cardType: 'test/cardTypes/page',
+      workflowState: 'Draft',
+      rank: '1',
+    } as CardMetadata;
+
+    beforeEach(() => {
+      mkdirSync(dupCardsPath, { recursive: true });
+      mkdirSync(dupTemplatePath, { recursive: true });
+    });
+
+    afterEach(() => {
+      rmSync(dupDir, { recursive: true, force: true });
+    });
+
+    it('rejects a key already held from an earlier populate batch', async () => {
+      createTestCard('test_1', dupCardsPath, cardMetadata, 'project card');
+      createTestCard('test_1', dupTemplatePath, cardMetadata, 'template card');
+
+      const cache = new CardCache(prefix);
+      await cache.populateFromPath(dupCardsPath);
+      expect(cache.getCard('test_1')!.content).toBe('project card');
+
+      // The template batch carries a key the project batch already claimed.
+      await expect(
+        cache.populateFromPath(dupTemplatePath, false),
+      ).rejects.toThrow(DuplicateCardKeyError);
+
+      // The card that was there first must not have been overwritten.
+      expect(cache.getCard('test_1')!.content).toBe('project card');
+    });
+
+    it('rejects a key duplicated inside one populate batch', async () => {
+      createTestCard('test_1', dupCardsPath, cardMetadata, 'root card');
+      createTestCard('test_2', dupCardsPath, cardMetadata, 'other root card');
+      const nested = join(dupCardsPath, 'test_2', 'c');
+      mkdirSync(nested, { recursive: true });
+      createTestCard('test_1', nested, cardMetadata, 'nested card');
+
+      const cache = new CardCache(prefix);
+      await expect(cache.populateFromPath(dupCardsPath)).rejects.toThrow(
+        DuplicateCardKeyError,
+      );
+    });
+  });
+
+  describe('duplicate card keys across a project and its templates', () => {
+    const projectPath = join(testDir, 'valid', 'decision-records');
+
+    beforeEach(async () => {
+      mkdirSync(testDir, { recursive: true });
+      await copyDir('test/test-data/', testDir);
+    });
+
+    afterEach(() => {
+      rmSync(testDir, { recursive: true, force: true });
+    });
+
+    it('populateCaches reports a template card reusing a project card key', async () => {
+      // 'decision_5' is a project card in this fixture; give the simplepage
+      // template a card of the same key.
+      const templateCards = join(
+        projectPath,
+        '.cards',
+        'local',
+        'templates',
+        'simplepage',
+        'c',
+      );
+      createTestCard(
+        'decision_5',
+        templateCards,
+        {
+          title: 'Clashing template card',
+          cardType: 'decision/cardTypes/decision',
+          workflowState: '',
+          rank: '0|a',
+        } as CardMetadata,
+        'clashing template card',
+      );
+
+      const project = getTestProject(projectPath);
+      await expect(project.populateCaches()).rejects.toThrow(
+        /Duplicate card keys found: decision_5/,
+      );
+    });
   });
 });
