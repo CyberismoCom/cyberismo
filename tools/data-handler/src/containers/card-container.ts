@@ -16,9 +16,9 @@
 import { join } from 'node:path';
 import { writeFile } from 'node:fs/promises';
 
-import { CardCache } from './project/card-cache.js';
+import type { CardCache } from './project/card-cache.js';
+import { CardTree } from './project/card-tree.js';
 import { CardNotFoundError } from '../exceptions/index.js';
-import { cardPathParts } from '../utils/card-utils.js';
 import { deleteDir } from '../utils/file-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { writeJsonFile } from '../utils/json.js';
@@ -38,7 +38,7 @@ import { isPredefinedField, ROOT } from '../utils/constants.js';
  */
 export class CardContainer {
   public basePath: string;
-  protected cardCache: CardCache;
+  protected cardTree: CardTree;
   protected prefix: string;
 
   protected static get logger() {
@@ -53,7 +53,13 @@ export class CardContainer {
   constructor(path: string, prefix: string) {
     this.basePath = path;
     this.prefix = prefix;
-    this.cardCache = new CardCache(this.prefix);
+    this.cardTree = new CardTree(this.prefix);
+  }
+
+  // The tree's store. Transitional: the call sites that have not moved onto
+  // the tree's own surface yet still reach the cache through here.
+  protected get cardCache(): CardCache {
+    return this.cardTree.store;
   }
 
   // Identity and tree position, with the cache-internal 'location' dropped.
@@ -88,7 +94,7 @@ export class CardContainer {
    * @returns Location string: 'project' for project cards, template name for template cards
    */
   protected determineContainer(path: string): string {
-    return cardPathParts(this.prefix, path).template || 'project';
+    return this.cardTree.locationOf(path);
   }
 
   /**
@@ -201,7 +207,7 @@ export class CardContainer {
 
   // The cached cards belonging to the container the path points at.
   private cachedCards(path: string): Card[] {
-    if (!this.cardCache.isPopulated) {
+    if (!this.cardTree.isPopulated) {
       throw new Error('Cards cache is not populated!');
     }
 
@@ -219,7 +225,7 @@ export class CardContainer {
       // Children must removed first. The list is a snapshot: removing a child
       // replaces the parent's list in the adjacency index rather than mutating
       // the array this loop walks.
-      const children = this.cardCache.childrenOf(cardKey);
+      const children = this.cardTree.childrenOf(cardKey);
       for (const child of children) {
         await this.removeCard(child);
       }
@@ -319,7 +325,7 @@ export class CardContainer {
       if (
         card.parent === ROOT ||
         !card.parent ||
-        this.cardCache.getCard(card.parent)?.location !== container
+        this.cardTree.locationOfCard(card.parent) !== container
       ) {
         const cardWithChildren: Card = {
           ...card,
@@ -338,7 +344,7 @@ export class CardContainer {
    * @return true, if card is in the container
    */
   public hasCard(cardKey: string): boolean {
-    return this.cardCache.hasCard(cardKey);
+    return this.cardTree.has(cardKey);
   }
 
   /**
@@ -347,8 +353,7 @@ export class CardContainer {
    * @return true, if card is in the container
    */
   public hasProjectCard(cardKey: string): boolean {
-    const cachedCard = this.cardCache.getCard(cardKey);
-    return cachedCard ? cachedCard.location === 'project' : false;
+    return this.cardTree.hasProjectCard(cardKey);
   }
 
   /**
@@ -357,7 +362,6 @@ export class CardContainer {
    * @return true, if card is in the container
    */
   public hasTemplateCard(cardKey: string): boolean {
-    const cachedCard = this.cardCache.getCard(cardKey);
-    return cachedCard ? cachedCard.location !== 'project' : false;
+    return this.cardTree.hasTemplateCard(cardKey);
   }
 }
