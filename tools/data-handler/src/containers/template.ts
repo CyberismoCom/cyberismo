@@ -88,12 +88,19 @@ export class Template extends CardContainer {
     return cardsByKey;
   }
 
-  private assignRanksToParentCards(
+  // Allocates a rank block for the template's root cards, placed after the
+  // last future sibling at the destination.
+  //
+  // Pure by contract: the input cards are the live cached template cards, so
+  // writing the ranks into them would corrupt the template. The ranks are
+  // returned keyed by template card key and applied to the instantiated copies
+  // in processMetadata.
+  private rootCardRanks(
     cards: Card[],
     parentCard: Card | undefined,
-  ): Card[] {
+  ): Map<string, string> {
     const getRank = (card: Card) => card?.metadata?.rank || '';
-    const parentCards = sortItems(
+    const rootCards = sortItems(
       cards.filter((c) => c.parent === ROOT),
       getRank,
     );
@@ -108,14 +115,12 @@ export class Template extends CardContainer {
         getRank,
       ).pop()?.metadata?.rank || FIRST_RANK;
 
-    parentCards.forEach((card) => {
+    const ranks = new Map<string, string>();
+    for (const card of rootCards) {
       latestRank = getRankAfter(latestRank);
-      if (card.metadata) {
-        card.metadata.rank = latestRank;
-      }
-    });
-
-    return parentCards;
+      ranks.set(card.key, latestRank);
+    }
+    return ranks;
   }
 
   private updateCardPaths(
@@ -202,7 +207,7 @@ export class Template extends CardContainer {
 
   private async processMetadata(
     card: Card,
-    parentCards: Card[],
+    rootCardRanks: Map<string, string>,
     templateIDMap: Map<string, string>,
   ): Promise<Card> {
     if (!card.metadata) return card;
@@ -222,8 +227,6 @@ export class Template extends CardContainer {
       );
     }
 
-    const cardWithRank = parentCards.find((c) => c.key === card.key);
-
     let templateCardKey;
     for (const [key, value] of templateIDMap) {
       if (value === card.key) {
@@ -231,13 +234,16 @@ export class Template extends CardContainer {
         break;
       }
     }
+    const allocatedRank = templateCardKey
+      ? rootCardRanks.get(templateCardKey)
+      : undefined;
     const newMetadata = {
       ...card.metadata,
       templateCardKey,
       workflowState: initialWorkflowState.toState,
       cardType: cardType.name,
       createdAt: new Date().toISOString(),
-      rank: cardWithRank?.metadata?.rank || card.metadata.rank || EMPTY_RANK,
+      rank: allocatedRank || card.metadata.rank || EMPTY_RANK,
     };
 
     // Null custom-field values on the template card are a 'no value' marker, not content.
@@ -474,7 +480,7 @@ export class Template extends CardContainer {
     let cardKeyMap: Map<string, string> = new Map();
     try {
       cardKeyMap = await this.buildCardKeyMap(cards);
-      const parentCards = this.assignRanksToParentCards(cards, parentCard);
+      const rootCardRanks = this.rootCardRanks(cards, parentCard);
       const templatesFolder = this.templateFolder();
 
       // Process all cards in parallel
@@ -487,7 +493,7 @@ export class Template extends CardContainer {
 
           // Process metadata and attachments in parallel
           const [processedCard, processedAttachments] = await Promise.all([
-            this.processMetadata(card, parentCards, cardKeyMap),
+            this.processMetadata(card, rootCardRanks, cardKeyMap),
             this.processAttachments(card),
           ]);
 
