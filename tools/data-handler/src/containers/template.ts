@@ -174,6 +174,10 @@ export class Template extends CardContainer {
     card.parent = templateIDMap.get(originalParentKey) || ROOT;
   }
 
+  // Copies the template card's attachments to the instantiated card under
+  // card-key-prefixed names, and returns the card with its content references
+  // and its attachments[] pointing at the copies. Both are part of the same
+  // returned object: the caller writes and caches exactly what it gets back.
   private async processAttachments(card: Card): Promise<Card> {
     if (!card.attachments.length) return card;
 
@@ -181,28 +185,37 @@ export class Template extends CardContainer {
     await mkdir(attachmentsFolder, { recursive: true });
 
     let content = card.content;
+    const attachments: CardAttachment[] = card.attachments.map((attachment) => {
+      const attachmentUniqueName = `${card.key}-${attachment.fileName}`;
+      content = content?.replace(
+        new RegExp(
+          `(\\{\\{#image\\}\\}[^}]*)"fileName": "${attachment.fileName}"([^}]*\\{\\{\\/image\\}\\})`,
+          'g',
+        ),
+        `$1"fileName": "${attachmentUniqueName}"$2`,
+      );
+      // keep fallback
+      content = content?.replace(
+        new RegExp(`image::${attachment.fileName}`, 'g'),
+        `image::${attachmentUniqueName}`,
+      );
+      return {
+        ...attachment,
+        card: card.key,
+        path: attachmentsFolder,
+        fileName: attachmentUniqueName,
+      };
+    });
+
     await Promise.all(
-      card.attachments.map(async (attachment) => {
-        const attachmentUniqueName = `${card.key}-${attachment.fileName}`;
-        content = content?.replace(
-          new RegExp(
-            `(\\{\\{#image\\}\\}[^}]*)"fileName": "${attachment.fileName}"([^}]*\\{\\{\\/image\\}\\})`,
-            'g',
-          ),
-          `$1"fileName": "${attachmentUniqueName}"$2`,
-        );
-        // keep fallback
-        content = content?.replace(
-          new RegExp(`image::${attachment.fileName}`, 'g'),
-          `image::${attachmentUniqueName}`,
-        );
-        await copyFile(
+      card.attachments.map((attachment, index) =>
+        copyFile(
           join(attachment.path, attachment.fileName),
-          join(card.path, 'a', attachmentUniqueName),
-        );
-      }),
+          join(attachmentsFolder, attachments[index].fileName),
+        ),
+      ),
     );
-    return { ...card, content };
+    return { ...card, content, attachments };
   }
 
   private async processMetadata(
@@ -491,20 +504,20 @@ export class Template extends CardContainer {
           this.updateCardPaths(card, cardKeyMap, templatesFolder, parentCard);
           createdPaths.push(card.path);
 
-          // Process metadata and attachments in parallel
-          const [processedCard, processedAttachments] = await Promise.all([
-            this.processMetadata(card, rootCardRanks, cardKeyMap),
-            this.processAttachments(card),
-          ]);
-
-          // Create directory and write files
-          await mkdir(processedCard.path, { recursive: true });
+          // One card object all the way through: what is written to disk,
+          // what is returned and what is cached must be the same thing.
+          // Chained, not run in parallel: processAttachments rewrites the
+          // content and the attachment list of the object it is handed.
+          await mkdir(card.path, { recursive: true });
+          const processedCard = await this.processAttachments(
+            await this.processMetadata(card, rootCardRanks, cardKeyMap),
+          );
 
           await Promise.all([
             this.saveCardMetadata(processedCard),
             writeFile(
               join(processedCard.path, Project.cardContentFile),
-              processedAttachments.content || '',
+              processedCard.content || '',
             ),
           ]);
           return processedCard;

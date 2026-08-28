@@ -16,7 +16,7 @@ import { expect, describe, it, beforeEach, afterEach } from 'vitest';
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';
-import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { copyDir } from '../src/utils/file-utils.js';
@@ -75,6 +75,17 @@ afterEach(() => {
 
 function templateOf(name: string): Template {
   return new Template(project, { name, path: '' });
+}
+
+// Instantiates the template and returns the key of the card created from
+// the template card that carries the attachment.
+async function instantiateAttachedCard(template: Template): Promise<string> {
+  const created = await template.createCards();
+  const card = created.find(
+    (item) => item.metadata?.templateCardKey === 'decision_2',
+  );
+  expect(card).toBeDefined();
+  return card!.key;
 }
 
 // Card folders directly under cardRoot, by key.
@@ -151,5 +162,42 @@ describe('Template.createCards', () => {
     expect(error).toBeInstanceOf(Error);
     expect(error).not.toBeInstanceOf(CardNotFoundError);
     expect(error!.message).toMatch(/ENOENT/);
+  });
+
+  it('caches the content it actually wrote', async () => {
+    const template = templateOf('decision/templates/simplepage');
+
+    const cached = project.findCard(await instantiateAttachedCard(template));
+
+    // The cached content must be the content that was written, with the
+    // attachment reference already renamed.
+    const contentOnDisk = await readFile(
+      join(cached.path, 'index.adoc'),
+      'utf-8',
+    );
+    expect(cached.content).toContain(`image::${cached.key}-${ATTACHMENT}[]`);
+    expect(cached.content).toBe(contentOnDisk);
+  });
+
+  it('caches the attachments it actually wrote', async () => {
+    const template = templateOf('decision/templates/simplepage');
+
+    const cached = project.findCard(await instantiateAttachedCard(template));
+    const expectedFileName = `${cached.key}-${ATTACHMENT}`;
+    const expectedFolder = join(cached.path, 'a');
+
+    // The cached attachment must describe the copy under the new card, not
+    // the template file it was copied from.
+    expect(cached.attachments).to.deep.equal([
+      {
+        card: cached.key,
+        path: expectedFolder,
+        fileName: expectedFileName,
+        mimeType: 'image/png',
+      },
+    ]);
+    await expect(
+      readFile(join(expectedFolder, expectedFileName), 'utf-8'),
+    ).resolves.toBe('not-really-a-png');
   });
 });
