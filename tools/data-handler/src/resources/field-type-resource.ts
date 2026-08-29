@@ -280,7 +280,7 @@ export class FieldTypeResource extends FileResource<FieldType> {
    * @returns array of card keys, resource names and calculation filenames that refer this resource.
    */
   public async usage(cards?: Card[]): Promise<string[]> {
-    const allCards = cards ?? super.cards();
+    const allCards = cards ?? (await super.cards());
 
     const relevantLinkTypes = this.relevantCardTypes();
 

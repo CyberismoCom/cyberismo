@@ -95,7 +95,7 @@ export class Clean {
     const skippedCards: string[] = [];
     const failedCards: string[] = [];
 
-    for (const card of this.cleanableCards()) {
+    for (const card of await this.cleanableCards()) {
       if (!card.metadata) continue;
       if (cardType && card.metadata.cardType !== cardType) continue;
 
@@ -135,13 +135,16 @@ export class Clean {
   }
 
   // All cards this command may write to: project cards and local template cards.
-  private cleanableCards(): Card[] {
-    return [
-      ...this.project.cardTree.cards(),
-      ...this.project.resources
-        .templates(ResourcesFrom.localOnly)
-        .flatMap((template) => template.templateCards()),
-    ];
+  private async cleanableCards(): Promise<Card[]> {
+    const [projectCards, templateCards] = await Promise.all([
+      this.project.cardTree.cards(),
+      Promise.all(
+        this.project.resources
+          .templates(ResourcesFrom.localOnly)
+          .map((template) => template.templateCards()),
+      ),
+    ]);
+    return [...projectCards, ...templateCards.flat()];
   }
 
   // Custom fields the card's card type declares, or undefined if the card type

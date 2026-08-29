@@ -73,7 +73,7 @@ describe('project', () => {
 
     const attachments = project.cardTree.attachments();
     expect(attachments.length).toBe(1);
-    const cards = project.cardTree.cards();
+    const cards = await project.cardTree.cards();
     expect(cards.length).toBe(2);
     const cardTypes = project.resources
       .resourceTypes('cardTypes')
@@ -145,12 +145,12 @@ describe('project', () => {
     const cardExists = project.hasCard(cardToOperateOn);
     expect(cardExists).toBe(true);
 
-    const card = project.findCard(cardToOperateOn);
+    const card = await project.findCard(cardToOperateOn);
     expect(card).not.toBeUndefined();
     expect(card.metadata!.title).toBe('Decision Records');
     expect(card.metadata!.cardType).toBe('decision/cardTypes/simplepage');
     expect(card.metadata!.workflowState).toBe('Created');
-    const additionalCardDetails = project.findCard(cardToOperateOn);
+    const additionalCardDetails = await project.findCard(cardToOperateOn);
     expect(additionalCardDetails).not.toBeUndefined();
     expect(additionalCardDetails.metadata!.title).toBe('Decision Records');
     expect(additionalCardDetails.metadata!.cardType).toBe(
@@ -171,18 +171,16 @@ describe('project', () => {
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).not.toBeUndefined();
-    expect(() => {
-      project.findCard('');
-    }).toThrow(CardNotFoundError);
+    await expect(project.findCard('')).rejects.toThrow(CardNotFoundError);
   });
   it('try to access card details with invalid card id', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).not.toBeUndefined();
-    expect(() => {
-      project.findCard('decision_999');
-    }).toThrow(CardNotFoundError);
+    await expect(project.findCard('decision_999')).rejects.toThrow(
+      CardNotFoundError,
+    );
   });
   it('access card type details (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
@@ -213,14 +211,14 @@ describe('project', () => {
 
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
-    const card = project.findCard(cardToOperateOn);
+    const card = await project.findCard(cardToOperateOn);
     expect(card).not.toBeUndefined();
 
     const previousTitle = card?.metadata?.title;
     const previouslyUpdated = card?.metadata?.lastUpdated;
     const newTitle = 'TheTitle';
     await project.updateCardMetadataKey(card?.key, 'title', newTitle);
-    const updatedCard = project.findCard(cardToOperateOn);
+    const updatedCard = await project.findCard(cardToOperateOn);
 
     // Expect that title is updated, and lastUpdated has been updated.
     expect(previousTitle).not.toBe(updatedCard.metadata!.title);
@@ -236,7 +234,7 @@ describe('project', () => {
 
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
-    const card = project.findCard(cardToOperateOn);
+    const card = await project.findCard(cardToOperateOn);
     expect(card).not.toBeUndefined();
 
     const previousTitle = card.metadata!.title;
@@ -245,7 +243,7 @@ describe('project', () => {
     const newMetaData = structuredClone(card.metadata)!;
     newMetaData.title = 'TheTitle';
     await project.updateCardMetadata(card, newMetaData);
-    const updatedCard = project.findCard(cardToOperateOn);
+    const updatedCard = await project.findCard(cardToOperateOn);
 
     // Expect that title is updated, and lastUpdated has been updated.
     expect(previousTitle).not.toBe(updatedCard.metadata!.title);
@@ -260,14 +258,14 @@ describe('project', () => {
 
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
-    const card = project.findCard(cardToOperateOn);
+    const card = await project.findCard(cardToOperateOn);
     expect(card).not.toBeUndefined();
 
     const previousTitle = card.metadata!.title;
     const previouslyUpdated = card.metadata!.lastUpdated;
     const newTitle = 'Decision Records';
     await project.updateCardMetadataKey(card.key, 'title', newTitle);
-    const updatedCard = project.findCard(cardToOperateOn);
+    const updatedCard = await project.findCard(cardToOperateOn);
 
     // Expect the data be unchanged
     expect(previousTitle).toBe(updatedCard.metadata!.title);
@@ -280,7 +278,7 @@ describe('project', () => {
 
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
-    const card = project.findCard(cardToOperateOn);
+    const card = await project.findCard(cardToOperateOn);
     expect(card).not.toBeUndefined();
 
     // Trying to update wrong kind of data throws
@@ -294,7 +292,7 @@ describe('project', () => {
 
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
-    const card = project.findCard(cardToOperateOn);
+    const card = await project.findCard(cardToOperateOn);
     expect(card).not.toBeUndefined();
 
     const originalTitle = card.metadata!.title;
@@ -338,7 +336,7 @@ describe('project', () => {
 
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
-    const card = project.findCard(cardToOperateOn);
+    const card = await project.findCard(cardToOperateOn);
     expect(card).not.toBeUndefined();
 
     const previousContent = card.content;
@@ -352,7 +350,7 @@ describe('project', () => {
 
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
-    const card = project.findCard(cardToOperateOn);
+    const card = await project.findCard(cardToOperateOn);
     expect(card).not.toBeUndefined();
 
     const previousContent = card.content;
@@ -367,7 +365,7 @@ describe('project', () => {
     await project.populateCaches();
     expect(project).not.toBeUndefined();
 
-    const projectCards = project.cardTree.rootCards();
+    const projectCards = await project.cardTree.rootCards();
     expect(projectCards.length).toBe(1);
     const projectCard = projectCards.at(0)!;
     expect(projectCard.key).toBe('decision_5');
@@ -385,7 +383,7 @@ describe('project', () => {
     await project.populateCaches();
     expect(project).not.toBeUndefined();
 
-    const projectCards = project.cardTree.rootCards();
+    const projectCards = await project.cardTree.rootCards();
     expect(projectCards.length).toBe(0);
   });
   it('access workflow details (success)', async () => {
@@ -422,7 +420,7 @@ describe('project', () => {
 
     const cardToOperateOn = 'decision_5';
     const state = 'Approved';
-    const cardDetails = project.findCard(cardToOperateOn);
+    const cardDetails = await project.findCard(cardToOperateOn);
     expect(cardDetails).not.toBeUndefined();
     expect(cardDetails.metadata!.workflowState).not.toBe(state);
 
@@ -448,7 +446,7 @@ describe('project', () => {
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).not.toBeUndefined();
-    const templateCards = project.allTemplateCards();
+    const templateCards = await project.allTemplateCards();
     expect(templateCards.length).toBeGreaterThan(0);
     const template = project.templateOfCard(templateCards.at(0)!);
     expect(template).not.toBeUndefined();
@@ -459,11 +457,11 @@ describe('project', () => {
     await project.populateCaches();
     expect(project).not.toBeUndefined();
 
-    expect(() => {
-      project.findCard('idontexist');
-    }).toThrow(CardNotFoundError);
+    await expect(project.findCard('idontexist')).rejects.toThrow(
+      CardNotFoundError,
+    );
 
-    const existingCard = project.findCard('decision_5');
+    const existingCard = await project.findCard('decision_5');
     expect(existingCard).not.toBeUndefined();
     expect(existingCard.content).not.toBeUndefined();
   });
@@ -472,7 +470,7 @@ describe('project', () => {
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).not.toBeUndefined();
-    const existingCard = project.findCard('decision_1');
+    const existingCard = await project.findCard('decision_1');
     expect(existingCard).not.toBeUndefined();
     expect(existingCard.content).not.toBeUndefined();
   });
@@ -490,12 +488,12 @@ describe('project', () => {
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     // You get the same cards if you fetch all template cards in one call...
-    let templateCards = project.allTemplateCards();
+    let templateCards = await project.allTemplateCards();
     expect(templateCards).toHaveLength(4);
     // ...or fetch all templates, and then all cards for that template.
     const templates = project.resources.templates();
     for (const template of templates) {
-      const cards = project.templateTree(template.data!.name).cards();
+      const cards = await project.templateTree(template.data!.name).cards();
       templateCards = templateCards.filter((item) => cards.includes(item));
     }
     expect(templateCards).toHaveLength(0);
@@ -557,7 +555,7 @@ describe('project', () => {
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     const cardId = 'decision_5';
-    const card = project.findCard(cardId);
+    const card = await project.findCard(cardId);
     expect(card.key).toBe(cardId);
     expect(card.parent).toBe('root'); // root card
     expect(project.treeOf(cardId).ancestorsOf(cardId)).toHaveLength(0);
@@ -569,7 +567,7 @@ describe('project', () => {
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     const cardId = 'decision_6';
-    const card = project.findCard(cardId);
+    const card = await project.findCard(cardId);
     expect(card.key).toBe(cardId);
     expect(project.treeOf(cardId).name).toBe('project'); // not a template card
     expect(project.treeOf(cardId).ancestorsOf(cardId)).toHaveLength(1);
@@ -582,7 +580,7 @@ describe('project', () => {
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     const cardId = 'decision_1';
-    const card = project.findCard(cardId);
+    const card = await project.findCard(cardId);
     expect(card.key).toBe(cardId);
     expect(card.parent).toBe('root'); // root card
     expect(project.treeOf(cardId).ancestorsOf(cardId)).toHaveLength(0);
@@ -593,7 +591,7 @@ describe('project', () => {
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     const cardId = 'decision_4';
-    const card = project.findCard(cardId);
+    const card = await project.findCard(cardId);
     expect(card.key).toBe(cardId);
     expect(project.treeOf(cardId).ancestorsOf(cardId)).toHaveLength(1);
     expect(project.treeOf(cardId).name).toBe('decision/templates/simplepage');
@@ -603,7 +601,7 @@ describe('project', () => {
     const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
-    expect(() => project.findCard('decision_99')).toThrow();
+    await expect(project.findCard('decision_99')).rejects.toThrow();
     expect(project.cardKeyRegistry.ownerOf('decision_99')).toBeUndefined();
   });
   it('add module to project', async () => {
@@ -649,9 +647,9 @@ describe('project', () => {
     const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
-    const cards = project.cardTree.cards();
+    const cards = await project.cardTree.cards();
     const hierarchicalCards = buildCardHierarchy(cards);
-    const flat = flattenCardArray(hierarchicalCards, project);
+    const flat = await flattenCardArray(hierarchicalCards, project);
 
     expect(flat.length).toBe(2);
     const rootCard = flat.at(0)!;
@@ -687,7 +685,7 @@ describe('project', () => {
     );
 
     // Check that card includes the new attachment
-    const card = project.findCard('decision_5');
+    const card = await project.findCard('decision_5');
     const cardAttachments = card.attachments.map((item) => item.fileName);
     expect(cardAttachments.length).toBe(2);
     expect(cardAttachments).toContain('newAttachment.heic');
@@ -758,14 +756,14 @@ describe('project', () => {
     await project.populateCaches();
 
     // Check that Card data can be retrieved with card keys
-    const cards = project.cardKeysToCards(['decision_5', 'decision_6']);
+    const cards = await project.cardKeysToCards(['decision_5', 'decision_6']);
     expect(cards.length).toBe(2);
     expect(cards.at(0)!.key).toBe('decision_5');
     expect(cards.at(1)!.key).toBe('decision_6');
 
     // Check that children Card data can be retrieved
-    const parentCard = project.findCard('decision_5');
-    const childCards = project.cardKeysToCards(parentCard.children);
+    const parentCard = await project.findCard('decision_5');
+    const childCards = await project.cardKeysToCards(parentCard.children);
     expect(childCards.length).toBe(1);
     expect(childCards.at(0)!.key).toBe('decision_6');
   });

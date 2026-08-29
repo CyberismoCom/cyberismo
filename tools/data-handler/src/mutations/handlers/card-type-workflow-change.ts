@@ -66,12 +66,17 @@ export class CardTypeWorkflowChangeHandler implements Handler<EditInput> {
   }
 
   // Cards using this card type: local project cards plus local template cards.
-  private affectedCards(ctx: MutationContext, cardTypeName: string): Card[] {
-    const project = [...ctx.project.cardTree.cards()];
-    const templates = ctx.project.resources
-      .templates(ResourcesFrom.localOnly)
-      .flatMap((t) => t.templateCards());
-    return [...project, ...templates].filter(
+  private async affectedCards(
+    ctx: MutationContext,
+    cardTypeName: string,
+  ): Promise<Card[]> {
+    const project = await ctx.project.cardTree.cards();
+    const templates = await Promise.all(
+      ctx.project.resources
+        .templates(ResourcesFrom.localOnly)
+        .map((t) => t.templateCards()),
+    );
+    return [...project, ...templates.flat()].filter(
       (c) => c.metadata?.cardType === cardTypeName,
     );
   }
@@ -83,7 +88,7 @@ export class CardTypeWorkflowChangeHandler implements Handler<EditInput> {
     stateMapping: Record<string, string>,
   ): Promise<void> {
     const logger = getChildLogger({ module: 'card-type-workflow-change' });
-    const cards = this.affectedCards(ctx, cardTypeName);
+    const cards = await this.affectedCards(ctx, cardTypeName);
     const unmappedStates: string[] = [];
 
     const updatePromises = cards.map(async (card) => {

@@ -224,11 +224,12 @@ export abstract class ResourceObject<
   /**
    * Cards from project.
    */
-  protected cards(): Card[] {
-    return [
-      ...this.project.cardTree.cards(),
-      ...this.project.allTemplateCards(),
-    ];
+  protected async cards(): Promise<Card[]> {
+    const [projectCards, templateCards] = await Promise.all([
+      this.project.cardTree.cards(),
+      this.project.allTemplateCards(),
+    ]);
+    return [...projectCards, ...templateCards];
   }
 
   /**
@@ -556,7 +557,9 @@ export abstract class ResourceObject<
         `Resource '${this.resourceName.identifier}' does not exist in the project`,
       );
     }
-    const cardArray = cards?.length ? cards : this.project.cardTree.cards();
+    const cardArray = cards?.length
+      ? cards
+      : await this.project.cardTree.cards();
 
     return cardArray
       .filter((card) =>

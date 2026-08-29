@@ -98,7 +98,7 @@ export class SkillResource extends FolderResource<SkillMetadata, SkillContent> {
    * @returns array of card keys and calculation filenames that refer this resource.
    */
   public async usage(cards?: Card[]): Promise<string[]> {
-    const allCards = cards ?? super.cards();
+    const allCards = cards ?? (await super.cards());
     const [relevantCards, calculations] = await Promise.all([
       super.usage(allCards),
       super.calculations(),

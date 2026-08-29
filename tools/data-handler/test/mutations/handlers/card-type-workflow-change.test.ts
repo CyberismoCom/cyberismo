@@ -72,7 +72,7 @@ describe('CardTypeWorkflowChangeHandler', () => {
       .byType(cardTypeName(), 'cardTypes')
       .show();
     expect(updated.workflow).toBe(toWorkflow());
-    for (const card of project.cardTree.cards()) {
+    for (const card of await project.cardTree.cards()) {
       if (card.metadata?.cardType === cardTypeName()) {
         expect(['Created', 'Approved', 'Deprecated']).toContain(
           card.metadata.workflowState,
@@ -83,8 +83,7 @@ describe('CardTypeWorkflowChangeHandler', () => {
 
   it('changes the workflow reference but leaves card states when no mapping is given', async () => {
     const before = new Map(
-      project.cardTree
-        .cards()
+      (await project.cardTree.cards())
         .filter((c) => c.metadata?.cardType === cardTypeName())
         .map((c) => [c.key, c.metadata!.workflowState]),
     );
@@ -106,7 +105,7 @@ describe('CardTypeWorkflowChangeHandler', () => {
       .show();
     expect(updated.workflow).toBe(toWorkflow());
     // With no state mapping, card workflowState is untouched.
-    for (const card of project.cardTree.cards()) {
+    for (const card of await project.cardTree.cards()) {
       if (card.metadata?.cardType === cardTypeName()) {
         expect(card.metadata.workflowState).toBe(before.get(card.key));
       }

@@ -160,7 +160,7 @@ export class CardMetadataUpdater {
       errors: [],
     };
 
-    const card = project.findCard(cardKey);
+    const card = await project.findCard(cardKey);
     if (!card || !card.metadata) {
       result.success = false;
       result.errors.push(

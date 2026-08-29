@@ -105,7 +105,7 @@ describe('TemplateResource.createCards', () => {
   it('does not change the template cards when instantiating a template twice', async () => {
     const template = templateOf('decision/templates/simplepage');
 
-    const before = template.templateCards().map((card) => ({
+    const before = (await template.templateCards()).map((card) => ({
       key: card.key,
       path: card.path,
       rank: card.metadata?.rank,
@@ -127,7 +127,7 @@ describe('TemplateResource.createCards', () => {
     await template.createCards();
     await template.createCards();
 
-    const after = template.templateCards().map((card) => ({
+    const after = (await template.templateCards()).map((card) => ({
       key: card.key,
       path: card.path,
       rank: card.metadata?.rank,
@@ -142,7 +142,7 @@ describe('TemplateResource.createCards', () => {
 
   it('surfaces the original error and leaves no partial cards when a write fails', async () => {
     const template = templateOf('decision/templates/simplepage');
-    expect(template.templateCards().length).toBe(3);
+    expect((await template.templateCards()).length).toBe(3);
 
     const keysBefore = await cardRootKeys();
 
@@ -172,7 +172,7 @@ describe('TemplateResource.createCards', () => {
   // children.
   it('deletes only what it created when instantiating under a parent card', async () => {
     const template = templateOf('decision/templates/simplepage');
-    const parentCard = project.findCard('decision_5');
+    const parentCard = await project.findCard('decision_5');
     const childrenBefore = parentCard.children;
     expect(childrenBefore.length).toBeGreaterThan(0);
 
@@ -181,7 +181,7 @@ describe('TemplateResource.createCards', () => {
     await expect(template.createCards(parentCard)).rejects.toThrow(/ENOENT/);
 
     // The parent and its existing children are untouched.
-    const parentAfter = project.findCard('decision_5');
+    const parentAfter = await project.findCard('decision_5');
     expect(parentAfter.children).to.deep.equal(childrenBefore);
     for (const childKey of childrenBefore) {
       expect(
@@ -201,7 +201,9 @@ describe('TemplateResource.createCards', () => {
   it('caches the content it actually wrote', async () => {
     const template = templateOf('decision/templates/simplepage');
 
-    const cached = project.findCard(await instantiateAttachedCard(template));
+    const cached = await project.findCard(
+      await instantiateAttachedCard(template),
+    );
 
     // The cached content must be the content that was written, with the
     // attachment reference already renamed.
@@ -318,7 +320,9 @@ describe('TemplateResource.createCards', () => {
   it('caches the attachments it actually wrote', async () => {
     const template = templateOf('decision/templates/simplepage');
 
-    const cached = project.findCard(await instantiateAttachedCard(template));
+    const cached = await project.findCard(
+      await instantiateAttachedCard(template),
+    );
     const expectedFileName = `${cached.key}-${ATTACHMENT}`;
     const expectedFolder = join(cached.path, 'a');
 

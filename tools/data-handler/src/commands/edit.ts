@@ -42,7 +42,9 @@ export class Edit {
    * @param cardKey - The key of the card to open. Required.
    */
   public editCard(cardKey: string) {
-    const card = this.project.findCard(cardKey);
+    // The node view: the editor is launched on the card's files, and where
+    // they are is all this needs.
+    const card = this.project.cardNode(cardKey);
 
     // Read the user preferences
     const prefs = new UserPreferences(
@@ -91,11 +93,11 @@ export class Edit {
     if (!this.project.treeOf(cardKey).validationApplies) {
       return this.project.updateCardContent(cardKey, changedContent);
     }
-    if (this.project.findCard(cardKey)) {
-      const actionGuard = new ActionGuard(this.project.calculationEngine);
-      await actionGuard.checkPermission('editContent', cardKey);
-      await this.project.updateCardContent(cardKey, changedContent);
-    }
+    // Throws if the card is not part of the project.
+    this.project.cardNode(cardKey);
+    const actionGuard = new ActionGuard(this.project.calculationEngine);
+    await actionGuard.checkPermission('editContent', cardKey);
+    await this.project.updateCardContent(cardKey, changedContent);
   }
 
   /**
@@ -114,7 +116,7 @@ export class Edit {
       throw new Error(`Changed key cannot be empty`);
     }
 
-    const card = this.project.findCard(cardKey);
+    const card = await this.project.findCard(cardKey);
     this.assertFieldIsEditable(card, changedKey, newValue);
 
     // A template card has no workflow state, so there is no transition to

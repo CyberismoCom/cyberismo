@@ -212,7 +212,7 @@ describe('Card store', () => {
       await tree.load();
 
       expect(tree.isPopulated).toBe(true);
-      expect(tree.cards()).toHaveLength(0);
+      expect(await tree.cards()).toHaveLength(0);
     });
 
     it('should clear the store and reset populated state', async () => {
@@ -238,14 +238,16 @@ describe('Card store', () => {
       rmSync(testDir, { recursive: true, force: true });
     });
 
-    it('should retrieve existing card', () => {
-      const card = tree.card('test_1');
+    it('should retrieve existing card', async () => {
+      const card = await tree.card('test_1');
       expect(card.key).toBe('test_1');
       expect(card.metadata!.title).toBe('Root Card');
     });
 
-    it('should throw for non-existing card', () => {
-      expect(() => tree.card('non_existing_card')).toThrow(CardNotFoundError);
+    it('should throw for non-existing card', async () => {
+      await expect(tree.card('non_existing_card')).rejects.toThrow(
+        CardNotFoundError,
+      );
       expect(tree.has('non_existing_card')).toBe(false);
     });
 
@@ -287,8 +289,8 @@ describe('Card store', () => {
       rmSync(testDir, { recursive: true, force: true });
     });
 
-    it('should return all cards', () => {
-      const cards = tree.cards();
+    it('should return all cards', async () => {
+      const cards = await tree.cards();
 
       expect(cards).toBeInstanceOf(Array);
       expect(cards.length).toBeGreaterThan(0);
@@ -301,8 +303,10 @@ describe('Card store', () => {
       );
     });
 
-    it('should return only template cards', () => {
-      expect(template.cards().map((card) => card.key)).toEqual(['test_9']);
+    it('should return only template cards', async () => {
+      expect((await template.cards()).map((card) => card.key)).toEqual([
+        'test_9',
+      ]);
       // Each card belongs to exactly one tree, and the registry knows which.
       expect(keys.ownerOf('test_9')).toBe(template);
       expect(keys.ownerOf('test_1')).toBe(tree);
@@ -328,15 +332,15 @@ describe('Card store', () => {
     });
 
     it('should update existing card', async () => {
-      const original = tree.card('test_1');
+      const original = await tree.card('test_1');
       original.metadata!.title = 'Updated Title';
 
       await tree.writeMetadata(original);
 
-      expect(tree.card('test_1').metadata!.title).toBe('Updated Title');
+      expect((await tree.card('test_1')).metadata!.title).toBe('Updated Title');
     });
 
-    it('should add new card if it does not exist', () => {
+    it('should add new card if it does not exist', async () => {
       const newCardKey = 'test_new';
       expect(tree.has(newCardKey)).toBe(false);
 
@@ -356,19 +360,19 @@ describe('Card store', () => {
       });
 
       expect(tree.has(newCardKey)).toBe(true);
-      expect(tree.card(newCardKey).metadata!.title).toBe('New Card');
+      expect((await tree.card(newCardKey)).metadata!.title).toBe('New Card');
       // Inserted at the location's root, so its folder is the root's.
       expect(tree.pathOf(newCardKey)).toBe(join(testCardsPath, newCardKey));
     });
 
     it('should update card content for existing card', async () => {
       const newContent = 'Updated content for test_1';
-      const card = tree.card('test_1');
+      const card = await tree.card('test_1');
 
       expect(await tree.writeContent({ ...card, content: newContent })).toBe(
         true,
       );
-      expect(tree.content('test_1')).toBe(newContent);
+      expect(await tree.content('test_1')).toBe(newContent);
     });
 
     it('should update card metadata for existing card', async () => {
@@ -382,11 +386,11 @@ describe('Card store', () => {
 
       expect(
         await tree.writeMetadata({
-          ...tree.card('test_1'),
+          ...(await tree.card('test_1')),
           metadata: newMetadata,
         }),
       ).toBe(true);
-      const updated = tree.card('test_1');
+      const updated = await tree.card('test_1');
       expect(updated.metadata!.title).toBe('Updated Metadata Title');
       expect(updated.metadata!.workflowState).toBe('Published');
     });
@@ -440,9 +444,9 @@ describe('Card store', () => {
       await expect(module.deleteSubtree('test_9')).rejects.toThrow(
         'Cannot modify imported module',
       );
-      await expect(module.writeMetadata(module.card('test_9'))).rejects.toThrow(
-        'Cannot modify imported module',
-      );
+      await expect(
+        module.writeMetadata(await module.card('test_9')),
+      ).rejects.toThrow('Cannot modify imported module');
     });
   });
 
@@ -537,6 +541,7 @@ describe('Card store', () => {
       store.put({
         key: 'test_1',
         parent: 'root',
+        contentRead: true,
         metadata: {
           title: 'Card',
           cardType: 'test/cardTypes/page',
@@ -642,16 +647,16 @@ describe('Card store', () => {
       rmSync(invalidCardPath, { recursive: true, force: true });
     });
 
-    it('should populate parent-child relationships', () => {
-      const parentCard = tree.card('test_1');
+    it('should populate parent-child relationships', async () => {
+      const parentCard = await tree.card('test_1');
       expect(parentCard.children).toHaveLength(2);
       expect(parentCard.children).toContain('test_2');
       expect(parentCard.children).toContain('test_3');
       // The card's children mirror the adjacency index.
       expect(tree.childrenOf('test_1')).toEqual(parentCard.children);
       // And a child names its parent, taken from where its folder sits.
-      expect(tree.card('test_2').parent).toBe('test_1');
-      expect(tree.card('test_1').parent).toBe('root');
+      expect((await tree.card('test_2')).parent).toBe('test_1');
+      expect((await tree.card('test_1')).parent).toBe('root');
     });
 
     it('should return correct population status', async () => {
@@ -669,7 +674,7 @@ describe('Card store', () => {
     it('writeMetadata throws when the metadata file cannot be written', async () => {
       // A directory where index.json belongs is an unwritable target for any
       // user, root included.
-      const card = tree.card('test_3');
+      const card = await tree.card('test_3');
       rmSync(join(tree.pathOf('test_3'), 'index.json'));
       mkdirSync(join(tree.pathOf('test_3'), 'index.json'), {
         recursive: true,
@@ -679,7 +684,7 @@ describe('Card store', () => {
     });
   });
 
-  describe('index consistency', () => {
+  describe('index consistency', async () => {
     // The containers the randomized sequence spreads cards over: the project,
     // plus two templates. Each is its own tree, and they share one key
     // registry — which is what keeps card keys unique across all of them.
@@ -701,8 +706,11 @@ describe('Card store', () => {
 
     // Compares the whole shape of the index in one assertion, so a mismatch
     // reports contents *and* order.
-    function assertIndexMatchesRecomputation(tree: CardTree, step: string) {
-      const cards = tree.cards();
+    async function assertIndexMatchesRecomputation(
+      tree: CardTree,
+      step: string,
+    ) {
+      const cards = await tree.cards();
       const children = recompute(cards);
 
       const parentKeys = [
@@ -784,7 +792,7 @@ describe('Card store', () => {
       };
     }
 
-    it('the indexes match a from-scratch recomputation after a randomized op sequence', () => {
+    it('the indexes match a from-scratch recomputation after a randomized op sequence', async () => {
       const keyNames = Array.from(
         { length: 24 },
         (_, index) => `test_${index}`,
@@ -858,14 +866,16 @@ describe('Card store', () => {
           }
 
           for (const tree of trees) {
-            assertIndexMatchesRecomputation(tree, label);
+            await assertIndexMatchesRecomputation(tree, label);
           }
           assertOwnershipMatches(trees, keys, label);
         }
 
         // The sequence must have produced real nesting and used more than one
         // tree, or it would not exercise either invariant.
-        const cards = trees.flatMap((tree) => tree.cards());
+        const cards = (
+          await Promise.all(trees.map((tree) => tree.cards()))
+        ).flat();
         expect(
           cards.filter((card) => card.parent && card.parent !== 'root').length,
         ).toBeGreaterThan(0);
@@ -911,13 +921,13 @@ describe('Card store', () => {
       await templateResource.addCard('decision/cardTypes/simplepage');
 
       // Verify cards from template are in the store
-      const templateCards = templateResource.templateCards();
+      const templateCards = await templateResource.templateCards();
       expect(templateCards.length).toBe(2);
 
       // Check that template cards exist in the project's tree
       for (const templateCard of templateCards) {
         expect(commands.project.hasCard(templateCard.key)).toBe(true);
-        const storedCard = commands.project.findCard(templateCard.key);
+        const storedCard = await commands.project.findCard(templateCard.key);
         expect(storedCard).toBeDefined();
         expect(storedCard!.key).toBe(templateCard.key);
       }
@@ -935,7 +945,7 @@ describe('Card store', () => {
       const template = commands.project.resources.byType(name, 'templates');
       await template.addCard('decision/cardTypes/decision');
 
-      const templateCards = template.templateCards();
+      const templateCards = await template.templateCards();
       const templateCardKeys = templateCards.map((card) => card.key);
       for (const cardKey of templateCardKeys) {
         expect(commands.project.hasCard(cardKey)).toBe(true);
@@ -953,7 +963,7 @@ describe('Card store', () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
       await commands.importCmd.importModule(baseModule);
 
-      const allTemplateCards = commands.project.allTemplateCards();
+      const allTemplateCards = await commands.project.allTemplateCards();
       const baseTemplateCards = allTemplateCards.filter((card: Card) =>
         card.path.includes(`base${sep}templates`),
       );
@@ -961,7 +971,7 @@ describe('Card store', () => {
       expect(baseTemplateCards.length).toBeGreaterThan(0);
       for (const templateCard of baseTemplateCards) {
         expect(commands.project.hasCard(templateCard.key)).toBe(true);
-        const storedCard = commands.project.findCard(templateCard.key);
+        const storedCard = await commands.project.findCard(templateCard.key);
         expect(storedCard).toBeDefined();
         expect(storedCard!.key).toBe(templateCard.key);
       }
@@ -972,7 +982,7 @@ describe('Card store', () => {
 
       await commands.importCmd.importModule(baseModule);
 
-      const allTemplateCards = commands.project.allTemplateCards();
+      const allTemplateCards = await commands.project.allTemplateCards();
       const baseTemplateCards = allTemplateCards.filter((card: Card) =>
         card.path.includes(`base${sep}templates`),
       );
@@ -981,7 +991,7 @@ describe('Card store', () => {
       expect(baseTemplateCards.length).toBeGreaterThan(0);
       for (const templateCard of baseTemplateCards) {
         expect(commands.project.hasCard(templateCard.key)).toBe(true);
-        const storedCard = commands.project.findCard(templateCard.key);
+        const storedCard = await commands.project.findCard(templateCard.key);
         expect(storedCard).toBeDefined();
         expect(storedCard!.key).toBe(templateCard.key);
       }
@@ -996,9 +1006,9 @@ describe('Card store', () => {
       await commands.removeCmd.remove('module', moduleEntry!.name);
 
       // Verify module template cards are gone from the store after removal
-      const remainingTemplateCards = commands.project
-        .allTemplateCards()
-        .filter((card: Card) => card.path.includes(`base${sep}templates`));
+      const remainingTemplateCards = (
+        await commands.project.allTemplateCards()
+      ).filter((card: Card) => card.path.includes(`base${sep}templates`));
 
       expect(remainingTemplateCards.length).toBe(0);
       for (const card of baseTemplateCards) {
@@ -1047,13 +1057,13 @@ describe('Card store', () => {
         keys,
       );
       await tree.load();
-      expect(tree.content('test_1')).toBe('project card');
+      expect(await tree.content('test_1')).toBe('project card');
 
       // The template's tree carries a key the project's tree already claimed.
       await expect(template.load()).rejects.toThrow(DuplicateCardKeyError);
 
       // The card that was there first must not have been overwritten.
-      expect(tree.content('test_1')).toBe('project card');
+      expect(await tree.content('test_1')).toBe('project card');
     });
 
     it('rejects a key duplicated inside one populate batch', async () => {

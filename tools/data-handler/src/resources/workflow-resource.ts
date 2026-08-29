@@ -340,7 +340,7 @@ export class WorkflowResource extends FileResource<Workflow> {
    */
   public async usage(cards?: Card[]): Promise<string[]> {
     const resourceName = resourceNameToString(this.resourceName);
-    const allCards = cards ?? super.cards();
+    const allCards = cards ?? (await super.cards());
     const cardTypes = this.project.resources.cardTypes();
     const cardTypeReferences = [];
     for (const cardType of cardTypes) {

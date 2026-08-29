@@ -71,7 +71,7 @@ export class Remove {
 
   // Removes card from project or template
   private async removeCard(cardKey: string) {
-    const card = this.project.findCard(cardKey);
+    const card = await this.project.findCard(cardKey);
 
     // Imported templates cannot be modified.
     if (isModuleCard(card)) {
@@ -91,7 +91,7 @@ export class Remove {
 
   // removes label from project
   private async removeLabel(cardKey: string, label: string) {
-    const card = this.project.findCard(cardKey);
+    const card = await this.project.findCard(cardKey);
     let labels = card.metadata?.labels ?? [];
 
     if (!label && labels.length !== 1) {
@@ -154,7 +154,7 @@ export class Remove {
     linkType?: string,
     linkDescription?: string,
   ) {
-    const sourceCard = this.project.findCard(source);
+    const sourceCard = await this.project.findCard(source);
     const link = sourceCard.metadata?.links.find(
       (l) =>
         l.cardKey === destination &&
@@ -197,7 +197,7 @@ export class Remove {
       );
     }
 
-    const card = this.project.findCard(cardKey);
+    const card = await this.project.findCard(cardKey);
 
     const matches = (l: ExternalLink) =>
       l.connector === connector &&

@@ -102,7 +102,8 @@ export class Move {
     // name), and whether it may be written at all (a module's tree is not
     // writable). The tree knows; the filesystem does not have to be asked.
     const sourceTree = this.project.treeOf(source);
-    const sourceCard = sourceTree.card(source);
+    // The node view: a move needs the card's position, not its content.
+    const sourceCard = sourceTree.node(source);
     const sourceIsTemplate = sourceTree.name !== 'project';
 
     const movingToRoot =
@@ -128,7 +129,7 @@ export class Move {
     const destinationTree = movingToRoot
       ? undefined
       : this.project.treeOf(destination);
-    const destinationCard = destinationTree?.card(destination);
+    const destinationCard = destinationTree?.node(destination);
 
     // Prevent moving card to inside its descendants
     if (

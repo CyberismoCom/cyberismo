@@ -17,6 +17,7 @@ import {
   constants as fsConstants,
   copyFile,
   mkdir,
+  readFile,
   rename,
   unlink,
   writeFile,
@@ -104,6 +105,15 @@ export interface RankChange {
 }
 
 /**
+ * Cards whose facts a tree has stopped matching: those to reproject, and those
+ * whose facts must go.
+ */
+export interface CardFactChanges {
+  changed: string[];
+  removed: string[];
+}
+
+/**
  * Owner of one container's cards: their storage, their structure, their indexes
  * and their filesystem representation.
  *
@@ -122,15 +132,6 @@ export interface RankChange {
  * template, including the templates that come from modules. They share nothing
  * but the key registry.
  */
-/**
- * Cards whose facts a tree has stopped matching: those to reproject, and those
- * whose facts must go.
- */
-export interface CardFactChanges {
-  changed: string[];
-  removed: string[];
-}
-
 export class CardTree {
   private readonly store: CardStore;
   private treeName: string;
@@ -417,8 +418,10 @@ export class CardTree {
    * been loaded is Project.populateCaches's business, not a per-read check.
    * @returns hydrated cards, in tree insertion order.
    */
-  public cards(): Card[] {
-    return this.store.cards().map((card) => this.cardView(card));
+  public async cards(): Promise<Card[]> {
+    const cards = this.store.cards();
+    await this.readContentOf(cards);
+    return cards.map((card) => this.cardView(card));
   }
 
   /**
@@ -465,11 +468,12 @@ export class CardTree {
   /**
    * The tree's root cards, each with its children populated.
    */
-  public rootCards(): Card[] {
-    return this.store
+  public async rootCards(): Promise<Card[]> {
+    const cards = this.store
       .cards()
-      .filter((card) => card.parent === ROOT || !card.parent)
-      .map((card) => this.cardView(card));
+      .filter((card) => card.parent === ROOT || !card.parent);
+    await this.readContentOf(cards);
+    return cards.map((card) => this.cardView(card));
   }
 
   /**
@@ -477,8 +481,10 @@ export class CardTree {
    * @param cardKey Card key to read.
    * @throws CardNotFoundError if the tree does not hold the card
    */
-  public card(cardKey: string): Card {
-    return this.cardView(this.stored(cardKey));
+  public async card(cardKey: string): Promise<Card> {
+    const card = this.stored(cardKey);
+    await this.readContentOf([card]);
+    return this.cardView(card);
   }
 
   /**
@@ -496,8 +502,10 @@ export class CardTree {
    * @returns the card's content, or undefined if it has none.
    * @throws CardNotFoundError if the tree does not hold the card
    */
-  public content(cardKey: string): string | undefined {
-    return this.stored(cardKey).content;
+  public async content(cardKey: string): Promise<string | undefined> {
+    const card = this.stored(cardKey);
+    await this.readContentOf([card]);
+    return card.content;
   }
 
   /**
@@ -517,15 +525,36 @@ export class CardTree {
    * The cards for the given keys. Keys the tree does not hold are skipped.
    * @param cardKeys Card keys to read.
    */
-  public cardsFor(cardKeys: string[]): Card[] {
-    const cards: Card[] = [];
+  public async cardsFor(cardKeys: string[]): Promise<Card[]> {
+    const stored: StoredCard[] = [];
     for (const cardKey of cardKeys) {
       const card = this.store.getCard(cardKey);
       if (card) {
-        cards.push(this.cardView(card));
+        stored.push(card);
       }
     }
-    return cards;
+    await this.readContentOf(stored);
+    return stored.map((card) => this.cardView(card));
+  }
+
+  // Reads the content of every one of the given cards that has not been read
+  // yet, in one batch: a hydrated read is the one caller that wants content,
+  // and reading its cards one at a time would serialise what the load used to
+  // do in parallel.
+  private async readContentOf(cards: StoredCard[]): Promise<void> {
+    const unread = cards.filter((card) => !card.contentRead);
+    if (unread.length === 0) {
+      return;
+    }
+    await Promise.all(
+      unread.map(async (card) => {
+        const content = await readFile(
+          join(this.pathOfStored(card), CARD_CONTENT_FILE),
+          { encoding: 'utf-8' },
+        );
+        this.store.updateCardContent(card.key, content);
+      }),
+    );
   }
 
   // The stored card, or a CardNotFoundError.
@@ -771,6 +800,9 @@ export class CardTree {
       parent: card.parent || ROOT,
       metadata: card.metadata,
       content: card.content,
+      // The card being inserted is the card that was just written, so its
+      // content is known and there is nothing to read back.
+      contentRead: true,
       attachments: CardTree.storedAttachments(card),
     });
     this.factsChanged(card.key);

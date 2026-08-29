@@ -51,6 +51,11 @@ export interface StoredCard {
   children: string[];
   metadata?: CardMetadata;
   content?: string;
+  // Whether 'content' is the card's content or just the absence of a read.
+  // A card is loaded without its content - nothing about a card's facts is
+  // built from it - and the file is read the first time somebody asks. The
+  // flag is what keeps 'no content' and 'not read yet' apart.
+  contentRead: boolean;
   attachments: StoredAttachment[];
 }
 
@@ -58,7 +63,6 @@ export interface StoredCard {
 export type StoredCardInput = Omit<StoredCard, 'children'>;
 
 const cardMetadataFile = 'index.json';
-const cardContentFile = 'index.adoc';
 const attachmentFolder = 'a';
 
 /**
@@ -264,13 +268,6 @@ export class CardStore {
     return undefined;
   }
 
-  // Gets content from disk.
-  private async fetchContent(currentPath: string): Promise<string> {
-    return readFile(join(currentPath, cardContentFile), {
-      encoding: 'utf-8',
-    });
-  }
-
   // Gets metadata from disk.
   private async fetchMetadata(currentPath: string): Promise<string> {
     return readFile(join(currentPath, cardMetadataFile), {
@@ -352,10 +349,7 @@ export class CardStore {
       const parent =
         parentFolder === root ? ROOT : basename(dirname(parentFolder));
 
-      const [cardContent, cardMetadata] = await Promise.all([
-        this.fetchContent(currentPath),
-        this.fetchMetadata(currentPath),
-      ]);
+      const cardMetadata = await this.fetchMetadata(currentPath);
 
       let metadata;
       try {
@@ -378,7 +372,7 @@ export class CardStore {
       return {
         key: entry.name,
         attachments: attachments.get(entry.name) ?? [],
-        content: cardContent,
+        contentRead: false,
         metadata: CardStore.normalizedMetadata(metadata),
         parent,
       };
@@ -627,6 +621,7 @@ export class CardStore {
       return false;
     }
     card.content = content;
+    card.contentRead = true;
     return true;
   }
 

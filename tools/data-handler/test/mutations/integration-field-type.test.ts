@@ -139,9 +139,9 @@ describe('FieldType mutation engine end-to-end', () => {
         { key: 'customFields' },
         { name: 'add', target: { name: fieldName } },
       );
-    for (const card of freshProject.cardTree
-      .cards()
-      .filter((c) => c.metadata?.cardType === cardTypeName)) {
+    for (const card of (await freshProject.cardTree.cards()).filter(
+      (c) => c.metadata?.cardType === cardTypeName,
+    )) {
       card.metadata![fieldName] = 'low';
       await freshProject.updateCardMetadata(card, card.metadata!);
     }
@@ -159,9 +159,9 @@ describe('FieldType mutation engine end-to-end', () => {
     });
 
     // Cards migrated to the new value.
-    const anyStillLow = freshProject.cardTree
-      .cards()
-      .some((c) => c.metadata?.[fieldName] === 'low');
+    const anyStillLow = (await freshProject.cardTree.cards()).some(
+      (c) => c.metadata?.[fieldName] === 'low',
+    );
     expect(anyStillLow).toBe(false);
 
     // Breaking edit records a log entry.

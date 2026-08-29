@@ -115,7 +115,9 @@ export class Create {
       templateName,
       'templates',
     );
-    const specificCard = card ? templateResource.templateCard(card) : undefined;
+    const specificCard = card
+      ? await templateResource.templateCard(card)
+      : undefined;
 
     if (isModulePath(templateResource.templateFolder())) {
       throw new Error(`Cannot add cards to imported module templates`);
@@ -209,7 +211,7 @@ export class Create {
     await templateResource.validate();
 
     const specificCard = parentCardKey
-      ? this.project.findCard(parentCardKey)
+      ? await this.project.findCard(parentCardKey)
       : undefined;
     if (!templateResource.isCreated()) {
       throw new Error(`Template '${templateName}' not found from project`);
@@ -298,7 +300,7 @@ export class Create {
       throw new Error(`Not a valid label name'`);
     }
 
-    const card = this.project.findCard(cardKey);
+    const card = await this.project.findCard(cardKey);
     const labels = structuredClone(card.metadata?.labels) ?? [];
 
     if (labels.includes(label)) {
@@ -379,8 +381,8 @@ export class Create {
     linkType: string,
     linkDescription?: string,
   ) {
-    const sourceCard = this.project.findCard(source);
-    const destinationCard = this.project.findCard(destination);
+    const sourceCard = await this.project.findCard(source);
+    const destinationCard = await this.project.findCard(destination);
 
     const linkTypeObject = this.getLinkTypeWithValidation(
       linkType,
@@ -494,7 +496,7 @@ export class Create {
       );
     }
 
-    const card = this.project.findCard(cardKey);
+    const card = await this.project.findCard(cardKey);
     const linkTypeObject = this.getLinkTypeWithValidation(
       linkType,
       linkDescription,

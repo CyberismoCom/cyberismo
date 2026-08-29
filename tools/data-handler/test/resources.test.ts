@@ -1728,7 +1728,7 @@ describe('resources', function () {
       ).rejects.toThrow('Resource identifier must follow naming rules.');
     });
     it('update field type - change data type (number -> integer) does not cascade to cards via resource class', async () => {
-      let card6 = project.findCard('decision_6');
+      let card6 = await project.findCard('decision_6');
       expect(card6.metadata!['decision/fieldTypes/numberOfCommits']).equals(
         1.5,
       );
@@ -1745,7 +1745,7 @@ describe('resources', function () {
       // The resource-level update persists the new dataType but no longer
       // converts card values; FieldTypeDataTypeHandler owns that cascade.
       expect(res.data?.dataType).toBe('integer');
-      card6 = project.findCard('decision_6');
+      card6 = await project.findCard('decision_6');
       expect(card6.metadata!['decision/fieldTypes/numberOfCommits']).equals(
         1.5,
       );
@@ -2176,7 +2176,7 @@ describe('resources', function () {
     it('update existing workflow - rename state (resource-level does NOT migrate cards)', async () => {
       const name = 'decision/workflows/decision';
       const res = project.resources.byType(name, 'workflows');
-      const cards = project.cardTree.cards();
+      const cards = await project.cardTree.cards();
       const cardsWithThisWorkflow = cards.filter((card) => {
         const ct = project.resources.byType(
           card.metadata?.cardType as string,
@@ -2210,7 +2210,7 @@ describe('resources', function () {
       expect((res.data as Workflow).states.map((s) => s.name)).not.toContain(
         'Approved',
       );
-      const updatedCard = project.findCard(target.key);
+      const updatedCard = await project.findCard(target.key);
       expect(updatedCard.metadata!.workflowState).toBe('Approved');
 
       const opRevert = {
@@ -2576,13 +2576,13 @@ describe('resources', function () {
 
     it('should not update card contents when renaming template via resource class (cascade moved to handler)', async () => {
       const cardKey = 'decision_5';
-      const card = project.findCard(cardKey);
+      const card = await project.findCard(cardKey);
       expect(card.content).toContain('decision/templates/simplepage');
 
       const templateName = 'decision/templates/simplepage';
       const template = project.resources.byType(templateName, 'templates');
       await template.rename('renamedpage');
-      const updatedCard = project.findCard(cardKey);
+      const updatedCard = await project.findCard(cardKey);
 
       expect(template.data?.name).toBe('decision/templates/renamedpage');
       // The resource-level rename no longer cascades; LeafResourceRenameHandler does.
@@ -2596,13 +2596,13 @@ describe('resources', function () {
 
     it('should not update card contents when renaming report via resource class (cascade moved to handler)', async () => {
       const cardKey = 'decision_5';
-      const card = project.findCard(cardKey);
+      const card = await project.findCard(cardKey);
       expect(card.content).toContain('decision/reports/testReport');
 
       const reportName = 'decision/reports/testReport';
       const report = project.resources.byType(reportName, 'reports');
       await report.rename('renamedReport');
-      const updatedCard = project.findCard(cardKey);
+      const updatedCard = await project.findCard(cardKey);
 
       expect(report.data?.name).toBe('decision/reports/renamedReport');
       // The resource-level rename no longer cascades; LeafResourceRenameHandler does.
@@ -2627,7 +2627,7 @@ describe('resources', function () {
         `This card references ${workflowName} in its content.`,
       );
 
-      let card = project.findCard(cardKey);
+      let card = await project.findCard(cardKey);
       expect(card.content).toContain(workflowName);
 
       await workflow.rename('renamedWorkflow');
@@ -2635,7 +2635,7 @@ describe('resources', function () {
       expect(workflow.data?.name).toBe('decision/workflows/renamedWorkflow');
 
       // The resource-level rename no longer cascades; WorkflowRenameHandler does.
-      card = project.findCard(cardKey);
+      card = await project.findCard(cardKey);
       expect(card.content).toContain(workflowName);
       expect(card.content).not.toContain('decision/workflows/renamedWorkflow');
 
@@ -2657,14 +2657,14 @@ describe('resources', function () {
         `This card references ${fieldTypeName} in its content.`,
       );
 
-      let card = project.findCard(cardKey);
+      let card = await project.findCard(cardKey);
       expect(card.content).toContain(fieldTypeName);
 
       await fieldType.rename('renamedField');
       expect(fieldType.data?.name).toBe('decision/fieldTypes/renamedField');
 
       // The resource-level rename no longer cascades; FieldTypeRenameHandler does.
-      card = project.findCard(cardKey);
+      card = await project.findCard(cardKey);
       expect(card.content).toContain(fieldTypeName);
       expect(card.content).not.toContain('decision/fieldTypes/renamedField');
 
@@ -2686,14 +2686,14 @@ describe('resources', function () {
         `This card references ${cardTypeName} in its content.`,
       );
 
-      let card = project.findCard(cardKey);
+      let card = await project.findCard(cardKey);
       expect(card.content).toContain(cardTypeName);
 
       await cardType.rename('renamedType');
       expect(cardType.data?.name).toBe('decision/cardTypes/renamedType');
 
       // The resource-level rename no longer cascades; CardTypeRenameHandler does.
-      card = project.findCard(cardKey);
+      card = await project.findCard(cardKey);
       expect(card.content).toContain(cardTypeName);
       expect(card.content).not.toContain('decision/cardTypes/renamedType');
 
@@ -2719,7 +2719,7 @@ describe('resources', function () {
         `This card references ${linkTypeName} in its content.`,
       );
 
-      let card = project.findCard(cardKey);
+      let card = await project.findCard(cardKey);
       expect(card.content).toContain(linkTypeName);
 
       const update = new Update(project);
@@ -2739,7 +2739,7 @@ describe('resources', function () {
       );
       expect(renamed.data?.name).toBe('decision/linkTypes/renamedLink');
 
-      card = project.findCard(cardKey);
+      card = await project.findCard(cardKey);
       expect(card.content).toContain('decision/linkTypes/renamedLink');
       expect(card.content).not.toContain(linkTypeName);
 
@@ -2763,14 +2763,14 @@ describe('resources', function () {
         `This card references ${calculationName} in its content.`,
       );
 
-      let card = project.findCard(cardKey);
+      let card = await project.findCard(cardKey);
       expect(card.content).toContain(calculationName);
       await calculation.rename('renamedCalc');
 
       expect(calculation.data?.name).toBe('decision/calculations/renamedCalc');
 
       // The resource-level rename no longer cascades; LeafResourceRenameHandler does.
-      card = project.findCard(cardKey);
+      card = await project.findCard(cardKey);
       expect(card.content).toContain(calculationName);
       expect(card.content).not.toContain('decision/calculations/renamedCalc');
 
@@ -2794,14 +2794,14 @@ describe('resources', function () {
         `This card references ${graphModelName} in its content.`,
       );
 
-      let card = project.findCard(cardKey);
+      let card = await project.findCard(cardKey);
       expect(card.content).toContain(graphModelName);
 
       await graphModel.rename('renamedGraph');
       expect(graphModel.data?.name).toBe('decision/graphModels/renamedGraph');
 
       // The resource-level rename no longer cascades; LeafResourceRenameHandler does.
-      card = project.findCard(cardKey);
+      card = await project.findCard(cardKey);
       expect(card.content).toContain(graphModelName);
       expect(card.content).not.toContain('decision/graphModels/renamedGraph');
 
@@ -2822,14 +2822,14 @@ describe('resources', function () {
         `This card references ${graphViewName} in its content.`,
       );
 
-      let card = project.findCard(cardKey);
+      let card = await project.findCard(cardKey);
       expect(card.content).toContain(graphViewName);
 
       await graphView.rename('renamedView');
       expect(graphView.data?.name).toBe('decision/graphViews/renamedView');
 
       // The resource-level rename no longer cascades; LeafResourceRenameHandler does.
-      card = project.findCard(cardKey);
+      card = await project.findCard(cardKey);
       expect(card.content).toContain(graphViewName);
       expect(card.content).not.toContain('decision/graphViews/renamedView');
 
@@ -2859,7 +2859,7 @@ describe('resources', function () {
 
       // The resource-level rename no longer cascades; LeafResourceRenameHandler does.
       for (const cardKey of cardKeys) {
-        const card = project.findCard(cardKey);
+        const card = await project.findCard(cardKey);
         expect(card.content).toContain(templateName);
         expect(card.content).not.toContain(
           'decision/templates/renamedMultiRef',
@@ -2903,7 +2903,7 @@ describe('resources', function () {
       const cardKey2 = result2[0].key;
 
       // Link card1 -> card2
-      let card1 = project.findCard(cardKey1);
+      let card1 = await project.findCard(cardKey1);
 
       card1.metadata!.links.push({
         linkType: linkTypeName,
@@ -2912,7 +2912,7 @@ describe('resources', function () {
       });
 
       await project.updateCardMetadata(card1, card1.metadata!);
-      card1 = project.findCard(cardKey1);
+      card1 = await project.findCard(cardKey1);
       expect(card1.metadata?.links).to.have.lengthOf(1);
       expect(card1.metadata?.links[0].linkType).toBe(linkTypeName);
 
@@ -2924,7 +2924,7 @@ describe('resources', function () {
       });
       const renamed = project.resources.byType(linkTypeRenamed, 'linkTypes');
       expect(renamed.data?.name).toBe(linkTypeRenamed);
-      card1 = project.findCard(cardKey1);
+      card1 = await project.findCard(cardKey1);
       expect(card1.metadata?.links).to.have.lengthOf(1);
       expect(card1.metadata?.links[0].linkType).toBe(linkTypeRenamed);
       expect(card1.metadata?.links[0].cardKey).toBe(cardKey2);

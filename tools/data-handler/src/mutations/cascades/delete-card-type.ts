@@ -18,12 +18,18 @@ import type { Card } from '../../interfaces/project-interfaces.js';
 import type { Operation } from '../../resources/resource-object.js';
 
 // Cards using this card type: local project cards plus local template cards.
-function affectedCards(ctx: MutationContext, cardTypeName: string): Card[] {
-  return [
-    ...ctx.project.cardTree.cards(),
-    ...ctx.project.resources
+async function affectedCards(
+  ctx: MutationContext,
+  cardTypeName: string,
+): Promise<Card[]> {
+  const templateCards = await Promise.all(
+    ctx.project.resources
       .templates(ResourcesFrom.localOnly)
-      .flatMap((t) => t.templateCards()),
+      .map((t) => t.templateCards()),
+  );
+  return [
+    ...(await ctx.project.cardTree.cards()),
+    ...templateCards.flat(),
   ].filter((c) => c.metadata?.cardType === cardTypeName);
 }
 
@@ -56,7 +62,7 @@ export async function deleteCardTypeCascade(
   // 2. Delete every local card of this type, along with their subtrees and any
   //    links pointing at them. deleteCards handles the cascade; no per-card
   //    permission check applies to a structural cardType deletion.
-  await ctx.project.deleteCards(affectedCards(ctx, cardTypeName));
+  await ctx.project.deleteCards(await affectedCards(ctx, cardTypeName));
 }
 
 /**

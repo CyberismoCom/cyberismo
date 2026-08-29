@@ -36,7 +36,7 @@ describe('mutation engine end-to-end', () => {
     const oldRef = `${project.projectPrefix}/linkTypes/test`;
     const newRef = `${project.projectPrefix}/linkTypes/is-caused-by`;
     let sawNew = false;
-    for (const card of project.cardTree.cards()) {
+    for (const card of await project.cardTree.cards()) {
       for (const link of card.metadata?.links ?? []) {
         expect(link.linkType).not.toBe(oldRef);
         if (link.linkType === newRef) sawNew = true;

@@ -256,7 +256,7 @@ describe('move command', () => {
     expect(result.statusCode).toBe(200);
     const verify = getTestProject(options.projectPath!);
     await verify.populateCaches();
-    const after = verify.findCard('decision_4');
+    const after = await verify.findCard('decision_4');
     expect(after.parent).toBe('decision_1');
     expect(after.path).toContain(
       `templates${sep}decision${sep}c${sep}decision_1${sep}c${sep}decision_4`,
@@ -288,7 +288,7 @@ describe('move command', () => {
     expect(result.statusCode).toBe(200);
     const verify = getTestProject(options.projectPath!);
     await verify.populateCaches();
-    const after = verify.findCard('decision_4');
+    const after = await verify.findCard('decision_4');
     expect(after.parent).toBe('root');
     expect(after.path).toContain(
       `templates${sep}decision${sep}c${sep}decision_4`,
@@ -326,7 +326,7 @@ describe('move command', () => {
 
     const verify = getTestProject(options.projectPath!);
     await verify.populateCaches();
-    const after = verify.findCard('decision_4');
+    const after = await verify.findCard('decision_4');
     expect(after.parent).toBe('root');
     // It now lives directly under simplepage/c, not under decision_3/c
     expect(after.path).toContain(
@@ -507,9 +507,9 @@ describe('move command', () => {
     expect(childCardKey).toBeTypeOf('string');
 
     // Verify initial state - both cards should be findable in the same project instance used by commandHandler
-    const parentBefore = project.findCard(parentCardKey!);
-    const childBefore = project.findCard(childCardKey!);
-    const allCardsBefore = project.cardTree.cards();
+    const parentBefore = await project.findCard(parentCardKey!);
+    const childBefore = await project.findCard(childCardKey!);
+    const allCardsBefore = await project.cardTree.cards();
 
     expect(
       parentBefore,
@@ -522,7 +522,7 @@ describe('move command', () => {
     expect(childBefore!.parent).toBe('root'); // Should be at root initially
     expect(
       allCardsBefore.some((c) => c.key === childCardKey),
-      'Child should be found in project.cardTree.cards() result',
+      'Child should be found in await project.cardTree.cards() result',
     ).toBe(true);
 
     // Move child under parent
@@ -534,9 +534,9 @@ describe('move command', () => {
     expect(result.statusCode).toBe(200);
 
     // Verify state after move
-    const parentAfter = project.findCard(parentCardKey!);
-    const childAfter = project.findCard(childCardKey!);
-    const allCardsAfter = project.cardTree.cards();
+    const parentAfter = await project.findCard(parentCardKey!);
+    const childAfter = await project.findCard(childCardKey!);
+    const allCardsAfter = await project.cardTree.cards();
 
     // Verify expectations
     expect(
@@ -555,7 +555,7 @@ describe('move command', () => {
     ).toContain(childCardKey);
     expect(
       allCardsAfter.some((c) => c.key === childCardKey),
-      'Child should be found in project.cardTree.cards() result after move',
+      'Child should be found in await project.cardTree.cards() result after move',
     ).toBe(true);
   });
 
@@ -624,10 +624,10 @@ describe('move command', () => {
     expect(destinationKey).toBeTypeOf('string');
 
     // Get paths before move
-    const grandparentBefore = project.findCard(grandparentKey!);
-    const parentBefore = project.findCard(parentKey!);
-    const childBefore = project.findCard(childKey!);
-    const grandchildBefore = project.findCard(grandchildKey!);
+    const grandparentBefore = await project.findCard(grandparentKey!);
+    const parentBefore = await project.findCard(parentKey!);
+    const childBefore = await project.findCard(childKey!);
+    const grandchildBefore = await project.findCard(grandchildKey!);
 
     // Verify child has our attachment before move
     const ourAttachmentBefore = childBefore.attachments.find(
@@ -655,10 +655,10 @@ describe('move command', () => {
     expect(result.statusCode).toBe(200);
 
     // Verify all descendant paths are updated in cache
-    const grandparentAfter = project.findCard(grandparentKey!);
-    const parentAfterMove = project.findCard(parentKey!);
-    const childAfterMove = project.findCard(childKey!);
-    const grandchildAfterMove = project.findCard(grandchildKey!);
+    const grandparentAfter = await project.findCard(grandparentKey!);
+    const parentAfterMove = await project.findCard(parentKey!);
+    const childAfterMove = await project.findCard(childKey!);
+    const grandchildAfterMove = await project.findCard(grandchildKey!);
 
     // Grandparent should have new path under destination
     expect(grandparentAfter.path).toContain(

@@ -61,7 +61,7 @@ export class WorkflowRenameStateHandler implements Handler<EditInput> {
     const oldState = (op.target as { name?: string }).name as string;
     const newState = op.to.name;
 
-    for (const card of this.cardsInState(ctx, name, oldState)) {
+    for (const card of await this.cardsInState(ctx, name, oldState)) {
       card.metadata!.workflowState = newState;
       await ctx.project.updateCardMetadata(card, card.metadata!);
     }
@@ -69,11 +69,11 @@ export class WorkflowRenameStateHandler implements Handler<EditInput> {
 
   // Cards using this workflow (via their card type) that are currently in the
   // given state: local project cards plus local template cards.
-  private cardsInState(
+  private async cardsInState(
     ctx: MutationContext,
     workflowName: string,
     state: string,
-  ): Card[] {
+  ): Promise<Card[]> {
     const cardTypeNames = new Set(
       ctx.project.resources
         .cardTypes()
@@ -93,9 +93,8 @@ export class WorkflowRenameStateHandler implements Handler<EditInput> {
       usesWorkflow(card.metadata.cardType) &&
       card.metadata.workflowState === state;
 
-    const projectCards = ctx.project.cardTree.cards().filter(matches);
-    const templateCards = ctx.project
-      .allTemplateCards()
+    const projectCards = (await ctx.project.cardTree.cards()).filter(matches);
+    const templateCards = (await ctx.project.allTemplateCards())
       .filter((card) => !isModuleCard(card))
       .filter(matches);
     return [...projectCards, ...templateCards];

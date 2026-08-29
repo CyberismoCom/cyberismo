@@ -51,7 +51,7 @@ export class LinkTypeRenameHandler implements Handler<RenameInput> {
     const newName = `${ctx.input.target.prefix}/linkTypes/${ctx.input.newIdentifier}`;
 
     // 1. Rewrite card metadata references.
-    const cards = this.affectedCards(ctx, oldName);
+    const cards = await this.affectedCards(ctx, oldName);
     for (const card of cards) {
       const metadata = card.metadata!;
       metadata.links = metadata.links!.map((l) =>
@@ -67,10 +67,15 @@ export class LinkTypeRenameHandler implements Handler<RenameInput> {
 
   // Project cards plus LOCAL template cards: module cards are immutable from
   // the consumer side and cannot reference a local link type anyway.
-  private affectedCards(ctx: MutationContext, oldName: string): Card[] {
+  private async affectedCards(
+    ctx: MutationContext,
+    oldName: string,
+  ): Promise<Card[]> {
     const all = [
-      ...ctx.project.cardTree.cards(),
-      ...ctx.project.allTemplateCards().filter((card) => !isModuleCard(card)),
+      ...(await ctx.project.cardTree.cards()),
+      ...(await ctx.project.allTemplateCards()).filter(
+        (card) => !isModuleCard(card),
+      ),
     ];
     return all.filter((c) =>
       c.metadata?.links?.some((l) => l.linkType === oldName),

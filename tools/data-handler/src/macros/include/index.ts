@@ -59,7 +59,7 @@ export default class IncludeMacro extends BaseMacro {
     const title = this.generateTitle(options, card.metadata?.title);
     const cardContent = await this.generateCardContent(
       options,
-      context.project.cardContent(options.cardKey),
+      await context.project.cardContent(options.cardKey),
       newContext,
     );
 

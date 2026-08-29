@@ -52,7 +52,7 @@ describe('Leaf rename mutation engine end-to-end', () => {
 
   it('a renamed template can be instantiated without reopening the project', async () => {
     const mutations = new ResourceMutations(project);
-    const cardsBefore = project.templateTree(TEMPLATE).cards();
+    const cardsBefore = await project.templateTree(TEMPLATE).cards();
     expect(cardsBefore.length).toBeGreaterThan(0);
 
     await mutations.apply({
@@ -65,11 +65,11 @@ describe('Leaf rename mutation engine end-to-end', () => {
 
     // The cards must be cached under the new template name, at their new
     // paths, and not under the old name any more.
-    const cardsAfter = project.templateTree(newName).cards();
+    const cardsAfter = await project.templateTree(newName).cards();
     expect(cardsAfter.map((card) => card.key).sort()).to.deep.equal(
       cardsBefore.map((card) => card.key).sort(),
     );
-    expect(project.templateTree(TEMPLATE).cards()).toHaveLength(0);
+    expect(await project.templateTree(TEMPLATE).cards()).toHaveLength(0);
     for (const card of cardsAfter) {
       expect(card.path).toContain('decision-v2');
     }

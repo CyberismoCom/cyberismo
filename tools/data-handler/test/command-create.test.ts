@@ -1197,7 +1197,7 @@ describe('create command', () => {
 
     const name = 'decision/templates/decision';
     const template = project.resources.byType(name, 'templates');
-    const templateCards = template.templateCards();
+    const templateCards = await template.templateCards();
 
     const cardType = DefaultContent.cardType(
       'decision/cardTypes/decision',
@@ -1233,7 +1233,7 @@ describe('created cards and custom field values', () => {
       templateName,
       undefined,
     );
-    const card = commands.project.findCard(created[0].key);
+    const card = await commands.project.findCard(created[0].key);
     const nullCustomFieldKeys = (metadata: object) =>
       Object.entries(metadata)
         .filter(([key, value]) => value === null && key.includes('/'))
@@ -1254,7 +1254,7 @@ describe('created cards and custom field values', () => {
       'decision/cardTypes/decision',
       'decision/templates/empty',
     );
-    const card = commands.project.findCard(added[0]);
+    const card = await commands.project.findCard(added[0]);
     const customFieldKeys = Object.keys(card.metadata!).filter((key) =>
       key.includes('/'),
     );
@@ -1263,7 +1263,9 @@ describe('created cards and custom field values', () => {
 
   it('falsy template values survive instantiation', async () => {
     // Mutates the shared template card, so this test must stay last.
-    const templateCards = commands.project.templateTree(templateName).cards();
+    const templateCards = await commands.project
+      .templateTree(templateName)
+      .cards();
     const templateCard = templateCards.at(0)!;
     await commands.editCmd.editCardMetadata(
       templateCard.key,
@@ -1275,7 +1277,7 @@ describe('created cards and custom field values', () => {
       templateName,
       undefined,
     );
-    const card = commands.project.findCard(created[0].key);
+    const card = await commands.project.findCard(created[0].key);
     expect(card.metadata!['decision/fieldTypes/finished']).toBe(false);
   });
 });

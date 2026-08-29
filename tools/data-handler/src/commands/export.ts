@@ -204,7 +204,7 @@ export class Export {
       if (card.children) {
         await this.toAdocFileAsContent(
           path,
-          this.project.cardKeysToCards(card.children),
+          await this.project.cardKeysToCards(card.children),
         );
       }
     }
@@ -359,7 +359,7 @@ export class Export {
     let cards: Card[] = [];
 
     // If doing a partial tree export, put the parent information as it would have already been gathered.
-    if (cardKey && this.project.findCard(cardKey)) {
+    if (cardKey && this.project.hasCard(cardKey)) {
       cards.push({
         key: cardKey,
         path: sourcePath,

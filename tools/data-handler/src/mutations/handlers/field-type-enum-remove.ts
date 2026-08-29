@@ -65,7 +65,7 @@ export class FieldTypeEnumRemoveHandler implements Handler<EditInput> {
     if (!replacement) return;
 
     const removedValue = enumValueOf(removeOp.target);
-    const cardsToUpdate = this.affectedCards(ctx, fieldName).filter(
+    const cardsToUpdate = (await this.affectedCards(ctx, fieldName)).filter(
       (card) => card.metadata?.[fieldName] === removedValue,
     );
 
@@ -85,12 +85,17 @@ export class FieldTypeEnumRemoveHandler implements Handler<EditInput> {
   // field. Selection is by the metadata KEY, not by the (possibly-renamed)
   // card type name: a card type rename elsewhere in the same update must not
   // hide a card from this cascade.
-  private affectedCards(ctx: MutationContext, fieldName: string): Card[] {
-    const project = [...ctx.project.cardTree.cards()];
-    const templates = ctx.project.resources
-      .templates(ResourcesFrom.localOnly)
-      .flatMap((t) => t.templateCards());
-    return [...project, ...templates].filter(
+  private async affectedCards(
+    ctx: MutationContext,
+    fieldName: string,
+  ): Promise<Card[]> {
+    const project = await ctx.project.cardTree.cards();
+    const templates = await Promise.all(
+      ctx.project.resources
+        .templates(ResourcesFrom.localOnly)
+        .map((t) => t.templateCards()),
+    );
+    return [...project, ...templates.flat()].filter(
       (c) => c.metadata != null && fieldName in c.metadata,
     );
   }

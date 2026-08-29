@@ -122,7 +122,7 @@ export class LinkTypeResource extends FileResource<LinkType> {
    */
   public async usage(cards?: Card[]): Promise<string[]> {
     const resourceName = resourceNameToString(this.resourceName);
-    const allCards = cards || super.cards();
+    const allCards = cards || (await super.cards());
 
     const cardsThatUseLinkType = allCards
       .filter((card) =>

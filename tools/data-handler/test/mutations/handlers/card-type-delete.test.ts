@@ -27,9 +27,9 @@ describe('CardTypeDeleteHandler', () => {
   const cardTypeName = () => `${project.projectPrefix}/cardTypes/decision`;
 
   it('deletes every card of this type', async () => {
-    const before = project.cardTree
-      .cards()
-      .filter((c) => c.metadata?.cardType === cardTypeName());
+    const before = (await project.cardTree.cards()).filter(
+      (c) => c.metadata?.cardType === cardTypeName(),
+    );
     expect(before.length).toBeGreaterThan(0);
 
     const mutations = new ResourceMutations(project);
@@ -39,9 +39,9 @@ describe('CardTypeDeleteHandler', () => {
     });
     // Re-read after apply (caches were invalidated by removeCard calls).
     await project.populateCaches();
-    const after = project.cardTree
-      .cards()
-      .filter((c) => c.metadata?.cardType === cardTypeName());
+    const after = (await project.cardTree.cards()).filter(
+      (c) => c.metadata?.cardType === cardTypeName(),
+    );
     expect(after).toHaveLength(0);
   });
 

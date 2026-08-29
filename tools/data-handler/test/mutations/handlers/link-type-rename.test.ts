@@ -26,7 +26,7 @@ describe('LinkTypeRenameHandler', () => {
       target: resourceName(`${project.projectPrefix}/linkTypes/test`),
       newIdentifier: 'is-caused-by',
     });
-    const cards = project.cardTree.cards();
+    const cards = await project.cardTree.cards();
     const oldRef = `${project.projectPrefix}/linkTypes/test`;
     const newRef = `${project.projectPrefix}/linkTypes/is-caused-by`;
     for (const card of cards) {

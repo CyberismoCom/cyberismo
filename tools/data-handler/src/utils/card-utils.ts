@@ -79,28 +79,24 @@ export const buildCardHierarchy = (
  * @param project Project to use
  * @returns Flattened card tree.
  */
-export const flattenCardArray = (array: Card[], project: Project) => {
+export const flattenCardArray = async (array: Card[], project: Project) => {
   const result: Card[] = [];
 
-  array.forEach((item) => {
+  for (const item of array) {
     const { key, path, children, attachments, metadata } = item;
-    const childCardIds = project
-      .cardKeysToCards(children)
-      .map((item) => item.key);
+    const childCards = await project.cardKeysToCards(children);
 
     result.push({
       key,
       path,
-      children: [...childCardIds],
+      children: childCards.map((child) => child.key),
       attachments,
       metadata,
     });
     if (children) {
-      result.push(
-        ...flattenCardArray(project.cardKeysToCards(children), project),
-      );
+      result.push(...(await flattenCardArray(childCards, project)));
     }
-  });
+  }
   return result;
 };
 

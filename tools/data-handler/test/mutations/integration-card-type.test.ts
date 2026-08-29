@@ -35,13 +35,10 @@ describe('CardType mutation engine end-to-end', () => {
     expect(
       project.resources.exists(`${project.projectPrefix}/cardTypes/decision`),
     ).toBe(false);
-    const remaining = project.cardTree
-      .cards()
-      .filter(
-        (c) =>
-          c.metadata?.cardType ===
-          `${project.projectPrefix}/cardTypes/decision`,
-      );
+    const remaining = (await project.cardTree.cards()).filter(
+      (c) =>
+        c.metadata?.cardType === `${project.projectPrefix}/cardTypes/decision`,
+    );
     expect(remaining).toHaveLength(0);
 
     const entries = await ConfigurationLogger.entries(project.basePath);

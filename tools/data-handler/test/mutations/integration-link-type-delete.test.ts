@@ -29,21 +29,19 @@ describe('LinkType delete end-to-end', () => {
     };
     // Guard: the cascade must have something to strip for this test to mean
     // anything.
-    const linksBefore = project.cardTree
-      .cards()
-      .reduce(
-        (n, c) =>
-          n +
-          (c.metadata?.links?.filter((l) => l.linkType === linkTypeName)
-            .length ?? 0),
-        0,
-      );
+    const linksBefore = (await project.cardTree.cards()).reduce(
+      (n, c) =>
+        n +
+        (c.metadata?.links?.filter((l) => l.linkType === linkTypeName).length ??
+          0),
+      0,
+    );
     expect(linksBefore).toBeGreaterThan(0);
 
     await mutations.apply(input);
 
     // Cards no longer reference the deleted link type.
-    for (const c of project.cardTree.cards()) {
+    for (const c of await project.cardTree.cards()) {
       expect(
         c.metadata?.links?.some((l) => l.linkType === linkTypeName),
       ).not.toBe(true);

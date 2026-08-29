@@ -64,9 +64,9 @@ describe('WorkflowRenameStateHandler', () => {
 
   it('apply rewrites workflowState on affected cards and transitions', async () => {
     // Place a card in 'Draft'.
-    const target = project.cardTree
-      .cards()
-      .find((c) => c.metadata?.cardType === 'decision/cardTypes/decision')!;
+    const target = (await project.cardTree.cards()).find(
+      (c) => c.metadata?.cardType === 'decision/cardTypes/decision',
+    )!;
     target.metadata!.workflowState = 'Draft';
     await project.updateCardMetadata(target, target.metadata!);
 
@@ -82,9 +82,9 @@ describe('WorkflowRenameStateHandler', () => {
       },
     });
 
-    const refetched = project.cardTree
-      .cards()
-      .find((c) => c.key === target.key)!;
+    const refetched = (await project.cardTree.cards()).find(
+      (c) => c.key === target.key,
+    )!;
     expect(refetched.metadata?.workflowState).toBe('DraftNew');
 
     const wf = project.resources.byType(WF, 'workflows')!;

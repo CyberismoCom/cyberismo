@@ -198,7 +198,7 @@ export class Import {
         template,
         'templates',
       );
-      const templateCards = templateResource.templateCards();
+      const templateCards = await templateResource.templateCards();
       if (templateCards.length !== 1) {
         console.warn(
           `Template '${template}' for card '${title}' does not have exactly one card. Skipping row.`,
@@ -213,7 +213,7 @@ export class Import {
         throw new Error('Card not created');
       }
       const cardKey = cards[0].key;
-      const card = this.project.findCard(cardKey);
+      const card = await this.project.findCard(cardKey);
       if (!card.metadata?.cardType) {
         throw new Error(`Card type not found for card ${cardKey}`);
       }

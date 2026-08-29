@@ -53,7 +53,7 @@ export class CardTypeRenameHandler implements Handler<RenameInput> {
     const newName = `${ctx.input.target.prefix}/cardTypes/${ctx.input.newIdentifier}`;
 
     // 1. Rewrite metadata.cardType on every affected card.
-    const cards = this.affectedCards(ctx, oldName);
+    const cards = await this.affectedCards(ctx, oldName);
     for (const card of cards) {
       const metadata = card.metadata!;
       metadata.cardType = newName;
@@ -103,12 +103,17 @@ export class CardTypeRenameHandler implements Handler<RenameInput> {
   }
 
   // Cards using this card type: local project cards plus local template cards.
-  private affectedCards(ctx: MutationContext, oldName: string): Card[] {
-    const project = [...ctx.project.cardTree.cards()];
-    const templates = ctx.project.resources
-      .templates(ResourcesFrom.localOnly)
-      .flatMap((t) => t.templateCards());
-    return [...project, ...templates].filter(
+  private async affectedCards(
+    ctx: MutationContext,
+    oldName: string,
+  ): Promise<Card[]> {
+    const project = await ctx.project.cardTree.cards();
+    const templates = await Promise.all(
+      ctx.project.resources
+        .templates(ResourcesFrom.localOnly)
+        .map((t) => t.templateCards()),
+    );
+    return [...project, ...templates.flat()].filter(
       (c) => c.metadata?.cardType === oldName,
     );
   }

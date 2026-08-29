@@ -538,8 +538,11 @@ export class Project {
    * Returns all template cards from the project. This includes all module templates' cards.
    * @returns all the template cards from the project
    */
-  public allTemplateCards(): Card[] {
-    return this.templateTrees().flatMap((tree) => tree.cards());
+  public async allTemplateCards(): Promise<Card[]> {
+    const perTemplate = await Promise.all(
+      this.templateTrees().map((tree) => tree.cards()),
+    );
+    return perTemplate.flat();
   }
 
   /**
@@ -586,15 +589,31 @@ export class Project {
    * @param cardIds array of card keys to fetch
    * @returns Card data to the given card keys
    */
-  public cardKeysToCards(cardIds: string[]): Card[] {
-    const cards: Card[] = [];
+  public async cardKeysToCards(cardIds: string[]): Promise<Card[]> {
+    // Grouped by tree so each tree reads the content of all of its cards in
+    // one batch; the result keeps the order the keys came in.
+    const keysByTree = new Map<CardTree, string[]>();
     for (const cardKey of cardIds) {
       const tree = this.keyRegistry.ownerOf(cardKey);
-      if (tree) {
-        cards.push(tree.card(cardKey));
+      if (!tree) {
+        continue;
+      }
+      const keys = keysByTree.get(tree);
+      if (keys) {
+        keys.push(cardKey);
+      } else {
+        keysByTree.set(tree, [cardKey]);
       }
     }
-    return cards;
+    const found = new Map<string, Card>();
+    for (const [tree, keys] of keysByTree) {
+      for (const card of await tree.cardsFor(keys)) {
+        found.set(card.key, card);
+      }
+    }
+    return cardIds
+      .map((cardKey) => found.get(cardKey))
+      .filter((card): card is Card => card !== undefined);
   }
 
   /**
@@ -613,7 +632,7 @@ export class Project {
    * @returns the card's content, or undefined if it has none.
    * @throws if the card is not part of the project
    */
-  public cardContent(cardKey: string): string | undefined {
+  public async cardContent(cardKey: string): Promise<string | undefined> {
     return this.treeOf(cardKey).content(cardKey);
   }
 
@@ -677,7 +696,7 @@ export class Project {
    * @param cardToFind Card key to find
    * @returns specific card details, or undefined if card is not part of the project.
    */
-  public findCard(cardToFind: string): Card {
+  public async findCard(cardToFind: string): Promise<Card> {
     return this.treeOf(cardToFind).card(cardToFind);
   }
 
@@ -726,14 +745,14 @@ export class Project {
    * When cards are removed.
    * @param deletedCard Card that is to be removed.
    */
-  public async handleCardDeleted(deletedCard: Card) {
+  public async handleCardDeleted(deletedCard: CardNode) {
     // Delete children from the cache first
     if (deletedCard.children && deletedCard.children.length > 0) {
       const parentTree = this.keyRegistry.ownerOf(deletedCard.key);
 
       for (const child of deletedCard.children) {
         try {
-          const childCard = this.findCard(child);
+          const childCard = this.cardNode(child);
           const childTree = this.keyRegistry.ownerOf(child);
 
           // Safety check: only delete children from the same container
@@ -782,9 +801,9 @@ export class Project {
       if (deletedKeys.has(cardKey)) {
         return;
       }
-      let card: Card;
+      let card: CardNode;
       try {
-        card = this.findCard(cardKey);
+        card = this.cardNode(cardKey);
       } catch {
         this.logger.debug({ cardKey }, 'Card to delete not found, skipping');
         return;
@@ -817,9 +836,9 @@ export class Project {
     // Remove the subtrees. handleCardDeleted cascades children, so any card
     // already removed as part of an earlier subtree is skipped here.
     for (const card of cards) {
-      let fresh: Card;
+      let fresh: CardNode;
       try {
-        fresh = this.findCard(card.key);
+        fresh = this.cardNode(card.key);
       } catch {
         continue;
       }
@@ -1145,7 +1164,7 @@ export class Project {
    * @param content changed content
    */
   public async updateCardContent(cardKey: string, content: string) {
-    const card = this.findCard(cardKey);
+    const card = await this.findCard(cardKey);
     card.content = content;
 
     // Both files, deliberately. The metadata write is what bumps
@@ -1169,7 +1188,7 @@ export class Project {
     changedKey: string,
     newValue: MetadataContent,
   ) {
-    const card = this.findCard(cardKey);
+    const card = await this.findCard(cardKey);
     if (!card.metadata) {
       return;
     }
@@ -1240,7 +1259,7 @@ export class Project {
     cardKey: string,
     transitionName: string,
   ): Promise<SideEffects | undefined> {
-    const card = this.findCard(cardKey);
+    const card = await this.findCard(cardKey);
 
     if (!card.metadata?.cardType) {
       throw new Error(`Card does not have card type`);

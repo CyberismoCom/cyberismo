@@ -46,9 +46,9 @@ async function seedCardTypeAndCardValues() {
       { key: 'customFields' },
       { name: 'add' as const, target: { name: fieldName() } },
     );
-  const cards = project.cardTree
-    .cards()
-    .filter((c) => c.metadata?.cardType === cardTypeName());
+  const cards = (await project.cardTree.cards()).filter(
+    (c) => c.metadata?.cardType === cardTypeName(),
+  );
   for (const card of cards) {
     card.metadata![fieldName()] = 'a value';
     await project.updateCardMetadata(card, card.metadata!);
@@ -113,9 +113,9 @@ describe('FieldTypeDeleteHandler', () => {
   // dormant rather than deleting it - the same outcome as removing the field
   // from the card type directly. 'cyberismo clean' reports it as 'undeclared'.
   it('leaves the stored value dormant on every affected card', async () => {
-    const before = project.cardTree
-      .cards()
-      .filter((c) => c.metadata?.[fieldName()] === 'a value');
+    const before = (await project.cardTree.cards()).filter(
+      (c) => c.metadata?.[fieldName()] === 'a value',
+    );
     expect(before.length).toBeGreaterThan(0);
 
     await new ResourceMutations(project).apply({
@@ -123,9 +123,9 @@ describe('FieldTypeDeleteHandler', () => {
       target: resourceName(fieldName()),
     });
 
-    const after = project.cardTree
-      .cards()
-      .filter((c) => c.metadata?.[fieldName()] === 'a value');
+    const after = (await project.cardTree.cards()).filter(
+      (c) => c.metadata?.[fieldName()] === 'a value',
+    );
     expect(after).toHaveLength(before.length);
   });
 

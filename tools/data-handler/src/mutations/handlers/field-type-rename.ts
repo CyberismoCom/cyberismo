@@ -98,11 +98,14 @@ export class FieldTypeRenameHandler implements Handler<RenameInput> {
     oldName: string,
     newName: string,
   ): Promise<void> {
-    const cards = [
-      ...ctx.project.cardTree.cards(),
-      ...ctx.project.resources
+    const templateCards = await Promise.all(
+      ctx.project.resources
         .templates(ResourcesFrom.localOnly)
-        .flatMap((template) => template.templateCards()),
+        .map((template) => template.templateCards()),
+    );
+    const cards = [
+      ...(await ctx.project.cardTree.cards()),
+      ...templateCards.flat(),
     ];
     for (const card of cards) {
       const metadata = card.metadata;

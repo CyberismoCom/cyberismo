@@ -158,15 +158,17 @@ export class Show {
       cards: CardWithChildrenCards[];
     }[]
   > {
-    return this.project.resources.templates().map((template) => {
-      const cards = template.templateCards();
-      const buildCards = buildCardHierarchy(cards);
+    return Promise.all(
+      this.project.resources.templates().map(async (template) => {
+        const cards = await template.templateCards();
+        const buildCards = buildCardHierarchy(cards);
 
-      return {
-        name: template.data?.name || '',
-        cards: buildCards,
-      };
-    });
+        return {
+          name: template.data?.name || '',
+          cards: buildCards,
+        };
+      }),
+    );
   }
 
   /**
@@ -373,11 +375,11 @@ export class Show {
    */
   @read
   public async showLabels(): Promise<string[]> {
-    const cards = flattenCardArray(
-      this.project.cardTree.rootCards(),
+    const cards = await flattenCardArray(
+      await this.project.cardTree.rootCards(),
       this.project,
     );
-    const templateCards = this.project.allTemplateCards();
+    const templateCards = await this.project.allTemplateCards();
 
     const labels = this.collectLabels([...cards, ...templateCards]);
     return Array.from(new Set(labels));
@@ -720,7 +722,8 @@ export class Show {
 
     if (cardKey) {
       try {
-        this.project.findCard(cardKey);
+        // Throws if the card is not part of the project.
+        this.project.cardNode(cardKey);
       } catch (error) {
         if (error instanceof CardNotFoundError) {
           return { status: 'card-not-found' };
@@ -781,7 +784,8 @@ export class Show {
     const skill = this.project.resources.byType(name, 'skills').show();
 
     if (options.cardKey) {
-      this.project.findCard(options.cardKey);
+      // Throws if the card is not part of the project.
+      this.project.cardNode(options.cardKey);
     }
 
     return this.renderSkillTemplates(skill.content, options, context);

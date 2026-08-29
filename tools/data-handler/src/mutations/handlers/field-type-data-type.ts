@@ -54,7 +54,7 @@ export class FieldTypeDataTypeHandler implements Handler<EditInput> {
     const fromType = op.target;
     const toType = op.to;
 
-    for (const card of this.affectedCards(ctx, fieldName)) {
+    for (const card of await this.affectedCards(ctx, fieldName)) {
       const metadata = card.metadata!;
       try {
         const converted = this.convertValue(
@@ -78,13 +78,17 @@ export class FieldTypeDataTypeHandler implements Handler<EditInput> {
   // value under this field. Selection is by the metadata KEY, not by the
   // (possibly-renamed) card type name: a card type rename elsewhere in the
   // same update must not hide a card from this cascade.
-  private affectedCards(ctx: MutationContext, fieldName: string): Card[] {
+  private async affectedCards(
+    ctx: MutationContext,
+    fieldName: string,
+  ): Promise<Card[]> {
     const holdsField = (card: Card): boolean =>
       card.metadata != null && fieldName in card.metadata;
 
-    const projectCards = ctx.project.cardTree.cards().filter(holdsField);
-    const templateCards = ctx.project
-      .allTemplateCards()
+    const projectCards = (await ctx.project.cardTree.cards()).filter(
+      holdsField,
+    );
+    const templateCards = (await ctx.project.allTemplateCards())
       .filter((card) => !isModuleCard(card))
       .filter(holdsField);
     return [...projectCards, ...templateCards];

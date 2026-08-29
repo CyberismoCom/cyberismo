@@ -299,8 +299,8 @@ describe('createCardFacts only emits fields the card type declares', () => {
 
     project = getTestProject(projectPath);
     await project.populateCaches();
-    card = project.findCard(CARD_KEY);
-    brokenCardTypeCard = project.findCard(BROKEN_CARD_TYPE_CARD_KEY);
+    card = await project.findCard(CARD_KEY);
+    brokenCardTypeCard = await project.findCard(BROKEN_CARD_TYPE_CARD_KEY);
   });
 
   afterAll(() => {

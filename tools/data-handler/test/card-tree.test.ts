@@ -188,34 +188,36 @@ describe('CardTree read boundary', () => {
     );
   });
 
-  it('hands out a card whose metadata can be edited without touching the store', () => {
-    const card = tree.card(CARD_KEY);
+  it('hands out a card whose metadata can be edited without touching the store', async () => {
+    const card = await tree.card(CARD_KEY);
     expect(Object.isFrozen(card.metadata)).toBe(false);
 
     card.metadata!.title = 'edited';
     card.metadata!.links.push({ linkType: 'x', cardKey: 'test_9' });
 
-    expect(tree.card(CARD_KEY).metadata!.title).toBe('Card');
-    expect(tree.card(CARD_KEY).metadata!.links).toHaveLength(1);
+    expect((await tree.card(CARD_KEY)).metadata!.title).toBe('Card');
+    expect((await tree.card(CARD_KEY)).metadata!.links).toHaveLength(1);
   });
 
-  it('hands out attachments and children that can be edited without touching the store', () => {
-    const card = tree.card(CARD_KEY);
+  it('hands out attachments and children that can be edited without touching the store', async () => {
+    const card = await tree.card(CARD_KEY);
     card.attachments[0].fileName = 'edited.png';
     card.children.push('test_9');
 
-    expect(tree.card(CARD_KEY).attachments[0].fileName).toBe(ATTACHMENT);
+    expect((await tree.card(CARD_KEY)).attachments[0].fileName).toBe(
+      ATTACHMENT,
+    );
     expect(tree.attachmentsOf(CARD_KEY)[0].fileName).toBe(ATTACHMENT);
-    expect(tree.card(CARD_KEY).children).toHaveLength(0);
+    expect((await tree.card(CARD_KEY)).children).toHaveLength(0);
     expect(tree.childrenOf(CARD_KEY)).toHaveLength(0);
   });
 
-  it('hands out only the fields a Card has', () => {
+  it('hands out only the fields a Card has', async () => {
     for (const card of [
-      tree.card(CARD_KEY),
-      ...tree.cards(),
-      ...tree.rootCards(),
-      ...tree.cardsFor([CARD_KEY]),
+      await tree.card(CARD_KEY),
+      ...(await tree.cards()),
+      ...(await tree.rootCards()),
+      ...(await tree.cardsFor([CARD_KEY])),
     ]) {
       expect(Object.keys(card).sort()).toEqual([
         'attachments',
@@ -547,7 +549,7 @@ describe('CardTree fact changes', () => {
 
   it('marks a card whose metadata was written', async () => {
     drain();
-    const card = tree.card('test_2');
+    const card = await tree.card('test_2');
     card.metadata!.title = 'Renamed';
     await tree.writeMetadata(card);
     expect(tree.takeFactChanges()).toEqual({
@@ -560,7 +562,7 @@ describe('CardTree fact changes', () => {
   // content write has nothing to reproject.
   it('marks nothing for a content write', async () => {
     drain();
-    const card = tree.card('test_2');
+    const card = await tree.card('test_2');
     card.content = 'new body';
     await tree.writeContent(card);
     expect(tree.hasFactChanges).toBe(false);
@@ -731,5 +733,101 @@ describe('CardTree attachment listings', () => {
     expect(tree.attachmentsOf('test_1').map((item) => item.fileName)).toEqual([
       'real.png',
     ]);
+  });
+});
+
+// A card's content is not read when the tree is loaded: nothing about a card's
+// facts is built from it, and the first solve reads every card. It is read the
+// first time somebody asks for it.
+describe('CardTree lazy content', () => {
+  let tree: CardTree;
+  let cardPath: string;
+
+  const LOADED_CONTENT = `image::${ATTACHMENT}[]\n`;
+
+  beforeEach(async () => {
+    mkdirSync(cardRoot, { recursive: true });
+    cardPath = createCardAt('test_1');
+    tree = newTree();
+    await tree.load();
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  // Rewritten after the load: had the load read the file, the tree would
+  // answer with what stood in it then.
+  it('answers with what the content file holds when it is first asked', async () => {
+    writeFileSync(join(cardPath, 'index.adoc'), 'written after the load');
+
+    await expect(tree.content('test_1')).resolves.toBe(
+      'written after the load',
+    );
+  });
+
+  // The other half of the same proof: with nothing cached by the load, taking
+  // the file away leaves the tree with nothing to answer from.
+  it('has nothing cached for a card whose content it has not read', async () => {
+    rmSync(join(cardPath, 'index.adoc'));
+
+    await expect(tree.content('test_1')).rejects.toThrow(/ENOENT/);
+  });
+
+  // And the metadata-level read does not go near it, which is what makes fact
+  // projection free of content reads.
+  it('answers a metadata read for a card with no content file', () => {
+    rmSync(join(cardPath, 'index.adoc'));
+
+    expect(tree.node('test_1').metadata!.title).toBe('Card');
+    expect(tree.nodes()).toHaveLength(1);
+  });
+
+  it('reads the content file once', async () => {
+    await expect(tree.content('test_1')).resolves.toBe(LOADED_CONTENT);
+    writeFileSync(join(cardPath, 'index.adoc'), 'rewritten behind the tree');
+
+    await expect(tree.content('test_1')).resolves.toBe(LOADED_CONTENT);
+  });
+
+  it('hydrates the content of the cards a hydrated read returns', async () => {
+    const cards = await tree.cards();
+    expect(cards.map((card) => card.content)).toEqual([LOADED_CONTENT]);
+    expect((await tree.card('test_1')).content).toBe(LOADED_CONTENT);
+    expect((await tree.rootCards())[0].content).toBe(LOADED_CONTENT);
+    expect((await tree.cardsFor(['test_1']))[0].content).toBe(LOADED_CONTENT);
+  });
+
+  // A written card's content is the caller's, so there is nothing to read back.
+  it('needs no read for a card it was given the content of', async () => {
+    createCardAt('test_2');
+    tree.insert({
+      key: 'test_2',
+      path: join(cardRoot, 'test_2'),
+      parent: 'root',
+      children: [],
+      attachments: [],
+      content: 'handed to the tree',
+      metadata: {
+        title: 'Card',
+        cardType: 'test/cardTypes/page',
+        workflowState: 'Draft',
+        rank: '0|b',
+        links: [],
+      },
+    });
+    rmSync(join(cardRoot, 'test_2', 'index.adoc'));
+
+    await expect(tree.content('test_2')).resolves.toBe('handed to the tree');
+  });
+
+  it('needs no read for a card whose content it has just written', async () => {
+    const card = await tree.card('test_1');
+    await tree.writeContent({ ...card, content: 'written through the tree' });
+    rmSync(join(cardPath, 'index.adoc'));
+
+    await expect(tree.content('test_1')).resolves.toBe(
+      'written through the tree',
+    );
   });
 });

@@ -45,7 +45,7 @@ export class LinkTypeDeleteHandler implements Handler<DeleteInput> {
     const name = resourceNameToString(ctx.input.target);
 
     // Strip matching links from every card's metadata.
-    for (const card of this.affectedCards(ctx, name)) {
+    for (const card of await this.affectedCards(ctx, name)) {
       const metadata = card.metadata!;
       metadata.links = (metadata.links ?? []).filter(
         (l) => l.linkType !== name,
@@ -56,10 +56,13 @@ export class LinkTypeDeleteHandler implements Handler<DeleteInput> {
 
   // Project cards plus local template cards; module template cards are
   // read-only from the consumer side and must never be rewritten here.
-  private affectedCards(ctx: MutationContext, name: string): Card[] {
+  private async affectedCards(
+    ctx: MutationContext,
+    name: string,
+  ): Promise<Card[]> {
     return [
-      ...ctx.project.cardTree.cards(),
-      ...ctx.project.allTemplateCards().filter((c) => !isModuleCard(c)),
+      ...(await ctx.project.cardTree.cards()),
+      ...(await ctx.project.allTemplateCards()).filter((c) => !isModuleCard(c)),
     ].filter((c) => c.metadata?.links?.some((l) => l.linkType === name));
   }
 }

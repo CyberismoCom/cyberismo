@@ -109,7 +109,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
   /**
    * Every card in the template.
    */
-  public templateCards(): Card[] {
+  public async templateCards(): Promise<Card[]> {
     return this.cardTree.cards();
   }
 
@@ -140,7 +140,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
    * @param cardKey Card key to read.
    * @throws if the template does not hold the card
    */
-  public templateCard(cardKey: string): Card {
+  public async templateCard(cardKey: string): Promise<Card> {
     if (!this.cardTree.has(cardKey)) {
       throw new Error(`Card '${cardKey}' is not part of template`);
     }
@@ -162,7 +162,9 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
    * @throws if the template does not hold the card
    */
   public cardFolder(cardKey: string): string {
-    this.templateCard(cardKey);
+    if (!this.cardTree.has(cardKey)) {
+      throw new Error(`Card '${cardKey}' is not part of template`);
+    }
     return this.cardTree.pathOf(cardKey);
   }
 
@@ -247,7 +249,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
   public async createCards(parentCard?: Card): Promise<Card[]> {
     // The template's cards, read once, through the tree. Nothing on disk is
     // copied: an instantiated card is built in memory and written once.
-    const templateCards = this.templateCards();
+    const templateCards = await this.templateCards();
     try {
       if (templateCards.length === 0) {
         throw new Error(
@@ -255,7 +257,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
         );
       }
       if (parentCard) {
-        this.project.findCard(parentCard.key);
+        this.project.cardNode(parentCard.key);
       }
     } catch (error) {
       this.templateLogger.error({ error }, 'Failed to create cards');
@@ -645,7 +647,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
    * @returns array of card keys, and calculation filenames that refer this resource.
    */
   public async usage(cards?: Card[]): Promise<string[]> {
-    const allCards = cards ?? super.cards();
+    const allCards = cards ?? (await super.cards());
     const [relevantCards, calculations] = await Promise.all([
       super.usage(allCards),
       super.calculations(),

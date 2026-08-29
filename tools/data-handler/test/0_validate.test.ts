@@ -182,7 +182,7 @@ describe('validate cmd tests', () => {
   });
 
   it('validateWorkflowState (success)', async () => {
-    const card = validProject.findCard('decision_5');
+    const card = await validProject.findCard('decision_5');
     const valid = await validateCmd.validateWorkflowState(validProject, card);
     expect(valid.length).toBe(0);
   });
@@ -191,7 +191,7 @@ describe('validate cmd tests', () => {
       'test/test-data/invalid/invalid-card-has-wrong-state/',
     );
     await project.populateCaches();
-    const card = project.findCard('decision_6');
+    const card = await project.findCard('decision_6');
     const valid = await validateCmd.validateWorkflowState(project, card);
     expect(valid.length).toBeGreaterThan(0);
   });
@@ -200,7 +200,7 @@ describe('validate cmd tests', () => {
       'test/test-data/invalid/invalid-card-has-wrong-state/',
     );
     await project.populateCaches();
-    const card = project.findCard('decision_5');
+    const card = await project.findCard('decision_5');
     const valid = await validateCmd.validateWorkflowState(project, card);
     expect(valid.length).toBeGreaterThan(0);
   });
@@ -209,7 +209,7 @@ describe('validate cmd tests', () => {
       'test/test-data/invalid/invalid-card-has-wrong-state/',
     );
     await project.populateCaches();
-    const card = project.findCard('decision_7');
+    const card = await project.findCard('decision_7');
     const valid = await validateCmd.validateWorkflowState(project, card);
     expect(valid.length).toBeGreaterThan(0);
   });
@@ -218,7 +218,7 @@ describe('validate cmd tests', () => {
       'test/test-data/invalid/invalid-card-has-wrong-state/',
     );
     await project.populateCaches();
-    const card = project.findCard('decision_8');
+    const card = await project.findCard('decision_8');
     if (card) {
       const valid = await validateCmd.validateWorkflowState(project, card);
       expect(valid.length).toBeGreaterThan(0);
@@ -226,7 +226,7 @@ describe('validate cmd tests', () => {
   });
   it('validate card custom fields data (success)', async () => {
     // card _6 has all of the types as custom fields (with null values)
-    const card = validProject.findCard('decision_6');
+    const card = await validProject.findCard('decision_6');
     if (card) {
       const allPrefixes = await validProject.projectPrefixes();
       const valid = await validateCmd.validateCustomFields(
@@ -242,7 +242,7 @@ describe('validate cmd tests', () => {
       'test/test-data/invalid/invalid-card-has-wrong-state/',
     );
     await project.populateCaches();
-    const card = project.findCard('decision_5');
+    const card = await project.findCard('decision_5');
     if (card) {
       const allPrefixes = await project.projectPrefixes();
       const valid = await validateCmd.validateCustomFields(
@@ -254,7 +254,7 @@ describe('validate cmd tests', () => {
     }
   });
   it('try to validate card custom fields - no metadata for the card', async () => {
-    const card = validProject.findCard('decision_5');
+    const card = await validProject.findCard('decision_5');
     if (card) {
       const allPrefixes = await validProject.projectPrefixes();
       await validateCmd

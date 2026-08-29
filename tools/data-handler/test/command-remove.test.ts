@@ -657,7 +657,7 @@ describe('remove card', () => {
     await commands.createCmd.createLink(otherCardKey, childKey, linkType);
 
     // Verify the link exists
-    let otherCard = commands.project.findCard(otherCardKey);
+    let otherCard = await commands.project.findCard(otherCardKey);
     const linksBefore = otherCard.metadata?.links?.filter(
       (l) => l.cardKey === childKey,
     );
@@ -667,7 +667,7 @@ describe('remove card', () => {
     await commands.removeCmd.remove('card', parentCard!.key);
 
     // The link from otherCard to the child should also be removed
-    otherCard = commands.project.findCard(otherCardKey);
+    otherCard = await commands.project.findCard(otherCardKey);
     const linksAfter = otherCard.metadata?.links?.filter(
       (l) => l.cardKey === childKey,
     );
@@ -680,9 +680,11 @@ describe('remove card', () => {
     const removeCmd = new Remove(commands.project, fetchCmd);
     await removeCmd.remove('card', cardId);
 
-    expect(() => commands.project.findCard(cardId)).toThrow(CardNotFoundError);
+    await expect(commands.project.findCard(cardId)).rejects.toThrow(
+      CardNotFoundError,
+    );
     // Since decision_6 is decision_5's child, it should have been removed as well.
-    expect(() => commands.project.findCard('decision_6')).toThrow(
+    await expect(commands.project.findCard('decision_6')).rejects.toThrow(
       CardNotFoundError,
     );
   });
@@ -697,7 +699,7 @@ describe('remove card', () => {
     );
 
     // Get template cards
-    const templateCardsBefore = templateResource.templateCards();
+    const templateCardsBefore = await templateResource.templateCards();
     expect(templateCardsBefore.length).toBeGreaterThan(0);
 
     // Verify at least one template card has children
@@ -713,25 +715,25 @@ describe('remove card', () => {
     const parentCardKey = createdCards.find(
       (card) => card.parent === 'root' && card.children.length > 0,
     )!.key;
-    const parentCard = commands.project.findCard(parentCardKey);
+    const parentCard = await commands.project.findCard(parentCardKey);
     expect(parentCard.children.length).toBeGreaterThan(0);
 
     // Delete the created project cards
     await commands.removeCmd.remove('card', parentCardKey!);
 
     // Verify project card and its children are deleted
-    expect(() => commands.project.findCard(parentCardKey)).toThrow(
+    await expect(commands.project.findCard(parentCardKey)).rejects.toThrow(
       CardNotFoundError,
     );
 
     for (const childKey of parentCard.children) {
-      expect(() => commands.project.findCard(childKey)).toThrow(
+      await expect(commands.project.findCard(childKey)).rejects.toThrow(
         CardNotFoundError,
       );
     }
 
     // Verify template cards still exist and were not deleted
-    const templateCardsAfter = templateResource.templateCards();
+    const templateCardsAfter = await templateResource.templateCards();
     expect(templateCardsAfter.length).toBe(templateCardsBefore.length);
 
     // Verify each template card still exists
