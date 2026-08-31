@@ -1,5 +1,5 @@
 [.lead]
-Cyberismo content is plain text in a version control system. That single decision is what makes the rest of the solution possible, and it is why cybersecurity management can sit inside the development workflow rather than beside it.
+Cyberismo content is plain text in a version control system. That single decision makes the rest of the solution possible, and it is why cybersecurity management can sit inside the development workflow rather than beside it.
 
 == The format
 
@@ -15,14 +15,14 @@ Review, history and branching:: Security documentation goes through the same pul
 
 Automation in the pipeline:: The same command line tool your team runs locally also runs in a CI/CD tool chain, against the same content. Automated checks and validations, report generation, and the archiving of publications become build steps rather than periodic exercises.
 
-Collaboration across organisations:: The open plain-text format makes it possible to collaborate on cybersecurity material both internally and with other organisations, using familiar tools such as Git and Git hosting services. This is what allows cybersecurity practice to be packaged and shared rather than reinvented by each organisation; see {{#xref}}"cardKey":"docs_b9w4zfng"{{/xref}}.
+Collaboration across organisations:: The open plain-text format makes it possible to collaborate on cybersecurity material both internally and with other organisations, using familiar tools such as Git and Git hosting services. Cybersecurity practice can then be packaged and shared rather than reinvented by each organisation; see {{#xref}}"cardKey":"docs_b9w4zfng"{{/xref}}.
 
-Conversion and publication:: Because the format is based on common file types, content converts readily to other formats. Cyberismo can export a project as a static website or a PDF, at whatever scope you need — a single card, a subtree, or an entire project. This is how evidence is handed to an auditor or a customer.
+Conversion and publication:: Because the format is based on common file types, content converts readily to other formats. Cyberismo can export a project as a static website or a PDF, at whatever scope you need: a single card, a subtree, or an entire project. This is how evidence reaches an auditor or a customer.
 
 No lock-in:: Your content remains readable without Cyberismo. The licence of the Cyberismo tool does not affect the documents and resources produced with it.
 
 == The connection to the reasoning engine
 
-A plain text format on its own would give you version control and little else. What makes the content computable is that it is *structured* plain text: cards have types, types define fields and workflows, and links between cards have types with declared endpoints.
+A plain text format on its own would give you version control and little else. What makes the content computable is that it is structured plain text. Cards have types, types define fields and workflows, and links between cards have types with declared endpoints.
 
-That structure is what a logic program can reason over. See {{#xref}}"cardKey":"docs_yhdz6oco"{{/xref}} — security as code and the reasoning engine are two halves of the same design decision, not separate features.
+A logic program can reason over that structure. See {{#xref}}"cardKey":"docs_yhdz6oco"{{/xref}}. Security as code and the reasoning engine are two halves of one design decision, not separate features.

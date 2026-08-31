@@ -1,7 +1,7 @@
 :sectnums:
 This tutorial shows how to create a new Cyberismo project with the base module and open it in the app.
 
-If you would rather look at a finished project than build an empty one, start with {{#xref}}"cardKey":"docs_12"{{/xref}} instead — it needs nothing installed and shows what a real secure development project looks like.
+If you would rather look at a finished project than build an empty one, start with {{#xref}}"cardKey":"docs_12"{{/xref}} instead. It needs nothing installed and shows what a real secure development project looks like.
 
 == Install Cyberismo
 
@@ -96,5 +96,5 @@ You now have a working project: a card you can edit, a workflow you can move it 
 == Next
 
 * {{#xref}}"cardKey":"docs_iv4h2usw"{{/xref}} and {{#xref}}"cardKey":"docs_x9fat7ty"{{/xref}} cover the everyday actions.
-* {{#xref}}"cardKey":"docs_xpzkgk9n"{{/xref}} defines the vocabulary — card, card type, workflow, link, template, module.
+* {{#xref}}"cardKey":"docs_xpzkgk9n"{{/xref}} defines the vocabulary: card, card type, workflow, link, template, module.
 * {{#xref}}"cardKey":"docs_b9w4zfng"{{/xref}} is where you pick up a ready-made process.

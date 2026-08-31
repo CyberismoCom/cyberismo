@@ -1,16 +1,18 @@
 [.lead]
-A module is a reusable package of card types, workflows, templates, link types, reports and logic programs. Import one and you have a working process; adapt it and it becomes your own.
+A module is a reusable package of card types, workflows, templates, link types, reports and logic programs. Import one and you have a working process. Adapt it and it becomes your own.
 
 Modules stack. Each builds on the one below it, so adding a new standard to a project extends what is already there rather than replacing it.
 
-* *Base* — the foundation every project imports: common card types, workflows, field types and reports.
-* *ISMS Essentials* — asset, risk and incident management, and the essential process descriptions of an information security management system. Builds on Base.
-* *Secure Development Essentials* — risk assessment, threat modelling with generated data flow diagrams, security requirements and progress metrics. Builds on ISMS Essentials.
-* *EU CRA Essentials* — the essential requirements of the EU Cyber Resilience Act, mapped onto the secure development practices underneath. Builds on Secure Development Essentials.
+* *Base* provides the foundation every project imports: common card types, workflows, field types and reports.
+* *ISMS Essentials* provides asset, risk and incident management, and the essential process descriptions of an information security management system. It builds on Base.
+* *Secure Development Essentials* provides risk assessment, threat modelling with generated data flow diagrams, security requirements and progress metrics. It builds on ISMS Essentials.
+* *EU CRA Essentials* provides the essential requirements of the EU Cyber Resilience Act, mapped onto the secure development practices underneath. It builds on Secure Development Essentials.
 
 Commercial modules for ISO/IEC 27001, IEC 62443-4-1 and IEC 81001-5-1 attach to the same stack. See link:https://cyberismo.com/modules/[the module catalogue] for what each one contains.
 
 An imported module is read-only inside your project, so updates stay clean. What you build on top is yours.
+
+== In this section
 
 {{#report}}
   "name": "base/reports/childrenList"

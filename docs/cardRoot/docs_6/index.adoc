@@ -1,7 +1,7 @@
 [.lead]
 The complete specification: every resource you can configure, the query language, the logic programming predicates, and the external functions.
 
-This section is for looking things up rather than reading through. If you are new to Answer Set Programming, read {{#xref}}"cardKey":"docs_28"{{/xref}} in {{#xref}}"cardKey":"docs_is3958yg"{{/xref}} first — the reference material below assumes it.
+This section is for looking things up rather than reading through. If you are new to Answer Set Programming, read {{#xref}}"cardKey":"docs_28"{{/xref}} in {{#xref}}"cardKey":"docs_is3958yg"{{/xref}} first, since the reference material below assumes it.
 
 *Configuring resources* covers workflows, card types, field types, link types, templates, reports, graph models and calculations.
 
