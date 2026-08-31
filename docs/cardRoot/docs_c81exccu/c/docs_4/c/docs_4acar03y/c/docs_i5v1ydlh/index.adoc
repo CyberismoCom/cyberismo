@@ -12,7 +12,7 @@ You can see some details of a template, such as `base/templates/page`, with the 
 
   $ cyberismo show template base/templates/page
 
-To learn how to create new templates, see xref:docs_7n7gqu93.adoc[Templates].
+To learn how to create new templates, see {{#xref}}"cardKey":"docs_7n7gqu93"{{/xref}}.
 
 == Basic `createCards` macro
 

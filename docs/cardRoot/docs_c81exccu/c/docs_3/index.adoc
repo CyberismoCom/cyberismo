@@ -81,7 +81,7 @@ $ cyberismo show help
 
 == Removing dormant field values
 
-The cards of a project may contain custom field values that nothing reads, for example the values of a field that has been removed from the card type. Such values are dormant: they stay in the card files, but they are not shown in the user interface and they are not visible to logic programs, as described in xref:docs_27.adoc[Managing card types]. To remove them, enter the following command in the Cyberismo project directory:
+The cards of a project may contain custom field values that nothing reads, for example the values of a field that has been removed from the card type. Such values are dormant: they stay in the card files, but they are not shown in the user interface and they are not visible to logic programs, as described in {{#xref}}"cardKey":"docs_27"{{/xref}}. To remove them, enter the following command in the Cyberismo project directory:
 
 [source,console]
 ----

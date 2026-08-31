@@ -47,4 +47,4 @@ To delete a user-created link, hover over the link entry and click the *delete i
 
 Link types define what kinds of cards can be linked together. They are configured at the project level and may restrict which card types can serve as source and destination. Link types also define display names for the outbound and inbound directions of the relationship.
 
-For information on configuring link types, see xref:docs_qp3vhh4t.adoc[Managing link types].
+For information on configuring link types, see {{#xref}}"cardKey":"docs_qp3vhh4t"{{/xref}}.

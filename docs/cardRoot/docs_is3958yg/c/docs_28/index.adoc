@@ -73,7 +73,7 @@ anonymous variable, which is used when we do not care about the value of an argu
 
 == Data types of Cyberismo fields
 
-The fields of cards can be of different data types, which are mapped in logic programs to strings, integers, and symbolic constants as follows. This mapping is used in `field` terms, which are discussed below. For a description of the data types of Cyberismo fields, see xref:docs_25.adoc[Fields, field types, and data types].
+The fields of cards can be of different data types, which are mapped in logic programs to strings, integers, and symbolic constants as follows. This mapping is used in `field` terms, which are discussed below. For a description of the data types of Cyberismo fields, see {{#xref}}"cardKey":"docs_25"{{/xref}}.
 
 .Representing the data types of fields in logic programs
 [cols="1,2,4"]
@@ -211,7 +211,7 @@ The previous example also illustrates that you can express the logical AND opera
 
 When ASP programs are run, the ASP implementation will first _ground_ the program by substituting all variables in all possible ways with variable-free (or _ground_) terms from the logic program. After grounding, an _answer set_ is computed. Intuitively, an answer set of a program contains all constants and ground functions that are true.
 
-If you are using ASP outside the context of Cyberismo, you can use `#show` directives to select a subset of the answer set that you are interested in seeing. In Cyberismo, we use the built-in xref:docs_33.adoc[query language] to define the results we are interested in.
+If you are using ASP outside the context of Cyberismo, you can use `#show` directives to select a subset of the answer set that you are interested in seeing. In Cyberismo, we use the built-in query language to define the results we are interested in; see {{#xref}}"cardKey":"docs_33"{{/xref}}.
 
 In general, as a Cyberismo user or Cyberismo content developer, you do not need to worry about the technicalities of grounding, solving, or displaying results with `#show` directives.
 
@@ -341,11 +341,11 @@ select("workflowstate").
 
 == External functions
 
-Cyberismo logic programs can use the built-in xref:docs_fk6fimx4.adoc[external functions] for working with dates and strings. External functions are similar to functions in mainstream programming languages, as they process their arguments and return a string or an integer.
+Cyberismo logic programs can use the built-in external functions for working with dates and strings; see {{#xref}}"cardKey":"docs_fk6fimx4"{{/xref}}. External functions are similar to functions in mainstream programming languages, as they process their arguments and return a string or an integer.
 
 == Naming conventions
 
-Cyberismo uses a `camelCase` naming convention in logic programs. See xref:docs_8.adoc[Naming conventions] for more information.
+Cyberismo uses a `camelCase` naming convention in logic programs. See {{#xref}}"cardKey":"docs_8"{{/xref}} for more information.
 
 == Answer Set Programming resources
 

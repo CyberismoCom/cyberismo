@@ -50,4 +50,4 @@ This graph macro produces the following graph:
 
 NOTE: In the example above, the `"workflow"` parameter is a view-specific parameter defined by the workflow graph view.
 
-To learn how to define new graphs, see xref:docs_wp769ee4.adoc[Managing graph models] and xref:docs_4ha2rf9l.adoc[Managing graph views].
+To learn how to define new graphs, see {{#xref}}"cardKey":"docs_wp769ee4"{{/xref}} and {{#xref}}"cardKey":"docs_4ha2rf9l"{{/xref}}.

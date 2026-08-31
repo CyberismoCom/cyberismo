@@ -9,7 +9,7 @@ This module includes a threat modelling tool that enables the modelling of proce
 
 == Prerequisites
 
-xref:docs_13.adoc[Install Cyberismo].
+Install Cyberismo; see {{#xref}}"cardKey":"docs_13"{{/xref}}.
 
 == Create a project
 
@@ -65,4 +65,4 @@ You are now ready to explore your new secure development workspace. Consider try
 * Expand the navigation tree on the left to see the structure of the documentation.
 * See progress key performance indicators both in the navigation tree and on the home page.
 * You can find a more detailed report of the current status in *Periodic reviews*.
-* Select *Design* / *Manage threat models* and follow the instructions to get started with threat modelling. There is xref:docs_8mywsysm.adoc[another tutorial about threat modelling].
+* Select *Design* / *Manage threat models* and follow the instructions to get started with threat modelling. There is another tutorial about threat modelling; see {{#xref}}"cardKey":"docs_8mywsysm"{{/xref}}.

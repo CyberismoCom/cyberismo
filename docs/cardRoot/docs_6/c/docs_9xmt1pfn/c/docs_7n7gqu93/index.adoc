@@ -21,7 +21,7 @@ To create a new template:
 
 The new template will be created and the editor will open.
 
-When choosing a name for your template, see xref:docs_8.adoc[Naming conventions].
+When choosing a name for your template, see {{#xref}}"cardKey":"docs_8"{{/xref}}.
 
 === Editing template metadata
 

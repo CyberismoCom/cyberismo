@@ -12,7 +12,7 @@ along with the needed field types, link types, templates, workflows, registers, 
 
 == Prerequisites
 
-xref:docs_13.adoc[Install Cyberismo].
+Install Cyberismo; see {{#xref}}"cardKey":"docs_13"{{/xref}}.
 
 == Create a project
 

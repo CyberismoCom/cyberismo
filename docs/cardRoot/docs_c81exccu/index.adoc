@@ -1,7 +1,9 @@
 [.lead]
 Task-oriented instructions for people who already have a project and want to get something specific done.
 
-If you are still setting up, start with xref:docs_2.adoc[Get started] instead. If you want to understand how something works rather than how to do it, see xref:docs_is3958yg.adoc[Concepts].
+If you are still setting up, start with {{#xref}}"cardKey":"docs_2"{{/xref}} instead. If you want to understand how something works rather than how to do it, see {{#xref}}"cardKey":"docs_is3958yg"{{/xref}}.
+
+== In this section
 
 {{#report}}
   "name": "base/reports/childrenList"

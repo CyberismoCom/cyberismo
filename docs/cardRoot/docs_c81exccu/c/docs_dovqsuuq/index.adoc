@@ -3,7 +3,7 @@ Cyberismo stores all project content — cards, metadata, configuration, and mod
 == Prerequisites
 
 * https://git-scm.com/[Git] installed on your system
-* A Cyberismo project (see xref:docs_7.adoc[Creating a new project])
+* A Cyberismo project (see {{#xref}}"cardKey":"docs_7"{{/xref}})
 
 == Initialising a Git repository
 

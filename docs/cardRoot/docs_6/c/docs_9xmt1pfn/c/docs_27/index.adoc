@@ -23,7 +23,7 @@ To create a new card type:
 
 The new card type will be created and the editor will open.
 
-When choosing a name for your card type, see xref:docs_8.adoc[Naming conventions].
+When choosing a name for your card type, see {{#xref}}"cardKey":"docs_8"{{/xref}}.
 
 === Editing a card type
 
@@ -144,9 +144,9 @@ The `customFields` property of a card type is an array of objects that have the 
 
 A card file contains a key for a custom field only when that field has a value; Cyberismo does not write placeholder keys for empty fields. A card does not need to contain a key for every custom field of its card type: a missing key and an empty value mean the same thing.
 
-Changing the custom fields of a card type does not change the cards of that type. A stored value that nothing reads is _dormant_: it stays in the card file, but it is not shown in the user interface, it is not visible to logic programs, and it does not cause a validation error. A value becomes dormant when its field is removed from the card type, or when its field is changed into a calculated field that does not allow overrides (see xref:docs_30.adoc[Calculated fields]). A stored value that is empty is dormant as well, whether or not the card type still declares its field. Because the values are kept, adding a custom field back to a card type restores the values that the cards had stored for it.
+Changing the custom fields of a card type does not change the cards of that type. A stored value that nothing reads is _dormant_: it stays in the card file, but it is not shown in the user interface, it is not visible to logic programs, and it does not cause a validation error. A value becomes dormant when its field is removed from the card type, or when its field is changed into a calculated field that does not allow overrides (see {{#xref}}"cardKey":"docs_30"{{/xref}}). A stored value that is empty is dormant as well, whether or not the card type still declares its field. Because the values are kept, adding a custom field back to a card type restores the values that the cards had stored for it.
 
-To remove dormant values from a project, use the `cyberismo clean` command, which is described in xref:docs_3.adoc[Using the Cyberismo command line interface].
+To remove dormant values from a project, use the `cyberismo clean` command, which is described in {{#xref}}"cardKey":"docs_3"{{/xref}}.
 
 == Mapping to a logic program
 

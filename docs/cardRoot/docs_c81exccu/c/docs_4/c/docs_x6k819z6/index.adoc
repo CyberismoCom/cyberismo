@@ -24,7 +24,7 @@ Below it, an expandable *metadata section* shows all editable fields for the car
 
 The main editor area is a *CodeMirror-based source editor* with syntax highlighting and line wrapping. You write card content using https://docs.asciidoctor.org/asciidoc/latest/syntax-quick-reference/[AsciiDoc notation].
 
-AsciiDoc is a lightweight markup language primarily designed for writing technical documentation. It has a rich notation that supports, for example, headings, tables, lists, admonitions, footnotes, and links. Cyberismo extends the AsciiDoc notation with macros; see xref:docs_4acar03y.adoc[Macros].
+AsciiDoc is a lightweight markup language primarily designed for writing technical documentation. It has a rich notation that supports, for example, headings, tables, lists, admonitions, footnotes, and links. Cyberismo extends the AsciiDoc notation with macros; see {{#xref}}"cardKey":"docs_4acar03y"{{/xref}}.
 
 Above the editor, a *formatting toolbar* provides quick access to common operations:
 

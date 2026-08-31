@@ -4,6 +4,6 @@ Click the *Edit* button in the top-right corner of the browser window. The card 
 
 image::cyberismo-edit-card.png[]
 
-The card editor uses the https://asciidoc.org/[AsciiDoc] notation. AsciiDoc is similar to the more widely used Markdown, but AsciiDoc is more feature-rich and better suited for complex content. For more information, see xref:docs_x6k819z6.adoc[Editing cards].
+The card editor uses the https://asciidoc.org/[AsciiDoc] notation. AsciiDoc is similar to the more widely used Markdown, but AsciiDoc is more feature-rich and better suited for complex content. For more information, see {{#xref}}"cardKey":"docs_x6k819z6"{{/xref}}.
 
 When you have finished editing, click the *Update* button to save your changes to the local filesystem.

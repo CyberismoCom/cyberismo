@@ -1,5 +1,5 @@
 [.lead]
-The central idea behind Cyberismo: if you model the cybersecurity process and the evidence of practising it as structured information, then compliance reduces to the status of those units of information and the relationships between them — and that is something a machine can evaluate.
+The central idea behind Cyberismo: if you model the cybersecurity process and the evidence of practising it as structured information, then a major part of your compliance work reduces to the status of those units of information and the relationships between them, which is something a machine can evaluate.
 
 == Why compliance is hard to keep on top of
 
@@ -9,22 +9,22 @@ Compliance is complex and hard to articulate. It requires executing procedures a
 
 The practical consequence is that the true state of compliance is rarely known. It is reconstructed, usually shortly before an audit, by asking people what they did and hunting for the documents that prove it.
 
-== The importance of the information model
+== The reframing
 
 Cyberismo emphasises the importance of managing the information model that describes the cybersecurity process and the evidence of practising it.
 
-In terms of that information model, a major part of compliance reduces to the status of the units of information and their relationships. Asssessing whether a control is satisfied begins with checking whether particular cards exist, are in particular states, and are linked to each other in particular ways. Cyberismo allows defining this aspect of compliance as logical rules based on the attributes and relationships of the information units.
+In terms of that information model, compliance reduces to the status of the units of information and their relationships. Whether a control is satisfied is not a matter of opinion about a folder of documents; it is a question about whether particular cards exist, are in particular states, and are linked to each other in particular ways. Cyberismo allows defining compliance as logical rules based on the attributes and relationships of the information units.
 
 Three things follow from this, and most of the rest of the documentation is a consequence of one of them.
 
-The state is computed rather than reported manually:: If the rules are executable, nobody has to assemble a status. It is derived from the content whenever it is asked for, so it cannot drift away from reality between audits. See xref:docs_32.adoc[Automated policy checks].
+The state is computed, not reported:: If the rules are executable, nobody has to assemble a status. It is derived from the content whenever it is asked for, so it cannot drift away from reality between audits. See {{#xref}}"cardKey":"docs_32"{{/xref}}.
 
-The verdicts can be explained:: A rule that determines a control is not satisfied knows *why* it is not satisfied — which condition failed. The rules can be understood by humans, and the results of the assessments can be automatically explained to the humans.
+The verdicts can be explained:: A rule that determines a control is not satisfied knows *why* it is not satisfied — which condition failed. That is why Cyberismo states its assessments in sentences rather than colours.
 
-The rules are content, not code in a product:: Because compliance is expressed as rules over your own information model, the interpretation of a standard is something that can be written, reviewed, versioned and shared. That is what a xref:docs_b9w4zfng.adoc[content module] is.
+The rules are content, not code in a product:: Because compliance is expressed as rules over your own information model, the interpretation of a standard is something that can be written, reviewed, versioned and shared. That is what a Cyberismo module is; see {{#xref}}"cardKey":"docs_b9w4zfng"{{/xref}}.
 
 == What this does not claim
 
-Modelling compliance as information does not make interpretation go away. Deciding what a standard requires in your context, and whether a particular document is adequate evidence, remains expert work. See xref:docs_xb8m30r2.adoc[How AI assistants and the logic engine divide the work] for where that boundary falls in practice.
+Modelling compliance as information does not make interpretation go away. Deciding what a standard requires in your context, and whether a particular document is adequate evidence, remains expert work. For where that boundary falls in practice, see {{#xref}}"cardKey":"docs_xb8m30r2"{{/xref}}.
 
 What changes is that the interpretation is written down as rules that everyone can inspect, rather than living in the head of whoever prepared the last audit.

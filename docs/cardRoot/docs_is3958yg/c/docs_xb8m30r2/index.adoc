@@ -1,11 +1,11 @@
 [.lead]
 Cyberismo combines two kinds of automated reasoning that fail in opposite ways. A large language model is fluent but unreliable; a logic program is reliable but cannot write. Using both, with a clear division of responsibility between them, is what makes AI-assisted compliance work defensible rather than merely fast.
 
-This page explains that division. For instructions on connecting an assistant, see xref:docs_yfl6es9l.adoc[Using AI assistants with Cyberismo MCP server].
+This page explains that division. For instructions on connecting an assistant, see {{#xref}}"cardKey":"docs_yfl6es9l"{{/xref}}.
 
 == The problem with generating compliance documentation
 
-A language model will happily produce a threat model, a risk assessment or a set of security requirements. The text will read well. It may also be incomplete, internally inconsistent, or describe evidence that does not exist, and none of that is visible from the prose.
+A language model will happily produce a threat model, a risk assessment or a set of security requirements. The text will read well. It may also be incomplete, internally inconsistent, or describe evidence that does not exist — and none of that is visible from the prose.
 
 This matters more in compliance than in most domains, because the output is not read for its own sake. It is submitted to an auditor, a certification body or a customer, who will ask how you know it is right. "A model wrote it" is not an answer, and a human review that has to check every generated claim by hand gives back the time the generation saved.
 
@@ -13,15 +13,15 @@ The usual responses are to restrict what the model may write, or to accept the r
 
 == What each part is responsible for
 
-The assistant proposes:: Through the xref:docs_yfl6es9l.adoc[MCP server], an AI assistant can create and edit cards, set fields, create links between cards, run queries, and inspect the current state of the project. In practice this means drafting a document, filling in the fields of a risk, building a data flow model from a description of an architecture, or working through a list of gaps and proposing something for each one. This is the work that is laborious rather than difficult, and a model is good at it.
+The assistant proposes:: Through the MCP server, an AI assistant can create and edit cards, set fields, create links between cards, run queries, and inspect the current state of the project. In practice this means drafting a document, filling in the fields of a risk, building a data flow model from a description of an architecture, or working through a list of gaps and proposing something for each one. This is the work that is laborious rather than difficult, and a model is good at it. See {{#xref}}"cardKey":"docs_yfl6es9l"{{/xref}}.
 
-The engine decides:: The logic program is evaluated over the whole project, independently of how the content got there. It computes progress metrics, calculated fields, notifications and xref:docs_32.adoc[automated policy checks], and it produces an explanation for each verdict. See xref:docs_chclhxsk.adoc[Structure and execution of logic programs] for how the program is assembled and run.
+The engine decides:: The logic program is evaluated over the whole project, independently of how the content got there. It computes progress metrics, calculated fields, notifications and the checks described in {{#xref}}"cardKey":"docs_32"{{/xref}}, and it produces an explanation for each verdict. For how the program is assembled and run, see {{#xref}}"cardKey":"docs_chclhxsk"{{/xref}}.
 
 The people approve:: Workflow transitions remain a human act. A card moves from draft to approved because a person with the authority to approve it did so, and the workflow records who and when. Neither the assistant nor the engine can move that boundary.
 
 The essential property is that the engine is not persuadable. It runs the same rules over the same graph whether a human, an assistant or a script produced the content, and it cannot be argued into a different answer by confident prose. A control that requires linked evidence is not satisfied by a document that says the evidence exists.
 
-== What the logic engine actually verifies
+== What the engine actually verifies
 
 Being precise about this matters, because overstating it would undermine the point of the page.
 
@@ -36,7 +36,7 @@ The engine checks *structure and relationships*. It can determine that:
 
 These are the conditions that can be expressed as logical rules over cards, fields and links. They are also, in practice, most of what an auditor checks mechanically.
 
-== What the logic engine cannot verify
+== What the engine cannot verify
 
 The engine has no opinion on the quality of what a card says. It cannot determine that:
 
@@ -45,21 +45,20 @@ The engine has no opinion on the quality of what a card says. It cannot determin
 * a security requirement is testable, or says what its author intended;
 * a linked document is evidence of the thing it is claimed to be evidence of.
 
-These remain expert judgements, and a fluent but wrong document will pass every structural check. What Cyberismo changes is that such a document is *visible*: it exists as a card, in a known state, owned by someone, automatically linked to the control it supports and subject to review. The judgement still has to be made by a person; the tool makes sure the work of making it is not lost, forgotten, or discovered missing during an audit.
+These remain expert judgements, and a fluent but wrong document will pass every structural check. What Cyberismo changes is that such a document is *visible* — it exists as a card, in a known state, owned by someone, linked to the control it supports and subject to review. The judgement still has to be made by a person; the tool makes sure the work of making it is not lost, forgotten, or discovered missing during an audit.
 
-NOTE: The right way to describe this to a sceptical reader is that the logic engine narrows what a human reviewer has to examine. It does not remove the reviewer.
+NOTE: The right way to describe this to a sceptical reader is that the engine narrows what a human reviewer has to examine. It does not remove the reviewer.
 
 == Why the content format makes this possible
 
 None of the above works on a pile of documents. It works because Cyberismo content is a typed, linked graph rather than free text: cards have card types, card types define fields and workflows, and links between cards have types with declared endpoints. A logic program can reason over that structure.
 
-What if you manage some important parts of the information in another tool such as Atlassian Jira or OWASP Dependency-Track? The idea still works. A Cyberismo connector may augment the logical information model with facts generated from the content of an external system, and it is possible to link Cyberismo content to the external content.
-
-This is also why an assistant is unusually effective here. It is not writing into a blank document; it is filling in a schema that already exists, in a project where the rules about what "complete" means are written down and executable. The assistant gets a well-defined task, and the result gets checked. Cyberismo content modules can also bundle AI agent skills that further improve the results from AI assistants.
+This is also why an assistant is unusually effective here. It is not writing into a blank document; it is filling in a schema that already exists, in a project where the rules about what "complete" means are written down and executable. The assistant gets a well-defined task, and the result gets checked.
 
 == See also
 
-* xref:docs_yfl6es9l.adoc[Using AI assistants with Cyberismo MCP server] — connecting an assistant, and the tools and resources it can use
-* xref:docs_32.adoc[Automated policy checks] — how checks are written
-* xref:docs_o9qt6t0j.adoc[Managing calculations] — where the rules live
-* xref:docs_28.adoc[Introduction to Answer Set Programming] — the reasoning paradigm behind the engine
+* {{#xref}}"cardKey":"docs_yfl6es9l"{{/xref}} — connecting an assistant, and the tools and resources it can use
+* {{#xref}}"cardKey":"docs_32"{{/xref}} — how checks are written
+* {{#xref}}"cardKey":"docs_o9qt6t0j"{{/xref}} — where the rules live
+* {{#xref}}"cardKey":"docs_28"{{/xref}} — the reasoning paradigm behind the engine
+* {{#xref}}"cardKey":"docs_yhdz6oco"{{/xref}} — why the state of a project is computed rather than reported

@@ -15,7 +15,7 @@ Reports may define additional report-specific parameters.
 
 == Defining new reports
 
-To learn how to define new reports, see xref:docs_byr4iof0.adoc[Managing reports].
+To learn how to define new reports, see {{#xref}}"cardKey":"docs_byr4iof0"{{/xref}}.
 
 == Example
 

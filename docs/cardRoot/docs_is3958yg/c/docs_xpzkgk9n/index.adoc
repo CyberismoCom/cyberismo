@@ -13,7 +13,7 @@ Card key:: Each card is uniquely identified with a card key. The card key begins
 
 Card type:: Each card is of a specific card type, which defines the workflow being used and optionally a set of custom fields. Separate card types may be defined, for example, for controlled documents, risks, threats, security requirements, architecture decisions, or tasks.
 
-Field type:: A field type defines a custom field that card types can use: its data type, its display name, and — for enumerations — the permitted values and the order they appear in. Field types are what let a risk card carry a likelihood and an impact, or a task card carry a deadline and an assignee. See xref:docs_25.adoc[Managing field types].
+Field type:: A field type defines a custom field that card types can use: its data type, its display name, and — for enumerations — the permitted values and the order they appear in. Field types are what let a risk card carry a likelihood and an impact, or a task card carry a deadline and an assignee. See {{#xref}}"cardKey":"docs_25"{{/xref}}.
 
 Workflow:: A workflow is a state machine that defines a set of states and state transitions for cards, such as Open → In Progress → Done or Draft → Approved → Archived.
 
@@ -25,16 +25,16 @@ Template:: A template contains a card or a set of cards in a hierarchy that is u
 
 Module:: A module is a reusable collection of templates, card types, workflows, field types, link types, calculations, reports and graph models. When a user imports a module as a dependency to their Cyberismo project, a read-only copy of the module is included in the project directory structure. The most common module is the _base_ module, which defines commonly used basic card types and their workflows.
 
-Module dependencies:: A module may itself depend on other modules, so modules layer rather than compete. Importing a module brings in everything it depends on, and each layer extends what is below it instead of replacing it — which is why adding a standard to a project does not mean starting the project again. The modules Cyberismo publishes are designed as such a stack; see xref:docs_b9w4zfng.adoc[Content modules].
+Module dependencies:: A module may itself depend on other modules, so modules layer rather than compete. Importing a module brings in everything it depends on, and each layer extends what is below it instead of replacing it — which is why adding a standard to a project does not mean starting the project again. The modules Cyberismo publishes are designed as such a stack. See {{#xref}}"cardKey":"docs_b9w4zfng"{{/xref}}.
 
 == The reasoning
 
-Calculation:: A calculation is a resource holding a logic program, which Cyberismo includes automatically in the main logic program when the project is evaluated. Calculations are the mechanism behind most of what the tool derives rather than stores: xref:docs_30.adoc[calculated fields], xref:docs_mdsa98za.adoc[calculated links], xref:docs_32.adoc[automated policy checks], xref:docs_4nd9wctm.adoc[notifications], xref:docs_9pl4td1v.adoc[side effects of operations], progress metrics, and the status indicators in the navigation tree. See xref:docs_o9qt6t0j.adoc[Managing calculations].
+Calculation:: A calculation is a resource holding a logic program, which Cyberismo includes automatically in the main logic program when the project is evaluated. Calculations are the mechanism behind most of what the tool derives rather than stores — progress metrics, the status indicators in the navigation tree, and the features described in {{#xref}}"cardKey":"docs_30"{{/xref}}, {{#xref}}"cardKey":"docs_mdsa98za"{{/xref}}, {{#xref}}"cardKey":"docs_32"{{/xref}}, {{#xref}}"cardKey":"docs_4nd9wctm"{{/xref}} and {{#xref}}"cardKey":"docs_9pl4td1v"{{/xref}}. See also {{#xref}}"cardKey":"docs_o9qt6t0j"{{/xref}}.
 
-Report:: A report has two parts: a query, written as a logic program, that produces a set of results from the content; and a template, written in Handlebars, that renders those results as AsciiDoc. A report is placed on a card with the report macro and may take parameters, so the same report can be reused in different contexts. This is how tables, summaries and status views are generated from the content rather than maintained by hand. See xref:docs_j1ldnk0s.adoc[Implementing reports].
+Report:: A report has two parts: a query, written as a logic program, that produces a set of results from the content; and a template, written in Handlebars, that renders those results as AsciiDoc. A report is placed on a card with the report macro and may take parameters, so the same report can be reused in different contexts. This is how tables, summaries and status views are generated from the content rather than maintained by hand. See {{#xref}}"cardKey":"docs_j1ldnk0s"{{/xref}}.
 
-Graph model and graph view:: A graph is configured in two parts. The graph model is a logic program that turns content into the nodes and edges of a diagram, and the graph view controls how that graph is presented — so several views can share a single model. This is what generates diagrams such as data flow diagrams from the model rather than from a drawing tool. See xref:docs_hbskjelr.adoc[Implementing graphs].
+Graph model and graph view:: A graph is configured in two parts. The graph model is a logic program that turns content into the nodes and edges of a diagram, and the graph view controls how that graph is presented — so several views can share a single model. This is what generates diagrams such as data flow diagrams from the model rather than from a drawing tool. See {{#xref}}"cardKey":"docs_hbskjelr"{{/xref}}.
 
 '''
 
-For the modules Cyberismo publishes, see xref:docs_b9w4zfng.adoc[Content modules]. For the full specification of how each of these resources is configured, see xref:docs_6.adoc[Reference].
+For the modules Cyberismo publishes, see {{#xref}}"cardKey":"docs_b9w4zfng"{{/xref}}. For the full specification of how each of these resources is configured, see {{#xref}}"cardKey":"docs_6"{{/xref}}.

@@ -20,9 +20,9 @@ image::diagram-example.png[]
 
 == Prerequisites
 
-xref:docs_13.adoc[Install Cyberismo].
+Install Cyberismo; see {{#xref}}"cardKey":"docs_13"{{/xref}}.
 
-xref:docs_krxdf4ke.adoc[Set up a project with the Secure development essentials module].
+Set up a project with the Secure development essentials module; see {{#xref}}"cardKey":"docs_krxdf4ke"{{/xref}}.
 
 == Start the Cyberismo app
 

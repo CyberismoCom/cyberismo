@@ -1,11 +1,11 @@
 [.lead]
 Everything you need to go from nothing to a working Cyberismo project.
 
-To see what Cyberismo actually does, start with the xref:docs_12.adoc[Demo]. It needs nothing installed, and a finished project with real content makes a better first impression than an empty one.
+To see what Cyberismo actually does, start with {{#xref}}"cardKey":"docs_12"{{/xref}}. It needs nothing installed, and a finished project with real content makes a better first impression than an empty one.
 
-To build a project of your own, follow the xref:docs_7.adoc[Quickstart] — install, create a project, open it in the app. The tutorials after it cover the everyday actions: editing a card and moving it through its workflow.
+To build a project of your own, follow the {{#xref}}"cardKey":"docs_7"{{/xref}} — install, create a project, open it in the app. The tutorials after it cover the everyday actions: editing a card and moving it through its workflow.
 
-Once you are comfortable with the basics, xref:docs_b9w4zfng.adoc[Content modules] is where you pick up a ready-made process — secure development, an ISMS, or the EU Cyber Resilience Act. If you would rather understand the ideas first, xref:docs_xpzkgk9n.adoc[Key terms] defines the vocabulary everything else uses.
+Once you are comfortable with the basics, {{#xref}}"cardKey":"docs_b9w4zfng"{{/xref}} is where you pick up a ready-made process — secure development, an ISMS, or the EU Cyber Resilience Act. If you would rather understand the ideas first, {{#xref}}"cardKey":"docs_xpzkgk9n"{{/xref}} defines the vocabulary everything else uses.
 
 == In this section
 
