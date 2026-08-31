@@ -1,5 +1,5 @@
 [.lead]
-Cyberismo combines two kinds of automated reasoning that fail in opposite ways. A large language model is fluent but unreliable. A logic program is reliable but cannot write. Dividing the work clearly between them is the reason AI-assisted compliance work can be defensible rather than merely fast.
+Cyberismo combines two kinds of automated reasoning that have complementary benefits and drawbacks. A large language model is fluent but unreliable. A logic program is reliable but cannot write. Dividing the work clearly between them is the reason AI-assisted compliance work can be defensible rather than merely fast.
 
 This page explains that division. For instructions on connecting an assistant, see {{#xref}}"cardKey":"docs_yfl6es9l"{{/xref}}.
 
@@ -15,13 +15,13 @@ The usual responses are to restrict what the model may write, or to accept the r
 
 The assistant proposes:: Through the MCP server, an AI assistant can create and edit cards, set fields, create links between cards, run queries, and inspect the current state of the project. In practice this means drafting a document, filling in the fields of a risk, building a data flow model from a description of an architecture, or working through a list of gaps and proposing something for each one. This work is laborious rather than difficult, and a model is good at it. See {{#xref}}"cardKey":"docs_yfl6es9l"{{/xref}}.
 
-The engine decides:: The logic program is evaluated over the whole project, independently of how the content got there. It computes progress metrics, calculated fields, notifications and the checks described in {{#xref}}"cardKey":"docs_32"{{/xref}}, and it produces an explanation for each verdict. For how the program is assembled and run, see {{#xref}}"cardKey":"docs_chclhxsk"{{/xref}}.
+The engine decides:: The logic program is evaluated over the whole project, independently of how the content got there. It computes progress metrics, calculated fields, calculated links, notifications and the checks described in {{#xref}}"cardKey":"docs_32"{{/xref}}, and it produces an explanation for each verdict. For how the program is assembled and run, see {{#xref}}"cardKey":"docs_chclhxsk"{{/xref}}.
 
 The people approve:: Workflow transitions remain a human act. A card moves from draft to approved because a person with the authority to approve it did so, and the workflow records who and when. Neither the assistant nor the engine can move that boundary.
 
 What makes the arrangement work is that the engine cannot be persuaded. It runs the same rules over the same graph whether a human, an assistant or a script produced the content, and confident prose does not argue it into a different answer. A control that requires linked evidence is not satisfied by a document claiming the evidence exists.
 
-== What the engine actually verifies
+== What the logic engine actually verifies
 
 The engine checks structure and relationships. It can determine that:
 
@@ -34,7 +34,7 @@ The engine checks structure and relationships. It can determine that:
 
 These are the conditions that can be expressed as logical rules over cards, fields and links. In practice they are also most of what an auditor checks mechanically.
 
-== What the engine cannot verify
+== What the logic engine cannot verify
 
 The engine has no opinion on the quality of what a card says. It cannot determine that:
 
@@ -49,7 +49,7 @@ NOTE: The engine narrows what a human reviewer has to examine. It does not remov
 
 == Why the content format makes this possible
 
-None of the above works on a pile of documents. It works because Cyberismo content is a typed, linked graph rather than free text. Cards have card types, card types define fields and workflows, and links between cards have types with declared endpoints. A logic program can reason over that structure.
+None of the above works on a pile of documents. It works because Cyberismo content is a typed, linked graph rather than free text. Cards have card types, card types define fields and workflows, and links between cards have types with declared endpoints. Connectors can include content from issue trackers and vulnerability tools in the graph. A logic program can reason over that structure.
 
 The same structure is why an assistant is unusually effective here. It is not writing into a blank document. It is filling in a schema that already exists, in a project where the rules about what "complete" means are written down and executable. The assistant gets a well-defined task, and the result gets checked.
 

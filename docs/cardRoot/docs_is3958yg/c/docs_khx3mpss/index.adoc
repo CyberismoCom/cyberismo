@@ -5,7 +5,7 @@ Cyberismo content is plain text in a version control system. That single decisio
 
 The Cyberismo content format is based on ordinary file types: AsciiDoc for documents, JavaScript Object Notation (JSON) for metadata, and JSON Schema for validating it. AsciiDoc is a plain text markup language that supports rich semantic elements and has strong tool support for conversion and publication. JSON is a common text-based format for structured data.
 
-A card is therefore a directory containing a document, its metadata and any attachments. A project is a directory of those. Nothing is locked inside a database, and no part of the format requires Cyberismo to read it.
+A card is therefore a directory containing a document, its metadata and any attachments. A project is a directory of those. Nothing is locked inside a database, and no part of the format necessarily requires Cyberismo to read it.
 
 This makes the solution an instance of the _Everything as Code_ and _Security as Code_ paradigms.
 
@@ -25,4 +25,4 @@ No lock-in:: Your content remains readable without Cyberismo. The licence of the
 
 A plain text format on its own would give you version control and little else. What makes the content computable is that it is structured plain text. Cards have types, types define fields and workflows, and links between cards have types with declared endpoints.
 
-A logic program can reason over that structure. See {{#xref}}"cardKey":"docs_yhdz6oco"{{/xref}}. Security as code and the reasoning engine are two halves of one design decision, not separate features.
+A logic program can reason over that structure. See {{#xref}}"cardKey":"docs_yhdz6oco"{{/xref}}. Security as code and the reasoning engine are two halves of one design decision.

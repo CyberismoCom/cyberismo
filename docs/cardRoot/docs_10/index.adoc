@@ -1,5 +1,5 @@
 [.lead]
-*Cyberismo* is an open-source solution for cybersecurity management in software projects. It makes adopting compliant cybersecurity processes easy. The solution is modular and tailorable, ensuring it fits each organisation's needs. With Cyberismo, you can automate secure development implementation, compliance validation, and evidence archiving.
+*Cyberismo* is an open-source solution for cybersecurity management in software projects. It makes adopting compliant cybersecurity processes easy. The solution is modular and tailorable, ensuring it fits each organisation's needs. With Cyberismo, you can automate secure development implementation, compliance validation, and evidence archiving, and you can let AI assistants do much of the drafting along the way.
 
 * link:https://cyberismo.com/solution[Solution introduction]
 * {{#xref}}"cardKey":"docs_12"{{/xref}}
@@ -23,7 +23,15 @@ Making the adoption of cybersecurity and compliance smooth is the key goal for t
 
 === Save time and money by automating
 
-Cyberismo includes an integrated logic-based artificial intelligence (AI) engine _Clingo_, which enables automatic tracking of compliance and production of various metrics and reports. Why this is possible at all is the subject of {{#xref}}"cardKey":"docs_yhdz6oco"{{/xref}}.
+Cyberismo includes an integrated logic-based artificial intelligence engine, _Clingo_, which enables automatic tracking of compliance and production of various metrics and reports. Why this is possible at all is the subject of {{#xref}}"cardKey":"docs_yhdz6oco"{{/xref}}.
+
+=== Work with AI assistants
+
+Cyberismo ships an MCP server, so an AI assistant can work directly on the content of a project. It can draft documents, fill in the fields of a risk, build a data flow model from a description of an architecture, and search for gaps.
+
+The logic engine then evaluates the result the same way it evaluates anything else, regardless of who or what produced it. A control that requires linked evidence is not satisfied by a document claiming the evidence exists, and a person still approves every workflow transition. For what each part is responsible for, and what the engine can and cannot check, see {{#xref}}"cardKey":"docs_xb8m30r2"{{/xref}}.
+
+NOTE: Cyberismo uses two quite different technologies that both get called artificial intelligence. Clingo is a logic engine: it applies rules and always reaches the same answer for the same content. A language model writes fluent text but cannot guarantee it is correct. They are combined so that each covers the weakness of the other.
 
 === Improve collaboration thanks to open content format
 
@@ -34,12 +42,13 @@ The Cyberismo content format is plain text under version control, which makes it
 The main components of the solution are the Cyberismo content modules, the Cyberismo tool, and commercial services and support.
 
 Cyberismo content modules:: To implement the security-as-code paradigm, the Cyberismo solution uses a plain text content format that can be managed in software version control. The content format is based on AsciiDoc, JavaScript Object Notation (JSON), and JSON Schema. Cyberismo content can be packaged into reusable content modules; see {{#xref}}"cardKey":"docs_b9w4zfng"{{/xref}}.
-Cyberismo tool:: The Cyberismo tool provides three user interfaces: a command-line interface (CLI), a local web application interface, and a static website interface. The tool invokes Clingo, a state-of-the-art implementation of the Answer Set Programming (ASP) paradigm, to perform queries and calculations. The same Cyberismo tool can be installed in the CI/CD tool chain, to perform automated checks and validations, to integrate with an issue tracker, and to generate and archive publications. The CI/CD tool chain invokes the tool using the command-line interface.
+Cyberismo tool:: The Cyberismo tool provides four interfaces: a command-line interface (CLI), a local web application interface, a static website interface, and an MCP server for AI assistants. The tool invokes Clingo, a state-of-the-art implementation of the Answer Set Programming (ASP) paradigm, to perform queries and calculations. The same Cyberismo tool can be installed in the CI/CD tool chain, to perform automated checks and validations, to integrate with an issue tracker, and to generate and archive publications. The CI/CD tool chain invokes the tool using the command-line interface.
 Services and support:: The Cyberismo company provides commercial services to support you with the solution: cybersecurity consulting, solution integration, Cyberismo content development, training, and technical support. Visit https://cyberismo.com[Cyberismo] for more information.
 
 == Where to go next
 
 New to Cyberismo:: Start with {{#xref}}"cardKey":"docs_12"{{/xref}}, then work through {{#xref}}"cardKey":"docs_7"{{/xref}}.
 Understanding the ideas:: {{#xref}}"cardKey":"docs_xpzkgk9n"{{/xref}} defines the vocabulary the rest of the documentation uses, and {{#xref}}"cardKey":"docs_is3958yg"{{/xref}} explains the thinking behind the solution, including {{#xref}}"cardKey":"docs_xb8m30r2"{{/xref}}.
+Working with an AI assistant:: {{#xref}}"cardKey":"docs_yfl6es9l"{{/xref}} covers connecting an assistant and the tools and resources it can use.
 Getting something done:: {{#xref}}"cardKey":"docs_c81exccu"{{/xref}} covers the app, the command line, AI assistants and Git.
 Looking something up:: {{#xref}}"cardKey":"docs_6"{{/xref}} holds the complete specification.

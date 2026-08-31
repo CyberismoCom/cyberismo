@@ -8,7 +8,7 @@ Modules stack. Each builds on the one below it, so adding a new standard to a pr
 * *Secure Development Essentials* provides risk assessment, threat modelling with generated data flow diagrams, security requirements and progress metrics. It builds on ISMS Essentials.
 * *EU CRA Essentials* provides the essential requirements of the EU Cyber Resilience Act, mapped onto the secure development practices underneath. It builds on Secure Development Essentials.
 
-Commercial modules for ISO/IEC 27001, IEC 62443-4-1 and IEC 81001-5-1 attach to the same stack. See link:https://cyberismo.com/modules/[the module catalogue] for what each one contains.
+Subscription modules for ISO/IEC 27001, IEC 62443-4-1 and IEC 81001-5-1 attach to the same stack. See link:https://cyberismo.com/modules/[the module catalogue] for what each one contains.
 
 An imported module is read-only inside your project, so updates stay clean. What you build on top is yours.
 

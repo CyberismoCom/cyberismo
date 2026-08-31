@@ -9,6 +9,12 @@ Card:: A card is the main information unit in the Cyberismo content format. Conc
 
 Card key:: Each card is uniquely identified with a card key. The card key begins with a Cyberismo project-specific prefix.
 
+== Content from other systems
+
+Connector:: A connector is a tool that reads an external system and generates logic program facts from what it finds. Cyberismo can then reason about that data without it being copied into the project. Connectors exist for issue trackers and vulnerability management tools. See {{#xref}}"cardKey":"docs_15sd1cq8"{{/xref}}.
+
+External item:: An external item is a single thing a connector has imported: a ticket, an issue, a risk, or a vulnerability. It is not a card, and it is not stored in your project. It is identified by the pair of its connector and its key in the external system, and it carries fields such as a title and a URL. External items use the same vocabulary as cards for fields, labels and containment, so a rule that reasons about a control can take account of the tickets that relate to it.
+
 == The structure
 
 Card type:: Each card is of a specific card type, which defines the workflow being used and optionally a set of custom fields. Separate card types may be defined, for example, for controlled documents, risks, threats, security requirements, architecture decisions, or tasks.

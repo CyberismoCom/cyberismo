@@ -1,6 +1,3 @@
-[.lead]
-Everything you need to go from nothing to a working Cyberismo project.
-
 To see what Cyberismo actually does, start with {{#xref}}"cardKey":"docs_12"{{/xref}}. It needs nothing installed, and a finished project with real content makes a better first impression than an empty one.
 
 To build a project of your own, follow the {{#xref}}"cardKey":"docs_7"{{/xref}}: install, create a project, open it in the app. The tutorials after it cover the everyday actions, editing a card and moving it through its workflow.

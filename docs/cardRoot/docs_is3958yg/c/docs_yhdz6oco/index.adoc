@@ -1,5 +1,5 @@
 [.lead]
-The central idea behind Cyberismo. If you model the cybersecurity process and the evidence of practising it as structured information, then a major part of your compliance work reduces to the status of those units of information and the relationships between them, and a machine can evaluate that.
+The central idea behind Cyberismo. If you model the cybersecurity process and the evidence of practising it as structured information, then compliance reduces to the status of those units of information and the relationships between them, and a machine can evaluate that.
 
 == Why compliance is hard to keep on top of
 
@@ -7,21 +7,29 @@ As the cybersecurity threat landscape grows more serious, customers of digital p
 
 Compliance is complex and hard to articulate. It requires executing procedures across multiple disciplines, such as human resources, premises management, software development, technical writing, and Information Technology (IT) operations. Compliance may also require specific technical or functional capabilities, and correct interpretation of what needs to be done requires understanding of the technical architecture.
 
-The practical consequence is that the true state of compliance is rarely known. It gets reconstructed shortly before an audit, by asking people what they did and hunting for the documents that prove it.
+The evidence is also scattered. Some of it is in documents, some in an issue tracker, some in a vulnerability management tool, and some only in the memory of whoever did the work. The practical consequence is that the true state of compliance is rarely known. It gets reconstructed shortly before an audit, by asking people what they did and hunting for the documents that prove it.
 
 == The importance of the information model
 
 Cyberismo emphasises the importance of managing the information model that describes the cybersecurity process and the evidence of practising it.
 
-In terms of that information model, a big part of compliance reduces to the status of the units of information and their relationships. Whether a control is satisfied is not a matter of opinion about a folder of documents. Assessing compliance begins with checking whether particular cards exist, are in particular states, and are linked to each other in particular ways. Cyberismo allows defining compliance as logical rules based on the attributes and relationships of the information units.
+In terms of that information model, compliance reduces to the status of the units of information and their relationships. Whether a control is satisfied is not a matter of opinion about a folder of documents. It is a question about whether particular units of information exist, are in particular states, and are related to each other in particular ways. Cyberismo allows defining compliance as logical rules based on the attributes and relationships of the information units.
 
 Three things follow from this, and most of the rest of the documentation is a consequence of one of them.
 
-The state is computed rather than manually reported:: If the rules are executable, nobody has to assemble a status. It is derived from the content whenever it is asked for, so it cannot drift away from reality between audits. See {{#xref}}"cardKey":"docs_32"{{/xref}}.
+The state is computed, not reported:: If the rules are executable, nobody has to assemble a status. It is derived from the content whenever it is asked for, so it cannot drift away from reality between audits. See {{#xref}}"cardKey":"docs_32"{{/xref}}.
 
 The verdicts can be explained:: A rule that determines a control is not satisfied knows which condition failed. Cyberismo can therefore state its assessments in sentences rather than colours.
 
 The rules are content, not code in a product:: Because compliance is expressed as rules over your own information model, the interpretation of a standard becomes something that can be written, reviewed, versioned and shared. A Cyberismo module is exactly that; see {{#xref}}"cardKey":"docs_b9w4zfng"{{/xref}}.
+
+== The model does not have to live entirely in Cyberismo
+
+An information model is only useful if it reflects where the work actually happens, and for most teams some of it happens elsewhere. Security tasks sit in Jira, third-party vulnerabilities sit in a vulnerability management tool, and some documentation sits in a wiki.
+
+Cyberismo does not require you to move any of it. A connector reads an external system and contributes facts about its items to the same model, using the same vocabulary that describes cards. A rule can then take account of an issue in an issue tracker, or a vulnerability affecting a component, when it decides whether a control is satisfied.
+
+The distinction that matters is between the model and the storage. The units of information a rule reasons about do not all have to be stored in your Cyberismo project. They do have to be described consistently enough that a rule can relate them to each other. See {{#xref}}"cardKey":"docs_15sd1cq8"{{/xref}}.
 
 == What this does not claim
 

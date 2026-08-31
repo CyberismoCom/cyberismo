@@ -1,5 +1,4 @@
-[.lead]
-Task-oriented instructions for people who already have a project and want to get something specific done.
+How-to guides are task-oriented instructions to get something specific done.
 
 If you are still setting up, start with {{#xref}}"cardKey":"docs_2"{{/xref}} instead. If you want to understand how something works rather than how to do it, see {{#xref}}"cardKey":"docs_is3958yg"{{/xref}}.
 
