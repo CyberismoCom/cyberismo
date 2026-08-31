@@ -1,0 +1,11 @@
+{
+    "title": "ISMS essentials module",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Ready",
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "public",
+    "rank": "0|b",
+    "lastUpdated": "2026-08-29T18:07:50.816Z",
+    "links": [],
+    "lastTransitioned": "2025-02-28T07:12:36.318Z"
+}

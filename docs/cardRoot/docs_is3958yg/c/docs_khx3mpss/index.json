@@ -1,0 +1,12 @@
+{
+    "title": "Security as code",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Ready",
+    "base/fieldTypes/informationClassification": "internal",
+    "rank": "0|aj",
+    "lastUpdated": "2026-08-31T10:58:40.496Z",
+    "links": [],
+    "templateCardKey": "base_2",
+    "createdAt": "2026-08-31T10:45:12.948Z",
+    "lastTransitioned": "2026-08-31T10:47:44.865Z"
+}

@@ -1,0 +1,12 @@
+{
+    "title": "Content modules",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Ready",
+    "base/fieldTypes/informationClassification": "internal",
+    "rank": "0|i",
+    "lastUpdated": "2026-08-29T19:46:02.323Z",
+    "links": [],
+    "templateCardKey": "base_2",
+    "createdAt": "2026-08-29T18:05:34.582Z",
+    "lastTransitioned": "2026-08-29T19:46:02.323Z"
+}
