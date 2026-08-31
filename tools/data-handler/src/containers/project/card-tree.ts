@@ -28,7 +28,7 @@ import mime from 'mime-types';
 import { CardStore } from './card-store.js';
 import type { StoredAttachment, StoredCard } from './card-store.js';
 import { CardNotFoundError } from '../../exceptions/index.js';
-import { deleteDir } from '../../utils/file-utils.js';
+import { deleteDir, pathExists } from '../../utils/file-utils.js';
 import { getChildLogger } from '../../utils/log-utils.js';
 import { writeJsonFile } from '../../utils/json.js';
 import {
@@ -1076,9 +1076,12 @@ export class CardTree {
    * invisible today because that command reloads the whole tree afterwards.
    * @param cardKey Card whose attachment is renamed.
    * @param fileName Current attachment file name.
-   * @param newFileName New attachment file name.
+   * @param newFileName New attachment file name. A file name, not a path, and
+   *   not one the card already has an attachment file under.
    * @throws CardNotFoundError if the tree does not hold the card, or if it
    *   holds no such attachment.
+   * @throws if the new name is not a plain file name inside the card's
+   *   attachment folder, or a file of that name is already there.
    */
   public async renameAttachment(
     cardKey: string,
@@ -1102,7 +1105,26 @@ export class CardTree {
       ATTACHMENT_FOLDER,
       attachment.dir,
     );
-    await rename(join(folder, fileName), join(folder, newFileName));
+    const target = resolve(folder, newFileName);
+    // The new name is a file name, not a path. '../elsewhere.png' would move
+    // the file out of the card's attachment folder while the store went on
+    // reporting it as an attachment of this card, and a name with a separator
+    // in it would do the same one folder down.
+    if (
+      basename(newFileName) !== newFileName ||
+      !target.startsWith(resolve(folder) + sep)
+    ) {
+      throw new Error(`Invalid attachment filename: ${newFileName}`);
+    }
+    // rename() replaces its destination without a word, so renaming onto
+    // another of the card's attachments would delete that attachment's file
+    // and leave the store holding two entries for one. Checking is enough
+    // here: attachment writes hold the project's write lock, so nothing else
+    // is putting a file in this folder in between.
+    if (pathExists(target)) {
+      throw new Error(`Attachment already exists: ${newFileName}`);
+    }
+    await rename(join(folder, fileName), target);
 
     this.store.renameAttachment(cardKey, fileName, newFileName);
   }

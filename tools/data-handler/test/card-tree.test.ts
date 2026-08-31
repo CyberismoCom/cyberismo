@@ -15,7 +15,7 @@
 import { expect, describe, it, beforeEach, afterEach } from 'vitest';
 
 // node
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -146,6 +146,60 @@ describe('CardTree.renameAttachment', () => {
     await expect(
       tree.renameAttachment('test_999', ATTACHMENT, 'other.png'),
     ).rejects.toThrow(CardNotFoundError);
+  });
+
+  // The new name is joined into the attachment folder, so anything that is not
+  // a plain file name renames the file somewhere the card does not own - while
+  // the store goes on reporting it as an attachment of this card.
+  it('refuses a new name that climbs out of the attachment folder', async () => {
+    await expect(
+      tree.renameAttachment(CARD_KEY, ATTACHMENT, join('..', 'escaped.png')),
+    ).rejects.toThrow('Invalid attachment filename');
+
+    await expect(
+      readFile(join(cardPath, 'a', ATTACHMENT), 'utf-8'),
+    ).resolves.toBe(`body of ${ATTACHMENT}`);
+    expect(existsSync(join(cardPath, 'escaped.png'))).toBe(false);
+    expect(tree.attachmentsOf(CARD_KEY)[0].fileName).toBe(ATTACHMENT);
+  });
+
+  it('refuses a new name with a path separator in it', async () => {
+    await expect(
+      tree.renameAttachment(CARD_KEY, ATTACHMENT, join('sub', 'moved.png')),
+    ).rejects.toThrow('Invalid attachment filename');
+
+    await expect(
+      readFile(join(cardPath, 'a', ATTACHMENT), 'utf-8'),
+    ).resolves.toBe(`body of ${ATTACHMENT}`);
+    expect(tree.attachmentsOf(CARD_KEY)[0].fileName).toBe(ATTACHMENT);
+  });
+
+  // rename() replaces its destination without a word, so this would have
+  // deleted the other attachment's file and left the store holding two
+  // entries pointing at one.
+  it('refuses to overwrite an attachment the card already has', async () => {
+    await tree.addAttachment(
+      CARD_KEY,
+      'other.png',
+      Buffer.from('body of other'),
+    );
+
+    await expect(
+      tree.renameAttachment(CARD_KEY, ATTACHMENT, 'other.png'),
+    ).rejects.toThrow('Attachment already exists: other.png');
+
+    await expect(
+      readFile(join(cardPath, 'a', ATTACHMENT), 'utf-8'),
+    ).resolves.toBe(`body of ${ATTACHMENT}`);
+    await expect(
+      readFile(join(cardPath, 'a', 'other.png'), 'utf-8'),
+    ).resolves.toBe('body of other');
+    expect(
+      tree
+        .attachmentsOf(CARD_KEY)
+        .map((attachment) => attachment.fileName)
+        .sort(),
+    ).toEqual([ATTACHMENT, 'other.png']);
   });
 });
 
