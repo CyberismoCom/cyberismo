@@ -1,5 +1,5 @@
 [.lead]
-The central idea behind Cyberismo. If you model the cybersecurity process and the evidence of practising it as structured information, then compliance reduces to the status of those units of information and the relationships between them, and a machine can evaluate that.
+The central idea behind Cyberismo. If you model the cybersecurity process and the evidence of practising it as structured information, then a major part of your compliance work reduces to the status of those units of information and the relationships between them, and a machine can evaluate that.
 
 == Why compliance is hard to keep on top of
 
@@ -9,15 +9,15 @@ Compliance is complex and hard to articulate. It requires executing procedures a
 
 The practical consequence is that the true state of compliance is rarely known. It gets reconstructed shortly before an audit, by asking people what they did and hunting for the documents that prove it.
 
-== The reframing
+== The importance of the information model
 
 Cyberismo emphasises the importance of managing the information model that describes the cybersecurity process and the evidence of practising it.
 
-In terms of that information model, compliance reduces to the status of the units of information and their relationships. Whether a control is satisfied is not a matter of opinion about a folder of documents. It is a question about whether particular cards exist, are in particular states, and are linked to each other in particular ways. Cyberismo allows defining compliance as logical rules based on the attributes and relationships of the information units.
+In terms of that information model, a big part of compliance reduces to the status of the units of information and their relationships. Whether a control is satisfied is not a matter of opinion about a folder of documents. Assessing compliance begins with checking whether particular cards exist, are in particular states, and are linked to each other in particular ways. Cyberismo allows defining compliance as logical rules based on the attributes and relationships of the information units.
 
 Three things follow from this, and most of the rest of the documentation is a consequence of one of them.
 
-The state is computed, not reported:: If the rules are executable, nobody has to assemble a status. It is derived from the content whenever it is asked for, so it cannot drift away from reality between audits. See {{#xref}}"cardKey":"docs_32"{{/xref}}.
+The state is computed rather than manually reported:: If the rules are executable, nobody has to assemble a status. It is derived from the content whenever it is asked for, so it cannot drift away from reality between audits. See {{#xref}}"cardKey":"docs_32"{{/xref}}.
 
 The verdicts can be explained:: A rule that determines a control is not satisfied knows which condition failed. Cyberismo can therefore state its assessments in sentences rather than colours.
 
