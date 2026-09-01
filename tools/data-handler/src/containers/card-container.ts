@@ -181,7 +181,7 @@ export class CardContainer {
     const card = this.cardCache.getCard(cardKey);
     if (card) {
       // Children must removed first
-      const children = card.children;
+      const children = this.cardCache.childrenOf(cardKey);
       for (const child of children) {
         await this.removeCard(child);
       }
