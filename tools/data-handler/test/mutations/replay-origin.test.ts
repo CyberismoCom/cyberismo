@@ -39,7 +39,7 @@ describe('ResourceMutations replay origin', () => {
         matches: (ctx: MutationContext) =>
           ctx.input.kind === 'edit' &&
           ctx.input.updateKey.key === 'replayProbe',
-        isBreaking: true,
+        classification: 'migratable' as const,
         apply: vi.fn(),
         applyCascade: vi.fn(),
       };
