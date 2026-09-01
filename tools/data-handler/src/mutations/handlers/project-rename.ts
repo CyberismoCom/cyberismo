@@ -97,7 +97,7 @@ export class ProjectRenameHandler implements Handler<ProjectRenameInput> {
     await this.cascade(ctx, from, to);
 
     ctx.project.resources.changed();
-    ctx.project.cardsCache.clear();
+    ctx.project.clearCards();
     await ctx.project.populateCaches();
   }
 
@@ -123,7 +123,7 @@ export class ProjectRenameHandler implements Handler<ProjectRenameInput> {
     // path refreshes in apply() after its own cascade, so this stays out
     // of cascade() to avoid doing the work twice.
     ctx.project.resources.changed();
-    ctx.project.cardsCache.clear();
+    ctx.project.clearCards();
     await ctx.project.populateCaches();
   }
 

@@ -26,7 +26,7 @@ describe('rank command', () => {
     await copyDir('test/test-data', testDir);
 
     const shared = await CommandManager.getInstance(decisionRecordsPath);
-    shared.project.cardsCache.clear();
+    shared.project.clearCards();
     await shared.project.populateCaches();
 
     // Create a few cards to play with.

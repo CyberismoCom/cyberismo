@@ -391,7 +391,7 @@ export async function executeModuleReplays(
   // Module trees were overwritten on disk before replay; refresh both caches.
   project.resources.changed();
   project.resources.changedModules();
-  project.cardsCache.clear();
+  project.clearCards();
   await project.populateCaches();
 }
 
