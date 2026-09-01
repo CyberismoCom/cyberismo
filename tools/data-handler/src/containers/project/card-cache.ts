@@ -45,17 +45,16 @@ const cardContentFile = 'index.adoc';
 const PROJECT_LOCATION = 'project';
 
 /**
+ * Caches a container's cards, indexed by parent and by location.
  *
+ * Reads return their elements in unspecified but stable order: the order does
+ * not change between reads of a location that was not mutated. A caller that
+ * needs a particular order sorts for it.
  */
 export class CardCache {
   private cardCache: Map<string, CachedCard> = new Map();
   private childrenIndex: Map<string, string[]> = new Map();
-  // Position assigned on first insert and kept while the card stays cached.
-  // Child lists are ordered by it, so a parent change cannot reorder siblings.
-  private insertionOrder: Map<string, number> = new Map();
-  private nextInsertion: number = 0;
   private locationIndex: Map<string, Set<string>> = new Map();
-  private locationHighWater: Map<string, number> = new Map();
   private cachePopulated: boolean = false;
   constructor(private prefix: string) {}
 
@@ -80,17 +79,7 @@ export class CardCache {
       this.setChildren(parentKey, [cardKey]);
       return;
     }
-    const position = this.positionOf(cardKey);
-    if (position > this.positionOf(siblings[siblings.length - 1])) {
-      siblings.push(cardKey);
-      return;
-    }
-    const at = siblings.findIndex(
-      (sibling) => this.positionOf(sibling) > position,
-    );
-    const updated = [...siblings];
-    updated.splice(at === -1 ? updated.length : at, 0, cardKey);
-    this.setChildren(parentKey, updated);
+    siblings.push(cardKey);
   }
 
   // The list is replaced, not mutated: callers walk a parent's child list while
@@ -109,31 +98,13 @@ export class CardCache {
     );
   }
 
-  private positionOf(cardKey: string): number {
-    return this.insertionOrder.get(cardKey) ?? Number.MAX_SAFE_INTEGER;
-  }
-
   private addToLocation(cardKey: string, location: string) {
-    const position = this.positionOf(cardKey);
     const keys = this.locationIndex.get(location);
     if (!keys) {
       this.locationIndex.set(location, new Set([cardKey]));
-      this.locationHighWater.set(location, position);
       return;
     }
-    if (position > (this.locationHighWater.get(location) ?? -1)) {
-      keys.add(cardKey);
-      this.locationHighWater.set(location, position);
-      return;
-    }
-    this.locationIndex.set(
-      location,
-      new Set(
-        [...keys, cardKey].sort(
-          (a, b) => this.positionOf(a) - this.positionOf(b),
-        ),
-      ),
-    );
+    keys.add(cardKey);
   }
 
   private removeFromLocation(cardKey: string, location?: string) {
@@ -145,14 +116,10 @@ export class CardCache {
       return;
     }
     this.locationIndex.delete(location);
-    this.locationHighWater.delete(location);
   }
 
   private store(cardKey: string, card: CachedCard) {
     const previous = this.cardCache.get(cardKey);
-    if (!previous) {
-      this.insertionOrder.set(cardKey, this.nextInsertion++);
-    }
     card.children = this.childrenIndex.get(cardKey) ?? [];
     this.cardCache.set(cardKey, card);
     if (previous?.parent !== card.parent) {
@@ -171,7 +138,6 @@ export class CardCache {
       return false;
     }
     this.cardCache.delete(cardKey);
-    this.insertionOrder.delete(cardKey);
     this.detachFromParent(cardKey, card.parent);
     this.removeFromLocation(cardKey, card.location);
     return true;
@@ -393,10 +359,7 @@ export class CardCache {
     this.cachePopulated = false;
     this.cardCache.clear();
     this.childrenIndex.clear();
-    this.insertionOrder.clear();
-    this.nextInsertion = 0;
     this.locationIndex.clear();
-    this.locationHighWater.clear();
   }
 
   /**
@@ -453,8 +416,8 @@ export class CardCache {
   /**
    * Returns all the template cards in the cache.
    * @returns all the template cards in the cache.
-   * @note A scan rather than a walk of the location index: the result is every
-   *   template card, and callers depend on getting them in global cache order.
+   * @note A scan rather than a walk of the location index: the result spans
+   *   every location, so there is nothing to look up.
    */
   public getAllTemplateCards(): CachedCard[] {
     return Array.from(this.cardCache.values()).filter(
@@ -465,7 +428,7 @@ export class CardCache {
   /**
    * Returns the cards in a given location.
    * @param location 'project', or a full template name.
-   * @returns the cards in that location, in cache insertion order.
+   * @returns the cards in that location, in unspecified order.
    */
   public cardsAtLocation(location: string): CachedCard[] {
     const cards: CachedCard[] = [];
@@ -490,7 +453,7 @@ export class CardCache {
   /**
    * Returns the card keys in a given location.
    * @param location 'project', or a full template name.
-   * @returns the card keys in that location, in cache insertion order.
+   * @returns the card keys in that location, in unspecified order.
    */
   public keysAtLocation(location: string): string[] {
     return [...(this.locationIndex.get(location) ?? [])];
@@ -565,7 +528,7 @@ export class CardCache {
   /**
    * Returns the child card keys of a given card.
    * @param cardKey Card key whose children to return.
-   * @returns child card keys, in cache insertion order.
+   * @returns child card keys, in unspecified order.
    */
   public childrenOf(cardKey: string): string[] {
     return this.childrenIndex.get(cardKey) ?? [];
