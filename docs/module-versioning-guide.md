@@ -95,8 +95,15 @@ Every recorded change falls into one of three categories, and
 | Category | Meaning | Examples | Allowed in |
 |---|---|---|---|
 | **1 — no migration needed** | Consumers need nothing; the change is not recorded. | Add an enum value or workflow state; edit transitions; add/remove a card type's custom field; edit display names, descriptions, categories; delete a template, calculation, report, graph model, graph view, or skill. | patch, minor, major |
-| **2 — migratable** | A sealed log entry replays the change losslessly on consumer data. | Rename any resource or the project prefix; rename an enum value or workflow state; change a card type's workflow (with a mapping); change a field's data type. Removing an enum value or workflow state sits provisionally here (pending a policy decision) — always give the replacement. | minor, major |
+| **2 — migratable** | A sealed log entry replays the change losslessly on consumer data. | Rename any resource or the project prefix; rename an enum value or workflow state; change a card type's workflow (with a mapping); change a field's data type; remove an enum value or workflow state — always give the replacement. | minor, major |
 | **3 — destructive** | Consumer data is discarded or orphaned; a replay cannot restore it. | Delete a card type, field type, workflow, or link type. | major only |
+
+**Renaming a workflow transition is category 1** — cards never store transition
+names, so consumers need no migration. But transition names appear as literals
+in calculation `.lp` files (`onTransitionSetField`, `onTransitionExecuteTransition`,
+`transitionDenied` facts), so when you rename a transition, update your own
+module's calculations in the same release. No validation currently catches a
+stale literal — a missed one silently disables the automation.
 
 What the gate does at `create version`:
 

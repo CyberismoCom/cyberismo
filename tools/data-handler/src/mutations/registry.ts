@@ -178,8 +178,6 @@ export const ROUTES: Registration[] = [
       op: 'remove',
     },
     handler: fieldTypeEnumRemove,
-    // Provisionally 'migratable': open policy question whether removing an
-    // enum value without a replacement (orphaning card values) is destructive.
     classification: 'migratable',
   },
   {
@@ -195,8 +193,6 @@ export const ROUTES: Registration[] = [
   {
     route: { kind: 'edit', type: 'workflows', key: 'states', op: 'remove' },
     handler: workflowRemoveState,
-    // Provisionally 'migratable': open policy question whether removing a
-    // state without a replacement (orphaning card states) is destructive.
     classification: 'migratable',
   },
   {
