@@ -10,11 +10,8 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import createDOMPurify, { type WindowLike } from 'dompurify';
+import type { DOMPurify, WindowLike } from 'dompurify';
 import { Buffer } from 'buffer';
-import { JSDOM } from 'jsdom';
-
-const window = new JSDOM('').window as unknown as Window;
 
 // Remove SVG size to make it scale in the application properly
 const removeSvgWidthAndHeight = (node: Element) => {
@@ -45,13 +42,27 @@ const SVG_PURIFY_CONFIG = {
   HTML_INTEGRATION_POINTS: { foreignobject: true },
 };
 
-// Prevents use of global hooks
-const purifyRemoveSize = createDOMPurify(window as unknown as WindowLike);
-purifyRemoveSize.setConfig(SVG_PURIFY_CONFIG);
-purifyRemoveSize.addHook('afterSanitizeAttributes', removeSvgWidthAndHeight);
+// jsdom and dompurify cost ~1s to import and only the macros that render SVG
+// ever need them, so they are loaded on first use.
+let purifiers: Promise<{ removeSize: DOMPurify; keepSize: DOMPurify }> | null =
+  null;
 
-const purifyKeepSize = createDOMPurify(window as unknown as WindowLike);
-purifyKeepSize.setConfig(SVG_PURIFY_CONFIG);
+async function loadPurifiers() {
+  const [{ JSDOM }, { default: createDOMPurify }] = await Promise.all([
+    import('jsdom'),
+    import('dompurify'),
+  ]);
+  const window = new JSDOM('').window as unknown as Window;
+
+  // Prevents use of global hooks
+  const removeSize = createDOMPurify(window as unknown as WindowLike);
+  removeSize.setConfig(SVG_PURIFY_CONFIG);
+  removeSize.addHook('afterSanitizeAttributes', removeSvgWidthAndHeight);
+
+  const keepSize = createDOMPurify(window as unknown as WindowLike);
+  keepSize.setConfig(SVG_PURIFY_CONFIG);
+  return { removeSize, keepSize };
+}
 
 /**
  * Sanitize an SVG string and return a base64-encoded string
@@ -60,11 +71,14 @@ purifyKeepSize.setConfig(SVG_PURIFY_CONFIG);
  * @param options.removeSize - Whether to remove width/height from the SVG element (default: true)
  * @returns base64-encoded sanitized SVG string
  */
-export function sanitizeSvgBase64(
+export async function sanitizeSvgBase64(
   svg: string,
   options?: { removeSize?: boolean },
-): string {
+): Promise<string> {
   const { removeSize = true } = options ?? {};
+  purifiers ??= loadPurifiers();
+  const { removeSize: purifyRemoveSize, keepSize: purifyKeepSize } =
+    await purifiers;
   const cleaned = (removeSize ? purifyRemoveSize : purifyKeepSize).sanitize(
     svg,
   );
