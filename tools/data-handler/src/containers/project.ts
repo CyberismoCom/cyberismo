@@ -787,14 +787,10 @@ export class Project extends CardContainer {
       cardsFrom === CardLocation.all ||
       cardsFrom === CardLocation.projectOnly
     ) {
-      const projectCards = super
-        .cards(this.paths.cardRootFolder)
-        .map((item) => item.key)
-        .sort(sortCards);
       cardListContainer.push({
         name: this.projectName,
         type: 'project',
-        cards: projectCards,
+        cards: super.cardKeys(this.paths.cardRootFolder).sort(sortCards),
       });
     }
 

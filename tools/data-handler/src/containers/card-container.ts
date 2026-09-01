@@ -56,12 +56,14 @@ export class CardContainer {
     this.cardCache = new CardCache(this.prefix);
   }
 
+  // Node reads share the cached metadata; callers that mutate metadata use
+  // cards() or findCard(), which copy it.
   private static nodeView(card: Card): CardNode {
     return {
       key: card.key,
       path: card.path,
       children: card.children,
-      metadata: structuredClone(card.metadata),
+      metadata: card.metadata,
       parent: card.parent,
     };
   }
@@ -69,6 +71,7 @@ export class CardContainer {
   private static cardView(card: Card): Card {
     return {
       ...CardContainer.nodeView(card),
+      metadata: structuredClone(card.metadata),
       content: card.content,
       attachments: card.attachments,
     };
