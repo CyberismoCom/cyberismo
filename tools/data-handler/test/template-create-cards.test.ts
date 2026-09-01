@@ -16,11 +16,14 @@ import { expect, describe, it, beforeEach, afterEach } from 'vitest';
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';
+import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { getTestProject } from './helpers/test-utils.js';
 import { readJsonFile } from '../src/utils/json.js';
+import { CardNameRegEx } from '../src/interfaces/project-interfaces.js';
+import { CardNotFoundError } from '../src/exceptions/index.js';
 import { Template } from '../src/containers/template.js';
 
 import type { Project } from '../src/containers/project.js';
@@ -28,13 +31,30 @@ import type { Project } from '../src/containers/project.js';
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-template-create-cards-tests');
 
+const ATTACHMENT = 'needle.png';
+
 let project: Project;
 let decisionRecordsPath: string;
+let attachedCardFolder: string;
 
 beforeEach(async () => {
   mkdirSync(testDir, { recursive: true });
   await copyDir('test/test-data/', testDir);
   decisionRecordsPath = join(testDir, 'valid/decision-records');
+  attachedCardFolder = join(
+    decisionRecordsPath,
+    '.cards/local/templates/simplepage/c/decision_2',
+  );
+
+  await mkdir(join(attachedCardFolder, 'a'), { recursive: true });
+  await writeFile(
+    join(attachedCardFolder, 'a', ATTACHMENT),
+    'not-really-a-png',
+  );
+  await writeFile(
+    join(attachedCardFolder, 'index.adoc'),
+    `= Simple Page\n\nimage::${ATTACHMENT}[]\n`,
+  );
 
   project = getTestProject(decisionRecordsPath);
   await project.populateCaches();
@@ -46,6 +66,16 @@ afterEach(() => {
 
 function templateOf(name: string): Template {
   return new Template(project, { name, path: '' });
+}
+
+async function cardRootKeys(): Promise<string[]> {
+  const entries = await readdir(project.paths.cardRootFolder, {
+    withFileTypes: true,
+  });
+  return entries
+    .filter((entry) => entry.isDirectory() && CardNameRegEx.test(entry.name))
+    .map((entry) => entry.name)
+    .sort();
 }
 
 describe('Template.createCards', () => {
@@ -82,5 +112,25 @@ describe('Template.createCards', () => {
 
     expect(after).to.deep.equal(before);
     expect(await ranksOnDisk()).to.deep.equal(diskBefore);
+  });
+
+  it('surfaces the original error and leaves no partial cards when a write fails', async () => {
+    const template = templateOf('decision/templates/simplepage');
+    expect(template.cards().length).toBe(3);
+
+    const keysBefore = await cardRootKeys();
+
+    await rm(join(attachedCardFolder, 'a', ATTACHMENT));
+
+    const error = await template.createCards().then(
+      () => undefined,
+      (reason: unknown) => reason as Error,
+    );
+
+    expect(await cardRootKeys()).to.deep.equal(keysBefore);
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error).not.toBeInstanceOf(CardNotFoundError);
+    expect(error!.message).toMatch(/ENOENT/);
   });
 });
