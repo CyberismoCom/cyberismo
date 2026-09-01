@@ -339,3 +339,106 @@ describe('Cli BAT test', function () {
     ).toBe(true);
   });
 }, 100000);
+
+describe('Module command namespace', function () {
+  const modulePath = `${tmpPath}/cyberismo-cli-module`;
+
+  afterAll(() => {
+    rmSync(modulePath, { recursive: true, force: true });
+  });
+  beforeAll(async () => {
+    rmSync(modulePath, { recursive: true, force: true });
+    await execAsync(
+      `cd ${tmpPath} && ${cli} create project "Module Namespace Test" mns cyberismo-cli-module --skipModuleImport && cd cyberismo-cli-module && cp -r ${moduleTestPath} module-test`,
+    );
+  }, 100000);
+
+  it('deprecated spellings are hidden from help', async () => {
+    const help = await execAsync(`${cli} --help`);
+    expect(help.stdout).toMatch(/^\s*module\s+\[options\]/m);
+    expect(help.stdout).not.toContain('update-modules');
+    const importHelp = await execAsync(`${cli} import --help`);
+    expect(importHelp.stdout).not.toMatch(/^\s*module /m);
+    const removeHelp = await execAsync(`${cli} remove --help`);
+    expect(removeHelp.stdout).not.toContain("'module'");
+    const showHelp = await execAsync(`${cli} show --help`);
+    expect(showHelp.stdout).not.toMatch(/,\s*modules\b/);
+  });
+
+  it('module install imports a module', async () => {
+    const { stdout, stderr } = await execAsync(
+      `cd ${modulePath} && ${cli} module install ./module-test && ${cli} validate`,
+    );
+    expect(stdout).toContain('Done');
+    expect(stdout).toContain('Project structure validated');
+    expect(stderr).not.toContain('deprecated');
+  });
+
+  it('module list shows imported modules', async () => {
+    const { stdout, stderr } = await execAsync(
+      `cd ${modulePath} && ${cli} module list`,
+    );
+    expect(stdout).toContain('"name": "test"');
+    expect(stderr).not.toContain('deprecated');
+  });
+
+  it('show modules still works and warns', async () => {
+    const { stdout, stderr } = await execAsync(
+      `cd ${modulePath} && ${cli} show modules`,
+    );
+    expect(stdout).toContain('"name": "test"');
+    expect(stderr).toContain(
+      "'cyberismo show modules' is deprecated. Use 'cyberismo module list'",
+    );
+  });
+
+  it('module update updates all modules', async () => {
+    const { stdout, stderr } = await execAsync(
+      `cd ${modulePath} && ${cli} module update && ${cli} validate`,
+    );
+    expect(stdout).toContain('Done');
+    expect(stdout).toContain('Project structure validated');
+    expect(stderr).not.toContain('deprecated');
+  });
+
+  it('update-modules still works and warns', async () => {
+    const { stdout, stderr } = await execAsync(
+      `cd ${modulePath} && ${cli} update-modules`,
+    );
+    expect(stdout).toContain('Done');
+    expect(stderr).toContain(
+      "'cyberismo update-modules' is deprecated. Use 'cyberismo module update'",
+    );
+  });
+
+  it('module remove removes the module', async () => {
+    const { stdout, stderr } = await execAsync(
+      `cd ${modulePath} && ${cli} module remove test && ${cli} validate`,
+    );
+    expect(stdout).toContain('Done');
+    expect(stdout).toContain('Project structure validated');
+    expect(stderr).not.toContain('deprecated');
+  });
+
+  it('import module still works and warns', async () => {
+    const { stdout, stderr } = await execAsync(
+      `cd ${modulePath} && ${cli} import module ./module-test && ${cli} validate`,
+    );
+    expect(stdout).toContain('Done');
+    expect(stdout).toContain('Project structure validated');
+    expect(stderr).toContain(
+      "'cyberismo import module' is deprecated. Use 'cyberismo module install'",
+    );
+  });
+
+  it('remove module still works and warns', async () => {
+    const { stdout, stderr } = await execAsync(
+      `cd ${modulePath} && ${cli} remove module test && ${cli} validate`,
+    );
+    expect(stdout).toContain('Done');
+    expect(stdout).toContain('Project structure validated');
+    expect(stderr).toContain(
+      "'cyberismo remove module' is deprecated. Use 'cyberismo module remove'",
+    );
+  });
+}, 100000);

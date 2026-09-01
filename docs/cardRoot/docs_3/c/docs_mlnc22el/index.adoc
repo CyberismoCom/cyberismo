@@ -2,6 +2,8 @@
 
 Cyberismo modules can be imported either from defined hubs (recommended), from an HTTPS Git URL, or from the local file system.
 
+NOTE: The commands `cyberismo import module`, `cyberismo update-modules`, `cyberismo show modules`, and `cyberismo remove module` are deprecated. Use `cyberismo module install`, `cyberismo module update`, `cyberismo module list`, and `cyberismo module remove` instead. The deprecated spellings still work but print a warning.
+
 === Hub
 Cyberismo uses information from a centralised hub to help users import content modules to their projects. A set of default modules that the Cyberismo company has implemented is available automatically from the Cyberismo default hub.
 
@@ -47,7 +49,7 @@ To import a module using a hub, use the following command:
 
 [source,console]
 ----
-$ cyberismo import module <unique module prefix>
+$ cyberismo module install <unique module prefix>
 ----
 
 NOTE: The hub defines how the module can be imported, whether it is private, and whether the module should be copied from a file location or downloaded using a URL.
@@ -60,7 +62,7 @@ To import a module from a public Git repository, use the following command:
 
 [source,console]
 ----
-$ cyberismo import module <https git URL>
+$ cyberismo module install <https git URL>
 ----
 
 By default, Cyberismo imports the latest published version of the module and pins your project to that major version. To import a specific version or version range instead, append `@<version>` to the source. See the "Selecting a module version" section below.
@@ -75,14 +77,14 @@ To import a private module, use the following command. The final `true` argument
 
 [source,console]
 ----
-$ cyberismo import module <https git URL> true
+$ cyberismo module install <https git URL> true
 ----
 
 You can combine credentials with a version by appending `@<version>` to the URL:
 
 [source,console]
 ----
-$ cyberismo import module <https git URL>@<version> true
+$ cyberismo module install <https git URL>@<version> true
 ----
 
 NOTE: At the moment, Cyberismo supports only one set of access credentials, so you can only import private modules using a single access token.
@@ -93,7 +95,7 @@ To import a module that you have available in the local file system, execute the
 
 [source,console]
 ----
-$ cyberismo import module <local file path to the module>
+$ cyberismo module install <local file path to the module>
 ----
 
 The path can be either an absolute or a relative path.
@@ -110,7 +112,7 @@ When you import a module, you can pin it to a specific version or version range 
 
 [source,console]
 ----
-$ cyberismo import module <source>@<version>
+$ cyberismo module install <source>@<version>
 ----
 
 The source can be a hub module prefix, a Git URL, or a local file path. The following table shows the most common version expressions:
@@ -160,7 +162,7 @@ The version binding of each module is stored in the project's `cardsConfig.json`
 ]
 ----
 
-The `version` field holds a semver version or range constraint. You can edit it by hand to change the binding — for example, to allow a new major version — and then run `cyberismo update-modules <prefix>` to apply the change. See the "Changing a module's version binding" section below.
+The `version` field holds a semver version or range constraint. You can edit it by hand to change the binding — for example, to allow a new major version — and then run `cyberismo module update <prefix>` to apply the change. See the "Changing a module's version binding" section below.
 
 == Removing a module
 
@@ -168,21 +170,21 @@ To see the currently imported modules, execute the following command. Cyberismo 
 
 [source,console]
 ----
-$ cyberismo show modules
+$ cyberismo module list
 ----
 
 To remove a module, execute the following command:
 
 [source,console]
 ----
-$ cyberismo remove module <prefix>
+$ cyberismo module remove <prefix>
 ----
 
-To remove all imported modules, iterate over the modules that `cyberismo show modules` prints and run `cyberismo remove module` for each of them.
+To remove all imported modules, iterate over the modules that `cyberismo module list` prints and run `cyberismo module remove` for each of them.
 
 == Updating modules
 
-Cyberismo can update modules to newer versions within the version range that you bound them to. When you run the `update-modules` command, Cyberismo fetches the available versions of each module from the origin that you specified when you imported the module, and updates to the newest version that satisfies the module's version binding in `cardsConfig.json`.
+Cyberismo can update modules to newer versions within the version range that you bound them to. When you run the `module update` command, Cyberismo fetches the available versions of each module from the origin that you specified when you imported the module, and updates to the newest version that satisfies the module's version binding in `cardsConfig.json`.
 
 NOTE: The modules that were imported from the local file system must reside in the same directory from which they were imported.
 
@@ -194,28 +196,28 @@ To update all modules, including their dependencies where applicable, to the new
 
 [source,console]
 ----
-$ cyberismo update-modules
+$ cyberismo module update
 ----
 
 To update a single module to the newest version allowed by its binding, give its prefix:
 
 [source,console]
 ----
-$ cyberismo update-modules <module prefix>
+$ cyberismo module update <module prefix>
 ----
 
 To update a single module to a specific version, give the prefix and the target version:
 
 [source,console]
 ----
-$ cyberismo update-modules <module prefix> <version>
+$ cyberismo module update <module prefix> <version>
 ----
 
 The target version must be an exact version, not a range. It must be available in the module's origin, and it must satisfy the module's version binding in `cardsConfig.json`. Updating to a specific version does not change the recorded binding.
 
 NOTE: Cyberismo does not downgrade modules. The target version must be the same as, or newer than, the installed version.
 
-NOTE: A target version can only be given together with a module prefix. Running `cyberismo update-modules <version>` on its own is not valid.
+NOTE: A target version can only be given together with a module prefix. Running `cyberismo module update <version>` on its own is not valid.
 
 === Checking for available updates
 
@@ -241,7 +243,7 @@ Updating a module never crosses the version range that it is bound to. To move a
 
 [source,console]
 ----
-$ cyberismo update-modules <module prefix>
+$ cyberismo module update <module prefix>
 ----
 
 NOTE: If a module version requires a newer schema version than your Cyberismo tool supports, the import or update fails with a message stating the required schema version. Upgrade the Cyberismo tool, or pin the module to an older version that your tool supports.
