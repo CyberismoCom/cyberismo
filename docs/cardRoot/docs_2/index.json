@@ -1,9 +1,9 @@
 {
-    "title": "Getting started",
+    "title": "Get started",
     "cardType": "base/cardTypes/page",
     "workflowState": "Ready",
-    "rank": "0|g",
-    "lastUpdated": "2026-02-14T14:49:16.644Z",
+    "rank": "0|d",
+    "lastUpdated": "2026-08-31T19:31:45.195Z",
     "lastTransitioned": "2024-10-21T10:44:09.464Z",
     "base/fieldTypes/owner": null,
     "base/fieldTypes/informationClassification": "public",

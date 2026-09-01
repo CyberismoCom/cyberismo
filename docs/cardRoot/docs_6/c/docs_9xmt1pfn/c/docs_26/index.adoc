@@ -19,7 +19,7 @@ To create a new workflow:
 
 The new workflow will be created and the editor will open.
 
-When choosing a name for your workflow, see xref:docs_8.adoc[Naming conventions].
+When choosing a name for your workflow, see {{#xref}}"cardKey":"docs_8"{{/xref}}.
 
 === Editing workflow states
 

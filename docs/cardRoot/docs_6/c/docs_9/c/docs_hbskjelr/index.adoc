@@ -2,16 +2,16 @@
 
 This page is a tutorial on implementing graphs. Before reading this tutorial, familiarise yourself with the following topics:
 
-* xref:docs_28.adoc[Introduction to Answer Set Programming]
-* xref:docs_chclhxsk.adoc[Structure and execution of logic programs]
-* xref:docs_33.adoc[Query language]
-* xref:docs_wp769ee4.adoc[Managing graph models]
-* xref:docs_4ha2rf9l.adoc[Managing graph views]
-* xref:docs_t5gkijm4.adoc[Graph macro]
+* {{#xref}}"cardKey":"docs_28"{{/xref}}
+* {{#xref}}"cardKey":"docs_chclhxsk"{{/xref}}
+* {{#xref}}"cardKey":"docs_33"{{/xref}}
+* {{#xref}}"cardKey":"docs_wp769ee4"{{/xref}}
+* {{#xref}}"cardKey":"docs_4ha2rf9l"{{/xref}}
+* {{#xref}}"cardKey":"docs_t5gkijm4"{{/xref}}
 
 Graphs visualise data. The configuration of a Cyberismo graph consists of a xref:docs_wp769ee4.adoc[graph model] and a xref:docs_4ha2rf9l.adoc[graph view], allowing several different graph views to be created based on a single graph model. A graph is displayed as part of the contents of a card with the xref:docs_t5gkijm4.adoc[graph macro].
 
-See xref:docs_chclhxsk.adoc[Structure and execution of logic programs] for a detailed description of how Cyberismo executes logic programs and Graphviz to produce a graph.
+See {{#xref}}"cardKey":"docs_chclhxsk"{{/xref}} for a detailed description of how Cyberismo executes logic programs and Graphviz to produce a graph.
 
 As both the graph model and the graph view are implemented as logic programs that are combined with the main logic program to create the graph, in theory it does not matter much how you split the graph implementation between the model and the view. By convention, the graph model is where all the action happens, and graph views are usually a single line of code or a couple of lines long, to parameterise the graph model to the specific context of a graph macro instance.
 
@@ -131,7 +131,7 @@ When used on this page, the result looks like this:
   "view": "docs/graphViews/example2"
 {{/graph}}
 
-We can override the default card key by defining another card key in the parameters of the graph macro. For example, the following graph macro sets the card key to xref:docs_13.adoc[Installing, updating, and uninstalling].
+We can override the default card key by defining another card key in the parameters of the graph macro. For example, the following graph macro sets the card key to {{#xref}}"cardKey":"docs_13"{{/xref}}.
 
 ----
 {{#raw}}

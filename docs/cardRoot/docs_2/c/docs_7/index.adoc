@@ -1,7 +1,18 @@
 :sectnums:
-This tutorial shows how to create a new Cyberismo project with the base module.
+This tutorial shows how to create a new Cyberismo project with the base module and open it in the app.
 
-Prerequisites: xref:docs_13.adoc[Install Cyberismo].
+If you would rather look at a finished project than build an empty one, start with {{#xref}}"cardKey":"docs_12"{{/xref}} instead. It needs nothing installed and shows what a real secure development project looks like.
+
+== Install Cyberismo
+
+Cyberismo requires https://nodejs.org/[Node.js] v22 LTS or later. The Clingo reasoning engine ships as a prebuilt binary, so there is nothing else to install.
+
+[source,console]
+----
+$ npm install -g @cyberismo/cli
+----
+
+For other installation methods, including Docker, Podman and building from source, see {{#xref}}"cardKey":"docs_13"{{/xref}}.
 
 == Create a project
 
@@ -46,6 +57,8 @@ $ cyberismo create project "Cyberismo tutorial" tutorial cyberismo-tutorial
 
 After pressing Enter, wait for the import to complete.
 
+TIP: To start from a ready-made process rather than an empty project, select one of the other modules here as well. See {{#xref}}"cardKey":"docs_b9w4zfng"{{/xref}} for what each one gives you.
+
 === Import the base module later
 
 If you did not import the 'base' module while creating the project, you can still do it with the following command:
@@ -75,3 +88,13 @@ $ cyberismo app
 ----
 
 Then open a browser and navigate to http://localhost:3000/.
+
+You now have a working project: a card you can edit, a workflow you can move it through, and a logic program already computing its state.
+
+:!sectnums:
+
+== Next
+
+* {{#xref}}"cardKey":"docs_iv4h2usw"{{/xref}} and {{#xref}}"cardKey":"docs_x9fat7ty"{{/xref}} cover the everyday actions.
+* {{#xref}}"cardKey":"docs_xpzkgk9n"{{/xref}} defines the vocabulary: card, card type, workflow, link, template, module.
+* {{#xref}}"cardKey":"docs_b9w4zfng"{{/xref}} is where you pick up a ready-made process.

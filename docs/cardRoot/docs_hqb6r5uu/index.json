@@ -1,0 +1,12 @@
+{
+    "title": "Deploy and operate",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Ready",
+    "base/fieldTypes/informationClassification": "internal",
+    "rank": "0|h",
+    "lastUpdated": "2026-09-01T11:18:59.126Z",
+    "links": [],
+    "templateCardKey": "base_2",
+    "createdAt": "2026-08-29T18:06:15.528Z",
+    "lastTransitioned": "2026-08-29T19:46:18.660Z"
+}

@@ -1,10 +1,10 @@
 == Introduction
 
-A report consists of a query and a Handlebars template for showing the results of the query. Users can include reports in the contents of cards with the xref:docs_r0brt7n1.adoc[`report` macro].
+A report consists of a query and a Handlebars template for showing the results of the query. Users can include reports in the contents of cards with the `report` macro; see {{#xref}}"cardKey":"docs_r0brt7n1"{{/xref}}.
 
 Reports are versatile: you can use them to show data from your Cyberismo project, for example, as a table, a list, a JSON document, or an XML document. The fact that Cyberismo internally implements the graph macro as a report illustrates the power of Cyberismo reports.
 
-See xref:docs_chclhxsk.adoc[Structure and execution of logic programs] for a detailed description of how Cyberismo executes logic programs to produce reports, and xref:docs_j1ldnk0s.adoc[Implementing reports] for a longer tutorial on how to implement queries and report templates.
+See {{#xref}}"cardKey":"docs_chclhxsk"{{/xref}} for a detailed description of how Cyberismo executes logic programs to produce reports, and {{#xref}}"cardKey":"docs_j1ldnk0s"{{/xref}} for a longer tutorial on how to implement queries and report templates.
 
 == Managing reports using the configuration editor
 
@@ -21,7 +21,7 @@ To create a new report:
 
 The new report will be created with default files and the editor will open.
 
-When choosing a name for your report, see xref:docs_8.adoc[Naming conventions].
+When choosing a name for your report, see {{#xref}}"cardKey":"docs_8"{{/xref}}.
 
 === Editing report metadata
 
@@ -133,7 +133,7 @@ For example, the following parameters schema file defines the parameters for a r
 
 == Query
 
-The query (`index.lp.hbs` file) is a https://handlebarsjs.com/[Handlebars] template of a xref:docs_33.adoc[Cyberismo query]. Handlebars is a templating engine that applies a context object to a template to produce its output. In the case of a query of a Cyberismo report, the parameters of the `report` macro are the context object.
+The query (`index.lp.hbs` file) is a https://handlebarsjs.com/[Handlebars] template of a Cyberismo query; see {{#xref}}"cardKey":"docs_33"{{/xref}}. Handlebars is a templating engine that applies a context object to a template to produce its output. In the case of a query of a Cyberismo report, the parameters of the `report` macro are the context object.
 
 Using a Handlebars template as the query is Cyberismo's way of parameterising queries. For example, the default query of a newly created report is as follows:
 

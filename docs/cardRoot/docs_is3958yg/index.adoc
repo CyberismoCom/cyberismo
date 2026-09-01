@@ -1,0 +1,18 @@
+[.lead]
+The concepts section explains the ideas behind Cyberismo. Read this section when you want to understand *why* the tool is shaped the way it is, rather than how to perform a particular task.
+
+Cyberismo is built on three ideas that reinforce each other.
+
+Everything you author is a card, and every card is a file:: A card is the unit of information you write in Cyberismo: a risk, a control, a security requirement, a threat, an architecture decision, a review task, a controlled document. Technically it is a directory holding an AsciiDoc document, a JSON metadata file and any attachments. Cards have types, types have workflows, and cards link to each other with typed links. The result is not a pile of documents but a graph.
+
+The graph can be reasoned about, and it is not limited to your cards:: Because the content is a typed, linked graph rather than free text, a logic program can evaluate it. Cyberismo embeds Clingo, an Answer Set Programming solver, and uses it to compute progress metrics, calculated fields, reports, notifications and automated policy checks, explaining each verdict in a sentence.
++
+The same graph can include data from systems you already use. A connector reads an external system and contributes facts about its items, using the same vocabulary as cards, so a rule can take account of a Jira issue or a Dependency-Track vulnerability without that data being copied into Cyberismo. Most teams have some of their security work in another tool already, and Cyberismo is designed to reason about it where it lives.
+
+The cybersecurity practice itself is reusable content:: Card types, workflows, templates, link types and logic programs are packaged into reusable modules. A team imports a module and has a working process immediately, then adapts it until it becomes theirs. Cybersecurity practice can be shared this way instead of being reinvented by each organisation.
+
+== In this section
+
+{{#report}}
+  "name": "base/reports/childrenList"
+{{/report}}

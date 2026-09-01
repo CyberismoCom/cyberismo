@@ -1,0 +1,11 @@
+{
+    "title": "Demo",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Ready",
+    "lastTransitioned": "2024-08-01T08:00:14.570Z",
+    "lastUpdated": "2026-08-29T18:47:52.074Z",
+    "rank": "0|ag",
+    "links": [],
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "public"
+}

@@ -3,7 +3,7 @@
     "cardType": "base/cardTypes/predicate",
     "workflowState": "Ready",
     "rank": "0|ap",
-    "lastUpdated": "2025-11-10T18:58:09.304Z",
+    "lastUpdated": "2026-08-31T11:27:10.976Z",
     "base/fieldTypes/briefDescription": "A field of an object has a specific value and data type",
     "base/fieldTypes/category": "Query language",
     "links": [

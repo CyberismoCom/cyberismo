@@ -2,7 +2,7 @@
 
 The configuration of a graph consists of a graph model and a graph view, allowing several different graph views to be created based on a single graph model.
 
-See xref:docs_hbskjelr.adoc[Implementing graphs] for a longer introduction to graphs.
+See {{#xref}}"cardKey":"docs_hbskjelr"{{/xref}} for a longer introduction to graphs.
 
 == Managing graph models using the configuration editor
 
@@ -19,7 +19,7 @@ To create a new graph model:
 
 The new graph model will be created with default files and the editor will open.
 
-When choosing a name for your graph model, see xref:docs_8.adoc[Naming conventions].
+When choosing a name for your graph model, see {{#xref}}"cardKey":"docs_8"{{/xref}}.
 
 === Editing graph model metadata
 
@@ -102,7 +102,7 @@ Additional properties are not allowed.
 
 The graph model implementation is a logic program that uses the Clingraph conventions to describe a graph. When the graph model is executed, it is combined with a graph view and the main Cyberismo logic program, so you can write rules that convert your data into nodes and edges of a graph.
 
-The implementation of graphs is discussed in detail in xref:docs_hbskjelr.adoc[Implementing graphs].
+The implementation of graphs is discussed in detail in {{#xref}}"cardKey":"docs_hbskjelr"{{/xref}}.
 
 == Mapping to a logic program
 

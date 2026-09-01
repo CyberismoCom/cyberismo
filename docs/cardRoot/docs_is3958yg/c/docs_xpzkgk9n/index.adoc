@@ -1,0 +1,46 @@
+[.lead]
+The key terms and concepts in the Cyberismo solution. Everything else in the documentation assumes this vocabulary.
+
+== The content
+
+Cyberismo project:: A project is a top-level container for the Cyberismo content format. A project can contain cards, copies of imported modules, and various kinds of configuration such as custom workflows, field types, link types, templates, and calculations. A project is typically managed in a version control system. In the file system, the cards of a project are stored in a directory called `cardRoot`, and the other elements of the project are stored in a hidden directory called `.cards`.
+
+Card:: A card is the main information unit in the Cyberismo content format. Conceptually, a card is similar to a ticket in an issue tracker or a document in an enterprise wiki. Technically, a card is a directory that contains an AsciiDoc document `index.adoc`, associated metadata in a JSON file `index.json`, and optional file attachments in a subdirectory named `a`. Cards are organised in a directory structure, where a card may have one or more child cards in a subdirectory named `c`.
+
+Card key:: Each card is uniquely identified with a card key. The card key begins with a Cyberismo project-specific prefix.
+
+== Content from other systems
+
+Connector:: A connector is a tool that reads an external system and generates logic program facts from what it finds. Cyberismo can then reason about that data without it being copied into the project. Connectors exist for issue trackers and vulnerability management tools. See {{#xref}}"cardKey":"docs_15sd1cq8"{{/xref}}.
+
+External item:: An external item is a single thing a connector has imported: a ticket, an issue, a risk, or a vulnerability. It is not a card, and it is not stored in your project. It is identified by the pair of its connector and its key in the external system, and it carries fields such as a title and a URL. External items use the same vocabulary as cards for fields, labels and containment, so a rule that reasons about a control can take account of the tickets that relate to it.
+
+== The structure
+
+Card type:: Each card is of a specific card type, which defines the workflow being used and optionally a set of custom fields. Separate card types may be defined, for example, for controlled documents, risks, threats, security requirements, architecture decisions, or tasks.
+
+Field type:: A field type defines a custom field that card types can use: its data type, its display name, and, for enumerations, the permitted values and the order they appear in. Field types are how a risk card comes to carry a likelihood and an impact, or a task card a deadline and an assignee. See {{#xref}}"cardKey":"docs_25"{{/xref}}.
+
+Workflow:: A workflow is a state machine that defines a set of states and state transitions for cards, such as Open → In Progress → Done or Draft → Approved → Archived.
+
+Link and link type:: A link is a relationship between cards, and every link is of a specific link type, such as _causes_ or _mitigates_. A link type declares which card types may appear at each end of the link and how the relationship reads in each direction. Links may be used, for example, to represent that an asset bears a risk, a control mitigates a risk, a control implements a compliance requirement, a threat is related to another threat, or that a test verifies a requirement. When cards represent the technical building blocks of a software solution, such as the processes, trust boundaries and data stores of a data flow diagram, links represent the data flows between them.
+
+Template:: A template contains a card or a set of cards in a hierarchy that is used as a template for user content. When the user creates new card(s) from a template, a new copy of the template card(s) is made with new unique card keys. Note that cards in a template may form a deep hierarchy, enabling the definition of complex templates with multiple cards, such as a template for a software project.
+
+== Reusing and sharing
+
+Module:: A module is a reusable collection of templates, card types, workflows, field types, link types, calculations, reports and graph models. When a user imports a module as a dependency to their Cyberismo project, a read-only copy of the module is included in the project directory structure. The most common module is the _base_ module, which defines commonly used basic card types and their workflows.
+
+Module dependencies:: A module may itself depend on other modules, so modules layer rather than compete. Importing a module brings in everything it depends on, and each layer extends what is below it instead of replacing it. That is why adding a standard to a project does not mean starting the project again. The modules Cyberismo publishes are designed as such a stack. See {{#xref}}"cardKey":"docs_b9w4zfng"{{/xref}}.
+
+== The reasoning
+
+Calculation:: A calculation is a resource holding a logic program, which Cyberismo includes automatically in the main logic program when the project is evaluated. Calculations lie behind most of what the tool derives rather than stores, including progress metrics, the status indicators in the navigation tree, and the features described in {{#xref}}"cardKey":"docs_30"{{/xref}}, {{#xref}}"cardKey":"docs_mdsa98za"{{/xref}}, {{#xref}}"cardKey":"docs_32"{{/xref}}, {{#xref}}"cardKey":"docs_4nd9wctm"{{/xref}} and {{#xref}}"cardKey":"docs_9pl4td1v"{{/xref}}. See also {{#xref}}"cardKey":"docs_o9qt6t0j"{{/xref}}.
+
+Report:: A report has two parts. A query, written as a logic program, produces a set of results from the content. A template, written in Handlebars, renders those results as AsciiDoc. A report is placed on a card with the report macro and may take parameters, so the same report can be reused in different contexts. Tables, summaries and status views are generated this way rather than maintained by hand. See {{#xref}}"cardKey":"docs_j1ldnk0s"{{/xref}}.
+
+Graph model and graph view:: A graph is configured in two parts. The graph model is a logic program that turns content into the nodes and edges of a diagram. The graph view controls how that graph is presented, so several views can share a single model. Diagrams such as data flow diagrams are generated from the model rather than drawn by hand. See {{#xref}}"cardKey":"docs_hbskjelr"{{/xref}}.
+
+'''
+
+For the modules Cyberismo publishes, see {{#xref}}"cardKey":"docs_b9w4zfng"{{/xref}}. For the full specification of how each of these resources is configured, see {{#xref}}"cardKey":"docs_6"{{/xref}}.

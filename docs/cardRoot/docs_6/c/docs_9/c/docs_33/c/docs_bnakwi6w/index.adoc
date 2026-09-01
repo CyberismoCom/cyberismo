@@ -3,7 +3,7 @@
 * `Key`: An identifier of an object. For example, a card key.
 * `Field`: A name of a field
 * `Value`: The value of the field
-* `DataType`: The data type of the field. See xref:docs_25.adoc[Fields and field types] for more information
+* `DataType`: The data type of the field. See {{#xref}}"cardKey":"docs_25"{{/xref}} for more information
 
 == Description
 

@@ -2,7 +2,7 @@
 
 The configuration of a graph consists of a graph model and a graph view, allowing several different graph views to be created based on a single graph model.
 
-See xref:docs_hbskjelr.adoc[Implementing graphs] for a longer introduction to graphs.
+See {{#xref}}"cardKey":"docs_hbskjelr"{{/xref}} for a longer introduction to graphs.
 
 == Prerequisites
 
@@ -23,7 +23,7 @@ To create a new graph view:
 
 The new graph view will be created with default files and the editor will open.
 
-When choosing a name for your graph view, see xref:docs_8.adoc[Naming conventions].
+When choosing a name for your graph view, see {{#xref}}"cardKey":"docs_8"{{/xref}}.
 
 === Editing graph view metadata
 

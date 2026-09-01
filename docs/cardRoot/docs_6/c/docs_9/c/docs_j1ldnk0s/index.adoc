@@ -2,12 +2,12 @@
 
 This page is a tutorial on implementing reports. Before reading this tutorial, familiarise yourself with the following topics:
 
-* xref:docs_28.adoc[Introduction to Answer Set Programming]
-* xref:docs_chclhxsk.adoc[Structure and execution of logic programs]
-* xref:docs_33.adoc[Query language]
+* {{#xref}}"cardKey":"docs_28"{{/xref}}
+* {{#xref}}"cardKey":"docs_chclhxsk"{{/xref}}
+* {{#xref}}"cardKey":"docs_33"{{/xref}}
 * https://handlebarsjs.com/guide/[Introduction to the Handlebars templating engine]
-* xref:docs_byr4iof0.adoc[Managing reports]
-* xref:docs_r0brt7n1.adoc[Report macro]
+* {{#xref}}"cardKey":"docs_byr4iof0"{{/xref}}
+* {{#xref}}"cardKey":"docs_r0brt7n1"{{/xref}}
 
 == Example 1: Empty report
 
@@ -335,7 +335,7 @@ The report has the following template. Note the following features:
 {{/raw}}
 ```
 
-For example, we can show the child cards of xref:docs_17.adoc[Installing Cyberismo] with the following report macro:
+For example, we can show the child cards of {{#xref}}"cardKey":"docs_17"{{/xref}} with the following report macro:
 
 ```
 {{#raw}}

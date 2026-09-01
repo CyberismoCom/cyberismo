@@ -58,7 +58,7 @@ To create a new field type:
 
 The new field type will be created and the editor will open.
 
-When choosing a name for your field type, see xref:docs_8.adoc[Naming conventions].
+When choosing a name for your field type, see {{#xref}}"cardKey":"docs_8"{{/xref}}.
 
 === Editing a field type
 

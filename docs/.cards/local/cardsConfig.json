@@ -11,5 +11,9 @@
             "private": false
         }
     ],
-    "hubs": []
+    "hubs": [
+        {
+            "location": "https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/"
+        }
+    ]
 }

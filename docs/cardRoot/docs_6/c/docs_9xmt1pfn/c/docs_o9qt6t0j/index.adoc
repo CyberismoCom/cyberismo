@@ -35,12 +35,12 @@ To delete a calculation, open it in the editor and use the context menu (three-d
 
 Use a logic program to implement the following use cases:
 
-* xref:docs_30.adoc[Calculated fields]
-* xref:docs_mdsa98za.adoc[Calculated links]
-* xref:docs_e8165l0x.adoc[Hiding cards in the navigation tree]
-* xref:docs_o0e06g1d.adoc[Showing progress metric in the navigation tree]
-* xref:docs_7927l1u5.adoc[Controlling the status indicator in the navigation tree]
-* xref:docs_31.adoc[Denying operations]
-* xref:docs_32.adoc[Automated policy checks]
-* xref:docs_4nd9wctm.adoc[Notifications]
-* xref:docs_9pl4td1v.adoc[Side effects of operations]
+* {{#xref}}"cardKey":"docs_30"{{/xref}}
+* {{#xref}}"cardKey":"docs_mdsa98za"{{/xref}}
+* {{#xref}}"cardKey":"docs_e8165l0x"{{/xref}}
+* {{#xref}}"cardKey":"docs_o0e06g1d"{{/xref}}
+* {{#xref}}"cardKey":"docs_7927l1u5"{{/xref}}
+* {{#xref}}"cardKey":"docs_31"{{/xref}}
+* {{#xref}}"cardKey":"docs_32"{{/xref}}
+* {{#xref}}"cardKey":"docs_4nd9wctm"{{/xref}}
+* {{#xref}}"cardKey":"docs_9pl4td1v"{{/xref}}
