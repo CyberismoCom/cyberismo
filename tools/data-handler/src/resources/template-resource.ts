@@ -19,7 +19,7 @@ import { FolderResource } from './folder-resource.js';
 import { resourceNameToString } from '../utils/resource-utils.js';
 import { sortCards } from '../utils/card-utils.js';
 import { Template } from '../containers/template.js';
-import { writeJsonFile } from '../utils/json.js';
+import { writeJsonFileIfAbsent } from '../utils/json.js';
 
 import type { Card } from '../interfaces/project-interfaces.js';
 import type { Project } from '../containers/project.js';
@@ -136,8 +136,6 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
     // Create folder for cards and put proper content schema file there
     const schemaContentFile = join(this.cardsFolder, '.schema');
     await mkdir(this.cardsFolder, { recursive: true });
-    await writeJsonFile(schemaContentFile, this.cardsSchema, {
-      flag: 'wx',
-    });
+    await writeJsonFileIfAbsent(schemaContentFile, this.cardsSchema);
   }
 }
