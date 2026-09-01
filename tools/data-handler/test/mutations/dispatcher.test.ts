@@ -40,9 +40,9 @@ describe('dispatcher', () => {
             },
           },
         };
-        const { handler, breaking } = dispatch(ctx);
+        const { handler, classification } = dispatch(ctx);
         expect(handler).toBeInstanceOf(PlainHandler);
-        expect(breaking).toBe(false);
+        expect(classification).toBe('none');
         // Replaying a sealed entry calls applyCascade() alone. It resolves even
         // against the stub project, so it cannot be reaching for cards.
         await expect(handler.applyCascade(ctx)).resolves.toBeUndefined();
