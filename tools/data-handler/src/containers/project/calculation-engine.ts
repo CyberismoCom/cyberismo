@@ -253,7 +253,7 @@ export class CalculationEngine {
   // Gets either all the cards (no parent), or a subtree.
   private getCards(templateName?: string): CardNode[] {
     if (templateName) {
-      return this.project.templateCards(templateName);
+      return this.project.templateCardNodes(templateName);
     }
 
     return this.project.cardNodes();
