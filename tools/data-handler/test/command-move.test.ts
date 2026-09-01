@@ -1,6 +1,6 @@
 import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 
-import { mkdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import { join, sep } from 'node:path';
 
 import { Cmd, CommandManager, Commands } from '../src/command-handler.js';
@@ -305,6 +305,31 @@ describe('move command', () => {
       `templates${sep}simplepage${sep}c${sep}decision_4`,
     );
     expect(after.path).not.toContain(`decision_3${sep}c${sep}decision_4`);
+  });
+
+  it('prunes the vacated children folder and creates one at the destination', async () => {
+    const templateCards = join(
+      decisionRecordsPath,
+      '.cards',
+      'local',
+      'templates',
+      'simplepage',
+      'c',
+    );
+    const vacatedFolder = join(templateCards, 'decision_3', 'c');
+    const destinationFolder = join(templateCards, 'decision_2', 'c');
+    expect(existsSync(join(vacatedFolder, 'decision_4'))).toBe(true);
+    expect(existsSync(destinationFolder)).toBe(false);
+
+    const result = await commandHandler.command(
+      Cmd.move,
+      ['decision_4', 'decision_2'],
+      options,
+    );
+    expect(result.statusCode).toBe(200);
+
+    expect(existsSync(join(destinationFolder, 'decision_4'))).toBe(true);
+    expect(existsSync(vacatedFolder)).toBe(false);
   });
 
   it('verify card cache after move operation', async () => {
