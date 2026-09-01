@@ -662,10 +662,15 @@ export class Project extends CardContainer {
   }
 
   /**
-   * When new cards are added.
-   * @param cards Added cards.
+   * Adds cards that have just been created on disk to the card tree, and
+   * refreshes their facts so a query run afterwards can see them.
+   *
+   * Storage and fact projection only. The creation query and the side effects
+   * it asks for belong to the command that created the cards and holds the
+   * write lock — see runCreationSideEffects.
+   * @param cards Cards that were created.
    */
-  public async handleNewCards(cards: Card[]) {
+  public async addCreatedCards(cards: Card[]) {
     // Add new cards to the card cache
     cards.forEach((card) => {
       const cardWithParent = {
@@ -675,7 +680,30 @@ export class Project extends CardContainer {
 
       this.cardTree.updateCard(cardWithParent.key, cardWithParent);
     });
-    return this.calculationEngine.handleNewCards(cards);
+    return this.calculationEngine.refreshCardFacts(cards);
+  }
+
+  /**
+   * Runs the creation query for cards that were just added, and executes the
+   * side effects it asks for.
+   *
+   * Must run inside a write-lock context, after addCreatedCards: the query
+   * only sees the new cards once their facts have been projected.
+   * @param cardKeys Keys of the cards that were created.
+   */
+  public async runCreationSideEffects(cardKeys: string[]) {
+    const queryResult = await this.calculationEngine.creationQuery(
+      cardKeys,
+      'localApp',
+    );
+    await this.executeSideEffects(
+      queryResult?.at(0),
+      // Empty seed: the created cards' initial "Create" transitions already
+      // happened during creation itself; a re-entrant "Create" side effect
+      // would be rejected anyway by the fromState check, so nothing needs
+      // to be pre-marked visited here.
+      new Set<string>(),
+    );
   }
 
   /**
