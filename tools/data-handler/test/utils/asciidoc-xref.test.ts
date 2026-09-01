@@ -2,14 +2,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { rewriteAsciidocCardXrefs } from '../../src/utils/asciidoc-xref.js';
 import type { Project } from '../../src/containers/project.js';
-import type { Card } from '../../src/interfaces/project-interfaces.js';
+import type { CardNode } from '../../src/interfaces/project-interfaces.js';
 import type { Mode } from '../../src/interfaces/macros.js';
 
-function makeCard(key: string, title: string): Card {
+function makeCard(key: string, title: string): CardNode {
   return {
     key,
     path: '',
-    content: '',
     metadata: {
       title,
       cardType: '',
@@ -18,12 +17,11 @@ function makeCard(key: string, title: string): Card {
       links: [],
     },
     children: [],
-    attachments: [],
   };
 }
 
-function makeProject(byKey: Record<string, Card>): Project {
-  // Mirror the real Project.findCard contract: throw when the key is unknown,
+function makeProject(byKey: Record<string, CardNode>): Project {
+  // Mirror the real Project.cardNode contract: throw when the key is unknown,
   // never return undefined.
   const lookup = (k: string) => {
     const card = byKey[k];
@@ -32,7 +30,7 @@ function makeProject(byKey: Record<string, Card>): Project {
     }
     return card;
   };
-  return { findCard: lookup } as unknown as Project;
+  return { cardNode: lookup } as unknown as Project;
 }
 
 describe('rewriteAsciidocCardXrefs', () => {

@@ -18,7 +18,7 @@ import {
   encodeClingoValue,
 } from './clingo-fact-builder.js';
 import type {
-  Card,
+  CardNode,
   Context,
   ModuleContent,
 } from '../interfaces/project-interfaces.js';
@@ -176,7 +176,7 @@ export const createWorkflowFacts = (workflow: Workflow) => {
  * @param project Project information
  * @returns clingo facts as a string
  */
-export const createCardFacts = async (card: Card, project: Project) => {
+export const createCardFacts = async (card: CardNode, project: Project) => {
   // Small helper to deduce parent path
   // todo: Should use card-utils
   function parentPath(cardPath: string) {
@@ -190,7 +190,7 @@ export const createCardFacts = async (card: Card, project: Project) => {
 
   // Helper to deduce template parent path.
   // todo: Should use card-utils
-  function parentPathFromTemplate(card: Card) {
+  function parentPathFromTemplate(card: CardNode) {
     const cardPath = card.path;
     const pathParts = cardPath.split(sep);
     if (pathParts.length <= 6) {

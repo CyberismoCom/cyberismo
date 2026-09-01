@@ -34,6 +34,7 @@ import {
   CardLocation,
   type CardListContainer,
   type CardMetadata,
+  type CardNode,
   type MetadataContent,
   type ModuleContent,
 } from '../interfaces/project-interfaces.js';
@@ -463,13 +464,61 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Returns an array of all the cards in the project.
+   * Returns an array of all the cards in the project, fully hydrated.
    * @note These are project cards only, by default (unless path dictates otherwise).
    * @param path Path from which to fetch the cards. Generally it is best to fetch from Project root, e.g. Project.cardRootFolder
    * @returns all cards from the given path in the project.
    */
   public cards(path: string = this.paths.cardRootFolder): Card[] {
     return super.cards(path);
+  }
+
+  /**
+   * Metadata-level view of every card at the given path: identity, tree
+   * position and metadata, without the content or the attachment listing.
+   * @param path Path from which to fetch the cards.
+   * @returns nodes of all cards from the given path in the project.
+   */
+  public cardNodes(path: string = this.paths.cardRootFolder): CardNode[] {
+    return super.cardNodes(path);
+  }
+
+  /**
+   * Card keys of every card at the given path.
+   * @param path Path from which to fetch the keys.
+   * @returns keys of all cards from the given path in the project.
+   */
+  public cardKeys(path: string = this.paths.cardRootFolder): string[] {
+    return super.cardKeys(path);
+  }
+
+  /**
+   * Metadata-level view of one card: identity, tree position and metadata,
+   * without the content or the attachment listing.
+   * @param cardKey Card key to read.
+   * @throws if the card is not part of the project
+   */
+  public cardNode(cardKey: string): CardNode {
+    return super.cardNode(cardKey);
+  }
+
+  /**
+   * Content of one card.
+   * @param cardKey Card key to read.
+   * @returns the card's content, or undefined if it has none.
+   * @throws if the card is not part of the project
+   */
+  public cardContent(cardKey: string): string | undefined {
+    return super.cardContent(cardKey);
+  }
+
+  /**
+   * Attachment listing of one card.
+   * @param cardKey Card key to read.
+   * @throws if the card is not part of the project
+   */
+  public cardAttachments(cardKey: string): CardAttachment[] {
+    return super.cardAttachments(cardKey);
   }
 
   /**
@@ -546,7 +595,8 @@ export class Project extends CardContainer {
   /**
    * Returns specific card.
    * @param cardToFind Card key to find
-   * @returns specific card details, or undefined if card is not part of the project.
+   * @returns specific card details, fully hydrated.
+   * @throws if the card is not part of the project
    */
   public findCard(cardToFind: string): Card {
     return super.findCard(cardToFind);
@@ -658,7 +708,7 @@ export class Project extends CardContainer {
 
     // Strip links from surviving cards that point at any card being removed.
     const linkUpdates: Promise<void>[] = [];
-    for (const item of this.cards(this.paths.cardRootFolder)) {
+    for (const item of this.cardNodes(this.paths.cardRootFolder)) {
       if (deletedKeys.has(item.key) || !item.metadata) {
         continue;
       }
