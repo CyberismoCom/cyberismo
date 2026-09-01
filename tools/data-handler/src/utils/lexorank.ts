@@ -12,6 +12,10 @@
 const ALPHABET = 'abcdefghijklmnopqrstuvwxyz';
 const ALPHABET_SIZE = ALPHABET.length;
 
+// BigInt, not Number: a rank's value is 26^length, and Number stops being
+// exact at 26^12 - reached after 158 sequential appends.
+const BASE = BigInt(ALPHABET_SIZE);
+
 const PREFIX = '0|'; // prefix to allow easy addition of buckets later if required
 
 export const FIRST_RANK = PREFIX + ALPHABET[0];
@@ -26,15 +30,14 @@ type Rank = string; // Rank is a string that represents a number in base 26
  * @param num number to convert to base 26
  * @returns the string representation of the number in base 26
  */
-export function enbase(num: number): string {
-  if (num === 0) return ALPHABET[0];
+export function enbase(num: number | bigint): string {
+  let value = BigInt(num);
+  if (value === 0n) return ALPHABET[0];
 
   let result = '';
-  while (num > 0) {
-    result =
-      String.fromCharCode(ALPHABET.charCodeAt(0) + (num % ALPHABET_SIZE)) +
-      result;
-    num = Math.floor(num / ALPHABET_SIZE);
+  while (value > 0n) {
+    result = ALPHABET[Number(value % BASE)] + result;
+    value = value / BASE;
   }
   return result;
 }
@@ -44,12 +47,12 @@ export function enbase(num: number): string {
  * @param str rank to convert to a number
  * @returns the number representation of the rank
  */
-export function debase(str: string): number {
-  let result = 0;
+export function debase(str: string): bigint {
+  let result = 0n;
   for (let i = 0; i < str.length; i++) {
     result +=
-      (str.charCodeAt(i) - ALPHABET.charCodeAt(0)) *
-      Math.pow(ALPHABET_SIZE, str.length - i - 1);
+      BigInt(str.charCodeAt(i) - ALPHABET.charCodeAt(0)) *
+      BASE ** BigInt(str.length - i - 1);
   }
   return result;
 }
@@ -61,9 +64,7 @@ export function debase(str: string): number {
  */
 export function getRankAfter(rank: Rank): Rank {
   rank = rank.replace(PREFIX, '');
-  let num = debase(rank);
-  num++;
-  const newRank = enbase(num);
+  const newRank = enbase(debase(rank) + 1n);
   if (newRank.length > rank.length) {
     return PREFIX + rank + ALPHABET[ALPHABET_SIZE / 2];
   }
@@ -77,9 +78,8 @@ export function getRankAfter(rank: Rank): Rank {
  */
 export function getRankBefore(rank: Rank): Rank {
   rank = rank.replace(PREFIX, '');
-  let num = debase(rank);
-  num--;
-  if (num < 0) {
+  const num = debase(rank) - 1n;
+  if (num < 0n) {
     throw new Error('Rank cannot be negative');
   }
   return PREFIX + enbase(num);
@@ -116,10 +116,7 @@ export function getRankBetween(rank1: string, rank2: string): string {
     throw new Error('Rank1 must be smaller than rank2');
   }
 
-  const res = enbase(Math.floor((num1 + num2) / 2)).padStart(
-    length,
-    ALPHABET[0],
-  );
+  const res = enbase((num1 + num2) / 2n).padStart(length, ALPHABET[0]);
   if (res !== paddedRank1 && res !== paddedRank2) {
     return PREFIX + res;
   }
@@ -142,7 +139,7 @@ export function rebalanceRanks(rankAmount: number): string[] {
   const maxRank = ALPHABET[ALPHABET_SIZE - 1].repeat(requiredLevels);
 
   // step size determines the distance between each rank
-  const stepSize = Math.floor(debase(maxRank) / (rankAmount - 1));
+  const stepSize = debase(maxRank) / BigInt(rankAmount - 1);
 
   const ranks = [];
   for (let i = 0; i < rankAmount; i++) {
@@ -151,8 +148,8 @@ export function rebalanceRanks(rankAmount: number): string[] {
     } else if (i === rankAmount - 1) {
       ranks.push(PREFIX + maxRank);
     } else {
-      const rank = debase(minRank) + stepSize * i;
-      ranks.push(PREFIX + enbase(rank));
+      const rank = debase(minRank) + stepSize * BigInt(i);
+      ranks.push(PREFIX + enbase(rank).padStart(requiredLevels, ALPHABET[0]));
     }
   }
   return ranks;
