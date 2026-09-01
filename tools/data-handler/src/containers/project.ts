@@ -946,6 +946,21 @@ export class Project extends CardContainer {
   }
 
   /**
+   * Renames a card's attachment file, keeping the card cache in step with it.
+   * @param cardKey Card whose attachment is renamed.
+   * @param fileName Current attachment file name.
+   * @param newFileName New attachment file name.
+   * @throws if the card or the attachment does not exist.
+   */
+  public async renameCardAttachment(
+    cardKey: string,
+    fileName: string,
+    newFileName: string,
+  ): Promise<void> {
+    await this.cardTree.renameAttachment(cardKey, fileName, newFileName);
+  }
+
+  /**
    * Refreshes caches after the module installation set has changed on disk.
    * Invalidates the module resource cache, rebuilds the all-module-prefix
    * list, and reloads template cards so the Project API reflects the new
@@ -1045,12 +1060,10 @@ export class Project extends CardContainer {
     const card = this.findCard(cardKey);
     card.content = content;
 
-    // Update lastUpdated timestamp in metadata
-    if (card.metadata) {
-      card.metadata.lastUpdated = new Date().toISOString();
-    }
-
-    await this.saveCard(card);
+    // Both files, deliberately: a content edit is expected to bump
+    // 'lastUpdated', and only the metadata write stamps it.
+    await this.saveCardContent(card);
+    await this.saveCardMetadata(card);
     await this.handleCardChanged(card);
   }
 
