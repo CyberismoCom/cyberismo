@@ -13,11 +13,29 @@
 
 import semver from 'semver';
 import type { Project } from '../containers/project.js';
+import type { ConfigurationLogEntry } from '../utils/configuration-logger.js';
 import { ConfigurationLogger } from '../utils/configuration-logger.js';
+import type { ChangeClassification } from '../mutations/registry.js';
+import { classify } from '../mutations/dispatcher.js';
+import { entryToMutationInput } from '../mutations/replay/convert.js';
 import { write } from '../utils/rw-lock.js';
 
 export const validBumps = ['patch', 'minor', 'major'] as const;
 export type BumpType = (typeof validBumps)[number];
+
+function classifyEntry(entry: ConfigurationLogEntry): ChangeClassification {
+  try {
+    return classify(entryToMutationInput(entry));
+  } catch {
+    // An entry this build cannot route (e.g. written by a newer version) must
+    // not slip through the gate; treat it as the strictest class.
+    return 'destructive';
+  }
+}
+
+function describeEntries(entries: ConfigurationLogEntry[]): string {
+  return entries.map((e) => `  - ${e.target} (${e.operation})`).join('\n');
+}
 
 /**
  * Handles version bumping commands.
@@ -46,13 +64,31 @@ export class Version {
 
     const currentVersion = this.project.configuration.version;
 
-    // Guard: breaking changes cannot ship in a patch. Minor and major bumps
-    // seal the log; consumers replay it on module update.
+    // Guard: a patch requires a clean log; a minor admits migratable changes
+    // but not destructive ones; a major admits everything. Minor and major
+    // bumps seal the log; consumers replay it on module update.
     // Skipped for the first version — there is no predecessor to break against.
-    if (currentVersion && bumpType === 'patch') {
-      if (ConfigurationLogger.hasBreakingChanges(this.project.basePath)) {
+    if (
+      currentVersion &&
+      bumpType !== 'major' &&
+      ConfigurationLogger.hasBreakingChanges(this.project.basePath)
+    ) {
+      const entries = await ConfigurationLogger.entries(this.project.basePath);
+      if (bumpType === 'patch') {
         throw new Error(
-          'Cannot publish a patch version: breaking configuration changes detected. Use a minor or major version bump.',
+          'Cannot publish a patch version: the configuration log contains changes that require a migration:\n' +
+            describeEntries(entries) +
+            '\nUse a minor version bump, or a major version bump if destructive changes are present.',
+        );
+      }
+      const destructive = entries.filter(
+        (entry) => classifyEntry(entry) === 'destructive',
+      );
+      if (destructive.length > 0) {
+        throw new Error(
+          'Cannot publish a minor version: the configuration log contains destructive changes:\n' +
+            describeEntries(destructive) +
+            '\nUse a major version bump.',
         );
       }
     }

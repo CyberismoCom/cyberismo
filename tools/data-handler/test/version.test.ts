@@ -171,14 +171,21 @@ describe('Version', () => {
       );
     });
 
-    it('should seal the log when minor bump attempted with breaking changes', async () => {
+    it('should seal the log when minor bump attempted with migratable changes', async () => {
       configuration.version = '1.0.0';
       await configuration.setVersion('1.0.0');
       hasBreakingChangesStub.restore();
       await ConfigurationLogger.log(dir, {
-        operation: 'resource_delete',
-        target: 'some-resource',
-        parameters: {},
+        operation: 'resource_rename',
+        target: 'test/workflows/flow',
+        parameters: {
+          type: 'workflows',
+          operation: {
+            name: 'change',
+            target: 'test/workflows/flow',
+            to: 'test/workflows/renamed',
+          },
+        },
       });
       await git.commit('set version and dirty log');
 
@@ -204,6 +211,65 @@ describe('Version', () => {
 
       const result = await versionCmd.bumpVersion('major');
       expect(result.newVersion).toBe('2.0.0');
+    });
+
+    it('patch refuses when the log has a migratable entry, naming it', async () => {
+      configuration.version = '1.0.0';
+      await configuration.setVersion('1.0.0');
+      hasBreakingChangesStub.restore();
+      await ConfigurationLogger.log(dir, {
+        operation: 'resource_rename',
+        target: 'test/workflows/flow',
+        parameters: {
+          type: 'workflows',
+          operation: {
+            name: 'change',
+            target: 'test/workflows/flow',
+            to: 'test/workflows/renamed',
+          },
+        },
+      });
+      await git.commit('set version and dirty log');
+
+      await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
+        /Cannot publish a patch version[\s\S]*test\/workflows\/flow \(resource_rename\)/,
+      );
+    });
+
+    it('minor refuses with a destructive entry in the log, error names the entry', async () => {
+      configuration.version = '1.0.0';
+      await configuration.setVersion('1.0.0');
+      hasBreakingChangesStub.restore();
+      await ConfigurationLogger.log(dir, {
+        operation: 'resource_delete',
+        target: 'test/workflows/flow',
+        parameters: { type: 'workflows' },
+      });
+      await git.commit('set version and dirty log');
+
+      await expect(versionCmd.bumpVersion('minor')).rejects.toThrow(
+        /Cannot publish a minor version[\s\S]*test\/workflows\/flow \(resource_delete\)/,
+      );
+    });
+
+    it('major seals with destructive entries in the log', async () => {
+      configuration.version = '1.0.0';
+      await configuration.setVersion('1.0.0');
+      hasBreakingChangesStub.restore();
+      await ConfigurationLogger.log(dir, {
+        operation: 'resource_delete',
+        target: 'test/workflows/flow',
+        parameters: { type: 'workflows' },
+      });
+      await git.commit('set version and dirty log');
+
+      const result = await versionCmd.bumpVersion('major');
+
+      expect(result.newVersion).toBe('2.0.0');
+      const migrationsFolder = join(dir, '.cards', 'local', 'migrations');
+      expect(
+        pathExists(join(migrationsFolder, 'migrationLog_0.0.0_2.0.0.jsonl')),
+      ).toBe(true);
     });
 
     it('should not apply breaking change gate for first version', async () => {
