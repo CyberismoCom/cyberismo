@@ -73,9 +73,16 @@ export class Template extends CardContainer {
     this.templateCardsPath = join(this.templatePath, 'c');
   }
 
-  private async buildCardKeyMap(cards: Card[]): Promise<Map<string, string>> {
-    const cardIds = await this.project.listCardIds();
-    const newCardIds = this.project.newCardKeys(cards.length, cardIds);
+  /** The template's own cards live in the project's tree for this template. */
+  protected get cardTree() {
+    return this.project.templateTree(
+      this.fullTemplateName,
+      this.templateCardsPath,
+    );
+  }
+
+  private buildCardKeyMap(cards: Card[]): Map<string, string> {
+    const newCardIds = this.project.newCardKeys(cards.length);
     const cardsByKey = new Map<string, string>();
     cards.forEach((card, index) => {
       cardsByKey.set(card.key, newCardIds.at(index) || '');
@@ -386,8 +393,8 @@ export class Template extends CardContainer {
         ? join(this.cardFolder(parentCard.key), 'c')
         : this.templateCardsPath;
 
-      const cardIds = await this.project.listCardIds();
-      const newCardKeys = this.project.newCardKeys(count, cardIds);
+      // Keys are allocated in one pass, before anything is written.
+      const newCardKeys = this.project.newCardKeys(count);
 
       const siblings = parentCard
         ? this.project.cardKeysToCards(parentCard.children)
@@ -472,7 +479,7 @@ export class Template extends CardContainer {
    * @returns the number of cards in the template.
    */
   public cardCount(): number {
-    return this.project.templateCardCount(this.fullTemplateName);
+    return this.cardTree.count;
   }
 
   /**
@@ -500,7 +507,7 @@ export class Template extends CardContainer {
 
     const createdPaths: string[] = [];
     try {
-      const cardKeyMap = await this.buildCardKeyMap(cards);
+      const cardKeyMap = this.buildCardKeyMap(cards);
       const rootCardRanks = this.rootCardRanks(cards, parentCard);
 
       // Copies of the template's cards, moved to their destination positions
@@ -519,6 +526,11 @@ export class Template extends CardContainer {
       );
       createdPaths.push(...instantiated.map((card) => card.path));
 
+      // The instantiated cards are project cards, so they are created in the
+      // project's tree — not in the template's, which for a module template
+      // refuses writes.
+      const destination = this.project.containerTree('project');
+
       // Process all cards in parallel
       const results = await Promise.allSettled(
         instantiated.map(async (card) => {
@@ -527,7 +539,7 @@ export class Template extends CardContainer {
           );
           // The creation primitive also makes the card folder;
           // processAttachments only creates one when the card has attachments.
-          await this.createNode(processedCard);
+          await destination.createNode(processedCard);
           return processedCard;
         }),
       );
@@ -584,7 +596,7 @@ export class Template extends CardContainer {
    * @returns true if card with a given card key exists in the template, false otherwise.
    */
   public hasTemplateCard(cardKey: string): boolean {
-    return this.project.hasTemplateCard(cardKey);
+    return this.cardTree.has(cardKey);
   }
 
   /**
