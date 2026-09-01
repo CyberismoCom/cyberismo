@@ -4,6 +4,7 @@ import {
   getRankAfter,
   rebalanceRanks,
   getRankBefore,
+  FIRST_RANK,
 } from '../../src/utils/lexorank.js';
 import { expect, it, describe } from 'vitest';
 
@@ -64,6 +65,23 @@ describe('lexorank', () => {
     it('regression: getRankAfter(EMPTY_RANK) returns malformed "0|"', () => {
       expect(getRankAfter('1|a')).toBe('0|');
     });
+
+    it('appends 500 times without saturating', () => {
+      const ranks: string[] = [];
+      let rank = FIRST_RANK;
+      for (let index = 0; index < 500; index++) {
+        rank = getRankAfter(rank);
+        ranks.push(rank);
+      }
+
+      expect(new Set(ranks).size).toBe(500);
+      for (let index = 1; index < ranks.length; index++) {
+        expect(
+          ranks[index] > ranks[index - 1],
+          `rank ${index} (${ranks[index]}) must be after rank ${index - 1} (${ranks[index - 1]})`,
+        ).toBe(true);
+      }
+    });
   });
 
   describe('getRankBefore', () => {
@@ -104,5 +122,20 @@ describe('lexorank', () => {
     it('rebalanceRanks with 1 item', () => {
       expect(rebalanceRanks(1)).toEqual(['0|a']);
     });
+
+    it.each([27, 156, 500, 700])(
+      'rebalanceRanks(%d) is strictly increasing',
+      (rankAmount) => {
+        const ranks = rebalanceRanks(rankAmount);
+        expect(ranks).toHaveLength(rankAmount);
+        expect(new Set(ranks).size).toBe(rankAmount);
+        for (let index = 1; index < ranks.length; index++) {
+          expect(
+            ranks[index] > ranks[index - 1],
+            `rank ${index} (${ranks[index]}) must be after rank ${index - 1} (${ranks[index - 1]})`,
+          ).toBe(true);
+        }
+      },
+    );
   });
 });
