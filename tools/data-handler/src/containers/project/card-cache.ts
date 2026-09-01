@@ -23,6 +23,7 @@ import type {
 } from '../../interfaces/project-interfaces.js';
 import { CardNameRegEx } from '../../interfaces/project-interfaces.js';
 import { cardPathParts, parentCard } from '../../utils/card-utils.js';
+import { DuplicateCardKeyError } from '../../exceptions/index.js';
 import { getChildLogger } from '../../utils/log-utils.js';
 import { pathExists } from '../../utils/file-utils.js';
 
@@ -203,22 +204,23 @@ export class CardCache {
 
   // Populates the cache from the given array of cards
   private populateFromCards(cards: CachedCard[], buildRelationships = true) {
-    const newMap = new Map(
-      cards?.map((card): [string, CachedCard] => {
-        return [card.key, card];
-      }),
-    );
-    this.cardCache = new Map([...this.cardCache, ...newMap]);
-
-    // Remove possible duplicates, card IDs must be unique
-    const cardIds = cards.map((item) => item.key);
-    const duplicates = cardIds.reduce<string[]>(
-      (acc, v, i, arr) =>
-        arr.indexOf(v) === i || acc.includes(v) ? acc : acc.concat(v),
-      [],
-    );
+    const duplicates: string[] = [];
+    const batchKeys = new Set<string>();
+    for (const card of cards) {
+      if (
+        (batchKeys.has(card.key) || this.cardCache.has(card.key)) &&
+        !duplicates.includes(card.key)
+      ) {
+        duplicates.push(card.key);
+      }
+      batchKeys.add(card.key);
+    }
     if (duplicates.length > 0) {
-      throw new Error(`Duplicate card keys found: ${duplicates}`);
+      throw new DuplicateCardKeyError(duplicates);
+    }
+
+    for (const card of cards) {
+      this.cardCache.set(card.key, card);
     }
 
     if (buildRelationships) {
