@@ -30,6 +30,9 @@ export interface Card {
   attachments: CardAttachment[];
 }
 
+// A card without its file contents: identity, tree position and metadata.
+export type CardNode = Omit<Card, 'content' | 'attachments'>;
+
 // Single card, but childrenCards as Card array
 export interface CardWithChildrenCards extends Card {
   childrenCards: CardWithChildrenCards[];
