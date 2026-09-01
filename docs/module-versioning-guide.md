@@ -22,7 +22,7 @@ touch their project; they never touch your module's files. Your job is just to
 Your module repo                         A consumer project
 ─────────────────                        ──────────────────
 v1.0.0  ──seal──► migrationLog_1.0.0_1.1.0.jsonl  ┐
-v1.1.0  ──seal──► migrationLog_1.1.0_1.2.0.jsonl  ├─► consumer runs `update-modules`
+v1.1.0  ──seal──► migrationLog_1.1.0_1.2.0.jsonl  ├─► consumer runs `module update`
 v1.2.0                                            │   → replays the chain on THEIR cards
                                                   ┘   → their cards migrate, project validates
 ```
@@ -182,7 +182,8 @@ other module is changing its states.
 
 ## 8. How consumers resolve and update
 
-When a consumer runs `cyberismo update-modules [name]`, Cyberismo:
+When a consumer runs `cyberismo module update [name]` (formerly
+`cyberismo update-modules`, now a deprecated alias), Cyberismo:
 
 1. **Resolves a coherent set of versions** across all their modules and your
    transitive dependencies, honoring every version range and pin. If no coherent
@@ -235,5 +236,5 @@ cyberismo publish                                # push tags to the remote
 ```
 
 A consumer on `core@1.0.0` with a card whose `priority` is `low`, running
-`update-modules core`, ends up on `1.1.0` with that card's `priority` migrated to
+`module update core`, ends up on `1.1.0` with that card's `priority` migrated to
 `medium` — automatically, and validated.
