@@ -33,12 +33,8 @@ import {
 } from '../interfaces/project-interfaces.js';
 import { pathExists } from '../utils/file-utils.js';
 import { generateRandomString } from '../utils/random.js';
-import {
-  cardPathParts,
-  isModulePath,
-  isTemplateCard,
-  sortCards,
-} from '../utils/card-utils.js';
+import { isModulePath, sortCards } from '../utils/card-utils.js';
+import type { CardFactContext } from '../utils/clingo-facts.js';
 import { ActionGuard } from '../permissions/action-guard.js';
 import { applySideEffects, type SideEffects } from '../side-effects.js';
 import { ProjectConfiguration } from '../project-settings.js';
@@ -98,7 +94,7 @@ export class Project extends CardContainer {
     const settings = new ProjectConfiguration(
       join(path, '.cards', 'local', Project.projectConfigFileName),
     );
-    super(path, settings.cardKeyPrefix);
+    super(path, settings.cardKeyPrefix, join(path, 'cardRoot'));
     this.settings = settings;
 
     // Pushing only makes sense for commits this process makes, and both
@@ -197,12 +193,6 @@ export class Project extends CardContainer {
     };
   }
 
-  // Determines the parent card key from a card's filesystem path.
-  // todo: could be moved to card-utils
-  private parentFromPath(cardPath: string): string {
-    return cardPathParts(this.projectPrefix, cardPath).parents.at(-1) || 'root';
-  }
-
   // Refreshes the cached list of all module prefixes.
   // This includes both direct and transient module dependencies.
   private refreshAllModulePrefixes(): void {
@@ -290,7 +280,10 @@ export class Project extends CardContainer {
           return;
         }
 
-        await this.cardTree.load(templateObject.templateCardsFolder());
+        await this.cardTree.load(
+          templateObject.templateCardsFolder(),
+          templateObject.fullName,
+        );
       });
 
       await Promise.all(loadPromises);
@@ -309,7 +302,7 @@ export class Project extends CardContainer {
    * Populate both the project cards, and all template cards into card cache.
    */
   protected async populateCardsCache(): Promise<void> {
-    await this.cardTree.load(this.paths.cardRootFolder);
+    await this.cardTree.load(this.paths.cardRootFolder, 'project');
     await this.populateTemplateCards();
   }
 
@@ -330,13 +323,12 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Returns attachments from cards at a specific path using the card cache.
-   * This method allows templates to access attachments from the shared cache.
-   * @param path The path to get attachments from
-   * @returns Array of attachments from cards at the specified path
+   * Returns the attachments of a single template's cards.
+   * @param templateName Full name of the template.
+   * @returns Array of attachments from the template's cards
    */
-  public attachmentsByPath(path: string): CardAttachment[] {
-    return super.attachments(path);
+  public templateAttachments(templateName: string): CardAttachment[] {
+    return this.cardTree.attachmentsIn(templateName);
   }
 
   /**
@@ -374,23 +366,7 @@ export class Project extends CardContainer {
    * @returns path to a card's folder.
    */
   public async cardFolder(cardKey: string): Promise<string> {
-    const found = super.findCard(cardKey);
-    if (found) {
-      return found.path;
-    }
-
-    const templates = this.resources.templates();
-    const templatePromises = templates.map((template) => {
-      const templateObject = template.templateObject();
-      const templateCard = templateObject
-        ? templateObject.findCard(cardKey)
-        : undefined;
-      const path = templateCard ? templateCard.path : '';
-      return path;
-    });
-
-    const templatePaths = await Promise.all(templatePromises);
-    return templatePaths.find((path) => path !== '') || '';
+    return this.cardTree.has(cardKey) ? this.cardTree.pathOf(cardKey) : '';
   }
 
   /**
@@ -474,12 +450,11 @@ export class Project extends CardContainer {
    * @returns Template object, or undefined if card is not part of template.
    */
   public createTemplateObjectFromCard(card: Card): Template | undefined {
-    if (!card || !card.path || !isTemplateCard(card)) {
+    const location = this.cardTree.locationOfCard(card?.key);
+    if (!location || location === 'project') {
       return undefined;
     }
-    const { template } = cardPathParts(this.projectPrefix, card.path);
-    const templateResource = this.resources.byType(template, 'templates');
-    return templateResource.templateObject();
+    return this.templateObjectByName(location);
   }
 
   /**
@@ -536,10 +511,28 @@ export class Project extends CardContainer {
   }
 
   /**
+   * The location a card belongs to.
+   * @param cardKey Card key to look up.
+   * @returns 'project', a full template name, or undefined if the card is not
+   *   part of the project.
+   */
+  public locationOfCard(cardKey: string): string | undefined {
+    return this.cardTree.locationOfCard(cardKey);
+  }
+
+  /**
+   * The keys of a card's ancestors, nearest first.
+   * @param cardKey Card key whose ancestors to return.
+   */
+  public ancestorsOf(cardKey: string): string[] {
+    return this.cardTree.ancestorsOf(cardKey);
+  }
+
+  /**
    * When card changes.
    * @param changedCard Card that was changed.
    */
-  public async handleCardChanged(changedCard: Card) {
+  public async handleCardChanged(changedCard: CardNode) {
     // Notify the calculation engine about the change
     return this.calculationEngine.handleCardChanged(changedCard);
   }
@@ -655,10 +648,20 @@ export class Project extends CardContainer {
    * @param newParentCard New parent for the 'movedCard'
    * @param oldParentCard Previous parent of the 'movedCard'
    */
-  public async handleCardMoved(movedCard: Card) {
-    this.cardTree.updateCard(movedCard.key, movedCard);
+  public async handleCardMoved(movedCard: CardNode) {
     await this.handleCardChanged(movedCard);
     await this.calculationEngine.handleCardMoved();
+  }
+
+  /**
+   * Moves a card to a new position in the card tree.
+   * @param cardKey Card that moved.
+   * @param newParent New parent card key, or 'root'.
+   * @param location Location the card now belongs to. Defaults to its current
+   *   one.
+   */
+  public relocateCard(cardKey: string, newParent: string, location?: string) {
+    this.cardTree.relocate(cardKey, newParent, location);
   }
 
   /**
@@ -669,17 +672,12 @@ export class Project extends CardContainer {
    * it asks for belong to the command that created the cards and holds the
    * write lock — see runCreationSideEffects.
    * @param cards Cards that were created.
+   * @param location 'project', or the full name of the template they belong to.
    */
-  public async addCreatedCards(cards: Card[]) {
-    // Add new cards to the card cache
-    cards.forEach((card) => {
-      const cardWithParent = {
-        ...card,
-        parent: card.parent || this.parentFromPath(card.path),
-      };
-
-      this.cardTree.updateCard(cardWithParent.key, cardWithParent);
-    });
+  public async addCreatedCards(cards: Card[], location: string) {
+    for (const card of cards) {
+      this.cardTree.insert(card, location);
+    }
     return this.calculationEngine.refreshCardFacts(cards);
   }
 
@@ -1001,6 +999,18 @@ export class Project extends CardContainer {
   }
 
   /**
+   * Registers the folder a template's cards are rooted at.
+   * @param templateName Full name of the template.
+   * @param cardsFolder The template's 'c' folder.
+   */
+  public registerTemplateCardsFolder(
+    templateName: string,
+    cardsFolder: string,
+  ): void {
+    this.cardTree.registerRoot(templateName, cardsFolder);
+  }
+
+  /**
    * Empties the card cache.
    */
   public clearCards(): void {
@@ -1053,6 +1063,23 @@ export class Project extends CardContainer {
       return [];
     }
     return this.cardTree.cardsIn(templateName);
+  }
+
+  /**
+   * How a card's container is projected into clingo facts.
+   *
+   * Template cards get every metadata fact a project card gets, but no
+   * card(Key) fact — that is what makes them invisible to every query
+   * predicated on card(K). Their root cards name their template as their
+   * parent.
+   * @param cardKey Card key whose container to describe.
+   */
+  public cardFactContext(cardKey: string): CardFactContext {
+    const location = this.cardTree.locationOfCard(cardKey) ?? 'project';
+    return {
+      emitsCardFact: location === 'project',
+      name: location,
+    };
   }
 
   /**
@@ -1131,7 +1158,7 @@ export class Project extends CardContainer {
       cardAsRecord[changedKey] = newValue ?? null;
     }
 
-    const invalidCard = isTemplateCard(card)
+    const invalidCard = this.cardTree.hasTemplateCard(cardKey)
       ? ''
       : await this.validateCard(card);
     if (invalidCard.length !== 0) {
@@ -1141,52 +1168,6 @@ export class Project extends CardContainer {
     // A metadata write cannot relocate a card, so there is nothing structural
     // to follow up here; moving a card is moveCard's job.
     await this.saveCardMetadata(card);
-  }
-
-  /**
-   * Updates descendant card paths in the cache after a parent card has been moved.
-   * This ensures cached paths reflect the actual filesystem locations.
-   * @param cardKey The card whose descendants need path updates
-   * @param oldBasePath The old base path before the move
-   * @param newBasePath The new base path after the move
-   */
-  public updateDescendantPathsAfterMove(
-    cardKey: string,
-    oldBasePath: string,
-    newBasePath: string,
-  ): void {
-    this.cardTree.rebaseSubtreePaths(cardKey, oldBasePath, newBasePath);
-  }
-
-  /**
-   * Updates the entire card in the card cache and handles any path/parent changes.
-   * Also persists changes to content and metadata files.
-   * @param card The card with updated information (path, parent, metadata, etc.)
-   */
-  public async updateCard(card: Card) {
-    // A copy, read only to compare against: this method's job is to work out
-    // what the caller changed.
-    const cachedCard = this.cardTree.has(card.key)
-      ? this.cardTree.card(card.key)
-      : undefined;
-    const pathChange = cachedCard && cachedCard.path !== card.path;
-
-    const metadataChanged =
-      cachedCard &&
-      JSON.stringify(cachedCard.metadata) !== JSON.stringify(card.metadata);
-    if (metadataChanged) {
-      await this.saveCardMetadata(card);
-    }
-
-    const contentChanged = cachedCard && cachedCard.content !== card.content;
-    if (contentChanged) {
-      await this.saveCardContent(card);
-    }
-
-    this.cardTree.updateCard(card.key, card);
-    if (metadataChanged || contentChanged || pathChange) {
-      await this.handleCardChanged(card);
-    }
   }
 
   /**
