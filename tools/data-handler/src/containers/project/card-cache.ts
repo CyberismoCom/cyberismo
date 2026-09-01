@@ -41,6 +41,9 @@ interface CachedCard extends Card {
 const cardMetadataFile = 'index.json';
 const cardContentFile = 'index.adoc';
 
+// The location of cards that are not in a template.
+const PROJECT_LOCATION = 'project';
+
 /**
  *
  */
@@ -51,6 +54,8 @@ export class CardCache {
   // Child lists are ordered by it, so a parent change cannot reorder siblings.
   private insertionOrder: Map<string, number> = new Map();
   private nextInsertion: number = 0;
+  private locationIndex: Map<string, Set<string>> = new Map();
+  private locationHighWater: Map<string, number> = new Map();
   private cachePopulated: boolean = false;
   constructor(private prefix: string) {}
 
@@ -108,6 +113,41 @@ export class CardCache {
     return this.insertionOrder.get(cardKey) ?? Number.MAX_SAFE_INTEGER;
   }
 
+  private addToLocation(cardKey: string, location: string) {
+    const position = this.positionOf(cardKey);
+    const keys = this.locationIndex.get(location);
+    if (!keys) {
+      this.locationIndex.set(location, new Set([cardKey]));
+      this.locationHighWater.set(location, position);
+      return;
+    }
+    if (position > (this.locationHighWater.get(location) ?? -1)) {
+      keys.add(cardKey);
+      this.locationHighWater.set(location, position);
+      return;
+    }
+    this.locationIndex.set(
+      location,
+      new Set(
+        [...keys, cardKey].sort(
+          (a, b) => this.positionOf(a) - this.positionOf(b),
+        ),
+      ),
+    );
+  }
+
+  private removeFromLocation(cardKey: string, location?: string) {
+    if (!location) {
+      return;
+    }
+    const keys = this.locationIndex.get(location);
+    if (!keys?.delete(cardKey) || keys.size > 0) {
+      return;
+    }
+    this.locationIndex.delete(location);
+    this.locationHighWater.delete(location);
+  }
+
   private store(cardKey: string, card: CachedCard) {
     const previous = this.cardCache.get(cardKey);
     if (!previous) {
@@ -119,6 +159,10 @@ export class CardCache {
       this.detachFromParent(cardKey, previous?.parent);
       this.attachToParent(cardKey, card.parent);
     }
+    if (previous?.location !== card.location) {
+      this.removeFromLocation(cardKey, previous?.location);
+      this.addToLocation(cardKey, card.location);
+    }
   }
 
   private unstore(cardKey: string): boolean {
@@ -129,12 +173,13 @@ export class CardCache {
     this.cardCache.delete(cardKey);
     this.insertionOrder.delete(cardKey);
     this.detachFromParent(cardKey, card.parent);
+    this.removeFromLocation(cardKey, card.location);
     return true;
   }
 
   // Determines the location from a given path: 'project' for project cards, template name for template cards
   private determineLocationFromPath(path: string): string {
-    return cardPathParts(this.prefix, path).template || 'project';
+    return cardPathParts(this.prefix, path).template || PROJECT_LOCATION;
   }
 
   // Gets all directory entries recursively.
@@ -350,6 +395,8 @@ export class CardCache {
     this.childrenIndex.clear();
     this.insertionOrder.clear();
     this.nextInsertion = 0;
+    this.locationIndex.clear();
+    this.locationHighWater.clear();
   }
 
   /**
@@ -386,10 +433,8 @@ export class CardCache {
    * @param templateName Name of the template
    */
   public deleteCardsFromTemplate(templateName: string) {
-    for (const card of this.cardCache.values()) {
-      if (card.location === templateName) {
-        this.deleteCard(card.key);
-      }
+    for (const cardKey of this.keysAtLocation(templateName)) {
+      this.deleteCard(cardKey);
     }
   }
 
@@ -397,21 +442,58 @@ export class CardCache {
    * Removes all template cards (i.e. cards whose location is not 'project') from the cache.
    */
   public deleteAllTemplateCards() {
-    for (const card of this.cardCache.values()) {
-      if (card.location !== 'project') {
-        this.deleteCard(card.key);
-      }
+    const templateLocations = [...this.locationIndex.keys()].filter(
+      (location) => location !== PROJECT_LOCATION,
+    );
+    for (const location of templateLocations) {
+      this.deleteCardsFromTemplate(location);
     }
   }
 
   /**
    * Returns all the template cards in the cache.
    * @returns all the template cards in the cache.
+   * @note A scan rather than a walk of the location index: the result is every
+   *   template card, and callers depend on getting them in global cache order.
    */
   public getAllTemplateCards(): CachedCard[] {
     return Array.from(this.cardCache.values()).filter(
-      (item) => item.location !== 'project',
+      (item) => item.location !== PROJECT_LOCATION,
     );
+  }
+
+  /**
+   * Returns the cards in a given location.
+   * @param location 'project', or a full template name.
+   * @returns the cards in that location, in cache insertion order.
+   */
+  public cardsAtLocation(location: string): CachedCard[] {
+    const cards: CachedCard[] = [];
+    for (const cardKey of this.locationIndex.get(location) ?? []) {
+      const card = this.cardCache.get(cardKey);
+      if (card) {
+        cards.push(card);
+      }
+    }
+    return cards;
+  }
+
+  /**
+   * Returns how many cards a given location holds.
+   * @param location 'project', or a full template name.
+   * @returns the number of cards in that location.
+   */
+  public cardCountAtLocation(location: string): number {
+    return this.locationIndex.get(location)?.size ?? 0;
+  }
+
+  /**
+   * Returns the card keys in a given location.
+   * @param location 'project', or a full template name.
+   * @returns the card keys in that location, in cache insertion order.
+   */
+  public keysAtLocation(location: string): string[] {
+    return [...(this.locationIndex.get(location) ?? [])];
   }
 
   /**
