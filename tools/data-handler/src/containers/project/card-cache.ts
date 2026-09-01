@@ -46,26 +46,90 @@ const cardContentFile = 'index.adoc';
  */
 export class CardCache {
   private cardCache: Map<string, CachedCard> = new Map();
+  private childrenIndex: Map<string, string[]> = new Map();
+  // Position assigned on first insert and kept while the card stays cached.
+  // Child lists are ordered by it, so a parent change cannot reorder siblings.
+  private insertionOrder: Map<string, number> = new Map();
+  private nextInsertion: number = 0;
   private cachePopulated: boolean = false;
   constructor(private prefix: string) {}
 
-  // Recursively builds children relationships for all cards in the cache.
-  private buildChildrenRelationshipsRecursively() {
-    // Helper function to recursively populate children for a card
-    const populateChildren = (cardKey: string, cardCopy: Card) => {
-      const directChildren: string[] = [];
-      for (const potentialChild of this.getCards()) {
-        if (potentialChild.parent === cardKey) {
-          directChildren.push(potentialChild.key);
-        }
-      }
-      cardCopy.children = directChildren;
-    };
-
-    // Populate children for all cards in the cache
-    for (const card of this.getCards()) {
-      populateChildren(card.key, card);
+  private setChildren(parentKey: string, children: string[]) {
+    if (children.length === 0) {
+      this.childrenIndex.delete(parentKey);
+    } else {
+      this.childrenIndex.set(parentKey, children);
     }
+    const parent = this.cardCache.get(parentKey);
+    if (parent) {
+      parent.children = children;
+    }
+  }
+
+  private attachToParent(cardKey: string, parentKey?: string) {
+    if (!parentKey) {
+      return;
+    }
+    const siblings = this.childrenIndex.get(parentKey);
+    if (!siblings) {
+      this.setChildren(parentKey, [cardKey]);
+      return;
+    }
+    const position = this.positionOf(cardKey);
+    if (position > this.positionOf(siblings[siblings.length - 1])) {
+      siblings.push(cardKey);
+      return;
+    }
+    const at = siblings.findIndex(
+      (sibling) => this.positionOf(sibling) > position,
+    );
+    const updated = [...siblings];
+    updated.splice(at === -1 ? updated.length : at, 0, cardKey);
+    this.setChildren(parentKey, updated);
+  }
+
+  // The list is replaced, not mutated: callers walk a parent's child list while
+  // removing cards from it and must keep seeing the snapshot they started with.
+  private detachFromParent(cardKey: string, parentKey?: string) {
+    if (!parentKey) {
+      return;
+    }
+    const siblings = this.childrenIndex.get(parentKey);
+    if (!siblings?.includes(cardKey)) {
+      return;
+    }
+    this.setChildren(
+      parentKey,
+      siblings.filter((sibling) => sibling !== cardKey),
+    );
+  }
+
+  private positionOf(cardKey: string): number {
+    return this.insertionOrder.get(cardKey) ?? Number.MAX_SAFE_INTEGER;
+  }
+
+  private store(cardKey: string, card: CachedCard) {
+    const previous = this.cardCache.get(cardKey);
+    if (!previous) {
+      this.insertionOrder.set(cardKey, this.nextInsertion++);
+    }
+    card.children = this.childrenIndex.get(cardKey) ?? [];
+    this.cardCache.set(cardKey, card);
+    if (previous?.parent !== card.parent) {
+      this.detachFromParent(cardKey, previous?.parent);
+      this.attachToParent(cardKey, card.parent);
+    }
+  }
+
+  private unstore(cardKey: string): boolean {
+    const card = this.cardCache.get(cardKey);
+    if (!card) {
+      return false;
+    }
+    this.cardCache.delete(cardKey);
+    this.insertionOrder.delete(cardKey);
+    this.detachFromParent(cardKey, card.parent);
+    return true;
   }
 
   // Determines the location from a given path: 'project' for project cards, template name for template cards
@@ -203,7 +267,7 @@ export class CardCache {
   }
 
   // Populates the cache from the given array of cards
-  private populateFromCards(cards: CachedCard[], buildRelationships = true) {
+  private populateFromCards(cards: CachedCard[]) {
     const duplicates: string[] = [];
     const batchKeys = new Set<string>();
     for (const card of cards) {
@@ -220,12 +284,9 @@ export class CardCache {
     }
 
     for (const card of cards) {
-      this.cardCache.set(card.key, card);
+      this.store(card.key, card);
     }
 
-    if (buildRelationships) {
-      this.populateChildrenRelationships();
-    }
     this.cachePopulated = true;
     CardCache.logger.info(`Card cache populated`);
   }
@@ -275,7 +336,7 @@ export class CardCache {
     }
 
     card.attachments.push(attachment);
-    this.cardCache.set(cardKey, card);
+    this.store(cardKey, card);
     return true;
   }
 
@@ -286,6 +347,9 @@ export class CardCache {
     CardCache.logger.info(`Card cache cleared`);
     this.cachePopulated = false;
     this.cardCache.clear();
+    this.childrenIndex.clear();
+    this.insertionOrder.clear();
+    this.nextInsertion = 0;
   }
 
   /**
@@ -294,11 +358,7 @@ export class CardCache {
    * @returns true, if card was removed from the cache; false otherwise
    */
   public deleteCard(cardKey: string) {
-    const cardExists = this.cardCache.has(cardKey);
-    if (cardExists) {
-      this.cardCache.delete(cardKey);
-    }
-    return cardExists;
+    return this.unstore(cardKey);
   }
 
   /**
@@ -421,24 +481,21 @@ export class CardCache {
   }
 
   /**
-   * Re-builds the existing cache's parent-child relationships info.
+   * Returns the child card keys of a given card.
+   * @param cardKey Card key whose children to return.
+   * @returns child card keys, in cache insertion order.
    */
-  public populateChildrenRelationships() {
-    CardCache.logger.info(`Card children relationships re-built`);
-    for (const card of this.getCards()) {
-      card.children = [];
-    }
-    this.buildChildrenRelationshipsRecursively();
+  public childrenOf(cardKey: string): string[] {
+    return this.childrenIndex.get(cardKey) ?? [];
   }
 
   /**
    * Populates the cache from a given path
    * @param path File system path where the cache should be built from.
-   * @param buildRelationships Whether to build parent-child relationships immediately
    */
-  public async populateFromPath(path: string, buildRelationships = true) {
+  public async populateFromPath(path: string) {
     const cards = await this.fetchFileEntries(path);
-    this.populateFromCards(cards, buildRelationships);
+    this.populateFromCards(cards);
   }
 
   /**
@@ -455,7 +512,7 @@ export class CardCache {
         metadata: CardCache.normalizedMetadata(cardData.metadata),
         location: targetLocation,
       };
-      this.cardCache.set(cardKey, extendedCard);
+      this.store(cardKey, extendedCard);
       return;
     }
     if (!card?.path) {
@@ -479,7 +536,7 @@ export class CardCache {
       content: cardData.content ?? card.content,
       attachments: cardData.attachments ?? card.attachments,
     };
-    this.cardCache.set(cardKey, extendedCard);
+    this.store(cardKey, extendedCard);
   }
 
   /**
@@ -495,7 +552,7 @@ export class CardCache {
       return false;
     }
     card.attachments = attachments;
-    this.cardCache.set(cardKey, card);
+    this.store(cardKey, card);
     return true;
   }
 
@@ -512,7 +569,7 @@ export class CardCache {
       return false;
     }
     card.content = content;
-    this.cardCache.set(cardKey, card);
+    this.store(cardKey, card);
     return true;
   }
 
@@ -529,7 +586,7 @@ export class CardCache {
       return false;
     }
     card.metadata = CardCache.normalizedMetadata(metadata);
-    this.cardCache.set(cardKey, card);
+    this.store(cardKey, card);
     return true;
   }
 }
