@@ -501,6 +501,28 @@ describe('project', () => {
     }
     expect(templateCards).toHaveLength(0);
   });
+  it('a scoped reload drops the tree of a template that is gone', async () => {
+    const decisionRecordsPath = join(testDir, 'valid/decision-records');
+    const project = getTestProject(decisionRecordsPath);
+    await project.populateCaches();
+
+    const removed = 'decision/templates/decision';
+    const removedKeys = project.templateTree(removed).keys();
+    expect(removedKeys.length).toBeGreaterThan(0);
+
+    // The template is gone, but the reload names another template - which is
+    // what a module update that dropped this one asks for.
+    project.resources.remove(removed);
+    await project.refreshAfterModuleChange(['decision']);
+
+    for (const cardKey of removedKeys) {
+      expect(project.cardKeyRegistry.ownerOf(cardKey)).toBeUndefined();
+      expect(project.hasCard(cardKey)).toBe(false);
+    }
+    expect(project.allTemplateCards().map((card) => card.key)).not.toContain(
+      removedKeys[0],
+    );
+  });
   it('list project cards (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const project = getTestProject(decisionRecordsPath);
