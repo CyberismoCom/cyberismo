@@ -89,6 +89,13 @@ function truncateMessage(
   return [...array.slice(0, limit - 1), '...'];
 }
 
+// Notifies on stderr that a deprecated command spelling was used.
+function deprecationNote(oldName: string, newName: string) {
+  console.error(
+    `Warning: 'cyberismo ${oldName}' is deprecated. Use 'cyberismo ${newName}' instead.`,
+  );
+}
+
 // Sets up credentials for git operations.
 function credentials(): Credentials | undefined {
   return {
@@ -200,9 +207,6 @@ const additionalHelpForRemove = `Sub-command help:
       <source> Source card key or external item (connector:itemKey)
       <destination> Destination card key or external item (connector:itemKey)
       <linkType> Link type to remove
-
-  remove module <name>, where
-      <name> Name of the module to remove
 
   remove hub <location>, where
       <location> URL of hub to remove. Use 'default' if removing default hub.
@@ -962,97 +966,106 @@ const importCmd = new CommandWithPath('import').description(
 );
 program.addCommand(importCmd);
 
+async function moduleInstallAction(
+  source: string,
+  useCredentials: boolean,
+  options: CommandOptions<'import'>,
+) {
+  const { source: parsedSource, version } = source
+    ? parseSourceAtVersion(source)
+    : { source: undefined, version: undefined };
+
+  let resolvedSource = parsedSource;
+  let resolvedUseCredentials = useCredentials;
+
+  if (!parsedSource) {
+    // Interactive mode: show importable modules
+    try {
+      const choices = await importableModules(options);
+      const selectedModule = await select({
+        message: 'Select a module to import:',
+        choices,
+      });
+
+      resolvedSource = selectedModule.location;
+      resolvedUseCredentials =
+        useCredentials ?? selectedModule.private ?? false;
+    } catch (error) {
+      console.error(
+        'Error in module selection:',
+        error instanceof Error ? error.message : String(error),
+      );
+      process.exit(1);
+    }
+  } else {
+    try {
+      const projectPath = await commandHandler.getProjectPath(
+        options.projectPath,
+      );
+      const moduleListPath = resolve(projectPath, '.temp/moduleList.json');
+      let moduleListContent = '{ "modules": [] }';
+      try {
+        moduleListContent = await readFile(moduleListPath, 'utf-8');
+      } catch {
+        // if file is missing, either project that was created before hub support, or
+        // creation of project done with 'skipModuleImport' flag.
+        // TODO: The item should be logged once we have log that is shareable between applications.
+      }
+      const moduleList = JSON.parse(moduleListContent);
+      const modules = moduleList.modules || [];
+      const foundModule = modules?.find(
+        (m: ModuleSettingFromHub) => m.name === parsedSource,
+      );
+
+      if (foundModule) {
+        resolvedSource = foundModule.location;
+        resolvedUseCredentials = useCredentials ?? foundModule.private ?? false;
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        // TODO: The item should be logged.
+        console.error(error.message);
+      }
+    }
+  }
+
+  const result = await commandHandler.command(
+    Cmd.import,
+    [
+      'module',
+      resolvedSource!,
+      String(resolvedUseCredentials),
+      ...(version ? [version] : []),
+    ],
+    Object.assign({}, options, program.opts()),
+    credentials(),
+  );
+  handleResponse(result);
+}
+
+const moduleSourceArg = new Argument(
+  '[source]',
+  'Path, git URL, or module name. Append "@<version>" to pin a semver version or range (e.g. "my-module@^1.0.0"). If omitted, shows interactive selection.',
+);
+const moduleUseCredentialsArg = new Argument(
+  '[useCredentials]',
+  'When using git URL uses credentials for cloning. Default: false',
+);
+
 // Import module
 importCmd
-  .command('module')
-  .description(
-    'Imports another project to this project as a module. Source can be local relative file path, git HTTPS URL, or module name from fetched module list.',
-  )
-  .argument(
-    '[source]',
-    'Path, git URL, or module name. Append "@<version>" to pin a semver version or range (e.g. "my-module@^1.0.0"). If omitted, shows interactive selection.',
-  )
-  .argument(
-    '[useCredentials]',
-    'When using git URL uses credentials for cloning. Default: false',
-  )
+  .command('module', { hidden: true })
+  .description('Deprecated. Use "cyberismo module install" instead.')
+  .addArgument(moduleSourceArg)
+  .addArgument(moduleUseCredentialsArg)
   .action(
     async (
       source: string,
       useCredentials: boolean,
       options: CommandOptions<'import'>,
     ) => {
-      const { source: parsedSource, version } = source
-        ? parseSourceAtVersion(source)
-        : { source: undefined, version: undefined };
-
-      let resolvedSource = parsedSource;
-      let resolvedUseCredentials = useCredentials;
-
-      if (!parsedSource) {
-        // Interactive mode: show importable modules
-        try {
-          const choices = await importableModules(options);
-          const selectedModule = await select({
-            message: 'Select a module to import:',
-            choices,
-          });
-
-          resolvedSource = selectedModule.location;
-          resolvedUseCredentials =
-            useCredentials ?? selectedModule.private ?? false;
-        } catch (error) {
-          console.error(
-            'Error in module selection:',
-            error instanceof Error ? error.message : String(error),
-          );
-          process.exit(1);
-        }
-      } else {
-        try {
-          const projectPath = await commandHandler.getProjectPath(
-            options.projectPath,
-          );
-          const moduleListPath = resolve(projectPath, '.temp/moduleList.json');
-          let moduleListContent = '{ "modules": [] }';
-          try {
-            moduleListContent = await readFile(moduleListPath, 'utf-8');
-          } catch {
-            // if file is missing, either project that was created before hub support, or
-            // creation of project done with 'skipModuleImport' flag.
-            // TODO: The item should be logged once we have log that is shareable between applications.
-          }
-          const moduleList = JSON.parse(moduleListContent);
-          const modules = moduleList.modules || [];
-          const foundModule = modules?.find(
-            (m: ModuleSettingFromHub) => m.name === parsedSource,
-          );
-
-          if (foundModule) {
-            resolvedSource = foundModule.location;
-            resolvedUseCredentials =
-              useCredentials ?? foundModule.private ?? false;
-          }
-        } catch (error) {
-          if (error instanceof Error) {
-            // TODO: The item should be logged.
-            console.error(error.message);
-          }
-        }
-      }
-
-      const result = await commandHandler.command(
-        Cmd.import,
-        [
-          'module',
-          resolvedSource!,
-          String(resolvedUseCredentials),
-          ...(version ? [version] : []),
-        ],
-        Object.assign({}, options, program.opts()),
-        credentials(),
-      );
-      handleResponse(result);
+      deprecationNote('import module', 'module install');
+      await moduleInstallAction(source, useCredentials, options);
     },
   );
 
@@ -1092,6 +1105,62 @@ program
       Object.assign({}, options, program.opts()),
     );
     handleResponse(result);
+  });
+
+// Module command
+const moduleCmd = new CommandWithPath('module').description(
+  'Manage the modules of the project',
+);
+program.addCommand(moduleCmd);
+
+moduleCmd
+  .command('install')
+  .description(
+    'Installs another project to this project as a module. Source can be local relative file path, git HTTPS URL, or module name from fetched module list.',
+  )
+  .addArgument(moduleSourceArg)
+  .addArgument(moduleUseCredentialsArg)
+  .action(moduleInstallAction);
+
+async function moduleUpdateAction(
+  moduleName: string | undefined,
+  version: string | undefined,
+  options: CommandOptions<'updateModules'>,
+) {
+  const result = await commandHandler.command(
+    Cmd.updateModules,
+    [moduleName!, version!],
+    Object.assign({}, options, program.opts()),
+    credentials(),
+  );
+  handleResponse(result);
+}
+
+moduleCmd
+  .command('update')
+  .description(
+    'Updates to latest versions either all modules or a specific module',
+  )
+  .argument('[moduleName]', 'Module name')
+  .argument(
+    '[version]',
+    'Target version to update to (only with a specific module)',
+  )
+  .action(moduleUpdateAction);
+
+moduleCmd
+  .command('remove')
+  .description('Removes an imported module from the project')
+  .argument('<module>', 'Name of the module to remove')
+  .action(async (module: string, options: CommandOptions<'remove'>) => {
+    await removeAction('module', module, undefined, undefined, options);
+  });
+
+moduleCmd
+  .command('list')
+  .description('Lists the modules imported to the project')
+  .action(async (options: CommandOptions<'show'>) => {
+    await showAction('modules', undefined, options);
   });
 
 // Move command
@@ -1179,6 +1248,53 @@ rank
     handleResponse(result);
   });
 
+async function removeAction(
+  type: string,
+  parameter1: string | undefined,
+  parameter2: string | undefined,
+  parameter3: string | undefined,
+  options: CommandOptions<'remove'>,
+) {
+  if (type) {
+    if (!parameter1) {
+      if (type === 'attachment' || type === 'card' || type === 'label') {
+        program.error('error: missing argument <cardKey>');
+      } else if (type === 'link') {
+        program.error('error: missing argument <source>');
+      } else if (type === 'module') {
+        program.error('error: missing argument <moduleName>');
+      } else {
+        if (Parser.listTargets('remove').includes(type)) {
+          program.error('error: missing argument <resourceName>');
+        }
+      }
+    }
+    if (!parameter2 && type === 'attachment') {
+      program.error('error: missing argument <filename>');
+    }
+    if (!parameter2 && type === 'link') {
+      program.error('error: missing argument <destination>');
+    }
+    if (!parameter3 && type === 'link') {
+      program.error('error: missing argument <linkType>');
+    }
+
+    if (!parameter1 && type === 'hub') {
+      program.error('error: missing argument <location>');
+    }
+    if (type === 'hub' && parameter1 === 'default') {
+      parameter1 = DEFAULT_HUB;
+    }
+
+    const result = await commandHandler.command(
+      Cmd.remove,
+      [type, parameter1!, parameter2!, parameter3!],
+      Object.assign({}, options, program.opts()),
+    );
+    handleResponse(result);
+  }
+}
+
 // Remove command
 const removeCmd = new CommandWithPath('remove').description(
   'Remove cards, resources and other project items',
@@ -1187,7 +1303,9 @@ program.addCommand(removeCmd);
 removeCmd
   .argument(
     '<type>',
-    `removable types: '${Parser.listTargets('remove').join("', '")}', or resource name (e.g. <prefix>/<type>/<identifier>)`,
+    `removable types: '${Parser.listTargets('remove')
+      .filter((type) => type !== 'module')
+      .join("', '")}', or resource name (e.g. <prefix>/<type>/<identifier>)`,
     Parser.parseRemoveTypes,
   )
   .argument(
@@ -1211,44 +1329,10 @@ removeCmd
       parameter3: string,
       options: CommandOptions<'remove'>,
     ) => {
-      if (type) {
-        if (!parameter1) {
-          if (type === 'attachment' || type === 'card' || type === 'label') {
-            program.error('error: missing argument <cardKey>');
-          } else if (type === 'link') {
-            program.error('error: missing argument <source>');
-          } else if (type === 'module') {
-            program.error('error: missing argument <moduleName>');
-          } else {
-            if (Parser.listTargets('remove').includes(type)) {
-              program.error('error: missing argument <resourceName>');
-            }
-          }
-        }
-        if (!parameter2 && type === 'attachment') {
-          program.error('error: missing argument <filename>');
-        }
-        if (!parameter2 && type === 'link') {
-          program.error('error: missing argument <destination>');
-        }
-        if (!parameter3 && type === 'link') {
-          program.error('error: missing argument <linkType>');
-        }
-
-        if (!parameter1 && type === 'hub') {
-          program.error('error: missing argument <location>');
-        }
-        if (type === 'hub' && parameter1 === 'default') {
-          parameter1 = DEFAULT_HUB;
-        }
-
-        const result = await commandHandler.command(
-          Cmd.remove,
-          [type, parameter1, parameter2, parameter3],
-          Object.assign({}, options, program.opts()),
-        );
-        handleResponse(result);
+      if (type === 'module') {
+        deprecationNote('remove module', 'module remove');
       }
+      await removeAction(type, parameter1, parameter2, parameter3, options);
     },
   );
 
@@ -1296,6 +1380,31 @@ reportCmd.action(
   },
 );
 
+async function showAction(
+  type: string,
+  typeDetail: string | undefined,
+  options: CommandOptions<'show'>,
+) {
+  if (type !== '') {
+    const result = await commandHandler.command(
+      Cmd.show,
+      [type, typeDetail!],
+      Object.assign({}, options, program.opts()),
+    );
+    // By default, do not show resources' content files
+    if (!options.details) {
+      if (
+        typeof result.payload === 'object' &&
+        result.payload !== null &&
+        'content' in result.payload
+      ) {
+        delete (result.payload as { content?: unknown }).content;
+      }
+    }
+    handleResponse(result);
+  }
+}
+
 // Show command
 const showCmd = new CommandWithPath('show').description(
   'Shows details from a project',
@@ -1304,7 +1413,9 @@ program.addCommand(showCmd);
 showCmd
   .argument(
     '<type>',
-    `details can be seen from: ${Parser.listTargets('show').join(', ')}`,
+    `details can be seen from: ${Parser.listTargets('show')
+      .filter((type) => type !== 'modules')
+      .join(', ')}`,
     Parser.parseShowTypes,
   )
   .argument(
@@ -1324,24 +1435,10 @@ showCmd
     'Show where resource is used. Only used with resources, otherwise will be ignored.',
   )
   .action(async (type: string, typeDetail, options: CommandOptions<'show'>) => {
-    if (type !== '') {
-      const result = await commandHandler.command(
-        Cmd.show,
-        [type, typeDetail],
-        Object.assign({}, options, program.opts()),
-      );
-      // By default, do not show resources' content files
-      if (!options.details) {
-        if (
-          typeof result.payload === 'object' &&
-          result.payload !== null &&
-          'content' in result.payload
-        ) {
-          delete (result.payload as { content?: unknown }).content;
-        }
-      }
-      handleResponse(result);
+    if (type === 'modules') {
+      deprecationNote('show modules', 'module list');
     }
+    await showAction(type, typeDetail, options);
   });
 
 // Transition command
@@ -1410,24 +1507,17 @@ updateCmd
 
 // Updates all modules, or specific named module in the project.
 const updateModulesCmd = new CommandWithPath('update-modules')
-  .description(
-    'Updates to latest versions either all modules or a specific module',
-  )
+  .description('Deprecated. Use "cyberismo module update" instead.')
   .argument('[moduleName]', 'Module name')
   .argument(
     '[version]',
     'Target version to update to (only with a specific module)',
   );
-program.addCommand(updateModulesCmd);
+program.addCommand(updateModulesCmd, { hidden: true });
 updateModulesCmd.action(
   async (moduleName, version, options: CommandOptions<'updateModules'>) => {
-    const result = await commandHandler.command(
-      Cmd.updateModules,
-      [moduleName, version],
-      Object.assign({}, options, program.opts()),
-      credentials(),
-    );
-    handleResponse(result);
+    deprecationNote('update-modules', 'module update');
+    await moduleUpdateAction(moduleName, version, options);
   },
 );
 
