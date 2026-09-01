@@ -18,7 +18,7 @@ import { writeFile } from 'node:fs/promises';
 
 import { CardCache } from './project/card-cache.js';
 import { CardNotFoundError } from '../exceptions/index.js';
-import { cardPathParts } from '../utils/card-utils.js';
+import { cardPathParts, compareAttachments } from '../utils/card-utils.js';
 import { deleteDir } from '../utils/file-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { writeJsonFile } from '../utils/json.js';
@@ -122,7 +122,7 @@ export class CardContainer {
   /**
    * Lists all attachments from the container.
    * @param path Path where attachments should be collected.
-   * @returns attachments from the container.
+   * @returns attachments from the container, sorted by card key and file name.
    */
   protected attachments(path: string): CardAttachment[] {
     const attachments: CardAttachment[] = [];
@@ -132,7 +132,7 @@ export class CardContainer {
       .cardsAtLocation(targetLocation)
       .filter((card) => card.attachments.length > 0)
       .forEach((item) => attachments.push(...item.attachments));
-    return attachments;
+    return attachments.sort(compareAttachments);
   }
 
   /**

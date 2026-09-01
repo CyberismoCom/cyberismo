@@ -85,7 +85,8 @@ describe('move command', () => {
     const cards = await new Show(project).showProjectCards();
 
     // Use the card created in beforeEach
-    const sourceId = cards[cards.length - 1].key;
+    const sourceId = createdCardKey;
+    expect(cards.map((card) => card.key)).toContain(sourceId);
     const destination = 'root';
     const result = await commandHandler.command(
       Cmd.move,
@@ -98,10 +99,12 @@ describe('move command', () => {
     const project = getTestProject(options.projectPath!);
     await project.populateCaches();
     const cards = await new Show(project).showProjectCards();
-    expect(cards).toHaveLength(2);
+    expect(cards.map((card) => card.key).sort()).toEqual(
+      [createdCardKey, 'decision_5'].sort(),
+    );
 
-    const sourceId = cards[cards.length - 1].key;
-    const destination = cards[cards.length - 2].key;
+    const sourceId = createdCardKey;
+    const destination = 'decision_5';
     const result = await commandHandler.command(
       Cmd.move,
       [sourceId, destination],

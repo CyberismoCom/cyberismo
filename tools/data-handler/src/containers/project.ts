@@ -45,6 +45,7 @@ import {
   cardPathParts,
   isModulePath,
   isTemplateCard,
+  sortCards,
 } from '../utils/card-utils.js';
 import { ActionGuard } from '../permissions/action-guard.js';
 import { applySideEffects, type SideEffects } from '../side-effects.js';
@@ -733,7 +734,7 @@ export class Project extends CardContainer {
    * Returns an array of cards in the project, in the templates or both.
    * Cards don't have content and nor metadata.
    * @param cardsFrom Where to return cards from (project, templates, or both)
-   * @returns all cards in the project per container.
+   * @returns all cards in the project per container, each container's keys sorted.
    */
   public async listCards(
     cardsFrom: CardLocation = CardLocation.all,
@@ -745,7 +746,8 @@ export class Project extends CardContainer {
     ) {
       const projectCards = super
         .cards(this.paths.cardRootFolder)
-        .map((item) => item.key);
+        .map((item) => item.key)
+        .sort(sortCards);
       cardListContainer.push({
         name: this.projectName,
         type: 'project',
@@ -767,7 +769,7 @@ export class Project extends CardContainer {
             cardListContainer.push({
               name: template.data?.name || '',
               type: 'template',
-              cards: templateCards.map((item) => item.key),
+              cards: templateCards.map((item) => item.key).sort(sortCards),
             });
           }
         }
