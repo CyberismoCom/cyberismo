@@ -56,7 +56,7 @@ export function rewriteAsciidocCardXrefs(
       let card;
 
       try {
-        card = project.findCard(cardKey);
+        card = project.cardNode(cardKey);
       } catch {
         card = undefined;
       }

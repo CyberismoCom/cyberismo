@@ -27,6 +27,7 @@ import type {
   CardAttachment,
   Card,
   CardMetadata,
+  CardNode,
 } from '../interfaces/project-interfaces.js';
 
 import { isPredefinedField, ROOT } from '../utils/constants.js';
@@ -55,15 +56,21 @@ export class CardContainer {
     this.cardCache = new CardCache(this.prefix);
   }
 
-  private static cardView(card: Card): Card {
+  private static nodeView(card: Card): CardNode {
     return {
       key: card.key,
       path: card.path,
       children: card.children,
-      attachments: card.attachments,
-      content: card.content,
       metadata: structuredClone(card.metadata),
       parent: card.parent,
+    };
+  }
+
+  private static cardView(card: Card): Card {
+    return {
+      ...CardContainer.nodeView(card),
+      content: card.content,
+      attachments: card.attachments,
     };
   }
 
@@ -103,32 +110,83 @@ export class CardContainer {
   }
 
   /**
-   * Shows all cards from the container.
+   * Shows all cards from the container, fully hydrated.
    * @param path Path where cards should be listed.
    * @returns all cards from the container
    */
   protected cards(path: string): Card[] {
-    if (!this.cardCache.isPopulated) {
-      throw new Error('Cards cache is not populated!');
-    }
-
-    const targetLocation = this.determineContainer(path);
-    return this.cardCache
-      .cardsAtLocation(targetLocation)
-      .map(CardContainer.cardView);
+    return this.cachedCards(path).map(CardContainer.cardView);
   }
 
   /**
-   * Finds a specific card.
+   * Metadata-level view of every card in the container.
+   * @param path Path where cards should be listed.
+   * @returns nodes of all cards from the container
+   */
+  protected cardNodes(path: string): CardNode[] {
+    return this.cachedCards(path).map(CardContainer.nodeView);
+  }
+
+  /**
+   * Card keys of every card in the container.
+   * @param path Path where cards should be listed.
+   * @returns keys of all cards from the container
+   */
+  protected cardKeys(path: string): string[] {
+    return this.cachedCards(path).map((card) => card.key);
+  }
+
+  /**
+   * Metadata-level view of one card.
+   * @param cardKey Card key to read
+   * @throws if card does not exist in the container
+   */
+  protected cardNode(cardKey: string): CardNode {
+    return CardContainer.nodeView(this.cachedCard(cardKey));
+  }
+
+  /**
+   * Content of one card.
+   * @param cardKey Card key to read
+   * @returns the card's content, or undefined if it has none
+   * @throws if card does not exist in the container
+   */
+  protected cardContent(cardKey: string): string | undefined {
+    return this.cachedCard(cardKey).content;
+  }
+
+  /**
+   * Attachment listing of one card.
+   * @param cardKey Card key to read
+   * @throws if card does not exist in the container
+   */
+  protected cardAttachments(cardKey: string): CardAttachment[] {
+    return this.cachedCard(cardKey).attachments;
+  }
+
+  /**
+   * Finds a specific card, fully hydrated.
    * @param cardKey Card key to find
    * @throws if card does not exist in the container
    */
   protected findCard(cardKey: string): Card {
-    const cachedCard = this.cardCache.getCard(cardKey);
-    if (cachedCard) {
-      return CardContainer.cardView(cachedCard);
+    return CardContainer.cardView(this.cachedCard(cardKey));
+  }
+
+  private cachedCards(path: string): Card[] {
+    if (!this.cardCache.isPopulated) {
+      throw new Error('Cards cache is not populated!');
     }
-    throw new CardNotFoundError(cardKey);
+
+    return this.cardCache.cardsAtLocation(this.determineContainer(path));
+  }
+
+  private cachedCard(cardKey: string): Card {
+    const cachedCard = this.cardCache.getCard(cardKey);
+    if (!cachedCard) {
+      throw new CardNotFoundError(cardKey);
+    }
+    return cachedCard;
   }
 
   /**

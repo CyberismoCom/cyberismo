@@ -134,10 +134,9 @@ export class Show {
 
   // Returns attachment details
   private getAttachment(cardKey: string, filename: string) {
-    const card = this.project.findCard(cardKey);
-    const attachment =
-      card.attachments?.find((a) => a.fileName === filename) ?? undefined;
-    return attachment;
+    return this.project
+      .cardAttachments(cardKey)
+      .find((a) => a.fileName === filename);
   }
 
   // Opens the given path using the operating system's default application. Doesn't block the main thread.
