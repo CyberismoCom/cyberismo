@@ -122,32 +122,17 @@ export class Create {
       throw new Error(`Cannot add cards to imported module templates`);
     }
 
-    // Collect all add-card promises and settle them in parallel.
-    const promiseContainer = [];
-    const cardsContainer: string[] = [];
-    for (let cardCount = 0; cardCount < count; ++cardCount) {
-      promiseContainer.push(templateObject.addCard(cardTypeName, specificCard));
-    }
-    const promisesResult = await Promise.allSettled(promiseContainer).then(
-      (results) => {
-        for (const result of results) {
-          if (result.status !== 'fulfilled') {
-            throw new Error(result.reason);
-          }
-          cardsContainer.push(result.value);
-        }
-      },
+    const cardsContainer = await templateObject.addCards(
+      cardTypeName,
+      count,
+      specificCard,
     );
 
     if (cardsContainer.length === 0) {
       throw new Error(`Invalid value for 'repeat:' "${count}"`);
     }
 
-    if (promisesResult === undefined) {
-      return cardsContainer;
-    } else {
-      throw new Error('Unknown error');
-    }
+    return cardsContainer;
   }
 
   /**

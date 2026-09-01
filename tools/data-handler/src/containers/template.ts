@@ -351,11 +351,22 @@ export class Template extends CardContainer {
     cardTypeName: string,
     parentCard?: Card,
   ): Promise<string> {
-    const destinationCardPath = parentCard
-      ? join(this.cardFolder(parentCard.key), 'c')
-      : this.templateCardsPath;
-    let newCardKey: string;
+    const [newCardKey] = await this.addCards(cardTypeName, 1, parentCard);
+    return newCardKey;
+  }
 
+  /**
+   * Adds new cards to the template.
+   * @param cardTypeName card type for the new cards
+   * @param count how many cards to add
+   * @param parentCard parent card; optional - if missing will create top-level cards
+   * @returns card key IDs of the added cards, in rank order
+   */
+  public async addCards(
+    cardTypeName: string,
+    count: number,
+    parentCard?: Card,
+  ): Promise<string[]> {
     try {
       // todo: to use cache instead of file access
       if (!pathExists(this.templateFolder())) {
@@ -371,34 +382,42 @@ export class Template extends CardContainer {
         );
       }
 
-      const cardIds = await this.project.listCardIds();
-      newCardKey = this.project.newCardKey(cardIds);
-      const templateCardToCreate = parentCard
-        ? join(destinationCardPath, newCardKey)
-        : join(this.templateCardsPath, newCardKey);
+      const destinationCardPath = parentCard
+        ? join(this.cardFolder(parentCard.key), 'c')
+        : this.templateCardsPath;
 
-      const templateCards = parentCard
+      const cardIds = await this.project.listCardIds();
+      const newCardKeys = this.project.newCardKeys(count, cardIds);
+
+      const siblings = parentCard
         ? this.project.cardKeysToCards(parentCard.children)
         : this.cards();
-      const defaultContent = DefaultContent.card(cardType, templateCards);
 
-      await mkdir(templateCardToCreate, { recursive: true });
-      const defaultCard: Card = {
-        key: basename(templateCardToCreate),
-        path: templateCardToCreate,
-        metadata: defaultContent,
-        children: [],
-        attachments: [],
-        content: '',
-        parent: parentCard ? parentCard.key : ROOT,
-      };
-      await this.saveCard(defaultCard);
-      await this.project.handleNewCards([defaultCard]);
+      const newCards: Card[] = [];
+      for (const newCardKey of newCardKeys) {
+        newCards.push({
+          key: newCardKey,
+          path: join(destinationCardPath, newCardKey),
+          metadata: DefaultContent.card(cardType, [...siblings, ...newCards]),
+          children: [],
+          attachments: [],
+          content: '',
+          parent: parentCard ? parentCard.key : ROOT,
+        });
+      }
+
+      await Promise.all(
+        newCards.map(async (card) => {
+          await mkdir(card.path, { recursive: true });
+          await this.saveCard(card);
+        }),
+      );
+      await this.project.handleNewCards(newCards);
+      return newCardKeys;
     } catch (error) {
       this.logger.error({ error });
       throw error;
     }
-    return newCardKey;
   }
 
   /**
