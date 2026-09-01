@@ -576,23 +576,11 @@ describe('Card cache', () => {
       rmSync(invalidCardPath, { recursive: true, force: true });
     });
 
-    it('should rebuild parent-child relationships', () => {
+    it('should populate parent-child relationships', () => {
       const parentCard = cache.getCard('test_1');
       expect(parentCard).toBeDefined();
-      expect(parentCard!.children).toBeInstanceOf(Array);
-      const originalChildrenCount = parentCard!.children.length;
-
-      if (parentCard) {
-        parentCard.children = [];
-      }
-      expect(parentCard!.children.length).toBe(0);
-
-      cache.populateChildrenRelationships();
-
-      const updatedParentCard = cache.getCard('test_1');
-      expect(updatedParentCard!.children.length).toBe(originalChildrenCount);
-      expect(updatedParentCard!.children).toContain('test_2');
-      expect(updatedParentCard!.children).toContain('test_3');
+      expect(parentCard!.children).toEqual(['test_2', 'test_3']);
+      expect(cache.childrenOf('test_1')).toEqual(parentCard!.children);
     });
 
     it('should return correct population status', async () => {
@@ -775,9 +763,9 @@ describe('Card cache', () => {
       await cache.populateFromPath(dupCardsPath);
       expect(cache.getCard('test_1')!.content).toBe('project card');
 
-      await expect(
-        cache.populateFromPath(dupTemplatePath, false),
-      ).rejects.toThrow(DuplicateCardKeyError);
+      await expect(cache.populateFromPath(dupTemplatePath)).rejects.toThrow(
+        DuplicateCardKeyError,
+      );
 
       expect(cache.getCard('test_1')!.content).toBe('project card');
     });
