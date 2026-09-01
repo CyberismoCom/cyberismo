@@ -4,13 +4,10 @@ import { sep } from 'node:path';
 
 import {
   buildCardHierarchy,
-  cardPathParts,
-  findParentPath,
   isExternalItemKey,
   isModuleCard,
   isTemplateCard,
   moduleNameFromCardKey,
-  parentCard,
   sortCards,
 } from '../../src/utils/card-utils.js';
 import type { Card } from '../../src/interfaces/project-interfaces.js';
@@ -73,63 +70,6 @@ describe('card utils', () => {
     expect(grandchild.childrenCards).toHaveLength(0);
   });
 
-  describe('cardPathParts', () => {
-    it('retrieves path parts for module cards', () => {
-      const actual = cardPathParts('mod', moduleCard.path);
-      expect(actual.cardKey).toBe(moduleCard.key);
-      expect(actual.parents).toHaveLength(0);
-      expect(actual.prefix).toBe('mod');
-      expect(actual.template).toBe('mod/templates/templateName');
-    });
-
-    it('retrieves path parts for template cards', () => {
-      const actual = cardPathParts('test', templateCard.path);
-      expect(actual.cardKey).toBe(templateCard.key);
-      expect(actual.parents).toHaveLength(0);
-      expect(actual.prefix).toBe('test');
-      expect(actual.template).toBe('test/templates/templateName');
-    });
-
-    it('retrieves path parts for project cards', () => {
-      const actual = cardPathParts('test', projectCard.path);
-      expect(actual.cardKey).toBe(projectCard.key);
-      expect(actual.parents).toHaveLength(0);
-      expect(actual.prefix).toBe('test');
-      expect(actual.template).toBe('');
-    });
-
-    it('retrieves path parts for project child cards', () => {
-      const actual = cardPathParts('test', projectChildCard.path);
-      expect(actual.cardKey).toBe(projectChildCard.key);
-      expect(actual.parents).toHaveLength(1);
-      expect(actual.parents).toContain('test_1');
-      expect(actual.prefix).toBe('test');
-      expect(actual.template).toBe('');
-    });
-
-    it('retrieves path parts for project grandchild cards', () => {
-      const actual = cardPathParts('test', projectGrandChildCard.path);
-      expect(actual.cardKey).toBe(projectGrandChildCard.key);
-      expect(actual.parents).toHaveLength(2);
-      expect(actual.parents).toContain('test_1');
-      expect(actual.parents).toContain('test_2');
-      expect(actual.prefix).toBe('test');
-      expect(actual.template).toBe('');
-    });
-  });
-
-  describe('findParentPath', () => {
-    it('finds parent path for child card', () => {
-      const parentPath = findParentPath(projectChildCard.path);
-      expect(parentPath).toBe(projectCard.path);
-    });
-
-    it('returns null if no parent path is found', () => {
-      const parentPath = findParentPath(projectCard.path);
-      expect(parentPath).toBeNull();
-    });
-  });
-
   it.each([
     [projectCard, false],
     [projectChildCard, false],
@@ -159,15 +99,6 @@ describe('card utils', () => {
       expect(moduleNameFromCardKey(card.key)).toBe(expected);
     },
   );
-
-  it.each([
-    [projectCard, 'root'],
-    [projectChildCard, 'test_1'],
-    [templateCard, 'root'],
-    [moduleCard, 'root'],
-  ])('parentCard extracts parent card key correctly', (card, expected) => {
-    expect(parentCard(card.path)).toBe(expected);
-  });
 
   describe('sortCards', () => {
     it('sorts cards by key parts', () => {

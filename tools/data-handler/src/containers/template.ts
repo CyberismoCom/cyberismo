@@ -12,18 +12,14 @@
 */
 
 // node
-import { basename, join, resolve, sep } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { type Dirent, readdirSync } from 'node:fs';
 import { copyFile, mkdir, rm } from 'node:fs/promises';
 
 // Base class
 import { CardContainer } from './card-container.js';
 
-import {
-  type Card,
-  type CardAttachment,
-  CardNameRegEx,
-} from '../interfaces/project-interfaces.js';
+import type { Card, CardAttachment } from '../interfaces/project-interfaces.js';
 import { pathExists, stripExtension } from '../utils/file-utils.js';
 import { DefaultContent } from '../resources/create-defaults.js';
 
@@ -34,7 +30,6 @@ import {
   sortItems,
 } from '../utils/lexorank.js';
 import { getChildLogger } from '../utils/log-utils.js';
-import { isModulePath } from '../utils/card-utils.js';
 import type { Project } from './project.js';
 import { isInitialTransition, resourceName } from '../utils/resource-utils.js';
 
@@ -116,55 +111,60 @@ export class Template extends CardContainer {
     return ranks;
   }
 
-  private updateCardPaths(
+  // Rewrites an instantiated card's identity and tree position: its own key,
+  // its children's keys, and its parent — either the card the template is
+  // instantiated under, or the instantiated copy of its template parent.
+  private remapCardPosition(
     card: Card,
     templateIDMap: Map<string, string>,
-    templatesFolder: string,
     parentCard?: Card,
   ): void {
-    const updatePathPart = (part: string) => {
-      const templatePart = templateIDMap.get(part);
-      return (
-        sep + (CardNameRegEx.test(part) && templatePart ? templatePart : part)
-      );
-    };
-    card.path = card.path.split(sep).map(updatePathPart).join('').substring(1);
-
-    if (card.path.includes(`${sep}c${sep}`) && !parentCard) {
-      card.path = card.path.replace(
-        `${templatesFolder}${sep}c`,
-        this.project.paths.cardRootFolder,
-      );
-    } else {
-      card.path = card.path.replace(
-        templatesFolder,
-        parentCard ? parentCard.path : this.project.paths.cardRootFolder,
-      );
-    }
+    // The original template parent, before the key remapping below.
+    const originalParentKey = card.parent;
 
     card.key = templateIDMap.get(card.key) || card.key;
-
     card.children = card.children.map(
       (childKey) => templateIDMap.get(childKey) || childKey,
     );
 
-    // Set parent field based on template hierarchy and creation location
-    // Store the original template parent before key remapping
-    const originalParentKey = card.parent;
-
+    const isTemplateRootCard = !originalParentKey || originalParentKey === ROOT;
     if (parentCard) {
-      if (!originalParentKey || originalParentKey === ROOT) {
-        card.parent = parentCard.key;
-        return;
+      card.parent = isTemplateRootCard
+        ? parentCard.key
+        : templateIDMap.get(originalParentKey) || parentCard.key;
+      return;
+    }
+    card.parent = isTemplateRootCard
+      ? ROOT
+      : templateIDMap.get(originalParentKey) || ROOT;
+  }
+
+  // Places a batch of instantiated cards on disk: a card whose parent is also
+  // in the batch goes into the parent's 'c' folder, everything else goes
+  // directly into the destination folder.
+  private assignInstantiatedPaths(cards: Card[], destinationFolder: string) {
+    const byKey = new Map(cards.map((card) => [card.key, card]));
+    const paths = new Map<string, string>();
+
+    const pathOf = (card: Card): string => {
+      const known = paths.get(card.key);
+      if (known) {
+        return known;
       }
-      card.parent = templateIDMap.get(originalParentKey) || parentCard.key;
-      return;
+      const parentInBatch =
+        card.parent && card.parent !== ROOT
+          ? byKey.get(card.parent)
+          : undefined;
+      const path = parentInBatch
+        ? join(pathOf(parentInBatch), 'c', card.key)
+        : join(destinationFolder, card.key);
+      paths.set(card.key, path);
+      return path;
+    };
+
+    for (const card of cards) {
+      card.path = pathOf(card);
     }
-    if (!originalParentKey || originalParentKey === ROOT) {
-      card.parent = ROOT;
-      return;
-    }
-    card.parent = templateIDMap.get(originalParentKey) || ROOT;
   }
 
   private async processAttachments(card: Card): Promise<Card> {
@@ -409,7 +409,7 @@ export class Template extends CardContainer {
       await Promise.all(newCards.map((card) => this.createNode(card)));
       // Storage and facts only. The creating command runs the creation query
       // and its side effects.
-      await this.project.addCreatedCards(newCards);
+      await this.project.addCreatedCards(newCards, this.fullTemplateName);
       return newCardKeys;
     } catch (error) {
       this.logger.error({ error });
@@ -422,7 +422,7 @@ export class Template extends CardContainer {
    * @returns all attachments in the template.
    */
   public attachments(): CardAttachment[] {
-    return this.project.attachmentsByPath(this.templateCardsPath);
+    return this.project.templateAttachments(this.fullTemplateName);
   }
 
   /**
@@ -443,6 +443,15 @@ export class Template extends CardContainer {
   public cardFolder(cardKey: string): string {
     const found = this.findCardDirect(cardKey);
     return found ? found.path : '';
+  }
+
+  /**
+   * The template's full resource name, e.g. 'decision/templates/decision'.
+   *
+   * This is the name the template's cards are stored under.
+   */
+  public get fullName(): string {
+    return this.fullTemplateName;
   }
 
   /**
@@ -493,17 +502,26 @@ export class Template extends CardContainer {
     try {
       const cardKeyMap = await this.buildCardKeyMap(cards);
       const rootCardRanks = this.rootCardRanks(cards, parentCard);
-      const templatesFolder = this.templateFolder();
+
+      // Copies of the template's cards, moved to their destination positions
+      // before anything is written: a card's folder is decided by where it
+      // sits, so the whole batch has to be placed before any of it is created.
+      const instantiated = cards.map((originalCard) => {
+        const card: Card = structuredClone(originalCard);
+        this.remapCardPosition(card, cardKeyMap, parentCard);
+        return card;
+      });
+      this.assignInstantiatedPaths(
+        instantiated,
+        parentCard
+          ? join(parentCard.path, 'c')
+          : this.project.paths.cardRootFolder,
+      );
+      createdPaths.push(...instantiated.map((card) => card.path));
 
       // Process all cards in parallel
-      // Create deep copies to avoid mutating the cached template cards
       const results = await Promise.allSettled(
-        cards.map(async (originalCard) => {
-          const card: Card = structuredClone(originalCard);
-          // Update paths and keys
-          this.updateCardPaths(card, cardKeyMap, templatesFolder, parentCard);
-          createdPaths.push(card.path);
-
+        instantiated.map(async (card) => {
           const processedCard = await this.processAttachments(
             await this.processMetadata(card, rootCardRanks, cardKeyMap),
           );
@@ -523,7 +541,7 @@ export class Template extends CardContainer {
       // Storage and facts only, inside this try so a failure here is still
       // compensated. The creating command runs the creation query and its
       // side effects.
-      await this.project.addCreatedCards(processedCards);
+      await this.project.addCreatedCards(processedCards, 'project');
       return processedCards;
     } catch (error) {
       try {
@@ -583,12 +601,7 @@ export class Template extends CardContainer {
    * @returns all cards in the template.
    */
   public listCards(): Card[] {
-    // Construct the full template name to match what's stored in cache
-    const fullTemplateName = isModulePath(this.basePath)
-      ? `${this.basePath.split(`${sep}modules${sep}`)[1].split(`${sep}templates`)[0]}/templates/${this.templateName}`
-      : `${this.project.projectPrefix}/templates/${this.templateName}`;
-
-    return this.project.templateCards(fullTemplateName);
+    return this.project.templateCards(this.fullTemplateName);
   }
 
   /**
