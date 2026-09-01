@@ -23,6 +23,7 @@ import {
   readJsonFile,
   readJsonFileSync,
   writeJsonFile,
+  writeJsonFileIfAbsent,
 } from '../utils/json.js';
 import {
   resourceName,
@@ -606,12 +607,9 @@ export abstract class ResourceObject<
 
     // Create folder for resources and add correct .schema file.
     await mkdir(this.resourceFolder, { recursive: true });
-    await writeJsonFile(
+    await writeJsonFileIfAbsent(
       join(this.resourceFolder, '.schema'),
       this.contentSchema,
-      {
-        flag: 'wx',
-      },
     );
     // Check if "name" has changed. Changing "name" means renaming the file.
     const nameInContent = resourceName(this.content.name).identifier + '.json';
