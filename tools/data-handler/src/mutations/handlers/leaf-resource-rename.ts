@@ -40,9 +40,6 @@ type LeafResourceType =
  * The rewrites are name-based string replacements applied to every local
  * folder resource's content files — the extra scans are harmless no-ops where
  * a file never carried such references.
- *
- * Renaming a template does not flush the template-card cache (only deletion
- * does).
  */
 export class LeafResourceRenameHandler implements Handler<RenameInput> {
   constructor(
