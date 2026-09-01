@@ -20,6 +20,7 @@ import {
   mkdir,
   readdir,
   readFile,
+  rename,
   unlink,
   writeFile,
 } from 'node:fs/promises';
@@ -39,7 +40,7 @@ import {
   CardNotFoundError,
   DuplicateCardKeyError,
 } from '../../exceptions/index.js';
-import { deleteDir } from '../../utils/file-utils.js';
+import { deleteDir, pathExists } from '../../utils/file-utils.js';
 import { getChildLogger } from '../../utils/log-utils.js';
 import { writeJsonFile } from '../../utils/json.js';
 import { isPredefinedField, ROOT } from '../../utils/constants.js';
@@ -727,13 +728,10 @@ export class CardTree {
    * @throws if the metadata file cannot be written.
    */
   public async writeMetadata(card: Card): Promise<boolean> {
-    if (card.metadata == null) {
+    const sanitizedMetadata = await this.persistMetadata(card);
+    if (!sanitizedMetadata) {
       return false;
     }
-    card.metadata.lastUpdated = new Date().toISOString();
-
-    const sanitizedMetadata = CardTree.sanitizeMetadata(card);
-    await writeJsonFile(join(card.path, CARD_METADATA_FILE), sanitizedMetadata);
 
     const stored = this.cards.get(card.key);
     if (!stored) {
@@ -742,6 +740,35 @@ export class CardTree {
     }
     stored.metadata = CardTree.normalizedMetadata(sanitizedMetadata);
     return true;
+  }
+
+  // Writes the card's metadata file and stamps 'lastUpdated'. The store is
+  // left alone; the sanitized object is returned so the caller can store
+  // exactly what was written.
+  private async persistMetadata(card: Card): Promise<CardMetadata | undefined> {
+    if (card.metadata == null) {
+      return undefined;
+    }
+    card.metadata.lastUpdated = new Date().toISOString();
+
+    const sanitizedMetadata = CardTree.sanitizeMetadata(card);
+    await writeJsonFile(join(card.path, CARD_METADATA_FILE), sanitizedMetadata);
+    return sanitizedMetadata;
+  }
+
+  /**
+   * Creates a card's folder on disk and writes its content and metadata.
+   *
+   * Does not put the card into the store: a node being created is not in it
+   * yet, and adding a created card is the caller's notification step.
+   * @param card Card to create. Its 'path' is where the folder goes.
+   */
+  public async createNode(card: Card): Promise<void> {
+    await mkdir(card.path, { recursive: true });
+    // A card folder without a content file cannot be loaded back, so the file
+    // is always written, empty when the card has no content.
+    await writeFile(join(card.path, CARD_CONTENT_FILE), card.content ?? '');
+    await this.persistMetadata(card);
   }
 
   /**
@@ -859,6 +886,53 @@ export class CardTree {
     card.attachments = card.attachments.filter(
       (attachment) => attachment.fileName !== fileName,
     );
+  }
+
+  /**
+   * Renames a card's attachment file, and keeps the store in step with it.
+   * @param cardKey Card whose attachment is renamed.
+   * @param fileName Current attachment file name.
+   * @param newFileName New attachment file name. A file name, not a path, and
+   *   not one the card already has a file under.
+   * @throws CardNotFoundError if the tree does not hold the card; if it holds
+   *   no such attachment, the new name is not a plain file name inside the
+   *   card's attachment folder, or a file of that name is already there.
+   */
+  public async renameAttachment(
+    cardKey: string,
+    fileName: string,
+    newFileName: string,
+  ): Promise<void> {
+    const card = this.stored(cardKey);
+    const attachment = card.attachments.find(
+      (item) => item.fileName === fileName,
+    );
+    if (!attachment) {
+      throw new Error(`Attachment not found: ${fileName}`);
+    }
+    if (fileName === newFileName) {
+      return;
+    }
+
+    const folder = attachment.path;
+    const target = resolve(folder, newFileName);
+    // A name that is not a plain file name renames the file out of the folder
+    // the card owns, while the store keeps reporting it as an attachment here.
+    if (
+      basename(newFileName) !== newFileName ||
+      !target.startsWith(resolve(folder) + sep)
+    ) {
+      throw new Error(`Invalid attachment filename: ${newFileName}`);
+    }
+    // rename() replaces its destination silently; a plain check is enough
+    // because attachment writes hold the project's write lock.
+    if (pathExists(target)) {
+      throw new Error(`Attachment already exists: ${newFileName}`);
+    }
+    await rename(join(folder, fileName), target);
+
+    attachment.fileName = newFileName;
+    attachment.mimeType = mime.lookup(newFileName) || null;
   }
 
   /**
