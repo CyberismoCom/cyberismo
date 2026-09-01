@@ -217,7 +217,8 @@ export class CardContainer {
   /**
    * Persists card metadata.
    * @param card Card to persist
-   * @returns true if card was updated; false otherwise.
+   * @returns true if the cache was updated; false if the card has no metadata.
+   * @throws if the metadata file cannot be written.
    */
   protected async saveCardMetadata(card: Card): Promise<boolean> {
     if (card.metadata != null) {
