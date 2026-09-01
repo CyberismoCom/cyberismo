@@ -264,6 +264,9 @@ importers:
       mime-types:
         specifier: ^3.0.2
         version: 3.0.2
+      semver:
+        specifier: ^7.8.5
+        version: 7.8.5
       zod:
         specifier: ^4.3.6
         version: 4.4.3
@@ -271,6 +274,9 @@ importers:
       '@cyberismo/app':
         specifier: workspace:*
         version: link:../app
+      '@types/semver':
+        specifier: ^7.7.0
+        version: 7.7.1
 
   tools/cli:
     dependencies:

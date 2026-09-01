@@ -15,14 +15,22 @@ import {
   type CleanResult,
   type CommandManager,
   type HubFetchFailure,
+  type ModuleInfo,
+  type ModuleSetting,
   type ModuleSettingFromHub,
+  type UpdatePreview,
 } from '@cyberismo/data-handler';
 
-export type { CleanResult } from '@cyberismo/data-handler';
+export type { CleanResult, UpdatePreview } from '@cyberismo/data-handler';
 
 export interface ProjectModule {
   name: string;
   cardKeyPrefix: string;
+  installedVersion?: string;
+  /** Range this project declares; absent for transitive modules. */
+  declaredRange?: string;
+  /** True for modules the project declares itself; false for transitives. */
+  isRoot: boolean;
 }
 
 export interface ProjectInfo {
@@ -58,18 +66,30 @@ export interface HubInfo {
 
 async function toModuleInfo(
   commands: CommandManager,
-  moduleName: string,
+  module: ModuleInfo,
+  declared?: ModuleSetting,
 ): Promise<ProjectModule> {
+  const versionInfo = {
+    ...(module.version !== undefined
+      ? { installedVersion: module.version }
+      : {}),
+    ...(declared?.version !== undefined
+      ? { declaredRange: declared.version }
+      : {}),
+    isRoot: declared !== undefined,
+  };
   try {
-    const data = await commands.showCmd.showModule(moduleName);
+    const data = await commands.showCmd.showModule(module.name);
     return {
-      name: data.name || moduleName,
-      cardKeyPrefix: data.cardKeyPrefix || moduleName,
+      name: data.name || module.name,
+      cardKeyPrefix: data.cardKeyPrefix || module.name,
+      ...versionInfo,
     };
   } catch {
     return {
-      name: moduleName,
-      cardKeyPrefix: moduleName,
+      name: module.name,
+      cardKeyPrefix: module.name,
+      ...versionInfo,
     };
   }
 }
@@ -80,8 +100,13 @@ export async function getProject(
   return commands.consistent(async () => {
     const project = await commands.showCmd.showProject();
     const modules = await commands.showCmd.showModules();
+    const declaredByName = new Map(
+      commands.project.configuration.modules.map((mod) => [mod.name, mod]),
+    );
     const moduleDetails = await Promise.all(
-      modules.map((mod) => toModuleInfo(commands, mod.name)),
+      modules.map((mod) =>
+        toModuleInfo(commands, mod, declaredByName.get(mod.name)),
+      ),
     );
 
     const gitRemoteUrl = (await commands.showCmd.showGitRemoteUrl()) ?? null;
@@ -125,8 +150,12 @@ export async function updateProject(
   return getProject(commands);
 }
 
-export async function updateModule(commands: CommandManager, module: string) {
-  await commands.importCmd.updateModule(module);
+export async function updateModule(
+  commands: CommandManager,
+  module: string,
+  version?: string,
+) {
+  await commands.importCmd.updateModule(module, undefined, version);
 }
 
 export async function updateAllModules(commands: CommandManager) {
@@ -158,8 +187,45 @@ export async function getImportableModules(
 export async function importModule(
   commands: CommandManager,
   source: string,
+  version?: string,
 ): Promise<void> {
-  await commands.importCmd.importModule(source);
+  await commands.importCmd.importModule(
+    source,
+    version !== undefined ? { version } : undefined,
+  );
+}
+
+export async function listModuleVersions(
+  commands: CommandManager,
+  target: { source?: string; module?: string },
+): Promise<string[]> {
+  let location = target.source;
+  if (target.module !== undefined) {
+    const declared = commands.project.configuration.modules.find(
+      (mod) => mod.name === target.module,
+    );
+    if (!declared) {
+      throw new Error(`Module '${target.module}' is not part of the project`);
+    }
+    if (declared.private) {
+      throw new Error(
+        `Module '${target.module}' is private; listing versions of private modules is not supported`,
+      );
+    }
+    location = declared.location;
+  }
+  if (location === undefined) {
+    throw new Error('Either a source or a module name is required');
+  }
+  return commands.checkUpdatesCmd.availableVersions(location);
+}
+
+export async function getUpdatePlan(
+  commands: CommandManager,
+  module?: string,
+  version?: string,
+): Promise<UpdatePreview> {
+  return commands.checkUpdatesCmd.previewUpdate(module, version);
 }
 
 export async function getHubs(commands: CommandManager): Promise<HubInfo[]> {
