@@ -117,7 +117,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
       displayName: templateMetadata.displayName,
       description: templateMetadata.description,
       path: this.fileName,
-      numberOfCards: container.listCards().length,
+      numberOfCards: container.cardCount(),
     };
   }
 

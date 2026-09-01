@@ -458,12 +458,15 @@ export class Template extends CardContainer {
       this.logger.warn('A non-used variable was used in the cards method');
     }
 
-    // Filter cards from the project's card cache that belong to this template.
-    const allCards = [...this.project.cardsCache.getCards()];
-    return allCards.filter(
-      (card) =>
-        card.location !== 'project' && card.location === this.fullTemplateName,
-    );
+    return this.project.cardsCache.cardsAtLocation(this.fullTemplateName);
+  }
+
+  /**
+   * Returns how many cards the template has.
+   * @returns the number of cards in the template.
+   */
+  public cardCount(): number {
+    return this.project.cardsCache.cardCountAtLocation(this.fullTemplateName);
   }
 
   /**
@@ -591,16 +594,7 @@ export class Template extends CardContainer {
       ? `${this.basePath.split(`${sep}modules${sep}`)[1].split(`${sep}templates`)[0]}/templates/${this.templateName}`
       : `${this.project.projectPrefix}/templates/${this.templateName}`;
 
-    const templateCards = Array.from(this.project.cardsCache.getCards()).filter(
-      (cachedCard) => {
-        if (cachedCard.location === 'project') {
-          return false;
-        }
-        const storedTemplateName = cachedCard.location;
-        return storedTemplateName === fullTemplateName;
-      },
-    );
-    return templateCards;
+    return this.project.cardsCache.cardsAtLocation(fullTemplateName);
   }
 
   /**

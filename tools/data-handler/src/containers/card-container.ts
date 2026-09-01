@@ -128,15 +128,10 @@ export class CardContainer {
     const attachments: CardAttachment[] = [];
 
     const targetLocation = this.determineContainer(path);
-    const cards = [...this.cardCache.getCards()];
-    const filteredCards = cards.filter((card) => {
-      if (card.attachments.length === 0) {
-        return false;
-      }
-      return card.location === targetLocation;
-    });
-
-    filteredCards.forEach((item) => attachments.push(...item.attachments));
+    this.cardCache
+      .cardsAtLocation(targetLocation)
+      .filter((card) => card.attachments.length > 0)
+      .forEach((item) => attachments.push(...item.attachments));
     return attachments;
   }
 
@@ -152,9 +147,7 @@ export class CardContainer {
     }
 
     const targetLocation = this.determineContainer(path);
-    const relevantCards = this.cardCache
-      .getCards()
-      .filter((cachedCard) => cachedCard.location === targetLocation);
+    const relevantCards = this.cardCache.cardsAtLocation(targetLocation);
     return this.filterCardsDetails(relevantCards, details);
   }
 
@@ -272,15 +265,13 @@ export class CardContainer {
   protected showCards(path: string): Card[] {
     const container = this.determineContainer(path);
     const rootCards: Card[] = [];
-    const relevantCards = Array.from(this.cardCache.getCards()).filter(
-      (cachedCard) => cachedCard.location === container,
-    );
+    const relevantCards = this.cardCache.cardsAtLocation(container);
 
     relevantCards.forEach((card) => {
       if (
         card.parent === ROOT ||
         !card.parent ||
-        !relevantCards.find((cachedCard) => cachedCard.key === card.parent)
+        this.cardCache.getCard(card.parent)?.location !== container
       ) {
         const cardWithChildren: Card = {
           ...card,
