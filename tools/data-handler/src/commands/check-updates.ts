@@ -23,12 +23,15 @@ import {
   isGitLocation,
   pickVersion,
   resolve,
+  toVersion,
+  type UpdateRequest,
 } from '../modules/index.js';
 import { getChildLogger } from '../utils/log-utils.js';
 
 import type {
   Credentials,
   ModuleUpdateStatus,
+  UpdatePreview,
 } from '../interfaces/project-interfaces.js';
 import type { Project } from '../containers/project.js';
 import type {
@@ -167,6 +170,101 @@ export class CheckUpdates {
     } finally {
       if (ownsSource) await sourceLayer.dispose?.();
     }
+  }
+
+  /**
+   * Computes the joint update plan without applying it: the same read-only
+   * resolve an actual update would run, including transitive cascades and
+   * conflicts.
+   * @param moduleName Optional module to update. If omitted, plans for all.
+   * @param version Optional exact target version; requires `moduleName`.
+   * @param credentials Optional credentials for private modules.
+   * @returns Either the set of moves the update would make, or what blocks it.
+   */
+  @read
+  public async previewUpdate(
+    moduleName?: string,
+    version?: string,
+    credentials?: Credentials,
+  ): Promise<UpdatePreview> {
+    if (version && !moduleName) {
+      throw new Error('A target version requires a module name');
+    }
+    const ownsSource = !this.sourceLayer;
+    const sourceLayer = this.sourceLayer ?? createSourceLayer();
+    try {
+      let req: UpdateRequest;
+      if (moduleName) {
+        await this.assertUpdatable(moduleName);
+        req = version
+          ? { kind: 'update', module: moduleName, to: toVersion(version) }
+          : { kind: 'update', module: moduleName };
+      } else {
+        req = { kind: 'updateAll' };
+      }
+
+      const plan = await resolve(this.project, req, {
+        sourceLayer,
+        credentials,
+      });
+      if (!plan.ok) {
+        return {
+          ok: false,
+          changes: [],
+          conflicts: plan.conflicts.map((c) => ({
+            module: c.module,
+            reason: conflictReason(c),
+          })),
+        };
+      }
+      return {
+        ok: true,
+        changes: plan.changes.map((c) => ({
+          module: c.module,
+          from: c.from,
+          to: c.to,
+          sealCount: c.replay.length,
+        })),
+        conflicts: [],
+      };
+    } finally {
+      if (ownsSource) await sourceLayer.dispose?.();
+    }
+  }
+
+  /**
+   * Lists the versions a module source offers, newest first. Sources without
+   * discrete versions (file sources) yield an empty list.
+   * @param location Module source location (git URL or file path).
+   * @returns Available versions in descending semver order.
+   */
+  public async availableVersions(location: string): Promise<string[]> {
+    const ownsSource = !this.sourceLayer;
+    const sourceLayer = this.sourceLayer ?? createSourceLayer();
+    try {
+      return await sourceLayer.listRemoteVersions(location);
+    } finally {
+      if (ownsSource) await sourceLayer.dispose?.();
+    }
+  }
+
+  /** @throws when `moduleName` is not a declared root of this project. */
+  private async assertUpdatable(moduleName: string): Promise<void> {
+    const declared = declaredModules(this.project);
+    if (declared.some((d) => d.name === moduleName)) {
+      return;
+    }
+    const installed = await installedModules(this.project);
+    const parents = installed
+      .filter((m) => m.declaredDependencies.includes(moduleName))
+      .map((m) => m.name);
+    if (parents.length > 0) {
+      const parentList = parents.map((n) => `'${n}'`).join(', ');
+      throw new Error(
+        `Cannot update module '${moduleName}' because it is required by ${parentList}. Update the parent module(s) instead.`,
+      );
+    }
+    throw new Error(`Module '${moduleName}' is not part of the project`);
   }
 }
 

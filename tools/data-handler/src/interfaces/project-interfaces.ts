@@ -253,6 +253,22 @@ export interface ModuleUpdateStatus {
   latestAvailable?: { version: string; range: string };
 }
 
+// Dry-run of a module update, computed through the resolver engine without
+// touching the installation.
+export interface UpdatePreview {
+  ok: boolean;
+  // Modules that would move if the update were applied; empty when blocked.
+  changes: {
+    module: string;
+    from: string | null;
+    to: string | null;
+    // Migration seals that would replay for this move.
+    sealCount: number;
+  }[];
+  // What blocks the update; empty when ok.
+  conflicts: { module: string; reason: string }[];
+}
+
 // Resources that are possible to remove.
 export type RemovableResourceTypes =
   | 'attachment'
