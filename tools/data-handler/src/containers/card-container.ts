@@ -12,8 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { CardTree } from './project/card-tree.js';
-import { compareAttachments } from '../utils/card-utils.js';
+import type { CardTree } from './project/card-tree.js';
 import { getChildLogger } from '../utils/log-utils.js';
 
 import type {
@@ -25,11 +24,15 @@ import type {
 /**
  * Card container base class. Used for both Project and Template.
  * Contains common card-related functionality.
+ *
+ * Each container's cards live in its own tree; the subclass says which one.
  */
-export class CardContainer {
+export abstract class CardContainer {
   public basePath: string;
-  protected cardTree: CardTree;
   protected prefix: string;
+
+  /** The tree holding this container's cards. */
+  protected abstract get cardTree(): CardTree;
 
   protected static get logger() {
     return getChildLogger({ module: 'CardContainer' });
@@ -40,67 +43,9 @@ export class CardContainer {
   static projectConfigFileName = 'cardsConfig.json';
   static schemaContentFile = '.schema';
 
-  constructor(path: string, prefix: string, cardRootPath: string = path) {
+  constructor(path: string, prefix: string) {
     this.basePath = path;
     this.prefix = prefix;
-    this.cardTree = new CardTree(cardRootPath);
-  }
-
-  /**
-   * Determines the container from a given path.
-   * @param path The filesystem path to analyze
-   * @returns Location string: 'project' for project cards, template name for template cards
-   */
-  protected determineContainer(path: string): string {
-    return this.cardTree.locationOf(path);
-  }
-
-  /**
-   * Populates the card cache with all cards from all locations.
-   */
-  protected async populateCardsCache(): Promise<void> {}
-
-  /**
-   * Populates template cards into the cache.
-   */
-  protected async populateTemplateCards(): Promise<void> {}
-
-  /**
-   * Lists all attachments from the container.
-   * @param path Path where attachments should be collected.
-   * @returns attachments from the container, sorted by card key and file name.
-   */
-  protected attachments(path: string): CardAttachment[] {
-    return this.cardTree
-      .attachmentsIn(this.determineContainer(path))
-      .sort(compareAttachments);
-  }
-
-  /**
-   * Shows all cards from the container, fully hydrated.
-   * @param path Path where cards should be listed.
-   * @returns all cards from the container
-   */
-  protected cards(path: string): Card[] {
-    return this.cardTree.cardsIn(this.determineContainer(path));
-  }
-
-  /**
-   * Metadata-level view of every card in the container.
-   * @param path Path where cards should be listed.
-   * @returns nodes of all cards from the container
-   */
-  protected cardNodes(path: string): CardNode[] {
-    return this.cardTree.cardNodesIn(this.determineContainer(path));
-  }
-
-  /**
-   * Card keys of every card in the container.
-   * @param path Path where cards should be listed.
-   * @returns keys of all cards from the container
-   */
-  protected cardKeys(path: string): string[] {
-    return this.cardTree.cardKeysIn(this.determineContainer(path));
   }
 
   /**
@@ -176,15 +121,6 @@ export class CardContainer {
     return this.cardTree.writeMetadata(card);
   }
 
-  /*
-   * Show root cards from a given path.
-   * @param path The path to get cards from
-   * @returns an array of root-level cards (each with their children populated).
-   */
-  protected showCards(path: string): Card[] {
-    return this.cardTree.rootCardsIn(this.determineContainer(path));
-  }
-
   /**
    * Checks if container has the specified card.
    * @param cardKey Card key to check
@@ -192,23 +128,5 @@ export class CardContainer {
    */
   public hasCard(cardKey: string): boolean {
     return this.cardTree.has(cardKey);
-  }
-
-  /**
-   * Checks if container has the specified project card.
-   * @param cardKey Card key to check
-   * @return true, if card is in the container
-   */
-  public hasProjectCard(cardKey: string): boolean {
-    return this.cardTree.hasProjectCard(cardKey);
-  }
-
-  /**
-   * Checks if container has the specified template card.
-   * @param cardKey Card key to check
-   * @return true, if card is in the container
-   */
-  public hasTemplateCard(cardKey: string): boolean {
-    return this.cardTree.hasTemplateCard(cardKey);
   }
 }

@@ -282,7 +282,7 @@ export class Move {
       movingToRoot ? ROOT : destination,
       movingToRoot
         ? (targetTemplateName ?? 'project')
-        : this.project.locationOfCard(destination),
+        : this.project.locationOfCard(destination)!,
     );
 
     await this.project.updateCardMetadataKey(source, 'rank', rank);
