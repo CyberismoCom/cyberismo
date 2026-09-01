@@ -6,13 +6,10 @@ import { join } from 'node:path';
 import { copyDir } from '../src/utils/file-utils.js';
 import { CardContainer } from '../src/containers/card-container.js';
 
-// To allow test to populate the cache, make an inherited test class
+// To allow test to populate the card tree, make an inherited test class
 class TestContainer extends CardContainer {
   public async populateCache() {
-    return this.cardCache.populateFromPath(this.basePath);
-  }
-  public showCache() {
-    return this.cardCache;
+    return this.cardTree.load(this.basePath);
   }
 }
 

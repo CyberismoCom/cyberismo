@@ -457,7 +457,7 @@ describe('executeModuleReplays', () => {
   function fakeProject() {
     return {
       resources: { changed: vi.fn(), changedModules: vi.fn() },
-      cardsCache: { clear: vi.fn() },
+      clearCards: vi.fn(),
       populateCaches: vi.fn().mockResolvedValue(undefined),
     } as unknown as Project;
   }
@@ -530,7 +530,7 @@ describe('executeModuleReplays', () => {
     ]);
 
     const changed = project.resources.changed as ReturnType<typeof vi.fn>;
-    const clear = project.cardsCache.clear as ReturnType<typeof vi.fn>;
+    const clear = project.clearCards as ReturnType<typeof vi.fn>;
     const populate = project.populateCaches as ReturnType<typeof vi.fn>;
     expect(changed).toHaveBeenCalledTimes(1);
     expect(clear).toHaveBeenCalledTimes(1);
