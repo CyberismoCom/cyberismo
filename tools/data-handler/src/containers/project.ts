@@ -27,6 +27,7 @@ import { readdirSync } from 'node:fs';
 import { CardContainer } from './card-container.js';
 
 import { CalculationEngine } from './project/calculation-engine.js';
+import { DuplicateCardKeyError } from '../exceptions/index.js';
 import {
   type Card,
   type CardAttachment,
@@ -362,6 +363,9 @@ export class Project extends CardContainer {
       // Once all templates have been fetched, build child-parent relationships.
       this.cardCache.populateChildrenRelationships();
     } catch (error) {
+      if (error instanceof DuplicateCardKeyError) {
+        throw error;
+      }
       this.logger.error(
         { error },
         'Failed to populate template cards into the card cache',
