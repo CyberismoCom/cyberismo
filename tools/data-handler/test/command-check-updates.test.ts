@@ -9,7 +9,7 @@ import {
   vi,
 } from 'vitest';
 
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { copyDir } from '../src/utils/file-utils.js';
@@ -471,6 +471,240 @@ describe('check-updates', () => {
 
       expect(status.status).toBe('up_to_date');
       expect(status.latestAvailable).toBeUndefined();
+    });
+  });
+
+  describe('previewUpdate', () => {
+    it('plans the joint update without touching the installation', async () => {
+      const location = 'https://example.com/base.git';
+      const project = buildProjectWithModules([
+        { name: 'base', location, version: '^1.0.0', private: false },
+      ]);
+      installModule(project, { name: 'base', version: '1.0.0' });
+
+      const configs = new Map<string, FakeModuleConfig>([
+        [
+          `${location}@v1.1.0`,
+          { name: 'base', cardKeyPrefix: 'base', modules: [] },
+        ],
+      ]);
+      const available = new Map([[location, ['1.1.0', '1.0.0']]]);
+      const seals = new Map([
+        [`${location}@v1.1.0`, [['1.0.0', '1.1.0'] as [string, string]]],
+      ]);
+      const source = new InMemorySource(configs, available, new Map(), seals);
+
+      const preview = await new CheckUpdates(project, source).previewUpdate();
+
+      expect(preview.ok).toBe(true);
+      expect(preview.changes).toEqual([
+        { module: 'base', from: '1.0.0', to: '1.1.0', sealCount: 1 },
+      ]);
+      expect(preview.conflicts).toEqual([]);
+      // Read-only: no full clone is staged and the installation stays put.
+      expect(source.fetchLog).toEqual([]);
+      const installed = JSON.parse(
+        readFileSync(
+          join(project.paths.modulesFolder, 'base', 'cardsConfig.json'),
+          'utf-8',
+        ),
+      ) as { version: string };
+      expect(installed.version).toBe('1.0.0');
+    });
+
+    it('plans a single module update when a name is given', async () => {
+      const baseLoc = 'https://example.com/base.git';
+      const extLoc = 'https://example.com/extension.git';
+      const project = buildProjectWithModules([
+        { name: 'base', location: baseLoc, version: '^1.0.0', private: false },
+        { name: 'ext', location: extLoc, version: '^1.0.0', private: false },
+      ]);
+      installModule(project, { name: 'base', version: '1.0.0' });
+      installModule(project, { name: 'ext', version: '1.0.0' });
+
+      const configs = new Map<string, FakeModuleConfig>([
+        [
+          `${baseLoc}@v1.1.0`,
+          { name: 'base', cardKeyPrefix: 'base', modules: [] },
+        ],
+      ]);
+      const available = new Map([
+        [baseLoc, ['1.1.0', '1.0.0']],
+        [extLoc, ['1.0.0']],
+      ]);
+      const seals = new Map([
+        [`${baseLoc}@v1.1.0`, [['1.0.0', '1.1.0'] as [string, string]]],
+      ]);
+      const source = new InMemorySource(configs, available, new Map(), seals);
+
+      const preview = await new CheckUpdates(project, source).previewUpdate(
+        'base',
+      );
+
+      expect(preview.ok).toBe(true);
+      expect(preview.changes).toEqual([
+        { module: 'base', from: '1.0.0', to: '1.1.0', sealCount: 1 },
+      ]);
+    });
+
+    it('honors an explicit target version', async () => {
+      const location = 'https://example.com/base.git';
+      const project = buildProjectWithModules([
+        { name: 'base', location, version: '^1.0.0', private: false },
+      ]);
+      installModule(project, { name: 'base', version: '1.0.0' });
+
+      const configs = new Map<string, FakeModuleConfig>([
+        [
+          `${location}@v1.1.0`,
+          { name: 'base', cardKeyPrefix: 'base', modules: [] },
+        ],
+        [
+          `${location}@v1.2.0`,
+          { name: 'base', cardKeyPrefix: 'base', modules: [] },
+        ],
+      ]);
+      const available = new Map([[location, ['1.2.0', '1.1.0', '1.0.0']]]);
+      const seals = new Map([
+        [`${location}@v1.1.0`, [['1.0.0', '1.1.0'] as [string, string]]],
+        [`${location}@v1.2.0`, [['1.1.0', '1.2.0'] as [string, string]]],
+      ]);
+      const source = new InMemorySource(configs, available, new Map(), seals);
+
+      const preview = await new CheckUpdates(project, source).previewUpdate(
+        'base',
+        '1.1.0',
+      );
+
+      expect(preview.ok).toBe(true);
+      expect(preview.changes).toEqual([
+        { module: 'base', from: '1.0.0', to: '1.1.0', sealCount: 1 },
+      ]);
+    });
+
+    it('reports formatted conflicts when the update is blocked', async () => {
+      const location = 'https://example.com/base.git';
+      const project = buildProjectWithModules([
+        { name: 'base', location, version: '^2.0.0', private: false },
+      ]);
+      installModule(project, { name: 'base', version: '1.0.0' });
+
+      const available = new Map([[location, ['1.0.0']]]);
+      const source = new InMemorySource(new Map(), available);
+
+      const preview = await new CheckUpdates(project, source).previewUpdate();
+
+      expect(preview.ok).toBe(false);
+      expect(preview.changes).toEqual([]);
+      const own = preview.conflicts.find((c) => c.module === 'base');
+      expect(own).toBeDefined();
+      expect(own!.reason.length).toBeGreaterThan(0);
+    });
+
+    it('returns an empty plan when everything is up to date', async () => {
+      const location = 'https://example.com/base.git';
+      const project = buildProjectWithModules([
+        { name: 'base', location, version: '^1.0.0', private: false },
+      ]);
+      installModule(project, { name: 'base', version: '1.1.0' });
+
+      const available = new Map([[location, ['1.1.0', '1.0.0']]]);
+      const source = new InMemorySource(new Map(), available);
+
+      const preview = await new CheckUpdates(project, source).previewUpdate();
+
+      expect(preview).toEqual({ ok: true, changes: [], conflicts: [] });
+    });
+
+    it('returns an empty plan for a project without modules', async () => {
+      const project = buildProjectWithModules([]);
+      const source = new InMemorySource(new Map(), new Map());
+
+      const preview = await new CheckUpdates(project, source).previewUpdate();
+
+      expect(preview).toEqual({ ok: true, changes: [], conflicts: [] });
+    });
+
+    it('throws naming the parent for a transitive-only module', async () => {
+      const project = buildProjectWithModules([
+        {
+          name: 'host',
+          location: 'https://example.com/host.git',
+          private: false,
+        },
+      ]);
+      installModule(project, {
+        name: 'host',
+        version: '1.0.0',
+        modules: [{ name: 'dep' }],
+      });
+      installModule(project, { name: 'dep', version: '1.0.0' });
+
+      const source = new InMemorySource(new Map(), new Map());
+
+      await expect(
+        new CheckUpdates(project, source).previewUpdate('dep'),
+      ).rejects.toThrow(
+        "Cannot update module 'dep' because it is required by 'host'. Update the parent module(s) instead.",
+      );
+    });
+
+    it('throws when the module is not part of the project', async () => {
+      const project = buildProjectWithModules([]);
+      const source = new InMemorySource(new Map(), new Map());
+
+      await expect(
+        new CheckUpdates(project, source).previewUpdate('nonexistent'),
+      ).rejects.toThrow("Module 'nonexistent' is not part of the project");
+    });
+
+    it('throws for a target version without a module name', async () => {
+      const project = buildProjectWithModules([]);
+      const source = new InMemorySource(new Map(), new Map());
+
+      await expect(
+        new CheckUpdates(project, source).previewUpdate(undefined, '1.0.0'),
+      ).rejects.toThrow('A target version requires a module name');
+    });
+
+    it('throws for an invalid target version', async () => {
+      const location = 'https://example.com/base.git';
+      const project = buildProjectWithModules([
+        { name: 'base', location, version: '^1.0.0', private: false },
+      ]);
+      installModule(project, { name: 'base', version: '1.0.0' });
+      const source = new InMemorySource(new Map(), new Map());
+
+      await expect(
+        new CheckUpdates(project, source).previewUpdate('base', 'not-semver'),
+      ).rejects.toThrow('Invalid semver version: not-semver');
+    });
+  });
+
+  describe('availableVersions', () => {
+    it('lists remote versions for a git source', async () => {
+      const location = 'https://example.com/base.git';
+      const project = buildProjectWithModules([]);
+      const available = new Map([[location, ['1.1.0', '1.0.0']]]);
+      const source = new InMemorySource(new Map(), available);
+
+      const versions = await new CheckUpdates(
+        project,
+        source,
+      ).availableVersions(location);
+
+      expect(versions).toEqual(['1.1.0', '1.0.0']);
+      expect(source.listLog).toEqual([location]);
+    });
+
+    it('returns an empty list for a file source', async () => {
+      const project = buildProjectWithModules([]);
+
+      const versions = await new CheckUpdates(project).availableVersions(
+        'file:/some/path',
+      );
+
+      expect(versions).toEqual([]);
     });
   });
 });
