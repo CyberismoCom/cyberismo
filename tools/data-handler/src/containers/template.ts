@@ -289,21 +289,12 @@ export class Template extends CardContainer {
     return '';
   }
 
-  // Removes cards
-  // Helper for doCreateCards; not intended for any other use.
-  private async removeCards(cardMap: Map<string, string>) {
-    const cards: Card[] = [];
-    // Find all cards that need to be removed.
-    cardMap.forEach((createdCard) => {
-      const card = this.project.findCard(createdCard);
-      cards.push(card);
-    });
-    // Delete card folders.
-    const deleteAll: Promise<void>[] = [];
-    cards.forEach((card) => {
-      deleteAll.push(rm(card.path, { force: true, recursive: true }));
-    });
-    await Promise.all(deleteAll);
+  // Deletes the card folders createCards had begun writing.
+  // Helper for createCards; not intended for any other use.
+  private async removeCards(cardPaths: string[]) {
+    await Promise.all(
+      cardPaths.map((path) => rm(path, { force: true, recursive: true })),
+    );
   }
 
   // Fetches project top level cards only.
@@ -470,19 +461,20 @@ export class Template extends CardContainer {
       throw error;
     }
 
-    let cardKeyMap: Map<string, string> = new Map();
+    const createdPaths: string[] = [];
     try {
-      cardKeyMap = await this.buildCardKeyMap(cards);
+      const cardKeyMap = await this.buildCardKeyMap(cards);
       const rootCardRanks = this.rootCardRanks(cards, parentCard);
       const templatesFolder = this.templateFolder();
 
       // Process all cards in parallel
       // Create deep copies to avoid mutating the cached template cards
-      const processedCards = await Promise.all(
+      const results = await Promise.allSettled(
         cards.map(async (originalCard) => {
           const card: Card = structuredClone(originalCard);
           // Update paths and keys
           this.updateCardPaths(card, cardKeyMap, templatesFolder, parentCard);
+          createdPaths.push(card.path);
 
           // Process metadata and attachments in parallel
           const [processedCard, processedAttachments] = await Promise.all([
@@ -503,10 +495,24 @@ export class Template extends CardContainer {
           return processedCard;
         }),
       );
+      const failed = results.find((result) => result.status === 'rejected');
+      if (failed) {
+        throw failed.reason;
+      }
+      const processedCards = results.map(
+        (result) => (result as PromiseFulfilledResult<Card>).value,
+      );
       await this.project.handleNewCards(processedCards);
       return processedCards;
     } catch (error) {
-      await this.removeCards(cardKeyMap);
+      try {
+        await this.removeCards(createdPaths);
+      } catch (cleanupError) {
+        this.logger.error(
+          { error: cleanupError },
+          'Failed to remove partially created cards',
+        );
+      }
       this.logger.error({ error }, 'Failed to create cards');
       throw error;
     }
