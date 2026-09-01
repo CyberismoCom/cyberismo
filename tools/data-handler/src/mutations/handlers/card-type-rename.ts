@@ -102,8 +102,7 @@ export class CardTypeRenameHandler implements Handler<RenameInput> {
     );
   }
 
-  // Cards using this card type: local project cards plus local template cards
-  // (matches CardTypeResource's collectCards scoping).
+  // Cards using this card type: local project cards plus local template cards.
   private affectedCards(ctx: MutationContext, oldName: string): Card[] {
     const project = [...ctx.project.cards(undefined)];
     const templates = ctx.project.resources
