@@ -44,7 +44,6 @@ const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-card-tree-tests');
 const testProjectPath = join(testDir, 'test-project');
 const testCardsPath = join(testProjectPath, 'cardRoot');
-const prefix = 'test';
 
 function templateCardsPath(template: string): string {
   return join(testProjectPath, '.cards', 'local', 'templates', template, 'c');
@@ -116,9 +115,14 @@ function createTestData() {
   );
 }
 
+const PAGE_TEMPLATE = 'test/templates/page';
+
 async function loadedTree(): Promise<CardTree> {
-  const tree = new CardTree(prefix);
-  await tree.load(testProjectPath);
+  const tree = new CardTree(testCardsPath);
+  await tree.load(testCardsPath, 'project');
+  if (existsSync(templateCardsPath('page'))) {
+    await tree.load(templateCardsPath('page'), PAGE_TEMPLATE);
+  }
   return tree;
 }
 
@@ -132,7 +136,7 @@ describe('Card tree', () => {
     });
 
     it('starts unpopulated', () => {
-      const tree = new CardTree(prefix);
+      const tree = new CardTree(testCardsPath);
       expect(tree).toBeInstanceOf(CardTree);
       expect(tree.isPopulated).toBe(false);
     });
@@ -145,12 +149,12 @@ describe('Card tree', () => {
         'test_2',
         'test_3',
       ]);
-      expect(tree.cardKeysIn('test/templates/page')).toEqual(['test_4']);
+      expect(tree.cardKeysIn(PAGE_TEMPLATE)).toEqual(['test_4']);
     });
 
     it('handles an invalid path gracefully', async () => {
-      const tree = new CardTree(prefix);
-      await tree.load('/invalid/path/that/does/not/exist');
+      const tree = new CardTree(testCardsPath);
+      await tree.load('/invalid/path/that/does/not/exist', 'project');
 
       expect(tree.isPopulated).toBe(true);
       expect(tree.cardKeysIn('project')).toHaveLength(0);
@@ -208,9 +212,9 @@ describe('Card tree', () => {
         'test_2',
         'test_3',
       ]);
-      expect(
-        tree.cardsIn('test/templates/page').map((card) => card.key),
-      ).toEqual(['test_4']);
+      expect(tree.cardsIn(PAGE_TEMPLATE).map((card) => card.key)).toEqual([
+        'test_4',
+      ]);
     });
 
     it('returns every template card', () => {
@@ -235,30 +239,24 @@ describe('Card tree', () => {
       rmSync(testDir, { recursive: true, force: true });
     });
 
-    it('updates an existing card', () => {
-      const original = tree.card('test_1');
-
-      tree.updateCard('test_1', {
-        ...original,
-        metadata: { ...original.metadata!, title: 'Updated Title' },
-      });
-
-      expect(tree.card('test_1').metadata!.title).toBe('Updated Title');
-    });
-
     it('adds a card the tree does not hold yet', () => {
       expect(tree.has('test_new')).toBe(false);
 
-      tree.updateCard('test_new', {
-        key: 'test_new',
-        path: join(testCardsPath, 'test_new'),
-        children: [],
-        attachments: [],
-        metadata: { ...pageCard('New Card'), links: [] },
-      });
+      tree.insert(
+        {
+          key: 'test_new',
+          path: join(testCardsPath, 'test_new'),
+          children: [],
+          attachments: [],
+          metadata: { ...pageCard('New Card'), links: [] },
+        },
+        'project',
+      );
 
       expect(tree.has('test_new')).toBe(true);
       expect(tree.card('test_new').metadata!.title).toBe('New Card');
+      // Inserted at the location's root, so its folder is the root's.
+      expect(tree.pathOf('test_new')).toBe(join(testCardsPath, 'test_new'));
     });
 
     it('persists card content and keeps the store in step', async () => {
@@ -280,7 +278,6 @@ describe('Card tree', () => {
         attachments: [],
         content: 'some content',
       };
-      mkdirSync(unknown.path, { recursive: true });
       expect(await tree.writeContent(unknown)).toBe(false);
     });
 
@@ -311,7 +308,6 @@ describe('Card tree', () => {
         attachments: [],
         metadata: { ...pageCard('Some title'), links: [] },
       };
-      mkdirSync(unknown.path, { recursive: true });
       expect(await tree.writeMetadata(unknown)).toBe(false);
     });
   });
@@ -711,7 +707,7 @@ describe('Card tree', () => {
       expect(tree.childrenOf('test_1')).toEqual(['test_2', 'test_3']);
     });
 
-    it('does not leak the store-internal location field', () => {
+    it('hands out only the fields a Card has', () => {
       for (const card of [
         tree.card('test_1'),
         ...tree.cardsIn('project'),
@@ -719,7 +715,15 @@ describe('Card tree', () => {
         ...tree.cardsFor(['test_1']),
         ...tree.allTemplateCards(),
       ]) {
-        expect(card).not.toHaveProperty('location');
+        expect(Object.keys(card).sort()).toEqual([
+          'attachments',
+          'children',
+          'content',
+          'key',
+          'metadata',
+          'parent',
+          'path',
+        ]);
       }
     });
   });
@@ -741,12 +745,29 @@ describe('Card tree', () => {
       );
       writeFileSync(join(invalidCardPath, 'index.adoc'), 'Content');
 
-      const tree = new CardTree(prefix);
-      await expect(tree.load(testProjectPath)).rejects.toThrow(
+      const tree = new CardTree(testCardsPath);
+      await expect(tree.load(testCardsPath, 'project')).rejects.toThrow(
         `Invalid JSON in file '${join(invalidCardPath, 'index.json')}'`,
       );
 
       rmSync(invalidCardPath, { recursive: true, force: true });
+    });
+
+    it('refuses a card folder that is not inside a card', async () => {
+      const strayParent = join(testCardsPath, 'stray');
+      const strayCardPath = createTestCard(
+        'test_stray',
+        join(strayParent, 'c'),
+        pageCard('Stray Card'),
+        'Content',
+      );
+
+      const tree = new CardTree(testCardsPath);
+      await expect(tree.load(testCardsPath, 'project')).rejects.toThrow(
+        `Card folder '${strayCardPath}' is not inside a card's 'c' folder`,
+      );
+
+      rmSync(strayParent, { recursive: true, force: true });
     });
   });
 
@@ -758,22 +779,12 @@ describe('Card tree', () => {
       rmSync(testDir, { recursive: true, force: true });
     });
 
-    function expectedLocation(location: string): string {
-      return location === 'project' ? 'project' : `test/templates/${location}`;
-    }
+    const ALPHA_TEMPLATE = 'test/templates/alpha';
 
-    // A card's location is derived from its path, so these paths are what
-    // actually drive the location index.
-    function pathFor(location: string, cardKey: string): string {
-      return location === 'project'
-        ? join(testCardsPath, cardKey)
-        : join(templateCardsPath(location), cardKey);
-    }
-
-    function cardAt(location: string, cardKey: string, parent: string): Card {
+    function cardAt(cardKey: string, parent: string): Card {
       return {
         key: cardKey,
-        path: pathFor(location, cardKey),
+        path: join(testCardsPath, cardKey),
         parent,
         children: [],
         attachments: [],
@@ -789,22 +800,23 @@ describe('Card tree', () => {
     }
 
     async function treeWith(...cards: Card[]): Promise<CardTree> {
-      const tree = new CardTree(prefix);
-      await tree.load(testCardsPath);
+      const tree = new CardTree(testCardsPath);
+      await tree.load(testCardsPath, 'project');
+      tree.registerRoot(ALPHA_TEMPLATE, templateCardsPath('alpha'));
       for (const card of cards) {
-        tree.updateCard(card.key, card);
+        tree.insert(card, 'project');
       }
       return tree;
     }
 
     it('re-parenting removes the card from its old parent', async () => {
       const tree = await treeWith(
-        cardAt('project', 'test_1', 'root'),
-        cardAt('project', 'test_2', 'root'),
-        cardAt('project', 'test_3', 'test_1'),
+        cardAt('test_1', 'root'),
+        cardAt('test_2', 'root'),
+        cardAt('test_3', 'test_1'),
       );
 
-      tree.updateCard('test_3', { ...tree.card('test_3'), parent: 'test_2' });
+      tree.relocate('test_3', 'test_2');
 
       expect(tree.childrenOf('test_1')).toEqual([]);
       expect(tree.card('test_1').children).toEqual([]);
@@ -812,31 +824,83 @@ describe('Card tree', () => {
 
     it('re-parenting adds the card to its new parent', async () => {
       const tree = await treeWith(
-        cardAt('project', 'test_1', 'root'),
-        cardAt('project', 'test_2', 'root'),
-        cardAt('project', 'test_3', 'test_1'),
+        cardAt('test_1', 'root'),
+        cardAt('test_2', 'root'),
+        cardAt('test_3', 'test_1'),
       );
 
-      tree.updateCard('test_3', { ...tree.card('test_3'), parent: 'test_2' });
+      tree.relocate('test_3', 'test_2');
 
       expect(tree.childrenOf('test_2')).toEqual(['test_3']);
       expect(tree.card('test_2').children).toEqual(['test_3']);
     });
 
     it('relocating a card moves it between the location sets', async () => {
-      const tree = await treeWith(cardAt('project', 'test_1', 'root'));
+      const tree = await treeWith(cardAt('test_1', 'root'));
 
-      tree.updateCard('test_1', cardAt('alpha', 'test_1', 'root'));
+      tree.relocate('test_1', 'root', ALPHA_TEMPLATE);
 
       expect(tree.cardKeysIn('project')).toEqual([]);
-      expect(tree.cardKeysIn(expectedLocation('alpha'))).toEqual(['test_1']);
-      expect(tree.cardCountIn(expectedLocation('alpha'))).toBe(1);
+      expect(tree.cardKeysIn(ALPHA_TEMPLATE)).toEqual(['test_1']);
+      expect(tree.cardCountIn(ALPHA_TEMPLATE)).toBe(1);
+    });
+
+    // Only the moved card's own edge changes; its descendants' paths and
+    // locations follow it without a rewrite step.
+    it('relocating a card takes its subtree along', async () => {
+      const tree = await treeWith(
+        cardAt('test_1', 'root'),
+        cardAt('test_2', 'test_1'),
+        cardAt('test_3', 'test_2'),
+      );
+
+      tree.relocate('test_1', 'root', ALPHA_TEMPLATE);
+
+      expect(tree.cardKeysIn('project')).toEqual([]);
+      expect([...tree.cardKeysIn(ALPHA_TEMPLATE)].sort()).toEqual([
+        'test_1',
+        'test_2',
+        'test_3',
+      ]);
+      expect(tree.childrenOf('test_1')).toEqual(['test_2']);
+      expect(tree.pathOf('test_3')).toBe(
+        join(
+          templateCardsPath('alpha'),
+          'test_1',
+          'c',
+          'test_2',
+          'c',
+          'test_3',
+        ),
+      );
+    });
+
+    // The path changes with the edge: no rewrite step ran, and no stored path
+    // could have gone stale.
+    it('derives paths from the edges after a re-parent', async () => {
+      const tree = await treeWith(
+        cardAt('test_1', 'root'),
+        cardAt('test_2', 'root'),
+        cardAt('test_3', 'test_1'),
+      );
+      expect(tree.pathOf('test_3')).toBe(
+        join(testCardsPath, 'test_1', 'c', 'test_3'),
+      );
+
+      tree.relocate('test_3', 'test_2');
+
+      expect(tree.pathOf('test_3')).toBe(
+        join(testCardsPath, 'test_2', 'c', 'test_3'),
+      );
+      expect(tree.attachmentFolderOf('test_3')).toBe(
+        join(testCardsPath, 'test_2', 'c', 'test_3', 'a'),
+      );
     });
 
     it('deleting a card clears it from both indexes', async () => {
       const tree = await treeWith(
-        cardAt('project', 'test_1', 'root'),
-        cardAt('project', 'test_2', 'test_1'),
+        cardAt('test_1', 'root'),
+        cardAt('test_2', 'test_1'),
       );
 
       await tree.deleteSubtree('test_2');
@@ -847,11 +911,11 @@ describe('Card tree', () => {
 
     it('re-storing a card does not duplicate its index entries', async () => {
       const tree = await treeWith(
-        cardAt('project', 'test_1', 'root'),
-        cardAt('project', 'test_2', 'test_1'),
+        cardAt('test_1', 'root'),
+        cardAt('test_2', 'test_1'),
       );
 
-      tree.updateCard('test_2', { ...tree.card('test_2') });
+      tree.relocate('test_2', 'test_1');
 
       expect(tree.childrenOf('test_1')).toEqual(['test_2']);
       expect(tree.cardKeysIn('project')).toEqual(['test_1', 'test_2']);
@@ -1016,13 +1080,13 @@ describe('Card tree', () => {
       createTestCard('test_1', dupCardsPath, cardMetadata, 'project card');
       createTestCard('test_1', dupTemplatePath, cardMetadata, 'template card');
 
-      const tree = new CardTree(prefix);
-      await tree.load(dupCardsPath);
+      const tree = new CardTree(dupCardsPath);
+      await tree.load(dupCardsPath, 'project');
       expect(tree.content('test_1')).toBe('project card');
 
-      await expect(tree.load(dupTemplatePath)).rejects.toThrow(
-        DuplicateCardKeyError,
-      );
+      await expect(
+        tree.load(dupTemplatePath, 'test/templates/dup'),
+      ).rejects.toThrow(DuplicateCardKeyError);
 
       expect(tree.content('test_1')).toBe('project card');
     });
@@ -1033,8 +1097,8 @@ describe('Card tree', () => {
       const nested = join(dupCardsPath, 'test_2', 'c');
       createTestCard('test_1', nested, cardMetadata, 'nested card');
 
-      const tree = new CardTree(prefix);
-      await expect(tree.load(dupCardsPath)).rejects.toThrow(
+      const tree = new CardTree(dupCardsPath);
+      await expect(tree.load(dupCardsPath, 'project')).rejects.toThrow(
         DuplicateCardKeyError,
       );
     });
