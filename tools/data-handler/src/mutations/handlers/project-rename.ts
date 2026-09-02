@@ -85,7 +85,7 @@ export class ProjectRenameHandler implements Handler<ProjectRenameInput> {
     for (const template of ctx.project.resources.templates(
       ResourcesFrom.localOnly,
     )) {
-      await renameCards(ctx, template.templateCards(), from, to);
+      await renameCards(ctx, template.cardTree.cards(), from, to);
     }
     await renameCards(ctx, ctx.project.cardTree.cards(), from, to);
 
@@ -131,7 +131,7 @@ export class ProjectRenameHandler implements Handler<ProjectRenameInput> {
       ...ctx.project.cardTree.cards(),
       ...ctx.project.resources
         .templates(ResourcesFrom.localOnly)
-        .flatMap((t) => t.templateCards()),
+        .flatMap((t) => t.cardTree.cards()),
     ];
     for (const card of localCards) {
       await updateCardMetadata(ctx, card, from, to);

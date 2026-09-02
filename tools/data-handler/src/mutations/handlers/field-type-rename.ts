@@ -102,7 +102,7 @@ export class FieldTypeRenameHandler implements Handler<RenameInput> {
       ...ctx.project.cardTree.cards(),
       ...ctx.project.resources
         .templates(ResourcesFrom.localOnly)
-        .flatMap((template) => template.templateCards()),
+        .flatMap((template) => template.cardTree.cards()),
     ];
     for (const card of cards) {
       const metadata = card.metadata;
