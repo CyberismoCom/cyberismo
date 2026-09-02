@@ -21,6 +21,10 @@ import { errorFunction } from '../utils/error-utils.js';
 import { createGit, gitTimeout } from '../utils/git-config.js';
 import { pathExists } from '../utils/file-utils.js';
 import { Project } from '../containers/project.js';
+import {
+  addTemplateCards,
+  instantiateTemplate,
+} from '../containers/project/template-instantiation.js';
 import { Validate } from './validate.js';
 
 import { compare, EMPTY_RANK, sortItems } from '../utils/lexorank.js';
@@ -122,11 +126,17 @@ export class Create {
       ? templateResource.cardTree.card(card)
       : undefined;
 
+    if (!templateResource.isCreated()) {
+      throw new Error(`Template '${templateResource.fullName}' does not exist`);
+    }
+
     if (isModulePath(templateResource.templateFolder())) {
       throw new Error(`Cannot add cards to imported module templates`);
     }
 
-    const cardsContainer = await templateResource.addCards(
+    const cardsContainer = await addTemplateCards(
+      this.project,
+      templateResource.cardTree,
       cardTypeName,
       count,
       specificCard,
@@ -215,7 +225,11 @@ export class Create {
       throw new Error(`Template '${templateName}' not found from project`);
     }
 
-    const createdCards = await templateResource.createCards(specificCard);
+    const createdCards = await instantiateTemplate(
+      this.project,
+      templateResource.cardTree,
+      specificCard,
+    );
     if (createdCards.length > 0) {
       await this.project.runCreationSideEffects(
         createdCards.map((card) => card.key),

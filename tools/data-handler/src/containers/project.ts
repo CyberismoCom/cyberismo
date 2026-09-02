@@ -196,11 +196,11 @@ export class Project {
   }
 
   /**
-   * The project's card key registry: who owns every key, and where new ones
-   * come from.
+   * Reserves card keys for cards that are about to be created.
+   * @param count How many keys to allocate.
    */
-  public get cardKeyRegistry(): CardKeyRegistry {
-    return this.keyRegistry;
+  public allocateCardKeys(count: number): string[] {
+    return this.keyRegistry.allocate(count);
   }
 
   /**
@@ -733,30 +733,11 @@ export class Project {
   }
 
   /**
-   * Adds cards that have just been created on disk to the card tree, and
-   * refreshes their facts so a query run afterwards can see them.
-   *
-   * Storage and fact projection only. The creation query and the side effects
-   * it asks for belong to the command that created the cards and holds the
-   * write lock — see runCreationSideEffects.
-   * @param cards Cards that were created.
-   * @param container 'project', or the full name of the template they belong
-   *   to.
-   */
-  public async addCreatedCards(cards: Card[], container: string) {
-    const tree = this.containerTree(container);
-    for (const card of cards) {
-      tree.insert(card);
-    }
-    return this.calculationEngine.refreshCardFacts(cards);
-  }
-
-  /**
    * Runs the creation query for cards that were just added, and executes the
    * side effects it asks for.
    *
-   * Must run inside a write-lock context, after addCreatedCards: the query
-   * only sees the new cards once their facts have been projected.
+   * Must run inside a write-lock context, after the cards were created: the
+   * query only sees them once their facts have been projected.
    * @param cardKeys Keys of the cards that were created.
    */
   public async runCreationSideEffects(cardKeys: string[]) {

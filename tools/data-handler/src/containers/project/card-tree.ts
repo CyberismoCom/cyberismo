@@ -21,6 +21,7 @@ import {
   readdir,
   readFile,
   rename,
+  rm,
   rmdir,
   unlink,
   writeFile,
@@ -104,6 +105,18 @@ export interface CardTreeOptions {
 interface RankChange {
   cardKey: string;
   rank: string;
+}
+
+/**
+ * A card to be created. An attachment's 'source' is the file that is copied
+ * into the card's attachment folder under 'fileName'.
+ */
+export interface NewCard {
+  key: string;
+  parent: string;
+  metadata: CardMetadata;
+  content: string;
+  attachments: { fileName: string; source: string }[];
 }
 
 /**
@@ -598,22 +611,15 @@ export class CardTree {
     return join(this.treeRoot, ...segments.reverse());
   }
 
-  /**
-   * The folder a new child of the given parent would be created in.
-   * @param parentKey Parent card key, or 'root'.
-   */
-  public childFolderOf(parentKey: string = ROOT): string {
+  // The folder a new child of the given parent would be created in.
+  private childFolderOf(parentKey: string): string {
     return parentKey === ROOT
       ? this.treeRoot
       : join(this.pathOf(parentKey), CHILDREN_FOLDER);
   }
 
-  /**
-   * The folder a card with the given position would live in.
-   * @param parentKey Parent card key, or 'root'.
-   * @param cardKey Key of the card to be created.
-   */
-  public pathFor(parentKey: string, cardKey: string): string {
+  // The folder a card with the given position would live in.
+  private pathFor(parentKey: string, cardKey: string): string {
     return join(this.childFolderOf(parentKey), cardKey);
   }
 
@@ -920,39 +926,118 @@ export class CardTree {
   }
 
   /**
-   * Puts a card the caller has created into the tree.
-   * @param card Card to insert.
-   * @throws DuplicateCardKeyError if any tree already holds the card's key
+   * Creates a batch of cards: every one of them is written to disk and put
+   * into the tree, or nothing is.
+   * @param cards Cards to create, in any order. A card's parent is 'root', a
+   *   card already in the tree, or another card of the batch.
+   * @throws CardNotFoundError if a parent is neither in the batch nor in the
+   *   tree; DuplicateCardKeyError if any tree already holds one of the keys
    */
-  public insert(card: Card) {
+  public async createCards(cards: NewCard[]): Promise<void> {
     this.assertWritable();
-    this.assertNoCycle(card.key, card.parent || ROOT);
-    this.options.keys.claim([card.key], this);
-    this.store(card.key, {
-      key: card.key,
-      parent: card.parent || ROOT,
-      children: [],
-      metadata: CardTree.normalizedMetadata(card.metadata),
-      content: card.content,
-      attachments: CardTree.storedAttachments(card),
-    });
+    const batch = new Map(cards.map((card) => [card.key, card]));
+    const ordered = CardTree.parentsFirst(cards, batch);
+    for (const card of ordered) {
+      if (
+        card.parent !== ROOT &&
+        !batch.has(card.parent) &&
+        !this.has(card.parent)
+      ) {
+        throw new CardNotFoundError(card.parent);
+      }
+    }
+    const keys = cards.map((card) => card.key);
+    this.options.keys.claim(keys, this);
+
+    const paths = new Map<string, string>();
+    const roots: string[] = [];
+    try {
+      for (const card of ordered) {
+        const parentInBatch = batch.has(card.parent);
+        const path = parentInBatch
+          ? join(paths.get(card.parent)!, CHILDREN_FOLDER, card.key)
+          : this.pathFor(card.parent, card.key);
+        paths.set(card.key, path);
+        if (!parentInBatch) {
+          roots.push(path);
+        }
+        await mkdir(path, { recursive: true });
+        await writeFile(join(path, CARD_CONTENT_FILE), card.content);
+        await this.persistMetadata(CardTree.asCard(card, path), path);
+        if (card.attachments.length > 0) {
+          const folder = join(path, ATTACHMENT_FOLDER);
+          await mkdir(folder, { recursive: true });
+          await Promise.all(
+            card.attachments.map((attachment) =>
+              copyFile(attachment.source, join(folder, attachment.fileName)),
+            ),
+          );
+        }
+      }
+    } catch (error) {
+      this.options.keys.release(keys);
+      await Promise.all(
+        roots.map((path) => rm(path, { recursive: true, force: true })),
+      );
+      throw error;
+    }
+
+    for (const card of ordered) {
+      this.store(card.key, {
+        key: card.key,
+        parent: card.parent,
+        children: [],
+        metadata: CardTree.normalizedMetadata(card.metadata),
+        content: card.content,
+        attachments: card.attachments.map((attachment) => ({
+          fileName: attachment.fileName,
+          dir: '',
+        })),
+      });
+    }
   }
 
-  // The attachments of a card being inserted, as folder-relative names.
-  private static storedAttachments(card: Card): StoredAttachment[] {
-    const attachmentFolder = join(card.path, ATTACHMENT_FOLDER);
-    return card.attachments.map((attachment) => {
-      const dir = attachment.path
-        ? relative(attachmentFolder, attachment.path)
-        : '';
-      if (dir.startsWith('..')) {
-        CardTree.logger.warn(
-          `Attachment '${attachment.fileName}' of card '${card.key}' is outside the card's attachment folder`,
-        );
-        return { fileName: attachment.fileName, dir: '' };
+  private static parentsFirst(
+    cards: NewCard[],
+    batch: Map<string, NewCard>,
+  ): NewCard[] {
+    const ordered: NewCard[] = [];
+    const placed = new Set<string>();
+    const open = new Set<string>();
+    const place = (card: NewCard) => {
+      if (placed.has(card.key)) {
+        return;
       }
-      return { fileName: attachment.fileName, dir };
-    });
+      if (open.has(card.key)) {
+        throw new Error(
+          `Card '${card.key}' is inside its own subtree in the batch being created`,
+        );
+      }
+      open.add(card.key);
+      const parent = batch.get(card.parent);
+      if (parent) {
+        place(parent);
+      }
+      open.delete(card.key);
+      placed.add(card.key);
+      ordered.push(card);
+    };
+    for (const card of cards) {
+      place(card);
+    }
+    return ordered;
+  }
+
+  private static asCard(card: NewCard, path: string): Card {
+    return {
+      key: card.key,
+      path,
+      parent: card.parent,
+      children: [],
+      attachments: [],
+      content: card.content,
+      metadata: card.metadata,
+    };
   }
 
   /**
@@ -1146,23 +1231,6 @@ export class CardTree {
     const sanitizedMetadata = CardTree.sanitizeMetadata(card);
     await writeJsonFile(join(cardPath, CARD_METADATA_FILE), sanitizedMetadata);
     return sanitizedMetadata;
-  }
-
-  /**
-   * Creates a card's folder on disk and writes its content and metadata.
-   *
-   * Does not put the card into the store: a node being created is not in it
-   * yet, so its folder comes from the card and not from the edges. Adding a
-   * created card is the caller's notification step.
-   * @param card Card to create. Its 'path' is where the folder goes.
-   */
-  public async createNode(card: Card): Promise<void> {
-    this.assertWritable();
-    await mkdir(card.path, { recursive: true });
-    // A card folder without a content file cannot be loaded back, so the file
-    // is always written, empty when the card has no content.
-    await writeFile(join(card.path, CARD_CONTENT_FILE), card.content ?? '');
-    await this.persistMetadata(card, card.path);
   }
 
   /**
