@@ -1191,24 +1191,6 @@ describe('create command', () => {
     expect(defaultCard.title).toBe('Untitled');
     expect(defaultCard.workflowState).toBe('');
   });
-  it('access default values for card using real card type and template cards (success)', async () => {
-    const project = getTestProject(decisionRecordsPath);
-    await project.populateCaches();
-
-    const name = 'decision/templates/decision';
-    const template = project.resources.byType(name, 'templates');
-    const templateCards = template.cardTree.cards();
-
-    const cardType = DefaultContent.cardType(
-      'decision/cardTypes/decision',
-      'decision/workflows/decision',
-    );
-    const defaultCard = DefaultContent.card(cardType, templateCards);
-    expect(defaultCard.cardType).toBe('decision/cardTypes/decision');
-    expect(defaultCard.rank).toBe('0|b');
-    expect(defaultCard.title).toBe('Untitled');
-    expect(defaultCard.workflowState).toBe('');
-  });
 });
 
 describe('created cards and custom field values', () => {

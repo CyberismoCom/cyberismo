@@ -232,8 +232,10 @@ export class Project {
     return tree;
   }
 
-  // Every template tree the project knows about.
-  private templateTrees(): CardTree[] {
+  /**
+   * Every template tree the project knows about.
+   */
+  public templateTrees(): CardTree[] {
     return [...this.templateCardTrees.values()];
   }
 
