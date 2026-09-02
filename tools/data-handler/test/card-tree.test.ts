@@ -975,6 +975,65 @@ describe('Card tree', () => {
     });
   });
 
+  describe('structural integrity', () => {
+    // A three-generation line: test_1 -> test_2 -> test_3.
+    beforeEach(() => {
+      mkdirSync(testCardsPath, { recursive: true });
+      createTestCard('test_1', testCardsPath, pageCard('One'), '');
+      createTestCard(
+        'test_2',
+        join(testCardsPath, 'test_1', 'c'),
+        pageCard('Two'),
+        '',
+      );
+      createTestCard(
+        'test_3',
+        join(testCardsPath, 'test_1', 'c', 'test_2', 'c'),
+        pageCard('Three'),
+        '',
+      );
+    });
+    afterEach(() => {
+      rmSync(testDir, { recursive: true, force: true });
+    });
+
+    it.each([
+      ['its own child', 'test_1', 'test_2'],
+      ['its own grandchild', 'test_1', 'test_3'],
+      ['itself', 'test_2', 'test_2'],
+    ])(
+      'refuses to relocate a card under %s',
+      async (_case, cardKey, parent) => {
+        const tree = projectTree(testCardsPath);
+        await tree.load();
+
+        expect(() => tree.relocate(cardKey, parent)).toThrow(
+          `Card '${cardKey}' cannot be placed under '${parent}'`,
+        );
+        // And the tree is unchanged, so paths still resolve.
+        expect(tree.pathOf('test_3')).toBe(
+          join(testCardsPath, 'test_1', 'c', 'test_2', 'c', 'test_3'),
+        );
+      },
+    );
+
+    it('refuses to graft a subtree under one of its own cards', async () => {
+      const tree = projectTree(testCardsPath);
+      await tree.load();
+
+      const subtree = tree.uproot('test_1');
+      expect(subtree.map((card) => card.key)).toEqual([
+        'test_1',
+        'test_2',
+        'test_3',
+      ]);
+
+      expect(() => tree.graft(subtree, 'test_2')).toThrow(
+        `Card 'test_1' cannot be grafted under 'test_2'`,
+      );
+    });
+  });
+
   describe('ranks', () => {
     beforeEach(() => {
       mkdirSync(testCardsPath, { recursive: true });

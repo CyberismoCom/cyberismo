@@ -205,6 +205,21 @@ export class CardTree {
     }
   }
 
+  // A card may not sit under itself or under one of its own descendants.
+  // Paths are walked up the parent edges, so a cycle is not a wrong path but
+  // no path: pathOf would never terminate, and nor would anything built on it.
+  private assertNoCycle(cardKey: string, parent: string) {
+    let ancestor: string | undefined = parent;
+    while (ancestor && ancestor !== ROOT) {
+      if (ancestor === cardKey) {
+        throw new Error(
+          `Card '${cardKey}' cannot be placed under '${parent}', which is the card itself or one of its descendants`,
+        );
+      }
+      ancestor = this.cardStore.get(ancestor)?.parent;
+    }
+  }
+
   // Stored metadata is frozen; node-level reads share it. Always a fresh
   // object, so the tree never aliases metadata its producer still holds.
   private static normalizedMetadata(
@@ -877,6 +892,7 @@ export class CardTree {
    */
   public insert(card: Card) {
     this.assertWritable();
+    this.assertNoCycle(card.key, card.parent || ROOT);
     this.options.keys.claim([card.key], this);
     this.store(card.key, {
       key: card.key,
@@ -909,10 +925,13 @@ export class CardTree {
    * Moves a card to a new position in the tree.
    * @param cardKey Card to move.
    * @param parent New parent card key, or 'root'.
+   * @throws if the card would end up under itself or under one of its own
+   *   descendants
    */
   public relocate(cardKey: string, parent: string) {
     this.assertWritable();
     const card = this.stored(cardKey);
+    this.assertNoCycle(cardKey, parent);
     this.store(cardKey, { ...card, parent });
   }
 
@@ -948,12 +967,21 @@ export class CardTree {
    * @param cards The subtree's cards, parents before children.
    * @param parent New parent for the subtree's root card, or 'root'.
    * @throws DuplicateCardKeyError if any of the keys is already held
+   * @throws if the new parent is one of the cards being grafted
    */
   public graft(cards: StoredCard[], parent: string) {
     this.assertWritable();
     if (cards.length === 0) {
       return;
     }
+    // The grafted cards are not in this tree yet, so the ancestor walk cannot
+    // see them: a parent taken from the subtree itself is caught by key.
+    if (cards.some((card) => card.key === parent)) {
+      throw new Error(
+        `Card '${cards[0].key}' cannot be grafted under '${parent}', which is part of the subtree being grafted`,
+      );
+    }
+    this.assertNoCycle(cards[0].key, parent);
     this.options.keys.claim(
       cards.map((card) => card.key),
       this,
