@@ -35,7 +35,7 @@ describe('CardTypeRenameHandler', () => {
       newIdentifier: 'choice',
     });
 
-    for (const card of project.cards(undefined)) {
+    for (const card of project.cardTree.cards()) {
       expect(card.metadata?.cardType).not.toBe(oldName);
     }
     // The card type file itself has the new name.

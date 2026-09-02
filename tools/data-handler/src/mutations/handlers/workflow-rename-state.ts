@@ -93,9 +93,7 @@ export class WorkflowRenameStateHandler implements Handler<EditInput> {
       usesWorkflow(card.metadata.cardType) &&
       card.metadata.workflowState === state;
 
-    const projectCards = ctx.project
-      .cards(ctx.project.paths.cardRootFolder)
-      .filter(matches);
+    const projectCards = ctx.project.cardTree.cards().filter(matches);
     const templateCards = ctx.project
       .allTemplateCards()
       .filter((card) => !isModuleCard(card))

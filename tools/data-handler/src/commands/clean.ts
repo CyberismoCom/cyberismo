@@ -139,7 +139,7 @@ export class Clean {
   // All cards this command may write to: project cards and local template cards.
   private cleanableCards(): Card[] {
     return [
-      ...this.project.cards(),
+      ...this.project.cardTree.cards(),
       ...this.project.resources
         .templates(ResourcesFrom.localOnly)
         .flatMap((template) => template.templateCards()),

@@ -35,7 +35,6 @@ import {
 } from '../interfaces/project-interfaces.js';
 import { pathExists } from '../utils/file-utils.js';
 import { isModulePath, sortCards } from '../utils/card-utils.js';
-import type { CardFactContext } from '../utils/clingo-facts.js';
 import { ActionGuard } from '../permissions/action-guard.js';
 import { applySideEffects, type SideEffects } from '../side-effects.js';
 import { ProjectConfiguration } from '../project-settings.js';
@@ -218,6 +217,9 @@ export class Project {
       return known;
     }
     const rootPath = cardsFolder ?? this.templateCardsFolder(templateName);
+    if (!rootPath) {
+      throw new Error(`Template '${templateName}' does not exist`);
+    }
     const tree = new CardTree({
       name: templateName,
       rootPath,
@@ -433,23 +435,6 @@ export class Project {
   }
 
   /**
-   * Returns an array of all the attachments in the project card's (excluding ones in templates).
-   * @returns all attachments in the project.
-   */
-  public attachments(): CardAttachment[] {
-    return this.cardTree.attachments();
-  }
-
-  /**
-   * Returns the attachments of a single template's cards.
-   * @param templateName Full name of the template.
-   * @returns Array of attachments from the template's cards
-   */
-  public templateAttachments(templateName: string): CardAttachment[] {
-    return this.templateTree(templateName).attachments();
-  }
-
-  /**
    * Returns path to a card's attachment folder.
    * @param cardKey card key
    * @returns path to a card's attachment folder.
@@ -502,49 +487,6 @@ export class Project {
       }
     }
     return cards;
-  }
-
-  /**
-   * Returns an array of all the cards in the project, fully hydrated.
-   * @note These are project cards only, by default (unless path dictates otherwise).
-   * @param path Path from which to fetch the cards. Generally it is best to fetch from Project root, e.g. Project.cardRootFolder
-   * @returns all cards from the given path in the project.
-   */
-  public cards(path?: string): Card[] {
-    Project.assertCardRoot(this, path);
-    return this.cardTree.cards();
-  }
-
-  // The card-root path callers still pass to the project-card reads. It has
-  // never selected anything - the project's cards are the project tree's - and
-  // it goes when these delegations do.
-  private static assertCardRoot(project: Project, path?: string) {
-    if (path && resolve(path) !== resolve(project.paths.cardRootFolder)) {
-      throw new Error(
-        `Project card reads are rooted at the card root, not '${path}'`,
-      );
-    }
-  }
-
-  /**
-   * Metadata-level view of every card at the given path: identity, tree
-   * position and metadata, without the content or the attachment listing.
-   * @param path Path from which to fetch the cards.
-   * @returns nodes of all cards from the given path in the project.
-   */
-  public cardNodes(path?: string): CardNode[] {
-    Project.assertCardRoot(this, path);
-    return this.cardTree.nodes();
-  }
-
-  /**
-   * Card keys of every card at the given path.
-   * @param path Path from which to fetch the keys.
-   * @returns keys of all cards from the given path in the project.
-   */
-  public cardKeys(path?: string): string[] {
-    Project.assertCardRoot(this, path);
-    return this.cardTree.keys();
   }
 
   /**
@@ -645,24 +587,6 @@ export class Project {
     return Project.findProjectRoot(parentPath);
   }
 
-  /**
-   * The location a card belongs to.
-   * @param cardKey Card key to look up.
-   * @returns 'project', a full template name, or undefined if the card is not
-   *   part of the project.
-   */
-  public locationOfCard(cardKey: string): string | undefined {
-    return this.keyRegistry.ownerOf(cardKey)?.name;
-  }
-
-  /**
-   * The keys of a card's ancestors, nearest first.
-   * @param cardKey Card key whose ancestors to return.
-   */
-  public ancestorsOf(cardKey: string): string[] {
-    return this.treeOf(cardKey).ancestorsOf(cardKey);
-  }
-
   private async saveCardContent(card: Card): Promise<boolean> {
     return this.treeOf(card.key).writeContent(card);
   }
@@ -691,22 +615,9 @@ export class Project {
   public async handleCardDeleted(deletedCard: Card) {
     // Delete children from the cache first
     if (deletedCard.children && deletedCard.children.length > 0) {
-      const parentTree = this.keyRegistry.ownerOf(deletedCard.key);
-
       for (const child of deletedCard.children) {
         try {
           const childCard = this.findCard(child);
-          const childTree = this.keyRegistry.ownerOf(child);
-
-          // Safety check: only delete children from the same container
-          if (childTree !== undefined && childTree !== parentTree) {
-            const errorMessage =
-              `Cannot delete child card '${child}' from different container '${childTree.name}' ` +
-              `than parent card '${deletedCard.key}' from '${parentTree?.name}'`;
-            this.logger.error(errorMessage);
-            throw new Error(errorMessage);
-          }
-
           await this.handleCardDeleted(childCard);
         } catch (error) {
           this.logger.warn(
@@ -761,7 +672,7 @@ export class Project {
 
     // Strip links from surviving cards that point at any card being removed.
     const linkUpdates: Promise<void>[] = [];
-    for (const item of this.cardNodes(this.paths.cardRootFolder)) {
+    for (const item of this.cardTree.nodes()) {
       if (deletedKeys.has(item.key) || !item.metadata) {
         continue;
       }
@@ -801,8 +712,6 @@ export class Project {
 
   /**
    * Moves a card to a new position in the card tree.
-   * @param cardKey Card that moved.
-   * @param newParent New parent card key, or 'root'.
    * @param container Container the card now belongs to: 'project' or a full
    *   template name. Defaults to the one it is in.
    */
@@ -825,10 +734,11 @@ export class Project {
    * it asks for belong to the command that created the cards and holds the
    * write lock — see runCreationSideEffects.
    * @param cards Cards that were created.
-   * @param location 'project', or the full name of the template they belong to.
+   * @param container 'project', or the full name of the template they belong
+   *   to.
    */
-  public async addCreatedCards(cards: Card[], location: string) {
-    const tree = this.containerTree(location);
+  public async addCreatedCards(cards: Card[], container: string) {
+    const tree = this.containerTree(container);
     for (const card of cards) {
       tree.insert(card);
     }
@@ -971,17 +881,6 @@ export class Project {
   }
 
   /**
-   * Returns an array of new unique card keys with project prefix (e.g. test_x649it4x).
-   * Random part of string will be always 8 characters in base-36 (0-9a-z)
-   * @param keysToCreate How many new cards are to be created.
-   * @returns an array of new card key strings
-   * @throws if a unique key could not be created within set number of attempts
-   */
-  public newCardKeys(keysToCreate: number): string[] {
-    return this.keyRegistry.allocate(keysToCreate);
-  }
-
-  /**
    * Returns a class that handles the project's paths.
    */
   public get paths(): ProjectPaths {
@@ -1106,18 +1005,6 @@ export class Project {
   }
 
   /**
-   * Registers the folder a template's cards are rooted at.
-   * @param templateName Full name of the template.
-   * @param cardsFolder The template's 'c' folder.
-   */
-  public registerTemplateCardsFolder(
-    templateName: string,
-    cardsFolder: string,
-  ): void {
-    this.templateTree(templateName, cardsFolder);
-  }
-
-  /**
    * Drops every card the project holds, so that the next populate reads them
    * all from disk again.
    */
@@ -1134,53 +1021,6 @@ export class Project {
    */
   public get resources(): ResourceHandler {
     return this.resourceHandler;
-  }
-
-  /**
-   * Show cards of a project.
-   * @returns an array of all project cards in the project.
-   */
-  public showProjectCards(): Card[] {
-    return this.cardTree.rootCards();
-  }
-
-  /**
-   * Returns cards from single template.
-   * @param templateName Name of the template (supports both full names like 'decision/templates/decision' and short names like 'decision')
-   * @returns List of cards from template.
-   */
-  public templateCards(templateName: string): Card[] {
-    if (templateName === 'project') {
-      return [];
-    }
-    return this.templateTree(templateName).cards();
-  }
-
-  /**
-   * How a card's container is projected into clingo facts.
-   *
-   * Template cards get every metadata fact a project card gets, but no
-   * card(Key) fact — that is what makes them invisible to every query
-   * predicated on card(K). Their root cards name their template as their
-   * parent.
-   * @param cardKey Card key whose container to describe.
-   */
-  public cardFactContext(cardKey: string): CardFactContext {
-    const tree = this.keyRegistry.ownerOf(cardKey) ?? this.cardTree;
-    return tree.factContext;
-  }
-
-  /**
-   * Metadata-level view of a single template's cards: identity, tree position
-   * and metadata, without the content or the attachment listing.
-   * @param templateName Name of the template.
-   * @returns nodes of the cards in that template.
-   */
-  public templateCardNodes(templateName: string): CardNode[] {
-    if (templateName === 'project') {
-      return [];
-    }
-    return this.templateTree(templateName).nodes();
   }
 
   /**

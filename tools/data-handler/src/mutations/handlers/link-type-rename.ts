@@ -69,7 +69,7 @@ export class LinkTypeRenameHandler implements Handler<RenameInput> {
   // the consumer side and cannot reference a local link type anyway.
   private affectedCards(ctx: MutationContext, oldName: string): Card[] {
     const all = [
-      ...ctx.project.cards(undefined),
+      ...ctx.project.cardTree.cards(),
       ...ctx.project.allTemplateCards().filter((card) => !isModuleCard(card)),
     ];
     return all.filter((c) =>

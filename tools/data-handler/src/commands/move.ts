@@ -39,13 +39,18 @@ import { ROOT } from '../utils/constants.js';
 export class Move {
   constructor(private project: Project) {}
 
+  // The container a card belongs to: 'project', or a template's full name.
+  private containerOf(cardKey: string): string {
+    return this.project.treeOf(cardKey).name;
+  }
+
   // The template a template card belongs to.
   private templateOf(cardKey: string): string {
-    const location = this.project.locationOfCard(cardKey);
-    if (!location || location === 'project') {
+    const container = this.containerOf(cardKey);
+    if (container === 'project') {
       throw new Error(`Card '${cardKey}' is not part of a template`);
     }
-    return location;
+    return container;
   }
 
   private static async pruneEmptyFolder(path: string) {
@@ -70,7 +75,8 @@ export class Move {
           throw new Error(`Cannot rank module cards`);
         }
         return this.project
-          .templateCards(this.templateOf(card.key))
+          .templateTree(this.templateOf(card.key))
+          .cards()
           .filter((item) => item.parent === ROOT || !item.parent);
       }
     }
@@ -81,8 +87,8 @@ export class Move {
       return this.project.cardKeysToCards(parentCard.children);
     }
 
-    return this.project
-      .showProjectCards()
+    return this.project.cardTree
+      .rootCards()
       .filter((item) => item.parent === 'root' || item.parent === '');
   }
 
@@ -181,7 +187,10 @@ export class Move {
     // Prevent moving card to inside its descendants
     if (
       destinationCard &&
-      this.project.ancestorsOf(destinationCard.key).includes(source)
+      this.project
+        .treeOf(destinationCard.key)
+        .ancestorsOf(destinationCard.key)
+        .includes(source)
     ) {
       throw new Error(`Card cannot be moved to inside itself`);
     }
@@ -249,12 +258,13 @@ export class Move {
       const parent = this.project.findCard(destination);
       children = this.project.cardKeysToCards(parent.children);
     } else if (movingToProjectRoot) {
-      children = this.project
-        .showProjectCards()
+      children = this.project.cardTree
+        .rootCards()
         .filter((item) => item.parent === ROOT || !item.parent);
     } else {
       children = this.project
-        .templateCards(targetTemplateName!)
+        .templateTree(targetTemplateName!)
+        .cards()
         .filter((item) => item.parent === ROOT || !item.parent);
     }
 
@@ -282,7 +292,7 @@ export class Move {
       movingToRoot ? ROOT : destination,
       movingToRoot
         ? (targetTemplateName ?? 'project')
-        : this.project.locationOfCard(destination)!,
+        : this.containerOf(destination),
     );
 
     await this.project.updateCardMetadataKey(source, 'rank', rank);
@@ -446,7 +456,7 @@ export class Move {
    */
   @write(() => 'Rebalance project')
   public async rebalanceProject() {
-    const cards = this.project.showProjectCards();
+    const cards = this.project.cardTree.rootCards();
 
     await this.rebalanceProjectRecursively(cards);
 
