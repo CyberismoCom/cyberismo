@@ -1059,7 +1059,7 @@ describe('Card tree', () => {
       await templateResource.addCard('decision/cardTypes/simplepage');
 
       // Verify cards from template are in cache
-      const templateCards = templateResource.templateCards();
+      const templateCards = templateResource.cardTree.cards();
       expect(templateCards.length).toBe(2);
 
       // Check that template cards exist in project cache
@@ -1083,7 +1083,7 @@ describe('Card tree', () => {
       const template = commands.project.resources.byType(name, 'templates');
       await template.addCard('decision/cardTypes/decision');
 
-      const templateCards = template.templateCards();
+      const templateCards = template.cardTree.cards();
       const templateCardKeys = templateCards.map((card) => card.key);
       for (const cardKey of templateCardKeys) {
         expect(commands.project.hasCard(cardKey)).toBe(true);

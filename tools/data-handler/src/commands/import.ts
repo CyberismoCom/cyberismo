@@ -198,7 +198,7 @@ export class Import {
         template,
         'templates',
       );
-      const templateCards = templateResource.templateCards();
+      const templateCards = templateResource.cardTree.cards();
       if (templateCards.length !== 1) {
         console.warn(
           `Template '${template}' for card '${title}' does not have exactly one card. Skipping row.`,

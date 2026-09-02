@@ -93,7 +93,7 @@ describe('TemplateResource.createCards', () => {
   it('does not change the template cards when instantiating a template twice', async () => {
     const template = templateOf('decision/templates/simplepage');
 
-    const before = template.templateCards().map((card) => ({
+    const before = template.cardTree.cards().map((card) => ({
       key: card.key,
       path: card.path,
       rank: card.metadata?.rank,
@@ -115,7 +115,7 @@ describe('TemplateResource.createCards', () => {
     await template.createCards();
     await template.createCards();
 
-    const after = template.templateCards().map((card) => ({
+    const after = template.cardTree.cards().map((card) => ({
       key: card.key,
       path: card.path,
       rank: card.metadata?.rank,
@@ -127,7 +127,7 @@ describe('TemplateResource.createCards', () => {
 
   it('surfaces the original error and leaves no partial cards when a write fails', async () => {
     const template = templateOf('decision/templates/simplepage');
-    expect(template.templateCards().length).toBe(3);
+    expect(template.cardTree.cards().length).toBe(3);
 
     const keysBefore = await cardRootKeys();
 

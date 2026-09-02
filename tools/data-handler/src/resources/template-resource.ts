@@ -99,47 +99,6 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
   }
 
   /**
-   * Every card in the template.
-   */
-  public templateCards(): Card[] {
-    return this.cardTree.cards();
-  }
-
-  /**
-   * How many cards the template has.
-   */
-  public cardCount(): number {
-    return this.cardTree.count;
-  }
-
-  /**
-   * Every attachment of every card in the template.
-   */
-  public templateAttachments(): CardAttachment[] {
-    return this.cardTree.attachments();
-  }
-
-  /**
-   * Whether the template holds a card.
-   * @param cardKey Card key to check.
-   */
-  public hasTemplateCard(cardKey: string): boolean {
-    return this.cardTree.has(cardKey);
-  }
-
-  /**
-   * One card of the template.
-   * @param cardKey Card key to read.
-   * @throws if the template does not hold the card
-   */
-  public templateCard(cardKey: string): Card {
-    if (!this.cardTree.has(cardKey)) {
-      throw new Error(`Card '${cardKey}' is not part of template`);
-    }
-    return this.cardTree.card(cardKey);
-  }
-
-  /**
    * Adds a new card to the template.
    * @param cardTypeName card type
    * @param parentCard parent card; optional - if missing will create a
@@ -175,7 +134,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
         .byType(cardTypeName, 'cardTypes')
         .show();
 
-      if (parentCard && !this.hasTemplateCard(parentCard.key)) {
+      if (parentCard && !this.cardTree.has(parentCard.key)) {
         throw new Error(
           `Card '${parentCard.key}' does not exist in template '${this.fullName}'`,
         );
@@ -189,7 +148,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
 
       const siblings = parentCard
         ? this.project.cardKeysToCards(parentCard.children)
-        : this.templateCards();
+        : tree.cards();
 
       const newCards: Card[] = [];
       for (const newCardKey of newCardKeys) {
@@ -222,7 +181,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
    * @returns the created cards
    */
   public async createCards(parentCard?: Card): Promise<Card[]> {
-    const cards = this.templateCards();
+    const cards = this.cardTree.cards();
     try {
       if (cards.length === 0) {
         throw new Error(
@@ -542,7 +501,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
       displayName: templateMetadata.displayName,
       description: templateMetadata.description,
       path: this.fileName,
-      numberOfCards: this.cardCount(),
+      numberOfCards: this.cardTree.count,
     };
   }
 

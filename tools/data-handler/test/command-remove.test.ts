@@ -697,7 +697,7 @@ describe('remove card', () => {
     );
 
     // Get template cards
-    const templateCardsBefore = templateResource.templateCards();
+    const templateCardsBefore = templateResource.cardTree.cards();
     expect(templateCardsBefore.length).toBeGreaterThan(0);
 
     // Verify at least one template card has children
@@ -731,7 +731,7 @@ describe('remove card', () => {
     }
 
     // Verify template cards still exist and were not deleted
-    const templateCardsAfter = templateResource.templateCards();
+    const templateCardsAfter = templateResource.cardTree.cards();
     expect(templateCardsAfter.length).toBe(templateCardsBefore.length);
 
     // Verify each template card still exists
