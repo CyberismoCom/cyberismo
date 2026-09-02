@@ -27,7 +27,11 @@ import { pathExists } from '../utils/file-utils.js';
 import { EMPTY_RANK, sortItems } from '../utils/lexorank.js';
 import { isPredefinedField, ROOT } from '../utils/constants.js';
 
-import type { Card, CardAttachment } from '../interfaces/project-interfaces.js';
+import type {
+  Card,
+  CardAttachment,
+  CardMetadata,
+} from '../interfaces/project-interfaces.js';
 import type { CardTree } from '../containers/project/card-tree.js';
 import type { Project } from '../containers/project.js';
 import type { ResourceName } from '../utils/resource-utils.js';
@@ -168,9 +172,9 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
    * @returns the created cards
    */
   public async createCards(parentCard?: Card): Promise<Card[]> {
-    const cards = this.cardTree.cards();
+    const templateCards = this.cardTree.cards();
     try {
-      if (cards.length === 0) {
+      if (templateCards.length === 0) {
         throw new Error(
           `No cards in template '${this.fullName}'. Please add template cards with 'add' command first.`,
         );
@@ -185,37 +189,37 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
 
     const createdPaths: string[] = [];
     try {
-      const cardKeyMap = this.buildCardKeyMap(cards);
-      const rootCardRanks = this.rootCardRanks(cards, parentCard);
-
-      // Copies of the template's cards, moved to their destination positions
-      // before anything is written: a card's folder is decided by where it
-      // sits, so the whole batch has to be placed before any of it is created.
-      const instantiated = cards.map((originalCard) => {
-        const card: Card = structuredClone(originalCard);
-        this.remapCardPosition(card, cardKeyMap, parentCard);
-        return card;
-      });
-      this.assignInstantiatedPaths(
-        instantiated,
-        parentCard
-          ? join(parentCard.path, 'c')
-          : this.project.paths.cardRootFolder,
-      );
-      createdPaths.push(...instantiated.map((card) => card.path));
-
       // Into the project's tree: a module template's own tree refuses writes.
       const destination = this.project.containerTree('project');
 
+      const cardKeyMap = this.buildCardKeyMap(templateCards);
+      const rootCardRanks = this.rootCardRanks(
+        templateCards,
+        destination,
+        parentCard,
+      );
+
+      // Positions are settled for the whole batch before anything is written:
+      // a card's folder is decided by where it sits.
+      const instantiated = templateCards.map((templateCard) =>
+        this.instantiate(templateCard, cardKeyMap, rootCardRanks, parentCard),
+      );
+      this.assignInstantiatedPaths(
+        instantiated,
+        destination.childFolderOf(parentCard?.key ?? ROOT),
+      );
+      createdPaths.push(...instantiated.map((card) => card.path));
+
       const results = await Promise.allSettled(
-        instantiated.map(async (card) => {
-          const processedCard = await this.processAttachments(
-            await this.processMetadata(card, rootCardRanks, cardKeyMap),
+        instantiated.map(async (card, index) => {
+          const createdCard = await this.copyAttachments(
+            card,
+            templateCards[index].attachments,
           );
           // The creation primitive also makes the card folder;
-          // processAttachments only creates one when the card has attachments.
-          await destination.createNode(processedCard);
-          return processedCard;
+          // copyAttachments only creates one when the card has attachments.
+          await destination.createNode(createdCard);
+          return createdCard;
         }),
       );
       const failed = results.find((result) => result.status === 'rejected');
@@ -256,46 +260,116 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
   // last future sibling at the destination.
   private rootCardRanks(
     cards: Card[],
+    destination: CardTree,
     parentCard: Card | undefined,
   ): Map<string, string> {
     const rootCards = sortItems(
       cards.filter((card) => card.parent === ROOT),
       (card) => card.metadata?.rank || '',
     );
-    // The destination tree allocates the block: it is the one that knows what
-    // is already ranked where the cards are going.
-    const ranks = this.project
-      .containerTree('project')
-      .rankBlock(parentCard ? parentCard.key : ROOT, rootCards.length);
+    const ranks = destination.rankBlock(
+      parentCard ? parentCard.key : ROOT,
+      rootCards.length,
+    );
     return new Map(rootCards.map((card, index) => [card.key, ranks[index]]));
   }
 
-  // Rewrites an instantiated card's identity and tree position: its own key,
-  // its children's keys, and its parent — either the card the template is
-  // instantiated under, or the instantiated copy of its template parent.
-  private remapCardPosition(
-    card: Card,
-    templateIDMap: Map<string, string>,
+  // One instantiated card, built field by field. Paths are assigned for the
+  // whole batch afterwards (assignInstantiatedPaths).
+  private instantiate(
+    templateCard: Card,
+    cardKeyMap: Map<string, string>,
+    rootCardRanks: Map<string, string>,
     parentCard?: Card,
-  ): void {
-    // The original template parent, before the key remapping below.
-    const originalParentKey = card.parent;
+  ): Card {
+    const templateParentKey = templateCard.parent;
+    const isTemplateRootCard = !templateParentKey || templateParentKey === ROOT;
 
-    card.key = templateIDMap.get(card.key) || card.key;
-    card.children = card.children.map(
-      (childKey) => templateIDMap.get(childKey) || childKey,
-    );
+    return {
+      // --- computed by the destination ---
+      key: cardKeyMap.get(templateCard.key) ?? templateCard.key,
+      parent: isTemplateRootCard
+        ? (parentCard?.key ?? ROOT)
+        : (cardKeyMap.get(templateParentKey) ?? parentCard?.key ?? ROOT),
+      children: templateCard.children.map(
+        (childKey) => cardKeyMap.get(childKey) ?? childKey,
+      ),
+      path: '',
 
-    const isTemplateRootCard = !originalParentKey || originalParentKey === ROOT;
-    if (parentCard) {
-      card.parent = isTemplateRootCard
-        ? parentCard.key
-        : templateIDMap.get(originalParentKey) || parentCard.key;
-      return;
+      // --- carried from the template card ---
+      content: templateCard.content,
+
+      // --- set by this operation ---
+      // The attachment copies, and the content references to them, are put on
+      // the card by copyAttachments.
+      attachments: [],
+
+      metadata: templateCard.metadata
+        ? this.instantiatedMetadata(templateCard.metadata, {
+            templateCardKey: templateCard.key,
+            rank: rootCardRanks.get(templateCard.key),
+          })
+        : undefined,
+    };
+  }
+
+  // The metadata of an instantiated card, field by field. See instantiate().
+  private instantiatedMetadata(
+    templateMetadata: CardMetadata,
+    computed: { templateCardKey: string; rank: string | undefined },
+  ): CardMetadata {
+    const cardType = this.project.resources
+      .byType(templateMetadata.cardType, 'cardTypes')
+      .show();
+
+    const workflow = this.project.resources
+      .byType(cardType.workflow, 'workflows')
+      .show();
+
+    const initialWorkflowState = workflow.transitions.find(isInitialTransition);
+    if (!initialWorkflowState) {
+      throw new Error(
+        `Workflow '${cardType.workflow}' initial state cannot be found`,
+      );
     }
-    card.parent = isTemplateRootCard
-      ? ROOT
-      : templateIDMap.get(originalParentKey) || ROOT;
+
+    const metadata: CardMetadata = {
+      // --- computed by the destination ---
+      // A root card of the template takes a rank out of the destination's
+      // block; a nested one keeps its own, which still orders it correctly
+      // among the siblings that came with it.
+      rank: computed.rank ?? templateMetadata.rank ?? EMPTY_RANK,
+      workflowState: initialWorkflowState.toState,
+      createdAt: new Date().toISOString(),
+      // links name template card keys, so they are not carried.
+      links: [],
+
+      // --- carried from the template card ---
+      cardType: cardType.name,
+      title: templateMetadata.title,
+
+      // --- set by this operation ---
+      templateCardKey: computed.templateCardKey,
+    };
+
+    if (templateMetadata.labels) {
+      metadata.labels = [...templateMetadata.labels];
+    }
+    if (templateMetadata.externalLinks) {
+      metadata.externalLinks = templateMetadata.externalLinks.map((link) => ({
+        ...link,
+      }));
+    }
+
+    // Authored custom-field values. A null on a template card is its 'no
+    // value' marker rather than content, so that slot is left absent.
+    for (const [key, value] of Object.entries(templateMetadata)) {
+      if (!isPredefinedField(key) && value !== null) {
+        metadata[key] = value;
+      }
+    }
+
+    return metadata;
   }
 
   // Places a batch of instantiated cards on disk: a card whose parent is also
@@ -326,37 +400,45 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
     }
   }
 
-  private async processAttachments(card: Card): Promise<Card> {
-    if (!card.attachments.length) return card;
+  // Copies a template card's attachments under card-key-prefixed names, and
+  // returns the card with its content references and its attachments[]
+  // pointing at the copies.
+  private async copyAttachments(
+    card: Card,
+    templateAttachments: CardAttachment[],
+  ): Promise<Card> {
+    if (templateAttachments.length === 0) return card;
 
     const attachmentsFolder = join(card.path, 'a');
     await mkdir(attachmentsFolder, { recursive: true });
 
     let content = card.content;
-    const attachments: CardAttachment[] = card.attachments.map((attachment) => {
-      const attachmentUniqueName = `${card.key}-${attachment.fileName}`;
-      content = content?.replace(
-        new RegExp(
-          `(\\{\\{#image\\}\\}[^}]*)"fileName": "${attachment.fileName}"([^}]*\\{\\{\\/image\\}\\})`,
-          'g',
-        ),
-        `$1"fileName": "${attachmentUniqueName}"$2`,
-      );
-      // keep fallback
-      content = content?.replace(
-        new RegExp(`image::${attachment.fileName}`, 'g'),
-        `image::${attachmentUniqueName}`,
-      );
-      return {
-        ...attachment,
-        card: card.key,
-        path: attachmentsFolder,
-        fileName: attachmentUniqueName,
-      };
-    });
+    const attachments: CardAttachment[] = templateAttachments.map(
+      (attachment) => {
+        const attachmentUniqueName = `${card.key}-${attachment.fileName}`;
+        content = content?.replace(
+          new RegExp(
+            `(\\{\\{#image\\}\\}[^}]*)"fileName": "${attachment.fileName}"([^}]*\\{\\{\\/image\\}\\})`,
+            'g',
+          ),
+          `$1"fileName": "${attachmentUniqueName}"$2`,
+        );
+        // keep fallback
+        content = content?.replace(
+          new RegExp(`image::${attachment.fileName}`, 'g'),
+          `image::${attachmentUniqueName}`,
+        );
+        return {
+          card: card.key,
+          path: attachmentsFolder,
+          fileName: attachmentUniqueName,
+          mimeType: attachment.mimeType,
+        };
+      },
+    );
 
     await Promise.all(
-      card.attachments.map((attachment, index) =>
+      templateAttachments.map((attachment, index) =>
         copyFile(
           join(attachment.path, attachment.fileName),
           join(attachmentsFolder, attachments[index].fileName),
@@ -364,57 +446,6 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
       ),
     );
     return { ...card, content, attachments };
-  }
-
-  private async processMetadata(
-    card: Card,
-    rootCardRanks: Map<string, string>,
-    templateIDMap: Map<string, string>,
-  ): Promise<Card> {
-    if (!card.metadata) return card;
-
-    const cardType = this.project.resources
-      .byType(card.metadata?.cardType, 'cardTypes')
-      .show();
-
-    const workflow = this.project.resources
-      .byType(cardType.workflow, 'workflows')
-      .show();
-
-    const initialWorkflowState = workflow.transitions.find(isInitialTransition);
-    if (!initialWorkflowState) {
-      throw new Error(
-        `Workflow '${cardType.workflow}' initial state cannot be found`,
-      );
-    }
-
-    let templateCardKey;
-    for (const [key, value] of templateIDMap) {
-      if (value === card.key) {
-        templateCardKey = key;
-        break;
-      }
-    }
-    const allocatedRank = templateCardKey
-      ? rootCardRanks.get(templateCardKey)
-      : undefined;
-    const newMetadata = {
-      ...card.metadata,
-      templateCardKey,
-      workflowState: initialWorkflowState.toState,
-      cardType: cardType.name,
-      createdAt: new Date().toISOString(),
-      rank: allocatedRank || card.metadata.rank || EMPTY_RANK,
-    };
-
-    // Null custom-field values on the template card are a 'no value' marker, not content.
-    for (const [key, value] of Object.entries(newMetadata)) {
-      if (value === null && !isPredefinedField(key)) {
-        delete (newMetadata as Record<string, unknown>)[key];
-      }
-    }
-
-    return { ...card, metadata: newMetadata };
   }
 
   // Deletes the card folders createCards had begun writing.
