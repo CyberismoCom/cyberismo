@@ -17,6 +17,7 @@ import { serveStatic } from '@hono/node-server/serve-static';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { findFreePort } from './utils.js';
+import { startPolicyPolling } from './overlay.js';
 import { createApp } from './app.js';
 import type { AuthProvider } from './auth/types.js';
 import type { ProjectRegistry } from './project-registry.js';
@@ -72,6 +73,9 @@ export async function startServer(
   if (findPort && !useOsAssigned) {
     port = await findFreePort(port, DEFAULT_MAX_PORT);
   }
+  startPolicyPolling(
+    registry.list().map((p) => ({ prefix: p.prefix, name: p.name })),
+  );
   const app = createApp(
     authProvider,
     registry,
