@@ -35,10 +35,16 @@ vi.mock('@/components/card/AttachmentPanel', () => ({
 // Preview renders through the shared CardLayout (read-only). Mock it and
 // capture the previewCard it receives.
 let previewTitle: unknown;
-let previewCardArg: { fields?: { key: string; value: unknown }[] } | undefined;
+let previewCardArg:
+  | { rawContent?: string; fields?: { key: string; value: unknown }[] }
+  | undefined;
 vi.mock('@/components/card/CardLayout', () => ({
   CardLayout: (props: {
-    card: { title: unknown; fields?: { key: string; value: unknown }[] };
+    card: {
+      title: unknown;
+      rawContent?: string;
+      fields?: { key: string; value: unknown }[];
+    };
   }) => {
     previewTitle = props.card.title;
     previewCardArg = props.card;
@@ -54,11 +60,13 @@ vi.mock('@/lib/api', () => ({
   useCardMutations: () => ({ updateCard }),
 }));
 
+const { dispatchSpy } = vi.hoisted(() => ({ dispatchSpy: vi.fn() }));
+
 vi.mock('@/lib/hooks', async () => {
   const utils = await vi.importActual<typeof HooksUtils>('@/lib/hooks/utils');
   return {
     useAppRouter: () => ({ push: vi.fn() }),
-    useAppDispatch: () => vi.fn(),
+    useAppDispatch: () => dispatchSpy,
     useIsDarkMode: () => false,
     formKeyHandler: utils.formKeyHandler,
   };
@@ -84,6 +92,7 @@ vi.mock('react-i18next', () => ({
 }));
 
 import { ConfigCardEditor } from '@/components/config-editors/ConfigCardEditor';
+import { isEdited } from '@/lib/slices/pageState';
 
 const baseCard = {
   key: 'c1',
@@ -153,6 +162,7 @@ const rowButton = (container: HTMLElement, key: string, dataCy: string) =>
 describe('ConfigCardEditor (template card editor)', () => {
   beforeEach(() => {
     updateCard.mockClear();
+    dispatchSpy.mockClear();
     previewTitle = undefined;
     previewCardArg = undefined;
   });
@@ -286,6 +296,96 @@ describe('ConfigCardEditor (template card editor)', () => {
   it('is read-only for a read-only node (no save controls)', () => {
     const { container } = renderEditor(undefined, { readOnly: true });
     expect(container.querySelector('[data-cy="fieldSaveButton"]')).toBeNull();
+  });
+
+  // Regression coverage for INTDEV-1368: a change saved elsewhere (another tab,
+  // another user, the CLI) reaches this editor as fresh SWR data. Nothing was
+  // typed here, so the editor must follow the new saved values instead of
+  // holding a stale draft that the navigation guard then offers to "save".
+  describe('a change saved elsewhere', () => {
+    const refreshTo = (
+      utils: ReturnType<typeof renderEditor>,
+      next: Partial<CardFixture>,
+    ) => {
+      useRawCard.mockReturnValue({
+        card: { ...baseCard, ...next },
+        isLoading: false,
+        error: null,
+      });
+      dispatchSpy.mockClear();
+      utils.rerender(
+        <ConfigCardEditor node={{ id: 'c1', readOnly: false } as never} />,
+      );
+    };
+
+    const titleInput = (container: HTMLElement) =>
+      container.querySelector(
+        '[data-cy="cardTitleInput"]',
+      ) as HTMLTextAreaElement;
+
+    it('shows the new title and does not report unsaved changes', () => {
+      const utils = renderEditor();
+      const { container } = utils;
+
+      refreshTo(utils, { title: 'Edited in another tab' });
+
+      expect(titleInput(container).value).toBe('Edited in another tab');
+      expect(
+        container.querySelector('[data-cy="titleSaveButton"]'),
+      ).toBeDisabled();
+      expect(dispatchSpy).not.toHaveBeenCalledWith(isEdited(true));
+    });
+
+    it('shows the new content and does not report unsaved changes', () => {
+      const utils = renderEditor();
+      const { container } = utils;
+
+      refreshTo(utils, { rawContent: '== Edited elsewhere' });
+
+      expect(
+        container.querySelector('[data-cy="contentSaveButton"]'),
+      ).toBeDisabled();
+      expect(dispatchSpy).not.toHaveBeenCalledWith(isEdited(true));
+
+      // The draft feeding both the editor and Preview holds the new content.
+      fireEvent.click(screen.getByRole('button', { name: 'preview' }));
+      expect(previewCardArg?.rawContent).toBe('== Edited elsewhere');
+    });
+
+    it('shows the new value of a metadata field', () => {
+      const utils = renderEditor();
+      const { container } = utils;
+
+      refreshTo(utils, {
+        fields: [
+          { ...baseCard.fields[0], value: 'set elsewhere' },
+          baseCard.fields[1],
+        ],
+      });
+
+      expect((fieldInput(container, 'f1') as HTMLInputElement).value).toBe(
+        'set elsewhere',
+      );
+      expect(rowButton(container, 'f1', 'fieldSaveButton')).toBeDisabled();
+    });
+
+    it('keeps an edit typed here, which stays dirty against the new value', () => {
+      const utils = renderEditor();
+      const { container } = utils;
+
+      fireEvent.change(titleInput(container), {
+        target: { value: 'Typed in this tab' },
+      });
+
+      refreshTo(utils, { title: 'Edited in another tab' });
+
+      // The unsaved edit is not silently discarded, and it is still offered
+      // for saving so the user resolves the conflict deliberately.
+      expect(titleInput(container).value).toBe('Typed in this tab');
+      expect(
+        container.querySelector('[data-cy="titleSaveButton"]'),
+      ).not.toBeDisabled();
+    });
   });
 
   // An overridable field is presented as an override rather than as a plain

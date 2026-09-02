@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useState } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useResourceTree } from '@/lib/api';
 import type { ResourceNode } from '@/lib/api/types';
@@ -24,6 +24,11 @@ import { useAppRouter } from '@/lib/hooks/redux';
 import { useAppDispatch } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
 import { useResource } from '@/lib/api';
+import {
+  deepEqual,
+  useSavedDraft,
+  useSavedRecordDraft,
+} from '@/lib/hooks/savedDraft';
 type EditableFieldOptions = {
   initialValue: string;
   actionKey: string;
@@ -41,12 +46,7 @@ export function useEditableField({
   saveValue,
   isUpdating,
 }: EditableFieldOptions) {
-  const [value, setValue] = useState(initialValue);
-  const [prevInitialValue, setPrevInitialValue] = useState(initialValue);
-  if (initialValue !== prevInitialValue) {
-    setPrevInitialValue(initialValue);
-    setValue(initialValue);
-  }
+  const [value, setValue] = useSavedDraft(initialValue);
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
 
@@ -73,36 +73,40 @@ export function useEditableField({
   return { value, setValue, dirty, save, cancel, saving, disabled };
 }
 
+/**
+ * Multi-value fields are compared as multisets, since their order carries no
+ * meaning; everything else deeply, so nested resource data (workflow states,
+ * card type fields) is not left comparing by reference.
+ */
+const valuesEqual = (a?: unknown, b?: unknown): boolean => {
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  if (!Array.isArray(a) || !Array.isArray(b)) return deepEqual(a, b);
+  if (a.length !== b.length) return false;
+  const unmatched = [...b];
+  return a.every((v) => {
+    const i = unmatched.findIndex((w) => valuesEqual(v, w));
+    if (i !== -1) unmatched.splice(i, 1);
+    return i !== -1;
+  });
+};
+
 export function useResourceEditorHelpers(node: ResourceNode) {
-  const originalData = ('data' in node ? node.data : {}) as Record<
-    string,
-    unknown
-  >;
+  const originalData = useMemo(
+    () => ('data' in node ? node.data : {}) as Record<string, unknown>,
+    [node],
+  );
   const { resourceTree } = useResourceTree();
   const { update } = useResource(node.data.name);
   const { push } = useAppRouter();
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
 
-  const [form, setForm] = useState<Record<string, unknown>>(() => ({
-    ...originalData,
-  }));
+  const [form, setForm] = useSavedRecordDraft(originalData, valuesEqual);
   const onChange = (key: string, value: unknown) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
-  const isArrayEqual = (a?: unknown, b?: unknown) => {
-    if (!Array.isArray(a) || !Array.isArray(b)) return false;
-    if (a.length !== b.length) return false;
-    return a.every((v) => b.includes(v));
-  };
-
-  const isDirty = (key: string): boolean => {
-    const oldVal = originalData?.[key];
-    const newVal = form[key];
-    if (Array.isArray(oldVal) || Array.isArray(newVal))
-      return !isArrayEqual(oldVal, newVal);
-    return oldVal !== newVal;
-  };
+  const isDirty = (key: string): boolean =>
+    !valuesEqual(originalData?.[key], form[key]);
 
   function changeOp<T>(oldValue: T, newValue: T): ChangeOperation<T> | null {
     if (oldValue === newValue) return null;

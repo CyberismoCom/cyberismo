@@ -27,6 +27,7 @@ import type { MetadataValue } from '@/lib/definitions';
 import { findCardParentInResourceTree, metadataValuesEqual } from '@/lib/utils';
 import { UserRole, useHasMinRole } from '@/lib/auth';
 import { useAppDispatch, useAppRouter } from '@/lib/hooks';
+import { useSavedDraft, useSavedRecordDraft } from '@/lib/hooks/savedDraft';
 import { addNotification } from '@/lib/slices/notifications';
 import { isEdited } from '@/lib/slices/pageState';
 import { parseContent } from '@/lib/api/actions/card';
@@ -65,14 +66,20 @@ export function TemplateCardEditor({
   const editable = !node?.readOnly && isAdmin;
   const [isPreview, setIsPreview] = useState(false);
 
-  const [draft, setDraft] = useState<Record<string, MetadataValue>>(() =>
-    buildDraft(card),
+  const savedDraft = useMemo(() => buildDraft(card), [card]);
+  const savedContent = card.rawContent ?? '';
+
+  // Both follow a save made elsewhere (another tab, another user, the CLI): the
+  // refetched card is the new saved state, so untouched parts of the draft
+  // adopt it instead of showing stale values the navigation guard would then
+  // offer to "save" back over it.
+  const [draft, setDraft] = useSavedRecordDraft(
+    savedDraft,
+    metadataValuesEqual,
   );
-  const [content, setContent] = useState(card.rawContent ?? '');
+  const [content, setContent] = useSavedDraft(savedContent);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const contentRef = useRef<ContentEditorHandle>(null);
-
-  const savedDraft = useMemo(() => buildDraft(card), [card]);
   const titleDenied = (card.deniedOperations.editField ?? [])
     .map((f) => f.fieldName)
     .includes('title');
@@ -81,7 +88,7 @@ export function TemplateCardEditor({
     draft[TITLE_KEY],
     savedDraft[TITLE_KEY],
   );
-  const contentDirty = content !== (card.rawContent ?? '');
+  const contentDirty = content !== savedContent;
   const anyDirty =
     contentDirty ||
     Object.keys(savedDraft).some(
@@ -236,7 +243,7 @@ export function TemplateCardEditor({
                   attachments={card.attachments ?? []}
                   onChange={setContent}
                   onSave={saveContent}
-                  onCancel={() => setContent(card.rawContent ?? '')}
+                  onCancel={() => setContent(savedContent)}
                 />
               </Stack>
             </Box>

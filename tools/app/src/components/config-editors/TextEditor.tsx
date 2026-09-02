@@ -19,6 +19,7 @@ import BaseEditor from './BaseEditor';
 import { addNotification } from '@/lib/slices/notifications';
 import { isEdited } from '@/lib/slices/pageState';
 import { useAppDispatch } from '@/lib/hooks';
+import { useSavedDraft } from '@/lib/hooks/savedDraft';
 import { useTranslation } from 'react-i18next';
 import { CODE_MIRROR_CONFIG_PROPS, CODE_MIRROR_THEMES } from '@/lib/constants';
 import { useResource } from '@/lib/api';
@@ -33,13 +34,9 @@ export function TextEditor({ node }: { node: FileNode }) {
   const { t } = useTranslation();
   const isDarkMode = useIsDarkMode();
   const isAdmin = useHasMinRole(UserRole.Admin);
-  const [content, setContent] = useState(node.data.content);
+  // Follows a save made elsewhere, unless there is unsaved typing here.
+  const [content, setContent] = useSavedDraft(node.data.content);
   const [isPreview, setIsPreview] = useState(false);
-  const [prevNode, setPrevNode] = useState(node);
-  if (node !== prevNode) {
-    setPrevNode(node);
-    setContent(node.data.content);
-  }
 
   // The preview posts to an Admin-only route, so a lesser role would only ever
   // get a 403 out of the toggle.
@@ -63,7 +60,7 @@ export function TextEditor({ node }: { node: FileNode }) {
   const handleCancel = useCallback(() => {
     setContent(node.data.content);
     dispatch(isEdited(false));
-  }, [node.data.content, dispatch]);
+  }, [node.data.content, dispatch, setContent]);
 
   return (
     <BaseEditor
