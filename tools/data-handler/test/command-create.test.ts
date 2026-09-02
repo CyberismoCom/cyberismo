@@ -1197,7 +1197,7 @@ describe('create command', () => {
 
     const name = 'decision/templates/decision';
     const template = project.resources.byType(name, 'templates');
-    const templateCards = template.templateCards();
+    const templateCards = template.cardTree.cards();
 
     const cardType = DefaultContent.cardType(
       'decision/cardTypes/decision',
@@ -1259,6 +1259,16 @@ describe('created cards and custom field values', () => {
       key.includes('/'),
     );
     expect(customFieldKeys).toEqual([]);
+  });
+
+  it('reports a card the template does not hold as not part of it', async () => {
+    await expect(
+      commands.createCmd.addCards(
+        'decision/cardTypes/decision',
+        'decision/templates/decision',
+        'idontexist',
+      ),
+    ).rejects.toThrow("Card 'idontexist' is not part of template");
   });
 
   it('falsy template values survive instantiation', async () => {

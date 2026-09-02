@@ -44,19 +44,19 @@ describe('template', () => {
   });
   it('show template cards', () => {
     const template = templateOf('decision/templates/simplepage');
-    const cards = template.templateCards();
+    const cards = template.cardTree.cards();
     expect(cards.length).toBe(3);
   });
   it('show template cards from empty template', () => {
     const template = templateOf('decision/templates/empty');
-    const cards = template.templateCards();
+    const cards = template.cardTree.cards();
     expect(cards.length).toBe(0);
   });
 
   it('throws an error when creating cards from an empty template', async () => {
     const template = templateOf('decision/templates/empty');
     await expect(template.createCards()).rejects.toThrow(Error);
-    expect(template.templateCards().length).toBe(0);
+    expect(template.cardTree.cards().length).toBe(0);
   });
   it('create template card under a specific card from a project', async () => {
     // Choose specific card so that it does not have currently child cards.
@@ -67,7 +67,7 @@ describe('template', () => {
 
     // Check that created cards are mapped from template cards.
     const createdCards = await template.createCards(cardBefore);
-    const templateCards = template.templateCards();
+    const templateCards = template.cardTree.cards();
 
     expect(
       createdCards.map((item) => item.metadata!.templateCardKey),
@@ -88,7 +88,7 @@ describe('template', () => {
     };
 
     await expect(template.createCards(nonExistingCard)).rejects.toThrow(Error);
-    expect(template.templateCards().length).toBe(0);
+    expect(template.cardTree.cards().length).toBe(0);
   });
 
   it('creates no cards when the template is not empty and parent is non-existent', async () => {
@@ -111,24 +111,24 @@ describe('template', () => {
 
   it('add new card to a template', async () => {
     const template = templateOf('decision/templates/decision');
-    const cardsBefore = template.templateCards();
+    const cardsBefore = template.cardTree.cards();
     await template.addCard('decision/cardTypes/decision');
-    const cardsAfter = template.templateCards();
+    const cardsAfter = template.cardTree.cards();
     expect(cardsBefore.length + 1).toBe(cardsAfter.length);
   });
   it('list attachments from a template (no attachments in template)', () => {
     const template = templateOf('decision/templates/simplepage');
-    const attachments = template.templateAttachments();
+    const attachments = template.cardTree.attachments();
     expect(attachments.length).toBe(0);
   });
   it('list attachments from a template', () => {
     const template = templateOf('decision/templates/decision');
-    const attachments = template.templateAttachments();
+    const attachments = template.cardTree.attachments();
     expect(attachments.length).toBe(1);
   });
   it('list attachments from an empty template', () => {
     const template = templateOf('decision/templates/empty');
-    const attachments = template.templateAttachments();
+    const attachments = template.cardTree.attachments();
     expect(attachments.length).toBe(0);
   });
   it('check that template does not exist, then create it', async () => {
@@ -170,15 +170,15 @@ describe('template', () => {
   it('access card details by id', () => {
     const template = templateOf('decision/templates/decision');
     const cardToOperateOn = 'decision_1';
-    const cardExists = template.hasTemplateCard(cardToOperateOn);
+    const cardExists = template.cardTree.has(cardToOperateOn);
     expect(cardExists).toBe(true);
 
-    const card = template.templateCard(cardToOperateOn);
+    const card = template.cardTree.card(cardToOperateOn);
     expect(card).not.toBeUndefined();
     expect(card.metadata!.title).toBe('Untitled');
     expect(card.metadata!.cardType).toBe('decision/cardTypes/decision');
     expect(card.metadata!.workflowState).toBe('Draft');
-    const additionalCardDetails = template.templateCard(cardToOperateOn);
+    const additionalCardDetails = template.cardTree.card(cardToOperateOn);
     expect(additionalCardDetails).not.toBeUndefined();
     expect(additionalCardDetails.metadata!.title).toBe('Untitled');
     expect(additionalCardDetails.metadata!.cardType).toBe(
@@ -229,9 +229,9 @@ describe('template', () => {
       CardNotFoundError,
     );
 
-    const templateAttachments = template.templateAttachments();
+    const templateAttachments = template.cardTree.attachments();
     expect(templateAttachments.length).toBe(1);
-    const templateCard = template.templateCard('decision_1');
+    const templateCard = template.cardTree.card('decision_1');
     const cardAttachments = templateCard.attachments;
     expect(cardAttachments.at(0)!.card).toBe('decision_1');
     expect(cardAttachments.at(0)!.fileName).toBe('the-needle.heic');
@@ -249,10 +249,10 @@ describe('template', () => {
     const template = templateOf('decision/templates/decision');
 
     expect(() => {
-      template.templateCard('idontexist');
-    }).toThrow(`Card 'idontexist' is not part of template`);
+      template.cardTree.card('idontexist');
+    }).toThrow(CardNotFoundError);
 
-    const existingCard = template.templateCard('decision_1');
+    const existingCard = template.cardTree.card('decision_1');
     expect(existingCard).not.toBeUndefined();
   });
   it('show template details', async () => {
@@ -268,7 +268,7 @@ describe('template', () => {
   });
   it('list template cards with card keys', async () => {
     const template = templateOf('decision/templates/decision');
-    const templateCards = template.templateCards();
+    const templateCards = template.cardTree.cards();
     expect(templateCards.length).toBeGreaterThan(0);
   });
 });

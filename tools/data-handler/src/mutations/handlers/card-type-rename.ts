@@ -107,7 +107,7 @@ export class CardTypeRenameHandler implements Handler<RenameInput> {
     const project = [...ctx.project.cardTree.cards()];
     const templates = ctx.project.resources
       .templates(ResourcesFrom.localOnly)
-      .flatMap((t) => t.templateCards());
+      .flatMap((t) => t.cardTree.cards());
     return [...project, ...templates].filter(
       (c) => c.metadata?.cardType === oldName,
     );

@@ -115,7 +115,12 @@ export class Create {
       templateName,
       'templates',
     );
-    const specificCard = card ? templateResource.templateCard(card) : undefined;
+    if (card && !templateResource.cardTree.has(card)) {
+      throw new Error(`Card '${card}' is not part of template`);
+    }
+    const specificCard = card
+      ? templateResource.cardTree.card(card)
+      : undefined;
 
     if (isModulePath(templateResource.templateFolder())) {
       throw new Error(`Cannot add cards to imported module templates`);

@@ -142,7 +142,7 @@ export class Clean {
       ...this.project.cardTree.cards(),
       ...this.project.resources
         .templates(ResourcesFrom.localOnly)
-        .flatMap((template) => template.templateCards()),
+        .flatMap((template) => template.cardTree.cards()),
     ];
   }
 
