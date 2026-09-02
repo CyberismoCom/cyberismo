@@ -24,12 +24,7 @@ import { sortCards } from '../utils/card-utils.js';
 import { writeJsonFileIfAbsent } from '../utils/json.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { pathExists } from '../utils/file-utils.js';
-import {
-  EMPTY_RANK,
-  FIRST_RANK,
-  getRankAfter,
-  sortItems,
-} from '../utils/lexorank.js';
+import { EMPTY_RANK, sortItems } from '../utils/lexorank.js';
 import { isPredefinedField, ROOT } from '../utils/constants.js';
 
 import type { Card, CardAttachment } from '../interfaces/project-interfaces.js';
@@ -143,27 +138,19 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
       const tree = this.cardTree;
       const parentKey = parentCard ? parentCard.key : ROOT;
 
-      // Keys are allocated in one pass, before anything is written.
+      // Keys and ranks are allocated in one pass, before anything is written.
       const newCardKeys = this.project.cardKeyRegistry.allocate(count);
+      const ranks = tree.rankBlock(parentKey, count);
 
-      const siblings = parentCard
-        ? this.project.cardKeysToCards(parentCard.children)
-        : tree.cards();
-
-      const newCards: Card[] = [];
-      for (const newCardKey of newCardKeys) {
-        // Each new card ranks after the siblings and after the cards
-        // allocated before it in this batch.
-        newCards.push({
-          key: newCardKey,
-          path: tree.pathFor(parentKey, newCardKey),
-          metadata: DefaultContent.card(cardType, [...siblings, ...newCards]),
-          children: [],
-          attachments: [],
-          content: '',
-          parent: parentKey,
-        });
-      }
+      const newCards: Card[] = newCardKeys.map((newCardKey, index) => ({
+        key: newCardKey,
+        path: tree.pathFor(parentKey, newCardKey),
+        metadata: { ...DefaultContent.card(cardType), rank: ranks[index] },
+        children: [],
+        attachments: [],
+        content: '',
+        parent: parentKey,
+      }));
 
       await Promise.all(newCards.map((card) => tree.createNode(card)));
       await this.project.addCreatedCards(newCards, this.fullName);
@@ -271,28 +258,16 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
     cards: Card[],
     parentCard: Card | undefined,
   ): Map<string, string> {
-    const getRank = (card: Card) => card?.metadata?.rank || '';
     const rootCards = sortItems(
-      cards.filter((c) => c.parent === ROOT),
-      getRank,
+      cards.filter((card) => card.parent === ROOT),
+      (card) => card.metadata?.rank || '',
     );
-
-    const futureSiblings = parentCard
-      ? this.project.cardKeysToCards(parentCard.children)
-      : this.project.cardTree.rootCards();
-
-    let latestRank =
-      sortItems(
-        futureSiblings.filter((c) => c.metadata?.rank !== undefined),
-        getRank,
-      ).pop()?.metadata?.rank || FIRST_RANK;
-
-    const ranks = new Map<string, string>();
-    for (const card of rootCards) {
-      latestRank = getRankAfter(latestRank);
-      ranks.set(card.key, latestRank);
-    }
-    return ranks;
+    // The destination tree allocates the block: it is the one that knows what
+    // is already ranked where the cards are going.
+    const ranks = this.project
+      .containerTree('project')
+      .rankBlock(parentCard ? parentCard.key : ROOT, rootCards.length);
+    return new Map(rootCards.map((card, index) => [card.key, ranks[index]]));
   }
 
   // Rewrites an instantiated card's identity and tree position: its own key,

@@ -975,6 +975,85 @@ describe('Card tree', () => {
     });
   });
 
+  describe('ranks', () => {
+    beforeEach(() => {
+      mkdirSync(testCardsPath, { recursive: true });
+    });
+    afterEach(() => {
+      rmSync(testDir, { recursive: true, force: true });
+    });
+
+    // A loaded tree over root cards with the given ranks, keyed test_1..test_n.
+    // A rank of '' leaves the card unranked.
+    async function withRootRanks(...ranks: string[]): Promise<CardTree> {
+      ranks.forEach((rank, index) =>
+        createTestCard(
+          `test_${index + 1}`,
+          testCardsPath,
+          pageCard(`Card ${index + 1}`, rank),
+          '',
+        ),
+      );
+      const tree = projectTree(testCardsPath);
+      await tree.load();
+      return tree;
+    }
+
+    it('allocates a block after the last ranked sibling of that parent', async () => {
+      createTestCard('test_1', testCardsPath, pageCard('Root', '0|a'), '');
+      createTestCard(
+        'test_2',
+        join(testCardsPath, 'test_1', 'c'),
+        pageCard('Child', '0|f'),
+        '',
+      );
+      const tree = projectTree(testCardsPath);
+      await tree.load();
+
+      expect(tree.rankBlock('test_1', 2)).toEqual(['0|g', '0|h']);
+      // The parent's own sibling set is a different one.
+      expect(tree.rankBlock('root', 1)).toEqual(['0|b']);
+    });
+
+    it('anchors a block on the first rank when nothing is ranked', async () => {
+      const tree = await withRootRanks('', '');
+      // '0|a' stays free, so rankFirst never has to demote its holder.
+      expect(tree.rankBlock('root', 2)).toEqual(['0|b', '0|c']);
+    });
+
+    const rankOf = (tree: CardTree, cardKey: string) =>
+      tree.node(cardKey).metadata!.rank;
+
+    it('ranks a card first, demoting whoever holds the first rank', async () => {
+      const tree = await withRootRanks('0|a', '0|m', '0|z');
+
+      await tree.reorderFirst('test_3');
+
+      expect(rankOf(tree, 'test_1')).toBe('0|g');
+      expect(rankOf(tree, 'test_3')).toBe('0|a');
+    });
+
+    it('rebalances duplicate sibling ranks before placing a card', async () => {
+      const tree = await withRootRanks('0|a', '0|b', '0|b');
+
+      await tree.reorderAfter('test_1', 'test_2');
+
+      expect(rankOf(tree, 'test_2')).toBe('0|m');
+      expect(rankOf(tree, 'test_3')).toBe('0|z');
+      expect(rankOf(tree, 'test_1')).toBe('0|s');
+    });
+
+    it('rebalances an unranked sibling set before placing a card', async () => {
+      const tree = await withRootRanks('', '');
+
+      await tree.reorderAfter('test_2', 'test_1');
+
+      expect(rankOf(tree, 'test_1')).toBe('0|a');
+      // Placed between the repaired ranks of the two siblings.
+      expect(rankOf(tree, 'test_2')).toBe('0|m');
+    });
+  });
+
   describe('key ownership and writability', () => {
     beforeEach(() => {
       createTestData();

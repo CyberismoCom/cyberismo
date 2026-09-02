@@ -1,6 +1,6 @@
 import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 
-import { mkdirSync, rmSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { copyDir } from '../src/utils/file-utils.js';
@@ -114,6 +114,39 @@ describe('rank command', () => {
 
       expect(details.metadata!.rank).toBe('0|a');
     });
+    it('reranks a sibling without validating or timestamping it', async () => {
+      const sibling = 'decision_6';
+      const lastUpdated = '2020-01-01T00:00:00.000Z';
+      const shared = await CommandManager.getInstance(decisionRecordsPath);
+      const cardFile = join(
+        shared.project.findCard(sibling).path,
+        'index.json',
+      );
+      const before = JSON.parse(readFileSync(cardFile, 'utf-8'));
+      writeFileSync(
+        cardFile,
+        JSON.stringify({
+          ...before,
+          lastUpdated,
+          'decision/fieldTypes/responsible': 'not-an-email-address',
+        }),
+      );
+      shared.project.clearCards();
+      await shared.project.populateCaches();
+
+      // Ranking the sibling's neighbour first demotes the sibling.
+      const result = await commandHandler.command(
+        Cmd.rank,
+        ['card', childCardKey, 'first'],
+        options,
+      );
+
+      expect(result.statusCode).toBe(200);
+      const after = JSON.parse(readFileSync(cardFile, 'utf-8'));
+      expect(after.rank).not.toBe(before.rank);
+      expect(after.lastUpdated).toBe(lastUpdated);
+    });
+
     it('rank template card in root (success)', async () => {
       const rankBefore = 'decision_2';
       const rootCardKey = 'decision_3';
