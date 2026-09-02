@@ -8,10 +8,10 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^22.20.1",
-    "@typescript-eslint/parser": "^8.65.0",
+    "@typescript-eslint/parser": "^8.68.0",
     "chokidar-cli": "^3.0.0",
     "cross-env": "^10.1.0",
-    "eslint": "^10.8.0",
+    "eslint": "^10.9.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-promise": "^7.3.0",
     "prettier": "^3.9.6",
@@ -19,7 +19,7 @@
     "shx": "^0.4.0",
     "tsx": "^4.23.1",
     "typescript": "^6",
-    "typescript-eslint": "^8.65.0",
+    "typescript-eslint": "^8.68.0",
     "vitest": "~4.1.10",
     "vitest-browser-react": "^2.1.0"
   },
