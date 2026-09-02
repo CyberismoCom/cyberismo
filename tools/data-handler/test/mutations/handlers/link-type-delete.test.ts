@@ -27,7 +27,7 @@ describe('LinkTypeDeleteHandler', () => {
       target: resourceName(linkTypeName),
     });
 
-    for (const card of project.cards(undefined)) {
+    for (const card of project.cardTree.cards()) {
       const links = card.metadata?.links ?? [];
       expect(links.some((l) => l.linkType === linkTypeName)).toBe(false);
     }

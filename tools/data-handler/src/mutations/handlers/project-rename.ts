@@ -87,12 +87,7 @@ export class ProjectRenameHandler implements Handler<ProjectRenameInput> {
     )) {
       await renameCards(ctx, template.templateCards(), from, to);
     }
-    await renameCards(
-      ctx,
-      ctx.project.cards(ctx.project.paths.cardRootFolder),
-      from,
-      to,
-    );
+    await renameCards(ctx, ctx.project.cardTree.cards(), from, to);
 
     await this.cascade(ctx, from, to);
 
@@ -133,7 +128,7 @@ export class ProjectRenameHandler implements Handler<ProjectRenameInput> {
     to: string,
   ): Promise<void> {
     const localCards = [
-      ...ctx.project.cards(ctx.project.paths.cardRootFolder),
+      ...ctx.project.cardTree.cards(),
       ...ctx.project.resources
         .templates(ResourcesFrom.localOnly)
         .flatMap((t) => t.templateCards()),

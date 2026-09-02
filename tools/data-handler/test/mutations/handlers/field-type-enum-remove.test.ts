@@ -55,8 +55,8 @@ async function seedCardTypeAndCardValues() {
       target: { name: fieldName() },
     },
   );
-  const cards = project
-    .cards(undefined)
+  const cards = project.cardTree
+    .cards()
     .filter((c) => c.metadata?.cardType === cardTypeName);
   for (const card of cards) {
     card.metadata![fieldName()] = 'low';
@@ -102,8 +102,8 @@ describe('FieldTypeEnumRemoveHandler', () => {
         replacementValue: { enumValue: 'medium' },
       },
     });
-    const cards = project
-      .cards(undefined)
+    const cards = project.cardTree
+      .cards()
       .filter((c) => c.metadata?.[fieldName()] !== undefined);
     for (const card of cards) {
       expect(card.metadata?.[fieldName()]).not.toBe('low');
@@ -129,8 +129,8 @@ describe('FieldTypeEnumRemoveHandler', () => {
       },
       { kind: 'replay', modulePrefix: project.projectPrefix },
     );
-    const cards = project
-      .cards(undefined)
+    const cards = project.cardTree
+      .cards()
       .filter((c) => c.metadata?.[fieldName()] !== undefined);
     expect(cards.length).toBeGreaterThan(0);
     for (const card of cards) {
@@ -148,8 +148,8 @@ describe('FieldTypeEnumRemoveHandler', () => {
     });
     // Values are only replaced when a replacementValue is given; with none,
     // cards keep their orphaned value (they are NOT nulled).
-    const cards = project
-      .cards(undefined)
+    const cards = project.cardTree
+      .cards()
       .filter((c) => c.metadata?.[fieldName()] !== undefined);
     const anyStillLow = cards.some((c) => c.metadata?.[fieldName()] === 'low');
     expect(anyStillLow).toBe(true);

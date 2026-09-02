@@ -62,8 +62,8 @@ describe('WorkflowDeleteHandler', () => {
   });
 
   it('deletes the cards of the dependent card types', async () => {
-    const before = project
-      .cards(undefined)
+    const before = project.cardTree
+      .cards()
       .filter((c) => c.metadata?.cardType === DEPENDENT_CT);
     expect(before.length).toBeGreaterThan(0);
 
@@ -73,8 +73,8 @@ describe('WorkflowDeleteHandler', () => {
     });
     await project.populateCaches();
 
-    const after = project
-      .cards(undefined)
+    const after = project.cardTree
+      .cards()
       .filter((c) => c.metadata?.cardType === DEPENDENT_CT);
     expect(after).toHaveLength(0);
   });

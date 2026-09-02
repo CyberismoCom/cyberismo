@@ -759,7 +759,6 @@ describe('Card tree', () => {
         tree.card('test_1'),
         ...tree.cards(),
         ...tree.rootCards(),
-        ...tree.cardsFor(['test_1']),
       ]) {
         expect(Object.keys(card).sort()).toEqual([
           'attachments',

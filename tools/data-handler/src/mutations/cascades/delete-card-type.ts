@@ -20,7 +20,7 @@ import type { Operation } from '../../resources/resource-object.js';
 // Cards using this card type: local project cards plus local template cards.
 function affectedCards(ctx: MutationContext, cardTypeName: string): Card[] {
   return [
-    ...ctx.project.cards(undefined),
+    ...ctx.project.cardTree.cards(),
     ...ctx.project.resources
       .templates(ResourcesFrom.localOnly)
       .flatMap((t) => t.templateCards()),

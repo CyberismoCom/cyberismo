@@ -36,8 +36,8 @@ describe('WorkflowRemoveStateHandler', () => {
 
   // Helper: put the first decision card into the given state.
   async function seedCardInState(state: string) {
-    const target = project
-      .cards(undefined)
+    const target = project.cardTree
+      .cards()
       .find((c) => c.metadata?.cardType === 'decision/cardTypes/decision')!;
     target.metadata!.workflowState = state;
     await project.updateCardMetadata(target, target.metadata!);
@@ -78,7 +78,7 @@ describe('WorkflowRemoveStateHandler', () => {
       },
     });
 
-    const refetched = project.cards(undefined).find((c) => c.key === cardKey)!;
+    const refetched = project.cardTree.cards().find((c) => c.key === cardKey)!;
     expect(refetched.metadata?.workflowState).toBe('Approved');
   });
 
@@ -86,8 +86,8 @@ describe('WorkflowRemoveStateHandler', () => {
     // The card still carries its pre-rename type while this (earlier) seal
     // replays; the registry already shows the new name. The rename map must
     // bridge the two or the card is missed.
-    const target = project
-      .cards(undefined)
+    const target = project.cardTree
+      .cards()
       .find((c) => c.metadata?.cardType === 'decision/cardTypes/decision')!;
     target.metadata!.cardType = 'decision/cardTypes/oldDecision';
     target.metadata!.workflowState = 'Rejected';
@@ -113,8 +113,8 @@ describe('WorkflowRemoveStateHandler', () => {
       },
     );
 
-    const refetched = project
-      .cards(undefined)
+    const refetched = project.cardTree
+      .cards()
       .find((c) => c.key === target.key)!;
     expect(refetched.metadata?.workflowState).toBe('Approved');
   });
@@ -138,7 +138,7 @@ describe('WorkflowRemoveStateHandler', () => {
 
     // The recorded replacement must win; falling back to the new-card state
     // ('Draft') would silently migrate the card to the wrong state.
-    const refetched = project.cards(undefined).find((c) => c.key === cardKey)!;
+    const refetched = project.cardTree.cards().find((c) => c.key === cardKey)!;
     expect(refetched.metadata?.workflowState).toBe('Approved');
   });
 
@@ -158,7 +158,7 @@ describe('WorkflowRemoveStateHandler', () => {
 
     // Without a recorded replacement, cards fall back to the state a new
     // card would get: the toState of the fixture's 'Create' transition.
-    const refetched = project.cards(undefined).find((c) => c.key === cardKey)!;
+    const refetched = project.cardTree.cards().find((c) => c.key === cardKey)!;
     expect(refetched.metadata?.workflowState).toBe('Draft');
   });
 
@@ -195,7 +195,7 @@ describe('WorkflowRemoveStateHandler', () => {
       { kind: 'replay', modulePrefix: project.projectPrefix },
     );
 
-    const refetched = project.cards(undefined).find((c) => c.key === cardKey)!;
+    const refetched = project.cardTree.cards().find((c) => c.key === cardKey)!;
     expect(refetched.metadata?.workflowState).toBe('Draft');
   });
 
@@ -233,7 +233,7 @@ describe('WorkflowRemoveStateHandler', () => {
       { kind: 'replay', modulePrefix: project.projectPrefix },
     );
 
-    const refetched = project.cards(undefined).find((c) => c.key === cardKey)!;
+    const refetched = project.cardTree.cards().find((c) => c.key === cardKey)!;
     expect(refetched.metadata?.workflowState).toBe('Rejected');
   });
 
@@ -253,7 +253,7 @@ describe('WorkflowRemoveStateHandler', () => {
       { kind: 'replay', modulePrefix: project.projectPrefix },
     );
 
-    const refetched = project.cards(undefined).find((c) => c.key === cardKey)!;
+    const refetched = project.cardTree.cards().find((c) => c.key === cardKey)!;
     expect(refetched.metadata?.workflowState).toBe('Rejected');
   });
 });

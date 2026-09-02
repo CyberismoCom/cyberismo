@@ -58,7 +58,7 @@ export class LinkTypeDeleteHandler implements Handler<DeleteInput> {
   // read-only from the consumer side and must never be rewritten here.
   private affectedCards(ctx: MutationContext, name: string): Card[] {
     return [
-      ...ctx.project.cards(undefined),
+      ...ctx.project.cardTree.cards(),
       ...ctx.project.allTemplateCards().filter((c) => !isModuleCard(c)),
     ].filter((c) => c.metadata?.links?.some((l) => l.linkType === name));
   }

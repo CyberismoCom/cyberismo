@@ -29,7 +29,7 @@ describe('edit card', () => {
   });
 
   it('edit card content (success)', async () => {
-    const cards = commands.project.cards();
+    const cards = commands.project.cardTree.cards();
     const firstCard = cards.at(0) as Card;
 
     // Modify content
@@ -43,9 +43,9 @@ describe('edit card', () => {
     );
   });
   it('edit card content - template card', async () => {
-    const templateCards = commands.project.templateCards(
-      'decision/templates/decision',
-    );
+    const templateCards = commands.project
+      .templateTree('decision/templates/decision')
+      .cards();
     const firstCard = templateCards.at(0) as Card;
 
     await editCmd.editCardContent(firstCard.key, 'whoopie');
@@ -54,7 +54,7 @@ describe('edit card', () => {
   });
 
   it('edit card content - no content', async () => {
-    const cards = commands.project.cards();
+    const cards = commands.project.cardTree.cards();
     const firstCard = cards.at(0) as Card;
     await expect(
       editCmd.editCardContent(firstCard.key, ''),
@@ -68,12 +68,12 @@ describe('edit card', () => {
   });
 
   it('try to edit card from CLI - no project', async () => {
-    const cards = commands.project.cards();
+    const cards = commands.project.cardTree.cards();
     const firstCard = cards.at(0) as Card;
     expect(() => editCmd.editCard(firstCard.key + 1)).throws(CardNotFoundError);
   });
   it('edit card metadata (success)', async () => {
-    const cards = commands.project.cards();
+    const cards = commands.project.cardTree.cards();
     const firstCard = cards.at(0) as Card;
 
     // Modify metadata - title
@@ -98,9 +98,9 @@ describe('edit card', () => {
     await freshCommands.initialize();
     const freshEditCmd = freshCommands.editCmd;
 
-    const templateCards = freshCommands.project.templateCards(
-      'decision/templates/decision',
-    );
+    const templateCards = freshCommands.project
+      .templateTree('decision/templates/decision')
+      .cards();
     const firstCard = templateCards.at(0) as Card;
 
     await freshEditCmd.editCardMetadata(firstCard.key, 'title', 'new name');
@@ -153,7 +153,7 @@ describe('edit card', () => {
     rmSync(freshTestDir, { recursive: true, force: true });
   });
   it('try to edit card metadata - incorrect field name', async () => {
-    const cards = commands.project.cards();
+    const cards = commands.project.cardTree.cards();
     const firstCard = cards.at(0) as Card;
     await expect(
       editCmd.editCardMetadata(firstCard.key, '', ''),
@@ -243,9 +243,9 @@ describe('edit card', () => {
   });
 
   it('editing a calculated field of a template card is rejected too', async () => {
-    const templateCards = commands.project.templateCards(
-      'decision/templates/decision',
-    );
+    const templateCards = commands.project
+      .templateTree('decision/templates/decision')
+      .cards();
     const templateCard = templateCards.at(0) as Card;
 
     await expect(
@@ -263,7 +263,8 @@ describe('edit card', () => {
     );
     try {
       const templateCard = freshCommands.project
-        .templateCards('decision/templates/decision')
+        .templateTree('decision/templates/decision')
+        .cards()
         .at(0) as Card;
 
       await expect(
