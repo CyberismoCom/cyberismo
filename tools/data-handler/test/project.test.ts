@@ -127,10 +127,8 @@ describe('project', () => {
     expect(cardExists).toBe(true);
 
     const name = 'decision/templates/decision';
-    const templateObject = project.resources
-      .byType(name, 'templates')
-      .templateObject();
-    const exists = templateObject.hasTemplateCard(templateCard);
+    const templateResource = project.resources.byType(name, 'templates');
+    const exists = templateResource.hasTemplateCard(templateCard);
     expect(exists).toBe(true);
     const pathToCard = await project.cardFolder(cardToOperateOn);
     expect(pathToCard).toContain('decision_5');
@@ -379,7 +377,7 @@ describe('project', () => {
     expect(projectCard.metadata?.title).toBe('Decision Records');
     expect(projectCard.metadata?.workflowState).toBe('Created');
     expect(isTemplateCard(projectCard)).toBe(false);
-    expect(project.hasTemplateCard(projectCard.key)).toBe(false);
+    expect(project.treeOf(projectCard.key)).toBe(project.cardTree);
   });
   it('empty project does not have cards', async () => {
     const emptyProjectPath = join(testDir, 'valid/minimal');
@@ -439,9 +437,10 @@ describe('project', () => {
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).not.toBeUndefined();
-    const template = project.resources
-      .byType('decision/templates/decision', 'templates')
-      .templateObject();
+    const template = project.resources.byType(
+      'decision/templates/decision',
+      'templates',
+    );
     expect(template).not.toBeUndefined();
   });
   it('create template object from project using card (success)', async () => {
@@ -451,8 +450,11 @@ describe('project', () => {
     expect(project).not.toBeUndefined();
     const templateCards = project.allTemplateCards();
     expect(templateCards.length).toBeGreaterThan(0);
-    const template = project.createTemplateObjectFromCard(templateCards.at(0)!);
+    const treeName = project.treeOf(templateCards.at(0)!.key).name;
+    expect(treeName).not.toBe('project');
+    const template = project.templateResource(treeName);
     expect(template).not.toBeUndefined();
+    expect(template!.fullName).toBe(treeName);
   });
   it('find certain card from project - with content (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
