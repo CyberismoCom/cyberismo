@@ -46,6 +46,26 @@ function parseSSEEvents(
     });
 }
 
+/**
+ * Read from an SSE stream until the text contains `marker` or `maxChunks`
+ * chunks have been read.
+ */
+async function readUntil(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  marker: string,
+  maxChunks = 10,
+): Promise<string> {
+  const decoder = new TextDecoder();
+  let text = '';
+  for (let i = 0; i < maxChunks; i++) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    text += decoder.decode(value, { stream: true });
+    if (text.includes(marker)) break;
+  }
+  return text;
+}
+
 describe('GET /api/projects/:prefix/cards/:key/presence', () => {
   test('returns 200 with text/event-stream content type', async () => {
     const response = await app.request(
@@ -119,6 +139,39 @@ describe('GET /api/projects/:prefix/cards/:key/presence', () => {
     const mockUser = data.editors.find((e) => e.userId === 'mock-user');
     expect(mockUser).toBeDefined();
     expect(mockUser!.mode).toBe('viewing');
+  });
+
+  test('broadcasts card-updated to viewers when another user saves', async () => {
+    const stream = await app.request(
+      '/api/projects/decision/cards/decision_5/presence',
+    );
+    expect(stream.status).toBe(200);
+    const reader = stream.body!.getReader();
+    // Consume the initial presence snapshot first.
+    await readUntil(reader, 'event: presence');
+
+    const patch = await app.request('/api/projects/decision/cards/decision_5', {
+      method: 'PATCH',
+      headers: {
+        'content-type': 'application/json',
+        cookie: 'mock-user=bob',
+      },
+      body: JSON.stringify({ metadata: { title: 'Saved by Bob' } }),
+    });
+    expect(patch.status).toBe(200);
+
+    const text = await readUntil(reader, 'event: card-updated');
+    void reader.cancel();
+
+    const updated = parseSSEEvents(text).find(
+      (e) => e.event === 'card-updated',
+    );
+    expect(updated).toBeDefined();
+    expect(JSON.parse(updated!.data!)).toEqual({
+      cardKey: 'decision_5',
+      userId: 'mock-user-bob',
+      userName: 'Bob',
+    });
   });
 });
 
@@ -237,5 +290,47 @@ describe('PresenceStore unit tests', () => {
 
     presenceStore.remove('test-card-5', conn);
     expect(presenceStore.getPresence('test-card-5')).toEqual([]);
+  });
+
+  test('notifyUpdated sends card-updated only to connections on that card', () => {
+    const onA: SSEMessage[] = [];
+    const onB: SSEMessage[] = [];
+    const viewer = {
+      id: 'viewer',
+      name: 'Viewer',
+      email: 'v@test.com',
+      role: UserRole.Reader,
+    };
+    presenceStore.add('card-a', viewer, 'viewing', (m) => onA.push(m));
+    presenceStore.add('card-b', viewer, 'viewing', (m) => onB.push(m));
+    onA.length = 0; // drop the presence broadcasts
+    onB.length = 0;
+
+    presenceStore.notifyUpdated('card-a', {
+      id: 'writer',
+      name: 'Writer',
+      email: 'w@test.com',
+      role: UserRole.Editor,
+    });
+
+    expect(onB).toHaveLength(0);
+    expect(onA).toHaveLength(1);
+    expect(onA[0].event).toBe('card-updated');
+    expect(JSON.parse(onA[0].data as string)).toEqual({
+      cardKey: 'card-a',
+      userId: 'writer',
+      userName: 'Writer',
+    });
+  });
+
+  test('notifyUpdated on a card with no connections is a no-op', () => {
+    expect(() =>
+      presenceStore.notifyUpdated('nobody-here', {
+        id: 'writer',
+        name: 'Writer',
+        email: 'w@test.com',
+        role: UserRole.Editor,
+      }),
+    ).not.toThrow();
   });
 });

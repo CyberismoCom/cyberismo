@@ -20,6 +20,12 @@ export interface PresenceEntry {
   mode: 'viewing' | 'editing';
 }
 
+export interface CardUpdatedEvent {
+  cardKey: string;
+  userId: string;
+  userName: string;
+}
+
 interface Connection {
   user: UserInfo;
   mode: 'viewing' | 'editing';
@@ -95,6 +101,28 @@ class PresenceStore {
     }
 
     return Array.from(byUser.values());
+  }
+
+  /**
+   * Tell every connection on a card that the card was written to.
+   * Sent as `event: card-updated`; clients refetch on it.
+   */
+  notifyUpdated(cardKey: string, user: UserInfo): void {
+    const cardConns = this.connections.get(cardKey);
+    if (!cardConns) return;
+
+    const payload: CardUpdatedEvent = {
+      cardKey,
+      userId: user.id,
+      userName: user.name,
+    };
+    const message: SSEMessage = {
+      event: 'card-updated',
+      data: JSON.stringify(payload),
+    };
+    for (const conn of cardConns.values()) {
+      conn.send(message);
+    }
   }
 
   /**

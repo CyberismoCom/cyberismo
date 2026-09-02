@@ -241,6 +241,7 @@ router.patch('/:key', requireRole(UserRole.Editor), async (c) => {
 
   try {
     await cardService.updateCard(commands, key, body);
+    presenceStore.notifyUpdated(key, c.get('user'));
     const result = await getCardDetails(
       c.get('commands'),
       key,
@@ -400,6 +401,7 @@ router.post('/:key/attachments', requireRole(UserRole.Editor), async (c) => {
       key,
       files as File[],
     );
+    presenceStore.notifyUpdated(key, c.get('user'));
     return c.json(result);
   } catch (error) {
     return c.json(
@@ -451,6 +453,7 @@ router.delete(
         key,
         filename,
       );
+      presenceStore.notifyUpdated(key, c.get('user'));
       return c.json(result);
     } catch (error) {
       return c.json(
@@ -613,6 +616,7 @@ router.post(
         direction,
         description,
       );
+      presenceStore.notifyUpdated(key, c.get('user'));
       return c.json(result);
     } catch (error) {
       return c.json(
@@ -675,6 +679,7 @@ router.delete(
         direction,
         description,
       );
+      presenceStore.notifyUpdated(key, c.get('user'));
       return c.json(result);
     } catch (error) {
       return c.json(
@@ -761,6 +766,7 @@ router.put(
         description,
         previousDescription,
       );
+      presenceStore.notifyUpdated(key, c.get('user'));
       return c.json(result);
     } catch (error) {
       return c.json(
