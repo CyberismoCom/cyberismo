@@ -128,7 +128,7 @@ describe('project', () => {
 
     const name = 'decision/templates/decision';
     const templateResource = project.resources.byType(name, 'templates');
-    const exists = templateResource.hasTemplateCard(templateCard);
+    const exists = templateResource.cardTree.has(templateCard);
     expect(exists).toBe(true);
     const pathToCard = await project.cardFolder(cardToOperateOn);
     expect(pathToCard).toContain('decision_5');
