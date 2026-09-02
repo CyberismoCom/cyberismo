@@ -144,6 +144,11 @@ export async function exportSite(
           if (url.pathname.startsWith('/.well-known')) {
             return false;
           }
+          // Skip module-versions lookups — the query requires an explicit
+          // 'source' or 'module' the crawler has no way to supply.
+          if (url.pathname.endsWith('/modules/versions')) {
+            return false;
+          }
           return req;
         },
         afterResponseHook: async (response) => {
