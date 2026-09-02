@@ -599,8 +599,11 @@ export class CardTree {
     return join(this.treeRoot, ...segments.reverse());
   }
 
-  // The folder a new child of the given parent would be created in.
-  private childFolderOf(parentKey: string = ROOT): string {
+  /**
+   * The folder a new child of the given parent would be created in.
+   * @param parentKey Parent card key, or 'root'.
+   */
+  public childFolderOf(parentKey: string = ROOT): string {
     return parentKey === ROOT
       ? this.treeRoot
       : join(this.pathOf(parentKey), CHILDREN_FOLDER);
