@@ -81,7 +81,7 @@ export async function rewriteCardContentRefs(
   // Local templates only: module content is migrated by the owning module.
   const localTemplateCards = project.resources
     .templates(ResourcesFrom.localOnly)
-    .flatMap((template) => template.templateObject().cards());
+    .flatMap((template) => template.templateCards());
   const allCards = [...project.cards(undefined), ...localTemplateCards];
   const cardsToUpdate = allCards.filter(
     (card) => card.content && card.content.includes(from),

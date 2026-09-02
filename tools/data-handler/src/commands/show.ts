@@ -103,10 +103,7 @@ export class Show {
     const templateAttachments: CardAttachment[] = [];
     const templates = this.project.resources.templates();
     for (const template of templates) {
-      const templateObject = template.templateObject();
-      if (templateObject) {
-        templateAttachments.push(...templateObject.attachments());
-      }
+      templateAttachments.push(...template.templateAttachments());
     }
     return templateAttachments;
   }
@@ -166,7 +163,7 @@ export class Show {
     }[]
   > {
     return this.project.resources.templates().map((template) => {
-      const cards = template.templateObject().listCards();
+      const cards = template.templateCards();
       const buildCards = buildCardHierarchy(cards);
 
       return {
