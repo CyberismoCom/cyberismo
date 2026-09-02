@@ -24,7 +24,7 @@ import { getTestProject } from './helpers/test-utils.js';
 import { readJsonFile } from '../src/utils/json.js';
 import { CardNameRegEx } from '../src/interfaces/project-interfaces.js';
 import { CardNotFoundError } from '../src/exceptions/index.js';
-import { Template } from '../src/containers/template.js';
+import type { TemplateResource } from '../src/resources/template-resource.js';
 
 import type { Project } from '../src/containers/project.js';
 
@@ -64,11 +64,13 @@ afterEach(() => {
   rmSync(testDir, { recursive: true, force: true });
 });
 
-function templateOf(name: string): Template {
-  return new Template(project, { name, path: '' });
+function templateOf(name: string): TemplateResource {
+  return project.resources.byType(name, 'templates');
 }
 
-async function instantiateAttachedCard(template: Template): Promise<string> {
+async function instantiateAttachedCard(
+  template: TemplateResource,
+): Promise<string> {
   const created = await template.createCards();
   const card = created.find(
     (item) => item.metadata?.templateCardKey === 'decision_2',
@@ -87,11 +89,11 @@ async function cardRootKeys(): Promise<string[]> {
     .sort();
 }
 
-describe('Template.createCards', () => {
+describe('TemplateResource.createCards', () => {
   it('does not change the template cards when instantiating a template twice', async () => {
     const template = templateOf('decision/templates/simplepage');
 
-    const before = template.cards().map((card) => ({
+    const before = template.templateCards().map((card) => ({
       key: card.key,
       path: card.path,
       rank: card.metadata?.rank,
@@ -113,7 +115,7 @@ describe('Template.createCards', () => {
     await template.createCards();
     await template.createCards();
 
-    const after = template.cards().map((card) => ({
+    const after = template.templateCards().map((card) => ({
       key: card.key,
       path: card.path,
       rank: card.metadata?.rank,
@@ -125,7 +127,7 @@ describe('Template.createCards', () => {
 
   it('surfaces the original error and leaves no partial cards when a write fails', async () => {
     const template = templateOf('decision/templates/simplepage');
-    expect(template.cards().length).toBe(3);
+    expect(template.templateCards().length).toBe(3);
 
     const keysBefore = await cardRootKeys();
 

@@ -199,7 +199,7 @@ export class Move {
     // module — those are read-only.
     let templateCardsFolder: string | undefined;
     if (targetTemplateName) {
-      const template = this.project.templateObjectByName(targetTemplateName);
+      const template = this.project.templateResource(targetTemplateName);
       if (!template) {
         throw new Error(
           `Template ${targetTemplateName} not found in this project`,

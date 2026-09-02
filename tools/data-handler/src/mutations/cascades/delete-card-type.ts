@@ -23,7 +23,7 @@ function affectedCards(ctx: MutationContext, cardTypeName: string): Card[] {
     ...ctx.project.cards(undefined),
     ...ctx.project.resources
       .templates(ResourcesFrom.localOnly)
-      .flatMap((t) => t.templateObject().cards()),
+      .flatMap((t) => t.templateCards()),
   ].filter((c) => c.metadata?.cardType === cardTypeName);
 }
 
