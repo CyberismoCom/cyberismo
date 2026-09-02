@@ -40,6 +40,14 @@ import { deleteDir, pathExists } from '../../utils/file-utils.js';
 import { getChildLogger } from '../../utils/log-utils.js';
 import { writeJsonFile } from '../../utils/json.js';
 import { isPredefinedField, ROOT } from '../../utils/constants.js';
+import {
+  EMPTY_RANK,
+  FIRST_RANK,
+  getRankAfter,
+  getRankBetween,
+  rebalanceRanks,
+  sortItems,
+} from '../../utils/lexorank.js';
 
 import type { CardFactContext } from '../../utils/clingo-facts.js';
 import type { CardKeyRegistry } from './card-keys.js';
@@ -90,6 +98,12 @@ export interface CardTreeOptions {
   emitsCardFact: boolean;
   validationApplies: boolean;
   keys: CardKeyRegistry;
+}
+
+/** A rank the caller is to persist: which card, and what its rank becomes. */
+export interface RankChange {
+  cardKey: string;
+  rank: string;
 }
 
 /**
@@ -481,6 +495,13 @@ export class CardTree {
   }
 
   /**
+   * Whether the tree accepts writes.
+   */
+  public get writable(): boolean {
+    return this.options.writable;
+  }
+
+  /**
    * Whether the tree's cards take part in workflow semantics: metadata
    * validation, and the permissions built on it.
    */
@@ -692,6 +713,161 @@ export class CardTree {
    */
   public attachmentFolderOf(cardKey: string): string {
     return join(this.pathOf(cardKey), ATTACHMENT_FOLDER);
+  }
+
+  /**
+   * The keys of a card's siblings, in rank order. The card itself is one of
+   * them.
+   * @param cardKey Card key whose sibling set to return.
+   * @throws CardNotFoundError if the tree does not hold the card
+   */
+  public siblingsOf(cardKey: string): string[] {
+    return this.siblingsUnder(this.stored(cardKey).parent);
+  }
+
+  // The keys under a parent, in rank order. 'root' means the tree's root
+  // cards.
+  private siblingsUnder(parentKey: string): string[] {
+    const siblings = this.childrenOf(parentKey).map((key) => this.stored(key));
+    return sortItems(
+      siblings,
+      (card) => this.rankOf(card.key) ?? EMPTY_RANK,
+    ).map((card) => card.key);
+  }
+
+  // The rank a card holds, or undefined for none. '' and EMPTY_RANK both mean
+  // 'no rank': EMPTY_RANK's '1|' bucket prefix is not something the
+  // arithmetic can extend.
+  private rankOf(cardKey: string): string | undefined {
+    const rank = this.cardStore.get(cardKey)?.metadata?.rank;
+    if (typeof rank !== 'string' || rank === '' || rank === EMPTY_RANK) {
+      return undefined;
+    }
+    return rank;
+  }
+
+  private lastRankUnder(parentKey: string): string | undefined {
+    return this.siblingsUnder(parentKey)
+      .map((key) => this.rankOf(key))
+      .findLast((rank) => rank !== undefined);
+  }
+
+  /**
+   * Ranks for a block of new cards placed after everything already ranked
+   * under a parent.
+   * @param parentKey Parent the cards will sit under, or 'root'.
+   * @returns the ranks, in increasing order.
+   */
+  public rankBlock(parentKey: string, count: number): string[] {
+    // FIRST_RANK is the anchor rather than the first value handed out, so
+    // '0|a' stays free for rankFirst to claim without demoting its holder.
+    let previous = this.lastRankUnder(parentKey) ?? FIRST_RANK;
+    const ranks: string[] = [];
+    for (let index = 0; index < count; index++) {
+      previous = getRankAfter(previous);
+      ranks.push(previous);
+    }
+    return ranks;
+  }
+
+  /**
+   * Places a card immediately after one of its siblings.
+   * @param cardKey Card to rank.
+   * @param afterKey Sibling to place it after.
+   * @returns the ranks to persist, in order. Drifted sibling ranks are
+   *   rebalanced first, so the result may name siblings other than the ranked
+   *   card.
+   * @throws CardNotFoundError if the tree does not hold either card
+   */
+  public rankAfter(cardKey: string, afterKey: string): RankChange[] {
+    this.stored(cardKey);
+    const siblings = this.siblingsOf(afterKey);
+    const index = siblings.indexOf(afterKey);
+    return this.withUsableRanks(siblings, (rankAt) =>
+      index === siblings.length - 1
+        ? [{ cardKey, rank: getRankAfter(rankAt(index)) }]
+        : [{ cardKey, rank: getRankBetween(rankAt(index), rankAt(index + 1)) }],
+    );
+  }
+
+  /**
+   * Places a card first among its siblings.
+   * @param cardKey Card to rank.
+   * @returns the ranks to persist, in order; empty if the card already holds
+   *   the first position. Freeing FIRST_RANK may take demoting whoever holds
+   *   it, which is then the first change in the result.
+   * @throws CardNotFoundError if the tree does not hold the card
+   */
+  public rankFirst(cardKey: string): RankChange[] {
+    const siblings = this.siblingsOf(cardKey);
+    const firstKey = siblings[0];
+    if (firstKey === cardKey && this.rankOf(cardKey)) {
+      return [];
+    }
+    if (this.rankOf(firstKey) !== FIRST_RANK) {
+      return [{ cardKey, rank: FIRST_RANK }];
+    }
+    return this.withUsableRanks(siblings, (rankAt) => [
+      { cardKey: firstKey, rank: getRankBetween(rankAt(0), rankAt(1)) },
+      { cardKey, rank: FIRST_RANK },
+    ]);
+  }
+
+  /**
+   * Even ranks for the cards under a parent, spread across the whole rank
+   * space.
+   * @param parentKey Parent whose children to rebalance, or 'root'.
+   * @returns the ranks to persist, in order.
+   */
+  public rebalanceUnder(parentKey: string): RankChange[] {
+    const siblings = this.siblingsUnder(parentKey);
+    const ranks = rebalanceRanks(siblings.length);
+    return siblings.map((cardKey, index) => ({ cardKey, rank: ranks[index] }));
+  }
+
+  /**
+   * Even ranks for everything below a parent, level by level.
+   * @param parentKey Parent whose subtree to rebalance, or 'root' for the
+   *   whole tree.
+   * @returns the ranks to persist, in order.
+   */
+  public rebalanceSubtree(parentKey: string): RankChange[] {
+    const changes = this.rebalanceUnder(parentKey);
+    for (const change of [...changes]) {
+      if (this.childrenOf(change.cardKey).length > 0) {
+        changes.push(...this.rebalanceSubtree(change.cardKey));
+      }
+    }
+    return changes;
+  }
+
+  // Runs a rank computation against the sibling ranks. A drifted set - a
+  // missing rank, a duplicate or inverted pair - is rebalanced first and the
+  // computation rerun against the repair, which is prepended to the changes.
+  private withUsableRanks(
+    siblings: string[],
+    compute: (rankAt: (index: number) => string) => RankChange[],
+  ): RankChange[] {
+    const ranks = siblings.map((key) => this.rankOf(key));
+    if (ranks.every((rank) => rank !== undefined)) {
+      try {
+        return compute((index) => ranks[index]!);
+      } catch (error) {
+        // Drifted ranks; fall through to the rebalance and retry. A TypeError
+        // is the arithmetic's own failure, not drift.
+        if (error instanceof TypeError) {
+          throw error;
+        }
+      }
+    }
+    const rebalanced = rebalanceRanks(siblings.length);
+    return [
+      ...siblings.map((cardKey, index) => ({
+        cardKey,
+        rank: rebalanced[index],
+      })),
+      ...compute((index) => rebalanced[index]),
+    ];
   }
 
   /**
