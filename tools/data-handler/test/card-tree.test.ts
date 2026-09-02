@@ -1242,8 +1242,8 @@ describe('Card tree', () => {
       );
       await templateResource.create();
       commands.project.resources.changed();
-      await templateResource.addCard('decision/cardTypes/decision');
-      await templateResource.addCard('decision/cardTypes/simplepage');
+      await commands.createCmd.addCards('decision/cardTypes/decision', name);
+      await commands.createCmd.addCards('decision/cardTypes/simplepage', name);
 
       // Verify cards from template are in cache
       const templateCards = templateResource.cardTree.cards();
@@ -1268,7 +1268,7 @@ describe('Card tree', () => {
       commands.project.resources.changed();
 
       const template = commands.project.resources.byType(name, 'templates');
-      await template.addCard('decision/cardTypes/decision');
+      await commands.createCmd.addCards('decision/cardTypes/decision', name);
 
       const templateCards = template.cardTree.cards();
       const templateCardKeys = templateCards.map((card) => card.key);

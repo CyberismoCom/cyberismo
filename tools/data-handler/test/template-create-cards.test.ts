@@ -25,6 +25,7 @@ import { readJsonFile } from '../src/utils/json.js';
 import { CardNameRegEx } from '../src/interfaces/project-interfaces.js';
 import { CardNotFoundError } from '../src/exceptions/index.js';
 import type { TemplateResource } from '../src/resources/template-resource.js';
+import { instantiateTemplate } from '../src/containers/project/template-instantiation.js';
 
 import type { Project } from '../src/containers/project.js';
 
@@ -71,7 +72,7 @@ function templateOf(name: string): TemplateResource {
 async function instantiateAttachedCard(
   template: TemplateResource,
 ): Promise<string> {
-  const created = await template.createCards();
+  const created = await instantiateTemplate(project, template.cardTree);
   const card = created.find(
     (item) => item.metadata?.templateCardKey === 'decision_2',
   );
@@ -89,7 +90,7 @@ async function cardRootKeys(): Promise<string[]> {
     .sort();
 }
 
-describe('TemplateResource.createCards', () => {
+describe('instantiateTemplate', () => {
   it('does not change the template cards when instantiating a template twice', async () => {
     const template = templateOf('decision/templates/simplepage');
 
@@ -112,8 +113,8 @@ describe('TemplateResource.createCards', () => {
 
     const diskBefore = await ranksOnDisk();
 
-    await template.createCards();
-    await template.createCards();
+    await instantiateTemplate(project, template.cardTree);
+    await instantiateTemplate(project, template.cardTree);
 
     const after = template.cardTree.cards().map((card) => ({
       key: card.key,
@@ -133,7 +134,7 @@ describe('TemplateResource.createCards', () => {
 
     await rm(join(attachedCardFolder, 'a', ATTACHMENT));
 
-    const error = await template.createCards().then(
+    const error = await instantiateTemplate(project, template.cardTree).then(
       () => undefined,
       (reason: unknown) => reason as Error,
     );
@@ -157,7 +158,9 @@ describe('TemplateResource.createCards', () => {
 
     await rm(join(attachedCardFolder, 'a', ATTACHMENT));
 
-    await expect(template.createCards(parentCard)).rejects.toThrow(/ENOENT/);
+    await expect(
+      instantiateTemplate(project, template.cardTree, parentCard),
+    ).rejects.toThrow(/ENOENT/);
 
     // The parent and its existing children are untouched.
     const parentAfter = project.findCard('decision_5');
@@ -178,8 +181,8 @@ describe('TemplateResource.createCards', () => {
   });
 
   // Instantiation is a create, not a copy: the field-transfer list in
-  // TemplateResource.instantiate / instantiatedMetadata is the specification
-  // of what an instantiated card is, and this pins it. A field that used to
+  // instantiate / instantiatedMetadata is the specification of what an
+  // instantiated card is, and this pins it. A field that used to
   // arrive by being spread in from the template card - links and
   // lastTransitioned, both meaningless on a fresh card - is now absent because
   // nothing puts it there.
@@ -221,7 +224,7 @@ describe('TemplateResource.createCards', () => {
     );
 
     const before = Date.now();
-    const [created] = await template.createCards();
+    const [created] = await instantiateTemplate(reloaded, template.cardTree);
     const metadata = created.metadata as Record<string, unknown>;
 
     expect(Object.keys(metadata).sort()).toEqual([
