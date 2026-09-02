@@ -11,49 +11,15 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-// node
-import { dirname, join } from 'node:path';
-import { rmdir } from 'node:fs/promises';
-
 import { ActionGuard } from '../permissions/action-guard.js';
-import { copyDir, deleteDir } from '../utils/file-utils.js';
 import type { Project } from '../containers/project.js';
+import type { CardTree } from '../containers/project/card-tree.js';
 import { write } from '../utils/rw-lock.js';
-import {
-  isModuleCard,
-  isModulePath,
-  isTemplateCard,
-} from '../utils/card-utils.js';
 
 import { ROOT } from '../utils/constants.js';
 
 export class Move {
   constructor(private project: Project) {}
-
-  // The container a card belongs to: 'project', or a template's full name.
-  private containerOf(cardKey: string): string {
-    return this.project.treeOf(cardKey).name;
-  }
-
-  // The template a template card belongs to.
-  private templateOf(cardKey: string): string {
-    const container = this.containerOf(cardKey);
-    if (container === 'project') {
-      throw new Error(`Card '${cardKey}' is not part of a template`);
-    }
-    return container;
-  }
-
-  private static async pruneEmptyFolder(path: string) {
-    try {
-      await rmdir(path);
-    } catch (error) {
-      const code = (error as NodeJS.ErrnoException)?.code;
-      if (code !== 'ENOTEMPTY' && code !== 'EEXIST' && code !== 'ENOENT') {
-        throw error;
-      }
-    }
-  }
 
   /**
    * Moves card from 'destination' to 'source'.
@@ -69,7 +35,10 @@ export class Move {
       throw new Error(`Card cannot be moved to itself`);
     }
 
-    const sourceCard = this.project.findCard(source);
+    const sourceTree = this.project.treeOf(source);
+    const sourceCard = sourceTree.card(source);
+    const sourceIsTemplate = sourceTree.name !== 'project';
+
     const movingToRoot =
       destination === ROOT || destination.startsWith('root:');
     let targetTemplateName: string | undefined;
@@ -77,8 +46,9 @@ export class Move {
 
     if (movingToRoot) {
       if (destination === ROOT) {
-        if (isTemplateCard(sourceCard)) {
-          targetTemplateName = this.templateOf(sourceCard.key);
+        // Bare 'root' means the root of the card's own container.
+        if (sourceIsTemplate) {
+          targetTemplateName = sourceTree.name;
         } else {
           movingToProjectRoot = true;
         }
@@ -89,33 +59,24 @@ export class Move {
       }
     }
 
-    const destinationCard = !movingToRoot
-      ? this.project.findCard(destination)
-      : undefined;
+    const destinationTree = movingToRoot
+      ? undefined
+      : this.project.treeOf(destination);
 
     // Prevent moving card to inside its descendants
-    if (
-      destinationCard &&
-      this.project
-        .treeOf(destinationCard.key)
-        .ancestorsOf(destinationCard.key)
-        .includes(source)
-    ) {
+    if (destinationTree?.ancestorsOf(destination).includes(source)) {
       throw new Error(`Card cannot be moved to inside itself`);
     }
 
     // Imported templates cannot be modified.
-    if (
-      (destinationCard && isModuleCard(destinationCard)) ||
-      isModuleCard(sourceCard)
-    ) {
+    if (!sourceTree.writable || destinationTree?.writable === false) {
       throw new Error(`Cannot modify imported module templates`);
     }
 
-    // Resolve the target template (when moving to a template root) and its
-    // cards folder. Reject if the resolved template belongs to an imported
-    // module — those are read-only.
-    let templateCardsFolder: string | undefined;
+    // Resolve the target template (when moving to a template root). Reject if
+    // the resolved template belongs to an imported module — those are
+    // read-only.
+    let targetTemplateTree: CardTree | undefined;
     if (targetTemplateName) {
       const template = this.project.templateResource(targetTemplateName);
       if (!template) {
@@ -123,19 +84,18 @@ export class Move {
           `Template ${targetTemplateName} not found in this project`,
         );
       }
-      templateCardsFolder = template.templateCardsFolder();
-      if (isModulePath(templateCardsFolder)) {
+      targetTemplateTree = template.cardTree;
+      if (!targetTemplateTree.writable) {
         throw new Error(`Cannot modify imported module templates`);
       }
     }
 
-    const sourceIsTemplate = isTemplateCard(sourceCard);
     const destIsProject =
       movingToProjectRoot ||
-      (destinationCard !== undefined && !isTemplateCard(destinationCard));
+      (destinationTree !== undefined && destinationTree.name === 'project');
     const destIsTemplate =
       targetTemplateName !== undefined ||
-      (destinationCard !== undefined && isTemplateCard(destinationCard));
+      (destinationTree !== undefined && destinationTree.name !== 'project');
     if (
       (sourceIsTemplate && destIsProject) ||
       (!sourceIsTemplate && destIsTemplate)
@@ -145,20 +105,12 @@ export class Move {
       );
     }
 
-    // Which container the card lands in: the template the sentinel named, the
-    // project root, or whatever container the destination card is in.
-    const destinationContainer = movingToRoot
-      ? (targetTemplateName ?? 'project')
-      : this.containerOf(destination);
-
-    const destinationPath = movingToRoot
-      ? movingToProjectRoot
-        ? join(this.project.paths.cardRootFolder, sourceCard.key)
-        : join(templateCardsFolder!, sourceCard.key)
-      : join(destinationCard!.path, 'c', sourceCard.key);
+    const targetTree =
+      targetTemplateTree ?? destinationTree ?? this.project.cardTree;
+    const newParent = movingToRoot ? ROOT : destination;
 
     // if the card is already in the destination, do nothing
-    if (sourceCard.path === destinationPath) {
+    if (sourceTree === targetTree && sourceCard.parent === newParent) {
       return;
     }
 
@@ -166,29 +118,8 @@ export class Move {
     const actionGuard = new ActionGuard(this.project.calculationEngine);
     await actionGuard.checkPermission('move', source);
 
-    // The card lands last in its new location. Taken before the structure
-    // update, so the card being moved is not one of the siblings it is ranked
-    // against.
-    const [rank] = this.project
-      .containerTree(destinationContainer)
-      .rankBlock(movingToRoot ? ROOT : destination, 1);
+    await this.project.relocateCard(source, newParent, targetTree.name);
 
-    // First do the file operations, then the tree position
-    await copyDir(sourceCard.path, destinationPath);
-    await deleteDir(sourceCard.path);
-    if (sourceCard.parent && sourceCard.parent !== ROOT) {
-      await Move.pruneEmptyFolder(dirname(sourceCard.path));
-    }
-
-    this.project.relocateCard(
-      source,
-      movingToRoot ? ROOT : destination,
-      destinationContainer,
-    );
-
-    await this.project.updateCardMetadataKey(source, 'rank', rank);
-
-    // Notify the project about the move (calculation engine tree rebuild)
     await this.project.handleCardMoved(this.project.cardNode(source));
   }
 

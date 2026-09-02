@@ -21,6 +21,7 @@ import {
   readdir,
   readFile,
   rename,
+  rmdir,
   unlink,
   writeFile,
 } from 'node:fs/promises';
@@ -36,7 +37,7 @@ import type {
 } from '../../interfaces/project-interfaces.js';
 import { CardNameRegEx } from '../../interfaces/project-interfaces.js';
 import { CardNotFoundError } from '../../exceptions/index.js';
-import { deleteDir, pathExists } from '../../utils/file-utils.js';
+import { copyDir, deleteDir, pathExists } from '../../utils/file-utils.js';
 import { getChildLogger } from '../../utils/log-utils.js';
 import { writeJsonFile } from '../../utils/json.js';
 import { isPredefinedField, ROOT } from '../../utils/constants.js';
@@ -63,7 +64,7 @@ interface StoredAttachment {
 // A card as the tree stores it: identity, tree position and the card's own
 // data. No path: a card's folder is derived from the edges and the tree's
 // root folder (see pathOf).
-export interface StoredCard {
+interface StoredCard {
   key: string;
   parent: string;
   children: string[];
@@ -952,38 +953,90 @@ export class CardTree {
   }
 
   /**
-   * Moves a card to a new position in the tree.
+   * Moves a card to a new position in the tree: its rank, its folder, then its
+   * edge. The card lands last among its new siblings.
    * @param cardKey Card to move.
    * @param parent New parent card key, or 'root'.
    * @throws if the card would end up under itself or under one of its own
    *   descendants
    */
-  public relocate(cardKey: string, parent: string) {
+  public async relocate(cardKey: string, parent: string) {
     this.assertWritable();
-    const card = this.stored(cardKey);
     this.assertNoCycle(cardKey, parent);
+    if (this.stored(cardKey).parent === parent) {
+      return;
+    }
+    // The rank is persisted before the rename: a card at its destination has
+    // its destination rank, so a retry completes the move.
+    const [rank] = this.rankBlock(parent, 1);
+    await this.writeRank(cardKey, rank);
+    const card = this.stored(cardKey);
+    const from = this.pathOfStored(card);
+    await CardTree.moveFolder(from, this.pathFor(parent, cardKey));
     this.store(cardKey, { ...card, parent });
+    if (card.parent !== ROOT) {
+      await CardTree.pruneEmptyFolder(dirname(from));
+    }
   }
 
   /**
-   * Takes a card and its descendants out of the tree, without touching the
-   * filesystem. The caller hands the result to the destination tree's graft().
-   * @returns the subtree's cards, parents before children.
+   * Takes a card and its descendants over from another tree, and ranks the
+   * card last among its new siblings. Both trees are checked before the
+   * rename; nothing is mutated if either refuses.
+   * @param parent New parent card key in this tree, or 'root'.
    */
-  public uproot(cardKey: string): StoredCard[] {
+  public async adopt(source: CardTree, cardKey: string, parent: string) {
+    source.assertWritable();
     this.assertWritable();
-    const uprooted: StoredCard[] = [];
-    const collect = (key: string) => {
-      const card = this.cardStore.get(key);
-      if (!card) {
-        return;
+    // The rank is persisted before the rename: a card at its destination has
+    // its destination rank, so a retry completes the move.
+    const [rank] = this.rankBlock(parent, 1);
+    await source.writeRank(cardKey, rank);
+    const card = source.stored(cardKey);
+    const from = source.pathOfStored(card);
+    await CardTree.moveFolder(from, this.pathFor(parent, cardKey));
+    // The registry refuses a claim on a key the source still owns: uproot
+    // releases them, and graft claims them.
+    this.graft(source.uproot(cardKey), parent);
+    if (card.parent !== ROOT) {
+      await CardTree.pruneEmptyFolder(dirname(from));
+    }
+  }
+
+  // Moves a card's folder, and everything under it, by renaming it.
+  private static async moveFolder(from: string, to: string) {
+    // Moving a card into another card creates that card's 'c' folder.
+    await mkdir(dirname(to), { recursive: true });
+    try {
+      await rename(from, to);
+    } catch (error) {
+      // rename cannot cross filesystems (a card root spanning a mount point).
+      if ((error as NodeJS.ErrnoException).code !== 'EXDEV') {
+        throw error;
       }
-      uprooted.push(card);
-      for (const childKey of this.childrenOf(key)) {
-        collect(childKey);
+      await copyDir(from, to);
+      await deleteDir(from);
+    }
+  }
+
+  // Callers prune after their store update, so a failed prune leaves disk and
+  // store agreeing. The card's former siblings are the expected ENOTEMPTY.
+  private static async pruneEmptyFolder(path: string) {
+    try {
+      await rmdir(path);
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException)?.code;
+      if (code !== 'ENOTEMPTY' && code !== 'EEXIST' && code !== 'ENOENT') {
+        throw error;
       }
-    };
-    collect(cardKey);
+    }
+  }
+
+  // Takes a card and its descendants out of the tree, without touching the
+  // filesystem, and returns them parents before children.
+  private uproot(cardKey: string): StoredCard[] {
+    this.assertWritable();
+    const uprooted = this.subtreeOf(cardKey);
     // Children first, so a parent's child list is empty by the time it goes.
     for (const card of [...uprooted].reverse()) {
       this.unstore(card.key);
@@ -992,26 +1045,25 @@ export class CardTree {
     return uprooted;
   }
 
-  /**
-   * Puts a subtree taken out of another tree into this one.
-   * @param cards The subtree's cards, parents before children.
-   * @param parent New parent for the subtree's root card, or 'root'.
-   * @throws DuplicateCardKeyError if any of the keys is already held
-   * @throws if the new parent is one of the cards being grafted
-   */
-  public graft(cards: StoredCard[], parent: string) {
-    this.assertWritable();
-    if (cards.length === 0) {
-      return;
-    }
-    // The grafted cards are not in this tree yet, so the ancestor walk cannot
-    // see them: a parent taken from the subtree itself is caught by key.
-    if (cards.some((card) => card.key === parent)) {
-      throw new Error(
-        `Card '${cards[0].key}' cannot be grafted under '${parent}', which is part of the subtree being grafted`,
-      );
-    }
-    this.assertNoCycle(cards[0].key, parent);
+  // The stored cards of a card and its descendants, parents before children.
+  private subtreeOf(cardKey: string): StoredCard[] {
+    const subtree: StoredCard[] = [];
+    const collect = (key: string) => {
+      const card = this.cardStore.get(key);
+      if (!card) {
+        return;
+      }
+      subtree.push(card);
+      for (const childKey of this.childrenOf(key)) {
+        collect(childKey);
+      }
+    };
+    collect(cardKey);
+    return subtree;
+  }
+
+  // Puts a subtree taken out of another tree into this one, under 'parent'.
+  private graft(cards: StoredCard[], parent: string) {
     this.options.keys.claim(
       cards.map((card) => card.key),
       this,
