@@ -25,11 +25,12 @@ import {
 // node
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { dirname, join, sep } from 'node:path';
+import { join, sep } from 'node:path';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { CardKeyRegistry } from '../src/containers/project/card-keys.js';
 import { CardTree } from '../src/containers/project/card-tree.js';
+import type { NewCard } from '../src/containers/project/card-tree.js';
 import type {
   Card,
   CardMetadata,
@@ -287,23 +288,6 @@ describe('Card tree', () => {
     });
     afterAll(() => {
       rmSync(testDir, { recursive: true, force: true });
-    });
-
-    it('adds a card the tree does not hold yet', () => {
-      expect(tree.has('test_new')).toBe(false);
-
-      tree.insert({
-        key: 'test_new',
-        path: join(testCardsPath, 'test_new'),
-        children: [],
-        attachments: [],
-        metadata: { ...pageCard('New Card'), links: [] },
-      });
-
-      expect(tree.has('test_new')).toBe(true);
-      expect(tree.card('test_new').metadata!.title).toBe('New Card');
-      // Inserted at the location's root, so its folder is the root's.
-      expect(tree.pathOf('test_new')).toBe(join(testCardsPath, 'test_new'));
     });
 
     it('persists card content and keeps the store in step', async () => {
@@ -826,14 +810,12 @@ describe('Card tree', () => {
 
     const ALPHA_TEMPLATE = 'test/templates/alpha';
 
-    function cardAt(cardKey: string, parent: string): Card {
+    function cardAt(cardKey: string, parent: string): NewCard {
       return {
         key: cardKey,
-        path: join(testCardsPath, cardKey),
         parent,
-        children: [],
-        attachments: [],
         content: '',
+        attachments: [],
         metadata: {
           title: cardKey,
           cardType: 'test/cardTypes/page',
@@ -845,7 +827,7 @@ describe('Card tree', () => {
     }
 
     async function treesWith(
-      ...cards: Card[]
+      ...cards: NewCard[]
     ): Promise<{ tree: CardTree; alpha: CardTree; keys: CardKeyRegistry }> {
       const keys = new CardKeyRegistry(() => 'test');
       const tree = projectTree(testCardsPath, keys);
@@ -855,16 +837,7 @@ describe('Card tree', () => {
         keys,
       );
       await tree.load();
-      for (const card of cards) {
-        tree.insert(card);
-        // A relocate renames the card's folder, so the fixture needs one.
-        createTestCard(
-          card.key,
-          dirname(tree.pathOf(card.key)),
-          pageCard(card.key),
-          '',
-        );
-      }
+      await tree.createCards(cards);
       return { tree, alpha, keys };
     }
 
@@ -1114,22 +1087,25 @@ describe('Card tree', () => {
       rmSync(testDir, { recursive: true, force: true });
     });
 
-    it('rejects inserting a key another tree already holds', async () => {
+    it('rejects creating a card under a key another tree already holds', async () => {
       const { tree, template } = await loadedTrees();
 
       // test_1 is a project card; the template tree must refuse to claim it.
-      expect(() =>
-        template.insert({
-          key: 'test_1',
-          path: join(templateCardsPath('page'), 'test_1'),
-          children: [],
-          attachments: [],
-          metadata: { ...pageCard('Clone'), links: [] },
-        }),
-      ).toThrow(DuplicateCardKeyError);
+      await expect(
+        template.createCards([
+          {
+            key: 'test_1',
+            parent: 'root',
+            content: '',
+            attachments: [],
+            metadata: pageCard('Clone'),
+          },
+        ]),
+      ).rejects.toThrow(DuplicateCardKeyError);
 
       expect(tree.has('test_1')).toBe(true);
       expect(template.has('test_1')).toBe(false);
+      expect(existsSync(join(templateCardsPath('page'), 'test_1'))).toBe(false);
     });
 
     it('a read-only tree refuses writes', async () => {
@@ -1230,8 +1206,8 @@ describe('Card tree', () => {
       );
       await templateResource.create();
       commands.project.resources.changed();
-      await templateResource.addCard('decision/cardTypes/decision');
-      await templateResource.addCard('decision/cardTypes/simplepage');
+      await commands.createCmd.addCards('decision/cardTypes/decision', name);
+      await commands.createCmd.addCards('decision/cardTypes/simplepage', name);
 
       // Verify cards from template are in cache
       const templateCards = templateResource.cardTree.cards();
@@ -1256,7 +1232,7 @@ describe('Card tree', () => {
       commands.project.resources.changed();
 
       const template = commands.project.resources.byType(name, 'templates');
-      await template.addCard('decision/cardTypes/decision');
+      await commands.createCmd.addCards('decision/cardTypes/decision', name);
 
       const templateCards = template.cardTree.cards();
       const templateCardKeys = templateCards.map((card) => card.key);
