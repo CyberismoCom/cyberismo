@@ -686,22 +686,6 @@ export class CardTree {
   }
 
   /**
-   * The cards for the given keys, fully hydrated. Keys the tree does not hold
-   * are skipped.
-   * @param cardKeys Card keys to read.
-   */
-  public cardsFor(cardKeys: string[]): Card[] {
-    const cards: Card[] = [];
-    for (const cardKey of cardKeys) {
-      const card = this.cardStore.get(cardKey);
-      if (card) {
-        cards.push(this.cardView(card));
-      }
-    }
-    return cards;
-  }
-
-  /**
    * The folder holding a card's attachments.
    * @param cardKey Card key to locate.
    * @throws CardNotFoundError if the tree does not hold the card

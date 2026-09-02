@@ -82,7 +82,7 @@ export async function rewriteCardContentRefs(
   const localTemplateCards = project.resources
     .templates(ResourcesFrom.localOnly)
     .flatMap((template) => template.templateCards());
-  const allCards = [...project.cards(undefined), ...localTemplateCards];
+  const allCards = [...project.cardTree.cards(), ...localTemplateCards];
   const cardsToUpdate = allCards.filter(
     (card) => card.content && card.content.includes(from),
   );

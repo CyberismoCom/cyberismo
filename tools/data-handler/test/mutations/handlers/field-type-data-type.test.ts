@@ -23,8 +23,8 @@ describe('FieldTypeDataTypeHandler', () => {
     await project.populateCaches();
 
     // Ensure at least one card carries 'finished' with a non-null boolean value.
-    const cards = project
-      .cards(undefined)
+    const cards = project.cardTree
+      .cards()
       .filter((c) => c.metadata && fieldName() in c.metadata);
     if (cards.length > 0 && cards[0].metadata) {
       cards[0].metadata[fieldName()] = true;
@@ -50,7 +50,7 @@ describe('FieldTypeDataTypeHandler', () => {
 
     const updated = project.resources.byType(fieldName(), 'fieldTypes').show();
     expect(updated.dataType).toBe('shortText');
-    for (const card of project.cards(undefined)) {
+    for (const card of project.cardTree.cards()) {
       const value = card.metadata?.[fieldName()];
       if (value === undefined || value === null) continue;
       expect(typeof value).toBe('string');
@@ -61,8 +61,8 @@ describe('FieldTypeDataTypeHandler', () => {
     // Scalar change operations may be recorded without 'target' (the old
     // data type). When the conversion cannot be determined, card values must
     // be left as-is rather than cleared.
-    const before = project
-      .cards(undefined)
+    const before = project.cardTree
+      .cards()
       .filter((c) => c.metadata?.[fieldName()] != null)
       .map((c) => [c.key, c.metadata![fieldName()]] as const);
     expect(before.length).toBeGreaterThan(0);
@@ -79,7 +79,7 @@ describe('FieldTypeDataTypeHandler', () => {
     );
 
     for (const [key, value] of before) {
-      const card = project.cards(undefined).find((c) => c.key === key);
+      const card = project.cardTree.cards().find((c) => c.key === key);
       expect(card?.metadata?.[fieldName()]).toBe(value);
     }
   });

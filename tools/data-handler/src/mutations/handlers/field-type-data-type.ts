@@ -82,9 +82,7 @@ export class FieldTypeDataTypeHandler implements Handler<EditInput> {
     const holdsField = (card: Card): boolean =>
       card.metadata != null && fieldName in card.metadata;
 
-    const projectCards = ctx.project
-      .cards(ctx.project.paths.cardRootFolder)
-      .filter(holdsField);
+    const projectCards = ctx.project.cardTree.cards().filter(holdsField);
     const templateCards = ctx.project
       .allTemplateCards()
       .filter((card) => !isModuleCard(card))

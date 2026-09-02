@@ -1263,7 +1263,7 @@ describe('created cards and custom field values', () => {
 
   it('falsy template values survive instantiation', async () => {
     // Mutates the shared template card, so this test must stay last.
-    const templateCards = commands.project.templateCards(templateName);
+    const templateCards = commands.project.templateTree(templateName).cards();
     const templateCard = templateCards.at(0)!;
     await commands.editCmd.editCardMetadata(
       templateCard.key,

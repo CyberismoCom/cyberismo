@@ -84,12 +84,8 @@ export class CalculationEngine {
    * @returns The logic program content for the card
    */
   public async cardLogicProgram(cardKey: string): Promise<string> {
-    const card = this.project.cardNode(cardKey);
-    return createCardFacts(
-      card,
-      this.project,
-      this.project.cardFactContext(cardKey),
-    );
+    const tree = this.project.treeOf(cardKey);
+    return createCardFacts(tree.node(cardKey), this.project, tree.factContext);
   }
 
   /**
@@ -139,7 +135,7 @@ export class CalculationEngine {
     const cardContent = await createCardFacts(
       card,
       this.project,
-      this.project.cardFactContext(card.key),
+      this.project.treeOf(card.key).factContext,
     );
     this.clingo.setProgram(card.key, cardContent, [ALL_CATEGORY]);
   }
@@ -269,11 +265,9 @@ export class CalculationEngine {
 
   // Gets either all the cards (no parent), or a subtree.
   private getCards(templateName?: string): CardNode[] {
-    if (templateName) {
-      return this.project.templateCardNodes(templateName);
-    }
-
-    return this.project.cardNodes();
+    return templateName
+      ? this.project.templateTree(templateName).nodes()
+      : this.project.cardTree.nodes();
   }
 
   // Checks that Clingo successfully returned result.

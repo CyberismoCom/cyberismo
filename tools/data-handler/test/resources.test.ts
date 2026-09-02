@@ -2176,7 +2176,7 @@ describe('resources', function () {
     it('update existing workflow - rename state (resource-level does NOT migrate cards)', async () => {
       const name = 'decision/workflows/decision';
       const res = project.resources.byType(name, 'workflows');
-      const cards = project.cards(project.paths.cardRootFolder);
+      const cards = project.cardTree.cards();
       const cardsWithThisWorkflow = cards.filter((card) => {
         const ct = project.resources.byType(
           card.metadata?.cardType as string,

@@ -185,7 +185,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
       const parentKey = parentCard ? parentCard.key : ROOT;
 
       // Keys are allocated in one pass, before anything is written.
-      const newCardKeys = this.project.newCardKeys(count);
+      const newCardKeys = this.project.cardKeyRegistry.allocate(count);
 
       const siblings = parentCard
         ? this.project.cardKeysToCards(parentCard.children)
@@ -298,7 +298,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
 
   // Fresh keys for the instantiated copies, keyed by template card key.
   private buildCardKeyMap(cards: Card[]): Map<string, string> {
-    const newCardIds = this.project.newCardKeys(cards.length);
+    const newCardIds = this.project.cardKeyRegistry.allocate(cards.length);
     const cardsByKey = new Map<string, string>();
     cards.forEach((card, index) => {
       cardsByKey.set(card.key, newCardIds.at(index) || '');
@@ -320,7 +320,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
 
     const futureSiblings = parentCard
       ? this.project.cardKeysToCards(parentCard.children)
-      : this.project.showProjectCards();
+      : this.project.cardTree.rootCards();
 
     let latestRank =
       sortItems(
