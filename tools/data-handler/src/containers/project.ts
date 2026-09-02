@@ -717,15 +717,19 @@ export class Project {
    * @param container Container the card now belongs to: 'project' or a full
    *   template name. Defaults to the one it is in.
    */
-  public relocateCard(cardKey: string, newParent: string, container?: string) {
+  public async relocateCard(
+    cardKey: string,
+    newParent: string,
+    container?: string,
+  ) {
     const source = this.treeOf(cardKey);
     const destination =
       container === undefined ? source : this.containerTree(container);
     if (destination === source) {
-      source.relocate(cardKey, newParent);
+      await source.relocate(cardKey, newParent);
       return;
     }
-    destination.graft(source.uproot(cardKey), newParent);
+    await destination.adopt(source, cardKey, newParent);
   }
 
   /**
