@@ -244,6 +244,10 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
                     xs: '"preview . actions" "toolbar toolbar toolbar"',
                     xl: '"preview toolbar actions"',
                   },
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 2,
+                  bgcolor: 'background.surface',
                 }}
               >
                 <Box sx={{ gridArea: 'preview' }}>
@@ -289,11 +293,7 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
                 </Stack>
               </Box>
               {previewing ? (
-                <Box
-                  maxHeight="calc(100vh - 250px)"
-                  overflow="auto"
-                  padding={1}
-                >
+                <Box overflow="auto" padding={1}>
                   {previewHtml === null ? (
                     <Stack alignItems="center" padding={4}>
                       <CircularProgress size="sm" />
@@ -306,7 +306,6 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
                 <CodeMirror
                   {...CODE_MIRROR_BASE_PROPS}
                   ref={setCmRef}
-                  maxHeight="calc(100vh - 250px)"
                   theme={
                     isDarkMode
                       ? CODE_MIRROR_THEMES.dark
