@@ -1,9 +1,9 @@
 import { type Page, expect } from '@playwright/test';
 import t from '../src/locales/en/translation.json' with { type: 'json' };
 
-/** Click the "Edit body" button (force-clickable even when .doc has 0 height). */
+/** Click the "Edit body" button. */
 export async function editPage(page: Page) {
-  await page.getByTestId('editBodyButton').click({ force: true });
+  await page.getByTestId('editBodyButton').click();
 }
 
 /** Create a card from the "Page" template via the toolbar dialog. */

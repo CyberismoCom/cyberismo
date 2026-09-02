@@ -9,7 +9,9 @@ base.describe('Remember last visited page per project', () => {
     'reopening the app returns to the last visited card, not the card list',
     async ({ page }) => {
       await page.goto('/');
-      await expect(page).toHaveURL(/\/projects\/.+\/cards$/);
+      // Not `/cards$` — CardsPage forwards that to the first card within
+      // ~100ms, so anchoring on the card list races the hop.
+      await expect(page).toHaveURL(/\/projects\/[^/]+\/cards/);
 
       await page.getByTestId('createNewButton').click();
       await page
@@ -104,7 +106,12 @@ base.describe('Remember last visited page per project', () => {
       }, cardKey);
 
       await page.goto('/');
-      await expect(page).toHaveURL(/\/projects\/.+\/cards$/);
+      // CardsPage forwards /cards to the first card in the tree, so the card
+      // list is only ever a way station (~100ms) — asserting on it races that
+      // hop. Wait for the forward to land, then assert what this test is
+      // really about: the reopen must not replay the deleted card.
+      await expect(page).toHaveURL(/\/cards\/[\w-]+$/);
+      expect(page.url()).not.toContain(cardKey);
     },
   );
 });

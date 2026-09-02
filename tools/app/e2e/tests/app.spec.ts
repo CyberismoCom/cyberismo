@@ -420,6 +420,9 @@ test.describe('Navigation', () => {
       page.getByRole('heading', { level: 1, name: /^Untitled page$/ }),
     ).toBeVisible();
     await page.locator('p').filter({ hasText: 'Updated title' }).click();
+    await expect(
+      page.getByRole('heading', { level: 1, name: /^Updated title$/ }),
+    ).toBeVisible();
 
     await editPage(page);
     await expect(page.locator('.cm-editor')).toBeVisible();
