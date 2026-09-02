@@ -26,10 +26,10 @@
     "node": ">=22"
   },
   "dependencies": {
-    "@asciidoctor/core": "^4.0.6",
+    "@asciidoctor/core": "^4.0.11",
     "@cyberismo/data-handler": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.30.0",
-    "zod": "^4.3.6"
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "vitest": "^4.1.11"
