@@ -1196,10 +1196,8 @@ describe('create command', () => {
     await project.populateCaches();
 
     const name = 'decision/templates/decision';
-    const template = project.resources
-      .byType(name, 'templates')
-      .templateObject();
-    const templateCards = template?.cards('');
+    const template = project.resources.byType(name, 'templates');
+    const templateCards = template.templateCards();
 
     const cardType = DefaultContent.cardType(
       'decision/cardTypes/decision',

@@ -16,9 +16,6 @@
 import { join, resolve } from 'node:path';
 import { readdirSync } from 'node:fs';
 
-// base class
-import { CardContainer } from './card-container.js';
-
 import { CalculationEngine } from './project/calculation-engine.js';
 import { CardKeyRegistry } from './project/card-keys.js';
 import { CardTree } from './project/card-tree.js';
@@ -54,7 +51,7 @@ import { GitSync } from '../utils/git-sync.js';
 import { GitManager } from '../utils/git-manager.js';
 import { getCommitContext } from '../utils/commit-context.js';
 
-import type { Template } from './template.js';
+import type { TemplateResource } from '../resources/template-resource.js';
 
 import { isPredefinedField } from '../utils/constants.js';
 
@@ -77,7 +74,13 @@ export interface ProjectOptions {
 /**
  * Represents project folder.
  */
-export class Project extends CardContainer {
+export class Project {
+  public static cardContentFile = 'index.adoc';
+  public static cardMetadataFile = 'index.json';
+  public static projectConfigFileName = 'cardsConfig.json';
+  public static schemaContentFile = '.schema';
+
+  public basePath: string;
   public readonly lock = new RWLock();
   public calculationEngine: CalculationEngine;
   private projectCardTree: CardTree;
@@ -103,7 +106,7 @@ export class Project extends CardContainer {
     const settings = new ProjectConfiguration(
       join(path, '.cards', 'local', Project.projectConfigFileName),
     );
-    super(path, settings.cardKeyPrefix);
+    this.basePath = path;
     this.settings = settings;
     this.keyRegistry = new CardKeyRegistry(() => settings.cardKeyPrefix);
     this.projectCardTree = new CardTree({
@@ -189,7 +192,7 @@ export class Project extends CardContainer {
   }
 
   /** The tree holding the project's own cards. */
-  protected get cardTree(): CardTree {
+  public get cardTree(): CardTree {
     return this.projectCardTree;
   }
 
@@ -289,7 +292,7 @@ export class Project extends CardContainer {
 
   // The 'c' folder of a template, resolved through its resource.
   private templateCardsFolder(templateName: string): string {
-    const template = this.templateObjectByName(templateName);
+    const template = this.templateResource(templateName);
     return template ? template.templateCardsFolder() : '';
   }
 
@@ -374,13 +377,9 @@ export class Project extends CardContainer {
   /**
    * Populate template cards into the card cache.
    */
-  protected async populateTemplateCards(
-    templateNames?: string[],
-  ): Promise<void> {
+  private async populateTemplateCards(templateNames?: string[]): Promise<void> {
     try {
-      const all = this.resources
-        .templates()
-        .map((template) => template.templateObject());
+      const all = this.resources.templates();
 
       // A tree whose template is no longer listed is stale whatever the scope.
       const present = new Set(all.map((template) => template.fullName));
@@ -420,7 +419,7 @@ export class Project extends CardContainer {
   /**
    * Populate both the project cards, and all template cards into card cache.
    */
-  protected async populateCardsCache(): Promise<void> {
+  private async populateCardsCache(): Promise<void> {
     await this.cardTree.reload();
     await this.populateTemplateCards();
   }
@@ -586,27 +585,14 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Creates a Template object from template Card. It is ensured that the template is part of project.
-   * @param card Card that is part of some template.
-   * @returns Template object, or undefined if card is not part of template.
-   */
-  public createTemplateObjectFromCard(card: Card): Template | undefined {
-    const tree = this.keyRegistry.ownerOf(card?.key);
-    if (!tree || tree === this.cardTree) {
-      return undefined;
-    }
-    return this.templateObjectByName(tree.name);
-  }
-
-  /**
-   * Looks up a template object by its resource name.
+   * Looks up a template resource by its name.
    * @param templateName Full resource name in the form `<prefix>/templates/<name>`
    *   (e.g. 'decision/templates/decision').
-   * @returns Template object, or undefined if not found.
+   * @returns the template resource, or undefined if not found.
    */
-  public templateObjectByName(templateName: string): Template | undefined {
+  public templateResource(templateName: string): TemplateResource | undefined {
     try {
-      return this.resources.byType(templateName, 'templates').templateObject();
+      return this.resources.byType(templateName, 'templates');
     } catch {
       return undefined;
     }
@@ -638,23 +624,6 @@ export class Project extends CardContainer {
    */
   public hasCard(cardKey: string): boolean {
     return this.keyRegistry.has(cardKey);
-  }
-
-  /**
-   * Checks if the project holds the card as one of its own cards.
-   * @param cardKey Card key to check
-   */
-  public hasProjectCard(cardKey: string): boolean {
-    return this.keyRegistry.ownerOf(cardKey) === this.cardTree;
-  }
-
-  /**
-   * Checks if the project holds the card as a template card.
-   * @param cardKey Card key to check
-   */
-  public hasTemplateCard(cardKey: string): boolean {
-    const tree = this.keyRegistry.ownerOf(cardKey);
-    return tree !== undefined && tree !== this.cardTree;
   }
 
   /**
@@ -694,15 +663,15 @@ export class Project extends CardContainer {
     return this.treeOf(cardKey).ancestorsOf(cardKey);
   }
 
-  protected async saveCardContent(card: Card): Promise<boolean> {
+  private async saveCardContent(card: Card): Promise<boolean> {
     return this.treeOf(card.key).writeContent(card);
   }
 
-  protected async saveCardMetadata(card: Card): Promise<boolean> {
+  private async saveCardMetadata(card: Card): Promise<boolean> {
     return this.treeOf(card.key).writeMetadata(card);
   }
 
-  protected async removeCard(cardKey: string): Promise<boolean> {
+  private async removeCard(cardKey: string): Promise<boolean> {
     return this.treeOf(cardKey).deleteSubtree(cardKey);
   }
 
@@ -923,19 +892,14 @@ export class Project extends CardContainer {
       cardsFrom === CardLocation.all ||
       cardsFrom === CardLocation.templatesOnly
     ) {
-      const templates = this.resources.templates();
-      for (const template of templates) {
-        const templateObject = template.templateObject();
-        if (templateObject) {
-          // todo: optimization - do all this in parallel
-          const templateCards = templateObject.listCards();
-          if (templateCards.length) {
-            cardListContainer.push({
-              name: template.data?.name || '',
-              type: 'template',
-              cards: templateCards.map((item) => item.key).sort(sortCards),
-            });
-          }
+      for (const template of this.resources.templates()) {
+        const templateCards = template.cardTree.keys().sort(sortCards);
+        if (templateCards.length) {
+          cardListContainer.push({
+            name: template.fullName,
+            type: 'template',
+            cards: templateCards,
+          });
         }
       }
     }
@@ -1136,7 +1100,7 @@ export class Project extends CardContainer {
     const prefixes = new Set(appliedModules);
     const templateNames = this.resources
       .templates()
-      .map((template) => template.templateObject().fullName)
+      .map((template) => template.fullName)
       .filter((name) => prefixes.has(resourceName(name).prefix));
     await this.populateTemplateCards(templateNames);
   }

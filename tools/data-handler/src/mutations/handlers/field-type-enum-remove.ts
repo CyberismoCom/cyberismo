@@ -89,7 +89,7 @@ export class FieldTypeEnumRemoveHandler implements Handler<EditInput> {
     const project = [...ctx.project.cards(undefined)];
     const templates = ctx.project.resources
       .templates(ResourcesFrom.localOnly)
-      .flatMap((t) => t.templateObject().cards());
+      .flatMap((t) => t.templateCards());
     return [...project, ...templates].filter(
       (c) => c.metadata != null && fieldName in c.metadata,
     );
