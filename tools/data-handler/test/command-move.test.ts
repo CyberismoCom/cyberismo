@@ -164,6 +164,32 @@ describe('move command', () => {
     result = await commandHandler.command(Cmd.move, [card2, card1], options);
     expect(result.statusCode).toBe(400);
   });
+  // The command validates before it touches anything, so the user gets this
+  // sentence rather than whatever the filesystem or the tree would have said.
+  // The tree refuses the same move on its own (see 'structural integrity' in
+  // card-tree.test.ts), which is an integrity invariant, not a message.
+  it('names the reason when a card would be moved inside itself', async () => {
+    const template = 'decision/templates/decision';
+    const parentResult = await commandHandler.command(
+      Cmd.create,
+      ['card', template, ''],
+      options,
+    );
+    const parent = parentResult.affectsCards!.at(0) as string;
+    const childResult = await commandHandler.command(
+      Cmd.create,
+      ['card', template, parent],
+      options,
+    );
+    const child = childResult.affectsCards!.at(0) as string;
+
+    const commandManager = await CommandManager.getInstance(
+      options.projectPath!,
+    );
+    await expect(
+      commandManager.moveCmd.moveCard(parent, child),
+    ).rejects.toThrow('Card cannot be moved to inside itself');
+  });
   it('try to move card - project missing', async () => {
     const sourceId = 'decision_11';
     const destination = 'decision_12';
