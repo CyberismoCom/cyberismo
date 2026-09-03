@@ -164,6 +164,10 @@ export abstract class FolderResource<
     if (key) {
       (this.resourceContent as Record<string, unknown>)[key] = parsedContent;
     }
+
+    // A calculation's logic program is one of the programs the engine holds,
+    // and this is the only path that rewrites it.
+    this.project.calculationEngine.invalidateResources();
   }
 
   /**

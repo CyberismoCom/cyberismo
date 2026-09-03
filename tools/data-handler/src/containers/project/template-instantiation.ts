@@ -73,7 +73,7 @@ export async function addTemplateCards(
     }));
 
     await Promise.all(newCards.map((card) => template.createNode(card)));
-    await project.addCreatedCards(newCards, template.name);
+    project.addCreatedCards(newCards, template.name);
     return newCardKeys;
   } catch (error) {
     logger.error({ error });
@@ -148,7 +148,7 @@ export async function instantiateTemplate(
       (result) => (result as PromiseFulfilledResult<Card>).value,
     );
     // Inside this try so a failure here is still compensated.
-    await project.addCreatedCards(processedCards, 'project');
+    project.addCreatedCards(processedCards, 'project');
     return processedCards;
   } catch (error) {
     try {
