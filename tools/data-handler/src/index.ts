@@ -48,7 +48,11 @@ import {
 } from './utils/resource-utils.js';
 import { moduleNameFromCardKey } from './utils/card-utils.js';
 import { scanForProjects } from './project-scanner.js';
-import { requireDeclaredRoot } from './modules/index.js';
+import {
+  ModuleNotDeclaredError,
+  ModuleVersionError,
+  requireDeclaredRoot,
+} from './modules/index.js';
 import { Create } from './commands/create.js';
 
 export {
@@ -61,6 +65,8 @@ export {
   ExportFormats,
   isResourceFolderType,
   moduleNameFromCardKey,
+  ModuleNotDeclaredError,
+  ModuleVersionError,
   requestStatus,
   requireDeclaredRoot,
   resourceName,

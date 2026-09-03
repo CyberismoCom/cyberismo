@@ -226,7 +226,7 @@ describe('POST /api/project/modules/:module/update with version', () => {
       '/api/projects/test/project/modules/nope/update',
       { method: 'POST' },
     );
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(404);
     const result = (await response.json()) as { error: string };
     expect(result.error).toContain("Module 'nope' is not part of the project");
   });
@@ -279,7 +279,7 @@ describe('POST /api/project/modules/:module/update with version', () => {
         body: JSON.stringify({ version: '2.0.0' }),
       },
     );
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
     const result = (await response.json()) as { error: string };
     expect(result.error).toContain(
       "Version '2.0.0' for module 'filemod' does not satisfy constraint '^1.0.0'",
@@ -324,12 +324,12 @@ describe('GET /api/project/modules/versions', () => {
     expect(response.status).toBe(400);
   });
 
-  test('returns 500 for a module that is not part of the project', async () => {
+  test('returns 404 for a module that is not part of the project', async () => {
     await createAppWithFixture();
     const response = await app.request(
       '/api/projects/test/project/modules/versions?module=nope',
     );
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(404);
     const result = (await response.json()) as { error: string };
     expect(result.error).toContain("Module 'nope' is not part of the project");
   });
@@ -348,7 +348,7 @@ describe('GET /api/project/modules/versions', () => {
     const response = await app.request(
       '/api/projects/test/project/modules/versions?module=secret',
     );
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
     const result = (await response.json()) as { error: string };
     expect(result.error).toContain('private');
   });
@@ -414,12 +414,12 @@ describe('GET /api/project/modules/update-plan', () => {
     expect(result).toEqual({ ok: true, changes: [], conflicts: [] });
   });
 
-  test('returns 500 for a module that is not part of the project', async () => {
+  test('returns 404 for a module that is not part of the project', async () => {
     await createAppWithFixture();
     const response = await app.request(
       '/api/projects/test/project/modules/nope/update-plan',
     );
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(404);
     const result = (await response.json()) as { error: string };
     expect(result.error).toContain("Module 'nope' is not part of the project");
   });
@@ -438,7 +438,7 @@ describe('GET /api/project/modules/update-plan', () => {
     const response = await app.request(
       '/api/projects/test/project/modules/filemod/update-plan?version=2.0.0',
     );
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
     const result = (await response.json()) as { error: string };
     expect(result.error).toContain(
       "Version '2.0.0' for module 'filemod' does not satisfy constraint '^1.0.0'",
