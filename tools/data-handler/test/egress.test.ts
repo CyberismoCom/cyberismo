@@ -17,9 +17,8 @@ vi.mock('undici', async (importOriginal) => {
   return { ...actual, fetch: fetchMock };
 });
 
-const { egressFetch, resetEgressDispatcherForTest } = await import(
-  '../src/utils/egress.js'
-);
+const { egressFetch, resetEgressDispatcherForTest } =
+  await import('../src/utils/egress.js');
 
 /** `dispatcher` is an undici extension, absent from the DOM RequestInit. */
 type UndiciInit = RequestInit & { dispatcher?: unknown };
