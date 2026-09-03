@@ -30,8 +30,6 @@ import type {
   CardListContainer,
   CardWithChildrenCards,
   Context,
-  FetchCardDetails,
-  FileContentType,
   HubDetails,
   HubSetting,
   ModuleContent,
@@ -64,7 +62,11 @@ import { evaluateMacros } from '../macros/index.js';
 import { readJsonFile } from '../utils/json.js';
 import { sleep } from '../utils/common-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
-import { buildCardHierarchy, flattenCardArray } from '../utils/card-utils.js';
+import {
+  buildCardHierarchy,
+  compareAttachments,
+  flattenCardArray,
+} from '../utils/card-utils.js';
 import { CardNotFoundError } from '../exceptions/index.js';
 import type { ResourcesFrom } from '../containers/project/resources-from.js';
 
@@ -101,10 +103,7 @@ export class Show {
     const templateAttachments: CardAttachment[] = [];
     const templates = this.project.resources.templates();
     for (const template of templates) {
-      const templateObject = template.templateObject();
-      if (templateObject) {
-        templateAttachments.push(...templateObject.attachments());
-      }
+      templateAttachments.push(...template.cardTree.attachments());
     }
     return templateAttachments;
   }
@@ -132,10 +131,9 @@ export class Show {
 
   // Returns attachment details
   private getAttachment(cardKey: string, filename: string) {
-    const card = this.project.findCard(cardKey);
-    const attachment =
-      card.attachments?.find((a) => a.fileName === filename) ?? undefined;
-    return attachment;
+    return this.project
+      .cardAttachments(cardKey)
+      .find((a) => a.fileName === filename);
   }
 
   // Opens the given path using the operating system's default application. Doesn't block the main thread.
@@ -165,7 +163,7 @@ export class Show {
     }[]
   > {
     return this.project.resources.templates().map((template) => {
-      const cards = template.templateObject().listCards();
+      const cards = template.cardTree.cards();
       const buildCards = buildCardHierarchy(cards);
 
       return {
@@ -177,14 +175,14 @@ export class Show {
 
   /**
    * Shows all attachments (either template or project attachments) from a project.
-   * @returns array of card attachments
+   * @returns array of card attachments, sorted by card key and file name
    */
   @read
   public async showAttachments(): Promise<CardAttachment[]> {
-    const attachments = this.project.attachments();
+    const attachments = this.project.cardTree.attachments();
     const templateAttachments = await this.attachmentsFromTemplates();
     attachments.push(...templateAttachments);
-    return attachments;
+    return attachments.sort(compareAttachments);
   }
 
   /**
@@ -277,29 +275,14 @@ export class Show {
    * Shows details of a particular card (template card, or project card)
    * @note Note that parameter 'cardKey' is optional due to technical limitations of class calling this class. It must be defined to get valid results.
    * @param cardKey card key to find
-   * @param contentType Content format in which content is to be shown
-   * @returns card details
+   * @returns card details: metadata, content, children and attachments
    */
   @read
-  public async showCardDetails(
-    cardKey?: string,
-    contentType?: FileContentType,
-  ): Promise<Card> {
+  public async showCardDetails(cardKey?: string): Promise<Card> {
     if (!cardKey) {
       throw new Error(`Mandatory parameter 'cardKey' missing`);
     }
-    // todo: Make a constant about this
-    const details: FetchCardDetails = {
-      parent: true,
-      metadata: true,
-      children: true,
-      attachments: true,
-      content: true,
-    };
-    if (contentType) {
-      details.contentType = contentType;
-    }
-    return this.project.findCard(cardKey, details);
+    return this.project.findCard(cardKey);
   }
 
   /**
@@ -390,18 +373,18 @@ export class Show {
 
   /**
    * Returns all unique labels in a project
-   * @returns labels in a list
+   * @returns labels in a list, sorted alphabetically
    */
   @read
   public async showLabels(): Promise<string[]> {
     const cards = flattenCardArray(
-      this.project.showProjectCards(),
+      this.project.cardTree.rootCards(),
       this.project,
     );
     const templateCards = this.project.allTemplateCards();
 
     const labels = this.collectLabels([...cards, ...templateCards]);
-    return Array.from(new Set(labels));
+    return Array.from(new Set(labels)).sort();
   }
 
   /**
@@ -474,7 +457,7 @@ export class Show {
    */
   @read
   public async showProjectCards(): Promise<Card[]> {
-    return this.project.showProjectCards();
+    return this.project.cardTree.rootCards();
   }
 
   /**

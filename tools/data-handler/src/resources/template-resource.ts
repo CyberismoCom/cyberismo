@@ -11,17 +11,18 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { mkdir } from 'node:fs/promises';
 
 import { DefaultContent } from './create-defaults.js';
 import { FolderResource } from './folder-resource.js';
 import { resourceNameToString } from '../utils/resource-utils.js';
 import { sortCards } from '../utils/card-utils.js';
-import { Template } from '../containers/template.js';
-import { writeJsonFile } from '../utils/json.js';
+import { writeJsonFileIfAbsent } from '../utils/json.js';
+import { pathExists } from '../utils/file-utils.js';
 
 import type { Card } from '../interfaces/project-interfaces.js';
+import type { CardTree } from '../containers/project/card-tree.js';
 import type { Project } from '../containers/project.js';
 import type { ResourceName } from '../utils/resource-utils.js';
 import type {
@@ -33,8 +34,6 @@ import type {
  * Template resource class.
  */
 export class TemplateResource extends FolderResource<TemplateMetadata, never> {
-  private cardContainer: Template;
-  private cardsFolder = '';
   private cardsSchema = super.contentSchemaContent('cardBaseSchema');
 
   /**
@@ -47,15 +46,41 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
 
     this.contentSchemaId = 'templateSchema';
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
+  }
 
-    this.cardsFolder = join(this.internalFolder, 'c');
+  /**
+   * The template's full resource name, e.g. 'decision/templates/decision'.
+   */
+  public get fullName(): string {
+    return resourceNameToString(this.resourceName);
+  }
 
-    // Each template resource contains a template card container (with template cards).
-    // todo: Fix Template constructor not to use Resource, but just this filename with path
-    this.cardContainer = new Template(this.project, {
-      name: resourceNameToString(this.resourceName),
-      path: dirname(this.fileName),
-    });
+  /**
+   * The tree holding the template's cards.
+   */
+  public get cardTree(): CardTree {
+    return this.project.templateTree(this.fullName, this.templateCardsFolder());
+  }
+
+  /**
+   * Returns path to the 'templates/<name>' folder.
+   */
+  public templateFolder(): string {
+    return this.internalFolder;
+  }
+
+  /**
+   * Returns path to the 'templates/<name>/c' folder.
+   */
+  public templateCardsFolder(): string {
+    return join(this.internalFolder, 'c');
+  }
+
+  /**
+   * Whether the template's card folder exists on disk.
+   */
+  public isCreated(): boolean {
+    return pathExists(this.templateCardsFolder());
   }
 
   /**
@@ -64,9 +89,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
    */
   public async create(newContent?: TemplateMetadata) {
     if (!newContent) {
-      newContent = DefaultContent.template(
-        resourceNameToString(this.resourceName),
-      );
+      newContent = DefaultContent.template(this.fullName);
     } else {
       await this.validate(newContent);
     }
@@ -76,12 +99,25 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
 
   /**
    * Deletes file and folder that this resource is based on.
-   * Also removes template cards from the project's card cache.
+   * Also drops the template's cards.
    */
   public async delete() {
-    const templateName = resourceNameToString(this.resourceName);
-    this.project.cardsCache.deleteCardsFromTemplate(templateName);
+    this.project.removeTemplateTree(this.fullName);
     return super.delete();
+  }
+
+  /**
+   * Renames the template, and moves its card tree with it.
+   * @param newIdentifier New identifier for the template.
+   */
+  public async rename(newIdentifier: string) {
+    const oldName = this.fullName;
+    await super.rename(newIdentifier);
+    this.project.renameTemplateTree(
+      oldName,
+      this.fullName,
+      this.templateCardsFolder(),
+    );
   }
 
   /**
@@ -90,24 +126,15 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
    */
   public show(): TemplateConfiguration {
     const templateMetadata = super.show();
-    const container = this.templateObject();
 
     return {
-      name: resourceNameToString(this.resourceName),
+      name: this.fullName,
       category: templateMetadata.category,
       displayName: templateMetadata.displayName,
       description: templateMetadata.description,
       path: this.fileName,
-      numberOfCards: container.listCards().length,
+      numberOfCards: this.cardTree.count,
     };
-  }
-
-  /**
-   * Returns template card container object.
-   * @returns template container object
-   */
-  public templateObject(): Template {
-    return this.cardContainer;
   }
 
   /**
@@ -131,13 +158,10 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
    */
   public async write() {
     await super.write();
-    this.cardsFolder = join(this.internalFolder, 'c');
 
     // Create folder for cards and put proper content schema file there
-    const schemaContentFile = join(this.cardsFolder, '.schema');
-    await mkdir(this.cardsFolder, { recursive: true });
-    await writeJsonFile(schemaContentFile, this.cardsSchema, {
-      flag: 'wx',
-    });
+    const schemaContentFile = join(this.templateCardsFolder(), '.schema');
+    await mkdir(this.templateCardsFolder(), { recursive: true });
+    await writeJsonFileIfAbsent(schemaContentFile, this.cardsSchema);
   }
 }

@@ -4,7 +4,7 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { copyDir } from '../src/utils/file-utils.js';
-import { Cmd, Commands } from '../src/command-handler.js';
+import { Cmd, CommandManager, Commands } from '../src/command-handler.js';
 import { Show } from '../src/commands/index.js';
 import { getTestProject } from './helpers/test-utils.js';
 
@@ -24,6 +24,10 @@ describe('rank command', () => {
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data', testDir);
+
+    const shared = await CommandManager.getInstance(decisionRecordsPath);
+    shared.project.clearCards();
+    await shared.project.populateCaches();
 
     // Create a few cards to play with.
     const template = 'decision/templates/decision';

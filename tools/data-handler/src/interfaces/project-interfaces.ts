@@ -28,8 +28,10 @@ export interface Card {
   parent?: string;
   children: string[];
   attachments: CardAttachment[];
-  calculations?: unknown[];
 }
+
+// A card without its file contents: identity, tree position and metadata.
+export type CardNode = Omit<Card, 'content' | 'attachments'>;
 
 // Single card, but childrenCards as Card array
 export interface CardWithChildrenCards extends Card {
@@ -106,20 +108,6 @@ export interface DotSchemaItem {
 }
 export type DotSchemaContent = DotSchemaItem[];
 
-// Defines which details of a card are fetched.
-export interface FetchCardDetails {
-  attachments?: boolean;
-  calculations?: true;
-  children?: boolean;
-  content?: boolean;
-  contentType?: FileContentType;
-  metadata?: boolean;
-  parent?: boolean;
-}
-export interface ProjectFetchCardDetails extends FetchCardDetails {
-  location?: CardLocation;
-}
-
 /**
  * Options for exporting to pdf.
  * @param name - Name of the exported document.
@@ -138,8 +126,6 @@ export interface ExportPdfOptions {
   revremark?: string;
   version?: string;
 }
-
-export type FileContentType = 'adoc' | 'html';
 
 // Metadata content type.
 export type MetadataContent =

@@ -1191,26 +1191,6 @@ describe('create command', () => {
     expect(defaultCard.title).toBe('Untitled');
     expect(defaultCard.workflowState).toBe('');
   });
-  it('access default values for card using real card type and template cards (success)', async () => {
-    const project = getTestProject(decisionRecordsPath);
-    await project.populateCaches();
-
-    const name = 'decision/templates/decision';
-    const template = project.resources
-      .byType(name, 'templates')
-      .templateObject();
-    const templateCards = template?.cards('');
-
-    const cardType = DefaultContent.cardType(
-      'decision/cardTypes/decision',
-      'decision/workflows/decision',
-    );
-    const defaultCard = DefaultContent.card(cardType, templateCards);
-    expect(defaultCard.cardType).toBe('decision/cardTypes/decision');
-    expect(defaultCard.rank).toBe('0|b');
-    expect(defaultCard.title).toBe('Untitled');
-    expect(defaultCard.workflowState).toBe('');
-  });
 });
 
 describe('created cards and custom field values', () => {
@@ -1263,9 +1243,19 @@ describe('created cards and custom field values', () => {
     expect(customFieldKeys).toEqual([]);
   });
 
+  it('reports a card the template does not hold as not part of it', async () => {
+    await expect(
+      commands.createCmd.addCards(
+        'decision/cardTypes/decision',
+        'decision/templates/decision',
+        'idontexist',
+      ),
+    ).rejects.toThrow("Card 'idontexist' is not part of template");
+  });
+
   it('falsy template values survive instantiation', async () => {
     // Mutates the shared template card, so this test must stay last.
-    const templateCards = commands.project.templateCards(templateName);
+    const templateCards = commands.project.templateTree(templateName).cards();
     const templateCard = templateCards.at(0)!;
     await commands.editCmd.editCardMetadata(
       templateCard.key,

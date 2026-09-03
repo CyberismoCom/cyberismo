@@ -12,10 +12,11 @@
 */
 
 import { sep } from 'node:path';
-import { CARD_KEY_SEPARATOR, ROOT } from './constants.js';
+import { CARD_KEY_SEPARATOR } from './constants.js';
 
 import type {
   Card,
+  CardAttachment,
   CardWithChildrenCards,
 } from '../interfaces/project-interfaces.js';
 import type { Project } from '../containers/project.js';
@@ -74,95 +75,6 @@ export const buildCardHierarchy = (
 };
 
 /**
- * Breaks card path to logical parts: cardKey, list of parents, prefix and template
- * If this is a root card, then parents is undefined.
- * If this is not a template card, then template is undefined.
- * @param prefix Project prefix.
- * @param cardPath Card path to break into parts.
- * @returns Card parts
- * @todo: This could also return module name, if card is from a module
- */
-export const cardPathParts = (
-  prefix: string,
-  cardPath: string,
-): {
-  cardKey: string | undefined;
-  parents: (string | undefined)[];
-  prefix: string;
-  template: string;
-} => {
-  const pathParts = cardPath.split(sep);
-  const cardKey = pathParts.at(pathParts.length - 1);
-  const parents = [];
-  let template = '';
-  let startIndex: number;
-  let templatesNameIndex = -1;
-
-  const cardRootIndex = pathParts.indexOf('cardRoot');
-  const projectInternalsIndex = pathParts.indexOf('.cards');
-
-  if (projectInternalsIndex === -1 && cardRootIndex >= 0) {
-    startIndex = projectInternalsIndex;
-  } else if (projectInternalsIndex >= 0 && cardRootIndex === -1) {
-    const templatesIndex = pathParts.indexOf('templates');
-    startIndex = templatesIndex;
-    if (templatesIndex === -1) {
-      throw new Error(
-        `Invalid card path. Template card must have 'templates' in path`,
-      );
-    }
-    const modulesIndex = pathParts.indexOf('modules');
-    if (modulesIndex !== -1) {
-      prefix = pathParts.at(modulesIndex + 1) || '';
-    }
-    templatesNameIndex = templatesIndex + 1;
-    template = `${prefix}/templates/${pathParts.at(templatesNameIndex)}`;
-  } else {
-    throw new Error(`Card must be either project card, or template card`);
-  }
-
-  // Look for parents in the path.
-  let previousWasParent = false;
-  for (let index = startIndex; index <= pathParts.length; index++) {
-    if (previousWasParent) {
-      previousWasParent = false;
-      parents.push(pathParts.at(index - 2));
-    }
-    const cardsSubFolder = pathParts.at(index) === 'c';
-    const ignoreOrNotTemplatesParent =
-      index - 1 !== templatesNameIndex || templatesNameIndex === -1;
-    if (cardsSubFolder && ignoreOrNotTemplatesParent) {
-      previousWasParent = true;
-    }
-  }
-
-  return {
-    cardKey: cardKey,
-    parents: parents,
-    prefix: prefix,
-    template: template,
-  };
-};
-
-/**
- * Find parent path from a card path
- * @param cardPath Card path to find parent path from.
- * @returns Parent path
- */
-export const findParentPath = (cardPath: string): string | null => {
-  const pathParts = cardPath.split(sep);
-  const hasChildren = pathParts.lastIndexOf('c');
-
-  if (hasChildren <= 0) {
-    return null;
-  }
-
-  const parentPathParts = [...pathParts];
-  parentPathParts.splice(hasChildren, 1);
-  return parentPathParts.slice(0, hasChildren).join(sep);
-};
-
-/**
  * Flattens card tree so that children are shown on same level regardless of nesting level.
  * @param array Card tree to flatten
  * @param project Project to use
@@ -198,7 +110,7 @@ export const flattenCardArray = (array: Card[], project: Project) => {
  * @param card Card object to check
  * @returns true if card exists in a module; false otherwise
  */
-export const isModuleCard = (card: Card) => {
+export const isModuleCard = (card: Pick<Card, 'path'>) => {
   return card.path.includes(`${sep}modules${sep}`);
 };
 
@@ -216,7 +128,7 @@ export const isModulePath = (path: string) => {
  * @param card card object to check
  * @returns true if card exists in a template; false otherwise
  */
-export const isTemplateCard = (card: Card) => {
+export const isTemplateCard = (card: Pick<Card, 'path'>) => {
   return (
     card.path.includes(`${sep}templates${sep}`) ||
     card.path.includes(`${sep}modules${sep}`)
@@ -236,23 +148,6 @@ export const moduleNameFromCardKey = (cardKey: string) => {
   }
   return parts[0];
 };
-
-/**
- * Finds parent card key
- * @param cardPath Card path from which to find parent card
- * @returns Parent card key
- */
-export function parentCard(cardPath: string) {
-  const pathParts = cardPath.split(sep);
-  if (
-    pathParts.at(pathParts.length - 2) === 'cardRoot' ||
-    (pathParts.length > 3 && pathParts.at(pathParts.length - 4) === 'templates')
-  ) {
-    return ROOT;
-  } else {
-    return pathParts.at(pathParts.length - 3);
-  }
-}
 
 /**
  * Sorts array of cards first using prefix and then using ID.
@@ -280,6 +175,15 @@ export const sortCards = (a: string, b: string) => {
   if (aParts[1] < bParts[1]) return -1;
   return 0;
 };
+
+/**
+ * Sorts attachments first by the card they belong to, then by file name.
+ * @param a First attachment to be sorted
+ * @param b Second attachment to be sorted
+ * @returns Attachments ordered; first by card key, then by file name.
+ */
+export const compareAttachments = (a: CardAttachment, b: CardAttachment) =>
+  sortCards(a.card, b.card) || a.fileName.localeCompare(b.fileName);
 
 /**
  * Checks whether a value is an external item key (connector:itemKey format)

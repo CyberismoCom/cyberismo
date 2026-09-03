@@ -67,6 +67,34 @@ describe('add command', () => {
     expect(result.statusCode).toBe(200);
     expect(result.affectsCards?.length).toBe(10);
   });
+  it('gives a batch of added cards distinct, increasing ranks', async () => {
+    const result = await commandHandler.command(
+      Cmd.add,
+      ['card', 'decision/templates/decision', 'decision/cardTypes/decision'],
+      { projectPath: options.projectPath, repeat: 5 },
+    );
+    expect(result.statusCode).toBe(200);
+    const addedCards = result.affectsCards!;
+    expect(addedCards).toHaveLength(5);
+
+    const ranks: string[] = [];
+    for (const cardKey of addedCards) {
+      const showResult = await commandHandler.command(
+        Cmd.show,
+        ['card', cardKey],
+        options,
+      );
+      ranks.push(Object(showResult.payload)['metadata']['rank']);
+    }
+
+    expect(new Set(ranks).size, `${ranks} must all differ`).toBe(5);
+    for (let index = 1; index < ranks.length; index++) {
+      expect(
+        ranks[index] > ranks[index - 1],
+        `${ranks[index]} must be after ${ranks[index - 1]}`,
+      ).toBe(true);
+    }
+  });
   it('try to add template card to non-existent template', async () => {
     const result = await commandHandler.command(
       Cmd.add,
@@ -74,6 +102,9 @@ describe('add command', () => {
       options,
     );
     expect(result.statusCode).toBe(400);
+    expect(result.message).toContain(
+      "Template 'decision/templates/idontexists' does not exist",
+    );
   });
   it('try to add template card to non-existent template parent card', async () => {
     const result = await commandHandler.command(

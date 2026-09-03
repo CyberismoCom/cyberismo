@@ -23,6 +23,7 @@ import {
   readJsonFile,
   readJsonFileSync,
   writeJsonFile,
+  writeJsonFileIfAbsent,
 } from '../utils/json.js';
 import {
   resourceName,
@@ -225,7 +226,7 @@ export abstract class ResourceObject<
    */
   protected cards(): Card[] {
     return [
-      ...this.project.cards(undefined),
+      ...this.project.cardTree.cards(),
       ...this.project.allTemplateCards(),
     ];
   }
@@ -555,7 +556,7 @@ export abstract class ResourceObject<
         `Resource '${this.resourceName.identifier}' does not exist in the project`,
       );
     }
-    const cardArray = cards?.length ? cards : this.project.cards(undefined);
+    const cardArray = cards?.length ? cards : this.project.cardTree.cards();
 
     return cardArray
       .filter((card) =>
@@ -606,12 +607,9 @@ export abstract class ResourceObject<
 
     // Create folder for resources and add correct .schema file.
     await mkdir(this.resourceFolder, { recursive: true });
-    await writeJsonFile(
+    await writeJsonFileIfAbsent(
       join(this.resourceFolder, '.schema'),
       this.contentSchema,
-      {
-        flag: 'wx',
-      },
     );
     // Check if "name" has changed. Changing "name" means renaming the file.
     const nameInContent = resourceName(this.content.name).identifier + '.json';
@@ -626,6 +624,9 @@ export abstract class ResourceObject<
       this.project.resources.rename(resourceString, this.content.name);
     }
     await writeJsonFile(this.fileName, this.content);
+    // The resource stays the object the cache holds, so nothing above tells
+    // the calculation engine that what it projects has changed.
+    this.project.calculationEngine.invalidateResources();
   }
 
   /**

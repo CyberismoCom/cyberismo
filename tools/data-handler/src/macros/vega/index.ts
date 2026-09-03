@@ -21,7 +21,6 @@ import {
   validateMacroContent,
 } from '../index.js';
 import { sanitizeSvgBase64 } from '../../utils/sanitize-svg.js';
-import * as vega from 'vega';
 import type { VegaMacroInput } from './types.js';
 
 class VegaMacro extends BaseMacro {
@@ -35,9 +34,10 @@ class VegaMacro extends BaseMacro {
 
   handleStatic = async (context: MacroGenerationContext, input: unknown) => {
     const options = this.validate(input) as VegaMacroInput;
+    const vega = await import('vega');
     const view = new vega.View(vega.parse(options.spec), { renderer: 'none' });
     const svg = await view.toSVG();
-    return createImage(sanitizeSvgBase64(svg), context.mode, false);
+    return createImage(await sanitizeSvgBase64(svg), context.mode, false);
   };
 
   handleInject = async (_: MacroGenerationContext, input: unknown) => {

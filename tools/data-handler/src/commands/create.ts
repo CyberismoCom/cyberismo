@@ -21,9 +21,13 @@ import { errorFunction } from '../utils/error-utils.js';
 import { createGit, gitTimeout } from '../utils/git-config.js';
 import { pathExists } from '../utils/file-utils.js';
 import { Project } from '../containers/project.js';
+import {
+  addTemplateCards,
+  instantiateTemplate,
+} from '../containers/project/template-instantiation.js';
 import { Validate } from './validate.js';
 
-import { EMPTY_RANK, sortItems } from '../utils/lexorank.js';
+import { compare, EMPTY_RANK, sortItems } from '../utils/lexorank.js';
 import { ROOT } from '../utils/constants.js';
 import { isModulePath, isExternalItemKey } from '../utils/card-utils.js';
 import type {
@@ -115,39 +119,36 @@ export class Create {
       templateName,
       'templates',
     );
-    const templateObject = templateResource.templateObject();
-    const specificCard = card ? templateObject.findCard(card) : undefined;
+    if (card && !templateResource.cardTree.has(card)) {
+      throw new Error(`Card '${card}' is not part of template`);
+    }
+    const specificCard = card
+      ? templateResource.cardTree.card(card)
+      : undefined;
 
-    if (isModulePath(templateObject.templateFolder())) {
+    if (!templateResource.isCreated()) {
+      throw new Error(`Template '${templateResource.fullName}' does not exist`);
+    }
+
+    if (isModulePath(templateResource.templateFolder())) {
       throw new Error(`Cannot add cards to imported module templates`);
     }
 
-    // Collect all add-card promises and settle them in parallel.
-    const promiseContainer = [];
-    const cardsContainer: string[] = [];
-    for (let cardCount = 0; cardCount < count; ++cardCount) {
-      promiseContainer.push(templateObject.addCard(cardTypeName, specificCard));
-    }
-    const promisesResult = await Promise.allSettled(promiseContainer).then(
-      (results) => {
-        for (const result of results) {
-          if (result.status !== 'fulfilled') {
-            throw new Error(result.reason);
-          }
-          cardsContainer.push(result.value);
-        }
-      },
+    const cardsContainer = await addTemplateCards(
+      this.project,
+      templateResource.cardTree,
+      cardTypeName,
+      count,
+      specificCard,
     );
 
     if (cardsContainer.length === 0) {
       throw new Error(`Invalid value for 'repeat:' "${count}"`);
     }
 
-    if (promisesResult === undefined) {
-      return cardsContainer;
-    } else {
-      throw new Error('Unknown error');
-    }
+    await this.project.runCreationSideEffects(cardsContainer);
+
+    return cardsContainer;
   }
 
   /**
@@ -197,7 +198,7 @@ export class Create {
    * Creates card(s) to a project. All cards from template are instantiated to the project.
    * @param templateName name of a template to use
    * @param parentCardKey (Optional) card-key of a parent card. If missing, cards are added to the card root.
-   * @returns array of card keys that were created. Cards are sorted by their parent key and rank. Template root cards are first but the order between other card groups is not guaranteed. However, the order of cards within a group is guaranteed to be ordered by rank.
+   * @returns the cards that were created. Template root cards come first, in rank order; the rest follow, grouped by parent key and in rank order within a group.
    */
   @write((templateName) => `Create card from template ${templateName}`)
   public async createCard(
@@ -220,13 +221,20 @@ export class Create {
     const specificCard = parentCardKey
       ? this.project.findCard(parentCardKey)
       : undefined;
-    const templateObject = templateResource.templateObject();
-    if (!templateObject || !templateObject.isCreated()) {
+    if (!templateResource.isCreated()) {
       throw new Error(`Template '${templateName}' not found from project`);
     }
 
-    const createdCards = await templateObject.createCards(specificCard);
+    const createdCards = await instantiateTemplate(
+      this.project,
+      templateResource.cardTree,
+      specificCard,
+    );
     if (createdCards.length > 0) {
+      await this.project.runCreationSideEffects(
+        createdCards.map((card) => card.key),
+      );
+
       const rootParent = specificCard?.key ?? ROOT;
       const rootCards: Card[] = [];
       const childCards: Card[] = [];
@@ -237,10 +245,15 @@ export class Create {
           childCards.push(card);
         }
       }
-      return sortItems(
-        rootCards,
-        (item) => item.metadata?.rank || EMPTY_RANK,
-      ).concat(childCards);
+      const rankOf = (card: Card) => card.metadata?.rank || EMPTY_RANK;
+      return sortItems(rootCards, rankOf).concat(
+        childCards.toSorted(
+          (a, b) =>
+            compare(a.parent ?? '', b.parent ?? '') ||
+            compare(rankOf(a), rankOf(b)) ||
+            compare(a.key, b.key),
+        ),
+      );
     }
     return [];
   }

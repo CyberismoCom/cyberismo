@@ -12,7 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Card, CardMetadata } from '../interfaces/project-interfaces.js';
+import type { CardMetadata } from '../interfaces/project-interfaces.js';
 import type {
   CalculationMetadata,
   CardType,
@@ -28,44 +28,23 @@ import type {
   Workflow,
 } from '../interfaces/resource-interfaces.js';
 import { WorkflowCategory } from '../interfaces/resource-interfaces.js';
-import { FIRST_RANK, getRankAfter, sortItems } from '../utils/lexorank.js';
-
-// Helper function to get latest card rank from a set of cards.
-function latestRank(cards: Card[]): string {
-  // Only use cards that have 'rank'.
-  const filteredCards = cards.filter(
-    (c) => c.metadata?.rank !== undefined || c.metadata?.rank !== '',
-  );
-
-  let latestRank = sortItems(filteredCards, (c) => c.metadata?.rank || '').pop()
-    ?.metadata?.rank;
-
-  if (!latestRank) {
-    latestRank = FIRST_RANK;
-  }
-
-  const newRank = getRankAfter(latestRank as string);
-  latestRank = newRank;
-  return latestRank;
-}
 
 /**
  * Provides default values for resources and cards.
  */
 export abstract class DefaultContent {
   /**
-   * Returns card with default content. Card is automatically ranked last, if siblings are provided.
+   * Returns card with default content. The rank is the caller's to allocate.
    * @param cardType Card type of the new card.
-   * @param siblings Optional. If given, content will have been ranked last.
    * @returns card with default content.
    */
-  static card(cardType: CardType, siblings?: Card[]): CardMetadata {
+  static card(cardType: CardType): CardMetadata {
     return {
       title: 'Untitled',
       cardType: cardType.name,
       workflowState: '',
       links: [],
-      rank: siblings ? latestRank(siblings) : '',
+      rank: '',
     };
   }
 

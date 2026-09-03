@@ -17,14 +17,13 @@ import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
 import type { Operation } from '../../resources/resource-object.js';
 
-// Cards using this card type: local project cards plus local template cards
-// (matches CardTypeResource's collectCards scoping).
+// Cards using this card type: local project cards plus local template cards.
 function affectedCards(ctx: MutationContext, cardTypeName: string): Card[] {
   return [
-    ...ctx.project.cards(undefined),
+    ...ctx.project.cardTree.cards(),
     ...ctx.project.resources
       .templates(ResourcesFrom.localOnly)
-      .flatMap((t) => t.templateObject().cards()),
+      .flatMap((t) => t.cardTree.cards()),
   ].filter((c) => c.metadata?.cardType === cardTypeName);
 }
 

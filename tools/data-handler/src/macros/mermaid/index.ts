@@ -36,7 +36,7 @@ class MermaidMacro extends BaseMacro {
   handleStatic = async (context: MacroGenerationContext, input: unknown) => {
     const options = this.validate(input);
     const svg = await renderMermaidToSvg(options.code);
-    return createImage(sanitizeSvgBase64(svg), context.mode, false);
+    return createImage(await sanitizeSvgBase64(svg), context.mode, false);
   };
 
   handleInject = async (_: MacroGenerationContext, input: unknown) => {

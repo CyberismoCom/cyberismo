@@ -187,9 +187,9 @@ describe('shows command', () => {
         optionsDecision,
       );
       expect(result.payload).to.deep.equal([
+        'template-test-label',
         'test',
         'test-two',
-        'template-test-label',
       ]);
     });
     it('show modules (none) - success()', async () => {
@@ -488,8 +488,12 @@ describe('shows command', () => {
       expect(result.statusCode).toBe(200);
       let payloadAsArray = Object.values(result.payload!);
       expect(payloadAsArray.length).toBe(2);
-      expect(payloadAsArray.at(0).card).toBe('decision_5');
-      expect(payloadAsArray.at(0).fileName).toBe('games.jpg');
+      expect(
+        payloadAsArray.map((item) => [item.card, item.fileName]),
+      ).to.deep.equal([
+        ['decision_1', 'the-needle.heic'],
+        ['decision_5', 'games.jpg'],
+      ]);
       const resultFromModule = await commandHandler.command(
         Cmd.show,
         ['attachments'],

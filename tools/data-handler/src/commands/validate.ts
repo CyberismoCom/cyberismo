@@ -37,7 +37,7 @@ import type {
   Workflow,
 } from '../interfaces/resource-interfaces.js';
 import { errorFunction } from '../utils/error-utils.js';
-import { isTemplateCard } from '../utils/card-utils.js';
+import { isTemplateCard, sortCards } from '../utils/card-utils.js';
 import { isPredefinedField } from '../utils/constants.js';
 import { pathExists } from '../utils/file-utils.js';
 import type { Project } from '../containers/project.js';
@@ -577,20 +577,16 @@ export class Validate {
           }
         }
 
-        // Finally, validate that each card is correct
-        const cards = project.cards();
-        cards.push(...project.allTemplateCards());
+        // Finally, validate that each card is correct. Sorted so the reported
+        // errors come out in the same order on every run.
+        const cards = [
+          ...project.cardTree.cards(),
+          ...project.allTemplateCards(),
+        ].sort((a, b) => sortCards(a.key, b.key));
 
-        const cardIds = new Map<string, number>();
         const allPrefixes = project.allModulePrefixes();
 
         for (const card of cards) {
-          if (cardIds.has(card.key)) {
-            cardIds.set(card.key, (cardIds.get(card.key) || 0) + 1);
-          } else {
-            cardIds.set(card.key, 1);
-          }
-
           if (card.metadata) {
             if (!isTemplateCard(card)) {
               const validWorkflow = await this.validateWorkflowState(
@@ -629,12 +625,6 @@ export class Validate {
             } catch (error) {
               errorMsg.push(`Card '${card.key}': ${errorFunction(error)}`);
             }
-          }
-        }
-        // Validate that there are no duplicate card keys
-        for (const [key, count] of cardIds) {
-          if (count > 1) {
-            errorMsg.push(`Duplicate card key '${key}' found ${count} times`);
           }
         }
         if (errorMsg.length) {

@@ -23,11 +23,11 @@ import type {
   QueryName,
   QueryResult,
 } from '../../types/queries.js';
-import type { Card, Context } from '../../interfaces/project-interfaces.js';
+import type { CardNode, Context } from '../../interfaces/project-interfaces.js';
 import ClingoParser from '../../utils/clingo-parser.js';
 
 import Handlebars from 'handlebars';
-import type { Project } from '../../containers/project.js';
+import type { Project, ProjectFactChanges } from '../../containers/project.js';
 import { getChildLogger } from '../../utils/log-utils.js';
 import {
   createCalculatedFieldRules,
@@ -64,9 +64,24 @@ import {
 const ALL_CATEGORY = 'all';
 
 export class CalculationEngine {
-  constructor(private project: Project) {}
+  /**
+   * Draining the trees' fact changes is destructive - whoever takes them owes
+   * them a projection - so the capability is handed to this engine alone.
+   */
+  constructor(
+    private project: Project,
+    private drainCardFactChanges: () => ProjectFactChanges,
+  ) {}
 
   private clingo = new ClingoContext();
+
+  // Card facts depend on card types and field types, so a resource change
+  // cannot be served incrementally. True to begin with, so the first pull
+  // builds the program.
+  private resourcesDirty = true;
+
+  // Serialises the pulls: reads run concurrently, and draining is destructive.
+  private pulling: Promise<void> = Promise.resolve();
 
   private get logger() {
     return getChildLogger({
@@ -75,13 +90,53 @@ export class CalculationEngine {
   }
 
   /**
+   * Declares that something other than a card changed, so the programs derived
+   * from resources - and the card programs that depend on them - are stale.
+   */
+  public invalidateResources() {
+    this.resourcesDirty = true;
+  }
+
+  /**
+   * Brings the logic program up to date. Every path into clingo goes through
+   * pull(): run() for solves, and exportLogicProgram for the one other reader.
+   */
+  private async pull(): Promise<void> {
+    const next = this.pulling.then(
+      () => this.refreshPrograms(),
+      // A failed pull must not wedge every later one.
+      () => this.refreshPrograms(),
+    );
+    this.pulling = next.catch(() => {});
+    return next;
+  }
+
+  private async refreshPrograms(): Promise<void> {
+    if (this.resourcesDirty) {
+      await this.generate();
+      return;
+    }
+    const { changed, removed } = this.drainCardFactChanges();
+    try {
+      for (const cardKey of removed) {
+        this.clingo.removeProgram(cardKey);
+      }
+      await this.refreshCardFacts(changed);
+    } catch (error) {
+      // The drained changes are gone; only a full generate cannot miss them.
+      this.resourcesDirty = true;
+      throw error;
+    }
+  }
+
+  /**
    * Gets the logic program content for a specific card
    * @param cardKey The key of the card
    * @returns The logic program content for the card
    */
   public async cardLogicProgram(cardKey: string): Promise<string> {
-    const card = this.project.findCard(cardKey);
-    return createCardFacts(card, this.project);
+    const tree = this.project.treeOf(cardKey);
+    return createCardFacts(tree.node(cardKey), this.project, tree.factContext);
   }
 
   /**
@@ -95,13 +150,25 @@ export class CalculationEngine {
     programs: string[],
     query?: QueryName,
   ) {
+    await this.pull();
     let logicProgram = query ? this.queryContent(query) : '';
     logicProgram += this.clingo.buildProgram('', programs);
     await writeFile(destination, logicProgram);
   }
 
-  // Wrapper to run onCreation query.
-  private async creationQuery(cardKeys: string[], context: Context) {
+  /**
+   * Runs the onCreation query for the given cards.
+   *
+   * Answering the query is this class's job; executing the side effects it
+   * asks for is a write the command layer owns.
+   * @param cardKeys Keys of the cards that were created.
+   * @param context In which type of context the query is run.
+   * @returns the query's side effects, or undefined if there are none.
+   */
+  public async creationQuery(
+    cardKeys: string[],
+    context: Context,
+  ): Promise<QueryResult<'onCreation'>[] | undefined> {
     if (!cardKeys) return undefined;
     return this.runQuery('onCreation', context, {
       cardKeys,
@@ -116,8 +183,12 @@ export class CalculationEngine {
     }
   }
 
-  private async setCardContent(card: Card) {
-    const cardContent = await createCardFacts(card, this.project);
+  private async setCardContent(card: CardNode) {
+    const cardContent = await createCardFacts(
+      card,
+      this.project,
+      this.project.treeOf(card.key).factContext,
+    );
     this.clingo.setProgram(card.key, cardContent, [ALL_CATEGORY]);
   }
 
@@ -210,10 +281,8 @@ export class CalculationEngine {
     for (const template of templates) {
       const tem = template.show();
       const templateContent = createTemplateFacts(tem);
-      const cards = this.getCards(tem.name);
-      for (const card of cards) {
-        const cardContent = await createCardFacts(card, this.project);
-        this.clingo.setProgram(card.key, cardContent, [ALL_CATEGORY]);
+      for (const card of this.getCards(tem.name)) {
+        await this.setCardContent(card);
       }
       this.clingo.setProgram(tem.name, templateContent, [ALL_CATEGORY]);
     }
@@ -247,12 +316,10 @@ export class CalculationEngine {
   }
 
   // Gets either all the cards (no parent), or a subtree.
-  private getCards(templateName?: string): Card[] {
-    if (templateName) {
-      return this.project.templateCards(templateName);
-    }
-
-    return this.project.cards();
+  private getCards(templateName?: string): CardNode[] {
+    return templateName
+      ? this.project.templateTree(templateName).nodes()
+      : this.project.cardTree.nodes();
   }
 
   // Checks that Clingo successfully returned result.
@@ -273,6 +340,7 @@ export class CalculationEngine {
 
   //
   private async run(query: string, context: Context): Promise<string[]> {
+    await this.pull();
     try {
       // Use the main category to include all programs
       const basePrograms = [ALL_CATEGORY];
@@ -313,7 +381,7 @@ export class CalculationEngine {
   }
 
   /**
-   * Generates a logic program.
+   * Generates the whole logic program from scratch.
    */
   public async generate() {
     this.logger.trace(
@@ -345,6 +413,10 @@ export class CalculationEngine {
     await this.setTemplatesPrograms();
     await this.setCalculationsPrograms();
 
+    // Everything pending has just been rebuilt along with the rest.
+    this.drainCardFactChanges();
+    this.resourcesDirty = false;
+
     this.logger.trace(
       {
         clingo: true,
@@ -353,67 +425,10 @@ export class CalculationEngine {
     );
   }
 
-  /**
-   * When card changes, update the card specific calculations.
-   * @param changedCard Card that was changed.
-   */
-  public async handleCardChanged(changedCard: Card) {
-    await this.setCardContent(changedCard);
-  }
-
-  /**
-   * When card is moved, rebuild the entire card tree structure.
-   * Moving cards changes parent-child relationships, so we need to rebuild
-   * the complete card tree facts to ensure consistency.
-   */
-  public async handleCardMoved() {
-    // Rebuild entire tree structure from scratch to ensure all relationships are correct
-    await this.setCardTreeContent();
-  }
-
-  /**
-   * When cards are removed, automatically remove card-specific calculations.
-   * @param deletedCard Card that is to be removed.
-   */
-  public async handleDeleteCard(deletedCard: Card) {
-    if (!deletedCard) {
-      return;
-    }
-    try {
-      if (!this.clingo.removeProgram(deletedCard.key)) {
-        this.logger.warn(
-          {
-            cardKey: deletedCard.key,
-          },
-          'Tried to remove card program that does not exist',
-        );
-      }
-    } catch {
-      this.logger.warn('Removing program failed');
-    }
-  }
-
-  /**
-   * When new cards are added, automatically calculate card-specific values.
-   * @param cards Added cards.
-   */
-  public async handleNewCards(cards: Card[]) {
-    if (!cards) {
-      return;
-    }
+  private async refreshCardFacts(cards: CardNode[]) {
     for (const card of cards) {
       await this.setCardContent(card);
     }
-    const cardKeys = cards.map((item) => item.key);
-    const queryResult = await this.creationQuery(cardKeys, 'localApp');
-    await this.project.executeSideEffects(
-      queryResult?.at(0),
-      // Empty seed: the created cards' initial "Create" transitions already
-      // happened during creation itself; a re-entrant "Create" side effect
-      // would be rejected anyway by the fromState check, so nothing needs
-      // to be pre-marked visited here.
-      new Set<string>(),
-    );
   }
 
   /**

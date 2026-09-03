@@ -204,7 +204,10 @@ export class Export {
       if (card.children) {
         await this.toAdocFileAsContent(
           path,
-          this.project.cardKeysToCards(card.children),
+          sortItems(
+            this.project.cardKeysToCards(card.children),
+            (child) => child.metadata?.rank || '1|z',
+          ),
         );
       }
     }
@@ -272,10 +275,7 @@ export class Export {
       children: [],
       attachments: [],
     };
-    const cardDetailsResponse = await this.showCmd.showCardDetails(
-      card.key,
-      'adoc',
-    );
+    const cardDetailsResponse = await this.showCmd.showCardDetails(card.key);
     let asciiDocContent = '';
     const project = this.project;
     try {
