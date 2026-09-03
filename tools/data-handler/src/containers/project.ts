@@ -71,6 +71,15 @@ export interface ProjectOptions {
 }
 
 /**
+ * The pending card fact changes of every tree a project holds: the cards whose
+ * facts have to be projected again, and the card keys whose facts must go.
+ */
+export interface ProjectFactChanges {
+  changed: CardNode[];
+  removed: string[];
+}
+
+/**
  * Represents project folder.
  */
 export class Project {
@@ -280,8 +289,34 @@ export class Project {
    * @param templateName Full name of the template.
    */
   public removeTemplateTree(templateName: string) {
+    // Every path that drops a tree also invalidates the resource cache, so its
+    // pending removals are covered by the full generate that follows.
     this.templateCardTrees.get(templateName)?.clear();
     this.templateCardTrees.delete(templateName);
+  }
+
+  /**
+   * Takes the pending fact changes of every tree the project holds.
+   *
+   * A card that moved between two trees is reported as changed rather than
+   * removed: its program is rewritten, not dropped.
+   */
+  public takeCardFactChanges(): ProjectFactChanges {
+    const removed = new Set<string>();
+    const changed: CardNode[] = [];
+    for (const tree of [this.cardTree, ...this.templateTrees()]) {
+      const changes = tree.takeFactChanges();
+      for (const cardKey of changes.removed) {
+        removed.add(cardKey);
+      }
+      for (const cardKey of changes.changed) {
+        changed.push(tree.node(cardKey));
+      }
+    }
+    for (const node of changed) {
+      removed.delete(node.key);
+    }
+    return { changed, removed: [...removed] };
   }
 
   /**

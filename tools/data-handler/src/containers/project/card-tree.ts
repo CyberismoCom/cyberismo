@@ -108,6 +108,15 @@ export interface RankChange {
 }
 
 /**
+ * Cards whose facts a tree has stopped matching: those to reproject, and those
+ * whose facts must go.
+ */
+export interface CardFactChanges {
+  changed: string[];
+  removed: string[];
+}
+
+/**
  * Owner of one container's cards: their storage, their structure, their
  * indexes and their filesystem representation. Knows nothing about workflows,
  * card types or clingo.
@@ -124,10 +133,33 @@ export class CardTree {
   private populated: boolean = false;
   private treeName: string;
   private treeRoot: string;
+  // Cards whose facts the tree no longer matches: the tree marks them, and
+  // whoever is about to solve drains them.
+  private changedFacts: Set<string> = new Set();
+  private removedFacts: Set<string> = new Set();
 
   constructor(private readonly options: CardTreeOptions) {
     this.treeName = options.name;
     this.treeRoot = options.rootPath;
+  }
+
+  // A card's facts are built from its key, its parent edge, its metadata and
+  // its tree's fact context - see createCardFacts. Content and attachments are
+  // not in that list, so writing either of them marks nothing.
+  private factsChanged(cardKey: string) {
+    this.removedFacts.delete(cardKey);
+    this.changedFacts.add(cardKey);
+  }
+
+  private factsRemoved(cardKey: string) {
+    this.changedFacts.delete(cardKey);
+    this.removedFacts.add(cardKey);
+  }
+
+  private allFactsChanged() {
+    for (const cardKey of this.cardStore.keys()) {
+      this.factsChanged(cardKey);
+    }
   }
 
   private setChildren(parentKey: string, children: string[]) {
@@ -490,6 +522,19 @@ export class CardTree {
   }
 
   /**
+   * Takes the tree's pending fact changes, leaving it clean.
+   */
+  public takeFactChanges(): CardFactChanges {
+    const changes = {
+      changed: [...this.changedFacts],
+      removed: [...this.removedFacts],
+    };
+    this.changedFacts.clear();
+    this.removedFacts.clear();
+    return changes;
+  }
+
+  /**
    * Whether the tree has been loaded.
    */
   public get isPopulated(): boolean {
@@ -539,6 +584,9 @@ export class CardTree {
   public rebase(name: string, rootPath: string) {
     this.treeName = name;
     this.treeRoot = rootPath;
+    // A template's root cards name the template itself as their parent, so
+    // renaming the tree changes what its cards project.
+    this.allFactsChanged();
   }
 
   /**
@@ -906,6 +954,7 @@ export class CardTree {
       content: card.content,
       attachments: CardTree.storedAttachments(card),
     });
+    this.factsChanged(card.key);
   }
 
   // The attachments of a card being inserted, as folder-relative names.
@@ -943,6 +992,8 @@ export class CardTree {
     }
     await CardTree.moveFolder(from, to);
     this.store(cardKey, { ...card, parent });
+    // Only the moved card: its descendants keep the parent they had.
+    this.factsChanged(cardKey);
     if (card.parent !== ROOT) {
       await CardTree.pruneEmptyFolder(dirname(from));
     }
@@ -1007,6 +1058,7 @@ export class CardTree {
     // Children first, so a parent's child list is empty by the time it goes.
     for (const card of [...uprooted].reverse()) {
       this.unstore(card.key);
+      this.factsRemoved(card.key);
     }
     this.options.keys.release(uprooted.map((card) => card.key));
     return uprooted;
@@ -1049,6 +1101,7 @@ export class CardTree {
         children: [],
         attachments: card.attachments.map((attachment) => ({ ...attachment })),
       });
+      this.factsChanged(card.key);
     }
   }
 
@@ -1114,6 +1167,7 @@ export class CardTree {
       return false;
     }
     stored.metadata = CardTree.normalizedMetadata(sanitizedMetadata);
+    this.factsChanged(card.key);
     return true;
   }
 
@@ -1170,7 +1224,11 @@ export class CardTree {
     }
     await deleteDir(path);
     this.options.keys.release([cardKey]);
-    return this.unstore(cardKey);
+    const removed = this.unstore(cardKey);
+    if (removed) {
+      this.factsRemoved(cardKey);
+    }
+    return removed;
   }
 
   /**
@@ -1323,6 +1381,7 @@ export class CardTree {
     );
     for (const card of cards) {
       this.store(card.key, card);
+      this.factsChanged(card.key);
     }
     this.populated = true;
   }
@@ -1331,6 +1390,9 @@ export class CardTree {
    * Empties the tree.
    */
   public clear() {
+    for (const cardKey of this.cardStore.keys()) {
+      this.factsRemoved(cardKey);
+    }
     this.options.keys.releaseOwner(this);
     this.populated = false;
     this.cardStore.clear();

@@ -1435,4 +1435,136 @@ describe('Card tree', () => {
       );
     });
   });
+
+  describe('fact changes', () => {
+    let tree: CardTree;
+
+    // A three-generation line: test_1 -> test_2 -> test_3.
+    beforeEach(async () => {
+      mkdirSync(testCardsPath, { recursive: true });
+      createTestCard('test_1', testCardsPath, pageCard('One'), '');
+      createTestCard(
+        'test_2',
+        join(testCardsPath, 'test_1', 'c'),
+        pageCard('Two'),
+        '',
+      );
+      createTestCard(
+        'test_3',
+        join(testCardsPath, 'test_1', 'c', 'test_2', 'c'),
+        pageCard('Three'),
+        '',
+      );
+      tree = projectTree(testCardsPath);
+      await tree.load();
+    });
+    afterEach(() => {
+      rmSync(testDir, { recursive: true, force: true });
+    });
+
+    // The tree is loaded in beforeEach, so a test that observes one
+    // operation's marks starts from a drained tree.
+    function drain() {
+      tree.takeFactChanges();
+    }
+
+    function newCard(cardKey: string, parent: string): Card {
+      return {
+        key: cardKey,
+        path: tree.pathFor(parent, cardKey),
+        parent,
+        children: [],
+        attachments: [],
+        content: '',
+        metadata: { ...pageCard(cardKey), links: [] },
+      };
+    }
+
+    it('marks every loaded card', () => {
+      const changes = tree.takeFactChanges();
+      expect(changes.changed.sort()).toEqual(['test_1', 'test_2', 'test_3']);
+      expect(changes.removed).toEqual([]);
+    });
+
+    it('marks nothing for a content or an attachment write', async () => {
+      drain();
+      const card = tree.card('test_2');
+      card.content = 'new body';
+      await tree.writeContent(card);
+      expect(tree.takeFactChanges()).toEqual({ changed: [], removed: [] });
+
+      await tree.addAttachment('test_2', 'picture.png', Buffer.from('x'));
+      expect(tree.takeFactChanges()).toEqual({ changed: [], removed: [] });
+
+      await tree.removeAttachment('test_2', 'picture.png');
+      expect(tree.takeFactChanges()).toEqual({ changed: [], removed: [] });
+    });
+
+    it('marks only the relocated card', async () => {
+      drain();
+      await tree.relocate('test_2', 'root');
+
+      expect(tree.takeFactChanges()).toEqual({
+        changed: ['test_2'],
+        removed: [],
+      });
+    });
+
+    it('marks an uprooted subtree removed and a grafted one changed', () => {
+      drain();
+      const subtree = tree.uproot('test_2');
+      const uprooted = tree.takeFactChanges();
+      expect(uprooted.changed).toEqual([]);
+      expect(uprooted.removed.sort()).toEqual(['test_2', 'test_3']);
+
+      tree.graft(subtree, 'root');
+      expect(tree.takeFactChanges()).toEqual({
+        changed: ['test_2', 'test_3'],
+        removed: [],
+      });
+    });
+
+    it('marks a card once, as whatever happened to it last', async () => {
+      drain();
+      await tree.deleteSubtree('test_3');
+      createTestCard(
+        'test_3',
+        join(testCardsPath, 'test_1', 'c', 'test_2', 'c'),
+        pageCard('Three'),
+        '',
+      );
+      tree.insert(newCard('test_3', 'test_2'));
+      expect(tree.takeFactChanges()).toEqual({
+        changed: ['test_3'],
+        removed: [],
+      });
+
+      const card = tree.card('test_3');
+      card.metadata!.title = 'Renamed';
+      await tree.writeMetadata(card);
+      await tree.deleteSubtree('test_3');
+      expect(tree.takeFactChanges()).toEqual({
+        changed: [],
+        removed: ['test_3'],
+      });
+    });
+
+    it('marks every card of a cleared tree as removed', () => {
+      drain();
+      tree.clear();
+
+      const changes = tree.takeFactChanges();
+      expect(changes.changed).toEqual([]);
+      expect(changes.removed.sort()).toEqual(['test_1', 'test_2', 'test_3']);
+    });
+
+    it('marks every card when the tree is renamed', () => {
+      drain();
+      tree.rebase(PAGE_TEMPLATE, testCardsPath);
+
+      const changes = tree.takeFactChanges();
+      expect(changes.changed.sort()).toEqual(['test_1', 'test_2', 'test_3']);
+      expect(changes.removed).toEqual([]);
+    });
+  });
 });
