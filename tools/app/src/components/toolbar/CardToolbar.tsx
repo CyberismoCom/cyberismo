@@ -23,6 +23,7 @@ import {
   useCard,
   usePresence,
   useProject,
+  useRefetchCardOnPresenceChange,
   useTree,
   useUser,
   useWorkflowGraph,
@@ -59,6 +60,7 @@ export function CardToolbar({
   const { card, updateWorkFlowState, isUpdating } = useCard(cardKey);
   const { user } = useUser();
   const presence = usePresence(cardKey, presenceMode);
+  useRefetchCardOnPresenceChange(presence, cardKey);
 
   const dispatch = useAppDispatch();
   const canEdit = useHasMinRole(UserRole.Editor);
