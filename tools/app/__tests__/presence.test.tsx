@@ -98,7 +98,7 @@ describe('usePresence card-updated', () => {
     vi.restoreAllMocks();
   });
 
-  it('refetches the card and raw card when someone else saves', () => {
+  it('refetches the card, raw card and trees when someone else saves', () => {
     const { source, notifications } = setup();
 
     act(() => {
@@ -112,6 +112,9 @@ describe('usePresence card-updated', () => {
     const keys = mutateMock.mock.calls.map((call) => call[0] as string);
     expect(keys.some((k) => k.endsWith(`/cards/${CARD}`))).toBe(true);
     expect(keys.some((k) => k.endsWith(`/cards/${CARD}?raw=true`))).toBe(true);
+    // Moves, ranks, titles and states show in the tree as well.
+    expect(keys.some((k) => k.endsWith('/tree'))).toBe(true);
+    expect(keys.some((k) => k.endsWith('/resources/tree'))).toBe(true);
     expect(notifications()).toHaveLength(1);
     expect(notifications()[0].type).toBe('info');
     expect(notifications()[0].message).toContain('Alex');
@@ -167,7 +170,7 @@ describe('usePresence card-updated', () => {
     expect(mutateMock).not.toHaveBeenCalled();
 
     act(() => source.emit('open'));
-    expect(mutateMock).toHaveBeenCalledTimes(2);
+    expect(mutateMock).toHaveBeenCalledTimes(4);
   });
 
   it('opens the stream for a reader', () => {

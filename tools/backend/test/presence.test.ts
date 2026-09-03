@@ -4,17 +4,19 @@ import { createApp } from '../src/app.js';
 import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { presenceStore } from '../src/domain/cards/presence.js';
+import { updateCard } from '../src/domain/cards/service.js';
 import { UserRole } from '../src/types.js';
 import type { SSEMessage } from 'hono/streaming';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
 
 let app: ReturnType<typeof createApp>;
 let tempTestDataPath: string;
+let commands: CommandManager;
 
 beforeAll(async () => {
   process.argv = [];
   tempTestDataPath = await createTempTestData('decision-records');
-  const commands = await CommandManager.getInstance(tempTestDataPath);
+  commands = await CommandManager.getInstance(tempTestDataPath);
   app = createApp(
     new MockAuthProvider(),
     ProjectRegistry.fromCommandManager(commands),
@@ -172,6 +174,58 @@ describe('GET /api/projects/:prefix/cards/:key/presence', () => {
       userId: 'mock-user-bob',
       userName: 'Bob',
     });
+  });
+
+  test('an inbound link write notifies viewers of the card that stores it', async () => {
+    // direction='inbound' on decision_5 writes the link into decision_6.
+    const stream = await app.request(
+      '/api/projects/decision/cards/decision_6/presence',
+    );
+    const reader = stream.body!.getReader();
+    await readUntil(reader, 'event: presence');
+
+    const post = await app.request(
+      '/api/projects/decision/cards/decision_5/links',
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          cookie: 'mock-user=bob',
+        },
+        body: JSON.stringify({
+          toCard: 'decision_6',
+          linkType: 'decision/linkTypes/test',
+          direction: 'inbound',
+        }),
+      },
+    );
+    expect(post.status).toBe(200);
+
+    const text = await readUntil(reader, 'event: card-updated');
+    void reader.cancel();
+
+    const updated = parseSSEEvents(text).find(
+      (e) => e.event === 'card-updated',
+    );
+    expect(updated).toBeDefined();
+    expect(JSON.parse(updated!.data!).cardKey).toBe('decision_6');
+  });
+});
+
+describe('cardService.updateCard change reporting', () => {
+  test('reports false for a body that changes nothing', async () => {
+    expect(await updateCard(commands, 'decision_5', {})).toBe(false);
+    expect(await updateCard(commands, 'decision_5', { metadata: {} })).toBe(
+      false,
+    );
+  });
+
+  test('reports true when a field was written', async () => {
+    expect(
+      await updateCard(commands, 'decision_5', {
+        metadata: { title: 'Changed' },
+      }),
+    ).toBe(true);
   });
 });
 

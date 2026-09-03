@@ -78,9 +78,13 @@ export function usePresence(
     }
 
     const apiPaths = projectApiPaths(projectPrefix);
+    // Same keys the local save path revalidates: moves, ranks, titles and
+    // states change the trees as well as the card.
     const refetchCard = () => {
       mutate(apiPaths.card(cardKey));
       mutate(apiPaths.rawCard(cardKey));
+      mutate(apiPaths.tree());
+      mutate(apiPaths.resourceTree());
     };
 
     const eventSource = new EventSource(url);

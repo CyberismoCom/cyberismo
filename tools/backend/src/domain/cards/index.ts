@@ -33,6 +33,17 @@ import {
 const router = new Hono();
 
 /**
+ * Tell presence viewers of each card that it changed. Link writes touch
+ * both endpoint cards, so both pages need a refetch.
+ */
+function notifyCardsUpdated(c: Context, keys: string[]) {
+  const user = c.get('user');
+  for (const key of new Set(keys)) {
+    presenceStore.notifyUpdated(key, user);
+  }
+}
+
+/**
  * @swagger
  * /api/cards:
  *   get:
@@ -240,8 +251,10 @@ router.patch('/:key', requireRole(UserRole.Editor), async (c) => {
   const body = await c.req.json();
 
   try {
-    await cardService.updateCard(commands, key, body);
-    presenceStore.notifyUpdated(key, c.get('user'));
+    const changed = await cardService.updateCard(commands, key, body);
+    if (changed) {
+      presenceStore.notifyUpdated(key, c.get('user'));
+    }
     const result = await getCardDetails(
       c.get('commands'),
       key,
@@ -616,7 +629,7 @@ router.post(
         direction,
         description,
       );
-      presenceStore.notifyUpdated(key, c.get('user'));
+      notifyCardsUpdated(c, [key, toCard]);
       return c.json(result);
     } catch (error) {
       return c.json(
@@ -679,7 +692,7 @@ router.delete(
         direction,
         description,
       );
-      presenceStore.notifyUpdated(key, c.get('user'));
+      notifyCardsUpdated(c, [key, toCard]);
       return c.json(result);
     } catch (error) {
       return c.json(
@@ -766,7 +779,7 @@ router.put(
         description,
         previousDescription,
       );
-      presenceStore.notifyUpdated(key, c.get('user'));
+      notifyCardsUpdated(c, [key, toCard, previousToCard]);
       return c.json(result);
     } catch (error) {
       return c.json(
