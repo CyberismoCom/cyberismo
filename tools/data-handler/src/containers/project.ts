@@ -134,7 +134,9 @@ export class Project {
 
     this.logger.info({ path }, 'Initializing project');
 
-    this.calculationEngine = new CalculationEngine(this);
+    this.calculationEngine = new CalculationEngine(this, () =>
+      this.takeCardFactChanges(),
+    );
     this.projectPaths = new ProjectPaths(path);
     this.resourceHandler = new ResourceHandler(this);
     // todo: implement project validation
@@ -168,12 +170,6 @@ export class Project {
 
     this.gitManager = new GitManager(path);
 
-    // Regenerate Clingo facts after every write transaction so that
-    // metadata-only edits (e.g. title changes) are immediately visible.
-    this.lock.onAfterWrite(async () => {
-      await this.calculationEngine.generate();
-    });
-
     this.gitSync = new GitSync(this.gitManager);
 
     if (this.options.autocommit) {
@@ -190,11 +186,12 @@ export class Project {
       // Rollback on failed writes
       this.lock.onWriteError(async () => {
         await this.gitManager.rollback();
-        // Invalidate caches after rollback since filesystem state changed
+        // Invalidate caches after rollback since filesystem state changed.
+        // The reload marks every card and resources.changed() marks the rest,
+        // so the next solve rebuilds from the rolled-back state.
         this.clearCards();
         await this.populateCardsCache();
         this.resources.changed();
-        await this.calculationEngine.generate();
       });
     }
   }
@@ -301,7 +298,7 @@ export class Project {
    * A card that moved between two trees is reported as changed rather than
    * removed: its program is rewritten, not dropped.
    */
-  public takeCardFactChanges(): ProjectFactChanges {
+  private takeCardFactChanges(): ProjectFactChanges {
     const removed = new Set<string>();
     const changed: CardNode[] = [];
     for (const tree of [this.cardTree, ...this.templateTrees()]) {
@@ -637,15 +634,6 @@ export class Project {
   }
 
   /**
-   * When card changes.
-   * @param changedCard Card that was changed.
-   */
-  public async handleCardChanged(changedCard: CardNode) {
-    // Notify the calculation engine about the change
-    return this.calculationEngine.handleCardChanged(changedCard);
-  }
-
-  /**
    * When cards are removed.
    * @param deletedCard Card that is to be removed.
    */
@@ -666,7 +654,6 @@ export class Project {
       }
     }
     await this.removeCard(deletedCard.key);
-    return this.calculationEngine.handleDeleteCard(deletedCard);
   }
 
   /**
@@ -737,17 +724,6 @@ export class Project {
   }
 
   /**
-   * When card is moved.
-   * @param movedCard Card that moved
-   * @param newParentCard New parent for the 'movedCard'
-   * @param oldParentCard Previous parent of the 'movedCard'
-   */
-  public async handleCardMoved(movedCard: CardNode) {
-    await this.handleCardChanged(movedCard);
-    await this.calculationEngine.handleCardMoved();
-  }
-
-  /**
    * Moves a card to a new position in the card tree.
    * @param container Container the card now belongs to: 'project' or a full
    *   template name. Defaults to the one it is in.
@@ -768,22 +744,20 @@ export class Project {
   }
 
   /**
-   * Adds cards that have just been created on disk to the card tree, and
-   * refreshes their facts so a query run afterwards can see them.
+   * Adds cards that have just been created on disk to the card tree.
    *
-   * Storage and fact projection only. The creation query and the side effects
-   * it asks for belong to the command that created the cards and holds the
-   * write lock — see runCreationSideEffects.
+   * Storage only: the creation query and the side effects it asks for belong
+   * to the command that created the cards and holds the write lock — see
+   * runCreationSideEffects.
    * @param cards Cards that were created.
    * @param container 'project', or the full name of the template they belong
    *   to.
    */
-  public async addCreatedCards(cards: Card[], container: string) {
+  public addCreatedCards(cards: Card[], container: string) {
     const tree = this.containerTree(container);
     for (const card of cards) {
       tree.insert(card);
     }
-    return this.calculationEngine.refreshCardFacts(cards);
   }
 
   /**
@@ -791,7 +765,8 @@ export class Project {
    * side effects it asks for.
    *
    * Must run inside a write-lock context, after addCreatedCards: the query
-   * only sees the new cards once their facts have been projected.
+   * projects the new cards as it starts, so they have to be in their tree by
+   * then.
    * @param cardKeys Keys of the cards that were created.
    */
   public async runCreationSideEffects(cardKeys: string[]) {
@@ -1077,7 +1052,6 @@ export class Project {
     // 'lastUpdated', and only the metadata write stamps it.
     await this.saveCardContent(card);
     await this.saveCardMetadata(card);
-    await this.handleCardChanged(card);
   }
 
   /**
@@ -1135,9 +1109,7 @@ export class Project {
    */
   public async updateCardMetadata(card: Card, changedMetadata: CardMetadata) {
     card.metadata = changedMetadata;
-    if (await this.saveCardMetadata(card)) {
-      await this.handleCardChanged(card);
-    }
+    await this.saveCardMetadata(card);
   }
 
   // Wrapper to run onTransition query.
