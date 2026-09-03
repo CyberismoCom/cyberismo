@@ -85,8 +85,8 @@ router.post(
   async (c) => {
     const commands = c.get('commands');
     const { module } = c.req.valid('param');
-    // Established callers send no body at all, so the body cannot go through
-    // the JSON validator middleware — it rejects a missing body outright.
+    // The body is optional, and the JSON validator middleware rejects a
+    // missing one outright, so it is parsed here instead.
     let version: string | undefined;
     if (c.req.header('content-type')?.includes('application/json')) {
       let body: unknown;

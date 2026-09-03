@@ -21,14 +21,23 @@ const gitSource = z
     message: 'Source must be a git URL (https:// or git@)',
   });
 
-const semverRange = z.string().refine((s) => semver.validRange(s) !== null, {
-  message: 'Version must be a valid semver version or range',
-});
+// The length floor is load-bearing: `validRange('')` is `'*'`, not null.
+const semverRange = z
+  .string()
+  .min(1)
+  .refine((s) => semver.validRange(s) !== null, {
+    message: 'Version must be a valid semver version or range',
+  });
 
 // Updates target one concrete version; ranges only live in the declaration.
-const semverVersion = z.string().refine((s) => semver.valid(s) !== null, {
-  message: 'Version must be a valid semver version',
-});
+// Normalised here so a tag-style `v1.0.0` and a plain `1.0.0` name the same
+// target everywhere below.
+const semverVersion = z
+  .string()
+  .refine((s) => semver.valid(s) !== null, {
+    message: 'Version must be a valid semver version',
+  })
+  .transform((s) => semver.valid(s)!);
 
 export const moduleParamSchema = z.object({
   module: z.string().min(1),

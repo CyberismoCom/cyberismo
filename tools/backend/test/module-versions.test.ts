@@ -217,6 +217,19 @@ describe('POST /api/project/modules with version', () => {
     expect(result.error).toContain('Source must be a git URL');
     expect(result.error).not.toContain('version');
   });
+
+  test('returns 400 for an empty version', async () => {
+    await createAppWithFixture();
+    const response = await app.request('/api/projects/test/project/modules', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        source: 'https://example.com/mod.git',
+        version: '',
+      }),
+    });
+    expect(response.status).toBe(400);
+  });
 });
 
 describe('POST /api/project/modules/:module/update with version', () => {
@@ -284,6 +297,31 @@ describe('POST /api/project/modules/:module/update with version', () => {
     expect(result.error).toContain(
       "Version '2.0.0' for module 'filemod' does not satisfy constraint '^1.0.0'",
     );
+  });
+
+  test('normalises a tag-style version before the command sees it', async () => {
+    await createAppWithFixture(async (projectPath) => {
+      const sourceDir = await createFileSourceModule(projectPath, 'filemod');
+      await declareModules(projectPath, [
+        { name: 'filemod', location: `file:${sourceDir}`, version: '^1.0.0' },
+      ]);
+      await installFakeModule(projectPath, {
+        name: 'filemod',
+        version: '1.0.0',
+      });
+    });
+
+    const response = await app.request(
+      '/api/projects/test/project/modules/filemod/update',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ version: 'v2.0.0' }),
+      },
+    );
+    expect(response.status).toBe(400);
+    const result = (await response.json()) as { error: string };
+    expect(result.error).toContain("Version '2.0.0' for module 'filemod'");
   });
 
   test('blocks Editor role', async () => {

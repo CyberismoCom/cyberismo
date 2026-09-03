@@ -33,7 +33,10 @@ export interface ProjectModule {
   name: string;
   cardKeyPrefix: string;
   installedVersion?: string;
-  /** Range this project declares; absent for transitive modules. */
+  /**
+   * Range this project declares. Absent for a transitive module, and for a
+   * root declared without one — the resolver reads that as `1.x`.
+   */
   declaredRange?: string;
   /** True for modules the project declares itself; false for transitives. */
   isRoot: boolean;
@@ -76,12 +79,8 @@ async function toModuleInfo(
   declared?: ModuleSetting,
 ): Promise<ProjectModule> {
   const versionInfo = {
-    ...(module.version !== undefined
-      ? { installedVersion: module.version }
-      : {}),
-    ...(declared?.version !== undefined
-      ? { declaredRange: declared.version }
-      : {}),
+    installedVersion: module.version,
+    declaredRange: declared?.version,
     isRoot: declared !== undefined,
   };
   try {
