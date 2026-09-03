@@ -36,6 +36,7 @@ const semverVersion = z
   .string()
   .refine((s) => semver.valid(s) !== null, {
     message: 'Version must be a valid semver version',
+    abort: true,
   })
   .transform((s) => semver.valid(s)!);
 

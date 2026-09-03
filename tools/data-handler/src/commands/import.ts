@@ -33,7 +33,6 @@ import {
   isGitLocation,
   stripFileProtocol,
   pickVersion,
-  toVersion,
   toVersionRange,
   validateExplicitTarget,
 } from '../modules/index.js';
@@ -58,6 +57,7 @@ import type {
   ResolveConflict,
   ResolvedModule,
 } from '../modules/resolve/types.js';
+import type { Version } from '../modules/types.js';
 
 /**
  * Coerce a caller-supplied source into the canonical form used by the
@@ -385,20 +385,21 @@ export class Import {
       'update',
     );
 
+    let to: Version | undefined;
     if (version) {
       // The same guard the dry-run preview runs, so both paths accept and
       // refuse identical targets before touching the filesystem.
-      await validateExplicitTarget(
+      to = await validateExplicitTarget(
         this.project,
         createSourceLayer(),
-        moduleName,
-        target.source.location,
+        target,
         version,
+        credentials,
       );
     }
 
-    const req = version
-      ? { kind: 'update' as const, module: moduleName, to: toVersion(version) }
+    const req = to
+      ? { kind: 'update' as const, module: moduleName, to }
       : { kind: 'update' as const, module: moduleName };
     const { plan, resolved, backfill } = await resolveForApply(
       this.project,
