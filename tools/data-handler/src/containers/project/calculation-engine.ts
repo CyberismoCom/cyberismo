@@ -23,15 +23,11 @@ import type {
   QueryName,
   QueryResult,
 } from '../../types/queries.js';
-import type {
-  Card,
-  CardNode,
-  Context,
-} from '../../interfaces/project-interfaces.js';
+import type { CardNode, Context } from '../../interfaces/project-interfaces.js';
 import ClingoParser from '../../utils/clingo-parser.js';
 
 import Handlebars from 'handlebars';
-import type { Project } from '../../containers/project.js';
+import type { Project, ProjectFactChanges } from '../../containers/project.js';
 import { getChildLogger } from '../../utils/log-utils.js';
 import {
   createCalculatedFieldRules,
@@ -68,14 +64,69 @@ import {
 const ALL_CATEGORY = 'all';
 
 export class CalculationEngine {
-  constructor(private project: Project) {}
+  /**
+   * Draining the trees' fact changes is destructive - whoever takes them owes
+   * them a projection - so the capability is handed to this engine alone.
+   */
+  constructor(
+    private project: Project,
+    private drainCardFactChanges: () => ProjectFactChanges,
+  ) {}
 
   private clingo = new ClingoContext();
+
+  // Card facts depend on card types and field types, so a resource change
+  // cannot be served incrementally. True to begin with, so the first pull
+  // builds the program.
+  private resourcesDirty = true;
+
+  // Serialises the pulls: reads run concurrently, and draining is destructive.
+  private pulling: Promise<void> = Promise.resolve();
 
   private get logger() {
     return getChildLogger({
       module: 'calculate',
     });
+  }
+
+  /**
+   * Declares that something other than a card changed, so the programs derived
+   * from resources - and the card programs that depend on them - are stale.
+   */
+  public invalidateResources() {
+    this.resourcesDirty = true;
+  }
+
+  /**
+   * Brings the logic program up to date. Every path into clingo goes through
+   * pull(): run() for solves, and exportLogicProgram for the one other reader.
+   */
+  private async pull(): Promise<void> {
+    const next = this.pulling.then(
+      () => this.refreshPrograms(),
+      // A failed pull must not wedge every later one.
+      () => this.refreshPrograms(),
+    );
+    this.pulling = next.catch(() => {});
+    return next;
+  }
+
+  private async refreshPrograms(): Promise<void> {
+    if (this.resourcesDirty) {
+      await this.generate();
+      return;
+    }
+    const { changed, removed } = this.drainCardFactChanges();
+    try {
+      for (const cardKey of removed) {
+        this.clingo.removeProgram(cardKey);
+      }
+      await this.refreshCardFacts(changed);
+    } catch (error) {
+      // The drained changes are gone; only a full generate cannot miss them.
+      this.resourcesDirty = true;
+      throw error;
+    }
   }
 
   /**
@@ -99,6 +150,7 @@ export class CalculationEngine {
     programs: string[],
     query?: QueryName,
   ) {
+    await this.pull();
     let logicProgram = query ? this.queryContent(query) : '';
     logicProgram += this.clingo.buildProgram('', programs);
     await writeFile(destination, logicProgram);
@@ -288,6 +340,7 @@ export class CalculationEngine {
 
   //
   private async run(query: string, context: Context): Promise<string[]> {
+    await this.pull();
     try {
       // Use the main category to include all programs
       const basePrograms = [ALL_CATEGORY];
@@ -328,7 +381,7 @@ export class CalculationEngine {
   }
 
   /**
-   * Generates a logic program.
+   * Generates the whole logic program from scratch.
    */
   public async generate() {
     this.logger.trace(
@@ -360,6 +413,10 @@ export class CalculationEngine {
     await this.setTemplatesPrograms();
     await this.setCalculationsPrograms();
 
+    // Everything pending has just been rebuilt along with the rest.
+    this.drainCardFactChanges();
+    this.resourcesDirty = false;
+
     this.logger.trace(
       {
         clingo: true,
@@ -368,55 +425,7 @@ export class CalculationEngine {
     );
   }
 
-  /**
-   * When card changes, update the card specific calculations.
-   * @param changedCard Card that was changed.
-   */
-  public async handleCardChanged(changedCard: CardNode) {
-    await this.setCardContent(changedCard);
-  }
-
-  /**
-   * When card is moved, rebuild the entire card tree structure.
-   * Moving cards changes parent-child relationships, so we need to rebuild
-   * the complete card tree facts to ensure consistency.
-   */
-  public async handleCardMoved() {
-    // Rebuild entire tree structure from scratch to ensure all relationships are correct
-    await this.setCardTreeContent();
-  }
-
-  /**
-   * When cards are removed, automatically remove card-specific calculations.
-   * @param deletedCard Card that is to be removed.
-   */
-  public async handleDeleteCard(deletedCard: Card) {
-    if (!deletedCard) {
-      return;
-    }
-    try {
-      if (!this.clingo.removeProgram(deletedCard.key)) {
-        this.logger.warn(
-          {
-            cardKey: deletedCard.key,
-          },
-          'Tried to remove card program that does not exist',
-        );
-      }
-    } catch {
-      this.logger.warn('Removing program failed');
-    }
-  }
-
-  /**
-   * Refreshes the facts of the given cards, so a query run after this sees
-   * them as they are now.
-   * @param cards Cards whose facts to rebuild.
-   */
-  public async refreshCardFacts(cards: CardNode[]) {
-    if (!cards) {
-      return;
-    }
+  private async refreshCardFacts(cards: CardNode[]) {
     for (const card of cards) {
       await this.setCardContent(card);
     }

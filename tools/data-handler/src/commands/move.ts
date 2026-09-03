@@ -140,9 +140,6 @@ export class Move {
     await this.project.updateCardMetadataKey(source, 'rank', rank);
 
     await this.project.relocateCard(source, newParent, targetTree.name);
-
-    // Notify the project about the move (calculation engine tree rebuild)
-    await this.project.handleCardMoved(this.project.cardNode(source));
   }
 
   /**
