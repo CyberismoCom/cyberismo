@@ -20,14 +20,25 @@ import { useHasMinRole } from '@/lib/auth/usePermissions';
 import { Gate } from '@/lib/auth/Gate';
 
 const useUserMock = vi.fn(() => ({ user: null as unknown }));
+const projectsMock = vi.fn(() => ({ data: undefined as unknown }));
+const paramsMock = vi.fn(() => ({}) as Record<string, string | undefined>);
 
 vi.mock('@/lib/api', () => ({
   useUser: () => useUserMock(),
+  useAvailableProjects: () => projectsMock(),
+}));
+
+vi.mock('react-router', () => ({
+  useParams: () => paramsMock(),
 }));
 
 beforeEach(() => {
   useUserMock.mockReset();
   useUserMock.mockReturnValue({ user: null });
+  projectsMock.mockReset();
+  projectsMock.mockReturnValue({ data: undefined });
+  paramsMock.mockReset();
+  paramsMock.mockReturnValue({});
 });
 
 describe('roleSatisfies', () => {
@@ -149,6 +160,35 @@ describe('useHasMinRole', () => {
     expect(renderProbe(UserRole.Editor)).toBe(true);
     expect(renderProbe(UserRole.Admin)).toBe(true);
   });
+
+  it('caps a non-admin to reader in a read-only project', () => {
+    useUserMock.mockReturnValue({ user: { role: 'editor' } });
+    paramsMock.mockReturnValue({ projectPrefix: 'frozen' });
+    projectsMock.mockReturnValue({
+      data: { projects: [{ prefix: 'frozen', readOnly: true }] },
+    });
+    expect(renderProbe(UserRole.Editor)).toBe(false);
+    expect(renderProbe(UserRole.Reader)).toBe(true);
+  });
+
+  it('leaves an admin editing a read-only project', () => {
+    useUserMock.mockReturnValue({ user: { role: 'admin' } });
+    paramsMock.mockReturnValue({ projectPrefix: 'frozen' });
+    projectsMock.mockReturnValue({
+      data: { projects: [{ prefix: 'frozen', readOnly: true }] },
+    });
+    expect(renderProbe(UserRole.Editor)).toBe(true);
+  });
+
+  it('does not cap in a project that is not read-only', () => {
+    useUserMock.mockReturnValue({ user: { role: 'editor' } });
+    paramsMock.mockReturnValue({ projectPrefix: 'open' });
+    projectsMock.mockReturnValue({
+      data: { projects: [{ prefix: 'open', readOnly: false }] },
+    });
+    expect(renderProbe(UserRole.Editor)).toBe(true);
+  });
+
 });
 
 describe('<Gate>', () => {

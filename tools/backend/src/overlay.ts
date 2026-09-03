@@ -48,6 +48,11 @@ export function setPolicy(policy: Policy): void {
   current = policy;
 }
 
+export function isProjectReadOnly(prefix: string): boolean {
+  return current.readOnly || current.projects[prefix]?.readOnly === true;
+}
+
+/** `/api/projects/<prefix>/…` is the only request shape naming a project. */
 export function isReadOnly(path: string): boolean {
   if (current.readOnly) return true;
   const match = /^\/api\/projects\/([^/?#]+)/.exec(path);
@@ -58,7 +63,7 @@ export function isReadOnly(path: string): boolean {
   } catch {
     prefix = match[1];
   }
-  return current.projects[prefix]?.readOnly === true;
+  return isProjectReadOnly(prefix);
 }
 
 /**
@@ -161,9 +166,9 @@ export function startPolicyPolling(
  * fails closed, at the cost of hiding it from reads and from administrators too.
  */
 export function writableProjects(provider: ProjectProvider): ProjectProvider {
-  const frozen = (prefix: string) => isReadOnly(`/api/projects/${prefix}/`);
   return {
-    get: (prefix) => (frozen(prefix) ? undefined : provider.get(prefix)),
-    list: () => provider.list().filter((p) => !frozen(p.prefix)),
+    get: (prefix) =>
+      isProjectReadOnly(prefix) ? undefined : provider.get(prefix),
+    list: () => provider.list().filter((p) => !isProjectReadOnly(p.prefix)),
   };
 }

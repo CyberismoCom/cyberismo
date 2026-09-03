@@ -11,20 +11,10 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { useParams } from 'react-router';
 import { useAvailableProjects, useUser } from '@/lib/api';
 import { getConfig } from '@/lib/utils';
 import { UserRole, parseRole, roleSatisfies } from './roles';
-
-/** The project in the URL, or null outside a project route. */
-function currentPrefix(): string | null {
-  const match = window.location.pathname.match(/\/projects\/([^/]+)/);
-  if (!match) return null;
-  try {
-    return decodeURIComponent(match[1]);
-  } catch {
-    return match[1];
-  }
-}
 
 /**
  * Whether an operator has marked the project being viewed read-only.
@@ -33,13 +23,12 @@ function currentPrefix(): string | null {
  * handling here.
  */
 function useCurrentProjectReadOnly(): boolean {
+  const { projectPrefix } = useParams();
   const { data } = useAvailableProjects();
-  if (getConfig().staticMode) return false;
-  const prefix = currentPrefix();
-  if (!prefix) return false;
+  if (getConfig().staticMode || !projectPrefix) return false;
   return (
-    data?.projects.find((project) => project.prefix === prefix)?.readOnly ===
-    true
+    data?.projects.find((project) => project.prefix === projectPrefix)
+      ?.readOnly === true
   );
 }
 

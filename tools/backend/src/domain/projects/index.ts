@@ -15,7 +15,7 @@ import { Hono } from 'hono';
 import { zValidator } from '../../middleware/zvalidator.js';
 import type { ProjectRegistry } from '../../project-registry.js';
 import { requireRole, getCurrentUser } from '../../middleware/auth.js';
-import { isReadOnly } from '../../overlay.js';
+import { isProjectReadOnly } from '../../overlay.js';
 import { UserRole } from '../../types.js';
 import { createProjectSchema, cloneProjectSchema } from './schema.js';
 import * as projectsService from './service.js';
@@ -42,7 +42,7 @@ export function createProjectsRouter(
     return c.json({
       projects: registry.list().map((project) => ({
         ...project,
-        readOnly: isReadOnly(`/api/projects/${project.prefix}/`),
+        readOnly: isProjectReadOnly(project.prefix),
       })),
       canCreateProjects: !!multiProjectRoot,
     });
