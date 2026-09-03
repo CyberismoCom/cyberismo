@@ -20,6 +20,7 @@
  */
 
 import { z } from 'zod';
+import type { ProjectProvider } from '@cyberismo/data-handler';
 
 const POLL_INTERVAL_MS = 10_000;
 const FETCH_TIMEOUT_MS = 2_000;
@@ -150,4 +151,19 @@ export function startPolicyPolling(
 
   void tick();
   setInterval(() => void tick(), POLL_INTERVAL_MS).unref();
+}
+
+/**
+ * Hide read-only projects from MCP.
+ *
+ * MCP takes the project as an argument rather than in the path, so the role cap
+ * cannot see which one a call touches. Making a frozen project unresolvable
+ * fails closed, at the cost of hiding it from reads and from administrators too.
+ */
+export function writableProjects(provider: ProjectProvider): ProjectProvider {
+  const frozen = (prefix: string) => isReadOnly(`/api/projects/${prefix}/`);
+  return {
+    get: (prefix) => (frozen(prefix) ? undefined : provider.get(prefix)),
+    list: () => provider.list().filter((p) => !frozen(p.prefix)),
+  };
 }

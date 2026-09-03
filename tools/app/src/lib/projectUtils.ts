@@ -19,6 +19,8 @@ export type AvailableProject = {
   name: string;
   category?: string;
   description?: string;
+  /** Set by an operator: everyone below administrator is a reader here. */
+  readOnly?: boolean;
 };
 
 /**

@@ -13,7 +13,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createServer, type Server } from 'node:http';
-import { isReadOnly, setPolicy, startPolicyPolling } from '../src/overlay.js';
+import { isReadOnly, setPolicy, startPolicyPolling, writableProjects } from '../src/overlay.js';
 
 describe('isReadOnly', () => {
   beforeEach(() => setPolicy({ readOnly: false, projects: {} }));
@@ -135,5 +135,37 @@ describe('startPolicyPolling', () => {
     await until(() => seen.requests > 0);
 
     expect(isReadOnly('/api/auth/me')).toBe(false);
+  });
+});
+
+describe('writableProjects', () => {
+  const provider = {
+    get: (prefix: string) => ({ prefix }) as never,
+    list: () => [
+      { prefix: 'open', name: 'Open' },
+      { prefix: 'frozen', name: 'Frozen' },
+    ],
+  };
+
+  it('passes everything through when nothing is read-only', () => {
+    setPolicy({ readOnly: false, projects: {} });
+    const wrapped = writableProjects(provider);
+    expect(wrapped.get('frozen')).toBeDefined();
+    expect(wrapped.list().map((p) => p.prefix)).toEqual(['open', 'frozen']);
+  });
+
+  it('hides a read-only project', () => {
+    setPolicy({ readOnly: false, projects: { frozen: { readOnly: true } } });
+    const wrapped = writableProjects(provider);
+    expect(wrapped.get('frozen')).toBeUndefined();
+    expect(wrapped.get('open')).toBeDefined();
+    expect(wrapped.list().map((p) => p.prefix)).toEqual(['open']);
+  });
+
+  it('hides everything when the whole instance is read-only', () => {
+    setPolicy({ readOnly: true, projects: {} });
+    const wrapped = writableProjects(provider);
+    expect(wrapped.get('open')).toBeUndefined();
+    expect(wrapped.list()).toEqual([]);
   });
 });
