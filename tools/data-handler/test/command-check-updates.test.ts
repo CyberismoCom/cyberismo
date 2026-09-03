@@ -668,11 +668,12 @@ describe('check-updates', () => {
     });
 
     it('throws for an invalid target version', async () => {
-      // No declared range and no remote listing, so the malformed version
-      // survives to the semver parse — the same point the apply path fails.
+      // A declared range is in play, and `semver.satisfies` reports anything
+      // malformed as merely unsatisfied — the parse has to come first for the
+      // caller to learn what is actually wrong.
       const location = 'https://example.com/base.git';
       const project = buildProjectWithModules([
-        { name: 'base', location, private: false },
+        { name: 'base', location, version: '^1.0.0', private: false },
       ]);
       installModule(project, { name: 'base', version: '1.0.0' });
       const source = new InMemorySource(new Map(), new Map());

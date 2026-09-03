@@ -34,9 +34,9 @@ import {
   isGitLocation,
   stripFileProtocol,
   pickVersion,
-  toVersion,
   toVersionRange,
-  validateVersionAgainstConstraints,
+  validateExplicitTarget,
+  requireDeclaredRoot,
 } from '../modules/index.js';
 import { readModuleConfig } from '../containers/project/cards-config.js';
 import { cleanOrphans } from '../modules/orphans.js';
@@ -54,6 +54,7 @@ import type {
   ModuleSetting,
   ModuleSettingOptions,
 } from '../interfaces/project-interfaces.js';
+import type { Version } from '../modules/types.js';
 import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
 import type {
@@ -175,16 +176,6 @@ export class Modules {
     if (validationErrors.trim().length > 0) {
       throw new ModuleValidationFailedError(validationErrors, executable);
     }
-  }
-
-  private collectConstraints(moduleName: string) {
-    const constraints: { range: string; source: string }[] = [];
-    for (const mod of this.project.configuration.modules) {
-      if (mod.name === moduleName && mod.version) {
-        constraints.push({ range: mod.version, source: 'project' });
-      }
-    }
-    return constraints;
   }
 
   /**
@@ -313,45 +304,27 @@ export class Modules {
     // Ensure module list is up to date before updating
     await this.fetchCmd.ensureModuleListUpToDate();
 
-    const declared = declaredModules(this.project);
-    const target = declared.find((d) => d.name === moduleName);
-    if (!target) {
-      const installations = await installedModules(this.project);
-      const parents = installations
-        .filter((m) => m.declaredDependencies.includes(moduleName))
-        .map((m) => m.name);
-      if (parents.length > 0) {
-        const parentList = parents.map((n) => `'${n}'`).join(', ');
-        throw new Error(
-          `Cannot update module '${moduleName}' because it is required by ${parentList}. Update the parent module(s) instead.`,
-        );
-      }
-      throw new Error(`Module '${moduleName}' is not part of the project`);
-    }
+    const target = await requireDeclaredRoot(
+      this.project,
+      moduleName,
+      'update',
+    );
 
+    let to: Version | undefined;
     if (version) {
-      // Validate the override against any declared ranges for this name.
-      const constraints = this.collectConstraints(moduleName);
-      if (constraints.length > 0) {
-        validateVersionAgainstConstraints(moduleName, version, constraints);
-      }
-
-      // Pre-check that the version is actually available on the remote so
-      // we surface an actionable error before touching the filesystem.
-      const sourceLayer = createSourceLayer();
-      const remoteVersions = await sourceLayer.listRemoteVersions(
-        target.source.location,
+      // The same guard the dry-run preview runs, so both paths accept and
+      // refuse identical targets before touching the filesystem.
+      to = await validateExplicitTarget(
+        this.project,
+        createSourceLayer(),
+        target,
+        version,
+        credentials,
       );
-      if (remoteVersions.length > 0 && !remoteVersions.includes(version)) {
-        throw new Error(
-          `Version '${version}' is not available for module '${moduleName}'. ` +
-            `Available versions: ${remoteVersions.join(', ') || 'none'}`,
-        );
-      }
     }
 
-    const req = version
-      ? { kind: 'update' as const, module: moduleName, to: toVersion(version) }
+    const req = to
+      ? { kind: 'update' as const, module: moduleName, to }
       : { kind: 'update' as const, module: moduleName };
     const { plan, resolved, backfill } = await resolveForApply(
       this.project,

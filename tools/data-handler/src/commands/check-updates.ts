@@ -24,7 +24,6 @@ import {
   pickVersion,
   requireDeclaredRoot,
   resolve,
-  toVersion,
   validateExplicitTarget,
   type UpdateRequest,
 } from '../modules/index.js';
@@ -195,14 +194,14 @@ export class CheckUpdates {
           'update',
         );
         if (version) {
-          await validateExplicitTarget(
+          const to = await validateExplicitTarget(
             this.project,
             sourceLayer,
-            moduleName,
-            target.source.location,
+            target,
             version,
+            credentials,
           );
-          req = { kind: 'update', module: moduleName, to: toVersion(version) };
+          req = { kind: 'update', module: moduleName, to };
         } else {
           req = { kind: 'update', module: moduleName };
         }
