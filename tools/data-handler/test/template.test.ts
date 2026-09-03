@@ -11,6 +11,10 @@ import { getTestProject } from './helpers/test-utils.js';
 import type { Project } from '../src/containers/project.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 import { TemplateResource } from '../src/resources/template-resource.js';
+import {
+  addTemplateCards,
+  instantiateTemplate,
+} from '../src/containers/project/template-instantiation.js';
 import { CardNotFoundError } from '../src/exceptions/index.js';
 
 // Create test artifacts in a temp directory.
@@ -55,7 +59,9 @@ describe('template', () => {
 
   it('throws an error when creating cards from an empty template', async () => {
     const template = templateOf('decision/templates/empty');
-    await expect(template.createCards()).rejects.toThrow(Error);
+    await expect(
+      instantiateTemplate(project, template.cardTree),
+    ).rejects.toThrow(Error);
     expect(template.cardTree.cards().length).toBe(0);
   });
   it('create template card under a specific card from a project', async () => {
@@ -66,7 +72,11 @@ describe('template', () => {
     const template = templateOf('decision/templates/simplepage');
 
     // Check that created cards are mapped from template cards.
-    const createdCards = await template.createCards(cardBefore);
+    const createdCards = await instantiateTemplate(
+      project,
+      template.cardTree,
+      cardBefore,
+    );
     const templateCards = template.cardTree.cards();
 
     expect(
@@ -87,7 +97,9 @@ describe('template', () => {
       attachments: [],
     };
 
-    await expect(template.createCards(nonExistingCard)).rejects.toThrow(Error);
+    await expect(
+      instantiateTemplate(project, template.cardTree, nonExistingCard),
+    ).rejects.toThrow(Error);
     expect(template.cardTree.cards().length).toBe(0);
   });
 
@@ -103,7 +115,9 @@ describe('template', () => {
 
     const cardCountBefore = project.cardTree.cards().length;
 
-    await expect(template.createCards(nonExistingCard)).rejects.toThrow(Error);
+    await expect(
+      instantiateTemplate(project, template.cardTree, nonExistingCard),
+    ).rejects.toThrow(Error);
 
     const cardCountAfter = project.cardTree.cards().length;
     expect(cardCountAfter).toBe(cardCountBefore);
@@ -112,7 +126,12 @@ describe('template', () => {
   it('add new card to a template', async () => {
     const template = templateOf('decision/templates/decision');
     const cardsBefore = template.cardTree.cards();
-    await template.addCard('decision/cardTypes/decision');
+    await addTemplateCards(
+      project,
+      template.cardTree,
+      'decision/cardTypes/decision',
+      1,
+    );
     const cardsAfter = template.cardTree.cards();
     expect(cardsBefore.length + 1).toBe(cardsAfter.length);
   });
@@ -164,7 +183,13 @@ describe('template', () => {
       attachments: [],
     };
     await expect(
-      template.addCard('decision/cardTypes/decision', parentCard),
+      addTemplateCards(
+        project,
+        template.cardTree,
+        'decision/cardTypes/decision',
+        1,
+        parentCard,
+      ),
     ).resolves.not.toThrow();
   });
   it('access card details by id', () => {
@@ -189,17 +214,12 @@ describe('template', () => {
     expect(additionalCardDetails.parent).toBe('root');
     expect(additionalCardDetails.content).not.toBeUndefined();
   });
-  it('try to add card to a template that does not exist on disk', async () => {
-    const template = templateOf('i-dont-exist');
-
-    await expect(
-      template.addCard('decision/cardTypes/decision'),
-    ).rejects.toThrow();
-  });
   it('try to add card to a template from card type that does not exist', async () => {
     const template = templateOf('decision/templates/decision');
 
-    await expect(template.addCard('i-dont-exist')).rejects.toThrow();
+    await expect(
+      addTemplateCards(project, template.cardTree, 'i-dont-exist', 1),
+    ).rejects.toThrow();
   });
   it('try to add card to a template to a parent card that does not exist', async () => {
     const template = templateOf('decision/templates/decision');
@@ -211,7 +231,13 @@ describe('template', () => {
     };
 
     await expect(
-      template.addCard('decision/cardTypes/decision', parentCard),
+      addTemplateCards(
+        project,
+        template.cardTree,
+        'decision/cardTypes/decision',
+        1,
+        parentCard,
+      ),
     ).rejects.toThrow();
   });
   it('check all the attachments', () => {

@@ -21,6 +21,7 @@ import {
   readdir,
   readFile,
   rename,
+  rmdir,
   unlink,
   writeFile,
 } from 'node:fs/promises';
@@ -36,10 +37,18 @@ import type {
 } from '../../interfaces/project-interfaces.js';
 import { CardNameRegEx } from '../../interfaces/project-interfaces.js';
 import { CardNotFoundError } from '../../exceptions/index.js';
-import { deleteDir, pathExists } from '../../utils/file-utils.js';
+import { copyDir, deleteDir, pathExists } from '../../utils/file-utils.js';
 import { getChildLogger } from '../../utils/log-utils.js';
 import { writeJsonFile } from '../../utils/json.js';
 import { isPredefinedField, ROOT } from '../../utils/constants.js';
+import {
+  EMPTY_RANK,
+  FIRST_RANK,
+  getRankAfter,
+  getRankBetween,
+  rebalanceRanks,
+  sortItems,
+} from '../../utils/lexorank.js';
 
 import type { CardFactContext } from '../../utils/clingo-facts.js';
 import type { CardKeyRegistry } from './card-keys.js';
@@ -90,6 +99,12 @@ export interface CardTreeOptions {
   emitsCardFact: boolean;
   validationApplies: boolean;
   keys: CardKeyRegistry;
+}
+
+/** A rank the caller is to persist: which card, and what its rank becomes. */
+export interface RankChange {
+  cardKey: string;
+  rank: string;
 }
 
 /**
@@ -188,6 +203,21 @@ export class CardTree {
   private assertWritable() {
     if (!this.options.writable) {
       throw new Error(`Cannot modify imported module`);
+    }
+  }
+
+  // A card may not sit under itself or under one of its own descendants.
+  // Paths are walked up the parent edges, so a cycle is not a wrong path but
+  // no path: pathOf would never terminate, and nor would anything built on it.
+  private assertNoCycle(cardKey: string, parent: string) {
+    let ancestor: string | undefined = parent;
+    while (ancestor && ancestor !== ROOT) {
+      if (ancestor === cardKey) {
+        throw new Error(
+          `Card '${cardKey}' cannot be placed under '${parent}', which is the card itself or one of its descendants`,
+        );
+      }
+      ancestor = this.cardStore.get(ancestor)?.parent;
     }
   }
 
@@ -481,6 +511,13 @@ export class CardTree {
   }
 
   /**
+   * Whether the tree accepts writes.
+   */
+  public get writable(): boolean {
+    return this.options.writable;
+  }
+
+  /**
    * Whether the tree's cards take part in workflow semantics: metadata
    * validation, and the permissions built on it.
    */
@@ -562,8 +599,11 @@ export class CardTree {
     return join(this.treeRoot, ...segments.reverse());
   }
 
-  // The folder a new child of the given parent would be created in.
-  private childFolderOf(parentKey: string = ROOT): string {
+  /**
+   * The folder a new child of the given parent would be created in.
+   * @param parentKey Parent card key, or 'root'.
+   */
+  public childFolderOf(parentKey: string = ROOT): string {
     return parentKey === ROOT
       ? this.treeRoot
       : join(this.pathOf(parentKey), CHILDREN_FOLDER);
@@ -695,12 +735,168 @@ export class CardTree {
   }
 
   /**
+   * The keys of a card's siblings, in rank order. The card itself is one of
+   * them.
+   * @param cardKey Card key whose sibling set to return.
+   * @throws CardNotFoundError if the tree does not hold the card
+   */
+  public siblingsOf(cardKey: string): string[] {
+    return this.siblingsUnder(this.stored(cardKey).parent);
+  }
+
+  // The keys under a parent, in rank order. 'root' means the tree's root
+  // cards.
+  private siblingsUnder(parentKey: string): string[] {
+    const siblings = this.childrenOf(parentKey).map((key) => this.stored(key));
+    return sortItems(
+      siblings,
+      (card) => this.rankOf(card.key) ?? EMPTY_RANK,
+    ).map((card) => card.key);
+  }
+
+  // The rank a card holds, or undefined for none. '' and EMPTY_RANK both mean
+  // 'no rank': EMPTY_RANK's '1|' bucket prefix is not something the
+  // arithmetic can extend.
+  private rankOf(cardKey: string): string | undefined {
+    const rank = this.cardStore.get(cardKey)?.metadata?.rank;
+    if (typeof rank !== 'string' || rank === '' || rank === EMPTY_RANK) {
+      return undefined;
+    }
+    return rank;
+  }
+
+  private lastRankUnder(parentKey: string): string | undefined {
+    return this.siblingsUnder(parentKey)
+      .map((key) => this.rankOf(key))
+      .findLast((rank) => rank !== undefined);
+  }
+
+  /**
+   * Ranks for a block of new cards placed after everything already ranked
+   * under a parent.
+   * @param parentKey Parent the cards will sit under, or 'root'.
+   * @returns the ranks, in increasing order.
+   */
+  public rankBlock(parentKey: string, count: number): string[] {
+    // FIRST_RANK is the anchor rather than the first value handed out, so
+    // '0|a' stays free for rankFirst to claim without demoting its holder.
+    let previous = this.lastRankUnder(parentKey) ?? FIRST_RANK;
+    const ranks: string[] = [];
+    for (let index = 0; index < count; index++) {
+      previous = getRankAfter(previous);
+      ranks.push(previous);
+    }
+    return ranks;
+  }
+
+  /**
+   * Places a card immediately after one of its siblings.
+   * @param cardKey Card to rank.
+   * @param afterKey Sibling to place it after.
+   * @returns the ranks to persist, in order. Drifted sibling ranks are
+   *   rebalanced first, so the result may name siblings other than the ranked
+   *   card.
+   * @throws CardNotFoundError if the tree does not hold either card
+   */
+  public rankAfter(cardKey: string, afterKey: string): RankChange[] {
+    this.stored(cardKey);
+    const siblings = this.siblingsOf(afterKey);
+    const index = siblings.indexOf(afterKey);
+    return this.withUsableRanks(siblings, (rankAt) =>
+      index === siblings.length - 1
+        ? [{ cardKey, rank: getRankAfter(rankAt(index)) }]
+        : [{ cardKey, rank: getRankBetween(rankAt(index), rankAt(index + 1)) }],
+    );
+  }
+
+  /**
+   * Places a card first among its siblings.
+   * @param cardKey Card to rank.
+   * @returns the ranks to persist, in order; empty if the card already holds
+   *   the first position. Freeing FIRST_RANK may take demoting whoever holds
+   *   it, which is then the first change in the result.
+   * @throws CardNotFoundError if the tree does not hold the card
+   */
+  public rankFirst(cardKey: string): RankChange[] {
+    const siblings = this.siblingsOf(cardKey);
+    const firstKey = siblings[0];
+    if (firstKey === cardKey && this.rankOf(cardKey)) {
+      return [];
+    }
+    if (this.rankOf(firstKey) !== FIRST_RANK) {
+      return [{ cardKey, rank: FIRST_RANK }];
+    }
+    return this.withUsableRanks(siblings, (rankAt) => [
+      { cardKey: firstKey, rank: getRankBetween(rankAt(0), rankAt(1)) },
+      { cardKey, rank: FIRST_RANK },
+    ]);
+  }
+
+  /**
+   * Even ranks for the cards under a parent, spread across the whole rank
+   * space.
+   * @param parentKey Parent whose children to rebalance, or 'root'.
+   * @returns the ranks to persist, in order.
+   */
+  public rebalanceUnder(parentKey: string): RankChange[] {
+    const siblings = this.siblingsUnder(parentKey);
+    const ranks = rebalanceRanks(siblings.length);
+    return siblings.map((cardKey, index) => ({ cardKey, rank: ranks[index] }));
+  }
+
+  /**
+   * Even ranks for everything below a parent, level by level.
+   * @param parentKey Parent whose subtree to rebalance, or 'root' for the
+   *   whole tree.
+   * @returns the ranks to persist, in order.
+   */
+  public rebalanceSubtree(parentKey: string): RankChange[] {
+    const changes = this.rebalanceUnder(parentKey);
+    for (const change of [...changes]) {
+      if (this.childrenOf(change.cardKey).length > 0) {
+        changes.push(...this.rebalanceSubtree(change.cardKey));
+      }
+    }
+    return changes;
+  }
+
+  // Runs a rank computation against the sibling ranks. A drifted set - a
+  // missing rank, a duplicate or inverted pair - is rebalanced first and the
+  // computation rerun against the repair, which is prepended to the changes.
+  private withUsableRanks(
+    siblings: string[],
+    compute: (rankAt: (index: number) => string) => RankChange[],
+  ): RankChange[] {
+    const ranks = siblings.map((key) => this.rankOf(key));
+    if (ranks.every((rank) => rank !== undefined)) {
+      try {
+        return compute((index) => ranks[index]!);
+      } catch (error) {
+        // Drifted ranks; fall through to the rebalance and retry. A TypeError
+        // is the arithmetic's own failure, not drift.
+        if (error instanceof TypeError) {
+          throw error;
+        }
+      }
+    }
+    const rebalanced = rebalanceRanks(siblings.length);
+    return [
+      ...siblings.map((cardKey, index) => ({
+        cardKey,
+        rank: rebalanced[index],
+      })),
+      ...compute((index) => rebalanced[index]),
+    ];
+  }
+
+  /**
    * Puts a card the caller has created into the tree.
    * @param card Card to insert.
    * @throws DuplicateCardKeyError if any tree already holds the card's key
    */
   public insert(card: Card) {
     this.assertWritable();
+    this.assertNoCycle(card.key, card.parent || ROOT);
     this.options.keys.claim([card.key], this);
     this.store(card.key, {
       key: card.key,
@@ -730,14 +926,74 @@ export class CardTree {
   }
 
   /**
-   * Moves a card to a new position in the tree.
+   * Moves a card to a new position in the tree: its folder, then its edge.
    * @param cardKey Card to move.
    * @param parent New parent card key, or 'root'.
+   * @throws if the card would end up under itself or under one of its own
+   *   descendants
    */
-  public relocate(cardKey: string, parent: string) {
+  public async relocate(cardKey: string, parent: string) {
     this.assertWritable();
     const card = this.stored(cardKey);
+    this.assertNoCycle(cardKey, parent);
+    const from = this.pathOfStored(card);
+    const to = this.pathFor(parent, cardKey);
+    if (from === to) {
+      return;
+    }
+    await CardTree.moveFolder(from, to);
     this.store(cardKey, { ...card, parent });
+    if (card.parent !== ROOT) {
+      await CardTree.pruneEmptyFolder(dirname(from));
+    }
+  }
+
+  /**
+   * Takes a card and its descendants over from another tree. Both trees are
+   * checked before the rename; nothing is mutated if either refuses.
+   * @param parent New parent card key in this tree, or 'root'.
+   */
+  public async adopt(source: CardTree, cardKey: string, parent: string) {
+    source.assertWritable();
+    const card = source.stored(cardKey);
+    this.assertGraftable(source.subtreeOf(cardKey), parent);
+    const from = source.pathOfStored(card);
+    await CardTree.moveFolder(from, this.pathFor(parent, cardKey));
+    // The registry refuses a claim on a key the source still owns: uproot
+    // releases them, and graft claims them.
+    this.graft(source.uproot(cardKey), parent);
+    if (card.parent !== ROOT) {
+      await CardTree.pruneEmptyFolder(dirname(from));
+    }
+  }
+
+  // Moves a card's folder, and everything under it, by renaming it.
+  private static async moveFolder(from: string, to: string) {
+    // Moving a card into another card creates that card's 'c' folder.
+    await mkdir(dirname(to), { recursive: true });
+    try {
+      await rename(from, to);
+    } catch (error) {
+      // rename cannot cross filesystems (a card root spanning a mount point).
+      if ((error as NodeJS.ErrnoException).code !== 'EXDEV') {
+        throw error;
+      }
+      await copyDir(from, to);
+      await deleteDir(from);
+    }
+  }
+
+  // Callers prune after their store update, so a failed prune leaves disk and
+  // store agreeing. The card's former siblings are the expected ENOTEMPTY.
+  private static async pruneEmptyFolder(path: string) {
+    try {
+      await rmdir(path);
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException)?.code;
+      if (code !== 'ENOTEMPTY' && code !== 'EEXIST' && code !== 'ENOENT') {
+        throw error;
+      }
+    }
   }
 
   /**
@@ -747,18 +1003,7 @@ export class CardTree {
    */
   public uproot(cardKey: string): StoredCard[] {
     this.assertWritable();
-    const uprooted: StoredCard[] = [];
-    const collect = (key: string) => {
-      const card = this.cardStore.get(key);
-      if (!card) {
-        return;
-      }
-      uprooted.push(card);
-      for (const childKey of this.childrenOf(key)) {
-        collect(childKey);
-      }
-    };
-    collect(cardKey);
+    const uprooted = this.subtreeOf(cardKey);
     // Children first, so a parent's child list is empty by the time it goes.
     for (const card of [...uprooted].reverse()) {
       this.unstore(card.key);
@@ -767,17 +1012,32 @@ export class CardTree {
     return uprooted;
   }
 
+  // The stored cards of a card and its descendants, parents before children.
+  private subtreeOf(cardKey: string): StoredCard[] {
+    const subtree: StoredCard[] = [];
+    const collect = (key: string) => {
+      const card = this.cardStore.get(key);
+      if (!card) {
+        return;
+      }
+      subtree.push(card);
+      for (const childKey of this.childrenOf(key)) {
+        collect(childKey);
+      }
+    };
+    collect(cardKey);
+    return subtree;
+  }
+
   /**
    * Puts a subtree taken out of another tree into this one.
    * @param cards The subtree's cards, parents before children.
    * @param parent New parent for the subtree's root card, or 'root'.
    * @throws DuplicateCardKeyError if any of the keys is already held
+   * @throws if the new parent is one of the cards being grafted
    */
   public graft(cards: StoredCard[], parent: string) {
-    this.assertWritable();
-    if (cards.length === 0) {
-      return;
-    }
+    this.assertGraftable(cards, parent);
     this.options.keys.claim(
       cards.map((card) => card.key),
       this,
@@ -790,6 +1050,21 @@ export class CardTree {
         attachments: card.attachments.map((attachment) => ({ ...attachment })),
       });
     }
+  }
+
+  private assertGraftable(cards: StoredCard[], parent: string) {
+    this.assertWritable();
+    if (cards.length === 0) {
+      return;
+    }
+    // The grafted cards are not in this tree yet, so the ancestor walk cannot
+    // see them: a parent taken from the subtree itself is caught by key.
+    if (cards.some((card) => card.key === parent)) {
+      throw new Error(
+        `Card '${cards[0].key}' cannot be grafted under '${parent}', which is part of the subtree being grafted`,
+      );
+    }
+    this.assertNoCycle(cards[0].key, parent);
   }
 
   /**

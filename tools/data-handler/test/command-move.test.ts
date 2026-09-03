@@ -1,6 +1,6 @@
 import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 
-import { existsSync, mkdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { join, sep } from 'node:path';
 
 import { Cmd, CommandManager, Commands } from '../src/command-handler.js';
@@ -163,6 +163,32 @@ describe('move command', () => {
     // Try to move card1 under card2
     result = await commandHandler.command(Cmd.move, [card2, card1], options);
     expect(result.statusCode).toBe(400);
+  });
+  // The command validates before it touches anything, so the user gets this
+  // sentence rather than whatever the filesystem or the tree would have said.
+  // The tree refuses the same move on its own (see 'structural integrity' in
+  // card-tree.test.ts), which is an integrity invariant, not a message.
+  it('names the reason when a card would be moved inside itself', async () => {
+    const template = 'decision/templates/decision';
+    const parentResult = await commandHandler.command(
+      Cmd.create,
+      ['card', template, ''],
+      options,
+    );
+    const parent = parentResult.affectsCards!.at(0) as string;
+    const childResult = await commandHandler.command(
+      Cmd.create,
+      ['card', template, parent],
+      options,
+    );
+    const child = childResult.affectsCards!.at(0) as string;
+
+    const commandManager = await CommandManager.getInstance(
+      options.projectPath!,
+    );
+    await expect(
+      commandManager.moveCmd.moveCard(parent, child),
+    ).rejects.toThrow('Card cannot be moved to inside itself');
   });
   it('try to move card - project missing', async () => {
     const sourceId = 'decision_11';
@@ -333,6 +359,78 @@ describe('move command', () => {
 
     expect(existsSync(join(destinationFolder, 'decision_4'))).toBe(true);
     expect(existsSync(vacatedFolder)).toBe(false);
+  });
+
+  it('completes the move on a retry after the rank write fails', async () => {
+    const template = 'decision/templates/decision';
+    const parentResult = await commandHandler.command(
+      Cmd.create,
+      ['card', template, ''],
+      options,
+    );
+    const parent = parentResult.affectsCards!.at(0) as string;
+    const childResult = await commandHandler.command(
+      Cmd.create,
+      ['card', template, parent],
+      options,
+    );
+    const child = childResult.affectsCards!.at(0) as string;
+
+    const cardRoot = join(decisionRecordsPath, 'cardRoot');
+    const childFolder = join(cardRoot, parent, 'c');
+    const rankAt = (folder: string) =>
+      JSON.parse(readFileSync(join(folder, 'index.json'), 'utf-8')).rank;
+
+    // The same instance the command handler uses.
+    const commandManager = await CommandManager.getInstance(
+      options.projectPath!,
+    );
+    const project = commandManager.project;
+    // What the move will rank the card as: last under the destination, which
+    // a failed attempt must not change.
+    const expectedRank = project.cardTree.rankBlock('root', 1)[0];
+    const rankBefore = rankAt(join(childFolder, child));
+    expect(expectedRank).not.toBe(rankBefore);
+
+    // One failed rank write; the retry below runs against the real thing.
+    const updateCardMetadataKey = project.updateCardMetadataKey.bind(project);
+    let failRankWrite = true;
+    project.updateCardMetadataKey = async (cardKey, changedKey, newValue) => {
+      if (failRankWrite && changedKey === 'rank') {
+        failRankWrite = false;
+        throw new Error('rank write failed');
+      }
+      return updateCardMetadataKey(cardKey, changedKey, newValue);
+    };
+
+    const failed = await commandHandler.command(
+      Cmd.move,
+      [child, 'root'],
+      options,
+    );
+    expect(failed.statusCode).toBe(400);
+    expect(failed.message).toContain('rank write failed');
+
+    // The rename either happened or did not, so the subtree is in exactly one
+    // place - and it still holds the rank it started with, wherever it is.
+    const paths = [join(childFolder, child), join(cardRoot, child)].filter(
+      (path) => existsSync(path),
+    );
+    expect(paths).toHaveLength(1);
+    expect(rankAt(paths[0])).toBe(rankBefore);
+
+    // The retry has to finish the move: the folder, the tree edge, and the
+    // rank - whichever of them the failed attempt left undone.
+    const retried = await commandHandler.command(
+      Cmd.move,
+      [child, 'root'],
+      options,
+    );
+    expect(retried.statusCode).toBe(200);
+    expect(existsSync(join(cardRoot, child))).toBe(true);
+    expect(project.cardTree.childrenOf(parent)).not.toContain(child);
+    expect(project.cardTree.childrenOf('root')).toContain(child);
+    expect(rankAt(join(cardRoot, child))).toBe(expectedRank);
   });
 
   it('verify card cache after move operation', async () => {

@@ -25,6 +25,7 @@ import { readJsonFile } from '../src/utils/json.js';
 import { CardNameRegEx } from '../src/interfaces/project-interfaces.js';
 import { CardNotFoundError } from '../src/exceptions/index.js';
 import type { TemplateResource } from '../src/resources/template-resource.js';
+import { instantiateTemplate } from '../src/containers/project/template-instantiation.js';
 
 import type { Project } from '../src/containers/project.js';
 
@@ -71,7 +72,7 @@ function templateOf(name: string): TemplateResource {
 async function instantiateAttachedCard(
   template: TemplateResource,
 ): Promise<string> {
-  const created = await template.createCards();
+  const created = await instantiateTemplate(project, template.cardTree);
   const card = created.find(
     (item) => item.metadata?.templateCardKey === 'decision_2',
   );
@@ -89,7 +90,7 @@ async function cardRootKeys(): Promise<string[]> {
     .sort();
 }
 
-describe('TemplateResource.createCards', () => {
+describe('instantiateTemplate', () => {
   it('does not change the template cards when instantiating a template twice', async () => {
     const template = templateOf('decision/templates/simplepage');
 
@@ -112,8 +113,8 @@ describe('TemplateResource.createCards', () => {
 
     const diskBefore = await ranksOnDisk();
 
-    await template.createCards();
-    await template.createCards();
+    await instantiateTemplate(project, template.cardTree);
+    await instantiateTemplate(project, template.cardTree);
 
     const after = template.cardTree.cards().map((card) => ({
       key: card.key,
@@ -133,7 +134,7 @@ describe('TemplateResource.createCards', () => {
 
     await rm(join(attachedCardFolder, 'a', ATTACHMENT));
 
-    const error = await template.createCards().then(
+    const error = await instantiateTemplate(project, template.cardTree).then(
       () => undefined,
       (reason: unknown) => reason as Error,
     );
@@ -143,6 +144,141 @@ describe('TemplateResource.createCards', () => {
     expect(error).toBeInstanceOf(Error);
     expect(error).not.toBeInstanceOf(CardNotFoundError);
     expect(error!.message).toMatch(/ENOENT/);
+  });
+
+  // Compensation deletes the cards this operation created and nothing else.
+  // Under a parent card that means the cards inside the parent's 'c' folder,
+  // not the parent, and not the folder itself if the parent has other
+  // children.
+  it('deletes only what it created when instantiating under a parent card', async () => {
+    const template = templateOf('decision/templates/simplepage');
+    const parentCard = project.findCard('decision_5');
+    const childrenBefore = parentCard.children;
+    expect(childrenBefore.length).toBeGreaterThan(0);
+
+    await rm(join(attachedCardFolder, 'a', ATTACHMENT));
+
+    await expect(
+      instantiateTemplate(project, template.cardTree, parentCard),
+    ).rejects.toThrow(/ENOENT/);
+
+    // The parent and its existing children are untouched.
+    const parentAfter = project.findCard('decision_5');
+    expect(parentAfter.children).to.deep.equal(childrenBefore);
+    for (const childKey of childrenBefore) {
+      expect(
+        await readJsonFile(join(parentAfter.path, 'c', childKey, 'index.json')),
+      ).toBeDefined();
+    }
+    // And no card folder the failed operation began writing survives.
+    const remaining = (
+      await readdir(join(parentAfter.path, 'c'), { withFileTypes: true })
+    )
+      .filter((entry) => entry.isDirectory() && CardNameRegEx.test(entry.name))
+      .map((entry) => entry.name)
+      .sort();
+    expect(remaining).to.deep.equal([...childrenBefore].sort());
+  });
+
+  // Instantiation is a create, not a copy: the field-transfer list in
+  // instantiate / instantiatedMetadata is the specification of what an
+  // instantiated card is, and this pins it. A field that used to
+  // arrive by being spread in from the template card - links and
+  // lastTransitioned, both meaningless on a fresh card - is now absent because
+  // nothing puts it there.
+  it('builds instantiated metadata from the field-transfer list', async () => {
+    const templateCardFile = join(
+      decisionRecordsPath,
+      '.cards/local/templates/decision/c/decision_1/index.json',
+    );
+    const templateMetadata = (await readJsonFile(templateCardFile)) as Record<
+      string,
+      unknown
+    >;
+
+    // Everything instantiation has to make a decision about, on one template
+    // card: a card-to-card link, a transition stamp, an authored custom-field
+    // value next to the null ones the fixture already has, and a title.
+    await writeFile(
+      templateCardFile,
+      JSON.stringify({
+        ...templateMetadata,
+        title: 'Template title',
+        links: [
+          {
+            linkType: 'decision/linkTypes/test',
+            cardKey: 'decision_1',
+            linkDescription: 'points at a template card',
+          },
+        ],
+        lastTransitioned: '2020-01-01T00:00:00.000Z',
+        'decision/fieldTypes/commitDescription': 'authored in the template',
+      }),
+    );
+
+    const reloaded = getTestProject(decisionRecordsPath);
+    await reloaded.populateCaches();
+    const template: TemplateResource = reloaded.resources.byType(
+      'decision/templates/decision',
+      'templates',
+    );
+
+    const before = Date.now();
+    const [created] = await instantiateTemplate(reloaded, template.cardTree);
+    const metadata = created.metadata as Record<string, unknown>;
+
+    expect(Object.keys(metadata).sort()).toEqual([
+      'cardType',
+      'createdAt',
+      'decision/fieldTypes/commitDescription',
+      'labels',
+      // Stamped by the write itself, not by instantiation.
+      'lastUpdated',
+      'links',
+      'rank',
+      'templateCardKey',
+      'title',
+      'workflowState',
+    ]);
+
+    // Carried from the template card.
+    expect(metadata.title).toBe('Template title');
+    expect(metadata.cardType).toBe('decision/cardTypes/decision');
+    expect(metadata.labels).toEqual(['template-test-label']);
+    expect(metadata['decision/fieldTypes/commitDescription']).toBe(
+      'authored in the template',
+    );
+
+    // Set by the operation.
+    expect(metadata.templateCardKey).toBe('decision_1');
+
+    // Computed by the destination.
+    expect(metadata.workflowState).toBe('Draft');
+    expect(metadata.rank).toMatch(/^0\|[a-z]+$/);
+    expect(
+      new Date(metadata.createdAt as string).getTime(),
+    ).toBeGreaterThanOrEqual(before);
+
+    // Dropped. A template card's links name template card keys, so a carried
+    // link points at a card that is not part of the instantiated set;
+    // lastTransitioned describes a transition that has not happened.
+    expect(metadata.links).toEqual([]);
+    expect('lastTransitioned' in metadata).toBe(false);
+
+    // A null custom-field value is the template's 'no value' marker, so the
+    // slot is absent rather than null.
+    expect('decision/fieldTypes/admins' in metadata).toBe(false);
+
+    // And nothing of this touched the template card.
+    expect(await readJsonFile(templateCardFile)).toMatchObject({
+      links: [
+        {
+          linkType: 'decision/linkTypes/test',
+          cardKey: 'decision_1',
+        },
+      ],
+      lastTransitioned: '2020-01-01T00:00:00.000Z',
+    });
   });
 
   it('caches the content it actually wrote', async () => {
