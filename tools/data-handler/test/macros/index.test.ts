@@ -403,8 +403,13 @@ Some content here`;
     });
     describe('includeMacro', () => {
       let cardDetailsByIdStub: sinon.SinonStub;
+      let cardContentStub: sinon.SinonStub;
       beforeEach(() => {
-        cardDetailsByIdStub = stub(project, 'findCard');
+        cardDetailsByIdStub = stub(project, 'cardNode');
+        cardContentStub = stub(project, 'cardContent');
+        cardContentStub.callsFake(
+          (cardKey: string) => (cardDetailsByIdStub(cardKey) as Card).content,
+        );
 
         const baseCard: Card = {
           key: '',
@@ -451,6 +456,7 @@ Some content here`;
       });
       afterEach(() => {
         cardDetailsByIdStub.restore();
+        cardContentStub.restore();
       });
       ['static', 'inject', 'staticSite'].forEach((mode) => {
         it(`includeMacro ${mode} (success)`, async () => {
@@ -887,7 +893,7 @@ Some content here`;
     describe('xrefMacro', () => {
       let cardDetailsByIdStub: sinon.SinonStub;
       beforeEach(() => {
-        cardDetailsByIdStub = stub(project, 'findCard');
+        cardDetailsByIdStub = stub(project, 'cardNode');
 
         const baseCard: Card = {
           key: '',
