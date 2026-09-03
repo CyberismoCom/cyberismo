@@ -11,6 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { z } from 'zod';
+
 import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { resolve, sep } from 'node:path';
@@ -26,10 +28,7 @@ import { readJsonFile, writeJsonFile } from '../utils/json.js';
 import { validateJson } from '../utils/validate.js';
 import { write } from '../utils/rw-lock.js';
 
-import type {
-  ModuleSetting,
-  ModuleSettingFromHub,
-} from '../interfaces/project-interfaces.js';
+import type { ModuleSetting } from '../interfaces/project-interfaces.js';
 import type { Project } from '../containers/project.js';
 
 // Cached data of a single hub.
@@ -41,13 +40,21 @@ export interface CachedHub {
   modules: ModuleSetting[];
 }
 
-// A hub's moduleList.json, as validated against HUB_SCHEMA.
-interface HubDocument {
-  version?: number;
-  displayName?: string;
-  description?: string;
-  modules?: ModuleSettingFromHub[];
-}
+// A hub's moduleList.json. HUB_SCHEMA is the contract; these schemas only
+// recover the types that Response.json() erases, so they are loose and pass
+// unknown fields through into the cache untouched.
+const hubDocumentSchema = z.looseObject({
+  version: z.number().optional(),
+  displayName: z.string().optional(),
+  description: z.string().optional(),
+  modules: z
+    .array(z.looseObject({ name: z.string(), location: z.string() }))
+    .optional(),
+});
+
+type HubDocument = z.infer<typeof hubDocumentSchema>;
+
+const hubVersionSchema = z.looseObject({ version: z.number().optional() });
 
 // Structure of .temp/moduleList.json file.
 export interface ModuleListFile {
@@ -103,8 +110,8 @@ export class Fetch {
         return undefined;
       }
 
-      const json = (await response.json()) as { version?: number };
-      return json.version;
+      const json = hubVersionSchema.safeParse(await response.json());
+      return json.success ? json.data.version : undefined;
     } catch (error) {
       this.logger.error(error, `Could not check hub version for ${location} }`);
       return undefined;
@@ -163,7 +170,7 @@ export class Fetch {
         throw new Error('JSON content too large after parsing');
       }
 
-      return json as HubDocument;
+      return hubDocumentSchema.parse(json);
     } catch (error) {
       this.logger.error(
         error,

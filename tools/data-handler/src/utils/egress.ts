@@ -53,8 +53,13 @@ export async function egressFetch(
   return fetch(url, agent ? { ...init, dispatcher: agent } : init);
 }
 
-/** Test seam: forget the cached dispatcher so the env can be re-read. */
-export function resetEgressDispatcherForTest(): void {
+/**
+ * Test seam: forget the cached dispatcher so the env can be re-read, closing
+ * its sockets so a test process is not left with open handles.
+ */
+export async function resetEgressDispatcherForTest(): Promise<void> {
+  const previous = dispatcher;
   dispatcher = undefined;
   resolved = false;
+  await previous?.close();
 }
