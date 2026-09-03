@@ -12,7 +12,8 @@
 */
 
 // node
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { rmdir } from 'node:fs/promises';
 
 import { ActionGuard } from '../permissions/action-guard.js';
 import { copyDir, deleteDir } from '../utils/file-utils.js';
@@ -38,6 +39,17 @@ import { ROOT } from '../utils/constants.js';
 
 export class Move {
   constructor(private project: Project) {}
+
+  private static async pruneEmptyFolder(path: string) {
+    try {
+      await rmdir(path);
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException)?.code;
+      if (code !== 'ENOTEMPTY' && code !== 'EEXIST' && code !== 'ENOENT') {
+        throw error;
+      }
+    }
+  }
 
   // Returns children of a parent card or root cards
   private getSiblings(card: Card): Card[] {
@@ -267,6 +279,9 @@ export class Move {
     // First do the file operations, then update metadata
     await copyDir(sourceCard.path, destinationPath);
     await deleteDir(sourceCard.path);
+    if (sourceCard.parent && sourceCard.parent !== ROOT) {
+      await Move.pruneEmptyFolder(dirname(oldPath));
+    }
 
     // Update card with new path, parent, and rank
     sourceCard.path = destinationPath!;

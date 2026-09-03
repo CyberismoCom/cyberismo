@@ -581,16 +581,9 @@ export class Validate {
         const cards = project.cards();
         cards.push(...project.allTemplateCards());
 
-        const cardIds = new Map<string, number>();
         const allPrefixes = project.allModulePrefixes();
 
         for (const card of cards) {
-          if (cardIds.has(card.key)) {
-            cardIds.set(card.key, (cardIds.get(card.key) || 0) + 1);
-          } else {
-            cardIds.set(card.key, 1);
-          }
-
           if (card.metadata) {
             if (!isTemplateCard(card)) {
               const validWorkflow = await this.validateWorkflowState(
@@ -629,12 +622,6 @@ export class Validate {
             } catch (error) {
               errorMsg.push(`Card '${card.key}': ${errorFunction(error)}`);
             }
-          }
-        }
-        // Validate that there are no duplicate card keys
-        for (const [key, count] of cardIds) {
-          if (count > 1) {
-            errorMsg.push(`Duplicate card key '${key}' found ${count} times`);
           }
         }
         if (errorMsg.length) {
