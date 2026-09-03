@@ -13,14 +13,7 @@
 */
 
 // node
-import { basename, join, resolve, sep } from 'node:path';
-import {
-  constants as fsConstants,
-  copyFile,
-  mkdir,
-  unlink,
-  writeFile,
-} from 'node:fs/promises';
+import { join, resolve } from 'node:path';
 import { readdirSync } from 'node:fs';
 
 // base class
@@ -173,7 +166,7 @@ export class Project extends CardContainer {
       this.lock.onWriteError(async () => {
         await this.gitManager.rollback();
         // Invalidate caches after rollback since filesystem state changed
-        this.cardCache.clear();
+        this.clearCards();
         await this.populateCardsCache();
         this.resources.changed();
         await this.calculationEngine.generate();
@@ -202,24 +195,6 @@ export class Project extends CardContainer {
       name: moduleName,
       path: join(this.paths.modulesFolder, moduleConfig.name),
     };
-  }
-
-  // Handles attachment changes after filesystem operations.
-  private async handleAttachmentChange(
-    cardKey: string,
-    operation: 'added' | 'removed' | 'refresh',
-    fileName: string,
-  ): Promise<void> {
-    if (operation === 'added') {
-      this.cardCache.addAttachment(cardKey, fileName);
-    } else if (operation === 'removed') {
-      this.cardCache.deleteAttachment(cardKey, fileName);
-    } else if (operation === 'refresh') {
-      const newAttachments = this.cardCache.getCardAttachments(cardKey);
-      if (newAttachments) {
-        this.cardCache.updateCardAttachments(cardKey, newAttachments);
-      }
-    }
   }
 
   // Determines the parent card key from a card's filesystem path.
@@ -290,7 +265,7 @@ export class Project extends CardContainer {
     try {
       // Evict any stale template cards from a prior population — templates may
       // have been removed (e.g. via module removal) and would otherwise linger.
-      this.cardCache.deleteAllTemplateCards();
+      this.cardTree.evictAllTemplateCards();
 
       const templateResources = this.resources.templates();
       const prefixes = this.allModulePrefixes();
@@ -315,9 +290,7 @@ export class Project extends CardContainer {
           return;
         }
 
-        await this.cardCache.populateFromPath(
-          templateObject.templateCardsFolder(),
-        );
+        await this.cardTree.load(templateObject.templateCardsFolder());
       });
 
       await Promise.all(loadPromises);
@@ -336,7 +309,7 @@ export class Project extends CardContainer {
    * Populate both the project cards, and all template cards into card cache.
    */
   protected async populateCardsCache(): Promise<void> {
-    await this.cardCache.populateFromPath(this.paths.cardRootFolder);
+    await this.cardTree.load(this.paths.cardRootFolder);
     await this.populateTemplateCards();
   }
 
@@ -345,7 +318,7 @@ export class Project extends CardContainer {
    * @returns all the template cards from the project
    */
   public allTemplateCards(): Card[] {
-    return this.cardCache.getAllTemplateCards();
+    return this.cardTree.allTemplateCards();
   }
 
   /**
@@ -372,8 +345,7 @@ export class Project extends CardContainer {
    * @returns path to a card's attachment folder.
    */
   public cardAttachmentFolder(cardKey: string): string {
-    const pathToCard = this.findCard(cardKey).path;
-    return join(pathToCard, 'a');
+    return this.cardTree.attachmentFolderOf(cardKey);
   }
 
   /**
@@ -388,38 +360,12 @@ export class Project extends CardContainer {
     attachmentName: string,
     attachmentData: string | Buffer,
   ): Promise<void> {
-    const attachmentFolder = this.cardAttachmentFolder(cardKey);
-
     // Check if this is a module template
-    if (isModulePath(attachmentFolder)) {
+    if (isModulePath(this.cardAttachmentFolder(cardKey))) {
       throw new Error(`Cannot modify imported module`);
     }
 
-    // Create the attachment folder if it doesn't exist
-    await mkdir(attachmentFolder, { recursive: true });
-
-    const attachmentPath = join(attachmentFolder, basename(attachmentName));
-
-    if (Buffer.isBuffer(attachmentData)) {
-      await writeFile(attachmentPath, attachmentData, { flag: 'wx' });
-    } else {
-      try {
-        await copyFile(
-          attachmentData,
-          attachmentPath,
-          fsConstants.COPYFILE_EXCL,
-        );
-      } catch {
-        throw new Error(`Attachment file not found: ${attachmentData}`);
-      }
-    }
-
-    // Update cache
-    await this.handleAttachmentChange(
-      cardKey,
-      'added',
-      basename(attachmentName),
-    );
+    await this.cardTree.addAttachment(cardKey, attachmentName, attachmentData);
   }
 
   /**
@@ -453,14 +399,7 @@ export class Project extends CardContainer {
    * @returns Card data to the given card keys
    */
   public cardKeysToCards(cardIds: string[]): Card[] {
-    const cards: Card[] = [];
-    for (const cardId of cardIds) {
-      const card = this.cardCache.getCard(cardId);
-      if (card) {
-        cards.push(card);
-      }
-    }
-    return cards;
+    return this.cardTree.cardsFor(cardIds);
   }
 
   /**
@@ -519,31 +458,6 @@ export class Project extends CardContainer {
    */
   public cardAttachments(cardKey: string): CardAttachment[] {
     return super.cardAttachments(cardKey);
-  }
-
-  /**
-   * Accessor for cards cache.
-   * Used by template container (it needs to access project's cache, not their own instance).
-   * @note Should not be used directly (other than Template).
-   */
-  public get cardsCache() {
-    return this.cardCache;
-  }
-
-  /**
-   * Returns children of a given card; as Card array
-   * @param card Parent card to fetch children from
-   * @returns children of a given card; as Card array
-   */
-  public childrenCards(card: Card): Card[] {
-    const cards: Card[] = [];
-    for (const child of card.children) {
-      const card = this.cardCache.getCard(child);
-      if (card) {
-        cards.push(card);
-      }
-    }
-    return cards;
   }
 
   /**
@@ -637,18 +551,18 @@ export class Project extends CardContainer {
   public async handleCardDeleted(deletedCard: Card) {
     // Delete children from the cache first
     if (deletedCard.children && deletedCard.children.length > 0) {
-      const parentCachedCard = this.cardCache.getCard(deletedCard.key);
-      const parentLocation = parentCachedCard?.location || 'project';
+      const parentLocation =
+        this.cardTree.locationOfCard(deletedCard.key) || 'project';
 
       for (const child of deletedCard.children) {
         try {
           const childCard = this.findCard(child);
-          const childCachedCard = this.cardCache.getCard(child);
+          const childLocation = this.cardTree.locationOfCard(child);
 
           // Safety check: only delete children from the same location (project or template)
-          if (childCachedCard && childCachedCard.location !== parentLocation) {
+          if (childLocation !== undefined && childLocation !== parentLocation) {
             const errorMessage =
-              `Cannot delete child card '${child}' from different location '${childCachedCard.location}' ` +
+              `Cannot delete child card '${child}' from different location '${childLocation}' ` +
               `than parent card '${deletedCard.key}' from '${parentLocation}'`;
             this.logger.error(errorMessage);
             throw new Error(errorMessage);
@@ -742,16 +656,21 @@ export class Project extends CardContainer {
    * @param oldParentCard Previous parent of the 'movedCard'
    */
   public async handleCardMoved(movedCard: Card) {
-    this.cardCache.updateCard(movedCard.key, movedCard);
+    this.cardTree.updateCard(movedCard.key, movedCard);
     await this.handleCardChanged(movedCard);
     await this.calculationEngine.handleCardMoved();
   }
 
   /**
-   * When new cards are added.
-   * @param cards Added cards.
+   * Adds cards that have just been created on disk to the card tree, and
+   * refreshes their facts so a query run afterwards can see them.
+   *
+   * Storage and fact projection only. The creation query and the side effects
+   * it asks for belong to the command that created the cards and holds the
+   * write lock — see runCreationSideEffects.
+   * @param cards Cards that were created.
    */
-  public async handleNewCards(cards: Card[]) {
+  public async addCreatedCards(cards: Card[]) {
     // Add new cards to the card cache
     cards.forEach((card) => {
       const cardWithParent = {
@@ -759,9 +678,32 @@ export class Project extends CardContainer {
         parent: card.parent || this.parentFromPath(card.path),
       };
 
-      this.cardCache.updateCard(cardWithParent.key, cardWithParent);
+      this.cardTree.updateCard(cardWithParent.key, cardWithParent);
     });
-    return this.calculationEngine.handleNewCards(cards);
+    return this.calculationEngine.refreshCardFacts(cards);
+  }
+
+  /**
+   * Runs the creation query for cards that were just added, and executes the
+   * side effects it asks for.
+   *
+   * Must run inside a write-lock context, after addCreatedCards: the query
+   * only sees the new cards once their facts have been projected.
+   * @param cardKeys Keys of the cards that were created.
+   */
+  public async runCreationSideEffects(cardKeys: string[]) {
+    const queryResult = await this.calculationEngine.creationQuery(
+      cardKeys,
+      'localApp',
+    );
+    await this.executeSideEffects(
+      queryResult?.at(0),
+      // Empty seed: the created cards' initial "Create" transitions already
+      // happened during creation itself; a re-entrant "Create" side effect
+      // would be rejected anyway by the fromState check, so nothing needs
+      // to be pre-marked visited here.
+      new Set<string>(),
+    );
   }
 
   /**
@@ -969,7 +911,7 @@ export class Project extends CardContainer {
    * Populates the card cache, if it has not been populated.
    */
   public async populateCaches() {
-    if (!this.cardCache.isPopulated) {
+    if (!this.cardTree.isPopulated) {
       // Only collect modules that are registered in the project configuration
       if (this.configuration.modules && this.configuration.modules.length > 0) {
         this.resources.changedModules();
@@ -1023,27 +965,27 @@ export class Project extends CardContainer {
     cardKey: string,
     fileName: string,
   ): Promise<void> {
-    const attachmentFolder = this.cardAttachmentFolder(cardKey);
-
     // Modules cannot be modified.
-    if (isModulePath(attachmentFolder)) {
+    if (isModulePath(this.cardAttachmentFolder(cardKey))) {
       throw new Error(`Cannot modify imported module`);
     }
 
-    const attachmentPath = resolve(attachmentFolder, fileName);
+    await this.cardTree.removeAttachment(cardKey, fileName);
+  }
 
-    // Prevent path traversal
-    if (!attachmentPath.startsWith(resolve(attachmentFolder) + sep)) {
-      throw new Error(`Invalid attachment filename: ${fileName}`);
-    }
-
-    try {
-      await unlink(attachmentPath);
-    } catch (error) {
-      this.logger.error({ error }, 'Removing card attachment');
-      throw new Error(`Attachment not found: ${fileName}`, { cause: error });
-    }
-    await this.handleAttachmentChange(cardKey, 'removed', fileName);
+  /**
+   * Renames a card's attachment file, keeping the card cache in step with it.
+   * @param cardKey Card whose attachment is renamed.
+   * @param fileName Current attachment file name.
+   * @param newFileName New attachment file name.
+   * @throws if the card or the attachment does not exist.
+   */
+  public async renameCardAttachment(
+    cardKey: string,
+    fileName: string,
+    newFileName: string,
+  ): Promise<void> {
+    await this.cardTree.renameAttachment(cardKey, fileName, newFileName);
   }
 
   /**
@@ -1056,6 +998,33 @@ export class Project extends CardContainer {
     this.resources.changedModules();
     this.refreshAllModulePrefixes();
     await this.populateTemplateCards();
+  }
+
+  /**
+   * Empties the card cache.
+   */
+  public clearCards(): void {
+    this.cardTree.clear();
+  }
+
+  /**
+   * Drops a location's cards from the card cache.
+   * @param location 'project', or a full template name.
+   */
+  public removeCardsAtLocation(location: string): void {
+    this.cardTree.evictLocation(location);
+  }
+
+  /**
+   * Reloads one location's cards from disk into the card cache.
+   * @param location 'project', or a full template name.
+   * @param cardsFolder Folder the location's cards live in.
+   */
+  public async reloadCardsAtLocation(
+    location: string,
+    cardsFolder: string,
+  ): Promise<void> {
+    await this.cardTree.reloadLocation(location, cardsFolder);
   }
 
   /**
@@ -1083,7 +1052,31 @@ export class Project extends CardContainer {
     if (templateName === 'project') {
       return [];
     }
-    return this.cardCache.cardsAtLocation(templateName);
+    return this.cardTree.cardsIn(templateName);
+  }
+
+  /**
+   * Metadata-level view of a single template's cards: identity, tree position
+   * and metadata, without the content or the attachment listing.
+   * @param templateName Name of the template.
+   * @returns nodes of the cards in that template.
+   */
+  public templateCardNodes(templateName: string): CardNode[] {
+    if (templateName === 'project') {
+      return [];
+    }
+    return this.cardTree.cardNodesIn(templateName);
+  }
+
+  /**
+   * Returns how many cards a template holds.
+   * @param templateName Name of the template.
+   */
+  public templateCardCount(templateName: string): number {
+    if (templateName === 'project') {
+      return 0;
+    }
+    return this.cardTree.cardCountIn(templateName);
   }
 
   /**
@@ -1095,12 +1088,10 @@ export class Project extends CardContainer {
     const card = this.findCard(cardKey);
     card.content = content;
 
-    // Update lastUpdated timestamp in metadata
-    if (card.metadata) {
-      card.metadata.lastUpdated = new Date().toISOString();
-    }
-
-    await this.saveCard(card);
+    // Both files, deliberately: a content edit is expected to bump
+    // 'lastUpdated', and only the metadata write stamps it.
+    await this.saveCardContent(card);
+    await this.saveCardMetadata(card);
     await this.handleCardChanged(card);
   }
 
@@ -1131,9 +1122,6 @@ export class Project extends CardContainer {
       return;
     }
 
-    const isRankChange = changedKey === 'rank';
-    const previousPath = isRankChange ? card.path : undefined;
-
     const cardAsRecord: Record<string, MetadataContent> = card.metadata;
     if (removeKey) {
       delete cardAsRecord[changedKey];
@@ -1150,16 +1138,9 @@ export class Project extends CardContainer {
       throw new Error(invalidCard);
     }
 
-    const updated = await this.saveCardMetadata(card);
-    if (!updated) return;
-
-    // For rank changes, check if path changed (indicating a move)
-    if (isRankChange) {
-      const updatedCard = this.findCard(cardKey);
-      if (updatedCard.path !== previousPath) {
-        this.cardCache.updateCard(updatedCard.key, updatedCard);
-      }
-    }
+    // A metadata write cannot relocate a card, so there is nothing structural
+    // to follow up here; moving a card is moveCard's job.
+    await this.saveCardMetadata(card);
   }
 
   /**
@@ -1174,29 +1155,7 @@ export class Project extends CardContainer {
     oldBasePath: string,
     newBasePath: string,
   ): void {
-    const card = this.cardCache.getCard(cardKey);
-    if (!card) return;
-
-    if (card.path.startsWith(oldBasePath)) {
-      card.path = card.path.replace(oldBasePath, newBasePath);
-
-      if (card.attachments && card.attachments.length > 0) {
-        for (const attachment of card.attachments) {
-          if (attachment.path.startsWith(oldBasePath)) {
-            attachment.path = attachment.path.replace(oldBasePath, newBasePath);
-          }
-        }
-      }
-
-      this.cardCache.updateCard(card.key, card);
-    }
-
-    // Recursively update children
-    if (card.children && card.children.length > 0) {
-      for (const childKey of card.children) {
-        this.updateDescendantPathsAfterMove(childKey, oldBasePath, newBasePath);
-      }
-    }
+    this.cardTree.rebaseSubtreePaths(cardKey, oldBasePath, newBasePath);
   }
 
   /**
@@ -1205,7 +1164,11 @@ export class Project extends CardContainer {
    * @param card The card with updated information (path, parent, metadata, etc.)
    */
   public async updateCard(card: Card) {
-    const cachedCard = this.cardCache.getCard(card.key);
+    // A copy, read only to compare against: this method's job is to work out
+    // what the caller changed.
+    const cachedCard = this.cardTree.has(card.key)
+      ? this.cardTree.card(card.key)
+      : undefined;
     const pathChange = cachedCard && cachedCard.path !== card.path;
 
     const metadataChanged =
@@ -1220,7 +1183,7 @@ export class Project extends CardContainer {
       await this.saveCardContent(card);
     }
 
-    this.cardCache.updateCard(card.key, card);
+    this.cardTree.updateCard(card.key, card);
     if (metadataChanged || contentChanged || pathChange) {
       await this.handleCardChanged(card);
     }

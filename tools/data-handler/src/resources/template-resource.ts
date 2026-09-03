@@ -85,7 +85,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
    */
   public async delete() {
     const templateName = resourceNameToString(this.resourceName);
-    this.project.cardsCache.deleteCardsFromTemplate(templateName);
+    this.project.removeCardsAtLocation(templateName);
     return super.delete();
   }
 
@@ -97,10 +97,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
     const oldName = resourceNameToString(this.resourceName);
     await super.rename(newIdentifier);
 
-    // Evict before loading: the cards keep their keys, and the cache rejects a
-    // key it already holds.
-    this.project.cardsCache.deleteCardsFromTemplate(oldName);
-    await this.project.cardsCache.populateFromPath(this.cardsFolder);
+    await this.project.reloadCardsAtLocation(oldName, this.cardsFolder);
   }
 
   /**

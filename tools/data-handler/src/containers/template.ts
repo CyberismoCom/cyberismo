@@ -14,7 +14,7 @@
 // node
 import { basename, join, resolve, sep } from 'node:path';
 import { type Dirent, readdirSync } from 'node:fs';
-import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, rm } from 'node:fs/promises';
 
 // Base class
 import { CardContainer } from './card-container.js';
@@ -35,7 +35,7 @@ import {
 } from '../utils/lexorank.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { isModulePath } from '../utils/card-utils.js';
-import { Project } from './project.js';
+import type { Project } from './project.js';
 import { isInitialTransition, resourceName } from '../utils/resource-utils.js';
 
 import { isPredefinedField, ROOT } from '../utils/constants.js';
@@ -406,13 +406,10 @@ export class Template extends CardContainer {
         });
       }
 
-      await Promise.all(
-        newCards.map(async (card) => {
-          await mkdir(card.path, { recursive: true });
-          await this.saveCard(card);
-        }),
-      );
-      await this.project.handleNewCards(newCards);
+      await Promise.all(newCards.map((card) => this.createNode(card)));
+      // Storage and facts only. The creating command runs the creation query
+      // and its side effects.
+      await this.project.addCreatedCards(newCards);
       return newCardKeys;
     } catch (error) {
       this.logger.error({ error });
@@ -458,7 +455,7 @@ export class Template extends CardContainer {
       this.logger.warn('A non-used variable was used in the cards method');
     }
 
-    return this.project.cardsCache.cardsAtLocation(this.fullTemplateName);
+    return this.project.templateCards(this.fullTemplateName);
   }
 
   /**
@@ -466,7 +463,7 @@ export class Template extends CardContainer {
    * @returns the number of cards in the template.
    */
   public cardCount(): number {
-    return this.project.cardsCache.cardCountAtLocation(this.fullTemplateName);
+    return this.project.templateCardCount(this.fullTemplateName);
   }
 
   /**
@@ -507,18 +504,12 @@ export class Template extends CardContainer {
           this.updateCardPaths(card, cardKeyMap, templatesFolder, parentCard);
           createdPaths.push(card.path);
 
-          await mkdir(card.path, { recursive: true });
           const processedCard = await this.processAttachments(
             await this.processMetadata(card, rootCardRanks, cardKeyMap),
           );
-
-          await Promise.all([
-            this.saveCardMetadata(processedCard),
-            writeFile(
-              join(processedCard.path, Project.cardContentFile),
-              processedCard.content || '',
-            ),
-          ]);
+          // The creation primitive also makes the card folder;
+          // processAttachments only creates one when the card has attachments.
+          await this.createNode(processedCard);
           return processedCard;
         }),
       );
@@ -529,7 +520,10 @@ export class Template extends CardContainer {
       const processedCards = results.map(
         (result) => (result as PromiseFulfilledResult<Card>).value,
       );
-      await this.project.handleNewCards(processedCards);
+      // Storage and facts only, inside this try so a failure here is still
+      // compensated. The creating command runs the creation query and its
+      // side effects.
+      await this.project.addCreatedCards(processedCards);
       return processedCards;
     } catch (error) {
       try {
@@ -594,7 +588,7 @@ export class Template extends CardContainer {
       ? `${this.basePath.split(`${sep}modules${sep}`)[1].split(`${sep}templates`)[0]}/templates/${this.templateName}`
       : `${this.project.projectPrefix}/templates/${this.templateName}`;
 
-    return this.project.cardsCache.cardsAtLocation(fullTemplateName);
+    return this.project.templateCards(fullTemplateName);
   }
 
   /**
