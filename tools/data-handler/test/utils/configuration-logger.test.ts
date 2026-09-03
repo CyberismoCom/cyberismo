@@ -242,7 +242,7 @@ describe('configuration logger', () => {
 
       const logPath = ConfigurationLogger.logFile(testProjectPath2);
       expect(pathExists(logPath)).toBe(true);
-      expect(ConfigurationLogger.hasBreakingChanges(testProjectPath2)).toBe(
+      expect(ConfigurationLogger.hasPendingChanges(testProjectPath2)).toBe(
         true,
       );
     });

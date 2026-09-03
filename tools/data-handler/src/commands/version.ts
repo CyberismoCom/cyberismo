@@ -23,18 +23,44 @@ import { write } from '../utils/rw-lock.js';
 export const validBumps = ['patch', 'minor', 'major'] as const;
 export type BumpType = (typeof validBumps)[number];
 
-function classifyEntry(entry: ConfigurationLogEntry): ChangeClassification {
+interface ClassifiedEntry {
+  entry: ConfigurationLogEntry;
+  classification: ChangeClassification;
+  /** True when the entry could not be routed and was classified by fallback. */
+  unroutable: boolean;
+}
+
+function classifyEntry(entry: ConfigurationLogEntry): ClassifiedEntry {
   try {
-    return classify(entryToMutationInput(entry));
+    return {
+      entry,
+      classification: classify(entryToMutationInput(entry)),
+      unroutable: false,
+    };
   } catch {
     // An entry this build cannot route (e.g. written by a newer version) must
     // not slip through the gate; treat it as the strictest class.
-    return 'destructive';
+    return { entry, classification: 'destructive', unroutable: true };
   }
 }
 
-function describeEntries(entries: ConfigurationLogEntry[]): string {
-  return entries.map((e) => `  - ${e.target} (${e.operation})`).join('\n');
+// One line per entry, detailed enough to tell two edits of the same resource
+// apart, and honest about entries that were classified by fallback.
+function describeEntries(entries: ClassifiedEntry[]): string {
+  return entries
+    .map(({ entry, unroutable }) => {
+      const operationName = (
+        entry.parameters?.operation as { name?: string } | undefined
+      )?.name;
+      const detail = [entry.parameters?.key, operationName]
+        .filter((part) => typeof part === 'string')
+        .join(' ');
+      const note = unroutable
+        ? ' — unrecognised entry, treated as destructive'
+        : '';
+      return `  - ${entry.target} (${entry.operation})${detail ? ` ${detail}` : ''}${note}`;
+    })
+    .join('\n');
 }
 
 /**
@@ -71,19 +97,23 @@ export class Version {
     if (
       currentVersion &&
       bumpType !== 'major' &&
-      ConfigurationLogger.hasBreakingChanges(this.project.basePath)
+      ConfigurationLogger.hasPendingChanges(this.project.basePath)
     ) {
-      const entries = await ConfigurationLogger.entries(this.project.basePath);
+      const entries = (
+        await ConfigurationLogger.entries(this.project.basePath)
+      ).map(classifyEntry);
+      const destructive = entries.filter(
+        (entry) => entry.classification === 'destructive',
+      );
       if (bumpType === 'patch') {
         throw new Error(
           'Cannot publish a patch version: the configuration log contains changes that require a migration:\n' +
             describeEntries(entries) +
-            '\nUse a minor version bump, or a major version bump if destructive changes are present.',
+            (destructive.length > 0
+              ? '\nUse a major version bump.'
+              : '\nUse a minor version bump.'),
         );
       }
-      const destructive = entries.filter(
-        (entry) => classifyEntry(entry) === 'destructive',
-      );
       if (destructive.length > 0) {
         throw new Error(
           'Cannot publish a minor version: the configuration log contains destructive changes:\n' +

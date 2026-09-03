@@ -35,7 +35,7 @@ for (const r of ROUTES) {
  * the production Handler interface no longer exposes them.
  */
 interface TestOverride {
-  matches(ctx: MutationContext): boolean;
+  matches(input: MutationInput): boolean;
   readonly classification: ChangeClassification;
   apply: Handler['apply'];
   applyCascade: Handler['applyCascade'];
@@ -54,16 +54,24 @@ function lookup(
   return undefined;
 }
 
+// The single resolution path behind dispatch() and classify(), so the handler
+// an input runs through and the class it is gated by cannot disagree.
+function resolve(
+  input: MutationInput,
+): { handler: Handler; classification: ChangeClassification } | undefined {
+  for (const override of TEST_OVERRIDES) {
+    if (override.matches(input)) {
+      return { handler: override, classification: override.classification };
+    }
+  }
+  return lookup(route(input));
+}
+
 export function dispatch(ctx: MutationContext): {
   handler: Handler;
   classification: ChangeClassification;
 } {
-  for (const override of TEST_OVERRIDES) {
-    if (override.matches(ctx)) {
-      return { handler: override, classification: override.classification };
-    }
-  }
-  const found = lookup(route(ctx.input));
+  const found = resolve(ctx.input);
   if (found) return found;
   throw new Error(
     `No mutation handler for input: ${JSON.stringify(ctx.input)}`,
@@ -72,7 +80,7 @@ export function dispatch(ctx: MutationContext): {
 
 /** Migration-policy class of an input, from the same table dispatch uses. */
 export function classify(input: MutationInput): ChangeClassification {
-  const found = lookup(route(input));
+  const found = resolve(input);
   if (found) return found.classification;
   throw new Error(`No mutation route for input: ${JSON.stringify(input)}`);
 }
