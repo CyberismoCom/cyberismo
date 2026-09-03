@@ -22,8 +22,10 @@ import {
   createSourceLayer,
   isGitLocation,
   pickVersion,
+  requireDeclaredRoot,
   resolve,
   toVersion,
+  validateExplicitTarget,
   type UpdateRequest,
 } from '../modules/index.js';
 import { getChildLogger } from '../utils/log-utils.js';
@@ -73,28 +75,20 @@ export class CheckUpdates {
     const sourceLayer = this.sourceLayer ?? createSourceLayer();
 
     try {
-      const allDeclared = declaredModules(this.project);
       const declared = moduleName
-        ? allDeclared.filter((d) => d.name === moduleName)
-        : allDeclared;
+        ? [
+            await requireDeclaredRoot(
+              this.project,
+              moduleName,
+              'check updates for',
+            ),
+          ]
+        : declaredModules(this.project);
 
       const installed = await installedModules(this.project);
       const installedByName = new Map<string, ModuleInstallation>(
         installed.map((i) => [i.name, i]),
       );
-
-      if (moduleName && declared.length === 0) {
-        const parents = installed
-          .filter((m) => m.declaredDependencies.includes(moduleName))
-          .map((m) => m.name);
-        if (parents.length > 0) {
-          const parentList = parents.map((n) => `'${n}'`).join(', ');
-          throw new Error(
-            `Cannot check updates for module '${moduleName}' because it is required by ${parentList}. Check updates for the parent module(s) instead.`,
-          );
-        }
-        throw new Error(`Module '${moduleName}' is not part of the project`);
-      }
 
       const results = await Promise.all(
         declared.map(async (decl) => {
@@ -195,10 +189,23 @@ export class CheckUpdates {
     try {
       let req: UpdateRequest;
       if (moduleName) {
-        await this.assertUpdatable(moduleName);
-        req = version
-          ? { kind: 'update', module: moduleName, to: toVersion(version) }
-          : { kind: 'update', module: moduleName };
+        const target = await requireDeclaredRoot(
+          this.project,
+          moduleName,
+          'update',
+        );
+        if (version) {
+          await validateExplicitTarget(
+            this.project,
+            sourceLayer,
+            moduleName,
+            target.source.location,
+            version,
+          );
+          req = { kind: 'update', module: moduleName, to: toVersion(version) };
+        } else {
+          req = { kind: 'update', module: moduleName };
+        }
       } else {
         req = { kind: 'updateAll' };
       }
@@ -246,25 +253,6 @@ export class CheckUpdates {
     } finally {
       if (ownsSource) await sourceLayer.dispose?.();
     }
-  }
-
-  /** @throws when `moduleName` is not a declared root of this project. */
-  private async assertUpdatable(moduleName: string): Promise<void> {
-    const declared = declaredModules(this.project);
-    if (declared.some((d) => d.name === moduleName)) {
-      return;
-    }
-    const installed = await installedModules(this.project);
-    const parents = installed
-      .filter((m) => m.declaredDependencies.includes(moduleName))
-      .map((m) => m.name);
-    if (parents.length > 0) {
-      const parentList = parents.map((n) => `'${n}'`).join(', ');
-      throw new Error(
-        `Cannot update module '${moduleName}' because it is required by ${parentList}. Update the parent module(s) instead.`,
-      );
-    }
-    throw new Error(`Module '${moduleName}' is not part of the project`);
   }
 }
 

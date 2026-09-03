@@ -424,6 +424,27 @@ describe('GET /api/project/modules/update-plan', () => {
     expect(result.error).toContain("Module 'nope' is not part of the project");
   });
 
+  test('refuses a target version the declared range excludes', async () => {
+    await createAppWithFixture(async (projectPath) => {
+      const sourceDir = await createFileSourceModule(projectPath, 'filemod');
+      await declareModules(projectPath, [
+        { name: 'filemod', location: `file:${sourceDir}`, version: '^1.0.0' },
+      ]);
+      await installFakeModule(projectPath, {
+        name: 'filemod',
+        version: '1.0.0',
+      });
+    });
+    const response = await app.request(
+      '/api/projects/test/project/modules/filemod/update-plan?version=2.0.0',
+    );
+    expect(response.status).toBe(500);
+    const result = (await response.json()) as { error: string };
+    expect(result.error).toContain(
+      "Version '2.0.0' for module 'filemod' does not satisfy constraint '^1.0.0'",
+    );
+  });
+
   test('returns 400 for an invalid version query parameter', async () => {
     await createAppWithFixture();
     const response = await app.request(
