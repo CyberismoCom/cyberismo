@@ -1,4 +1,13 @@
-import { expect, it, describe, beforeAll, afterAll } from 'vitest';
+import {
+  expect,
+  it,
+  describe,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  afterEach,
+  vi,
+} from 'vitest';
 
 import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
@@ -285,5 +294,57 @@ describe('calculation validation on generate', () => {
       'result(X) :- validCalcFact(X).',
     );
     expect(valid.results.map((r) => r.key)).toEqual(['42']);
+  });
+});
+
+describe('a resource change made while the program is being rebuilt', () => {
+  const baseDir = import.meta.dirname;
+  const testDir = join(baseDir, 'tmp-calculate-rebuild-tests');
+  const projectPath = join(testDir, 'invalid/invalid-calculations');
+  const validCalcName = 'mini/calculations/validCalc';
+
+  beforeEach(async () => {
+    mkdirSync(testDir, { recursive: true });
+    await copyDir('test/test-data/', testDir);
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('keeps an invalidation that arrives during a rebuild', async () => {
+    const project = getTestProject(projectPath);
+    await project.populateCaches();
+    const engine = project.calculationEngine;
+    const fact = async () => {
+      const result = await engine.runLogicProgram(
+        'result(X) :- validCalcFact(X).',
+      );
+      return result.results.map((item) => item.key);
+    };
+    expect(await fact()).toEqual(['42']);
+
+    // Hold the rebuild at the step that reads the calculations, and rewrite
+    // one while it waits there.
+    let release: () => void = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const step = vi
+      .spyOn(
+        engine as unknown as { setCalculationsPrograms: () => Promise<void> },
+        'setCalculationsPrograms',
+      )
+      .mockImplementationOnce(() => held);
+
+    const rebuilding = engine.generate();
+    await project.resources
+      .byType(validCalcName, 'calculations')
+      .updateFile('calculation.lp', 'validCalcFact(43).');
+    release();
+    await rebuilding;
+    step.mockRestore();
+
+    expect(await fact()).toEqual(['43']);
   });
 });

@@ -119,8 +119,6 @@ export class Move {
     await actionGuard.checkPermission('move', source);
 
     await this.project.relocateCard(source, newParent, targetTree.name);
-
-    await this.project.handleCardMoved(this.project.cardNode(source));
   }
 
   /**

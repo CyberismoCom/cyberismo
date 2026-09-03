@@ -128,7 +128,7 @@ export class Project {
 
     this.logger.info({ path }, 'Initializing project');
 
-    this.calculationEngine = new CalculationEngine(this);
+    this.calculationEngine = new CalculationEngine(this, this.facts);
     this.projectPaths = new ProjectPaths(path);
     this.resourceHandler = new ResourceHandler(this);
     // todo: implement project validation
@@ -162,12 +162,6 @@ export class Project {
 
     this.gitManager = new GitManager(path);
 
-    // Regenerate Clingo facts after every write transaction so that
-    // metadata-only edits (e.g. title changes) are immediately visible.
-    this.lock.onAfterWrite(async () => {
-      await this.calculationEngine.generate();
-    });
-
     this.gitSync = new GitSync(this.gitManager);
 
     if (this.options.autocommit) {
@@ -188,7 +182,6 @@ export class Project {
         this.clearCards();
         await this.populateCardsCache();
         this.resources.changed();
-        await this.calculationEngine.generate();
       });
     }
   }
@@ -606,15 +599,6 @@ export class Project {
   }
 
   /**
-   * When card changes.
-   * @param changedCard Card that was changed.
-   */
-  public async handleCardChanged(changedCard: CardNode) {
-    // Notify the calculation engine about the change
-    return this.calculationEngine.handleCardChanged(changedCard);
-  }
-
-  /**
    * When cards are removed.
    * @param deletedCard Card that is to be removed.
    */
@@ -635,7 +619,6 @@ export class Project {
       }
     }
     await this.removeCard(deletedCard.key);
-    return this.calculationEngine.handleDeleteCard(deletedCard);
   }
 
   /**
@@ -706,17 +689,6 @@ export class Project {
   }
 
   /**
-   * When card is moved.
-   * @param movedCard Card that moved
-   * @param newParentCard New parent for the 'movedCard'
-   * @param oldParentCard Previous parent of the 'movedCard'
-   */
-  public async handleCardMoved(movedCard: CardNode) {
-    await this.handleCardChanged(movedCard);
-    await this.calculationEngine.handleCardMoved();
-  }
-
-  /**
    * Moves a card to a new position in the card tree.
    * @param container Container the card now belongs to: 'project' or a full
    *   template name. Defaults to the one it is in.
@@ -741,7 +713,8 @@ export class Project {
    * side effects it asks for.
    *
    * Must run inside a write-lock context, after the cards were created: the
-   * query only sees them once their facts have been projected.
+   * query projects them as it starts, so they have to be in their tree by
+   * then.
    * @param cardKeys Keys of the cards that were created.
    */
   public async runCreationSideEffects(cardKeys: string[]) {
@@ -1027,7 +1000,6 @@ export class Project {
     // 'lastUpdated', and only the metadata write stamps it.
     await this.saveCardContent(card);
     await this.saveCardMetadata(card);
-    await this.handleCardChanged(card);
   }
 
   /**
@@ -1085,9 +1057,7 @@ export class Project {
    */
   public async updateCardMetadata(card: Card, changedMetadata: CardMetadata) {
     card.metadata = changedMetadata;
-    if (await this.saveCardMetadata(card)) {
-      await this.handleCardChanged(card);
-    }
+    await this.saveCardMetadata(card);
   }
 
   // Wrapper to run onTransition query.

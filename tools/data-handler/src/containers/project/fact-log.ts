@@ -13,13 +13,15 @@
 
 /**
  * What the calculation engine has not yet pulled: the card facts to refresh,
- * and the card facts to drop.
+ * the card facts to drop, and whether the resource programs need a rebuild.
  *
  * The log outlives the trees that write into it.
  */
 export class FactLog {
   private changed = new Set<string>();
   private removed = new Set<string>();
+  private dirty = true;
+  private revision = 0;
 
   /** Records that a card's facts have to be built again. */
   public cardChanged(cardKey: string) {
@@ -31,6 +33,31 @@ export class FactLog {
   public cardRemoved(cardKey: string) {
     this.changed.delete(cardKey);
     this.removed.add(cardKey);
+  }
+
+  /** Records that the resource programs have to be built again. */
+  public invalidateResources() {
+    this.dirty = true;
+    this.revision++;
+  }
+
+  public get resourcesDirty(): boolean {
+    return this.dirty;
+  }
+
+  public get resourceRevision(): number {
+    return this.revision;
+  }
+
+  /**
+   * Records a completed rebuild; an invalidation that arrived while it ran
+   * leaves the log dirty.
+   * @param revision The revision the rebuild started from.
+   */
+  public resourcesRebuilt(revision: number) {
+    if (revision === this.revision) {
+      this.dirty = false;
+    }
   }
 
   /** Takes the pending card changes, leaving the log clean. */

@@ -624,6 +624,9 @@ export abstract class ResourceObject<
       this.project.resources.rename(resourceString, this.content.name);
     }
     await writeJsonFile(this.fileName, this.content);
+    // The resource stays the object the cache holds, so nothing above tells
+    // the calculation engine that what it projects has changed.
+    this.project.calculationEngine.invalidateResources();
   }
 
   /**

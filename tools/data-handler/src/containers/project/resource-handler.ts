@@ -44,8 +44,12 @@ export class ResourceHandler {
    * Creates instance of ResourceHandler.
    * @param project Project to use in cache
    */
-  constructor(project: Project) {
+  constructor(private project: Project) {
     this.cache = ResourceCache.create(project);
+  }
+
+  private invalidateFacts(): void {
+    this.project.calculationEngine.invalidateResources();
   }
 
   /**
@@ -55,6 +59,7 @@ export class ResourceHandler {
    */
   public add(name: string | ResourceName, instance: unknown): void {
     this.cache.addResource(name, instance);
+    this.invalidateFacts();
   }
 
   public byType<T extends keyof ResourceMap>(
@@ -110,6 +115,7 @@ export class ResourceHandler {
    */
   public changed(): void {
     this.cache.changed();
+    this.invalidateFacts();
   }
 
   /**
@@ -118,6 +124,7 @@ export class ResourceHandler {
    */
   public changedModules(moduleName?: string): void {
     this.cache.changedModules(moduleName);
+    this.invalidateFacts();
   }
 
   /**
@@ -156,6 +163,7 @@ export class ResourceHandler {
    */
   public remove(name: string | ResourceName): void {
     this.cache.removeResource(name);
+    this.invalidateFacts();
   }
 
   /**
@@ -164,6 +172,7 @@ export class ResourceHandler {
    */
   public removeModule(moduleName: string): void {
     this.cache.removeModule(moduleName);
+    this.invalidateFacts();
   }
 
   /**
@@ -173,6 +182,7 @@ export class ResourceHandler {
    */
   public rename(oldName: string, newName: string): void {
     this.cache.changeResourceName(oldName, newName);
+    this.invalidateFacts();
   }
 
   /**
@@ -250,6 +260,7 @@ export class ResourceHandler {
    */
   public handleFileSystemChange(fileName: string): void {
     this.cache.handleFileSystemChange(fileName);
+    this.invalidateFacts();
   }
 
   /**

@@ -68,9 +68,6 @@ export async function addTemplateCards(
         metadata: { ...DefaultContent.card(cardType), rank: ranks[index] },
       })),
     );
-    await project.calculationEngine.refreshCardFacts(
-      cardKeys.map((cardKey) => template.node(cardKey)),
-    );
     return cardKeys;
   } catch (error) {
     logger.error({ error });
@@ -111,9 +108,7 @@ export async function instantiateTemplate(
     );
     await destination.createCards(newCards);
 
-    const created = newCards.map((card) => destination.card(card.key));
-    await project.calculationEngine.refreshCardFacts(created);
-    return created;
+    return newCards.map((card) => destination.card(card.key));
   } catch (error) {
     logger.error({ error }, 'Failed to create cards');
     throw error;
