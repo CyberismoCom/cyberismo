@@ -13,36 +13,58 @@
 */
 
 import { ModuleVersionError } from './errors.js';
+import { buildRemoteUrl } from './remote-url.js';
+import { toVersion } from './types.js';
+import { errorFunction } from '../utils/error-utils.js';
 import { validateVersionAgainstConstraints } from './version.js';
 
+import type { Credentials } from '../interfaces/project-interfaces.js';
+import type { ModuleDeclaration, Version } from './types.js';
 import type { Project } from '../containers/project.js';
 import type { SourceLayer } from './source.js';
 
 /**
  * Guards an explicit target version with the checks the engine itself does
- * not run: the project's declared ranges for the module, then availability
- * on the remote. Shared by the apply and preview paths so a dry run can
- * never accept a target the real update would refuse.
- * @throws when `version` violates a declared range or is not offered by the
- * source (sources without discrete versions accept any target).
+ * not run: that it parses at all, then the project's declared ranges for the
+ * module, then availability on the remote. Shared by the apply and preview
+ * paths so a dry run can never accept a target the real update would refuse.
+ * @returns the parsed target.
+ * @throws when `version` is not a semver version, violates a declared range,
+ * or is not offered by the source (sources without discrete versions accept
+ * any target).
  */
 export async function validateExplicitTarget(
   project: Project,
   sourceLayer: SourceLayer,
-  moduleName: string,
-  location: string,
+  declaration: ModuleDeclaration,
   version: string,
-): Promise<void> {
+  credentials?: Credentials,
+): Promise<Version> {
+  const moduleName = declaration.name;
+
+  // First, because `semver.satisfies` reports a malformed version as merely
+  // unsatisfied, which would name the range rather than the real fault.
+  let target: Version;
+  try {
+    target = toVersion(version);
+  } catch (error) {
+    throw new ModuleVersionError(errorFunction(error));
+  }
+
   const constraints = project.configuration.modules
     .filter((m) => m.name === moduleName && m.version)
     .map((m) => ({ range: m.version!, source: 'project' }));
-  validateVersionAgainstConstraints(moduleName, version, constraints);
+  validateVersionAgainstConstraints(moduleName, target, constraints);
 
-  const remoteVersions = await sourceLayer.listRemoteVersions(location);
-  if (remoteVersions.length > 0 && !remoteVersions.includes(version)) {
+  const remoteVersions = await sourceLayer.listRemoteVersions(
+    declaration.source.location,
+    buildRemoteUrl(declaration.source, credentials),
+  );
+  if (remoteVersions.length > 0 && !remoteVersions.includes(target)) {
     throw new ModuleVersionError(
-      `Version '${version}' is not available for module '${moduleName}'. ` +
+      `Version '${target}' is not available for module '${moduleName}'. ` +
         `Available versions: ${remoteVersions.join(', ')}`,
     );
   }
+  return target;
 }
