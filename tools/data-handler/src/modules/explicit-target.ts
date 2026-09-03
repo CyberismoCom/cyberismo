@@ -12,6 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { ModuleVersionError } from './errors.js';
 import { validateVersionAgainstConstraints } from './version.js';
 
 import type { Project } from '../containers/project.js';
@@ -39,7 +40,7 @@ export async function validateExplicitTarget(
 
   const remoteVersions = await sourceLayer.listRemoteVersions(location);
   if (remoteVersions.length > 0 && !remoteVersions.includes(version)) {
-    throw new Error(
+    throw new ModuleVersionError(
       `Version '${version}' is not available for module '${moduleName}'. ` +
         `Available versions: ${remoteVersions.join(', ')}`,
     );

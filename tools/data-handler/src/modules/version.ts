@@ -14,6 +14,7 @@
 
 import semver from 'semver';
 
+import { ModuleVersionError } from './errors.js';
 import { toVersion, type Version } from './types.js';
 
 /** Pure semver helpers used by the module system. */
@@ -51,7 +52,7 @@ export function validateVersionAgainstConstraints(
 ): void {
   for (const constraint of constraints) {
     if (!semver.satisfies(version, constraint.range)) {
-      throw new Error(
+      throw new ModuleVersionError(
         `Version '${version}' for module '${moduleName}' does not satisfy constraint '${constraint.range}' (required by ${constraint.source})`,
       );
     }
