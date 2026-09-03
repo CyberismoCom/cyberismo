@@ -52,7 +52,7 @@ If you did not import the 'base' module while creating the project, you can stil
 
 [source,console]
 ----
-$ cyberismo import module base -p cyberismo-tutorial
+$ cyberismo module install base -p cyberismo-tutorial
 ----
 
 == Create a page
