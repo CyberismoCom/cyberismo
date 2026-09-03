@@ -14,7 +14,6 @@ import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import BaseMacro from '../base-macro.js';
 import macroMetadata from './metadata.js';
 import type TaskQueue from '../task-queue.js';
-import * as vegaLite from 'vega-lite';
 import { createMacro, validateMacroContent } from '../index.js';
 import type { VegaLiteMacroInput } from './types.js';
 
@@ -29,6 +28,7 @@ class VegaLiteMacro extends BaseMacro {
 
   handleStatic = async (_: MacroGenerationContext, input: unknown) => {
     const options = this.validate(input) as VegaLiteMacroInput;
+    const vegaLite = await import('vega-lite');
     const compiled = vegaLite.compile(options.spec).spec;
     return createMacro('vega', {
       spec: compiled,
