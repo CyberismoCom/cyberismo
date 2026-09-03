@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { ResourceMutations } from '../../src/mutations/resource-mutations.js';
 import { _registerHandlerForTest } from '../../src/mutations/dispatcher.js';
-import type { MutationContext } from '../../src/mutations/handler.js';
+import type { MutationInput } from '../../src/mutations/types.js';
 import { ConfigurationLogger } from '../../src/utils/configuration-logger.js';
 import { resourceName } from '../../src/utils/resource-utils.js';
 import type { Project } from '../../src/containers/project.js';
@@ -36,9 +36,8 @@ describe('ResourceMutations replay origin', () => {
   describe('with a replay-capable stub handler', () => {
     it('calls applyCascade only and never writes a log entry', async () => {
       const handler = {
-        matches: (ctx: MutationContext) =>
-          ctx.input.kind === 'edit' &&
-          ctx.input.updateKey.key === 'replayProbe',
+        matches: (input: MutationInput) =>
+          input.kind === 'edit' && input.updateKey.key === 'replayProbe',
         classification: 'migratable' as const,
         apply: vi.fn(),
         applyCascade: vi.fn(),

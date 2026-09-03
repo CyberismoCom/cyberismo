@@ -39,7 +39,7 @@ describe('Version', () => {
   let versionCmd: Version;
   let configPath: string;
   let configuration: ReturnType<typeof makeConfiguration>;
-  let hasBreakingChangesStub: sinon.SinonStub;
+  let hasPendingChangesStub: sinon.SinonStub;
 
   beforeEach(async () => {
     dir = await mkdtemp(join(tmpdir(), 'version-test-'));
@@ -59,8 +59,8 @@ describe('Version', () => {
     await git.initialize();
 
     // Bypass migration log snapshot handling — these tests focus on version bumping
-    hasBreakingChangesStub = sinon
-      .stub(ConfigurationLogger, 'hasBreakingChanges')
+    hasPendingChangesStub = sinon
+      .stub(ConfigurationLogger, 'hasPendingChanges')
       .returns(false);
 
     configuration = makeConfiguration(configPath);
@@ -192,7 +192,7 @@ describe('Version', () => {
       await configuration.setVersion('1.0.0');
       await git.commit('set version');
 
-      hasBreakingChangesStub.returns(true);
+      hasPendingChangesStub.returns(true);
 
       await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
         /Cannot publish a patch version/,
@@ -203,7 +203,7 @@ describe('Version', () => {
     it('should seal the log when minor bump attempted with migratable changes', async () => {
       configuration.version = '1.0.0';
       await configuration.setVersion('1.0.0');
-      hasBreakingChangesStub.restore();
+      hasPendingChangesStub.restore();
       await ConfigurationLogger.log(dir, {
         operation: 'resource_rename',
         target: 'test/workflows/flow',
@@ -235,7 +235,7 @@ describe('Version', () => {
       await configuration.setVersion('1.0.0');
       await git.commit('set version');
 
-      hasBreakingChangesStub.returns(true);
+      hasPendingChangesStub.returns(true);
       sinon.stub(ConfigurationLogger, 'createVersion').resolves('dummy');
 
       const result = await versionCmd.bumpVersion('major');
@@ -245,7 +245,7 @@ describe('Version', () => {
     it('patch refuses when the log has a migratable entry, naming it', async () => {
       configuration.version = '1.0.0';
       await configuration.setVersion('1.0.0');
-      hasBreakingChangesStub.restore();
+      hasPendingChangesStub.restore();
       await ConfigurationLogger.log(dir, {
         operation: 'resource_rename',
         target: 'test/workflows/flow',
@@ -261,7 +261,52 @@ describe('Version', () => {
       await git.commit('set version and dirty log');
 
       await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
-        /Cannot publish a patch version[\s\S]*test\/workflows\/flow \(resource_rename\)/,
+        /Cannot publish a patch version[\s\S]*test\/workflows\/flow \(resource_rename\)[\s\S]*Use a minor version bump\./,
+      );
+      await expectNoPartialState('1.0.0');
+    });
+
+    it('patch refusal points at a major bump when a change is destructive', async () => {
+      configuration.version = '1.0.0';
+      await configuration.setVersion('1.0.0');
+      hasPendingChangesStub.restore();
+      await ConfigurationLogger.log(dir, {
+        operation: 'resource_delete',
+        target: 'test/workflows/flow',
+        parameters: { type: 'workflows' },
+      });
+      await git.commit('set version and dirty log');
+
+      await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
+        /Cannot publish a patch version[\s\S]*Use a major version bump\./,
+      );
+      await expectNoPartialState('1.0.0');
+    });
+
+    it('lists two edits of the same field distinguishably', async () => {
+      configuration.version = '1.0.0';
+      await configuration.setVersion('1.0.0');
+      hasPendingChangesStub.restore();
+      await ConfigurationLogger.log(dir, {
+        operation: 'resource_update',
+        target: 'test/fieldTypes/priority',
+        parameters: {
+          key: 'enumValues',
+          operation: { name: 'remove', target: { enumValue: 'low' } },
+        },
+      });
+      await ConfigurationLogger.log(dir, {
+        operation: 'resource_update',
+        target: 'test/fieldTypes/priority',
+        parameters: {
+          key: 'dataType',
+          operation: { name: 'change', target: 'enum', to: 'shortText' },
+        },
+      });
+      await git.commit('set version and dirty log');
+
+      await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
+        /test\/fieldTypes\/priority \(resource_update\) enumValues remove[\s\S]*test\/fieldTypes\/priority \(resource_update\) dataType change/,
       );
       await expectNoPartialState('1.0.0');
     });
@@ -269,7 +314,7 @@ describe('Version', () => {
     it('minor refuses with a destructive entry in the log, error names the entry', async () => {
       configuration.version = '1.0.0';
       await configuration.setVersion('1.0.0');
-      hasBreakingChangesStub.restore();
+      hasPendingChangesStub.restore();
       await ConfigurationLogger.log(dir, {
         operation: 'resource_delete',
         target: 'test/workflows/flow',
@@ -286,7 +331,7 @@ describe('Version', () => {
     it('minor and patch refuse an entry that cannot be routed', async () => {
       configuration.version = '1.0.0';
       await configuration.setVersion('1.0.0');
-      hasBreakingChangesStub.restore();
+      hasPendingChangesStub.restore();
       // No 'key' parameter: entryToMutationInput cannot convert this.
       await ConfigurationLogger.log(dir, {
         operation: 'resource_update',
@@ -296,12 +341,12 @@ describe('Version', () => {
       await git.commit('set version and dirty log');
 
       await expect(versionCmd.bumpVersion('minor')).rejects.toThrow(
-        /Cannot publish a minor version[\s\S]*test\/fieldTypes\/x \(resource_update\)/,
+        /Cannot publish a minor version[\s\S]*test\/fieldTypes\/x \(resource_update\) — unrecognised entry, treated as destructive/,
       );
       await expectNoPartialState('1.0.0');
 
       await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
-        /Cannot publish a patch version[\s\S]*test\/fieldTypes\/x \(resource_update\)/,
+        /Cannot publish a patch version[\s\S]*test\/fieldTypes\/x \(resource_update\) — unrecognised entry, treated as destructive/,
       );
       await expectNoPartialState('1.0.0');
     });
@@ -309,7 +354,7 @@ describe('Version', () => {
     it('minor and patch refuse an entry with an unknown operation', async () => {
       configuration.version = '1.0.0';
       await configuration.setVersion('1.0.0');
-      hasBreakingChangesStub.restore();
+      hasPendingChangesStub.restore();
       // An operation this build does not know, e.g. written by a newer version.
       await ConfigurationLogger.log(dir, {
         operation: 'resource_transmute' as ConfigurationOperation,
@@ -319,12 +364,12 @@ describe('Version', () => {
       await git.commit('set version and dirty log');
 
       await expect(versionCmd.bumpVersion('minor')).rejects.toThrow(
-        /Cannot publish a minor version[\s\S]*test\/fieldTypes\/x \(resource_transmute\)/,
+        /Cannot publish a minor version[\s\S]*test\/fieldTypes\/x \(resource_transmute\) enumValues — unrecognised entry, treated as destructive/,
       );
       await expectNoPartialState('1.0.0');
 
       await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
-        /Cannot publish a patch version[\s\S]*test\/fieldTypes\/x \(resource_transmute\)/,
+        /Cannot publish a patch version[\s\S]*test\/fieldTypes\/x \(resource_transmute\) enumValues — unrecognised entry, treated as destructive/,
       );
       await expectNoPartialState('1.0.0');
     });
@@ -332,7 +377,7 @@ describe('Version', () => {
     it('major seals with destructive entries in the log', async () => {
       configuration.version = '1.0.0';
       await configuration.setVersion('1.0.0');
-      hasBreakingChangesStub.restore();
+      hasPendingChangesStub.restore();
       await ConfigurationLogger.log(dir, {
         operation: 'resource_delete',
         target: 'test/workflows/flow',
@@ -372,7 +417,7 @@ describe('Version', () => {
 
   describe('migration log snapshotting', () => {
     it('should snapshot migration log when log exists', async () => {
-      hasBreakingChangesStub.returns(true);
+      hasPendingChangesStub.returns(true);
       const createVersionStub = sinon
         .stub(ConfigurationLogger, 'createVersion')
         .resolves();
@@ -390,7 +435,7 @@ describe('Version', () => {
       configuration.version = '1.0.0';
       await configuration.setVersion('1.0.0');
       await git.commit('set version');
-      // hasBreakingChangesStub returns false (set in beforeEach)
+      // hasPendingChangesStub returns false (set in beforeEach)
 
       const result = await versionCmd.bumpVersion('minor');
 
