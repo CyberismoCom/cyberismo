@@ -1,10 +1,18 @@
-import { afterAll, afterEach, beforeAll, describe, expect, test } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+  vi,
+} from 'vitest';
 import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { presenceStore } from '../src/domain/cards/presence.js';
-import { updateCard } from '../src/domain/cards/service.js';
 import { UserRole } from '../src/types.js';
 import type { SSEMessage } from 'hono/streaming';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
@@ -176,13 +184,18 @@ describe('GET /api/projects/:prefix/cards/:key/presence', () => {
     });
   });
 
-  test('an inbound link write notifies viewers of the card that stores it', async () => {
-    // direction='inbound' on decision_5 writes the link into decision_6.
-    const stream = await app.request(
-      '/api/projects/decision/cards/decision_6/presence',
+  test('a link write notifies viewers of both endpoint cards', async () => {
+    // direction='inbound' on decision_5 stores the link in decision_6, and
+    // both card pages render it.
+    const streams = await Promise.all(
+      ['decision_5', 'decision_6'].map((key) =>
+        app.request(`/api/projects/decision/cards/${key}/presence`),
+      ),
     );
-    const reader = stream.body!.getReader();
-    await readUntil(reader, 'event: presence');
+    const readers = streams.map((stream) => stream.body!.getReader());
+    for (const reader of readers) {
+      await readUntil(reader, 'event: presence');
+    }
 
     const post = await app.request(
       '/api/projects/decision/cards/decision_5/links',
@@ -201,31 +214,140 @@ describe('GET /api/projects/:prefix/cards/:key/presence', () => {
     );
     expect(post.status).toBe(200);
 
-    const text = await readUntil(reader, 'event: card-updated');
-    void reader.cancel();
-
-    const updated = parseSSEEvents(text).find(
-      (e) => e.event === 'card-updated',
+    const texts = await Promise.all(
+      readers.map((reader) => readUntil(reader, 'event: card-updated')),
     );
-    expect(updated).toBeDefined();
-    expect(JSON.parse(updated!.data!).cardKey).toBe('decision_6');
+    readers.forEach((reader) => void reader.cancel());
+
+    const notified = texts.map(
+      (text) =>
+        JSON.parse(
+          parseSSEEvents(text).find((e) => e.event === 'card-updated')!.data!,
+        ).cardKey,
+    );
+    expect(notified).toEqual(['decision_5', 'decision_6']);
   });
 });
 
-describe('cardService.updateCard change reporting', () => {
-  test('reports false for a body that changes nothing', async () => {
-    expect(await updateCard(commands, 'decision_5', {})).toBe(false);
-    expect(await updateCard(commands, 'decision_5', { metadata: {} })).toBe(
-      false,
+describe('card-updated emission per write route', () => {
+  const notify = vi.spyOn(presenceStore, 'notifyUpdated');
+  const asBob = { cookie: 'mock-user=bob' };
+  const json = (body: unknown) => ({
+    headers: { 'content-type': 'application/json', ...asBob },
+    body: JSON.stringify(body),
+  });
+  const notifiedKeys = () => notify.mock.calls.map(([key]) => key).sort();
+
+  // The spy exists from file load, so drop calls made by earlier describes.
+  beforeEach(() => {
+    notify.mockClear();
+  });
+
+  afterAll(() => {
+    notify.mockRestore();
+  });
+
+  test('PATCH emits once for a real change and never for a no-op body', async () => {
+    for (const body of [{}, { metadata: {} }]) {
+      const res = await app.request('/api/projects/decision/cards/decision_5', {
+        method: 'PATCH',
+        ...json(body),
+      });
+      expect(res.status).toBe(200);
+    }
+    expect(notify).not.toHaveBeenCalled();
+
+    const res = await app.request('/api/projects/decision/cards/decision_5', {
+      method: 'PATCH',
+      ...json({ metadata: { title: 'Emits once' } }),
+    });
+    expect(res.status).toBe(200);
+    expect(notify).toHaveBeenCalledTimes(1);
+    expect(notify).toHaveBeenCalledWith(
+      'decision_5',
+      expect.objectContaining({ id: 'mock-user-bob' }),
     );
   });
 
-  test('reports true when a field was written', async () => {
-    expect(
-      await updateCard(commands, 'decision_5', {
-        metadata: { title: 'Changed' },
-      }),
-    ).toBe(true);
+  test('attachment upload and removal both emit for the card', async () => {
+    const form = new FormData();
+    form.append(
+      'files',
+      new Blob(['hello'], { type: 'text/plain' }),
+      'note.txt',
+    );
+    const upload = await app.request(
+      '/api/projects/decision/cards/decision_5/attachments',
+      { method: 'POST', headers: asBob, body: form },
+    );
+    expect(upload.status).toBe(200);
+    expect(notifiedKeys()).toEqual(['decision_5']);
+    notify.mockClear();
+
+    const remove = await app.request(
+      '/api/projects/decision/cards/decision_5/attachments/note.txt',
+      { method: 'DELETE', headers: asBob },
+    );
+    expect(remove.status).toBe(200);
+    expect(notifiedKeys()).toEqual(['decision_5']);
+  });
+
+  test('link removal emits for both endpoint cards', async () => {
+    const link = {
+      toCard: 'decision_6',
+      linkType: 'decision/linkTypes/test',
+      direction: 'outbound',
+    };
+    const create = await app.request(
+      '/api/projects/decision/cards/decision_5/links',
+      { method: 'POST', ...json(link) },
+    );
+    expect(create.status).toBe(200);
+    notify.mockClear();
+
+    const remove = await app.request(
+      '/api/projects/decision/cards/decision_5/links',
+      { method: 'DELETE', ...json(link) },
+    );
+    expect(remove.status).toBe(200);
+    expect(notifiedKeys()).toEqual(['decision_5', 'decision_6']);
+  });
+
+  test('link update emits for both endpoints and the previous target', async () => {
+    const [third] = await commands.createCmd.createCard(
+      'decision/templates/decision',
+      'decision_5',
+    );
+    const previous = {
+      toCard: 'decision_6',
+      linkType: 'decision/linkTypes/test',
+      direction: 'outbound',
+    };
+    const create = await app.request(
+      '/api/projects/decision/cards/decision_5/links',
+      { method: 'POST', ...json(previous) },
+    );
+    expect(create.status).toBe(200);
+    notify.mockClear();
+
+    const update = await app.request(
+      '/api/projects/decision/cards/decision_5/links',
+      {
+        method: 'PUT',
+        ...json({
+          toCard: third.key,
+          linkType: previous.linkType,
+          direction: 'outbound',
+          previousToCard: previous.toCard,
+          previousLinkType: previous.linkType,
+          previousDirection: previous.direction,
+        }),
+      },
+    );
+    expect(update.status).toBe(200);
+    expect(notifiedKeys()).toEqual(
+      ['decision_5', 'decision_6', third.key].sort(),
+    );
   });
 });
 
@@ -346,7 +468,7 @@ describe('PresenceStore unit tests', () => {
     expect(presenceStore.getPresence('test-card-5')).toEqual([]);
   });
 
-  test('notifyUpdated sends card-updated only to connections on that card', () => {
+  test("notifyUpdated reaches only that card's connections and ignores unknown cards", () => {
     const onA: SSEMessage[] = [];
     const onB: SSEMessage[] = [];
     const viewer = {
@@ -360,12 +482,14 @@ describe('PresenceStore unit tests', () => {
     onA.length = 0; // drop the presence broadcasts
     onB.length = 0;
 
-    presenceStore.notifyUpdated('card-a', {
+    const writer = {
       id: 'writer',
       name: 'Writer',
       email: 'w@test.com',
       role: UserRole.Editor,
-    });
+    };
+    presenceStore.notifyUpdated('card-a', writer);
+    presenceStore.notifyUpdated('nobody-here', writer);
 
     expect(onB).toHaveLength(0);
     expect(onA).toHaveLength(1);
@@ -375,16 +499,5 @@ describe('PresenceStore unit tests', () => {
       userId: 'writer',
       userName: 'Writer',
     });
-  });
-
-  test('notifyUpdated on a card with no connections is a no-op', () => {
-    expect(() =>
-      presenceStore.notifyUpdated('nobody-here', {
-        id: 'writer',
-        name: 'Writer',
-        email: 'w@test.com',
-        role: UserRole.Editor,
-      }),
-    ).not.toThrow();
   });
 });

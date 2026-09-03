@@ -19,6 +19,7 @@ import type { ReactNode } from 'react';
 import type * as SwrModule from 'swr';
 import type * as UtilsModule from '@/lib/utils';
 import rootReducer from '@/lib/slices';
+import { projectApiPaths } from '@/lib/swr';
 
 const mutateMock = vi.fn();
 vi.mock('swr', async (importOriginal) => {
@@ -68,6 +69,16 @@ import { usePresence } from '@/lib/api/presence';
 
 const CARD = 'TST_1';
 const PREFIX = 'TST';
+const paths = projectApiPaths(PREFIX);
+// What one remote save must revalidate: the card, its raw form and both trees.
+const REFETCH_KEYS = [
+  paths.card(CARD),
+  paths.rawCard(CARD),
+  paths.tree(),
+  paths.resourceTree(),
+].sort();
+const mutatedKeys = () =>
+  mutateMock.mock.calls.map((call) => call[0] as string).sort();
 
 function setup(mode: 'viewing' | 'editing' = 'viewing') {
   const store = configureStore({ reducer: rootReducer });
@@ -109,12 +120,7 @@ describe('usePresence card-updated', () => {
       });
     });
 
-    const keys = mutateMock.mock.calls.map((call) => call[0] as string);
-    expect(keys.some((k) => k.endsWith(`/cards/${CARD}`))).toBe(true);
-    expect(keys.some((k) => k.endsWith(`/cards/${CARD}?raw=true`))).toBe(true);
-    // Moves, ranks, titles and states show in the tree as well.
-    expect(keys.some((k) => k.endsWith('/tree'))).toBe(true);
-    expect(keys.some((k) => k.endsWith('/resources/tree'))).toBe(true);
+    expect(mutatedKeys()).toEqual(REFETCH_KEYS);
     expect(notifications()).toHaveLength(1);
     expect(notifications()[0].type).toBe('info');
     expect(notifications()[0].message).toContain('Alex');
@@ -170,7 +176,7 @@ describe('usePresence card-updated', () => {
     expect(mutateMock).not.toHaveBeenCalled();
 
     act(() => source.emit('open'));
-    expect(mutateMock).toHaveBeenCalledTimes(4);
+    expect(mutatedKeys()).toEqual(REFETCH_KEYS);
   });
 
   it('opens the stream for a reader', () => {
