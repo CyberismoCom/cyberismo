@@ -1,7 +1,7 @@
 import { expect, it, describe, beforeAll, afterAll } from 'vitest';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 
 const execAsync = promisify(exec);
@@ -355,14 +355,18 @@ describe('Module command namespace', function () {
 
   it('deprecated spellings are hidden from help', async () => {
     const help = await execAsync(`${cli} --help`);
-    expect(help.stdout).toMatch(/^\s*module\s+\[options\]/m);
+    expect(help.stdout).toMatch(
+      /^\s*module\s+Manage the modules of the project/m,
+    );
     expect(help.stdout).not.toContain('update-modules');
     const importHelp = await execAsync(`${cli} import --help`);
     expect(importHelp.stdout).not.toMatch(/^\s*module /m);
     const removeHelp = await execAsync(`${cli} remove --help`);
     expect(removeHelp.stdout).not.toContain("'module'");
     const showHelp = await execAsync(`${cli} show --help`);
-    expect(showHelp.stdout).not.toMatch(/,\s*modules\b/);
+    const showTypes = showHelp.stdout.split('details can be seen from:')[1];
+    expect(showTypes).toBeDefined();
+    expect(showTypes.split('typeDetail')[0]).not.toMatch(/\bmodules\b/);
   });
 
   it('module install imports a module', async () => {
@@ -377,6 +381,14 @@ describe('Module command namespace', function () {
   it('module list shows imported modules', async () => {
     const { stdout, stderr } = await execAsync(
       `cd ${modulePath} && ${cli} module list`,
+    );
+    expect(stdout).toContain('"name": "test"');
+    expect(stderr).not.toContain('deprecated');
+  });
+
+  it('module list honours -p from outside the project', async () => {
+    const { stdout, stderr } = await execAsync(
+      `cd ${tmpPath} && ${cli} module list -p ${resolve(modulePath)}`,
     );
     expect(stdout).toContain('"name": "test"');
     expect(stderr).not.toContain('deprecated');
@@ -399,6 +411,28 @@ describe('Module command namespace', function () {
     expect(stdout).toContain('Done');
     expect(stdout).toContain('Project structure validated');
     expect(stderr).not.toContain('deprecated');
+  });
+
+  it('module update reports an unknown module name', async () => {
+    await expect(
+      execAsync(`cd ${modulePath} && ${cli} module update nosuchmodule`),
+    ).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringContaining(
+        "Module 'nosuchmodule' is not part of the project",
+      ),
+    });
+  });
+
+  it('module update reports an unknown module name with a version', async () => {
+    await expect(
+      execAsync(`cd ${modulePath} && ${cli} module update nosuchmodule 1.2.3`),
+    ).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringContaining(
+        "Module 'nosuchmodule' is not part of the project",
+      ),
+    });
   });
 
   it('update-modules still works and warns', async () => {

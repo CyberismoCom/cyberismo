@@ -264,6 +264,15 @@ class CommandWithPath extends Command {
   }
 }
 
+// Groups that only host subcommands must not own the path option themselves:
+// Commander lets a parent consume its own options anywhere in argv, so "-p"
+// would never reach the leaf command.
+class CommandGroup extends Command {
+  createCommand(name?: string): CommandWithPath {
+    return new CommandWithPath(name);
+  }
+}
+
 // Main CLI program.
 program
   .name('cyberismo')
@@ -1108,7 +1117,7 @@ program
   });
 
 // Module command
-const moduleCmd = new CommandWithPath('module').description(
+const moduleCmd = new CommandGroup('module').description(
   'Manage the modules of the project',
 );
 program.addCommand(moduleCmd);
@@ -1151,9 +1160,9 @@ moduleCmd
 moduleCmd
   .command('remove')
   .description('Removes an imported module from the project')
-  .argument('<module>', 'Name of the module to remove')
-  .action(async (module: string, options: CommandOptions<'remove'>) => {
-    await removeAction('module', module, undefined, undefined, options);
+  .argument('<name>', 'Name of the module to remove')
+  .action(async (name: string, options: CommandOptions<'remove'>) => {
+    await removeAction('module', name, undefined, undefined, options);
   });
 
 moduleCmd
