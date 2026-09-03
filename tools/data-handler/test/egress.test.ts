@@ -1,40 +1,44 @@
 // The point of routing outbound traffic per call rather than through
 // setGlobalDispatcher is that a plain `fetch()` — in our code or inside any
 // dependency — has no route out. These pin that.
+//
+// undici is mocked rather than the global fetch, because egressFetch uses
+// undici's own fetch: a dispatcher from the standalone package cannot be handed
+// to the copy bundled inside Node.
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type * as Undici from 'undici';
 
-import {
-  egressFetch,
-  resetEgressDispatcherForTest,
-} from '../src/utils/egress.js';
+const fetchMock =
+  vi.fn<(url: string | URL, init?: UndiciInit) => Promise<{ ok: boolean }>>();
+
+vi.mock('undici', async (importOriginal) => {
+  const actual = await importOriginal<typeof Undici>();
+  return { ...actual, fetch: fetchMock };
+});
+
+const { egressFetch, resetEgressDispatcherForTest } = await import(
+  '../src/utils/egress.js'
+);
 
 /** `dispatcher` is an undici extension, absent from the DOM RequestInit. */
-type ProxiedInit = RequestInit & { dispatcher?: unknown };
-
-/** Typed so `mock.calls[0][1]` is the init object rather than a tuple of none. */
-function fetchSpy() {
-  return vi.fn<(url: string | URL, init?: RequestInit) => Promise<Response>>(
-    async () => new Response('ok'),
-  );
-}
+type UndiciInit = RequestInit & { dispatcher?: unknown };
 
 afterEach(() => {
   vi.unstubAllEnvs();
-  vi.unstubAllGlobals();
+  fetchMock.mockReset();
+  fetchMock.mockResolvedValue({ ok: true });
   resetEgressDispatcherForTest();
 });
 
 describe('egressFetch', () => {
   it('passes a dispatcher when a proxy is configured', async () => {
     vi.stubEnv('CYBERISMO_EGRESS_PROXY', 'http://git:tok@proxy:3128');
-    const spy = fetchSpy();
-    vi.stubGlobal('fetch', spy);
+    fetchMock.mockResolvedValue({ ok: true });
 
     await egressFetch('https://hub.example/moduleList.json');
 
-    const init = spy.mock.calls[0][1] as ProxiedInit;
-    expect(init.dispatcher).toBeDefined();
+    expect(fetchMock.mock.calls[0][1]?.dispatcher).toBeDefined();
   });
 
   it('leaves the global dispatcher alone', async () => {
@@ -44,7 +48,7 @@ describe('egressFetch', () => {
     const before = (globalThis as Record<symbol, unknown>)[globalDispatcher];
 
     vi.stubEnv('CYBERISMO_EGRESS_PROXY', 'http://git:tok@proxy:3128');
-    vi.stubGlobal('fetch', fetchSpy());
+    fetchMock.mockResolvedValue({ ok: true });
     await egressFetch('https://hub.example/moduleList.json');
 
     expect((globalThis as Record<symbol, unknown>)[globalDispatcher]).toBe(
@@ -56,12 +60,25 @@ describe('egressFetch', () => {
     // Also covers the unproxied path: no dispatcher means a direct call, which
     // is what local runs and the CLI depend on.
     vi.stubEnv('HTTPS_PROXY', 'http://git:tok@proxy:3128');
-    const spy = fetchSpy();
-    vi.stubGlobal('fetch', spy);
+    fetchMock.mockResolvedValue({ ok: true });
 
     await egressFetch('https://hub.example/moduleList.json');
 
-    const init = spy.mock.calls[0][1] as ProxiedInit | undefined;
-    expect(init?.dispatcher).toBeUndefined();
+    expect(fetchMock.mock.calls[0][1]?.dispatcher).toBeUndefined();
+  });
+
+  it('does not fall back to the global fetch', async () => {
+    // The bug this file exists to prevent: a dispatcher built by the standalone
+    // undici handed to Node's bundled one fails at run time.
+    const globalSpy = vi.fn();
+    vi.stubGlobal('fetch', globalSpy);
+    vi.stubEnv('CYBERISMO_EGRESS_PROXY', 'http://git:tok@proxy:3128');
+    fetchMock.mockResolvedValue({ ok: true });
+
+    await egressFetch('https://hub.example/moduleList.json');
+
+    expect(globalSpy).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledOnce();
+    vi.unstubAllGlobals();
   });
 });

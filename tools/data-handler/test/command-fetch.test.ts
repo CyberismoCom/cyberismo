@@ -22,6 +22,15 @@ import { Show } from '../src/commands/show.js';
 import { Project } from '../src/containers/project.js';
 
 import type { HubSetting } from '../src/interfaces/project-interfaces.js';
+import type * as Undici from 'undici';
+
+// Hub requests go out through egressFetch, which uses undici's fetch rather
+// than the global one, so the stub belongs here.
+const undiciFetch = vi.hoisted(() => vi.fn());
+vi.mock('undici', async (importOriginal) => {
+  const actual = await importOriginal<typeof Undici>();
+  return { ...actual, fetch: undiciFetch };
+});
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-command-handler-fetch-tests');
@@ -55,7 +64,7 @@ describe('fetch command', () => {
   describe('fetch hubs command', () => {
     let manager: CommandManager;
     let originalHubs: HubSetting[];
-    let fetchStub: ReturnType<typeof vi.spyOn>;
+    const fetchStub = undiciFetch;
 
     function hubResponse(displayName: string, moduleName: string) {
       return {
@@ -78,7 +87,7 @@ describe('fetch command', () => {
     beforeEach(async () => {
       manager = await CommandManager.getInstance(decisionRecordsPath);
       originalHubs = manager.project.configuration.hubs;
-      fetchStub = vi.spyOn(global, 'fetch');
+      fetchStub.mockReset();
     });
 
     afterEach(() => {
@@ -140,7 +149,7 @@ describe('fetch command', () => {
   });
 
   describe('hub versions', () => {
-    let fetchStub: ReturnType<typeof vi.spyOn>;
+    const fetchStub = undiciFetch;
     let project: Project;
     let fetchCmd: Fetch;
     let fetchModuleListStub: ReturnType<typeof vi.spyOn>;
@@ -149,7 +158,7 @@ describe('fetch command', () => {
       project = new Project(decisionRecordsPath);
       await project.populateCaches();
       fetchCmd = new Fetch(project);
-      fetchStub = vi.spyOn(global, 'fetch');
+      fetchStub.mockReset();
     });
 
     afterEach(() => {

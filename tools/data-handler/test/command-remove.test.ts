@@ -18,6 +18,15 @@ import { makeFakeModuleFixture } from './helpers/module-fixtures.js';
 
 import type { Card } from '../src/interfaces/project-interfaces.js';
 import type { requestStatus } from '../src/interfaces/request-status-interfaces.js';
+import type * as Undici from 'undici';
+
+// Hub requests go out through egressFetch, which uses undici's fetch rather
+// than the global one, so the stub belongs here.
+const undiciFetch = vi.hoisted(() => vi.fn());
+vi.mock('undici', async (importOriginal) => {
+  const actual = await importOriginal<typeof Undici>();
+  return { ...actual, fetch: undiciFetch };
+});
 import { CardNotFoundError } from '../src/exceptions/index.js';
 
 // Create test artifacts in a temp folder.
@@ -940,7 +949,7 @@ describe('remove hub', () => {
   const hubA = 'https://hub-a.test/hub/';
   const hubB = 'https://hub-b.test/hub/';
 
-  let fetchStub: ReturnType<typeof vi.spyOn>;
+  const fetchStub = undiciFetch;
 
   function hubResponse(displayName: string, moduleNames: string[]) {
     return {
@@ -973,7 +982,7 @@ describe('remove hub', () => {
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data', testDir);
-    fetchStub = vi.spyOn(global, 'fetch');
+    fetchStub.mockReset();
   });
 
   afterEach(() => {

@@ -26,7 +26,10 @@ import { readJsonFile, writeJsonFile } from '../utils/json.js';
 import { validateJson } from '../utils/validate.js';
 import { write } from '../utils/rw-lock.js';
 
-import type { ModuleSetting } from '../interfaces/project-interfaces.js';
+import type {
+  ModuleSetting,
+  ModuleSettingFromHub,
+} from '../interfaces/project-interfaces.js';
 import type { Project } from '../containers/project.js';
 
 // Cached data of a single hub.
@@ -36,6 +39,14 @@ export interface CachedHub {
   displayName?: string;
   description?: string;
   modules: ModuleSetting[];
+}
+
+// A hub's moduleList.json, as validated against HUB_SCHEMA.
+interface HubDocument {
+  version?: number;
+  displayName?: string;
+  description?: string;
+  modules?: ModuleSettingFromHub[];
 }
 
 // Structure of .temp/moduleList.json file.
@@ -92,7 +103,7 @@ export class Fetch {
         return undefined;
       }
 
-      const json = await response.json();
+      const json = (await response.json()) as { version?: number };
       return json.version;
     } catch (error) {
       this.logger.error(error, `Could not check hub version for ${location} }`);
@@ -101,7 +112,10 @@ export class Fetch {
   }
 
   // Fetches one hub's data as JSON.
-  private async fetchJSON(location: string, schemaId: string) {
+  private async fetchJSON(
+    location: string,
+    schemaId: string,
+  ): Promise<HubDocument> {
     try {
       const url = hubModuleListUrl(location);
       if (!['http:', 'https:'].includes(url.protocol)) {
@@ -149,7 +163,7 @@ export class Fetch {
         throw new Error('JSON content too large after parsing');
       }
 
-      return json;
+      return json as HubDocument;
     } catch (error) {
       this.logger.error(
         error,
