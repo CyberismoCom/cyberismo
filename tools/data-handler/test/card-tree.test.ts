@@ -31,6 +31,7 @@ import { copyDir } from '../src/utils/file-utils.js';
 import { CardKeyRegistry } from '../src/containers/project/card-keys.js';
 import { CardTree } from '../src/containers/project/card-tree.js';
 import type { NewCard } from '../src/containers/project/card-tree.js';
+import { FactLog } from '../src/containers/project/fact-log.js';
 import type {
   Card,
   CardMetadata,
@@ -122,6 +123,7 @@ const PAGE_TEMPLATE = 'test/templates/page';
 function projectTree(
   rootPath: string,
   keys = new CardKeyRegistry(() => 'test'),
+  facts = new FactLog(),
 ): CardTree {
   return new CardTree({
     name: 'project',
@@ -130,6 +132,7 @@ function projectTree(
     emitsCardFact: true,
     validationApplies: true,
     keys,
+    facts,
   });
 }
 
@@ -138,6 +141,7 @@ function newTemplateTree(
   rootPath: string,
   keys: CardKeyRegistry,
   writable = true,
+  facts = new FactLog(),
 ): CardTree {
   return new CardTree({
     name,
@@ -146,6 +150,7 @@ function newTemplateTree(
     emitsCardFact: false,
     validationApplies: false,
     keys,
+    facts,
   });
 }
 
@@ -1397,6 +1402,142 @@ describe('Card tree', () => {
       await expect(project.populateCaches()).rejects.toThrow(
         /Duplicate card keys found: decision_5/,
       );
+    });
+  });
+
+  describe('fact changes', () => {
+    let facts: FactLog;
+    let tree: CardTree;
+    let template: CardTree;
+
+    // A three-generation line: test_1 -> test_2 -> test_3, and an empty
+    // template tree to move cards into. Both trees log into one FactLog, as
+    // the project's do.
+    beforeEach(async () => {
+      const keys = new CardKeyRegistry(() => 'test');
+      facts = new FactLog();
+      mkdirSync(testCardsPath, { recursive: true });
+      createTestCard('test_1', testCardsPath, pageCard('One'), '');
+      // test_2 carries the rank a move to either root would hand it, so the
+      // moves below leave its rank alone.
+      createTestCard(
+        'test_2',
+        join(testCardsPath, 'test_1', 'c'),
+        pageCard('Two', '0|b'),
+        '',
+      );
+      createTestCard(
+        'test_3',
+        join(testCardsPath, 'test_1', 'c', 'test_2', 'c'),
+        pageCard('Three'),
+        '',
+      );
+      tree = projectTree(testCardsPath, keys, facts);
+      template = newTemplateTree(
+        PAGE_TEMPLATE,
+        templateCardsPath('page'),
+        keys,
+        true,
+        facts,
+      );
+      await tree.load();
+      await template.load();
+    });
+    afterEach(() => {
+      rmSync(testDir, { recursive: true, force: true });
+    });
+
+    // The trees are loaded in beforeEach, so a test that observes one
+    // operation's marks starts from a drained log.
+    function drain() {
+      facts.drainCards();
+    }
+
+    function newCard(cardKey: string, parent: string): NewCard {
+      return {
+        key: cardKey,
+        parent,
+        content: '',
+        attachments: [],
+        metadata: { ...pageCard(cardKey), links: [] },
+      };
+    }
+
+    it('marks every loaded card', () => {
+      const changes = facts.drainCards();
+      expect(changes.changed.sort()).toEqual(['test_1', 'test_2', 'test_3']);
+      expect(changes.removed).toEqual([]);
+    });
+
+    it('marks nothing for a content or an attachment write', async () => {
+      drain();
+      const card = tree.card('test_2');
+      card.content = 'new body';
+      await tree.writeContent(card);
+      expect(facts.drainCards()).toEqual({ changed: [], removed: [] });
+
+      await tree.addAttachment('test_2', 'picture.png', Buffer.from('x'));
+      expect(facts.drainCards()).toEqual({ changed: [], removed: [] });
+
+      await tree.removeAttachment('test_2', 'picture.png');
+      expect(facts.drainCards()).toEqual({ changed: [], removed: [] });
+    });
+
+    it('marks only the relocated card', async () => {
+      drain();
+      await tree.relocate('test_2', 'root');
+
+      expect(facts.drainCards()).toEqual({
+        changed: ['test_2'],
+        removed: [],
+      });
+    });
+
+    it('marks every card of an adopted subtree changed', async () => {
+      drain();
+      await template.adopt(tree, 'test_2', 'root');
+
+      expect(facts.drainCards()).toEqual({
+        changed: ['test_2', 'test_3'],
+        removed: [],
+      });
+    });
+
+    it('marks a card once, as whatever happened to it last', async () => {
+      drain();
+      await tree.deleteSubtree('test_3');
+      await tree.createCards([newCard('test_3', 'test_2')]);
+      expect(facts.drainCards()).toEqual({
+        changed: ['test_3'],
+        removed: [],
+      });
+
+      const card = tree.card('test_3');
+      card.metadata!.title = 'Renamed';
+      await tree.writeMetadata(card);
+      await tree.deleteSubtree('test_3');
+      expect(facts.drainCards()).toEqual({
+        changed: [],
+        removed: ['test_3'],
+      });
+    });
+
+    it('marks every card of a cleared tree as removed', () => {
+      drain();
+      tree.clear();
+
+      const changes = facts.drainCards();
+      expect(changes.changed).toEqual([]);
+      expect(changes.removed.sort()).toEqual(['test_1', 'test_2', 'test_3']);
+    });
+
+    it('marks every card when the tree is renamed', () => {
+      drain();
+      tree.rebase(PAGE_TEMPLATE, testCardsPath);
+
+      const changes = facts.drainCards();
+      expect(changes.changed.sort()).toEqual(['test_1', 'test_2', 'test_3']);
+      expect(changes.removed).toEqual([]);
     });
   });
 });

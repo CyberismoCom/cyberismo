@@ -19,6 +19,7 @@ import { readdirSync } from 'node:fs';
 import { CalculationEngine } from './project/calculation-engine.js';
 import { CardKeyRegistry } from './project/card-keys.js';
 import { CardTree } from './project/card-tree.js';
+import { FactLog } from './project/fact-log.js';
 import {
   CardNotFoundError,
   DuplicateCardKeyError,
@@ -86,6 +87,7 @@ export class Project {
   // Kept here because a TemplateResource does not survive resources.changed().
   private templateCardTrees: Map<string, CardTree> = new Map();
   private keyRegistry: CardKeyRegistry;
+  private readonly facts = new FactLog();
   private gitManager: GitManager;
   private readonly gitSync: GitSync;
   private logger = getChildLogger({ module: 'Project' });
@@ -115,6 +117,7 @@ export class Project {
       emitsCardFact: true,
       validationApplies: true,
       keys: this.keyRegistry,
+      facts: this.facts,
     });
 
     // Pushing only makes sense for commits this process makes, and both
@@ -227,6 +230,7 @@ export class Project {
       emitsCardFact: false,
       validationApplies: false,
       keys: this.keyRegistry,
+      facts: this.facts,
     });
     this.templateCardTrees.set(templateName, tree);
     return tree;

@@ -53,6 +53,7 @@ import {
 
 import type { CardFactContext } from '../../utils/clingo-facts.js';
 import type { CardKeyRegistry } from './card-keys.js';
+import type { FactLog } from './fact-log.js';
 
 // An attachment as the tree stores it: the file's name, and the folder it
 // sits in relative to its card's attachment folder (empty for the common
@@ -92,6 +93,7 @@ const CHILDREN_FOLDER = 'c';
  * validationApplies - whether the tree's cards take part in workflow
  *   semantics: metadata validation, and the permissions built on it.
  * keys - the project-level card key registry.
+ * facts - the project-level log of card facts still to be projected.
  */
 export interface CardTreeOptions {
   name: string;
@@ -100,6 +102,7 @@ export interface CardTreeOptions {
   emitsCardFact: boolean;
   validationApplies: boolean;
   keys: CardKeyRegistry;
+  facts: FactLog;
 }
 
 interface RankChange {
@@ -551,6 +554,10 @@ export class CardTree {
   public rebase(name: string, rootPath: string) {
     this.treeName = name;
     this.treeRoot = rootPath;
+    // A template's root cards name the template itself as their parent.
+    for (const cardKey of this.cardStore.keys()) {
+      this.options.facts.cardChanged(cardKey);
+    }
   }
 
   /**
@@ -923,6 +930,7 @@ export class CardTree {
       metadata,
     );
     stored.metadata = CardTree.normalizedMetadata(metadata);
+    this.options.facts.cardChanged(cardKey);
   }
 
   /**
@@ -994,6 +1002,7 @@ export class CardTree {
           dir: '',
         })),
       });
+      this.options.facts.cardChanged(card.key);
     }
   }
 
@@ -1062,6 +1071,8 @@ export class CardTree {
     const from = this.pathOfStored(card);
     await CardTree.moveFolder(from, this.pathFor(parent, cardKey));
     this.store(cardKey, { ...card, parent });
+    // Only the moved card: its descendants keep the parent they had.
+    this.options.facts.cardChanged(cardKey);
     if (card.parent !== ROOT) {
       await CardTree.pruneEmptyFolder(dirname(from));
     }
@@ -1163,6 +1174,7 @@ export class CardTree {
         children: [],
         attachments: card.attachments.map((attachment) => ({ ...attachment })),
       });
+      this.options.facts.cardChanged(card.key);
     }
   }
 
@@ -1213,6 +1225,7 @@ export class CardTree {
       return false;
     }
     stored.metadata = CardTree.normalizedMetadata(sanitizedMetadata);
+    this.options.facts.cardChanged(card.key);
     return true;
   }
 
@@ -1252,7 +1265,11 @@ export class CardTree {
     }
     await deleteDir(path);
     this.options.keys.release([cardKey]);
-    return this.unstore(cardKey);
+    const removed = this.unstore(cardKey);
+    if (removed) {
+      this.options.facts.cardRemoved(cardKey);
+    }
+    return removed;
   }
 
   /**
@@ -1405,6 +1422,7 @@ export class CardTree {
     );
     for (const card of cards) {
       this.store(card.key, card);
+      this.options.facts.cardChanged(card.key);
     }
     this.populated = true;
   }
@@ -1413,6 +1431,9 @@ export class CardTree {
    * Empties the tree.
    */
   public clear() {
+    for (const cardKey of this.cardStore.keys()) {
+      this.options.facts.cardRemoved(cardKey);
+    }
     this.options.keys.releaseOwner(this);
     this.populated = false;
     this.cardStore.clear();
