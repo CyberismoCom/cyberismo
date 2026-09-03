@@ -19,7 +19,7 @@ import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import type { Operation } from '../../resources/resource-object.js';
 
 /**
- * Deleting a field type is a breaking change: card types that declare the field
+ * Deleting a field type is destructive: card types that declare the field
  * and content that references it lose their target. The handler owns the
  * cascade: the field is stripped from every local card type that declares it
  * (CardTypeResource.update also drops it from the visible-field arrays).

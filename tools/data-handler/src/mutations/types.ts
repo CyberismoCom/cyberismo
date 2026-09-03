@@ -16,7 +16,7 @@ import type { Operation } from '../resources/resource-object.js';
 import type { UpdateKey } from '../interfaces/resource-interfaces.js';
 import type { ResourceName } from '../utils/resource-utils.js';
 
-/** The four kinds of breaking change recorded in the migration log. */
+/** The four kinds of mutation the engine routes. */
 export type MutationKind =
   | 'edit' // sub-property add/change/rank/remove
   | 'delete' // whole-resource delete

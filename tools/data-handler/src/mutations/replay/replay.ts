@@ -300,7 +300,7 @@ function detectSplitWorkflowOwnership(steps: ReplayStep[]): ReplayConflict[] {
   return conflicts;
 }
 
-/** A breaking workflow-state migration: a rename ('change') or 'remove' of a
+/** A workflow-state migration: a rename ('change') or 'remove' of a
  * state, which rewrites the workflowState of every card in that state. */
 function isWorkflowStateChange(entry: ConfigurationLogEntry): boolean {
   if (entry.operation !== 'resource_update') return false;

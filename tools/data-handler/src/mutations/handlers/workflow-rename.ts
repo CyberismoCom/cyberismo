@@ -23,10 +23,10 @@ import {
 import type { ChangeOperation } from '../../resources/resource-object.js';
 
 /**
- * Renaming a workflow is a breaking change: dependent card types' workflow
+ * Renaming a workflow is a migratable change: dependent card types' workflow
  * reference and all cross-resource references (calculations, report handlebars
- * and card content) must be rewritten. The operation is marked breaking so the
- * engine records a log entry.
+ * and card content) must be rewritten. The rename is classified migratable, so
+ * the engine records a log entry.
  */
 export class WorkflowRenameHandler implements Handler<RenameInput> {
   async apply(ctx: MutationContext<RenameInput>): Promise<void> {
