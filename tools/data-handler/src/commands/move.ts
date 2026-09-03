@@ -29,7 +29,6 @@ import {
   sortItems,
 } from '../utils/lexorank.js';
 import {
-  cardPathParts,
   isModuleCard,
   isModulePath,
   isTemplateCard,
@@ -39,6 +38,20 @@ import { ROOT } from '../utils/constants.js';
 
 export class Move {
   constructor(private project: Project) {}
+
+  // The container a card belongs to: 'project', or a template's full name.
+  private containerOf(cardKey: string): string {
+    return this.project.treeOf(cardKey).name;
+  }
+
+  // The template a template card belongs to.
+  private templateOf(cardKey: string): string {
+    const container = this.containerOf(cardKey);
+    if (container === 'project') {
+      throw new Error(`Card '${cardKey}' is not part of a template`);
+    }
+    return container;
+  }
 
   private static async pruneEmptyFolder(path: string) {
     try {
@@ -61,12 +74,9 @@ export class Move {
         if (isModuleCard(card)) {
           throw new Error(`Cannot rank module cards`);
         }
-        const { template } = cardPathParts(
-          this.project.projectPrefix,
-          card.path,
-        );
         return this.project
-          .templateCards(template)
+          .templateTree(this.templateOf(card.key))
+          .cards()
           .filter((item) => item.parent === ROOT || !item.parent);
       }
     }
@@ -77,8 +87,8 @@ export class Move {
       return this.project.cardKeysToCards(parentCard.children);
     }
 
-    return this.project
-      .showProjectCards()
+    return this.project.cardTree
+      .rootCards()
       .filter((item) => item.parent === 'root' || item.parent === '');
   }
 
@@ -159,11 +169,7 @@ export class Move {
     if (movingToRoot) {
       if (destination === ROOT) {
         if (isTemplateCard(sourceCard)) {
-          const { template } = cardPathParts(
-            this.project.projectPrefix,
-            sourceCard.path,
-          );
-          targetTemplateName = template;
+          targetTemplateName = this.templateOf(sourceCard.key);
         } else {
           movingToProjectRoot = true;
         }
@@ -179,14 +185,14 @@ export class Move {
       : undefined;
 
     // Prevent moving card to inside its descendants
-    if (destinationCard) {
-      const { parents } = cardPathParts(
-        this.project.projectPrefix,
-        destinationCard.path,
-      );
-      if (parents.includes(source)) {
-        throw new Error(`Card cannot be moved to inside itself`);
-      }
+    if (
+      destinationCard &&
+      this.project
+        .treeOf(destinationCard.key)
+        .ancestorsOf(destinationCard.key)
+        .includes(source)
+    ) {
+      throw new Error(`Card cannot be moved to inside itself`);
     }
 
     // Imported templates cannot be modified.
@@ -202,7 +208,7 @@ export class Move {
     // module — those are read-only.
     let templateCardsFolder: string | undefined;
     if (targetTemplateName) {
-      const template = this.project.templateObjectByName(targetTemplateName);
+      const template = this.project.templateResource(targetTemplateName);
       if (!template) {
         throw new Error(
           `Template ${targetTemplateName} not found in this project`,
@@ -252,12 +258,13 @@ export class Move {
       const parent = this.project.findCard(destination);
       children = this.project.cardKeysToCards(parent.children);
     } else if (movingToProjectRoot) {
-      children = this.project
-        .showProjectCards()
+      children = this.project.cardTree
+        .rootCards()
         .filter((item) => item.parent === ROOT || !item.parent);
     } else {
       children = this.project
-        .templateCards(targetTemplateName!)
+        .templateTree(targetTemplateName!)
+        .cards()
         .filter((item) => item.parent === ROOT || !item.parent);
     }
 
@@ -273,51 +280,25 @@ export class Move {
         ? getRankAfter(lastChild.metadata.rank)
         : FIRST_RANK;
 
-    // Save old path before moving (needed to update descendant paths)
-    const oldPath = sourceCard.path;
-
-    // First do the file operations, then update metadata
+    // First do the file operations, then the tree position
     await copyDir(sourceCard.path, destinationPath);
     await deleteDir(sourceCard.path);
     if (sourceCard.parent && sourceCard.parent !== ROOT) {
-      await Move.pruneEmptyFolder(dirname(oldPath));
+      await Move.pruneEmptyFolder(dirname(sourceCard.path));
     }
 
-    // Update card with new path, parent, and rank
-    sourceCard.path = destinationPath!;
-    sourceCard.parent = movingToRoot ? ROOT : destination;
-    if (sourceCard.metadata) {
-      sourceCard.metadata.rank = rank;
-    }
+    this.project.relocateCard(
+      source,
+      movingToRoot ? ROOT : destination,
+      movingToRoot
+        ? (targetTemplateName ?? 'project')
+        : this.containerOf(destination),
+    );
 
-    // Update attachment paths for the moved card
-    if (sourceCard.attachments && sourceCard.attachments.length > 0) {
-      for (const attachment of sourceCard.attachments) {
-        if (attachment.path.startsWith(oldPath)) {
-          attachment.path = attachment.path.replace(oldPath, destinationPath);
-        }
-      }
-    }
+    await this.project.updateCardMetadataKey(source, 'rank', rank);
 
-    // Handle cache update and persistence
-    await this.project.updateCard(sourceCard);
-
-    // Update all descendant card paths in the cache to reflect the new filesystem location.
-    // This is critical: files have been moved on disk, but children's cached paths
-    // still point to the old location. Without this, operations on children
-    // (like edit or delete) would target non-existent paths, leaving orphaned files.
-    if (sourceCard.children && sourceCard.children.length > 0) {
-      for (const childKey of sourceCard.children) {
-        this.project.updateDescendantPathsAfterMove(
-          childKey,
-          oldPath,
-          destinationPath,
-        );
-      }
-    }
-
-    // Notify the project about the move (cache and CE tree rebuild)
-    await this.project.handleCardMoved(sourceCard);
+    // Notify the project about the move (calculation engine tree rebuild)
+    await this.project.handleCardMoved(this.project.cardNode(source));
   }
 
   /**
@@ -475,7 +456,7 @@ export class Move {
    */
   @write(() => 'Rebalance project')
   public async rebalanceProject() {
-    const cards = this.project.showProjectCards();
+    const cards = this.project.cardTree.rootCards();
 
     await this.rebalanceProjectRecursively(cards);
 

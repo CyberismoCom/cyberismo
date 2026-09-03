@@ -86,10 +86,10 @@ export class FieldTypeEnumRemoveHandler implements Handler<EditInput> {
   // card type name: a card type rename elsewhere in the same update must not
   // hide a card from this cascade.
   private affectedCards(ctx: MutationContext, fieldName: string): Card[] {
-    const project = [...ctx.project.cards(undefined)];
+    const project = [...ctx.project.cardTree.cards()];
     const templates = ctx.project.resources
       .templates(ResourcesFrom.localOnly)
-      .flatMap((t) => t.templateObject().cards());
+      .flatMap((t) => t.cardTree.cards());
     return [...project, ...templates].filter(
       (c) => c.metadata != null && fieldName in c.metadata,
     );

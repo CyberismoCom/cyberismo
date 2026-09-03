@@ -58,10 +58,10 @@ export class FieldTypeEnumRenameHandler implements Handler<EditInput> {
   // template cards. The field key carrying the old value is itself the evidence
   // a card needs migrating, so no card-type scoping is required.
   private affectedCards(ctx: MutationContext, fieldName: string): Card[] {
-    const project = [...ctx.project.cards(undefined)];
+    const project = [...ctx.project.cardTree.cards()];
     const templates = ctx.project.resources
       .templates(ResourcesFrom.localOnly)
-      .flatMap((t) => t.templateObject().cards());
+      .flatMap((t) => t.cardTree.cards());
     return [...project, ...templates].filter(
       (c) => c.metadata && fieldName in c.metadata,
     );

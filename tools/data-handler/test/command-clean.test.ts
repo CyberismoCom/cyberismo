@@ -83,7 +83,7 @@ describe('clean command', () => {
       const result = await freshCommands.cleanCmd.clean(false);
 
       expect(result.findings.length).toBeGreaterThan(0);
-      for (const card of freshCommands.project.cards()) {
+      for (const card of freshCommands.project.cardTree.cards()) {
         const nulls = Object.entries(card.metadata!).filter(
           ([key, value]) => value === null && key.includes('/'),
         );
@@ -233,7 +233,8 @@ describe('clean command', () => {
       );
       const before = readFileSync(failingFile, 'utf-8');
       const templateCard = freshCommands.project
-        .templateCards('decision/templates/decision')
+        .templateTree('decision/templates/decision')
+        .cards()
         .at(0)!;
       const templateFile = join(templateCard.path, 'index.json');
 
@@ -298,7 +299,8 @@ describe('clean command', () => {
 
   it('cleans local template cards too', async () => {
     const templateCard = commands.project
-      .templateCards('decision/templates/decision')
+      .templateTree('decision/templates/decision')
+      .cards()
       .at(0)!;
     await storeValue(commands, templateCard.key, GHOST, 'stale');
 

@@ -579,9 +579,10 @@ export class Validate {
 
         // Finally, validate that each card is correct. Sorted so the reported
         // errors come out in the same order on every run.
-        const cards = [...project.cards(), ...project.allTemplateCards()].sort(
-          (a, b) => sortCards(a.key, b.key),
-        );
+        const cards = [
+          ...project.cardTree.cards(),
+          ...project.allTemplateCards(),
+        ].sort((a, b) => sortCards(a.key, b.key));
 
         const allPrefixes = project.allModulePrefixes();
 

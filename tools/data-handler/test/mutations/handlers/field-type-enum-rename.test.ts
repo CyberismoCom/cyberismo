@@ -55,8 +55,8 @@ async function seedCardTypeAndCardValues() {
       target: { name: fieldName() },
     },
   );
-  const cards = project
-    .cards(undefined)
+  const cards = project.cardTree
+    .cards()
     .filter((c) => c.metadata?.cardType === cardTypeName);
   for (const card of cards) {
     card.metadata![fieldName()] = 'low';
@@ -116,7 +116,7 @@ describe('FieldTypeEnumRenameHandler', () => {
 
   it('migrates card values to the new value', async () => {
     await new ResourceMutations(project).apply(renameOp);
-    const cards = project.cards(undefined);
+    const cards = project.cardTree.cards();
     const anyStillLow = cards.some((c) => c.metadata?.[fieldName()] === 'low');
     const migrated = cards.filter((c) => c.metadata?.[fieldName()] === 'minor');
     expect(anyStillLow).toBe(false);
@@ -135,8 +135,8 @@ describe('FieldTypeEnumRenameHandler', () => {
       modulePrefix: project.projectPrefix,
     });
 
-    const anyStillLow = project
-      .cards(undefined)
+    const anyStillLow = project.cardTree
+      .cards()
       .some((c) => c.metadata?.[fieldName()] === 'low');
     expect(anyStillLow).toBe(false);
   });
