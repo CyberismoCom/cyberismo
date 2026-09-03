@@ -18,7 +18,7 @@ import { writeFile } from 'node:fs/promises';
 
 import { CardCache } from './project/card-cache.js';
 import { CardNotFoundError } from '../exceptions/index.js';
-import { cardPathParts } from '../utils/card-utils.js';
+import { cardPathParts, compareAttachments } from '../utils/card-utils.js';
 import { deleteDir } from '../utils/file-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { writeJsonFile } from '../utils/json.js';
@@ -122,22 +122,17 @@ export class CardContainer {
   /**
    * Lists all attachments from the container.
    * @param path Path where attachments should be collected.
-   * @returns attachments from the container.
+   * @returns attachments from the container, sorted by card key and file name.
    */
   protected attachments(path: string): CardAttachment[] {
     const attachments: CardAttachment[] = [];
 
     const targetLocation = this.determineContainer(path);
-    const cards = [...this.cardCache.getCards()];
-    const filteredCards = cards.filter((card) => {
-      if (card.attachments.length === 0) {
-        return false;
-      }
-      return card.location === targetLocation;
-    });
-
-    filteredCards.forEach((item) => attachments.push(...item.attachments));
-    return attachments;
+    this.cardCache
+      .cardsAtLocation(targetLocation)
+      .filter((card) => card.attachments.length > 0)
+      .forEach((item) => attachments.push(...item.attachments));
+    return attachments.sort(compareAttachments);
   }
 
   /**
@@ -152,9 +147,7 @@ export class CardContainer {
     }
 
     const targetLocation = this.determineContainer(path);
-    const relevantCards = this.cardCache
-      .getCards()
-      .filter((cachedCard) => cachedCard.location === targetLocation);
+    const relevantCards = this.cardCache.cardsAtLocation(targetLocation);
     return this.filterCardsDetails(relevantCards, details);
   }
 
@@ -181,7 +174,7 @@ export class CardContainer {
     const card = this.cardCache.getCard(cardKey);
     if (card) {
       // Children must removed first
-      const children = card.children;
+      const children = this.cardCache.childrenOf(cardKey);
       for (const child of children) {
         await this.removeCard(child);
       }
@@ -272,15 +265,13 @@ export class CardContainer {
   protected showCards(path: string): Card[] {
     const container = this.determineContainer(path);
     const rootCards: Card[] = [];
-    const relevantCards = Array.from(this.cardCache.getCards()).filter(
-      (cachedCard) => cachedCard.location === container,
-    );
+    const relevantCards = this.cardCache.cardsAtLocation(container);
 
     relevantCards.forEach((card) => {
       if (
         card.parent === ROOT ||
         !card.parent ||
-        !relevantCards.find((cachedCard) => cachedCard.key === card.parent)
+        this.cardCache.getCard(card.parent)?.location !== container
       ) {
         const cardWithChildren: Card = {
           ...card,

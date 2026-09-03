@@ -64,7 +64,11 @@ import { evaluateMacros } from '../macros/index.js';
 import { readJsonFile } from '../utils/json.js';
 import { sleep } from '../utils/common-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
-import { buildCardHierarchy, flattenCardArray } from '../utils/card-utils.js';
+import {
+  buildCardHierarchy,
+  compareAttachments,
+  flattenCardArray,
+} from '../utils/card-utils.js';
 import { CardNotFoundError } from '../exceptions/index.js';
 import type { ResourcesFrom } from '../containers/project/resources-from.js';
 
@@ -177,14 +181,14 @@ export class Show {
 
   /**
    * Shows all attachments (either template or project attachments) from a project.
-   * @returns array of card attachments
+   * @returns array of card attachments, sorted by card key and file name
    */
   @read
   public async showAttachments(): Promise<CardAttachment[]> {
     const attachments = this.project.attachments();
     const templateAttachments = await this.attachmentsFromTemplates();
     attachments.push(...templateAttachments);
-    return attachments;
+    return attachments.sort(compareAttachments);
   }
 
   /**
@@ -390,7 +394,7 @@ export class Show {
 
   /**
    * Returns all unique labels in a project
-   * @returns labels in a list
+   * @returns labels in a list, sorted alphabetically
    */
   @read
   public async showLabels(): Promise<string[]> {
@@ -401,7 +405,7 @@ export class Show {
     const templateCards = this.project.allTemplateCards();
 
     const labels = this.collectLabels([...cards, ...templateCards]);
-    return Array.from(new Set(labels));
+    return Array.from(new Set(labels)).sort();
   }
 
   /**

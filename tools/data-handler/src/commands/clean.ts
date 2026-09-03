@@ -15,6 +15,7 @@ import type { Project } from '../containers/project.js';
 import { ResourcesFrom } from '../containers/project/resources-from.js';
 import { isPredefinedField } from '../utils/constants.js';
 import { getChildLogger } from '../utils/log-utils.js';
+import { sortCards } from '../utils/card-utils.js';
 import { read, write } from '../utils/rw-lock.js';
 
 import type {
@@ -72,7 +73,8 @@ export class Clean {
    * @param dryRun If true, reports the findings without changing any card.
    * @param cardType Optional. Limits the scan to cards of this card type. Must
    *   be a full resource name, e.g. 'decision/cardTypes/decision'.
-   * @returns What was removed, or would be removed in a dry run.
+   * @returns What was removed, or would be removed in a dry run. Findings and
+   *   card lists are sorted by card key.
    */
   public async clean(dryRun: boolean, cardType?: string): Promise<CleanResult> {
     return dryRun ? this.report(cardType) : this.removeUnused(cardType);
@@ -126,10 +128,10 @@ export class Clean {
     }
 
     return {
-      findings,
+      findings: findings.sort((a, b) => sortCards(a.cardKey, b.cardKey)),
       cardCount: new Set(findings.map((finding) => finding.cardKey)).size,
-      skippedCards,
-      failedCards,
+      skippedCards: skippedCards.sort(sortCards),
+      failedCards: failedCards.sort(sortCards),
       dryRun,
     };
   }

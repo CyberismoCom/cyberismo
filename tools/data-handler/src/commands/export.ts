@@ -204,7 +204,10 @@ export class Export {
       if (card.children) {
         await this.toAdocFileAsContent(
           path,
-          this.project.cardKeysToCards(card.children),
+          sortItems(
+            this.project.cardKeysToCards(card.children),
+            (child) => child.metadata?.rank || '1|z',
+          ),
         );
       }
     }

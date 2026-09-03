@@ -100,8 +100,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
     // Evict before loading: the cards keep their keys, and the cache rejects a
     // key it already holds.
     this.project.cardsCache.deleteCardsFromTemplate(oldName);
-    await this.project.cardsCache.populateFromPath(this.cardsFolder, false);
-    this.project.cardsCache.populateChildrenRelationships();
+    await this.project.cardsCache.populateFromPath(this.cardsFolder);
   }
 
   /**
@@ -118,7 +117,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
       displayName: templateMetadata.displayName,
       description: templateMetadata.description,
       path: this.fileName,
-      numberOfCards: container.listCards().length,
+      numberOfCards: container.cardCount(),
     };
   }
 

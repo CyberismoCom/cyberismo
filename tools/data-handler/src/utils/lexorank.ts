@@ -156,13 +156,18 @@ export function rebalanceRanks(rankAmount: number): string[] {
 }
 
 /**
- * Sort items based on lexorank
+ * Sort items based on lexorank, breaking rank ties on the item key.
  * @param items items to sort
  * @param rankGetter should return the lexorank of the item
  * @returns sorted items
  */
-export function sortItems<T>(items: T[], rankGetter: (item: T) => string): T[] {
-  return items.toSorted((a, b) => compare(rankGetter(a), rankGetter(b)));
+export function sortItems<T extends { key: string }>(
+  items: T[],
+  rankGetter: (item: T) => string,
+): T[] {
+  return items.toSorted(
+    (a, b) => compare(rankGetter(a), rankGetter(b)) || compare(a.key, b.key),
+  );
 }
 
 /**
