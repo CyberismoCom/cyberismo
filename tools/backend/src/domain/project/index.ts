@@ -12,6 +12,7 @@
 */
 
 import { Hono } from 'hono';
+import { disableSSG } from 'hono/ssg';
 import { z } from 'zod';
 import { zValidator } from '../../middleware/zvalidator.js';
 import {
@@ -57,14 +58,23 @@ router.post('/modules/update', requireRole(UserRole.Admin), async (c) => {
   return c.json({ message: 'All modules updated' });
 });
 
-router.get('/modules/update-plan', requireRole(UserRole.Admin), async (c) => {
-  const commands = c.get('commands');
-  const plan = await projectService.getUpdatePlan(commands);
-  return c.json(plan);
-});
+// A live view of the module sources, not site content: the crawler cannot
+// supply the query these need, and any answer would be stale in the export
+// as soon as a module is published.
+router.get(
+  '/modules/update-plan',
+  disableSSG(),
+  requireRole(UserRole.Admin),
+  async (c) => {
+    const commands = c.get('commands');
+    const plan = await projectService.getUpdatePlan(commands);
+    return c.json(plan);
+  },
+);
 
 router.get(
   '/modules/versions',
+  disableSSG(),
   requireRole(UserRole.Admin),
   zValidator('query', moduleVersionsQuerySchema),
   async (c) => {
@@ -108,6 +118,7 @@ router.post(
 
 router.get(
   '/modules/:module/update-plan',
+  disableSSG(),
   requireRole(UserRole.Admin),
   zValidator('param', moduleParamSchema),
   zValidator('query', updatePlanQuerySchema),
