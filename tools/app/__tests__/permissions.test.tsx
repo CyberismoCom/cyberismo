@@ -188,7 +188,6 @@ describe('useHasMinRole', () => {
     });
     expect(renderProbe(UserRole.Editor)).toBe(true);
   });
-
 });
 
 describe('<Gate>', () => {

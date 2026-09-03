@@ -13,7 +13,12 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createServer, type Server } from 'node:http';
-import { isReadOnly, setPolicy, startPolicyPolling, writableProjects } from '../src/overlay.js';
+import {
+  isReadOnly,
+  setPolicy,
+  startPolicyPolling,
+  writableProjects,
+} from '../src/overlay.js';
 
 describe('isReadOnly', () => {
   beforeEach(() => setPolicy({ readOnly: false, projects: {} }));
