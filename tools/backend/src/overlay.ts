@@ -74,7 +74,7 @@ export function isReadOnly(path: string): boolean {
 async function reportProjects(
   base: string,
   token: string | undefined,
-  projects: { prefix: string; name: string }[],
+  projects: { prefix: string }[],
 ): Promise<void> {
   const response = await fetch(`${base.replace(/\/$/, '')}/projects`, {
     method: 'PUT',
@@ -91,7 +91,7 @@ async function reportProjects(
 }
 
 export function startPolicyPolling(
-  projects: { prefix: string; name: string }[] = [],
+  projects: () => { prefix: string }[] = () => [],
 ): void {
   const base = process.env.CYBERISMO_OVERLAY_URL;
   if (!base) return;
@@ -123,13 +123,14 @@ export function startPolicyPolling(
     }
   };
 
-  let registered = projects.length === 0;
+  // Reported every tick from a fresh list, so a project created after start-up
+  // is registered within one interval.
   let lastReportFailure: string | undefined;
   const report = async () => {
-    if (registered) return;
+    const current = projects();
+    if (current.length === 0) return;
     try {
-      await reportProjects(base, token, projects);
-      registered = true;
+      await reportProjects(base, token, current);
       lastReportFailure = undefined;
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
