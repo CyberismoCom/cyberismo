@@ -1,5 +1,12 @@
 import { expect, describe, it, beforeEach, afterEach } from 'vitest';
-import { mkdtemp, mkdir, writeFile, rm, readFile } from 'node:fs/promises';
+import {
+  mkdtemp,
+  mkdir,
+  writeFile,
+  readdir,
+  rm,
+  readFile,
+} from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import sinon from 'sinon';
@@ -9,6 +16,7 @@ import { pathExists } from '../src/utils/file-utils.js';
 import { RWLock } from '../src/utils/rw-lock.js';
 import { Version } from '../src/commands/version.js';
 import { ConfigurationLogger } from '../src/utils/configuration-logger.js';
+import type { ConfigurationOperation } from '../src/utils/configuration-logger.js';
 import { getCommitContext } from '../src/utils/commit-context.js';
 import type { Project } from '../src/containers/project.js';
 
@@ -77,6 +85,26 @@ describe('Version', () => {
     await rm(dir, { recursive: true, force: true });
     sinon.restore();
   });
+
+  async function sealFiles(): Promise<string[]> {
+    try {
+      const folder = join(dir, '.cards', 'local', 'migrations');
+      return (await readdir(folder)).filter((name) =>
+        name.startsWith('migrationLog_'),
+      );
+    } catch {
+      return [];
+    }
+  }
+
+  // A refused bump must leave nothing behind: no seal, and the version as it
+  // was both in memory and on disk.
+  async function expectNoPartialState(version: string | undefined) {
+    expect(await sealFiles()).toEqual([]);
+    expect(configuration.version).toBe(version);
+    const onDisk = JSON.parse(await readFile(configPath, 'utf-8'));
+    expect(onDisk.version).toBe(version);
+  }
 
   describe('version bumping', () => {
     it('should produce 1.0.0 for first version regardless of bump type', async () => {
@@ -169,6 +197,7 @@ describe('Version', () => {
       await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
         /Cannot publish a patch version/,
       );
+      await expectNoPartialState('1.0.0');
     });
 
     it('should seal the log when minor bump attempted with migratable changes', async () => {
@@ -234,6 +263,7 @@ describe('Version', () => {
       await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
         /Cannot publish a patch version[\s\S]*test\/workflows\/flow \(resource_rename\)/,
       );
+      await expectNoPartialState('1.0.0');
     });
 
     it('minor refuses with a destructive entry in the log, error names the entry', async () => {
@@ -250,6 +280,53 @@ describe('Version', () => {
       await expect(versionCmd.bumpVersion('minor')).rejects.toThrow(
         /Cannot publish a minor version[\s\S]*test\/workflows\/flow \(resource_delete\)/,
       );
+      await expectNoPartialState('1.0.0');
+    });
+
+    it('minor and patch refuse an entry that cannot be routed', async () => {
+      configuration.version = '1.0.0';
+      await configuration.setVersion('1.0.0');
+      hasBreakingChangesStub.restore();
+      // No 'key' parameter: entryToMutationInput cannot convert this.
+      await ConfigurationLogger.log(dir, {
+        operation: 'resource_update',
+        target: 'test/fieldTypes/x',
+        parameters: {},
+      });
+      await git.commit('set version and dirty log');
+
+      await expect(versionCmd.bumpVersion('minor')).rejects.toThrow(
+        /Cannot publish a minor version[\s\S]*test\/fieldTypes\/x \(resource_update\)/,
+      );
+      await expectNoPartialState('1.0.0');
+
+      await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
+        /Cannot publish a patch version[\s\S]*test\/fieldTypes\/x \(resource_update\)/,
+      );
+      await expectNoPartialState('1.0.0');
+    });
+
+    it('minor and patch refuse an entry with an unknown operation', async () => {
+      configuration.version = '1.0.0';
+      await configuration.setVersion('1.0.0');
+      hasBreakingChangesStub.restore();
+      // An operation this build does not know, e.g. written by a newer version.
+      await ConfigurationLogger.log(dir, {
+        operation: 'resource_transmute' as ConfigurationOperation,
+        target: 'test/fieldTypes/x',
+        parameters: { key: 'enumValues' },
+      });
+      await git.commit('set version and dirty log');
+
+      await expect(versionCmd.bumpVersion('minor')).rejects.toThrow(
+        /Cannot publish a minor version[\s\S]*test\/fieldTypes\/x \(resource_transmute\)/,
+      );
+      await expectNoPartialState('1.0.0');
+
+      await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
+        /Cannot publish a patch version[\s\S]*test\/fieldTypes\/x \(resource_transmute\)/,
+      );
+      await expectNoPartialState('1.0.0');
     });
 
     it('major seals with destructive entries in the log', async () => {
@@ -289,6 +366,7 @@ describe('Version', () => {
       await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
         'uncommitted changes',
       );
+      await expectNoPartialState(undefined);
     });
   });
 
