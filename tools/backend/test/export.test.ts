@@ -1,10 +1,33 @@
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, rm } from 'node:fs/promises';
+import type * as FsPromises from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
+import { CommandManager } from '@cyberismo/data-handler';
 import { getCardQueryResult, reset, exportSite } from '../src/export.js';
 import { ProjectRegistry } from '../src/project-registry.js';
-import type { CommandManager } from '@cyberismo/data-handler';
+import { cleanupTempTestData, createTempTestData } from './test-utils.js';
+
+// The export copies the built frontend over the output directory, and that
+// build does not exist when the suite runs from source.
+vi.mock('node:fs/promises', async (importOriginal) => {
+  const actual = await importOriginal<typeof FsPromises>();
+  return {
+    ...actual,
+    cp: async (source: string, ...rest: unknown[]) =>
+      source.endsWith('public')
+        ? undefined
+        : (actual.cp as (...args: unknown[]) => Promise<void>)(source, ...rest),
+  };
+});
+
+/** Every file under `dir`, as paths relative to it. */
+async function filesUnder(dir: string): Promise<string[]> {
+  const entries = await readdir(dir, { recursive: true, withFileTypes: true });
+  return entries
+    .filter((entry) => entry.isFile())
+    .map((entry) => relative(dir, join(entry.parentPath, entry.name)));
+}
 
 describe('export module', () => {
   beforeEach(() => {
@@ -162,6 +185,37 @@ describe('export module', () => {
           defaultProject: 'nonexistent',
         }),
       ).rejects.toThrow("Default project 'nonexistent' is not in the registry");
+    });
+
+    test('leaves the module version routes out of the exported site', async () => {
+      // Both routes need a query or a body the crawler cannot supply, and the
+      // plan they would compute goes stale the moment a module is published.
+      const projectPath = await createTempTestData('minimal');
+      // Nothing here should reach a hub; answer any refresh with no modules.
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response(JSON.stringify({ modules: [] }), {
+          headers: { 'content-type': 'application/json' },
+        }),
+      );
+      try {
+        const commands = await CommandManager.getInstance(projectPath);
+        const siteDir = join(tempDir, 'site');
+        const { errors } = await exportSite(
+          ProjectRegistry.fromCommandManager(commands),
+          siteDir,
+        );
+
+        const written = await filesUnder(siteDir);
+        expect(
+          written.filter((file) => file.includes('modules/update-plan')),
+        ).toEqual([]);
+        expect(
+          written.filter((file) => file.includes('modules/versions')),
+        ).toEqual([]);
+        expect(errors).toEqual([]);
+      } finally {
+        await cleanupTempTestData(projectPath);
+      }
     });
 
     test('should throw with available prefixes in the error message', async () => {
