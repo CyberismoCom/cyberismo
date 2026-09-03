@@ -30,12 +30,12 @@ function enumValueOf(value: unknown): string | undefined {
 }
 
 /**
- * Removing an enum value is a breaking change. FieldTypeResource.update removes
+ * Removing an enum value is a migratable change. FieldTypeResource.update removes
  * the value from the enum definition and persists it (it no longer cascades).
  * The handler then owns the consumer-side cascade: with a replacementValue,
  * every card holding the removed value is rewritten to the replacement; without
  * one, the value is removed from the enum definition only and cards keep their
- * orphaned value (they are NOT nulled). Marked breaking.
+ * orphaned value (they are NOT nulled).
  */
 export class FieldTypeEnumRemoveHandler implements Handler<EditInput> {
   async apply(ctx: MutationContext<EditInput>): Promise<void> {

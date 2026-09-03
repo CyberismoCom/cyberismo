@@ -9,14 +9,15 @@ import, this is the mental model you need.
 ## 1. The one-paragraph mental model
 
 Your module is a **git repo**; its versions are **git tags** (`v1.0.0`,
-`v1.1.0`, …). When you make a **breaking change** to your module's resources,
-Cyberismo records it. When you **seal a version**, those recorded changes
-become a permanent **migration seal** for that version. Later, when someone who
-installed an *older* version of your module updates to a newer one, Cyberismo
-**replays your seals** to migrate *their own cards* — automatically. You never
-touch their project; they never touch your module's files. Your job is just to
-(1) make breaking changes through the proper commands so they get recorded, and
-(2) seal versions cleanly.
+`v1.1.0`, …). When you change your module's resources in a way consumers must
+follow, Cyberismo writes a **recorded change** into your module's change log.
+When you **seal a version**, those recorded changes become a permanent
+**migration seal** for that version. Later, when someone who installed an
+*older* version of your module updates to a newer one, Cyberismo **replays your
+seals** to migrate *their own cards* — automatically. You never touch their
+project; they never touch your module's files. Your job is just to (1) make
+those changes through the proper commands so they get recorded, and (2) seal
+versions cleanly.
 
 ```
 Your module repo                         A consumer project
@@ -31,16 +32,17 @@ v1.2.0                                            │   → replays the chain on
 
 ## 2. Versions & sealing
 
-- **Bump + seal:** `cyberismo create version <patch|minor|major>`. This bumps
-  the version in `cardsConfig.json` and snapshots the current change log into a
-  sealed file named `migrationLog_<from>_<to>.jsonl`. The first version is
-  always `1.0.0`.
+- **Bump:** `cyberismo create version <patch|minor|major>` bumps the version in
+  `cardsConfig.json`. The first version is always `1.0.0`.
+- **Seal:** the first version and every minor and major bump also snapshot the
+  current change log into a sealed file named `migrationLog_<from>_<to>.jsonl`.
+  A patch on an existing version seals nothing — it requires an empty log.
 - **Publish:** commit, tag (`vX.Y.Z`), and push — `cyberismo publish` does the
   annotated tag + push for you. Consumers resolve versions from your tags.
 - **The rules** (enforced by `create version` — see
   [the three change categories](#4-the-three-change-categories--what-each-bump-may-carry)):
   - **Patch** versions must have a **clean log** — no recorded changes at all.
-    Use patches only for non-breaking fixes/additions.
+    Use patches only for fixes and additions that record nothing (category 1).
   - **Minor** versions may carry **migratable** changes — they get sealed. A
     *destructive* change in the log makes a minor bump refuse.
   - **Major** versions may carry anything, including destructive changes.
@@ -48,18 +50,18 @@ v1.2.0                                            │   → replays the chain on
   version up to the target, end to end. Don't hand-rename or delete seal files,
   and don't skip versions — a gap makes the update refuse.
 
-> Sealing requires a clean git working tree. Commit your breaking changes first,
-> then `create version`, then commit the seal, then tag/publish.
+> Sealing requires a clean git working tree. Commit your changes first, then
+> `create version`, then commit the seal, then tag/publish.
 
 ---
 
-## 3. What is a "breaking change" — and why you must use the commands
+## 3. What gets recorded — and why you must use the commands
 
-Breaking changes are recorded **only when you make them through the CLI mutation
+A change is recorded **only when you make it through the CLI mutation
 commands**, never by hand-editing JSON. Hand-edits bypass the log, so consumers
 get your new files but **no migration** — their old data is left stale.
 
-Make breaking changes with:
+Make these changes with:
 
 | Change | Command |
 |---|---|
@@ -70,20 +72,25 @@ Make breaking changes with:
 | Change a card type's workflow | `cyberismo update <prefix>/cardTypes/<ct> change workflow <oldWf> <newWf> --mapping-file map.json` |
 | Rename a card type | `cyberismo update <prefix>/cardTypes/<ct> change name <old> <new>` |
 
-**Always provide the replacement / mapping** where offered — that's what lets a
-consumer's card migrate cleanly instead of being left with a now-invalid value:
+**Always provide the replacement / mapping** where offered — that's what puts a
+consumer's card on the value you intend. What happens without one differs per
+change:
 
-- enum-remove → give the replacement enum value,
-- workflow remove-state → give the replacement state,
-- workflow change → give a `--mapping-file` mapping old states → new states.
+- enum-remove → give the replacement enum value. Without one, cards keep the
+  removed value and validation reports it as not one of the field's
+  enumerations.
+- workflow remove-state → give the replacement state. Without one, cards in the
+  removed state fall back to the state a new card would get, which is rarely
+  the state you would have picked for them.
+- workflow change → give a `--mapping-file` mapping old states → new states. An
+  incomplete mapping is refused when you make the change; leaving the mapping
+  out altogether migrates no card at all, and validation then reports every
+  card sitting in a state the new workflow does not have.
 
-Without it, consumer cards keep the orphaned value and the update fails
-validation.
-
-Adding or removing a card type's **custom field** is *not* a breaking change
-and is not recorded: values of a field the card type no longer declares stay
-**dormant** on consumer cards instead of being deleted. `cyberismo clean`
-surfaces dormant values and can remove them.
+Adding or removing a card type's **custom field** records nothing (category 1):
+values of a field the card type no longer declares stay **dormant** on consumer
+cards instead of being deleted. `cyberismo clean` surfaces dormant values and
+can remove them.
 
 ---
 
@@ -204,7 +211,7 @@ Implications for you:
 
 ## 9. Authoring checklist
 
-- [ ] Make every breaking change via `cyberismo update / rename / remove` — never hand-edit resource JSON.
+- [ ] Make every resource change via `cyberismo update / rename / remove` — never hand-edit resource JSON.
 - [ ] Provide replacement values / mapping files for enum-remove, remove-state, and workflow changes.
 - [ ] Don't rename or delete a field your *own* card types still reference — remove the reference first (authoring refuses otherwise).
 - [ ] Keep cross-module references in step with your dependencies' versions; ship a compatible version when a dependency removes/renames something you use.
@@ -227,7 +234,7 @@ git add -A && git commit -m "content"
 cyberismo create version major                   # -> 1.0.0
 git add -A && git commit -m "seal 1.0.0" && git tag v1.0.0
 
-# v1.1.0 — a breaking change, recorded + sealed
+# v1.1.0 — a migratable change, recorded + sealed
 cyberismo update core/fieldTypes/priority remove enumValues '{"enumValue":"low"}' '{"enumValue":"medium"}'
 git add -A && git commit -m "enum-remove low"
 cyberismo create version minor                   # -> 1.1.0, seals migrationLog_1.0.0_1.1.0.jsonl

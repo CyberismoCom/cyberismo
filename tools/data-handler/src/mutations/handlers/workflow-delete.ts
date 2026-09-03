@@ -19,7 +19,7 @@ import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import { deleteCardType } from '../cascades/delete-card-type.js';
 
 /**
- * Deleting a workflow is a breaking change. A card type requires a workflow, so
+ * Deleting a workflow is destructive. A card type requires a workflow, so
  * there is no clean "strip" — every local card type that references the deleted
  * workflow is itself deleted (which cascades to deleting all of its cards). The
  * handler owns this cascade; resource.delete() is a pure primitive that no
