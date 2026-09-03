@@ -11,6 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { z } from 'zod';
+
 import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { resolve, sep } from 'node:path';
@@ -37,6 +39,22 @@ export interface CachedHub {
   description?: string;
   modules: ModuleSetting[];
 }
+
+// A hub's moduleList.json. HUB_SCHEMA is the contract; these schemas only
+// recover the types that Response.json() erases, so they are loose and pass
+// unknown fields through into the cache untouched.
+const hubDocumentSchema = z.looseObject({
+  version: z.number().optional(),
+  displayName: z.string().optional(),
+  description: z.string().optional(),
+  modules: z
+    .array(z.looseObject({ name: z.string(), location: z.string() }))
+    .optional(),
+});
+
+type HubDocument = z.infer<typeof hubDocumentSchema>;
+
+const hubVersionSchema = z.looseObject({ version: z.number().optional() });
 
 // Structure of .temp/moduleList.json file.
 export interface ModuleListFile {
@@ -92,8 +110,8 @@ export class Fetch {
         return undefined;
       }
 
-      const json = await response.json();
-      return json.version;
+      const json = hubVersionSchema.safeParse(await response.json());
+      return json.success ? json.data.version : undefined;
     } catch (error) {
       this.logger.error(error, `Could not check hub version for ${location} }`);
       return undefined;
@@ -101,7 +119,10 @@ export class Fetch {
   }
 
   // Fetches one hub's data as JSON.
-  private async fetchJSON(location: string, schemaId: string) {
+  private async fetchJSON(
+    location: string,
+    schemaId: string,
+  ): Promise<HubDocument> {
     try {
       const url = hubModuleListUrl(location);
       if (!['http:', 'https:'].includes(url.protocol)) {
@@ -149,7 +170,7 @@ export class Fetch {
         throw new Error('JSON content too large after parsing');
       }
 
-      return json;
+      return hubDocumentSchema.parse(json);
     } catch (error) {
       this.logger.error(
         error,
