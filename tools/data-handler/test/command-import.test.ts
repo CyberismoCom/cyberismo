@@ -701,7 +701,7 @@ describe('module update — spec behaviours', () => {
   it('updateModule with an override version that violates the declared range throws', async () => {
     // Spec: the `update <name> <exact-version>` path must refuse a
     // version that contradicts the declared range. Implemented via
-    // `validateVersionAgainstConstraints` in `Import.updateModule`.
+    // `validateExplicitTarget` in `Import.updateModule`.
     const projectDir = join(moduleTestDir, 'proj-override-bad');
     const commandHandler = new Commands();
     const create = await commandHandler.command(
@@ -727,9 +727,23 @@ describe('module update — spec behaviours', () => {
     expect(modSetting).toBeDefined();
     modSetting!.version = '^1.0.0';
 
-    await expect(
-      commands.importCmd.updateModule('ovmod', undefined, '2.0.0'),
-    ).rejects.toThrow(/does not satisfy constraint '\^1\.0\.0'/);
+    const applyError = await commands.importCmd
+      .updateModule('ovmod', undefined, '2.0.0')
+      .then(
+        () => null,
+        (e: Error) => e.message,
+      );
+    expect(applyError).toMatch(/does not satisfy constraint '\^1\.0\.0'/);
+
+    // Dry-run parity: the preview refuses the same target with the same
+    // error, so a plan is never shown for an update that would be refused.
+    const previewError = await commands.checkUpdatesCmd
+      .previewUpdate('ovmod', '2.0.0')
+      .then(
+        () => null,
+        (e: Error) => e.message,
+      );
+    expect(previewError).toBe(applyError);
   });
 
   it('updateModule with an override version inside the declared range succeeds', async () => {
@@ -758,6 +772,16 @@ describe('module update — spec behaviours', () => {
     );
     expect(modSetting).toBeDefined();
     modSetting!.version = '^1.0.0';
+
+    // Dry-run parity: the preview accepts the same in-range target the
+    // apply path is about to install. (A file source offers no discrete
+    // versions, so both paths resolve it to a no-move plan.)
+    const preview = await commands.checkUpdatesCmd.previewUpdate(
+      'ovkmod',
+      '1.3.0',
+    );
+    expect(preview.ok).toBe(true);
+    expect(preview.conflicts).toEqual([]);
 
     // No throw: constraint check passes, file source fetch/install runs
     // end-to-end. The persisted range stays at `^1.0.0` — the applier

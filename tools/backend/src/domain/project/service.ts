@@ -12,6 +12,7 @@
 */
 
 import {
+  requireDeclaredRoot,
   type CleanResult,
   type CommandManager,
   type HubFetchFailure,
@@ -201,18 +202,17 @@ export async function listModuleVersions(
 ): Promise<string[]> {
   let location = target.source;
   if (target.module !== undefined) {
-    const declared = commands.project.configuration.modules.find(
-      (mod) => mod.name === target.module,
+    const declared = await requireDeclaredRoot(
+      commands.project,
+      target.module,
+      'list versions for',
     );
-    if (!declared) {
-      throw new Error(`Module '${target.module}' is not part of the project`);
-    }
-    if (declared.private) {
+    if (declared.source.private) {
       throw new Error(
         `Module '${target.module}' is private; listing versions of private modules is not supported`,
       );
     }
-    location = declared.location;
+    location = declared.source.location;
   }
   if (location === undefined) {
     throw new Error('Either a source or a module name is required');

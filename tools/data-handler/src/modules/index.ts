@@ -58,13 +58,16 @@ export {
   versionToTag,
 } from './version.js';
 export { buildRemoteUrl } from './remote-url.js';
+export { validateExplicitTarget } from './explicit-target.js';
 
 // Reading what a project declares and what it has installed.
 export {
   declaredModules,
   installedModules,
   installedModulesWithSources,
+  requireDeclaredRoot,
 } from './inventory.js';
+export type { ModuleAction } from './inventory.js';
 
 // Fetching, resolving and applying.
 export { createSourceLayer } from './source.js';
