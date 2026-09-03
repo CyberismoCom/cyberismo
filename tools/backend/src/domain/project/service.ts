@@ -11,7 +11,12 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { HTTPException } from 'hono/http-exception';
+import type { ContentfulStatusCode } from 'hono/utils/http-status';
+
 import {
+  ModuleNotDeclaredError,
+  ModuleVersionError,
   requireDeclaredRoot,
   type CleanResult,
   type CommandManager,
@@ -151,12 +156,41 @@ export async function updateProject(
   return getProject(commands);
 }
 
+/** A refusal in the `{ error }` shape the rest of the API answers with. */
+function clientError(status: ContentfulStatusCode, message: string) {
+  return new HTTPException(status, {
+    res: Response.json({ error: message }, { status }),
+  });
+}
+
+/**
+ * The API's answer for a module failure the caller can act on: an unknown
+ * module is a 404, and anything the caller could fix by asking for something
+ * else — a transitive-only target, a version the declaration or the source
+ * refuses — a 400. Every other failure stays an unexplained 500.
+ */
+async function withModuleErrors<T>(run: () => Promise<T>): Promise<T> {
+  try {
+    return await run();
+  } catch (error) {
+    if (error instanceof ModuleNotDeclaredError) {
+      throw clientError(error.parents.length > 0 ? 400 : 404, error.message);
+    }
+    if (error instanceof ModuleVersionError) {
+      throw clientError(400, error.message);
+    }
+    throw error;
+  }
+}
+
 export async function updateModule(
   commands: CommandManager,
   module: string,
   version?: string,
 ) {
-  await commands.importCmd.updateModule(module, undefined, version);
+  await withModuleErrors(() =>
+    commands.importCmd.updateModule(module, undefined, version),
+  );
 }
 
 export async function updateAllModules(commands: CommandManager) {
@@ -202,14 +236,14 @@ export async function listModuleVersions(
 ): Promise<string[]> {
   let location = target.source;
   if (target.module !== undefined) {
-    const declared = await requireDeclaredRoot(
-      commands.project,
-      target.module,
-      'list versions for',
+    const name = target.module;
+    const declared = await withModuleErrors(() =>
+      requireDeclaredRoot(commands.project, name, 'list versions for'),
     );
     if (declared.source.private) {
-      throw new Error(
-        `Module '${target.module}' is private; listing versions of private modules is not supported`,
+      throw clientError(
+        400,
+        `Module '${name}' is private; listing versions of private modules is not supported`,
       );
     }
     location = declared.source.location;
@@ -225,7 +259,9 @@ export async function getUpdatePlan(
   module?: string,
   version?: string,
 ): Promise<UpdatePreview> {
-  return commands.checkUpdatesCmd.previewUpdate(module, version);
+  return withModuleErrors(() =>
+    commands.checkUpdatesCmd.previewUpdate(module, version),
+  );
 }
 
 export async function getHubs(commands: CommandManager): Promise<HubInfo[]> {

@@ -35,6 +35,7 @@ import path, { join } from 'node:path';
 import resourcesRouter from './domain/resources/index.js';
 import logicProgramsRouter from './domain/logicPrograms/index.js';
 import { isSSGContext } from 'hono/ssg';
+import { HTTPException } from 'hono/http-exception';
 import type { AppVars, TreeOptions } from './types.js';
 import treeMiddleware from './middleware/tree.js';
 import projectRouter from './domain/project/index.js';
@@ -239,6 +240,9 @@ export function createApp(
   });
   // Error handling
   app.onError((err, c) => {
+    if (err instanceof HTTPException) {
+      return err.getResponse();
+    }
     if (!isSSGContext(c)) {
       if (process.env.NODE_ENV !== 'test') {
         console.error(err.stack);

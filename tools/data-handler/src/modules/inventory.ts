@@ -18,6 +18,7 @@ import { join } from 'node:path';
 import semver from 'semver';
 
 import { getChildLogger } from '../utils/log-utils.js';
+import { ModuleNotDeclaredError } from './errors.js';
 import { readJsonFile } from '../utils/json.js';
 import {
   toVersion,
@@ -97,14 +98,19 @@ export async function requireDeclaredRoot(
 
   const parents = (await installedModules(project))
     .filter((installation) => installation.declaredDependencies.includes(name))
-    .map((installation) => `'${installation.name}'`);
+    .map((installation) => installation.name);
   if (parents.length > 0) {
+    const parentList = parents.map((parent) => `'${parent}'`).join(', ');
     const capitalised = action.charAt(0).toUpperCase() + action.slice(1);
-    throw new Error(
-      `Cannot ${action} module '${name}' because it is required by ${parents.join(', ')}. ${capitalised} the parent module(s) instead.`,
+    throw new ModuleNotDeclaredError(
+      `Cannot ${action} module '${name}' because it is required by ${parentList}. ${capitalised} the parent module(s) instead.`,
+      parents,
     );
   }
-  throw new Error(`Module '${name}' is not part of the project`);
+  throw new ModuleNotDeclaredError(
+    `Module '${name}' is not part of the project`,
+    [],
+  );
 }
 
 /**
