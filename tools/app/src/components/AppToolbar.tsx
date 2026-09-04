@@ -153,7 +153,7 @@ export default function AppToolbar({ onCreate, onMenuClick }: AppToolbarProps) {
         borderColor: 'divider',
       }}
     >
-      {inCards && onMenuClick && (
+      {onMenuClick && (
         <IconButton
           variant="plain"
           color="neutral"

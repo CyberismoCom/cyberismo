@@ -39,7 +39,12 @@ function findAncestorResourceGroup(
   return null;
 }
 
-export default function ConfigMenu() {
+interface ConfigMenuProps {
+  /** Called after a navigation, so a mobile drawer can close itself. */
+  onNavigate?: () => void;
+}
+
+export default function ConfigMenu({ onNavigate }: ConfigMenuProps = {}) {
   const { resourceTree } = useResourceTree();
   const { project, updateCard } = useProject();
   const { t } = useTranslation();
@@ -111,20 +116,24 @@ export default function ConfigMenu() {
       onMove={handleMove}
       readOnly={!isAdmin}
       onNodeClick={(node) => {
+        const go = (path: string) => {
+          push(path);
+          onNavigate?.();
+        };
         if (node.data.type === 'general') {
-          push('/configuration/general');
+          go('/configuration/general');
           return;
         }
         if (node.data.type === 'resourceGroup') {
           if ((RESOURCES as readonly string[]).includes(node.data.name)) {
-            push(`/configuration/${node.data.name}`);
+            go(`/configuration/${node.data.name}`);
           }
           return;
         }
         if (node.data.type === 'module') {
           const group = findAncestorResourceGroup(node);
           if (group && (RESOURCES as readonly string[]).includes(group.name)) {
-            push(
+            go(
               `/configuration/${group.name}?modules=${encodeURIComponent(node.data.name)}`,
             );
           }
@@ -133,7 +142,7 @@ export default function ConfigMenu() {
         if (!node.data.name.includes('/')) {
           return;
         }
-        push(`/configuration/${node.data.name}`);
+        go(`/configuration/${node.data.name}`);
       }}
     />
   );

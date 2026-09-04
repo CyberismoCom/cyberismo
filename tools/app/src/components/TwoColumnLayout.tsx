@@ -13,6 +13,7 @@
 
 import type { ReactNode } from 'react';
 import { Group, Panel, Separator } from 'react-resizable-panels';
+import { DENSITY } from '../theme';
 import { Box, Drawer } from '@mui/joy';
 import { useTheme } from '@mui/material/styles';
 import { useMediaQuery } from '@mui/material';
@@ -21,7 +22,8 @@ interface TwoColumnLayoutProps {
   leftPanel: ReactNode;
   rightPanel: ReactNode;
   leftPanelDefaultSize?: string;
-  leftPanelMinSize?: string;
+  /** Number = pixels, string = percentage. */
+  leftPanelMinSize?: number | string;
   leftPanelMaxSize?: string;
   collapseBelow?: 'sm' | 'md' | 'lg';
   drawerOpen?: boolean;
@@ -32,7 +34,11 @@ export default function TwoColumnLayout({
   leftPanel,
   rightPanel,
   leftPanelDefaultSize = '20%',
-  leftPanelMinSize = '12%',
+  // A percentage minimum let the rail shrink to ~156px at 900px wide and
+  // ~154px on a 1280 laptop, which truncates most card titles and squeezes
+  // the progress figures. Measured against both demo projects, 220px is the
+  // width at which no row carrying a percentage truncates.
+  leftPanelMinSize = DENSITY.railMinWidth,
   leftPanelMaxSize = '40%',
   collapseBelow,
   drawerOpen = false,

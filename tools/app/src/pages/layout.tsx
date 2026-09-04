@@ -97,7 +97,9 @@ export default function Layout() {
 
   if (prevInCards !== inCards) {
     setPrevInCards(inCards);
-    if (!inCards) setDrawerOpen(false);
+    // Both sections have their own navigation drawer now, so switching
+    // between them should always dismiss whichever one was open.
+    setDrawerOpen(false);
   }
 
   const openCreateResourceModal = useCallback(

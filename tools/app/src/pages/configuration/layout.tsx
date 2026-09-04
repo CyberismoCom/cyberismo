@@ -10,11 +10,12 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Outlet, useParams } from 'react-router';
+import { Outlet, useOutletContext, useParams } from 'react-router';
 import TwoColumnLayout from '../../components/TwoColumnLayout';
 import ConfigMenu from '../../components/ConfigMenu';
 import { useDocumentTitle } from '../../lib/hooks';
 import { useProject } from '../../lib/api';
+import type { AppLayoutOutletContext } from '../layout';
 
 export default function ConfigLayout() {
   // TODO: resource is not implemented yet, might need to change this
@@ -29,5 +30,16 @@ export default function ConfigLayout() {
         : project?.name || 'Cyberismo App';
   useDocumentTitle(title);
 
-  return <TwoColumnLayout leftPanel={<ConfigMenu />} rightPanel={<Outlet />} />;
+  const { drawerOpen, setDrawerOpen } =
+    useOutletContext<AppLayoutOutletContext>();
+
+  return (
+    <TwoColumnLayout
+      collapseBelow="md"
+      drawerOpen={drawerOpen}
+      onDrawerClose={() => setDrawerOpen(false)}
+      leftPanel={<ConfigMenu onNavigate={() => setDrawerOpen(false)} />}
+      rightPanel={<Outlet />}
+    />
+  );
 }
