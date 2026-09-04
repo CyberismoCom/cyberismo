@@ -478,14 +478,36 @@ export function getMoveableCards(
 export function getStateColor(category: string | undefined) {
   switch (category) {
     case WorkflowCategory.initial:
-      return '#CDD7E1'; // 'neutral.300'
+      return 'var(--cy-state-initial)';
     case WorkflowCategory.active:
-      return '#F3C896'; // 'warning.300'
+      return 'var(--cy-state-active)';
     case WorkflowCategory.closed:
-      return '#51BC51'; // 'success.400'
+      return 'var(--cy-state-closed)';
+    // `error` is not a workflow category but arrives on tree nodes as a
+    // statusIndicator when a policy check has failed.
+    case 'error':
+      return 'var(--cy-state-error)';
     default:
       return 'transparent';
   }
+}
+
+/**
+ * Colour for a completion percentage.
+ *
+ * Progress and `statusIndicator` are mutually exclusive in the tree data —
+ * progress lives on project and phase cards, which carry no workflow state of
+ * their own — so a progress meter cannot take its colour from the state
+ * indicator. It derives it from the value instead: nothing started reads as
+ * idle, complete reads as closed, and anything in between is active.
+ *
+ * @param value completion percentage, 0-100
+ * @returns a workflow state colour token
+ */
+export function getProgressColor(value: number) {
+  if (!Number.isFinite(value) || value <= 0) return 'var(--cy-state-initial)';
+  if (value >= 100) return 'var(--cy-state-closed)';
+  return 'var(--cy-state-active)';
 }
 
 /**

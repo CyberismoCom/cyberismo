@@ -73,7 +73,7 @@ export function AsciiDocToolbar({
       direction="row"
       bgcolor="background.surface"
       gap={1.5}
-      borderRadius={6}
+      borderRadius="2px"
       padding={0.5}
       flexWrap="nowrap"
       minWidth={0}

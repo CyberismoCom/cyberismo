@@ -100,27 +100,28 @@ export default function LinkedCardsSection({
     <>
       <Box
         ref={sectionRef}
-        border="1px solid"
-        borderColor={
-          editing ? 'primary.outlinedBorder' : 'neutral.outlinedBorder'
-        }
-        borderRadius={6}
-        padding={{ xs: 1, sm: 1.5 }}
+        borderRadius="2px"
+        padding={editing ? { xs: 1, sm: 1.5 } : 0}
+        paddingBottom={{ xs: 1, sm: 1.5 }}
         onClick={
           headerClickable
             ? () => dispatch(setLinkedCardsExpanded(true))
             : undefined
         }
-        sx={
-          headerClickable
-            ? {
-                cursor: 'pointer',
-                '&:hover [data-cy="linkedCardsShowMoreButton"]': {
-                  backgroundColor: 'var(--joy-palette-primary-plainHoverBg)',
-                },
-              }
-            : undefined
-        }
+        sx={{
+          // Links are a row, not a panel. They only earn a container while
+          // being edited, when the editing surface needs an edge.
+          border: editing ? '1px solid' : 'none',
+          borderColor: editing ? 'primary.outlinedBorder' : 'divider',
+          borderBottom: '1px solid',
+          borderBottomColor: 'divider',
+          ...(headerClickable && {
+            cursor: 'pointer',
+            '&:hover [data-cy="linkedCardsShowMoreButton"]': {
+              backgroundColor: 'var(--joy-palette-primary-plainHoverBg)',
+            },
+          }),
+        }}
       >
         <Stack
           direction="row"

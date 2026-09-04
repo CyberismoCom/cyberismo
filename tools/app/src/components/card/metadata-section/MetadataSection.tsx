@@ -131,10 +131,14 @@ export default function MetadataSection({
   return (
     <Box
       data-cy="metadataView"
-      border="1px solid"
-      borderColor="neutral.outlinedBorder"
-      borderRadius={6}
-      padding={{ xs: 1, sm: 1.5 }}
+      paddingBottom={{ xs: 1, sm: 1.5 }}
+      sx={{
+        // Metadata belongs to the header, not in a panel of its own. One
+        // hairline separates it from what follows; the document below is the
+        // only surface that gets a border.
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+      }}
     >
       <Stack>
         <FieldRow

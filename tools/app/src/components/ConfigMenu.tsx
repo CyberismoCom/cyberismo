@@ -102,7 +102,7 @@ export default function ConfigMenu() {
       title={`Configuration - ${project?.name}`}
       linkTo="/configuration"
       onBackClick={() => push(`/projects/${projectPrefix}/cards`)}
-      backLabel={t('configTree.backToCards')}
+      backLabel={t('configTree.backToProject')}
       data={resourceTree}
       nodeRenderer={ConfigTreeNode}
       selectedId={selectedId}

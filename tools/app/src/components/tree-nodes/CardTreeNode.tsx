@@ -11,11 +11,11 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Box, Chip, Typography } from '@mui/joy';
+import { Box, Typography } from '@mui/joy';
 import type { NodeRendererProps, NodeApi } from 'react-arborist';
-import FiberManualRecord from '@mui/icons-material/FiberManualRecord';
 import ErrorIcon from '@mui/icons-material/Error';
-import { getStateColor } from '../../lib/utils';
+import { getStateColor, getProgressColor } from '../../lib/utils';
+import { ProgressMeter } from '../ProgressMeter';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
 import { BaseTreeNode } from './BaseTreeNode';
 
@@ -23,75 +23,68 @@ interface CardTreeNodeProps extends NodeRendererProps<QueryResult<'tree'>> {
   onNodeClick?: (node: NodeApi<QueryResult<'tree'>>) => void;
 }
 
-const chipColor = (value: string) => {
-  const parsed = Number(value);
-  if (!Number.isInteger(parsed)) return 'neutral';
-  if (parsed === 0) return 'neutral.300';
-  else if (parsed === 100) return 'success.400';
-  else return 'warning.300';
-};
-
 export const CardTreeNode = (props: CardTreeNodeProps) => {
   const { node } = props;
   const progress = node.data.progress;
   const statusIndicator = node.data.statusIndicator;
+  const title = node.data.title ?? node.data.key;
 
-  const statusBox =
+  // Project and phase cards report progress but carry no workflow state, so
+  // the rail falls back to the progress colour rather than going transparent.
+  const railColor =
+    statusIndicator !== undefined
+      ? getStateColor(statusIndicator)
+      : progress !== undefined
+        ? getProgressColor(Number(progress))
+        : 'transparent';
+
+  // State is carried by a rail on the leading edge rather than a dot, so it
+  // reads down a long tree at a glance and survives greyscale and print.
+  const statusRail = (
+    <Box
+      aria-hidden
+      sx={{
+        width: '3px',
+        alignSelf: 'stretch',
+        flex: 'none',
+        marginRight: '8px',
+        bgcolor: railColor,
+      }}
+    />
+  );
+
+  const errorMark =
     statusIndicator === 'error' ? (
       <Box
         display="flex"
         alignItems="center"
         alignSelf="center"
-        width={10}
-        height={10}
-        marginRight={1}
+        marginRight={0.5}
+        flex="none"
       >
-        <ErrorIcon color="error" sx={{ fontSize: 15 }} />
+        <ErrorIcon sx={{ fontSize: 14, color: 'var(--cy-state-error)' }} />
       </Box>
-    ) : (
-      <Box
-        color={getStateColor(statusIndicator)}
-        display="flex"
-        alignItems="center"
-        alignSelf="center"
-        width={10}
-        height={10}
-        marginRight={1}
-      >
-        <FiberManualRecord sx={{ fontSize: 15 }} />
-      </Box>
-    );
+    ) : null;
 
   return (
     <BaseTreeNode {...props}>
-      {statusBox}
+      {statusRail}
+      {errorMark}
       <Typography
         level="title-sm"
         noWrap
         alignSelf="center"
-        sx={{ cursor: 'pointer' }}
+        title={title}
+        sx={{
+          cursor: 'pointer',
+          flex: '1 1 auto',
+          minWidth: 0,
+          overflow: 'hidden',
+        }}
       >
-        {node.data.title ?? node.data.key}
+        {title}
       </Typography>
-      <Box margin="auto"></Box>
-      {progress !== undefined && (
-        <Chip
-          size="sm"
-          sx={{
-            backgroundColor: chipColor(progress),
-            color: 'common.black',
-            fontWeight: 600,
-            fontSize: '0.8rem',
-            padding: '0px 6px 0px 6px',
-            height: '20px',
-            marginLeft: '4px',
-            textAlign: 'center',
-            alignSelf: 'center',
-          }}
-        >
-          {progress + '%'}
-        </Chip>
-      )}
+      {progress !== undefined && <ProgressMeter value={Number(progress)} />}
     </BaseTreeNode>
   );
 };

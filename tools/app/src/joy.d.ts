@@ -11,31 +11,13 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { forwardRef } from 'react';
-import { Sheet } from '@mui/joy';
-import type { SxProps } from '@mui/joy/styles/types';
-
-export interface ListRowProps {
-  children: React.ReactNode;
-  sx?: SxProps;
+// The design system adds one typography level beyond Joy's defaults: `label`,
+// the brand's uppercase tracked eyebrow. Declared here so `level="label"`
+// type-checks wherever it is used.
+declare module '@mui/joy/styles/types/typography' {
+  interface TypographySystemOverrides {
+    label: true;
+  }
 }
 
-export const ListRow = forwardRef<HTMLDivElement, ListRowProps>(
-  ({ children, sx }, ref) => (
-    <Sheet
-      ref={ref}
-      variant="outlined"
-      sx={{
-        p: 1.5,
-        py: 1,
-        border: '0',
-        borderRadius: '2px',
-        backgroundColor: 'neutral.softBg',
-        width: '100%',
-        ...sx,
-      }}
-    >
-      {children}
-    </Sheet>
-  ),
-);
+export {};

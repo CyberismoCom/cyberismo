@@ -12,8 +12,9 @@
 */
 
 import { useCallback, useState } from 'react';
-import { IconButton, Tooltip } from '@mui/joy';
+import { Box, IconButton, Stack, Tooltip, Typography } from '@mui/joy';
 import AddLink from '@mui/icons-material/AddLink';
+import LinkIcon from '@mui/icons-material/Link';
 import { ProjectBreadcrumbs } from '../ProjectBreadcrumbs';
 import StatusSelector from '../StateSelector';
 import { findWorkflowForCardType } from '../../lib/utils';
@@ -91,7 +92,67 @@ export function CardToolbar({
     [updateWorkFlowState, dispatch, t],
   );
 
-  const breadcrumbs = <ProjectBreadcrumbs cardKey={cardKey} tree={tree} />;
+  // Falls back to the last segment of the resource path (e.g.
+  // "secdeva/cardTypes/threatModel" -> "threatModel") when a card type has no
+  // display name of its own.
+  const cardTypeLabel =
+    card?.cardTypeDisplayName || card?.cardType?.split('/').pop() || null;
+
+  const handleCopyLink = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      dispatch(
+        addNotification({ message: t('copyCardLinkSuccess'), type: 'success' }),
+      );
+    } catch {
+      // The clipboard API is unavailable outside secure contexts.
+      dispatch(
+        addNotification({ message: t('copyCardLinkError'), type: 'error' }),
+      );
+    }
+  }, [dispatch, t]);
+
+  const breadcrumbs = (
+    <Stack direction="row" alignItems="center" spacing={1} minWidth={0}>
+      <Box minWidth={0}>
+        <ProjectBreadcrumbs cardKey={cardKey} tree={tree} />
+      </Box>
+
+      {cardTypeLabel && (
+        <Typography
+          level="label"
+          data-cy="cardTypeIndicator"
+          sx={{
+            flex: 'none',
+            paddingX: 0.75,
+            paddingY: '2px',
+            borderRadius: '2px',
+            border: '1px solid',
+            borderColor: 'divider',
+            bgcolor: 'background.level1',
+            color: 'text.secondary',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {cardTypeLabel}
+        </Typography>
+      )}
+
+      <Tooltip title={t('copyCardLink')} placement="top">
+        <IconButton
+          onClick={handleCopyLink}
+          size="sm"
+          variant="plain"
+          color="neutral"
+          data-cy="copyCardLinkButton"
+          aria-label={t('copyCardLink')}
+          sx={{ flex: 'none' }}
+        >
+          <LinkIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    </Stack>
+  );
 
   const actions = (
     <>

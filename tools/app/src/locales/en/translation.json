@@ -134,7 +134,7 @@
     "moduleReadOnly": "Cards in imported modules cannot be moved."
   },
   "configTree": {
-    "backToCards": "Back to cards",
+    "backToProject": "Back to project",
     "files": {
       "calculation": "Calculation",
       "model": "Model",
@@ -145,6 +145,12 @@
       "skillQuery": "Query",
       "viewTemplate": "View template"
     }
+  },
+  "configOverview": {
+    "intro": "Card types, workflows and templates define how work is recorded in this project. Pick a resource to review or change it.",
+    "count_one": "{{count}} in {{modules}} module",
+    "count_other": "{{count}} in {{modules}} modules",
+    "empty": "None yet"
   },
   "configuration": "Configuration",
   "confirmDeleteAttachment": "Are you sure you want to delete this attachment?",
@@ -164,6 +170,9 @@
     "partialFailure": "{{count}} link failed to create",
     "partialFailure_plural": "{{count}} links failed to create"
   },
+  "copyCardLink": "Copy card link",
+  "copyCardLinkSuccess": "Card link copied",
+  "copyCardLinkError": "Could not copy the card link",
   "createOnTopLevel": "Create on top level",
   "createUnder": "Create under \"{{parent}}\"",
   "createdAt": "Created at",
@@ -171,15 +180,15 @@
   "customFieldDeleted": "Custom field deleted",
   "customFieldUpdated": "Custom field updated",
   "customFields": "Custom fields",
-  "dataType": "Data Type",
+  "dataType": "Data type",
   "dataTypes": {
-    "shortText": "Short Text",
-    "longText": "Long Text",
+    "shortText": "Short text",
+    "longText": "Long text",
     "number": "Number",
     "integer": "Integer",
     "boolean": "Boolean",
     "date": "Date",
-    "dateTime": "Date Time",
+    "dateTime": "Date and time",
     "enum": "Enum",
     "list": "List",
     "person": "Person"
@@ -237,12 +246,12 @@
   "enumValueUpdated": "Enum value updated",
   "enumValues": "Enum values",
   "export": "Export",
-  "exportCard": "Export Card",
+  "exportCard": "Export card",
   "exportCardNameDescription": "Filename of the exported pdf (without extension)",
   "exportCardTitleDescription": "Title of the exported document",
   "exportCardVersionDescription": "Version number to display in the exported pdf (optional)",
   "exportChildCards": "Export child cards",
-  "exportProject": "Export Project",
+  "exportProject": "Export project",
   "failedPolicyChecks": "Failed policy checks",
   "failedToLoad": "Failed to load",
   "false": "False",
@@ -272,7 +281,7 @@
     "gitRemoteUrl": "Git remote URL",
     "gitPushPublicKey": "SSH public key",
     "copyToClipboard": "Copy",
-    "copiedToClipboard": "Copied!",
+    "copiedToClipboard": "Copied",
     "notAGitRepo": "Not a git repository"
   },
   "goToField": "Go to field",
@@ -331,20 +340,20 @@
     "noTemplatesFoundMessage": "No templates available"
   },
   "newResourceModal": {
-    "title": "Create New Resource",
+    "title": "New resource",
     "selectResource": "Select the type of resource you want to create:",
     "noWorkflows": "No workflows available. Please create a workflow first.",
     "create": "Create {{resourceType}}",
     "identifier": "Identifier",
     "fileName": "File name",
     "fieldTypes": {
-      "name": "Field Type"
+      "name": "Field type"
     },
     "cardTypes": {
-      "name": "Card Type"
+      "name": "Card type"
     },
     "linkTypes": {
-      "name": "Link Type"
+      "name": "Link type"
     },
     "workflows": {
       "name": "Workflow"
@@ -362,10 +371,10 @@
       "name": "Calculation"
     },
     "graphModels": {
-      "name": "Graph Model"
+      "name": "Graph model"
     },
     "graphViews": {
-      "name": "Graph View"
+      "name": "Graph view"
     },
     "success": "{{resourceType}} created successfully",
     "notImplemented": "Creating {{resourceType}} is not yet implemented",
@@ -382,7 +391,7 @@
   "notFound": {
     "title": "Page not found",
     "description": "The page you are looking for does not exist or you do not have permission to view it.",
-    "goHome": "Browse cards"
+    "goHome": "Go to cards"
   },
   "notVisible": "Not visible",
   "notifications": "Notifications",
@@ -395,8 +404,8 @@
   "overriddenWithCalculatedValue": "Overridden. Calculated value: {{value}}",
   "override": "Override",
   "overview": {
-    "clearFilters": "Clear Filters",
-    "createNew": "Create New {{resourceType}}",
+    "clearFilters": "Clear filters",
+    "createNew": "New {{resourceType}}",
     "filter": "Filter",
     "localProject": "Local project",
     "viewMore": "View more"
@@ -421,8 +430,8 @@
     "failures": "Failures",
     "title": "Policy checks"
   },
-  "policyCheckFail": "FAIL",
-  "policyCheckPass": "PASS",
+  "policyCheckFail": "Failed",
+  "policyCheckPass": "Passed",
   "presence": {
     "editing": "Editing: {{names}}",
     "viewing": "Viewing: {{names}}"
@@ -443,7 +452,7 @@
     "createProject": "Create project",
     "name": "Project name",
     "namePlaceholder": "My Project",
-    "prefix": "Project Prefix",
+    "prefix": "Project prefix",
     "prefixPlaceholder": "myproj",
     "prefixHelp": "3-10 lowercase letters, used as card key prefix",
     "category": "Category",
@@ -529,9 +538,9 @@
   "templateCardDisabledTooltip": "To create a template card, you must first navigate to an existing template or template card.",
   "title": "Title",
   "toolbar": {
-    "newCard": "Create",
-    "newResource": "Create",
-    "importModules": "Import Modules",
+    "newCard": "Create card",
+    "newResource": "Create resource",
+    "importModules": "Import modules",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
     "switchToSystem": "Switch to system mode",

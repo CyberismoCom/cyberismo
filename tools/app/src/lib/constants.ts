@@ -56,8 +56,8 @@ export const CODE_MIRROR_BASE_PROPS: ReactCodeMirrorProps = {
   },
   style: {
     border: '1px solid',
-    borderColor: 'rgba(0,0,0,0.23)',
-    borderRadius: 4,
+    borderColor: 'var(--joy-palette-neutral-outlinedBorder)',
+    borderRadius: 2,
   },
 };
 

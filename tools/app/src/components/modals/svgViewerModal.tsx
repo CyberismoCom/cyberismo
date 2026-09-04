@@ -518,7 +518,7 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
             color: 'white',
             px: 1,
             py: 0.5,
-            borderRadius: 1,
+            borderRadius: '2px',
             userSelect: 'none',
           }}
         >
@@ -540,7 +540,14 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
           }}
         >
           <Box sx={{ marginLeft: 2, height: '19px' }}>
-            <Link to="/cards">
+            <Link
+              to="/cards"
+              style={{
+                color: 'inherit',
+                textDecoration: 'none',
+                display: 'block',
+              }}
+            >
               <img
                 src="/images/cyberismo.png"
                 alt="Cyberismo"

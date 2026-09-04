@@ -188,13 +188,13 @@ export function FieldRow({
       expanded={expanded}
       sx={{
         borderLeft: '3px solid',
-        borderColor: isEditing ? 'primary.300' : 'neutral.300',
+        borderColor: isEditing ? 'var(--cy-state-active)' : 'transparent',
         paddingX: 0.5,
         marginY: expanded ? 0.5 : 0,
         ...(isClickable && {
           cursor: 'pointer',
           '&:hover': {
-            borderColor: 'primary.200',
+            borderColor: 'neutral.400',
             backgroundColor: 'background.level1',
           },
         }),

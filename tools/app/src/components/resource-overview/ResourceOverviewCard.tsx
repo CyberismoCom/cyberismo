@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Card, CardContent, Divider, Stack, Typography } from '@mui/joy';
+import { Card, CardContent, Stack, Typography } from '@mui/joy';
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import { Link as RouterLink } from 'react-router';
 
@@ -26,21 +26,25 @@ export function ResourceOverviewCard({
 }) {
   return (
     <Card
-      variant="plain"
+      variant="outlined"
       component={RouterLink}
       to={to}
       sx={{
         textDecoration: 'none',
-        backgroundColor: 'inherit',
+        bgcolor: 'background.surface',
         overflow: 'hidden',
+        transition: 'border-color 0.15s ease-in-out',
+        '&:hover': { borderColor: 'neutral.400' },
       }}
     >
       <CardContent>
         <Stack direction="row" spacing={1}>
-          <Typography level="title-lg" noWrap>
+          <Typography level="title-md" noWrap sx={{ flex: 1, minWidth: 0 }}>
             {title}
           </Typography>
-          <ArrowForwardRounded color="primary" />
+          <ArrowForwardRounded
+            sx={{ fontSize: 16, color: 'text.tertiary', flex: 'none' }}
+          />
         </Stack>
         <Typography
           level="body-sm"
@@ -56,11 +60,6 @@ export function ResourceOverviewCard({
         >
           {description || '-'}
         </Typography>
-        <Divider
-          sx={{
-            mt: 2,
-          }}
-        />
       </CardContent>
     </Card>
   );

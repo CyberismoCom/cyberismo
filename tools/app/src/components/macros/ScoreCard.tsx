@@ -30,7 +30,7 @@ export default function ScoreCard({
     <Card
       variant="outlined"
       style={{
-        borderRadius: '12px',
+        borderRadius: '2px',
         boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
         display: 'inline-block',
         padding: '20px',

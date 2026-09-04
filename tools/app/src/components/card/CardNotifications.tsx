@@ -96,7 +96,7 @@ export const CardNotifications = ({
           indicator={<ExpandMore />}
           onClick={() => setExpanded(!expanded)}
           sx={{
-            borderRadius: '4px',
+            borderRadius: '2px',
             marginTop: 1,
             marginBottom: 1,
           }}

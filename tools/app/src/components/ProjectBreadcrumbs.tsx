@@ -45,8 +45,11 @@ export const ProjectBreadcrumbs: React.FC<ProjectBreadcrumbsProps> = ({
           component={RouterLink}
           to={`/cards/${node.key}`}
           style={{
-            textDecorationColor: 'grey',
-            color: 'grey',
+            // Was the CSS keyword `grey`, which bypassed the palette entirely
+            // and failed AA in light mode. Breadcrumbs are navigation, so they
+            // take the secondary text token in both schemes.
+            textDecorationColor: 'var(--joy-palette-text-tertiary)',
+            color: 'var(--joy-palette-text-secondary)',
             fontSize: 14,
             marginTop: 1,
             marginBottom: 1,

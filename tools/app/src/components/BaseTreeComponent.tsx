@@ -138,7 +138,13 @@ export function BaseTreeComponent<T>({
                 {backLabel}
               </JoyLink>
             )}
-            <Link to={linkTo || ''} style={{ textDecoration: 'none' }}>
+            <Link
+              to={linkTo || ''}
+              // `color: inherit` matters as much as the decoration: without it
+              // the anchor keeps the browser's default link blue, which shows
+              // through on any child that does not set its own colour.
+              style={{ textDecoration: 'none', color: 'inherit' }}
+            >
               <Typography level="h4" marginBottom={2}>
                 {title}
               </Typography>

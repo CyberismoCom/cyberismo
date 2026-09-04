@@ -35,13 +35,14 @@ export function FieldLabel({
 }: FieldLabelProps) {
   return (
     <Typography
-      level="body-xs"
+      level="label"
       sx={{
         whiteSpace: 'normal',
         position: 'relative',
         width: { xs: '100%', md: '40%' },
         maxWidth: { md: 150 },
         flexShrink: 0,
+        paddingTop: '2px',
       }}
     >
       {disabled && !edit && (
@@ -59,17 +60,17 @@ export function FieldLabel({
       {description && (
         <Tooltip
           title={description}
-          color="primary"
+          color="neutral"
           variant="outlined"
           disableInteractive
         >
           <InfoOutlined
-            color="primary"
             sx={{
               position: 'absolute',
               height: 16,
               width: 16,
               ml: 0.5,
+              color: 'var(--joy-palette-text-tertiary)',
             }}
           />
         </Tooltip>

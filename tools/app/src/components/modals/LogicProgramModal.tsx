@@ -60,7 +60,7 @@ export function LogicProgramModal({
               backgroundColor: 'background.level1',
               border: '1px solid',
               borderColor: 'divider',
-              borderRadius: '4px',
+              borderRadius: '2px',
               padding: 2,
               whiteSpace: 'pre-wrap',
               overflow: 'auto',

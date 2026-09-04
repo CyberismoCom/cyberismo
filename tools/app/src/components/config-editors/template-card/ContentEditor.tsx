@@ -101,7 +101,7 @@ export const ContentEditor = forwardRef<
       data-cy="contentEditor"
       border="1px solid"
       borderColor={dirty ? 'primary.outlinedBorder' : 'neutral.outlinedBorder'}
-      borderRadius={6}
+      borderRadius="2px"
       padding={{ xs: 1, sm: 1.5 }}
       sx={{ '& .cm-gutters': { bgcolor: 'background.level1' } }}
     >

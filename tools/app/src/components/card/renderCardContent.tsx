@@ -112,7 +112,9 @@ export function renderCardHtml(html: string, options: RenderCardHtmlOptions) {
       };
       const className = node.attribs?.class ?? '';
       if (className.includes('fa-check-square-o')) {
-        return <CheckBox color="primary" sx={checkboxSx} />;
+        return (
+          <CheckBox sx={{ ...checkboxSx, color: 'var(--cy-state-closed)' }} />
+        );
       }
       if (className.includes('fa-square-o')) {
         return (

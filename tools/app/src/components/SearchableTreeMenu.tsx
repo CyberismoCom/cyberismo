@@ -173,7 +173,15 @@ export const SearchableTreeMenu = ({
                   <FolderOpenOutlined sx={{ fontSize: '1.1rem' }} />
                 </ListItemDecorator>
                 <ListItemContent>
-                  <Typography level="body-sm" fontWeight="lg" noWrap>
+                  {/* The active project is the most important label in the
+                      rail; the body-sm default is tertiary, which failed AA
+                      against the selected row's ground. */}
+                  <Typography
+                    level="body-sm"
+                    fontWeight="lg"
+                    textColor="text.primary"
+                    noWrap
+                  >
                     {currentProject?.name ?? currentPrefix}
                   </Typography>
                 </ListItemContent>

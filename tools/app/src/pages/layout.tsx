@@ -11,6 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import AppToolbar from '../components/AppToolbar';
+import { DENSITY } from '../theme';
 import {
   useNavigationGuard,
   useOptionalKeyParam,
@@ -49,7 +50,7 @@ export type AppLayoutOutletContext = {
 };
 
 const Main = styled('main')(() => ({
-  height: 'calc(100vh - 44px)', // 44px is the height of the toolbar
+  height: `calc(100vh - ${DENSITY.appBarHeight}px)`,
   flexGrow: 1,
 }));
 

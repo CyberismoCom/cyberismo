@@ -45,7 +45,14 @@ export const BaseTreeNode = <T,>({
       paddingRight="4px"
       height="100%"
       marginRight={1}
-      borderRadius="6px 6px 6px 6px"
+      // The row must fill the rail rather than grow to fit its label:
+      // react-arborist sizes rows to their content, so without this a long
+      // title widens the row past the panel instead of truncating, and the
+      // progress figures stop sharing a right edge.
+      width="100%"
+      minWidth={0}
+      overflow="hidden"
+      borderRadius="2px"
       bgcolor={visualState.backgroundColor}
       sx={{
         opacity: visualState.opacity,

@@ -38,6 +38,7 @@ import type { ResourceName } from '@/lib/constants';
 import { RESOURCES } from '@/lib/constants';
 import { ThemeModeToggle } from './ThemeModeToggle';
 import UserMenu from './UserMenu';
+import { DENSITY } from '../theme';
 
 interface AppToolbarProps {
   onCreate: (resourceType?: ResourceName) => void;
@@ -59,6 +60,7 @@ export function CreateButton({
     return (
       <Button
         variant="solid"
+        color="warning"
         data-cy="createNewButton"
         size="sm"
         startDecorator={<AddIcon />}
@@ -83,7 +85,7 @@ export function CreateButton({
         size="sm"
         endDecorator={<ExpandMoreIcon />}
         sx={{ marginRight: '16px' }}
-        color="primary"
+        color="warning"
       >
         {t('toolbar.newResource')}
       </MenuButton>
@@ -141,10 +143,11 @@ export default function AppToolbar({ onCreate, onMenuClick }: AppToolbarProps) {
   );
   return (
     <Stack
-      bgcolor="neutral.900"
-      height="44px"
+      bgcolor="var(--cy-chrome)"
+      height={`${DENSITY.appBarHeight}px`}
       direction="row"
       alignItems="center"
+      flexShrink={0}
       sx={{
         borderBottom: '1px solid',
         borderColor: 'divider',
@@ -163,7 +166,12 @@ export default function AppToolbar({ onCreate, onMenuClick }: AppToolbarProps) {
         </IconButton>
       )}
       <Box marginLeft={2} height="19px">
-        <Link to="/cards">
+        <Link
+          to="/cards"
+          // Without this the logo link inherits the browser's default link
+          // blue; there is no blue in this design system.
+          style={{ color: 'inherit', textDecoration: 'none', display: 'block' }}
+        >
           <img
             src="/images/cyberismo.png"
             alt="Cyberismo"

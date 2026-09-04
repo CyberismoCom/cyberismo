@@ -224,7 +224,7 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
           <Box
             border="1px solid"
             borderColor="primary.outlinedBorder"
-            borderRadius={6}
+            borderRadius="2px"
             padding={{ xs: 1, sm: 1.5 }}
             sx={{
               '& .cm-gutters': {
@@ -336,8 +336,12 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
           <Box
             border="1px solid"
             borderColor="neutral.outlinedBorder"
-            borderRadius={6}
-            padding={{ xs: 1, sm: 1.5 }}
+            borderRadius="2px"
+            // The card content is the one thing on this page that reads as
+            // paper: it is the only section with both a border and a surface
+            // of its own, lifted off the page ground.
+            bgcolor="background.surface"
+            padding={{ xs: 2, sm: 3 }}
             position="relative"
             minHeight={56}
           >
