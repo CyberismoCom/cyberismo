@@ -39,6 +39,7 @@ import type { AppVars, TreeOptions } from './types.js';
 import treeMiddleware from './middleware/tree.js';
 import projectRouter from './domain/project/index.js';
 import { createMcpRouter } from './domain/mcp/index.js';
+import { writableProjects } from './overlay.js';
 import { createAuthRouter } from './domain/auth/index.js';
 import { createAuthMiddleware } from './middleware/auth.js';
 import type { AuthProvider } from './auth/types.js';
@@ -215,7 +216,7 @@ export function createApp(
   }
 
   // MCP endpoint for AI assistant integration
-  app.route('/mcp', createMcpRouter(registry));
+  app.route('/mcp', createMcpRouter(writableProjects(registry)));
 
   app.use(
     '*',

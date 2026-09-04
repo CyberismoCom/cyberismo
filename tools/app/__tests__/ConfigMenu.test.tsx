@@ -33,6 +33,7 @@ vi.mock('@/lib/api', () => ({
   useUser: () => ({
     user: { id: 'u1', email: '', name: '', role: 'admin' },
   }),
+  useAvailableProjects: () => ({ data: undefined }),
 }));
 
 vi.mock('@/lib/api/project', () => ({
