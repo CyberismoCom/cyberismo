@@ -40,6 +40,20 @@ import { ThemeModeToggle } from './ThemeModeToggle';
 import UserMenu from './UserMenu';
 import { DENSITY } from '../theme';
 
+/**
+ * The app bar keeps its ink ground in both colour schemes, so icon buttons on
+ * it cannot take their colour from the palette: in light mode `neutral` plain
+ * resolves to #3D4149, which is ~1.4:1 against the bar and effectively
+ * invisible. They are painted white explicitly instead.
+ */
+const APP_BAR_ICON_SX = {
+  color: 'common.white',
+  '&:hover': {
+    color: 'common.white',
+    bgcolor: 'rgba(255, 255, 255, 0.12)',
+  },
+} as const;
+
 interface AppToolbarProps {
   onCreate: (resourceType?: ResourceName) => void;
   onMenuClick?: () => void;
@@ -160,7 +174,11 @@ export default function AppToolbar({ onCreate, onMenuClick }: AppToolbarProps) {
           size="sm"
           onClick={onMenuClick}
           aria-label={t('toolbar.openMenu')}
-          sx={{ display: { xs: 'inline-flex', md: 'none' }, ml: 1 }}
+          sx={{
+            ...APP_BAR_ICON_SX,
+            display: { xs: 'inline-flex', md: 'none' },
+            ml: 1,
+          }}
         >
           <MenuIcon />
         </IconButton>
