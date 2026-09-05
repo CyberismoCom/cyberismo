@@ -18,11 +18,20 @@ import { MoreHoriz } from '@mui/icons-material';
 import { Dropdown, MenuButton, Menu, MenuItem } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import { ExportProjectModal } from './modals/ExportCardModal';
+import { UserRole, useHasMinRole } from '@/lib/auth';
 
 export const CardTreeMenu = () => {
   const { t } = useTranslation();
   const router = useAppRouter();
   const [isOpen, setIsOpen] = React.useState(false);
+  // Configuration edits project resources, so it takes the same role that
+  // gates creating them.
+  const isAdmin = useHasMinRole(UserRole.Admin);
+  const canExport = !getConfig().staticMode;
+
+  // A static export is always served as a reader, so both entries would be
+  // hidden there. Render nothing rather than an empty dropdown.
+  if (!canExport && !isAdmin) return null;
   return (
     <>
       <Dropdown>
@@ -31,14 +40,19 @@ export const CardTreeMenu = () => {
           placement="bottom-end"
           sx={{ zIndex: 'calc(var(--joy-zIndex-modal) + 1)' }}
         >
-          {!getConfig().staticMode && (
+          {canExport && (
             <MenuItem onClick={() => setIsOpen(true)}>
               {t('exportProject')}
             </MenuItem>
           )}
-          <MenuItem onClick={() => router.push('/configuration')}>
-            {t('configuration')}
-          </MenuItem>
+          {isAdmin && (
+            <MenuItem
+              data-cy="configurationMenuItem"
+              onClick={() => router.push('/configuration')}
+            >
+              {t('configuration')}
+            </MenuItem>
+          )}
         </Menu>
       </Dropdown>
       <ExportProjectModal open={isOpen} onClose={() => setIsOpen(false)} />
