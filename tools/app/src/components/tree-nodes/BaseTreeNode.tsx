@@ -72,6 +72,7 @@ export const BaseTreeNode = <T,>({
         }}
         sx={{
           maxWidth: '20px',
+          flex: 'none',
           transform: node.isOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
           cursor: 'pointer',
         }}

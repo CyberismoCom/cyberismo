@@ -181,7 +181,7 @@ export const AttachmentPanel: React.FC<AttachmentPanelProps> = ({
           <Typography
             data-cy="attachmentCountBadge"
             level="body-xs"
-            color="warning"
+            color="neutral"
             variant="soft"
             width={24}
             height={24}

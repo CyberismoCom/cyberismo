@@ -77,20 +77,31 @@
    Consumed through `getStateColor()` in lib/utils.ts.
    --------------------------------------------------------------------------- */
 :root {
-  --cy-state-initial: #8a8f98;
-  --cy-state-active: #ffb022;
-  --cy-state-closed: #2e8b4e;
-  --cy-state-error: #d5331e;
+  --cy-state-initial: #73787f;
+  --cy-state-active: #c26a00;
+  --cy-state-closed: #1b7f4b;
+  --cy-state-error: #a81e12;
   --cy-accent: #ff530f;
   --cy-chrome: #2a2a2a;
+  /*
+   * Amber used to carry five unrelated meanings at once. It now means exactly
+   * one thing — "in progress" — and the jobs it was moonlighting in get their
+   * own tokens, so changing one no longer silently changes the others.
+   */
+  --cy-link-underline: #cfcbc2;
+  --cy-admonition-warning: #c26a00;
+  --cy-editing: #2a2a2a;
 }
 [data-joy-color-scheme='dark'] {
-  --cy-state-initial: #7a7f89;
+  --cy-state-initial: #6b7280;
   --cy-state-active: #ffb93d;
-  --cy-state-closed: #3cbf75;
-  --cy-state-error: #e4614a;
+  --cy-state-closed: #4bc77f;
+  --cy-state-error: #f0705a;
   --cy-accent: #ff6a2c;
   --cy-chrome: #0c0d10;
+  --cy-link-underline: #3a3e48;
+  --cy-admonition-warning: #ffb93d;
+  --cy-editing: #eceae5;
 }
 
 /* One focus treatment everywhere: the brand orange, and only here. */
@@ -293,7 +304,7 @@
 .doc a {
   color: var(--joy-palette-text-primary, #2a2a2a);
   text-decoration: underline;
-  text-decoration-color: var(--cy-state-active);
+  text-decoration-color: var(--cy-link-underline);
   text-decoration-thickness: 2px;
   text-underline-offset: 3px;
 }
@@ -588,7 +599,7 @@
   color: #fff;
 }
 .doc .admonitionblock td.icon i.icon-warning {
-  background-color: var(--cy-state-active);
+  background-color: var(--cy-admonition-warning);
   color: #2a2a2a;
 }
 .doc .admonitionblock td.icon i.icon-important,

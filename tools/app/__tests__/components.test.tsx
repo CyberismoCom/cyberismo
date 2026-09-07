@@ -121,7 +121,9 @@ describe('TreeMenu', () => {
         />
       </BrowserRouter>,
     );
-    const node = screen.getByText('Demand phase').parentNode?.parentNode;
+    // Resolve the row by role rather than by counting parentNode hops, so the
+    // assertion survives changes to the row's internal markup.
+    const node = screen.getByText('Demand phase').closest('[role="treeitem"]');
     expect(node).toBeVisible();
     expect(node).toHaveAttribute('aria-selected', 'true');
   });
@@ -671,7 +673,9 @@ describe('SearchableTreeMenu', () => {
       </BrowserRouter>,
     );
 
-    const node = screen.getByText('Demand phase').parentNode?.parentNode;
+    // Resolve the row by role rather than by counting parentNode hops, so the
+    // assertion survives changes to the row's internal markup.
+    const node = screen.getByText('Demand phase').closest('[role="treeitem"]');
     expect(node).toBeVisible();
     expect(node).toHaveAttribute('aria-selected', 'true');
   });

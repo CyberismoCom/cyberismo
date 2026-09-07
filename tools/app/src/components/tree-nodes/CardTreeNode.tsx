@@ -14,7 +14,8 @@
 import { Box, Typography } from '@mui/joy';
 import type { NodeRendererProps, NodeApi } from 'react-arborist';
 import ErrorIcon from '@mui/icons-material/Error';
-import { getStateColor, getProgressColor } from '../../lib/utils';
+import FiberManualRecord from '@mui/icons-material/FiberManualRecord';
+import { getStateColor } from '../../lib/utils';
 import { ProgressMeter } from '../ProgressMeter';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
 import { BaseTreeNode } from './BaseTreeNode';
@@ -29,47 +30,50 @@ export const CardTreeNode = (props: CardTreeNodeProps) => {
   const statusIndicator = node.data.statusIndicator;
   const title = node.data.title ?? node.data.key;
 
-  // Project and phase cards report progress but carry no workflow state, so
-  // the rail falls back to the progress colour rather than going transparent.
-  const railColor =
-    statusIndicator !== undefined
-      ? getStateColor(statusIndicator)
-      : progress !== undefined
-        ? getProgressColor(Number(progress))
-        : 'transparent';
-
-  // State is carried by a rail on the leading edge rather than a dot, so it
-  // reads down a long tree at a glance and survives greyscale and print.
-  const statusRail = (
-    <Box
-      aria-hidden
-      sx={{
-        width: '3px',
-        alignSelf: 'stretch',
-        flex: 'none',
-        marginRight: '8px',
-        bgcolor: railColor,
-      }}
-    />
-  );
-
-  const errorMark =
+  /*
+   * A round dot, as the app has always drawn workflow state: `StateSelector`
+   * marks the current state and every transition target the same way, so the
+   * tree reads as the same concept rather than a second vocabulary. It is also
+   * compact, which a 3px rail was not — hue is easy to judge in a small filled
+   * disc and very hard in a thin line.
+   *
+   * `getStateColor` returns transparent when a card carries no workflow state,
+   * so the dot still holds its place and labels stay aligned. Progress does not
+   * colour it: a phase row already states completion as a bar and a number, and
+   * the number is authoritative.
+   */
+  const statusMark =
     statusIndicator === 'error' ? (
       <Box
         display="flex"
         alignItems="center"
         alignSelf="center"
-        marginRight={0.5}
+        width={10}
+        height={10}
+        marginRight={1}
         flex="none"
       >
-        <ErrorIcon sx={{ fontSize: 14, color: 'var(--cy-state-error)' }} />
+        <ErrorIcon sx={{ fontSize: 15, color: 'var(--cy-state-error)' }} />
       </Box>
-    ) : null;
+    ) : (
+      <Box
+        aria-hidden
+        color={getStateColor(statusIndicator)}
+        display="flex"
+        alignItems="center"
+        alignSelf="center"
+        width={10}
+        height={10}
+        marginRight={1}
+        flex="none"
+      >
+        <FiberManualRecord sx={{ fontSize: 15 }} />
+      </Box>
+    );
 
   return (
     <BaseTreeNode {...props}>
-      {statusRail}
-      {errorMark}
+      {statusMark}
       <Typography
         level="title-sm"
         noWrap

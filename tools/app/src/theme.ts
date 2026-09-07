@@ -31,27 +31,35 @@ import { extendTheme } from '@mui/joy/styles';
 // Brand constants (mirror of the design system's --cy-* tokens)
 // ---------------------------------------------------------------------------
 export const BRAND = {
-  orange: '#FF530F', // accent — focus ring and logo only
+  orange: '#FF530F', // accent — focus ring and logo only, never a fill
   orangeDark: '#FF6A2C', // lifted for dark grounds
-  gold: '#FFB022', // "active" workflow state, progress, primary control
+  gold: '#FFB022', // marketing only — inside the app amber means "in progress"
   goldDark: '#FFB93D',
   ink: '#2A2A2A', // official brand grey, "Tummanharmaa"
   cream: '#F2EDE4',
 } as const;
 
-/** Workflow state colours, per colour scheme. Consumed via `getStateColor`. */
+/**
+ * Workflow state colours, per colour scheme. Consumed via `getStateColor`.
+ *
+ * These are sized for a 9px mark, which WCAG 1.4.11 treats as a non-text UI
+ * component needing 3:1 against its background — including the selected row,
+ * the worst case. The brand amber itself is only 1.52:1 there, so `active` is a
+ * working shade of it rather than the brand value; dark grounds can carry the
+ * brighter one. `initial` is drawn as a hollow mark, so its value is a border.
+ */
 export const STATE_COLORS = {
   light: {
-    initial: '#8A8F98',
-    active: BRAND.gold,
-    closed: '#2E8B4E',
-    error: '#D5331E',
+    initial: '#73787F',
+    active: '#C26A00',
+    closed: '#1B7F4B',
+    error: '#A81E12',
   },
   dark: {
-    initial: '#7A7F89',
+    initial: '#6B7280',
     active: BRAND.goldDark,
-    closed: '#3CBF75',
-    error: '#E4614A',
+    closed: '#4BC77F',
+    error: '#F0705A',
   },
 } as const;
 
@@ -212,16 +220,16 @@ const theme = extendTheme({
           500: STATE_COLORS.light.closed,
           solidBg: STATE_COLORS.light.closed,
           softBg: '#E7F4EC',
-          softColor: '#1B5E36',
-          plainColor: '#1B5E36',
-          outlinedColor: '#1B5E36',
+          softColor: STATE_COLORS.light.closed,
+          plainColor: STATE_COLORS.light.closed,
+          outlinedColor: STATE_COLORS.light.closed,
         },
         warning: {
-          300: BRAND.gold,
-          400: BRAND.gold,
-          500: '#E89A17',
-          solidBg: BRAND.gold,
-          solidColor: BRAND.ink,
+          300: STATE_COLORS.light.active,
+          400: STATE_COLORS.light.active,
+          500: STATE_COLORS.light.active,
+          solidBg: STATE_COLORS.light.active,
+          solidColor: '#FFFFFF',
           softBg: '#FFF3DE',
           softColor: '#7A4E00',
           plainColor: '#7A4E00',

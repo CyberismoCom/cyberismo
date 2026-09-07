@@ -40,6 +40,11 @@ import { ThemeModeToggle } from './ThemeModeToggle';
 import UserMenu from './UserMenu';
 import { DENSITY } from '../theme';
 
+/*
+ * The primary control is ink, not amber. Amber means "in progress" now, and a
+ * button that looks like a workflow state is the ambiguity this system exists
+ * to remove — the brand is carried by the ink chrome and the orange logo mark.
+ */
 /**
  * The app bar keeps its ink ground in both colour schemes, so icon buttons on
  * it cannot take their colour from the palette: in light mode `neutral` plain
@@ -74,7 +79,6 @@ export function CreateButton({
     return (
       <Button
         variant="solid"
-        color="warning"
         data-cy="createNewButton"
         size="sm"
         startDecorator={<AddIcon />}
@@ -99,7 +103,7 @@ export function CreateButton({
         size="sm"
         endDecorator={<ExpandMoreIcon />}
         sx={{ marginRight: '16px' }}
-        color="warning"
+        color="primary"
       >
         {t('toolbar.newResource')}
       </MenuButton>

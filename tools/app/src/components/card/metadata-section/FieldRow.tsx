@@ -188,7 +188,10 @@ export function FieldRow({
       expanded={expanded}
       sx={{
         borderLeft: '3px solid',
-        borderColor: isEditing ? 'var(--cy-state-active)' : 'transparent',
+        // An interaction state, not a workflow one — it used to borrow the
+        // "in progress" colour, which made an edited field look like a card
+        // that was mid-workflow.
+        borderColor: isEditing ? 'var(--cy-editing)' : 'transparent',
         paddingX: 0.5,
         marginY: expanded ? 0.5 : 0,
         ...(isClickable && {
