@@ -140,7 +140,10 @@ const theme = extendTheme({
     'body-lg': { fontSize: '1rem', fontWeight: 500, lineHeight: 1.65 },
     'body-md': { fontSize: '0.9375rem', fontWeight: 500, lineHeight: 1.6 },
     'body-sm': { fontSize: '0.8125rem', fontWeight: 500, lineHeight: 1.45 },
-    'body-xs': { fontSize: '0.6875rem', fontWeight: 500, lineHeight: 1.4 },
+    // 0.75rem is Joy's own body-xs, and what the app's dense surfaces were
+    // built against. It is used 63 times for values, counts and hints, so
+    // shrinking it quietly shrank content everywhere.
+    'body-xs': { fontSize: '0.75rem', fontWeight: 500, lineHeight: 1.45 },
     // Uppercase tracked label, from the brand's eyebrow treatment. Applied
     // deliberately to things that are labels — never to a shared body level.
     label: {

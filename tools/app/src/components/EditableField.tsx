@@ -35,14 +35,28 @@ export function FieldLabel({
 }: FieldLabelProps) {
   return (
     <Typography
-      level="label"
+      // Sentence case, not the uppercase `label` eyebrow. Eyebrows work as
+      // section headers — few, short, isolated. As a row label in a dense
+      // key/value list they fail three ways: uppercase with 0.09em tracking is
+      // ~38% wider, so "Information classification" (144px) becomes 199px and
+      // wraps in the 150px column; at weight 800 the label out-weighs its own
+      // value (700) and inverts the hierarchy; and uppercase destroys the word
+      // shape that makes a repeated column scannable.
+      level="body-xs"
+      textColor="text.tertiary"
       sx={{
         whiteSpace: 'normal',
+        // Labels run to 54 characters in the demo projects, so wrapping cannot
+        // be designed away — it has to be graceful. 168px is where the curve
+        // flattens: of 99 real field labels it fits 86 on one line instead of
+        // 71 at 150px, and the padlock and info icons sit inside this box, so
+        // an icon costs ~18px of it. `pretty` keeps a wrapped label from
+        // ending on an orphan word.
+        textWrap: 'pretty',
         position: 'relative',
         width: { xs: '100%', md: '40%' },
-        maxWidth: { md: 150 },
+        maxWidth: { md: 168 },
         flexShrink: 0,
-        paddingTop: '2px',
       }}
     >
       {disabled && !edit && (
@@ -107,7 +121,13 @@ const EditableField = ({
 }: EditableFieldProps) => {
   const { t } = useTranslation();
   return (
-    <Stack direction={{ xs: 'column', md: 'row' }} spacing={{ xs: 0.5, md: 4 }}>
+    <Stack
+      direction={{ xs: 'column', md: 'row' }}
+      spacing={{ xs: 0.5, md: 4 }}
+      // Align first lines: either side can wrap independently, and a
+      // two-line label next to a one-line value must still read as one row.
+      alignItems={{ xs: 'stretch', md: 'flex-start' }}
+    >
       <FieldLabel
         label={label}
         description={description}

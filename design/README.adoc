@@ -1,0 +1,43 @@
+== Cyberismo design system
+
+This directory holds the reference for *Cyberismo Console* — the design system
+behind the app's user interface.
+
+=== Contents
+
+link:console.html[`console.html`]:: The reference itself. Open it in a browser;
+it needs no server and makes no network requests. Covers the colour palettes for
+both schemes, the workflow-state device, the type scale, geometry, density, the
+component contracts, what the linter enforces, the copy standard, and the known
+gaps.
+
+=== Where the system actually lives
+
+This page is documentation, not the implementation. The values it describes are
+read from:
+
+[cols="1,2"]
+|===
+| `tools/app/src/theme.ts` | The token layer — palettes, radius, typography, density constants, component defaults
+| `tools/app/src/globals.css` | Vendored `@font-face` declarations, workflow-state CSS variables, styles for rendered AsciiDoc
+| `tools/app/eslint.config.mjs` | `designSystemGuard`, which rejects raw hex colours and off-system corner radii
+|===
+
+Brand values — accent, ink, gold, typefaces, spacing, radius — belong to the
+Cyberismo design system project and flow down into `theme.ts`. Density, workflow
+state and the dark palette are decided in the app, because those need real
+screens and real data to get right.
+
+=== Fonts
+
+The page uses the brand faces vendored at `../tools/app/public/fonts/`, rather
+than fetching them from a CDN, so it renders with no network access — the same
+rule the product follows. If you move `console.html`, update the `@font-face`
+paths at the top of the file to match.
+
+=== Keeping it true
+
+The page states values that also live in code, so it can drift. Re-check it
+whenever `theme.ts` changes — particularly the palette tables, the type scale
+and the density table, which records which `DENSITY` tokens are actually wired
+up and which are not.
