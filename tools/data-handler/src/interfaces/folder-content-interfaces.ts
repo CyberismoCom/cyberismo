@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Schema } from 'jsonschema';
+import type { SchemaObject as Schema } from 'ajv';
 
 export type { Schema };
 

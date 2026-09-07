@@ -327,7 +327,7 @@ describe('resources', function () {
       } as LinkType;
       const res = project.resources.byType(name, 'linkTypes');
       await expect(res.create(linkTypeData)).rejects.toThrow(
-        `Invalid content JSON: Schema '/linkTypeSchema' validation Error: requires property "enableLinkDescription"`,
+        `Invalid content JSON: Schema '/linkTypeSchema' validation Error: must have required property 'enableLinkDescription'`,
       );
     });
     it('create template with provided content', async () => {
@@ -360,7 +360,7 @@ describe('resources', function () {
       } as TemplateMetadata;
       const res = project.resources.byType(name, 'templates');
       await expect(res.create(templateData)).rejects.toThrow(
-        `Invalid content JSON: Schema '/templateSchema' validation Error: requires property "name"`,
+        `Invalid content JSON: Schema '/templateSchema' validation Error: must have required property 'name'`,
       );
     });
     it('create workflow with provided content', async () => {
@@ -949,7 +949,7 @@ describe('resources', function () {
       } as CalculationMetadata;
       const res = project.resources.byType(name, 'calculations');
       await expect(res.create(calculationData)).rejects.toThrow(
-        `Invalid content JSON: Schema '/calculationSchema' validation Error: requires property "name"`,
+        `Invalid content JSON: Schema '/calculationSchema' validation Error: must have required property 'name'`,
       );
     });
 

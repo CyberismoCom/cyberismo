@@ -10,11 +10,11 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { ValidationError } from 'json-schema';
+import type { ErrorObject } from 'ajv';
 
 export class DHValidationError extends Error {
-  public errors?: ValidationError[];
-  constructor(message: string, errors?: ValidationError[]) {
+  public errors?: ErrorObject[];
+  constructor(message: string, errors?: ErrorObject[]) {
     super(message);
     this.name = 'DHValidationError';
     this.errors = errors;

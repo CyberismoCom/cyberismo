@@ -122,7 +122,7 @@ describe('import csv command', () => {
       options,
     );
     expect(result.statusCode).toBe(400);
-    expect(result.message).toContain('requires property "template"');
+    expect(result.message).toContain("must have required property 'template'");
   });
   it('try to import csv file with invalid path', async () => {
     const result = await commandHandler.command(
