@@ -15,6 +15,7 @@ import type { Context, MiddlewareHandler } from 'hono';
 import type { UserInfo } from '../types.js';
 import { UserRole } from '../types.js';
 import type { AuthProvider } from '../auth/types.js';
+import { isReadOnly } from '../overlay.js';
 
 // Extend Hono Context type to include our custom properties
 declare module 'hono' {
@@ -30,6 +31,14 @@ const roleLevel: Record<UserRole, number> = {
   [UserRole.Admin]: 2,
 };
 
+/** Everyone below administrator is a reader; lifting read-only is their job. */
+function applyReadOnly(user: UserInfo): UserInfo {
+  if (user.role === UserRole.Admin) {
+    return user;
+  }
+  return { ...user, role: UserRole.Reader };
+}
+
 /**
  * Create authentication middleware from an AuthProvider.
  * Validates the user and attaches user info to the context.
@@ -41,7 +50,7 @@ export function createAuthMiddleware(
     const user = await provider.authenticate(c.req.raw);
 
     if (user) {
-      c.set('user', user);
+      c.set('user', isReadOnly(c.req.path) ? applyReadOnly(user) : user);
     } else {
       // RFC 9728 §5.1: include resource_metadata in WWW-Authenticate
       // only for MCP routes, where the metadata document applies.
