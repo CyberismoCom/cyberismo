@@ -444,6 +444,20 @@
 .doc table.frame-all {
   border-width: 1px;
 }
+/*
+ * A table's frame is drawn on the <table> element, which encloses the
+ * <caption> as well as the grid — so a captioned table rendered as a box
+ * inside a box, with the caption stranded in the band between them. Where the
+ * grid already draws a continuous perimeter out of the outermost cell borders
+ * the frame adds nothing, so it is dropped there and the caption sits free
+ * above the table. Frames still apply to grid-none / grid-rows / grid-cols
+ * tables, which have no perimeter of their own.
+ */
+.doc table.grid-all.frame-all,
+.doc table.grid-all.frame-ends,
+.doc table.grid-all.frame-sides {
+  border-width: 0;
+}
 .doc table.frame-ends {
   border-width: 1px 0;
 }
@@ -763,6 +777,10 @@
 }
 .doc table.tableblock caption {
   text-align: left;
+  /* Table captions are labels, not asides — the shared block-title rule above
+     sets them in italic, which the weight already handles. */
+  font-style: normal;
+  padding-bottom: 0.35rem;
 }
 .doc .olist .title,
 .doc .ulist .title {
