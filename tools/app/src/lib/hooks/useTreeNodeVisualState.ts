@@ -42,7 +42,11 @@ export function useTreeNodeVisualState<T>(
         : isDragging
           ? 'neutral.softBg'
           : node.isSelected
-            ? 'background.body'
+            ? // The current page. `background.body` was a 1.3% luminance step
+              // against the rail's own ground — invisible in practice, which
+              // left the keyboard focus ring reading as the page marker. level2
+              // sits one step beyond the hover state (level1) in both schemes.
+              'background.level2'
             : 'transparent',
       borderStyle: isDropTarget
         ? { border: '2px solid', borderColor: 'primary.500' }

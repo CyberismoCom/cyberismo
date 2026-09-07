@@ -67,7 +67,9 @@ export function ProgressMeter({
             height: '3px',
             flex: 'none',
             overflow: 'hidden',
-            bgcolor: 'background.level2',
+            // `divider`, not level2: the selected tree row is painted level2,
+            // so an empty track drawn in it disappeared on the current page.
+            bgcolor: 'divider',
           }}
         >
           <Box sx={{ width: `${clamped}%`, height: '100%', bgcolor: fill }} />

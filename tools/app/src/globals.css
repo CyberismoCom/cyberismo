@@ -126,6 +126,18 @@
 }
 
 /*
+ * The trees are composite widgets: react-arborist keeps a roving cursor and
+ * moves focus programmatically, so the page-level focus ring — 2px, offset
+ * outwards — drew a bracket above and below a row and read as a second, louder
+ * "current page" marker than the real one. Keyboard users still get an
+ * indicator, but inset so it hugs the row it belongs to. The current page is
+ * marked by the selected row's background.
+ */
+[role='treeitem']:focus-visible {
+  outline-offset: -2px;
+}
+
+/*
  * react-arborist gives every row `min-width: max-content`, so a long card
  * title widens its row past the rail rather than truncating — which also
  * breaks the shared right edge the progress figures align to. Rows fill the
