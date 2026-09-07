@@ -11,6 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import AppToolbar from '../components/AppToolbar';
+import ExtensionSlot from '../components/ExtensionSlot';
 import {
   useNavigationGuard,
   useOptionalKeyParam,
@@ -126,6 +127,7 @@ export default function Layout() {
         }}
         onMenuClick={() => setDrawerOpen(true)}
       />
+      <ExtensionSlot />
       <AppModalsProvider
         value={{
           openCreateResourceModal,

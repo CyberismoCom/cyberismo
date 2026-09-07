@@ -42,6 +42,7 @@ export type AppConfig = {
   logoutUrl?: string;
   defaultProject?: string;
   presenceEnabled?: boolean;
+  extensionUrl?: string;
 };
 
 // Single card with metadata and children, but no content.
