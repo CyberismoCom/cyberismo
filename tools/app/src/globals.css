@@ -161,21 +161,18 @@
   max-height: 100vh;
 }
 
-@media (min-width: 900px) {
-  /*
-   * Push the first child down so its overlay controls (fullscreen, download)
-   * don't collide with the sticky edit button at the top-right of the card body.
-   */
-  .doc--editable > [data-type='cyberismo-svg-wrapper']:first-child,
-  .doc--editable > .mermaid-block:first-child {
-    margin-top: 40px;
-  }
-}
-
-@media (max-width: 899.95px) {
-  .doc.doc--editable {
-    padding-top: 32px;
-  }
+/*
+ * An editable card body carries a floating edit control at its top right.
+ * Reserve a band for it so the opening block clears it, at every width and for
+ * every kind of block — this replaces a 40px nudge that applied only to a
+ * leading diagram and a 32px inset that applied only below the md breakpoint.
+ *
+ * `.doc.doc--editable` rather than `.doc--editable`: the base `.doc` rule
+ * below sets `padding: 0` at equal specificity and would otherwise win on
+ * source order.
+ */
+.doc.doc--editable {
+  padding-top: 40px;
 }
 
 /* Add margin for inline macro buttons */
