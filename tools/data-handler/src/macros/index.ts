@@ -37,7 +37,7 @@ import type {
 import type BaseMacro from './base-macro.js';
 import TaskQueue from './task-queue.js';
 import { ClingoError } from '@cyberismo/node-clingo';
-import type { Schema } from 'jsonschema';
+import type { SchemaObject } from 'ajv';
 const CURLY_LEFT = '&#123;';
 const CURLY_RIGHT = '&#125;';
 const RAW_BLOCK_OPEN = '{{#raw}}';
@@ -162,7 +162,7 @@ export const macros: {
 export function validateMacroContent<T>(
   macro: MacroMetadata,
   data: unknown,
-  schema?: Schema,
+  schema?: SchemaObject,
 ): T {
   if (!macro.schema) {
     throw new Error(`Macro ${macro.name} does not have a schema`);

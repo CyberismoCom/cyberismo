@@ -11,7 +11,6 @@ import { stub } from 'sinon';
 import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 
-import { Validator } from 'jsonschema';
 import Handlebars from 'handlebars';
 import BaseMacro from '../../src/macros/base-macro.js';
 import { copyDir } from '../../src/utils/file-utils.js';
@@ -83,9 +82,6 @@ const testSchema = {
   },
   required: ['test'],
 };
-
-const validator = new Validator();
-validator.addSchema(testSchema, 'test-schema');
 
 const validAdoc = `
 == Title
@@ -375,7 +371,7 @@ Some content here`;
           context: 'localApp',
         });
         expect(result).toContain('Macro Error');
-        expect(result).toContain('is not of a type');
+        expect(result).toContain('must be number');
       });
       it('percentage malformed JSON (failure)', async () => {
         const macro = `{{#percentage}}"title": "Malformed", "value": 10, "legend": "fail"`;

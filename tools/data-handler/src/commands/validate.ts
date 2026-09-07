@@ -17,9 +17,9 @@ import { basename, dirname, extname, join, parse, resolve } from 'node:path';
 import { readdir } from 'node:fs/promises';
 
 // dependencies
-import { Validator as JSONValidator, type Schema } from 'jsonschema';
+import type { Ajv, ErrorObject, SchemaObject } from 'ajv';
 import { Validator as DirectoryValidator } from 'directory-schema-validator';
-import { parentSchema, schemas } from '@cyberismo/assets';
+import { parentSchema } from '@cyberismo/assets';
 
 // data-handler
 import type {
@@ -43,6 +43,7 @@ import { pathExists } from '../utils/file-utils.js';
 import type { Project } from '../containers/project.js';
 import { readJsonFile } from '../utils/json.js';
 import { type ResourceName, resourceName } from '../utils/resource-utils.js';
+import { normalizeSchemaId, schemaValidator } from '../utils/validate.js';
 
 const invalidNames = new RegExp(
   '[<>:"/\\|?*\x00-\x1F]|^(?:aux|con|clock$|nul|prn|com[1-9]|lpt[1-9])$', // eslint-disable-line no-control-regex
@@ -62,13 +63,18 @@ export interface LengthProvider {
 /**
  * Validates content.
  */
+// ajv locates an error with a JSON pointer, which is empty for the root.
+function errorText(error: ErrorObject): string {
+  return [error.instancePath, error.message].filter(Boolean).join(' ');
+}
+
 export class Validate {
   private static instance: Validate;
 
-  validator: JSONValidator;
+  validator: Ajv;
   directoryValidator: DirectoryValidator;
 
-  private parentSchema: Schema;
+  private parentSchema: SchemaObject;
 
   private validatedCardTypes: Map<string, CardType>;
   private validatedWorkflows: Map<string, Workflow>;
@@ -96,10 +102,9 @@ export class Validate {
       Validate.baseFolder,
       'cardTreeDirectorySchema.json',
     );
-    this.validator = new JSONValidator();
+    this.validator = schemaValidator();
     this.directoryValidator = new DirectoryValidator();
     this.parentSchema = parentSchema;
-    this.addChildSchemas();
     this.validatedFieldTypes = new Map();
     this.validatedWorkflows = new Map();
     this.validatedCardTypes = new Map();
@@ -108,13 +113,6 @@ export class Validate {
   // Helper to get length from types when needed.
   private length<T extends LengthProvider>(item: T): number {
     return item.length;
-  }
-
-  // Loads child schemas to validator.
-  private addChildSchemas() {
-    schemas.forEach((schema) => {
-      this.validator.addSchema(schema as Schema, schema.$id);
-    });
   }
 
   // Validates that 'name' in resources matches filename, location and project prefix.
@@ -341,14 +339,18 @@ export class Validate {
         fileSchema.id = '/' + fileSchema.id;
       }
 
-      const schema = this.validator.schemas[fileSchema.id];
-      if (!schema) {
+      const validate = this.validator.getSchema(
+        normalizeSchemaId(fileSchema.id),
+      );
+      if (!validate) {
         throw new Error(`Unknown schema name '${fileSchema.id}', aborting.`);
       }
-      const result = this.validator.validate(content, schema);
-      for (const error of result.errors) {
-        const msg = `Validation error from '${fullPath}': ${error.property} ${error.message}.`;
-        messages.push(msg);
+      if (!validate(content)) {
+        for (const error of validate.errors ?? []) {
+          messages.push(
+            `Validation error from '${fullPath}': ${errorText(error)}.`,
+          );
+        }
       }
     }
     return messages;
@@ -356,9 +358,11 @@ export class Validate {
 
   // Handles validating .schema files
   private async validateSchemaFiles(files: Dirent[]) {
-    const schema = this.validator.schemas[Validate.dotSchemaSchemaId];
+    const validate = this.validator.getSchema(
+      normalizeSchemaId(Validate.dotSchemaSchemaId),
+    );
 
-    if (!schema) {
+    if (!validate) {
       throw new Error(`'${Validate.dotSchemaSchemaId}' schema not found`);
     }
 
@@ -367,13 +371,12 @@ export class Validate {
     for (const file of files) {
       const fullPath = this.fullPath(file);
 
-      const result = this.validator.validate(
-        await readJsonFile(fullPath),
-        schema,
-      );
-      for (const error of result.errors) {
-        const msg = `Validation error from '${fullPath}': ${error.message}.`;
-        message.push(msg);
+      if (!validate(await readJsonFile(fullPath))) {
+        for (const error of validate.errors ?? []) {
+          message.push(
+            `Validation error from '${fullPath}': ${error.message}.`,
+          );
+        }
       }
     }
     return message;
@@ -673,16 +676,14 @@ export class Validate {
     if (!schemaId.startsWith('/')) {
       schemaId = '/' + schemaId;
     }
-    if (this.validator.schemas[schemaId] === undefined) {
+    const validate = this.validator.getSchema(normalizeSchemaId(schemaId));
+    if (!validate) {
       validationErrors.push(`Unknown schema ${schemaId}`);
-    } else {
-      const result = this.validator.validate(
-        content,
-        this.validator.schemas[schemaId],
-      );
-      for (const error of result.errors) {
-        const msg = `Schema '${schemaId}' validation Error: ${error.message}\n`;
-        validationErrors.push(msg);
+    } else if (!validate(content)) {
+      for (const error of validate.errors ?? []) {
+        validationErrors.push(
+          `Schema '${schemaId}' validation Error: ${error.message}\n`,
+        );
       }
     }
     return validationErrors.join('\n');
