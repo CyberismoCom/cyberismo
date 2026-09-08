@@ -401,7 +401,7 @@ export class Project {
           this.templateTree(
             template.fullName,
             template.templateCardsFolder(),
-          ).reload(),
+          ).load(),
         ),
       );
     } catch (error) {
@@ -422,7 +422,7 @@ export class Project {
    * Populate both the project cards, and all template cards into card cache.
    */
   private async populateCardsCache(): Promise<void> {
-    await this.cardTree.reload();
+    await this.cardTree.load();
     await this.populateTemplateCards();
   }
 
