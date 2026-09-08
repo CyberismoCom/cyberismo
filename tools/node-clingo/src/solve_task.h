@@ -134,15 +134,38 @@ namespace node_clingo
         std::string genericError;
         Napi::Promise::Deferred deferred;
         std::function<void(std::shared_ptr<const Snapshot>)> onCommitted;
+        std::function<void()> onSettled;
+    };
+
+    // Runs `fn` exactly once when it goes out of scope. Copies `fn` at construction so it
+    // stays valid even if the object it was read from (here, the heap-allocated callback
+    // data) is deleted before this guard's destructor runs.
+    struct ScopeExit
+    {
+        std::function<void()> fn;
+        ~ScopeExit()
+        {
+            if (fn)
+            {
+                fn();
+            }
+        }
     };
 
     /**
      * Submits a commit task to the thread pool.
      * The task runs ClingoSolver::solveKnowledge() off the main thread, then marshals the
-     * result back via ThreadSafeFunction to resolve/reject the promise. `onCommitted` runs
-     * inside that same main-thread callback, right before resolving — so its `this` capture
-     * (storing the snapshot on the ClingoContext) is safe: it never runs concurrently with
-     * anything else touching the context, and the context outlives the promises it hands out.
+     * result back via ThreadSafeFunction to resolve/reject the promise. `onCommitted` stores
+     * the snapshot on the ClingoContext on success; `onSettled` releases the Ref() the
+     * caller took before spawning this task, and runs on every completion path (success,
+     * ClingoSolveException, and generic error) via a scope guard. Both run on the main
+     * thread, inside the same callback that resolves/rejects the promise.
+     *
+     * The Ref()/Unref() pairing is what keeps the ClingoContext alive here: a pending
+     * Deferred does not itself keep the JS wrapper reachable, and ClingoContext is a
+     * Napi::ObjectWrap, so without that Ref() a GC finalizer could delete the C++ object
+     * while this task is still running on the pool (e.g. `void ctx.commit()` with no other
+     * reference to `ctx` left in JS).
      */
     inline void spawnCommitTask(
         BS::thread_pool<>& pool,
@@ -151,7 +174,8 @@ namespace node_clingo
         Hash knowledgeHash,
         Napi::Promise::Deferred deferred,
         Napi::Env env,
-        std::function<void(std::shared_ptr<const Snapshot>)> onCommitted)
+        std::function<void(std::shared_ptr<const Snapshot>)> onCommitted,
+        std::function<void()> onSettled)
     {
         auto* data = new CommitCallbackData{
             .result = nullptr,
@@ -159,9 +183,9 @@ namespace node_clingo
             .genericError = {},
             .deferred = deferred,
             .onCommitted = std::move(onCommitted),
+            .onSettled = std::move(onSettled),
         };
 
-        // could be shared
         auto tsfn = Napi::ThreadSafeFunction::New(
             env,
             Napi::Function::New(env, [](const Napi::CallbackInfo&) {}),
@@ -187,6 +211,10 @@ namespace node_clingo
 
             tsfn.BlockingCall(data, [](Napi::Env env, Napi::Function, CommitCallbackData* d) {
                 Napi::HandleScope scope(env);
+
+                // Releases the Ref() taken before this task was spawned, on every path
+                // below -- see spawnCommitTask's doc comment for why that Ref() exists.
+                ScopeExit releaseRef{d->onSettled};
 
                 if (d->solveException)
                 {

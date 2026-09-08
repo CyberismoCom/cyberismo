@@ -13,7 +13,6 @@
 #ifndef NODE_CLINGO_CLINGO_SOLVER_H
 #define NODE_CLINGO_CLINGO_SOLVER_H
 
-#include <chrono>
 #include <cstdint>
 #include <sstream>
 
@@ -27,30 +26,11 @@
 
 namespace node_clingo
 {
-    // The two timestamps solve() and solveKnowledge() both derive add/ground stats from.
-    struct GroundTimings
-    {
-        std::chrono::high_resolution_clock::time_point afterAdd;
-        std::chrono::high_resolution_clock::time_point afterGround;
-    };
-
     class ClingoSolver {
       public:
         SolveResult solve(const Query& query);
         // Grounds and solves the knowledge programs alone and returns every atom of the model.
         std::shared_ptr<Snapshot> solveKnowledge(const Query& query, uint64_t revision, Hash knowledgeHash);
-
-      private:
-        // Assembles `programs` into control's base part (AST replay, or parse-string fallback
-        // for content that did not pre-parse) and grounds it through the registered function
-        // handlers. Shared by solve() and solveKnowledge(): both ground a set of stored
-        // programs the same way and only differ in how they collect the resulting model.
-        GroundTimings groundPrograms(
-            Clingo::Control& control,
-            const std::vector<std::shared_ptr<const Program>>& programs,
-            const Clingo::Logger& logger,
-            bool& todayCalled,
-            std::string& currentKey);
     };
 } // namespace node_clingo
 

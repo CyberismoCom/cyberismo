@@ -25,25 +25,33 @@
 
 namespace node_clingo
 {
-    // Conclusions of the knowledge layer at one revision. Symbols are interned handles, so
-    // this is ~8 bytes per atom; fact_nodes are the same atoms as bodiless Rule nodes, built
-    // once so every solve replays them like a pre-parsed program.
+    // Conclusions of the knowledge layer at one revision. `symbols` are interned handles
+    // (~8 bytes each); the dominant cost is `fact_nodes` -- each is ~4 AST nodes (Rule,
+    // Literal, SymbolicAtom, SymbolicTerm), several hundred bytes and ~8 allocations per
+    // atom, so tens of MB at the ~21.6k atoms expected on the real project. Built once so
+    // every solve replays them like a pre-parsed program.
     struct Snapshot
     {
         uint64_t revision = 0;
         Hash knowledgeHash = 0; // XXH over the knowledge programs' hashes at commit time
         std::vector<Clingo::Symbol> symbols;
         std::vector<Clingo::AST::Node> fact_nodes;
-        mutable std::mutex ast_mutex; // AST replay mutates node refcounts (see Program::ast_mutex)
-        int64_t valid_until = 0;      // epoch ms; 0 = no @today involved
-        Stats stats;
+        // Deliberate insurance, not load-bearing for these node shapes: build_fact_nodes
+        // never emits a comparison guard, which is the case in Program::ast_mutex that
+        // actually copies a SAST handle during replay (in parseRightGuards). Kept in case
+        // fact_nodes' shape or clingo's replay internals change later.
+        mutable std::mutex ast_mutex;
+        int64_t valid_until = 0; // epoch ms; 0 = no @today involved
+        Stats stats{};
     };
 
     // Ground fact rule: Rule(loc, Literal(loc, NoSign, SymbolicAtom(SymbolicTerm(loc, sym))), []).
     inline std::vector<Clingo::AST::Node> build_fact_nodes(const std::vector<Clingo::Symbol>& symbols)
     {
         using namespace Clingo::AST;
-        // String literals: the location outlives every node built from it.
+        // clingo interns location filenames (copies the content, not the pointer), so a
+        // plain string literal here is just a stable, readable label -- not a lifetime
+        // requirement on our end.
         Clingo::Location loc{"<snapshot>", "<snapshot>", 0, 0, 0, 0};
         std::vector<Node> empty_body;
         std::vector<Node> nodes;

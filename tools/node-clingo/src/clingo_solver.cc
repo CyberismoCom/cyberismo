@@ -54,7 +54,19 @@ namespace node_clingo
         }
     };
 
-    GroundTimings ClingoSolver::groundPrograms(
+    // The two timestamps solve() and solveKnowledge() both derive add/ground stats from.
+    // File-local: groundPrograms() touches no ClingoSolver state, so it need not be a member.
+    struct GroundTimings
+    {
+        std::chrono::high_resolution_clock::time_point afterAdd;
+        std::chrono::high_resolution_clock::time_point afterGround;
+    };
+
+    // Assembles `programs` into control's base part (AST replay, or parse-string fallback
+    // for content that did not pre-parse) and grounds it through the registered function
+    // handlers. Shared by solve() and solveKnowledge(): both ground a set of stored
+    // programs the same way and only differ in how they collect the resulting model.
+    static GroundTimings groundPrograms(
         Clingo::Control& control,
         const std::vector<std::shared_ptr<const Program>>& programs,
         const Clingo::Logger& logger,
@@ -169,6 +181,10 @@ namespace node_clingo
         std::vector<Clingo::Symbol> symbols;
         bool on_model(Clingo::Model& model) override
         {
+            // All, not Atoms: ignores any #show in the knowledge layer, so every derived
+            // atom is captured regardless of visibility. Assumes the knowledge category has
+            // no `#show <term> : ...` directive -- such a term would land in `symbols` (and
+            // then in `fact_nodes`) as if it were itself a fact.
             auto syms = model.symbols(Clingo::ShowType::All);
             symbols.assign(syms.begin(), syms.end());
             return false;
@@ -192,7 +208,16 @@ namespace node_clingo
             GroundTimings timings = groundPrograms(control, query.programs, logger, todayCalled, currentKey);
 
             SymbolCollector collector;
-            control.solve(Clingo::SymbolicLiteralSpan{}, &collector).get();
+            Clingo::SolveResult result = control.solve(Clingo::SymbolicLiteralSpan{}, &collector).get();
+
+            // An UNSAT knowledge layer (e.g. a violated integrity constraint) never calls
+            // on_model, so `collector.symbols` would silently stay empty. Reject instead of
+            // handing solve() an empty-but-"successful" snapshot to replay.
+            if (!result.is_satisfiable())
+            {
+                throw ClingoSolveException(
+                    "commit(): the knowledge layer is unsatisfiable", std::move(logMessages), currentKey);
+            }
 
             auto timeAfterSolve = std::chrono::high_resolution_clock::now();
 
@@ -203,12 +228,19 @@ namespace node_clingo
             snap->fact_nodes = build_fact_nodes(snap->symbols);
             snap->valid_until = todayCalled ? next_local_midnight_epoch_ms() : 0;
             snap->stats = {
-                .glue = std::chrono::microseconds(0), // set by the caller
+                .glue = std::chrono::microseconds(0),
                 .add = std::chrono::duration_cast<std::chrono::microseconds>(timings.afterAdd - timeStart),
                 .ground = std::chrono::duration_cast<std::chrono::microseconds>(timings.afterGround - timings.afterAdd),
                 .solve = std::chrono::duration_cast<std::chrono::microseconds>(timeAfterSolve - timings.afterGround),
             };
             return snap;
+        }
+        catch (const ClingoSolveException&)
+        {
+            // Already fully formed (the UNSAT check above). Let it propagate as-is: the
+            // generic handler below would re-wrap it from e.what() and lose the log
+            // messages, which were already moved out of `logMessages` by the first throw.
+            throw;
         }
         catch (const std::exception& e)
         {

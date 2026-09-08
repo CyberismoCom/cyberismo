@@ -39,6 +39,9 @@ static BS::thread_pool<>& get_thread_pool()
 
 namespace
 {
+    // Task 2 will also need to name this category, so it is not a local convenience.
+    constexpr const char* kKnowledgeCategory = "knowledge";
+
     /**
      * Parse refs array argument from N-API info at given index.
      * Throws TypeError if not an array of strings. Returns a vector of refs.
@@ -94,10 +97,11 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
     ClingoContext(const Napi::CallbackInfo& info) : Napi::ObjectWrap<ClingoContext>(info) {}
 
     node_clingo::ProgramStore m_store;
+
+  private:
     std::shared_ptr<const node_clingo::Snapshot> m_snapshot;
     uint64_t m_revision = 0;
 
-  private:
     /**
      * setProgram(key, program, categories?)
      */
@@ -234,15 +238,22 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
     {
         Napi::Env env = info.Env();
         auto deferred = Napi::Promise::Deferred::New(env);
-        node_clingo::Query query = m_store.prepareQuery("", {"knowledge"});
+        node_clingo::Query query = m_store.prepareQuery("", {kKnowledgeCategory});
         if (query.programs.size() <= 1) // only the empty __program__
         {
-            deferred.Reject(Napi::Error::New(env, "commit(): no programs in category \"knowledge\"").Value());
+            deferred.Reject(
+                Napi::Error::New(env, std::string("commit(): no programs in category \"") + kKnowledgeCategory + "\"")
+                    .Value());
             return deferred.Promise();
         }
 
         uint64_t revision = ++m_revision;
-        node_clingo::Hash knowledgeHash = m_store.categoryHash("knowledge");
+        node_clingo::Hash knowledgeHash = m_store.categoryHash(kKnowledgeCategory);
+
+        // Keeps this ClingoContext alive until the commit settles: see spawnCommitTask's
+        // doc comment for why a pending Deferred alone does not do that. Released by
+        // onSettled below, on every completion path.
+        Ref();
         node_clingo::spawnCommitTask(
             get_thread_pool(),
             std::move(query),
@@ -250,7 +261,17 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
             knowledgeHash,
             deferred,
             env,
-            [this](std::shared_ptr<const node_clingo::Snapshot> snap) { m_snapshot = std::move(snap); });
+            [this](std::shared_ptr<const node_clingo::Snapshot> snap) {
+                // Pool tasks can complete out of submission order; never let an older
+                // commit clobber a newer one. A commit that is rejected (or superseded
+                // here) still leaves a gap in the revision sequence, so nothing may treat
+                // revisions as contiguous.
+                if (!m_snapshot || snap->revision > m_snapshot->revision)
+                {
+                    m_snapshot = std::move(snap);
+                }
+            },
+            [this]() { Unref(); });
         return deferred.Promise();
     }
 };

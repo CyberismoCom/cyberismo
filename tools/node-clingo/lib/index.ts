@@ -114,6 +114,45 @@ export class ClingoError extends Error {
 }
 
 /**
+ * Converts a native rejection carrying `{ errors, warnings, program? }` details (as
+ * `spawnSolveTask`/`spawnCommitTask` attach on a ClingoSolveException) into a ClingoError
+ * with a friendlier message for parse/syntax failures. Anything else -- a plain Error, or
+ * any non-Error value -- is returned unchanged.
+ */
+function toClingoError(error: unknown): unknown {
+  if (
+    error instanceof Error &&
+    'details' in error &&
+    typeof error.details === 'object' &&
+    error.details !== null &&
+    'errors' in error.details &&
+    'warnings' in error.details
+  ) {
+    const {
+      errors,
+      warnings,
+      program: prog,
+    } = error.details as {
+      errors: string[];
+      warnings: string[];
+      program?: string;
+    };
+
+    const errorMessage =
+      error.message === 'parsing failed' || error.message === 'syntax error'
+        ? `Parsing failed when processing program '${prog === '__program__' ? 'main program' : prog}' with errors: ${errors.join(', ')}`
+        : error.message;
+
+    return new ClingoError(errorMessage, {
+      errors,
+      warnings,
+      program: prog,
+    });
+  }
+  return error;
+}
+
+/**
  * Interface for Clingo solver result
  */
 export interface ClingoResult {
@@ -171,7 +210,11 @@ export class ClingoContext {
    * Solves the `knowledge` category once and keeps its conclusions for snapshot solves.
    */
   async commit(): Promise<SnapshotInfo> {
-    return this._ctx.commit();
+    try {
+      return await this._ctx.commit();
+    } catch (error) {
+      throw toClingoError(error);
+    }
   }
 
   /**
@@ -188,36 +231,7 @@ export class ClingoContext {
     try {
       return await this._ctx.solve(program, categories ?? []);
     } catch (error) {
-      if (
-        error instanceof Error &&
-        'details' in error &&
-        typeof error.details === 'object' &&
-        error.details !== null &&
-        'errors' in error.details &&
-        'warnings' in error.details
-      ) {
-        const {
-          errors,
-          warnings,
-          program: prog,
-        } = error.details as {
-          errors: string[];
-          warnings: string[];
-          program?: string;
-        };
-
-        const errorMessage =
-          error.message === 'parsing failed' || error.message === 'syntax error'
-            ? `Parsing failed when processing program '${prog === '__program__' ? 'main program' : prog}' with errors: ${errors.join(', ')}`
-            : error.message;
-
-        throw new ClingoError(errorMessage, {
-          errors,
-          warnings,
-          program: prog,
-        });
-      }
-      throw error;
+      throw toClingoError(error);
     }
   }
 }

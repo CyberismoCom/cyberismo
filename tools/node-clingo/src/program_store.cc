@@ -198,7 +198,13 @@ namespace node_clingo
         XXH3_64bits_reset(state);
         for (const auto& p : programs)
         {
-            XXH3_64bits_update(state, &p->hash, 8);
+            // Must keep folding the same way prepareQuery() does (hash == 0 is the
+            // synthetic __program__ placeholder, not a real content hash) or the two
+            // would disagree about what a category's content hash is.
+            if (p->hash != 0)
+            {
+                XXH3_64bits_update(state, &p->hash, 8);
+            }
         }
         Hash h = XXH3_64bits_digest(state);
         XXH3_freeState(state);
