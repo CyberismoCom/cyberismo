@@ -30,6 +30,16 @@ interface NativeClingoContext {
   removeAllPrograms(): void;
   solve(program: string, categories: string[]): Promise<RawClingoResult>;
   buildProgram(program: string, categories: string[]): string;
+  commit(): Promise<SnapshotInfo>;
+}
+
+/**
+ * Result of committing the `knowledge` category to a snapshot.
+ */
+export interface SnapshotInfo {
+  revision: number;
+  atoms: number;
+  stats: { add: number; ground: number; solve: number };
 }
 
 /**
@@ -155,6 +165,13 @@ export class ClingoContext {
    */
   buildProgram(program: string, categories?: string[]): string {
     return this._ctx.buildProgram(program, categories ?? []);
+  }
+
+  /**
+   * Solves the `knowledge` category once and keeps its conclusions for snapshot solves.
+   */
+  async commit(): Promise<SnapshotInfo> {
+    return this._ctx.commit();
   }
 
   /**

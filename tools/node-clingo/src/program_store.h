@@ -110,6 +110,12 @@ namespace node_clingo
          * @returns The query
          */
         Query prepareQuery(const std::string& query, const std::vector<std::string>& categories);
+        /**
+         * Hashes the member programs of a category.
+         * @param category The category
+         * @returns XXH3 over the member programs' content hashes; 0 when the category is empty
+         */
+        Hash categoryHash(const std::string& category);
     };
 
 } // namespace node_clingo

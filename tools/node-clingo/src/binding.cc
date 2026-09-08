@@ -11,6 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 #include <chrono>
+#include <cstdint>
+#include <memory>
 #include <sstream>
 #include <string>
 
@@ -19,6 +21,7 @@
 
 #include "napi_helpers.h"
 #include "program_store.h"
+#include "snapshot.h"
 #include "solve_task.h"
 #include "validator.h"
 #include "xxhash.h"
@@ -82,6 +85,7 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
                 InstanceMethod("removeAllPrograms", &ClingoContext::RemoveAllPrograms),
                 InstanceMethod("solve", &ClingoContext::Solve),
                 InstanceMethod("buildProgram", &ClingoContext::BuildProgram),
+                InstanceMethod("commit", &ClingoContext::Commit),
             });
         exports.Set(Napi::String::New(env, "ClingoContext"), ctor);
         return exports;
@@ -90,6 +94,8 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
     ClingoContext(const Napi::CallbackInfo& info) : Napi::ObjectWrap<ClingoContext>(info) {}
 
     node_clingo::ProgramStore m_store;
+    std::shared_ptr<const node_clingo::Snapshot> m_snapshot;
+    uint64_t m_revision = 0;
 
   private:
     /**
@@ -218,6 +224,34 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
         node_clingo::spawnSolveTask(
             get_thread_pool(), g_cache, std::move(query), startTime, afterCacheCheckTime, std::move(deferred), env);
         return promise;
+    }
+
+    /**
+     * commit() → Promise<{ revision, atoms, stats }>: solves the `knowledge` category once
+     * on the pool and keeps its conclusions as a snapshot for later cheap replay.
+     */
+    Napi::Value Commit(const Napi::CallbackInfo& info)
+    {
+        Napi::Env env = info.Env();
+        auto deferred = Napi::Promise::Deferred::New(env);
+        node_clingo::Query query = m_store.prepareQuery("", {"knowledge"});
+        if (query.programs.size() <= 1) // only the empty __program__
+        {
+            deferred.Reject(Napi::Error::New(env, "commit(): no programs in category \"knowledge\"").Value());
+            return deferred.Promise();
+        }
+
+        uint64_t revision = ++m_revision;
+        node_clingo::Hash knowledgeHash = m_store.categoryHash("knowledge");
+        node_clingo::spawnCommitTask(
+            get_thread_pool(),
+            std::move(query),
+            revision,
+            knowledgeHash,
+            deferred,
+            env,
+            [this](std::shared_ptr<const node_clingo::Snapshot> snap) { m_snapshot = std::move(snap); });
+        return deferred.Promise();
     }
 };
 

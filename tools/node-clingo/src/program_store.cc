@@ -187,4 +187,22 @@ namespace node_clingo
         return result;
     }
 
+    Hash ProgramStore::categoryHash(const std::string& category)
+    {
+        auto programs = programByReferences({category});
+        if (programs.empty())
+        {
+            return 0;
+        }
+        XXH3_state_t* state = XXH3_createState();
+        XXH3_64bits_reset(state);
+        for (const auto& p : programs)
+        {
+            XXH3_64bits_update(state, &p->hash, 8);
+        }
+        Hash h = XXH3_64bits_digest(state);
+        XXH3_freeState(state);
+        return h;
+    }
+
 } // namespace node_clingo
