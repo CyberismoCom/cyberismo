@@ -52,7 +52,7 @@ import type {
   TemplateMetadata,
   Workflow,
 } from '../../interfaces/resource-interfaces.js';
-import { ClingoContext } from '@cyberismo/node-clingo';
+import { ClingoContext, ClingoError } from '@cyberismo/node-clingo';
 import { generateReportContent } from '../../utils/report.js';
 import { lpFiles, graphvizReport } from '@cyberismo/assets';
 import {
@@ -62,16 +62,60 @@ import {
 
 // Define the all category that will be used for all programs
 const ALL_CATEGORY = 'all';
+// Programs whose conclusions commit() can snapshot (no #show/#external/etc).
+const KNOWLEDGE_CATEGORY = 'knowledge';
+// Programs that query the knowledge layer rather than add to it.
+const QUERY_LAYER_CATEGORY = 'queryLayer';
 
 export class CalculationEngine {
   constructor(private project: Project) {}
 
   private clingo = new ClingoContext();
 
+  // Feature flag for the snapshot/commit path; read per instance so tests can
+  // toggle it by constructing a fresh engine under a different env value.
+  private derivedCacheEnabled = process.env.CYBERISMO_DERIVED_CACHE === '1';
+
+  // Resolves once the current knowledge snapshot is ready to read. Always
+  // resolves -- a failed commit() falls back to full solves rather than
+  // wedging reads open (see scheduleCommit()).
+  private snapshotReady: Promise<void> = Promise.resolve();
+
   private get logger() {
     return getChildLogger({
       module: 'calculate',
     });
+  }
+
+  // Re-solves the knowledge layer after it changed. run() awaits
+  // snapshotReady before trying the snapshot path, so a read that follows a
+  // write sees the change; a rejected commit just leaves it to fall back.
+  private scheduleCommit() {
+    if (!this.derivedCacheEnabled) return;
+    this.snapshotReady = this.clingo.commit().then(
+      (snapshot) => {
+        this.logger.trace(
+          {
+            clingo: true,
+            revision: snapshot.revision,
+            atoms: snapshot.atoms,
+            stats: snapshot.stats,
+          },
+          'Knowledge snapshot committed',
+        );
+      },
+      (error) => {
+        this.logger.warn(
+          {
+            clingo: true,
+            message: error instanceof Error ? error.message : String(error),
+            program:
+              error instanceof ClingoError ? error.details.program : undefined,
+          },
+          'Knowledge snapshot failed; reads fall back to full solves',
+        );
+      },
+    );
   }
 
   /**
@@ -118,7 +162,10 @@ export class CalculationEngine {
 
   private async setCardContent(card: Card) {
     const cardContent = await createCardFacts(card, this.project);
-    this.clingo.setProgram(card.key, cardContent, [ALL_CATEGORY]);
+    this.clingo.setProgram(card.key, cardContent, [
+      ALL_CATEGORY,
+      KNOWLEDGE_CATEGORY,
+    ]);
   }
 
   // Generates logic programs related to modules (and project itself).
@@ -145,12 +192,15 @@ export class CalculationEngine {
       .map((cardType) => cardType.show());
     for (const cardType of cardTypes) {
       const cardTypeContent = createCardTypeFacts(cardType);
-      this.clingo.setProgram(cardType.name, cardTypeContent, [ALL_CATEGORY]);
+      this.clingo.setProgram(cardType.name, cardTypeContent, [
+        ALL_CATEGORY,
+        KNOWLEDGE_CATEGORY,
+      ]);
     }
     this.clingo.setProgram(
       'calculatedFields',
       createCalculatedFieldRules(cardTypes),
-      [ALL_CATEGORY],
+      [ALL_CATEGORY, KNOWLEDGE_CATEGORY],
     );
   }
 
@@ -160,7 +210,10 @@ export class CalculationEngine {
     for (const fieldType of fieldTypes) {
       const ft = fieldType.show();
       const fieldTypeContent = createFieldTypeFacts(ft);
-      this.clingo.setProgram(ft.name, fieldTypeContent, [ALL_CATEGORY]);
+      this.clingo.setProgram(ft.name, fieldTypeContent, [
+        ALL_CATEGORY,
+        KNOWLEDGE_CATEGORY,
+      ]);
     }
   }
 
@@ -170,7 +223,10 @@ export class CalculationEngine {
     for (const linkType of linkTypes) {
       const lt = linkType.show();
       const linkTypeContent = createLinkTypeFacts(lt);
-      this.clingo.setProgram(lt.name, linkTypeContent, [ALL_CATEGORY]);
+      this.clingo.setProgram(lt.name, linkTypeContent, [
+        ALL_CATEGORY,
+        KNOWLEDGE_CATEGORY,
+      ]);
     }
   }
 
@@ -180,7 +236,10 @@ export class CalculationEngine {
     for (const workflow of workflows) {
       const wf = workflow.show();
       const workflowContent = createWorkflowFacts(wf);
-      this.clingo.setProgram(wf.name, workflowContent, [ALL_CATEGORY]);
+      this.clingo.setProgram(wf.name, workflowContent, [
+        ALL_CATEGORY,
+        KNOWLEDGE_CATEGORY,
+      ]);
     }
   }
 
@@ -190,7 +249,10 @@ export class CalculationEngine {
     for (const report of reports) {
       const rep = report.show();
       const reportContent = createReportFacts(rep);
-      this.clingo.setProgram(rep.name, reportContent, [ALL_CATEGORY]);
+      this.clingo.setProgram(rep.name, reportContent, [
+        ALL_CATEGORY,
+        KNOWLEDGE_CATEGORY,
+      ]);
     }
   }
 
@@ -200,7 +262,10 @@ export class CalculationEngine {
     for (const skill of skills) {
       const skl = skill.show();
       const skillContent = createSkillFacts(skl);
-      this.clingo.setProgram(skl.name, skillContent, [ALL_CATEGORY]);
+      this.clingo.setProgram(skl.name, skillContent, [
+        ALL_CATEGORY,
+        KNOWLEDGE_CATEGORY,
+      ]);
     }
   }
 
@@ -213,9 +278,15 @@ export class CalculationEngine {
       const cards = this.getCards(tem.name);
       for (const card of cards) {
         const cardContent = await createCardFacts(card, this.project);
-        this.clingo.setProgram(card.key, cardContent, [ALL_CATEGORY]);
+        this.clingo.setProgram(card.key, cardContent, [
+          ALL_CATEGORY,
+          KNOWLEDGE_CATEGORY,
+        ]);
       }
-      this.clingo.setProgram(tem.name, templateContent, [ALL_CATEGORY]);
+      this.clingo.setProgram(tem.name, templateContent, [
+        ALL_CATEGORY,
+        KNOWLEDGE_CATEGORY,
+      ]);
     }
   }
 
@@ -236,7 +307,10 @@ export class CalculationEngine {
           );
           continue;
         }
-        this.clingo.setProgram(calc.name, content.calculation, [ALL_CATEGORY]);
+        this.clingo.setProgram(calc.name, content.calculation, [
+          ALL_CATEGORY,
+          KNOWLEDGE_CATEGORY,
+        ]);
       } catch (error) {
         this.logger.warn(
           error,
@@ -274,9 +348,6 @@ export class CalculationEngine {
   //
   private async run(query: string, context: Context): Promise<string[]> {
     try {
-      // Use the main category to include all programs
-      const basePrograms = [ALL_CATEGORY];
-
       this.logger.trace(
         {
           clingo: true,
@@ -287,10 +358,32 @@ export class CalculationEngine {
       // Inline context facts into the query string to avoid race conditions
       // (concurrent reads could overwrite each other's 'context' program key)
       const contextFacts = createContextFacts(context);
-      const result = await this.clingo.solve(
-        contextFacts + '\n' + query,
-        basePrograms,
-      );
+      const program = contextFacts + '\n' + query;
+
+      let result;
+      if (this.derivedCacheEnabled) {
+        // A write's commit may still be in flight; wait so this read sees it.
+        await this.snapshotReady;
+        try {
+          result = await this.clingo.solve(program, [QUERY_LAYER_CATEGORY], {
+            snapshot: true,
+          });
+        } catch (error) {
+          const code = (error as { code?: string }).code;
+          if (code !== 'SNAPSHOT_MISSING' && code !== 'SNAPSHOT_STALE') {
+            throw error;
+          }
+          this.logger.trace(
+            { clingo: true, code },
+            'Snapshot unavailable, full solve',
+          );
+          this.scheduleCommit();
+          result = await this.clingo.solve(program, [ALL_CATEGORY]);
+        }
+      } else {
+        result = await this.clingo.solve(program, [ALL_CATEGORY]);
+      }
+
       this.logger.trace(
         { stats: result.stats, clingo: true },
         'Solve completed',
@@ -325,13 +418,21 @@ export class CalculationEngine {
     this.clingo.removeAllPrograms();
 
     // Set base common programs with main category
-    this.clingo.setProgram('base', lpFiles.common.base, [ALL_CATEGORY]);
+    this.clingo.setProgram('base', lpFiles.common.base, [
+      ALL_CATEGORY,
+      KNOWLEDGE_CATEGORY,
+    ]);
     this.clingo.setProgram('queryLanguage', lpFiles.common.queryLanguage, [
       ALL_CATEGORY,
+      QUERY_LAYER_CATEGORY,
     ]);
-    this.clingo.setProgram('utils', lpFiles.common.utils, [ALL_CATEGORY]);
+    this.clingo.setProgram('utils', lpFiles.common.utils, [
+      ALL_CATEGORY,
+      QUERY_LAYER_CATEGORY,
+    ]);
     this.clingo.setProgram('modules', await this.generateModules(), [
       ALL_CATEGORY,
+      KNOWLEDGE_CATEGORY,
     ]);
 
     // Set individual resource type programs
@@ -351,6 +452,11 @@ export class CalculationEngine {
       },
       'Logic program set',
     );
+
+    this.scheduleCommit();
+    // Hold the write lock until the snapshot is ready, so a read that
+    // follows this write sees it.
+    await this.snapshotReady;
   }
 
   /**
@@ -359,6 +465,7 @@ export class CalculationEngine {
    */
   public async handleCardChanged(changedCard: Card) {
     await this.setCardContent(changedCard);
+    this.scheduleCommit();
   }
 
   /**
@@ -369,6 +476,7 @@ export class CalculationEngine {
   public async handleCardMoved() {
     // Rebuild entire tree structure from scratch to ensure all relationships are correct
     await this.setCardTreeContent();
+    this.scheduleCommit();
   }
 
   /**
@@ -391,6 +499,7 @@ export class CalculationEngine {
     } catch {
       this.logger.warn('Removing program failed');
     }
+    this.scheduleCommit();
   }
 
   /**
@@ -404,6 +513,9 @@ export class CalculationEngine {
     for (const card of cards) {
       await this.setCardContent(card);
     }
+    // Commit before the creation query below, so it sees the new cards on
+    // the snapshot path.
+    this.scheduleCommit();
     const cardKeys = cards.map((item) => item.key);
     const queryResult = await this.creationQuery(cardKeys, 'localApp');
     await this.project.executeSideEffects(
