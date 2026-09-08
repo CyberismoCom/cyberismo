@@ -146,22 +146,6 @@ resultField((Key, Field), "displayValue", EnumDisplayValue, "shortText") :-
     enumField(Key, Field, Value),
     field((Field, Value), "enumDisplayValue", EnumDisplayValue).
 
-% Allow specifying up to 3 fields at the same time
-field(Key, Field, Value) :-
-    fields(Key, Field, Value, _, _).
-
-field(Key, Field, Value) :-
-    fields(Key, _, _, Field, Value).
-
-field(Key, Field, Value) :-
-    fields(Key, Field, Value, _, _, _, _).
-
-field(Key, Field, Value) :-
-    fields(Key, _, _, Field, Value, _, _).
-    
-field(Key, Field, Value) :-
-    fields(Key, _, _, _, _, Field, Value).
-
 % allow using field directly
 % fields are always shown
 

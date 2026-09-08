@@ -31,7 +31,7 @@ q1_showAll(Key) :- q1_anyResult(Key); q1_resultLevel(Key,Level,_); q1_selectAll(
 q1_showField(Key,Field) :- q1_anyResult(Key); q1_resultLevel(Key,Level,_); select(Level,Field); not q1_queryError.
 q1_showField(Key,Field) :- q1_anyResult(Key); q1_resultLevel(Key,Level,Collection); q1_select(Level,Collection,Field); not q1_queryError.
 % showField is also defined if showAll is defined so there is only a single show predicate for each result
-q1_showField(Key,Field) :- q1_showAll(Key); q1_field(Key,Field,_).
+q1_showField(Key,Field) :- q1_showAll(Key); field(Key,Field,_).
 % Allow specifying up to 3 fields at the same time for showField, similar to field
 % For specifying 2 fields
 q1_resultField(Key,Field,Value,DataType) :- q1_resultFields(Key,Field,Value,DataType,_,_,_).
@@ -45,29 +45,23 @@ q1_resultField(Key,Field,Value,DataType) :- q1_resultFields(Key,_,_,_,_,_,_,Fiel
 % "field" of result/child result "key" has value "value",
 % data type of the field is included, if not specified, it is shortText
 % a field term like this is returned for all other fields except enum and list
-#show q1_field(Key,Field,Value,DataType) : q1_field(Key,Field,Value); q1_field(Field,"dataType",DataType); DataType != "enum"; DataType != "list"; q1_showField(Key,Field).
+#show q1_field(Key,Field,Value,DataType) : field(Key,Field,Value); field(Field,"dataType",DataType); DataType != "enum"; DataType != "list"; q1_showField(Key,Field).
 #show q1_field(Key,Field,Value,DataType) : DataType != "enum"; DataType != "list"; q1_resultField(Key,Field,Value,DataType).
-#show q1_field(Key,Field,Value,"shortText") : q1_field(Key,Field,Value); not q1_field(Field,"dataType",_); q1_showField(Key,Field).
+#show q1_field(Key,Field,Value,"shortText") : field(Key,Field,Value); not field(Field,"dataType",_); q1_showField(Key,Field).
 % list
 q1_listField(Key,Field,Value) :- q1_resultField(Key,Field,Value,"list").
-q1_listField(Key,Field,Value) :- q1_field(Key,Field,Value); q1_field(Field,"dataType","list"); q1_showField(Key,Field).
+q1_listField(Key,Field,Value) :- field(Key,Field,Value); field(Field,"dataType","list"); q1_showField(Key,Field).
 q1_childResult(Key,(Key,Field,Value),Field) :- q1_listField(Key,Field,Value).
 q1_resultField((Key,Field,Value),"value",Value,"shortText") :- q1_listField(Key,Field,Value).
-q1_resultField((Key,Field,Value),"index",Index,"integer") :- q1_listField(Key,Field,Value); q1_field((Field,Value),"index",Index).
-q1_resultField((Key,Field,Value),"displayName",EnumDisplayValue,"shortText") :- q1_listField(Key,Field,Value); q1_field((Field,Value),"enumDisplayValue",EnumDisplayValue).
+q1_resultField((Key,Field,Value),"index",Index,"integer") :- q1_listField(Key,Field,Value); field((Field,Value),"index",Index).
+q1_resultField((Key,Field,Value),"displayName",EnumDisplayValue,"shortText") :- q1_listField(Key,Field,Value); field((Field,Value),"enumDisplayValue",EnumDisplayValue).
 % enum
 q1_enumField(Key,Field,Value) :- q1_resultField(Key,Field,Value,"enum").
-q1_enumField(Key,Field,Value) :- q1_field(Key,Field,Value); q1_field(Field,"dataType","enum"); q1_showField(Key,Field).
+q1_enumField(Key,Field,Value) :- field(Key,Field,Value); field(Field,"dataType","enum"); q1_showField(Key,Field).
 q1_childObject(Key,(Key,Field),Field) :- q1_enumField(Key,Field,_).
 q1_resultField((Key,Field),"value",Value,"shortText") :- q1_enumField(Key,Field,Value).
-q1_resultField((Key,Field),"index",Index,"integer") :- q1_enumField(Key,Field,Value); q1_field((Field,Value),"index",Index).
-q1_resultField((Key,Field),"displayValue",EnumDisplayValue,"shortText") :- q1_enumField(Key,Field,Value); q1_field((Field,Value),"enumDisplayValue",EnumDisplayValue).
-% Allow specifying up to 3 fields at the same time
-q1_field(Key,Field,Value) :- fields(Key,Field,Value,_,_).
-q1_field(Key,Field,Value) :- fields(Key,_,_,Field,Value).
-q1_field(Key,Field,Value) :- fields(Key,Field,Value,_,_,_,_).
-q1_field(Key,Field,Value) :- fields(Key,_,_,Field,Value,_,_).
-q1_field(Key,Field,Value) :- fields(Key,_,_,_,_,Field,Value).
+q1_resultField((Key,Field),"index",Index,"integer") :- q1_enumField(Key,Field,Value); field((Field,Value),"index",Index).
+q1_resultField((Key,Field),"displayValue",EnumDisplayValue,"shortText") :- q1_enumField(Key,Field,Value); field((Field,Value),"enumDisplayValue",EnumDisplayValue).
 % allow using field directly
 % fields are always shown
 % childResultCollection(ParentKey, Collection): Defines a childResult. Allows guaranteeing an empty list, if no elements are present
@@ -123,8 +117,8 @@ q1_childResult(Card,(Card,Destination,LinkType,LinkDescription,"outbound"),"link
 q1_childResult(Card,(Source,Card,LinkType,"","inbound"),"links") :- link(Source,Card,LinkType); q1_showField(Card,"links").
 q1_childResult(Card,(Source,Card,LinkType,LinkDescription,"inbound"),"links") :- link(Source,Card,LinkType,LinkDescription); q1_showField(Card,"links").
 % links: displayName
-q1_resultField((Source,Destination,LinkType,LinkDescription,Direction),"displayName",DisplayName,"shortText") :- q1_childResult(_,(Source,Destination,LinkType,LinkDescription,Direction),"links"); Direction = "outbound"; q1_field(LinkType,"outboundDisplayName",DisplayName).
-q1_resultField((Source,Destination,LinkType,LinkDescription,Direction),"displayName",DisplayName,"shortText") :- q1_childResult(_,(Source,Destination,LinkType,LinkDescription,Direction),"links"); Direction = "inbound"; q1_field(LinkType,"inboundDisplayName",DisplayName).
+q1_resultField((Source,Destination,LinkType,LinkDescription,Direction),"displayName",DisplayName,"shortText") :- q1_childResult(_,(Source,Destination,LinkType,LinkDescription,Direction),"links"); Direction = "outbound"; field(LinkType,"outboundDisplayName",DisplayName).
+q1_resultField((Source,Destination,LinkType,LinkDescription,Direction),"displayName",DisplayName,"shortText") :- q1_childResult(_,(Source,Destination,LinkType,LinkDescription,Direction),"links"); Direction = "inbound"; field(LinkType,"inboundDisplayName",DisplayName).
 % links: link description
 q1_resultField((Source,Destination,LinkType,LinkDescription,Direction),"linkDescription",LinkDescription,"shortText") :- LinkDescription != ""; q1_childResult(_,(Source,Destination,LinkType,LinkDescription,Direction),"links").
 % links: direction and link type
@@ -135,17 +129,17 @@ q1_resultField((Source,Destination,LinkType,LinkDescription,Direction),"linkSour
 q1_resultField((Source,Destination,LinkType,LinkDescription,Direction),"linkSource","calculated","shortText") :- q1_childResult(_,(Source,Destination,LinkType,LinkDescription,Direction),"links"); calculatedLink(Source,Destination,LinkType).
 q1_resultField((Source,Destination,LinkType,LinkDescription,Direction),"linkSource","calculated","shortText") :- q1_childResult(_,(Source,Destination,LinkType,LinkDescription,Direction),"links"); calculatedLink(Source,Destination,LinkType,LinkDescription).
 % links: title - for card destinations
-q1_resultField((Card,Destination,LinkType,LinkDescription,Direction),"title",Title,"shortText") :- q1_childResult(Card,(Card,Destination,LinkType,LinkDescription,Direction),"links"); q1_field(Destination,"title",Title); card(Destination).
+q1_resultField((Card,Destination,LinkType,LinkDescription,Direction),"title",Title,"shortText") :- q1_childResult(Card,(Card,Destination,LinkType,LinkDescription,Direction),"links"); field(Destination,"title",Title); card(Destination).
 % links: title - for external item destinations (from externalItem facts)
-q1_resultField((Card,(Connector,ItemKey),LinkType,LinkDescription,Direction),"title",Title,"shortText") :- q1_childResult(Card,(Card,(Connector,ItemKey),LinkType,LinkDescription,Direction),"links"); q1_field((Connector,ItemKey),"title",Title).
+q1_resultField((Card,(Connector,ItemKey),LinkType,LinkDescription,Direction),"title",Title,"shortText") :- q1_childResult(Card,(Card,(Connector,ItemKey),LinkType,LinkDescription,Direction),"links"); field((Connector,ItemKey),"title",Title).
 % links: title - for external item destinations (fallback to key if no title fact)
-q1_resultField((Card,(Connector,ItemKey),LinkType,LinkDescription,Direction),"title",ItemKey,"shortText") :- q1_childResult(Card,(Card,(Connector,ItemKey),LinkType,LinkDescription,Direction),"links"); not q1_field((Connector,ItemKey),"title",_).
+q1_resultField((Card,(Connector,ItemKey),LinkType,LinkDescription,Direction),"title",ItemKey,"shortText") :- q1_childResult(Card,(Card,(Connector,ItemKey),LinkType,LinkDescription,Direction),"links"); not field((Connector,ItemKey),"title",_).
 % links: title - for card sources (inbound)
-q1_resultField((Source,Card,LinkType,LinkDescription,Direction),"title",Title,"shortText") :- q1_childResult(Card,(Source,Card,LinkType,LinkDescription,Direction),"links"); q1_field(Source,"title",Title); card(Source).
+q1_resultField((Source,Card,LinkType,LinkDescription,Direction),"title",Title,"shortText") :- q1_childResult(Card,(Source,Card,LinkType,LinkDescription,Direction),"links"); field(Source,"title",Title); card(Source).
 % links: title - for external item sources (inbound, from externalItem facts)
-q1_resultField(((Connector,ItemKey),Card,LinkType,LinkDescription,Direction),"title",Title,"shortText") :- q1_childResult(Card,((Connector,ItemKey),Card,LinkType,LinkDescription,Direction),"links"); q1_field((Connector,ItemKey),"title",Title).
+q1_resultField(((Connector,ItemKey),Card,LinkType,LinkDescription,Direction),"title",Title,"shortText") :- q1_childResult(Card,((Connector,ItemKey),Card,LinkType,LinkDescription,Direction),"links"); field((Connector,ItemKey),"title",Title).
 % links: title - for external item sources (inbound, fallback to key if no title fact)
-q1_resultField(((Connector,ItemKey),Card,LinkType,LinkDescription,Direction),"title",ItemKey,"shortText") :- q1_childResult(Card,((Connector,ItemKey),Card,LinkType,LinkDescription,Direction),"links"); not q1_field((Connector,ItemKey),"title",_).
+q1_resultField(((Connector,ItemKey),Card,LinkType,LinkDescription,Direction),"title",ItemKey,"shortText") :- q1_childResult(Card,((Connector,ItemKey),Card,LinkType,LinkDescription,Direction),"links"); not field((Connector,ItemKey),"title",_).
 % links: key - for card destinations
 q1_resultField((Card,Destination,LinkType,LinkDescription,Direction),"key",Destination,"shortText") :- q1_childResult(Card,(Card,Destination,LinkType,LinkDescription,Direction),"links"); card(Destination).
 % links: key - for external item destinations
@@ -159,9 +153,9 @@ q1_resultField((Card,(Connector,ItemKey),LinkType,LinkDescription,Direction),"co
 % links: connector - for external item sources (inbound)
 q1_resultField(((Connector,ItemKey),Card,LinkType,LinkDescription,Direction),"connector",Connector,"shortText") :- q1_childResult(Card,((Connector,ItemKey),Card,LinkType,LinkDescription,Direction),"links").
 % links: url - for external item destinations (only if url fact exists)
-q1_resultField((Card,(Connector,ItemKey),LinkType,LinkDescription,Direction),"url",Url,"shortText") :- q1_childResult(Card,(Card,(Connector,ItemKey),LinkType,LinkDescription,Direction),"links"); q1_field((Connector,ItemKey),"url",Url).
+q1_resultField((Card,(Connector,ItemKey),LinkType,LinkDescription,Direction),"url",Url,"shortText") :- q1_childResult(Card,(Card,(Connector,ItemKey),LinkType,LinkDescription,Direction),"links"); field((Connector,ItemKey),"url",Url).
 % links: url - for external item sources (inbound, only if url fact exists)
-q1_resultField(((Connector,ItemKey),Card,LinkType,LinkDescription,Direction),"url",Url,"shortText") :- q1_childResult(Card,((Connector,ItemKey),Card,LinkType,LinkDescription,Direction),"links"); q1_field((Connector,ItemKey),"url",Url).
+q1_resultField(((Connector,ItemKey),Card,LinkType,LinkDescription,Direction),"url",Url,"shortText") :- q1_childResult(Card,((Connector,ItemKey),Card,LinkType,LinkDescription,Direction),"links"); field((Connector,ItemKey),"url",Url).
 % notifications
 q1_childResultCollection(Card,"notifications") :- q1_showField(Card,"notifications").
 % notifications
