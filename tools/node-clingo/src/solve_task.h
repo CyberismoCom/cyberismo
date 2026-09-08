@@ -32,6 +32,21 @@
 
 namespace node_clingo
 {
+    // Runs `fn` exactly once when it goes out of scope. Copies `fn` at construction so it
+    // stays valid even if the object it was read from (here, a heap-allocated callback
+    // data struct) is deleted before this guard's destructor runs.
+    struct ScopeExit
+    {
+        std::function<void()> fn;
+        ~ScopeExit()
+        {
+            if (fn)
+            {
+                fn();
+            }
+        }
+    };
+
     struct SolveCallbackData
     {
         std::optional<SolveResult> result;
@@ -42,6 +57,19 @@ namespace node_clingo
         std::chrono::high_resolution_clock::time_point t2;
         SolveResultCache& cache;
         Hash queryHash;
+        // > 0 overrides the resolved value's stats.batchSize for this call only -- the
+        // cached copy is never touched, so this cannot leak into a later reader. Used by
+        // ClingoContext::pump() (binding.cc) to mark a coalesced group that reduced to one
+        // real query as having gone through the pump, same as solveBatch() already reports
+        // 1 for a manual batch of one; 0 (the default) leaves the result untouched, which
+        // is what the plain, non-snapshot solve() path -- this function's original caller
+        // -- still gets.
+        int reportedBatchSize;
+        // Runs once this call's Deferred has settled, on every path (success, solve
+        // exception, generic error). Empty for the plain solve() path, which has no extra
+        // bookkeeping to do; ClingoContext::pump() uses it to release the Ref() it took for
+        // this request and to resume the queue (see pump()'s doc comment in binding.cc).
+        std::function<void()> onSettled;
     };
 
     /**
@@ -56,7 +84,9 @@ namespace node_clingo
         std::chrono::high_resolution_clock::time_point t1,
         std::chrono::high_resolution_clock::time_point t2,
         Napi::Promise::Deferred deferred,
-        Napi::Env env)
+        Napi::Env env,
+        int reportedBatchSize = 0,
+        std::function<void()> onSettled = {})
     {
         auto* data = new SolveCallbackData{
             .result = std::nullopt,
@@ -67,6 +97,8 @@ namespace node_clingo
             .t2 = t2,
             .cache = cache,
             .queryHash = query.hash,
+            .reportedBatchSize = reportedBatchSize,
+            .onSettled = std::move(onSettled),
         };
 
         // could be shared
@@ -95,6 +127,7 @@ namespace node_clingo
 
             tsfn.BlockingCall(data, [](Napi::Env env, Napi::Function, SolveCallbackData* d) {
                 Napi::HandleScope scope(env);
+                ScopeExit notifySettled{d->onSettled};
 
                 if (d->solveException)
                 {
@@ -118,6 +151,15 @@ namespace node_clingo
                 {
                     d->result->stats.glue = std::chrono::duration_cast<std::chrono::microseconds>(d->t2 - d->t1);
                     Napi::Object resultObj = create_napi_object_from_solve_result(env, *d->result);
+                    if (d->reportedBatchSize > 0)
+                    {
+                        // The cache insertion just below uses the untouched `*d->result`
+                        // (batchSize 0, its natural default), so this override is visible
+                        // to this call's own caller only -- see reportedBatchSize's doc
+                        // comment on SolveCallbackData.
+                        resultObj.Get("stats").As<Napi::Object>().Set(
+                            "batchSize", Napi::Number::New(env, d->reportedBatchSize));
+                    }
                     d->cache.addResult(d->queryHash, std::move(*d->result));
                     d->deferred.Resolve(resultObj);
                 }
@@ -307,6 +349,161 @@ namespace node_clingo
         });
     }
 
+    struct QueuedBatchCallbackData
+    {
+        // Every entry here is already a confirmed miss -- ClingoContext::pump() (binding.cc)
+        // resolves any cache hit directly, before this is ever spawned, so unlike
+        // BatchCallbackData there is no pre-filled `results` to merge into.
+        std::optional<std::vector<SolveResult>> missResults;
+        bool cacheable = true;
+        std::optional<ClingoSolveException> solveException;
+        std::string genericError;
+        // One Deferred per instance, parallel to `hashes` and `t1s` -- these came from N
+        // independent solve() calls the pump coalesced, not from one solveBatch() call, so
+        // there is no single array-returning Deferred to share.
+        std::vector<Napi::Promise::Deferred> deferreds;
+        std::vector<std::chrono::high_resolution_clock::time_point> t1s;
+        std::chrono::high_resolution_clock::time_point t2;
+        SolveResultCache& cache;
+        std::vector<Hash> hashes;
+        int totalSize;
+        std::function<void()> onSettled;
+    };
+
+    /**
+     * Submits a batch solve task for a group ClingoContext::pump() assembled from
+     * independently-queued solve({ snapshot: true }) calls, rather than one solveBatch()
+     * call. Mechanically this is spawnBatchTask's pool work (buildBatch() then
+     * ClingoSolver::solveBatch()) -- same renaming, same bridging, same all-or-nothing
+     * UNSAT handling -- the only real difference is on the way out: N independent
+     * Deferreds are resolved or rejected individually instead of one Deferred resolving to
+     * an array, since each came from its own solve() call and each request's own promise
+     * must settle on its own. `onSettled` runs exactly once, after every deferred has
+     * settled, on every completion path; pump() uses it to release this group's inflight
+     * slot and resume the queue (see pump()'s doc comment in binding.cc).
+     */
+    inline void spawnQueuedBatchTask(
+        BS::thread_pool<>& pool,
+        SolveResultCache& cache,
+        std::shared_ptr<const Snapshot> snapshot,
+        std::vector<std::shared_ptr<const Program>> queryLayer,
+        std::vector<std::string> queries,
+        std::vector<Hash> hashes,
+        std::vector<Napi::Promise::Deferred> deferreds,
+        std::vector<std::chrono::high_resolution_clock::time_point> t1s,
+        std::chrono::high_resolution_clock::time_point t2,
+        std::function<void()> onSettled,
+        Napi::Env env)
+    {
+        const int totalSize = static_cast<int>(deferreds.size());
+        auto* data = new QueuedBatchCallbackData{
+            .missResults = std::nullopt,
+            .cacheable = true,
+            .solveException = std::nullopt,
+            .genericError = {},
+            .deferreds = std::move(deferreds),
+            .t1s = std::move(t1s),
+            .t2 = t2,
+            .cache = cache,
+            .hashes = hashes,
+            .totalSize = totalSize,
+            .onSettled = std::move(onSettled),
+        };
+
+        auto tsfn = Napi::ThreadSafeFunction::New(
+            env,
+            Napi::Function::New(env, [](const Napi::CallbackInfo&) {}),
+            "QueuedBatchCallback",
+            0, // unlimited queue
+            1  // initial thread count
+        );
+
+        pool.detach_task([data,
+                          tsfn,
+                          snapshot = std::move(snapshot),
+                          queryLayer = std::move(queryLayer),
+                          queries = std::move(queries),
+                          hashes]() mutable {
+            try
+            {
+                BatchQuery batch = buildBatch(snapshot, queryLayer, queries, hashes);
+                ClingoSolver solver;
+                data->missResults = solver.solveBatch(batch, data->cacheable);
+            }
+            catch (const ClingoSolveException& e)
+            {
+                data->solveException = e;
+            }
+            catch (const std::exception& e)
+            {
+                data->genericError = e.what();
+            }
+
+            tsfn.BlockingCall(data, [](Napi::Env env, Napi::Function, QueuedBatchCallbackData* d) {
+                Napi::HandleScope scope(env);
+                ScopeExit notifySettled{d->onSettled};
+
+                if (d->solveException)
+                {
+                    Napi::Error error = Napi::Error::New(env, d->solveException->what());
+                    Napi::Object errorObj = Napi::Object::New(env);
+                    NodeClingoLogs logs = parse_clingo_logs(env, d->solveException->logs);
+                    errorObj.Set("errors", logs.errors);
+                    errorObj.Set("warnings", logs.warnings);
+                    if (!d->solveException->programKey.empty())
+                    {
+                        errorObj.Set("program", Napi::String::New(env, d->solveException->programKey));
+                    }
+                    error.Set("details", errorObj);
+                    // The same error value rejects every sibling: they all failed for the
+                    // one shared reason (one Control, one grounding attempt), and a JS
+                    // rejection reason may be shared across settlements of different
+                    // promises like any other value.
+                    Napi::Value errorValue = error.Value();
+                    for (auto& deferred : d->deferreds)
+                    {
+                        deferred.Reject(errorValue);
+                    }
+                }
+                else if (!d->genericError.empty())
+                {
+                    Napi::Value errorValue = Napi::Error::New(env, d->genericError).Value();
+                    for (auto& deferred : d->deferreds)
+                    {
+                        deferred.Reject(errorValue);
+                    }
+                }
+                else
+                {
+                    // Same cache discipline as spawnBatchTask: every miss is stripped of
+                    // its call-specific stats before being cached, under its own hash,
+                    // skipped entirely when the batch was not cacheable (see
+                    // ClingoSolver::solveBatch's doc comment).
+                    for (size_t k = 0; k < d->deferreds.size(); ++k)
+                    {
+                        SolveResult result = std::move((*d->missResults)[k]);
+                        if (d->cacheable)
+                        {
+                            d->cache.addResult(d->hashes[k], stripCallSpecific(result));
+                        }
+                        // Each instance's own wait -- it may have queued for longer than
+                        // its neighbours before this group was dispatched -- so `glue` is
+                        // computed per instance, not shared across the group like
+                        // spawnBatchTask's single-Deferred response can afford to.
+                        result.stats.glue = std::chrono::duration_cast<std::chrono::microseconds>(d->t2 - d->t1s[k]);
+                        result.stats.batchSize = d->totalSize;
+                        Napi::Object resultObj = create_napi_object_from_solve_result(env, result);
+                        d->deferreds[k].Resolve(resultObj);
+                    }
+                }
+
+                delete d;
+            });
+
+            tsfn.Release();
+        });
+    }
+
     struct CommitCallbackData
     {
         std::shared_ptr<Snapshot> result;
@@ -315,21 +512,6 @@ namespace node_clingo
         Napi::Promise::Deferred deferred;
         std::function<void(std::shared_ptr<const Snapshot>)> onCommitted;
         std::function<void()> onSettled;
-    };
-
-    // Runs `fn` exactly once when it goes out of scope. Copies `fn` at construction so it
-    // stays valid even if the object it was read from (here, the heap-allocated callback
-    // data) is deleted before this guard's destructor runs.
-    struct ScopeExit
-    {
-        std::function<void()> fn;
-        ~ScopeExit()
-        {
-            if (fn)
-            {
-                fn();
-            }
-        }
     };
 
     /**

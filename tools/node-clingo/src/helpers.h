@@ -104,6 +104,14 @@ namespace node_clingo
      */
     int64_t next_local_midnight_epoch_ms();
 
+    /**
+     * Reads a positive integer from environment variable `name`, or `fallback` if it is
+     * unset, empty, not a valid integer, or <= 0. A misconfigured concurrency/batch knob
+     * should behave as if it were never set -- silently accepting e.g. 0 here is how a
+     * caller ends up with a queue that never drains.
+     */
+    int env_int(const char* name, int fallback);
+
 } // namespace node_clingo
 
 #endif // NODE_CLINGO_HELPERS_H

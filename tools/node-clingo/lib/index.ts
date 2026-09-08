@@ -201,10 +201,18 @@ export interface ClingoResult {
     solve: number;
     cacheHit: boolean;
     /**
-     * Number of instances ground and solved together by solveBatch(); 0 for a plain
-     * solve(). Always present -- the native binding sets it on every result, batch or
-     * not -- despite the `?`, kept only because narrowing every existing caller that
-     * reads it would be a bigger change than this fix round's scope.
+     * Number of instances ground and solved together in one Control. 0 means this
+     * result did not go through any batch-shaped machinery -- either a cache hit, or a
+     * plain (non-snapshot) solve(). For solveBatch() this is the size of that call's
+     * own batch. For solve({ snapshot: true }), it is normally 0 too, *unless* this
+     * call happened to queue behind other concurrent snapshot solves against the same
+     * refs: the native binding then coalesces the queued group into one physical
+     * solve, and every request in that group -- including a group that reduced to a
+     * single query -- reports how many were ground together (1 or more). The answers
+     * themselves are unaffected either way; this is purely informational. Always
+     * present -- the native binding sets it on every result, batch or not -- despite
+     * the `?`, kept only because narrowing every existing caller that reads it would be
+     * a bigger change than this fix round's scope.
      */
     batchSize?: number;
     /**
@@ -273,7 +281,11 @@ export class ClingoContext {
    * @param program The logic program as a string
    * @param categories Optional array of program keys or categories to include
    * @param options Optional solve options, e.g. `{ snapshot: true }` to replay the
-   * committed knowledge snapshot instead of grounding the `knowledge` category
+   * committed knowledge snapshot instead of grounding the `knowledge` category. A
+   * snapshot solve that misses the shared cache while every worker is already busy is
+   * queued rather than rejected -- the native binding coalesces same-refs snapshot
+   * solves that end up queued together into one physical solve, transparently to the
+   * caller; a cache hit is never delayed by this.
    * @returns Promise resolving to answers and execution stats
    */
   async solve(

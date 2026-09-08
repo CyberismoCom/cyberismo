@@ -13,7 +13,7 @@
     "postpack": "node scripts/manage-publish-manifest.js restore",
     "clean": "rm -rf build dist dist-packages external/clingo/build",
     "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
-    "test": "vitest run",
+    "test": "vitest run && vitest run --config vitest.coalesce.config.ts",
     "test:watch": "vitest",
     "lint": "eslint .",
     "format:cpp": "clang-format -i src/*.cc src/*.h",

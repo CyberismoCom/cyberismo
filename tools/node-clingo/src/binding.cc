@@ -14,9 +14,11 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdlib>
+#include <deque>
 #include <memory>
 #include <sstream>
 #include <string>
+#include <thread>
 
 #include <clingo.hh>
 #include <napi.h>
@@ -204,6 +206,271 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
     std::shared_ptr<const node_clingo::Snapshot> m_snapshot;
     uint64_t m_revision = 0;
 
+    // A solve({ snapshot: true }) call that misses the cache while every worker slot is
+    // busy. Captures exactly what Solve() had determined before it would have dispatched
+    // -- the raw program/refs/snapshot, not the Query prepareQuery() already built for the
+    // cache check -- because dispatchGroup() re-resolves it right before use anyway (see
+    // pump()'s doc comment), so keeping anything more here would just be a second, possibly
+    // stale, copy of the same information.
+    struct Pending
+    {
+        std::string program;
+        std::vector<std::string> refs;
+        std::shared_ptr<const node_clingo::Snapshot> snapshot;
+        Napi::Promise::Deferred deferred;
+        std::chrono::high_resolution_clock::time_point t1;
+    };
+
+    // m_pending and m_inflight are touched only from the main thread: Solve() pushes onto
+    // m_pending synchronously (on the JS thread), and every dispatch this drives completes
+    // inside a Napi::ThreadSafeFunction callback -- which node-addon-api always marshals
+    // back onto the main thread before invoking it, never onto the pool thread that did the
+    // solving. So the two never run concurrently and neither needs a lock.
+    std::deque<Pending> m_pending;
+    int m_inflight = 0;
+
+    // Read once per process into a function-local static -- see helpers.h's env_int for
+    // how a missing/empty/non-numeric/non-positive value is handled. A NODE_CLINGO_MAX_
+    // CONCURRENT of 0 would stall the queue forever (pump()'s loop condition would never
+    // admit a dispatch), so the fallback itself is floored at 1 too, in case
+    // hardware_concurrency() can't determine a value on some platform and returns 0.
+    static int maxConcurrent()
+    {
+        static int n = node_clingo::env_int(
+            "NODE_CLINGO_MAX_CONCURRENT", static_cast<int>(std::max(1u, std::thread::hardware_concurrency())));
+        return n;
+    }
+
+    static int maxBatch()
+    {
+        static int n = node_clingo::env_int("NODE_CLINGO_MAX_BATCH", 8);
+        return n;
+    }
+
+    /**
+     * Dispatches queued snapshot solves onto the pool, up to maxConcurrent() groups in
+     * flight at once. Called from Solve() right after a miss is queued, and again from
+     * every dispatched group's own completion -- so the queue keeps draining without
+     * anything else having to remember to call this. A no-op when nothing is queued or
+     * every slot is already busy.
+     */
+    void pump(Napi::Env env)
+    {
+        while (m_inflight < maxConcurrent() && !m_pending.empty())
+        {
+            std::vector<Pending> group;
+            group.push_back(std::move(m_pending.front()));
+            m_pending.pop_front();
+
+            // Every other pending request with the identical snapshot and refs, up to
+            // maxBatch(). `refs` compares as a plain vector<string> -- order-sensitive --
+            // which is deliberate: solve() and solveBatch() already treat refs order as
+            // significant nowhere in their own hashing or resolution (programByReferences()
+            // dedupes and re-sorts by program hash regardless of reference order), so two
+            // callers who spell the same category set in a different order already get
+            // identical programs and an identical cache hash today; refusing to coalesce
+            // them just means they solve as two separate (still correct) calls instead of
+            // one, not that either produces a wrong answer. Treating a reordering as "the
+            // same group" would work too, but is unneeded complexity for a call site that,
+            // in practice, always passes the same literal refs array for a given caller.
+            for (auto it = m_pending.begin(); it != m_pending.end() && static_cast<int>(group.size()) < maxBatch();)
+            {
+                if (it->snapshot == group.front().snapshot && it->refs == group.front().refs)
+                {
+                    group.push_back(std::move(*it));
+                    it = m_pending.erase(it);
+                }
+                else
+                {
+                    ++it;
+                }
+            }
+
+            ++m_inflight;
+            dispatchGroup(env, std::move(group));
+        }
+    }
+
+    /**
+     * Runs one group pump() popped off the queue. The group may have sat queued for a
+     * while, so this re-validates the snapshot it was captured against (freshness is only
+     * evaluated once, using the group's shared snapshot -- pump()'s own grouping key
+     * guarantees every member points at the identical Snapshot object) and re-resolves
+     * every member's Query, rather than trusting whatever prepareQuery() found true back
+     * when each member was first queued: that keeps a member's cache hash and the group's
+     * shared query layer mutually consistent even if a setProgram() landed while this group
+     * waited, at the cost of one extra prepareQuery() + cache lookup per member versus an
+     * uncontended solve() (see Solve()'s own doc comment for why that first check still
+     * has to happen there too, so a hit is never delayed behind the queue).
+     *
+     * A member whose query does not parse is routed alone through the plain path -- it
+     * cannot take part in buildBatch()'s renaming (which would just throw and fail every
+     * sibling with it) -- so only its own request rejects, with the same clingo syntax
+     * error a plain solve() of the same text produces. Whatever real work is left is then
+     * either a lone miss (plain path too, so a group that reduces to one query is
+     * byte-identical to today's single snapshot solve, no renaming) or grounded together as
+     * a batch. Every path that spawns pool work shares one `remaining` counter so this
+     * group's inflight slot frees, and the queue resumes, exactly once -- after the last of
+     * them settles, not after the first.
+     */
+    void dispatchGroup(Napi::Env env, std::vector<Pending> group)
+    {
+        SnapshotCheck check = checkSnapshot(group.front().snapshot, m_store);
+        if (check.code)
+        {
+            // SNAPSHOT_MISSING cannot actually happen here -- every Pending was queued
+            // with a non-null snapshot (Solve() rejects synchronously, before ever
+            // touching the queue, if it had none) -- only SNAPSHOT_STALE is reachable.
+            // Handled generically anyway since checkSnapshot() is shared with solve()'s
+            // and solveBatch()'s own call sites, and nothing here should assume which
+            // code it returns.
+            for (auto& pending : group)
+            {
+                pending.deferred.Reject(
+                    node_clingo::coded_error(env, check.code, (std::string("solve(): ") + check.reason).c_str()));
+                Unref();
+            }
+            --m_inflight;
+            return;
+        }
+
+        std::shared_ptr<const node_clingo::Snapshot> snapshot = check.snapshot;
+        std::vector<std::string> refs = group.front().refs;
+        auto t2 = std::chrono::high_resolution_clock::now();
+
+        std::vector<Pending> solo;
+        std::vector<node_clingo::Query> soloQueries;
+        std::vector<Pending> batchMembers;
+        std::vector<node_clingo::Query> batchQueries;
+
+        for (auto& pending : group)
+        {
+            node_clingo::Query query = m_store.prepareQuery(pending.program, refs, snapshot);
+
+            node_clingo::SolveResult cached;
+            if (g_cache.result(query.hash, cached))
+            {
+                cached.stats.add = std::chrono::microseconds::zero();
+                cached.stats.ground = std::chrono::microseconds::zero();
+                cached.stats.solve = std::chrono::microseconds::zero();
+                cached.stats.inject = std::chrono::microseconds::zero();
+                cached.stats.cacheHit = true;
+                cached.stats.batchSize = 0;
+                cached.stats.glue = std::chrono::duration_cast<std::chrono::microseconds>(t2 - pending.t1);
+                pending.deferred.Resolve(node_clingo::create_napi_object_from_solve_result(env, cached));
+                Unref();
+                continue;
+            }
+
+            // A program that failed to pre-parse has an empty ast_nodes on the
+            // synthesized __program__ entry prepareQuery() just built for it (its text
+            // is non-empty, so that emptiness cannot mean "legitimately blank" -- see
+            // buildBatch's doc comment in batch.h for the same discipline applied to a
+            // batch's own inputs).
+            bool parseFailed = !pending.program.empty() && query.programs.back()->ast_nodes.empty();
+            if (parseFailed)
+            {
+                solo.push_back(std::move(pending));
+                soloQueries.push_back(std::move(query));
+                continue;
+            }
+
+            batchMembers.push_back(std::move(pending));
+            batchQueries.push_back(std::move(query));
+        }
+
+        // A single real query takes the plain, non-renamed path -- same as a solo
+        // solve() -- regardless of how many were originally popped together: renaming
+        // exists only to isolate multiple instances from each other.
+        if (batchMembers.size() == 1)
+        {
+            solo.push_back(std::move(batchMembers.front()));
+            soloQueries.push_back(std::move(batchQueries.front()));
+            batchMembers.clear();
+            batchQueries.clear();
+        }
+
+        int asyncTasks = static_cast<int>(solo.size()) + (batchMembers.empty() ? 0 : 1);
+        if (asyncTasks == 0)
+        {
+            // Every member was a cache hit; nothing was spawned, so nothing will ever
+            // call back in to free this group's slot.
+            --m_inflight;
+            return;
+        }
+
+        auto remaining = std::make_shared<int>(asyncTasks);
+        auto onSubSettled = [this, env, remaining](int pendingCount) {
+            // Released here, not at push time, so a Pending stays Ref()'d for exactly as
+            // long as its Deferred is unsettled -- from the moment Solve() queues it
+            // until the moment its own promise resolves or rejects, whichever branch
+            // that turns out to be.
+            for (int i = 0; i < pendingCount; ++i)
+            {
+                Unref();
+            }
+            if (--*remaining == 0)
+            {
+                --m_inflight;
+                pump(env);
+            }
+        };
+
+        for (size_t i = 0; i < solo.size(); ++i)
+        {
+            node_clingo::spawnSolveTask(
+                get_thread_pool(),
+                g_cache,
+                std::move(soloQueries[i]),
+                solo[i].t1,
+                t2,
+                std::move(solo[i].deferred),
+                env,
+                /* reportedBatchSize */ 1,
+                [onSubSettled]() { onSubSettled(1); });
+        }
+
+        if (!batchMembers.empty())
+        {
+            std::vector<Napi::Promise::Deferred> deferreds;
+            std::vector<std::chrono::high_resolution_clock::time_point> t1s;
+            std::vector<node_clingo::Hash> hashes;
+            std::vector<std::string> texts;
+            size_t n = batchMembers.size();
+            deferreds.reserve(n);
+            t1s.reserve(n);
+            hashes.reserve(n);
+            texts.reserve(n);
+            for (size_t i = 0; i < n; ++i)
+            {
+                deferreds.push_back(std::move(batchMembers[i].deferred));
+                t1s.push_back(batchMembers[i].t1);
+                hashes.push_back(batchQueries[i].hash);
+                texts.push_back(std::move(batchMembers[i].program));
+            }
+
+            // The query layer's shared programs, exactly as SolveBatch() itself fetches
+            // them: an empty-text prepareQuery() call returns `refs`' members plus an
+            // empty __program__ placeholder, dropped here.
+            node_clingo::Query queryLayerQuery = m_store.prepareQuery("", refs, snapshot);
+            std::vector<std::shared_ptr<const node_clingo::Program>> queryLayer = std::move(queryLayerQuery.programs);
+            queryLayer.pop_back();
+
+            node_clingo::spawnQueuedBatchTask(
+                get_thread_pool(),
+                g_cache,
+                snapshot,
+                std::move(queryLayer),
+                std::move(texts),
+                std::move(hashes),
+                std::move(deferreds),
+                std::move(t1s),
+                t2,
+                [onSubSettled, n]() { onSubSettled(static_cast<int>(n)); },
+                env);
+        }
+    }
+
     /**
      * setProgram(key, program, categories?)
      */
@@ -373,6 +640,23 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
         }
 
         auto afterCacheCheckTime = std::chrono::high_resolution_clock::now();
+
+        if (useSnapshot)
+        {
+            // A miss: queue instead of dispatching directly, so a burst of concurrent
+            // snapshot solves against the same refs can be ground together in one
+            // Control instead of one each. This Pending keeps the ClingoContext alive
+            // (see the Ref()/Unref() pairing in dispatchGroup()) for exactly as long as
+            // its Deferred is unsettled -- there is no other reference to `this` holding
+            // it there once Solve() returns a pending promise.
+            auto deferred = Napi::Promise::Deferred::New(env);
+            auto promise = deferred.Promise();
+            m_pending.push_back(
+                Pending{std::move(program), std::move(refs), std::move(snapshot), std::move(deferred), startTime});
+            Ref();
+            pump(env);
+            return promise;
+        }
 
         auto deferred = Napi::Promise::Deferred::New(env);
         auto promise = deferred.Promise();

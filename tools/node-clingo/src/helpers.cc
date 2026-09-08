@@ -12,7 +12,10 @@
 */
 #include "helpers.h"
 
+#include <cerrno>
 #include <chrono>
+#include <cstdlib>
+#include <limits>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -221,6 +224,25 @@ namespace node_clingo
         local_tm.tm_mday += 1;
         time_t next_midnight = mktime(&local_tm);
         return static_cast<int64_t>(next_midnight) * 1000LL;
+    }
+
+    int env_int(const char* name, int fallback)
+    {
+        const char* raw = std::getenv(name);
+        if (!raw || *raw == '\0')
+        {
+            return fallback;
+        }
+
+        errno = 0;
+        char* end = nullptr;
+        long parsed = std::strtol(raw, &end, 10);
+        if (end == raw || *end != '\0' || errno == ERANGE || parsed <= 0 ||
+            parsed > static_cast<long>(std::numeric_limits<int>::max()))
+        {
+            return fallback;
+        }
+        return static_cast<int>(parsed);
     }
 
 } // namespace node_clingo
