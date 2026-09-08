@@ -96,27 +96,42 @@ resultField((Card, Field), "fieldDescription", Description, "shortText") :-
     result(Card),
     field(Field, "description", Description).
 
-% add value
-dataType((Card, Field), "value", DataType) :-
+% add value - "value" borrows its type from the underlying Field, so unlike
+% a real field name it can't be looked up as field("value", "dataType", _).
+% Drive the plain/list/enum show paths directly off field(Field, "dataType", _)
+% instead of routing through a synthetic field/3 fact for "value".
+#show field((Card, Field), "value", Value, DataType) :
     childResult(Card, (Card, Field), "fields"),
     result(Card),
     field(Card, Field, Value),
-    dataType(Card, Field, DataType).
+    field(Field, "dataType", DataType),
+    DataType != "enum",
+    DataType != "list",
+    showField((Card, Field), "value").
 
-% add value
-field((Card, Field), "value", Value) :-
+listField((Card, Field), "value", Value) :-
     childResult(Card, (Card, Field), "fields"),
-    field(Card, Field, Value).
+    result(Card),
+    field(Card, Field, Value),
+    field(Field, "dataType", "list"),
+    showField((Card, Field), "value").
+
+enumField((Card, Field), "value", Value) :-
+    childResult(Card, (Card, Field), "fields"),
+    result(Card),
+    field(Card, Field, Value),
+    field(Field, "dataType", "enum"),
+    showField((Card, Field), "value").
 
 resultField(((Card, Field), "value"), "displayValue", EnumDisplayValue, "shortText") :-
     childResult(Card, (Card, Field), "fields"),
-    dataType(Card, Field, "enum"),
-    field((Card, Field), "value", Value),
+    field(Field, "dataType", "enum"),
+    field(Card, Field, Value),
     field((Field, Value), "enumDisplayValue", EnumDisplayValue).
 
 resultField(((Card, Field), "value", Value), "displayValue", EnumDisplayValue, "shortText") :-
     childResult(Card, (Card, Field), "fields"),
-    dataType(Card, Field, "list"),
+    field(Field, "dataType", "list"),
     field(Card, Field, Value),
     field((Field, Value), "enumDisplayValue", EnumDisplayValue).
 

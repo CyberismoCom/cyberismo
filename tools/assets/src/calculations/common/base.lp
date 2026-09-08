@@ -14,19 +14,29 @@ card(C) :- field(C, "cardType", _).
 projectCard(C) :- card(C), field(C, "container", "project").
 templateCard(C) :- card(C), field(C, "container", "template").
 
-% data types for non-shortText default values
+% Built-in fields (card/connector metadata written directly by the data
+% handler, not schema-defined custom fields) have no field-type resource
+% file to carry a "dataType" fact. Declare them here as ordinary field
+% types instead, so field(F, "dataType", T) is the single source of truth
+% for every field's data type, built-in or custom.
+fieldType("lastUpdated").
+field("lastUpdated", "dataType", "dateTime").
 
-dataType(Card, "lastUpdated", "dateTime") :-
-    field(Card, "lastUpdated", _).
+fieldType("createdAt").
+field("createdAt", "dataType", "dateTime").
 
-dataType(Card, "createdAt", "dateTime") :-
-    field(Card, "createdAt", _).
+fieldType("lastSynchronised").
+field("lastSynchronised", "dataType", "dateTime").
 
-dataType(Connector, "lastSynchronised", "dateTime") :-
-    field(Connector, "lastSynchronised", _).
+fieldType("progress").
+field("progress", "dataType", "integer").
 
-dataType(Card, "progress", "integer") :-
-    field(Card, "progress", _).
+% "index" is not a card field either - it's the query layer's own field name
+% for enum-value and visible-field ordering (see queries/card.lp), always an
+% integer regardless of subject. Declared here rather than in the query
+% layer so field(_, "dataType", _) keeps a single writer.
+fieldType("index").
+field("index", "dataType", "integer").
 
 % add workflow state category as a calculated field for Cards
 field(Card, "workflowStateCategory", Category) :-
@@ -41,13 +51,6 @@ field(Card, "workflowStateCategory", Category) :-
 field(Card, "urlPath", @concatenate("/projects/", ProjectPrefix, "/cards/", Card)) :-
     projectCard(Card),
     project(ProjectPrefix).
-
-
-% data types of fields
-dataType(Key, Field, DataType) :-
-    field(Key, Field, _),
-    fieldType(Field),
-    field(Field, "dataType", DataType).
 
 % descendants of hidden cards are hidden
 
@@ -86,5 +89,5 @@ notification(Card, "Fields", "Conflicting field values", @concatenate("Field ", 
     field(Card, Field, V1),
     field(Card, Field, V2),
     V1 != V2,
-    dataType(Card, Field, DataType),
+    field(Field, "dataType", DataType),
     DataType != "list".

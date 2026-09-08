@@ -45,19 +45,19 @@ q1_resultField(Key,Field,Value,DataType) :- q1_resultFields(Key,_,_,_,_,_,_,Fiel
 % "field" of result/child result "key" has value "value",
 % data type of the field is included, if not specified, it is shortText
 % a field term like this is returned for all other fields except enum and list
-#show q1_field(Key,Field,Value,DataType) : q1_field(Key,Field,Value); dataType(Key,Field,DataType); DataType != "enum"; DataType != "list"; q1_showField(Key,Field).
+#show q1_field(Key,Field,Value,DataType) : q1_field(Key,Field,Value); q1_field(Field,"dataType",DataType); DataType != "enum"; DataType != "list"; q1_showField(Key,Field).
 #show q1_field(Key,Field,Value,DataType) : DataType != "enum"; DataType != "list"; q1_resultField(Key,Field,Value,DataType).
-#show q1_field(Key,Field,Value,"shortText") : q1_field(Key,Field,Value); not dataType(Key,Field,_); q1_showField(Key,Field).
+#show q1_field(Key,Field,Value,"shortText") : q1_field(Key,Field,Value); not q1_field(Field,"dataType",_); q1_showField(Key,Field).
 % list
 q1_listField(Key,Field,Value) :- q1_resultField(Key,Field,Value,"list").
-q1_listField(Key,Field,Value) :- q1_field(Key,Field,Value); dataType(Key,Field,"list"); q1_showField(Key,Field).
+q1_listField(Key,Field,Value) :- q1_field(Key,Field,Value); q1_field(Field,"dataType","list"); q1_showField(Key,Field).
 q1_childResult(Key,(Key,Field,Value),Field) :- q1_listField(Key,Field,Value).
 q1_resultField((Key,Field,Value),"value",Value,"shortText") :- q1_listField(Key,Field,Value).
 q1_resultField((Key,Field,Value),"index",Index,"integer") :- q1_listField(Key,Field,Value); q1_field((Field,Value),"index",Index).
 q1_resultField((Key,Field,Value),"displayName",EnumDisplayValue,"shortText") :- q1_listField(Key,Field,Value); q1_field((Field,Value),"enumDisplayValue",EnumDisplayValue).
 % enum
 q1_enumField(Key,Field,Value) :- q1_resultField(Key,Field,Value,"enum").
-q1_enumField(Key,Field,Value) :- q1_field(Key,Field,Value); dataType(Key,Field,"enum"); q1_showField(Key,Field).
+q1_enumField(Key,Field,Value) :- q1_field(Key,Field,Value); q1_field(Field,"dataType","enum"); q1_showField(Key,Field).
 q1_childObject(Key,(Key,Field),Field) :- q1_enumField(Key,Field,_).
 q1_resultField((Key,Field),"value",Value,"shortText") :- q1_enumField(Key,Field,Value).
 q1_resultField((Key,Field),"index",Index,"integer") :- q1_enumField(Key,Field,Value); q1_field((Field,Value),"index",Index).

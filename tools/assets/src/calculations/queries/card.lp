@@ -59,10 +59,6 @@ resultField((Card, Field), "fieldDescription", Description, "shortText") :-
     result(Card),
     field(Field, "description", Description).
 
-dataType((Card, Field), "isCalculated", "boolean") :-
-    childResult(Card, (Card, Field), "fields"),
-    field((Card, Field), "isCalculated", _).
-
 resultField((Card, Field), "isCalculated", true, "boolean") :-
     result(Card),
     field(Card, "cardType", CardType),
@@ -97,19 +93,19 @@ resultField((Card, Field), "dataType", DataType, "shortText") :-
 % add value
 resultField((Card, Field), "value", Value, DataType) :-
     childResult(Card, (Card, Field), "fields"),
-    dataType(Card, Field, DataType),
+    field(Field, "dataType", DataType),
     field(Card, Field, Value).
 
 % add the calculated value (shown as "Calculated value" in the UI)
 resultField((Card, Field), "calculatedValue", Value, DataType) :-
     childResult(Card, (Card, Field), "fields"),
-    dataType(Card, Field, DataType),
+    field(Field, "dataType", DataType),
     fieldCalculated(Card, Field, Value).
 
 % add the user's override value, if any
 resultField((Card, Field), "overrideValue", Value, DataType) :-
     childResult(Card, (Card, Field), "fields"),
-    dataType(Card, Field, DataType),
+    field(Field, "dataType", DataType),
     fieldOverride(Card, Field, Value).
 
 % add cardTypeDisplayName
@@ -156,9 +152,6 @@ childResult((Card, Field), (Field, EnumValue), "enumValues") :-
     childResult(Card, (Card, Field), "fields").
 
 field((Field, EnumValue), "enumValue", EnumValue) :-
-    enumValue(Field, EnumValue).
-
-dataType((Field, EnumValue), "index", "integer") :-
     enumValue(Field, EnumValue).
 
 order(2, "fields", 1, "visibility", "ASC").

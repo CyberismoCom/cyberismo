@@ -85,7 +85,7 @@ resultField(Key, Field, Value, DataType) :-
 
 #show field(Key, Field, Value, DataType) :
     field(Key, Field, Value),
-    dataType(Key, Field, DataType),
+    field(Field, "dataType", DataType),
     DataType != "enum",
     DataType != "list",
     showField(Key, Field).
@@ -97,7 +97,7 @@ resultField(Key, Field, Value, DataType) :-
 
 #show field(Key, Field, Value, "shortText") :
     field(Key, Field, Value),
-    not dataType(Key, Field, _),
+    not field(Field, "dataType", _),
     showField(Key, Field).
 
 % list
@@ -106,7 +106,7 @@ listField(Key, Field, Value) :-
 
 listField(Key, Field, Value) :-
     field(Key, Field, Value),
-    dataType(Key, Field, "list"),
+    field(Field, "dataType", "list"),
     showField(Key, Field).
 
 childResult(Key, (Key, Field, Value), Field) :-
@@ -129,7 +129,7 @@ enumField(Key, Field, Value) :-
 
 enumField(Key, Field, Value) :-
     field(Key, Field, Value),
-    dataType(Key, Field, "enum"),
+    field(Field, "dataType", "enum"),
     showField(Key, Field).
 
 childObject(Key, (Key, Field), Field) :-
