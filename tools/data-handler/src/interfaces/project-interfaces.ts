@@ -25,7 +25,7 @@ export interface Card {
   path: string;
   content?: string;
   metadata?: CardMetadata;
-  parent?: string;
+  parent: string;
   children: string[];
   attachments: CardAttachment[];
 }

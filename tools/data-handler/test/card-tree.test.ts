@@ -36,6 +36,7 @@ import type {
   CardMetadata,
 } from '../src/interfaces/project-interfaces.js';
 import { CommandManager } from '../src/command-manager.js';
+import { ROOT } from '../src/utils/constants.js';
 import {
   CardNotFoundError,
   DuplicateCardKeyError,
@@ -303,6 +304,7 @@ describe('Card tree', () => {
       const unknown: Card = {
         key: 'non_existing_card',
         path: join(testCardsPath, 'non_existing_card'),
+        parent: ROOT,
         children: [],
         attachments: [],
         content: 'some content',
@@ -333,6 +335,7 @@ describe('Card tree', () => {
       const unknown: Card = {
         key: 'non_existing_too',
         path: join(testCardsPath, 'non_existing_too'),
+        parent: ROOT,
         children: [],
         attachments: [],
         metadata: { ...pageCard('Some title'), links: [] },

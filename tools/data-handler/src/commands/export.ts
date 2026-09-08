@@ -32,6 +32,7 @@ import { preprocessMermaidBlocksForPdf } from '../utils/mermaid-renderer.js';
 import { rewriteAsciidocCardXrefs } from '../utils/asciidoc-xref.js';
 import { getStaticDirectoryPath, pdfReport } from '@cyberismo/assets';
 import { Project } from '../containers/project.js';
+import { ROOT } from '../utils/constants.js';
 import type { QueryResult } from '../types/queries.js';
 import { read } from '../utils/rw-lock.js';
 import type { Show } from './show.js';
@@ -272,6 +273,7 @@ export class Export {
     const card: Card = {
       key: treeQueryResult.key,
       path: '',
+      parent: ROOT,
       children: [],
       attachments: [],
     };
@@ -366,6 +368,7 @@ export class Export {
       cards.push({
         key: cardKey,
         path: sourcePath,
+        parent: ROOT,
         children: [],
         attachments: [],
       });

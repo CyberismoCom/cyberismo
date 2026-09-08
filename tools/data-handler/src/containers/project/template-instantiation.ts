@@ -160,7 +160,7 @@ function instantiate(
     throw new Error(`Template card '${templateCard.key}' has no metadata`);
   }
   const templateParentKey = templateCard.parent;
-  const isTemplateRootCard = !templateParentKey || templateParentKey === ROOT;
+  const isTemplateRootCard = templateParentKey === ROOT;
   const key = cardKeyMap.get(templateCard.key) ?? templateCard.key;
 
   const attachments: NewCard['attachments'] = [];

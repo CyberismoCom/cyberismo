@@ -4,11 +4,13 @@ import { rewriteAsciidocCardXrefs } from '../../src/utils/asciidoc-xref.js';
 import type { Project } from '../../src/containers/project.js';
 import type { CardNode } from '../../src/interfaces/project-interfaces.js';
 import type { Mode } from '../../src/interfaces/macros.js';
+import { ROOT } from '../../src/utils/constants.js';
 
 function makeCard(key: string, title: string): CardNode {
   return {
     key,
     path: '',
+    parent: ROOT,
     metadata: {
       title,
       cardType: '',
