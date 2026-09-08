@@ -2,6 +2,7 @@
 % Cyberismo query language
 % select(n, collection, field): on result level n and for "collection", "field" should be returned
 % selectCollectionField(collection, field): on all result levels for "collection", "field" should be returned
+% selectCollection(n, collection, name): on result level n and for "collection", a child collection called "name" should be produced (the collection analogue of select(n, collection, field) — a collection is requested by name, not smuggled in as a pretend field)
 % selectAll(n): on result level n, all fields should be returned for all collections
 % select(field): "field" should be returned on all levels of hierarchy for all collections
 % selectAll: all fields should be returned on all levels of hierarchy for all collections
@@ -32,6 +33,8 @@ q1_showField(Key,Field) :- q1_anyResult(Key); q1_resultLevel(Key,Level,_); selec
 q1_showField(Key,Field) :- q1_anyResult(Key); q1_resultLevel(Key,Level,Collection); q1_select(Level,Collection,Field); not q1_queryError.
 % showField is also defined if showAll is defined so there is only a single show predicate for each result
 q1_showField(Key,Field) :- q1_showAll(Key); field(Key,Field,_).
+% showCollection(key, name): whether a collection called "name" should be produced under "key" (the collection analogue of showField)
+q1_showCollection(Key,Name) :- q1_anyResult(Key); q1_resultLevel(Key,Level,Collection); selectCollection(Level,Collection,Name); not q1_queryError.
 % Allow specifying up to 3 fields at the same time for showField, similar to field
 % For specifying 2 fields
 q1_resultField(Key,Field,Value,DataType) :- q1_resultFields(Key,Field,Value,DataType,_,_,_).
@@ -98,7 +101,7 @@ q1_queryError :- q1_queryError(_,_).
 q1_level(Level) :- q1_resultLevel(_,Level,_).
 % Utils extends the cyberismo query language
 % policy checks
-q1_childObject(Card,(Card,"policyChecks"),"policyChecks") :- q1_showField(Card,"policyChecks").
+q1_childObject(Card,(Card,"policyChecks"),"policyChecks") :- q1_showCollection(Card,"policyChecks").
 q1_childResultCollection((Card,"policyChecks"),"successes") :- q1_childObject(Card,(Card,"policyChecks"),"policyChecks").
 q1_childResultCollection((Card,"policyChecks"),"failures") :- q1_childObject(Card,(Card,"policyChecks"),"policyChecks").
 % successes
@@ -109,11 +112,11 @@ q1_childResult((Card,"policyChecks"),(Card,Category,Title,ErrorMessage,Field),"f
 q1_resultFields((Card,Category,Title,ErrorMessage,Field),"category",Category,"shortText","title",Title,"shortText","errorMessage",ErrorMessage,"shortText") :- q1_childObject(Card,(Card,"policyChecks"),"policyChecks"); policyCheckFailure(Card,Category,Title,ErrorMessage,Field).
 q1_resultField((Card,Category,Title,ErrorMessage,Field),"fieldName",Field,"shortText") :- q1_childObject(Card,(Card,"policyChecks"),"policyChecks"); Field != ""; policyCheckFailure(Card,Category,Title,ErrorMessage,Field).
 % links
-q1_childResultCollection(Card,"links") :- q1_showField(Card,"links").
-q1_childResult(Card,(Card,Destination,LinkType,"","outbound"),"links") :- link(Card,Destination,LinkType); q1_showField(Card,"links").
-q1_childResult(Card,(Card,Destination,LinkType,LinkDescription,"outbound"),"links") :- link(Card,Destination,LinkType,LinkDescription); q1_showField(Card,"links").
-q1_childResult(Card,(Source,Card,LinkType,"","inbound"),"links") :- link(Source,Card,LinkType); q1_showField(Card,"links").
-q1_childResult(Card,(Source,Card,LinkType,LinkDescription,"inbound"),"links") :- link(Source,Card,LinkType,LinkDescription); q1_showField(Card,"links").
+q1_childResultCollection(Card,"links") :- q1_showCollection(Card,"links").
+q1_childResult(Card,(Card,Destination,LinkType,"","outbound"),"links") :- link(Card,Destination,LinkType); q1_showCollection(Card,"links").
+q1_childResult(Card,(Card,Destination,LinkType,LinkDescription,"outbound"),"links") :- link(Card,Destination,LinkType,LinkDescription); q1_showCollection(Card,"links").
+q1_childResult(Card,(Source,Card,LinkType,"","inbound"),"links") :- link(Source,Card,LinkType); q1_showCollection(Card,"links").
+q1_childResult(Card,(Source,Card,LinkType,LinkDescription,"inbound"),"links") :- link(Source,Card,LinkType,LinkDescription); q1_showCollection(Card,"links").
 % links: displayName
 q1_resultField((Source,Destination,LinkType,LinkDescription,Direction),"displayName",DisplayName,"shortText") :- q1_childResult(_,(Source,Destination,LinkType,LinkDescription,Direction),"links"); Direction = "outbound"; field(LinkType,"outboundDisplayName",DisplayName).
 q1_resultField((Source,Destination,LinkType,LinkDescription,Direction),"displayName",DisplayName,"shortText") :- q1_childResult(_,(Source,Destination,LinkType,LinkDescription,Direction),"links"); Direction = "inbound"; field(LinkType,"inboundDisplayName",DisplayName).
@@ -155,13 +158,13 @@ q1_resultField((Card,(Connector,ItemKey),LinkType,LinkDescription,Direction),"ur
 % links: url - for external item sources (inbound, only if url fact exists)
 q1_resultField(((Connector,ItemKey),Card,LinkType,LinkDescription,Direction),"url",Url,"shortText") :- q1_childResult(Card,((Connector,ItemKey),Card,LinkType,LinkDescription,Direction),"links"); field((Connector,ItemKey),"url",Url).
 % notifications
-q1_childResultCollection(Card,"notifications") :- q1_showField(Card,"notifications").
+q1_childResultCollection(Card,"notifications") :- q1_showCollection(Card,"notifications").
 % notifications
-q1_childResult(Card,(Card,Category,Title,Message),"notifications") :- q1_showField(Card,"notifications"); notification(Card,Category,Title,Message).
+q1_childResult(Card,(Card,Category,Title,Message),"notifications") :- q1_showCollection(Card,"notifications"); notification(Card,Category,Title,Message).
 q1_resultFields((Card,Category,Title,Message),"key",Card,"shortText","category",Category,"shortText","title",Title,"shortText") :- q1_childResult(Card,(Card,Category,Title,Message),"notifications").
 q1_resultField((Card,Category,Title,Message),"message",Message,"shortText") :- q1_childResult(Card,(Card,Category,Title,Message),"notifications").
 % denied operations
-q1_childObject(Card,(Card,"deniedOperations"),"deniedOperations") :- q1_showField(Card,"deniedOperations").
+q1_childObject(Card,(Card,"deniedOperations"),"deniedOperations") :- q1_showCollection(Card,"deniedOperations").
 % transition denied operations
 q1_childResultCollection((Card,"deniedOperations"),"transition") :- q1_childObject(Card,(Card,"deniedOperations"),"deniedOperations").
 q1_childResult((Card,"deniedOperations"),(Card,TransitionName,ErrorMessage),"transition") :- q1_childObject(Card,(Card,"deniedOperations"),"deniedOperations"); transitionDenied(Card,TransitionName,ErrorMessage).
@@ -183,5 +186,5 @@ q1_childResultCollection((Card,"deniedOperations"),"editContent") :- q1_childObj
 q1_childResult((Card,"deniedOperations"),(Card,ErrorMessage),"editContent") :- q1_childObject(Card,(Card,"deniedOperations"),"deniedOperations"); editingContentDenied(Card,ErrorMessage).
 q1_resultField((Card,ErrorMessage),"errorMessage",ErrorMessage,"shortText") :- q1_childResult((Card,"deniedOperations"),(Card,ErrorMessage),"editContent").
 % labels
-q1_childResultCollection(Card,"labels") :- q1_showField(Card,"labels").
-q1_resultField(Card,"labels",Label,"stringList") :- q1_showField(Card,"labels"); label(Card,Label).
+q1_childResultCollection(Card,"labels") :- q1_showCollection(Card,"labels").
+q1_resultField(Card,"labels",Label,"stringList") :- q1_showCollection(Card,"labels"); label(Card,Label).

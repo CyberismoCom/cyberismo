@@ -2,6 +2,7 @@
 
 % select(n, collection, field): on result level n and for "collection", "field" should be returned
 % selectCollectionField(collection, field): on all result levels for "collection", "field" should be returned
+% selectCollection(n, collection, name): on result level n and for "collection", a child collection called "name" should be produced (the collection analogue of select(n, collection, field) — a collection is requested by name, not smuggled in as a pretend field)
 % selectAll(n): on result level n, all fields should be returned for all collections
 % select(field): "field" should be returned on all levels of hierarchy for all collections
 % selectAll: all fields should be returned on all levels of hierarchy for all collections
@@ -59,6 +60,13 @@ showField(Key, Field) :-
 
 % showField is also defined if showAll is defined so there is only a single show predicate for each result
 showField(Key, Field) :- showAll(Key), field(Key, Field, _).
+
+% showCollection(key, name): whether a collection called "name" should be produced under "key" (the collection analogue of showField)
+showCollection(Key, Name) :-
+    anyResult(Key),
+    resultLevel(Key, Level, Collection),
+    selectCollection(Level, Collection, Name),
+    not queryError.
 
 % Allow specifying up to 3 fields at the same time for showField, similar to field
 % For specifying 2 fields

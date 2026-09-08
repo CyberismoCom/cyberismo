@@ -3,7 +3,7 @@
 % policy checks
 
 childObject(Card, (Card, "policyChecks"), "policyChecks") :-
-    showField(Card, "policyChecks").
+    showCollection(Card, "policyChecks").
 
 childResultCollection((Card, "policyChecks"), "successes") :-
     childObject(Card, (Card, "policyChecks"), "policyChecks").
@@ -40,23 +40,23 @@ resultField((Card, Category, Title, ErrorMessage, Field), "fieldName", Field, "s
 % links
 
 childResultCollection(Card, "links") :-
-    showField(Card, "links").
+    showCollection(Card, "links").
 
 childResult(Card, (Card, Destination, LinkType, "", "outbound"), "links") :-
     link(Card, Destination, LinkType),
-    showField(Card, "links").
+    showCollection(Card, "links").
 
 childResult(Card, (Card, Destination, LinkType, LinkDescription, "outbound"), "links") :-
     link(Card, Destination, LinkType, LinkDescription),
-    showField(Card, "links").
+    showCollection(Card, "links").
 
 childResult(Card, (Source, Card, LinkType, "", "inbound"), "links") :-
     link(Source, Card, LinkType),
-    showField(Card, "links").
+    showCollection(Card, "links").
 
 childResult(Card, (Source, Card, LinkType, LinkDescription, "inbound"), "links") :-
     link(Source, Card, LinkType, LinkDescription),
-    showField(Card, "links").
+    showCollection(Card, "links").
 
 % links: displayName
 resultField((Source, Destination, LinkType, LinkDescription, Direction), "displayName", DisplayName, "shortText") :-
@@ -167,11 +167,11 @@ resultField(((Connector, ItemKey), Card, LinkType, LinkDescription, Direction), 
 
 % notifications
 childResultCollection(Card, "notifications") :-
-    showField(Card, "notifications").
+    showCollection(Card, "notifications").
 
 % notifications
 childResult(Card, (Card, Category, Title, Message), "notifications") :-
-    showField(Card, "notifications"),
+    showCollection(Card, "notifications"),
     notification(Card, Category, Title, Message).
 
 resultFields((Card, Category, Title, Message), "key", Card, "shortText", "category", Category, "shortText", "title", Title, "shortText") :-
@@ -184,7 +184,7 @@ resultField((Card, Category, Title, Message), "message", Message, "shortText") :
 % denied operations
 
 childObject(Card, (Card, "deniedOperations"), "deniedOperations") :-
-    showField(Card, "deniedOperations").
+    showCollection(Card, "deniedOperations").
 
 % transition denied operations
 childResultCollection((Card, "deniedOperations"), "transition") :-
@@ -244,8 +244,8 @@ resultField((Card, ErrorMessage), "errorMessage", ErrorMessage, "shortText") :-
 
 % labels
 childResultCollection(Card, "labels") :-
-    showField(Card, "labels").
+    showCollection(Card, "labels").
 
 resultField(Card, "labels", Label, "stringList") :-
-    showField(Card, "labels"),
+    showCollection(Card, "labels"),
     label(Card, Label).

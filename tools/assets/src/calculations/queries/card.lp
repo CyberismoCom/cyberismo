@@ -122,11 +122,11 @@ select(1, "results", "key").
 select(1, "results", "lastUpdated").
 select(1, "results", "createdAt").
 select(1, "results", "workflowState").
-select(1, "results", "policyChecks").
-select(1, "results", "links").
-select(1, "results", "notifications").
-select(1, "results", "deniedOperations").
-select(1, "results", "labels").
+selectCollection(1, "results", "policyChecks").
+selectCollection(1, "results", "links").
+selectCollection(1, "results", "notifications").
+selectCollection(1, "results", "deniedOperations").
+selectCollection(1, "results", "labels").
 
 childResultCollection(Card, "fields") :-
     result(Card).
