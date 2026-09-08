@@ -15,7 +15,6 @@ import { CardLocation } from '../src/interfaces/project-interfaces.js';
 import {
   buildCardHierarchy,
   flattenCardArray,
-  isTemplateCard,
 } from '../src/utils/card-utils.js';
 import { Project } from '../src/containers/project.js';
 import { ProjectConfiguration } from '../src/project-settings.js';
@@ -376,7 +375,6 @@ describe('project', () => {
     expect(projectCard.metadata).not.toBeUndefined();
     expect(projectCard.metadata?.title).toBe('Decision Records');
     expect(projectCard.metadata?.workflowState).toBe('Created');
-    expect(isTemplateCard(projectCard)).toBe(false);
     expect(project.treeOf(projectCard.key)).toBe(project.cardTree);
   });
   it('empty project does not have cards', async () => {

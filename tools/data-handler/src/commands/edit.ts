@@ -87,7 +87,7 @@ export class Edit {
   @write((cardKey) => `Edit content of ${cardKey}`)
   public async editCardContent(cardKey: string, changedContent: string) {
     // A template card has no workflow state, so there is nothing to guard.
-    if (!this.project.treeOf(cardKey).validationApplies) {
+    if (this.project.treeOf(cardKey).kind !== 'project') {
       return this.project.updateCardContent(cardKey, changedContent);
     }
     if (this.project.findCard(cardKey)) {
@@ -117,7 +117,7 @@ export class Edit {
     this.assertFieldIsEditable(card, changedKey, newValue);
 
     // A template card has no workflow state, so there is nothing to guard.
-    if (!this.project.treeOf(cardKey).validationApplies) {
+    if (this.project.treeOf(cardKey).kind !== 'project') {
       return this.project.updateCardMetadataKey(cardKey, changedKey, newValue);
     }
 

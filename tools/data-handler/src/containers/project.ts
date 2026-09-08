@@ -111,9 +111,8 @@ export class Project {
     this.projectCardTree = new CardTree({
       name: 'project',
       rootPath: join(path, 'cardRoot'),
+      kind: 'project',
       writable: true,
-      emitsCardFact: true,
-      validationApplies: true,
       keys: this.keyRegistry,
     });
 
@@ -223,9 +222,8 @@ export class Project {
     const tree = new CardTree({
       name: templateName,
       rootPath,
+      kind: 'template',
       writable: !isModulePath(rootPath),
-      emitsCardFact: false,
-      validationApplies: false,
       keys: this.keyRegistry,
     });
     this.templateCardTrees.set(templateName, tree);
@@ -1062,9 +1060,10 @@ export class Project {
       cardAsRecord[changedKey] = newValue ?? null;
     }
 
-    const invalidCard = this.treeOf(cardKey).validationApplies
-      ? await this.validateCard(card)
-      : '';
+    const invalidCard =
+      this.treeOf(cardKey).kind === 'project'
+        ? await this.validateCard(card)
+        : '';
     if (invalidCard.length !== 0) {
       throw new Error(invalidCard);
     }

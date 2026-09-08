@@ -83,22 +83,21 @@ const ATTACHMENT_FOLDER = 'a';
 const CHILDREN_FOLDER = 'c';
 
 /**
- * How one card tree differs from another.
- *
- * name - the tree's identity: 'project', or a template's full resource name.
- * rootPath - the folder the tree's cards are rooted at.
- * writable - whether the tree accepts writes.
- * emitsCardFact - whether the tree's cards get the card(Key) fact.
- * validationApplies - whether the tree's cards take part in workflow
- *   semantics: metadata validation, and the permissions built on it.
- * keys - the project-level card key registry.
+ * Which kind of cards a tree holds. Project cards take part in workflow
+ * semantics and get the card(Key) fact; template cards do neither.
+ */
+export type CardTreeKind = 'project' | 'template';
+
+/**
+ * How one card tree differs from another. 'name' is the tree's identity:
+ * 'project', or a template's full resource name. 'keys' is the project-level
+ * card key registry the tree shares with its siblings.
  */
 export interface CardTreeOptions {
   name: string;
   rootPath: string;
+  kind: CardTreeKind;
   writable: boolean;
-  emitsCardFact: boolean;
-  validationApplies: boolean;
   keys: CardKeyRegistry;
 }
 
@@ -530,18 +529,17 @@ export class CardTree {
   }
 
   /**
-   * Whether the tree's cards take part in workflow semantics: metadata
-   * validation, and the permissions built on it.
+   * Which kind of cards the tree holds.
    */
-  public get validationApplies(): boolean {
-    return this.options.validationApplies;
+  public get kind(): CardTreeKind {
+    return this.options.kind;
   }
 
   /**
    * How the tree's cards are projected into clingo facts.
    */
   public get factContext(): CardFactContext {
-    return { emitsCardFact: this.options.emitsCardFact, name: this.treeName };
+    return { kind: this.options.kind, name: this.treeName };
   }
 
   /**
