@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
+#include <cstdlib>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -20,6 +21,7 @@
 #include <clingo.hh>
 #include <napi.h>
 
+#include "ast_rename.h"
 #include "helpers.h"
 #include "napi_helpers.h"
 #include "program_store.h"
@@ -416,6 +418,48 @@ Napi::Value ValidateProgram(const Napi::CallbackInfo& info)
 }
 
 /**
+ * _renameForTest(program, prefix) — parses `program`, computes which predicates it
+ * defines, and returns the source of the renamed copy (one statement per line). Debug
+ * export for the AST renamer used to merge coalesced query solves; never registered
+ * outside of NODE_CLINGO_TEST_EXPORTS, so it never reaches a shipped build.
+ */
+Napi::Value RenameForTest(const Napi::CallbackInfo& info)
+{
+    Napi::Env env = info.Env();
+    if (info.Length() < 2 || !info[0].IsString() || !info[1].IsString())
+    {
+        throw Napi::TypeError::New(env, "Expected arguments: program (string), prefix (string)");
+    }
+
+    std::string program = info[0].As<Napi::String>().Utf8Value();
+    std::string prefix = info[1].As<Napi::String>().Utf8Value();
+
+    std::vector<Clingo::AST::Node> nodes;
+    try
+    {
+        Clingo::AST::parse_string(program.c_str(), [&nodes](Clingo::AST::Node node) { nodes.push_back(node); });
+    }
+    catch (const std::exception& e)
+    {
+        throw Napi::Error::New(env, e.what());
+    }
+
+    auto sigs = node_clingo::head_signatures(nodes);
+    auto renamed = node_clingo::rename_predicates(nodes, sigs, prefix);
+
+    std::ostringstream out;
+    for (size_t i = 0; i < renamed.size(); ++i)
+    {
+        if (i > 0)
+        {
+            out << "\n";
+        }
+        out << renamed[i].to_string();
+    }
+    return Napi::String::New(env, out.str());
+}
+
+/**
  * Module initialization.
  */
 Napi::Object Init(Napi::Env env, Napi::Object exports)
@@ -423,6 +467,10 @@ Napi::Object Init(Napi::Env env, Napi::Object exports)
     ClingoContext::Init(env, exports);
     exports.Set(Napi::String::New(env, "clearCache"), Napi::Function::New(env, ClearCache));
     exports.Set(Napi::String::New(env, "validateProgram"), Napi::Function::New(env, ValidateProgram));
+    if (std::getenv("NODE_CLINGO_TEST_EXPORTS") != nullptr)
+    {
+        exports.Set(Napi::String::New(env, "_renameForTest"), Napi::Function::New(env, RenameForTest));
+    }
     return exports;
 }
 
