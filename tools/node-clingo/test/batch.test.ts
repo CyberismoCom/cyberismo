@@ -267,7 +267,7 @@ policyCheckFailure(a, "naming", "Bad title", "Title too short", "title").
   const norm = (r: { answers: string[] }) =>
     r.answers[0].split('\n').filter(Boolean).sort();
 
-  it('matches separate solves atom-for-atom -- set equality and count alike -- for card.lp and tree.lp batched together over a snapshot whose knowledge layer both queries also partly redefine', async () => {
+  it('matches separate solves atom-for-atom -- set equality and count alike -- for card.lp and tree.lp batched together over a snapshot', async () => {
     clearCache();
     const ctx = new ClingoContext();
     ctx.setProgram('facts', KNOWLEDGE, ['knowledge']);
@@ -287,13 +287,14 @@ policyCheckFailure(a, "naming", "Bad title", "Title too short", "title").
     for (let i = 0; i < qs.length; i++) {
       const sep = norm(separate[i]);
       const bat = norm(batched[i]);
-      // Atom counts first: two equal-but-both-wrong sets (e.g. both silently missing
-      // the same bridged atoms) would still pass a bare set-equality check.
+      // Atom counts first: two equal-but-both-wrong sets (both silently missing the
+      // same atoms) would still pass a bare set-equality check.
       expect(bat.length).toBe(sep.length);
       expect(bat).toEqual(sep);
     }
-    // At this scale every real content difference is either instance-prefixed or
-    // bridged; nothing should ever fall through as an unmatched broadcast atom.
+    // Every atom an instance emits is prefixed with its own name; nothing should
+    // fall through as an unmatched atom broadcast to all instances. A non-zero count
+    // here means the query layer emits something the renamer did not claim.
     expect(batched.every((r) => r.stats.unprefixedAtoms === 0)).toBe(true);
     // Sanity: both instances actually derive a non-trivial result, so the equality
     // check above cannot be passing because both sides are trivially empty.
