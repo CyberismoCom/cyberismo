@@ -1165,53 +1165,41 @@ export class CardTree {
   }
 
   /**
-   * Persists a card's content, and keeps the store in step with it.
+   * Persists a card's content, and keeps the store in step with it. A card
+   * carrying no content is left alone.
    * @param card Card to persist.
-   * @returns true if the store was updated; false if the card has no content,
-   *   or the tree does not hold it.
+   * @throws CardNotFoundError if the tree does not hold the card
    */
-  public async writeContent(card: Card): Promise<boolean> {
+  public async writeContent(card: Card): Promise<void> {
     this.assertWritable();
     if (card.content == null) {
-      return false;
+      return;
     }
-    const stored = this.cardStore.get(card.key);
-    if (!stored) {
-      CardTree.logger.warn(`Card '${card.key}' not found`);
-      return false;
-    }
+    const stored = this.stored(card.key);
     await writeFile(
       join(this.pathOfStored(stored), CARD_CONTENT_FILE),
       card.content,
     );
     stored.content = card.content;
-    return true;
   }
 
   /**
    * Persists a card's metadata, and keeps the store in step with it. Stamps
-   * 'lastUpdated'.
+   * 'lastUpdated'. A card carrying no metadata is left alone.
    * @param card Card to persist.
-   * @returns true if the store was updated; false if the card has no metadata,
-   *   or the tree does not hold it.
-   * @throws if the metadata file cannot be written.
+   * @throws CardNotFoundError if the tree does not hold the card
    */
-  public async writeMetadata(card: Card): Promise<boolean> {
+  public async writeMetadata(card: Card): Promise<void> {
     this.assertWritable();
-    const stored = this.cardStore.get(card.key);
-    if (!stored) {
-      CardTree.logger.warn(`Card '${card.key}' not found`);
-      return false;
-    }
+    const stored = this.stored(card.key);
     const sanitizedMetadata = await this.persistMetadata(
       card,
       this.pathOfStored(stored),
     );
     if (!sanitizedMetadata) {
-      return false;
+      return;
     }
     stored.metadata = CardTree.normalizedMetadata(sanitizedMetadata);
-    return true;
   }
 
   // Writes the card's metadata file and stamps 'lastUpdated'. The store is
@@ -1236,13 +1224,10 @@ export class CardTree {
    * store. Children go first, so a failure part-way leaves no card whose
    * folder is gone but whose parent's is not.
    * @param cardKey Root of the subtree to delete.
-   * @returns true if the card was in the tree; false otherwise.
+   * @throws CardNotFoundError if the tree does not hold the card
    */
-  public async deleteSubtree(cardKey: string): Promise<boolean> {
-    const card = this.cardStore.get(cardKey);
-    if (!card) {
-      return false;
-    }
+  public async deleteSubtree(cardKey: string): Promise<void> {
+    const card = this.stored(cardKey);
     this.assertWritable();
     const path = this.pathOfStored(card);
     for (const child of this.childrenOf(cardKey)) {
@@ -1250,7 +1235,7 @@ export class CardTree {
     }
     await deleteDir(path);
     this.options.keys.release([cardKey]);
-    return this.unstore(cardKey);
+    this.unstore(cardKey);
   }
 
   /**

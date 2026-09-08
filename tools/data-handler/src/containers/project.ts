@@ -587,15 +587,15 @@ export class Project {
     return Project.findProjectRoot(parentPath);
   }
 
-  private async saveCardContent(card: Card): Promise<boolean> {
+  private async saveCardContent(card: Card): Promise<void> {
     return this.treeOf(card.key).writeContent(card);
   }
 
-  private async saveCardMetadata(card: Card): Promise<boolean> {
+  private async saveCardMetadata(card: Card): Promise<void> {
     return this.treeOf(card.key).writeMetadata(card);
   }
 
-  private async removeCard(cardKey: string): Promise<boolean> {
+  private async removeCard(cardKey: string): Promise<void> {
     return this.treeOf(cardKey).deleteSubtree(cardKey);
   }
 
@@ -1080,9 +1080,8 @@ export class Project {
    */
   public async updateCardMetadata(card: Card, changedMetadata: CardMetadata) {
     card.metadata = changedMetadata;
-    if (await this.saveCardMetadata(card)) {
-      await this.handleCardChanged(card);
-    }
+    await this.saveCardMetadata(card);
+    await this.handleCardChanged(card);
   }
 
   // Wrapper to run onTransition query.
