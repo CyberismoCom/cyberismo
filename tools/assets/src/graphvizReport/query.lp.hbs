@@ -23,16 +23,21 @@ childResult(Graph, ((graph, Graph), Field), "attrs") :-
     graph(Graph),
     attr(graph, Graph, Field, _).
 
-field(((graph, Graph), Field), "attr", Field) :-
+% "attr"/"value" name the attr/4 tuple's own field and value for output --
+% not schema field names, so they never resolved a dataType via the old
+% field/3 lookup: shortText is what showed before and is supplied directly
+% now. Same reasoning for "isGraph"/"isNode"/"cardKey"/"rank"/"source"/
+% "destination" below.
+resultField(((graph, Graph), Field), "attr", Field, "shortText") :-
     graph(Graph),
     attr(graph, Graph, Field, _).
 
-field(((graph, Graph), Field), "value", Value) :-
+resultField(((graph, Graph), Field), "value", Value, "shortText") :-
     graph(Graph),
     attr(graph, Graph, Field, Value),
     labelAttribute(Field).
 
-field(((graph, Graph), Field), "value", Value) :-
+resultField(((graph, Graph), Field), "value", Value, "shortText") :-
     graph(Graph),
     attr(graph, Graph, Field, Value),
     not labelAttribute(Field).
@@ -41,7 +46,7 @@ field(((graph, Graph), Field), "value", Value) :-
 childResult(Parent, Graph, "children") :-
     graph(Graph, Parent).
 
-field(Graph, "isGraph", "void") :-
+resultField(Graph, "isGraph", "void", "shortText") :-
     childResult(_, Graph, "children"),
     graph(Graph, _).
 
@@ -49,16 +54,16 @@ childResult(Graph, ((graph, Graph), Field), "attrs") :-
     graph(Graph, _),
     attr(graph, Graph, Field, _).
 
-field(((graph, Graph), Field), "attr", Field) :-
+resultField(((graph, Graph), Field), "attr", Field, "shortText") :-
     graph(Graph, _),
     attr(graph, Graph, Field, _).
 
-field(((graph, Graph), Field), "value", Value) :-
+resultField(((graph, Graph), Field), "value", Value, "shortText") :-
     graph(Graph, _),
     attr(graph, Graph, Field, Value),
     labelAttribute(Field).
 
-field(((graph, Graph), Field), "value", Value) :-
+resultField(((graph, Graph), Field), "value", Value, "shortText") :-
     graph(Graph, _),
     attr(graph, Graph, Field, Value),
     not labelAttribute(Field).
@@ -68,9 +73,9 @@ field(((graph, Graph), Field), "value", Value) :-
 % TODO: For some reason, we need to use (node, Node) instead of Node, or
 % the solving will not succeed
 
-field((node, Node), "rank", Rank) :- field(Node, "rank", Rank), node(Node, _).
+resultField((node, Node), "rank", Rank, "shortText") :- field(Node, "rank", Rank), node(Node, _).
 
-field((node, Node), "isNode", "void") :-
+resultField((node, Node), "isNode", "void", "shortText") :-
     childResult(_, (node, Node), "children"),
     node(Node, _).
 
@@ -78,7 +83,7 @@ childResult(Graph, (node, Node), "children") :-
     childResult(_, Graph, _),
     node(Node, Graph).
 
-field((node, Node), "cardKey", Node) :-
+resultField((node, Node), "cardKey", Node, "shortText") :-
     childResult(_, Graph, _),
     node(Node, Graph).
 
@@ -86,16 +91,16 @@ childResult((node, Node), ((node, Node), Field), "attrs") :-
     node(Node, Graph),
     attr(node, Node, Field, _).
 
-field(((node, Node), Field), "attr", Field) :-
+resultField(((node, Node), Field), "attr", Field, "shortText") :-
     node(Node, Graph),
     attr(node, Node, Field, _).
 
-field(((node, Node), Field), "value", Value) :-
+resultField(((node, Node), Field), "value", Value, "shortText") :-
     node(Node, Graph),
     attr(node, Node, Field, Value),
     labelAttribute(Field).
 
-field(((node, Node), Field), "value", Value) :-
+resultField(((node, Node), Field), "value", Value, "shortText") :-
     node(Node, Graph),
     attr(node, Node, Field, Value),
     not labelAttribute(Field).
@@ -125,18 +130,18 @@ childResult((edge, (XR, YR, Description)), ((edge, (XR, YR, Description)), Field
     childResult(_, (edge, (XR, YR, Description)), _),
     attr(edge, (XR, YR, Description), Field, _).
 
-field(((edge, (XR, YR, Description)), Field), "attr", Field) :-
+resultField(((edge, (XR, YR, Description)), Field), "attr", Field, "shortText") :-
     childResult(_, (edge, (XR, YR, Description)), _),
     attr(edge, (XR, YR, Description), Field, Value).
 
-field(((edge, (XR, YR, Description)), Field), "value", Value) :-
+resultField(((edge, (XR, YR, Description)), Field), "value", Value, "shortText") :-
     childResult(_, (edge, (XR, YR, Description)), _),
     attr(edge, (XR, YR, Description), Field, Value).
 
-field((edge, (XR, YR, Description)), "source", XR) :-
+resultField((edge, (XR, YR, Description)), "source", XR, "shortText") :-
     edge((XR, YR, Description), _).
 
-field((edge, (XR, YR, Description)), "destination", YR) :-
+resultField((edge, (XR, YR, Description)), "destination", YR, "shortText") :-
     edge((XR, YR, Description), _).
 
 % edges without a separate identifier use "" as their identifier

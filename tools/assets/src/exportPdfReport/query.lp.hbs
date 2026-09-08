@@ -40,9 +40,12 @@ treePath(Card, FullPath) :-
 % Sort by tree path (lexicographic ordering will give us depth-first)
 order(1, "results", 1, "treePath", "ASC").
 
-% Map level to levelOffset and add tree path for sorting
-field(Card, "levelOffset", Level) :- cardLevel(Card, Level), result(Card).
-field(Card, "treePath", Path) :- treePath(Card, Path), result(Card).
+% Map level to levelOffset and add tree path for sorting. "levelOffset" and
+% "treePath" are report-only column names, not real schema fields, so
+% neither ever resolved a dataType via the old field/3 lookup: shortText is
+% what showed before and is supplied directly now.
+resultField(Card, "levelOffset", Level, "shortText") :- cardLevel(Card, Level), result(Card).
+resultField(Card, "treePath", Path, "shortText") :- treePath(Card, Path), result(Card).
 
 % Add fields structure similar to card query
 % a helper term for display names
@@ -59,7 +62,7 @@ displayName(Card, (Card, Field), DisplayName) :-
     field((CardType, Field), "displayName", DisplayName).
 
 % the second level includes metadata for the always visible and optionally visible fields
-field((Card, Field), "key", Field) :-
+resultField((Card, Field), "key", Field, "shortText") :-
     customField(CardType, Field),
     field(Card, "cardType", CardType),
     result(Card).

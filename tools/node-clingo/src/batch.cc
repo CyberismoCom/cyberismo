@@ -22,38 +22,6 @@ namespace node_clingo
     {
         using namespace Clingo::AST;
 
-        // q<i>_p(X0,..,Xn-1) :- p(X0,..,Xn-1). -- restores a renamed instance's access to
-        // the snapshot's real extension of a predicate the instance also redefines: every
-        // body use of `p` inside the instance was renamed to `prefix + p`, so the
-        // snapshot's own (never renamed) facts would otherwise no longer unify with
-        // anything the instance reads. Fresh nodes, built here, not copied from anywhere
-        // shared -- needs no lock.
-        Node buildBridgeRule(const std::string& name, int arity, const std::string& prefix)
-        {
-            Clingo::Location loc{"<bridge>", "<bridge>", 0, 0, 0, 0};
-            std::vector<Node> headArgs;
-            std::vector<Node> bodyArgs;
-            headArgs.reserve(static_cast<size_t>(arity));
-            bodyArgs.reserve(static_cast<size_t>(arity));
-            for (int i = 0; i < arity; ++i)
-            {
-                std::string var = "X" + std::to_string(i);
-                headArgs.emplace_back(Type::Variable, loc, var.c_str());
-                bodyArgs.emplace_back(Type::Variable, loc, var.c_str());
-            }
-
-            std::string renamedName = prefix + name;
-            Node headTerm(Type::Function, loc, renamedName.c_str(), headArgs, 0);
-            Node headAtom(Type::SymbolicAtom, headTerm);
-            Node headLit(Type::Literal, loc, static_cast<int>(Sign::NoSign), headAtom);
-
-            Node bodyTerm(Type::Function, loc, name.c_str(), bodyArgs, 0);
-            Node bodyAtom(Type::SymbolicAtom, bodyTerm);
-            Node bodyLit(Type::Literal, loc, static_cast<int>(Sign::NoSign), bodyAtom);
-            std::vector<Node> body{bodyLit};
-
-            return Node(Type::Rule, loc, headLit, body);
-        }
     } // namespace
 
     BatchQuery buildBatch(
@@ -150,20 +118,37 @@ namespace node_clingo
                 std::make_move_iterator(renamedQuery.end()));
         }
 
-        // Bridge rules: a signature an instance redefines that the snapshot's committed
-        // knowledge layer also has atoms for would otherwise vanish from that instance's
-        // view (see buildBatch's doc comment in batch.h). One bridge rule per such
-        // signature restores it under the instance's own renamed name.
+        // Layer separation is what makes batching sound: renaming isolates an instance's
+        // own predicates, so a predicate the instance defines *and* the committed
+        // knowledge layer derives would silently stop unifying with the snapshot's
+        // (never renamed) facts. This used to be patched over with a per-instance bridge
+        // rule copying the whole knowledge extension under the renamed name, at
+        // N x |extension| ground rules. Report it instead: the fix belongs in the
+        // program, where the predicate should be written by one layer only.
         if (batch.snapshot)
         {
             for (size_t i = 0; i < n; ++i)
             {
+                std::string offenders;
                 for (const auto& sig : sigs[i])
                 {
                     if (batch.snapshot->signatures.count(sig))
                     {
-                        batch.instances[i].push_back(buildBridgeRule(sig.first, sig.second, batch.prefixes[i]));
+                        if (!offenders.empty())
+                        {
+                            offenders += ", ";
+                        }
+                        offenders += sig.first + "/" + std::to_string(sig.second);
                     }
+                }
+                if (!offenders.empty())
+                {
+                    throw ClingoSolveException(
+                        "solveBatch(): instance " + std::to_string(i) +
+                            " defines predicates the knowledge layer also derives: " + offenders +
+                            ". A predicate must be written by one layer only.",
+                        {},
+                        "");
                 }
             }
         }
