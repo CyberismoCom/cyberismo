@@ -1376,11 +1376,14 @@ export class CardTree {
   }
 
   /**
-   * Loads the tree's cards from its root folder.
-   * @throws DuplicateCardKeyError if a loaded card key is already held by any
-   *   tree
+   * Loads the tree's cards from its root folder, replacing whatever it holds.
+   * @throws DuplicateCardKeyError if a loaded card key is already held by
+   *   another tree
    */
   public async load(): Promise<void> {
+    // Evict before loading: reloaded cards keep their keys, and the store
+    // rejects a key it already holds.
+    this.clear();
     const cards = await this.loadEntries();
     this.options.keys.claim(
       cards.map((card) => card.key),
@@ -1400,16 +1403,5 @@ export class CardTree {
     this.populated = false;
     this.cardStore.clear();
     this.childrenIndex.clear();
-  }
-
-  /**
-   * Reloads the tree's cards from disk.
-   *
-   * Evict before loading: reloaded cards keep their keys and the store rejects
-   * a key it already holds.
-   */
-  public async reload(): Promise<void> {
-    this.clear();
-    await this.load();
   }
 }
