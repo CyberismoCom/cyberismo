@@ -230,19 +230,35 @@ namespace node_clingo
         return sigs;
     }
 
-    std::vector<Node> rename_predicates(
-        const std::vector<Node>& nodes,
-        const std::set<Signature>& sigs,
-        const std::string& prefix)
+    std::vector<Node> deep_copy_all(const std::vector<Node>& nodes)
     {
         std::vector<Node> out;
         out.reserve(nodes.size());
         for (const auto& node : nodes)
         {
-            Node copy = node.deep_copy();
-            renameNode(copy, sigs, prefix);
-            out.push_back(std::move(copy));
+            out.push_back(node.deep_copy());
         }
+        return out;
+    }
+
+    void rename_predicates_in_place(
+        std::vector<Node>& nodes,
+        const std::set<Signature>& sigs,
+        const std::string& prefix)
+    {
+        for (auto& node : nodes)
+        {
+            renameNode(node, sigs, prefix);
+        }
+    }
+
+    std::vector<Node> rename_predicates(
+        const std::vector<Node>& nodes,
+        const std::set<Signature>& sigs,
+        const std::string& prefix)
+    {
+        std::vector<Node> out = deep_copy_all(nodes);
+        rename_predicates_in_place(out, sigs, prefix);
         return out;
     }
 } // namespace node_clingo

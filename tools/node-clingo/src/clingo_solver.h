@@ -33,8 +33,16 @@ namespace node_clingo
         // Grounds and solves the knowledge programs alone and returns every atom of the model.
         std::shared_ptr<Snapshot> solveKnowledge(const Query& query, uint64_t revision, Hash knowledgeHash);
         // Grounds and solves every instance in `batch` together, in one Control, and
-        // returns one SolveResult per instance, in the same order as `batch.instances`.
-        std::vector<SolveResult> solveBatch(const BatchQuery& batch);
+        // returns one SolveResult per instance, in the same order as `batch.instances`. A
+        // batch is only valid -- its per-instance split meaningful -- when no instance is
+        // individually unsatisfiable: every instance shares the one Control's single
+        // model, so one instance's violated integrity constraint makes the whole Control
+        // UNSAT, not just that instance. `cacheable` is set to false on that outcome (every
+        // instance's returned answers is empty, but not because that is genuinely its own
+        // result) so the caller knows not to insert any of them into the shared,
+        // content-addressed result cache -- true is not a promise the batch succeeded, only
+        // that per-instance answers, if any, are safe to cache.
+        std::vector<SolveResult> solveBatch(const BatchQuery& batch, bool& cacheable);
     };
 } // namespace node_clingo
 

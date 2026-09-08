@@ -136,6 +136,11 @@ namespace node_clingo
         // the pool task below still has to fill in from `missResults`.
         std::vector<SolveResult> results;
         std::optional<std::vector<SolveResult>> missResults;
+        // False when solveBatch() found the whole batch unsatisfiable (or otherwise could
+        // not split per instance): every miss's `answers` is then empty because the batch
+        // failed, not because that instance's own query has no answers, so none of them
+        // may be written into the shared cache under their individual hashes.
+        bool cacheable = true;
         std::optional<ClingoSolveException> solveException;
         std::string genericError;
         Napi::Promise::Deferred deferred;
@@ -146,6 +151,27 @@ namespace node_clingo
         std::vector<size_t> missIndices;
         int totalSize;
     };
+
+    /**
+     * Returns a copy of `result` fit for the shared, content-addressed cache. A batch
+     * result carries values that describe *this call*, not the query's own content --
+     * `batchSize` and `unprefixedAtoms` are both a function of which other instances
+     * happened to be batched alongside this one, and `logs` is the whole shared Control's
+     * logger output with no way to tell which instance a given message belongs to, copied
+     * onto every instance alike (see ClingoSolver::solveBatch). Caching any of them under
+     * one instance's hash would surface another call's leftovers -- another instance's
+     * batchSize, or its (possibly q<i>_-mangled) warning -- the next time that hash is
+     * read, hit or miss, batch or plain solve(). Stripping them here, once, at the single
+     * point every batch result enters the cache, is the fix: a later reader never needs to
+     * re-zero anything, because the cache itself cannot hold a call-specific value.
+     */
+    inline SolveResult stripCallSpecific(SolveResult result)
+    {
+        result.stats.batchSize = 0;
+        result.stats.unprefixedAtoms = 0;
+        result.logs.clear();
+        return result;
+    }
 
     /**
      * Submits a batch solve task to the thread pool for the misses in a solveBatch() call
@@ -177,6 +203,7 @@ namespace node_clingo
         auto* data = new BatchCallbackData{
             .results = std::move(results),
             .missResults = std::nullopt,
+            .cacheable = true,
             .solveException = std::nullopt,
             .genericError = {},
             .deferred = deferred,
@@ -206,7 +233,7 @@ namespace node_clingo
             {
                 BatchQuery batch = buildBatch(snapshot, queryLayer, missQueries, missHashes);
                 ClingoSolver solver;
-                data->missResults = solver.solveBatch(batch);
+                data->missResults = solver.solveBatch(batch, data->cacheable);
             }
             catch (const ClingoSolveException& e)
             {
@@ -240,12 +267,22 @@ namespace node_clingo
                 }
                 else
                 {
-                    // Every miss is inserted into the shared cache under its own hash
-                    // before being moved into its final position in `results` -- a copy,
-                    // since the cache and the response each need their own instance.
+                    // Every miss is inserted into the shared cache under its own hash --
+                    // stripped of whatever is a property of this call rather than of the
+                    // query's content (see stripCallSpecific) -- before being moved into
+                    // its final position in `results` untouched; the cache and the
+                    // response each need their own instance either way. Skipped
+                    // entirely when the batch itself was not cacheable (see
+                    // ClingoSolver::solveBatch's doc comment): every miss's answer would
+                    // then be empty because the whole batch failed, not because that is
+                    // genuinely each instance's own result, so none of them may be written
+                    // into the shared cache.
                     for (size_t k = 0; k < d->missIndices.size(); ++k)
                     {
-                        d->cache.addResult(d->missHashes[k], SolveResult((*d->missResults)[k]));
+                        if (d->cacheable)
+                        {
+                            d->cache.addResult(d->missHashes[k], stripCallSpecific((*d->missResults)[k]));
+                        }
                         d->results[d->missIndices[k]] = std::move((*d->missResults)[k]);
                     }
 

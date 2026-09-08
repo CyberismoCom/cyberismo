@@ -72,6 +72,26 @@ namespace node_clingo
         const std::vector<Clingo::AST::Node>& nodes,
         const std::set<Signature>& sigs,
         const std::string& prefix);
+
+    /**
+     * Deep-copies `nodes` and nothing else -- the half of rename_predicates that actually
+     * touches shared, stored nodes and so is the only half that needs Program::ast_mutex
+     * held (see rename_predicates's doc comment above). Splitting it out lets a caller
+     * release the lock as soon as the copies exist, before spending time renaming them.
+     */
+    std::vector<Clingo::AST::Node> deep_copy_all(const std::vector<Clingo::AST::Node>& nodes);
+
+    /**
+     * Renames `nodes` in place, following exactly the rules documented on rename_predicates
+     * above. Unlike rename_predicates, this does not copy first: `nodes` must already be
+     * exclusively owned by the caller (e.g. fresh from deep_copy_all, or a fresh parse) --
+     * calling this directly on a stored program's shared nodes without a lock is exactly
+     * the race rename_predicates's own doc comment warns about.
+     */
+    void rename_predicates_in_place(
+        std::vector<Clingo::AST::Node>& nodes,
+        const std::set<Signature>& sigs,
+        const std::string& prefix);
 } // namespace node_clingo
 
 #endif // NODE_CLINGO_AST_RENAME_H

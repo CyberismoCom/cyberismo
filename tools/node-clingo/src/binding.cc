@@ -390,7 +390,7 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
      * how the work is scheduled. An instance already in the shared cache is served directly
      * and never enters the batch; only the misses are ground and solved together. Requires
      * { snapshot: true }: batching without a committed snapshot to share is not
-     * implemented (see BatchQuery::shared in batch.h).
+     * implemented (see BatchQuery in batch.h).
      */
     Napi::Value SolveBatch(const Napi::CallbackInfo& info)
     {

@@ -184,6 +184,124 @@ describe('rename_predicates over the real query layer', () => {
   });
 });
 
+describe('solveBatch over the real query layer', () => {
+  // queries/card.lp and queries/tree.lp with their handlebars scaffolding resolved as if
+  // rendered for cardKey "a" (tree.lp: recursive too) -- read from the real files so this
+  // test tracks their source; `.replace()` on the exact current handlebars block is a
+  // deliberately blunt tool here; if either file's templating ever changes shape, the
+  // `{{`-check right after throws instead of silently comparing stale content.
+  const queriesDir = resolve(
+    pkgRoot,
+    '..',
+    'assets',
+    'src',
+    'calculations',
+    'queries',
+  );
+  const assetsDir = resolve(
+    pkgRoot,
+    '..',
+    'assets',
+    'src',
+    'calculations',
+    'common',
+  );
+  const queryLayerSource =
+    readFileSync(resolve(assetsDir, 'queryLanguage.lp'), 'utf8') +
+    '\n' +
+    readFileSync(resolve(assetsDir, 'utils.lp'), 'utf8');
+
+  const cardQuery = readFileSync(
+    resolve(queriesDir, 'card.lp'),
+    'utf8',
+  ).replace(
+    `{{#if cardKey}}\nresult({{cardKey}}).\n{{else}}\nresult(X) :- projectCard(X).\n{{/if}}`,
+    'result(a).',
+  );
+  const treeQuery = readFileSync(
+    resolve(queriesDir, 'tree.lp'),
+    'utf8',
+  ).replace(
+    `{{#if cardKey}}
+result({{cardKey}}).
+{{#if recursive}}
+% child below
+childResult({{cardKey}}, Card, "children") :- parent(Card, {{cardKey}}), not hiddenInTreeView(Card).
+childResult(Parent, Card, "children") :- childResult(_, Parent, "children"), parent(Card, Parent), not hiddenInTreeView(Card).
+{{/if}}
+
+{{else}}
+result(Card) :- projectCard(Card), not parent(Card, _), not hiddenInTreeView(Card).
+childResult(Parent, Card, "children") :- card(Card), parent(Card, Parent), not hiddenInTreeView(Card).
+{{/if}}`,
+    `result(a).
+childResult(a, Card, "children") :- parent(Card, a), not hiddenInTreeView(Card).
+childResult(Parent, Card, "children") :- childResult(_, Parent, "children"), parent(Card, Parent), not hiddenInTreeView(Card).`,
+  );
+  if (cardQuery.includes('{{') || treeQuery.includes('{{')) {
+    throw new Error(
+      'queries/card.lp or queries/tree.lp handlebars changed shape -- update this fixture',
+    );
+  }
+
+  // Deliberately exercises predicates the knowledge layer produces AND the query layer
+  // (or a query itself) redefines: field/3 (queryLanguage.lp derives it from fields/5,7,9)
+  // and dataType/3 (card.lp's own isCalculated rule derives it too), plus a link and a
+  // policyCheckFailure/5 -- the exact shapes C1 found losing atoms when batched unbridged.
+  const KNOWLEDGE = `
+card(a). card(b).
+parent(b, a).
+projectCard(a). projectCard(b).
+field(a, "cardType", "task"). field(a, "title", "Card A").
+field(b, "cardType", "task"). field(b, "title", "Card B").
+field("task", "displayName", "Task").
+field(a, "priority", "high").
+dataType(a, "priority", "shortText").
+customField("task", "priority").
+alwaysVisibleField("task", "priority").
+fieldType("priority").
+link(a, b, "relates to").
+policyCheckFailure(a, "naming", "Bad title", "Title too short", "title").
+`;
+
+  const norm = (r: { answers: string[] }) =>
+    r.answers[0].split('\n').filter(Boolean).sort();
+
+  it('matches separate solves atom-for-atom -- set equality and count alike -- for card.lp and tree.lp batched together over a snapshot whose knowledge layer both queries also partly redefine', async () => {
+    clearCache();
+    const ctx = new ClingoContext();
+    ctx.setProgram('facts', KNOWLEDGE, ['knowledge']);
+    ctx.setProgram('ql', queryLayerSource, ['queryLayer']);
+    await ctx.commit();
+
+    const qs = [cardQuery, treeQuery];
+    const separate = await Promise.all(
+      qs.map((q) => ctx.solve(q, ['queryLayer'], { snapshot: true })),
+    );
+    clearCache();
+    const batched = await ctx.solveBatch(qs, ['queryLayer'], {
+      snapshot: true,
+    });
+
+    expect(batched.length).toBe(2);
+    for (let i = 0; i < qs.length; i++) {
+      const sep = norm(separate[i]);
+      const bat = norm(batched[i]);
+      // Atom counts first: two equal-but-both-wrong sets (e.g. both silently missing
+      // the same bridged atoms) would still pass a bare set-equality check.
+      expect(bat.length).toBe(sep.length);
+      expect(bat).toEqual(sep);
+    }
+    // At this scale every real content difference is either instance-prefixed or
+    // bridged; nothing should ever fall through as an unmatched broadcast atom.
+    expect(batched.every((r) => r.stats.unprefixedAtoms === 0)).toBe(true);
+    // Sanity: both instances actually derive a non-trivial result, so the equality
+    // check above cannot be passing because both sides are trivially empty.
+    expect(norm(separate[0]).length).toBeGreaterThan(10);
+    expect(norm(separate[1]).length).toBeGreaterThan(0);
+  });
+});
+
 describe('solveBatch', () => {
   const KNOWLEDGE = `card(a). card(b). field(a,"title","A"). field(b,"title","B").`;
   const QL = `#show result/1. #show field(K,F,V) : result(K), field(K,F,V). #show childResult/3.`;
@@ -306,5 +424,148 @@ describe('solveBatch', () => {
     expect(batched[0].answers[0]).toContain('result(a)');
     expect(batched[1].answers[0]).toBe('');
     expect(batched[2].answers[0]).toContain('result(b)');
+  });
+
+  it('rejects a batch containing a query that fails to parse, and a later plain solve() of that same text still rejects rather than resolving a poisoned cache entry', async () => {
+    clearCache();
+    const ctx = new ClingoContext();
+    ctx.setProgram('facts', KNOWLEDGE, ['knowledge']);
+    ctx.setProgram('ql', QL, ['queryLayer']);
+    await ctx.commit();
+    const badQuery = 'result(a';
+
+    await expect(
+      ctx.solveBatch([badQuery, 'result(b).'], ['queryLayer'], {
+        snapshot: true,
+      }),
+    ).rejects.toThrow();
+
+    // The batch rejection must not have inserted an empty answer into the shared cache
+    // under badQuery's own hash -- a plain solve() of the same text has to hit clingo's
+    // real parser again and reject with a real syntax error, not resolve `['']` from
+    // cache.
+    await expect(
+      ctx.solve(badQuery, ['queryLayer'], { snapshot: true }),
+    ).rejects.toThrow();
+  });
+
+  it('rejects a batch containing a stored query-layer program that never parsed, instead of silently contributing nothing', async () => {
+    clearCache();
+    const ctx = new ClingoContext();
+    ctx.setProgram('facts', KNOWLEDGE, ['knowledge']);
+    // Broken query-layer program: setProgram() stores it with empty ast_nodes (its
+    // text-fallback path), same as it would for any other unparseable content.
+    ctx.setProgram('broken', 'result(a', ['queryLayer']);
+    await ctx.commit();
+
+    await expect(
+      ctx.solveBatch(['result(a).'], ['queryLayer'], { snapshot: true }),
+    ).rejects.toThrow();
+  });
+
+  it("never serves another call's batchSize or unprefixedAtoms from the cache: a plain solve() and a differently-sized solveBatch() of the same query each report their own call's values", async () => {
+    const KNOWLEDGE_BROADCAST = `card(a). card(b).`;
+    // Neither instance renames `card` (nothing defines it), so both knowledge atoms are
+    // broadcast, unmatched, on every batch call that grounds this query layer.
+    const QL_BROADCAST = `#show card/1.`;
+
+    clearCache();
+    const ctx = new ClingoContext();
+    ctx.setProgram('facts', KNOWLEDGE_BROADCAST, ['knowledge']);
+    ctx.setProgram('ql', QL_BROADCAST, ['queryLayer']);
+    await ctx.commit();
+
+    const batched = await ctx.solveBatch(
+      ['result(a).', 'result(a).'],
+      ['queryLayer'],
+      { snapshot: true },
+    );
+    expect(batched[0].stats.batchSize).toBe(2);
+    expect(batched[0].stats.unprefixedAtoms).toBe(2);
+
+    // Same query text as instance 0 above -- now served from the cache that batch call
+    // populated.
+    const solo = await ctx.solve('result(a).', ['queryLayer'], {
+      snapshot: true,
+    });
+    expect(solo.stats.cacheHit).toBe(true);
+    expect(solo.stats.batchSize).toBe(0);
+    expect(solo.stats.unprefixedAtoms).toBe(0);
+
+    const rebatched = await ctx.solveBatch(['result(a).'], ['queryLayer'], {
+      snapshot: true,
+    });
+    expect(rebatched[0].stats.cacheHit).toBe(true);
+    expect(rebatched[0].stats.batchSize).toBe(1);
+    expect(rebatched[0].stats.unprefixedAtoms).toBe(0);
+  });
+
+  it('one individually-unsatisfiable instance makes the whole batch UNSAT, yields answers: [] for every instance, and does not poison the cache', async () => {
+    clearCache();
+    const ctx = new ClingoContext();
+    ctx.setProgram('facts', KNOWLEDGE, ['knowledge']);
+    ctx.setProgram('ql', QL, ['queryLayer']);
+    await ctx.commit();
+    const qs = [
+      'result(a).',
+      'result(b). :- result(b).',
+      'result(a). result(b).',
+    ];
+    const batched = await ctx.solveBatch(qs, ['queryLayer'], {
+      snapshot: true,
+    });
+    batched.forEach((r) => expect(r.answers).toEqual([]));
+
+    // Instance 0 would be satisfiable alone; the batch-wide UNSAT must not have cached
+    // that empty answer under its hash.
+    const solo = await ctx.solve(qs[0], ['queryLayer'], { snapshot: true });
+    expect(solo.stats.cacheHit).toBe(false);
+    expect(solo.answers[0]).toContain('result(a)');
+  });
+
+  it('demangles a bare-tuple #show term (a Function whose own name is "") instead of broadcasting it verbatim as "q<i>_(...)"', async () => {
+    const KNOWLEDGE_TUPLES = `e(1,2). e(3,4).`;
+    const QL_TUPLES = `#show (X,Y) : e(X,Y).`;
+
+    clearCache();
+    const ctx = new ClingoContext();
+    ctx.setProgram('facts', KNOWLEDGE_TUPLES, ['knowledge']);
+    ctx.setProgram('ql', QL_TUPLES, ['queryLayer']);
+    await ctx.commit();
+    const qs = ['result(a).', 'result(b).'];
+    const separate = await Promise.all(
+      qs.map((q) => ctx.solve(q, ['queryLayer'], { snapshot: true })),
+    );
+    clearCache();
+    const batched = await ctx.solveBatch(qs, ['queryLayer'], {
+      snapshot: true,
+    });
+    batched.forEach((b, i) => expect(norm(b)).toEqual(norm(separate[i])));
+    expect(batched[0].answers[0]).toContain('(1,2)');
+    expect(batched[0].answers[0]).not.toContain('q0_');
+    expect(batched[0].answers[0]).not.toContain('q1_');
+  });
+
+  it('broadcasts a shown non-Function term (a bare value, not a predicate application) instead of silently dropping it, and counts it', async () => {
+    const KNOWLEDGE_BARE = `p("s"). p(1).`;
+    const QL_BARE = `#show X : p(X).`;
+
+    clearCache();
+    const ctx = new ClingoContext();
+    ctx.setProgram('facts', KNOWLEDGE_BARE, ['knowledge']);
+    ctx.setProgram('ql', QL_BARE, ['queryLayer']);
+    await ctx.commit();
+    const qs = ['result(a).', 'result(b).'];
+    const separate = await Promise.all(
+      qs.map((q) => ctx.solve(q, ['queryLayer'], { snapshot: true })),
+    );
+    clearCache();
+    const batched = await ctx.solveBatch(qs, ['queryLayer'], {
+      snapshot: true,
+    });
+    batched.forEach((b, i) => expect(norm(b)).toEqual(norm(separate[i])));
+    expect(norm(batched[0])).toContain('"s"');
+    expect(norm(batched[0])).toContain('1');
+    expect(batched[0].stats.unprefixedAtoms).toBeGreaterThanOrEqual(4);
   });
 });

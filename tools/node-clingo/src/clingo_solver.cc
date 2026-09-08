@@ -263,6 +263,10 @@ namespace node_clingo
             snap->knowledgeHash = knowledgeHash;
             snap->symbols = std::move(collector.symbols);
             snap->fact_nodes = build_fact_nodes(snap->symbols);
+            for (const auto& sym : snap->symbols)
+            {
+                snap->signatures.emplace(sym.name(), static_cast<int>(sym.arguments().size()));
+            }
             snap->valid_until = todayCalled ? next_local_midnight_epoch_ms() : 0;
             snap->stats = {
                 .glue = std::chrono::microseconds(0),
@@ -305,31 +309,37 @@ namespace node_clingo
         {
         }
 
-        // `started` is `char`, not `bool`: std::vector<bool> is a bitset whose
-        // `operator[]` returns a proxy, not a real `bool&`, so it cannot bind to this
-        // out-param.
-        static void appendLine(std::ostringstream& out, char& started, const std::string& text)
+        // Whether anything has been appended to `out` yet is `out.tellp() > 0` -- an
+        // empty stream's put position is 0 -- so no parallel "started" array is needed.
+        static void appendLine(std::ostringstream& out, const std::string& text)
         {
-            if (started)
+            if (out.tellp() > 0)
             {
                 out << '\n';
             }
             out << text;
-            started = 1;
         }
 
         bool on_model(Clingo::Model& model) override
         {
             std::vector<std::ostringstream> perInstance(prefixes.size());
-            std::vector<char> started(prefixes.size(), 0);
 
             for (auto sym : model.symbols())
             {
                 if (sym.type() != Clingo::SymbolType::Function)
                 {
-                    // The query layer's own #show set is Function-only (see batch.h's
-                    // doc comment on buildBatch); a shown non-Function term does not occur
-                    // in real content.
+                    // Not a predicate application with a name to strip a prefix from --
+                    // e.g. a bare `#show X : p(X).` yielding a string, number, or tuple.
+                    // No instance's prefix can have matched it, so it is broadcast exactly
+                    // like any other unmatched atom, matching qtools/renaming.py's
+                    // demangle() fallback -- a report query is arbitrary logic, and this
+                    // must not be a silent drop.
+                    ++unprefixedAtoms;
+                    std::string printed = sym.to_string();
+                    for (auto& out : perInstance)
+                    {
+                        appendLine(out, printed);
+                    }
                     continue;
                 }
 
@@ -338,13 +348,18 @@ namespace node_clingo
                 for (size_t i = 0; i < prefixes.size(); ++i)
                 {
                     const std::string& prefix = prefixes[i];
-                    if (name.size() > prefix.size() && name.compare(0, prefix.size(), prefix) == 0)
+                    // `>=`, not `>`: a bare-tuple #show term (a Function whose name is "")
+                    // is prefixed unconditionally by renameNode's ShowTerm branch (see
+                    // ast_rename.cc), so it is renamed to exactly "q<i>_" with no
+                    // trailing content -- name.size() == prefix.size() -- and must still
+                    // match here, stripping back down to "".
+                    if (name.size() >= prefix.size() && name.compare(0, prefix.size(), prefix) == 0)
                     {
                         // Re-created under its original name so to_string() prints exactly
                         // what an unrenamed, single solve would print.
                         Clingo::Symbol original = Clingo::Function(
                             std::string(name.substr(prefix.size())).c_str(), sym.arguments(), sym.is_positive());
-                        appendLine(perInstance[i], started[i], original.to_string());
+                        appendLine(perInstance[i], original.to_string());
                         matched = true;
                         break;
                     }
@@ -357,9 +372,9 @@ namespace node_clingo
                     // matching qtools/renaming.py's demangle().
                     ++unprefixedAtoms;
                     std::string printed = sym.to_string();
-                    for (size_t i = 0; i < perInstance.size(); ++i)
+                    for (auto& out : perInstance)
                     {
-                        appendLine(perInstance[i], started[i], printed);
+                        appendLine(out, printed);
                     }
                 }
             }
@@ -372,7 +387,7 @@ namespace node_clingo
         }
     };
 
-    std::vector<SolveResult> ClingoSolver::solveBatch(const BatchQuery& batch)
+    std::vector<SolveResult> ClingoSolver::solveBatch(const BatchQuery& batch, bool& cacheable)
     {
         std::vector<ClingoLogMessage> logMessages;
         std::vector<std::string> answers;
@@ -381,6 +396,7 @@ namespace node_clingo
         std::string currentKey;
         auto timeStart = std::chrono::high_resolution_clock::now();
         const size_t n = batch.instances.size();
+        cacheable = true;
 
         Clingo::Logger logger = [&logMessages](Clingo::WarningCode code, char const* message) {
             logMessages.push_back({code, code == Clingo::WarningCode::RuntimeError, message});
@@ -396,8 +412,8 @@ namespace node_clingo
             // nothing else can reach these nodes -- so this adds no real locking cost, and
             // lets solveBatch() share groundPrograms() rather than duplicate its replay and
             // grounding logic.
-            std::vector<std::shared_ptr<const Program>> assembled = batch.shared;
-            assembled.reserve(assembled.size() + n);
+            std::vector<std::shared_ptr<const Program>> assembled;
+            assembled.reserve(n);
             for (size_t i = 0; i < n; ++i)
             {
                 assembled.push_back(
@@ -434,7 +450,14 @@ namespace node_clingo
             // An UNSAT batch (or one where on_model was somehow never reached) has nothing
             // to split per instance; every instance gets the same empty answer a plain
             // solve() reports for an unsatisfiable query, rather than an out-of-bounds read.
+            // That empty answer is not, in general, what solving that instance alone would
+            // produce -- one instance's own integrity constraint can make the whole shared
+            // Control UNSAT even though its neighbours are individually satisfiable (see
+            // solveBatch's doc comment in clingo_solver.h) -- so `cacheable` is cleared:
+            // the caller must not let this batch-wide failure overwrite any instance's own
+            // cached answer.
             bool satisfiable = outcome.is_satisfiable() && answers.size() == n;
+            cacheable = satisfiable;
 
             std::vector<SolveResult> results;
             results.reserve(n);

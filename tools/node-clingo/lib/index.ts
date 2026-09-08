@@ -188,6 +188,12 @@ export interface ClingoResult {
   answers: string[];
   stats: {
     glue: number;
+    /**
+     * For a solveBatch() result, this and `ground`/`solve` below are totals for the
+     * *whole* batch's one Control, not this instance's own share of the work --
+     * summing them across a batch response over-counts the real grounding/solving cost
+     * N-fold.
+     */
     add: number;
     /** Sub-portion of `add` spent replaying a snapshot's fact_nodes; 0 off the snapshot path. */
     inject: number;
@@ -195,14 +201,17 @@ export interface ClingoResult {
     solve: number;
     cacheHit: boolean;
     /**
-     * Number of instances ground and solved together by solveBatch(); absent (0) for a
-     * plain solve().
+     * Number of instances ground and solved together by solveBatch(); 0 for a plain
+     * solve(). Always present -- the native binding sets it on every result, batch or
+     * not -- despite the `?`, kept only because narrowing every existing caller that
+     * reads it would be a bigger change than this fix round's scope.
      */
     batchSize?: number;
     /**
      * Model atoms broadcast to every instance because no instance's prefix matched them;
      * only meaningful for a solveBatch() result, and expected to stay 0 for real content
-     * -- see solveBatch()'s doc comment.
+     * -- see solveBatch()'s doc comment. Always present (0 outside of a batch), same
+     * caveat about the `?` as `batchSize` above.
      */
     unprefixedAtoms?: number;
   };
@@ -290,7 +299,11 @@ export class ClingoContext {
    * the same as calling `solve()` on each instance separately -- batching only changes how
    * the work is scheduled. An instance already in the shared cache is served directly and
    * never enters the batch.
-   * @param programs One query per instance
+   * @param programs One query per instance. Unlike solve(), an individual instance may be
+   * `''` -- a deliberate difference, not an oversight: solve()'s `''` guard rejects the
+   * *whole call* having no program, but a batch's `''` is one query among several,
+   * legitimately meaning "no query for this instance, just resolve the query layer as-is"
+   * (see test/batch.test.ts's "derives nothing" case).
    * @param categories Optional array of program keys or categories to include, shared by
    * every instance
    * @param options Solve options; `{ snapshot: true }` is required -- batching without a
