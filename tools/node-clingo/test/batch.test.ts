@@ -109,6 +109,23 @@ describe('rename_predicates', () => {
     expect(out).toContain('-p(X) :- q1_s(X).');
   });
 
+  it('does not treat a #show as a definition: body uses of a shown-but-underived predicate stay unrenamed', () => {
+    // A #show declares an output name, it does not define a predicate (qtools/lpast.py
+    // classify() gives show/showsig no heads). The shown term is prefixed unconditionally,
+    // but `dataType/3` is derived by the knowledge layer, so a body use of it must keep the
+    // shared name: renaming it would reference an atom no instance derives, and the rule
+    // would silently match nothing.
+    const out = rename(
+      `listField(K,F,V) :- field(K,F,V), dataType(K,F,"list").
+       #show dataType(K,F,D) : dataType(K,F,D).`,
+      'q1_',
+    );
+    expect(out).toContain(
+      'q1_listField(K,F,V) :- field(K,F,V); dataType(K,F,"list").',
+    );
+    expect(out).toContain('#show q1_dataType(K,F,D) : dataType(K,F,D).');
+  });
+
   it('never mutates the parsed input -- the printed original is unrenamed', () => {
     const program = `result(x). #show sel(F) : select(F). select(x).`;
     const out = renameForTest(program, 'q1_');
