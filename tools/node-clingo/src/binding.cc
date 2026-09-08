@@ -10,6 +10,7 @@
   details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
+#include <algorithm>
 #include <chrono>
 #include <cstdint>
 #include <memory>
@@ -67,6 +68,40 @@ namespace
             refs.push_back(val.As<Napi::String>().Utf8Value());
         }
         return refs;
+    }
+
+    /**
+     * Finds the first knowledge program carrying a top-level statement that changes what
+     * model.symbols() returns for the *whole* solve -- #show, #external, #minimize,
+     * #project, #defined -- rather than merely deriving atoms. The snapshot's fact_nodes
+     * are plain facts and cannot carry any of these, so replaying them instead of the
+     * knowledge programs would silently change which atoms come back.
+     * A program that failed to pre-parse has empty ast_nodes (it falls back to raw-text
+     * parsing at ground time) and is not inspected here.
+     * Returns nullptr if no knowledge program carries such a statement.
+     */
+    const node_clingo::Program* findUncarriableStatement(
+        const std::vector<std::shared_ptr<const node_clingo::Program>>& programs)
+    {
+        for (const auto& program : programs)
+        {
+            for (const auto& node : program->ast_nodes)
+            {
+                switch (node.type())
+                {
+                    case Clingo::AST::Type::ShowSignature:
+                    case Clingo::AST::Type::ShowTerm:
+                    case Clingo::AST::Type::External:
+                    case Clingo::AST::Type::ProjectAtom:
+                    case Clingo::AST::Type::Minimize:
+                    case Clingo::AST::Type::Defined:
+                        return program.get();
+                    default:
+                        break;
+                }
+            }
+        }
+        return nullptr;
     }
 
 } // namespace
@@ -209,6 +244,11 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
         std::string program = info[0].As<Napi::String>().Utf8Value();
         std::vector<std::string> refs = parse_refs_or_throw(info);
 
+        if (info.Length() > 2 && !info[2].IsUndefined() && !info[2].IsNull() && !info[2].IsObject())
+        {
+            throw Napi::TypeError::New(env, "Third argument must be an options object");
+        }
+
         bool useSnapshot = false;
         if (info.Length() > 2 && info[2].IsObject())
         {
@@ -216,25 +256,43 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
             useSnapshot = opts.Has("snapshot") && opts.Get("snapshot").ToBoolean().Value();
         }
 
+        if (useSnapshot && std::find(refs.begin(), refs.end(), kKnowledgeCategory) != refs.end())
+        {
+            throw Napi::TypeError::New(
+                env,
+                std::string("solve(): cannot combine { snapshot: true } with the \"") + kKnowledgeCategory +
+                    "\" category in refs -- that grounds the knowledge layer twice");
+        }
+
         std::shared_ptr<const node_clingo::Snapshot> snapshot;
         if (useSnapshot)
         {
-            auto deferred = Napi::Promise::Deferred::New(env);
+            // Both branches only decide *whether* to reject and with what; the Deferred
+            // itself is created below, only on the path that actually settles it. Creating
+            // it unconditionally up front and settling it in just two of three branches
+            // leaves it unresolved -- and abandoned on the common (fresh) path -- which
+            // leaks (napi_create_promise holds a strong reference until settled).
+            const char* code = nullptr;
+            const char* msg = nullptr;
             if (!m_snapshot)
             {
-                deferred.Reject(
-                    node_clingo::coded_error(env, "SNAPSHOT_MISSING", "solve(): no snapshot; call commit() first"));
-                return deferred.Promise();
+                code = "SNAPSHOT_MISSING";
+                msg = "solve(): no snapshot; call commit() first";
             }
             // Fresh only if the knowledge programs still hash to what was committed, and
             // (when the commit involved @today) that day has not rolled over yet. Scoped to
             // the knowledge category alone: a queryLayer edit must not trip this.
-            if (m_snapshot->knowledgeHash != m_store.categoryHash(kKnowledgeCategory) ||
+            else if (
+                m_snapshot->knowledgeHash != m_store.categoryHash(kKnowledgeCategory) ||
                 (m_snapshot->valid_until && m_snapshot->valid_until <= node_clingo::current_epoch_ms()))
             {
-                deferred.Reject(
-                    node_clingo::coded_error(
-                        env, "SNAPSHOT_STALE", "solve(): snapshot is older than the knowledge programs"));
+                code = "SNAPSHOT_STALE";
+                msg = "solve(): snapshot is older than the knowledge programs";
+            }
+            if (code)
+            {
+                auto deferred = Napi::Promise::Deferred::New(env);
+                deferred.Reject(node_clingo::coded_error(env, code, msg));
                 return deferred.Promise();
             }
             snapshot = m_snapshot;
@@ -249,6 +307,7 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
             auto cacheHitTime = std::chrono::high_resolution_clock::now();
             result.stats.glue = std::chrono::duration_cast<std::chrono::microseconds>(cacheHitTime - startTime);
             result.stats.add = std::chrono::microseconds::zero();
+            result.stats.inject = std::chrono::microseconds::zero();
             result.stats.ground = std::chrono::microseconds::zero();
             result.stats.solve = std::chrono::microseconds::zero();
             result.stats.cacheHit = true;
@@ -280,6 +339,18 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
         {
             deferred.Reject(
                 Napi::Error::New(env, std::string("commit(): no programs in category \"") + kKnowledgeCategory + "\"")
+                    .Value());
+            return deferred.Promise();
+        }
+
+        if (const node_clingo::Program* offender = findUncarriableStatement(query.programs))
+        {
+            deferred.Reject(
+                Napi::Error::New(
+                    env,
+                    std::string("commit(): knowledge program \"") + offender->key +
+                        "\" contains a #show/#external/#minimize/#project/#defined statement, which a snapshot "
+                        "replay cannot carry")
                     .Value());
             return deferred.Promise();
         }

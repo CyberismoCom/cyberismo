@@ -174,10 +174,14 @@ namespace node_clingo
 
         if (snapshot)
         {
-            // Folds the snapshot's identity into the hash so a snapshot solve can never
-            // collide with a full solve of the same query text in the shared result cache.
+            // Folds the snapshot's content identity into the hash so a snapshot solve can
+            // never collide with a full solve of the same query text in the shared result
+            // cache. `knowledgeHash` alone: same knowledge content means the same model
+            // means the same fact_nodes, regardless of which commit() produced this
+            // snapshot, so two revisions with identical knowledge content should (and do)
+            // share a cache entry. The @today case is already covered by `valid_until` on
+            // both the snapshot and the cached result.
             XXH3_64bits_update(state, &snapshot->knowledgeHash, 8);
-            XXH3_64bits_update(state, &snapshot->revision, 8);
         }
 
         for (const auto& program : programs)
@@ -208,15 +212,15 @@ namespace node_clingo
         }
         XXH3_state_t* state = XXH3_createState();
         XXH3_64bits_reset(state);
+        // Internally consistent across calls -- the same member programs always fold to
+        // the same hash -- which is all this needs: it is only ever compared against
+        // another categoryHash() result, never against a prepareQuery() hash.
+        // programByReferences() never returns the synthetic __program__ placeholder (it is
+        // built fresh per prepareQuery() call, not stored), so unlike prepareQuery()'s loop
+        // there is no zero-hash placeholder to skip here.
         for (const auto& p : programs)
         {
-            // Must keep folding the same way prepareQuery() does (hash == 0 is the
-            // synthetic __program__ placeholder, not a real content hash) or the two
-            // would disagree about what a category's content hash is.
-            if (p->hash != 0)
-            {
-                XXH3_64bits_update(state, &p->hash, 8);
-            }
+            XXH3_64bits_update(state, &p->hash, 8);
         }
         Hash h = XXH3_64bits_digest(state);
         XXH3_freeState(state);

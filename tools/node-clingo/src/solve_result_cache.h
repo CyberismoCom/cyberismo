@@ -56,6 +56,9 @@ namespace node_clingo
         std::chrono::microseconds add;
         std::chrono::microseconds ground;
         std::chrono::microseconds solve;
+        // Sub-portion of `add` spent replaying a snapshot's fact_nodes, attributable
+        // separately from the rest of the add phase; zero off the snapshot path.
+        std::chrono::microseconds inject = std::chrono::microseconds::zero();
         bool cacheHit = false; // Indicates if the result was retrieved from cache
     };
 

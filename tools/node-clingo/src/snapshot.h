@@ -36,16 +36,22 @@ namespace node_clingo
         Hash knowledgeHash = 0; // XXH over the knowledge programs' hashes at commit time
         std::vector<Clingo::Symbol> symbols;
         std::vector<Clingo::AST::Node> fact_nodes;
-        // Deliberate insurance, not load-bearing for these node shapes: build_fact_nodes
-        // never emits a comparison guard, which is the case in Program::ast_mutex that
-        // actually copies a SAST handle during replay (in parseRightGuards). Kept in case
-        // fact_nodes' shape or clingo's replay internals change later.
+        // Not taken by solve()'s replay of fact_nodes -- see the invariant on
+        // build_fact_nodes below for why concurrent replay of that shape cannot race. Kept
+        // as a member for a future caller that replays a different node shape through this
+        // snapshot, where the invariant would no longer hold.
         mutable std::mutex ast_mutex;
         int64_t valid_until = 0; // epoch ms; 0 = no @today involved
         Stats stats{};
     };
 
     // Ground fact rule: Rule(loc, Literal(loc, NoSign, SymbolicAtom(SymbolicTerm(loc, sym))), []).
+    //
+    // Invariant this function must keep: never emit a Comparison/guard node. clingo's parse
+    // path copies an SAST handle (whose refcount is a plain, non-atomic unsigned) in exactly
+    // one place, parseRightGuards, and only for a comparison guard -- Rule/Literal/
+    // SymbolicAtom/SymbolicTerm never go through it. That is what lets solve() replay these
+    // nodes from multiple threads without locking Snapshot::ast_mutex.
     inline std::vector<Clingo::AST::Node> build_fact_nodes(const std::vector<Clingo::Symbol>& symbols)
     {
         using namespace Clingo::AST;

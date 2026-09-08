@@ -76,6 +76,7 @@ namespace node_clingo
         Napi::Object statsObj = Napi::Object::New(env);
         statsObj.Set("glue", result.stats.glue.count());
         statsObj.Set("add", result.stats.add.count());
+        statsObj.Set("inject", result.stats.inject.count());
         statsObj.Set("ground", result.stats.ground.count());
         statsObj.Set("solve", result.stats.solve.count());
         statsObj.Set("cacheHit", result.stats.cacheHit);

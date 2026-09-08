@@ -54,12 +54,15 @@ namespace node_clingo
         }
     };
 
-    // The two timestamps solve() and solveKnowledge() both derive add/ground stats from.
-    // File-local: groundPrograms() touches no ClingoSolver state, so it need not be a member.
+    // The timestamps solve() and solveKnowledge() derive add/ground (and, when a snapshot
+    // was replayed, inject) stats from. File-local: groundPrograms() touches no
+    // ClingoSolver state, so it need not be a member.
     struct GroundTimings
     {
         std::chrono::high_resolution_clock::time_point afterAdd;
         std::chrono::high_resolution_clock::time_point afterGround;
+        std::chrono::high_resolution_clock::time_point afterInject;
+        bool injected = false;
     };
 
     // Assembles `programs` into control's base part (AST replay, or parse-string fallback
@@ -72,21 +75,25 @@ namespace node_clingo
         const Clingo::Logger& logger,
         bool& todayCalled,
         std::string& currentKey,
-        const Snapshot* snapshot = nullptr)
+        const Snapshot* snapshot)
     {
         std::vector<Clingo::Part> parts;
+        GroundTimings timings;
 
         Clingo::AST::with_builder(control, [&](Clingo::AST::ProgramBuilder& builder) {
             if (snapshot)
             {
-                // Snapshot-then-program lock order everywhere: this is the only place
-                // that ever takes both, and always in this order, so the two mutexes
-                // can never deadlock.
-                std::lock_guard<std::mutex> lock(snapshot->ast_mutex);
+                // No lock: build_fact_nodes() (snapshot.h) only ever emits
+                // Rule/Literal(NoSign)/SymbolicAtom/SymbolicTerm nodes, and that shape never
+                // reaches clingo's one SAST-copying code path (parseRightGuards, comparison
+                // guards only) -- see the comment on build_fact_nodes for the full argument.
+                // So replaying the same snapshot from multiple threads at once cannot race.
                 for (const auto& node : snapshot->fact_nodes)
                 {
                     builder.add(node);
                 }
+                timings.afterInject = std::chrono::high_resolution_clock::now();
+                timings.injected = true;
             }
             for (const auto& program : programs)
             {
@@ -112,7 +119,6 @@ namespace node_clingo
         });
         parts.emplace_back("base", Clingo::SymbolSpan{});
 
-        GroundTimings timings;
         timings.afterAdd = std::chrono::high_resolution_clock::now();
 
         const auto& handlers = node_clingo::get_function_handlers();
@@ -175,6 +181,14 @@ namespace node_clingo
                 valid_until = query.snapshot->valid_until;
             }
 
+            // Attributable sub-portion of `add`: how long replaying the snapshot's
+            // fact_nodes took, isolated from the query layer's own add time. Zero off the
+            // snapshot path.
+            std::chrono::microseconds inject =
+                timings.injected
+                    ? std::chrono::duration_cast<std::chrono::microseconds>(timings.afterInject - timeStart)
+                    : std::chrono::microseconds::zero();
+
             return {
                 .answers = std::move(localAnswers),
                 .logs = std::move(logMessages),
@@ -186,6 +200,7 @@ namespace node_clingo
                             timings.afterGround - timings.afterAdd),
                         .solve =
                             std::chrono::duration_cast<std::chrono::microseconds>(timeAfterSolve - timings.afterGround),
+                        .inject = inject,
                     },
                 .valid_until = valid_until,
             };
@@ -227,7 +242,7 @@ namespace node_clingo
         {
             Clingo::Control control{{}, logger, MAX_CLINGO_LOG_MESSAGES};
 
-            GroundTimings timings = groundPrograms(control, query.programs, logger, todayCalled, currentKey);
+            GroundTimings timings = groundPrograms(control, query.programs, logger, todayCalled, currentKey, nullptr);
 
             SymbolCollector collector;
             Clingo::SolveResult result = control.solve(Clingo::SymbolicLiteralSpan{}, &collector).get();

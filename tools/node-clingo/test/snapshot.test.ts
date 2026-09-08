@@ -31,7 +31,9 @@ describe('commit()', () => {
 
   it('rejects when there is no knowledge program', async () => {
     const ctx = new ClingoContext();
-    await expect(ctx.commit()).rejects.toThrow(/no programs in category "knowledge"/);
+    await expect(ctx.commit()).rejects.toThrow(
+      /no programs in category "knowledge"/,
+    );
   });
 
   it('rejects with a structured ClingoError when a knowledge program fails to ground', async () => {
@@ -73,6 +75,15 @@ describe('commit()', () => {
     const ctx = new ClingoContext();
     ctx.setProgram('facts', `${KNOWLEDGE}\n:- card(a).`, ['knowledge']);
     await expect(ctx.commit()).rejects.toThrow(/unsatisfiable/);
+  });
+
+  it('rejects a knowledge program containing #show', async () => {
+    // A #show in the knowledge layer changes what model.symbols() returns for the whole
+    // solve -- something the snapshot's plain fact_nodes cannot carry. Letting it through
+    // would silently diverge the snapshot path from a full solve.
+    const ctx = new ClingoContext();
+    ctx.setProgram('facts', `${KNOWLEDGE}\n#show card/1.`, ['knowledge']);
+    await expect(ctx.commit()).rejects.toThrow(/#show/);
   });
 });
 
@@ -136,9 +147,28 @@ describe('solve({ snapshot: true })', () => {
 
     // QUERY_LAYER's #show directives only surface result/1 and field/3, so the added
     // predicate needs its own #show to be observable in the answer set.
-    ctx.setProgram('ql', QUERY_LAYER + '\n#show extra/1.\nextra(1).', ['queryLayer']);
+    ctx.setProgram('ql', QUERY_LAYER + '\n#show extra/1.\nextra(1).', [
+      'queryLayer',
+    ]);
 
-    const result = await ctx.solve('want(b).', ['queryLayer'], { snapshot: true });
+    const result = await ctx.solve('want(b).', ['queryLayer'], {
+      snapshot: true,
+    });
     expect(result.answers[0]).toContain('extra(1)');
+  });
+
+  it('equals the full solve when the knowledge layer uses @today', async () => {
+    // Exercises the min-of-non-zero valid_until branch: the snapshot carries a non-zero
+    // valid_until from commit()'s @today call, while this solve's own todayCalled is
+    // false (the snapshot replay is a plain fact, not a fresh @today call).
+    const ctx = new ClingoContext();
+    ctx.setProgram('facts', `${KNOWLEDGE}\ntoday(@today).`, ['knowledge']);
+    ctx.setProgram('ql', `${QUERY_LAYER}\n#show today/1.`, ['queryLayer']);
+    await ctx.commit();
+    const q = 'want(b).';
+    const full = await ctx.solve(q, ['knowledge', 'queryLayer']);
+    const snap = await ctx.solve(q, ['queryLayer'], { snapshot: true });
+    const norm = (r: { answers: string[] }) => r.answers[0].split('\n').sort();
+    expect(norm(snap)).toEqual(norm(full));
   });
 });

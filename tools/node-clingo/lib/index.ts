@@ -18,6 +18,7 @@ interface RawClingoResult {
   stats: {
     glue: number;
     add: number;
+    inject: number;
     ground: number;
     solve: number;
     cacheHit: boolean;
@@ -123,9 +124,6 @@ if (existsSync(localBinary)) {
  * @param details.program The program that caused the error if available (only syntax errors support this)
  */
 export class ClingoError extends Error {
-  /** Machine-readable code carried over from the native rejection, if it had one. */
-  code?: string;
-
   constructor(
     message: string,
     public details: { errors: string[]; warnings: string[]; program?: string },
@@ -137,11 +135,11 @@ export class ClingoError extends Error {
 /**
  * Converts a native rejection carrying `{ errors, warnings, program? }` details (as
  * `spawnSolveTask`/`spawnCommitTask` attach on a ClingoSolveException) into a ClingoError
- * with a friendlier message for parse/syntax failures, preserving `code` if the native
- * error had one. A coded error with no `details` (e.g. solve()'s SNAPSHOT_MISSING /
- * SNAPSHOT_STALE, which are plain native errors, not ClingoSolveExceptions) is returned
- * unchanged -- its `code` is already an own property. Anything else -- a plain Error, or
- * any non-Error value -- is also returned unchanged.
+ * with a friendlier message for parse/syntax failures. A coded error with no `details`
+ * (e.g. solve()'s SNAPSHOT_MISSING / SNAPSHOT_STALE, which are plain native errors, not
+ * ClingoSolveExceptions) is returned unchanged -- its `code` is already an own property,
+ * set natively, so no wrapping is needed for callers to read it. Anything else -- a plain
+ * Error, or any non-Error value -- is also returned unchanged.
  */
 function toClingoError(error: unknown): unknown {
   if (
@@ -167,13 +165,11 @@ function toClingoError(error: unknown): unknown {
         ? `Parsing failed when processing program '${prog === '__program__' ? 'main program' : prog}' with errors: ${errors.join(', ')}`
         : error.message;
 
-    const clingoError = new ClingoError(errorMessage, {
+    return new ClingoError(errorMessage, {
       errors,
       warnings,
       program: prog,
     });
-    clingoError.code = (error as { code?: string }).code;
-    return clingoError;
   }
   return error;
 }
@@ -186,6 +182,8 @@ export interface ClingoResult {
   stats: {
     glue: number;
     add: number;
+    /** Sub-portion of `add` spent replaying a snapshot's fact_nodes; 0 off the snapshot path. */
+    inject: number;
     ground: number;
     solve: number;
     cacheHit: boolean;
