@@ -105,11 +105,9 @@ q1_childResultCollection((Card,"policyChecks"),"failures") :- q1_childObject(Car
 q1_childResult((Card,"policyChecks"),(Card,Category,Title),"successes") :- q1_childObject(Card,(Card,"policyChecks"),"policyChecks"); policyCheckSuccess(Card,Category,Title).
 q1_resultFields((Card,Category,Title),"category",Category,"shortText","title",Title,"shortText") :- q1_childObject(Card,(Card,"policyChecks"),"policyChecks"); policyCheckSuccess(Card,Category,Title).
 % failures
-% add empty field for failures with no field
-q1_policyCheckFailure(Card,Category,Title,ErrorMessage,"") :- q1_childObject(Card,(Card,"policyChecks"),"policyChecks"); policyCheckFailure(Card,Category,Title,ErrorMessage).
-q1_childResult((Card,"policyChecks"),(Card,Category,Title,ErrorMessage,Field),"failures") :- q1_childObject(Card,(Card,"policyChecks"),"policyChecks"); q1_policyCheckFailure(Card,Category,Title,ErrorMessage,Field).
-q1_resultFields((Card,Category,Title,ErrorMessage,Field),"category",Category,"shortText","title",Title,"shortText","errorMessage",ErrorMessage,"shortText") :- q1_childObject(Card,(Card,"policyChecks"),"policyChecks"); q1_policyCheckFailure(Card,Category,Title,ErrorMessage,Field).
-q1_resultField((Card,Category,Title,ErrorMessage,Field),"fieldName",Field,"shortText") :- q1_childObject(Card,(Card,"policyChecks"),"policyChecks"); Field != ""; q1_policyCheckFailure(Card,Category,Title,ErrorMessage,Field).
+q1_childResult((Card,"policyChecks"),(Card,Category,Title,ErrorMessage,Field),"failures") :- q1_childObject(Card,(Card,"policyChecks"),"policyChecks"); policyCheckFailure(Card,Category,Title,ErrorMessage,Field).
+q1_resultFields((Card,Category,Title,ErrorMessage,Field),"category",Category,"shortText","title",Title,"shortText","errorMessage",ErrorMessage,"shortText") :- q1_childObject(Card,(Card,"policyChecks"),"policyChecks"); policyCheckFailure(Card,Category,Title,ErrorMessage,Field).
+q1_resultField((Card,Category,Title,ErrorMessage,Field),"fieldName",Field,"shortText") :- q1_childObject(Card,(Card,"policyChecks"),"policyChecks"); Field != ""; policyCheckFailure(Card,Category,Title,ErrorMessage,Field).
 % links
 q1_childResultCollection(Card,"links") :- q1_showField(Card,"links").
 q1_childResult(Card,(Card,Destination,LinkType,"","outbound"),"links") :- link(Card,Destination,LinkType); q1_showField(Card,"links").

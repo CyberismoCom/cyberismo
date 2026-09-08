@@ -61,6 +61,13 @@ hiddenInTreeView(Card) :-
 % TODO: remove this compatibility rule, once content repositories have been updated (INTDEV-666)
 field(Card, "progress", Progress) :- field(Card, "base/fieldTypes/progress", Progress).
 
+% A policy check failure may be written with or without the name of the field it
+% concerns; only the 5-arity form is consumed. Widen here, in the information
+% layer, so whether a failure has a field is a fact about the failure rather than
+% about whether something is currently rendering it.
+policyCheckFailure(Card, Category, Title, ErrorMessage, "") :-
+    policyCheckFailure(Card, Category, Title, ErrorMessage).
+
 % user-defined links are links
 link(Source, Destination, LinkType) :- userLink(Source, Destination, LinkType).
 link(Source, Destination, LinkType, LinkDescription) :- userLink(Source, Destination, LinkType, LinkDescription).

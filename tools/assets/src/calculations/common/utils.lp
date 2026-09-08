@@ -22,11 +22,6 @@ resultFields((Card, Category, Title), "category", Category, "shortText", "title"
 
 % failures
 
-% add empty field for failures with no field
-policyCheckFailure(Card, Category, Title, ErrorMessage, "") :-
-    childObject(Card, (Card, "policyChecks"), "policyChecks"),
-    policyCheckFailure(Card, Category, Title, ErrorMessage).
-
 childResult((Card, "policyChecks"), (Card, Category, Title, ErrorMessage, Field), "failures") :-
     childObject(Card, (Card, "policyChecks"), "policyChecks"),
     policyCheckFailure(Card, Category, Title, ErrorMessage, Field).
