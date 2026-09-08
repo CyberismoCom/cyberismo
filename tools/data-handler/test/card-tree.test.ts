@@ -126,9 +126,8 @@ function projectTree(
   return new CardTree({
     name: 'project',
     rootPath,
+    kind: 'project',
     writable: true,
-    emitsCardFact: true,
-    validationApplies: true,
     keys,
   });
 }
@@ -142,9 +141,8 @@ function newTemplateTree(
   return new CardTree({
     name,
     rootPath,
+    kind: 'template',
     writable,
-    emitsCardFact: false,
-    validationApplies: false,
     keys,
   });
 }

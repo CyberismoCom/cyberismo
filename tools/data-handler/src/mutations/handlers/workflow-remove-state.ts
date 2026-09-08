@@ -19,7 +19,6 @@ import {
   isInitialTransition,
   resourceNameToString,
 } from '../../utils/resource-utils.js';
-import { isModuleCard } from '../../utils/card-utils.js';
 import type { RemoveOperation } from '../../resources/resource-object.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
 import type { WorkflowState } from '../../interfaces/resource-interfaces.js';
@@ -120,7 +119,7 @@ export class WorkflowRemoveStateHandler implements Handler<EditInput> {
     const projectCards = ctx.project.cardTree.cards().filter(matches);
     const templateCards = ctx.project
       .allTemplateCards()
-      .filter((card) => !isModuleCard(card))
+      .filter((card) => ctx.project.treeOf(card.key).writable)
       .filter(matches);
     return [...projectCards, ...templateCards];
   }

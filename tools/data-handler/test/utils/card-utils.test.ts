@@ -5,8 +5,6 @@ import { sep } from 'node:path';
 import {
   buildCardHierarchy,
   isExternalItemKey,
-  isModuleCard,
-  isTemplateCard,
   moduleNameFromCardKey,
   sortCards,
 } from '../../src/utils/card-utils.js';
@@ -68,24 +66,6 @@ describe('card utils', () => {
     expect(grandchild.key).toBe('test_3');
     expect(grandchild.children).toHaveLength(0);
     expect(grandchild.childrenCards).toHaveLength(0);
-  });
-
-  it.each([
-    [projectCard, false],
-    [projectChildCard, false],
-    [templateCard, false],
-    [moduleCard, true],
-  ])('isModuleCard validates module cards correctly', (card, expected) => {
-    expect(isModuleCard(card)).toBe(expected);
-  });
-
-  it.each([
-    [projectCard, false],
-    [projectChildCard, false],
-    [templateCard, true],
-    [moduleCard, true],
-  ])('isTemplateCard validates template cards correctly', (card, expected) => {
-    expect(isTemplateCard(card)).toBe(expected);
   });
 
   it.each([

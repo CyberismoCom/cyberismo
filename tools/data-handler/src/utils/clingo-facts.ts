@@ -36,22 +36,21 @@ import { ClingoProgramBuilder } from './clingo-program-builder.js';
 import { isPredefinedField, ROOT } from './constants.js';
 import { getChildLogger } from './log-utils.js';
 import type { Project } from '../containers/project.js';
+import type { CardTreeKind } from '../containers/project/card-tree.js';
 
 const logger = getChildLogger({ module: 'clingo-facts' });
 
 /**
- * How a card container is projected into facts.
- *
- * emitsCardFact - whether the container's cards get the card(Key) fact.
- * name - what the container's root cards name as their parent.
+ * How a card container is projected into facts. 'name' is what the
+ * container's root cards name as their parent.
  */
 export interface CardFactContext {
-  emitsCardFact: boolean;
+  kind: CardTreeKind;
   name: string;
 }
 
 export const PROJECT_CARD_FACTS: CardFactContext = {
-  emitsCardFact: true,
+  kind: 'project',
   name: 'project',
 };
 
@@ -200,12 +199,12 @@ export const createCardFacts = async (
   const parentsPath =
     card.parent && card.parent !== ROOT
       ? card.parent
-      : container.emitsCardFact
+      : container.kind === 'project'
         ? ''
         : `"${container.name}"`;
 
   const builder = new ClingoProgramBuilder().addComment(card.key);
-  if (container.emitsCardFact) {
+  if (container.kind === 'project') {
     builder.addCustomFact('card', (b) => b.addLiteralArgument(card.key));
   }
 
@@ -345,12 +344,7 @@ export const createCardFacts = async (
     );
   }
   builder.addCustomFact(Facts.Common.FIELD, (b) =>
-    b
-      .addLiteralArgument(card.key)
-      .addArguments(
-        'container',
-        container.emitsCardFact ? 'project' : 'template',
-      ),
+    b.addLiteralArgument(card.key).addArguments('container', container.kind),
   );
 
   return builder.buildAll();

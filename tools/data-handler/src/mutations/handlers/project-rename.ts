@@ -23,7 +23,6 @@ import {
 import type { Handler, MutationContext } from '../handler.js';
 import type { ProjectRenameInput } from '../types.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
-import { isTemplateCard } from '../../utils/card-utils.js';
 import { resourceName } from '../../utils/resource-utils.js';
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
 
@@ -168,7 +167,7 @@ async function updateCardAttachments(
   card: Card,
   to: string,
 ): Promise<string | undefined> {
-  if (!isTemplateCard(card)) {
+  if (ctx.project.treeOf(card.key).kind === 'project') {
     const fileNames = (card.attachments ?? []).map((item) => item.fileName);
     await Promise.all(
       fileNames.map(async (fileName) => {

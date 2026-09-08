@@ -19,7 +19,6 @@ import {
   rewriteCardContentRefs,
   rewriteContentFileRefs,
 } from '../cascades/rewrite-refs.js';
-import { isModuleCard } from '../../utils/card-utils.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
 
 export class LinkTypeRenameHandler implements Handler<RenameInput> {
@@ -70,7 +69,9 @@ export class LinkTypeRenameHandler implements Handler<RenameInput> {
   private affectedCards(ctx: MutationContext, oldName: string): Card[] {
     const all = [
       ...ctx.project.cardTree.cards(),
-      ...ctx.project.allTemplateCards().filter((card) => !isModuleCard(card)),
+      ...ctx.project
+        .allTemplateCards()
+        .filter((card) => ctx.project.treeOf(card.key).writable),
     ];
     return all.filter((c) =>
       c.metadata?.links?.some((l) => l.linkType === oldName),

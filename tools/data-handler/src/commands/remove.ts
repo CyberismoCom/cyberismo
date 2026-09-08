@@ -12,7 +12,7 @@
 */
 
 import { ActionGuard } from '../permissions/action-guard.js';
-import { isModuleCard, isExternalItemKey } from '../utils/card-utils.js';
+import { isExternalItemKey } from '../utils/card-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { declaredModules, installedModules } from '../modules/inventory.js';
 import { cleanOrphans } from '../modules/orphans.js';
@@ -74,12 +74,12 @@ export class Remove {
     const card = this.project.findCard(cardKey);
 
     // Imported templates cannot be modified.
-    if (isModuleCard(card)) {
+    if (!this.project.treeOf(cardKey).writable) {
       throw new Error(`Cannot modify imported module`);
     }
 
     // Only a card in a workflow has a delete transition to permit.
-    if (this.project.treeOf(cardKey).validationApplies) {
+    if (this.project.treeOf(cardKey).kind === 'project') {
       const actionGuard = new ActionGuard(this.project.calculationEngine);
       await actionGuard.checkPermission('delete', cardKey);
     }

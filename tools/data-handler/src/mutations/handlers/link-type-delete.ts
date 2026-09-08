@@ -15,7 +15,6 @@
 import type { Handler, MutationContext } from '../handler.js';
 import type { DeleteInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
-import { isModuleCard } from '../../utils/card-utils.js';
 import type { Card } from '../../interfaces/project-interfaces.js';
 
 export class LinkTypeDeleteHandler implements Handler<DeleteInput> {
@@ -59,7 +58,9 @@ export class LinkTypeDeleteHandler implements Handler<DeleteInput> {
   private affectedCards(ctx: MutationContext, name: string): Card[] {
     return [
       ...ctx.project.cardTree.cards(),
-      ...ctx.project.allTemplateCards().filter((c) => !isModuleCard(c)),
+      ...ctx.project
+        .allTemplateCards()
+        .filter((c) => ctx.project.treeOf(c.key).writable),
     ].filter((c) => c.metadata?.links?.some((l) => l.linkType === name));
   }
 }
