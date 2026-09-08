@@ -25,6 +25,7 @@
 #include <clingo.hh>
 
 #include "helpers.h"
+#include "snapshot.h"
 #include "xxhash.h"
 
 namespace node_clingo
@@ -68,6 +69,9 @@ namespace node_clingo
     {
         std::vector<std::shared_ptr<const Program>> programs;
         Hash hash;
+        // Set when this query replays a committed knowledge snapshot instead of the
+        // `knowledge` programs themselves; nullptr for an ordinary full solve.
+        std::shared_ptr<const Snapshot> snapshot;
     };
 
     // Program store
@@ -107,9 +111,16 @@ namespace node_clingo
          * Prepares a query for the program store
          * @param query The query
          * @param categories The categories
+         * @param snapshot Committed knowledge snapshot to replay instead of the `knowledge`
+         * programs, if this query is to be solved against one. Folded into the result's
+         * hash so a snapshot solve and a full solve of the same text never share a cache
+         * entry.
          * @returns The query
          */
-        Query prepareQuery(const std::string& query, const std::vector<std::string>& categories);
+        Query prepareQuery(
+            const std::string& query,
+            const std::vector<std::string>& categories,
+            std::shared_ptr<const Snapshot> snapshot = nullptr);
         /**
          * Hashes the member programs of a category.
          * @param category The category

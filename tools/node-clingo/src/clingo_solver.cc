@@ -71,11 +71,23 @@ namespace node_clingo
         const std::vector<std::shared_ptr<const Program>>& programs,
         const Clingo::Logger& logger,
         bool& todayCalled,
-        std::string& currentKey)
+        std::string& currentKey,
+        const Snapshot* snapshot = nullptr)
     {
         std::vector<Clingo::Part> parts;
 
         Clingo::AST::with_builder(control, [&](Clingo::AST::ProgramBuilder& builder) {
+            if (snapshot)
+            {
+                // Snapshot-then-program lock order everywhere: this is the only place
+                // that ever takes both, and always in this order, so the two mutexes
+                // can never deadlock.
+                std::lock_guard<std::mutex> lock(snapshot->ast_mutex);
+                for (const auto& node : snapshot->fact_nodes)
+                {
+                    builder.add(node);
+                }
+            }
             for (const auto& program : programs)
             {
                 currentKey = program->key;
@@ -144,7 +156,8 @@ namespace node_clingo
         {
             Clingo::Control control{{}, logger, MAX_CLINGO_LOG_MESSAGES};
 
-            GroundTimings timings = groundPrograms(control, query.programs, logger, todayCalled, currentKey);
+            GroundTimings timings =
+                groundPrograms(control, query.programs, logger, todayCalled, currentKey, query.snapshot.get());
 
             ModelCollector collector{localAnswers};
 
@@ -152,6 +165,15 @@ namespace node_clingo
             handle.get();
 
             auto timeAfterSolve = std::chrono::high_resolution_clock::now();
+
+            // The snapshot may itself carry a @today-derived expiry from commit() time;
+            // whichever of the two (this solve's own, the snapshot's) expires first wins.
+            int64_t valid_until = todayCalled ? next_local_midnight_epoch_ms() : 0;
+            if (query.snapshot && query.snapshot->valid_until > 0 &&
+                (valid_until == 0 || query.snapshot->valid_until < valid_until))
+            {
+                valid_until = query.snapshot->valid_until;
+            }
 
             return {
                 .answers = std::move(localAnswers),
@@ -165,7 +187,7 @@ namespace node_clingo
                         .solve =
                             std::chrono::duration_cast<std::chrono::microseconds>(timeAfterSolve - timings.afterGround),
                     },
-                .valid_until = todayCalled ? next_local_midnight_epoch_ms() : 0,
+                .valid_until = valid_until,
             };
         }
         catch (const std::exception& e)

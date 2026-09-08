@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ClingoContext, ClingoError } from '../lib/index.js';
+import { ClingoContext, ClingoError, clearCache } from '../lib/index.js';
 
 const KNOWLEDGE = `
 card(a). card(b). parent(b, a).
@@ -73,5 +73,72 @@ describe('commit()', () => {
     const ctx = new ClingoContext();
     ctx.setProgram('facts', `${KNOWLEDGE}\n:- card(a).`, ['knowledge']);
     await expect(ctx.commit()).rejects.toThrow(/unsatisfiable/);
+  });
+});
+
+describe('solve({ snapshot: true })', () => {
+  it('equals the full solve and uses the cache', async () => {
+    clearCache();
+    const ctx = new ClingoContext();
+    ctx.setProgram('facts', KNOWLEDGE, ['knowledge']);
+    ctx.setProgram('ql', QUERY_LAYER, ['queryLayer']);
+    await ctx.commit();
+    const q = 'want(b).';
+    const full = await ctx.solve(q, ['knowledge', 'queryLayer']);
+    const snap = await ctx.solve(q, ['queryLayer'], { snapshot: true });
+    const norm = (r: { answers: string[] }) => r.answers[0].split('\n').sort();
+    expect(norm(snap)).toEqual(norm(full));
+    expect(snap.stats.cacheHit).toBe(false);
+    const again = await ctx.solve(q, ['queryLayer'], { snapshot: true });
+    expect(again.stats.cacheHit).toBe(true);
+  });
+
+  it('rejects with SNAPSHOT_STALE after the knowledge layer changes', async () => {
+    const ctx = new ClingoContext();
+    ctx.setProgram('facts', KNOWLEDGE, ['knowledge']);
+    ctx.setProgram('ql', QUERY_LAYER, ['queryLayer']);
+    await ctx.commit();
+
+    // Sanity check: the snapshot is usable right after commit, so the
+    // rejection below is caused by the knowledge change, not by something
+    // else about this setup.
+    await expect(
+      ctx.solve('want(b).', ['queryLayer'], { snapshot: true }),
+    ).resolves.toBeDefined();
+
+    ctx.setProgram('facts', KNOWLEDGE + 'card(c).', ['knowledge']);
+    await expect(
+      ctx.solve('want(c).', ['queryLayer'], { snapshot: true }),
+    ).rejects.toMatchObject({ code: 'SNAPSHOT_STALE' });
+
+    // And committing against the changed knowledge programs clears the
+    // staleness -- confirms it is the knowledge-hash mismatch that trips
+    // this, not e.g. every solve() after any setProgram() call.
+    await ctx.commit();
+    await expect(
+      ctx.solve('want(c).', ['queryLayer'], { snapshot: true }),
+    ).resolves.toBeDefined();
+  });
+
+  it('rejects with SNAPSHOT_MISSING before any commit', async () => {
+    const ctx = new ClingoContext();
+    ctx.setProgram('ql', QUERY_LAYER, ['queryLayer']);
+    await expect(
+      ctx.solve('want(a).', ['queryLayer'], { snapshot: true }),
+    ).rejects.toMatchObject({ code: 'SNAPSHOT_MISSING' });
+  });
+
+  it('is not invalidated by a queryLayer-only change, and reflects the new query layer', async () => {
+    const ctx = new ClingoContext();
+    ctx.setProgram('facts', KNOWLEDGE, ['knowledge']);
+    ctx.setProgram('ql', QUERY_LAYER, ['queryLayer']);
+    await ctx.commit();
+
+    // QUERY_LAYER's #show directives only surface result/1 and field/3, so the added
+    // predicate needs its own #show to be observable in the answer set.
+    ctx.setProgram('ql', QUERY_LAYER + '\n#show extra/1.\nextra(1).', ['queryLayer']);
+
+    const result = await ctx.solve('want(b).', ['queryLayer'], { snapshot: true });
+    expect(result.answers[0]).toContain('extra(1)');
   });
 });

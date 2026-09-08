@@ -157,7 +157,10 @@ namespace node_clingo
         key_to_hash[key] = hash;
         return hash;
     }
-    Query ProgramStore::prepareQuery(const std::string& query, const std::vector<std::string>& categories)
+    Query ProgramStore::prepareQuery(
+        const std::string& query,
+        const std::vector<std::string>& categories,
+        std::shared_ptr<const Snapshot> snapshot)
     {
         XXH3_state_t* state = XXH3_createState();
         XXH3_64bits_reset(state);
@@ -168,6 +171,14 @@ namespace node_clingo
         auto ast = tryParseToAst(query);
         programs.push_back(
             std::make_shared<const Program>("__program__", query, std::move(ast), std::vector<KeyHash>(), 0));
+
+        if (snapshot)
+        {
+            // Folds the snapshot's identity into the hash so a snapshot solve can never
+            // collide with a full solve of the same query text in the shared result cache.
+            XXH3_64bits_update(state, &snapshot->knowledgeHash, 8);
+            XXH3_64bits_update(state, &snapshot->revision, 8);
+        }
 
         for (const auto& program : programs)
         {
@@ -183,6 +194,7 @@ namespace node_clingo
         Query result;
         result.programs = std::move(programs);
         result.hash = hash;
+        result.snapshot = std::move(snapshot);
 
         return result;
     }

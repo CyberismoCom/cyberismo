@@ -19,6 +19,7 @@
 #include <clingo.hh>
 #include <napi.h>
 
+#include "helpers.h"
 #include "napi_helpers.h"
 #include "program_store.h"
 #include "snapshot.h"
@@ -39,7 +40,7 @@ static BS::thread_pool<>& get_thread_pool()
 
 namespace
 {
-    // Task 2 will also need to name this category, so it is not a local convenience.
+    // Named once: both commit() and solve()'s snapshot freshness check need it.
     constexpr const char* kKnowledgeCategory = "knowledge";
 
     /**
@@ -189,7 +190,11 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
     }
 
     /**
-     * solve(program, refs) → Promise<SolveResult>
+     * solve(program, refs, options?) → Promise<SolveResult>
+     * options.snapshot: replay the committed knowledge snapshot instead of grounding the
+     * `knowledge` programs. Rejects with a coded error (SNAPSHOT_MISSING, SNAPSHOT_STALE)
+     * if there is no snapshot or it no longer matches the current knowledge programs, so
+     * the caller can fall back to a full solve.
      */
     Napi::Value Solve(const Napi::CallbackInfo& info)
     {
@@ -203,7 +208,39 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
 
         std::string program = info[0].As<Napi::String>().Utf8Value();
         std::vector<std::string> refs = parse_refs_or_throw(info);
-        node_clingo::Query query = m_store.prepareQuery(program, refs);
+
+        bool useSnapshot = false;
+        if (info.Length() > 2 && info[2].IsObject())
+        {
+            Napi::Object opts = info[2].As<Napi::Object>();
+            useSnapshot = opts.Has("snapshot") && opts.Get("snapshot").ToBoolean().Value();
+        }
+
+        std::shared_ptr<const node_clingo::Snapshot> snapshot;
+        if (useSnapshot)
+        {
+            auto deferred = Napi::Promise::Deferred::New(env);
+            if (!m_snapshot)
+            {
+                deferred.Reject(
+                    node_clingo::coded_error(env, "SNAPSHOT_MISSING", "solve(): no snapshot; call commit() first"));
+                return deferred.Promise();
+            }
+            // Fresh only if the knowledge programs still hash to what was committed, and
+            // (when the commit involved @today) that day has not rolled over yet. Scoped to
+            // the knowledge category alone: a queryLayer edit must not trip this.
+            if (m_snapshot->knowledgeHash != m_store.categoryHash(kKnowledgeCategory) ||
+                (m_snapshot->valid_until && m_snapshot->valid_until <= node_clingo::current_epoch_ms()))
+            {
+                deferred.Reject(
+                    node_clingo::coded_error(
+                        env, "SNAPSHOT_STALE", "solve(): snapshot is older than the knowledge programs"));
+                return deferred.Promise();
+            }
+            snapshot = m_snapshot;
+        }
+
+        node_clingo::Query query = m_store.prepareQuery(program, refs, snapshot);
 
         // Cache hit — resolve immediately on the main thread.
         node_clingo::SolveResult result;

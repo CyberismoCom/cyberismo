@@ -54,6 +54,16 @@ namespace node_clingo
         return logs;
     }
 
+    // Error carrying a machine-readable `code`, for a rejection the JS caller
+    // is expected to branch on (e.g. falling back to a full solve) rather
+    // than just report.
+    inline Napi::Value coded_error(Napi::Env env, const char* code, const char* msg)
+    {
+        Napi::Error e = Napi::Error::New(env, msg);
+        e.Set("code", Napi::String::New(env, code));
+        return e.Value();
+    }
+
     inline Napi::Object create_napi_object_from_solve_result(const Napi::Env& env, const SolveResult& result)
     {
         Napi::Object resultObj = Napi::Object::New(env);

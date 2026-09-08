@@ -28,9 +28,27 @@ interface NativeClingoContext {
   setProgram(key: string, program: string, categories: string[]): void;
   removeProgram(key: string): boolean;
   removeAllPrograms(): void;
-  solve(program: string, categories: string[]): Promise<RawClingoResult>;
+  solve(
+    program: string,
+    categories: string[],
+    options: SolveOptions,
+  ): Promise<RawClingoResult>;
   buildProgram(program: string, categories: string[]): string;
   commit(): Promise<SnapshotInfo>;
+}
+
+/**
+ * Options for solve().
+ */
+export interface SolveOptions {
+  /**
+   * Replay the committed knowledge snapshot instead of grounding the
+   * `knowledge` category. Rejects with `code: 'SNAPSHOT_MISSING'` if
+   * commit() has never been called, or `code: 'SNAPSHOT_STALE'` if the
+   * knowledge programs have changed (or the snapshot's @today has rolled
+   * over) since the last commit().
+   */
+  snapshot?: boolean;
 }
 
 /**
@@ -105,6 +123,9 @@ if (existsSync(localBinary)) {
  * @param details.program The program that caused the error if available (only syntax errors support this)
  */
 export class ClingoError extends Error {
+  /** Machine-readable code carried over from the native rejection, if it had one. */
+  code?: string;
+
   constructor(
     message: string,
     public details: { errors: string[]; warnings: string[]; program?: string },
@@ -116,8 +137,11 @@ export class ClingoError extends Error {
 /**
  * Converts a native rejection carrying `{ errors, warnings, program? }` details (as
  * `spawnSolveTask`/`spawnCommitTask` attach on a ClingoSolveException) into a ClingoError
- * with a friendlier message for parse/syntax failures. Anything else -- a plain Error, or
- * any non-Error value -- is returned unchanged.
+ * with a friendlier message for parse/syntax failures, preserving `code` if the native
+ * error had one. A coded error with no `details` (e.g. solve()'s SNAPSHOT_MISSING /
+ * SNAPSHOT_STALE, which are plain native errors, not ClingoSolveExceptions) is returned
+ * unchanged -- its `code` is already an own property. Anything else -- a plain Error, or
+ * any non-Error value -- is also returned unchanged.
  */
 function toClingoError(error: unknown): unknown {
   if (
@@ -143,11 +167,13 @@ function toClingoError(error: unknown): unknown {
         ? `Parsing failed when processing program '${prog === '__program__' ? 'main program' : prog}' with errors: ${errors.join(', ')}`
         : error.message;
 
-    return new ClingoError(errorMessage, {
+    const clingoError = new ClingoError(errorMessage, {
       errors,
       warnings,
       program: prog,
     });
+    clingoError.code = (error as { code?: string }).code;
+    return clingoError;
   }
   return error;
 }
@@ -221,15 +247,21 @@ export class ClingoContext {
    * Solves a logic program.
    * @param program The logic program as a string
    * @param categories Optional array of program keys or categories to include
+   * @param options Optional solve options, e.g. `{ snapshot: true }` to replay the
+   * committed knowledge snapshot instead of grounding the `knowledge` category
    * @returns Promise resolving to answers and execution stats
    */
-  async solve(program: string, categories?: string[]): Promise<ClingoResult> {
+  async solve(
+    program: string,
+    categories?: string[],
+    options?: SolveOptions,
+  ): Promise<ClingoResult> {
     if (!program) {
       throw new Error('No program provided');
     }
 
     try {
-      return await this._ctx.solve(program, categories ?? []);
+      return await this._ctx.solve(program, categories ?? [], options ?? {});
     } catch (error) {
       throw toClingoError(error);
     }
