@@ -2,6 +2,7 @@ import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
+import { ClingoContext, clearCache } from '../lib/index.js';
 
 // `_renameForTest` is deliberately not part of lib/index.ts's public surface (see
 // binding.cc's Init(): it is a runtime-only debug export, gated on
@@ -180,5 +181,130 @@ describe('rename_predicates over the real query layer', () => {
     expect(
       prefixed.split('\n').map((line) => line.replaceAll('q0_', '')),
     ).toEqual(base.split('\n'));
+  });
+});
+
+describe('solveBatch', () => {
+  const KNOWLEDGE = `card(a). card(b). field(a,"title","A"). field(b,"title","B").`;
+  const QL = `#show result/1. #show field(K,F,V) : result(K), field(K,F,V). #show childResult/3.`;
+
+  const norm = (r: { answers: string[] }) =>
+    r.answers[0].split('\n').filter(Boolean).sort();
+
+  it('returns per-query answers identical to separate solves', async () => {
+    clearCache();
+    const ctx = new ClingoContext();
+    ctx.setProgram('facts', KNOWLEDGE, ['knowledge']);
+    ctx.setProgram('ql', QL, ['queryLayer']);
+    await ctx.commit();
+    const qs = [
+      'result(a).',
+      'result(b). childResult(b, a, "children").',
+      'result(K) :- card(K).',
+    ];
+    const separate = await Promise.all(
+      qs.map((q) => ctx.solve(q, ['queryLayer'], { snapshot: true })),
+    );
+    clearCache();
+    const batched = await ctx.solveBatch(qs, ['queryLayer'], {
+      snapshot: true,
+    });
+    expect(batched.length).toBe(3);
+    batched.forEach((b, i) => expect(norm(b)).toEqual(norm(separate[i])));
+    expect(batched[0].stats.batchSize).toBe(3);
+  });
+
+  it("never lets two instances defining the same predicate with different extensions see each other's atoms", async () => {
+    clearCache();
+    const ctx = new ClingoContext();
+    ctx.setProgram('facts', KNOWLEDGE, ['knowledge']);
+    ctx.setProgram('ql', QL, ['queryLayer']);
+    await ctx.commit();
+    const batched = await ctx.solveBatch(
+      ['result(a).', 'result(b).'],
+      ['queryLayer'],
+      { snapshot: true },
+    );
+    expect(batched[0].answers[0]).toContain('result(a)');
+    expect(batched[0].answers[0]).not.toContain('result(b)');
+    expect(batched[1].answers[0]).toContain('result(b)');
+    expect(batched[1].answers[0]).not.toContain('result(a)');
+  });
+
+  it('serves a mixed batch with the right answers, in order, and reports which were cache hits', async () => {
+    clearCache();
+    const ctx = new ClingoContext();
+    ctx.setProgram('facts', KNOWLEDGE, ['knowledge']);
+    ctx.setProgram('ql', QL, ['queryLayer']);
+    await ctx.commit();
+    const qs = ['result(a).', 'result(b).', 'result(a). result(b).'];
+    // Pre-warms the cache for just the middle query via a plain solve() -- the same
+    // { snapshot: true } hash solveBatch() would compute for that instance.
+    await ctx.solve(qs[1], ['queryLayer'], { snapshot: true });
+    const batched = await ctx.solveBatch(qs, ['queryLayer'], {
+      snapshot: true,
+    });
+    expect(batched.map((r) => r.stats.cacheHit)).toEqual([false, true, false]);
+    expect(batched[0].answers[0]).toContain('result(a)');
+    expect(batched[0].answers[0]).not.toContain('result(b)');
+    expect(batched[1].answers[0]).toContain('result(b)');
+    expect(batched[2].answers[0]).toContain('result(a)');
+    expect(batched[2].answers[0]).toContain('result(b)');
+    expect(batched.every((r) => r.stats.batchSize === 3)).toBe(true);
+  });
+
+  it('behaves like a plain snapshot solve for a batch of one', async () => {
+    clearCache();
+    const ctx = new ClingoContext();
+    ctx.setProgram('facts', KNOWLEDGE, ['knowledge']);
+    ctx.setProgram('ql', QL, ['queryLayer']);
+    await ctx.commit();
+    const q = 'result(a).';
+    const solo = await ctx.solve(q, ['queryLayer'], { snapshot: true });
+    clearCache();
+    const [batched] = await ctx.solveBatch([q], ['queryLayer'], {
+      snapshot: true,
+    });
+    expect(norm(batched)).toEqual(norm(solo));
+    expect(batched.stats.batchSize).toBe(1);
+  });
+
+  it('round-trips a nested tuple in a shown atom identically to a single solve', async () => {
+    clearCache();
+    const ctx = new ClingoContext();
+    ctx.setProgram('facts', KNOWLEDGE, ['knowledge']);
+    ctx.setProgram(
+      'ql',
+      `#show childObject(K, (K, "x"), y) : result(K).\n${QL}`,
+      ['queryLayer'],
+    );
+    await ctx.commit();
+    const q = 'result(a).';
+    const solo = await ctx.solve(q, ['queryLayer'], { snapshot: true });
+    clearCache();
+    const [batched] = await ctx.solveBatch([q], ['queryLayer'], {
+      snapshot: true,
+    });
+    expect(norm(batched)).toEqual(norm(solo));
+    // Only the outer predicate name is ever prefixed/stripped -- the tuple argument
+    // (K, "x") is data, so `K`'s value (`a`) inside it must survive untouched.
+    expect(solo.answers[0]).toContain('(a,"x")');
+    expect(batched.answers[0]).toContain('(a,"x")');
+  });
+
+  it("returns an empty answer for an instance that derives nothing, without disturbing its neighbours' indexing", async () => {
+    clearCache();
+    const ctx = new ClingoContext();
+    ctx.setProgram('facts', KNOWLEDGE, ['knowledge']);
+    ctx.setProgram('ql', QL, ['queryLayer']);
+    await ctx.commit();
+    const qs = ['result(a).', '', 'result(b).'];
+    const batched = await ctx.solveBatch(qs, ['queryLayer'], {
+      snapshot: true,
+    });
+    expect(batched.length).toBe(3);
+    expect(batched[0].answers[0]).toContain('result(a)');
+    expect(batched[1].answers[0]).toBe('');
+    expect(batched[2].answers[0]).toContain('result(b)');
   });
 });

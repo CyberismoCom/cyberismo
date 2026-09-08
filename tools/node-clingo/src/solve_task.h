@@ -19,10 +19,12 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include <napi.h>
 
 #include "BS_thread_pool.hpp"
+#include "batch.h"
 #include "clingo_solver.h"
 #include "napi_helpers.h"
 #include "snapshot.h"
@@ -118,6 +120,147 @@ namespace node_clingo
                     Napi::Object resultObj = create_napi_object_from_solve_result(env, *d->result);
                     d->cache.addResult(d->queryHash, std::move(*d->result));
                     d->deferred.Resolve(resultObj);
+                }
+
+                delete d;
+            });
+
+            tsfn.Release();
+        });
+    }
+
+    struct BatchCallbackData
+    {
+        // Every instance's final result, in the caller's order. Cache-hit instances are
+        // already filled in when this is constructed; `missIndices` says which positions
+        // the pool task below still has to fill in from `missResults`.
+        std::vector<SolveResult> results;
+        std::optional<std::vector<SolveResult>> missResults;
+        std::optional<ClingoSolveException> solveException;
+        std::string genericError;
+        Napi::Promise::Deferred deferred;
+        std::chrono::high_resolution_clock::time_point t1;
+        std::chrono::high_resolution_clock::time_point t2;
+        SolveResultCache& cache;
+        std::vector<Hash> missHashes; // parallel to missResults, once populated
+        std::vector<size_t> missIndices;
+        int totalSize;
+    };
+
+    /**
+     * Submits a batch solve task to the thread pool for the misses in a solveBatch() call
+     * -- any instance the caller already served from the shared cache is not part of this
+     * task at all, and is carried through in `results` untouched. Builds the renamed
+     * instances (buildBatch(), batch.h) and grounds/solves them together
+     * (ClingoSolver::solveBatch()) entirely off the main thread: buildBatch() deep-copies
+     * the query layer once per instance, real CPU work that must not block the event loop,
+     * and it reads `queryLayer`'s shared, stored Program nodes under their own
+     * Program::ast_mutex -- a lock that only matters, and only avoids a data race, because
+     * this runs concurrently with other pool workers' plain solve() calls replaying those
+     * same programs (see batch.h and clingo_solver.cc's groundPrograms()).
+     */
+    inline void spawnBatchTask(
+        BS::thread_pool<>& pool,
+        SolveResultCache& cache,
+        std::shared_ptr<const Snapshot> snapshot,
+        std::vector<std::shared_ptr<const Program>> queryLayer,
+        std::vector<std::string> missQueries,
+        std::vector<Hash> missHashes,
+        std::vector<SolveResult> results,
+        std::vector<size_t> missIndices,
+        int totalSize,
+        std::chrono::high_resolution_clock::time_point t1,
+        std::chrono::high_resolution_clock::time_point t2,
+        Napi::Promise::Deferred deferred,
+        Napi::Env env)
+    {
+        auto* data = new BatchCallbackData{
+            .results = std::move(results),
+            .missResults = std::nullopt,
+            .solveException = std::nullopt,
+            .genericError = {},
+            .deferred = deferred,
+            .t1 = t1,
+            .t2 = t2,
+            .cache = cache,
+            .missHashes = missHashes,
+            .missIndices = std::move(missIndices),
+            .totalSize = totalSize,
+        };
+
+        auto tsfn = Napi::ThreadSafeFunction::New(
+            env,
+            Napi::Function::New(env, [](const Napi::CallbackInfo&) {}),
+            "BatchCallback",
+            0, // unlimited queue
+            1  // initial thread count
+        );
+
+        pool.detach_task([data,
+                          tsfn,
+                          snapshot = std::move(snapshot),
+                          queryLayer = std::move(queryLayer),
+                          missQueries = std::move(missQueries),
+                          missHashes]() mutable {
+            try
+            {
+                BatchQuery batch = buildBatch(snapshot, queryLayer, missQueries, missHashes);
+                ClingoSolver solver;
+                data->missResults = solver.solveBatch(batch);
+            }
+            catch (const ClingoSolveException& e)
+            {
+                data->solveException = e;
+            }
+            catch (const std::exception& e)
+            {
+                data->genericError = e.what();
+            }
+
+            tsfn.BlockingCall(data, [](Napi::Env env, Napi::Function, BatchCallbackData* d) {
+                Napi::HandleScope scope(env);
+
+                if (d->solveException)
+                {
+                    Napi::Error error = Napi::Error::New(env, d->solveException->what());
+                    Napi::Object errorObj = Napi::Object::New(env);
+                    NodeClingoLogs logs = parse_clingo_logs(env, d->solveException->logs);
+                    errorObj.Set("errors", logs.errors);
+                    errorObj.Set("warnings", logs.warnings);
+                    if (!d->solveException->programKey.empty())
+                    {
+                        errorObj.Set("program", Napi::String::New(env, d->solveException->programKey));
+                    }
+                    error.Set("details", errorObj);
+                    d->deferred.Reject(error.Value());
+                }
+                else if (!d->genericError.empty())
+                {
+                    d->deferred.Reject(Napi::Error::New(env, d->genericError).Value());
+                }
+                else
+                {
+                    // Every miss is inserted into the shared cache under its own hash
+                    // before being moved into its final position in `results` -- a copy,
+                    // since the cache and the response each need their own instance.
+                    for (size_t k = 0; k < d->missIndices.size(); ++k)
+                    {
+                        d->cache.addResult(d->missHashes[k], SolveResult((*d->missResults)[k]));
+                        d->results[d->missIndices[k]] = std::move((*d->missResults)[k]);
+                    }
+
+                    // `glue` and `batchSize` are call-specific, not cached content -- set
+                    // uniformly on every result (hit or miss) for this call, same as
+                    // Solve()'s cache-hit branch resets the timing stats it doesn't own.
+                    auto glue = std::chrono::duration_cast<std::chrono::microseconds>(d->t2 - d->t1);
+                    Napi::Array out = Napi::Array::New(env, d->results.size());
+                    for (size_t i = 0; i < d->results.size(); ++i)
+                    {
+                        d->results[i].stats.glue = glue;
+                        d->results[i].stats.batchSize = d->totalSize;
+                        out[i] = create_napi_object_from_solve_result(env, d->results[i]);
+                    }
+                    d->deferred.Resolve(out);
                 }
 
                 delete d;

@@ -18,6 +18,7 @@
 
 #include <clingo.hh>
 
+#include "batch.h"
 #include "function_handlers.h"
 #include "helpers.h"
 #include "program_store.h"
@@ -31,6 +32,9 @@ namespace node_clingo
         SolveResult solve(const Query& query);
         // Grounds and solves the knowledge programs alone and returns every atom of the model.
         std::shared_ptr<Snapshot> solveKnowledge(const Query& query, uint64_t revision, Hash knowledgeHash);
+        // Grounds and solves every instance in `batch` together, in one Control, and
+        // returns one SolveResult per instance, in the same order as `batch.instances`.
+        std::vector<SolveResult> solveBatch(const BatchQuery& batch);
     };
 } // namespace node_clingo
 

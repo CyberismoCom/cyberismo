@@ -73,6 +73,69 @@ namespace
     }
 
     /**
+     * Parse the programs array argument (solveBatch()'s first argument) from N-API info.
+     * Throws TypeError if not an array of strings. Returns one query text per instance.
+     */
+    std::vector<std::string> parse_programs_or_throw(const Napi::CallbackInfo& info)
+    {
+        Napi::Env env = info.Env();
+        if (!info[0].IsArray())
+        {
+            throw Napi::TypeError::New(env, "First argument must be an array of strings (programs)");
+        }
+
+        std::vector<std::string> programs;
+        Napi::Array arr = info[0].As<Napi::Array>();
+        for (uint32_t i = 0; i < arr.Length(); ++i)
+        {
+            Napi::Value val = arr[i];
+            if (!val.IsString())
+            {
+                throw Napi::TypeError::New(env, "All programs must be strings");
+            }
+            programs.push_back(val.As<Napi::String>().Utf8Value());
+        }
+        return programs;
+    }
+
+    // Outcome of deciding whether { snapshot: true } can be honored right now: either a
+    // usable snapshot, or a coded reason it cannot be used. Shared by solve() and
+    // solveBatch() so the freshness rule (knowledge hash match, @today not rolled over)
+    // cannot drift between the two; each caller still creates and settles its own Deferred,
+    // since that differs (solveBatch() rejects the whole batch, solve() rejects one query).
+    struct SnapshotCheck
+    {
+        std::shared_ptr<const node_clingo::Snapshot> snapshot;
+        const char* code = nullptr;
+        const char* reason = nullptr;
+    };
+
+    SnapshotCheck checkSnapshot(
+        const std::shared_ptr<const node_clingo::Snapshot>& current,
+        node_clingo::ProgramStore& store)
+    {
+        SnapshotCheck result;
+        if (!current)
+        {
+            result.code = "SNAPSHOT_MISSING";
+            result.reason = "no snapshot; call commit() first";
+            return result;
+        }
+        // Fresh only if the knowledge programs still hash to what was committed, and
+        // (when the commit involved @today) that day has not rolled over yet. Scoped to
+        // the knowledge category alone: a queryLayer edit must not trip this.
+        if (current->knowledgeHash != store.categoryHash(kKnowledgeCategory) ||
+            (current->valid_until && current->valid_until <= node_clingo::current_epoch_ms()))
+        {
+            result.code = "SNAPSHOT_STALE";
+            result.reason = "snapshot is older than the knowledge programs";
+            return result;
+        }
+        result.snapshot = current;
+        return result;
+    }
+
+    /**
      * Finds the first knowledge program carrying a top-level statement that changes what
      * model.symbols() returns for the *whole* solve -- #show, #external, #minimize,
      * #project, #defined -- rather than merely deriving atoms. The snapshot's fact_nodes
@@ -125,6 +188,7 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
                 InstanceMethod("removeProgram", &ClingoContext::RemoveProgram),
                 InstanceMethod("removeAllPrograms", &ClingoContext::RemoveAllPrograms),
                 InstanceMethod("solve", &ClingoContext::Solve),
+                InstanceMethod("solveBatch", &ClingoContext::SolveBatch),
                 InstanceMethod("buildProgram", &ClingoContext::BuildProgram),
                 InstanceMethod("commit", &ClingoContext::Commit),
             });
@@ -269,35 +333,20 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
         std::shared_ptr<const node_clingo::Snapshot> snapshot;
         if (useSnapshot)
         {
-            // Both branches only decide *whether* to reject and with what; the Deferred
-            // itself is created below, only on the path that actually settles it. Creating
-            // it unconditionally up front and settling it in just two of three branches
-            // leaves it unresolved -- and abandoned on the common (fresh) path -- which
-            // leaks (napi_create_promise holds a strong reference until settled).
-            const char* code = nullptr;
-            const char* msg = nullptr;
-            if (!m_snapshot)
-            {
-                code = "SNAPSHOT_MISSING";
-                msg = "solve(): no snapshot; call commit() first";
-            }
-            // Fresh only if the knowledge programs still hash to what was committed, and
-            // (when the commit involved @today) that day has not rolled over yet. Scoped to
-            // the knowledge category alone: a queryLayer edit must not trip this.
-            else if (
-                m_snapshot->knowledgeHash != m_store.categoryHash(kKnowledgeCategory) ||
-                (m_snapshot->valid_until && m_snapshot->valid_until <= node_clingo::current_epoch_ms()))
-            {
-                code = "SNAPSHOT_STALE";
-                msg = "solve(): snapshot is older than the knowledge programs";
-            }
-            if (code)
+            // Only decides *whether* to reject and with what; the Deferred itself is
+            // created below, only on the path that actually settles it. Creating it
+            // unconditionally up front and settling it in just two of three branches leaves
+            // it unresolved -- and abandoned on the common (fresh) path -- which leaks
+            // (napi_create_promise holds a strong reference until settled).
+            SnapshotCheck check = checkSnapshot(m_snapshot, m_store);
+            if (check.code)
             {
                 auto deferred = Napi::Promise::Deferred::New(env);
-                deferred.Reject(node_clingo::coded_error(env, code, msg));
+                deferred.Reject(
+                    node_clingo::coded_error(env, check.code, (std::string("solve(): ") + check.reason).c_str()));
                 return deferred.Promise();
             }
-            snapshot = m_snapshot;
+            snapshot = std::move(check.snapshot);
         }
 
         node_clingo::Query query = m_store.prepareQuery(program, refs, snapshot);
@@ -313,6 +362,10 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
             result.stats.ground = std::chrono::microseconds::zero();
             result.stats.solve = std::chrono::microseconds::zero();
             result.stats.cacheHit = true;
+            // batchSize is call-specific, not cached content -- a plain solve() is never
+            // itself part of a batch, regardless of whether this cache entry happens to
+            // have been produced by an earlier solveBatch() call for the same query.
+            result.stats.batchSize = 0;
 
             auto deferred = Napi::Promise::Deferred::New(env);
             deferred.Resolve(node_clingo::create_napi_object_from_solve_result(env, result));
@@ -325,6 +378,137 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
         auto promise = deferred.Promise();
         node_clingo::spawnSolveTask(
             get_thread_pool(), g_cache, std::move(query), startTime, afterCacheCheckTime, std::move(deferred), env);
+        return promise;
+    }
+
+    /**
+     * solveBatch(programs, refs, options?) → Promise<SolveResult[]>
+     * Grounds and solves N query instances together in one Control over the committed
+     * knowledge snapshot, and returns one result per instance in `programs`' order. Every
+     * instance's own predicates are isolated from every other instance's (see batch.h), so
+     * the result is the same as solving each instance separately -- batching only changes
+     * how the work is scheduled. An instance already in the shared cache is served directly
+     * and never enters the batch; only the misses are ground and solved together. Requires
+     * { snapshot: true }: batching without a committed snapshot to share is not
+     * implemented (see BatchQuery::shared in batch.h).
+     */
+    Napi::Value SolveBatch(const Napi::CallbackInfo& info)
+    {
+        auto startTime = std::chrono::high_resolution_clock::now();
+        Napi::Env env = info.Env();
+
+        std::vector<std::string> programs = parse_programs_or_throw(info);
+        std::vector<std::string> refs = parse_refs_or_throw(info, 1);
+
+        if (info.Length() > 2 && !info[2].IsUndefined() && !info[2].IsNull() && !info[2].IsObject())
+        {
+            throw Napi::TypeError::New(env, "Third argument must be an options object");
+        }
+
+        bool useSnapshot = false;
+        if (info.Length() > 2 && info[2].IsObject())
+        {
+            Napi::Object opts = info[2].As<Napi::Object>();
+            useSnapshot = opts.Has("snapshot") && opts.Get("snapshot").ToBoolean().Value();
+        }
+
+        if (!useSnapshot)
+        {
+            throw Napi::TypeError::New(
+                env,
+                "solveBatch(): requires { snapshot: true } -- batching without a committed snapshot to share is "
+                "not supported");
+        }
+
+        if (std::find(refs.begin(), refs.end(), kKnowledgeCategory) != refs.end())
+        {
+            throw Napi::TypeError::New(
+                env,
+                std::string("solveBatch(): cannot combine { snapshot: true } with the \"") + kKnowledgeCategory +
+                    "\" category in refs -- that grounds the knowledge layer twice");
+        }
+
+        SnapshotCheck check = checkSnapshot(m_snapshot, m_store);
+        if (check.code)
+        {
+            auto deferred = Napi::Promise::Deferred::New(env);
+            deferred.Reject(
+                node_clingo::coded_error(env, check.code, (std::string("solveBatch(): ") + check.reason).c_str()));
+            return deferred.Promise();
+        }
+        std::shared_ptr<const node_clingo::Snapshot> snapshot = std::move(check.snapshot);
+
+        const size_t n = programs.size();
+        std::vector<node_clingo::SolveResult> results(n);
+        std::vector<std::string> missQueries;
+        std::vector<node_clingo::Hash> missHashes;
+        std::vector<size_t> missIndices;
+
+        for (size_t i = 0; i < n; ++i)
+        {
+            node_clingo::Query query = m_store.prepareQuery(programs[i], refs, snapshot);
+            node_clingo::SolveResult cached;
+            if (g_cache.result(query.hash, cached))
+            {
+                cached.stats.add = std::chrono::microseconds::zero();
+                cached.stats.ground = std::chrono::microseconds::zero();
+                cached.stats.solve = std::chrono::microseconds::zero();
+                cached.stats.inject = std::chrono::microseconds::zero();
+                cached.stats.cacheHit = true;
+                results[i] = std::move(cached);
+            }
+            else
+            {
+                missIndices.push_back(i);
+                missQueries.push_back(programs[i]);
+                missHashes.push_back(query.hash);
+            }
+        }
+
+        auto afterCacheCheckTime = std::chrono::high_resolution_clock::now();
+
+        if (missIndices.empty())
+        {
+            // Every instance was already cached -- resolve immediately on the main thread,
+            // same as solve()'s own cache-hit path.
+            auto glue = std::chrono::duration_cast<std::chrono::microseconds>(afterCacheCheckTime - startTime);
+            Napi::Array out = Napi::Array::New(env, n);
+            for (size_t i = 0; i < n; ++i)
+            {
+                results[i].stats.glue = glue;
+                results[i].stats.batchSize = static_cast<int>(n);
+                out[i] = node_clingo::create_napi_object_from_solve_result(env, results[i]);
+            }
+            auto deferred = Napi::Promise::Deferred::New(env);
+            deferred.Resolve(out);
+            return deferred.Promise();
+        }
+
+        // The query layer's shared programs -- the same for every instance, since `refs`
+        // applies to the whole batch. Fetched via the same empty-query trick buildProgram()
+        // and commit() use to read back just a category's members: "" parses to no
+        // statements, so query.programs is exactly `refs`' members plus that empty
+        // placeholder, dropped below.
+        node_clingo::Query queryLayerQuery = m_store.prepareQuery("", refs, snapshot);
+        std::vector<std::shared_ptr<const node_clingo::Program>> queryLayer = std::move(queryLayerQuery.programs);
+        queryLayer.pop_back();
+
+        auto deferred = Napi::Promise::Deferred::New(env);
+        auto promise = deferred.Promise();
+        node_clingo::spawnBatchTask(
+            get_thread_pool(),
+            g_cache,
+            std::move(snapshot),
+            std::move(queryLayer),
+            std::move(missQueries),
+            std::move(missHashes),
+            std::move(results),
+            std::move(missIndices),
+            static_cast<int>(n),
+            startTime,
+            afterCacheCheckTime,
+            std::move(deferred),
+            env);
         return promise;
     }
 

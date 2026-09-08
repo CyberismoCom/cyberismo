@@ -284,4 +284,184 @@ namespace node_clingo
             throw ClingoSolveException(e.what(), std::move(logMessages), currentKey);
         }
     }
+
+    // Splits one shared model back out per instance by the predicate prefix
+    // buildBatch() (batch.h) gave it. No "q<i>_" prefix can ever be a genuine string-prefix
+    // of another "q<j>_" -- the two only ever agree up through the digits they share, and
+    // the shorter one's very next character is its terminating '_', which the longer one
+    // instead continues with a digit -- so matching prefixes in any fixed order is
+    // unambiguous; this checks them in `prefixes`' own order.
+    struct BatchCollector : Clingo::SolveEventHandler
+    {
+        const std::vector<std::string>& prefixes;
+        std::vector<std::string>& answers; // one entry appended per instance, in order
+        size_t& unprefixedAtoms;
+
+        BatchCollector(
+            const std::vector<std::string>& prefixes_,
+            std::vector<std::string>& answers_,
+            size_t& unprefixedAtoms_)
+            : prefixes(prefixes_), answers(answers_), unprefixedAtoms(unprefixedAtoms_)
+        {
+        }
+
+        // `started` is `char`, not `bool`: std::vector<bool> is a bitset whose
+        // `operator[]` returns a proxy, not a real `bool&`, so it cannot bind to this
+        // out-param.
+        static void appendLine(std::ostringstream& out, char& started, const std::string& text)
+        {
+            if (started)
+            {
+                out << '\n';
+            }
+            out << text;
+            started = 1;
+        }
+
+        bool on_model(Clingo::Model& model) override
+        {
+            std::vector<std::ostringstream> perInstance(prefixes.size());
+            std::vector<char> started(prefixes.size(), 0);
+
+            for (auto sym : model.symbols())
+            {
+                if (sym.type() != Clingo::SymbolType::Function)
+                {
+                    // The query layer's own #show set is Function-only (see batch.h's
+                    // doc comment on buildBatch); a shown non-Function term does not occur
+                    // in real content.
+                    continue;
+                }
+
+                std::string_view name = sym.name();
+                bool matched = false;
+                for (size_t i = 0; i < prefixes.size(); ++i)
+                {
+                    const std::string& prefix = prefixes[i];
+                    if (name.size() > prefix.size() && name.compare(0, prefix.size(), prefix) == 0)
+                    {
+                        // Re-created under its original name so to_string() prints exactly
+                        // what an unrenamed, single solve would print.
+                        Clingo::Symbol original = Clingo::Function(
+                            std::string(name.substr(prefix.size())).c_str(), sym.arguments(), sym.is_positive());
+                        appendLine(perInstance[i], started[i], original.to_string());
+                        matched = true;
+                        break;
+                    }
+                }
+
+                if (!matched)
+                {
+                    // Never renamed by any instance -- a shared, knowledge/snapshot-derived
+                    // atom. Broadcast unchanged to every instance rather than dropped,
+                    // matching qtools/renaming.py's demangle().
+                    ++unprefixedAtoms;
+                    std::string printed = sym.to_string();
+                    for (size_t i = 0; i < perInstance.size(); ++i)
+                    {
+                        appendLine(perInstance[i], started[i], printed);
+                    }
+                }
+            }
+
+            for (auto& out : perInstance)
+            {
+                answers.push_back(out.str());
+            }
+            return false; // One model expected -- see ClingoSolver::solveBatch below.
+        }
+    };
+
+    std::vector<SolveResult> ClingoSolver::solveBatch(const BatchQuery& batch)
+    {
+        std::vector<ClingoLogMessage> logMessages;
+        std::vector<std::string> answers;
+        size_t unprefixedAtoms = 0;
+        bool todayCalled = false;
+        std::string currentKey;
+        auto timeStart = std::chrono::high_resolution_clock::now();
+        const size_t n = batch.instances.size();
+
+        Clingo::Logger logger = [&logMessages](Clingo::WarningCode code, char const* message) {
+            logMessages.push_back({code, code == Clingo::WarningCode::RuntimeError, message});
+        };
+
+        try
+        {
+            Clingo::Control control{{}, logger, MAX_CLINGO_LOG_MESSAGES};
+
+            // Each instance's already-renamed nodes are wrapped as an ephemeral,
+            // exclusively-owned Program so groundPrograms() can replay them exactly like
+            // any other stored program. Its per-program mutex is uncontended here --
+            // nothing else can reach these nodes -- so this adds no real locking cost, and
+            // lets solveBatch() share groundPrograms() rather than duplicate its replay and
+            // grounding logic.
+            std::vector<std::shared_ptr<const Program>> assembled = batch.shared;
+            assembled.reserve(assembled.size() + n);
+            for (size_t i = 0; i < n; ++i)
+            {
+                assembled.push_back(
+                    std::make_shared<const Program>(
+                        batch.prefixes[i], std::string(), batch.instances[i], std::vector<KeyHash>(), 0));
+            }
+
+            GroundTimings timings =
+                groundPrograms(control, assembled, logger, todayCalled, currentKey, batch.snapshot.get());
+
+            BatchCollector collector{batch.prefixes, answers, unprefixedAtoms};
+            Clingo::SolveResult outcome = control.solve(Clingo::SymbolicLiteralSpan{}, &collector).get();
+
+            auto timeAfterSolve = std::chrono::high_resolution_clock::now();
+
+            int64_t valid_until = todayCalled ? next_local_midnight_epoch_ms() : 0;
+            if (batch.snapshot && batch.snapshot->valid_until > 0 &&
+                (valid_until == 0 || batch.snapshot->valid_until < valid_until))
+            {
+                valid_until = batch.snapshot->valid_until;
+            }
+
+            std::chrono::microseconds inject =
+                timings.injected
+                    ? std::chrono::duration_cast<std::chrono::microseconds>(timings.afterInject - timeStart)
+                    : std::chrono::microseconds::zero();
+            std::chrono::microseconds add =
+                std::chrono::duration_cast<std::chrono::microseconds>(timings.afterAdd - timeStart);
+            std::chrono::microseconds ground =
+                std::chrono::duration_cast<std::chrono::microseconds>(timings.afterGround - timings.afterAdd);
+            std::chrono::microseconds solveTime =
+                std::chrono::duration_cast<std::chrono::microseconds>(timeAfterSolve - timings.afterGround);
+
+            // An UNSAT batch (or one where on_model was somehow never reached) has nothing
+            // to split per instance; every instance gets the same empty answer a plain
+            // solve() reports for an unsatisfiable query, rather than an out-of-bounds read.
+            bool satisfiable = outcome.is_satisfiable() && answers.size() == n;
+
+            std::vector<SolveResult> results;
+            results.reserve(n);
+            for (size_t i = 0; i < n; ++i)
+            {
+                results.push_back({
+                    .answers = satisfiable ? std::vector<std::string>{answers[i]} : std::vector<std::string>{},
+                    .logs = logMessages,
+                    .stats =
+                        {
+                            .glue = std::chrono::microseconds(0), // set by the caller
+                            .add = add,
+                            .ground = ground,
+                            .solve = solveTime,
+                            .inject = inject,
+                            .cacheHit = false,
+                            .batchSize = static_cast<int>(n),
+                            .unprefixedAtoms = unprefixedAtoms,
+                        },
+                    .valid_until = valid_until,
+                });
+            }
+            return results;
+        }
+        catch (const std::exception& e)
+        {
+            throw ClingoSolveException(e.what(), std::move(logMessages), currentKey);
+        }
+    }
 } // namespace node_clingo

@@ -14,6 +14,7 @@
         "src/clingo_solver.cc",
         "src/program_store.cc",
         "src/ast_rename.cc",
+        "src/batch.cc",
         "src/validator.cc",
         "src/solve_result_cache.cc"
       ],

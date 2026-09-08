@@ -22,6 +22,8 @@ interface RawClingoResult {
     ground: number;
     solve: number;
     cacheHit: boolean;
+    batchSize: number;
+    unprefixedAtoms: number;
   };
 }
 
@@ -34,6 +36,11 @@ interface NativeClingoContext {
     categories: string[],
     options: SolveOptions,
   ): Promise<RawClingoResult>;
+  solveBatch(
+    programs: string[],
+    categories: string[],
+    options: SolveOptions,
+  ): Promise<RawClingoResult[]>;
   buildProgram(program: string, categories: string[]): string;
   commit(): Promise<SnapshotInfo>;
 }
@@ -187,6 +194,17 @@ export interface ClingoResult {
     ground: number;
     solve: number;
     cacheHit: boolean;
+    /**
+     * Number of instances ground and solved together by solveBatch(); absent (0) for a
+     * plain solve().
+     */
+    batchSize?: number;
+    /**
+     * Model atoms broadcast to every instance because no instance's prefix matched them;
+     * only meaningful for a solveBatch() result, and expected to stay 0 for real content
+     * -- see solveBatch()'s doc comment.
+     */
+    unprefixedAtoms?: number;
   };
 }
 
@@ -260,6 +278,36 @@ export class ClingoContext {
 
     try {
       return await this._ctx.solve(program, categories ?? [], options ?? {});
+    } catch (error) {
+      throw toClingoError(error);
+    }
+  }
+
+  /**
+   * Grounds and solves N query instances together in one Control, over the committed
+   * knowledge snapshot, and returns one result per instance in `programs`' order. Each
+   * instance's own predicates are isolated from every other instance's, so the result is
+   * the same as calling `solve()` on each instance separately -- batching only changes how
+   * the work is scheduled. An instance already in the shared cache is served directly and
+   * never enters the batch.
+   * @param programs One query per instance
+   * @param categories Optional array of program keys or categories to include, shared by
+   * every instance
+   * @param options Solve options; `{ snapshot: true }` is required -- batching without a
+   * committed snapshot to share is not supported
+   * @returns Promise resolving to one result per instance, in `programs`' order
+   */
+  async solveBatch(
+    programs: string[],
+    categories?: string[],
+    options?: SolveOptions,
+  ): Promise<ClingoResult[]> {
+    try {
+      return await this._ctx.solveBatch(
+        programs,
+        categories ?? [],
+        options ?? {},
+      );
     } catch (error) {
       throw toClingoError(error);
     }

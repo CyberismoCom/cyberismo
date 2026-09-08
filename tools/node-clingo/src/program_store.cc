@@ -14,7 +14,7 @@
 
 namespace node_clingo
 {
-    static std::vector<Clingo::AST::Node> tryParseToAst(const std::string& content)
+    std::vector<Clingo::AST::Node> tryParseToAst(const std::string& content)
     {
         std::vector<Clingo::AST::Node> nodes;
         try

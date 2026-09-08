@@ -32,6 +32,19 @@ namespace node_clingo
 {
     using KeyHash = int;
 
+    /**
+     * Parses `content` into a fresh AST node list, one per top-level statement.
+     * Every parse mints brand-new nodes, so the result is reachable only from
+     * the caller -- unlike a Program's *stored* ast_nodes, which become
+     * reachable from other threads once shared, a freshly parsed tree needs no
+     * lock to traverse (see Program::ast_mutex, and buildBatch in batch.h,
+     * which relies on exactly this to rename a query's own nodes without
+     * locking anything).
+     * @param content The logic program text to parse.
+     * @returns The parsed AST nodes, or empty on a parse failure.
+     */
+    std::vector<Clingo::AST::Node> tryParseToAst(const std::string& content);
+
     // Program with categories
     struct Program
     {
