@@ -19,8 +19,8 @@ namespace node_clingo
         using namespace Clingo::AST;
 
         /**
-         * Predicate signatures of a term appearing directly as a symbolic atom's (or
-         * #show's) own term. A plain call is a Function node; a bare 0-arity constant
+         * Predicate signatures of a term appearing directly as a symbolic atom's own term.
+         * A plain call is a Function node; a bare 0-arity constant
          * (e.g. `selectAll`) parses as a SymbolicTerm holding a Function symbol rather
          * than a Function node; a Pool (e.g. `(p(X);q(X))`) stands for each of its
          * alternatives.
@@ -142,12 +142,14 @@ namespace node_clingo
         }
 
         /**
-         * Renames every SymbolicAtom, #show term, and #show signature reachable from
-         * `node` that matches a defined signature; recurses structurally into every other
-         * node so a match nested in a body, an aggregate, a conditional literal, or a
-         * disjunction is still found. A Comparison's or Guard's terms are never predicate
-         * uses and so are never visited specially -- they fall through to plain structural
-         * recursion, same as clingo's own AST shape implies no atom lives there.
+         * Renames every SymbolicAtom matching a defined signature, every #show term's own
+         * Function (unconditionally -- see rename_predicates), and every #show signature
+         * matching a defined signature, wherever they occur in `node`; recurses
+         * structurally into every other node so a match nested in a body, an aggregate, a
+         * conditional literal, or a disjunction is still found. A Comparison's or Guard's
+         * terms are never predicate uses and so are never visited specially -- they fall
+         * through to plain structural recursion, same as clingo's own AST shape implies no
+         * atom lives there.
          */
         void renameNode(Node node, const std::set<Signature>& sigs, const std::string& prefix)
         {
@@ -157,10 +159,18 @@ namespace node_clingo
                     renameTerm(node.get<Node>(Attribute::Symbol), sigs, prefix);
                     return;
                 case Type::ShowTerm: {
+                    // A #show term's own Function is prefixed unconditionally -- it names
+                    // the shown output, not a claim that this program derives it -- matching
+                    // qtools/lpast.py's Renamer.visit_ShowTerm called with show_prefix ==
+                    // prefix, which is how qtools/renaming.py's build_instance always calls
+                    // it. An otherwise-undefined #show'd predicate still needs its own
+                    // output name prefixed, or it collides across instances like any other
+                    // unrenamed shared predicate would.
                     Node term = node.get<Node>(Attribute::Term);
                     if (term.type() == Type::Function)
                     {
-                        renameTerm(term, sigs, prefix);
+                        std::string name = term.get<char const*>(Attribute::Name);
+                        term.set(Attribute::Name, NodeValue{(prefix + name).c_str()});
                     }
                     for (Node lit : node.get<NodeVector>(Attribute::Body))
                     {
@@ -212,25 +222,9 @@ namespace node_clingo
         std::set<Signature> sigs;
         for (const auto& node : nodes)
         {
-            switch (node.type())
+            if (node.type() == Type::Rule)
             {
-                case Type::Rule:
-                    collectHeadSignatures(node.get<Node>(Attribute::Head), sigs);
-                    break;
-                case Type::ShowTerm: {
-                    Node term = node.get<Node>(Attribute::Term);
-                    if (term.type() == Type::Function)
-                    {
-                        auto arity = static_cast<int>(term.get<NodeVector>(Attribute::Arguments).size());
-                        sigs.emplace(term.get<char const*>(Attribute::Name), arity);
-                    }
-                    break;
-                }
-                case Type::ShowSignature:
-                    sigs.emplace(node.get<char const*>(Attribute::Name), node.get<int>(Attribute::Arity));
-                    break;
-                default:
-                    break;
+                collectHeadSignatures(node.get<Node>(Attribute::Head), sigs);
             }
         }
         return sigs;

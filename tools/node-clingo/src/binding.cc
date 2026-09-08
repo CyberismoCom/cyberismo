@@ -417,11 +417,34 @@ Napi::Value ValidateProgram(const Napi::CallbackInfo& info)
     return resultObj;
 }
 
+namespace
+{
+    // Joins printed statements one per line, for RenameForTest's two outputs below.
+    std::string printNodes(const std::vector<Clingo::AST::Node>& nodes)
+    {
+        std::ostringstream out;
+        for (size_t i = 0; i < nodes.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << "\n";
+            }
+            out << nodes[i].to_string();
+        }
+        return out.str();
+    }
+} // namespace
+
 /**
- * _renameForTest(program, prefix) — parses `program`, computes which predicates it
- * defines, and returns the source of the renamed copy (one statement per line). Debug
- * export for the AST renamer used to merge coalesced query solves; never registered
- * outside of NODE_CLINGO_TEST_EXPORTS, so it never reaches a shipped build.
+ * _renameForTest(program, prefix) -> { renamed, original } — parses `program`, computes
+ * which predicates it defines, and returns both the renamed copy's source and the
+ * original parsed nodes' own printed source (one statement per line each), so a test can
+ * assert `rename_predicates` never mutates its input -- the property Task 4's shared,
+ * concurrently-read stored query-layer nodes most depend on. Debug export for the AST
+ * renamer used to merge coalesced query solves; never registered outside of
+ * NODE_CLINGO_TEST_EXPORTS, so it never reaches a shipped build. That is a *runtime* gate
+ * only: shipping this for real would need it compiled out entirely (e.g. behind a build
+ * flag), since a runtime check still leaves the code and its symbol in the binary.
  */
 Napi::Value RenameForTest(const Napi::CallbackInfo& info)
 {
@@ -444,19 +467,15 @@ Napi::Value RenameForTest(const Napi::CallbackInfo& info)
         throw Napi::Error::New(env, e.what());
     }
 
+    std::string original = printNodes(nodes);
+
     auto sigs = node_clingo::head_signatures(nodes);
     auto renamed = node_clingo::rename_predicates(nodes, sigs, prefix);
 
-    std::ostringstream out;
-    for (size_t i = 0; i < renamed.size(); ++i)
-    {
-        if (i > 0)
-        {
-            out << "\n";
-        }
-        out << renamed[i].to_string();
-    }
-    return Napi::String::New(env, out.str());
+    Napi::Object result = Napi::Object::New(env);
+    result.Set("renamed", Napi::String::New(env, printNodes(renamed)));
+    result.Set("original", Napi::String::New(env, original));
+    return result;
 }
 
 /**
@@ -467,6 +486,10 @@ Napi::Object Init(Napi::Env env, Napi::Object exports)
     ClingoContext::Init(env, exports);
     exports.Set(Napi::String::New(env, "clearCache"), Napi::Function::New(env, ClearCache));
     exports.Set(Napi::String::New(env, "validateProgram"), Napi::Function::New(env, ValidateProgram));
+    // POC-grade gate: fine for keeping this off a dev's own production process, not fine
+    // to ship -- RenameForTest and its symbol are still compiled into the binary either
+    // way. Shipping this for real needs it compiled out entirely (e.g. an ifdef behind a
+    // build flag), not just left unregistered at runtime.
     if (std::getenv("NODE_CLINGO_TEST_EXPORTS") != nullptr)
     {
         exports.Set(Napi::String::New(env, "_renameForTest"), Napi::Function::New(env, RenameForTest));

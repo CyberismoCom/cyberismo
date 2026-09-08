@@ -74,13 +74,6 @@ interface NativeBinding {
   ClingoContext: new () => NativeClingoContext;
   clearCache(): void;
   validateProgram(program: string): ClingoValidationResult;
-  /**
-   * Debug export for the AST renamer used to merge coalesced query solves: parses
-   * `program`, renames every predicate it defines with `prefix`, and returns the renamed
-   * source. Only present when the native module was loaded with
-   * `NODE_CLINGO_TEST_EXPORTS` set -- never in a production build.
-   */
-  _renameForTest?(program: string, prefix: string): string;
 }
 
 const require = createRequire(import.meta.url);
@@ -288,11 +281,5 @@ export function clearCache(): void {
 export function validateProgram(program: string): ClingoValidationResult {
   return nativeBinding!.validateProgram(program);
 }
-
-/**
- * Test-only: see `NativeBinding._renameForTest`. Not part of the public API -- `undefined`
- * unless the native module was loaded with `NODE_CLINGO_TEST_EXPORTS` set.
- */
-export const _renameForTest = nativeBinding!._renameForTest;
 
 export default ClingoContext;
