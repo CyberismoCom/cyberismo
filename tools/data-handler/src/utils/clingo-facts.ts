@@ -197,7 +197,7 @@ export const createCardFacts = async (
   // A card names its parent card, or — when it is a root card of a template —
   // the template itself. Project root cards name nothing.
   const parentsPath =
-    card.parent && card.parent !== ROOT
+    card.parent !== ROOT
       ? card.parent
       : container.kind === 'project'
         ? ''

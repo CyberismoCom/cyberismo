@@ -680,7 +680,7 @@ export class CardTree {
   public rootCards(): Card[] {
     const rootCards: Card[] = [];
     for (const card of this.cardStore.values()) {
-      if (card.parent === ROOT || !card.parent) {
+      if (card.parent === ROOT) {
         rootCards.push(this.cardView(card));
       }
     }

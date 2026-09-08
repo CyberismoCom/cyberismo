@@ -16,6 +16,7 @@ import {
   instantiateTemplate,
 } from '../src/containers/project/template-instantiation.js';
 import { CardNotFoundError } from '../src/exceptions/index.js';
+import { ROOT } from '../src/utils/constants.js';
 
 // Create test artifacts in a temp directory.
 const baseDir = import.meta.dirname;
@@ -93,6 +94,7 @@ describe('template', () => {
       key: '1111',
       path: '',
       content: '',
+      parent: ROOT,
       children: [],
       attachments: [],
     };
@@ -109,6 +111,7 @@ describe('template', () => {
       key: '1111',
       path: '',
       content: '',
+      parent: ROOT,
       children: [],
       attachments: [],
     };
@@ -179,6 +182,7 @@ describe('template', () => {
     const parentCard: Card = {
       key: 'decision_1',
       path: join(template.templateCardsFolder(), 'decision_1'),
+      parent: ROOT,
       children: [],
       attachments: [],
     };
@@ -226,6 +230,7 @@ describe('template', () => {
     const parentCard: Card = {
       key: 'i-dont-exist',
       path: join(template.templateCardsFolder(), 'decision_1'),
+      parent: ROOT,
       children: [],
       attachments: [],
     };

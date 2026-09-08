@@ -44,7 +44,7 @@ export const buildCardHierarchy = (
 
     const rootCards: Card[] = [];
     cardMap.forEach((card) => {
-      if (card.parent && cardMap.has(card.parent)) {
+      if (cardMap.has(card.parent)) {
         const parentCard = cardMap.get(card.parent);
         if (parentCard) {
           parentCard.children.push(card.key);
@@ -84,7 +84,7 @@ export const flattenCardArray = (array: Card[], project: Project) => {
   const result: Card[] = [];
 
   array.forEach((item) => {
-    const { key, path, children, attachments, metadata } = item;
+    const { key, path, parent, children, attachments, metadata } = item;
     const childCardIds = project
       .cardKeysToCards(children)
       .map((item) => item.key);
@@ -92,6 +92,7 @@ export const flattenCardArray = (array: Card[], project: Project) => {
     result.push({
       key,
       path,
+      parent,
       children: [...childCardIds],
       attachments,
       metadata,
