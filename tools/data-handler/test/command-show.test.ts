@@ -790,9 +790,13 @@ describe('show', () => {
     expect(results).to.have.property('prefix');
     expect(results).to.have.property('modules');
     expect(results).to.have.property('hubs');
-    expect(results).to.have.property('numberOfCards');
     expect(results).to.have.property('description');
     expect(results).to.have.property('category');
+    const containers = await showCmd.showCards();
+    expect(results.numberOfCards).to.equal(
+      containers.find((container) => container.type === 'project')!.cards
+        .length,
+    );
   });
   it('showResource - template (success)', async () => {
     const templateName = 'decision/templates/decision';
