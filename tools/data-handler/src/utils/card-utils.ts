@@ -129,6 +129,28 @@ export const moduleNameFromCardKey = (cardKey: string) => {
   return parts[0];
 };
 
+const compareSlices = (
+  a: string,
+  aStart: number,
+  aEnd: number,
+  b: string,
+  bStart: number,
+  bEnd: number,
+) => {
+  const shared = Math.min(aEnd - aStart, bEnd - bStart);
+  for (let i = 0; i < shared; i++) {
+    const difference = a.charCodeAt(aStart + i) - b.charCodeAt(bStart + i);
+    if (difference !== 0) return difference < 0 ? -1 : 1;
+  }
+  if (aEnd - aStart === bEnd - bStart) return 0;
+  return aEnd - aStart < bEnd - bStart ? -1 : 1;
+};
+
+const endOfId = (key: string, separator: number) => {
+  const next = key.indexOf(CARD_KEY_SEPARATOR, separator + 1);
+  return next < 0 ? key.length : next;
+};
+
 /**
  * Sorts array of cards first using prefix and then using ID.
  * Prefixes are returned in alphabetical order, and then in numeric order within same prefix.
@@ -138,22 +160,28 @@ export const moduleNameFromCardKey = (cardKey: string) => {
  * @returns Cards ordered; first by prefixes, then by ID.
  */
 export const sortCards = (a: string, b: string) => {
-  const aParts = a.split(CARD_KEY_SEPARATOR);
-  const bParts = b.split(CARD_KEY_SEPARATOR);
-  if (aParts[0] !== bParts[0]) {
-    if (aParts[0] > bParts[0]) return 1;
-    if (aParts[0] < bParts[0]) return -1;
-    return 0;
-  }
-  if (a.length > b.length) {
-    return 1;
-  }
-  if (a.length < b.length) {
-    return -1;
-  }
-  if (aParts[1] > bParts[1]) return 1;
-  if (aParts[1] < bParts[1]) return -1;
-  return 0;
+  // Compared in place: splitting both keys allocated two arrays per comparison,
+  // which dominated the cost of sorting a whole project's keys.
+  const aSeparator = a.indexOf(CARD_KEY_SEPARATOR);
+  const bSeparator = b.indexOf(CARD_KEY_SEPARATOR);
+  const prefixes = compareSlices(
+    a,
+    0,
+    aSeparator < 0 ? a.length : aSeparator,
+    b,
+    0,
+    bSeparator < 0 ? b.length : bSeparator,
+  );
+  if (prefixes !== 0) return prefixes;
+  if (a.length !== b.length) return a.length < b.length ? -1 : 1;
+  return compareSlices(
+    a,
+    aSeparator + 1,
+    endOfId(a, aSeparator),
+    b,
+    bSeparator + 1,
+    endOfId(b, bSeparator),
+  );
 };
 
 /**
