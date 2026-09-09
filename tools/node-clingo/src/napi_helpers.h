@@ -82,6 +82,7 @@ namespace node_clingo
         statsObj.Set("cacheHit", result.stats.cacheHit);
         statsObj.Set("batchSize", static_cast<double>(result.stats.batchSize));
         statsObj.Set("unprefixedAtoms", static_cast<double>(result.stats.unprefixedAtoms));
+        statsObj.Set("layerViolations", static_cast<double>(result.stats.layerViolations));
         resultObj.Set("stats", statsObj);
 
         NodeClingoLogs logs = parse_clingo_logs(env, result.logs);

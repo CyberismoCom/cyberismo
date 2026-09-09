@@ -198,4 +198,114 @@ describe('coalescing', () => {
       });
     }
   });
+
+  it('routes an instance that collides with the knowledge layer to a solo solve instead of failing the batch it queued behind, and its clean siblings still batch together', async () => {
+    clearCache();
+    const ctx = new ClingoContext();
+    ctx.setProgram('facts', `field(a,1,"A"). field(b,1,"B").`, ['knowledge']);
+    ctx.setProgram('ql', `#show result/2.`, ['queryLayer']);
+    await ctx.commit();
+
+    // Defines its own field/3 fact *and* reads field/3 -- exactly the shape that breaks
+    // under naive batching: renamed, its own head-defined field/3 and its read of the
+    // snapshot's field/3 would both become the same q<i>_field/3, so it would only ever
+    // see its own fact and silently lose the knowledge layer's.
+    const violator = `field(virtual,1,"V"). result(K,V) :- field(K,1,V).`;
+    const clean1 = `result(K,V) :- field(K,1,V).`;
+    const clean2 = `result(x,"only-x") :- field(a,1,_).`;
+    const qs = [violator, clean1, clean2];
+    const norm = (r: { answers: string[] }) =>
+      r.answers[0]?.split('\n').filter(Boolean).sort() ?? [];
+
+    // Sequential baseline: nothing queues, so each solves alone -- the "separate" answer.
+    const separate = [];
+    for (const q of qs) {
+      separate.push(await ctx.solve(q, ['queryLayer'], { snapshot: true }));
+    }
+    expect(norm(separate[0])).toEqual([
+      'result(a,"A")',
+      'result(b,"B")',
+      'result(virtual,"V")',
+    ]);
+    expect(norm(separate[1])).toEqual(['result(a,"A")', 'result(b,"B")']);
+    expect(norm(separate[2])).toEqual(['result(x,"only-x")']);
+
+    clearCache();
+    // Occupies the one worker slot so violator/clean1/clean2 are guaranteed to queue
+    // together, rather than the first of them dispatching immediately as a group of one
+    // before its siblings even reach the queue (see the "settles every queued promise"
+    // test above for the same trick).
+    const busy = ctx.solve('result(0,0).', ['queryLayer'], {
+      snapshot: true,
+    });
+    const [violatorRes, clean1Res, clean2Res] = await Promise.all(
+      qs.map((q) => ctx.solve(q, ['queryLayer'], { snapshot: true })),
+    );
+    await busy;
+
+    expect(norm(violatorRes)).toEqual(norm(separate[0]));
+    expect(norm(violatorRes)).toHaveLength(3);
+    expect(norm(clean1Res)).toEqual(norm(separate[1]));
+    expect(norm(clean1Res)).toHaveLength(2);
+    expect(norm(clean2Res)).toEqual(norm(separate[2]));
+    expect(norm(clean2Res)).toHaveLength(1);
+
+    // The violator paid for its own collision -- no batching win for it...
+    expect(violatorRes.stats.batchSize).toBe(1);
+    // ...but its clean siblings still batched together.
+    expect(clean1Res.stats.batchSize).toBeGreaterThan(1);
+    expect(clean2Res.stats.batchSize).toBe(clean1Res.stats.batchSize);
+  });
+
+  it('surfaces a routed violation as a warning naming the colliding signature and a matching stats.layerViolations count, which a cache hit keeps reporting', async () => {
+    clearCache();
+    const ctx = new ClingoContext();
+    ctx.setProgram('facts', `field(a,1,"A"). field(b,1,"B").`, ['knowledge']);
+    ctx.setProgram('ql', `#show result/2.`, ['queryLayer']);
+    await ctx.commit();
+
+    const violator = `field(virtual,1,"V"). result(K,V) :- field(K,1,V).`;
+    const clean = `result(K,V) :- field(K,1,V).`;
+
+    // Occupies the one worker slot so violator/clean queue together and are dispatched
+    // as a single group -- see the previous test for why that matters here.
+    const busy = ctx.solve('result(0,0).', ['queryLayer'], {
+      snapshot: true,
+    });
+    const [violatorRes, cleanRes] = await Promise.all(
+      [violator, clean].map((q) =>
+        ctx.solve(q, ['queryLayer'], { snapshot: true }),
+      ),
+    );
+    await busy;
+
+    expect(violatorRes.stats.layerViolations).toBe(1);
+    expect(violatorRes.warnings.some((w) => w.includes('field/3'))).toBe(true);
+
+    // Its clean sibling is unaffected.
+    expect(cleanRes.stats.layerViolations).toBe(0);
+    expect(cleanRes.warnings).toEqual([]);
+
+    // A cache hit for the same query keeps reporting the violation -- content-derived,
+    // unlike batchSize/unprefixedAtoms, so it is never stripped before caching.
+    const hit = await ctx.solve(violator, ['queryLayer'], { snapshot: true });
+    expect(hit.stats.cacheHit).toBe(true);
+    expect(hit.stats.layerViolations).toBe(1);
+    expect(hit.warnings.some((w) => w.includes('field/3'))).toBe(true);
+  });
+
+  it('still throws from the explicit solveBatch() API on a violating instance, since that caller asked for a batch outright', async () => {
+    clearCache();
+    const ctx = new ClingoContext();
+    ctx.setProgram('facts', `field(a,1,"A"). field(b,1,"B").`, ['knowledge']);
+    ctx.setProgram('ql', `#show result/2.`, ['queryLayer']);
+    await ctx.commit();
+
+    const violator = `field(virtual,1,"V"). result(K,V) :- field(K,1,V).`;
+    const clean = `result(K,V) :- field(K,1,V).`;
+
+    await expect(
+      ctx.solveBatch([violator, clean], ['queryLayer'], { snapshot: true }),
+    ).rejects.toThrow(/also derives: field\/3/);
+  });
 });

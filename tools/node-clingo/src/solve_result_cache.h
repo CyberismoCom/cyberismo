@@ -71,6 +71,17 @@ namespace node_clingo
         // clingo_solver.cc). 0 outside of a batch, and expected to stay 0 for real content
         // -- see batch.h's doc comment on buildBatch for why.
         size_t unprefixedAtoms = 0;
+        // Predicates this query's own program defines that the committed knowledge
+        // snapshot also derives -- the same collision buildBatch() (batch.cc) throws on
+        // for an explicit solveBatch() call. A solve({ snapshot: true }) that hits this is
+        // routed to a solo solve instead of a coalesced batch (dispatchGroup(), binding.cc)
+        // rather than failing, so this counts what would otherwise have broken batching,
+        // not a solve failure; the offending "name/arity" signatures are listed in a
+        // warning alongside it. Unlike batchSize/unprefixedAtoms above, this *is* a
+        // property of the query's own content plus the snapshot it ran against, not of
+        // which other calls happened to be queued alongside it -- so it is never stripped
+        // before caching, and a cache hit keeps reporting it.
+        size_t layerViolations = 0;
     };
 
     struct SolveResult

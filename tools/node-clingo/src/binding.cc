@@ -16,6 +16,8 @@
 #include <cstdlib>
 #include <deque>
 #include <memory>
+#include <mutex>
+#include <set>
 #include <sstream>
 #include <string>
 #include <thread>
@@ -303,15 +305,19 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
      * uncontended solve() (see Solve()'s own doc comment for why that first check still
      * has to happen there too, so a hit is never delayed behind the queue).
      *
-     * A member whose query does not parse is routed alone through the plain path -- it
-     * cannot take part in buildBatch()'s renaming (which would just throw and fail every
-     * sibling with it) -- so only its own request rejects, with the same clingo syntax
-     * error a plain solve() of the same text produces. Whatever real work is left is then
-     * either a lone miss (plain path too, so a group that reduces to one query is
-     * byte-identical to today's single snapshot solve, no renaming) or grounded together as
-     * a batch. Every path that spawns pool work shares one `remaining` counter so this
-     * group's inflight slot frees, and the queue resumes, exactly once -- after the last of
-     * them settles, not after the first.
+     * A member whose query does not parse, or whose own program defines a predicate the
+     * snapshot also derives, is routed alone through the plain path -- neither can take
+     * part in buildBatch()'s renaming (a parse failure has nothing to rename; a
+     * layer-colliding predicate would rename inconsistently with the snapshot's own,
+     * unrenamed facts, see batch.cc) -- so only its own request is affected: a parse
+     * failure rejects with the same clingo syntax error a plain solve() of the same text
+     * produces, and a layer collision still resolves, just without the batching win (see
+     * Stats::layerViolations). Whatever real work is left is then either a lone miss
+     * (plain path too, so a group that reduces to one query is byte-identical to today's
+     * single snapshot solve, no renaming) or grounded together as a batch. Every path that
+     * spawns pool work shares one `remaining` counter so this group's inflight slot frees,
+     * and the queue resumes, exactly once -- after the last of them settles, not after the
+     * first.
      */
     void dispatchGroup(Napi::Env env, std::vector<Pending> group)
     {
@@ -338,8 +344,46 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
         std::vector<std::string> refs = group.front().refs;
         auto t2 = std::chrono::high_resolution_clock::now();
 
+        // The query layer's shared programs, exactly as SolveBatch() itself fetches them:
+        // an empty-text prepareQuery() call returns `refs`' members plus an empty
+        // __program__ placeholder, dropped here. Fetched once per group -- refs is the
+        // same for every member -- and used both for the layer-violation check just below
+        // and, if a real batch survives it, passed to buildBatch() further down.
+        node_clingo::Query queryLayerQuery = m_store.prepareQuery("", refs, snapshot);
+        std::vector<std::shared_ptr<const node_clingo::Program>> queryLayer = std::move(queryLayerQuery.programs);
+        queryLayer.pop_back();
+
+        // Predicates the query layer itself defines that the committed snapshot also
+        // derives -- identical for every member of this group (grouping is by refs), so
+        // computed once here rather than once per member, mirroring buildBatch()'s own
+        // Pass 1 (batch.cc). Skipped entirely when the snapshot derived nothing this
+        // revision (the common case): no member can then possibly collide, so no
+        // Program::ast_mutex is worth taking.
+        std::set<node_clingo::Signature> sigsQL;
+        std::vector<std::string> qlViolations;
+        if (!snapshot->signatures.empty())
+        {
+            for (const auto& program : queryLayer)
+            {
+                std::lock_guard<std::mutex> lock(program->ast_mutex);
+                auto sigs = node_clingo::head_signatures(program->ast_nodes);
+                sigsQL.insert(sigs.begin(), sigs.end());
+            }
+            for (const auto& sig : sigsQL)
+            {
+                if (snapshot->signatures.count(sig))
+                {
+                    qlViolations.push_back(sig.first + "/" + std::to_string(sig.second));
+                }
+            }
+        }
+
         std::vector<Pending> solo;
         std::vector<node_clingo::Query> soloQueries;
+        // Parallel to `solo`/`soloQueries`: the offending "name/arity" signatures for a
+        // member routed solo because it collides with the snapshot. Empty for one routed
+        // solo for any other reason (parse failure, or a group that reduced to one).
+        std::vector<std::vector<std::string>> soloViolations;
         std::vector<Pending> batchMembers;
         std::vector<node_clingo::Query> batchQueries;
 
@@ -368,10 +412,31 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
             // buildBatch's doc comment in batch.h for the same discipline applied to a
             // batch's own inputs).
             bool parseFailed = !pending.program.empty() && query.programs.back()->ast_nodes.empty();
-            if (parseFailed)
+
+            // A predicate this instance's own program defines that the snapshot also
+            // derives is exactly the collision buildBatch() (batch.cc) would throw on --
+            // caught here first so it takes down only this member instead of every
+            // sibling it happened to queue behind. query.programs.back() is the fresh
+            // __program__ entry prepareQuery() just built for `pending.program`, reachable
+            // only from this thread, so no ast_mutex is needed to read its ast_nodes.
+            std::vector<std::string> violated = qlViolations;
+            if (!parseFailed && !snapshot->signatures.empty())
+            {
+                auto ownSigs = node_clingo::head_signatures(query.programs.back()->ast_nodes);
+                for (const auto& sig : ownSigs)
+                {
+                    if (snapshot->signatures.count(sig))
+                    {
+                        violated.push_back(sig.first + "/" + std::to_string(sig.second));
+                    }
+                }
+            }
+
+            if (parseFailed || !violated.empty())
             {
                 solo.push_back(std::move(pending));
                 soloQueries.push_back(std::move(query));
+                soloViolations.push_back(parseFailed ? std::vector<std::string>{} : std::move(violated));
                 continue;
             }
 
@@ -386,6 +451,7 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
         {
             solo.push_back(std::move(batchMembers.front()));
             soloQueries.push_back(std::move(batchQueries.front()));
+            soloViolations.push_back({});
             batchMembers.clear();
             batchQueries.clear();
         }
@@ -427,7 +493,8 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
                 std::move(solo[i].deferred),
                 env,
                 /* reportedBatchSize */ 1,
-                [onSubSettled]() { onSubSettled(1); });
+                [onSubSettled]() { onSubSettled(1); },
+                std::move(soloViolations[i]));
         }
 
         if (!batchMembers.empty())
@@ -448,13 +515,6 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
                 hashes.push_back(batchQueries[i].hash);
                 texts.push_back(std::move(batchMembers[i].program));
             }
-
-            // The query layer's shared programs, exactly as SolveBatch() itself fetches
-            // them: an empty-text prepareQuery() call returns `refs`' members plus an
-            // empty __program__ placeholder, dropped here.
-            node_clingo::Query queryLayerQuery = m_store.prepareQuery("", refs, snapshot);
-            std::vector<std::shared_ptr<const node_clingo::Program>> queryLayer = std::move(queryLayerQuery.programs);
-            queryLayer.pop_back();
 
             node_clingo::spawnQueuedBatchTask(
                 get_thread_pool(),

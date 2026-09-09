@@ -15,6 +15,8 @@ import { resolve } from 'node:path';
 
 interface RawClingoResult {
   answers: string[];
+  errors: string[];
+  warnings: string[];
   stats: {
     glue: number;
     add: number;
@@ -24,6 +26,7 @@ interface RawClingoResult {
     cacheHit: boolean;
     batchSize: number;
     unprefixedAtoms: number;
+    layerViolations: number;
   };
 }
 
@@ -186,6 +189,14 @@ function toClingoError(error: unknown): unknown {
  */
 export interface ClingoResult {
   answers: string[];
+  /** Clingo error messages from this solve; empty on every path that resolves today. */
+  errors: string[];
+  /**
+   * Clingo warnings from this solve, plus (for a solve({ snapshot: true }) call routed
+   * to a solo solve because its own program collides with the knowledge layer -- see
+   * `stats.layerViolations`) a message naming the offending "name/arity" signatures.
+   */
+  warnings: string[];
   stats: {
     glue: number;
     /**
@@ -222,6 +233,16 @@ export interface ClingoResult {
      * caveat about the `?` as `batchSize` above.
      */
     unprefixedAtoms?: number;
+    /**
+     * Predicates this query's own program defines that the committed knowledge snapshot
+     * also derives -- 0 unless that happened. A solve({ snapshot: true }) call that hits
+     * this is routed to a solo solve instead of a coalesced batch (it still resolves,
+     * just without the batching win); solveBatch() throws instead for the same
+     * collision, since that caller explicitly asked for a batch. The offending
+     * "name/arity" signatures are named in `warnings` above. Content-derived, so a cache
+     * hit keeps reporting it.
+     */
+    layerViolations: number;
   };
 }
 

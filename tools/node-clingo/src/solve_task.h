@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 
+#include <clingo.hh>
 #include <napi.h>
 
 #include "BS_thread_pool.hpp"
@@ -70,6 +71,14 @@ namespace node_clingo
         // bookkeeping to do; ClingoContext::pump() uses it to release the Ref() it took for
         // this request and to resume the queue (see pump()'s doc comment in binding.cc).
         std::function<void()> onSettled;
+        // "name/arity" signatures this query's own program defines that collide with the
+        // snapshot it is solving against -- set by ClingoContext::dispatchGroup()
+        // (binding.cc) when it routes such a query here instead of into a batch. Empty for
+        // the plain solve() path and for any solo route taken for another reason (e.g. a
+        // parse failure). Stamped onto the result itself on success, below, so it becomes
+        // part of what gets cached under this query's hash -- unlike reportedBatchSize,
+        // this is a property of the query's content plus the snapshot, not of this call.
+        std::vector<std::string> violatingSignatures;
     };
 
     /**
@@ -86,7 +95,8 @@ namespace node_clingo
         Napi::Promise::Deferred deferred,
         Napi::Env env,
         int reportedBatchSize = 0,
-        std::function<void()> onSettled = {})
+        std::function<void()> onSettled = {},
+        std::vector<std::string> violatingSignatures = {})
     {
         auto* data = new SolveCallbackData{
             .result = std::nullopt,
@@ -99,6 +109,7 @@ namespace node_clingo
             .queryHash = query.hash,
             .reportedBatchSize = reportedBatchSize,
             .onSettled = std::move(onSettled),
+            .violatingSignatures = std::move(violatingSignatures),
         };
 
         // could be shared
@@ -150,6 +161,29 @@ namespace node_clingo
                 else
                 {
                     d->result->stats.glue = std::chrono::duration_cast<std::chrono::microseconds>(d->t2 - d->t1);
+                    if (!d->violatingSignatures.empty())
+                    {
+                        // Stamped onto the result before it is cached (see
+                        // violatingSignatures's doc comment on SolveCallbackData): a
+                        // signature collision is a property of this query and the
+                        // snapshot, so a later cache hit for the same query must keep
+                        // reporting it, unlike batchSize's per-call override just below.
+                        d->result->stats.layerViolations = d->violatingSignatures.size();
+                        std::string offenders;
+                        for (size_t k = 0; k < d->violatingSignatures.size(); ++k)
+                        {
+                            if (k > 0)
+                            {
+                                offenders += ", ";
+                            }
+                            offenders += d->violatingSignatures[k];
+                        }
+                        d->result->logs.push_back(
+                            {Clingo::WarningCode::Other,
+                             false,
+                             "solve(): this query defines predicate(s) the knowledge layer also derives: " + offenders +
+                                 " -- solved individually instead of batched with concurrent queries."});
+                    }
                     Napi::Object resultObj = create_napi_object_from_solve_result(env, *d->result);
                     if (d->reportedBatchSize > 0)
                     {
