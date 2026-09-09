@@ -45,7 +45,7 @@ interface MockUser {
  * backend process, which the single default user cannot provide.
  *
  * Carol is a Reader on purpose: readers join presence as viewers and receive
- * card-updated refetches, but cannot write. Use alice or bob to save.
+ * card update notifications, but cannot write. Use alice or bob to save.
  */
 const MOCK_USERS: Record<string, MockUser> = {
   alice: { name: 'Alice', email: 'alice@example.com', role: UserRole.Admin },

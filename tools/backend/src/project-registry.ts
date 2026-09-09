@@ -12,6 +12,7 @@
 */
 
 import { CommandManager, type ProjectProvider } from '@cyberismo/data-handler';
+import { ProjectEvents } from './project-events.js';
 
 export type ProjectRegistryEntry = {
   prefix: string;
@@ -34,6 +35,7 @@ export interface ScannedProject {
 
 export class ProjectRegistry implements ProjectProvider {
   private projects: Map<string, CommandManager> = new Map();
+  private events = new Map<CommandManager, ProjectEvents>();
   readonly options: ConstructorParameters<typeof CommandManager>[1];
 
   constructor(
@@ -61,6 +63,19 @@ export class ProjectRegistry implements ProjectProvider {
     this.projects.set(prefix, commands);
   }
 
+  eventsFor(commands: CommandManager): ProjectEvents {
+    let events = this.events.get(commands);
+    if (!events) {
+      if (![...this.projects.values()].includes(commands)) {
+        throw new Error('Project is not registered');
+      }
+      // Create the event service only when it is used.
+      events = new ProjectEvents();
+      this.events.set(commands, events);
+    }
+    return events;
+  }
+
   list(): ProjectListItem[] {
     return Array.from(this.projects.entries()).map(([prefix, commands]) => ({
       prefix,
@@ -81,10 +96,12 @@ export class ProjectRegistry implements ProjectProvider {
   }
 
   dispose(): void {
+    for (const events of this.events.values()) events.dispose();
     for (const commands of this.projects.values()) {
       commands.project.dispose();
     }
     this.projects.clear();
+    this.events.clear();
   }
 
   /**
@@ -93,12 +110,9 @@ export class ProjectRegistry implements ProjectProvider {
    * reset endpoint to swap project state without restarting the Hono app.
    */
   async replace(entries: ProjectRegistryEntry[]): Promise<void> {
-    for (const commands of this.projects.values()) {
-      commands.project.dispose();
-    }
-    this.projects.clear();
+    this.dispose();
     for (const entry of entries) {
-      this.projects.set(entry.prefix, entry.commands);
+      this.add(entry.prefix, entry.commands);
     }
   }
 

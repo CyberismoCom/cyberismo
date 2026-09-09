@@ -98,8 +98,8 @@ export function projectApiPaths(projectPrefix?: string) {
     projectHubDelete: (location: string) =>
       `${base}/project/hubs?location=${encodeURIComponent(location)}`,
     projectHubsFetch: () => `${base}/project/hubs/fetch`,
-    presence: (cardKey: string, mode: string) =>
-      `${base}/cards/${encodeURIComponent(cardKey)}/presence?mode=${mode}`,
+    events: () => `${base}/events`,
+    presence: () => `${base}/presence`,
     exportCard: () => `${base}/cards/export-pdf`,
     workflowGraph: (resourceName: string, cardKey?: string) =>
       `${base}/resources/${resourceName}/graph${cardKey ? `?card=${encodeURIComponent(cardKey)}` : ''}`,

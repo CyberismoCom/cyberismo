@@ -16,6 +16,7 @@ import { serveStatic } from '@hono/node-server/serve-static';
 import { attachProjectRegistry } from './middleware/commandManager.js';
 import calculationsRouter from './domain/calculations/index.js';
 import cardsRouter from './domain/cards/index.js';
+import eventsRouter from './domain/events/index.js';
 import cardTypesRouter from './domain/cardTypes/index.js';
 import connectorsRouter from './domain/connectors/index.js';
 import fieldTypesRouter from './domain/fieldTypes/index.js';
@@ -53,9 +54,11 @@ import { simpleMcpAuthRouter } from '@hono/mcp';
  */
 function createProjectScopedRoutes(
   middleware: MiddlewareHandler,
+  exportMode = false,
 ): Hono<{ Variables: AppVars }> {
   const projectScoped = new Hono<{ Variables: AppVars }>();
   projectScoped.use('*', middleware);
+  if (!exportMode) projectScoped.route('/', eventsRouter);
   projectScoped.route('/calculations', calculationsRouter);
   projectScoped.route('/cards', cardsRouter);
   projectScoped.route('/cardTypes', cardTypesRouter);
@@ -206,6 +209,7 @@ export function createApp(
     for (const { prefix } of registry.list()) {
       const scoped = createProjectScopedRoutes(
         attachProjectRegistry(registry, prefix),
+        true,
       );
       app.route(`/api/projects/${prefix}`, scoped);
     }

@@ -12,179 +12,269 @@
 */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, renderHook } from '@testing-library/react';
+import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import type * as UtilsModule from '@/lib/utils';
+import useSWR, { SWRConfig } from 'swr';
+import { ProjectEventsProvider } from '@/lib/contexts/ProjectEventsProvider.js';
+import { usePresence } from '@/lib/api/presence.js';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
-import type { ReactNode } from 'react';
-import type * as SwrModule from 'swr';
-import type * as UtilsModule from '@/lib/utils';
 import rootReducer from '@/lib/slices';
-import { projectApiPaths } from '@/lib/swr';
+import { useCardUpdates } from '@/lib/api/card-updates.js';
+import { useSavedDraft } from '@/lib/hooks/savedDraft.js';
 
-const mutateMock = vi.fn();
-vi.mock('swr', async (importOriginal) => {
-  const actual = await importOriginal<typeof SwrModule>();
-  return { ...actual, mutate: (...args: unknown[]) => mutateMock(...args) };
-});
-
-vi.mock('@/lib/utils', async (importOriginal) => {
-  const actual = await importOriginal<typeof UtilsModule>();
-  return {
-    ...actual,
-    getConfig: () => ({ staticMode: false, presenceEnabled: true }),
-  };
-});
-
-const currentUser = { id: 'me', email: '', name: 'Me', role: 'editor' };
-vi.mock('@/lib/api/user', () => ({
-  useUser: () => ({ user: currentUser }),
+const config = vi.hoisted(() => ({ staticMode: false, presenceEnabled: true }));
+vi.mock('@/lib/utils', async (importOriginal) => ({
+  ...(await importOriginal<typeof UtilsModule>()),
+  getConfig: () => config,
 }));
 
-type Listener = (event: MessageEvent) => void;
+vi.mock('@/lib/api/user', () => ({
+  useUser: () => ({ user: { id: 'me', name: 'Me' } }),
+}));
 
 class FakeEventSource {
   static instances: FakeEventSource[] = [];
-  private listeners = new Map<string, Listener[]>();
+  listeners = new Map<string, ((event: MessageEvent) => void)[]>();
   close = vi.fn();
-
   constructor(public url: string) {
     FakeEventSource.instances.push(this);
   }
-
-  addEventListener(type: string, listener: Listener) {
+  addEventListener(type: string, listener: (event: MessageEvent) => void) {
     this.listeners.set(type, [...(this.listeners.get(type) ?? []), listener]);
   }
-
-  emit(type: string, data?: unknown) {
-    const event = {
-      data: data === undefined ? undefined : JSON.stringify(data),
-    } as MessageEvent;
-    for (const listener of this.listeners.get(type) ?? []) listener(event);
+  emit(type: string, data: unknown = {}) {
+    for (const listener of this.listeners.get(type) ?? [])
+      listener({ data: JSON.stringify(data) } as MessageEvent);
   }
 }
+const fetchMock = vi.fn();
+beforeEach(() => {
+  FakeEventSource.instances = [];
+  config.staticMode = false;
+  config.presenceEnabled = true;
+  fetchMock.mockReset().mockResolvedValue(new Response(null, { status: 204 }));
+  vi.stubGlobal('EventSource', FakeEventSource);
+  vi.stubGlobal('fetch', fetchMock);
+});
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
-vi.stubGlobal('EventSource', FakeEventSource);
-
-import { usePresence } from '@/lib/api/presence';
-
-const CARD = 'TST_1';
-const PREFIX = 'TST';
-const paths = projectApiPaths(PREFIX);
-// What one remote save must revalidate: the card, its raw form and both trees.
-const REFETCH_KEYS = [
-  paths.card(CARD),
-  paths.rawCard(CARD),
-  paths.tree(),
-  paths.resourceTree(),
-].sort();
-const mutatedKeys = () =>
-  mutateMock.mock.calls.map((call) => call[0] as string).sort();
-
-function setup(mode: 'viewing' | 'editing' = 'viewing') {
+function setup() {
   const store = configureStore({ reducer: rootReducer });
-  const wrapper = ({ children }: { children: ReactNode }) => (
-    <Provider store={store}>{children}</Provider>
+  const cache = new Map();
+  let serverContent = 'Saved';
+  const fetcher = vi.fn<(key: string) => Promise<string>>(
+    async () => serverContent,
   );
-  const hook = renderHook(() => usePresence(CARD, mode, PREFIX), { wrapper });
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <Provider store={store}>
+      <SWRConfig
+        value={{ provider: () => cache, fetcher, dedupingInterval: 0 }}
+      >
+        <ProjectEventsProvider projectPrefix="TST">
+          {children}
+        </ProjectEventsProvider>
+      </SWRConfig>
+    </Provider>
+  );
+  const hook = renderHook(
+    ({ card, mode }: { card: string; mode: 'viewing' | 'editing' }) => {
+      const presence = usePresence(card, mode);
+      useCardUpdates(card, mode, 'TST');
+      const { data } = useSWR<string>(`/api/projects/TST/cards/${card}`);
+      const [draft, setDraft] = useSavedDraft(data ?? '');
+      useSWR('/api/projects/OTHER/tree');
+      return { presence, data, draft, setDraft };
+    },
+    {
+      wrapper,
+      initialProps: { card: 'TST_1', mode: 'viewing' as 'viewing' | 'editing' },
+    },
+  );
   const source = FakeEventSource.instances.at(-1)!;
-  const notifications = () =>
-    (
-      store.getState() as {
-        notifications: {
-          notifications: Array<{ type: string; message: string }>;
-        };
-      }
-    ).notifications.notifications;
-  return { hook, source, notifications };
+  return {
+    hook,
+    source,
+    fetcher,
+    notifications: () => store.getState().notifications.notifications,
+    setContent: (value: string) => {
+      serverContent = value;
+    },
+  };
 }
+const alice = { userId: 'alice', userName: 'Alice', mode: 'editing' };
 
-describe('usePresence card-updated', () => {
-  beforeEach(() => {
-    mutateMock.mockClear();
-    FakeEventSource.instances = [];
-    currentUser.role = 'editor';
+describe('project events and presence', () => {
+  it('keeps one connection through card and editing changes', async () => {
+    const { hook, source } = setup();
+    act(() => source.emit('ready', { connectionId: 'one', presence: {} }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    hook.rerender({ card: 'TST_2', mode: 'editing' });
+    await waitFor(() =>
+      expect(JSON.parse(fetchMock.mock.calls.at(-1)![1].body)).toMatchObject({
+        connectionId: 'one',
+        cardKey: 'TST_2',
+        mode: 'editing',
+      }),
+    );
+    const sequences = fetchMock.mock.calls.map(
+      (call) => JSON.parse(call[1].body).sequence,
+    );
+    expect(sequences).toEqual([...sequences].sort((a, b) => a - b));
+    expect(FakeEventSource.instances).toHaveLength(1);
+    expect(source.close).not.toHaveBeenCalled();
+    hook.unmount();
+    expect(source.close).toHaveBeenCalledOnce();
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
+  it('replaces presence snapshots, clears empty cards, and recovers after disconnect', async () => {
+    const { hook, source } = setup();
+    act(() =>
+      source.emit('ready', {
+        connectionId: 'one',
+        presence: { TST_1: [alice] },
+      }),
+    );
+    expect(hook.result.current.presence).toEqual([alice]);
+    act(() => source.emit('presence.updated', { cardKey: 'TST_1', users: [] }));
+    expect(hook.result.current.presence).toEqual([]);
+    act(() =>
+      source.emit('presence.updated', { cardKey: 'TST_1', users: [alice] }),
+    );
+    act(() => source.emit('error'));
+    expect(hook.result.current.presence).toEqual([]);
+    act(() => source.emit('ready', { connectionId: 'two', presence: {} }));
+    await waitFor(() =>
+      expect(
+        JSON.parse(fetchMock.mock.calls.at(-1)![1].body).connectionId,
+      ).toBe('two'),
+    );
+    expect(hook.result.current.presence).toEqual([]);
   });
 
-  it('refetches the card, raw card and trees when someone else saves', () => {
-    const { source, notifications } = setup();
-
-    act(() => {
-      source.emit('card-updated', {
-        cardKey: CARD,
-        userId: 'other',
-        userName: 'Alex',
+  it.each(['viewing', 'editing'] as const)(
+    'notifies the %s user about the open card and preserves their draft',
+    async (mode) => {
+      const { hook, source, fetcher, setContent, notifications } = setup();
+      await waitFor(() => expect(hook.result.current.data).toBe('Saved'));
+      hook.rerender({ card: 'TST_1', mode });
+      act(() => hook.result.current.setDraft('Unsaved draft'));
+      fetcher.mockClear();
+      setContent('Remote edit');
+      act(() =>
+        source.emit('card.updated', {
+          cardKey: 'TST_1',
+          userId: 'bob',
+          userName: 'Bob',
+        }),
+      );
+      await waitFor(() => expect(hook.result.current.data).toBe('Remote edit'));
+      expect(hook.result.current.draft).toBe('Unsaved draft');
+      expect(notifications()).toHaveLength(1);
+      expect(notifications()[0]).toMatchObject({
+        type: mode === 'editing' ? 'warning' : 'info',
       });
-    });
+      expect(notifications()[0].message).toContain('Bob');
+      expect(fetcher.mock.calls.map((call) => call[0])).toEqual([
+        '/api/projects/TST/cards/TST_1',
+      ]);
+      expect(FakeEventSource.instances).toHaveLength(1);
+    },
+  );
 
-    expect(mutatedKeys()).toEqual(REFETCH_KEYS);
-    expect(notifications()).toHaveLength(1);
-    expect(notifications()[0].type).toBe('info');
-    expect(notifications()[0].message).toContain('Alex');
-  });
-
-  it('warns instead of informing while the local user is editing', () => {
-    const { source, notifications } = setup('editing');
-
-    act(() => {
-      source.emit('card-updated', {
-        cardKey: CARD,
-        userId: 'other',
-        userName: 'Alex',
-      });
-    });
-
-    expect(notifications()).toHaveLength(1);
-    expect(notifications()[0].type).toBe('warning');
-  });
-
-  it("refetches but stays silent for the current user's own save", () => {
-    const { source, notifications } = setup();
-
-    act(() => {
-      source.emit('card-updated', {
-        cardKey: CARD,
+  it('does not notify for own edits or refresh unrelated cards', async () => {
+    const { hook, source, fetcher, notifications, setContent } = setup();
+    await waitFor(() => expect(hook.result.current.data).toBe('Saved'));
+    fetcher.mockClear();
+    act(() =>
+      source.emit('card.updated', {
+        cardKey: 'TST_2',
+        userId: 'bob',
+        userName: 'Bob',
+      }),
+    );
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(notifications()).toEqual([]);
+    setContent('My edit');
+    act(() =>
+      source.emit('card.updated', {
+        cardKey: 'TST_1',
         userId: 'me',
         userName: 'Me',
-      });
-    });
-
-    expect(mutateMock).toHaveBeenCalled();
-    expect(notifications()).toHaveLength(0);
-  });
-
-  it('ignores a malformed card-updated payload', () => {
-    const { source, notifications } = setup();
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-    act(() => {
-      source.emit('card-updated', { nope: true });
-    });
-
-    expect(mutateMock).not.toHaveBeenCalled();
-    expect(notifications()).toHaveLength(0);
-    expect(warn).toHaveBeenCalled();
-  });
-
-  it('refetches on reconnect but not on the first open', () => {
-    const { source } = setup();
-
-    act(() => source.emit('open'));
-    expect(mutateMock).not.toHaveBeenCalled();
-
-    act(() => source.emit('open'));
-    expect(mutatedKeys()).toEqual(REFETCH_KEYS);
-  });
-
-  it('opens the stream for a reader', () => {
-    currentUser.role = 'reader';
-    setup();
-    expect(FakeEventSource.instances).toHaveLength(1);
-    expect(FakeEventSource.instances[0].url).toContain(
-      `/cards/${CARD}/presence`,
+      }),
     );
+    await waitFor(() => expect(hook.result.current.data).toBe('My edit'));
+    expect(notifications()).toEqual([]);
+  });
+
+  it('connects and reconnects without invalidating project data', async () => {
+    config.presenceEnabled = false;
+    const { hook, source, fetcher, notifications } = setup();
+    await waitFor(() => expect(hook.result.current.data).toBe('Saved'));
+    fetcher.mockClear();
+    act(() => {
+      source.emit('ready', { connectionId: 'one', presence: {} });
+      source.emit('error');
+      source.emit('ready', { connectionId: 'two', presence: {} });
+      source.emit('card.updated', { invalid: true });
+    });
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(notifications()).toEqual([]);
+    expect(fetchMock).not.toHaveBeenCalled();
+    act(() =>
+      source.emit('card.updated', {
+        cardKey: 'TST_1',
+        userId: 'bob',
+        userName: 'Bob',
+      }),
+    );
+    expect(notifications()[0].message).toContain('Bob');
+  });
+
+  it('replaces the connection and clears presence when changing projects', () => {
+    let prefix = 'TST';
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <ProjectEventsProvider key={prefix} projectPrefix={prefix}>
+        {children}
+      </ProjectEventsProvider>
+    );
+    const hook = renderHook(() => usePresence('module_1'), { wrapper });
+    const first = FakeEventSource.instances[0];
+    act(() =>
+      first.emit('ready', {
+        connectionId: 'one',
+        presence: { module_1: [alice] },
+      }),
+    );
+    expect(hook.result.current).toEqual([alice]);
+    prefix = 'OTHER';
+    hook.rerender();
+    expect(first.close).toHaveBeenCalledOnce();
+    expect(FakeEventSource.instances.at(-1)!.url).toBe(
+      '/api/projects/OTHER/events',
+    );
+    expect(hook.result.current).toEqual([]);
+    act(() =>
+      first.emit('presence.updated', { cardKey: 'module_1', users: [alice] }),
+    );
+    expect(hook.result.current).toEqual([]);
+  });
+
+  it('does not open a stream for static exports', () => {
+    config.staticMode = true;
+    setup();
+    expect(FakeEventSource.instances).toHaveLength(0);
+  });
+
+  it('restores the connection after returning from the back-forward cache', () => {
+    const { source } = setup();
+    act(() => window.dispatchEvent(new Event('pagehide')));
+    expect(source.close).toHaveBeenCalledOnce();
+    act(() => window.dispatchEvent(new Event('pageshow')));
+    expect(FakeEventSource.instances).toHaveLength(2);
   });
 });
