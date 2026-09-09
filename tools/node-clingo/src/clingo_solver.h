@@ -18,9 +18,9 @@
 
 #include <clingo.hh>
 
-#include "batch.h"
 #include "function_handlers.h"
 #include "helpers.h"
+#include "models.h"
 #include "program_store.h"
 #include "snapshot.h"
 #include "solve_result_cache.h"
@@ -32,17 +32,18 @@ namespace node_clingo
         SolveResult solve(const Query& query);
         // Grounds and solves the knowledge programs alone and returns every atom of the model.
         std::shared_ptr<Snapshot> solveKnowledge(const Query& query, uint64_t revision, Hash knowledgeHash);
-        // Grounds and solves every instance in `batch` together, in one Control, and
-        // returns one SolveResult per instance, in the same order as `batch.instances`. A
-        // batch is only valid -- its per-instance split meaningful -- when no instance is
-        // individually unsatisfiable: every instance shares the one Control's single
-        // model, so one instance's violated integrity constraint makes the whole Control
-        // UNSAT, not just that instance. `cacheable` is set to false on that outcome (every
-        // instance's returned answers is empty, but not because that is genuinely its own
-        // result) so the caller knows not to insert any of them into the shared,
-        // content-addressed result cache -- true is not a promise the batch succeeded, only
-        // that per-instance answers, if any, are safe to cache.
-        std::vector<SolveResult> solveBatch(const BatchQuery& batch, bool& cacheable);
+        // Grounds `models` (the shared knowledge/snapshot facts, the choice rule, and every
+        // instance's guarded rules) exactly once and solves it enumerating every answer
+        // set, returning one SolveResult per instance, in the same order as
+        // `models.instances`. Unlike the renamed-and-bridged batch this replaces, one
+        // instance being individually unsatisfiable cannot affect its siblings: its `q(i)`
+        // is simply never chosen in any answer set, so that instance alone gets an empty
+        // answer (no ClingoSolveException, no cache poisoning) while every other instance's
+        // own answer set is solved and read back normally -- there is no batch-wide failure
+        // mode left for a caller to guard against, so unlike solveBatch this takes no
+        // `cacheable` out-parameter: every returned SolveResult is always safe to cache
+        // under its own instance's hash.
+        std::vector<SolveResult> solveModels(const ModelsQuery& models);
     };
 } // namespace node_clingo
 

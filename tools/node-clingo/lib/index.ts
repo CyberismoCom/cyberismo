@@ -23,7 +23,6 @@ interface RawClingoResult {
     solve: number;
     cacheHit: boolean;
     batchSize: number;
-    unprefixedAtoms: number;
   };
 }
 
@@ -36,11 +35,6 @@ interface NativeClingoContext {
     categories: string[],
     options: SolveOptions,
   ): Promise<RawClingoResult>;
-  solveBatch(
-    programs: string[],
-    categories: string[],
-    options: SolveOptions,
-  ): Promise<RawClingoResult[]>;
   buildProgram(program: string, categories: string[]): string;
   commit(): Promise<SnapshotInfo>;
 }
@@ -189,10 +183,11 @@ export interface ClingoResult {
   stats: {
     glue: number;
     /**
-     * For a solveBatch() result, this and `ground`/`solve` below are totals for the
-     * *whole* batch's one Control, not this instance's own share of the work --
-     * summing them across a batch response over-counts the real grounding/solving cost
-     * N-fold.
+     * When this result went through a coalesced, models-multiplexed solve (see
+     * `batchSize` below), this and `ground`/`solve` below are totals for the *whole*
+     * multiplexed Control's one grounding/solving pass, not this query's own share of
+     * the work -- summing them across a coalesced group's responses over-counts the
+     * real grounding/solving cost N-fold.
      */
     add: number;
     /** Sub-portion of `add` spent replaying a snapshot's fact_nodes; 0 off the snapshot path. */
@@ -202,26 +197,18 @@ export interface ClingoResult {
     cacheHit: boolean;
     /**
      * Number of instances ground and solved together in one Control. 0 means this
-     * result did not go through any batch-shaped machinery -- either a cache hit, or a
-     * plain (non-snapshot) solve(). For solveBatch() this is the size of that call's
-     * own batch. For solve({ snapshot: true }), it is normally 0 too, *unless* this
-     * call happened to queue behind other concurrent snapshot solves against the same
-     * refs: the native binding then coalesces the queued group into one physical
-     * solve, and every request in that group -- including a group that reduced to a
-     * single query -- reports how many were ground together (1 or more). The answers
-     * themselves are unaffected either way; this is purely informational. Always
-     * present -- the native binding sets it on every result, batch or not -- despite
-     * the `?`, kept only because narrowing every existing caller that reads it would be
-     * a bigger change than this fix round's scope.
+     * result did not go through any multiplexed solve -- either a cache hit, or a plain
+     * (non-snapshot) solve(). For solve({ snapshot: true }), it is normally 0 too,
+     * *unless* this call happened to queue behind other concurrent snapshot solves
+     * against the same refs: the native binding then coalesces the queued group into
+     * one physical, models-multiplexed solve, and every request in that group --
+     * including a group that reduced to a single query -- reports how many were ground
+     * together (1 or more). The answers themselves are unaffected either way; this is
+     * purely informational. Always present -- the native binding sets it on every
+     * result -- despite the `?`, kept only because narrowing every existing caller that
+     * reads it would be a bigger change than this fix round's scope.
      */
     batchSize?: number;
-    /**
-     * Model atoms broadcast to every instance because no instance's prefix matched them;
-     * only meaningful for a solveBatch() result, and expected to stay 0 for real content
-     * -- see solveBatch()'s doc comment. Always present (0 outside of a batch), same
-     * caveat about the `?` as `batchSize` above.
-     */
-    unprefixedAtoms?: number;
   };
 }
 
@@ -299,40 +286,6 @@ export class ClingoContext {
 
     try {
       return await this._ctx.solve(program, categories ?? [], options ?? {});
-    } catch (error) {
-      throw toClingoError(error);
-    }
-  }
-
-  /**
-   * Grounds and solves N query instances together in one Control, over the committed
-   * knowledge snapshot, and returns one result per instance in `programs`' order. Each
-   * instance's own predicates are isolated from every other instance's, so the result is
-   * the same as calling `solve()` on each instance separately -- batching only changes how
-   * the work is scheduled. An instance already in the shared cache is served directly and
-   * never enters the batch.
-   * @param programs One query per instance. Unlike solve(), an individual instance may be
-   * `''` -- a deliberate difference, not an oversight: solve()'s `''` guard rejects the
-   * *whole call* having no program, but a batch's `''` is one query among several,
-   * legitimately meaning "no query for this instance, just resolve the query layer as-is"
-   * (see test/batch.test.ts's "derives nothing" case).
-   * @param categories Optional array of program keys or categories to include, shared by
-   * every instance
-   * @param options Solve options; `{ snapshot: true }` is required -- batching without a
-   * committed snapshot to share is not supported
-   * @returns Promise resolving to one result per instance, in `programs`' order
-   */
-  async solveBatch(
-    programs: string[],
-    categories?: string[],
-    options?: SolveOptions,
-  ): Promise<ClingoResult[]> {
-    try {
-      return await this._ctx.solveBatch(
-        programs,
-        categories ?? [],
-        options ?? {},
-      );
     } catch (error) {
       throw toClingoError(error);
     }

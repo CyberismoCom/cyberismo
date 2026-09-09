@@ -13,8 +13,8 @@
         "external/xxhash/xxhash.c",
         "src/clingo_solver.cc",
         "src/program_store.cc",
-        "src/ast_rename.cc",
-        "src/batch.cc",
+        "src/guard.cc",
+        "src/models.cc",
         "src/validator.cc",
         "src/solve_result_cache.cc"
       ],

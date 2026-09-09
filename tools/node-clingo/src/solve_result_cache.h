@@ -61,16 +61,11 @@ namespace node_clingo
         std::chrono::microseconds inject = std::chrono::microseconds::zero();
         bool cacheHit = false; // Indicates if the result was retrieved from cache
         // Number of instances ground and solved together in one Control by
-        // ClingoSolver::solveBatch(); 0 outside of a batch. Call-specific, not a property
-        // of the cached content -- always re-stamped with the current call's batch size on
-        // the way out, cached value or not (see SolveBatch's completion handling in
-        // solve_task.h).
+        // ClingoSolver::solveModels(); 0 outside of a multiplexed solve. Call-specific, not
+        // a property of the cached content -- always re-stamped with the current call's
+        // size on the way out, cached value or not (see spawnQueuedModelsTask's completion
+        // handling in solve_task.h).
         int batchSize = 0;
-        // Model atoms whose name matched none of the batch's per-instance prefixes and were
-        // therefore broadcast, unrenamed, to every instance (see BatchCollector in
-        // clingo_solver.cc). 0 outside of a batch, and expected to stay 0 for real content
-        // -- see batch.h's doc comment on buildBatch for why.
-        size_t unprefixedAtoms = 0;
     };
 
     struct SolveResult

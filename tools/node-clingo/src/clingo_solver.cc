@@ -263,10 +263,6 @@ namespace node_clingo
             snap->knowledgeHash = knowledgeHash;
             snap->symbols = std::move(collector.symbols);
             snap->fact_nodes = build_fact_nodes(snap->symbols);
-            for (const auto& sym : snap->symbols)
-            {
-                snap->signatures.emplace(sym.name(), static_cast<int>(sym.arguments().size()));
-            }
             snap->valid_until = todayCalled ? next_local_midnight_epoch_ms() : 0;
             snap->stats = {
                 .glue = std::chrono::microseconds(0),
@@ -289,114 +285,77 @@ namespace node_clingo
         }
     }
 
-    // Splits one shared model back out per instance by the predicate prefix
-    // buildBatch() (batch.h) gave it. No "q<i>_" prefix can ever be a genuine string-prefix
-    // of another "q<j>_" -- the two only ever agree up through the digits they share, and
-    // the shorter one's very next character is its terminating '_', which the longer one
-    // instead continues with a digit -- so matching prefixes in any fixed order is
-    // unambiguous; this checks them in `prefixes`' own order.
-    struct BatchCollector : Clingo::SolveEventHandler
+    // Reads one shared, multiplexed model back into whichever instance's `q(i)` it
+    // contains. Every instance keeps its predicates' real names (see guard.h), so unlike
+    // the deleted BatchCollector there is no demangling to do: this only has to find the
+    // one `q(i)` a model contains -- guaranteed unique by the choice rule's cardinality --
+    // and print its shown symbols verbatim, exactly as a solo solve() would for that
+    // instance alone.
+    //
+    // At most one answer is kept per instance (the `seen` guard), matching a plain solve()'s
+    // own truncation to its Control's first model: this Control enumerates with
+    // `--models=0` so every instance's branch is reached, but a legitimately
+    // non-stratified instance program could otherwise report more models than a solo
+    // solve() of the same text ever would (see solveModels' doc comment in
+    // clingo_solver.h). Real query content is stratified below the guard, so this only
+    // matters as a defensive bound.
+    struct ModelsCollector : Clingo::SolveEventHandler
     {
-        const std::vector<std::string>& prefixes;
-        std::vector<std::string>& answers; // one entry appended per instance, in order
-        size_t& unprefixedAtoms;
+        size_t n;
+        std::vector<bool> seen;
+        size_t seenCount = 0;
+        std::vector<std::vector<std::string>>& answers; // one vector per instance
 
-        BatchCollector(
-            const std::vector<std::string>& prefixes_,
-            std::vector<std::string>& answers_,
-            size_t& unprefixedAtoms_)
-            : prefixes(prefixes_), answers(answers_), unprefixedAtoms(unprefixedAtoms_)
+        ModelsCollector(size_t n_, std::vector<std::vector<std::string>>& answers_)
+            : n(n_), seen(n_, false), answers(answers_)
         {
-        }
-
-        // Whether anything has been appended to `out` yet is `out.tellp() > 0` -- an
-        // empty stream's put position is 0 -- so no parallel "started" array is needed.
-        static void appendLine(std::ostringstream& out, const std::string& text)
-        {
-            if (out.tellp() > 0)
-            {
-                out << '\n';
-            }
-            out << text;
         }
 
         bool on_model(Clingo::Model& model) override
         {
-            std::vector<std::ostringstream> perInstance(prefixes.size());
-
-            for (auto sym : model.symbols())
+            for (size_t i = 0; i < n; ++i)
             {
-                if (sym.type() != Clingo::SymbolType::Function)
+                if (seen[i] || !model.contains(Clingo::Function("q", {Clingo::Number(static_cast<int>(i))})))
                 {
-                    // Not a predicate application with a name to strip a prefix from --
-                    // e.g. a bare `#show X : p(X).` yielding a string, number, or tuple.
-                    // No instance's prefix can have matched it, so it is broadcast exactly
-                    // like any other unmatched atom, matching qtools/renaming.py's
-                    // demangle() fallback -- a report query is arbitrary logic, and this
-                    // must not be a silent drop.
-                    ++unprefixedAtoms;
-                    std::string printed = sym.to_string();
-                    for (auto& out : perInstance)
-                    {
-                        appendLine(out, printed);
-                    }
                     continue;
                 }
+                seen[i] = true;
+                ++seenCount;
 
-                std::string_view name = sym.name();
-                bool matched = false;
-                for (size_t i = 0; i < prefixes.size(); ++i)
+                std::ostringstream answerStream;
+                for (auto sym : model.symbols())
                 {
-                    const std::string& prefix = prefixes[i];
-                    // `>=`, not `>`: a bare-tuple #show term (a Function whose name is "")
-                    // is prefixed unconditionally by renameNode's ShowTerm branch (see
-                    // ast_rename.cc), so it is renamed to exactly "q<i>_" with no
-                    // trailing content -- name.size() == prefix.size() -- and must still
-                    // match here, stripping back down to "".
-                    if (name.size() >= prefix.size() && name.compare(0, prefix.size(), prefix) == 0)
+                    std::string symbolString = sym.to_string();
+                    if (symbolString.empty())
                     {
-                        // Re-created under its original name so to_string() prints exactly
-                        // what an unrenamed, single solve would print.
-                        Clingo::Symbol original = Clingo::Function(
-                            std::string(name.substr(prefix.size())).c_str(), sym.arguments(), sym.is_positive());
-                        appendLine(perInstance[i], original.to_string());
-                        matched = true;
-                        break;
+                        continue;
                     }
-                }
-
-                if (!matched)
-                {
-                    // Never renamed by any instance -- a shared, knowledge/snapshot-derived
-                    // atom. Broadcast unchanged to every instance rather than dropped,
-                    // matching qtools/renaming.py's demangle().
-                    ++unprefixedAtoms;
-                    std::string printed = sym.to_string();
-                    for (auto& out : perInstance)
+                    if (answerStream.tellp() > 0)
                     {
-                        appendLine(out, printed);
+                        answerStream << std::endl;
                     }
+                    answerStream << symbolString;
                 }
+                answers[i].push_back(answerStream.str());
+                break; // the choice rule guarantees exactly one q(i) per model
             }
-
-            for (auto& out : perInstance)
-            {
-                answers.push_back(out.str());
-            }
-            return false; // One model expected -- see ClingoSolver::solveBatch below.
+            // Stop as soon as every instance has an answer -- nothing left to learn from
+            // further enumeration. If some instance's `q(i)` can never be chosen (that
+            // instance is individually unsatisfiable), this keeps returning true until the
+            // search is exhausted; see solveModels' doc comment for why that instance's own
+            // empty answer is still correct in that case.
+            return seenCount < n;
         }
     };
 
-    std::vector<SolveResult> ClingoSolver::solveBatch(const BatchQuery& batch, bool& cacheable)
+    std::vector<SolveResult> ClingoSolver::solveModels(const ModelsQuery& models)
     {
         std::vector<ClingoLogMessage> logMessages;
-        std::vector<std::string> answers;
-        size_t unprefixedAtoms = 0;
         bool todayCalled = false;
         std::string currentKey;
         auto timeStart = std::chrono::high_resolution_clock::now();
-        const size_t n = batch.instances.size();
-        cacheable = true;
+        const size_t n = models.instances.size();
+        std::vector<std::vector<std::string>> perInstanceAnswers(n);
 
         Clingo::Logger logger = [&logMessages](Clingo::WarningCode code, char const* message) {
             logMessages.push_back({code, code == Clingo::WarningCode::RuntimeError, message});
@@ -404,36 +363,57 @@ namespace node_clingo
 
         try
         {
-            Clingo::Control control{{}, logger, MAX_CLINGO_LOG_MESSAGES};
+            // "--models=0": enumerate every answer set instead of stopping at the first,
+            // since each instance's own answer lives in a different one. Set as a Control
+            // constructor argument -- the same clasp/gringo command-line flag the
+            // standalone `clingo` binary takes -- rather than through
+            // control.configuration(): this is the only setting this Control needs beyond
+            // its defaults, so reaching into the configuration tree would only add code for
+            // no benefit. This is a property of *this* Control alone: solve()'s and
+            // solveKnowledge()'s own Controls are still built with no args, so clasp's
+            // default of exactly one model, meaning a non-stratified plain query still
+            // returns just its first model, unaffected by this change.
+            Clingo::Control control{{"--models=0"}, logger, MAX_CLINGO_LOG_MESSAGES};
 
-            // Each instance's already-renamed nodes are wrapped as an ephemeral,
-            // exclusively-owned Program so groundPrograms() can replay them exactly like
-            // any other stored program. Its per-program mutex is uncontended here --
-            // nothing else can reach these nodes -- so this adds no real locking cost, and
-            // lets solveBatch() share groundPrograms() rather than duplicate its replay and
-            // grounding logic.
+            // The choice rule and every instance's already-guarded nodes are each wrapped
+            // as an ephemeral, exclusively-owned Program so groundPrograms() can replay
+            // them exactly like any other stored program. Their per-program mutexes are
+            // uncontended here -- nothing else can reach these nodes -- so this adds no
+            // real locking cost, and lets solveModels() share groundPrograms() rather than
+            // duplicate its replay and grounding logic.
             std::vector<std::shared_ptr<const Program>> assembled;
-            assembled.reserve(n);
+            assembled.reserve(n + 1);
+            assembled.push_back(
+                std::make_shared<const Program>("__choice__", std::string(), models.choice, std::vector<KeyHash>(), 0));
             for (size_t i = 0; i < n; ++i)
             {
                 assembled.push_back(
                     std::make_shared<const Program>(
-                        batch.prefixes[i], std::string(), batch.instances[i], std::vector<KeyHash>(), 0));
+                        "q" + std::to_string(i), std::string(), models.instances[i], std::vector<KeyHash>(), 0));
             }
 
             GroundTimings timings =
-                groundPrograms(control, assembled, logger, todayCalled, currentKey, batch.snapshot.get());
+                groundPrograms(control, assembled, logger, todayCalled, currentKey, models.snapshot.get());
 
-            BatchCollector collector{batch.prefixes, answers, unprefixedAtoms};
-            Clingo::SolveResult outcome = control.solve(Clingo::SymbolicLiteralSpan{}, &collector).get();
+            ModelsCollector collector{n, perInstanceAnswers};
+            // yield=false: with the default yield=true, SolveHandle::get() returns as soon
+            // as the *first* model is yielded (clingo.h's own doc comment on
+            // clingo_solve_handle_get: "when yielding[,] ... the result will be satisfiable
+            // but neither the search exhausted nor the optimality proven"), which is
+            // invisible everywhere else in this file because solve() and solveKnowledge()
+            // only ever want one model, and clasp's default `--models=1` makes that first
+            // yield the final one anyway. This Control enumerates with `--models=0`, so
+            // yield=false is required to make get() actually block until every model
+            // has been handed to the collector's on_model and the search is exhausted.
+            control.solve(Clingo::SymbolicLiteralSpan{}, &collector, /*asynchronous=*/false, /*yield=*/false).get();
 
             auto timeAfterSolve = std::chrono::high_resolution_clock::now();
 
             int64_t valid_until = todayCalled ? next_local_midnight_epoch_ms() : 0;
-            if (batch.snapshot && batch.snapshot->valid_until > 0 &&
-                (valid_until == 0 || batch.snapshot->valid_until < valid_until))
+            if (models.snapshot && models.snapshot->valid_until > 0 &&
+                (valid_until == 0 || models.snapshot->valid_until < valid_until))
             {
-                valid_until = batch.snapshot->valid_until;
+                valid_until = models.snapshot->valid_until;
             }
 
             std::chrono::microseconds inject =
@@ -447,24 +427,18 @@ namespace node_clingo
             std::chrono::microseconds solveTime =
                 std::chrono::duration_cast<std::chrono::microseconds>(timeAfterSolve - timings.afterGround);
 
-            // An UNSAT batch (or one where on_model was somehow never reached) has nothing
-            // to split per instance; every instance gets the same empty answer a plain
-            // solve() reports for an unsatisfiable query, rather than an out-of-bounds read.
-            // That empty answer is not, in general, what solving that instance alone would
-            // produce -- one instance's own integrity constraint can make the whole shared
-            // Control UNSAT even though its neighbours are individually satisfiable (see
-            // solveBatch's doc comment in clingo_solver.h) -- so `cacheable` is cleared:
-            // the caller must not let this batch-wide failure overwrite any instance's own
-            // cached answer.
-            bool satisfiable = outcome.is_satisfiable() && answers.size() == n;
-            cacheable = satisfiable;
-
+            // Every instance's answer is genuinely its own: an instance with no model (its
+            // `q(i)` was never satisfiable) correctly gets `[]`, exactly like a solo
+            // solve() of that instance alone would -- there is no batch-wide failure mode
+            // here the way an all-instances-share-one-model batch had, so every result
+            // below is safe to cache under its own hash regardless of what happened to any
+            // other instance (see solveModels' doc comment in clingo_solver.h).
             std::vector<SolveResult> results;
             results.reserve(n);
             for (size_t i = 0; i < n; ++i)
             {
                 results.push_back({
-                    .answers = satisfiable ? std::vector<std::string>{answers[i]} : std::vector<std::string>{},
+                    .answers = std::move(perInstanceAnswers[i]),
                     .logs = logMessages,
                     .stats =
                         {
@@ -475,7 +449,6 @@ namespace node_clingo
                             .inject = inject,
                             .cacheHit = false,
                             .batchSize = static_cast<int>(n),
-                            .unprefixedAtoms = unprefixedAtoms,
                         },
                     .valid_until = valid_until,
                 });

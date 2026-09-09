@@ -13,7 +13,6 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
-#include <cstdlib>
 #include <deque>
 #include <memory>
 #include <sstream>
@@ -23,7 +22,6 @@
 #include <clingo.hh>
 #include <napi.h>
 
-#include "ast_rename.h"
 #include "helpers.h"
 #include "napi_helpers.h"
 #include "program_store.h"
@@ -74,37 +72,12 @@ namespace
         return refs;
     }
 
-    /**
-     * Parse the programs array argument (solveBatch()'s first argument) from N-API info.
-     * Throws TypeError if not an array of strings. Returns one query text per instance.
-     */
-    std::vector<std::string> parse_programs_or_throw(const Napi::CallbackInfo& info)
-    {
-        Napi::Env env = info.Env();
-        if (!info[0].IsArray())
-        {
-            throw Napi::TypeError::New(env, "First argument must be an array of strings (programs)");
-        }
-
-        std::vector<std::string> programs;
-        Napi::Array arr = info[0].As<Napi::Array>();
-        for (uint32_t i = 0; i < arr.Length(); ++i)
-        {
-            Napi::Value val = arr[i];
-            if (!val.IsString())
-            {
-                throw Napi::TypeError::New(env, "All programs must be strings");
-            }
-            programs.push_back(val.As<Napi::String>().Utf8Value());
-        }
-        return programs;
-    }
-
     // Outcome of deciding whether { snapshot: true } can be honored right now: either a
-    // usable snapshot, or a coded reason it cannot be used. Shared by solve() and
-    // solveBatch() so the freshness rule (knowledge hash match, @today not rolled over)
-    // cannot drift between the two; each caller still creates and settles its own Deferred,
-    // since that differs (solveBatch() rejects the whole batch, solve() rejects one query).
+    // usable snapshot, or a coded reason it cannot be used. Shared by Solve() and
+    // dispatchGroup() so the freshness rule (knowledge hash match, @today not rolled over)
+    // cannot drift between the two; each caller still creates and settles its own
+    // Deferred(s), since that differs (dispatchGroup() rejects every member of the group,
+    // Solve() rejects just its one query).
     struct SnapshotCheck
     {
         std::shared_ptr<const node_clingo::Snapshot> snapshot;
@@ -190,7 +163,6 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
                 InstanceMethod("removeProgram", &ClingoContext::RemoveProgram),
                 InstanceMethod("removeAllPrograms", &ClingoContext::RemoveAllPrograms),
                 InstanceMethod("solve", &ClingoContext::Solve),
-                InstanceMethod("solveBatch", &ClingoContext::SolveBatch),
                 InstanceMethod("buildProgram", &ClingoContext::BuildProgram),
                 InstanceMethod("commit", &ClingoContext::Commit),
             });
@@ -264,8 +236,8 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
 
             // Every other pending request with the identical snapshot and refs, up to
             // maxBatch(). `refs` compares as a plain vector<string> -- order-sensitive --
-            // which is deliberate: solve() and solveBatch() already treat refs order as
-            // significant nowhere in their own hashing or resolution (programByReferences()
+            // which is deliberate: solve() already treats refs order as significant nowhere
+            // in its own hashing or resolution (programByReferences()
             // dedupes and re-sorts by program hash regardless of reference order), so two
             // callers who spell the same category set in a different order already get
             // identical programs and an identical cache hash today; refusing to coalesce
@@ -304,14 +276,14 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
      * has to happen there too, so a hit is never delayed behind the queue).
      *
      * A member whose query does not parse is routed alone through the plain path -- it
-     * cannot take part in buildBatch()'s renaming (which would just throw and fail every
+     * cannot take part in buildModels()'s guarding (which would just throw and fail every
      * sibling with it) -- so only its own request rejects, with the same clingo syntax
      * error a plain solve() of the same text produces. Whatever real work is left is then
      * either a lone miss (plain path too, so a group that reduces to one query is
-     * byte-identical to today's single snapshot solve, no renaming) or grounded together as
-     * a batch. Every path that spawns pool work shares one `remaining` counter so this
-     * group's inflight slot frees, and the queue resumes, exactly once -- after the last of
-     * them settles, not after the first.
+     * byte-identical to today's single snapshot solve, no multiplexing) or ground together
+     * as one models-multiplexed solve. Every path that spawns pool work shares one
+     * `remaining` counter so this group's inflight slot frees, and the queue resumes,
+     * exactly once -- after the last of them settles, not after the first.
      */
     void dispatchGroup(Napi::Env env, std::vector<Pending> group)
     {
@@ -322,8 +294,7 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
             // with a non-null snapshot (Solve() rejects synchronously, before ever
             // touching the queue, if it had none) -- only SNAPSHOT_STALE is reachable.
             // Handled generically anyway since checkSnapshot() is shared with solve()'s
-            // and solveBatch()'s own call sites, and nothing here should assume which
-            // code it returns.
+            // own call site, and nothing here should assume which code it returns.
             for (auto& pending : group)
             {
                 pending.deferred.Reject(
@@ -340,8 +311,8 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
 
         std::vector<Pending> solo;
         std::vector<node_clingo::Query> soloQueries;
-        std::vector<Pending> batchMembers;
-        std::vector<node_clingo::Query> batchQueries;
+        std::vector<Pending> multiplexMembers;
+        std::vector<node_clingo::Query> multiplexQueries;
 
         for (auto& pending : group)
         {
@@ -365,8 +336,8 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
             // A program that failed to pre-parse has an empty ast_nodes on the
             // synthesized __program__ entry prepareQuery() just built for it (its text
             // is non-empty, so that emptiness cannot mean "legitimately blank" -- see
-            // buildBatch's doc comment in batch.h for the same discipline applied to a
-            // batch's own inputs).
+            // buildModels's doc comment in models.h for the same discipline applied to a
+            // multiplexed solve's own inputs).
             bool parseFailed = !pending.program.empty() && query.programs.back()->ast_nodes.empty();
             if (parseFailed)
             {
@@ -375,22 +346,22 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
                 continue;
             }
 
-            batchMembers.push_back(std::move(pending));
-            batchQueries.push_back(std::move(query));
+            multiplexMembers.push_back(std::move(pending));
+            multiplexQueries.push_back(std::move(query));
         }
 
-        // A single real query takes the plain, non-renamed path -- same as a solo
-        // solve() -- regardless of how many were originally popped together: renaming
-        // exists only to isolate multiple instances from each other.
-        if (batchMembers.size() == 1)
+        // A single real query takes the plain, unguarded path -- same as a solo solve() --
+        // regardless of how many were originally popped together: the choice-rule
+        // multiplexing exists only to isolate multiple instances from each other.
+        if (multiplexMembers.size() == 1)
         {
-            solo.push_back(std::move(batchMembers.front()));
-            soloQueries.push_back(std::move(batchQueries.front()));
-            batchMembers.clear();
-            batchQueries.clear();
+            solo.push_back(std::move(multiplexMembers.front()));
+            soloQueries.push_back(std::move(multiplexQueries.front()));
+            multiplexMembers.clear();
+            multiplexQueries.clear();
         }
 
-        int asyncTasks = static_cast<int>(solo.size()) + (batchMembers.empty() ? 0 : 1);
+        int asyncTasks = static_cast<int>(solo.size()) + (multiplexMembers.empty() ? 0 : 1);
         if (asyncTasks == 0)
         {
             // Every member was a cache hit; nothing was spawned, so nothing will ever
@@ -430,33 +401,32 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
                 [onSubSettled]() { onSubSettled(1); });
         }
 
-        if (!batchMembers.empty())
+        if (!multiplexMembers.empty())
         {
             std::vector<Napi::Promise::Deferred> deferreds;
             std::vector<std::chrono::high_resolution_clock::time_point> t1s;
             std::vector<node_clingo::Hash> hashes;
             std::vector<std::string> texts;
-            size_t n = batchMembers.size();
+            size_t n = multiplexMembers.size();
             deferreds.reserve(n);
             t1s.reserve(n);
             hashes.reserve(n);
             texts.reserve(n);
             for (size_t i = 0; i < n; ++i)
             {
-                deferreds.push_back(std::move(batchMembers[i].deferred));
-                t1s.push_back(batchMembers[i].t1);
-                hashes.push_back(batchQueries[i].hash);
-                texts.push_back(std::move(batchMembers[i].program));
+                deferreds.push_back(std::move(multiplexMembers[i].deferred));
+                t1s.push_back(multiplexMembers[i].t1);
+                hashes.push_back(multiplexQueries[i].hash);
+                texts.push_back(std::move(multiplexMembers[i].program));
             }
 
-            // The query layer's shared programs, exactly as SolveBatch() itself fetches
-            // them: an empty-text prepareQuery() call returns `refs`' members plus an
-            // empty __program__ placeholder, dropped here.
+            // The query layer's shared programs: an empty-text prepareQuery() call returns
+            // `refs`' members plus an empty __program__ placeholder, dropped here.
             node_clingo::Query queryLayerQuery = m_store.prepareQuery("", refs, snapshot);
             std::vector<std::shared_ptr<const node_clingo::Program>> queryLayer = std::move(queryLayerQuery.programs);
             queryLayer.pop_back();
 
-            node_clingo::spawnQueuedBatchTask(
+            node_clingo::spawnQueuedModelsTask(
                 get_thread_pool(),
                 g_cache,
                 snapshot,
@@ -629,9 +599,10 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
             result.stats.ground = std::chrono::microseconds::zero();
             result.stats.solve = std::chrono::microseconds::zero();
             result.stats.cacheHit = true;
-            // batchSize is call-specific, not cached content -- a plain solve() is never
-            // itself part of a batch, regardless of whether this cache entry happens to
-            // have been produced by an earlier solveBatch() call for the same query.
+            // batchSize is call-specific, not cached content -- a plain, uncoalesced
+            // solve() is never itself part of a multiplexed solve, regardless of whether
+            // this cache entry happens to have been produced by an earlier coalesced group
+            // (dispatchGroup()) for the same query.
             result.stats.batchSize = 0;
 
             auto deferred = Napi::Promise::Deferred::New(env);
@@ -662,137 +633,6 @@ class ClingoContext : public Napi::ObjectWrap<ClingoContext> {
         auto promise = deferred.Promise();
         node_clingo::spawnSolveTask(
             get_thread_pool(), g_cache, std::move(query), startTime, afterCacheCheckTime, std::move(deferred), env);
-        return promise;
-    }
-
-    /**
-     * solveBatch(programs, refs, options?) → Promise<SolveResult[]>
-     * Grounds and solves N query instances together in one Control over the committed
-     * knowledge snapshot, and returns one result per instance in `programs`' order. Every
-     * instance's own predicates are isolated from every other instance's (see batch.h), so
-     * the result is the same as solving each instance separately -- batching only changes
-     * how the work is scheduled. An instance already in the shared cache is served directly
-     * and never enters the batch; only the misses are ground and solved together. Requires
-     * { snapshot: true }: batching without a committed snapshot to share is not
-     * implemented (see BatchQuery in batch.h).
-     */
-    Napi::Value SolveBatch(const Napi::CallbackInfo& info)
-    {
-        auto startTime = std::chrono::high_resolution_clock::now();
-        Napi::Env env = info.Env();
-
-        std::vector<std::string> programs = parse_programs_or_throw(info);
-        std::vector<std::string> refs = parse_refs_or_throw(info, 1);
-
-        if (info.Length() > 2 && !info[2].IsUndefined() && !info[2].IsNull() && !info[2].IsObject())
-        {
-            throw Napi::TypeError::New(env, "Third argument must be an options object");
-        }
-
-        bool useSnapshot = false;
-        if (info.Length() > 2 && info[2].IsObject())
-        {
-            Napi::Object opts = info[2].As<Napi::Object>();
-            useSnapshot = opts.Has("snapshot") && opts.Get("snapshot").ToBoolean().Value();
-        }
-
-        if (!useSnapshot)
-        {
-            throw Napi::TypeError::New(
-                env,
-                "solveBatch(): requires { snapshot: true } -- batching without a committed snapshot to share is "
-                "not supported");
-        }
-
-        if (std::find(refs.begin(), refs.end(), kKnowledgeCategory) != refs.end())
-        {
-            throw Napi::TypeError::New(
-                env,
-                std::string("solveBatch(): cannot combine { snapshot: true } with the \"") + kKnowledgeCategory +
-                    "\" category in refs -- that grounds the knowledge layer twice");
-        }
-
-        SnapshotCheck check = checkSnapshot(m_snapshot, m_store);
-        if (check.code)
-        {
-            auto deferred = Napi::Promise::Deferred::New(env);
-            deferred.Reject(
-                node_clingo::coded_error(env, check.code, (std::string("solveBatch(): ") + check.reason).c_str()));
-            return deferred.Promise();
-        }
-        std::shared_ptr<const node_clingo::Snapshot> snapshot = std::move(check.snapshot);
-
-        const size_t n = programs.size();
-        std::vector<node_clingo::SolveResult> results(n);
-        std::vector<std::string> missQueries;
-        std::vector<node_clingo::Hash> missHashes;
-        std::vector<size_t> missIndices;
-
-        for (size_t i = 0; i < n; ++i)
-        {
-            node_clingo::Query query = m_store.prepareQuery(programs[i], refs, snapshot);
-            node_clingo::SolveResult cached;
-            if (g_cache.result(query.hash, cached))
-            {
-                cached.stats.add = std::chrono::microseconds::zero();
-                cached.stats.ground = std::chrono::microseconds::zero();
-                cached.stats.solve = std::chrono::microseconds::zero();
-                cached.stats.inject = std::chrono::microseconds::zero();
-                cached.stats.cacheHit = true;
-                results[i] = std::move(cached);
-            }
-            else
-            {
-                missIndices.push_back(i);
-                missQueries.push_back(programs[i]);
-                missHashes.push_back(query.hash);
-            }
-        }
-
-        auto afterCacheCheckTime = std::chrono::high_resolution_clock::now();
-
-        if (missIndices.empty())
-        {
-            // Every instance was already cached -- resolve immediately on the main thread,
-            // same as solve()'s own cache-hit path.
-            auto glue = std::chrono::duration_cast<std::chrono::microseconds>(afterCacheCheckTime - startTime);
-            Napi::Array out = Napi::Array::New(env, n);
-            for (size_t i = 0; i < n; ++i)
-            {
-                results[i].stats.glue = glue;
-                results[i].stats.batchSize = static_cast<int>(n);
-                out[i] = node_clingo::create_napi_object_from_solve_result(env, results[i]);
-            }
-            auto deferred = Napi::Promise::Deferred::New(env);
-            deferred.Resolve(out);
-            return deferred.Promise();
-        }
-
-        // The query layer's shared programs -- the same for every instance, since `refs`
-        // applies to the whole batch. Fetched via the same empty-query trick buildProgram()
-        // and commit() use to read back just a category's members: "" parses to no
-        // statements, so query.programs is exactly `refs`' members plus that empty
-        // placeholder, dropped below.
-        node_clingo::Query queryLayerQuery = m_store.prepareQuery("", refs, snapshot);
-        std::vector<std::shared_ptr<const node_clingo::Program>> queryLayer = std::move(queryLayerQuery.programs);
-        queryLayer.pop_back();
-
-        auto deferred = Napi::Promise::Deferred::New(env);
-        auto promise = deferred.Promise();
-        node_clingo::spawnBatchTask(
-            get_thread_pool(),
-            g_cache,
-            std::move(snapshot),
-            std::move(queryLayer),
-            std::move(missQueries),
-            std::move(missHashes),
-            std::move(results),
-            std::move(missIndices),
-            static_cast<int>(n),
-            startTime,
-            afterCacheCheckTime,
-            std::move(deferred),
-            env);
         return promise;
     }
 
@@ -885,67 +725,6 @@ Napi::Value ValidateProgram(const Napi::CallbackInfo& info)
     return resultObj;
 }
 
-namespace
-{
-    // Joins printed statements one per line, for RenameForTest's two outputs below.
-    std::string printNodes(const std::vector<Clingo::AST::Node>& nodes)
-    {
-        std::ostringstream out;
-        for (size_t i = 0; i < nodes.size(); ++i)
-        {
-            if (i > 0)
-            {
-                out << "\n";
-            }
-            out << nodes[i].to_string();
-        }
-        return out.str();
-    }
-} // namespace
-
-/**
- * _renameForTest(program, prefix) -> { renamed, original } — parses `program`, computes
- * which predicates it defines, and returns both the renamed copy's source and the
- * original parsed nodes' own printed source (one statement per line each), so a test can
- * assert `rename_predicates` never mutates its input -- the property Task 4's shared,
- * concurrently-read stored query-layer nodes most depend on. Debug export for the AST
- * renamer used to merge coalesced query solves; never registered outside of
- * NODE_CLINGO_TEST_EXPORTS, so it never reaches a shipped build. That is a *runtime* gate
- * only: shipping this for real would need it compiled out entirely (e.g. behind a build
- * flag), since a runtime check still leaves the code and its symbol in the binary.
- */
-Napi::Value RenameForTest(const Napi::CallbackInfo& info)
-{
-    Napi::Env env = info.Env();
-    if (info.Length() < 2 || !info[0].IsString() || !info[1].IsString())
-    {
-        throw Napi::TypeError::New(env, "Expected arguments: program (string), prefix (string)");
-    }
-
-    std::string program = info[0].As<Napi::String>().Utf8Value();
-    std::string prefix = info[1].As<Napi::String>().Utf8Value();
-
-    std::vector<Clingo::AST::Node> nodes;
-    try
-    {
-        Clingo::AST::parse_string(program.c_str(), [&nodes](Clingo::AST::Node node) { nodes.push_back(node); });
-    }
-    catch (const std::exception& e)
-    {
-        throw Napi::Error::New(env, e.what());
-    }
-
-    std::string original = printNodes(nodes);
-
-    auto sigs = node_clingo::head_signatures(nodes);
-    auto renamed = node_clingo::rename_predicates(nodes, sigs, prefix);
-
-    Napi::Object result = Napi::Object::New(env);
-    result.Set("renamed", Napi::String::New(env, printNodes(renamed)));
-    result.Set("original", Napi::String::New(env, original));
-    return result;
-}
-
 /**
  * Module initialization.
  */
@@ -954,14 +733,6 @@ Napi::Object Init(Napi::Env env, Napi::Object exports)
     ClingoContext::Init(env, exports);
     exports.Set(Napi::String::New(env, "clearCache"), Napi::Function::New(env, ClearCache));
     exports.Set(Napi::String::New(env, "validateProgram"), Napi::Function::New(env, ValidateProgram));
-    // POC-grade gate: fine for keeping this off a dev's own production process, not fine
-    // to ship -- RenameForTest and its symbol are still compiled into the binary either
-    // way. Shipping this for real needs it compiled out entirely (e.g. an ifdef behind a
-    // build flag), not just left unregistered at runtime.
-    if (std::getenv("NODE_CLINGO_TEST_EXPORTS") != nullptr)
-    {
-        exports.Set(Napi::String::New(env, "_renameForTest"), Napi::Function::New(env, RenameForTest));
-    }
     return exports;
 }
 

@@ -16,12 +16,10 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
-#include <set>
 #include <vector>
 
 #include <clingo.hh>
 
-#include "ast_rename.h"
 #include "helpers.h"
 #include "solve_result_cache.h"
 
@@ -38,14 +36,6 @@ namespace node_clingo
         Hash knowledgeHash = 0; // XXH over the knowledge programs' hashes at commit time
         std::vector<Clingo::Symbol> symbols;
         std::vector<Clingo::AST::Node> fact_nodes;
-        // Signatures the committed model actually has atoms for -- the knowledge layer's
-        // *extension*, not (unlike ast_rename.h's head_signatures) which signatures its
-        // *source* declares. buildBatch() (batch.h) bridges an instance's renamed copy of
-        // one of these back to the snapshot's real atoms; a predicate the knowledge layer
-        // defines but that happens to be empty at this revision has no entry here, which
-        // is harmless -- there is nothing to bridge. Built once per commit(), a single
-        // pass over `symbols`, so buildBatch() need not re-derive it per batch.
-        std::set<Signature> signatures;
         // Not taken by solve()'s replay of fact_nodes -- see the invariant on
         // build_fact_nodes below for why concurrent replay of that shape cannot race. Kept
         // as a member for a future caller that replays a different node shape through this
