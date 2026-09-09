@@ -64,6 +64,7 @@ export {
   declaredModules,
   installedModules,
   installedModulesWithSources,
+  moduleInfos,
 } from './inventory.js';
 
 // Fetching, resolving and applying.

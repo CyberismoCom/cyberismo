@@ -1257,7 +1257,7 @@ describe('Card tree', () => {
 
     it('should import base module and verify template cards in cache', async () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
-      await commands.importCmd.importModule(baseModule);
+      await commands.modulesCmd.install(baseModule);
 
       const allTemplateCards = commands.project.allTemplateCards();
       const baseTemplateCards = allTemplateCards.filter((card: Card) =>
@@ -1276,7 +1276,7 @@ describe('Card tree', () => {
     it('should remove base module and verify template cards are gone from the cache', async () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
 
-      await commands.importCmd.importModule(baseModule);
+      await commands.modulesCmd.install(baseModule);
 
       const allTemplateCards = commands.project.allTemplateCards();
       const baseTemplateCards = allTemplateCards.filter((card: Card) =>

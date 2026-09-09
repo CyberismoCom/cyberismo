@@ -19,6 +19,7 @@ import { Edit } from './edit.js';
 import { Export } from './export.js';
 import { Fetch } from './fetch.js';
 import { Import } from './import.js';
+import { Modules } from './modules.js';
 import { Move } from './move.js';
 import { Publish } from './publish.js';
 import { Remove } from './remove.js';
@@ -38,6 +39,7 @@ export {
   Export,
   Fetch,
   Import,
+  Modules,
   Move,
   Publish,
   Remove,

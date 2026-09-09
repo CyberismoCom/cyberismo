@@ -19,7 +19,6 @@ import { spawn } from 'node:child_process';
 import { writeFile } from 'node:fs/promises';
 
 import { type ModuleListFile, MODULE_LIST_FULL_PATH } from './fetch.js';
-import { installedModules } from '../modules/index.js';
 
 import type { CardLocation } from '../interfaces/project-interfaces.js';
 
@@ -32,8 +31,6 @@ import type {
   Context,
   HubDetails,
   HubSetting,
-  ModuleContent,
-  ModuleInfo,
   ModuleSettingFromHub,
   ProjectMetadata,
   ResourceType,
@@ -54,6 +51,7 @@ import type { ResourceMap } from '../containers/project/resource-cache.js';
 
 import { UserPreferences } from '../utils/user-preferences.js';
 import { read } from '../utils/rw-lock.js';
+import { moduleInfos } from '../modules/index.js';
 import ReportMacro from '../macros/report/index.js';
 import { generateReportContent } from '../utils/report.js';
 import type { SkillContent } from '../interfaces/folder-content-interfaces.js';
@@ -398,20 +396,6 @@ export class Show {
   }
 
   /**
-   * Shows details of a module.
-   * @param moduleName name of a module
-   * @returns details of a module.
-   */
-  @read
-  public async showModule(moduleName: string): Promise<ModuleContent> {
-    const moduleDetails = await this.project.module(moduleName);
-    if (!moduleDetails) {
-      throw new Error(`Module '${moduleName}' does not exist in the project`);
-    }
-    return moduleDetails;
-  }
-
-  /**
    * Shows hubs of the project.
    * @returns list of hubs.
    */
@@ -461,25 +445,13 @@ export class Show {
   }
 
   /**
-   * Shows all modules (if any) in a project.
-   * @returns all modules in a project with their installed versions.
-   */
-  @read
-  public async showModules(): Promise<ModuleInfo[]> {
-    const installed = await installedModules(this.project);
-    return installed
-      .map((m) => ({ name: m.name, version: m.version }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }
-
-  /**
    * Shows details of a particular project.
    * @returns project information
    */
   @read
   public async showProject(): Promise<ProjectMetadata> {
     const p = this.project;
-    const modules = await this.showModules();
+    const modules = await moduleInfos(p);
     return {
       name: p.projectName,
       path: p.basePath,

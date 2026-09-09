@@ -270,7 +270,7 @@ describe('clean command', () => {
     await importing.initialize();
     try {
       // The imported project's template card carries null placeholders.
-      await importing.importCmd.importModule(
+      await importing.modulesCmd.install(
         join(moduleTestDir, 'valid/decision-records'),
       );
       const moduleCards = importing.project

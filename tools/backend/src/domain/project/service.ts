@@ -61,7 +61,7 @@ async function toModuleInfo(
   moduleName: string,
 ): Promise<ProjectModule> {
   try {
-    const data = await commands.showCmd.showModule(moduleName);
+    const data = await commands.modulesCmd.show(moduleName);
     return {
       name: data.name || moduleName,
       cardKeyPrefix: data.cardKeyPrefix || moduleName,
@@ -79,7 +79,7 @@ export async function getProject(
 ): Promise<ProjectInfo> {
   return commands.consistent(async () => {
     const project = await commands.showCmd.showProject();
-    const modules = await commands.showCmd.showModules();
+    const modules = await commands.modulesCmd.list();
     const moduleDetails = await Promise.all(
       modules.map((mod) => toModuleInfo(commands, mod.name)),
     );
@@ -126,11 +126,11 @@ export async function updateProject(
 }
 
 export async function updateModule(commands: CommandManager, module: string) {
-  await commands.importCmd.updateModule(module);
+  await commands.modulesCmd.update(module);
 }
 
 export async function updateAllModules(commands: CommandManager) {
-  await commands.importCmd.updateAllModules();
+  await commands.modulesCmd.updateAll();
 }
 
 export async function deleteModule(commands: CommandManager, module: string) {
@@ -159,14 +159,14 @@ export async function importModule(
   commands: CommandManager,
   source: string,
 ): Promise<void> {
-  await commands.importCmd.importModule(source);
+  await commands.modulesCmd.install(source);
 }
 
 export async function getHubs(commands: CommandManager): Promise<HubInfo[]> {
   await populateHubCache(commands);
   const hubs = await commands.showCmd.showHubDetails();
   const importedModules = new Set(
-    (await commands.showCmd.showModules()).map((mod) => mod.name),
+    (await commands.modulesCmd.list()).map((mod) => mod.name),
   );
   return hubs.map((hub) => ({
     location: hub.location,

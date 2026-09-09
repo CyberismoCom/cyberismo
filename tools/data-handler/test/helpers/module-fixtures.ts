@@ -36,12 +36,12 @@ export interface FakeModuleConfig {
 }
 
 /**
- * Build a synthetic module fixture on disk that `Import.importModule`
+ * Build a synthetic module fixture on disk that `Modules.install`
  * accepts as a `file:` source. The minimum a file-source module needs is
  * a valid `.cards/local/cardsConfig.json`; optional `modules[]` entries
  * declare transitive deps that the resolver walks. A sibling empty
  * `cardRoot/` exists so `Validate.validateFolder` and the `pathExists`
- * precondition in `importModule` sail through cleanly.
+ * precondition in `Modules.install` sail through cleanly.
  */
 export function makeFakeModuleFixture(
   root: string,
@@ -60,7 +60,7 @@ export function makeFakeModuleFixture(
 /**
  * Rewrite an existing fake module fixture's `cardsConfig.json` in place.
  * Used to simulate a module upstream dropping a transitive dependency
- * between imports — the trigger for `cleanOrphans` during `updateAllModules`.
+ * between imports — the trigger for `cleanOrphans` during `Modules.updateAll`.
  */
 export function rewriteFakeModuleFixture(
   root: string,

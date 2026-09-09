@@ -30,7 +30,10 @@ import {
 } from './types.js';
 
 import type { Project } from '../containers/project.js';
-import type { ModuleSetting } from '../interfaces/project-interfaces.js';
+import type {
+  ModuleInfo,
+  ModuleSetting,
+} from '../interfaces/project-interfaces.js';
 
 const logger = getChildLogger({ module: 'inventory' });
 
@@ -85,6 +88,14 @@ export async function installedModules(
  * the dependency. An installation whose location cannot be found anywhere
  * keeps its empty location.
  */
+/** Installed modules as name/version pairs, sorted by name. */
+export async function moduleInfos(project: Project): Promise<ModuleInfo[]> {
+  const installed = await installedModules(project);
+  return installed
+    .map((m) => ({ name: m.name, version: m.version }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export async function installedModulesWithSources(
   project: Project,
 ): Promise<ModuleInstallation[]> {

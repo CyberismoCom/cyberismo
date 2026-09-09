@@ -391,7 +391,7 @@ describe('Resource cache', () => {
     it('should import and collect module resources', async () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
 
-      await commands.importCmd.importModule(baseModule);
+      await commands.modulesCmd.install(baseModule);
 
       const allWorkflows = commands.project.resources.workflows();
       expect(allWorkflows.length).toBeGreaterThan(0);
@@ -403,7 +403,7 @@ describe('Resource cache', () => {
     it('should get module names', async () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
 
-      await commands.importCmd.importModule(baseModule);
+      await commands.modulesCmd.install(baseModule);
 
       const modules = commands.project.resources.moduleNames();
       expect(modules).toBeInstanceOf(Array);
@@ -416,7 +416,7 @@ describe('Resource cache', () => {
     it('should invalidate module resources', async () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
 
-      await commands.importCmd.importModule(baseModule);
+      await commands.modulesCmd.install(baseModule);
 
       const moduleNames = commands.project.resources.moduleNames();
       expect(moduleNames.length).toBeGreaterThan(0);
@@ -433,7 +433,7 @@ describe('Resource cache', () => {
     }, 60000);
     it('should get resource names from specific module', async () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
-      await commands.importCmd.importModule(baseModule);
+      await commands.modulesCmd.install(baseModule);
 
       const resourceHandler = commands.project.resources;
       const workflowNames = resourceHandler.moduleResourceNames(
@@ -475,7 +475,7 @@ describe('Resource cache', () => {
       const allBefore = commands.project.resources.workflows().length;
 
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
-      await commands.importCmd.importModule(baseModule);
+      await commands.modulesCmd.install(baseModule);
 
       const localOnlyAfter = commands.project.resources.workflows(
         ResourcesFrom.localOnly,
@@ -489,7 +489,7 @@ describe('Resource cache', () => {
     }, 60000);
     it('should get module-only resources', async () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
-      await commands.importCmd.importModule(baseModule);
+      await commands.modulesCmd.install(baseModule);
 
       const localWorkflows = commands.project.resources.workflows(
         ResourcesFrom.localOnly,

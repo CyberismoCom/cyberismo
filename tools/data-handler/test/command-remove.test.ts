@@ -8,7 +8,7 @@ import { join, sep, resolve as pathResolve } from 'node:path';
 // cyberismo
 import { Cmd, Commands, CommandManager } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
-import { Fetch, Remove } from '../src/commands/index.js';
+import { Fetch, Modules, Remove } from '../src/commands/index.js';
 import {
   MODULE_LIST_FULL_PATH,
   type ModuleListFile,
@@ -581,7 +581,11 @@ describe('remove command', () => {
       const project = getTestProject(decisionRecordsPath);
       await project.populateCaches();
       const fetchCmd = new Fetch(project);
-      const removeCmd = new Remove(project, fetchCmd);
+      const removeCmd = new Remove(
+        project,
+        fetchCmd,
+        new Modules(project, fetchCmd),
+      );
 
       await expect(
         removeCmd.remove('attachment', cardId, ''),
@@ -592,7 +596,11 @@ describe('remove command', () => {
       const project = getTestProject(decisionRecordsPath);
       await project.populateCaches();
       const fetchCmd = new Fetch(project);
-      const removeCmd = new Remove(project, fetchCmd);
+      const removeCmd = new Remove(
+        project,
+        fetchCmd,
+        new Modules(project, fetchCmd),
+      );
 
       await expect(
         removeCmd.remove('attachment', cardId, 'the-needle.heic'),
@@ -602,7 +610,11 @@ describe('remove command', () => {
       const project = getTestProject(decisionRecordsPath);
       await project.populateCaches();
       const fetchCmd = new Fetch(project);
-      const removeCmd = new Remove(project, fetchCmd);
+      const removeCmd = new Remove(
+        project,
+        fetchCmd,
+        new Modules(project, fetchCmd),
+      );
 
       await expect(
         removeCmd.remove('module', 'i-dont-exist'),
@@ -686,7 +698,11 @@ describe('remove card', () => {
   it('should remove card that has children', async () => {
     const cardId = 'decision_5';
     const fetchCmd = new Fetch(commands.project);
-    const removeCmd = new Remove(commands.project, fetchCmd);
+    const removeCmd = new Remove(
+      commands.project,
+      fetchCmd,
+      new Modules(commands.project, fetchCmd),
+    );
     await removeCmd.remove('card', cardId);
 
     expect(() => commands.project.findCard(cardId)).toThrow(CardNotFoundError);
@@ -791,7 +807,7 @@ describe('remove module — spec behaviours', () => {
     const commands = new CommandManager(projectDir, {});
     await commands.initialize();
 
-    await commands.importCmd.importModule(hostRoot);
+    await commands.modulesCmd.install(hostRoot);
     // Both are installed; only `trhost` is a top-level declaration.
     expect(existsSync(join(projectDir, '.cards', 'modules', 'trhost'))).toBe(
       true,
@@ -866,7 +882,7 @@ describe('remove module — spec behaviours', () => {
     const commands = new CommandManager(projectDir, {});
     await commands.initialize();
 
-    await commands.importCmd.importModule(aRoot);
+    await commands.modulesCmd.install(aRoot);
 
     // A, B, C all installed.
     expect(existsSync(join(projectDir, '.cards', 'modules', 'cha'))).toBe(true);
@@ -922,7 +938,7 @@ describe('remove module — spec behaviours', () => {
     const commands = new CommandManager(projectDir, {});
     await commands.initialize();
 
-    await commands.importCmd.importModule(aRoot);
+    await commands.modulesCmd.install(aRoot);
     // All three transitives live in the cached prefix list.
     expect(commands.project.allModulePrefixes()).toContain('drpa');
     expect(commands.project.allModulePrefixes()).toContain('drpb');
@@ -970,7 +986,11 @@ describe('remove hub', () => {
     await project.populateCaches();
     project.configuration.hubs = locations.map((location) => ({ location }));
     const fetchCmd = new Fetch(project);
-    return { project, fetchCmd, removeCmd: new Remove(project, fetchCmd) };
+    return {
+      project,
+      fetchCmd,
+      removeCmd: new Remove(project, fetchCmd, new Modules(project, fetchCmd)),
+    };
   }
 
   async function cachedList(): Promise<ModuleListFile> {
