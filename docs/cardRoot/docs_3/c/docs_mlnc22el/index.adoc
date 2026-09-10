@@ -251,3 +251,13 @@ NOTE: If a module version requires a newer schema version than your Cyberismo to
 If you import a module that has dependencies, Cyberismo automatically imports the dependencies. This works recursively, so that the dependencies of dependencies are also included.
 
 If the dependencies of modules include the same module multiple times, identified by the module prefix, the module is imported only once. Note that such a module must be imported using an identical Git URL or an identical local file system path; otherwise, the import or update operation fails. Cyberismo resolves the version bindings declared by the different dependants together and installs a single version that satisfies all of them. If no such version exists, the import or update operation fails and reports the conflicting constraints.
+
+== Versioning a module that you maintain
+
+Publish a release with `cyberismo create version <patch|minor|major>`, and then create the version tag with `cyberismo publish`.
+
+Cyberismo records every configuration change that consumers must migrate, and classifies it as either migratable or destructive. A migratable change, such as renaming a resource, renaming a workflow state, or changing a field's data type, is replayed on consumer data when the consumer updates the module. A destructive change, such as deleting a card type, field type, workflow, or link type, discards consumer data and cannot be replayed. Changes that require nothing from consumers, such as adding a workflow state or editing a display name, are not recorded.
+
+A version bump must be large enough for the changes that it carries. A patch version requires that nothing was recorded, a minor version may carry migratable changes, and a major version may carry destructive changes. If the bump is too small, `cyberismo create version` fails and lists the changes that require a larger bump.
+
+Consumers may stay on any older version of your module, and Cyberismo never crosses a major version boundary on its own, so support the old structures until your next major version. Prefer migratable changes to destructive ones, and batch destructive removals into a major version. When a structure has a replacement, ship the replacement in a minor version and remove the old structure in the next major version. In the release notes of a major version, state what is removed, which card data is affected, and what consumers should do with the values that are left orphaned. The `cyberismo clean` command removes the dormant field values that a destructive change leaves behind.
