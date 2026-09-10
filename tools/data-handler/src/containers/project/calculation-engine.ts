@@ -104,8 +104,19 @@ export class CalculationEngine {
     await writeFile(destination, logicProgram);
   }
 
-  // Wrapper to run onCreation query.
-  private async creationQuery(cardKeys: string[], context: Context) {
+  /**
+   * Runs the onCreation query for the given cards.
+   *
+   * Answering the query is this class's job; executing the side effects it
+   * asks for is a write the command layer owns.
+   * @param cardKeys Keys of the cards that were created.
+   * @param context In which type of context the query is run.
+   * @returns the query's side effects, or undefined if there are none.
+   */
+  public async creationQuery(
+    cardKeys: string[],
+    context: Context,
+  ): Promise<QueryResult<'onCreation'>[] | undefined> {
     if (!cardKeys) return undefined;
     return this.runQuery('onCreation', context, {
       cardKeys,
@@ -253,7 +264,7 @@ export class CalculationEngine {
   // Gets either all the cards (no parent), or a subtree.
   private getCards(templateName?: string): CardNode[] {
     if (templateName) {
-      return this.project.templateCards(templateName);
+      return this.project.templateCardNodes(templateName);
     }
 
     return this.project.cardNodes();
@@ -398,26 +409,17 @@ export class CalculationEngine {
   }
 
   /**
-   * When new cards are added, automatically calculate card-specific values.
-   * @param cards Added cards.
+   * Refreshes the facts of the given cards, so a query run after this sees
+   * them as they are now.
+   * @param cards Cards whose facts to rebuild.
    */
-  public async handleNewCards(cards: Card[]) {
+  public async refreshCardFacts(cards: CardNode[]) {
     if (!cards) {
       return;
     }
     for (const card of cards) {
       await this.setCardContent(card);
     }
-    const cardKeys = cards.map((item) => item.key);
-    const queryResult = await this.creationQuery(cardKeys, 'localApp');
-    await this.project.executeSideEffects(
-      queryResult?.at(0),
-      // Empty seed: the created cards' initial "Create" transitions already
-      // happened during creation itself; a re-entrant "Create" side effect
-      // would be rejected anyway by the fromState check, so nothing needs
-      // to be pre-marked visited here.
-      new Set<string>(),
-    );
   }
 
   /**

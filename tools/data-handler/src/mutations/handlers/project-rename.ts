@@ -97,7 +97,7 @@ export class ProjectRenameHandler implements Handler<ProjectRenameInput> {
     await this.cascade(ctx, from, to);
 
     ctx.project.resources.changed();
-    ctx.project.cardsCache.clear();
+    ctx.project.clearCards();
     await ctx.project.populateCaches();
   }
 
@@ -123,7 +123,7 @@ export class ProjectRenameHandler implements Handler<ProjectRenameInput> {
     // path refreshes in apply() after its own cascade, so this stays out
     // of cascade() to avoid doing the work twice.
     ctx.project.resources.changed();
-    ctx.project.cardsCache.clear();
+    ctx.project.clearCards();
     await ctx.project.populateCaches();
   }
 
@@ -162,26 +162,27 @@ async function renameCards(
   const re = new RegExp(`${from}(?!.*${from})`);
 
   for (const card of sortedCards) {
-    card.content = await updateCardAttachments(re, card, to);
+    card.content = await updateCardAttachments(ctx, re, card, to);
     await renameOneCard(ctx, re, card, from, to);
   }
 }
 
 async function updateCardAttachments(
+  ctx: MutationContext,
   re: RegExp,
   card: Card,
   to: string,
 ): Promise<string | undefined> {
   if (!isTemplateCard(card)) {
-    const attachments = card.attachments ?? [];
+    const fileNames = (card.attachments ?? []).map((item) => item.fileName);
     await Promise.all(
-      attachments.map(async (attachment) => {
-        const newAttachmentFileName = attachment.fileName.replace(re, to);
-        await renameFile(
-          join(attachment.path, attachment.fileName),
-          join(attachment.path, newAttachmentFileName),
-        );
+      fileNames.map(async (fileName) => {
         // NOTE: file contents are rewritten by updateFiles.
+        await ctx.project.renameCardAttachment(
+          card.key,
+          fileName,
+          fileName.replace(re, to),
+        );
       }),
     );
   }

@@ -12,25 +12,15 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-// node
-import { join } from 'node:path';
-import { writeFile } from 'node:fs/promises';
-
-import { CardCache } from './project/card-cache.js';
-import { CardNotFoundError } from '../exceptions/index.js';
-import { cardPathParts, compareAttachments } from '../utils/card-utils.js';
-import { deleteDir } from '../utils/file-utils.js';
+import { CardTree } from './project/card-tree.js';
+import { compareAttachments } from '../utils/card-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
-import { writeJsonFile } from '../utils/json.js';
 
 import type {
   CardAttachment,
   Card,
-  CardMetadata,
   CardNode,
 } from '../interfaces/project-interfaces.js';
-
-import { isPredefinedField, ROOT } from '../utils/constants.js';
 
 /**
  * Card container base class. Used for both Project and Template.
@@ -38,7 +28,7 @@ import { isPredefinedField, ROOT } from '../utils/constants.js';
  */
 export class CardContainer {
   public basePath: string;
-  protected cardCache: CardCache;
+  protected cardTree: CardTree;
   protected prefix: string;
 
   protected static get logger() {
@@ -53,28 +43,7 @@ export class CardContainer {
   constructor(path: string, prefix: string) {
     this.basePath = path;
     this.prefix = prefix;
-    this.cardCache = new CardCache(this.prefix);
-  }
-
-  // Node reads share the cached metadata; callers that mutate metadata use
-  // cards() or findCard(), which copy it.
-  private static nodeView(card: Card): CardNode {
-    return {
-      key: card.key,
-      path: card.path,
-      children: card.children,
-      metadata: card.metadata,
-      parent: card.parent,
-    };
-  }
-
-  private static cardView(card: Card): Card {
-    return {
-      ...CardContainer.nodeView(card),
-      metadata: structuredClone(card.metadata),
-      content: card.content,
-      attachments: card.attachments,
-    };
+    this.cardTree = new CardTree(this.prefix);
   }
 
   /**
@@ -83,7 +52,7 @@ export class CardContainer {
    * @returns Location string: 'project' for project cards, template name for template cards
    */
   protected determineContainer(path: string): string {
-    return cardPathParts(this.prefix, path).template || 'project';
+    return this.cardTree.locationOf(path);
   }
 
   /**
@@ -102,14 +71,9 @@ export class CardContainer {
    * @returns attachments from the container, sorted by card key and file name.
    */
   protected attachments(path: string): CardAttachment[] {
-    const attachments: CardAttachment[] = [];
-
-    const targetLocation = this.determineContainer(path);
-    this.cardCache
-      .cardsAtLocation(targetLocation)
-      .filter((card) => card.attachments.length > 0)
-      .forEach((item) => attachments.push(...item.attachments));
-    return attachments.sort(compareAttachments);
+    return this.cardTree
+      .attachmentsIn(this.determineContainer(path))
+      .sort(compareAttachments);
   }
 
   /**
@@ -118,7 +82,7 @@ export class CardContainer {
    * @returns all cards from the container
    */
   protected cards(path: string): Card[] {
-    return this.cachedCards(path).map(CardContainer.cardView);
+    return this.cardTree.cardsIn(this.determineContainer(path));
   }
 
   /**
@@ -127,7 +91,7 @@ export class CardContainer {
    * @returns nodes of all cards from the container
    */
   protected cardNodes(path: string): CardNode[] {
-    return this.cachedCards(path).map(CardContainer.nodeView);
+    return this.cardTree.cardNodesIn(this.determineContainer(path));
   }
 
   /**
@@ -136,7 +100,7 @@ export class CardContainer {
    * @returns keys of all cards from the container
    */
   protected cardKeys(path: string): string[] {
-    return this.cachedCards(path).map((card) => card.key);
+    return this.cardTree.cardKeysIn(this.determineContainer(path));
   }
 
   /**
@@ -145,7 +109,7 @@ export class CardContainer {
    * @throws if card does not exist in the container
    */
   protected cardNode(cardKey: string): CardNode {
-    return CardContainer.nodeView(this.cachedCard(cardKey));
+    return this.cardTree.node(cardKey);
   }
 
   /**
@@ -155,7 +119,7 @@ export class CardContainer {
    * @throws if card does not exist in the container
    */
   protected cardContent(cardKey: string): string | undefined {
-    return this.cachedCard(cardKey).content;
+    return this.cardTree.content(cardKey);
   }
 
   /**
@@ -164,7 +128,7 @@ export class CardContainer {
    * @throws if card does not exist in the container
    */
   protected cardAttachments(cardKey: string): CardAttachment[] {
-    return this.cachedCard(cardKey).attachments;
+    return this.cardTree.attachmentsOf(cardKey);
   }
 
   /**
@@ -173,23 +137,7 @@ export class CardContainer {
    * @throws if card does not exist in the container
    */
   protected findCard(cardKey: string): Card {
-    return CardContainer.cardView(this.cachedCard(cardKey));
-  }
-
-  private cachedCards(path: string): Card[] {
-    if (!this.cardCache.isPopulated) {
-      throw new Error('Cards cache is not populated!');
-    }
-
-    return this.cardCache.cardsAtLocation(this.determineContainer(path));
-  }
-
-  private cachedCard(cardKey: string): Card {
-    const cachedCard = this.cardCache.getCard(cardKey);
-    if (!cachedCard) {
-      throw new CardNotFoundError(cardKey);
-    }
-    return cachedCard;
+    return this.cardTree.card(cardKey);
   }
 
   /**
@@ -198,26 +146,15 @@ export class CardContainer {
    * @returns true, if card was removed; false otherwise
    */
   protected async removeCard(cardKey: string): Promise<boolean> {
-    const card = this.cardCache.getCard(cardKey);
-    if (card) {
-      // Children must removed first
-      const children = this.cardCache.childrenOf(cardKey);
-      for (const child of children) {
-        await this.removeCard(child);
-      }
-      await deleteDir(card.path);
-      return this.cardCache.deleteCard(cardKey);
-    }
-    return false;
+    return this.cardTree.deleteSubtree(cardKey);
   }
 
   /**
-   * Persists the whole card.
-   * @param card Card to persist
+   * Creates a card's folder on disk and writes its files.
+   * @param card Card to create.
    */
-  protected async saveCard(card: Card) {
-    await this.saveCardContent(card);
-    await this.saveCardMetadata(card);
+  protected async createNode(card: Card): Promise<void> {
+    return this.cardTree.createNode(card);
   }
 
   /**
@@ -226,12 +163,7 @@ export class CardContainer {
    * @returns true if card was updated; false otherwise.
    */
   protected async saveCardContent(card: Card): Promise<boolean> {
-    if (card.content != null) {
-      const contentFile = join(card.path, CardContainer.cardContentFile);
-      await writeFile(contentFile, card.content);
-      return this.cardCache.updateCardContent(card.key, card.content);
-    }
-    return false;
+    return this.cardTree.writeContent(card);
   }
 
   /**
@@ -241,47 +173,7 @@ export class CardContainer {
    * @throws if the metadata file cannot be written.
    */
   protected async saveCardMetadata(card: Card): Promise<boolean> {
-    if (card.metadata != null) {
-      const metadataFile = join(card.path, CardContainer.cardMetadataFile);
-      card.metadata!.lastUpdated = new Date().toISOString();
-
-      // Cache the same object that was written, so cache and disk agree.
-      const sanitizedMetadata = CardContainer.sanitizeMetadata(card);
-      await writeJsonFile(metadataFile, sanitizedMetadata);
-      return this.cardCache.updateCardMetadata(card.key, sanitizedMetadata);
-    }
-    return false;
-  }
-
-  /**
-   * Removes non-metadata fields that should not be persisted.
-   *
-   * @param card The card whose metadata is sanitized
-   * @returns Clean metadata object with only valid metadata fields
-   */
-  private static sanitizeMetadata(card: Card): CardMetadata {
-    const sanitized: Record<string, unknown> = {};
-
-    if (card.metadata) {
-      for (const [key, value] of Object.entries(card.metadata)) {
-        // JSON.stringify drops undefined, so drop it here too: the cache must
-        // not retain keys the file lacks.
-        if (value === undefined) {
-          continue;
-        }
-        // Keys are not filtered out if they are: predefined, or field types
-        if (isPredefinedField(key) || key.includes('/')) {
-          sanitized[key] = value;
-        } else {
-          this.logger.warn(
-            `Card ${card.key} had extra metadata key ${key} with value ${value}. Key was removed`,
-          );
-        }
-        // Everything else is filtered out
-      }
-    }
-
-    return sanitized as CardMetadata;
+    return this.cardTree.writeMetadata(card);
   }
 
   /*
@@ -290,25 +182,7 @@ export class CardContainer {
    * @returns an array of root-level cards (each with their children populated).
    */
   protected showCards(path: string): Card[] {
-    const container = this.determineContainer(path);
-    const rootCards: Card[] = [];
-    const relevantCards = this.cardCache.cardsAtLocation(container);
-
-    relevantCards.forEach((card) => {
-      if (
-        card.parent === ROOT ||
-        !card.parent ||
-        this.cardCache.getCard(card.parent)?.location !== container
-      ) {
-        const cardWithChildren: Card = {
-          ...card,
-          children: card.children,
-        };
-        rootCards.push(cardWithChildren);
-      }
-    });
-
-    return rootCards;
+    return this.cardTree.rootCardsIn(this.determineContainer(path));
   }
 
   /**
@@ -317,7 +191,7 @@ export class CardContainer {
    * @return true, if card is in the container
    */
   public hasCard(cardKey: string): boolean {
-    return this.cardCache.hasCard(cardKey);
+    return this.cardTree.has(cardKey);
   }
 
   /**
@@ -326,8 +200,7 @@ export class CardContainer {
    * @return true, if card is in the container
    */
   public hasProjectCard(cardKey: string): boolean {
-    const cachedCard = this.cardCache.getCard(cardKey);
-    return cachedCard ? cachedCard.location === 'project' : false;
+    return this.cardTree.hasProjectCard(cardKey);
   }
 
   /**
@@ -336,7 +209,6 @@ export class CardContainer {
    * @return true, if card is in the container
    */
   public hasTemplateCard(cardKey: string): boolean {
-    const cachedCard = this.cardCache.getCard(cardKey);
-    return cachedCard ? cachedCard.location !== 'project' : false;
+    return this.cardTree.hasTemplateCard(cardKey);
   }
 }
