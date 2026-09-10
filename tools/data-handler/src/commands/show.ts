@@ -30,8 +30,6 @@ import type {
   CardListContainer,
   CardWithChildrenCards,
   Context,
-  FetchCardDetails,
-  FileContentType,
   HubDetails,
   HubSetting,
   ModuleContent,
@@ -136,10 +134,9 @@ export class Show {
 
   // Returns attachment details
   private getAttachment(cardKey: string, filename: string) {
-    const card = this.project.findCard(cardKey);
-    const attachment =
-      card.attachments?.find((a) => a.fileName === filename) ?? undefined;
-    return attachment;
+    return this.project
+      .cardAttachments(cardKey)
+      .find((a) => a.fileName === filename);
   }
 
   // Opens the given path using the operating system's default application. Doesn't block the main thread.
@@ -281,29 +278,14 @@ export class Show {
    * Shows details of a particular card (template card, or project card)
    * @note Note that parameter 'cardKey' is optional due to technical limitations of class calling this class. It must be defined to get valid results.
    * @param cardKey card key to find
-   * @param contentType Content format in which content is to be shown
-   * @returns card details
+   * @returns card details: metadata, content, children and attachments
    */
   @read
-  public async showCardDetails(
-    cardKey?: string,
-    contentType?: FileContentType,
-  ): Promise<Card> {
+  public async showCardDetails(cardKey?: string): Promise<Card> {
     if (!cardKey) {
       throw new Error(`Mandatory parameter 'cardKey' missing`);
     }
-    // todo: Make a constant about this
-    const details: FetchCardDetails = {
-      parent: true,
-      metadata: true,
-      children: true,
-      attachments: true,
-      content: true,
-    };
-    if (contentType) {
-      details.contentType = contentType;
-    }
-    return this.project.findCard(cardKey, details);
+    return this.project.findCard(cardKey);
   }
 
   /**

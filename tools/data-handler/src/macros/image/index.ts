@@ -40,9 +40,9 @@ export default class ImageMacro extends BaseMacro {
     cardKey: string,
     filename: string,
   ) {
-    const card = context.project.findCard(cardKey);
-    const attachment =
-      card.attachments?.find((a) => a.fileName === filename) ?? undefined;
+    const attachment = context.project
+      .cardAttachments(cardKey)
+      .find((a) => a.fileName === filename);
     if (!attachment) {
       throw new Error(
         `Attachment file '${filename}' not found in card '${cardKey}'`,
