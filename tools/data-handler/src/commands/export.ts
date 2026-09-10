@@ -114,6 +114,15 @@ export class Export {
     const proc = spawn(
       'asciidoctor-pdf',
       [
+        // Card content is untrusted: SECURE blocks include:: reading server files.
+        // It also locks icons and source-highlighter off, so both are restored here;
+        // a command-line attribute cannot be overridden from a card.
+        '--safe-mode',
+        'secure',
+        '-a',
+        'source-highlighter=rouge',
+        '-a',
+        'icons=font',
         '-a',
         'pdf-theme=cyberismo',
         '-a',

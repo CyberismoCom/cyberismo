@@ -51,6 +51,10 @@ describe('PDF export — AsciiDoc source assembly', () => {
   });
 });
 
+// Each case spawns the asciidoctor-pdf CLI, which overruns the default timeout
+// when the suite runs several files at once.
+const PDF_SPAWN_TIMEOUT = 60000;
+
 describe('PDF export - asciidoctor safe mode', () => {
   const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'tmp-export-pdf-safe-mode-tests');
@@ -96,18 +100,23 @@ describe('PDF export - asciidoctor safe mode', () => {
 
       expect(pdf.toString('latin1')).not.toContain('env_leak_canary_qqz');
     },
+    PDF_SPAWN_TIMEOUT,
   );
 
-  it('does not read files outside the project into the PDF', async () => {
-    const secretFile = join(outsideDir, 'secret.adoc');
-    writeFileSync(secretFile, '== File Leak Canary Zzx\n');
-    await commands.editCmd.editCardContent(
-      'decision_5',
-      `== Testing\ninclude::${secretFile}[]\n`,
-    );
+  it(
+    'does not read files outside the project into the PDF',
+    async () => {
+      const secretFile = join(outsideDir, 'secret.adoc');
+      writeFileSync(secretFile, '== File Leak Canary Zzx\n');
+      await commands.editCmd.editCardContent(
+        'decision_5',
+        `== Testing\ninclude::${secretFile}[]\n`,
+      );
 
-    const pdf = await exportCmd.exportPdfBuffer(options);
+      const pdf = await exportCmd.exportPdfBuffer(options);
 
-    expect(pdf.toString('latin1')).not.toContain('file_leak_canary_zzx');
-  });
+      expect(pdf.toString('latin1')).not.toContain('file_leak_canary_zzx');
+    },
+    PDF_SPAWN_TIMEOUT,
+  );
 });
