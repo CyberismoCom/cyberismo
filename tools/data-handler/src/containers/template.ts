@@ -88,12 +88,12 @@ export class Template extends CardContainer {
     return cardsByKey;
   }
 
-  private assignRanksToParentCards(
+  private rootCardRanks(
     cards: Card[],
     parentCard: Card | undefined,
-  ): Card[] {
+  ): Map<string, string> {
     const getRank = (card: Card) => card?.metadata?.rank || '';
-    const parentCards = sortItems(
+    const rootCards = sortItems(
       cards.filter((c) => c.parent === ROOT),
       getRank,
     );
@@ -108,14 +108,12 @@ export class Template extends CardContainer {
         getRank,
       ).pop()?.metadata?.rank || FIRST_RANK;
 
-    parentCards.forEach((card) => {
+    const ranks = new Map<string, string>();
+    for (const card of rootCards) {
       latestRank = getRankAfter(latestRank);
-      if (card.metadata) {
-        card.metadata.rank = latestRank;
-      }
-    });
-
-    return parentCards;
+      ranks.set(card.key, latestRank);
+    }
+    return ranks;
   }
 
   private updateCardPaths(
@@ -176,33 +174,42 @@ export class Template extends CardContainer {
     await mkdir(attachmentsFolder, { recursive: true });
 
     let content = card.content;
+    const attachments: CardAttachment[] = card.attachments.map((attachment) => {
+      const attachmentUniqueName = `${card.key}-${attachment.fileName}`;
+      content = content?.replace(
+        new RegExp(
+          `(\\{\\{#image\\}\\}[^}]*)"fileName": "${attachment.fileName}"([^}]*\\{\\{\\/image\\}\\})`,
+          'g',
+        ),
+        `$1"fileName": "${attachmentUniqueName}"$2`,
+      );
+      // keep fallback
+      content = content?.replace(
+        new RegExp(`image::${attachment.fileName}`, 'g'),
+        `image::${attachmentUniqueName}`,
+      );
+      return {
+        ...attachment,
+        card: card.key,
+        path: attachmentsFolder,
+        fileName: attachmentUniqueName,
+      };
+    });
+
     await Promise.all(
-      card.attachments.map(async (attachment) => {
-        const attachmentUniqueName = `${card.key}-${attachment.fileName}`;
-        content = content?.replace(
-          new RegExp(
-            `(\\{\\{#image\\}\\}[^}]*)"fileName": "${attachment.fileName}"([^}]*\\{\\{\\/image\\}\\})`,
-            'g',
-          ),
-          `$1"fileName": "${attachmentUniqueName}"$2`,
-        );
-        // keep fallback
-        content = content?.replace(
-          new RegExp(`image::${attachment.fileName}`, 'g'),
-          `image::${attachmentUniqueName}`,
-        );
-        await copyFile(
+      card.attachments.map((attachment, index) =>
+        copyFile(
           join(attachment.path, attachment.fileName),
-          join(card.path, 'a', attachmentUniqueName),
-        );
-      }),
+          join(attachmentsFolder, attachments[index].fileName),
+        ),
+      ),
     );
-    return { ...card, content };
+    return { ...card, content, attachments };
   }
 
   private async processMetadata(
     card: Card,
-    parentCards: Card[],
+    rootCardRanks: Map<string, string>,
     templateIDMap: Map<string, string>,
   ): Promise<Card> {
     if (!card.metadata) return card;
@@ -222,8 +229,6 @@ export class Template extends CardContainer {
       );
     }
 
-    const cardWithRank = parentCards.find((c) => c.key === card.key);
-
     let templateCardKey;
     for (const [key, value] of templateIDMap) {
       if (value === card.key) {
@@ -231,13 +236,16 @@ export class Template extends CardContainer {
         break;
       }
     }
+    const allocatedRank = templateCardKey
+      ? rootCardRanks.get(templateCardKey)
+      : undefined;
     const newMetadata = {
       ...card.metadata,
       templateCardKey,
       workflowState: initialWorkflowState.toState,
       cardType: cardType.name,
       createdAt: new Date().toISOString(),
-      rank: cardWithRank?.metadata?.rank || card.metadata.rank || EMPTY_RANK,
+      rank: allocatedRank || card.metadata.rank || EMPTY_RANK,
     };
 
     // Null custom-field values on the template card are a 'no value' marker, not content.
@@ -290,21 +298,12 @@ export class Template extends CardContainer {
     return '';
   }
 
-  // Removes cards
-  // Helper for doCreateCards; not intended for any other use.
-  private async removeCards(cardMap: Map<string, string>) {
-    const cards: Card[] = [];
-    // Find all cards that need to be removed.
-    cardMap.forEach((createdCard) => {
-      const card = this.project.findCard(createdCard);
-      cards.push(card);
-    });
-    // Delete card folders.
-    const deleteAll: Promise<void>[] = [];
-    cards.forEach((card) => {
-      deleteAll.push(rm(card.path, { force: true, recursive: true }));
-    });
-    await Promise.all(deleteAll);
+  // Deletes the card folders createCards had begun writing.
+  // Helper for createCards; not intended for any other use.
+  private async removeCards(cardPaths: string[]) {
+    await Promise.all(
+      cardPaths.map((path) => rm(path, { force: true, recursive: true })),
+    );
   }
 
   // Fetches project top level cards only.
@@ -352,11 +351,22 @@ export class Template extends CardContainer {
     cardTypeName: string,
     parentCard?: Card,
   ): Promise<string> {
-    const destinationCardPath = parentCard
-      ? join(this.cardFolder(parentCard.key), 'c')
-      : this.templateCardsPath;
-    let newCardKey: string;
+    const [newCardKey] = await this.addCards(cardTypeName, 1, parentCard);
+    return newCardKey;
+  }
 
+  /**
+   * Adds new cards to the template.
+   * @param cardTypeName card type for the new cards
+   * @param count how many cards to add
+   * @param parentCard parent card; optional - if missing will create top-level cards
+   * @returns card key IDs of the added cards, in rank order
+   */
+  public async addCards(
+    cardTypeName: string,
+    count: number,
+    parentCard?: Card,
+  ): Promise<string[]> {
     try {
       // todo: to use cache instead of file access
       if (!pathExists(this.templateFolder())) {
@@ -372,34 +382,42 @@ export class Template extends CardContainer {
         );
       }
 
-      const cardIds = await this.project.listCardIds();
-      newCardKey = this.project.newCardKey(cardIds);
-      const templateCardToCreate = parentCard
-        ? join(destinationCardPath, newCardKey)
-        : join(this.templateCardsPath, newCardKey);
+      const destinationCardPath = parentCard
+        ? join(this.cardFolder(parentCard.key), 'c')
+        : this.templateCardsPath;
 
-      const templateCards = parentCard
+      const cardIds = await this.project.listCardIds();
+      const newCardKeys = this.project.newCardKeys(count, cardIds);
+
+      const siblings = parentCard
         ? this.project.cardKeysToCards(parentCard.children)
         : this.cards();
-      const defaultContent = DefaultContent.card(cardType, templateCards);
 
-      await mkdir(templateCardToCreate, { recursive: true });
-      const defaultCard: Card = {
-        key: basename(templateCardToCreate),
-        path: templateCardToCreate,
-        metadata: defaultContent,
-        children: [],
-        attachments: [],
-        content: '',
-        parent: parentCard ? parentCard.key : ROOT,
-      };
-      await this.saveCard(defaultCard);
-      await this.project.handleNewCards([defaultCard]);
+      const newCards: Card[] = [];
+      for (const newCardKey of newCardKeys) {
+        newCards.push({
+          key: newCardKey,
+          path: join(destinationCardPath, newCardKey),
+          metadata: DefaultContent.card(cardType, [...siblings, ...newCards]),
+          children: [],
+          attachments: [],
+          content: '',
+          parent: parentCard ? parentCard.key : ROOT,
+        });
+      }
+
+      await Promise.all(
+        newCards.map(async (card) => {
+          await mkdir(card.path, { recursive: true });
+          await this.saveCard(card);
+        }),
+      );
+      await this.project.handleNewCards(newCards);
+      return newCardKeys;
     } catch (error) {
       this.logger.error({ error });
       throw error;
     }
-    return newCardKey;
   }
 
   /**
@@ -471,43 +489,54 @@ export class Template extends CardContainer {
       throw error;
     }
 
-    let cardKeyMap: Map<string, string> = new Map();
+    const createdPaths: string[] = [];
     try {
-      cardKeyMap = await this.buildCardKeyMap(cards);
-      const parentCards = this.assignRanksToParentCards(cards, parentCard);
+      const cardKeyMap = await this.buildCardKeyMap(cards);
+      const rootCardRanks = this.rootCardRanks(cards, parentCard);
       const templatesFolder = this.templateFolder();
 
       // Process all cards in parallel
       // Create deep copies to avoid mutating the cached template cards
-      const processedCards = await Promise.all(
+      const results = await Promise.allSettled(
         cards.map(async (originalCard) => {
           const card: Card = structuredClone(originalCard);
           // Update paths and keys
           this.updateCardPaths(card, cardKeyMap, templatesFolder, parentCard);
+          createdPaths.push(card.path);
 
-          // Process metadata and attachments in parallel
-          const [processedCard, processedAttachments] = await Promise.all([
-            this.processMetadata(card, parentCards, cardKeyMap),
-            this.processAttachments(card),
-          ]);
-
-          // Create directory and write files
-          await mkdir(processedCard.path, { recursive: true });
+          await mkdir(card.path, { recursive: true });
+          const processedCard = await this.processAttachments(
+            await this.processMetadata(card, rootCardRanks, cardKeyMap),
+          );
 
           await Promise.all([
             this.saveCardMetadata(processedCard),
             writeFile(
               join(processedCard.path, Project.cardContentFile),
-              processedAttachments.content || '',
+              processedCard.content || '',
             ),
           ]);
           return processedCard;
         }),
       );
+      const failed = results.find((result) => result.status === 'rejected');
+      if (failed) {
+        throw failed.reason;
+      }
+      const processedCards = results.map(
+        (result) => (result as PromiseFulfilledResult<Card>).value,
+      );
       await this.project.handleNewCards(processedCards);
       return processedCards;
     } catch (error) {
-      await this.removeCards(cardKeyMap);
+      try {
+        await this.removeCards(createdPaths);
+      } catch (cleanupError) {
+        this.logger.error(
+          { error: cleanupError },
+          'Failed to remove partially created cards',
+        );
+      }
       this.logger.error({ error }, 'Failed to create cards');
       throw error;
     }
