@@ -182,4 +182,19 @@ describe('export module', () => {
       ).rejects.toThrow('Available: foo');
     });
   });
+
+  describe('projectPrefixFromResponse', () => {
+    test('reads the project prefix stamped onto an export-mode response', async () => {
+      const { projectPrefixFromResponse } = await import('../src/export.js');
+      const response = new Response('{}', {
+        headers: { 'X-Cyberismo-Project': 'decision' },
+      });
+      expect(projectPrefixFromResponse(response)).toBe('decision');
+    });
+
+    test('returns undefined when the header is absent', async () => {
+      const { projectPrefixFromResponse } = await import('../src/export.js');
+      expect(projectPrefixFromResponse(new Response('{}'))).toBe(undefined);
+    });
+  });
 });
