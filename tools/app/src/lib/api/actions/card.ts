@@ -17,10 +17,10 @@ export async function parseContent(
   content: string,
   projectPrefix?: string,
 ) {
-  const result = await callApi<{ parsedContent: string }>(
+  const result = await callApi<{ adocContent: string }>(
     projectApiPaths(projectPrefix).cardParse(key),
     'POST',
     { content },
   );
-  return result.parsedContent;
+  return result.adocContent;
 }

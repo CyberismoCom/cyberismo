@@ -11,7 +11,6 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { convert } from '@asciidoctor/core';
 import type {
   ExportPdfOptions,
   MetadataContent,
@@ -181,18 +180,7 @@ export async function parseContent(
       'inject',
     );
 
-    const projectPrefix = commands.project.projectPrefix;
-    const parsedContent = (
-      await convert(asciidocContent, {
-        safe: 'safe',
-        attributes: {
-          imagesdir: `/api/projects/${projectPrefix}/cards/${key}/a`,
-          icons: 'font',
-        },
-      })
-    ).toString();
-
-    return { parsedContent };
+    return { adocContent: asciidocContent };
   });
 }
 

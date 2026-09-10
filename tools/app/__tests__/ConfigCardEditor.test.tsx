@@ -78,7 +78,7 @@ vi.mock('@/lib/auth', () => ({
 }));
 
 vi.mock('@/lib/api/actions/card', () => ({
-  parseContent: vi.fn().mockResolvedValue('<p>html</p>'),
+  parseContent: vi.fn().mockResolvedValue('preview adoc'),
 }));
 
 vi.mock('@/lib/utils', async (orig) => ({
@@ -99,7 +99,7 @@ const baseCard = {
   title: 'A template card',
   labels: [],
   rawContent: '== Body',
-  parsedContent: '<h2>Body</h2>',
+  adocContent: '== Body',
   attachments: [],
   deniedOperations: { editField: [] },
   fields: [

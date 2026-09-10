@@ -225,9 +225,6 @@ importers:
 
   tools/backend:
     dependencies:
-      '@asciidoctor/core':
-        specifier: ^4.0.11
-        version: 4.0.11
       '@cyberismo/assets':
         specifier: workspace:*
         version: link:../assets
