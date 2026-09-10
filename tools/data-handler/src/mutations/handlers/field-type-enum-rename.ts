@@ -22,11 +22,11 @@ import type { EnumDefinition } from '../../interfaces/resource-interfaces.js';
 
 /**
  * Renaming an enum value (a 'change' on 'enumValues' whose enumValue differs
- * from the new one) is a breaking change: the enum value is the array identity,
+ * from the new one) is a migratable change: the enum value is the array identity,
  * so every card holding the old value must be remapped. FieldTypeResource.update
  * renames the value in the enum definition; the cross-resource part — rewriting
  * the value on every affected card — lives here. Mirrors
- * WorkflowRenameStateHandler. Marked breaking.
+ * WorkflowRenameStateHandler.
  */
 export class FieldTypeEnumRenameHandler implements Handler<EditInput> {
   async apply(ctx: MutationContext<EditInput>): Promise<void> {

@@ -22,11 +22,11 @@ import {
 } from '../cascades/rewrite-refs.js';
 
 /**
- * Renaming a field type is a breaking change: card-content references,
+ * Renaming a field type is a migratable change: card-content references,
  * calculations, report handlebars, the customFields[].name entries on every
  * referencing local card type and the metadata keys of every local card
- * holding a value under the old name are rewritten. The operation is marked
- * breaking so the engine records a log entry.
+ * holding a value under the old name are rewritten. The rename is classified
+ * migratable, so the engine records a log entry.
  */
 export class FieldTypeRenameHandler implements Handler<RenameInput> {
   async apply(ctx: MutationContext<RenameInput>): Promise<void> {

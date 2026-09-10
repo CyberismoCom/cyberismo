@@ -26,10 +26,10 @@ import type { DataType } from '../../interfaces/resource-interfaces.js';
 const SHORT_TEXT_MAX_LENGTH = 80;
 
 /**
- * Changing a field type's data type is a breaking change: every card carrying
+ * Changing a field type's data type is a migratable change: every card carrying
  * the field has its value converted to the new type. FieldTypeResource.update
  * validates the conversion and persists the new dataType; the handler then owns
- * the per-card value conversion. Marked breaking.
+ * the per-card value conversion.
  */
 export class FieldTypeDataTypeHandler implements Handler<EditInput> {
   async apply(ctx: MutationContext<EditInput>): Promise<void> {

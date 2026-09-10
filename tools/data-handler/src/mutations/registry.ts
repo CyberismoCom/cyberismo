@@ -40,6 +40,19 @@ import { LeafResourceRenameHandler } from './handlers/leaf-resource-rename.js';
 import { ProjectRenameHandler } from './handlers/project-rename.js';
 
 /**
+ * Migration-policy class of a route (INTDEV-1434):
+ * - 'none' — consumers need no migration; never logged.
+ * - 'migratable' — a sealed log entry replays the change losslessly on
+ *   consumer data (renames, mapped conversions).
+ * - 'destructive' — consumer data is discarded or orphaned; replay cannot
+ *   restore it.
+ * The version gate admits 'none' in a patch, 'migratable' in a minor, and
+ * 'destructive' only in a major. Routes with classification !== 'none' record
+ * a configuration log entry.
+ */
+export type ChangeClassification = 'none' | 'migratable' | 'destructive';
+
+/**
  * A route → handler pair. Discriminated by `route.kind`: each member ties the
  * handler to the input variant its route is guaranteed to dispatch, so pairing
  * a route with a handler built for a different variant (e.g. a `rename` route
@@ -50,22 +63,22 @@ export type Registration =
   | {
       route: RouteKey & { kind: 'edit' };
       handler: Handler<EditInput>;
-      breaking: boolean;
+      classification: ChangeClassification;
     }
   | {
       route: RouteKey & { kind: 'delete' };
       handler: Handler<DeleteInput>;
-      breaking: boolean;
+      classification: ChangeClassification;
     }
   | {
       route: RouteKey & { kind: 'rename' };
       handler: Handler<RenameInput>;
-      breaking: boolean;
+      classification: ChangeClassification;
     }
   | {
       route: RouteKey & { kind: 'project_rename' };
       handler: Handler<ProjectRenameInput>;
-      breaking: boolean;
+      classification: ChangeClassification;
     };
 
 const plain = new PlainHandler();
@@ -87,12 +100,12 @@ const linkTypeRename = new LinkTypeRenameHandler();
 const linkTypeDelete = new LinkTypeDeleteHandler();
 const projectRename = new ProjectRenameHandler();
 
-// Key-wildcard plain edit rows: route.op = undefined, breaking: false.
+// Key-wildcard plain edit rows: route.op = undefined, classification 'none'.
 function plainEdit(type: string, key: string): Registration {
   return {
     route: { kind: 'edit', type, key },
     handler: plain,
-    breaking: false,
+    classification: 'none',
   };
 }
 
@@ -150,12 +163,12 @@ export const ROUTES: Registration[] = [
   {
     route: { kind: 'edit', type: 'cardTypes', key: 'workflow', op: 'change' },
     handler: cardTypeWorkflowChange,
-    breaking: true,
+    classification: 'migratable',
   },
   {
     route: { kind: 'edit', type: 'fieldTypes', key: 'dataType', op: 'change' },
     handler: fieldTypeDataType,
-    breaking: true,
+    classification: 'migratable',
   },
   {
     route: {
@@ -165,7 +178,7 @@ export const ROUTES: Registration[] = [
       op: 'remove',
     },
     handler: fieldTypeEnumRemove,
-    breaking: true,
+    classification: 'migratable',
   },
   {
     route: {
@@ -175,12 +188,12 @@ export const ROUTES: Registration[] = [
       op: 'rename-member',
     },
     handler: fieldTypeEnumRename,
-    breaking: true,
+    classification: 'migratable',
   },
   {
     route: { kind: 'edit', type: 'workflows', key: 'states', op: 'remove' },
     handler: workflowRemoveState,
-    breaking: true,
+    classification: 'migratable',
   },
   {
     route: {
@@ -190,7 +203,7 @@ export const ROUTES: Registration[] = [
       op: 'rename-member',
     },
     handler: workflowRenameState,
-    breaking: true,
+    classification: 'migratable',
   },
 
   // EDIT — key-wildcard plain rows.
@@ -202,106 +215,110 @@ export const ROUTES: Registration[] = [
   {
     route: { kind: 'rename', type: 'cardTypes' },
     handler: cardTypeRename,
-    breaking: true,
+    classification: 'migratable',
   },
   {
     route: { kind: 'rename', type: 'fieldTypes' },
     handler: fieldTypeRename,
-    breaking: true,
+    classification: 'migratable',
   },
   {
     route: { kind: 'rename', type: 'linkTypes' },
     handler: linkTypeRename,
-    breaking: true,
+    classification: 'migratable',
   },
   {
     route: { kind: 'rename', type: 'workflows' },
     handler: workflowRename,
-    breaking: true,
+    classification: 'migratable',
   },
   {
     route: { kind: 'rename', type: 'templates' },
     handler: new LeafResourceRenameHandler('templates', 'Template'),
-    breaking: true,
+    classification: 'migratable',
   },
   {
     route: { kind: 'rename', type: 'calculations' },
     handler: new LeafResourceRenameHandler('calculations', 'Calculation'),
-    breaking: true,
+    classification: 'migratable',
   },
   {
     route: { kind: 'rename', type: 'reports' },
     handler: new LeafResourceRenameHandler('reports', 'Report'),
-    breaking: true,
+    classification: 'migratable',
   },
   {
     route: { kind: 'rename', type: 'graphModels' },
     handler: new LeafResourceRenameHandler('graphModels', 'Graph model'),
-    breaking: true,
+    classification: 'migratable',
   },
   {
     route: { kind: 'rename', type: 'graphViews' },
     handler: new LeafResourceRenameHandler('graphViews', 'Graph view'),
-    breaking: true,
+    classification: 'migratable',
   },
   {
     route: { kind: 'rename', type: 'skills' },
     handler: new LeafResourceRenameHandler('skills', 'Skill'),
-    breaking: true,
+    classification: 'migratable',
   },
 
   // DELETE rows.
   {
     route: { kind: 'delete', type: 'cardTypes' },
     handler: cardTypeDelete,
-    breaking: true,
+    classification: 'destructive',
   },
   {
     route: { kind: 'delete', type: 'linkTypes' },
     handler: linkTypeDelete,
-    breaking: true,
+    classification: 'destructive',
   },
   {
     route: { kind: 'delete', type: 'fieldTypes' },
     handler: fieldTypeDelete,
-    breaking: true,
+    classification: 'destructive',
   },
   {
     route: { kind: 'delete', type: 'workflows' },
     handler: workflowDelete,
-    breaking: true,
+    classification: 'destructive',
   },
   {
     route: { kind: 'delete', type: 'templates' },
     handler: plainDelete,
-    breaking: false,
+    classification: 'none',
   },
   {
     route: { kind: 'delete', type: 'calculations' },
     handler: plainDelete,
-    breaking: false,
+    classification: 'none',
   },
   {
     route: { kind: 'delete', type: 'reports' },
     handler: plainDelete,
-    breaking: false,
+    classification: 'none',
   },
   {
     route: { kind: 'delete', type: 'graphModels' },
     handler: plainDelete,
-    breaking: false,
+    classification: 'none',
   },
   {
     route: { kind: 'delete', type: 'graphViews' },
     handler: plainDelete,
-    breaking: false,
+    classification: 'none',
   },
   {
     route: { kind: 'delete', type: 'skills' },
     handler: plainDelete,
-    breaking: false,
+    classification: 'none',
   },
 
   // PROJECT_RENAME row.
-  { route: { kind: 'project_rename' }, handler: projectRename, breaking: true },
+  {
+    route: { kind: 'project_rename' },
+    handler: projectRename,
+    classification: 'migratable',
+  },
 ];

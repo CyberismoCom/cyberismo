@@ -21,6 +21,7 @@ import { readFileSync } from 'node:fs';
 // duplicate-route guard in dispatcher.ts at module load. If two ROUTES rows
 // resolved to the same key string, this import would throw.
 import { ROUTES } from '../../src/mutations/registry.js';
+import { routeKeyString } from '../../src/mutations/route.js';
 import '../../src/mutations/dispatcher.js';
 
 // Resource types whose schema-backed editable keys must each be routable.
@@ -95,6 +96,61 @@ describe('mutation route registry coverage', () => {
       uncovered,
       `Schema keys with no ROUTES edit row (specific or wildcard):\n  ${uncovered.join('\n  ')}`,
     ).toEqual([]);
+  });
+
+  it('every route carries the agreed classification', () => {
+    // The migration policy table (INTDEV-1434): destructive changes require a
+    // major bump, migratable ones a minor, everything else may ship in a patch.
+    const DESTRUCTIVE = new Set([
+      'delete|cardTypes||',
+      'delete|fieldTypes||',
+      'delete|linkTypes||',
+      'delete|workflows||',
+    ]);
+    const MIGRATABLE = new Set([
+      'edit|cardTypes|workflow|change',
+      'edit|fieldTypes|dataType|change',
+      'edit|fieldTypes|enumValues|remove',
+      'edit|fieldTypes|enumValues|rename-member',
+      'edit|workflows|states|remove',
+      'edit|workflows|states|rename-member',
+      'rename|cardTypes||',
+      'rename|fieldTypes||',
+      'rename|linkTypes||',
+      'rename|workflows||',
+      'rename|templates||',
+      'rename|calculations||',
+      'rename|reports||',
+      'rename|graphModels||',
+      'rename|graphViews||',
+      'rename|skills||',
+      'project_rename|||',
+    ]);
+
+    const mismatches: string[] = [];
+    for (const row of ROUTES) {
+      const key = routeKeyString(row.route);
+      const expected = DESTRUCTIVE.has(key)
+        ? 'destructive'
+        : MIGRATABLE.has(key)
+          ? 'migratable'
+          : 'none';
+      if (row.classification !== expected) {
+        mismatches.push(`${key}: got ${row.classification}, want ${expected}`);
+      }
+    }
+    expect(
+      mismatches,
+      `ROUTES rows whose classification disagrees with the policy table:\n  ${mismatches.join('\n  ')}`,
+    ).toEqual([]);
+
+    // Every route named in the policy table must exist in ROUTES.
+    const present = new Set(ROUTES.map((r) => routeKeyString(r.route)));
+    for (const key of [...DESTRUCTIVE, ...MIGRATABLE]) {
+      expect(present, `policy table names a missing route: ${key}`).toContain(
+        key,
+      );
+    }
   });
 
   it('has no phantom edit rows pointing at non-existent schema keys', () => {

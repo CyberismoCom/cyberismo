@@ -30,8 +30,8 @@ export class Update {
 
   /**
    * Applies a resource mutation through the mutation engine, which dispatches
-   * to a handler that performs the change, its cascade and — for breaking
-   * changes — records a migration log entry.
+   * to a handler that performs the change, its cascade and — unless the change
+   * is classified 'none' — records a migration log entry.
    * @param input The mutation to apply.
    */
   public async apply(input: MutationInput): Promise<void> {

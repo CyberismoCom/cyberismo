@@ -15,7 +15,7 @@
 import { readdir } from 'node:fs/promises';
 import semver from 'semver';
 
-/** A sealed migration log: covers breaking changes in (from, to]. */
+/** A sealed migration log: covers the changes recorded in (from, to]. */
 export interface SealFile {
   from: string;
   to: string;
