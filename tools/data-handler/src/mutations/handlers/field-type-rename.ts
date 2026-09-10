@@ -99,10 +99,10 @@ export class FieldTypeRenameHandler implements Handler<RenameInput> {
     newName: string,
   ): Promise<void> {
     const cards = [
-      ...ctx.project.cards(ctx.project.paths.cardRootFolder),
+      ...ctx.project.cardTree.cards(),
       ...ctx.project.resources
         .templates(ResourcesFrom.localOnly)
-        .flatMap((template) => template.templateObject().cards()),
+        .flatMap((template) => template.cardTree.cards()),
     ];
     for (const card of cards) {
       const metadata = card.metadata;

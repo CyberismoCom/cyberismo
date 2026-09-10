@@ -35,8 +35,8 @@ describe('CardType mutation engine end-to-end', () => {
     expect(
       project.resources.exists(`${project.projectPrefix}/cardTypes/decision`),
     ).toBe(false);
-    const remaining = project
-      .cards(undefined)
+    const remaining = project.cardTree
+      .cards()
       .filter(
         (c) =>
           c.metadata?.cardType ===

@@ -15,7 +15,6 @@ import { CardLocation } from '../src/interfaces/project-interfaces.js';
 import {
   buildCardHierarchy,
   flattenCardArray,
-  cardPathParts,
   isTemplateCard,
 } from '../src/utils/card-utils.js';
 import { Project } from '../src/containers/project.js';
@@ -72,9 +71,9 @@ describe('project', () => {
     await project.populateCaches();
     expect(project).not.toBeUndefined();
 
-    const attachments = project.attachments();
+    const attachments = project.cardTree.attachments();
     expect(attachments.length).toBe(1);
-    const cards = project.cards();
+    const cards = project.cardTree.cards();
     expect(cards.length).toBe(2);
     const cardTypes = project.resources
       .resourceTypes('cardTypes')
@@ -128,10 +127,8 @@ describe('project', () => {
     expect(cardExists).toBe(true);
 
     const name = 'decision/templates/decision';
-    const templateObject = project.resources
-      .byType(name, 'templates')
-      .templateObject();
-    const exists = templateObject.hasTemplateCard(templateCard);
+    const templateResource = project.resources.byType(name, 'templates');
+    const exists = templateResource.cardTree.has(templateCard);
     expect(exists).toBe(true);
     const pathToCard = await project.cardFolder(cardToOperateOn);
     expect(pathToCard).toContain('decision_5');
@@ -370,7 +367,7 @@ describe('project', () => {
     await project.populateCaches();
     expect(project).not.toBeUndefined();
 
-    const projectCards = project.showProjectCards();
+    const projectCards = project.cardTree.rootCards();
     expect(projectCards.length).toBe(1);
     const projectCard = projectCards.at(0)!;
     expect(projectCard.key).toBe('decision_5');
@@ -380,7 +377,7 @@ describe('project', () => {
     expect(projectCard.metadata?.title).toBe('Decision Records');
     expect(projectCard.metadata?.workflowState).toBe('Created');
     expect(isTemplateCard(projectCard)).toBe(false);
-    expect(project.hasTemplateCard(projectCard.key)).toBe(false);
+    expect(project.treeOf(projectCard.key)).toBe(project.cardTree);
   });
   it('empty project does not have cards', async () => {
     const emptyProjectPath = join(testDir, 'valid/minimal');
@@ -388,7 +385,7 @@ describe('project', () => {
     await project.populateCaches();
     expect(project).not.toBeUndefined();
 
-    const projectCards = project.showProjectCards();
+    const projectCards = project.cardTree.rootCards();
     expect(projectCards.length).toBe(0);
   });
   it('access workflow details (success)', async () => {
@@ -440,9 +437,10 @@ describe('project', () => {
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).not.toBeUndefined();
-    const template = project.resources
-      .byType('decision/templates/decision', 'templates')
-      .templateObject();
+    const template = project.resources.byType(
+      'decision/templates/decision',
+      'templates',
+    );
     expect(template).not.toBeUndefined();
   });
   it('create template object from project using card (success)', async () => {
@@ -452,8 +450,11 @@ describe('project', () => {
     expect(project).not.toBeUndefined();
     const templateCards = project.allTemplateCards();
     expect(templateCards.length).toBeGreaterThan(0);
-    const template = project.createTemplateObjectFromCard(templateCards.at(0)!);
+    const treeName = project.treeOf(templateCards.at(0)!.key).name;
+    expect(treeName).not.toBe('project');
+    const template = project.templateResource(treeName);
     expect(template).not.toBeUndefined();
+    expect(template!.fullName).toBe(treeName);
   });
   it('find certain card from project - with content (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
@@ -497,10 +498,38 @@ describe('project', () => {
     // ...or fetch all templates, and then all cards for that template.
     const templates = project.resources.templates();
     for (const template of templates) {
-      const cards = project.templateCards(template.data!.name);
+      const cards = project.templateTree(template.data!.name).cards();
       templateCards = templateCards.filter((item) => cards.includes(item));
     }
     expect(templateCards).toHaveLength(0);
+  });
+  it('no tree for a name that does not resolve to a template', async () => {
+    const project = getTestProject(join(testDir, 'valid/decision-records'));
+    expect(() => project.templateTree('a/b/c/d')).toThrow(
+      "Template 'a/b/c/d' does not exist",
+    );
+  });
+  it('a scoped reload drops the tree of a template that is gone', async () => {
+    const decisionRecordsPath = join(testDir, 'valid/decision-records');
+    const project = getTestProject(decisionRecordsPath);
+    await project.populateCaches();
+
+    const removed = 'decision/templates/decision';
+    const removedKeys = project.templateTree(removed).keys();
+    expect(removedKeys.length).toBeGreaterThan(0);
+
+    // The template is gone, but the reload names another template - which is
+    // what a module update that dropped this one asks for.
+    project.resources.remove(removed);
+    await project.refreshAfterModuleChange(['decision']);
+
+    for (const cardKey of removedKeys) {
+      expect(project.cardKeyRegistry.ownerOf(cardKey)).toBeUndefined();
+      expect(project.hasCard(cardKey)).toBe(false);
+    }
+    expect(project.allTemplateCards().map((card) => card.key)).not.toContain(
+      removedKeys[0],
+    );
   });
   it('list project cards (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
@@ -542,7 +571,7 @@ describe('project', () => {
     expect(attachmentFolder).toContain('decision_1');
     expect(attachmentFolder).toContain(`${sep}a`);
 
-    const projectAttachments = project.attachments();
+    const projectAttachments = project.cardTree.attachments();
     expect(projectAttachments.length).toBe(1);
   });
   it('check all modules', async () => {
@@ -554,72 +583,59 @@ describe('project', () => {
     const modules = project.resources.moduleNames();
     expect(modules.length).toBe(0);
   });
-  it('parse card path - project root card', async () => {
+  it('card position - project root card', async () => {
     const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     const cardId = 'decision_5';
     const card = project.findCard(cardId);
-    const { template, cardKey, prefix, parents } = cardPathParts(
-      project.projectPrefix,
-      card.path,
-    );
-    expect(prefix).toBe('decision');
-    expect(cardKey).toBe(cardId);
-    expect(template).toBe(''); // not a template card
-    expect(parents.length).toBe(0); // no parents; root card
+    expect(card.key).toBe(cardId);
+    expect(card.parent).toBe('root'); // root card
+    expect(project.treeOf(cardId).ancestorsOf(cardId)).toHaveLength(0);
+    expect(project.treeOf(cardId).name).toBe('project'); // not a template card
+    expect(card.path).toBe(join(project.paths.cardRootFolder, cardId));
   });
-  it('parse card path - project non-root card', async () => {
+  it('card position - project non-root card', async () => {
     const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     const cardId = 'decision_6';
     const card = project.findCard(cardId);
-    const { template, cardKey, prefix, parents } = cardPathParts(
-      project.projectPrefix,
-      card.path,
+    expect(card.key).toBe(cardId);
+    expect(project.treeOf(cardId).name).toBe('project'); // not a template card
+    expect(project.treeOf(cardId).ancestorsOf(cardId)).toHaveLength(1);
+    expect(card.path).toBe(
+      join(project.paths.cardRootFolder, card.parent!, 'c', cardId),
     );
-    expect(prefix).toBe('decision');
-    expect(cardKey).toBe(cardId);
-    expect(template).toBe(''); // not a template card
-    expect(parents.length).toBe(1);
   });
-  it('parse card path - template root card', async () => {
+  it('card position - template root card', async () => {
     const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     const cardId = 'decision_1';
     const card = project.findCard(cardId);
-    const { template, cardKey, prefix, parents } = cardPathParts(
-      project.projectPrefix,
-      card.path,
-    );
-    expect(prefix).toBe('decision');
-    expect(cardKey).toBe(cardId);
-    expect(template).toBe('decision/templates/decision');
-    expect(parents.length).toBe(0); // no parents; root card
+    expect(card.key).toBe(cardId);
+    expect(card.parent).toBe('root'); // root card
+    expect(project.treeOf(cardId).ancestorsOf(cardId)).toHaveLength(0);
+    expect(project.treeOf(cardId).name).toBe('decision/templates/decision');
   });
-  it('parse card path - template non-root card', async () => {
+  it('card position - template non-root card', async () => {
     const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     const cardId = 'decision_4';
     const card = project.findCard(cardId);
-    const { template, cardKey, prefix, parents } = cardPathParts(
-      project.projectPrefix,
-      card.path,
-    );
-    expect(prefix).toBe('decision');
-    expect(cardKey).toBe(cardId);
-    expect(template).toBe('decision/templates/simplepage');
-    expect(parents.length).toBe(1);
+    expect(card.key).toBe(cardId);
+    expect(project.treeOf(cardId).ancestorsOf(cardId)).toHaveLength(1);
+    expect(project.treeOf(cardId).name).toBe('decision/templates/simplepage');
   });
 
-  it('parse card path - invalid card', async () => {
+  it('card position - invalid card', async () => {
     const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
-    expect(() => cardPathParts(project.projectPrefix, 'decision_99')).toThrow();
+    expect(() => project.findCard('decision_99')).toThrow();
+    expect(project.cardKeyRegistry.ownerOf('decision_99')).toBeUndefined();
   });
   it('add module to project', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
@@ -664,7 +680,7 @@ describe('project', () => {
     const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
-    const cards = project.cards();
+    const cards = project.cardTree.cards();
     const hierarchicalCards = buildCardHierarchy(cards);
     const flat = flattenCardArray(hierarchicalCards, project);
 
@@ -708,22 +724,22 @@ describe('project', () => {
     expect(cardAttachments).toContain('newAttachment.heic');
 
     // Also check that project attachments include the new attachment
-    const projectAttachments = project
+    const projectAttachments = project.cardTree
       .attachments()
       .map((item) => item.fileName);
     expect(projectAttachments).toContain('newAttachment.heic');
 
     // Verify that attachment is visible by other means as well
     const projectAttachmentsVerified = project
-      .attachmentsByPath(project.paths.cardRootFolder)
+      .cardAttachments('decision_5')
       .map((item) => item.fileName);
     expect(projectAttachmentsVerified).toContain('newAttachment.heic');
 
     // Remove the attachment
     await project.removeCardAttachment('decision_5', 'newAttachment.heic');
     // Verify that attachment is no longer available
-    const projectAttachmentsRemoved = project
-      .attachmentsByPath(project.paths.cardRootFolder)
+    const projectAttachmentsRemoved = project.cardTree
+      .attachments()
       .map((item) => item.fileName);
     expect(projectAttachmentsRemoved).not.toContain('newAttachment.heic');
 
