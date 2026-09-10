@@ -1,7 +1,7 @@
 import { expect, it, describe, beforeAll, afterAll } from 'vitest';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 
 const execAsync = promisify(exec);
@@ -380,7 +380,7 @@ describe('Module command namespace', function () {
     expect(list.stdout).toContain('"name": "test"');
 
     const listFromOutside = await execAsync(
-      `cd ${tmpPath} && ${cli} module list -p ${resolve(modulePath)}`,
+      `cd ${tmpPath} && ${cli} module list -p cyberismo-cli-module`,
     );
     expect(listFromOutside.stdout).toContain('"name": "test"');
 
