@@ -76,15 +76,24 @@ calculatedLink(Source, Destination, LinkType, LinkDescription) :-
 field(Card, Field, Value) :- fieldOverride(Card, Field, Value).
 
 % The fieldCalculated -> field bridge is generated per field name by the data
-% handler: a generic field/3 head here makes every `not field(...)` in every
+% handler: a generic field/3 head here would make every `not field(...)` in every
 % calculation undecidable at grounding time.
 
 % warn when a scalar field ends up with conflicting values, e.g. a calculation
 % still uses a field() head for an override-enabled field
-notification(Card, "Fields", "Conflicting field values", @concatenate("Field ", Field, " has multiple values. If the field is calculated, make sure calculations use fieldCalculated instead of field.")) :-
+% The conflict is derived separately from the message: this rule's body is a
+% self-join over field/3, so an @concatenate call in its head would be evaluated
+% once per candidate value pair of every scalar field of every card. Deriving
+% conflictingFieldValues/2 first reduces that to one call per actual
+% conflict. V1 < V2 rather than V1 != V2 keeps each pair from being enumerated
+% in both directions.
+conflictingFieldValues(Card, Field) :-
     card(Card),
     field(Card, Field, V1),
     field(Card, Field, V2),
-    V1 != V2,
+    V1 < V2,
     dataType(Card, Field, DataType),
     DataType != "list".
+
+notification(Card, "Fields", "Conflicting field values", @concatenate("Field ", Field, " has multiple values. If the field is calculated, make sure calculations use fieldCalculated instead of field.")) :-
+    conflictingFieldValues(Card, Field).
