@@ -29,20 +29,6 @@ for (const r of ROUTES) {
   MAP.set(s, { handler: r.handler, classification: r.classification });
 }
 
-/**
- * Test-only override registered ahead of the declarative MAP. Carries its own
- * matches()/classification so tests keep classifying inputs directly, while
- * the production Handler interface no longer exposes them.
- */
-interface TestOverride {
-  matches(input: MutationInput): boolean;
-  readonly classification: ChangeClassification;
-  apply: Handler['apply'];
-  applyCascade: Handler['applyCascade'];
-}
-
-const TEST_OVERRIDES: TestOverride[] = [];
-
 function lookup(
   k: RouteKey,
 ): { handler: Handler; classification: ChangeClassification } | undefined {
@@ -59,11 +45,6 @@ function lookup(
 function resolve(
   input: MutationInput,
 ): { handler: Handler; classification: ChangeClassification } | undefined {
-  for (const override of TEST_OVERRIDES) {
-    if (override.matches(input)) {
-      return { handler: override, classification: override.classification };
-    }
-  }
   return lookup(route(input));
 }
 
@@ -83,13 +64,4 @@ export function classify(input: MutationInput): ChangeClassification {
   const found = resolve(input);
   if (found) return found.classification;
   throw new Error(`No mutation route for input: ${JSON.stringify(input)}`);
-}
-
-/** Test-only escape hatch for registering a handler ahead of the routes. */
-export function _registerHandlerForTest(handler: TestOverride): () => void {
-  TEST_OVERRIDES.unshift(handler);
-  return () => {
-    const idx = TEST_OVERRIDES.indexOf(handler);
-    if (idx >= 0) TEST_OVERRIDES.splice(idx, 1);
-  };
 }
