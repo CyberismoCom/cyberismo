@@ -41,36 +41,111 @@ interface CachedCard extends Card {
 const cardMetadataFile = 'index.json';
 const cardContentFile = 'index.adoc';
 
+// The location of cards that are not in a template.
+const PROJECT_LOCATION = 'project';
+
 /**
+ * Caches a container's cards, indexed by parent and by location.
  *
+ * Reads return their elements in unspecified but stable order: the order does
+ * not change between reads of a location that was not mutated. A caller that
+ * needs a particular order sorts for it.
  */
 export class CardCache {
   private cardCache: Map<string, CachedCard> = new Map();
+  private childrenIndex: Map<string, string[]> = new Map();
+  private locationIndex: Map<string, Set<string>> = new Map();
   private cachePopulated: boolean = false;
   constructor(private prefix: string) {}
 
-  // Recursively builds children relationships for all cards in the cache.
-  private buildChildrenRelationshipsRecursively() {
-    // Helper function to recursively populate children for a card
-    const populateChildren = (cardKey: string, cardCopy: Card) => {
-      const directChildren: string[] = [];
-      for (const potentialChild of this.getCards()) {
-        if (potentialChild.parent === cardKey) {
-          directChildren.push(potentialChild.key);
-        }
-      }
-      cardCopy.children = directChildren;
-    };
-
-    // Populate children for all cards in the cache
-    for (const card of this.getCards()) {
-      populateChildren(card.key, card);
+  private setChildren(parentKey: string, children: string[]) {
+    if (children.length === 0) {
+      this.childrenIndex.delete(parentKey);
+    } else {
+      this.childrenIndex.set(parentKey, children);
     }
+    const parent = this.cardCache.get(parentKey);
+    if (parent) {
+      parent.children = children;
+    }
+  }
+
+  private attachToParent(cardKey: string, parentKey?: string) {
+    if (!parentKey) {
+      return;
+    }
+    const siblings = this.childrenIndex.get(parentKey);
+    if (!siblings) {
+      this.setChildren(parentKey, [cardKey]);
+      return;
+    }
+    siblings.push(cardKey);
+  }
+
+  // The list is replaced, not mutated: callers walk a parent's child list while
+  // removing cards from it and must keep seeing the snapshot they started with.
+  private detachFromParent(cardKey: string, parentKey?: string) {
+    if (!parentKey) {
+      return;
+    }
+    const siblings = this.childrenIndex.get(parentKey);
+    if (!siblings?.includes(cardKey)) {
+      return;
+    }
+    this.setChildren(
+      parentKey,
+      siblings.filter((sibling) => sibling !== cardKey),
+    );
+  }
+
+  private addToLocation(cardKey: string, location: string) {
+    const keys = this.locationIndex.get(location);
+    if (!keys) {
+      this.locationIndex.set(location, new Set([cardKey]));
+      return;
+    }
+    keys.add(cardKey);
+  }
+
+  private removeFromLocation(cardKey: string, location?: string) {
+    if (!location) {
+      return;
+    }
+    const keys = this.locationIndex.get(location);
+    if (!keys?.delete(cardKey) || keys.size > 0) {
+      return;
+    }
+    this.locationIndex.delete(location);
+  }
+
+  private store(cardKey: string, card: CachedCard) {
+    const previous = this.cardCache.get(cardKey);
+    card.children = this.childrenIndex.get(cardKey) ?? [];
+    this.cardCache.set(cardKey, card);
+    if (previous?.parent !== card.parent) {
+      this.detachFromParent(cardKey, previous?.parent);
+      this.attachToParent(cardKey, card.parent);
+    }
+    if (previous?.location !== card.location) {
+      this.removeFromLocation(cardKey, previous?.location);
+      this.addToLocation(cardKey, card.location);
+    }
+  }
+
+  private unstore(cardKey: string): boolean {
+    const card = this.cardCache.get(cardKey);
+    if (!card) {
+      return false;
+    }
+    this.cardCache.delete(cardKey);
+    this.detachFromParent(cardKey, card.parent);
+    this.removeFromLocation(cardKey, card.location);
+    return true;
   }
 
   // Determines the location from a given path: 'project' for project cards, template name for template cards
   private determineLocationFromPath(path: string): string {
-    return cardPathParts(this.prefix, path).template || 'project';
+    return cardPathParts(this.prefix, path).template || PROJECT_LOCATION;
   }
 
   // Gets all directory entries recursively.
@@ -203,7 +278,7 @@ export class CardCache {
   }
 
   // Populates the cache from the given array of cards
-  private populateFromCards(cards: CachedCard[], buildRelationships = true) {
+  private populateFromCards(cards: CachedCard[]) {
     const duplicates: string[] = [];
     const batchKeys = new Set<string>();
     for (const card of cards) {
@@ -220,12 +295,9 @@ export class CardCache {
     }
 
     for (const card of cards) {
-      this.cardCache.set(card.key, card);
+      this.store(card.key, card);
     }
 
-    if (buildRelationships) {
-      this.populateChildrenRelationships();
-    }
     this.cachePopulated = true;
     CardCache.logger.info(`Card cache populated`);
   }
@@ -275,7 +347,7 @@ export class CardCache {
     }
 
     card.attachments.push(attachment);
-    this.cardCache.set(cardKey, card);
+    this.store(cardKey, card);
     return true;
   }
 
@@ -286,6 +358,8 @@ export class CardCache {
     CardCache.logger.info(`Card cache cleared`);
     this.cachePopulated = false;
     this.cardCache.clear();
+    this.childrenIndex.clear();
+    this.locationIndex.clear();
   }
 
   /**
@@ -294,11 +368,7 @@ export class CardCache {
    * @returns true, if card was removed from the cache; false otherwise
    */
   public deleteCard(cardKey: string) {
-    const cardExists = this.cardCache.has(cardKey);
-    if (cardExists) {
-      this.cardCache.delete(cardKey);
-    }
-    return cardExists;
+    return this.unstore(cardKey);
   }
 
   /**
@@ -326,10 +396,8 @@ export class CardCache {
    * @param templateName Name of the template
    */
   public deleteCardsFromTemplate(templateName: string) {
-    for (const card of this.cardCache.values()) {
-      if (card.location === templateName) {
-        this.deleteCard(card.key);
-      }
+    for (const cardKey of this.keysAtLocation(templateName)) {
+      this.deleteCard(cardKey);
     }
   }
 
@@ -337,21 +405,58 @@ export class CardCache {
    * Removes all template cards (i.e. cards whose location is not 'project') from the cache.
    */
   public deleteAllTemplateCards() {
-    for (const card of this.cardCache.values()) {
-      if (card.location !== 'project') {
-        this.deleteCard(card.key);
-      }
+    const templateLocations = [...this.locationIndex.keys()].filter(
+      (location) => location !== PROJECT_LOCATION,
+    );
+    for (const location of templateLocations) {
+      this.deleteCardsFromTemplate(location);
     }
   }
 
   /**
    * Returns all the template cards in the cache.
    * @returns all the template cards in the cache.
+   * @note A scan rather than a walk of the location index: the result spans
+   *   every location, so there is nothing to look up.
    */
   public getAllTemplateCards(): CachedCard[] {
     return Array.from(this.cardCache.values()).filter(
-      (item) => item.location !== 'project',
+      (item) => item.location !== PROJECT_LOCATION,
     );
+  }
+
+  /**
+   * Returns the cards in a given location.
+   * @param location 'project', or a full template name.
+   * @returns the cards in that location, in unspecified order.
+   */
+  public cardsAtLocation(location: string): CachedCard[] {
+    const cards: CachedCard[] = [];
+    for (const cardKey of this.locationIndex.get(location) ?? []) {
+      const card = this.cardCache.get(cardKey);
+      if (card) {
+        cards.push(card);
+      }
+    }
+    return cards;
+  }
+
+  /**
+   * Returns how many cards a given location holds.
+   * @param location 'project', or a full template name.
+   * @returns the number of cards in that location.
+   */
+  public cardCountAtLocation(location: string): number {
+    return this.locationIndex.get(location)?.size ?? 0;
+  }
+
+  /**
+   * Returns the card keys in a given location.
+   * @param location 'project', or a full template name.
+   * @returns the card keys in that location, in unspecified order.
+   */
+  public keysAtLocation(location: string): string[] {
+    return [...(this.locationIndex.get(location) ?? [])];
   }
 
   /**
@@ -421,24 +526,21 @@ export class CardCache {
   }
 
   /**
-   * Re-builds the existing cache's parent-child relationships info.
+   * Returns the child card keys of a given card.
+   * @param cardKey Card key whose children to return.
+   * @returns child card keys, in unspecified order.
    */
-  public populateChildrenRelationships() {
-    CardCache.logger.info(`Card children relationships re-built`);
-    for (const card of this.getCards()) {
-      card.children = [];
-    }
-    this.buildChildrenRelationshipsRecursively();
+  public childrenOf(cardKey: string): string[] {
+    return this.childrenIndex.get(cardKey) ?? [];
   }
 
   /**
    * Populates the cache from a given path
    * @param path File system path where the cache should be built from.
-   * @param buildRelationships Whether to build parent-child relationships immediately
    */
-  public async populateFromPath(path: string, buildRelationships = true) {
+  public async populateFromPath(path: string) {
     const cards = await this.fetchFileEntries(path);
-    this.populateFromCards(cards, buildRelationships);
+    this.populateFromCards(cards);
   }
 
   /**
@@ -455,7 +557,7 @@ export class CardCache {
         metadata: CardCache.normalizedMetadata(cardData.metadata),
         location: targetLocation,
       };
-      this.cardCache.set(cardKey, extendedCard);
+      this.store(cardKey, extendedCard);
       return;
     }
     if (!card?.path) {
@@ -479,7 +581,7 @@ export class CardCache {
       content: cardData.content ?? card.content,
       attachments: cardData.attachments ?? card.attachments,
     };
-    this.cardCache.set(cardKey, extendedCard);
+    this.store(cardKey, extendedCard);
   }
 
   /**
@@ -495,7 +597,7 @@ export class CardCache {
       return false;
     }
     card.attachments = attachments;
-    this.cardCache.set(cardKey, card);
+    this.store(cardKey, card);
     return true;
   }
 
@@ -512,7 +614,7 @@ export class CardCache {
       return false;
     }
     card.content = content;
-    this.cardCache.set(cardKey, card);
+    this.store(cardKey, card);
     return true;
   }
 
@@ -529,7 +631,7 @@ export class CardCache {
       return false;
     }
     card.metadata = CardCache.normalizedMetadata(metadata);
-    this.cardCache.set(cardKey, card);
+    this.store(cardKey, card);
     return true;
   }
 }

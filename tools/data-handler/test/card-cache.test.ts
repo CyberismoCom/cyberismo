@@ -576,23 +576,14 @@ describe('Card cache', () => {
       rmSync(invalidCardPath, { recursive: true, force: true });
     });
 
-    it('should rebuild parent-child relationships', () => {
+    it('should populate parent-child relationships', () => {
       const parentCard = cache.getCard('test_1');
       expect(parentCard).toBeDefined();
-      expect(parentCard!.children).toBeInstanceOf(Array);
-      const originalChildrenCount = parentCard!.children.length;
-
-      if (parentCard) {
-        parentCard.children = [];
-      }
-      expect(parentCard!.children.length).toBe(0);
-
-      cache.populateChildrenRelationships();
-
-      const updatedParentCard = cache.getCard('test_1');
-      expect(updatedParentCard!.children.length).toBe(originalChildrenCount);
-      expect(updatedParentCard!.children).toContain('test_2');
-      expect(updatedParentCard!.children).toContain('test_3');
+      expect(parentCard!.children).toHaveLength(2);
+      expect(parentCard!.children).toEqual(
+        expect.arrayContaining(['test_2', 'test_3']),
+      );
+      expect(cache.childrenOf('test_1')).toEqual(parentCard!.children);
     });
 
     it('should return correct population status', async () => {
@@ -605,6 +596,109 @@ describe('Card cache', () => {
 
       cache.clear();
       expect(cache.isPopulated).toBe(false);
+    });
+  });
+
+  describe('index transitions', () => {
+    function pathFor(location: string, cardKey: string): string {
+      return location === 'project'
+        ? join(testCardsPath, cardKey)
+        : join(
+            testProjectPath,
+            '.cards',
+            'local',
+            'templates',
+            location,
+            'c',
+            cardKey,
+          );
+    }
+
+    // A card's location is derived from its path, so the path is what actually
+    // drives the location index.
+    function cardAt(location: string, cardKey: string, parent: string): Card {
+      return {
+        key: cardKey,
+        path: pathFor(location, cardKey),
+        parent,
+        children: [],
+        attachments: [],
+        content: '',
+        metadata: {
+          title: cardKey,
+          cardType: 'test/cardTypes/page',
+          workflowState: 'Draft',
+          rank: '1|a',
+          links: [],
+        },
+      };
+    }
+
+    function cacheWith(...cards: Card[]): CardCache {
+      const cache = new CardCache(prefix);
+      for (const card of cards) {
+        cache.updateCard(card.key, card);
+      }
+      return cache;
+    }
+
+    function nestedPair(): CardCache {
+      return cacheWith(
+        cardAt('project', 'test_1', 'root'),
+        cardAt('project', 'test_2', 'root'),
+        cardAt('project', 'test_3', 'test_1'),
+      );
+    }
+
+    it('re-parenting removes the card from its old parent', () => {
+      const cache = nestedPair();
+
+      cache.updateCard('test_3', cardAt('project', 'test_3', 'test_2'));
+
+      expect(cache.childrenOf('test_1')).toEqual([]);
+      expect(cache.getCard('test_1')!.children).toEqual([]);
+    });
+
+    it('re-parenting adds the card to its new parent', () => {
+      const cache = nestedPair();
+
+      cache.updateCard('test_3', cardAt('project', 'test_3', 'test_2'));
+
+      expect(cache.childrenOf('test_2')).toEqual(['test_3']);
+      expect(cache.getCard('test_2')!.children).toEqual(['test_3']);
+    });
+
+    it('relocating a card moves it between the location sets', () => {
+      const cache = cacheWith(cardAt('project', 'test_1', 'root'));
+
+      cache.updateCard('test_1', cardAt('alpha', 'test_1', 'root'));
+
+      expect(cache.keysAtLocation('project')).toEqual([]);
+      expect(cache.keysAtLocation('test/templates/alpha')).toEqual(['test_1']);
+    });
+
+    it('deleting a card clears it from both indexes', () => {
+      const cache = cacheWith(
+        cardAt('project', 'test_1', 'root'),
+        cardAt('project', 'test_2', 'test_1'),
+      );
+
+      expect(cache.deleteCard('test_2')).toBe(true);
+
+      expect(cache.childrenOf('test_1')).toEqual([]);
+      expect(cache.keysAtLocation('project')).toEqual(['test_1']);
+    });
+
+    it('re-storing a card does not duplicate its index entries', () => {
+      const cache = cacheWith(
+        cardAt('project', 'test_1', 'root'),
+        cardAt('project', 'test_2', 'test_1'),
+      );
+
+      cache.updateCard('test_2', cardAt('project', 'test_2', 'test_1'));
+
+      expect(cache.childrenOf('test_1')).toEqual(['test_2']);
+      expect(cache.keysAtLocation('project')).toEqual(['test_1', 'test_2']);
     });
   });
 
@@ -775,9 +869,9 @@ describe('Card cache', () => {
       await cache.populateFromPath(dupCardsPath);
       expect(cache.getCard('test_1')!.content).toBe('project card');
 
-      await expect(
-        cache.populateFromPath(dupTemplatePath, false),
-      ).rejects.toThrow(DuplicateCardKeyError);
+      await expect(cache.populateFromPath(dupTemplatePath)).rejects.toThrow(
+        DuplicateCardKeyError,
+      );
 
       expect(cache.getCard('test_1')!.content).toBe('project card');
     });

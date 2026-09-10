@@ -45,6 +45,7 @@ import {
   cardPathParts,
   isModulePath,
   isTemplateCard,
+  sortCards,
 } from '../utils/card-utils.js';
 import { ActionGuard } from '../permissions/action-guard.js';
 import { applySideEffects, type SideEffects } from '../side-effects.js';
@@ -62,7 +63,7 @@ import { getCommitContext } from '../utils/commit-context.js';
 
 import type { Template } from './template.js';
 
-import { isPredefinedField, ROOT } from '../utils/constants.js';
+import { isPredefinedField } from '../utils/constants.js';
 
 /**
  * Options for Project initialization. All default to off.
@@ -181,17 +182,6 @@ export class Project extends CardContainer {
     }
   }
 
-  // Changes a card's parent in the cache and updates all relationships.
-  private changeParent(updatedCard: Card, previousParent?: string) {
-    if (previousParent && previousParent !== ROOT) {
-      this.removeCachedChildren(previousParent, updatedCard.key);
-    }
-    if (updatedCard.parent && updatedCard.parent !== ROOT) {
-      this.updateCachedChildren(updatedCard.parent, updatedCard);
-    }
-    this.cardCache.updateCard(updatedCard.key, updatedCard);
-  }
-
   // Finds specific module.
   private async findModule(
     moduleName: string,
@@ -237,32 +227,6 @@ export class Project extends CardContainer {
   // todo: could be moved to card-utils
   private parentFromPath(cardPath: string): string {
     return cardPathParts(this.projectPrefix, cardPath).parents.at(-1) || 'root';
-  }
-
-  // Remove children from a card in the card cache
-  private removeCachedChildren(parentKey: string, childKey: string) {
-    const parentCard = this.cardCache.getCard(parentKey);
-    if (parentCard && parentCard.children) {
-      parentCard.children = parentCard.children.filter(
-        (child) => child !== childKey,
-      );
-      this.cardCache.updateCard(parentCard.key, parentCard);
-    }
-  }
-
-  // Updates children in the card cache
-  private updateCachedChildren(parentKey: string, newChild: Card) {
-    const parentCard = this.cardCache.getCard(parentKey);
-    if (parentCard) {
-      // Add or update the child in the parent's children array
-      const existingChildIndex = parentCard.children?.findIndex(
-        (child) => child === newChild.key,
-      );
-      if (existingChildIndex === -1) {
-        parentCard.children.push(newChild.key);
-      }
-      this.cardCache.updateCard(parentCard.key, parentCard);
-    }
   }
 
   // Refreshes the cached list of all module prefixes.
@@ -354,14 +318,10 @@ export class Project extends CardContainer {
 
         await this.cardCache.populateFromPath(
           templateObject.templateCardsFolder(),
-          false,
         );
       });
 
       await Promise.all(loadPromises);
-
-      // Once all templates have been fetched, build child-parent relationships.
-      this.cardCache.populateChildrenRelationships();
     } catch (error) {
       if (error instanceof DuplicateCardKeyError) {
         throw error;
@@ -740,9 +700,6 @@ export class Project extends CardContainer {
    */
   public async handleCardMoved(movedCard: Card) {
     this.cardCache.updateCard(movedCard.key, movedCard);
-
-    // Rebuild all parent-child relationships from the parent fields
-    this.cardCache.populateChildrenRelationships();
     await this.handleCardChanged(movedCard);
     await this.calculationEngine.handleCardMoved();
   }
@@ -760,11 +717,6 @@ export class Project extends CardContainer {
       };
 
       this.cardCache.updateCard(cardWithParent.key, cardWithParent);
-
-      // Update the parent's children list in the cache
-      if (cardWithParent.parent && cardWithParent.parent !== ROOT) {
-        this.updateCachedChildren(cardWithParent.parent, cardWithParent);
-      }
     });
     return this.calculationEngine.handleNewCards(cards);
   }
@@ -782,7 +734,7 @@ export class Project extends CardContainer {
    * Returns an array of cards in the project, in the templates or both.
    * Cards don't have content and nor metadata.
    * @param cardsFrom Where to return cards from (project, templates, or both)
-   * @returns all cards in the project per container.
+   * @returns all cards in the project per container, each container's keys sorted.
    */
   public async listCards(
     cardsFrom: CardLocation = CardLocation.all,
@@ -794,7 +746,8 @@ export class Project extends CardContainer {
     ) {
       const projectCards = super
         .cards(this.paths.cardRootFolder)
-        .map((item) => item.key);
+        .map((item) => item.key)
+        .sort(sortCards);
       cardListContainer.push({
         name: this.projectName,
         type: 'project',
@@ -816,7 +769,7 @@ export class Project extends CardContainer {
             cardListContainer.push({
               name: template.data?.name || '',
               type: 'template',
-              cards: templateCards.map((item) => item.key),
+              cards: templateCards.map((item) => item.key).sort(sortCards),
             });
           }
         }
@@ -1088,13 +1041,10 @@ export class Project extends CardContainer {
    * @returns List of cards from template.
    */
   public templateCards(templateName: string): Card[] {
-    const templateCards = this.cardCache.getAllTemplateCards();
-    return templateCards.filter((cachedCard) => {
-      if (cachedCard.location === 'project') {
-        return false;
-      }
-      return cachedCard.location === templateName;
-    });
+    if (templateName === 'project') {
+      return [];
+    }
+    return this.cardCache.cardsAtLocation(templateName);
   }
 
   /**
@@ -1144,7 +1094,6 @@ export class Project extends CardContainer {
 
     const isRankChange = changedKey === 'rank';
     const previousPath = isRankChange ? card.path : undefined;
-    const previousParent = isRankChange ? card.parent : undefined;
 
     const cardAsRecord: Record<string, MetadataContent> = card.metadata;
     if (removeKey) {
@@ -1169,7 +1118,7 @@ export class Project extends CardContainer {
     if (isRankChange) {
       const updatedCard = this.findCard(cardKey);
       if (updatedCard.path !== previousPath) {
-        this.changeParent(updatedCard, previousParent);
+        this.cardCache.updateCard(updatedCard.key, updatedCard);
       }
     }
   }
@@ -1219,10 +1168,6 @@ export class Project extends CardContainer {
   public async updateCard(card: Card) {
     const cachedCard = this.cardCache.getCard(card.key);
     const pathChange = cachedCard && cachedCard.path !== card.path;
-
-    if (pathChange) {
-      this.changeParent(card, cachedCard.parent);
-    }
 
     const metadataChanged =
       cachedCard &&

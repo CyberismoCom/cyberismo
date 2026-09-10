@@ -16,6 +16,7 @@ import { CARD_KEY_SEPARATOR, ROOT } from './constants.js';
 
 import type {
   Card,
+  CardAttachment,
   CardWithChildrenCards,
 } from '../interfaces/project-interfaces.js';
 import type { Project } from '../containers/project.js';
@@ -280,6 +281,15 @@ export const sortCards = (a: string, b: string) => {
   if (aParts[1] < bParts[1]) return -1;
   return 0;
 };
+
+/**
+ * Sorts attachments first by the card they belong to, then by file name.
+ * @param a First attachment to be sorted
+ * @param b Second attachment to be sorted
+ * @returns Attachments ordered; first by card key, then by file name.
+ */
+export const compareAttachments = (a: CardAttachment, b: CardAttachment) =>
+  sortCards(a.card, b.card) || a.fileName.localeCompare(b.fileName);
 
 /**
  * Checks whether a value is an external item key (connector:itemKey format)
