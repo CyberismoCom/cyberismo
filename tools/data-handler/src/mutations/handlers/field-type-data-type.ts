@@ -16,7 +16,6 @@ import type { Handler, MutationContext } from '../handler.js';
 import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import { fromDate, fromNumber, fromString } from '../../utils/value-utils.js';
-import { isModuleCard } from '../../utils/card-utils.js';
 import type {
   Card,
   MetadataContent,
@@ -85,7 +84,7 @@ export class FieldTypeDataTypeHandler implements Handler<EditInput> {
     const projectCards = ctx.project.cardTree.cards().filter(holdsField);
     const templateCards = ctx.project
       .allTemplateCards()
-      .filter((card) => !isModuleCard(card))
+      .filter((card) => ctx.project.treeOf(card.key).writable)
       .filter(holdsField);
     return [...projectCards, ...templateCards];
   }

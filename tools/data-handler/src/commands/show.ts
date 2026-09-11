@@ -21,7 +21,7 @@ import { writeFile } from 'node:fs/promises';
 import { type ModuleListFile, MODULE_LIST_FULL_PATH } from './fetch.js';
 import { installedModules } from '../modules/index.js';
 
-import { CardLocation } from '../interfaces/project-interfaces.js';
+import type { CardLocation } from '../interfaces/project-interfaces.js';
 
 import type { attachmentPayload } from '../interfaces/request-status-interfaces.js';
 import type {
@@ -479,10 +479,7 @@ export class Show {
   @read
   public async showProject(): Promise<ProjectMetadata> {
     const p = this.project;
-    const [cards, modules] = await Promise.all([
-      p.listCards(CardLocation.projectOnly),
-      this.showModules(),
-    ]);
+    const modules = await this.showModules();
     return {
       name: p.projectName,
       path: p.basePath,
@@ -492,7 +489,7 @@ export class Show {
       version: p.configuration.version,
       hubs: p.configuration.hubs,
       modules,
-      numberOfCards: cards[0].cards.length,
+      numberOfCards: p.cardTree.count,
     };
   }
 

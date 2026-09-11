@@ -26,7 +26,7 @@ import {
 import type { Project } from '../../src/containers/project.js';
 import TaskQueue from '../../src/macros/task-queue.js';
 
-import { MAX_LEVEL_OFFSET } from '../../src/utils/constants.js';
+import { MAX_LEVEL_OFFSET, ROOT } from '../../src/utils/constants.js';
 
 import type { Card } from '../../src/interfaces/project-interfaces.js';
 import type { MacroGenerationContext } from '../../src/interfaces/macros.js';
@@ -411,6 +411,7 @@ Some content here`;
           key: '',
           path: '',
           content: '',
+          parent: ROOT,
           metadata: {
             title: '',
             cardType: '',
@@ -625,6 +626,7 @@ Some content here`;
           path: '',
           content:
             'Content before raw block.\n\n{{#raw}}{{#scoreCard}}"title": "Should not be evaluated", "value": 42{{/scoreCard}}{{/raw}}\n\nContent after raw block.',
+          parent: ROOT,
           metadata: {
             title: 'Card with Raw Block',
             cardType: '',
@@ -718,6 +720,7 @@ Some content here`;
             key: 'json-content-card',
             path: '',
             content: '{"key": "value", "number": 42}',
+            parent: ROOT,
             metadata: {
               title: 'JSON Card',
               cardType: '',
@@ -769,6 +772,7 @@ Some content here`;
               key: 'json-escape-card',
               path: '',
               content: 'Content with "quotes" and \\ backslash\nand newline',
+              parent: ROOT,
               metadata: {
                 title: 'JSON Escape Card',
                 cardType: '',
@@ -800,6 +804,7 @@ Some content here`;
               key: 'csv-escape-card',
               path: '',
               content: 'Content with "quotes" inside',
+              parent: ROOT,
               metadata: {
                 title: 'CSV Escape Card',
                 cardType: '',
@@ -829,6 +834,7 @@ Some content here`;
               key: 'csv-multi-quote-card',
               path: '',
               content: '"""triple quotes"""',
+              parent: ROOT,
               metadata: {
                 title: 'CSV Multi Quote Card',
                 cardType: '',
@@ -861,6 +867,7 @@ Some content here`;
             key: 'plain-card',
             path: '',
             content: 'Content with "quotes" and newline\nhere',
+            parent: ROOT,
             metadata: {
               title: 'Plain Card',
               cardType: '',
@@ -895,6 +902,7 @@ Some content here`;
           key: '',
           path: '',
           content: '',
+          parent: ROOT,
           metadata: {
             title: '',
             cardType: '',

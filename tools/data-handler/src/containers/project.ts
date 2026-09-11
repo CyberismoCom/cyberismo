@@ -111,9 +111,8 @@ export class Project {
     this.projectCardTree = new CardTree({
       name: 'project',
       rootPath: join(path, 'cardRoot'),
+      kind: 'project',
       writable: true,
-      emitsCardFact: true,
-      validationApplies: true,
       keys: this.keyRegistry,
     });
 
@@ -223,9 +222,8 @@ export class Project {
     const tree = new CardTree({
       name: templateName,
       rootPath,
+      kind: 'template',
       writable: !isModulePath(rootPath),
-      emitsCardFact: false,
-      validationApplies: false,
       keys: this.keyRegistry,
     });
     this.templateCardTrees.set(templateName, tree);
@@ -403,7 +401,7 @@ export class Project {
           this.templateTree(
             template.fullName,
             template.templateCardsFolder(),
-          ).reload(),
+          ).load(),
         ),
       );
     } catch (error) {
@@ -424,7 +422,7 @@ export class Project {
    * Populate both the project cards, and all template cards into card cache.
    */
   private async populateCardsCache(): Promise<void> {
-    await this.cardTree.reload();
+    await this.cardTree.load();
     await this.populateTemplateCards();
   }
 
@@ -589,15 +587,15 @@ export class Project {
     return Project.findProjectRoot(parentPath);
   }
 
-  private async saveCardContent(card: Card): Promise<boolean> {
+  private async saveCardContent(card: Card): Promise<void> {
     return this.treeOf(card.key).writeContent(card);
   }
 
-  private async saveCardMetadata(card: Card): Promise<boolean> {
+  private async saveCardMetadata(card: Card): Promise<void> {
     return this.treeOf(card.key).writeMetadata(card);
   }
 
-  private async removeCard(cardKey: string): Promise<boolean> {
+  private async removeCard(cardKey: string): Promise<void> {
     return this.treeOf(cardKey).deleteSubtree(cardKey);
   }
 
@@ -1062,9 +1060,10 @@ export class Project {
       cardAsRecord[changedKey] = newValue ?? null;
     }
 
-    const invalidCard = this.treeOf(cardKey).validationApplies
-      ? await this.validateCard(card)
-      : '';
+    const invalidCard =
+      this.treeOf(cardKey).kind === 'project'
+        ? await this.validateCard(card)
+        : '';
     if (invalidCard.length !== 0) {
       throw new Error(invalidCard);
     }
@@ -1081,9 +1080,8 @@ export class Project {
    */
   public async updateCardMetadata(card: Card, changedMetadata: CardMetadata) {
     card.metadata = changedMetadata;
-    if (await this.saveCardMetadata(card)) {
-      await this.handleCardChanged(card);
-    }
+    await this.saveCardMetadata(card);
+    await this.handleCardChanged(card);
   }
 
   // Wrapper to run onTransition query.

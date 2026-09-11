@@ -92,10 +92,10 @@ export class Move {
 
     const destIsProject =
       movingToProjectRoot ||
-      (destinationTree !== undefined && destinationTree.name === 'project');
+      (destinationTree !== undefined && destinationTree.kind === 'project');
     const destIsTemplate =
       targetTemplateName !== undefined ||
-      (destinationTree !== undefined && destinationTree.name !== 'project');
+      (destinationTree !== undefined && destinationTree.kind !== 'project');
     if (
       (sourceIsTemplate && destIsProject) ||
       (!sourceIsTemplate && destIsTemplate)

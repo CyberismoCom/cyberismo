@@ -5,8 +5,6 @@ import { sep } from 'node:path';
 import {
   buildCardHierarchy,
   isExternalItemKey,
-  isModuleCard,
-  isTemplateCard,
   moduleNameFromCardKey,
   sortCards,
 } from '../../src/utils/card-utils.js';
@@ -71,24 +69,6 @@ describe('card utils', () => {
   });
 
   it.each([
-    [projectCard, false],
-    [projectChildCard, false],
-    [templateCard, false],
-    [moduleCard, true],
-  ])('isModuleCard validates module cards correctly', (card, expected) => {
-    expect(isModuleCard(card)).toBe(expected);
-  });
-
-  it.each([
-    [projectCard, false],
-    [projectChildCard, false],
-    [templateCard, true],
-    [moduleCard, true],
-  ])('isTemplateCard validates template cards correctly', (card, expected) => {
-    expect(isTemplateCard(card)).toBe(expected);
-  });
-
-  it.each([
     [projectCard, 'test'],
     [projectChildCard, 'test'],
     [templateCard, 'test'],
@@ -109,6 +89,54 @@ describe('card utils', () => {
       expect(cards.at(2)).toBe('aaa_999');
       expect(cards.at(3)).toBe('zzz_111');
       expect(cards.at(4)).toBe('zzz_999');
+    });
+
+    it('orders every pair the way splitting the keys does', () => {
+      const splitting = (a: string, b: string) => {
+        const aParts = a.split('_');
+        const bParts = b.split('_');
+        if (aParts[0] !== bParts[0]) {
+          if (aParts[0] > bParts[0]) return 1;
+          if (aParts[0] < bParts[0]) return -1;
+          return 0;
+        }
+        if (a.length > b.length) return 1;
+        if (a.length < b.length) return -1;
+        if (aParts[1] > bParts[1]) return 1;
+        if (aParts[1] < bParts[1]) return -1;
+        return 0;
+      };
+      const keys = [
+        'test_1',
+        'test_2',
+        'test_10',
+        'test_9',
+        'test_aa7',
+        'test_za1',
+        'demo_aaa',
+        'demo_aa',
+        'dem_aaa',
+        'demo',
+        'dem',
+        'test_A',
+        'test_a',
+        'test_0',
+        'test_',
+        '_test',
+        'jira:PROJ-123',
+        'jira:PROJ-124',
+        'base/calculations/x',
+        'test_1_2',
+        'test_12',
+        'test_1_',
+      ];
+      for (const a of keys) {
+        for (const b of keys) {
+          expect(Math.sign(sortCards(a, b)), `${a} vs ${b}`).toBe(
+            Math.sign(splitting(a, b)),
+          );
+        }
+      }
     });
   });
 

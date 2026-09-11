@@ -249,7 +249,7 @@ export class Create {
       return sortItems(rootCards, rankOf).concat(
         childCards.toSorted(
           (a, b) =>
-            compare(a.parent ?? '', b.parent ?? '') ||
+            compare(a.parent, b.parent) ||
             compare(rankOf(a), rankOf(b)) ||
             compare(a.key, b.key),
         ),

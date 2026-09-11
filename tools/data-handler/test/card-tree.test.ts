@@ -36,6 +36,7 @@ import type {
   CardMetadata,
 } from '../src/interfaces/project-interfaces.js';
 import { CommandManager } from '../src/command-manager.js';
+import { ROOT } from '../src/utils/constants.js';
 import {
   CardNotFoundError,
   DuplicateCardKeyError,
@@ -126,9 +127,8 @@ function projectTree(
   return new CardTree({
     name: 'project',
     rootPath,
+    kind: 'project',
     writable: true,
-    emitsCardFact: true,
-    validationApplies: true,
     keys,
   });
 }
@@ -142,9 +142,8 @@ function newTemplateTree(
   return new CardTree({
     name,
     rootPath,
+    kind: 'template',
     writable,
-    emitsCardFact: false,
-    validationApplies: false,
     keys,
   });
 }
@@ -294,22 +293,25 @@ describe('Card tree', () => {
       const card = tree.card('test_1');
       card.content = 'Updated content for test_1';
 
-      expect(await tree.writeContent(card)).toBe(true);
+      await tree.writeContent(card);
       expect(tree.content('test_1')).toBe('Updated content for test_1');
       await expect(
         readFile(join(card.path, 'index.adoc'), 'utf-8'),
       ).resolves.toBe('Updated content for test_1');
     });
 
-    it('returns false when writing content for an unknown card', async () => {
+    it('refuses to write content for an unknown card', async () => {
       const unknown: Card = {
         key: 'non_existing_card',
         path: join(testCardsPath, 'non_existing_card'),
+        parent: ROOT,
         children: [],
         attachments: [],
         content: 'some content',
       };
-      expect(await tree.writeContent(unknown)).toBe(false);
+      await expect(tree.writeContent(unknown)).rejects.toThrow(
+        CardNotFoundError,
+      );
     });
 
     it('persists card metadata and keeps the store in step', async () => {
@@ -320,7 +322,7 @@ describe('Card tree', () => {
         workflowState: 'Published',
       };
 
-      expect(await tree.writeMetadata(card)).toBe(true);
+      await tree.writeMetadata(card);
       const stored = tree.node('test_1').metadata!;
       expect(stored.title).toBe('Updated Metadata Title');
       expect(stored.workflowState).toBe('Published');
@@ -331,15 +333,18 @@ describe('Card tree', () => {
       expect(onDisk.title).toBe('Updated Metadata Title');
     });
 
-    it('returns false when writing metadata for an unknown card', async () => {
+    it('refuses to write metadata for an unknown card', async () => {
       const unknown: Card = {
         key: 'non_existing_too',
         path: join(testCardsPath, 'non_existing_too'),
+        parent: ROOT,
         children: [],
         attachments: [],
         metadata: { ...pageCard('Some title'), links: [] },
       };
-      expect(await tree.writeMetadata(unknown)).toBe(false);
+      await expect(tree.writeMetadata(unknown)).rejects.toThrow(
+        CardNotFoundError,
+      );
     });
   });
 
@@ -357,7 +362,7 @@ describe('Card tree', () => {
     it('deletes a card, its folder and its descendants', async () => {
       const rootPath = tree.card('test_1').path;
 
-      expect(await tree.deleteSubtree('test_1')).toBe(true);
+      await tree.deleteSubtree('test_1');
 
       for (const cardKey of ['test_1', 'test_2', 'test_3']) {
         expect(tree.has(cardKey)).toBe(false);
@@ -365,8 +370,10 @@ describe('Card tree', () => {
       expect(existsSync(rootPath)).toBe(false);
     });
 
-    it('returns false for a card the tree does not hold', async () => {
-      expect(await tree.deleteSubtree('non_existing_card')).toBe(false);
+    it('refuses to delete a card the tree does not hold', async () => {
+      await expect(tree.deleteSubtree('non_existing_card')).rejects.toThrow(
+        CardNotFoundError,
+      );
     });
   });
 
