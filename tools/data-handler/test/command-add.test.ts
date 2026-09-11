@@ -102,6 +102,9 @@ describe('add command', () => {
       options,
     );
     expect(result.statusCode).toBe(400);
+    expect(result.message).toContain(
+      "Template 'decision/templates/idontexists' does not exist",
+    );
   });
   it('try to add template card to non-existent template parent card', async () => {
     const result = await commandHandler.command(

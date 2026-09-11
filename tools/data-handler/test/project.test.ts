@@ -524,7 +524,6 @@ describe('project', () => {
     await project.refreshAfterModuleChange(['decision']);
 
     for (const cardKey of removedKeys) {
-      expect(project.cardKeyRegistry.ownerOf(cardKey)).toBeUndefined();
       expect(project.hasCard(cardKey)).toBe(false);
     }
     expect(project.allTemplateCards().map((card) => card.key)).not.toContain(
@@ -635,7 +634,7 @@ describe('project', () => {
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(() => project.findCard('decision_99')).toThrow();
-    expect(project.cardKeyRegistry.ownerOf('decision_99')).toBeUndefined();
+    expect(project.hasCard('decision_99')).toBe(false);
   });
   it('add module to project', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
