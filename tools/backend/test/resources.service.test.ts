@@ -28,10 +28,13 @@ interface testObjectNode {
 const createMockCommandManager = (overrides: any = {}) => {
   return {
     consistent: vi.fn().mockImplementation((fn: () => unknown) => fn()),
+    modulesCmd: {
+      list: vi.fn().mockResolvedValue([] as { name: string }[]),
+      show: vi.fn(),
+      ...overrides.modulesCmd,
+    },
     showCmd: {
       showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
-      showModules: vi.fn().mockResolvedValue([] as { name: string }[]),
-      showModule: vi.fn(),
       showResources: vi.fn(),
       showResource: vi.fn(),
       showAllTemplateCards: vi.fn(),
@@ -149,10 +152,9 @@ describe('Resources Service', () => {
 
     test('should build resource tree with modules section', async () => {
       const mockCommands = createMockCommandManager({
-        showCmd: {
-          showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
-          showModules: vi.fn().mockResolvedValue([{ name: 'module1' }]),
-          showModule: vi.fn().mockResolvedValue({
+        modulesCmd: {
+          list: vi.fn().mockResolvedValue([{ name: 'module1' }]),
+          show: vi.fn().mockResolvedValue({
             name: 'Module One',
             cardKeyPrefix: 'module1',
             modules: [],
@@ -168,6 +170,9 @@ describe('Resources Service', () => {
             templates: [],
             workflows: [],
           }),
+        },
+        showCmd: {
+          showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
           showResources: vi.fn().mockImplementation((type) => {
             if (type === 'fieldTypes') {
               return Promise.resolve([
@@ -214,10 +219,9 @@ describe('Resources Service', () => {
 
     test('should handle template processing with hierarchical cards', async () => {
       const mockCommands = createMockCommandManager({
-        showCmd: {
-          showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
-          showModules: vi.fn().mockResolvedValue([{ name: 'module1' }]),
-          showModule: vi.fn().mockResolvedValue({
+        modulesCmd: {
+          list: vi.fn().mockResolvedValue([{ name: 'module1' }]),
+          show: vi.fn().mockResolvedValue({
             name: 'Module One',
             cardKeyPrefix: 'module1',
             modules: [],
@@ -233,6 +237,9 @@ describe('Resources Service', () => {
             templates: [],
             workflows: [],
           }),
+        },
+        showCmd: {
+          showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
           showResources: vi.fn().mockImplementation((type) => {
             if (type === 'templates') return Promise.resolve([]);
             return Promise.resolve([]);

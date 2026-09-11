@@ -771,15 +771,15 @@ describe('show', () => {
       `LinkType '${linkTypeName}' does not exist in the project`,
     );
   });
-  it('showModule - no module name defined', async () => {
+  it('modules show - no module name defined', async () => {
     const moduleName = '';
 
-    await expect(showCmd.showModule(moduleName)).rejects.toThrow(
+    await expect(commands.modulesCmd.show(moduleName)).rejects.toThrow(
       `Module '' does not exist in the project`,
     );
   });
-  it('showModules (success)', async () => {
-    const results = await showCmd.showModules();
+  it('modules list (success)', async () => {
+    const results = await commands.modulesCmd.list();
     expect(results).not.toBeUndefined();
   });
   it('showProject (success)', async () => {

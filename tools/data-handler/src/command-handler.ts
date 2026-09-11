@@ -528,7 +528,7 @@ export class Commands {
       } else if (command === Cmd.updateModules) {
         const [module, targetVersion] = args;
         if (module) {
-          await this.commands?.importCmd.updateModule(
+          await this.commands?.modulesCmd.update(
             module,
             credentials,
             targetVersion,
@@ -539,7 +539,7 @@ export class Commands {
               'A target version can only be specified together with a module name',
             );
           }
-          await this.commands?.importCmd.updateAllModules(credentials);
+          await this.commands?.modulesCmd.updateAll(credentials);
         }
         return {
           statusCode: 200,
@@ -855,7 +855,7 @@ export class Commands {
     credentials?: Credentials,
     version?: string,
   ) {
-    return this.commands?.importCmd.importModule(source, {
+    return this.commands?.modulesCmd.install(source, {
       private: useCredentials,
       credentials,
       version,
@@ -1024,7 +1024,7 @@ export class Commands {
         promise = this.commands!.showCmd.showLabels();
         break;
       case 'module':
-        promise = this.commands!.showCmd.showModule(detail);
+        promise = this.commands!.modulesCmd.show(detail);
         break;
       case 'hubs':
         promise = this.commands!.fetchCmd.ensureModuleListUpToDate().then(() =>
@@ -1032,7 +1032,7 @@ export class Commands {
         );
         break;
       case 'modules':
-        promise = this.commands!.showCmd.showModules();
+        promise = this.commands!.modulesCmd.list();
         break;
       case 'project':
         promise = this.commands!.showCmd.showProject();

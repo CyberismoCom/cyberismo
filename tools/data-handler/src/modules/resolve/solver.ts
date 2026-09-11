@@ -330,7 +330,7 @@ async function solve(
         };
       case 'update':
         if (n.name !== req.module) return fromInstalled();
-        // An explicit target overrides the declaration; updateModule validates
+        // An explicit target overrides the declaration; `Modules.update` validates
         // it against the project's own ranges before the engine runs.
         return req.to
           ? { versions: [req.to], pin: null, keepInstalled: false }

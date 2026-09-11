@@ -13,12 +13,10 @@
 
 import { ActionGuard } from '../permissions/action-guard.js';
 import { isExternalItemKey } from '../utils/card-utils.js';
-import { getChildLogger } from '../utils/log-utils.js';
-import { declaredModules, installedModules } from '../modules/inventory.js';
-import { cleanOrphans } from '../modules/orphans.js';
 import { ResourceMutations } from '../mutations/resource-mutations.js';
 import { resourceName as parseResourceName } from '../utils/resource-utils.js';
 import type { Fetch } from './fetch.js';
+import type { Modules } from './modules.js';
 import type { Project } from '../containers/project.js';
 import type { RemovableResourceTypes } from '../interfaces/project-interfaces.js';
 import type { ExternalLink } from '../interfaces/resource-interfaces.js';
@@ -28,9 +26,6 @@ import { write } from '../utils/rw-lock.js';
  * Remove command.
  */
 export class Remove {
-  private get logger() {
-    return getChildLogger({ module: 'remove' });
-  }
   /**
    * Creates a new instance of Remove command.
    * @param project Project instance to use
@@ -40,6 +35,7 @@ export class Remove {
   constructor(
     private project: Project,
     private fetchCmd: Fetch,
+    private modulesCmd: Modules,
   ) {
     this.mutations = new ResourceMutations(project);
   }
@@ -298,41 +294,8 @@ export class Remove {
           rest.at(2),
           rest.at(3),
         );
-      else if (type === 'module') return this.removeModule(targetName);
+      else if (type === 'module') return this.modulesCmd.remove(targetName);
     }
     throw new Error(`Unknown resource type '${type}'`);
-  }
-
-  /**
-   * Remove a top-level module declaration and cascade orphan cleanup.
-   * Transitive-only modules (no top-level declaration) cannot be removed
-   * directly — their lifetime is controlled by the parent installation.
-   */
-  private async removeModule(targetName: string) {
-    const declaration = declaredModules(this.project).find(
-      (d) => d.name === targetName,
-    );
-    if (!declaration) {
-      const installations = await installedModules(this.project);
-      const parents = installations
-        .filter((m) => m.declaredDependencies.includes(targetName))
-        .map((m) => m.name);
-      if (parents.length > 0) {
-        const parentList = parents.map((n) => `'${n}'`).join(', ');
-        throw new Error(
-          `Cannot remove module '${targetName}' because it is required by ${parentList}. Remove the parent module(s) first.`,
-        );
-      }
-      throw new Error(`Module '${targetName}' is not part of the project`);
-    }
-
-    // Delete the top-level declaration from cardsConfig.json.
-    await this.project.configuration.removeModule(targetName);
-
-    // Removes this module's installation (now orphaned) plus any
-    // transitives it owned that nothing else references.
-    await cleanOrphans(this.project);
-
-    this.logger.info(`Removed module '${targetName}'`);
   }
 }

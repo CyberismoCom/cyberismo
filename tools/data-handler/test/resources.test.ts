@@ -8,7 +8,7 @@ import { getTestProject } from './helpers/test-utils.js';
 import {
   Create,
   Fetch,
-  Import,
+  Modules,
   Remove,
   Update,
 } from '../src/commands/index.js';
@@ -1155,10 +1155,9 @@ describe('resources', function () {
     it('show imported report', async () => {
       const projectMini = getTestProject(minimalPath);
       await projectMini.populateCaches();
-      const createCmdMini = new Create(projectMini);
       const fetchCmd = new Fetch(projectMini);
-      const importCmdMini = new Import(projectMini, createCmdMini, fetchCmd);
-      await importCmdMini.importModule(decisionRecordsPath);
+      const modulesCmdMini = new Modules(projectMini, fetchCmd);
+      await modulesCmdMini.install(decisionRecordsPath);
       const name = 'decision/reports/newREP';
       const res = project.resources.byType(name, 'reports');
       let data = await res.show();
@@ -2570,7 +2569,7 @@ describe('resources', function () {
   describe('card content reference updates on resource rename', () => {
     async function cleanup(cardKey: string) {
       const fetch = new Fetch(project);
-      const remove = new Remove(project, fetch);
+      const remove = new Remove(project, fetch, new Modules(project, fetch));
       await remove.remove('card', cardKey);
     }
 
@@ -2868,7 +2867,7 @@ describe('resources', function () {
 
       // Cleanup
       const fetch = new Fetch(project);
-      const remove = new Remove(project, fetch);
+      const remove = new Remove(project, fetch, new Modules(project, fetch));
       for (const cardKey of cardKeys) {
         await remove.remove('card', cardKey);
       }
