@@ -19,6 +19,7 @@ export type AvailableProject = {
   name: string;
   category?: string;
   description?: string;
+  readOnly?: boolean;
 };
 
 /**
