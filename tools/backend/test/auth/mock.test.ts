@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 import {
   MOCK_ROLE_COOKIE,
   MockAuthProvider,
-  mockRoleCookieMiddleware,
+  mockIdentityCookieMiddleware,
 } from '../../src/auth/mock.js';
 import { UserRole } from '../../src/types.js';
 
@@ -95,10 +95,10 @@ describe('MockAuthProvider', () => {
   });
 });
 
-describe('mockRoleCookieMiddleware', () => {
+describe('mockIdentityCookieMiddleware', () => {
   function appWithMiddleware() {
     const app = new Hono();
-    app.use(mockRoleCookieMiddleware());
+    app.use(mockIdentityCookieMiddleware());
     app.get('*', (c) => c.text('ok'));
     return app;
   }

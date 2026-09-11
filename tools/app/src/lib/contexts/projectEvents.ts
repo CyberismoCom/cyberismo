@@ -11,23 +11,31 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useContext, useEffect } from 'react';
-import {
-  ProjectEventsContext,
-  type PresenceEntry,
-} from '../contexts/projectEvents.js';
+import { createContext } from 'react';
 
-export type { PresenceEntry } from '../contexts/projectEvents.js';
-
-/** Report this view through the project connection and read its presence snapshot. */
-export function usePresence(
-  cardKey: string | null,
-  mode: 'viewing' | 'editing' = 'viewing',
-): PresenceEntry[] {
-  const { presence, reportPresence } = useContext(ProjectEventsContext);
-  useEffect(
-    () => reportPresence(cardKey, mode),
-    [cardKey, mode, reportPresence],
-  );
-  return cardKey ? (presence[cardKey] ?? []) : [];
+export interface PresenceEntry {
+  userId: string;
+  userName: string;
+  mode: 'viewing' | 'editing';
 }
+
+export interface CardUpdatedEvent {
+  cardKey: string;
+  userId: string;
+  userName: string;
+}
+
+export const ProjectEventsContext = createContext<{
+  presence: Record<string, PresenceEntry[]>;
+  subscribeToCardUpdates: (
+    listener: (event: CardUpdatedEvent) => void,
+  ) => () => void;
+  reportPresence: (
+    cardKey: string | null,
+    mode: 'viewing' | 'editing',
+  ) => () => void;
+}>({
+  presence: {},
+  reportPresence: () => () => {},
+  subscribeToCardUpdates: () => () => {},
+});

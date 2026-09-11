@@ -16,6 +16,7 @@ import { serveStatic } from '@hono/node-server/serve-static';
 import { attachProjectRegistry } from './middleware/commandManager.js';
 import calculationsRouter from './domain/calculations/index.js';
 import cardsRouter from './domain/cards/index.js';
+import eventsRouter from './domain/events/index.js';
 import cardTypesRouter from './domain/cardTypes/index.js';
 import connectorsRouter from './domain/connectors/index.js';
 import fieldTypesRouter from './domain/fieldTypes/index.js';
@@ -42,7 +43,7 @@ import { createMcpRouter } from './domain/mcp/index.js';
 import { createAuthRouter } from './domain/auth/index.js';
 import { createAuthMiddleware } from './middleware/auth.js';
 import type { AuthProvider } from './auth/types.js';
-import { MockAuthProvider, mockRoleCookieMiddleware } from './auth/mock.js';
+import { MockAuthProvider, mockIdentityCookieMiddleware } from './auth/mock.js';
 import type { ProjectRegistry } from './project-registry.js';
 import { CommandManager, scanForProjects } from '@cyberismo/data-handler';
 import { createProjectsRouter } from './domain/projects/index.js';
@@ -53,9 +54,11 @@ import { simpleMcpAuthRouter } from '@hono/mcp';
  */
 function createProjectScopedRoutes(
   middleware: MiddlewareHandler,
+  exportMode = false,
 ): Hono<{ Variables: AppVars }> {
   const projectScoped = new Hono<{ Variables: AppVars }>();
   projectScoped.use('*', middleware);
+  if (!exportMode) projectScoped.route('/', eventsRouter);
   projectScoped.route('/calculations', calculationsRouter);
   projectScoped.route('/cards', cardsRouter);
   projectScoped.route('/cardTypes', cardTypesRouter);
@@ -116,10 +119,11 @@ export function createApp(
     });
   });
 
-  // Dev-only: let `?role=<reader|editor|admin>` set a persistent mock-role cookie
-  // so role gating can be exercised locally without code changes or a restart.
+  // Dev-only: let `?role=<reader|editor|admin>` and `?user=<alice|bob|carol>`
+  // set persistent cookies, so role gating and multi-user features can be
+  // exercised locally without code changes or a restart.
   if (authProvider instanceof MockAuthProvider) {
-    app.use(mockRoleCookieMiddleware());
+    app.use(mockIdentityCookieMiddleware());
   }
 
   // Apply authentication middleware to all API and MCP routes
@@ -205,6 +209,7 @@ export function createApp(
     for (const { prefix } of registry.list()) {
       const scoped = createProjectScopedRoutes(
         attachProjectRegistry(registry, prefix),
+        true,
       );
       app.route(`/api/projects/${prefix}`, scoped);
     }
