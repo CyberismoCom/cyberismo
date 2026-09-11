@@ -62,6 +62,7 @@ export function projectApiPaths(projectPrefix?: string) {
     templateTree: () => `${base}/templates/tree`,
     attachment: (cardKey: string, attachment: string) =>
       `${base}/cards/${cardKey}/a/${encodeURIComponent(attachment)}`,
+    cardImages: (cardKey: string) => `${base}/cards/${cardKey}/a`,
     cardAttachments: (cardKey: string) =>
       `${base}/cards/${cardKey}/attachments`,
     cardAttachment: (cardKey: string, filename: string) =>

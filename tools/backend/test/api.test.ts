@@ -34,7 +34,7 @@ afterAll(async () => {
 
 type CardApiResponse = QueryResult<'card'> & {
   rawContent: string;
-  parsedContent: string;
+  adocContent: string;
   attachments?: CardAttachment[];
 };
 
