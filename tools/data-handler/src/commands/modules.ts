@@ -395,6 +395,7 @@ export class Modules {
    * directly — their lifetime is controlled by the parent installation.
    * @param moduleName Name (prefix) of module to remove.
    */
+  @write((moduleName) => `Remove module ${moduleName}`)
   public async remove(moduleName: string) {
     const declaration = declaredModules(this.project).find(
       (d) => d.name === moduleName,
