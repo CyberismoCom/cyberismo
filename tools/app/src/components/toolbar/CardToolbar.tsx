@@ -12,6 +12,7 @@
 */
 
 import { useCallback, useState } from 'react';
+import { useCardUpdates } from '../../lib/api/card-updates.js';
 import { IconButton, Tooltip } from '@mui/joy';
 import AddLink from '@mui/icons-material/AddLink';
 import { ProjectBreadcrumbs } from '../ProjectBreadcrumbs';
@@ -59,6 +60,7 @@ export function CardToolbar({
   const { card, updateWorkFlowState, isUpdating } = useCard(cardKey);
   const { user } = useUser();
   const presence = usePresence(cardKey, presenceMode);
+  useCardUpdates(cardKey, presenceMode);
 
   const dispatch = useAppDispatch();
   const canEdit = useHasMinRole(UserRole.Editor);

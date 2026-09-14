@@ -46,18 +46,26 @@ export async function getProjectInfo(commands: CommandManager) {
   });
 }
 
+/**
+ * Applies the fields present in `body` to the card.
+ * Returns whether anything was written, so callers can skip change
+ * notifications for a body that carried no edits.
+ */
 export async function updateCard(
   commands: CommandManager,
   key: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   body: any,
-) {
+): Promise<boolean> {
+  let changed = false;
   await commands.atomic(async () => {
     if (body.state) {
       await commands.transitionCmd.cardTransition(key, body.state);
+      changed = true;
     }
     if (body.content != null) {
       await commands.editCmd.editCardContent(key, body.content);
+      changed = true;
     }
     if (body.metadata) {
       for (const [metadataKey, metadataValue] of Object.entries(
@@ -68,15 +76,19 @@ export async function updateCard(
           metadataKey,
           metadataValue as MetadataContent,
         );
+        changed = true;
       }
     }
     if (body.parent) {
       await commands.moveCmd.moveCard(key, body.parent);
+      changed = true;
     }
     if (body.index != null) {
       await commands.moveCmd.rankByIndex(key, body.index);
+      changed = true;
     }
   }, `Update card ${key}`);
+  return changed;
 }
 
 export async function deleteCard(commands: CommandManager, key: string) {

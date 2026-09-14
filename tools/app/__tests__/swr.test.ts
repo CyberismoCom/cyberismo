@@ -51,9 +51,7 @@ describe('projectApiPaths', () => {
 
     it('builds presence path', () => {
       const paths = projectApiPaths('TST');
-      expect(paths.presence('TST_1', 'editing')).toBe(
-        '/api/projects/TST/cards/TST_1/presence?mode=editing',
-      );
+      expect(paths.presence()).toBe('/api/projects/TST/presence');
     });
 
     it('builds resource paths', () => {

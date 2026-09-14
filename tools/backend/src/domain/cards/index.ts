@@ -13,13 +13,11 @@
 
 import { type Context, Hono } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
-import { streamSSE } from 'hono/streaming';
 import { getCardDetails } from './lib.js';
 import * as cardService from './service.js';
 import { isSSGContext, ssgParams } from 'hono/ssg';
 import type { AppContext } from '../../types.js';
 import { UserRole } from '../../types.js';
-import { presenceStore } from './presence.js';
 import { requireRole } from '../../middleware/auth.js';
 import { zValidator } from '../../middleware/zvalidator.js';
 import {
@@ -31,6 +29,16 @@ import {
 } from './schema.js';
 
 const router = new Hono();
+
+/**
+ * Tell presence viewers of each card that it changed. Link writes touch
+ * both endpoint cards, so both pages need a refetch.
+ */
+function notifyCardsUpdated(c: Context, keys: string[]) {
+  c.get('registry')
+    .eventsFor(c.get('commands'))
+    .cardsUpdated(keys, c.get('user'));
+}
 
 /**
  * @swagger
@@ -240,7 +248,10 @@ router.patch('/:key', requireRole(UserRole.Editor), async (c) => {
   const body = await c.req.json();
 
   try {
-    await cardService.updateCard(commands, key, body);
+    const changed = await cardService.updateCard(commands, key, body);
+    if (changed) {
+      notifyCardsUpdated(c, [key]);
+    }
     const result = await getCardDetails(
       c.get('commands'),
       key,
@@ -400,6 +411,7 @@ router.post('/:key/attachments', requireRole(UserRole.Editor), async (c) => {
       key,
       files as File[],
     );
+    notifyCardsUpdated(c, [key]);
     return c.json(result);
   } catch (error) {
     return c.json(
@@ -451,6 +463,7 @@ router.delete(
         key,
         filename,
       );
+      notifyCardsUpdated(c, [key]);
       return c.json(result);
     } catch (error) {
       return c.json(
@@ -613,6 +626,7 @@ router.post(
         direction,
         description,
       );
+      notifyCardsUpdated(c, [key, toCard]);
       return c.json(result);
     } catch (error) {
       return c.json(
@@ -675,6 +689,7 @@ router.delete(
         direction,
         description,
       );
+      notifyCardsUpdated(c, [key, toCard]);
       return c.json(result);
     } catch (error) {
       return c.json(
@@ -761,6 +776,7 @@ router.put(
         description,
         previousDescription,
       );
+      notifyCardsUpdated(c, [key, toCard, previousToCard]);
       return c.json(result);
     } catch (error) {
       return c.json(
@@ -843,55 +859,4 @@ router.get(
     }
   },
 );
-/**
- * @swagger
- * /api/cards/{key}/presence:
- *   get:
- *     summary: SSE stream of users currently viewing or editing this card
- *     parameters:
- *       - name: key
- *         in: path
- *         required: true
- *         description: Card key (string)
- *       - name: mode
- *         in: query
- *         required: false
- *         schema:
- *           type: string
- *           enum: [viewing, editing]
- *         description: Whether the user is viewing or editing (default: viewing)
- *     responses:
- *       200:
- *         description: SSE stream with presence events
- */
-router.get('/:key/presence', requireRole(UserRole.Reader), (c) => {
-  const key = c.req.param('key');
-  const mode = c.req.query('mode') === 'editing' ? 'editing' : 'viewing';
-  const user = c.get('user');
-
-  if (!key) {
-    return c.text('No card key', 400);
-  }
-
-  return streamSSE(c, async (stream) => {
-    const connId = presenceStore.add(
-      key,
-      user,
-      mode,
-      (data) => void stream.writeSSE(data),
-    );
-
-    let aborted = false;
-    stream.onAbort(() => {
-      aborted = true;
-      presenceStore.remove(key, connId);
-    });
-
-    // Keep connection alive with periodic heartbeat
-    while (!aborted) {
-      await stream.write(': hb\n\n');
-      await stream.sleep(30000);
-    }
-  });
-});
 export default router;

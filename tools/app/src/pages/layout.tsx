@@ -11,6 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import AppToolbar from '../components/AppToolbar';
+import { ProjectEventsProvider } from '../lib/contexts/ProjectEventsProvider.js';
 import {
   useNavigationGuard,
   useOptionalKeyParam,
@@ -54,6 +55,17 @@ const Main = styled('main')(() => ({
 }));
 
 export default function Layout() {
+  const { projectPrefix } = useParams();
+  return projectPrefix ? (
+    <ProjectEventsProvider key={projectPrefix} projectPrefix={projectPrefix}>
+      <ProjectLayout />
+    </ProjectEventsProvider>
+  ) : (
+    <ProjectLayout />
+  );
+}
+
+function ProjectLayout() {
   useNavigationGuard();
 
   const inCards = useIsInCards();
