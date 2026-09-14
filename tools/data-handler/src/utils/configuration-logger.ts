@@ -161,11 +161,11 @@ export class ConfigurationLogger {
   }
 
   /**
-   * Check if a configuration log exists for the given project path.
+   * Check whether the project has recorded changes that are not yet sealed.
    * @param projectPath Path to the project root
-   * @returns True if log file exists
+   * @returns True if an unsealed configuration log exists
    */
-  public static hasBreakingChanges(projectPath: string): boolean {
+  public static hasPendingChanges(projectPath: string): boolean {
     const logPath = new ProjectPaths(projectPath).configurationChangesLog;
     return pathExists(logPath);
   }
