@@ -163,7 +163,14 @@ export function createApp(
           400,
         );
       }
-      await fs.rm(resolvedProject, { recursive: true, force: true });
+      // Windows holds transient locks on files the server has just touched,
+      // which surface as EBUSY on the final rmdir. Retry rather than fail the reset.
+      await fs.rm(resolvedProject, {
+        recursive: true,
+        force: true,
+        maxRetries: 5,
+        retryDelay: 100,
+      });
       await fs.cp(goldenPath, resolvedProject, { recursive: true });
       const projects = await scanForProjects(resolvedProject);
 
