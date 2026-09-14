@@ -11,7 +11,34 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import semver from 'semver';
 import { z } from 'zod';
+
+const gitSource = z
+  .string()
+  .min(1)
+  .refine((s) => s.startsWith('https://') || s.startsWith('git@'), {
+    message: 'Source must be a git URL (https:// or git@)',
+  });
+
+// The length floor is load-bearing: `validRange('')` is `'*'`, not null.
+const semverRange = z
+  .string()
+  .min(1)
+  .refine((s) => semver.validRange(s) !== null, {
+    message: 'Version must be a valid semver version or range',
+  });
+
+// Updates target one concrete version; ranges only live in the declaration.
+// Normalised here so a tag-style `v1.0.0` and a plain `1.0.0` name the same
+// target everywhere below.
+const semverVersion = z
+  .string()
+  .refine((s) => semver.valid(s) !== null, {
+    message: 'Version must be a valid semver version',
+    abort: true,
+  })
+  .transform((s) => semver.valid(s)!);
 
 export const moduleParamSchema = z.object({
   module: z.string().min(1),
@@ -52,10 +79,29 @@ export const cleanSchema = z.object({
 });
 
 export const importModuleSchema = z.object({
-  source: z
-    .string()
-    .min(1)
-    .refine((s) => s.startsWith('https://') || s.startsWith('git@'), {
-      message: 'Source must be a git URL (https:// or git@)',
-    }),
+  source: gitSource,
+  version: semverRange.optional(),
+});
+
+export const updateModuleSchema = z.object({
+  version: semverVersion.optional(),
+});
+
+// Exactly one of the two ways to name a source: a git URL for a module that
+// is not installed yet, or the name of a declared module whose location the
+// configuration already knows.
+export const moduleVersionsQuerySchema = z
+  .object({
+    source: gitSource.optional(),
+    module: z.string().min(1).optional(),
+  })
+  .refine(
+    (query) => (query.source === undefined) !== (query.module === undefined),
+    {
+      message: "Provide exactly one of 'source' or 'module'",
+    },
+  );
+
+export const updatePlanQuerySchema = z.object({
+  version: semverVersion.optional(),
 });

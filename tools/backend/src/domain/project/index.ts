@@ -12,13 +12,18 @@
 */
 
 import { Hono } from 'hono';
+import { disableSSG } from 'hono/ssg';
+import { z } from 'zod';
 import { zValidator } from '../../middleware/zvalidator.js';
 import {
   addHubSchema,
   cleanSchema,
   importModuleSchema,
   moduleParamSchema,
+  moduleVersionsQuerySchema,
   removeHubSchema,
+  updateModuleSchema,
+  updatePlanQuerySchema,
   updateProjectSchema,
 } from './schema.js';
 import * as projectService from './service.js';
@@ -53,6 +58,36 @@ router.post('/modules/update', requireRole(UserRole.Admin), async (c) => {
   return c.json({ message: 'All modules updated' });
 });
 
+// A live view of the module sources, not site content: the crawler cannot
+// supply the query these need, and any answer would be stale in the export
+// as soon as a module is published.
+router.get(
+  '/modules/update-plan',
+  disableSSG(),
+  requireRole(UserRole.Admin),
+  async (c) => {
+    const commands = c.get('commands');
+    const plan = await projectService.getUpdatePlan(commands);
+    return c.json(plan);
+  },
+);
+
+router.get(
+  '/modules/versions',
+  disableSSG(),
+  requireRole(UserRole.Admin),
+  zValidator('query', moduleVersionsQuerySchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const { source, module } = c.req.valid('query');
+    const versions = await projectService.listModuleVersions(commands, {
+      source,
+      module,
+    });
+    return c.json(versions);
+  },
+);
+
 router.post(
   '/modules/:module/update',
   requireRole(UserRole.Admin),
@@ -60,8 +95,39 @@ router.post(
   async (c) => {
     const commands = c.get('commands');
     const { module } = c.req.valid('param');
-    await projectService.updateModule(commands, module);
+    // The body is optional, and the JSON validator middleware rejects a
+    // missing one outright, so it is parsed here instead.
+    let version: string | undefined;
+    if (c.req.header('content-type')?.includes('application/json')) {
+      let body: unknown;
+      try {
+        body = await c.req.json();
+      } catch {
+        return c.json({ error: 'Malformed JSON in request body' }, 400);
+      }
+      const parsed = updateModuleSchema.safeParse(body);
+      if (!parsed.success) {
+        return c.json({ error: z.prettifyError(parsed.error) }, 400);
+      }
+      version = parsed.data.version;
+    }
+    await projectService.updateModule(commands, module, version);
     return c.json({ message: 'Module updated' });
+  },
+);
+
+router.get(
+  '/modules/:module/update-plan',
+  disableSSG(),
+  requireRole(UserRole.Admin),
+  zValidator('param', moduleParamSchema),
+  zValidator('query', updatePlanQuerySchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const { module } = c.req.valid('param');
+    const { version } = c.req.valid('query');
+    const plan = await projectService.getUpdatePlan(commands, module, version);
+    return c.json(plan);
   },
 );
 
@@ -77,8 +143,8 @@ router.post(
   zValidator('json', importModuleSchema),
   async (c) => {
     const commands = c.get('commands');
-    const { source } = c.req.valid('json');
-    await projectService.importModule(commands, source);
+    const { source, version } = c.req.valid('json');
+    await projectService.importModule(commands, source, version);
     return c.json({ message: 'Module imported successfully' });
   },
 );
