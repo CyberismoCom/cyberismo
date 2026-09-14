@@ -42,9 +42,26 @@ contentPurify.addHook('afterSanitizeAttributes', (node) => {
   }
 });
 
+// Card content is prose, and the app has no endpoint for a card to post to, so
+// any form that renders is aimed at someone else's server: a phishing surface
+// wearing our own origin. DOMPurify's html profile allows all of these.
+const FORM_TAGS = [
+  'form',
+  'input',
+  'button',
+  'select',
+  'option',
+  'optgroup',
+  'textarea',
+  'label',
+  'fieldset',
+  'legend',
+];
+
 const sanitizeOptions = {
   USE_PROFILES: { html: true, svg: true },
   ADD_TAGS: [...MACRO_TAGS, 'iframe'],
+  FORBID_TAGS: FORM_TAGS,
   ADD_ATTR: [
     'options',
     'key',
