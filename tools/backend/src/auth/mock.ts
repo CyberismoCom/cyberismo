@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { MiddlewareHandler } from 'hono';
+import type { Context, MiddlewareHandler } from 'hono';
 import { setCookie } from 'hono/cookie';
 import { UserRole } from '../types.js';
 import type { UserInfo } from '../types.js';
@@ -20,21 +20,67 @@ import type { AuthProvider } from './types.js';
 export interface MockUserConfig {
   name?: string;
   email?: string;
+  roster?: boolean;
 }
 
 export const MOCK_ROLE_COOKIE = 'mock-role';
-const ROLE_RESET_VALUE = 'default';
+export const MOCK_USER_COOKIE = 'mock-user';
+const RESET_VALUE = 'default';
 
-const ROLE_ALIASES: Record<string, UserRole> = {
-  reader: UserRole.Reader,
-  editor: UserRole.Editor,
-  admin: UserRole.Admin,
-  connector: UserRole.Connector,
-};
+const ROLE_ALIASES = new Map<string, UserRole>([
+  ['reader', UserRole.Reader],
+  ['editor', UserRole.Editor],
+  ['admin', UserRole.Admin],
+  ['connector', UserRole.Connector],
+]);
+
+interface MockUser {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+}
+
+// Opt-in: `cyberismo app` ships mock auth, where a roster identity would forge
+// git commit authorship. Dev and e2e need several users in one backend process.
+const MOCK_USERS = new Map<string, MockUser>([
+  [
+    'alice',
+    {
+      id: 'mock-user-alice',
+      name: 'Alice',
+      email: 'alice@example.com',
+      role: UserRole.Admin,
+    },
+  ],
+  [
+    'bob',
+    {
+      id: 'mock-user-bob',
+      name: 'Bob',
+      email: 'bob@example.com',
+      role: UserRole.Editor,
+    },
+  ],
+  [
+    'carol',
+    {
+      id: 'mock-user-carol',
+      name: 'Carol',
+      email: 'carol@example.com',
+      role: UserRole.Reader,
+    },
+  ],
+]);
 
 function parseRole(value: string | null | undefined): UserRole | null {
   if (!value) return null;
-  return ROLE_ALIASES[value.toLowerCase()] ?? null;
+  return ROLE_ALIASES.get(value.toLowerCase()) ?? null;
+}
+
+function parseUser(value: string | null | undefined): MockUser | null {
+  if (!value) return null;
+  return MOCK_USERS.get(value.toLowerCase()) ?? null;
 }
 
 function readCookie(header: string | null, name: string): string | undefined {
@@ -48,6 +94,23 @@ function readCookie(header: string | null, name: string): string | undefined {
   return undefined;
 }
 
+function applyOverride(
+  c: Context,
+  override: string | null,
+  cookieName: string,
+  parse: (value: string) => unknown,
+): void {
+  if (!override) return;
+  if (override.toLowerCase() === RESET_VALUE) {
+    setCookie(c, cookieName, '', { path: '/', maxAge: 0 });
+  } else if (parse(override) != null) {
+    setCookie(c, cookieName, override.toLowerCase(), {
+      path: '/',
+      sameSite: 'Lax',
+    });
+  }
+}
+
 export class MockAuthProvider implements AuthProvider {
   private readonly userConfig: MockUserConfig;
 
@@ -56,9 +119,15 @@ export class MockAuthProvider implements AuthProvider {
   }
 
   async authenticate(req: Request): Promise<UserInfo> {
-    const cookieRole = parseRole(
-      readCookie(req.headers.get('cookie'), MOCK_ROLE_COOKIE),
-    );
+    const cookies = req.headers.get('cookie');
+    const cookieRole = parseRole(readCookie(cookies, MOCK_ROLE_COOKIE));
+    const rosterUser = this.userConfig.roster
+      ? parseUser(readCookie(cookies, MOCK_USER_COOKIE))
+      : null;
+    if (rosterUser) {
+      return { ...rosterUser, role: cookieRole ?? rosterUser.role };
+    }
+
     return {
       id: 'mock-user',
       email: this.userConfig.email ?? 'admin@cyberismo.local',
@@ -66,25 +135,16 @@ export class MockAuthProvider implements AuthProvider {
       role: cookieRole ?? UserRole.Admin,
     };
   }
-}
 
-/**
- * Dev-only middleware that turns `?role=<reader|editor|admin>` into a persistent
- * `mock-role` cookie, and clears it on `?role=default`.
- */
-export function mockRoleCookieMiddleware(): MiddlewareHandler {
-  return async (c, next) => {
-    const override = new URL(c.req.url).searchParams.get('role');
-    if (override) {
-      if (override.toLowerCase() === ROLE_RESET_VALUE) {
-        setCookie(c, MOCK_ROLE_COOKIE, '', { path: '/', maxAge: 0 });
-      } else if (parseRole(override)) {
-        setCookie(c, MOCK_ROLE_COOKIE, override.toLowerCase(), {
-          path: '/',
-          sameSite: 'Lax',
-        });
+  /** Turns ?role= and, with the roster on, ?user= into cookies; "default" clears. */
+  cookieMiddleware(): MiddlewareHandler {
+    return async (c, next) => {
+      const params = new URL(c.req.url).searchParams;
+      applyOverride(c, params.get('role'), MOCK_ROLE_COOKIE, parseRole);
+      if (this.userConfig.roster) {
+        applyOverride(c, params.get('user'), MOCK_USER_COOKIE, parseUser);
       }
-    }
-    await next();
-  };
+      await next();
+    };
+  }
 }
