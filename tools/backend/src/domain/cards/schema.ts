@@ -39,12 +39,20 @@ export const updateLinkSchema = z.object({
   previousDirection: linkDirection,
   previousDescription: z.string().optional(),
 });
+
+// Interpolated into the exported document's AsciiDoc header, where a line break
+// starts a new attribute entry.
+const headerValue = z
+  .string()
+  .min(1)
+  .regex(/^[^\r\n]*$/, 'must not contain line breaks');
+
 export const exportCardPdfSchema = z.object({
-  title: z.string().min(1),
-  name: z.string().min(1),
+  title: headerValue,
+  name: headerValue,
   cardKey: z.string(),
   exportChildCards: z.boolean(),
-  version: z.string().min(1).optional(),
+  version: headerValue.optional(),
 });
 
 export type ExportCardPdfRequestBody = z.infer<typeof exportCardPdfSchema>;
