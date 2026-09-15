@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Hono } from 'hono';
 import {
   createAuthMiddleware,
@@ -9,6 +9,7 @@ import {
 import { UserRole } from '../../src/types.js';
 import type { UserInfo } from '../../src/types.js';
 import type { AuthProvider } from '../../src/auth/types.js';
+import { setPolicy } from '../../src/overlay.js';
 
 const adminUser: UserInfo = {
   id: 'admin-1',
@@ -24,6 +25,20 @@ const readerUser: UserInfo = {
   role: UserRole.Reader,
 };
 
+const editorUser: UserInfo = {
+  id: 'editor-1',
+  email: 'editor@example.com',
+  name: 'Editor',
+  role: UserRole.Editor,
+};
+
+const connectorUser: UserInfo = {
+  id: 'connector-1',
+  email: 'connector@example.com',
+  name: 'Connector',
+  role: UserRole.Connector,
+};
+
 function mockProvider(user: UserInfo | null): AuthProvider {
   return { authenticate: vi.fn().mockResolvedValue(user) };
 }
@@ -37,6 +52,81 @@ describe('createAuthMiddleware', () => {
     const res = await app.request('/api/test');
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual(adminUser);
+  });
+
+  describe('read-only policy', () => {
+    // The policy is module state, so each test starts from none.
+    beforeEach(() => setPolicy({ readOnly: false, projects: {} }));
+
+    function appFor(user: UserInfo) {
+      const app = new Hono();
+      app.use('*', createAuthMiddleware(mockProvider(user)));
+      app.get('/api/test', (c) => c.json(c.get('user')));
+      app.get('/api/projects/:prefix/cards', (c) => c.json(c.get('user')));
+      return app;
+    }
+
+    it('lowers a non-admin role to reader when read-only', async () => {
+      setPolicy({ readOnly: true, projects: {} });
+      const res = await appFor(editorUser).request('/api/test');
+      expect(await res.json()).toEqual({
+        ...editorUser,
+        role: UserRole.Reader,
+      });
+    });
+
+    it('lowers a connector to reader when read-only', async () => {
+      setPolicy({ readOnly: true, projects: {} });
+      const res = await appFor(connectorUser).request('/api/test');
+      expect(await res.json()).toEqual({
+        ...connectorUser,
+        role: UserRole.Reader,
+      });
+    });
+
+    it('leaves an admin alone when read-only', async () => {
+      setPolicy({ readOnly: true, projects: {} });
+      const res = await appFor(adminUser).request('/api/test');
+      expect(await res.json()).toEqual(adminUser);
+    });
+
+    it('leaves the role alone with no policy', async () => {
+      const res = await appFor(editorUser).request('/api/test');
+      expect(await res.json()).toEqual(editorUser);
+    });
+
+    it('applies a project freeze only to that project', async () => {
+      setPolicy({ readOnly: false, projects: { frozen: { readOnly: true } } });
+      const app = appFor(editorUser);
+
+      const frozen = await app.request('/api/projects/frozen/cards');
+      expect(await frozen.json()).toEqual({
+        ...editorUser,
+        role: UserRole.Reader,
+      });
+
+      const other = await app.request('/api/projects/other/cards');
+      expect(await other.json()).toEqual(editorUser);
+
+      // No project in the path, so a project freeze says nothing about it.
+      const global = await app.request('/api/test');
+      expect(await global.json()).toEqual(editorUser);
+    });
+
+    it('makes an editor fail an editor-gated route when read-only', async () => {
+      const app = new Hono();
+      app.use('*', createAuthMiddleware(mockProvider(editorUser)));
+      app.post('/api/test', requireRole(UserRole.Editor), (c) =>
+        c.json({ ok: true }),
+      );
+
+      const allowed = await app.request('/api/test', { method: 'POST' });
+      expect(allowed.status).toBe(200);
+
+      setPolicy({ readOnly: true, projects: {} });
+      const denied = await app.request('/api/test', { method: 'POST' });
+      expect(denied.status).toBe(403);
+    });
   });
 
   it('returns 401 for unauthenticated /api/* requests', async () => {
@@ -141,13 +231,6 @@ describe('requireRole', () => {
     expect(await res.json()).toEqual({ error: 'Unauthorized' });
   });
 });
-
-const connectorUser: UserInfo = {
-  id: 'connector-1',
-  email: 'connector@example.com',
-  name: 'Connector',
-  role: UserRole.Connector,
-};
 
 describe('requireRole with exactRoles', () => {
   function appWithExactRoles(
