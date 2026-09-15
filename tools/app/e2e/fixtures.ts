@@ -14,6 +14,15 @@ const BACKEND_ENTRY = join(
   'main.js',
 );
 
+// Windows holds transient locks on files the backend has just touched, which
+// surface as EBUSY on the final rmdir. Retry rather than fail the worker.
+const RM_OPTIONS = {
+  recursive: true,
+  force: true,
+  maxRetries: 5,
+  retryDelay: 100,
+} as const;
+
 type Backend = { baseURL: string; projectPath: string };
 type WorkerFixtures = {
   backend: Backend;
@@ -64,7 +73,7 @@ export const test = base.extend<{ baseURL: string }, WorkerFixtures>({
   backend: [
     async ({}, use, workerInfo) => {
       const projectPath = join(TMP, `cyberismo-bat-w${workerInfo.workerIndex}`);
-      await rm(projectPath, { recursive: true, force: true });
+      await rm(projectPath, RM_OPTIONS);
       await cp(GOLDEN, projectPath, { recursive: true });
 
       const proc: ChildProcess = spawn(process.execPath, [BACKEND_ENTRY], {
@@ -98,7 +107,7 @@ export const test = base.extend<{ baseURL: string }, WorkerFixtures>({
 
       proc.kill('SIGTERM');
       await new Promise((r) => setTimeout(r, 200));
-      await rm(projectPath, { recursive: true, force: true });
+      await rm(projectPath, RM_OPTIONS);
     },
     { scope: 'worker', auto: true },
   ],
