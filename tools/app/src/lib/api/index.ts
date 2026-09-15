@@ -16,6 +16,7 @@ export * from './fieldTypes';
 export * from './projectSettings';
 export * from './project';
 export * from './card';
+export * from './card-updates';
 export * from './calculation';
 export * from './connectors';
 export * from './templates';

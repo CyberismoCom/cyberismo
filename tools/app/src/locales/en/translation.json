@@ -117,6 +117,10 @@
   "cardKey": "Card key",
   "cardNotFound": "Could not find card",
   "cardType": "Card type",
+  "cardUpdated": {
+    "byOther": "{{name}} updated this card",
+    "whileEditing": "{{name}} saved changes to this card while you are editing. Your draft is unchanged."
+  },
   "category": "Category",
   "cleanConfirm": "Remove",
   "cleanPartial_one": "Dormant field values removed, but {{count}} card could not be updated",
