@@ -12,6 +12,7 @@
 */
 import AppToolbar from '../components/AppToolbar';
 import ExtensionSlot from '../components/ExtensionSlot';
+import { ProjectEventsProvider } from '../lib/contexts/ProjectEventsProvider.js';
 import {
   useNavigationGuard,
   useOptionalKeyParam,
@@ -55,6 +56,17 @@ const Main = styled('main')(() => ({
 }));
 
 export default function Layout() {
+  const { projectPrefix } = useParams();
+  return projectPrefix ? (
+    <ProjectEventsProvider key={projectPrefix} projectPrefix={projectPrefix}>
+      <ProjectLayout />
+    </ProjectEventsProvider>
+  ) : (
+    <ProjectLayout />
+  );
+}
+
+function ProjectLayout() {
   useNavigationGuard();
 
   const inCards = useIsInCards();

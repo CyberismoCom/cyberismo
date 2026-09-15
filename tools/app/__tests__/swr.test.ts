@@ -49,11 +49,10 @@ describe('projectApiPaths', () => {
       );
     });
 
-    it('builds presence path', () => {
+    it('builds project event paths', () => {
       const paths = projectApiPaths('TST');
-      expect(paths.presence('TST_1', 'editing')).toBe(
-        '/api/projects/TST/cards/TST_1/presence?mode=editing',
-      );
+      expect(paths.events()).toBe('/api/projects/TST/events');
+      expect(paths.presence()).toBe('/api/projects/TST/presence');
     });
 
     it('builds resource paths', () => {
