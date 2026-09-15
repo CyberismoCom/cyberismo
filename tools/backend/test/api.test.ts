@@ -136,6 +136,27 @@ test('/api/cards/export-pdf returns a 400 error on a bad request', async () => {
   expect(response.status).toBe(400);
 });
 
+// title, name and version are interpolated into the exported document's AsciiDoc
+// header, so a line break in one of them injects header attribute entries.
+test('/api/cards/export-pdf returns a 400 error on a multiline title', async () => {
+  const response = await app.request(
+    '/api/projects/decision/cards/export-pdf',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: 'Exported file\n:front-cover-image: image:/etc/passwd[]',
+        cardKey: 'decision_5',
+        name: 'exported-file',
+        exportChildCards: false,
+      }),
+    },
+  );
+
+  expect(response).not.toBe(null);
+  expect(response.status).toBe(400);
+});
+
 test('invalid card key returns error', async () => {
   const response = await app.request('/api/projects/decision/cards/bogus');
   expect(response).not.toBe(null);
