@@ -21,6 +21,7 @@ import {
   test,
   vi,
 } from 'vitest';
+import type { MockInstance } from 'vitest';
 import { CommandManager } from '@cyberismo/data-handler';
 import type { SSEMessage } from 'hono/streaming';
 import { createApp } from '../src/app.js';
@@ -119,6 +120,17 @@ async function presence(
   });
 }
 
+async function patch(cardKey: string, body: unknown, user = 'bob') {
+  return app.request(`${base}/cards/${cardKey}`, {
+    method: 'PATCH',
+    headers: {
+      'content-type': 'application/json',
+      cookie: `mock-user=${user}`,
+    },
+    body: JSON.stringify(body),
+  });
+}
+
 describe('project event stream over HTTP', () => {
   test('reader joins presence through HTTP and receives a full card snapshot', async () => {
     const { reader, ready } = await connect('carol');
@@ -157,6 +169,21 @@ describe('project event stream over HTTP', () => {
     expect((await presence(ready.connectionId, 'decision_5')).status).toBe(204);
     const other = await connect('bob');
     expect(other.ready.presence).toEqual({});
+  });
+
+  test('HTTP writes broadcast even with presence disabled', async () => {
+    vi.stubEnv('APP_PRESENCE_ENABLED', 'false');
+    const { reader } = await connect('carol');
+    const written = {
+      content: 'Written while disabled',
+      metadata: { title: 'Written while disabled' },
+    };
+    expect((await patch('decision_5', written, 'alice')).status).toBe(200);
+    expect(await nextEvent(reader, 'card.updated')).toEqual({
+      cardKey: 'decision_5',
+      userId: 'mock-user-alice',
+      userName: 'Alice',
+    });
   });
 
   test('export mode serves no event stream', async () => {
@@ -204,7 +231,7 @@ describe('presence bookkeeping', () => {
           messages.filter((message) => message.event === event).at(-1)!.data,
         ),
       );
-    return { events, connect, latest };
+    return { events, connect, latest, messages, user };
   }
 
   test('deduplicates tabs, prefers editing, and ignores delayed updates', () => {
@@ -279,4 +306,156 @@ describe('presence bookkeeping', () => {
       events.dispose();
     }
   });
+
+  test('a card named twice by one write is notified once', () => {
+    const { events, connect, messages, user } = setup();
+    try {
+      connect();
+      messages.length = 0;
+      events.cardsUpdated(['decision_5', 'decision_6', 'decision_5'], user);
+      expect(
+        messages.map((message) => JSON.parse(String(message.data)).cardKey),
+      ).toEqual(['decision_5', 'decision_6']);
+    } finally {
+      events.dispose();
+    }
+  });
+});
+
+describe('card update notifications', () => {
+  const asBob = { cookie: 'mock-user=bob' };
+  const json = (body: unknown) => ({
+    headers: { 'content-type': 'application/json', ...asBob },
+    body: JSON.stringify(body),
+  });
+  const link = { toCard: 'decision_6', linkType: 'decision/linkTypes/test' };
+  const attach = async (filename: string) => {
+    const form = new FormData();
+    form.append('files', new Blob(['hello'], { type: 'text/plain' }), filename);
+    return app.request(`${base}/cards/decision_5/attachments`, {
+      method: 'POST',
+      headers: asBob,
+      body: form,
+    });
+  };
+  const addLink = async (description: string) =>
+    app.request(`${base}/cards/decision_5/links`, {
+      method: 'POST',
+      ...json({ ...link, direction: 'outbound', description }),
+    });
+
+  let notify: MockInstance<ProjectEvents['cardsUpdated']>;
+  let retargeted: string;
+  let edited: string;
+
+  beforeAll(async () => {
+    const [target] = await commands.createCmd.createCard(
+      'decision/templates/decision',
+      'decision_5',
+    );
+    retargeted = target.key;
+    const [scratch] = await commands.createCmd.createCard(
+      'decision/templates/decision',
+      'decision_5',
+    );
+    edited = scratch.key;
+  });
+  beforeEach(() => {
+    notify = vi.spyOn(registry.eventsFor(commands), 'cardsUpdated');
+  });
+  afterEach(() => notify.mockRestore());
+
+  const bodies: { field: string; body: () => unknown; notifies: number }[] = [
+    { field: 'nothing', body: () => ({}), notifies: 0 },
+    { field: 'state', body: () => ({ state: 'Approve' }), notifies: 1 },
+    { field: 'content', body: () => ({ content: 'Edited body' }), notifies: 1 },
+    {
+      field: 'metadata',
+      body: () => ({ metadata: { title: 'Edited title' } }),
+      notifies: 1,
+    },
+    { field: 'parent', body: () => ({ parent: 'decision_6' }), notifies: 1 },
+    { field: 'index', body: () => ({ index: 0 }), notifies: 1 },
+  ];
+
+  test.each(bodies)(
+    'a PATCH body carrying $field notifies $notifies time(s)',
+    async ({ body, notifies }) => {
+      expect((await patch(edited, body())).status).toBe(200);
+      expect(notify.mock.calls).toEqual(
+        notifies
+          ? [[[edited], expect.objectContaining({ id: 'mock-user-bob' })]]
+          : [],
+      );
+    },
+  );
+
+  const writes: {
+    route: string;
+    prepare: () => Promise<unknown>;
+    write: () => Promise<Response>;
+    keys: () => string[];
+  }[] = [
+    {
+      route: 'attachment upload',
+      prepare: async () => {},
+      write: () => attach('added.txt'),
+      keys: () => ['decision_5'],
+    },
+    {
+      route: 'attachment removal',
+      prepare: () => attach('removed.txt'),
+      write: async () =>
+        app.request(`${base}/cards/decision_5/attachments/removed.txt`, {
+          method: 'DELETE',
+          headers: asBob,
+        }),
+      keys: () => ['decision_5'],
+    },
+    {
+      route: 'link creation',
+      prepare: async () => {},
+      write: () => addLink('created'),
+      keys: () => ['decision_5', 'decision_6'],
+    },
+    {
+      route: 'link removal',
+      prepare: () => addLink('removed'),
+      write: async () =>
+        app.request(`${base}/cards/decision_5/links`, {
+          method: 'DELETE',
+          ...json({ ...link, direction: 'outbound', description: 'removed' }),
+        }),
+      keys: () => ['decision_5', 'decision_6'],
+    },
+    {
+      route: 'link update',
+      prepare: () => addLink('before'),
+      write: async () =>
+        app.request(`${base}/cards/decision_5/links`, {
+          method: 'PUT',
+          ...json({
+            ...link,
+            toCard: retargeted,
+            direction: 'outbound',
+            description: 'after',
+            previousToCard: link.toCard,
+            previousLinkType: link.linkType,
+            previousDirection: 'outbound',
+            previousDescription: 'before',
+          }),
+        }),
+      keys: () => ['decision_5', retargeted, 'decision_6'],
+    },
+  ];
+
+  test.each(writes)(
+    '$route notifies the cards it wrote',
+    async ({ prepare, write, keys }) => {
+      await prepare();
+      notify.mockClear();
+      expect((await write()).status).toBe(200);
+      expect(notify.mock.calls.map(([notified]) => notified)).toEqual([keys()]);
+    },
+  );
 });

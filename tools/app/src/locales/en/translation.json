@@ -425,6 +425,8 @@
   "policyCheckPass": "PASS",
   "presence": {
     "editing": "Editing: {{names}}",
+    "updatedByOther": "{{user}} updated this card",
+    "updatedWhileEditing": "{{user}} saved changes to this card while you are editing. Your draft is unchanged.",
     "viewing": "Viewing: {{names}}"
   },
   "preview": "Preview",

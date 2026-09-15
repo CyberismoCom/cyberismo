@@ -19,6 +19,7 @@ import StatusSelector from '../StateSelector';
 import { findWorkflowForCardType } from '../../lib/utils';
 import type { WorkflowTransition } from '../../lib/definitions';
 import { useTranslation } from 'react-i18next';
+import { useCardUpdates } from '../../lib/api/card-updates.js';
 import {
   useCard,
   usePresence,
@@ -59,6 +60,7 @@ export function CardToolbar({
   const { card, updateWorkFlowState, isUpdating } = useCard(cardKey);
   const { user } = useUser();
   const presence = usePresence(cardKey, presenceMode);
+  useCardUpdates(cardKey, presenceMode);
 
   const dispatch = useAppDispatch();
   const canEdit = useHasMinRole(UserRole.Editor);
