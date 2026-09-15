@@ -99,6 +99,16 @@ export class ProjectEvents {
     if (connection.cardKey) this.presenceUpdated(connection.cardKey);
   }
 
+  cardsUpdated(cardKeys: string[], user: UserInfo): void {
+    for (const cardKey of new Set(cardKeys)) {
+      this.broadcast('card.updated', {
+        cardKey,
+        userId: user.id,
+        userName: user.name,
+      });
+    }
+  }
+
   dispose(): void {
     clearInterval(this.expiryTimer);
     const connections = [...this.connections.values()];
@@ -129,10 +139,11 @@ export class ProjectEvents {
   }
 
   private presenceUpdated(cardKey: string): void {
-    const message = {
-      event: 'presence.updated',
-      data: JSON.stringify({ cardKey, users: this.users(cardKey) }),
-    };
+    this.broadcast('presence.updated', { cardKey, users: this.users(cardKey) });
+  }
+
+  private broadcast(event: string, data: unknown): void {
+    const message = { event, data: JSON.stringify(data) };
     for (const connectionId of [...this.connections.keys()]) {
       this.deliver(connectionId, message);
     }

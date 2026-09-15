@@ -25,6 +25,7 @@ const RM_OPTIONS = {
 
 type Backend = { baseURL: string; projectPath: string };
 type WorkerFixtures = {
+  presenceEnabled: boolean;
   backend: Backend;
   resetProject: () => Promise<void>;
 };
@@ -70,8 +71,9 @@ async function waitForListening(
 }
 
 export const test = base.extend<{ baseURL: string }, WorkerFixtures>({
+  presenceEnabled: [false, { scope: 'worker', option: true }],
   backend: [
-    async ({}, use, workerInfo) => {
+    async ({ presenceEnabled }, use, workerInfo) => {
       const projectPath = join(TMP, `cyberismo-bat-w${workerInfo.workerIndex}`);
       await rm(projectPath, RM_OPTIONS);
       await cp(GOLDEN, projectPath, { recursive: true });
@@ -81,6 +83,7 @@ export const test = base.extend<{ baseURL: string }, WorkerFixtures>({
           ...process.env,
           NODE_ENV: 'test',
           AUTH_MODE: 'mock',
+          APP_PRESENCE_ENABLED: String(presenceEnabled),
           CYBERISMO_E2E_OSPORT: 'true',
           npm_config_project_path: projectPath,
           CYBERISMO_GOLDEN_PATH: GOLDEN,

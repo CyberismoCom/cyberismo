@@ -21,7 +21,11 @@ import {
 import { z } from 'zod';
 import { getConfig } from '../utils.js';
 import { projectApiPaths } from '../swr.js';
-import { ProjectEventsContext, type PresenceEntry } from '../api/presence.js';
+import {
+  ProjectEventsContext,
+  type CardUpdatedEvent,
+  type PresenceEntry,
+} from '../api/presence.js';
 
 const RENEWAL_INTERVAL_MS = 30_000;
 
@@ -37,6 +41,11 @@ const readySchema = z.object({
 const presenceSchema = z.object({
   cardKey: z.string(),
   users: z.array(entrySchema),
+});
+const cardUpdatedSchema = z.object({
+  cardKey: z.string(),
+  userId: z.string(),
+  userName: z.string(),
 });
 
 function parseData(event: MessageEvent): unknown {
@@ -55,6 +64,7 @@ export function ProjectEventsProvider({
   children: ReactNode;
 }) {
   const [presence, setPresence] = useState<Record<string, PresenceEntry[]>>({});
+  const cardListeners = useRef(new Set<(event: CardUpdatedEvent) => void>());
   const desired = useRef({
     cardKey: null as string | null,
     mode: 'viewing' as PresenceEntry['mode'],
@@ -62,6 +72,16 @@ export function ProjectEventsProvider({
   });
   const sendRef = useRef<() => void>(() => {});
   const { staticMode, presenceEnabled } = getConfig();
+
+  const subscribeToCardUpdates = useCallback(
+    (listener: (event: CardUpdatedEvent) => void) => {
+      cardListeners.current.add(listener);
+      return () => {
+        cardListeners.current.delete(listener);
+      };
+    },
+    [],
+  );
 
   const reportPresence = useCallback(
     (cardKey: string | null, mode: PresenceEntry['mode']) => {
@@ -126,6 +146,12 @@ export function ProjectEventsProvider({
           return next;
         });
       });
+      current.addEventListener('card.updated', (event) => {
+        if (stale()) return;
+        const parsed = cardUpdatedSchema.safeParse(parseData(event));
+        if (!parsed.success) return;
+        for (const listener of cardListeners.current) listener(parsed.data);
+      });
       current.addEventListener('error', () => {
         if (stale()) return;
         connectionId = undefined;
@@ -157,7 +183,9 @@ export function ProjectEventsProvider({
   }, [projectPrefix, staticMode, presenceEnabled]);
 
   return (
-    <ProjectEventsContext.Provider value={{ presence, reportPresence }}>
+    <ProjectEventsContext.Provider
+      value={{ presence, reportPresence, subscribeToCardUpdates }}
+    >
       {children}
     </ProjectEventsContext.Provider>
   );
