@@ -119,10 +119,36 @@ export class Export {
         // a command-line attribute cannot be overridden from a card.
         '--safe-mode',
         'secure',
+        // SECURE does not jail absolute image paths, so refuse local image reads
+        // outside the PDF theme outright. Aborts the export if it cannot patch.
+        '-r',
+        join(staticRootDir, 'pdf-safe.rb'),
         '-a',
         'source-highlighter=rouge',
         '-a',
         'icons=font',
+        // Defence in depth: pin imagesdir and unset every document attribute that
+        // asciidoctor-pdf resolves as an image (cover, background, foreground,
+        // title-page logo). A locked command-line attribute cannot be re-set from
+        // the document, and the export title/name reach the document header.
+        '-a',
+        'imagesdir=images',
+        '-a',
+        'front-cover-image!',
+        '-a',
+        'back-cover-image!',
+        '-a',
+        'page-background-image!',
+        '-a',
+        'page-background-image-recto!',
+        '-a',
+        'page-background-image-verso!',
+        '-a',
+        'title-page-background-image!',
+        '-a',
+        'page-foreground-image!',
+        '-a',
+        'title-logo-image!',
         '-a',
         'pdf-theme=cyberismo',
         '-a',
