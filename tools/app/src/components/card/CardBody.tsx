@@ -57,6 +57,7 @@ import { asciidoc } from 'codemirror-asciidoc';
 import { CODE_MIRROR_BASE_PROPS, CODE_MIRROR_THEMES } from '@/lib/constants';
 import { useTranslation } from 'react-i18next';
 import { parseContent } from '@/lib/api/actions/card.js';
+import { adocToHtml } from '@/lib/asciidoc';
 
 const editorExtensions = [
   StreamLanguage.define(asciidoc),
@@ -66,6 +67,8 @@ const editorExtensions = [
 
 type CardBodyProps = {
   card: CardResponse;
+  /** The card's content, already converted from AsciiDoc by the owning layout. */
+  htmlContent: string;
   preview?: boolean;
   onContentSave?: (content: string) => Promise<void>;
   onEditingChange?: (editing: boolean) => void;
@@ -77,7 +80,10 @@ export type CardBodyHandle = {
 };
 
 export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
-  function CardBody({ card, preview, onContentSave, onEditingChange }, ref) {
+  function CardBody(
+    { card, htmlContent, preview, onContentSave, onEditingChange },
+    ref,
+  ) {
     const [contentRef, setContentRef] = useState<HTMLDivElement | null>(null);
 
     const lastTitle = useAppSelector((state) => state.page.title);
@@ -172,8 +178,8 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
       setPreviewing(true);
       setPreviewHtml(null);
       try {
-        const html = await parseContent(card.key, editContentRef.current);
-        setPreviewHtml(html);
+        const adoc = await parseContent(card.key, editContentRef.current);
+        setPreviewHtml(await adocToHtml(adoc, card.key));
       } catch {
         setPreviewing(false);
         dispatch(addNotification({ message: t('error'), type: 'error' }));
@@ -206,8 +212,6 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
       setContentRef(node);
     }, []);
 
-    const htmlContent = card.parsedContent || '';
-
     const renderHtml = (html: string) =>
       renderCardHtml(html, {
         macroKey: card.key,
@@ -215,7 +219,7 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
         downloadName: card.title,
       });
 
-    const parsedContent = renderHtml(htmlContent);
+    const renderedBody = renderHtml(htmlContent);
     const isEmpty = !htmlContent.trim();
 
     return (
@@ -377,7 +381,7 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
                 className={canEdit ? 'doc doc--editable' : 'doc'}
                 ref={setRef}
               >
-                {parsedContent}
+                {renderedBody}
               </div>
             )}
           </Box>

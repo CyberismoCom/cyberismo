@@ -38,7 +38,7 @@ import { useTranslation } from 'react-i18next';
 import MetadataView from '@/components/card/metadata-section/MetadataSection';
 import { CountBadge, LeadingSlot } from '@/components/CountBadge';
 
-import { useAppDispatch, useAppSelector } from '@/lib/hooks';
+import { useAdocHtml, useAppDispatch, useAppSelector } from '@/lib/hooks';
 import { viewChanged } from '@/lib/slices/pageState';
 
 import type {
@@ -219,7 +219,7 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
     const lastTitle = useAppSelector((state) => state.page.title);
     const cardKey = useAppSelector((state) => state.page.cardKey);
 
-    const htmlContent = card.parsedContent || '';
+    const htmlContent = useAdocHtml(card.adocContent || '', card.key);
 
     // On scroll, check which document headers are visible and update state accordingly
     const handleScroll = () => {
@@ -409,6 +409,7 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
               key={`body-${card.key}`}
               ref={bodyRef}
               card={card}
+              htmlContent={htmlContent}
               preview={preview}
               onContentSave={onContentSave}
               onEditingChange={(editing) => {
