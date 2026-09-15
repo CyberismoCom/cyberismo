@@ -18,6 +18,7 @@ import calculationsRouter from './domain/calculations/index.js';
 import cardsRouter from './domain/cards/index.js';
 import cardTypesRouter from './domain/cardTypes/index.js';
 import connectorsRouter from './domain/connectors/index.js';
+import eventsRouter from './domain/events/index.js';
 import fieldTypesRouter from './domain/fieldTypes/index.js';
 import graphModelsRouter from './domain/graphModels/index.js';
 import graphViewsRouter from './domain/graphViews/index.js';
@@ -61,6 +62,7 @@ function createProjectScopedRoutes(
   projectScoped.route('/cards', cardsRouter);
   projectScoped.route('/cardTypes', cardTypesRouter);
   projectScoped.route('/connectors', connectorsRouter);
+  projectScoped.route('/events', eventsRouter);
   projectScoped.route('/fieldTypes', fieldTypesRouter);
   projectScoped.route('/graphModels', graphModelsRouter);
   projectScoped.route('/graphViews', graphViewsRouter);

@@ -39,6 +39,7 @@ import { useModals } from '@/lib/utils';
 import { NewTemplateCardModal } from '../components/modals/resource-forms/NewTemplateCardModal';
 import { useConfigTemplateCreationContext } from '@/lib/hooks';
 import { AppModalsProvider } from '@/lib/contexts/AppModalsProvider';
+import { ProjectEventsProvider } from '@/lib/contexts/ProjectEventsProvider';
 import { UserRole, useHasMinRole } from '@/lib/auth';
 import { PROJECT_NOT_FOUND_ROUTE_ID, type ResourceName } from '@/lib/constants';
 import { useCallback, useEffect, useState } from 'react';
@@ -108,87 +109,89 @@ export default function Layout() {
   );
 
   return (
-    <Stack>
-      <AppToolbar
-        onCreate={(resourceType) => {
-          if (inCards) {
-            if (!canEdit) return;
-            openModal('card')();
-          } else {
-            if (!isAdmin) return;
-            if (!resourceType) {
-              console.warn(
-                'No resource type provided when creating a new resource',
-              );
-              return;
+    <ProjectEventsProvider key={projectPrefix} projectPrefix={projectPrefix}>
+      <Stack>
+        <AppToolbar
+          onCreate={(resourceType) => {
+            if (inCards) {
+              if (!canEdit) return;
+              openModal('card')();
+            } else {
+              if (!isAdmin) return;
+              if (!resourceType) {
+                console.warn(
+                  'No resource type provided when creating a new resource',
+                );
+                return;
+              }
+              openModal(resourceType)();
             }
-            openModal(resourceType)();
-          }
-        }}
-        onMenuClick={() => setDrawerOpen(true)}
-      />
-      <ExtensionSlot />
-      <AppModalsProvider
-        value={{
-          openCreateResourceModal,
-        }}
-      >
-        <Main>
-          <Outlet
-            context={
-              { drawerOpen, setDrawerOpen } satisfies AppLayoutOutletContext
-            }
-          />
-        </Main>
-      </AppModalsProvider>
-      <NewCardModal
-        open={modalOpen.card}
-        onClose={closeModal('card')}
-        cardKey={key}
-      />
-      <NewFieldTypeModal
-        open={modalOpen.fieldTypes}
-        onClose={closeModal('fieldTypes')}
-      />
-      <NewCardTypeModal
-        open={modalOpen.cardTypes}
-        onClose={closeModal('cardTypes')}
-      />
-      <NewCalculationModal
-        open={modalOpen.calculations}
-        onClose={closeModal('calculations')}
-      />
-      <NewGraphModelModal
-        open={modalOpen.graphModels}
-        onClose={closeModal('graphModels')}
-      />
-      <NewGraphViewModal
-        open={modalOpen.graphViews}
-        onClose={closeModal('graphViews')}
-      />
-      <NewLinkTypeModal
-        open={modalOpen.linkTypes}
-        onClose={closeModal('linkTypes')}
-      />
-      <NewReportModal
-        open={modalOpen.reports}
-        onClose={closeModal('reports')}
-      />
-      <NewSkillModal open={modalOpen.skills} onClose={closeModal('skills')} />
-      <NewTemplateModal
-        open={modalOpen.templates}
-        onClose={closeModal('templates')}
-      />
-      <NewTemplateCardModal
-        open={modalOpen.templateCard}
-        onClose={closeModal('templateCard')}
-        templateResource={templateResource}
-        parentCardKey={parentCardKey}
-      />
-      <NewWorkflowModal
-        open={modalOpen.workflows}
-        onClose={closeModal('workflows')}
-      />
-    </Stack>
+          }}
+          onMenuClick={() => setDrawerOpen(true)}
+        />
+        <ExtensionSlot />
+        <AppModalsProvider
+          value={{
+            openCreateResourceModal,
+          }}
+        >
+          <Main>
+            <Outlet
+              context={
+                { drawerOpen, setDrawerOpen } satisfies AppLayoutOutletContext
+              }
+            />
+          </Main>
+        </AppModalsProvider>
+        <NewCardModal
+          open={modalOpen.card}
+          onClose={closeModal('card')}
+          cardKey={key}
+        />
+        <NewFieldTypeModal
+          open={modalOpen.fieldTypes}
+          onClose={closeModal('fieldTypes')}
+        />
+        <NewCardTypeModal
+          open={modalOpen.cardTypes}
+          onClose={closeModal('cardTypes')}
+        />
+        <NewCalculationModal
+          open={modalOpen.calculations}
+          onClose={closeModal('calculations')}
+        />
+        <NewGraphModelModal
+          open={modalOpen.graphModels}
+          onClose={closeModal('graphModels')}
+        />
+        <NewGraphViewModal
+          open={modalOpen.graphViews}
+          onClose={closeModal('graphViews')}
+        />
+        <NewLinkTypeModal
+          open={modalOpen.linkTypes}
+          onClose={closeModal('linkTypes')}
+        />
+        <NewReportModal
+          open={modalOpen.reports}
+          onClose={closeModal('reports')}
+        />
+        <NewSkillModal open={modalOpen.skills} onClose={closeModal('skills')} />
+        <NewTemplateModal
+          open={modalOpen.templates}
+          onClose={closeModal('templates')}
+        />
+        <NewTemplateCardModal
+          open={modalOpen.templateCard}
+          onClose={closeModal('templateCard')}
+          templateResource={templateResource}
+          parentCardKey={parentCardKey}
+        />
+        <NewWorkflowModal
+          open={modalOpen.workflows}
+          onClose={closeModal('workflows')}
+        />
+      </Stack>
+    </ProjectEventsProvider>
   );
 }

@@ -11,76 +11,23 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useEffect, useState } from 'react';
-import { getConfig } from '@/lib/utils';
-import { projectApiPaths } from '@/lib/swr.js';
-import { UserRole, useHasMinRole } from '@/lib/auth';
-import { z } from 'zod';
+import { useContext, useEffect } from 'react';
+import {
+  ProjectEventsContext,
+  type PresenceEntry,
+} from '@/lib/contexts/ProjectEventsContext';
 
-const presenceEntrySchema = z.object({
-  userId: z.string(),
-  userName: z.string(),
-  mode: z.enum(['viewing', 'editing']),
-});
+export type { PresenceEntry };
 
-const presenceEventSchema = z.object({
-  editors: z.array(presenceEntrySchema),
-});
-
-export type PresenceEntry = z.infer<typeof presenceEntrySchema>;
-
-/**
- * Hook that connects to the card presence SSE endpoint.
- * Returns a list of users currently viewing or editing the card.
- *
- * @param cardKey - The card to track presence for
- * @param mode - Whether the current user is 'viewing' or 'editing'
- */
+/** Reports this view on the project stream and returns who else is on the card. */
 export function usePresence(
   cardKey: string | null,
-  mode: 'viewing' | 'editing' = 'viewing',
-  projectPrefix?: string,
+  mode: PresenceEntry['mode'] = 'viewing',
 ): PresenceEntry[] {
-  const canEdit = useHasMinRole(UserRole.Editor);
-  const [editors, setEditors] = useState<PresenceEntry[]>([]);
-  const config = getConfig();
-  const isEnabled = !config.staticMode && !!config.presenceEnabled;
-  const url =
-    cardKey && isEnabled && canEdit
-      ? projectApiPaths(projectPrefix).presence(cardKey, mode)
-      : null;
-
-  useEffect(() => {
-    if (!url) {
-      return;
-    }
-
-    const eventSource = new EventSource(url);
-
-    eventSource.addEventListener('presence', (event) => {
-      try {
-        const data = presenceEventSchema.parse(JSON.parse(event.data));
-        setEditors(data.editors);
-      } catch (e) {
-        console.warn('Malformed presence event', e);
-      }
-    });
-
-    eventSource.addEventListener('error', () => {
-      // EventSource will auto-reconnect; clear state on error
-      setEditors([]);
-    });
-    const handlePageHide = () => {
-      eventSource.close();
-    };
-    window.addEventListener('pagehide', handlePageHide);
-
-    return () => {
-      window.removeEventListener('pagehide', handlePageHide);
-      eventSource.close();
-      setEditors([]);
-    };
-  }, [url]);
-
-  return editors;
+  const { presence, reportPresence } = useContext(ProjectEventsContext);
+  useEffect(
+    () => reportPresence(cardKey, mode),
+    [cardKey, mode, reportPresence],
+  );
+  return cardKey ? (presence[cardKey] ?? []) : [];
 }
