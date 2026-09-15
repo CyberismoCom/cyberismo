@@ -35,7 +35,7 @@ function createAuthProvider(): AuthProvider {
   }
 
   if (authMode === 'mock') {
-    return new MockAuthProvider();
+    return new MockAuthProvider({ roster: true });
   }
 
   if (authMode === 'idp') {
