@@ -123,6 +123,30 @@ export class Export {
         'source-highlighter=rouge',
         '-a',
         'icons=font',
+        // SECURE does not jail image paths. Pin imagesdir and unset every document
+        // attribute that asciidoctor-pdf resolves as an image (cover, background,
+        // foreground, title-page logo); a locked command-line attribute cannot be
+        // re-set from the document, and the export title/name reach the header.
+        // asciidoctor-pdf does not jail absolute image:: targets; that is left to
+        // the deployment and tracked separately.
+        '-a',
+        'imagesdir=images',
+        '-a',
+        'front-cover-image!',
+        '-a',
+        'back-cover-image!',
+        '-a',
+        'page-background-image!',
+        '-a',
+        'page-background-image-recto!',
+        '-a',
+        'page-background-image-verso!',
+        '-a',
+        'title-page-background-image!',
+        '-a',
+        'page-foreground-image!',
+        '-a',
+        'title-logo-image!',
         '-a',
         'pdf-theme=cyberismo',
         '-a',
