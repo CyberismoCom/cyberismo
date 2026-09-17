@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { ResourceMutations } from '../../src/mutations/resource-mutations.js';
-import { _registerHandlerForTest } from '../../src/mutations/dispatcher.js';
-import type { MutationContext } from '../../src/mutations/handler.js';
+import { dispatch } from '../../src/mutations/dispatcher.js';
+import type { MutationInput } from '../../src/mutations/types.js';
 import { ConfigurationLogger } from '../../src/utils/configuration-logger.js';
 import { resourceName } from '../../src/utils/resource-utils.js';
 import type { Project } from '../../src/containers/project.js';
@@ -33,39 +33,36 @@ describe('ResourceMutations replay origin', () => {
     expect(logSpy).not.toHaveBeenCalled();
   });
 
-  describe('with a replay-capable stub handler', () => {
-    it('calls applyCascade only and never writes a log entry', async () => {
-      const handler = {
-        matches: (ctx: MutationContext) =>
-          ctx.input.kind === 'edit' &&
-          ctx.input.updateKey.key === 'replayProbe',
-        isBreaking: true,
-        apply: vi.fn(),
-        applyCascade: vi.fn(),
-      };
-      const unregister = _registerHandlerForTest(handler);
-      const logSpy = vi.spyOn(ConfigurationLogger, 'log');
-      try {
-        const stubProject = {
-          lock: { write: (fn: () => Promise<void>) => fn() },
-          basePath: '/unused',
-        } as unknown as Project;
-        const mutations = new ResourceMutations(stubProject);
-        await mutations.apply(
-          {
-            kind: 'edit',
-            target: resourceName('test/cardTypes/page'),
-            updateKey: { key: 'replayProbe' },
-            operation: { name: 'change', target: 'a', to: 'b' },
-          },
-          { kind: 'replay', modulePrefix: 'test' },
-        );
-        expect(handler.applyCascade).toHaveBeenCalledTimes(1);
-        expect(handler.apply).not.toHaveBeenCalled();
-        expect(logSpy).not.toHaveBeenCalled();
-      } finally {
-        unregister();
-      }
+  it('calls applyCascade only on a breaking rename, and never logs', async () => {
+    const input: MutationInput = {
+      kind: 'rename',
+      target: resourceName('test/workflows/flow'),
+      newIdentifier: 'renamedFlow',
+    };
+    const stubProject = {
+      lock: { write: (fn: () => Promise<void>) => fn() },
+      basePath: '/unused',
+    } as unknown as Project;
+    // Spy on the registry's own handler singleton, so the mutation below runs
+    // through these spies rather than through a stand-in route.
+    const { handler, breaking } = dispatch({
+      project: stubProject,
+      input,
     });
+    expect(breaking).toBe(true);
+    const apply = vi.spyOn(handler, 'apply').mockResolvedValue(undefined);
+    const applyCascade = vi
+      .spyOn(handler, 'applyCascade')
+      .mockResolvedValue(undefined);
+    const logSpy = vi.spyOn(ConfigurationLogger, 'log');
+
+    await new ResourceMutations(stubProject).apply(input, {
+      kind: 'replay',
+      modulePrefix: 'test',
+    });
+
+    expect(applyCascade).toHaveBeenCalledTimes(1);
+    expect(apply).not.toHaveBeenCalled();
+    expect(logSpy).not.toHaveBeenCalled();
   });
 });
