@@ -27,7 +27,7 @@ describe('dispatcher', () => {
     // op cascades. Historical sealed log entries carrying them replay through
     // the wildcard row, whose applyCascade() is a no-op.
     for (const op of ['add', 'remove'] as const) {
-      it(`'${op}' routes to the non-breaking wildcard PlainHandler`, async () => {
+      it(`'${op}' routes to the wildcard PlainHandler, classification 'none'`, async () => {
         const ctx = {
           project: stubProject,
           input: {
@@ -40,9 +40,9 @@ describe('dispatcher', () => {
             },
           },
         };
-        const { handler, breaking } = dispatch(ctx);
+        const { handler, classification } = dispatch(ctx);
         expect(handler).toBeInstanceOf(PlainHandler);
-        expect(breaking).toBe(false);
+        expect(classification).toBe('none');
         // Replaying a sealed entry calls applyCascade() alone. It resolves even
         // against the stub project, so it cannot be reaching for cards.
         await expect(handler.applyCascade(ctx)).resolves.toBeUndefined();

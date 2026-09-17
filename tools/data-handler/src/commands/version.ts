@@ -50,7 +50,7 @@ export class Version {
     // seal the log; consumers replay it on module update.
     // Skipped for the first version — there is no predecessor to break against.
     if (currentVersion && bumpType === 'patch') {
-      if (ConfigurationLogger.hasBreakingChanges(this.project.basePath)) {
+      if (ConfigurationLogger.hasPendingChanges(this.project.basePath)) {
         throw new Error(
           'Cannot publish a patch version: breaking configuration changes detected. Use a minor or major version bump.',
         );

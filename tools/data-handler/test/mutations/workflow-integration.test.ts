@@ -48,7 +48,7 @@ describe('Workflow mutation engine end-to-end', () => {
     ).toBe(true);
   });
 
-  it('apply → breaking state removal records a log entry', async () => {
+  it('apply → state removal records a log entry', async () => {
     const mutations = new ResourceMutations(project);
     await mutations.apply({
       kind: 'edit',
@@ -74,7 +74,7 @@ describe('Workflow mutation engine end-to-end', () => {
     ).toBe(true);
   });
 
-  it('apply → breaking state rename records a log entry', async () => {
+  it('apply → state rename records a log entry', async () => {
     const mutations = new ResourceMutations(project);
     await mutations.apply({
       kind: 'edit',
@@ -101,7 +101,7 @@ describe('Workflow mutation engine end-to-end', () => {
     ).toBe(true);
   });
 
-  it('apply → non-breaking add state records NO log entry', async () => {
+  it('apply → add state records NO log entry', async () => {
     const mutations = new ResourceMutations(project);
     await mutations.apply({
       kind: 'edit',
@@ -120,7 +120,7 @@ describe('Workflow mutation engine end-to-end', () => {
     expect(entries).toHaveLength(0);
   });
 
-  it('apply → non-breaking transition change records NO log entry', async () => {
+  it('apply → transition change records NO log entry', async () => {
     const mutations = new ResourceMutations(project);
     await mutations.apply({
       kind: 'edit',
@@ -164,7 +164,7 @@ describe('Workflow mutation engine end-to-end', () => {
     expect(project.resources.exists(WF)).toBe(false);
     expect(project.resources.exists('decision/cardTypes/decision')).toBe(false);
 
-    // The breaking delete records a log entry.
+    // The delete records a log entry.
     const entries = await ConfigurationLogger.entries(project.basePath);
     expect(
       entries.some((e) => e.operation === 'resource_delete' && e.target === WF),

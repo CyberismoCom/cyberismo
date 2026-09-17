@@ -110,7 +110,7 @@ describe('FieldType mutation engine end-to-end', () => {
     ).toBe(true);
   });
 
-  it('apply → enum rename-member is breaking, migrates cards, and logs', async () => {
+  it('apply → enum rename-member migrates cards and logs', async () => {
     const enumFieldPath = join(
       decisionRecordsPath,
       '.cards',
@@ -164,7 +164,7 @@ describe('FieldType mutation engine end-to-end', () => {
       .some((c) => c.metadata?.[fieldName] === 'low');
     expect(anyStillLow).toBe(false);
 
-    // Breaking edit records a log entry.
+    // The edit records a log entry.
     const entries = await ConfigurationLogger.entries(freshProject.basePath);
     expect(
       entries.some(
@@ -173,7 +173,7 @@ describe('FieldType mutation engine end-to-end', () => {
     ).toBe(true);
   });
 
-  it('adding an enum value is non-breaking (no log entry)', async () => {
+  it('adding an enum value records no log entry', async () => {
     const enumFieldPath = join(
       decisionRecordsPath,
       '.cards',

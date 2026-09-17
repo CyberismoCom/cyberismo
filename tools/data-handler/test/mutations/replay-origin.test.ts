@@ -33,7 +33,7 @@ describe('ResourceMutations replay origin', () => {
     expect(logSpy).not.toHaveBeenCalled();
   });
 
-  it('calls applyCascade only on a breaking rename, and never logs', async () => {
+  it('calls applyCascade only on a migratable rename, and never logs', async () => {
     const input: MutationInput = {
       kind: 'rename',
       target: resourceName('test/workflows/flow'),
@@ -45,11 +45,11 @@ describe('ResourceMutations replay origin', () => {
     } as unknown as Project;
     // Spy on the registry's own handler singleton, so the mutation below runs
     // through these spies rather than through a stand-in route.
-    const { handler, breaking } = dispatch({
+    const { handler, classification } = dispatch({
       project: stubProject,
       input,
     });
-    expect(breaking).toBe(true);
+    expect(classification).toBe('migratable');
     const apply = vi.spyOn(handler, 'apply').mockResolvedValue(undefined);
     const applyCascade = vi
       .spyOn(handler, 'applyCascade')

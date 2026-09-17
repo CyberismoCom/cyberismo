@@ -31,7 +31,7 @@ describe('Version', () => {
   let versionCmd: Version;
   let configPath: string;
   let configuration: ReturnType<typeof makeConfiguration>;
-  let hasBreakingChangesStub: sinon.SinonStub;
+  let hasPendingChangesStub: sinon.SinonStub;
 
   beforeEach(async () => {
     dir = await mkdtemp(join(tmpdir(), 'version-test-'));
@@ -51,8 +51,8 @@ describe('Version', () => {
     await git.initialize();
 
     // Bypass migration log snapshot handling — these tests focus on version bumping
-    hasBreakingChangesStub = sinon
-      .stub(ConfigurationLogger, 'hasBreakingChanges')
+    hasPendingChangesStub = sinon
+      .stub(ConfigurationLogger, 'hasPendingChanges')
       .returns(false);
 
     configuration = makeConfiguration(configPath);
@@ -164,7 +164,7 @@ describe('Version', () => {
       await configuration.setVersion('1.0.0');
       await git.commit('set version');
 
-      hasBreakingChangesStub.returns(true);
+      hasPendingChangesStub.returns(true);
 
       await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
         /Cannot publish a patch version/,
@@ -174,7 +174,7 @@ describe('Version', () => {
     it('should seal the log when minor bump attempted with breaking changes', async () => {
       configuration.version = '1.0.0';
       await configuration.setVersion('1.0.0');
-      hasBreakingChangesStub.restore();
+      hasPendingChangesStub.restore();
       await ConfigurationLogger.log(dir, {
         operation: 'resource_delete',
         target: 'some-resource',
@@ -199,7 +199,7 @@ describe('Version', () => {
       await configuration.setVersion('1.0.0');
       await git.commit('set version');
 
-      hasBreakingChangesStub.returns(true);
+      hasPendingChangesStub.returns(true);
       sinon.stub(ConfigurationLogger, 'createVersion').resolves('dummy');
 
       const result = await versionCmd.bumpVersion('major');
@@ -228,7 +228,7 @@ describe('Version', () => {
 
   describe('migration log snapshotting', () => {
     it('should snapshot migration log when log exists', async () => {
-      hasBreakingChangesStub.returns(true);
+      hasPendingChangesStub.returns(true);
       const createVersionStub = sinon
         .stub(ConfigurationLogger, 'createVersion')
         .resolves();
@@ -246,7 +246,7 @@ describe('Version', () => {
       configuration.version = '1.0.0';
       await configuration.setVersion('1.0.0');
       await git.commit('set version');
-      // hasBreakingChangesStub returns false (set in beforeEach)
+      // hasPendingChangesStub returns false (set in beforeEach)
 
       const result = await versionCmd.bumpVersion('minor');
 
