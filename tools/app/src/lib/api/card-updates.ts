@@ -42,7 +42,7 @@ export function useCardUpdates(
       void mutate(apiPaths.card(cardKey));
       void mutate(apiPaths.rawCard(cardKey));
       void mutate(apiPaths.tree());
-      if (event.userId === user?.id || !canEdit) return;
+      if (event.userId === user?.id || !canEdit || !event.userName) return;
       dispatch(
         addNotification({
           message: t(

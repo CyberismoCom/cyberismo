@@ -70,6 +70,13 @@ export function createAuthMiddleware(
 }
 
 /**
+ * Check if a role meets or exceeds a minimum role in the hierarchy.
+ */
+export function isAtLeastRole(role: UserRole, minimumRole: UserRole): boolean {
+  return roleLevel[role] >= roleLevel[minimumRole];
+}
+
+/**
  * Check if the current user has at least the required role
  */
 export function hasRole(c: Context, minimumRole: UserRole): boolean {
@@ -78,7 +85,7 @@ export function hasRole(c: Context, minimumRole: UserRole): boolean {
     return false;
   }
 
-  return roleLevel[user.role] >= roleLevel[minimumRole];
+  return isAtLeastRole(user.role, minimumRole);
 }
 
 /**
