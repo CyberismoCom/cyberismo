@@ -4,7 +4,7 @@ This document is the secure coding standard for the Cyberismo codebase. It state
 
 It is maintained with the code. Any rule here may be changed in the same pull request as the change that makes it true.
 
-Scope and boundaries:
+Scope and boundaries: asd
 
 * General development conventions (package manager, imports, testing, code style) are in `AGENTS.md`. This document covers security only.
 * Governance, roles and the review cycle for the secure development process are managed in Cyberismo's internal information security management system and are not repeated here.
