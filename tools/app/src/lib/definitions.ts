@@ -41,7 +41,6 @@ export type AppConfig = {
   staticMode: boolean;
   logoutUrl?: string;
   defaultProject?: string;
-  presenceEnabled?: boolean;
   extensionUrl?: string;
 };
 
