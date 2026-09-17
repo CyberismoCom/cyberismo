@@ -5,8 +5,6 @@ import t from '../../src/locales/en/translation.json' with { type: 'json' };
 const whileEditing = t.cardUpdated.whileEditing.replace('{{name}}', 'Bob');
 const byOther = t.cardUpdated.byOther.replace('{{name}}', 'Bob');
 
-test.use({ presenceEnabled: true });
-
 test('a card write reaches the other users viewing that card', async ({
   browser,
   backend,
