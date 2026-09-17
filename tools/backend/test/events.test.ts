@@ -15,6 +15,7 @@ import type { SSEMessage } from 'hono/streaming';
 import { createApp } from '../src/app.js';
 import type { AuthProvider } from '../src/auth/types.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
+import { boundedSend } from '../src/domain/events/bounded-send.js';
 import { computeLifetimeMs } from '../src/domain/events/lifetime.js';
 import { ProjectEvents } from '../src/domain/events/project-events.js';
 import { ProjectRegistry } from '../src/project-registry.js';
@@ -290,7 +291,47 @@ describe('presence bookkeeping', () => {
     }
   });
 
+  test('a presence.updated dropped on write is not marked delivered, so an identical later broadcast still reaches it', () => {
+    const events = new ProjectEvents();
+    const heavy = { id: 'heavy3', name: 'Heavy3' };
+    const writes1: SSEMessage[] = [];
+    let dropNext = true;
+    const send1 = (message: SSEMessage): boolean => {
+      if (message.event === 'presence.updated' && dropNext) return false;
+      writes1.push(message);
+      return true;
+    };
+    try {
+      const conn1 = events.connect(
+        heavy,
+        fullCapabilities,
+        send1,
+        () => {},
+        () => {},
+      );
+      events.update(conn1, heavy.id, 1, 'decision_5', 'viewing');
+      expect(writes1.some((m) => m.event === 'presence.updated')).toBe(false);
+
+      dropNext = false;
+      // A second connection for the same user, deduped by users() into the
+      // same single-entry list the dropped write already held.
+      const conn2 = events.connect(heavy, fullCapabilities, ...testCallbacks());
+      events.update(conn2, heavy.id, 1, 'decision_5', 'viewing');
+
+      const latest = writes1
+        .filter((m) => m.event === 'presence.updated')
+        .at(-1);
+      expect(latest).toBeDefined();
+      expect(JSON.parse(String(latest!.data)).users).toEqual([
+        { userId: 'heavy3', userName: 'Heavy3', mode: 'viewing' },
+      ]);
+    } finally {
+      events.dispose();
+    }
+  });
+
   test('a connection subscribed to one card hears nothing about another', () => {
+    vi.useFakeTimers();
     const events = new ProjectEvents();
     const onDecision5: SSEMessage[] = [];
     const onDecision6: SSEMessage[] = [];
@@ -311,6 +352,7 @@ describe('presence bookkeeping', () => {
       onDecision5.length = 0;
       onDecision6.length = 0;
 
+      vi.advanceTimersByTime(1_000);
       events.update(six, admin.id, 2, 'decision_6', 'editing');
       events.cardsUpdated(['decision_6'], admin);
 
@@ -432,17 +474,20 @@ describe('presence bookkeeping', () => {
       events.update(aConn, a.id, 1, 'decision_5', 'viewing');
       events.update(bConn, b.id, 1, 'decision_5', 'viewing');
 
+      vi.advanceTimersByTime(30_000);
       events.update(bConn, b.id, 2, 'decision_5', 'editing');
       expect(latestA('presence.updated').users).toEqual([
         { userId: 'a', userName: 'A', mode: 'viewing' },
         { userId: 'b', userName: 'B', mode: 'editing' },
       ]);
 
+      vi.advanceTimersByTime(30_000);
       events.update(bConn, b.id, 3, null, 'viewing');
       expect(latestA('presence.updated').users).toEqual([
         { userId: 'a', userName: 'A', mode: 'viewing' },
       ]);
 
+      vi.advanceTimersByTime(30_000);
       events.update(bConn, b.id, 4, 'decision_5', 'viewing');
       vi.advanceTimersByTime(60_000);
       events.update(aConn, a.id, 2, 'decision_5', 'viewing');
@@ -450,6 +495,85 @@ describe('presence bookkeeping', () => {
       expect(latestA('presence.updated').users).toEqual([
         { userId: 'a', userName: 'A', mode: 'viewing' },
       ]);
+    } finally {
+      events.dispose();
+    }
+  });
+
+  test('a second card/mode change inside the minimum interval is applied once the interval elapses, not discarded', () => {
+    vi.useFakeTimers();
+    const { events, connect, latest, messages } = setup();
+    try {
+      const connection = connect();
+      events.update(connection, 'same-user', 1, 'decision_5', 'viewing');
+      messages.length = 0;
+
+      expect(
+        events.update(connection, 'same-user', 2, 'decision_6', 'viewing'),
+      ).toBe(true);
+      expect(messages).toHaveLength(0);
+
+      vi.advanceTimersByTime(1_000);
+      expect(latest('presence.updated').cardKey).toBe('decision_6');
+    } finally {
+      events.dispose();
+    }
+  });
+
+  test('a throttled departure still applies once the interval elapses, so a remaining subscriber sees the vacancy', () => {
+    vi.useFakeTimers();
+    const events = new ProjectEvents();
+    const observed: SSEMessage[] = [];
+    const observer = { id: 'observer3', name: 'Observer3' };
+    const leaver = { id: 'leaver', name: 'Leaver' };
+    try {
+      const observerConn = events.connect(
+        observer,
+        fullCapabilities,
+        ...testCallbacks(observed),
+      );
+      const leaverConn = events.connect(
+        leaver,
+        fullCapabilities,
+        ...testCallbacks(),
+      );
+      events.update(observerConn, observer.id, 1, 'decision_5', 'viewing');
+      events.update(leaverConn, leaver.id, 1, 'decision_5', 'viewing');
+      observed.length = 0;
+
+      events.update(leaverConn, leaver.id, 2, null, 'viewing');
+      expect(observed).toEqual([]);
+
+      vi.advanceTimersByTime(1_000);
+      const latest = JSON.parse(
+        String(
+          observed.filter((m) => m.event === 'presence.updated').at(-1)!.data,
+        ),
+      );
+      expect(latest.users).toEqual([
+        { userId: 'observer3', userName: 'Observer3', mode: 'viewing' },
+      ]);
+    } finally {
+      events.dispose();
+    }
+  });
+
+  test('a renewal does not reset the movement clock, so a later real move is not needlessly deferred', () => {
+    vi.useFakeTimers();
+    const { events, connect, latest, messages } = setup();
+    try {
+      const connection = connect();
+      events.update(connection, 'same-user', 1, 'decision_5', 'viewing');
+
+      // A heartbeat-driven renewal at 900ms, unrelated to any real movement.
+      vi.advanceTimersByTime(900);
+      events.update(connection, 'same-user', 2, 'decision_5', 'viewing');
+
+      // Only 200ms after the renewal, but past 1s since the original move.
+      vi.advanceTimersByTime(200);
+      messages.length = 0;
+      events.update(connection, 'same-user', 3, 'decision_6', 'viewing');
+      expect(latest('presence.updated').cardKey).toBe('decision_6');
     } finally {
       events.dispose();
     }
@@ -591,6 +715,7 @@ describe('stream rotation', () => {
   });
 
   test('switching cards is delivered even when the new card happens to serialize identically to the old one', () => {
+    vi.useFakeTimers();
     const events = new ProjectEvents();
     const c = { id: 'c', name: 'C' };
     const other = { id: 'other', name: 'Other' };
@@ -618,6 +743,7 @@ describe('stream rotation', () => {
 
       // Both cards now hold identical occupancy ([c, other] viewing), so a
       // naive card-agnostic dedup would wrongly suppress this delivery.
+      vi.advanceTimersByTime(1_000);
       events.update(cConn, c.id, 2, 'decision_6', 'viewing');
       const onSix = messages.some(
         (m) =>
@@ -656,6 +782,190 @@ describe('stream rotation', () => {
     } finally {
       events.dispose();
     }
+  });
+});
+
+describe('connection cap', () => {
+  const admin = (id: string) => ({ id, name: id });
+
+  test('caps a user at 30 connections, evicting the oldest with `capped`, and leaves the rest untouched', () => {
+    const events = new ProjectEvents();
+    const user = admin('heavy-user');
+    const messagesByConnection: SSEMessage[][] = [];
+    const connectionIds: string[] = [];
+    try {
+      for (let i = 0; i < 30; i++) {
+        const messages: SSEMessage[] = [];
+        messagesByConnection.push(messages);
+        connectionIds.push(
+          events.connect(user, fullCapabilities, ...testCallbacks(messages)),
+        );
+      }
+      const newMessages: SSEMessage[] = [];
+      events.connect(user, fullCapabilities, ...testCallbacks(newMessages));
+
+      expect(messagesByConnection[0].map((m) => m.event)).toEqual([
+        'ready',
+        'capped',
+      ]);
+      for (let i = 1; i < 30; i++) {
+        expect(messagesByConnection[i].some((m) => m.event === 'capped')).toBe(
+          false,
+        );
+      }
+      expect(newMessages.map((m) => m.event)).toEqual(['ready']);
+      expect(
+        events.update(connectionIds[0], user.id, 1, 'decision_5', 'viewing'),
+      ).toBe(false);
+    } finally {
+      events.dispose();
+    }
+  });
+
+  test('the eviction victim skips an editing connection in favor of the oldest non-editing one', () => {
+    const events = new ProjectEvents();
+    const user = admin('editing-user');
+    const messagesByConnection: SSEMessage[][] = [];
+    const connectionIds: string[] = [];
+    try {
+      for (let i = 0; i < 30; i++) {
+        const messages: SSEMessage[] = [];
+        messagesByConnection.push(messages);
+        connectionIds.push(
+          events.connect(user, fullCapabilities, ...testCallbacks(messages)),
+        );
+      }
+      // The oldest connection is mid-edit; the next-oldest should be spared it.
+      events.update(connectionIds[0], user.id, 1, 'decision_5', 'editing');
+
+      events.connect(user, fullCapabilities, ...testCallbacks());
+
+      expect(messagesByConnection[0].some((m) => m.event === 'capped')).toBe(
+        false,
+      );
+      expect(messagesByConnection[1].some((m) => m.event === 'capped')).toBe(
+        true,
+      );
+    } finally {
+      events.dispose();
+    }
+  });
+
+  test('evicting a connection notifies a remaining subscriber of the departure', () => {
+    const events = new ProjectEvents();
+    const heavy = admin('heavy-user2');
+    const observer = admin('observer2');
+    const observed: SSEMessage[] = [];
+    try {
+      const observerConn = events.connect(
+        observer,
+        fullCapabilities,
+        ...testCallbacks(observed),
+      );
+      events.update(observerConn, observer.id, 1, 'decision_5', 'viewing');
+
+      const connectionIds: string[] = [];
+      for (let i = 0; i < 30; i++) {
+        connectionIds.push(
+          events.connect(heavy, fullCapabilities, ...testCallbacks()),
+        );
+      }
+      events.update(connectionIds[0], heavy.id, 1, 'decision_5', 'viewing');
+      observed.length = 0;
+
+      events.connect(heavy, fullCapabilities, ...testCallbacks());
+
+      const latest = JSON.parse(
+        String(
+          observed.filter((m) => m.event === 'presence.updated').at(-1)!.data,
+        ),
+      );
+      expect(latest.users).toEqual([
+        { userId: 'observer2', userName: 'observer2', mode: 'viewing' },
+      ]);
+    } finally {
+      events.dispose();
+    }
+  });
+
+  test('a retired connection does not count toward the cap, so it never evicts a live one to make room', () => {
+    const events = new ProjectEvents();
+    const user = admin('rotating-user');
+    const messagesByConnection: SSEMessage[][] = [];
+    const connectionIds: string[] = [];
+    try {
+      for (let i = 0; i < 30; i++) {
+        const messages: SSEMessage[] = [];
+        messagesByConnection.push(messages);
+        connectionIds.push(
+          events.connect(user, fullCapabilities, ...testCallbacks(messages)),
+        );
+      }
+      events.retire(connectionIds[0]);
+
+      const newMessages: SSEMessage[] = [];
+      events.connect(user, fullCapabilities, ...testCallbacks(newMessages));
+
+      for (let i = 1; i < 30; i++) {
+        expect(messagesByConnection[i].some((m) => m.event === 'capped')).toBe(
+          false,
+        );
+      }
+      expect(newMessages.map((m) => m.event)).toEqual(['ready']);
+    } finally {
+      events.dispose();
+    }
+  });
+
+  test('capping a connection over HTTP delivers `capped` before the stream closes', async () => {
+    const first = await connect('alice');
+    for (let i = 1; i < 30; i++) await connect('alice');
+    await connect('alice');
+
+    expect(await drainEventNames(first.reader)).toEqual(['capped']);
+  });
+});
+
+describe('write backpressure', () => {
+  function deferred() {
+    let settle: () => void = () => {};
+    const promise = new Promise<void>((resolve) => {
+      settle = resolve;
+    });
+    return { promise, resolve: settle };
+  }
+
+  test('drops presence updates once too many writes are outstanding, and resumes once they drain', async () => {
+    const pending: ReturnType<typeof deferred>[] = [];
+    const write = vi.fn((): Promise<void> => {
+      const d = deferred();
+      pending.push(d);
+      return d.promise;
+    });
+    const send = boundedSend(
+      write,
+      (message) => message.event === 'presence.updated',
+    );
+    const presence = (n: number) => ({
+      event: 'presence.updated',
+      data: String(n),
+    });
+
+    for (let i = 0; i < 20; i++) send(presence(i));
+    expect(write).toHaveBeenCalledTimes(20);
+
+    send(presence(20));
+    expect(write).toHaveBeenCalledTimes(20);
+
+    send({ event: 'card.updated', data: 'x' });
+    expect(write).toHaveBeenCalledTimes(21);
+
+    pending.shift()!.resolve();
+    pending.shift()!.resolve();
+    for (let i = 0; i < 5; i++) await Promise.resolve();
+
+    send(presence(21));
+    expect(write).toHaveBeenCalledTimes(22);
   });
 });
 

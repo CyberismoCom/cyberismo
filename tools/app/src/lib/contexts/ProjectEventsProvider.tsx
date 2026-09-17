@@ -29,6 +29,9 @@ import {
 
 const STALE_PRESENCE_MS = 10_000;
 const RECONNECT_BACKOFF_MS = 3_000;
+// Matches the server's presence lease, so a stale tab and an expired
+// presence lapse together.
+const WATCHDOG_MS = 90_000;
 
 const entrySchema = z.object({
   userId: z.string(),
@@ -64,6 +67,7 @@ export function ProjectEventsProvider({
   children: ReactNode;
 }) {
   const [presence, setPresence] = useState<Record<string, PresenceEntry[]>>({});
+  const [disconnected, setDisconnected] = useState(false);
   const cardListeners = useRef(new Set<(event: CardUpdatedEvent) => void>());
   const desired = useRef({
     cardKey: null as string | null,
@@ -115,7 +119,9 @@ export function ProjectEventsProvider({
     let connectionId: string | undefined;
     let sequence = 0;
     let disposed = false;
+    let terminal = false;
     let staleTimer: ReturnType<typeof setTimeout> | undefined;
+    let watchdog: ReturnType<typeof setTimeout> | undefined;
 
     const send = () => {
       if (!connectionId || disposed) return;
@@ -136,6 +142,18 @@ export function ProjectEventsProvider({
       clearTimeout(staleTimer);
       staleTimer = undefined;
       const stale = () => disposed || source !== current;
+      const armWatchdog = () => {
+        setDisconnected(false);
+        clearTimeout(watchdog);
+        watchdog = setTimeout(() => {
+          if (stale()) return;
+          // EventSource itself never reports a silent drop, so this is the
+          // only point that ever learns to retry; give it a fresh attempt.
+          setDisconnected(true);
+          close();
+          reopen();
+        }, WATCHDOG_MS);
+      };
       current.addEventListener('ready', (event) => {
         if (stale()) return;
         const parsed = readySchema.safeParse(parseData(event));
@@ -144,13 +162,21 @@ export function ProjectEventsProvider({
         staleTimer = undefined;
         connectionId = parsed.data.connectionId;
         setPresence({});
+        armWatchdog();
         send();
       });
       current.addEventListener('hb', () => {
         if (stale()) return;
+        armWatchdog();
         // Renewal rides the heartbeat: no stream, no renewal, so presence
         // cannot outlive the connection it describes.
         if (desired.current.cardKey) send();
+      });
+      current.addEventListener('capped', () => {
+        if (stale()) return;
+        terminal = true;
+        setDisconnected(true);
+        close();
       });
       current.addEventListener('presence.updated', (event) => {
         if (stale()) return;
@@ -178,9 +204,13 @@ export function ProjectEventsProvider({
           // will not retry on its own; probe auth so a real expiry surfaces
           // the existing session-expired banner, and otherwise reconnect.
           close();
+          // Blocks pageshow's reopen() while the probe is in flight; a real
+          // expiry never clears it, so reopen() stays blocked for good.
+          terminal = true;
           void callApi(globalApiPaths.user(), 'GET')
             .catch(() => {})
             .then(() => {
+              terminal = false;
               if (!disposed) setTimeout(reopen, RECONNECT_BACKOFF_MS);
             });
           return;
@@ -201,7 +231,7 @@ export function ProjectEventsProvider({
       connectionId = undefined;
     };
     const reopen = () => {
-      if (!source && !disposed) open();
+      if (!source && !disposed && !terminal) open();
     };
 
     open();
@@ -212,6 +242,7 @@ export function ProjectEventsProvider({
       close();
       sendRef.current = () => {};
       clearTimeout(staleTimer);
+      clearTimeout(watchdog);
       window.removeEventListener('pagehide', close);
       window.removeEventListener('pageshow', reopen);
     };
@@ -219,7 +250,7 @@ export function ProjectEventsProvider({
 
   return (
     <ProjectEventsContext.Provider
-      value={{ presence, reportPresence, subscribeToCardUpdates }}
+      value={{ presence, disconnected, reportPresence, subscribeToCardUpdates }}
     >
       {children}
     </ProjectEventsContext.Provider>

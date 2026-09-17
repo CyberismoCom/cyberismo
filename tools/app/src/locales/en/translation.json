@@ -152,6 +152,8 @@
   },
   "configuration": "Configuration",
   "confirmDeleteAttachment": "Are you sure you want to delete this attachment?",
+  "connectionStale": "Live updates are disconnected. This page may be showing stale content.",
+  "connectionStaleReload": "Reload",
   "create": "Create",
   "createCard": {
     "success": "Card created successfully",

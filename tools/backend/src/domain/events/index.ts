@@ -17,6 +17,7 @@ import { streamSSE, type SSEMessage } from 'hono/streaming';
 import { isAtLeastRole, requireRole } from '../../middleware/auth.js';
 import { zValidator } from '../../middleware/zvalidator.js';
 import { UserRole } from '../../types.js';
+import { boundedSend } from './bounded-send.js';
 import { computeLifetimeMs } from './lifetime.js';
 import { presenceSchema } from './schema.js';
 
@@ -49,6 +50,10 @@ router.get('/', disableSSG(), requireRole(UserRole.Reader), (c) => {
     const terminate = (message: SSEMessage) => {
       if (stopped) return;
       stopped = true;
+      // Otherwise a capped-but-still-open stream keeps ticking `hb` writes
+      // straight past boundedSend for as long as the write below is stuck.
+      clearInterval(heartbeat);
+      clearTimeout(rotate);
       void stream.writeSSE(message).then(finish);
     };
     // Hono swallows stream write errors; `onAbort` is the only teardown signal.
@@ -56,7 +61,10 @@ router.get('/', disableSSG(), requireRole(UserRole.Reader), (c) => {
     const connectionId = events.connect(
       user,
       capabilities,
-      (message) => void stream.writeSSE(message),
+      boundedSend(
+        (message) => stream.writeSSE(message),
+        (message) => message.event === 'presence.updated',
+      ),
       stop,
       terminate,
     );
@@ -67,7 +75,6 @@ router.get('/', disableSSG(), requireRole(UserRole.Reader), (c) => {
     );
     const rotate = setTimeout(
       () => {
-        if (stopped) return;
         events.retire(connectionId);
         terminate({ event: 'rotating', data: '' });
       },
