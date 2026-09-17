@@ -36,7 +36,6 @@ const entrySchema = z.object({
 });
 const readySchema = z.object({
   connectionId: z.string(),
-  presence: z.record(z.string(), z.array(entrySchema)),
 });
 const presenceSchema = z.object({
   cardKey: z.string(),
@@ -44,8 +43,8 @@ const presenceSchema = z.object({
 });
 const cardUpdatedSchema = z.object({
   cardKey: z.string(),
-  userId: z.string(),
-  userName: z.string(),
+  userId: z.string().optional(),
+  userName: z.string().optional(),
 });
 
 function parseData(event: MessageEvent): unknown {
@@ -91,7 +90,17 @@ export function ProjectEventsProvider({
       return () => {
         if (desired.current.token !== token) return;
         desired.current = { cardKey: null, mode: 'viewing', token: {} };
-        queueMicrotask(() => sendRef.current());
+        queueMicrotask(() => {
+          sendRef.current();
+          // Skip if a mode-only change already redeclared this same card.
+          if (cardKey && desired.current.cardKey !== cardKey) {
+            setPresence((previous) => {
+              const next = { ...previous };
+              delete next[cardKey];
+              return next;
+            });
+          }
+        });
       };
     },
     [],
@@ -128,7 +137,7 @@ export function ProjectEventsProvider({
         const parsed = readySchema.safeParse(parseData(event));
         if (!parsed.success) return;
         connectionId = parsed.data.connectionId;
-        setPresence(parsed.data.presence);
+        setPresence({});
         send();
       });
       current.addEventListener('presence.updated', (event) => {
