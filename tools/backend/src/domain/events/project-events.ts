@@ -16,6 +16,7 @@ import type { SSEMessage } from 'hono/streaming';
 
 const LEASE_MS = 90_000;
 const EXPIRY_INTERVAL_MS = 30_000;
+const RETIRED_LEASE_MS = 15_000;
 
 export interface PresenceEntry {
   userId: string;
@@ -29,11 +30,44 @@ export interface Capabilities {
   canSeePresence: boolean;
 }
 
+/** What one connection's client is sent through, and what was last sent to
+ * it. Retiring turns send/close/terminate into no-ops together, so a stale
+ * reference can never reach a socket the connection has given up. */
+class Delivery {
+  lastSent: string | null = null;
+  private retiredFlag = false;
+
+  constructor(
+    private readonly sendFn: (message: SSEMessage) => void,
+    private readonly closeFn: () => void,
+    private readonly terminateFn: (message: SSEMessage) => void,
+  ) {}
+
+  get retired(): boolean {
+    return this.retiredFlag;
+  }
+
+  send(message: SSEMessage): void {
+    if (!this.retiredFlag) this.sendFn(message);
+  }
+
+  close(): void {
+    if (!this.retiredFlag) this.closeFn();
+  }
+
+  terminate(message: SSEMessage): void {
+    if (!this.retiredFlag) this.terminateFn(message);
+  }
+
+  retire(): void {
+    this.retiredFlag = true;
+  }
+}
+
 interface Connection {
   user: { id: string; name: string };
   capabilities: Capabilities;
-  send: (message: SSEMessage) => void;
-  close: () => void;
+  delivery: Delivery;
   cardKey: string | null;
   mode: PresenceEntry['mode'];
   sequence: number;
@@ -53,15 +87,15 @@ export class ProjectEvents {
   connect(
     user: Connection['user'],
     capabilities: Capabilities,
-    send: Connection['send'],
-    close: Connection['close'],
+    send: (message: SSEMessage) => void,
+    close: () => void,
+    terminate: (message: SSEMessage) => void,
   ): string {
     const connectionId = randomUUID();
     this.connections.set(connectionId, {
       user,
       capabilities,
-      send,
-      close,
+      delivery: new Delivery(send, close, terminate),
       cardKey: null,
       mode: 'viewing',
       sequence: -1,
@@ -84,12 +118,19 @@ export class ProjectEvents {
     mode: PresenceEntry['mode'],
   ): boolean {
     const connection = this.connections.get(connectionId);
-    if (!connection || connection.user.id !== userId) return false;
+    if (
+      !connection ||
+      connection.delivery.retired ||
+      connection.user.id !== userId
+    ) {
+      return false;
+    }
     if (sequence <= connection.sequence) return true;
     // Coerced rather than rejected: a fake editing warning deters others from editing.
     if (!connection.capabilities.canDeclareEditing) mode = 'viewing';
     const previous = connection.cardKey;
     const moved = previous !== cardKey || connection.mode !== mode;
+    if (previous !== cardKey) connection.delivery.lastSent = null;
     Object.assign(connection, {
       sequence,
       cardKey,
@@ -109,6 +150,22 @@ export class ProjectEvents {
     this.connections.delete(connectionId);
     this.closeQuietly(connection);
     if (connection.cardKey) this.presenceUpdated(connection.cardKey);
+  }
+
+  // `users()` dedups by user id, so a retiring connection's entry can outlive
+  // its socket without observers seeing a change.
+  retire(connectionId: string): void {
+    const connection = this.connections.get(connectionId);
+    if (!connection) return;
+    connection.delivery.retire();
+    // The entry only has to bridge the client's reconnect. Left on its full
+    // lease it would go on reporting the card and mode held at retirement,
+    // and `editing` wins in users(), so it would mask the live entry the
+    // replacement declares.
+    connection.expiresAt = Math.min(
+      connection.expiresAt,
+      Date.now() + RETIRED_LEASE_MS,
+    );
   }
 
   cardsUpdated(cardKeys: string[], user: Connection['user']): void {
@@ -145,19 +202,22 @@ export class ProjectEvents {
         users.set(user.id, { userId: user.id, userName: user.name, mode });
       }
     }
-    return [...users.values()];
+    // Sorted so identical occupancy always serializes the same way, which
+    // the per-recipient dedup in presenceUpdated() depends on.
+    return [...users.values()].sort((a, b) => a.userId.localeCompare(b.userId));
   }
 
   private presenceUpdated(cardKey: string): void {
-    const message = this.encode('presence.updated', {
-      cardKey,
-      users: this.users(cardKey),
-    });
+    const users = this.users(cardKey);
+    const serialized = JSON.stringify(users);
+    const message = this.encode('presence.updated', { cardKey, users });
     for (const [connectionId, connection] of this.onCard(cardKey)) {
       // Presence exists to keep editors from colliding, so a reader has no use
       // for it and is not told who else is here. Readers still declare their
       // own presence, which is why users() keeps them: editors see readers.
       if (!connection.capabilities.canSeePresence) continue;
+      if (connection.delivery.lastSent === serialized) continue;
+      connection.delivery.lastSent = serialized;
       this.deliver(connectionId, message);
     }
   }
@@ -173,25 +233,26 @@ export class ProjectEvents {
 
   private deliver(connectionId: string, message: SSEMessage): void {
     try {
-      this.connections.get(connectionId)?.send(message);
+      this.connections.get(connectionId)?.delivery.send(message);
     } catch {
       this.disconnect(connectionId);
     }
   }
 
   private expire(): void {
-    for (const connection of this.connections.values()) {
-      if (connection.cardKey && connection.expiresAt <= Date.now()) {
-        const cardKey = connection.cardKey;
-        connection.cardKey = null;
-        this.presenceUpdated(cardKey);
-      }
+    for (const [connectionId, connection] of this.connections) {
+      if (connection.expiresAt > Date.now()) continue;
+      if (!connection.delivery.retired && !connection.cardKey) continue;
+      const cardKey = connection.cardKey;
+      if (connection.delivery.retired) this.connections.delete(connectionId);
+      else connection.cardKey = null;
+      if (cardKey) this.presenceUpdated(cardKey);
     }
   }
 
   private closeQuietly(connection: Connection): void {
     try {
-      connection.close();
+      connection.delivery.close();
     } catch {
       /* already closed */
     }
