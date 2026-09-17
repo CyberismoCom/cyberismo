@@ -13,6 +13,11 @@
 
 import type { UserInfo } from '../types.js';
 
+export interface AuthResult extends UserInfo {
+  /** JWT `exp` (epoch seconds); absent for mock auth. */
+  exp?: number;
+}
+
 export interface AuthProvider {
-  authenticate(req: Request): Promise<UserInfo | null>;
+  authenticate(req: Request): Promise<AuthResult | null>;
 }
