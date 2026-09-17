@@ -469,8 +469,6 @@ export abstract class ResourceObject<
       type: this.resourceName.type,
       identifier: newIdentifier,
     };
-    // write() below renames the metadata file, updates the resource registry
-    // and persists the content under the new name.
     this.content.name = await this.validName(newName);
     await this.write();
   }

@@ -15,11 +15,6 @@
 import type { Handler, MutationContext } from '../handler.js';
 import type { DeleteInput, EditInput } from '../types.js';
 
-/**
- * Plain definition write: applies an edit via resource.update with no
- * consumer-side cascade. Routed to by key-wildcard ROUTES rows whose edits
- * have no dependent local state to rewrite.
- */
 export class PlainHandler implements Handler<EditInput> {
   async apply(ctx: MutationContext<EditInput>): Promise<void> {
     const { target, updateKey, operation } = ctx.input;
@@ -39,11 +34,6 @@ export class PlainHandler implements Handler<EditInput> {
   async applyCascade(): Promise<void> {}
 }
 
-/**
- * Plain resource delete: deletes resources of families without a cascading
- * delete handler. The base resource delete() already refuses when the resource
- * is still in use; no dependent local state is rewritten.
- */
 export class PlainDeleteHandler implements Handler<DeleteInput> {
   async apply(ctx: MutationContext<DeleteInput>): Promise<void> {
     const { target } = ctx.input;

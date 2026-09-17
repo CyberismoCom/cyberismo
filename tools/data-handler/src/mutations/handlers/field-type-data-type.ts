@@ -25,10 +25,9 @@ import type { DataType } from '../../interfaces/resource-interfaces.js';
 const SHORT_TEXT_MAX_LENGTH = 80;
 
 /**
- * Changing a field type's data type is a breaking change: every card carrying
- * the field has its value converted to the new type. FieldTypeResource.update
- * validates the conversion and persists the new dataType; the handler then owns
- * the per-card value conversion. Marked breaking.
+ * FieldTypeResource.update validates the conversion as a type PAIR, not per
+ * value: a value that will not convert is left in place and reported rather
+ * than refusing the edit.
  */
 export class FieldTypeDataTypeHandler implements Handler<EditInput> {
   async apply(ctx: MutationContext<EditInput>): Promise<void> {
@@ -46,7 +45,9 @@ export class FieldTypeDataTypeHandler implements Handler<EditInput> {
   }
 
   // Cascade: convert every affected card's value to the new type. Old and new
-  // types come from the operation (target/to), not from the resource.
+  // types come from the operation (target/to), not from the resource: during
+  // replay the resource already carries the new dataType, so reading it would
+  // silently no-op the conversion.
   async applyCascade(ctx: MutationContext<EditInput>): Promise<void> {
     const fieldName = resourceNameToString(ctx.input.target);
     const op = ctx.input.operation as { target: DataType; to: DataType };

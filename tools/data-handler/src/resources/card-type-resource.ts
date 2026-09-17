@@ -195,7 +195,7 @@ export class CardTypeResource extends FileResource<CardType> {
   /**
    * When the project prefix changes, rewrite the card type's own references
    * (its customFields / visible-fields / workflow) that carried the old
-   * prefix. The cross-resource rename cascade lives in CardTypeRenameHandler.
+   * prefix. The cross-resource rename cascade lives in the mutation handler.
    * @param newPrefix New project prefix.
    */
   public async changePrefix(newPrefix: string) {

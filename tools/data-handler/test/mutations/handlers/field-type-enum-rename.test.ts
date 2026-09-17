@@ -45,7 +45,7 @@ function seedEnumField() {
 }
 
 // Register the enum field on the decision card type, then seed the value 'low'
-// onto every card of that type — mirrors FieldTypeEnumRemoveHandler's setup.
+// onto every card of that type.
 async function seedCardTypeAndCardValues() {
   const cardTypeName = `${project.projectPrefix}/cardTypes/decision`;
   await project.resources.byType(cardTypeName, 'cardTypes').update(

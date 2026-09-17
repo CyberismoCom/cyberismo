@@ -23,10 +23,9 @@ import {
 import type { ChangeOperation } from '../../resources/resource-object.js';
 
 /**
- * Renaming a workflow is a breaking change: dependent card types' workflow
- * reference and all cross-resource references (calculations, report handlebars
- * and card content) must be rewritten. The operation is marked breaking so the
- * engine records a log entry.
+ * Renaming a workflow rewrites dependent card types' workflow reference and
+ * all cross-resource references (calculations, report handlebars and card
+ * content).
  */
 export class WorkflowRenameHandler implements Handler<RenameInput> {
   async apply(ctx: MutationContext<RenameInput>): Promise<void> {
@@ -39,7 +38,7 @@ export class WorkflowRenameHandler implements Handler<RenameInput> {
 
     // Rename the resource itself first. WorkflowResource.rename only renames
     // the metadata file and the in-memory name (and validates the new
-    // identifier); it no longer cascades.
+    // identifier); it does not cascade.
     await resource.rename(ctx.input.newIdentifier);
 
     await this.applyCascade(ctx);

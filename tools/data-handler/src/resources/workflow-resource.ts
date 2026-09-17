@@ -65,8 +65,8 @@ export class WorkflowResource extends FileResource<Workflow> {
       );
     }
     // Rename transitions to use the new state name. Card-state migration
-    // (remapping cards' workflowState) is a cross-resource cascade and now
-    // lives in WorkflowRenameStateHandler.
+    // (remapping cards' workflowState) is a cross-resource cascade that lives
+    // in the mutation handler.
     const toStateName = op.to.name;
     content.transitions.forEach((t) => {
       if (t.toState === stateName) {
@@ -118,8 +118,8 @@ export class WorkflowResource extends FileResource<Workflow> {
         );
       });
       // Card-state migration (remapping cards' workflowState to the
-      // replacement) is a cross-resource cascade and now lives in
-      // WorkflowRemoveStateHandler.
+      // replacement) is a cross-resource cascade that lives in the mutation
+      // handler.
     }
   }
 

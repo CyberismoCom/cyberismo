@@ -31,8 +31,8 @@ function affectedCards(ctx: MutationContext, cardTypeName: string): Card[] {
  * Consumer-side cascade for deleting a card type, WITHOUT removing the card
  * type resource itself. Strips the card type from every local link type and
  * deletes every local card of this type (with their subtrees and inbound
- * links). Shared by CardTypeDeleteHandler and WorkflowDeleteHandler. Derives
- * everything from the name and tolerates zero matches, so it is safe on replay.
+ * links). Derives everything from the name and tolerates zero matches, so it
+ * is safe on replay.
  */
 export async function deleteCardTypeCascade(
   ctx: MutationContext,

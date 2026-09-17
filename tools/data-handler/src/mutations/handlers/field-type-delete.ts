@@ -19,11 +19,10 @@ import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import type { Operation } from '../../resources/resource-object.js';
 
 /**
- * Deleting a field type is a breaking change: card types that declare the field
- * and content that references it lose their target. The handler owns the
- * cascade: the field is stripped from every local card type that declares it
- * (CardTypeResource.update also drops it from the visible-field arrays).
- * resource.delete() is a pure primitive that no longer refuses on usage.
+ * The handler owns the cascade: the field is stripped from every local card
+ * type that declares it (CardTypeResource.update also drops it from the
+ * visible-field arrays). resource.delete() is a pure primitive: it does not
+ * check usage.
  *
  * Cards keep their stored values. Once no card type declares the field the
  * values are dormant: excluded from facts, accepted by validation, and reported
