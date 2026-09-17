@@ -45,16 +45,17 @@ router.get('/', disableSSG(), requireRole(UserRole.Reader), (c) => {
       release();
       finish();
     };
+    // Hono swallows stream write errors; `onAbort` is the only teardown signal.
     stream.onAbort(stop);
     const connectionId = events.connect(
       user,
       capabilities,
-      (message) => void stream.writeSSE(message).catch(stop),
+      (message) => void stream.writeSSE(message),
       stop,
     );
     release = () => events.disconnect(connectionId);
     const heartbeat = setInterval(
-      () => void stream.write(': hb\n\n').catch(stop),
+      () => void stream.writeSSE({ event: 'hb', data: '' }),
       HEARTBEAT_INTERVAL_MS,
     );
     try {
