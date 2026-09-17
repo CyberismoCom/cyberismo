@@ -87,6 +87,10 @@ async function noEvent(
   await expect(nextEvent(reader, name, 300)).rejects.toThrow(`Missing ${name}`);
 }
 
+function decode(chunk: ReadableStreamReadResult<Uint8Array>): string {
+  return new TextDecoder().decode(chunk.value);
+}
+
 async function connect(user = 'alice', target = app) {
   const response = await target.request(`${base}/events`, {
     headers: { cookie: `mock-user=${user}` },
@@ -148,6 +152,13 @@ describe('project event stream over HTTP', () => {
       ],
     });
     await noEvent(carolStream, 'presence.updated');
+  });
+
+  test('the heartbeat is a named hb event', async () => {
+    vi.useFakeTimers();
+    const { reader } = await connect();
+    vi.advanceTimersByTime(30_000);
+    expect(decode(await reader.read())).toBe('event: hb\ndata: \n\n');
   });
 
   test('connection IDs are bound to their user and invalid cards are rejected', async () => {

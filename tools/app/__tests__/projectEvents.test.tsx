@@ -27,8 +27,14 @@ vi.mock('@/lib/api/user', () => ({ useUser: () => ({ user: currentUser }) }));
 
 class FakeEventSource {
   static instances: FakeEventSource[] = [];
+  static readonly CONNECTING = 0;
+  static readonly OPEN = 1;
+  static readonly CLOSED = 2;
   listeners = new Map<string, ((event: MessageEvent) => void)[]>();
-  close = vi.fn();
+  readyState: number = FakeEventSource.OPEN;
+  close = vi.fn(() => {
+    this.readyState = FakeEventSource.CLOSED;
+  });
   constructor(public url: string) {
     FakeEventSource.instances.push(this);
   }
@@ -56,6 +62,7 @@ beforeEach(() => {
 });
 afterEach(async () => {
   cleanup();
+  vi.useRealTimers();
   await new Promise((resolve) => setTimeout(resolve));
   await mutate(() => true, undefined, { revalidate: false });
   vi.unstubAllGlobals();
@@ -106,6 +113,10 @@ const lastBody = () => JSON.parse(fetchMock.mock.calls.at(-1)![1].body);
 const loaded = (hook: {
   result: { current: { data?: string; raw?: string } };
 }) => `${hook.result.current.data}/${hook.result.current.raw}`;
+// Drains a promise chain of unknown depth without depending on real time.
+async function flushPromises() {
+  for (let i = 0; i < 10; i++) await Promise.resolve();
+}
 
 describe('project events and presence', () => {
   it('keeps one connection through card and editing changes', async () => {
@@ -158,12 +169,150 @@ describe('project events and presence', () => {
       source.emit('presence.updated', { cardKey: 'TST_1', users: [alice] }),
     );
     act(() => source.emit('error'));
-    expect(hook.result.current.presence).toEqual([]);
+    expect(hook.result.current.presence).toEqual([alice]);
 
     await act(async () => {});
     fetchMock.mockClear();
     act(() => source.emit('ready', { connectionId: 'three' }));
     await waitFor(() => expect(lastBody().connectionId).toBe('three'));
+  });
+
+  it('renews presence on hb while a card is held, and not on a timer', () => {
+    vi.useFakeTimers();
+    try {
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <ProjectEventsProvider projectPrefix="TST">
+          {children}
+        </ProjectEventsProvider>
+      );
+      renderHook(() => usePresence('TST_1'), { wrapper });
+      const source = FakeEventSource.instances[0];
+      act(() => source.emit('ready', { connectionId: 'one' }));
+      fetchMock.mockClear();
+
+      act(() => vi.advanceTimersByTime(60_000));
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      act(() => source.emit('hb'));
+      expect(fetchMock).toHaveBeenCalledOnce();
+      expect(lastBody()).toMatchObject({
+        connectionId: 'one',
+        cardKey: 'TST_1',
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps last-known presence through a transient error, clearing only if no ready follows the window', () => {
+    vi.useFakeTimers();
+    try {
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <ProjectEventsProvider projectPrefix="TST">
+          {children}
+        </ProjectEventsProvider>
+      );
+      const hook = renderHook(() => usePresence('TST_1'), { wrapper });
+      const source = FakeEventSource.instances[0];
+      act(() => source.emit('ready', { connectionId: 'one' }));
+      act(() =>
+        source.emit('presence.updated', { cardKey: 'TST_1', users: [alice] }),
+      );
+      expect(hook.result.current).toEqual([alice]);
+
+      act(() => source.emit('error'));
+      expect(hook.result.current).toEqual([alice]);
+      act(() => vi.advanceTimersByTime(5_000));
+      expect(hook.result.current).toEqual([alice]);
+
+      // A ready before the window elapses cancels the pending clear.
+      act(() => source.emit('ready', { connectionId: 'two' }));
+      act(() =>
+        source.emit('presence.updated', { cardKey: 'TST_1', users: [bob] }),
+      );
+      act(() => vi.advanceTimersByTime(6_000));
+      expect(hook.result.current).toEqual([bob]);
+
+      act(() => source.emit('error'));
+      act(() => vi.advanceTimersByTime(10_000));
+      expect(hook.result.current).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('probes auth on a terminal (CLOSED) error and reopens after a backoff once the session checks out', async () => {
+    vi.useFakeTimers();
+    try {
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <ProjectEventsProvider projectPrefix="TST">
+          {children}
+        </ProjectEventsProvider>
+      );
+      renderHook(() => usePresence('TST_1'), { wrapper });
+      const source = FakeEventSource.instances[0];
+      act(() => source.emit('ready', { connectionId: 'one' }));
+      fetchMock.mockClear();
+
+      // A non-CLOSED error (the browser is retrying on its own) triggers
+      // neither a probe nor a manual close.
+      act(() => source.emit('error'));
+      expect(source.close).not.toHaveBeenCalled();
+      expect(
+        fetchMock.mock.calls.some(([url]) => String(url).includes('/auth/me')),
+      ).toBe(false);
+
+      // CLOSED means the browser gave up for good (e.g. a fatal HTTP
+      // status); probe auth rather than retrying forever silently.
+      source.readyState = FakeEventSource.CLOSED;
+      act(() => source.emit('error'));
+      expect(source.close).toHaveBeenCalledOnce();
+      await flushPromises();
+      expect(
+        fetchMock.mock.calls.some(([url]) => String(url).includes('/auth/me')),
+      ).toBe(true);
+      expect(FakeEventSource.instances).toHaveLength(1);
+
+      // The probe (mocked 204, i.e. still authenticated) resolved, so the
+      // stream reopens after the backoff instead of staying dead.
+      act(() => vi.advanceTimersByTime(3_000));
+      expect(FakeEventSource.instances).toHaveLength(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('never reopens after a terminal error whose auth probe shows the session has actually expired', async () => {
+    vi.useFakeTimers();
+    try {
+      fetchMock.mockImplementation((url: string) =>
+        Promise.resolve(
+          new Response(null, {
+            status: String(url).includes('/auth/me') ? 401 : 204,
+          }),
+        ),
+      );
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <ProjectEventsProvider projectPrefix="TST">
+          {children}
+        </ProjectEventsProvider>
+      );
+      renderHook(() => usePresence('TST_1'), { wrapper });
+      const source = FakeEventSource.instances[0];
+      act(() => source.emit('ready', { connectionId: 'one' }));
+
+      source.readyState = FakeEventSource.CLOSED;
+      act(() => source.emit('error'));
+      expect(source.close).toHaveBeenCalledOnce();
+
+      // handleResponse's 401 branch never settles its promise (it dispatches
+      // the real session-expired banner instead), so nothing ever reopens.
+      await flushPromises();
+      act(() => vi.advanceTimersByTime(60_000));
+      expect(FakeEventSource.instances).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("clears a left card's stale presence, but not on a same-card mode change", async () => {
