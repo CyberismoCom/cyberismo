@@ -8,6 +8,7 @@ import type * as UtilsModule from '@/lib/utils';
 import { ProjectEventsProvider } from '@/lib/contexts/ProjectEventsProvider';
 import { useCardUpdates } from '@/lib/api/card-updates';
 import { usePresence } from '@/lib/api/presence';
+import { useConnectionStatus } from '@/lib/api/connectionStatus';
 import { useSavedDraft } from '@/lib/hooks/savedDraft';
 import { projectApiPaths } from '@/lib/swr';
 import rootReducer from '@/lib/slices';
@@ -305,8 +306,8 @@ describe('project events and presence', () => {
       act(() => source.emit('error'));
       expect(source.close).toHaveBeenCalledOnce();
 
-      // handleResponse's 401 branch never settles its promise (it dispatches
-      // the real session-expired banner instead), so nothing ever reopens.
+      // The 401 sets the session-expired flag, and reopen() refuses to
+      // reconnect a session that cannot be recovered.
       await flushPromises();
       act(() => vi.advanceTimersByTime(60_000));
       expect(FakeEventSource.instances).toHaveLength(1);
@@ -464,6 +465,34 @@ describe('project events and presence', () => {
     expect(source.close).toHaveBeenCalledOnce();
     act(() => window.dispatchEvent(new Event('pageshow')));
     expect(FakeEventSource.instances).toHaveLength(2);
+  });
+
+  it('flags the stream as disconnected after missing heartbeats, reconnects on its own, and clears once the new stream is ready', () => {
+    vi.useFakeTimers();
+    try {
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <ProjectEventsProvider projectPrefix="TST">
+          {children}
+        </ProjectEventsProvider>
+      );
+      const hook = renderHook(() => useConnectionStatus(), { wrapper });
+      const source = FakeEventSource.instances[0];
+      act(() => source.emit('ready', { connectionId: 'one', presence: {} }));
+      expect(hook.result.current).toBe(false);
+
+      act(() => vi.advanceTimersByTime(90_000));
+      expect(hook.result.current).toBe(true);
+      expect(source.close).toHaveBeenCalledOnce();
+      expect(FakeEventSource.instances).toHaveLength(2);
+
+      const reconnected = FakeEventSource.instances[1];
+      act(() =>
+        reconnected.emit('ready', { connectionId: 'two', presence: {} }),
+      );
+      expect(hook.result.current).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('connects and reconnects without invalidating project data', async () => {

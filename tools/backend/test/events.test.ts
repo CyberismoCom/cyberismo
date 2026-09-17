@@ -17,6 +17,7 @@ import type { AuthProvider } from '../src/auth/types.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { computeLifetimeMs } from '../src/domain/events/lifetime.js';
 import { ProjectEvents } from '../src/domain/events/project-events.js';
+import type { Delivery } from '../src/domain/events/project-events.js';
 import { ProjectRegistry } from '../src/project-registry.js';
 import { UserRole } from '../src/types.js';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
@@ -152,24 +153,21 @@ async function patch(cardKey: string, body: unknown, user = 'bob') {
   });
 }
 
-/** A synchronous send/close/terminate triple for ProjectEvents.connect() in tests. */
-function testCallbacks(
-  target: SSEMessage[] = [],
-): [
-  (message: SSEMessage) => boolean,
-  () => void,
-  (message: SSEMessage) => void,
-] {
+/** A synchronous Delivery for ProjectEvents.connect() in tests. */
+function testDelivery(target: SSEMessage[] = []): Delivery {
   const send = (message: SSEMessage) => {
     target.push(message);
     return true;
   };
   const close = () => {};
-  const terminate = (message: SSEMessage) => {
-    send(message);
-    close();
+  return {
+    send,
+    close,
+    terminate: (message: SSEMessage) => {
+      send(message);
+      close();
+    },
   };
-  return [send, close, terminate];
 }
 
 describe('project event stream over HTTP', () => {
@@ -278,7 +276,7 @@ describe('presence bookkeeping', () => {
     const messages: SSEMessage[] = [];
     const user = { id: 'same-user', name: 'Alice' };
     const connect = () =>
-      events.connect(user, fullCapabilities, ...testCallbacks(messages));
+      events.connect(user, fullCapabilities, testDelivery(messages));
     const latest = (event: string) =>
       JSON.parse(
         String(
@@ -317,6 +315,7 @@ describe('presence bookkeeping', () => {
   });
 
   test('a connection subscribed to one card hears nothing about another', () => {
+    vi.useFakeTimers();
     const events = new ProjectEvents();
     const onDecision5: SSEMessage[] = [];
     const onDecision6: SSEMessage[] = [];
@@ -325,18 +324,19 @@ describe('presence bookkeeping', () => {
       const five = events.connect(
         admin,
         fullCapabilities,
-        ...testCallbacks(onDecision5),
+        testDelivery(onDecision5),
       );
       const six = events.connect(
         admin,
         fullCapabilities,
-        ...testCallbacks(onDecision6),
+        testDelivery(onDecision6),
       );
       events.update(five, admin.id, 1, 'decision_5', 'viewing');
       events.update(six, admin.id, 1, 'decision_6', 'viewing');
       onDecision5.length = 0;
       onDecision6.length = 0;
 
+      vi.advanceTimersByTime(1_000);
       events.update(six, admin.id, 2, 'decision_6', 'editing');
       events.cardsUpdated(['decision_6'], admin);
 
@@ -360,12 +360,12 @@ describe('presence bookkeeping', () => {
       const editorConn = events.connect(
         editor,
         fullCapabilities,
-        ...testCallbacks(editorMessages),
+        testDelivery(editorMessages),
       );
       const readerConn = events.connect(
         reader,
         readerCapabilities,
-        ...testCallbacks(readerMessages),
+        testDelivery(readerMessages),
       );
       events.update(editorConn, editor.id, 1, 'decision_5', 'viewing');
       events.update(readerConn, reader.id, 1, 'decision_5', 'editing');
@@ -465,23 +465,26 @@ describe('presence bookkeeping', () => {
       const aConn = events.connect(
         a,
         fullCapabilities,
-        ...testCallbacks(aMessages),
+        testDelivery(aMessages),
       );
-      const bConn = events.connect(b, fullCapabilities, ...testCallbacks());
+      const bConn = events.connect(b, fullCapabilities, testDelivery());
       events.update(aConn, a.id, 1, 'decision_5', 'viewing');
       events.update(bConn, b.id, 1, 'decision_5', 'viewing');
 
+      vi.advanceTimersByTime(30_000);
       events.update(bConn, b.id, 2, 'decision_5', 'editing');
       expect(latestA('presence.updated').users).toEqual([
         { userId: 'a', userName: 'A', mode: 'viewing' },
         { userId: 'b', userName: 'B', mode: 'editing' },
       ]);
 
+      vi.advanceTimersByTime(30_000);
       events.update(bConn, b.id, 3, null, 'viewing');
       expect(latestA('presence.updated').users).toEqual([
         { userId: 'a', userName: 'A', mode: 'viewing' },
       ]);
 
+      vi.advanceTimersByTime(30_000);
       events.update(bConn, b.id, 4, 'decision_5', 'viewing');
       vi.advanceTimersByTime(60_000);
       events.update(aConn, a.id, 2, 'decision_5', 'viewing');
@@ -489,6 +492,27 @@ describe('presence bookkeeping', () => {
       expect(latestA('presence.updated').users).toEqual([
         { userId: 'a', userName: 'A', mode: 'viewing' },
       ]);
+    } finally {
+      events.dispose();
+    }
+  });
+
+  test('a renewal does not reset the movement clock, so a later real move is not needlessly deferred', () => {
+    vi.useFakeTimers();
+    const { events, connect, latest, messages } = setup();
+    try {
+      const connection = connect();
+      events.update(connection, 'same-user', 1, 'decision_5', 'viewing');
+
+      // A heartbeat-driven renewal at 900ms, unrelated to any real movement.
+      vi.advanceTimersByTime(900);
+      events.update(connection, 'same-user', 2, 'decision_5', 'viewing');
+
+      // Only 200ms after the renewal, but past 1s since the original move.
+      vi.advanceTimersByTime(200);
+      messages.length = 0;
+      events.update(connection, 'same-user', 3, 'decision_6', 'viewing');
+      expect(latest('presence.updated').cardKey).toBe('decision_6');
     } finally {
       events.dispose();
     }
@@ -545,7 +569,7 @@ describe('stream rotation', () => {
     const observerConn = events.connect(
       observer,
       fullCapabilities,
-      ...testCallbacks(observed),
+      testDelivery(observed),
     );
     return { events, observed, observer, rotating, observerConn };
   }
@@ -556,7 +580,7 @@ describe('stream rotation', () => {
       const oldConn = events.connect(
         rotating,
         fullCapabilities,
-        ...testCallbacks(),
+        testDelivery(),
       );
       events.update(observerConn, observer.id, 1, 'decision_5', 'viewing');
       events.update(oldConn, rotating.id, 1, 'decision_5', 'viewing');
@@ -567,7 +591,7 @@ describe('stream rotation', () => {
       const newConn = events.connect(
         rotating,
         fullCapabilities,
-        ...testCallbacks(newMessages),
+        testDelivery(newMessages),
       );
       events.update(newConn, rotating.id, 1, 'decision_5', 'viewing');
 
@@ -592,7 +616,7 @@ describe('stream rotation', () => {
       const oldConn = events.connect(
         rotating,
         fullCapabilities,
-        ...testCallbacks(),
+        testDelivery(),
       );
       events.update(observerConn, observer.id, 1, 'decision_5', 'viewing');
       events.update(oldConn, rotating.id, 1, 'decision_5', 'editing');
@@ -603,7 +627,7 @@ describe('stream rotation', () => {
       const newConn = events.connect(
         rotating,
         fullCapabilities,
-        ...testCallbacks(),
+        testDelivery(),
       );
       events.update(newConn, rotating.id, 1, 'decision_5', 'viewing');
       observed.length = 0;
@@ -638,12 +662,12 @@ describe('stream rotation', () => {
       const oldConn = events.connect(
         rotating,
         fullCapabilities,
-        ...testCallbacks(),
+        testDelivery(),
       );
       const observerConn = events.connect(
         observer,
         fullCapabilities,
-        ...testCallbacks(observed),
+        testDelivery(observed),
       );
       events.update(oldConn, rotating.id, 1, 'decision_5', 'viewing');
       events.update(observerConn, observer.id, 1, 'decision_5', 'viewing');
@@ -652,7 +676,7 @@ describe('stream rotation', () => {
       const newConn = events.connect(
         rotating,
         fullCapabilities,
-        ...testCallbacks(),
+        testDelivery(),
       );
       events.update(newConn, rotating.id, 1, 'decision_5', 'viewing');
       observed.length = 0;
@@ -671,25 +695,22 @@ describe('stream rotation', () => {
   });
 
   test('switching cards is delivered even when the new card happens to serialize identically to the old one', () => {
+    vi.useFakeTimers();
     const events = new ProjectEvents();
     const c = { id: 'c', name: 'C' };
     const other = { id: 'other', name: 'Other' };
     const messages: SSEMessage[] = [];
     try {
-      const cConn = events.connect(
-        c,
-        fullCapabilities,
-        ...testCallbacks(messages),
-      );
+      const cConn = events.connect(c, fullCapabilities, testDelivery(messages));
       const otherOnFive = events.connect(
         other,
         fullCapabilities,
-        ...testCallbacks(),
+        testDelivery(),
       );
       const otherOnSix = events.connect(
         other,
         fullCapabilities,
-        ...testCallbacks(),
+        testDelivery(),
       );
       events.update(otherOnFive, other.id, 1, 'decision_5', 'viewing');
       events.update(otherOnSix, other.id, 1, 'decision_6', 'viewing');
@@ -698,6 +719,7 @@ describe('stream rotation', () => {
 
       // Both cards now hold identical occupancy ([c, other] viewing), so a
       // naive card-agnostic dedup would wrongly suppress this delivery.
+      vi.advanceTimersByTime(1_000);
       events.update(cConn, c.id, 2, 'decision_6', 'viewing');
       const onSix = messages.some(
         (m) =>

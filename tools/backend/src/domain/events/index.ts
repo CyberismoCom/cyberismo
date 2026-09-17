@@ -22,7 +22,6 @@ import { presenceSchema } from './schema.js';
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
 
-/** Contract: tools/backend/README.md, "Project events". */
 const router = new Hono();
 
 router.get('/', disableSSG(), requireRole(UserRole.Reader), (c) => {
@@ -47,20 +46,23 @@ router.get('/', disableSSG(), requireRole(UserRole.Reader), (c) => {
       release();
       finish();
     };
+    // Ends the stream after one last message. Deliberately does not call
+    // `release()`: a rotating connection has been retired, and disconnecting
+    // it would drop the presence entry that bridges the client's reconnect.
     const terminate = (message: SSEMessage) => {
       if (stopped) return;
       stopped = true;
+      clearInterval(heartbeat);
+      clearTimeout(rotate);
       void stream.writeSSE(message).then(finish);
     };
     // Hono swallows stream write errors; `onAbort` is the only teardown signal.
     stream.onAbort(stop);
-    const connectionId = events.connect(
-      user,
-      capabilities,
-      (message) => void stream.writeSSE(message),
-      stop,
+    const connectionId = events.connect(user, capabilities, {
+      send: (message) => void stream.writeSSE(message),
+      close: stop,
       terminate,
-    );
+    });
     release = () => events.disconnect(connectionId);
     const heartbeat = setInterval(
       () => void stream.writeSSE({ event: 'hb', data: '' }),
@@ -68,7 +70,6 @@ router.get('/', disableSSG(), requireRole(UserRole.Reader), (c) => {
     );
     const rotate = setTimeout(
       () => {
-        if (stopped) return;
         events.retire(connectionId);
         terminate({ event: 'rotating', data: '' });
       },
