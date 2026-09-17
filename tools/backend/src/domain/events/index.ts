@@ -13,10 +13,11 @@
 
 import { Hono } from 'hono';
 import { disableSSG } from 'hono/ssg';
-import { streamSSE } from 'hono/streaming';
+import { streamSSE, type SSEMessage } from 'hono/streaming';
 import { isAtLeastRole, requireRole } from '../../middleware/auth.js';
 import { zValidator } from '../../middleware/zvalidator.js';
 import { UserRole } from '../../types.js';
+import { computeLifetimeMs } from './lifetime.js';
 import { presenceSchema } from './schema.js';
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
@@ -46,6 +47,11 @@ router.get('/', disableSSG(), requireRole(UserRole.Reader), (c) => {
       release();
       finish();
     };
+    const terminate = (message: SSEMessage) => {
+      if (stopped) return;
+      stopped = true;
+      void stream.writeSSE(message).then(finish);
+    };
     // Hono swallows stream write errors; `onAbort` is the only teardown signal.
     stream.onAbort(stop);
     const connectionId = events.connect(
@@ -53,16 +59,26 @@ router.get('/', disableSSG(), requireRole(UserRole.Reader), (c) => {
       capabilities,
       (message) => void stream.writeSSE(message),
       stop,
+      terminate,
     );
     release = () => events.disconnect(connectionId);
     const heartbeat = setInterval(
       () => void stream.writeSSE({ event: 'hb', data: '' }),
       HEARTBEAT_INTERVAL_MS,
     );
+    const rotate = setTimeout(
+      () => {
+        if (stopped) return;
+        events.retire(connectionId);
+        terminate({ event: 'rotating', data: '' });
+      },
+      computeLifetimeMs(c.get('tokenExp')),
+    );
     try {
       await closed;
     } finally {
       clearInterval(heartbeat);
+      clearTimeout(rotate);
       stop();
     }
   });

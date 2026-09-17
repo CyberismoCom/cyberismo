@@ -21,6 +21,7 @@ import { isReadOnly } from '../overlay.js';
 declare module 'hono' {
   interface ContextVariableMap {
     user: UserInfo;
+    tokenExp: number;
   }
 }
 
@@ -47,10 +48,12 @@ export function createAuthMiddleware(
   provider: AuthProvider,
 ): MiddlewareHandler {
   return async (c, next) => {
-    const user = await provider.authenticate(c.req.raw);
+    const result = await provider.authenticate(c.req.raw);
 
-    if (user) {
+    if (result) {
+      const { exp, ...user } = result;
       c.set('user', isReadOnly(c.req.path) ? applyReadOnly(user) : user);
+      c.set('tokenExp', exp);
     } else {
       // RFC 9728 §5.1: include resource_metadata in WWW-Authenticate
       // only for MCP routes, where the metadata document applies.
