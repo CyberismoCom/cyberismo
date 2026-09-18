@@ -66,7 +66,6 @@ router.put(
   requireRole(UserRole.Reader),
   zValidator('json', presenceSchema),
   (c) => {
-    if (process.env.APP_PRESENCE_ENABLED !== 'true') return c.body(null, 204);
     const { connectionId, sequence, cardKey, mode } = c.req.valid('json');
     if (cardKey && !c.get('commands').project.hasCard(cardKey)) {
       return c.json({ error: 'Card not found' }, 404);
