@@ -41,3 +41,11 @@ export class ModuleVersionError extends Error {
     this.name = 'ModuleVersionError';
   }
 }
+
+/** A module source the caller cannot be served from, such as a private one. */
+export class ModuleSourceError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ModuleSourceError';
+  }
+}

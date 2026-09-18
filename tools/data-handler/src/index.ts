@@ -50,8 +50,8 @@ import { moduleNameFromCardKey } from './utils/card-utils.js';
 import { scanForProjects } from './project-scanner.js';
 import {
   ModuleNotDeclaredError,
+  ModuleSourceError,
   ModuleVersionError,
-  requireDeclaredRoot,
 } from './modules/index.js';
 import { Create } from './commands/create.js';
 
@@ -66,9 +66,9 @@ export {
   isResourceFolderType,
   moduleNameFromCardKey,
   ModuleNotDeclaredError,
+  ModuleSourceError,
   ModuleVersionError,
   requestStatus,
-  requireDeclaredRoot,
   resourceName,
   resourceNameToString,
   scanForProjects,

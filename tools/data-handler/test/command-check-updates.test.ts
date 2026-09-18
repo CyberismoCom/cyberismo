@@ -694,18 +694,59 @@ describe('check-updates', () => {
       const versions = await new CheckUpdates(
         project,
         source,
-      ).availableVersions(location);
+      ).availableVersions({ source: location });
 
       expect(versions).toEqual(['1.1.0', '1.0.0']);
       expect(source.listLog).toEqual([location]);
     });
 
+    it('resolves a declared module name to its source', async () => {
+      const location = 'https://example.com/base.git';
+      const project = buildProjectWithModules([
+        { name: 'base', location, version: '^1.0.0', private: false },
+      ]);
+      const available = new Map([[location, ['1.1.0', '1.0.0']]]);
+      const source = new InMemorySource(new Map(), available);
+
+      const versions = await new CheckUpdates(
+        project,
+        source,
+      ).availableVersions({ module: 'base' });
+
+      expect(versions).toEqual(['1.1.0', '1.0.0']);
+      expect(source.listLog).toEqual([location]);
+    });
+
+    it('refuses a module the project does not declare', async () => {
+      const project = buildProjectWithModules([]);
+      const source = new InMemorySource(new Map(), new Map());
+
+      await expect(
+        new CheckUpdates(project, source).availableVersions({ module: 'nope' }),
+      ).rejects.toThrow("Module 'nope' is not part of the project");
+    });
+
+    it('refuses a private module, whose listing needs credentials', async () => {
+      const location = 'https://example.com/secret.git';
+      const project = buildProjectWithModules([
+        { name: 'secret', location, version: '^1.0.0', private: true },
+      ]);
+      const source = new InMemorySource(new Map(), new Map());
+
+      await expect(
+        new CheckUpdates(project, source).availableVersions({
+          module: 'secret',
+        }),
+      ).rejects.toThrow("Module 'secret' is private");
+      expect(source.listLog).toEqual([]);
+    });
+
     it('returns an empty list for a file source', async () => {
       const project = buildProjectWithModules([]);
 
-      const versions = await new CheckUpdates(project).availableVersions(
-        'file:/some/path',
-      );
+      const versions = await new CheckUpdates(project).availableVersions({
+        source: 'file:/some/path',
+      });
 
       expect(versions).toEqual([]);
     });

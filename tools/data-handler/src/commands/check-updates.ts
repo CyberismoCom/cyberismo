@@ -21,11 +21,11 @@ import {
   installedModules,
   createSourceLayer,
   isGitLocation,
+  buildUpdateRequest,
+  ModuleSourceError,
   pickVersion,
   requireDeclaredRoot,
   resolve,
-  validateExplicitTarget,
-  type UpdateRequest,
 } from '../modules/index.js';
 import { getChildLogger } from '../utils/log-utils.js';
 
@@ -180,35 +180,16 @@ export class CheckUpdates {
     version?: string,
     credentials?: Credentials,
   ): Promise<UpdatePreview> {
-    if (version && !moduleName) {
-      throw new Error('A target version requires a module name');
-    }
     const ownsSource = !this.sourceLayer;
     const sourceLayer = this.sourceLayer ?? createSourceLayer();
     try {
-      let req: UpdateRequest;
-      if (moduleName) {
-        const target = await requireDeclaredRoot(
-          this.project,
-          moduleName,
-          'update',
-        );
-        if (version) {
-          const to = await validateExplicitTarget(
-            this.project,
-            sourceLayer,
-            target,
-            version,
-            credentials,
-          );
-          req = { kind: 'update', module: moduleName, to };
-        } else {
-          req = { kind: 'update', module: moduleName };
-        }
-      } else {
-        req = { kind: 'updateAll' };
-      }
-
+      const req = await buildUpdateRequest(
+        this.project,
+        sourceLayer,
+        moduleName,
+        version,
+        credentials,
+      );
       const plan = await resolve(this.project, req, {
         sourceLayer,
         credentials,
@@ -241,10 +222,33 @@ export class CheckUpdates {
   /**
    * Lists the versions a module source offers, newest first. Sources without
    * discrete versions (file sources) yield an empty list.
-   * @param location Module source location (git URL or file path).
+   * @param target Either a source location for a module that is not installed
+   * yet, or the name of a module the project declares.
    * @returns Available versions in descending semver order.
+   * @throws when a named module is not a declared root, or its source is
+   * private — listing those needs credentials this path does not carry.
    */
-  public async availableVersions(location: string): Promise<string[]> {
+  @read
+  public async availableVersions(
+    target: { source: string } | { module: string },
+  ): Promise<string[]> {
+    let location: string;
+    if ('module' in target) {
+      const declaration = await requireDeclaredRoot(
+        this.project,
+        target.module,
+        'list versions for',
+      );
+      if (declaration.source.private) {
+        throw new ModuleSourceError(
+          `Module '${target.module}' is private; listing versions of private modules is not supported`,
+        );
+      }
+      location = declaration.source.location;
+    } else {
+      location = target.source;
+    }
+
     const ownsSource = !this.sourceLayer;
     const sourceLayer = this.sourceLayer ?? createSourceLayer();
     try {

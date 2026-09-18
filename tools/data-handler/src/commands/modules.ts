@@ -24,7 +24,7 @@ import {
   conflictReason,
   declaredModules,
   ensureStagedSchemas,
-  requireDeclaredRoot,
+  buildUpdateRequest,
   installedModules,
   installedModulesWithSources,
   moduleInfos,
@@ -36,7 +36,6 @@ import {
   stripFileProtocol,
   pickVersion,
   toVersionRange,
-  validateExplicitTarget,
 } from '../modules/index.js';
 import { readModuleConfig } from '../containers/project/cards-config.js';
 import { cleanOrphans } from '../modules/orphans.js';
@@ -60,7 +59,6 @@ import type {
   ResolveConflict,
   ResolvedModule,
 } from '../modules/resolve/types.js';
-import type { Version } from '../modules/types.js';
 
 /**
  * Coerce a caller-supplied source into the canonical form used by the
@@ -304,28 +302,22 @@ export class Modules {
     // Ensure module list is up to date before updating
     await this.fetchCmd.ensureModuleListUpToDate();
 
-    const target = await requireDeclaredRoot(
-      this.project,
-      moduleName,
-      'update',
-    );
-
-    let to: Version | undefined;
-    if (version) {
-      // The same guard the dry-run preview runs, so both paths accept and
-      // refuse identical targets before touching the filesystem.
-      to = await validateExplicitTarget(
+    // The same builder the dry-run preview uses, so a preview can never plan a
+    // different move than the update it previews.
+    const sourceLayer = createSourceLayer();
+    let req;
+    try {
+      req = await buildUpdateRequest(
         this.project,
-        createSourceLayer(),
-        target,
+        sourceLayer,
+        moduleName,
         version,
         credentials,
       );
+    } finally {
+      await sourceLayer.dispose?.();
     }
 
-    const req = to
-      ? { kind: 'update' as const, module: moduleName, to }
-      : { kind: 'update' as const, module: moduleName };
     const { plan, resolved, backfill } = await resolveForApply(
       this.project,
       req,

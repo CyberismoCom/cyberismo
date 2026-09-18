@@ -13,7 +13,6 @@
 
 import { Hono } from 'hono';
 import { disableSSG } from 'hono/ssg';
-import { z } from 'zod';
 import { zValidator } from '../../middleware/zvalidator.js';
 import {
   addHubSchema,
@@ -79,11 +78,8 @@ router.get(
   zValidator('query', moduleVersionsQuerySchema),
   async (c) => {
     const commands = c.get('commands');
-    const { source, module } = c.req.valid('query');
-    const versions = await projectService.listModuleVersions(commands, {
-      source,
-      module,
-    });
+    const target = c.req.valid('query');
+    const versions = await projectService.listModuleVersions(commands, target);
     return c.json(versions);
   },
 );
@@ -92,25 +88,11 @@ router.post(
   '/modules/:module/update',
   requireRole(UserRole.Admin),
   zValidator('param', moduleParamSchema),
+  zValidator('json', updateModuleSchema),
   async (c) => {
     const commands = c.get('commands');
     const { module } = c.req.valid('param');
-    // The body is optional, and the JSON validator middleware rejects a
-    // missing one outright, so it is parsed here instead.
-    let version: string | undefined;
-    if (c.req.header('content-type')?.includes('application/json')) {
-      let body: unknown;
-      try {
-        body = await c.req.json();
-      } catch {
-        return c.json({ error: 'Malformed JSON in request body' }, 400);
-      }
-      const parsed = updateModuleSchema.safeParse(body);
-      if (!parsed.success) {
-        return c.json({ error: z.prettifyError(parsed.error) }, 400);
-      }
-      version = parsed.data.version;
-    }
+    const { version } = c.req.valid('json');
     await projectService.updateModule(commands, module, version);
     return c.json({ message: 'Module updated' });
   },

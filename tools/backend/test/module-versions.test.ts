@@ -233,7 +233,7 @@ describe('POST /api/project/modules with version', () => {
 });
 
 describe('POST /api/project/modules/:module/update with version', () => {
-  test('works without a request body', async () => {
+  test('works without a version', async () => {
     await createAppWithFixture();
     const response = await app.request(
       '/api/projects/test/project/modules/nope/update',
