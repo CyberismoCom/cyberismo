@@ -83,10 +83,6 @@ export const importModuleSchema = z.object({
   version: semverRange.optional(),
 });
 
-export const updateModuleSchema = z.object({
-  version: semverVersion.optional(),
-});
-
 // Exactly one of the two ways to name a source: a git URL for a module that
 // is not installed yet, or the name of a declared module whose location the
 // configuration already knows.
@@ -100,7 +96,20 @@ export const moduleVersionsQuerySchema = z
     {
       message: "Provide exactly one of 'source' or 'module'",
     },
+  )
+  // Narrowed here rather than at the call site: the refine above is what makes
+  // exactly one of the two present, so only this schema can prove it.
+  .transform((query) =>
+    query.source !== undefined
+      ? { source: query.source }
+      : { module: query.module! },
   );
+
+// Every field is optional, so a caller that posts no body at all still passes
+// validation and updates to the newest version in range.
+export const updateModuleSchema = z.object({
+  version: semverVersion.optional(),
+});
 
 export const updatePlanQuerySchema = z.object({
   version: semverVersion.optional(),

@@ -16,8 +16,8 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
 import {
   ModuleNotDeclaredError,
+  ModuleSourceError,
   ModuleVersionError,
-  requireDeclaredRoot,
   type CleanResult,
   type CommandManager,
   type HubFetchFailure,
@@ -175,7 +175,10 @@ async function withModuleErrors<T>(run: () => Promise<T>): Promise<T> {
     if (error instanceof ModuleNotDeclaredError) {
       throw clientError(error.parents.length > 0 ? 400 : 404, error.message);
     }
-    if (error instanceof ModuleVersionError) {
+    if (
+      error instanceof ModuleVersionError ||
+      error instanceof ModuleSourceError
+    ) {
       throw clientError(400, error.message);
     }
     throw error;
@@ -231,26 +234,11 @@ export async function importModule(
 
 export async function listModuleVersions(
   commands: CommandManager,
-  target: { source?: string; module?: string },
+  target: { source: string } | { module: string },
 ): Promise<string[]> {
-  let location = target.source;
-  if (target.module !== undefined) {
-    const name = target.module;
-    const declared = await withModuleErrors(() =>
-      requireDeclaredRoot(commands.project, name, 'list versions for'),
-    );
-    if (declared.source.private) {
-      throw clientError(
-        400,
-        `Module '${name}' is private; listing versions of private modules is not supported`,
-      );
-    }
-    location = declared.source.location;
-  }
-  if (location === undefined) {
-    throw new Error('Either a source or a module name is required');
-  }
-  return commands.checkUpdatesCmd.availableVersions(location);
+  return withModuleErrors(() =>
+    commands.checkUpdatesCmd.availableVersions(target),
+  );
 }
 
 export async function getUpdatePlan(

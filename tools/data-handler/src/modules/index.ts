@@ -58,8 +58,13 @@ export {
   versionToTag,
 } from './version.js';
 export { buildRemoteUrl } from './remote-url.js';
-export { ModuleNotDeclaredError, ModuleVersionError } from './errors.js';
+export {
+  ModuleNotDeclaredError,
+  ModuleSourceError,
+  ModuleVersionError,
+} from './errors.js';
 export { validateExplicitTarget } from './explicit-target.js';
+export { buildUpdateRequest } from './update-request.js';
 
 // Reading what a project declares and what it has installed.
 export {
