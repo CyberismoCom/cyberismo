@@ -27,6 +27,7 @@ export interface CardUpdatedEvent {
 
 export const ProjectEventsContext = createContext<{
   presence: Record<string, PresenceEntry[]>;
+  disconnected: boolean;
   reportPresence: (
     cardKey: string | null,
     mode: PresenceEntry['mode'],
@@ -36,6 +37,7 @@ export const ProjectEventsContext = createContext<{
   ) => () => void;
 }>({
   presence: {},
+  disconnected: false,
   reportPresence: () => () => {},
   subscribeToCardUpdates: () => () => {},
 });

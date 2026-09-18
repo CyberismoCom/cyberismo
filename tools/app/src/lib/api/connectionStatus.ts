@@ -11,24 +11,10 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useTranslation } from 'react-i18next';
-import { useAppSelector } from '@/lib/hooks';
-import StatusBanner from './StatusBanner';
+import { useContext } from 'react';
+import { ProjectEventsContext } from '@/lib/contexts/ProjectEventsContext';
 
-export default function SessionExpiredBanner() {
-  const sessionExpired = useAppSelector(
-    (state) => state.session.sessionExpired,
-  );
-  const { t } = useTranslation();
-
-  if (!sessionExpired) return null;
-
-  return (
-    <StatusBanner
-      color="danger"
-      message={t('sessionExpired')}
-      actionLabel={t('sessionExpiredLogIn')}
-      onAction={() => window.location.reload()}
-    />
-  );
+/** True once the project stream has missed enough heartbeats to be considered stale. */
+export function useConnectionStatus(): boolean {
+  return useContext(ProjectEventsContext).disconnected;
 }

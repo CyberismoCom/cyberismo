@@ -8,6 +8,7 @@ import type * as UtilsModule from '@/lib/utils';
 import { ProjectEventsProvider } from '@/lib/contexts/ProjectEventsProvider';
 import { useCardUpdates } from '@/lib/api/card-updates';
 import { usePresence } from '@/lib/api/presence';
+import { useConnectionStatus } from '@/lib/api/connectionStatus';
 import { useSavedDraft } from '@/lib/hooks/savedDraft';
 import { projectApiPaths } from '@/lib/swr';
 import rootReducer from '@/lib/slices';
@@ -282,6 +283,32 @@ describe('project events and presence', () => {
     }
   });
 
+  it('blocks a pageshow reopen while a terminal error is still being probed', async () => {
+    vi.useFakeTimers();
+    try {
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <ProjectEventsProvider projectPrefix="TST">
+          {children}
+        </ProjectEventsProvider>
+      );
+      renderHook(() => usePresence('TST_1'), { wrapper });
+      const source = FakeEventSource.instances[0];
+      act(() => source.emit('ready', { connectionId: 'one', presence: {} }));
+
+      source.readyState = FakeEventSource.CLOSED;
+      act(() => source.emit('error'));
+
+      act(() => window.dispatchEvent(new Event('pageshow')));
+      expect(FakeEventSource.instances).toHaveLength(1);
+
+      await flushPromises();
+      act(() => vi.advanceTimersByTime(3_000));
+      expect(FakeEventSource.instances).toHaveLength(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('never reopens after a terminal error whose auth probe shows the session has actually expired', async () => {
     vi.useFakeTimers();
     try {
@@ -464,6 +491,44 @@ describe('project events and presence', () => {
     expect(source.close).toHaveBeenCalledOnce();
     act(() => window.dispatchEvent(new Event('pageshow')));
     expect(FakeEventSource.instances).toHaveLength(2);
+  });
+
+  it('closes on `capped` and never reopens, even from pageshow', () => {
+    const { source } = setup();
+    act(() => source.emit('ready', { connectionId: 'one', presence: {} }));
+    act(() => source.emit('capped'));
+    expect(source.close).toHaveBeenCalledOnce();
+
+    act(() => window.dispatchEvent(new Event('pageshow')));
+    expect(FakeEventSource.instances).toHaveLength(1);
+  });
+
+  it('flags the stream as disconnected after missing heartbeats, reconnects on its own, and clears once the new stream is ready', () => {
+    vi.useFakeTimers();
+    try {
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <ProjectEventsProvider projectPrefix="TST">
+          {children}
+        </ProjectEventsProvider>
+      );
+      const hook = renderHook(() => useConnectionStatus(), { wrapper });
+      const source = FakeEventSource.instances[0];
+      act(() => source.emit('ready', { connectionId: 'one', presence: {} }));
+      expect(hook.result.current).toBe(false);
+
+      act(() => vi.advanceTimersByTime(90_000));
+      expect(hook.result.current).toBe(true);
+      expect(source.close).toHaveBeenCalledOnce();
+      expect(FakeEventSource.instances).toHaveLength(2);
+
+      const reconnected = FakeEventSource.instances[1];
+      act(() =>
+        reconnected.emit('ready', { connectionId: 'two', presence: {} }),
+      );
+      expect(hook.result.current).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('connects and reconnects without invalidating project data', async () => {

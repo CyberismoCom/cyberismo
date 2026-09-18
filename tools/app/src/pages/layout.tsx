@@ -40,6 +40,7 @@ import { NewTemplateCardModal } from '../components/modals/resource-forms/NewTem
 import { useConfigTemplateCreationContext } from '@/lib/hooks';
 import { AppModalsProvider } from '@/lib/contexts/AppModalsProvider';
 import { ProjectEventsProvider } from '@/lib/contexts/ProjectEventsProvider';
+import StaleConnectionBanner from '../components/StaleConnectionBanner';
 import { UserRole, useHasMinRole } from '@/lib/auth';
 import { PROJECT_NOT_FOUND_ROUTE_ID, type ResourceName } from '@/lib/constants';
 import { useCallback, useEffect, useState } from 'react';
@@ -111,6 +112,7 @@ export default function Layout() {
   return (
     <ProjectEventsProvider key={projectPrefix} projectPrefix={projectPrefix}>
       <Stack>
+        <StaleConnectionBanner />
         <AppToolbar
           onCreate={(resourceType) => {
             if (inCards) {
