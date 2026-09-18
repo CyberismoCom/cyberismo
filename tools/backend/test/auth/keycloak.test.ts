@@ -211,6 +211,23 @@ describe('KeycloakAuthProvider', () => {
       expect(result).toBe(null);
     });
 
+    it('surfaces exp for stream rotation to clamp against', async () => {
+      const provider = new KeycloakAuthProvider(config);
+      mockJwtVerify.mockResolvedValue(
+        mockVerifyResult({
+          sub: 'u1',
+          email: 'a@b.c',
+          exp: 1234567890,
+          realm_access: { roles: ['reader'] },
+        }),
+      );
+
+      const result = await provider.authenticate(
+        makeRequest({ authorization: 'Bearer tok' }),
+      );
+      expect(result!.exp).toBe(1234567890);
+    });
+
     it('prefers name over preferred_username, falls back to "Unknown"', async () => {
       const provider = new KeycloakAuthProvider(config);
 

@@ -13,9 +13,12 @@ import { CommandManager } from '@cyberismo/data-handler';
 import { X_HONO_DISABLE_SSG_HEADER_KEY } from 'hono/ssg';
 import type { SSEMessage } from 'hono/streaming';
 import { createApp } from '../src/app.js';
+import type { AuthProvider } from '../src/auth/types.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
+import { computeLifetimeMs } from '../src/domain/events/lifetime.js';
 import { ProjectEvents } from '../src/domain/events/project-events.js';
 import { ProjectRegistry } from '../src/project-registry.js';
+import { UserRole } from '../src/types.js';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
 
 let app: ReturnType<typeof createApp>;
@@ -82,6 +85,25 @@ function decode(chunk: ReadableStreamReadResult<Uint8Array>): string {
   return new TextDecoder().decode(chunk.value);
 }
 
+async function drainEventNames(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+): Promise<string[]> {
+  const decoder = new TextDecoder();
+  let text = '';
+  const names: string[] = [];
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) return names;
+    text += decoder.decode(value, { stream: true });
+    const blocks = text.split('\n\n');
+    text = blocks.pop()!;
+    for (const block of blocks) {
+      const name = block.match(/^event: (.+)$/m)?.[1];
+      if (name) names.push(name);
+    }
+  }
+}
+
 async function connect(user = 'alice', target = app) {
   const response = await target.request(`${base}/events`, {
     headers: { cookie: `mock-user=${user}` },
@@ -119,6 +141,26 @@ async function patch(cardKey: string, body: unknown, user = 'bob') {
     },
     body: JSON.stringify(body),
   });
+}
+
+/** A synchronous send/close/terminate triple for ProjectEvents.connect() in tests. */
+function testCallbacks(
+  target: SSEMessage[] = [],
+): [
+  (message: SSEMessage) => boolean,
+  () => void,
+  (message: SSEMessage) => void,
+] {
+  const send = (message: SSEMessage) => {
+    target.push(message);
+    return true;
+  };
+  const close = () => {};
+  const terminate = (message: SSEMessage) => {
+    send(message);
+    close();
+  };
+  return [send, close, terminate];
 }
 
 describe('project event stream over HTTP', () => {
@@ -210,12 +252,7 @@ describe('presence bookkeeping', () => {
     const messages: SSEMessage[] = [];
     const user = { id: 'same-user', name: 'Alice' };
     const connect = () =>
-      events.connect(
-        user,
-        fullCapabilities,
-        (message) => messages.push(message),
-        () => {},
-      );
+      events.connect(user, fullCapabilities, ...testCallbacks(messages));
     const latest = (event: string) =>
       JSON.parse(
         String(
@@ -262,14 +299,12 @@ describe('presence bookkeeping', () => {
       const five = events.connect(
         admin,
         fullCapabilities,
-        (m) => onDecision5.push(m),
-        () => {},
+        ...testCallbacks(onDecision5),
       );
       const six = events.connect(
         admin,
         fullCapabilities,
-        (m) => onDecision6.push(m),
-        () => {},
+        ...testCallbacks(onDecision6),
       );
       events.update(five, admin.id, 1, 'decision_5', 'viewing');
       events.update(six, admin.id, 1, 'decision_6', 'viewing');
@@ -298,8 +333,7 @@ describe('presence bookkeeping', () => {
       const connectionId = events.connect(
         reader,
         capabilities,
-        (m) => messages.push(m),
-        () => {},
+        ...testCallbacks(messages),
       );
       events.update(connectionId, reader.id, 1, 'decision_5', 'editing');
       const latest = JSON.parse(
@@ -392,15 +426,9 @@ describe('presence bookkeeping', () => {
       const aConn = events.connect(
         a,
         fullCapabilities,
-        (m) => aMessages.push(m),
-        () => {},
+        ...testCallbacks(aMessages),
       );
-      const bConn = events.connect(
-        b,
-        fullCapabilities,
-        () => {},
-        () => {},
-      );
+      const bConn = events.connect(b, fullCapabilities, ...testCallbacks());
       events.update(aConn, a.id, 1, 'decision_5', 'viewing');
       events.update(bConn, b.id, 1, 'decision_5', 'viewing');
 
@@ -422,6 +450,209 @@ describe('presence bookkeeping', () => {
       expect(latestA('presence.updated').users).toEqual([
         { userId: 'a', userName: 'A', mode: 'viewing' },
       ]);
+    } finally {
+      events.dispose();
+    }
+  });
+});
+
+describe('stream rotation', () => {
+  test('the stream closes at its computed lifetime, sending `rotating` last', async () => {
+    vi.useFakeTimers();
+    // Whole-second-aligned so exp (epoch seconds) round-trips exactly, and
+    // 75s life keeps the ~45s rotation clear of the 30s heartbeat ticks.
+    const now = Math.floor(Date.now() / 1000) * 1000;
+    const provider: AuthProvider = {
+      authenticate: async () => ({
+        id: 'exp-user',
+        email: 'exp-user@example.com',
+        name: 'Exp User',
+        role: UserRole.Reader,
+        exp: now / 1000 + 75,
+      }),
+    };
+    const { reader } = await connect(
+      'irrelevant',
+      createApp(provider, registry),
+    );
+    vi.advanceTimersByTime(50_000);
+    const names = await drainEventNames(reader);
+    expect(names.at(-1)).toBe('rotating');
+  });
+
+  test('jitter never pushes the lifetime past exp minus the margin', () => {
+    const spy = vi.spyOn(Math, 'random').mockReturnValue(1);
+    try {
+      const now = Date.now();
+      const exp = Math.floor(now / 1000) + 60;
+      const margin = exp * 1000 - now - 30_000;
+      expect(computeLifetimeMs(exp, now)).toBe(margin);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  test('a token inside (or past) the rotation margin rotates at its own expiry, never negative', () => {
+    const now = Math.floor(Date.now() / 1000) * 1000;
+    expect(computeLifetimeMs(now / 1000 + 10, now)).toBe(10_000);
+    expect(computeLifetimeMs(now / 1000 - 5, now)).toBe(0);
+  });
+
+  function setup() {
+    const events = new ProjectEvents();
+    const observed: SSEMessage[] = [];
+    const observer = { id: 'observer', name: 'Observer' };
+    const rotating = { id: 'rotating', name: 'Rotating' };
+    const observerConn = events.connect(
+      observer,
+      fullCapabilities,
+      ...testCallbacks(observed),
+    );
+    return { events, observed, observer, rotating, observerConn };
+  }
+
+  test('a retiring connection keeps its presence: the observer sees no update, and the reconnecting connection is told the current list', () => {
+    const { events, observed, observer, rotating, observerConn } = setup();
+    try {
+      const oldConn = events.connect(
+        rotating,
+        fullCapabilities,
+        ...testCallbacks(),
+      );
+      events.update(observerConn, observer.id, 1, 'decision_5', 'viewing');
+      events.update(oldConn, rotating.id, 1, 'decision_5', 'viewing');
+      observed.length = 0;
+
+      events.retire(oldConn);
+      const newMessages: SSEMessage[] = [];
+      const newConn = events.connect(
+        rotating,
+        fullCapabilities,
+        ...testCallbacks(newMessages),
+      );
+      events.update(newConn, rotating.id, 1, 'decision_5', 'viewing');
+
+      expect(observed).toEqual([]);
+      const presenceMessages = newMessages.filter(
+        (m) => m.event === 'presence.updated',
+      );
+      expect(presenceMessages).toHaveLength(1);
+      expect(JSON.parse(String(presenceMessages[0].data)).users).toEqual([
+        { userId: 'observer', userName: 'Observer', mode: 'viewing' },
+        { userId: 'rotating', userName: 'Rotating', mode: 'viewing' },
+      ]);
+    } finally {
+      events.dispose();
+    }
+  });
+
+  test("users() sorting keeps the serialization stable when expire() later deletes the connection that anchored a user's array position", () => {
+    vi.useFakeTimers();
+    const events = new ProjectEvents();
+    const observed: SSEMessage[] = [];
+    const observer = { id: 'observer', name: 'Observer' };
+    const rotating = { id: 'rotating', name: 'Rotating' };
+    try {
+      // rotating's connection is created first, so it alone determines
+      // where 'rotating' lands in the unsorted dedup order below.
+      const oldConn = events.connect(
+        rotating,
+        fullCapabilities,
+        ...testCallbacks(),
+      );
+      const observerConn = events.connect(
+        observer,
+        fullCapabilities,
+        ...testCallbacks(observed),
+      );
+      events.update(oldConn, rotating.id, 1, 'decision_5', 'viewing');
+      events.update(observerConn, observer.id, 1, 'decision_5', 'viewing');
+
+      events.retire(oldConn);
+      const newConn = events.connect(
+        rotating,
+        fullCapabilities,
+        ...testCallbacks(),
+      );
+      events.update(newConn, rotating.id, 1, 'decision_5', 'viewing');
+      observed.length = 0;
+
+      vi.advanceTimersByTime(60_000);
+      // Renew the two live connections; the retired one never renews, so
+      // only its 90s lease lapses and expire() deletes it.
+      events.update(observerConn, observer.id, 2, 'decision_5', 'viewing');
+      events.update(newConn, rotating.id, 2, 'decision_5', 'viewing');
+      vi.advanceTimersByTime(30_000);
+
+      expect(observed).toEqual([]);
+    } finally {
+      events.dispose();
+    }
+  });
+
+  test('switching cards is delivered even when the new card happens to serialize identically to the old one', () => {
+    const events = new ProjectEvents();
+    const c = { id: 'c', name: 'C' };
+    const other = { id: 'other', name: 'Other' };
+    const messages: SSEMessage[] = [];
+    try {
+      const cConn = events.connect(
+        c,
+        fullCapabilities,
+        ...testCallbacks(messages),
+      );
+      const otherOnFive = events.connect(
+        other,
+        fullCapabilities,
+        ...testCallbacks(),
+      );
+      const otherOnSix = events.connect(
+        other,
+        fullCapabilities,
+        ...testCallbacks(),
+      );
+      events.update(otherOnFive, other.id, 1, 'decision_5', 'viewing');
+      events.update(otherOnSix, other.id, 1, 'decision_6', 'viewing');
+      events.update(cConn, c.id, 1, 'decision_5', 'viewing');
+      messages.length = 0;
+
+      // Both cards now hold identical occupancy ([c, other] viewing), so a
+      // naive card-agnostic dedup would wrongly suppress this delivery.
+      events.update(cConn, c.id, 2, 'decision_6', 'viewing');
+      const onSix = messages.some(
+        (m) =>
+          m.event === 'presence.updated' &&
+          JSON.parse(String(m.data)).cardKey === 'decision_6',
+      );
+      expect(onSix).toBe(true);
+    } finally {
+      events.dispose();
+    }
+  });
+
+  test('update() rejects a retired connection, even mid-lease', () => {
+    const { events, observer, observerConn } = setup();
+    try {
+      events.update(observerConn, observer.id, 1, 'decision_5', 'viewing');
+      events.retire(observerConn);
+      expect(
+        events.update(observerConn, observer.id, 2, 'decision_5', 'viewing'),
+      ).toBe(false);
+    } finally {
+      events.dispose();
+    }
+  });
+
+  test('expire() deletes retired connections instead of leaking them', () => {
+    vi.useFakeTimers();
+    const { events, observer, observerConn } = setup();
+    try {
+      events.update(observerConn, observer.id, 1, 'decision_5', 'viewing');
+      events.retire(observerConn);
+      vi.advanceTimersByTime(120_000);
+      expect(
+        events.update(observerConn, observer.id, 2, 'decision_5', 'viewing'),
+      ).toBe(false);
     } finally {
       events.dispose();
     }

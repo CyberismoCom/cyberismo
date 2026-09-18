@@ -14,8 +14,7 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import type { JWTPayload } from 'jose';
 import { UserRole } from '../types.js';
-import type { UserInfo } from '../types.js';
-import type { AuthProvider } from './types.js';
+import type { AuthProvider, AuthResult } from './types.js';
 
 export interface KeycloakConfig {
   issuer: string;
@@ -51,7 +50,7 @@ export class KeycloakAuthProvider implements AuthProvider {
     return this.jwks;
   }
 
-  async authenticate(req: Request): Promise<UserInfo | null> {
+  async authenticate(req: Request): Promise<AuthResult | null> {
     const authHeader = req.headers.get('authorization');
     if (!authHeader) {
       return null;
@@ -84,6 +83,7 @@ export class KeycloakAuthProvider implements AuthProvider {
         email: claims.email,
         name: claims.name ?? claims.preferred_username ?? 'Unknown',
         role,
+        exp: claims.exp,
       };
     } catch {
       // TODO: add proper logging
