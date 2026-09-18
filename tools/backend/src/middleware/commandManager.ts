@@ -14,11 +14,13 @@ import type { Context, MiddlewareHandler } from 'hono';
 import type { CommandManager } from '@cyberismo/data-handler';
 import { getCurrentUser } from './auth.js';
 import type { ProjectRegistry } from '../project-registry.js';
+import type { ProjectEvents } from '../domain/events/project-events.js';
 
 // Extend Hono Context type to include our custom properties
 declare module 'hono' {
   interface ContextVariableMap {
     commands: CommandManager;
+    events: ProjectEvents;
     projectPath: string;
     registry: ProjectRegistry;
   }
@@ -73,6 +75,7 @@ export const attachProjectRegistry = (
     if (!commands) {
       return c.json({ error: `Project '${prefix}' not found` }, 404);
     }
+    c.set('events', registry.eventsFor(commands));
     return runWithCommands(c, commands, next);
   };
 };
