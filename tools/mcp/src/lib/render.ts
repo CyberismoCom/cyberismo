@@ -179,7 +179,7 @@ export async function renderCard(
         // Convert AsciiDoc to HTML
         parsedContent = (
           await convert(asciidocContent, {
-            safe: 'safe',
+            safe: 'secure',
             attributes: {
               imagesdir: `/api/cards/${cardKey}/a`,
               icons: 'font',

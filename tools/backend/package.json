@@ -26,7 +26,6 @@
     "node": ">=22"
   },
   "dependencies": {
-    "@asciidoctor/core": "^4.0.11",
     "@cyberismo/assets": "workspace:*",
     "@cyberismo/data-handler": "workspace:*",
     "@cyberismo/mcp": "workspace:*",

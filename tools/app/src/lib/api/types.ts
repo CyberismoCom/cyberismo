@@ -33,7 +33,7 @@ import type { SWRResponse } from 'swr';
 import { RESOURCES } from '@/lib/constants';
 
 export type CardResponse = {
-  parsedContent: string;
+  adocContent: string;
   rawContent: string;
   attachments: CardAttachment[];
   path: string;

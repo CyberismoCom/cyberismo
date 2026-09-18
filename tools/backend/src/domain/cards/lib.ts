@@ -11,7 +11,6 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { convert } from '@asciidoctor/core';
 import type { Card } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import { type CommandManager, evaluateMacros } from '@cyberismo/data-handler';
 import { preprocessMermaidBlocksForHtml } from '@cyberismo/data-handler/utils/mermaid-renderer';
@@ -69,17 +68,6 @@ export async function getCardDetails(
       commands.project,
       staticMode ? 'staticSite' : 'inject',
     );
-
-    const projectPrefix = commands.project.projectPrefix;
-    const htmlContent = (
-      await convert(asciidocContent, {
-        safe: 'safe',
-        attributes: {
-          imagesdir: `/api/projects/${projectPrefix}/cards/${key}/a`,
-          icons: 'font',
-        },
-      })
-    ).toString();
 
     if (raw) {
       if (!cardDetailsResponse.metadata) {
@@ -143,7 +131,7 @@ export async function getCardDetails(
             editContent: [],
           },
           rawContent: cardDetailsResponse.content || '',
-          parsedContent: htmlContent,
+          adocContent: asciidocContent,
           attachments: cardDetailsResponse.attachments,
           path: cardDetailsResponse.path,
         },
@@ -165,7 +153,7 @@ export async function getCardDetails(
       data: {
         ...card[0],
         rawContent: cardDetailsResponse.content || '',
-        parsedContent: htmlContent,
+        adocContent: asciidocContent,
         attachments: cardDetailsResponse.attachments,
         path: cardDetailsResponse.path,
       },

@@ -78,7 +78,7 @@ export function TemplateCardEditor({
     metadataValuesEqual,
   );
   const [content, setContent] = useSavedDraft(savedContent);
-  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [previewAdoc, setPreviewAdoc] = useState<string | null>(null);
   const contentRef = useRef<ContentEditorHandle>(null);
   const titleDenied = (card.deniedOperations.editField ?? [])
     .map((f) => f.fieldName)
@@ -107,8 +107,8 @@ export function TemplateCardEditor({
   useEffect(() => {
     if (!isPreview) return;
     let mounted = true;
-    parseContent(node.id, content).then((html) => {
-      if (mounted) setPreviewHtml(html);
+    parseContent(node.id, content).then((adoc) => {
+      if (mounted) setPreviewAdoc(adoc);
     });
     return () => {
       mounted = false;
@@ -151,13 +151,13 @@ export function TemplateCardEditor({
       title: (draft[TITLE_KEY] as string) ?? card.title,
       labels: (draft[LABELS_KEY] as string[]) ?? card.labels,
       rawContent: content,
-      parsedContent: previewHtml ?? card.parsedContent,
+      adocContent: previewAdoc ?? card.adocContent,
       fields: (card.fields ?? []).map((f) => ({
         ...f,
         value: draft[f.key] as typeof f.value,
       })),
     }),
-    [card, draft, content, previewHtml],
+    [card, draft, content, previewAdoc],
   );
 
   const parent = resourceTree
