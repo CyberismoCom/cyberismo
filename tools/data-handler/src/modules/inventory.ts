@@ -18,6 +18,7 @@ import { join } from 'node:path';
 import semver from 'semver';
 
 import { getChildLogger } from '../utils/log-utils.js';
+import { ModuleNotDeclaredError } from './errors.js';
 import { readJsonFile } from '../utils/json.js';
 import {
   toVersion,
@@ -76,6 +77,43 @@ export async function installedModules(
   }
 
   return installations;
+}
+
+/** What a caller wants to do with a module, used to phrase a refusal. */
+export type ModuleAction = 'update' | 'check updates for' | 'list versions for';
+
+/**
+ * The project's own declaration of `name`. Only a root can be acted on
+ * directly: a transitive installation's version is owned by whichever module
+ * pulled it in.
+ * @throws when the project does not declare `name`, naming the parents that
+ * require it when it is installed as a transitive dependency.
+ */
+export async function requireDeclaredRoot(
+  project: Project,
+  name: string,
+  action: ModuleAction,
+): Promise<ModuleDeclaration> {
+  const declaration = declaredModules(project).find((d) => d.name === name);
+  if (declaration) {
+    return declaration;
+  }
+
+  const parents = (await installedModules(project))
+    .filter((installation) => installation.declaredDependencies.includes(name))
+    .map((installation) => installation.name);
+  if (parents.length > 0) {
+    const parentList = parents.map((parent) => `'${parent}'`).join(', ');
+    const capitalised = action.charAt(0).toUpperCase() + action.slice(1);
+    throw new ModuleNotDeclaredError(
+      `Cannot ${action} module '${name}' because it is required by ${parentList}. ${capitalised} the parent module(s) instead.`,
+      parents,
+    );
+  }
+  throw new ModuleNotDeclaredError(
+    `Module '${name}' is not part of the project`,
+    [],
+  );
 }
 
 /**

@@ -38,10 +38,12 @@
     "hono": "^4.13.5",
     "jose": "^6.2.10",
     "mime-types": "^3.0.2",
+    "semver": "^7.8.5",
     "zod": "^4.5.4"
   },
   "devDependencies": {
-    "@cyberismo/app": "workspace:*"
+    "@cyberismo/app": "workspace:*",
+    "@types/semver": "^7.7.0"
   },
   "types": "dist/index.d.ts",
   "exports": {
