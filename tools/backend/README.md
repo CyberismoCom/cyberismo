@@ -9,6 +9,10 @@ and above; static exports do not connect. It emits:
   complete user list.
 - `presence.updated`: `{ cardKey, users }`, a replacement list for one card; an
   empty list means nobody is there.
+- `card.updated`: `{ cardKey, userId, userName }` after a card PATCH that wrote
+  something, an attachment add or remove, or a link add, remove or update; link
+  changes name every endpoint card, and a link update also names the previous
+  target. Sent regardless of `APP_PRESENCE_ENABLED`.
 
 `PUT /api/projects/:prefix/events/presence` takes
 `{ connectionId, sequence, cardKey, mode }` and needs `APP_PRESENCE_ENABLED=true`.

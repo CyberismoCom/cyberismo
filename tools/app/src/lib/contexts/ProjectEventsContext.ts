@@ -19,13 +19,23 @@ export interface PresenceEntry {
   mode: 'viewing' | 'editing';
 }
 
+export interface CardUpdatedEvent {
+  cardKey: string;
+  userId: string;
+  userName: string;
+}
+
 export const ProjectEventsContext = createContext<{
   presence: Record<string, PresenceEntry[]>;
   reportPresence: (
     cardKey: string | null,
     mode: PresenceEntry['mode'],
   ) => () => void;
+  subscribeToCardUpdates: (
+    listener: (event: CardUpdatedEvent) => void,
+  ) => () => void;
 }>({
   presence: {},
   reportPresence: () => () => {},
+  subscribeToCardUpdates: () => () => {},
 });

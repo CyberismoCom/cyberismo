@@ -50,13 +50,16 @@ export async function updateCard(
   key: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   body: any,
-) {
+): Promise<boolean> {
+  let written = false;
   await commands.atomic(async () => {
     if (body.state) {
       await commands.transitionCmd.cardTransition(key, body.state);
+      written = true;
     }
     if (body.content != null) {
       await commands.editCmd.editCardContent(key, body.content);
+      written = true;
     }
     if (body.metadata) {
       for (const [metadataKey, metadataValue] of Object.entries(
@@ -67,15 +70,19 @@ export async function updateCard(
           metadataKey,
           metadataValue as MetadataContent,
         );
+        written = true;
       }
     }
     if (body.parent) {
       await commands.moveCmd.moveCard(key, body.parent);
+      written = true;
     }
     if (body.index != null) {
       await commands.moveCmd.rankByIndex(key, body.index);
+      written = true;
     }
   }, `Update card ${key}`);
+  return written;
 }
 
 export async function deleteCard(commands: CommandManager, key: string) {
