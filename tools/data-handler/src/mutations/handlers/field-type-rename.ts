@@ -22,11 +22,10 @@ import {
 } from '../cascades/rewrite-refs.js';
 
 /**
- * Renaming a field type is a breaking change: card-content references,
- * calculations, report handlebars, the customFields[].name entries on every
- * referencing local card type and the metadata keys of every local card
- * holding a value under the old name are rewritten. The operation is marked
- * breaking so the engine records a log entry.
+ * Renaming a field type rewrites card-content references, calculations,
+ * report handlebars, the customFields[].name entries on every referencing
+ * local card type, and the metadata keys of every local card holding a value
+ * under the old name.
  */
 export class FieldTypeRenameHandler implements Handler<RenameInput> {
   async apply(ctx: MutationContext<RenameInput>): Promise<void> {
@@ -75,8 +74,7 @@ export class FieldTypeRenameHandler implements Handler<RenameInput> {
     await rewriteCardContentRefs(ctx.project, oldName, newName);
   }
 
-  // Rewrite every LOCAL card type's references to the renamed field type
-  // through the non-validating, shape-preserving resource write path.
+  // Rewrite every LOCAL card type's references to the renamed field type.
   // Module-owned card types are immutable from the consumer side; their
   // references are the owning module's responsibility.
   private async updateCardTypes(

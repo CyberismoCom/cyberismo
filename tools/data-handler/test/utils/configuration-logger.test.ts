@@ -7,8 +7,11 @@ import {
   ConfigurationLogger,
   type ConfigurationLogEntry,
 } from '../../src/utils/configuration-logger.js';
-import { deleteDir, pathExists } from '../../src/utils/file-utils.js';
+import { copyDir, deleteDir, pathExists } from '../../src/utils/file-utils.js';
 import { ProjectPaths } from '../../src/containers/project/project-paths.js';
+import { Project } from '../../src/containers/project.js';
+import { ResourceMutations } from '../../src/mutations/resource-mutations.js';
+import { resourceName } from '../../src/utils/resource-utils.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
@@ -242,7 +245,7 @@ describe('configuration logger', () => {
 
       const logPath = ConfigurationLogger.logFile(testProjectPath2);
       expect(pathExists(logPath)).toBe(true);
-      expect(ConfigurationLogger.hasBreakingChanges(testProjectPath2)).toBe(
+      expect(ConfigurationLogger.hasPendingChanges(testProjectPath2)).toBe(
         true,
       );
     });
@@ -351,5 +354,27 @@ describe('configuration logger', () => {
       oldPrefix: 'old-prefix',
       newPrefix: 'new-prefix',
     });
+  });
+
+  it('records a resource_delete entry when a leaf resource is deleted', async () => {
+    const projectRoot = join(testDir, 'leaf-delete-project');
+    await copyDir('test/test-data/', projectRoot);
+    const project = new Project(join(projectRoot, 'valid', 'decision-records'));
+    await project.populateCaches();
+
+    const mutations = new ResourceMutations(project);
+    const target = `${project.projectPrefix}/reports/anotherReport`;
+    await mutations.apply({
+      kind: 'delete',
+      target: resourceName(target),
+    });
+
+    const entries = await ConfigurationLogger.entries(project.basePath);
+    const deleteEntry = entries.find(
+      (entry) => entry.operation === 'resource_delete',
+    );
+    expect(deleteEntry).toBeDefined();
+    expect(deleteEntry!.target).toBe(target);
+    expect(deleteEntry!.parameters?.type).toBe('reports');
   });
 });

@@ -26,7 +26,6 @@ export function checkLinearity(
     .map((s) => s.fileName);
 }
 
-/** Two versions on the same minor line (differ only in patch). */
 function sameMinorLine(a: string, b: string): boolean {
   return (
     semver.major(a) === semver.major(b) && semver.minor(a) === semver.minor(b)

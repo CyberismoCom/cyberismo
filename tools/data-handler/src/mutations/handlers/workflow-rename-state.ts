@@ -22,20 +22,14 @@ import type { WorkflowState } from '../../interfaces/resource-interfaces.js';
 
 /**
  * Renaming a workflow state (a 'change' on 'states' whose target name differs
- * from the new name) is a breaking change: the state name is the array
- * identity, so every transition referencing it and every card in that state
- * must be rewritten.
+ * from the new name) rewrites every transition referencing it and every card
+ * in that state, because the state name is the array identity.
  *
  * Transition rewriting is intra-resource definition consistency and stays in
  * WorkflowResource.update. The cross-resource part — remapping the
  * `workflowState` of every card sitting in the renamed state — lives here. The
  * handler calls `resource.update()` (which renames the state and rewrites
- * transitions) and then performs the card migration. Marked breaking so the
- * engine records a log entry.
- *
- * A 'change' that only edits non-identity state properties (e.g. category) is
- * NOT matched here; it falls through to DefaultNoCascadeHandler, which runs the
- * same update without recording a (non-breaking) log entry.
+ * transitions) and then performs the card migration.
  */
 export class WorkflowRenameStateHandler implements Handler<EditInput> {
   async apply(ctx: MutationContext<EditInput>): Promise<void> {

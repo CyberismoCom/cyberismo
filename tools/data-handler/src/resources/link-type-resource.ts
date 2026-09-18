@@ -55,7 +55,7 @@ export class LinkTypeResource extends FileResource<LinkType> {
   /**
    * When the project prefix changes, rewrite the link type's own references
    * (its sourceCardTypes / destinationCardTypes) that carried the old prefix.
-   * The cross-resource rename cascade lives in LinkTypeRenameHandler.
+   * The cross-resource rename cascade lives in the mutation handler.
    * @param newPrefix New project prefix.
    */
   public async changePrefix(newPrefix: string) {

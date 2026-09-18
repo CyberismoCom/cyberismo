@@ -71,7 +71,7 @@ export class ResourceMutations {
       cardTypeRenames:
         origin.kind === 'replay' ? origin.cardTypeRenames : undefined,
     };
-    const { handler, breaking } = dispatch(ctx);
+    const { handler, classification } = dispatch(ctx);
 
     if (origin.kind === 'replay') {
       // Replay applies the cascade only: the resource change is already
@@ -95,7 +95,7 @@ export class ResourceMutations {
     await runWithDefaultCommitMessage(defaultCommitMessage(input), () =>
       this.project.lock.write(async () => {
         await handler.apply(ctx);
-        if (breaking) {
+        if (classification !== 'none') {
           await this.recordLogEntry(input, recordContext);
         }
       }),

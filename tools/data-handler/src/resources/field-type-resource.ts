@@ -264,10 +264,8 @@ export class FieldTypeResource extends FileResource<FieldType> {
         throw new Error(`Unknown property '${key}' for FieldType`);
       }
 
-      // The dataType-conversion and enum-replacement cascades have moved to the
-      // FieldType handlers (FieldTypeDataTypeHandler, FieldTypeEnumRemoveHandler).
-      // update() now only validates and persists the resource edit; it no longer
-      // rewrites card metadata.
+      // update() validates and persists the resource edit; it does not
+      // rewrite card metadata.
       await super.postUpdate(content, updateKey, op);
     }
   }

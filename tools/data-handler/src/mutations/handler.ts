@@ -43,12 +43,6 @@ export function resolveCardTypeRename(
   return current;
 }
 
-/**
- * Context handed to a handler. Generic over the input variant: the dispatcher
- * routes each mutation to a handler registered for its kind, so a handler can
- * fix `I` to the precise {@link MutationInput} variant it handles (e.g.
- * `RenameInput`) and read `ctx.input` without re-narrowing the union.
- */
 export interface MutationContext<I extends MutationInput = MutationInput> {
   project: Project;
   input: I;

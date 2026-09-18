@@ -28,8 +28,6 @@ export class LinkTypeDeleteHandler implements Handler<DeleteInput> {
       );
     }
 
-    // Strip the link usage before deleting the resource so that delete()
-    // (which refuses while usage() is non-empty) can succeed.
     await this.applyCascade(ctx);
 
     // Delete the link type resource itself.

@@ -24,10 +24,9 @@ import type {
 } from '../../resources/resource-object.js';
 
 /**
- * Changing a card type's workflow is a breaking change: cards of the type get
- * their workflowState re-mapped to the new workflow. The cascade lives here:
- * the handler validates the state mapping, applies the workflow change to the
- * card type resource and then re-maps each affected card's workflowState.
+ * When a mapping is supplied, the handler validates it before writing
+ * anything, applies the workflow change to the card type resource, and then
+ * re-maps each affected card's workflowState per the mapping.
  */
 export class CardTypeWorkflowChangeHandler implements Handler<EditInput> {
   async apply(ctx: MutationContext<EditInput>): Promise<void> {

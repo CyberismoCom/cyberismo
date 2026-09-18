@@ -24,15 +24,13 @@ import type { Card } from '../../interfaces/project-interfaces.js';
 import type { WorkflowState } from '../../interfaces/resource-interfaces.js';
 
 /**
- * Removing a state from a workflow is a breaking change.
- *
  * Transition rewriting (dropping transitions that reference the removed state,
  * or re-pointing them at the replacement) is intra-resource definition
  * consistency and stays in WorkflowResource.update. The cross-resource part —
  * migrating every card in the removed state to the replacement, or to the
  * new-card state when none is given — lives here. The handler calls `resource.update()`
  * (which removes the state and rewrites transitions) and then performs the card
- * migration. Marked breaking so the engine records a log entry.
+ * migration.
  */
 export class WorkflowRemoveStateHandler implements Handler<EditInput> {
   async apply(ctx: MutationContext<EditInput>): Promise<void> {

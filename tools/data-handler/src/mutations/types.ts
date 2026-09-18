@@ -16,7 +16,6 @@ import type { Operation } from '../resources/resource-object.js';
 import type { UpdateKey } from '../interfaces/resource-interfaces.js';
 import type { ResourceName } from '../utils/resource-utils.js';
 
-/** The four kinds of breaking change recorded in the migration log. */
 export type MutationKind =
   | 'edit' // sub-property add/change/rank/remove
   | 'delete' // whole-resource delete
@@ -43,11 +42,6 @@ export type MutationInput =
       oldPrefix?: string;
     };
 
-/**
- * Per-kind narrowings of {@link MutationInput}. A handler registered against a
- * route of a given kind only ever receives the matching variant, so it can be
- * typed with the precise input instead of re-narrowing the union at runtime.
- */
 export type EditInput = Extract<MutationInput, { kind: 'edit' }>;
 export type DeleteInput = Extract<MutationInput, { kind: 'delete' }>;
 export type RenameInput = Extract<MutationInput, { kind: 'rename' }>;

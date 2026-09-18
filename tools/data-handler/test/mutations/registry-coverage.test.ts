@@ -42,8 +42,7 @@ const RESOURCE_SCHEMAS: Record<string, string> = {
 // Edit keys that are intentionally NOT schema `properties`. `content` is a
 // composite key folder resources (calculations, reports, graphModels,
 // graphViews) use to edit their on-disk content files (via updateKey.subKey);
-// it never appears in the resource's JSON schema. Routed to the plain handler,
-// exactly as the former catch-all edit handler did.
+// it never appears in the resource's JSON schema.
 const NON_SCHEMA_EDIT_KEYS = new Set(['content']);
 
 const require = createRequire(import.meta.url);
