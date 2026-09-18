@@ -16,7 +16,6 @@ import { createApp } from '../src/app.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { ProjectEvents } from '../src/domain/events/project-events.js';
 import { ProjectRegistry } from '../src/project-registry.js';
-import { UserRole } from '../src/types.js';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
 
 let app: ReturnType<typeof createApp>;
@@ -119,9 +118,9 @@ async function patch(cardKey: string, body: unknown, user = 'bob') {
 }
 
 describe('project event stream over HTTP', () => {
-  test('reader joins presence through HTTP and receives a full card snapshot', async () => {
+  test('reader joins presence through HTTP and is told who is on the card', async () => {
     const { reader, ready } = await connect('carol');
-    expect(ready.presence).toEqual({});
+    expect(ready).toEqual({ connectionId: expect.any(String) });
 
     expect(
       (await presence(ready.connectionId, 'decision_5', 1, 'carol')).status,
@@ -131,14 +130,6 @@ describe('project event stream over HTTP', () => {
       users: [
         { userId: 'mock-user-carol', userName: 'Carol', mode: 'viewing' },
       ],
-    });
-
-    expect((await presence(ready.connectionId, null, 2, 'carol')).status).toBe(
-      204,
-    );
-    expect(await nextEvent(reader, 'presence.updated')).toEqual({
-      cardKey: 'decision_5',
-      users: [],
     });
   });
 
@@ -150,14 +141,26 @@ describe('project event stream over HTTP', () => {
     expect((await presence(ready.connectionId, 'missing')).status).toBe(404);
   });
 
-  test('HTTP writes broadcast card.updated', async () => {
-    const { reader } = await connect('carol');
+  test('card.updated withholds identity below Editor', async () => {
+    const { reader: carolStream, ready: carolReady } = await connect('carol');
+    const { reader: bobStream, ready: bobReady } = await connect('bob');
+    expect(
+      (await presence(carolReady.connectionId, 'decision_5', 1, 'carol'))
+        .status,
+    ).toBe(204);
+    expect(
+      (await presence(bobReady.connectionId, 'decision_5', 1, 'bob')).status,
+    ).toBe(204);
+
     const written = {
       content: 'Written content',
       metadata: { title: 'Written content' },
     };
     expect((await patch('decision_5', written, 'alice')).status).toBe(200);
-    expect(await nextEvent(reader, 'card.updated')).toEqual({
+    expect(await nextEvent(carolStream, 'card.updated')).toEqual({
+      cardKey: 'decision_5',
+    });
+    expect(await nextEvent(bobStream, 'card.updated')).toEqual({
       cardKey: 'decision_5',
       userId: 'mock-user-alice',
       userName: 'Alice',
@@ -188,19 +191,17 @@ describe('project event stream over HTTP', () => {
   });
 });
 
+const fullCapabilities = { canSeeIdentity: true, canDeclareEditing: true };
+
 describe('presence bookkeeping', () => {
   function setup() {
     const events = new ProjectEvents();
     const messages: SSEMessage[] = [];
-    const user = {
-      id: 'same-user',
-      name: 'Alice',
-      email: '',
-      role: UserRole.Admin,
-    };
+    const user = { id: 'same-user', name: 'Alice' };
     const connect = () =>
       events.connect(
         user,
+        fullCapabilities,
         (message) => messages.push(message),
         () => {},
       );
@@ -214,11 +215,10 @@ describe('presence bookkeeping', () => {
   }
 
   test('deduplicates tabs, prefers editing, and ignores delayed updates', () => {
-    const { events, connect, latest } = setup();
+    const { events, connect, latest, messages } = setup();
     try {
       const first = connect();
       const second = connect();
-      connect();
       events.update(first, 'same-user', 1, 'decision_5', 'viewing');
       events.update(second, 'same-user', 2, 'decision_5', 'editing');
       events.update(second, 'same-user', 1, null, 'viewing');
@@ -230,8 +230,10 @@ describe('presence bookkeeping', () => {
       expect(latest('presence.updated').users).toEqual([
         { userId: 'same-user', userName: 'Alice', mode: 'viewing' },
       ]);
+      const delivered = messages.length;
       events.disconnect(first);
-      expect(latest('presence.updated').users).toEqual([]);
+      // Nobody is left subscribed to decision_5, so the vacancy reaches no one.
+      expect(messages).toHaveLength(delivered);
       expect(
         events.update(first, 'same-user', 3, 'decision_5', 'editing'),
       ).toBe(false);
@@ -240,16 +242,74 @@ describe('presence bookkeeping', () => {
     }
   });
 
-  test('new subscribers receive all occupied cards and projects remain isolated', () => {
+  test('a connection subscribed to one card hears nothing about another', () => {
+    const events = new ProjectEvents();
+    const onDecision5: SSEMessage[] = [];
+    const onDecision6: SSEMessage[] = [];
+    const admin = { id: 'admin', name: 'Admin' };
+    try {
+      const five = events.connect(
+        admin,
+        fullCapabilities,
+        (m) => onDecision5.push(m),
+        () => {},
+      );
+      const six = events.connect(
+        admin,
+        fullCapabilities,
+        (m) => onDecision6.push(m),
+        () => {},
+      );
+      events.update(five, admin.id, 1, 'decision_5', 'viewing');
+      events.update(six, admin.id, 1, 'decision_6', 'viewing');
+      onDecision5.length = 0;
+      onDecision6.length = 0;
+
+      events.update(six, admin.id, 2, 'decision_6', 'editing');
+      events.cardsUpdated(['decision_6'], admin);
+
+      expect(onDecision5).toEqual([]);
+      expect(onDecision6.map((m) => m.event)).toEqual([
+        'presence.updated',
+        'card.updated',
+      ]);
+    } finally {
+      events.dispose();
+    }
+  });
+
+  test("a reader's editing declaration is stored and broadcast as viewing", () => {
+    const events = new ProjectEvents();
+    const messages: SSEMessage[] = [];
+    const reader = { id: 'mock-user-carol', name: 'Carol' };
+    const capabilities = { canSeeIdentity: false, canDeclareEditing: false };
+    try {
+      const connectionId = events.connect(
+        reader,
+        capabilities,
+        (m) => messages.push(m),
+        () => {},
+      );
+      events.update(connectionId, reader.id, 1, 'decision_5', 'editing');
+      const latest = JSON.parse(
+        String(
+          messages.filter((m) => m.event === 'presence.updated').at(-1)!.data,
+        ),
+      );
+      expect(latest.users).toEqual([
+        { userId: 'mock-user-carol', userName: 'Carol', mode: 'viewing' },
+      ]);
+    } finally {
+      events.dispose();
+    }
+  });
+
+  test('new subscribers receive no presence, even with other cards occupied', () => {
     const { events, connect, latest } = setup();
     try {
       events.update(connect(), 'same-user', 1, 'decision_5', 'editing');
       connect();
-      expect(latest('ready').presence).toEqual({
-        decision_5: [
-          { userId: 'same-user', userName: 'Alice', mode: 'editing' },
-        ],
-      });
+      expect(latest('ready')).toEqual({ connectionId: expect.any(String) });
     } finally {
       events.dispose();
     }
@@ -271,7 +331,7 @@ describe('presence bookkeeping', () => {
 
   test('presence expires unless renewed', () => {
     vi.useFakeTimers();
-    const { events, connect, latest } = setup();
+    const { events, connect, latest, messages } = setup();
     try {
       const connection = connect();
       events.update(connection, 'same-user', 1, 'decision_5', 'viewing');
@@ -280,7 +340,13 @@ describe('presence bookkeeping', () => {
       vi.advanceTimersByTime(60_000);
       expect(latest('presence.updated').users).toHaveLength(1);
       vi.advanceTimersByTime(30_000);
-      expect(latest('presence.updated').users).toEqual([]);
+      const delivered = messages.length;
+      // Sole subscriber, so expiry reaches no one; rejoin proves it lapsed.
+      events.update(connection, 'same-user', 3, 'decision_5', 'viewing');
+      expect(messages.length).toBeGreaterThan(delivered);
+      expect(latest('presence.updated').users).toEqual([
+        { userId: 'same-user', userName: 'Alice', mode: 'viewing' },
+      ]);
     } finally {
       events.dispose();
     }
@@ -289,12 +355,62 @@ describe('presence bookkeeping', () => {
   test('a card named twice by one write is notified once', () => {
     const { events, connect, messages, user } = setup();
     try {
-      connect();
+      const connectionId = connect();
+      events.update(connectionId, user.id, 1, 'decision_5', 'viewing');
       messages.length = 0;
       events.cardsUpdated(['decision_5', 'decision_6', 'decision_5'], user);
       expect(
         messages.map((message) => JSON.parse(String(message.data)).cardKey),
-      ).toEqual(['decision_5', 'decision_6']);
+      ).toEqual(['decision_5']);
+    } finally {
+      events.dispose();
+    }
+  });
+
+  test('a remaining subscriber observes every departure from the card', () => {
+    vi.useFakeTimers();
+    const events = new ProjectEvents();
+    const aMessages: SSEMessage[] = [];
+    const a = { id: 'a', name: 'A' };
+    const b = { id: 'b', name: 'B' };
+    const latestA = (event: string) =>
+      JSON.parse(
+        String(aMessages.filter((m) => m.event === event).at(-1)!.data),
+      );
+    try {
+      const aConn = events.connect(
+        a,
+        fullCapabilities,
+        (m) => aMessages.push(m),
+        () => {},
+      );
+      const bConn = events.connect(
+        b,
+        fullCapabilities,
+        () => {},
+        () => {},
+      );
+      events.update(aConn, a.id, 1, 'decision_5', 'viewing');
+      events.update(bConn, b.id, 1, 'decision_5', 'viewing');
+
+      events.update(bConn, b.id, 2, 'decision_5', 'editing');
+      expect(latestA('presence.updated').users).toEqual([
+        { userId: 'a', userName: 'A', mode: 'viewing' },
+        { userId: 'b', userName: 'B', mode: 'editing' },
+      ]);
+
+      events.update(bConn, b.id, 3, null, 'viewing');
+      expect(latestA('presence.updated').users).toEqual([
+        { userId: 'a', userName: 'A', mode: 'viewing' },
+      ]);
+
+      events.update(bConn, b.id, 4, 'decision_5', 'viewing');
+      vi.advanceTimersByTime(60_000);
+      events.update(aConn, a.id, 2, 'decision_5', 'viewing');
+      vi.advanceTimersByTime(30_000);
+      expect(latestA('presence.updated').users).toEqual([
+        { userId: 'a', userName: 'A', mode: 'viewing' },
+      ]);
     } finally {
       events.dispose();
     }
