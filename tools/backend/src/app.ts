@@ -43,7 +43,7 @@ import { writableProjects } from './overlay.js';
 import { createAuthRouter } from './domain/auth/index.js';
 import { createAuthMiddleware } from './middleware/auth.js';
 import type { AuthProvider } from './auth/types.js';
-import { MockAuthProvider, mockRoleCookieMiddleware } from './auth/mock.js';
+import { MockAuthProvider } from './auth/mock.js';
 import type { ProjectRegistry } from './project-registry.js';
 import { CommandManager, scanForProjects } from '@cyberismo/data-handler';
 import { createProjectsRouter } from './domain/projects/index.js';
@@ -118,10 +118,10 @@ export function createApp(
     });
   });
 
-  // Dev-only: let `?role=<reader|editor|admin>` set a persistent mock-role cookie
-  // so role gating can be exercised locally without code changes or a restart.
+  // Mock-auth only: let `?role=` and, with the roster on, `?user=` set persistent
+  // cookies so role gating and identity can be switched locally without a restart.
   if (authProvider instanceof MockAuthProvider) {
-    app.use(mockRoleCookieMiddleware());
+    app.use(authProvider.cookieMiddleware());
   }
 
   // Apply authentication middleware to all API and MCP routes
