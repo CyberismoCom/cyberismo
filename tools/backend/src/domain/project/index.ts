@@ -12,13 +12,17 @@
 */
 
 import { Hono } from 'hono';
+import { disableSSG } from 'hono/ssg';
 import { zValidator } from '../../middleware/zvalidator.js';
 import {
   addHubSchema,
   cleanSchema,
   importModuleSchema,
   moduleParamSchema,
+  moduleVersionsQuerySchema,
   removeHubSchema,
+  updateModuleSchema,
+  updatePlanQuerySchema,
   updateProjectSchema,
 } from './schema.js';
 import * as projectService from './service.js';
@@ -53,15 +57,59 @@ router.post('/modules/update', requireRole(UserRole.Admin), async (c) => {
   return c.json({ message: 'All modules updated' });
 });
 
+// A live view of the module sources, not site content: the crawler cannot
+// supply the query these need, and any answer would be stale in the export
+// as soon as a module is published.
+router.get(
+  '/modules/update-plan',
+  disableSSG(),
+  requireRole(UserRole.Admin),
+  async (c) => {
+    const commands = c.get('commands');
+    const plan = await projectService.getUpdatePlan(commands);
+    return c.json(plan);
+  },
+);
+
+router.get(
+  '/modules/versions',
+  disableSSG(),
+  requireRole(UserRole.Admin),
+  zValidator('query', moduleVersionsQuerySchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const target = c.req.valid('query');
+    const versions = await projectService.listModuleVersions(commands, target);
+    return c.json(versions);
+  },
+);
+
 router.post(
   '/modules/:module/update',
   requireRole(UserRole.Admin),
   zValidator('param', moduleParamSchema),
+  zValidator('json', updateModuleSchema),
   async (c) => {
     const commands = c.get('commands');
     const { module } = c.req.valid('param');
-    await projectService.updateModule(commands, module);
+    const { version } = c.req.valid('json');
+    await projectService.updateModule(commands, module, version);
     return c.json({ message: 'Module updated' });
+  },
+);
+
+router.get(
+  '/modules/:module/update-plan',
+  disableSSG(),
+  requireRole(UserRole.Admin),
+  zValidator('param', moduleParamSchema),
+  zValidator('query', updatePlanQuerySchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const { module } = c.req.valid('param');
+    const { version } = c.req.valid('query');
+    const plan = await projectService.getUpdatePlan(commands, module, version);
+    return c.json(plan);
   },
 );
 
@@ -77,8 +125,8 @@ router.post(
   zValidator('json', importModuleSchema),
   async (c) => {
     const commands = c.get('commands');
-    const { source } = c.req.valid('json');
-    await projectService.importModule(commands, source);
+    const { source, version } = c.req.valid('json');
+    await projectService.importModule(commands, source, version);
     return c.json({ message: 'Module imported successfully' });
   },
 );

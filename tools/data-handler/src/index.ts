@@ -48,6 +48,11 @@ import {
 } from './utils/resource-utils.js';
 import { moduleNameFromCardKey } from './utils/card-utils.js';
 import { scanForProjects } from './project-scanner.js';
+import {
+  ModuleNotDeclaredError,
+  ModuleSourceError,
+  ModuleVersionError,
+} from './modules/index.js';
 import { Create } from './commands/create.js';
 
 export {
@@ -60,6 +65,9 @@ export {
   ExportFormats,
   isResourceFolderType,
   moduleNameFromCardKey,
+  ModuleNotDeclaredError,
+  ModuleSourceError,
+  ModuleVersionError,
   requestStatus,
   resourceName,
   resourceNameToString,

@@ -21,7 +21,10 @@ import {
   installedModules,
   createSourceLayer,
   isGitLocation,
+  buildUpdateRequest,
+  ModuleSourceError,
   pickVersion,
+  requireDeclaredRoot,
   resolve,
 } from '../modules/index.js';
 import { getChildLogger } from '../utils/log-utils.js';
@@ -29,6 +32,7 @@ import { getChildLogger } from '../utils/log-utils.js';
 import type {
   Credentials,
   ModuleUpdateStatus,
+  UpdatePreview,
 } from '../interfaces/project-interfaces.js';
 import type { Project } from '../containers/project.js';
 import type {
@@ -70,28 +74,20 @@ export class CheckUpdates {
     const sourceLayer = this.sourceLayer ?? createSourceLayer();
 
     try {
-      const allDeclared = declaredModules(this.project);
       const declared = moduleName
-        ? allDeclared.filter((d) => d.name === moduleName)
-        : allDeclared;
+        ? [
+            await requireDeclaredRoot(
+              this.project,
+              moduleName,
+              'check updates for',
+            ),
+          ]
+        : declaredModules(this.project);
 
       const installed = await installedModules(this.project);
       const installedByName = new Map<string, ModuleInstallation>(
         installed.map((i) => [i.name, i]),
       );
-
-      if (moduleName && declared.length === 0) {
-        const parents = installed
-          .filter((m) => m.declaredDependencies.includes(moduleName))
-          .map((m) => m.name);
-        if (parents.length > 0) {
-          const parentList = parents.map((n) => `'${n}'`).join(', ');
-          throw new Error(
-            `Cannot check updates for module '${moduleName}' because it is required by ${parentList}. Check updates for the parent module(s) instead.`,
-          );
-        }
-        throw new Error(`Module '${moduleName}' is not part of the project`);
-      }
 
       const results = await Promise.all(
         declared.map(async (decl) => {
@@ -164,6 +160,99 @@ export class CheckUpdates {
       );
 
       return results;
+    } finally {
+      if (ownsSource) await sourceLayer.dispose?.();
+    }
+  }
+
+  /**
+   * Computes the joint update plan without applying it: the same read-only
+   * resolve an actual update would run, including transitive cascades and
+   * conflicts.
+   * @param moduleName Optional module to update. If omitted, plans for all.
+   * @param version Optional exact target version; requires `moduleName`.
+   * @param credentials Optional credentials for private modules.
+   * @returns Either the set of moves the update would make, or what blocks it.
+   */
+  @read
+  public async previewUpdate(
+    moduleName?: string,
+    version?: string,
+    credentials?: Credentials,
+  ): Promise<UpdatePreview> {
+    const ownsSource = !this.sourceLayer;
+    const sourceLayer = this.sourceLayer ?? createSourceLayer();
+    try {
+      const req = await buildUpdateRequest(
+        this.project,
+        sourceLayer,
+        moduleName,
+        version,
+        credentials,
+      );
+      const plan = await resolve(this.project, req, {
+        sourceLayer,
+        credentials,
+      });
+      if (!plan.ok) {
+        return {
+          ok: false,
+          changes: [],
+          conflicts: plan.conflicts.map((c) => ({
+            module: c.module,
+            reason: conflictReason(c),
+          })),
+        };
+      }
+      return {
+        ok: true,
+        changes: plan.changes.map((c) => ({
+          module: c.module,
+          from: c.from,
+          to: c.to,
+          sealCount: c.replay.length,
+        })),
+        conflicts: [],
+      };
+    } finally {
+      if (ownsSource) await sourceLayer.dispose?.();
+    }
+  }
+
+  /**
+   * Lists the versions a module source offers, newest first. Sources without
+   * discrete versions (file sources) yield an empty list.
+   * @param target Either a source location for a module that is not installed
+   * yet, or the name of a module the project declares.
+   * @returns Available versions in descending semver order.
+   * @throws when a named module is not a declared root, or its source is
+   * private — listing those needs credentials this path does not carry.
+   */
+  @read
+  public async availableVersions(
+    target: { source: string } | { module: string },
+  ): Promise<string[]> {
+    let location: string;
+    if ('module' in target) {
+      const declaration = await requireDeclaredRoot(
+        this.project,
+        target.module,
+        'list versions for',
+      );
+      if (declaration.source.private) {
+        throw new ModuleSourceError(
+          `Module '${target.module}' is private; listing versions of private modules is not supported`,
+        );
+      }
+      location = declaration.source.location;
+    } else {
+      location = target.source;
+    }
+
+    const ownsSource = !this.sourceLayer;
+    const sourceLayer = this.sourceLayer ?? createSourceLayer();
+    try {
+      return await sourceLayer.listRemoteVersions(location);
     } finally {
       if (ownsSource) await sourceLayer.dispose?.();
     }

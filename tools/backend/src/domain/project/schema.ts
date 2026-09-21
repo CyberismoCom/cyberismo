@@ -11,7 +11,36 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import semver from 'semver';
 import { z } from 'zod';
+
+const gitSource = z
+  .string()
+  .min(1)
+  .refine((s) => s.startsWith('https://') || s.startsWith('git@'), {
+    message: 'Source must be a git URL (https:// or git@)',
+  });
+
+// Trimmed before the length floor, and the floor is load-bearing: any blank
+// string is a valid range meaning `*`, which would silently unpin the module.
+const semverRange = z
+  .string()
+  .trim()
+  .min(1)
+  .refine((s) => semver.validRange(s) !== null, {
+    message: 'Version must be a valid semver version or range',
+  });
+
+// Updates target one concrete version; ranges only live in the declaration.
+// Normalised here so a tag-style `v1.0.0` and a plain `1.0.0` name the same
+// target everywhere below.
+const semverVersion = z
+  .string()
+  .refine((s) => semver.valid(s) !== null, {
+    message: 'Version must be a valid semver version',
+    abort: true,
+  })
+  .transform((s) => semver.valid(s)!);
 
 export const moduleParamSchema = z.object({
   module: z.string().min(1),
@@ -52,10 +81,38 @@ export const cleanSchema = z.object({
 });
 
 export const importModuleSchema = z.object({
-  source: z
-    .string()
-    .min(1)
-    .refine((s) => s.startsWith('https://') || s.startsWith('git@'), {
-      message: 'Source must be a git URL (https:// or git@)',
-    }),
+  source: gitSource,
+  version: semverRange.optional(),
+});
+
+// Exactly one of the two ways to name a source: a git URL for a module that
+// is not installed yet, or the name of a declared module whose location the
+// configuration already knows.
+export const moduleVersionsQuerySchema = z
+  .object({
+    source: gitSource.optional(),
+    module: z.string().min(1).optional(),
+  })
+  .refine(
+    (query) => (query.source === undefined) !== (query.module === undefined),
+    {
+      message: "Provide exactly one of 'source' or 'module'",
+    },
+  )
+  // Narrowed here rather than at the call site: the refine above is what makes
+  // exactly one of the two present, so only this schema can prove it.
+  .transform((query) =>
+    query.source !== undefined
+      ? { source: query.source }
+      : { module: query.module! },
+  );
+
+// Every field is optional, so a caller that posts no body at all still passes
+// validation and updates to the newest version in range.
+export const updateModuleSchema = z.object({
+  version: semverVersion.optional(),
+});
+
+export const updatePlanQuerySchema = z.object({
+  version: semverVersion.optional(),
 });
