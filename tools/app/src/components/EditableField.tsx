@@ -25,6 +25,12 @@ export type FieldLabelProps = {
   description?: string;
   disabled?: boolean;
   edit: boolean;
+  /**
+   * Draw the padlock inline. A caller that positions its own — because it
+   * hangs the lock outside a container that clips, like Joy's AccordionDetails
+   * — passes false and renders it itself.
+   */
+  renderLock?: boolean;
 };
 
 export function FieldLabel({
@@ -32,6 +38,7 @@ export function FieldLabel({
   description,
   disabled,
   edit,
+  renderLock = true,
 }: FieldLabelProps) {
   return (
     <Typography
@@ -59,7 +66,7 @@ export function FieldLabel({
         flexShrink: 0,
       }}
     >
-      {disabled && !edit && (
+      {disabled && !edit && renderLock && (
         <LockOutlined
           sx={{
             height: 14,
@@ -105,6 +112,8 @@ export type EditableFieldProps = {
   focus?: boolean;
   /** Rendered inline after the read-mode value, e.g. the overridden marker. */
   valueDecorator?: ReactNode;
+  /** See `FieldLabelProps.renderLock`. */
+  renderLock?: boolean;
 };
 
 const EditableField = ({
@@ -118,6 +127,7 @@ const EditableField = ({
   disabled,
   focus,
   valueDecorator,
+  renderLock,
 }: EditableFieldProps) => {
   const { t } = useTranslation();
   return (
@@ -133,6 +143,7 @@ const EditableField = ({
         description={description}
         disabled={disabled}
         edit={edit}
+        renderLock={renderLock}
       />
       {edit ? (
         <FieldEditor

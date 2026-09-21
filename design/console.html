@@ -1,0 +1,2278 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cyberismo Console — design system reference</title>
+    <meta
+      name="description"
+      content="The design system behind the Cyberismo app, read from the shipping code."
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+      }
+      img,
+      svg,
+      video {
+        display: block;
+        max-width: 100%;
+      }
+    </style>
+    <style>
+      /* The brand faces are vendored in the app and reused here rather than fetched
+   from a CDN, so this page renders with no network access at all — the same
+   rule the product itself follows. Sources: ../tools/app/public/fonts/ */
+      @font-face {
+        font-family: 'Plus Jakarta Sans';
+        font-style: normal;
+        font-weight: 500 800;
+        font-display: swap;
+        src: url('../tools/app/public/fonts/PlusJakartaSans-latin.woff2')
+          format('woff2');
+        unicode-range:
+          U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+          U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+          U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+      @font-face {
+        font-family: 'Plus Jakarta Sans';
+        font-style: normal;
+        font-weight: 500 800;
+        font-display: swap;
+        src: url('../tools/app/public/fonts/PlusJakartaSans-latin-ext.woff2')
+          format('woff2');
+        unicode-range:
+          U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+          U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+          U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+      }
+      @font-face {
+        font-family: 'IBM Plex Mono';
+        font-style: normal;
+        font-weight: 400;
+        font-display: swap;
+        src: url('../tools/app/public/fonts/IBMPlexMono-400-latin.woff2')
+          format('woff2');
+      }
+      @font-face {
+        font-family: 'IBM Plex Mono';
+        font-style: normal;
+        font-weight: 500;
+        font-display: swap;
+        src: url('../tools/app/public/fonts/IBMPlexMono-500-latin.woff2')
+          format('woff2');
+      }
+
+      /* ============================================================
+   This page is built in the system it documents. Every token
+   below is the value that actually ships in
+   tools/app/src/theme.ts and tools/app/src/globals.css.
+   ============================================================ */
+      :root {
+        --bg: #fbfaf8;
+        --surface: #ffffff;
+        --level1: #f4f2ee;
+        --level2: #edeae3;
+        --divider: #e4e1da;
+        --border-strong: #cfcbc2;
+        --text: #2a2a2a;
+        --text-2: #3d4149;
+        --text-3: #555c67;
+        --chrome: #2a2a2a;
+        --solid-bg: #2a2a2a;
+        --solid-fg: #fbfaf8;
+        --accent: #ff530f;
+        --gold: #ffb022;
+        --initial: #8a8f98;
+        --active: #ffb022;
+        --closed: #2e8b4e;
+        --error: #d5331e;
+        --error-bg: #fbeae7;
+        --ok-bg: #e7f4ec;
+        --overlay:
+          0 10px 30px rgba(42, 42, 42, 0.1), 0 1px 2px rgba(42, 42, 42, 0.06);
+        --sans:
+          'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+          system-ui, sans-serif;
+        --mono:
+          'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas,
+          monospace;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          --bg: #14151a;
+          --surface: #1b1d23;
+          --level1: #101116;
+          --level2: #22252c;
+          --divider: #2b2e36;
+          --border-strong: #3a3e48;
+          --text: #eceae5;
+          --text-2: #c6c7cc;
+          --text-3: #a5a7b0;
+          --chrome: #0c0d10;
+          --solid-bg: #eceae5;
+          --solid-fg: #14151a;
+          --accent: #ff6a2c;
+          --gold: #ffb93d;
+          --initial: #7a7f89;
+          --active: #ffb93d;
+          --closed: #3cbf75;
+          --error: #e4614a;
+          --error-bg: #2e1512;
+          --ok-bg: #12281c;
+          --overlay:
+            0 10px 30px rgba(0, 0, 0, 0.55), 0 1px 2px rgba(0, 0, 0, 0.4);
+        }
+      }
+      :root[data-theme='dark'] {
+        --bg: #14151a;
+        --surface: #1b1d23;
+        --level1: #101116;
+        --level2: #22252c;
+        --divider: #2b2e36;
+        --border-strong: #3a3e48;
+        --text: #eceae5;
+        --text-2: #c6c7cc;
+        --text-3: #a5a7b0;
+        --chrome: #0c0d10;
+        --solid-bg: #eceae5;
+        --solid-fg: #14151a;
+        --accent: #ff6a2c;
+        --gold: #ffb93d;
+        --initial: #7a7f89;
+        --active: #ffb93d;
+        --closed: #3cbf75;
+        --error: #e4614a;
+        --error-bg: #2e1512;
+        --ok-bg: #12281c;
+        --overlay:
+          0 10px 30px rgba(0, 0, 0, 0.55), 0 1px 2px rgba(0, 0, 0, 0.4);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--sans);
+        font-size: 15px;
+        line-height: 1.6;
+        font-weight: 500;
+        -webkit-font-smoothing: antialiased;
+      }
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      h1,
+      h2,
+      h3,
+      h4 {
+        margin: 0;
+        text-wrap: balance;
+      }
+      p {
+        margin: 0;
+      }
+      a {
+        color: var(--text);
+        text-decoration: underline;
+        text-decoration-color: var(--gold);
+        text-decoration-thickness: 2px;
+        text-underline-offset: 3px;
+      }
+      a:hover {
+        text-decoration-color: var(--accent);
+      }
+      code {
+        font-family: var(--mono);
+        font-size: 0.85em;
+        background: var(--level1);
+        border: 1px solid var(--divider);
+        border-radius: 2px;
+        padding: 0.1em 0.35em;
+        overflow-wrap: anywhere;
+      }
+
+      /* ---------- shell ---------- */
+      .wrap {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0;
+      }
+      .grid > * {
+        min-width: 0;
+      }
+      .idx {
+        display: none;
+        position: sticky;
+        top: 0;
+        align-self: start;
+        padding: 88px 0 64px;
+        font-size: 13px;
+      }
+      @media (min-width: 1040px) {
+        .grid {
+          grid-template-columns: 184px minmax(0, 1fr);
+          gap: 52px;
+        }
+        .idx {
+          display: block;
+        }
+      }
+      .idx a {
+        display: block;
+        padding: 6px 0 6px 12px;
+        color: var(--text-3);
+        text-decoration: none;
+        border-left: 2px solid var(--divider);
+        font-weight: 700;
+      }
+      .idx a:hover {
+        color: var(--text);
+        border-left-color: var(--accent);
+      }
+      .idx .h {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: var(--text-3);
+        padding-bottom: 10px;
+      }
+
+      /* ---------- masthead ---------- */
+      .mast {
+        background: var(--chrome);
+        color: #fff;
+      }
+      .mast-in {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 56px 24px;
+      }
+      .eyebrow {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: var(--text-3);
+      }
+      .mast .eyebrow {
+        color: #9a9ca5;
+      }
+      .mast h1 {
+        font-size: clamp(38px, 6vw, 64px);
+        font-weight: 800;
+        line-height: 1;
+        margin: 16px 0 0;
+        letter-spacing: -0.035em;
+        overflow-wrap: break-word;
+      }
+      .mast h1 .dot {
+        color: var(--accent);
+      }
+      .mast p {
+        color: #c6c7cc;
+        font-size: 18px;
+        line-height: 1.55;
+        max-width: 62ch;
+        margin-top: 18px;
+      }
+      .mast-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0;
+        margin-top: 34px;
+        border-top: 1px solid #3a3e48;
+      }
+      .mast-meta div {
+        flex: 1 1 170px;
+        padding: 15px 20px 0 0;
+        border-right: 1px solid #3a3e48;
+      }
+      .mast-meta div:last-child {
+        border-right: 0;
+      }
+      .mast-meta dt {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: #9a9ca5;
+      }
+      .mast-meta dd {
+        margin: 6px 0 0;
+        font-size: 14px;
+        font-weight: 700;
+        color: #eceae5;
+      }
+      .mast-meta dd code {
+        background: #22252c;
+        border-color: #3a3e48;
+        color: #eceae5;
+      }
+
+      /* ---------- sections ---------- */
+      section {
+        padding: 64px 0 0;
+      }
+      section:last-of-type {
+        padding-bottom: 88px;
+      }
+      .sh {
+        margin-bottom: 28px;
+      }
+      .sh h2 {
+        font-size: clamp(26px, 3.4vw, 34px);
+        font-weight: 800;
+        margin-top: 9px;
+        letter-spacing: -0.03em;
+      }
+      .sh p {
+        color: var(--text-2);
+        max-width: 68ch;
+        margin-top: 12px;
+        font-size: 16px;
+      }
+      h3 {
+        font-size: 18px;
+        font-weight: 800;
+        margin: 40px 0 12px;
+        letter-spacing: -0.02em;
+      }
+      h4 {
+        font-size: 14px;
+        font-weight: 800;
+        margin: 0 0 8px;
+      }
+      .body {
+        max-width: 70ch;
+        color: var(--text-2);
+      }
+      .rule {
+        height: 1px;
+        background: var(--divider);
+        border: 0;
+        margin: 0;
+      }
+
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--divider);
+        border-radius: 2px;
+        padding: 20px;
+      }
+      .rail {
+        border-left: 3px solid var(--border-strong);
+      }
+      .note {
+        background: var(--level1);
+        border: 1px solid var(--divider);
+        border-left: 3px solid var(--accent);
+        border-radius: 2px;
+        padding: 16px 18px;
+        margin: 22px 0;
+        max-width: 74ch;
+      }
+      .note strong {
+        color: var(--text);
+      }
+
+      /* ---------- tables ---------- */
+      .tw {
+        overflow-x: auto;
+        border: 1px solid var(--divider);
+        border-radius: 2px;
+        margin-top: 16px;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 13.5px;
+        min-width: 540px;
+        background: var(--surface);
+      }
+      th {
+        background: var(--level1);
+        text-align: left;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-3);
+        padding: 10px 13px;
+        border-bottom: 1px solid var(--divider);
+        white-space: nowrap;
+      }
+      td {
+        padding: 10px 13px;
+        border-bottom: 1px solid var(--divider);
+        vertical-align: top;
+        color: var(--text-2);
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      td strong {
+        color: var(--text);
+        font-weight: 800;
+      }
+      .mono {
+        font-family: var(--mono);
+        font-size: 12px;
+      }
+      .num {
+        font-variant-numeric: tabular-nums;
+      }
+      .yes {
+        color: var(--closed);
+        font-weight: 800;
+      }
+      .no {
+        color: var(--error);
+        font-weight: 800;
+      }
+
+      /* ---------- swatches ---------- */
+      .sw {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(146px, 1fr));
+        gap: 1px;
+        background: var(--divider);
+        border: 1px solid var(--divider);
+        border-radius: 2px;
+        overflow: hidden;
+        margin-top: 14px;
+      }
+      .sw > div {
+        background: var(--surface);
+      }
+      .sw .c {
+        height: 56px;
+      }
+      .sw .m {
+        padding: 9px 11px 12px;
+      }
+      .sw .n {
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .sw .v {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-3);
+        margin-top: 3px;
+      }
+      .sw .r {
+        font-size: 11px;
+        color: var(--text-3);
+        margin-top: 4px;
+        line-height: 1.35;
+      }
+
+      /* ---------- specimen frame ---------- */
+      .spec {
+        border: 1px solid var(--divider);
+        border-radius: 2px;
+        background: var(--surface);
+        margin-top: 14px;
+        overflow: hidden;
+      }
+      .spec-l {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 8px 13px;
+        background: var(--level1);
+        border-bottom: 1px solid var(--divider);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: var(--text-3);
+      }
+      .spec-l .t {
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0;
+        text-transform: none;
+        font-weight: 500;
+      }
+      .spec-b {
+        padding: 20px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+      }
+      .spec-b.stack {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+      }
+      .spec-b.plain {
+        padding: 0;
+        display: block;
+      }
+
+      /* ---------- theme tiles (both schemes at once) ---------- */
+      .pair {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+        margin-top: 14px;
+      }
+      @media (min-width: 840px) {
+        .pair {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      .tile {
+        border: 1px solid var(--divider);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      .tile[data-s='light'] {
+        --bg: #fbfaf8;
+        --surface: #ffffff;
+        --level1: #f4f2ee;
+        --level2: #edeae3;
+        --divider: #e4e1da;
+        --border-strong: #cfcbc2;
+        --text: #2a2a2a;
+        --text-2: #3d4149;
+        --text-3: #555c67;
+        --chrome: #2a2a2a;
+        --solid-bg: #2a2a2a;
+        --solid-fg: #fbfaf8;
+        --accent: #ff530f;
+        --gold: #ffb022;
+        --initial: #8a8f98;
+        --active: #ffb022;
+        --closed: #2e8b4e;
+        --error: #d5331e;
+        --error-bg: #fbeae7;
+      }
+      .tile[data-s='dark'] {
+        --bg: #14151a;
+        --surface: #1b1d23;
+        --level1: #101116;
+        --level2: #22252c;
+        --divider: #2b2e36;
+        --border-strong: #3a3e48;
+        --text: #eceae5;
+        --text-2: #c6c7cc;
+        --text-3: #a5a7b0;
+        --chrome: #0c0d10;
+        --solid-bg: #eceae5;
+        --solid-fg: #14151a;
+        --accent: #ff6a2c;
+        --gold: #ffb93d;
+        --initial: #7a7f89;
+        --active: #ffb93d;
+        --closed: #3cbf75;
+        --error: #e4614a;
+        --error-bg: #2e1512;
+      }
+      .tile-l {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 8px 13px;
+        background: var(--level1);
+        border-bottom: 1px solid var(--divider);
+        color: var(--text-3);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+      }
+      .tile-l .t {
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0;
+        text-transform: none;
+        font-weight: 500;
+      }
+      .tile-b {
+        background: var(--bg);
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .tile-b .g {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 9px;
+        align-items: center;
+      }
+
+      /* ---------- component specimens ---------- */
+      .btn {
+        font: inherit;
+        font-size: 13px;
+        font-weight: 700;
+        border-radius: 2px;
+        padding: 7px 14px;
+        border: 1px solid transparent;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        line-height: 1.2;
+        cursor: default;
+      }
+      .btn-solid {
+        background: var(--solid-bg);
+        color: var(--solid-fg);
+      }
+      .btn-out {
+        background: var(--surface);
+        color: var(--text);
+        border-color: var(--border-strong);
+      }
+      .btn-ghost {
+        background: transparent;
+        color: var(--text-2);
+      }
+      .btn-danger {
+        background: var(--surface);
+        color: var(--error);
+        border-color: var(--error);
+      }
+      .btn-focus {
+        background: var(--solid-bg);
+        color: var(--solid-fg);
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .btn-cta {
+        background: var(--gold);
+        color: #2a2a2a;
+        font-weight: 800;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 5px 10px;
+        border: 1px solid var(--divider);
+        border-left-width: 3px;
+        border-radius: 2px;
+        background: var(--surface);
+        color: var(--text);
+        white-space: nowrap;
+      }
+      .s-i {
+        border-left-color: var(--initial);
+      }
+      .s-a {
+        border-left-color: var(--active);
+      }
+      .s-c {
+        border-left-color: var(--closed);
+      }
+      .s-e {
+        border-left-color: var(--error);
+        background: var(--error-bg);
+        color: var(--error);
+      }
+
+      .meter {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        max-width: 330px;
+      }
+      .meter .lbl {
+        width: 96px;
+        font-weight: 700;
+        color: var(--text);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .meter .tr {
+        flex: 1 1 auto;
+        min-width: 20px;
+        height: 2px;
+        background: var(--level2);
+        overflow: hidden;
+      }
+      .meter .fi {
+        height: 100%;
+        display: block;
+      }
+      .meter .v {
+        flex: 0 0 38px;
+        width: 38px;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        font-weight: 800;
+        color: var(--text-2);
+      }
+
+      .bar {
+        display: flex;
+        align-items: center;
+        height: 48px;
+        background: var(--chrome);
+        padding: 0 14px;
+        gap: 0;
+      }
+      .bar .lg {
+        font-weight: 800;
+        font-size: 14px;
+        letter-spacing: 0.15em;
+        color: #fff;
+      }
+      .bar .lg i {
+        color: var(--accent);
+        font-style: italic;
+      }
+      .bar .sp {
+        flex: 1;
+      }
+      .bar .ic {
+        color: #fff;
+        font-size: 15px;
+        margin-right: 12px;
+        opacity: 0.9;
+      }
+      .bar .av {
+        width: 26px;
+        height: 26px;
+        border-radius: 9999px;
+        background: #3a3e48;
+        color: #fff;
+        font-size: 10px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: 12px;
+      }
+
+      .row {
+        display: flex;
+        align-items: center;
+        height: 28px;
+        font-size: 13px;
+        padding-right: 10px;
+        border-left: 3px solid transparent;
+        color: var(--text-2);
+        min-width: 0;
+      }
+      .row .lb {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        min-width: 0;
+      }
+      .row .pc {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex: none;
+        padding-left: 8px;
+      }
+      .row .pc .tr {
+        width: 24px;
+        height: 2px;
+        background: var(--level2);
+        flex: none;
+        overflow: hidden;
+      }
+      .row .pc .fi {
+        height: 100%;
+        display: block;
+      }
+      .row .pc .n {
+        width: 38px;
+        text-align: right;
+        font-size: 11.5px;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+        color: var(--text-2);
+        flex: none;
+      }
+
+      .type-r {
+        display: flex;
+        gap: 20px;
+        align-items: baseline;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--divider);
+        flex-wrap: wrap;
+      }
+      .type-r:last-child {
+        border-bottom: 0;
+      }
+      .type-r .sp2 {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-3);
+        width: 184px;
+        flex: none;
+        line-height: 1.5;
+      }
+
+      ul.t {
+        margin: 10px 0 0;
+        padding-left: 19px;
+        color: var(--text-2);
+      }
+      ul.t li {
+        margin-bottom: 7px;
+      }
+      ul.t li::marker {
+        color: var(--accent);
+      }
+
+      .cols {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 22px;
+        margin-top: 20px;
+      }
+      @media (min-width: 760px) {
+        .cols.two {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (min-width: 920px) {
+        .cols.three {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+
+      .foot {
+        border-top: 1px solid var(--divider);
+        background: var(--level1);
+        margin-top: 64px;
+      }
+      .foot-in {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 30px 24px;
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        flex-wrap: wrap;
+        font-size: 12.5px;
+        color: var(--text-3);
+      }
+    </style>
+  </head>
+  <body>
+    <header class="mast">
+      <div class="mast-in">
+        <div class="eyebrow">Design system reference · as built</div>
+        <h1>Cyberismo Console<span class="dot">.</span></h1>
+        <p>
+          The design system behind the Cyberismo app's UX refresh. Every value
+          on this page is read from the code that ships — not from a proposal.
+          This page is itself built in the system, so what you are looking at is
+          what the app renders.
+        </p>
+        <dl class="mast-meta">
+          <div>
+            <dt>Source of truth</dt>
+            <dd><code>tools/app/src/theme.ts</code></dd>
+          </div>
+          <div>
+            <dt>Foundation</dt>
+            <dd>MUI Joy <code>extendTheme</code></dd>
+          </div>
+          <div>
+            <dt>Schemes</dt>
+            <dd>Light + dark, both designed</dd>
+          </div>
+          <div>
+            <dt>Enforced by</dt>
+            <dd>ESLint <code>designSystemGuard</code></dd>
+          </div>
+        </dl>
+      </div>
+    </header>
+
+    <div class="wrap">
+      <div class="grid">
+        <aside class="idx">
+          <div class="h">Contents</div>
+          <a href="#rules">The two rules</a>
+          <a href="#colour">Colour</a>
+          <a href="#state">Workflow state</a>
+          <a href="#type">Type</a>
+          <a href="#geometry">Geometry</a>
+          <a href="#density">Density</a>
+          <a href="#chrome">The app bar</a>
+          <a href="#components">Components</a>
+          <a href="#enforcement">Enforcement</a>
+          <a href="#words">Words</a>
+          <a href="#gaps">Known gaps</a>
+        </aside>
+
+        <main>
+          <!-- ══════════ RULES ══════════ -->
+          <section id="rules">
+            <div class="sh">
+              <div class="eyebrow">01 — Foundations</div>
+              <h2>Two rules hold the system together</h2>
+              <p>
+                Both are stated in the header comment of <code>theme.ts</code>,
+                and both are machine-enforced. Everything else follows from
+                them.
+              </p>
+            </div>
+
+            <div class="cols two">
+              <div class="panel rail" style="border-left-color: var(--accent)">
+                <div class="eyebrow">Rule one</div>
+                <h4 style="margin-top: 9px; font-size: 17px">One corner</h4>
+                <p class="body" style="font-size: 14px">
+                  Radius is <strong>2px everywhere</strong> — buttons, inputs,
+                  cards, chips, menus, dialogs. <code>0</code> for full-bleed
+                  bars and status rails, <code>9999px</code> for avatars only.
+                  The marketing site ships radius 0 on every CTA; 2px is that
+                  geometry made workable for form controls.
+                </p>
+              </div>
+              <div class="panel rail" style="border-left-color: var(--accent)">
+                <div class="eyebrow">Rule two</div>
+                <h4 style="margin-top: 9px; font-size: 17px">No blue</h4>
+                <p class="body" style="font-size: 14px">
+                  Primary action is <strong>ink</strong>, inverting on dark.
+                  Amber carries <em>in progress</em>. The brand orange is
+                  reserved for the focus ring and the logo. Semantic colour is
+                  the only colour in the app that means anything.
+                </p>
+              </div>
+            </div>
+
+            <div class="note">
+              <strong>Why ink and not orange.</strong> <code>#FF530F</code> at
+              UI text sizes on white is 3.1:1 and fails AA — and in a product
+              with genuine failure states, an orange button reads as an alarm.
+              The amber-on-ink pairing is the marketing site's own CTA
+              treatment, and in the app it marks the single primary control in
+              the app bar.
+            </div>
+          </section>
+
+          <!-- ══════════ COLOUR ══════════ -->
+          <section id="colour">
+            <hr class="rule" />
+            <div class="sh" style="margin-top: 48px">
+              <div class="eyebrow">02 — Foundations</div>
+              <h2>Colour</h2>
+              <p>
+                Neutrals carry a slight warm bias toward the amber, so they read
+                as chosen rather than inherited. Both schemes are declared in
+                full; dark is a designed peer, never an automatic inversion.
+              </p>
+            </div>
+
+            <h3>Grounds and text</h3>
+            <div class="tw">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Role</th>
+                    <th class="mono">Light</th>
+                    <th class="mono">Dark</th>
+                    <th>Used for</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>background.body</strong></td>
+                    <td class="mono">#FBFAF8</td>
+                    <td class="mono">#14151A</td>
+                    <td>The page ground</td>
+                  </tr>
+                  <tr>
+                    <td><strong>background.surface</strong></td>
+                    <td class="mono">#FFFFFF</td>
+                    <td class="mono">#1B1D23</td>
+                    <td>Cards, the document paper</td>
+                  </tr>
+                  <tr>
+                    <td><strong>background.level1</strong></td>
+                    <td class="mono">#F4F2EE</td>
+                    <td class="mono">#101116</td>
+                    <td>
+                      Nav rail, table heads — recedes in <em>both</em> schemes
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>background.level2</strong></td>
+                    <td class="mono">#EDEAE3</td>
+                    <td class="mono">#22252C</td>
+                    <td>Meter tracks, hover grounds</td>
+                  </tr>
+                  <tr>
+                    <td><strong>text.primary</strong></td>
+                    <td class="mono">#2A2A2A</td>
+                    <td class="mono">#ECEAE5</td>
+                    <td>
+                      Headings and body. Light is the official brand grey,
+                      <em>Tummanharmaa</em>; dark is a warm off-white, not pure
+                      white
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>text.secondary</strong></td>
+                    <td class="mono">#3D4149</td>
+                    <td class="mono">#C6C7CC</td>
+                    <td>Supporting copy</td>
+                  </tr>
+                  <tr>
+                    <td><strong>text.tertiary</strong></td>
+                    <td class="mono">#555C67</td>
+                    <td class="mono">#A5A7B0</td>
+                    <td>
+                      Captions and metadata. Both are set to clear AA on the
+                      sunken rail, not just on white
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>divider</strong></td>
+                    <td class="mono">#E4E1DA</td>
+                    <td class="mono">#2B2E36</td>
+                    <td>Hairlines — all structure is drawn with these</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3>Brand accent — spent in exactly two places</h3>
+            <div class="sw">
+              <div>
+                <div class="c" style="background: #ff530f"></div>
+                <div class="m">
+                  <div class="n">accent</div>
+                  <div class="v">#FF530F</div>
+                  <div class="r">Focus ring · logo slash. Nothing else.</div>
+                </div>
+              </div>
+              <div>
+                <div class="c" style="background: #ff6a2c"></div>
+                <div class="m">
+                  <div class="n">accent · dark</div>
+                  <div class="v">#FF6A2C</div>
+                  <div class="r">Lifted for dark grounds</div>
+                </div>
+              </div>
+              <div>
+                <div class="c" style="background: #ffb022"></div>
+                <div class="m">
+                  <div class="n">gold</div>
+                  <div class="v">#FFB022</div>
+                  <div class="r">
+                    Marketing only. Inside the app amber means "in progress" and
+                    nothing else; the primary control is ink
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div class="c" style="background: #ffb93d"></div>
+                <div class="m">
+                  <div class="n">gold · dark</div>
+                  <div class="v">#FFB93D</div>
+                  <div class="r">Lifted for dark grounds</div>
+                </div>
+              </div>
+              <div>
+                <div class="c" style="background: #2a2a2a"></div>
+                <div class="m">
+                  <div class="n">ink</div>
+                  <div class="v">#2A2A2A</div>
+                  <div class="r">Primary action · app bar · headings</div>
+                </div>
+              </div>
+              <div>
+                <div class="c" style="background: #f2ede4"></div>
+                <div class="m">
+                  <div class="n">cream</div>
+                  <div class="v">#F2EDE4</div>
+                  <div class="r">
+                    Brand value, exported but unused in the app
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="note" style="border-left-color: var(--border-strong)">
+              <strong>The solid button is its own pair, not one colour.</strong>
+              "Ink button" is a light-mode description. Near-black on a
+              near-black ground disappears, so
+              <code>primary.solidBg</code>/<code>solidColor</code> is
+              <code>#2A2A2A</code> on <code>#FBFAF8</code> in light and flips to
+              <code>#ECEAE5</code> on <code>#14151A</code> in dark. The app
+              bar's amber control is the one button that stays identical in
+              both, because it sits on the chrome rather than on the page.
+            </div>
+          </section>
+
+          <!-- ══════════ STATE ══════════ -->
+          <section id="state">
+            <hr class="rule" />
+            <div class="sh" style="margin-top: 48px">
+              <div class="eyebrow">03 — The central device</div>
+              <h2>Workflow state</h2>
+              <p>
+                Every card sits in exactly one workflow category, and that is
+                the app's most important signal. It is carried by a
+                <strong>square mark</strong> at the start of the row in a list,
+                or a 3px rail on the leading edge of a panel. Both encode the
+                same four states.
+              </p>
+              <p class="body" style="margin-top: 12px">
+                The rail came first and was wrong for lists. A 3px line sits at
+                a spatial frequency where the eye's colour channels are least
+                sensitive, so the marks blurred together — measured, "not
+                started" and "done" were only <strong>1.31:1</strong> apart, and
+                with hue removed "done" and "failed" were
+                <strong>1.14:1</strong>: the same mark. Retuning the hues cannot
+                fix that, because a mark on white needs 3:1 to read at all,
+                which caps three states to roughly 1.9:1 from each neighbour.
+                The same colour in a compact dot sits where chromatic
+                sensitivity is highest — and the dot is the shape the app
+                already used for workflow state, so the tree and the state
+                selector read as one idea rather than two.
+              </p>
+            </div>
+
+            <div class="tw">
+              <table>
+                <thead>
+                  <tr>
+                    <th>State</th>
+                    <th class="mono">Light</th>
+                    <th class="mono">Dark</th>
+                    <th>Meaning</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>initial</strong></td>
+                    <td class="mono">#73787F</td>
+                    <td class="mono">#6B7280</td>
+                    <td>Draft, not started</td>
+                  </tr>
+                  <tr>
+                    <td><strong>active</strong></td>
+                    <td class="mono">#C26A00</td>
+                    <td class="mono">#FFB93D</td>
+                    <td>
+                      In progress — this is the brand gold, doing real work
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>closed</strong></td>
+                    <td class="mono">#1B7F4B</td>
+                    <td class="mono">#4BC77F</td>
+                    <td>Approved, done</td>
+                  </tr>
+                  <tr>
+                    <td><strong>error</strong></td>
+                    <td class="mono">#A81E12</td>
+                    <td class="mono">#F0705A</td>
+                    <td>
+                      A failed policy check. Not a workflow category — it
+                      arrives as a tree node's <code>statusIndicator</code>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3>How it resolves</h3>
+            <p class="body">
+              The four states are CSS variables declared on
+              <code>:root</code> and re-declared under
+              <code>[data-joy-color-scheme='dark']</code> in
+              <code>globals.css</code>, so they follow the colour scheme
+              <strong>without a React re-render</strong>. Components never name
+              a state colour directly; they call one of two resolvers in
+              <code>lib/utils.ts</code>.
+            </p>
+
+            <div class="tw">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Resolver</th>
+                    <th>Contract</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="mono">getStateColor(category)</td>
+                    <td>
+                      Maps a workflow category (or <code>'error'</code>) to
+                      <code>var(--cy-state-*)</code>. Unknown input returns
+                      <code>transparent</code> rather than guessing.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="mono">getProgressColor(value)</td>
+                    <td>
+                      <code>&le;0</code> → initial, <code>&ge;100</code> →
+                      closed, otherwise active. Exists because
+                      <strong
+                        >project and phase cards report progress but carry no
+                        workflow state of their own</strong
+                      >
+                      — without it their rail would be transparent.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3>Both schemes, side by side</h3>
+            <p class="body" style="font-size: 14px">
+              Rendered twice below with the token set re-declared per tile, so
+              both are visible whatever your own setting is.
+            </p>
+            <div class="pair">
+              <div class="tile" data-s="light">
+                <div class="tile-l">
+                  <span>Light</span><span class="t">#FBFAF8</span>
+                </div>
+                <div class="tile-b">
+                  <div class="bar" style="margin: -16px -16px 0">
+                    <span class="lg">CYBERISMO<i>/</i></span
+                    ><span class="sp"></span><span class="ic">☀</span
+                    ><span class="btn btn-cta">+ Create card</span
+                    ><span class="av">SL</span>
+                  </div>
+                  <div class="g">
+                    <span class="chip s-i">Draft</span
+                    ><span class="chip s-a">In review</span
+                    ><span class="chip s-c">Approved</span
+                    ><span class="chip s-e">Failed</span>
+                  </div>
+                  <div class="g">
+                    <button class="btn btn-solid">Create card</button
+                    ><button class="btn btn-out">Add module</button
+                    ><button class="btn btn-danger">Delete</button
+                    ><button class="btn btn-focus">Focus</button>
+                  </div>
+                  <div>
+                    <div class="row" style="border-left-color: var(--active)">
+                      <span class="lb">IoT device</span
+                      ><span class="pc"
+                        ><span class="tr"
+                          ><span
+                            class="fi"
+                            style="width: 21%; background: var(--active)"
+                          ></span></span
+                        ><span class="n">21%</span></span
+                      >
+                    </div>
+                    <div
+                      class="row"
+                      style="
+                        border-left-color: var(--closed);
+                        padding-left: 12px;
+                      "
+                    >
+                      <span class="lb">Foundation</span
+                      ><span class="pc"
+                        ><span class="tr"
+                          ><span
+                            class="fi"
+                            style="width: 100%; background: var(--closed)"
+                          ></span></span
+                        ><span class="n">100%</span></span
+                      >
+                    </div>
+                    <div
+                      class="row"
+                      style="
+                        border-left-color: var(--initial);
+                        padding-left: 12px;
+                      "
+                    >
+                      <span class="lb">Implementation</span
+                      ><span class="pc"
+                        ><span class="tr"></span><span class="n">0%</span></span
+                      >
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="tile" data-s="dark">
+                <div class="tile-l">
+                  <span>Dark</span><span class="t">#14151A</span>
+                </div>
+                <div class="tile-b">
+                  <div class="bar" style="margin: -16px -16px 0">
+                    <span class="lg">CYBERISMO<i>/</i></span
+                    ><span class="sp"></span><span class="ic">☾</span
+                    ><span class="btn btn-cta">+ Create card</span
+                    ><span class="av">SL</span>
+                  </div>
+                  <div class="g">
+                    <span class="chip s-i">Draft</span
+                    ><span class="chip s-a">In review</span
+                    ><span class="chip s-c">Approved</span
+                    ><span class="chip s-e">Failed</span>
+                  </div>
+                  <div class="g">
+                    <button class="btn btn-solid">Create card</button
+                    ><button class="btn btn-out">Add module</button
+                    ><button class="btn btn-danger">Delete</button
+                    ><button class="btn btn-focus">Focus</button>
+                  </div>
+                  <div>
+                    <div class="row" style="border-left-color: var(--active)">
+                      <span class="lb">IoT device</span
+                      ><span class="pc"
+                        ><span class="tr"
+                          ><span
+                            class="fi"
+                            style="width: 21%; background: var(--active)"
+                          ></span></span
+                        ><span class="n">21%</span></span
+                      >
+                    </div>
+                    <div
+                      class="row"
+                      style="
+                        border-left-color: var(--closed);
+                        padding-left: 12px;
+                      "
+                    >
+                      <span class="lb">Foundation</span
+                      ><span class="pc"
+                        ><span class="tr"
+                          ><span
+                            class="fi"
+                            style="width: 100%; background: var(--closed)"
+                          ></span></span
+                        ><span class="n">100%</span></span
+                      >
+                    </div>
+                    <div
+                      class="row"
+                      style="
+                        border-left-color: var(--initial);
+                        padding-left: 12px;
+                      "
+                    >
+                      <span class="lb">Implementation</span
+                      ><span class="pc"
+                        ><span class="tr"></span><span class="n">0%</span></span
+                      >
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ══════════ TYPE ══════════ -->
+          <section id="type">
+            <hr class="rule" />
+            <div class="sh" style="margin-top: 48px">
+              <div class="eyebrow">04 — Foundations</div>
+              <h2>Type</h2>
+              <p>
+                <strong>Plus Jakarta Sans</strong> for everything the interface
+                says, <strong>IBM Plex Mono</strong> for everything the system
+                generates — card keys, resource paths, identifiers. Both are
+                vendored, so the app makes no runtime request to Google Fonts.
+              </p>
+            </div>
+
+            <div class="spec">
+              <div class="spec-l">
+                <span>Scale as shipped</span
+                ><span class="t">theme.ts › typography</span>
+              </div>
+              <div class="spec-b stack">
+                <div class="type-r">
+                  <div class="sp2">h1<br />2rem / 1.15 / 800 / −.03em</div>
+                  <div
+                    style="
+                      font-size: 2rem;
+                      font-weight: 800;
+                      line-height: 1.15;
+                      letter-spacing: -0.03em;
+                    "
+                  >
+                    Threat model
+                  </div>
+                </div>
+                <div class="type-r">
+                  <div class="sp2">h2<br />1.75rem / 1.2 / 800</div>
+                  <div
+                    style="
+                      font-size: 1.75rem;
+                      font-weight: 800;
+                      letter-spacing: -0.03em;
+                    "
+                  >
+                    Identified risks
+                  </div>
+                </div>
+                <div class="type-r">
+                  <div class="sp2">h3<br />1.25rem / 1.3 / 700</div>
+                  <div
+                    style="
+                      font-size: 1.25rem;
+                      font-weight: 700;
+                      letter-spacing: -0.02em;
+                    "
+                  >
+                    External data flows
+                  </div>
+                </div>
+                <div class="type-r">
+                  <div class="sp2">title-md<br />0.9375rem / 1.4 / 700</div>
+                  <div style="font-size: 0.9375rem; font-weight: 700">
+                    Controlled document
+                  </div>
+                </div>
+                <div class="type-r">
+                  <div class="sp2">body-lg<br />1rem / 1.65 / 500</div>
+                  <div style="font-size: 1rem; font-weight: 500">
+                    Document body — long-form AsciiDoc keeps 16px.
+                  </div>
+                </div>
+                <div class="type-r">
+                  <div class="sp2">body-md<br />0.9375rem / 1.6 / 500</div>
+                  <div style="font-size: 0.9375rem">
+                    UI chrome drops to 15px for density.
+                  </div>
+                </div>
+                <div class="type-r">
+                  <div class="sp2">body-sm<br />0.8125rem / 1.45 / 500</div>
+                  <div style="font-size: 0.8125rem">A register of assets</div>
+                </div>
+                <div class="type-r">
+                  <div class="sp2">body-xs<br />0.75rem / 1.45 / 500</div>
+                  <div style="font-size: 0.6875rem">
+                    Counts, hints, dense values
+                  </div>
+                </div>
+                <div class="type-r">
+                  <div class="sp2">
+                    label<br />0.6875rem / 800 / +.09em / caps
+                  </div>
+                  <div
+                    style="
+                      font-size: 0.6875rem;
+                      font-weight: 800;
+                      letter-spacing: 0.09em;
+                      text-transform: uppercase;
+                      color: var(--text-3);
+                    "
+                  >
+                    Information classification
+                  </div>
+                </div>
+                <div class="type-r">
+                  <div class="sp2">code<br />IBM Plex Mono 400/500</div>
+                  <div style="font-family: var(--mono); font-size: 13px">
+                    demo_mrjvy0w6 · base/workflows/controlledDocument
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="note" style="border-left-color: var(--border-strong)">
+              <strong
+                ><code>label</code> is a custom level, and it exists because of
+                a bug.</strong
+              >
+              The uppercase tracked treatment was first applied to Joy's shared
+              <code>body-xs</code> — which is used across the app for values,
+              counts and hints, not only labels. Every metadata
+              <em>value</em> started shouting ("AUG 17, 2026",
+              "PRODUCT.OWNER@EXAMPLE.COM"). The treatment now lives in its own
+              level, declared to TypeScript in <code>src/joy.d.ts</code>.
+              <strong>Never style a shared typography level.</strong>
+            </div>
+
+            <div class="note" style="border-left-color: var(--error)">
+              <strong>An eyebrow is not a row label.</strong> The second half of
+              that mistake took longer to see: the <code>label</code> level was
+              also applied to metadata field labels, where it fails three ways.
+              Uppercase with 0.09em tracking is about
+              <strong>38% wider</strong> — "Information classification" goes
+              from 144px to 199px and wraps a 168px column. At weight 800 the
+              label out-weighs its own value (700), so the label shouts and the
+              content whispers. And uppercase destroys the word shape that makes
+              a repeated column scannable. Measured across the 99 field labels
+              in the demo projects, the eyebrow treatment fits
+              <strong>61 on one line where sentence case fits 86</strong>. Use
+              <code>label</code> for section eyebrows — few, short, isolated —
+              and sentence case at <code>text.tertiary</code> for anything that
+              labels a row.
+            </div>
+
+            <h3>Weights</h3>
+            <p class="body">
+              Three ship: <strong>500</strong> body,
+              <strong>700</strong> headings and controls,
+              <strong>800</strong> page titles and every uppercase label. No 400
+              — it goes thin against warm neutrals — and no 600, which is where
+              undisciplined hierarchies hide.
+            </p>
+
+            <h3>Vendored faces</h3>
+            <div class="tw">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Family</th>
+                    <th>Weights</th>
+                    <th>Subsets</th>
+                    <th class="num">Size</th>
+                    <th>Licence</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Plus Jakarta Sans</strong></td>
+                    <td>variable 500–800</td>
+                    <td>latin, latin-ext</td>
+                    <td class="num">47.8 kB</td>
+                    <td>OFL 1.1</td>
+                  </tr>
+                  <tr>
+                    <td><strong>IBM Plex Mono</strong></td>
+                    <td>400, 500</td>
+                    <td>latin, latin-ext</td>
+                    <td class="num">36.9 kB</td>
+                    <td>OFL 1.1</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="body" style="margin-top: 12px; font-size: 14px">
+              Six <code>.woff2</code> files, ~100 kB total, in
+              <code>public/fonts/</code> with both licence texts and a README
+              covering how to refresh a subset.
+              <code>@font-face</code> declarations sit at the top of
+              <code>globals.css</code>.
+            </p>
+          </section>
+
+          <!-- ══════════ GEOMETRY ══════════ -->
+          <section id="geometry">
+            <hr class="rule" />
+            <div class="sh" style="margin-top: 48px">
+              <div class="eyebrow">05 — Foundations</div>
+              <h2>Geometry</h2>
+            </div>
+
+            <div class="cols three">
+              <div class="panel">
+                <div class="eyebrow">Radius</div>
+                <div
+                  style="
+                    font-size: 26px;
+                    font-weight: 800;
+                    margin: 8px 0 6px;
+                    letter-spacing: -0.02em;
+                  "
+                >
+                  2px
+                </div>
+                <p class="body" style="font-size: 13.5px">
+                  <code>xs: 0</code> for bars and rails;
+                  <code>sm/md/lg/xl: 2px</code>. Twelve Joy components pin it
+                  again in <code>styleOverrides</code>, so a component that
+                  ignores the theme scale still lands on 2px.
+                </p>
+              </div>
+              <div class="panel">
+                <div class="eyebrow">Borders</div>
+                <div
+                  style="
+                    font-size: 26px;
+                    font-weight: 800;
+                    margin: 8px 0 6px;
+                    letter-spacing: -0.02em;
+                  "
+                >
+                  1px
+                </div>
+                <p class="body" style="font-size: 13.5px">
+                  Structure is drawn with hairlines, never shadows.
+                  <code>divider</code> groups; <code>outlinedBorder</code> marks
+                  anything you can type into.
+                </p>
+              </div>
+              <div class="panel">
+                <div class="eyebrow">Elevation</div>
+                <div
+                  style="
+                    font-size: 26px;
+                    font-weight: 800;
+                    margin: 8px 0 6px;
+                    letter-spacing: -0.02em;
+                  "
+                >
+                  One
+                </div>
+                <p class="body" style="font-size: 13.5px">
+                  <code>shadow.xs</code> and <code>sm</code> are
+                  <code>none</code>; <code>md</code>, <code>lg</code> and
+                  <code>xl</code> are the same overlay shadow. If it doesn't
+                  float above the page, it doesn't lift.
+                </p>
+              </div>
+            </div>
+
+            <h3>Focus</h3>
+            <p class="body">
+              A single treatment everywhere:
+              <strong>2px solid accent, 2px offset</strong>. Set both in the Joy
+              theme's <code>focus.default</code> and as a bare
+              <code>:focus-visible</code> rule in <code>globals.css</code>, so
+              it also covers plain DOM elements and rendered AsciiDoc content.
+              This is the only place the brand orange appears outside the logo.
+            </p>
+          </section>
+
+          <!-- ══════════ DENSITY ══════════ -->
+          <section id="density">
+            <hr class="rule" />
+            <div class="sh" style="margin-top: 48px">
+              <div class="eyebrow">06 — Foundations</div>
+              <h2>Density</h2>
+              <p>
+                <code>theme.ts</code> exports a <code>DENSITY</code> object for
+                layout constants. Three of its six tokens are wired up; the
+                other three are declared but unused, and two of those disagree
+                with what the app actually does.
+              </p>
+            </div>
+
+            <div class="tw">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Token</th>
+                    <th class="mono">Declared</th>
+                    <th>Status</th>
+                    <th>Reality</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>appBarHeight</strong></td>
+                    <td class="mono">48</td>
+                    <td class="yes">Wired</td>
+                    <td>
+                      <code>AppToolbar</code> height and the
+                      <code>Main</code> height calculation
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>figureColumn</strong></td>
+                    <td class="mono">38</td>
+                    <td class="yes">Wired</td>
+                    <td><code>ProgressMeter</code>'s reserved figure column</td>
+                  </tr>
+                  <tr>
+                    <td><strong>railMinWidth</strong></td>
+                    <td class="mono">220</td>
+                    <td class="yes">Wired</td>
+                    <td>
+                      <code>TwoColumnLayout</code>'s
+                      <code>leftPanelMinSize</code> default
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>rowHeight</strong></td>
+                    <td class="mono">32</td>
+                    <td class="no">Unused</td>
+                    <td>
+                      Tree rows are actually <strong>28px</strong>, set on
+                      react-arborist in <code>BaseTreeComponent</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>railWidth</strong></td>
+                    <td class="mono">280</td>
+                    <td class="no">Unused</td>
+                    <td>
+                      The panel default is <strong>20%</strong>, not a pixel
+                      value
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>documentMeasure</strong></td>
+                    <td class="mono">72ch</td>
+                    <td class="no">Unused</td>
+                    <td>No component reads it</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="note">
+              <strong>A token that lies is worse than no token.</strong>
+              <code>rowHeight: 32</code> and <code>railWidth: 280</code> read as
+              authoritative but describe nothing — anyone trusting them would be
+              wrong by 4px and by a whole unit system. Either wire them up or
+              delete them; see <a href="#gaps">Known gaps</a>.
+            </div>
+
+            <h3>The metadata label column</h3>
+            <p class="body">
+              168px, capped from a 40% width. Field labels run to 54 characters
+              in the demo projects ("Does the interface or dataflow cross a
+              trust boundary?"), so wrapping cannot be designed away — it has to
+              be graceful. 168px is where the curve flattens: of 99 real labels
+              it fits 86 on one line against 71 at 150px, and the info icon sits
+              inside the label box, costing about 18px of it. Rows align on
+              their <strong>first line</strong>, so a two-line label beside a
+              one-line value still reads as one row.
+            </p>
+
+            <h3>The metadata rail and the lock lane</h3>
+            <p class="body">
+              Every metadata row carries a <strong>persistent 2px rail</strong>
+              on its leading edge, in <code>--cy-rail</code>, drawn as a
+              <code>::before</code> on the row rather than a border, and a
+              <strong>27px lane</strong> to the left of the text. This is the
+              one place a rail earns its keep. Elsewhere a thin line is the
+              wrong carrier for meaning (see
+              <a href="#colour">the state marks</a>) — here it carries no
+              meaning at all. It is a
+              <em>bracket</em>: two- and three-line labels beside multi-line
+              values have no other cue for where one row stops, because the 8px
+              row gap is smaller than the 17px line leading inside a wrapped
+              label. Without the rail a wrapped label groups with the wrong
+              value by simple proximity. It is always painted, never on hover:
+              readability that appears only under the pointer is not
+              readability.
+            </p>
+            <p class="body" style="margin-top: 12px">
+              The rail has its own token because the scale has no step where it
+              needs one. <code>divider</code> put it at
+              <strong>1.25:1</strong> against the page — a line nobody could
+              see, doing none of the bracketing it exists for — while
+              <code>neutral.400</code> is 2.36:1 and <code>neutral.500</code>
+              4.63:1, close enough to the label's own 6.47:1 to compete with
+              it. <code>--cy-rail</code> is tuned to <strong>3:1</strong>, the
+              non-text threshold, in both schemes: a 2px mark is high spatial
+              frequency and needs more contrast than a filled area to read as
+              present at all.
+            </p>
+            <p class="body" style="margin-top: 12px">
+              Three steps that stay in order: <code>--cy-rail</code> at rest,
+              <code>--cy-rail-strong</code> on hover for a clickable row (the
+              rail is also the row's affordance, so no separate hover border is
+              needed), and <code>--cy-editing</code> at full ink while the row
+              is being edited.
+            </p>
+            <p class="body" style="margin-top: 12px">
+              The <strong>padlock on a read-only field is outdented</strong>
+              into the 27px lane, left of the rail, at
+              <code>left: 0</code>. Inside the label it used to shift the
+              first line of text by its own width, so locked and unlocked
+              labels started at different x-positions and the column lost its
+              vertical rhythm: measured, 321px against 339px. Outdented, all 25
+              labels on a card share
+              <strong>one left edge</strong>. The rail sits at
+              <code>17px</code>, inside the lane rather than at its end: the
+              padlock's ink is only 9.3px of its 14px box, so a rail at the
+              lane's end had 11px of slack on the lock's side and
+              <em>none</em> on the label's — the label began exactly at the
+              rail. Split the other way, the label gets the 8px gutter it needs
+              and the lock keeps the 5px it can spare, with the label column
+              staying where it was, 2px from the document text below. It is
+              centred on the first line's
+              cap height, not on the row box —
+              <code>top: calc(0.75rem * 1.45 / 2 - 7px)</code> — which holds
+              regardless of how many lines the label wraps to.
+            </p>
+
+            <div class="note">
+              <strong>The lock must live outside the accordion.</strong>
+              <code>MuiAccordionDetails</code> sets
+              <code>overflow: hidden</code> on both its root and its content, so
+              a lock positioned into the lane from inside it is silently
+              clipped — it measures correctly and paints nothing. It is a
+              sibling of <code>AccordionDetails</code>, inside the
+              <code>Accordion</code>, which owns both the lane padding and the
+              rail. The corollary: living outside the details element means
+              neither the lock nor the rail collapses with it, so both are
+              <strong>withheld on a collapsed row</strong> — otherwise every
+              hidden read-only field stacks another padlock on the same pixel,
+              beside the "Show more" button.
+            </div>
+
+            <h3>The navigation figure column</h3>
+            <p class="body">
+              Rows carrying a progress metric reserve a fixed
+              <strong>38px right-aligned column</strong> in tabular figures. The
+              percentage is always shown in full, including <code>0%</code> and
+              <code>100%</code> — never rounded to a bucket, never abbreviated,
+              never hidden behind a hover. Under width pressure the label
+              truncates and the bar collapses to a 20px minimum; the figure is
+              the last thing standing. Rows with no metric reserve nothing.
+            </p>
+            <p class="body" style="margin-top: 12px">
+              This costs less than it appears: across both demo projects (164
+              nodes, six levels deep) every progress-bearing row has a title of
+              6–17 characters, because progress belongs to projects and phases.
+              The long titles live deeper in the tree, where no row carries a
+              percentage at all.
+            </p>
+          </section>
+
+          <!-- ══════════ CHROME ══════════ -->
+          <section id="chrome">
+            <hr class="rule" />
+            <div class="sh" style="margin-top: 48px">
+              <div class="eyebrow">07 — A standing exception</div>
+              <h2>The app bar does not follow the palette</h2>
+              <p>
+                It keeps its ink ground in <em>both</em> colour schemes —
+                <code>--cy-chrome</code>, which is <code>#2A2A2A</code> in light
+                and goes further down to <code>#0C0D10</code> in dark so the bar
+                still separates from the page.
+              </p>
+            </div>
+
+            <div class="spec">
+              <div class="spec-l">
+                <span>App bar</span
+                ><span class="t">48px · ink in both schemes</span>
+              </div>
+              <div class="spec-b plain">
+                <div class="bar">
+                  <span class="lg">CYBERISMO<i>/</i></span
+                  ><span class="sp"></span><span class="ic">☀</span
+                  ><span class="btn btn-cta">+ Create card</span
+                  ><span class="av">SL</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="note" style="border-left-color: var(--error)">
+              <strong>The consequence, learned the hard way.</strong> Anything
+              sitting on the bar
+              <em>cannot take its colour from the palette</em>. In light mode
+              <code>neutral</code> plain resolves to <code>#3D4149</code>,
+              roughly <strong>1.4:1</strong> against the bar — the mobile menu
+              button was effectively invisible. On-chrome controls are painted
+              white explicitly, via the shared
+              <code>APP_BAR_ICON_SX</code> constant in
+              <code>AppToolbar.tsx</code>. If you add a control to the app bar,
+              use it.
+            </div>
+          </section>
+
+          <!-- ══════════ COMPONENTS ══════════ -->
+          <section id="components">
+            <hr class="rule" />
+            <div class="sh" style="margin-top: 48px">
+              <div class="eyebrow">08 — Kit</div>
+              <h2>Components</h2>
+              <p>
+                The system adds only two components. Everything else is a Joy
+                component with theme-level defaults — the point of the token
+                layer is that the existing app renders this way without
+                per-component work.
+              </p>
+            </div>
+
+            <div class="tw">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Component</th>
+                    <th>Props</th>
+                    <th>Contract</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <strong>StatusChip</strong><br /><span class="mono"
+                        >components/StatusChip.tsx</span
+                      >
+                    </td>
+                    <td class="mono">category, children</td>
+                    <td>
+                      A workflow state carried by a 3px leading rail. Encodes
+                      state in form as well as colour, so it stays legible in
+                      greyscale, in print and for colour-blind users. In the
+                      navigation tree this is a round dot, matching how
+                      <code>StateSelector</code> already marks the current state
+                      and every transition target — one shape for one concept.
+                      It is transparent when a card carries no workflow state,
+                      so the dot holds its place and labels stay aligned. A 3px
+                      rail was tried and abandoned: a thin line sits where the
+                      eye's colour channels are least sensitive, so hue is hard
+                      to judge; a compact filled disc is where it is easiest.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <strong>ProgressMeter</strong><br /><span class="mono"
+                        >components/ProgressMeter.tsx</span
+                      >
+                    </td>
+                    <td class="mono">value, color?, figureOnly?</td>
+                    <td>
+                      Exact percentage in the reserved column, with an optional
+                      bar. Clamps and rounds <code>value</code>; defaults its
+                      fill via <code>getProgressColor</code>.
+                      <code>figureOnly</code> drops the bar for very narrow
+                      containers.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="spec">
+              <div class="spec-l">
+                <span>Status chip</span
+                ><span class="t">&lt;StatusChip category="active" /&gt;</span>
+              </div>
+              <div class="spec-b">
+                <span class="chip s-i">Draft</span
+                ><span class="chip s-a">In review</span>
+                <span class="chip s-c">Approved</span
+                ><span class="chip s-e">Check failed</span>
+              </div>
+            </div>
+
+            <div class="spec">
+              <div class="spec-l">
+                <span>Progress meter</span
+                ><span class="t">the figure never truncates</span>
+              </div>
+              <div class="spec-b stack">
+                <div class="meter">
+                  <span class="lbl">Foundation</span
+                  ><span class="tr"
+                    ><span
+                      class="fi"
+                      style="width: 100%; background: var(--closed)"
+                    ></span></span
+                  ><span class="v">100%</span>
+                </div>
+                <div class="meter">
+                  <span class="lbl">Design</span
+                  ><span class="tr"
+                    ><span
+                      class="fi"
+                      style="width: 14%; background: var(--active)"
+                    ></span></span
+                  ><span class="v">14%</span>
+                </div>
+                <div class="meter">
+                  <span class="lbl">Implementation</span><span class="tr"></span
+                  ><span class="v">0%</span>
+                </div>
+              </div>
+            </div>
+
+            <h3>The tree row, as built</h3>
+            <p class="body">
+              <code>CardTreeNode</code> composes the whole system in one row:
+              rail, optional error mark, truncating title with a native
+              <code>title</code> tooltip, and the figure column. Its rail colour
+              resolves in three steps — workflow state if there is one, else the
+              progress colour, else transparent — which is what keeps project
+              and phase rows from going blank.
+            </p>
+
+            <h3>Document content</h3>
+            <p class="body">
+              Rendered AsciiDoc is styled in <code>globals.css</code> against
+              the same tokens. Links are
+              <strong>ink with a gold underline, hovering to the accent</strong>
+              — the treatment the brand already specifies, and the reason there
+              is no blue left anywhere in the product. Code and
+              <code>&lt;pre&gt;</code> take the vendored mono face; headings
+              take the display weight.
+            </p>
+          </section>
+
+          <!-- ══════════ ENFORCEMENT ══════════ -->
+          <section id="enforcement">
+            <hr class="rule" />
+            <div class="sh" style="margin-top: 48px">
+              <div class="eyebrow">09 — Enforcement</div>
+              <h2>What the linter will not let you do</h2>
+              <p>
+                Both rules drifted badly before the system existed — 270 inline
+                <code>sx</code> blocks across 84 of 156 files, and seven
+                different corner radii. They are enforced rather than
+                documented. <code>designSystemGuard</code> in
+                <code>eslint.config.mjs</code> covers
+                <code>src/components/**</code> and <code>src/pages/**</code>.
+              </p>
+            </div>
+
+            <div class="tw">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Rejects</th>
+                    <th>Message</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <strong>Raw hex colours</strong><br /><span class="mono"
+                        >#abc / #aabbcc</span
+                      >
+                    </td>
+                    <td>
+                      Use a palette token (e.g. <code>"text.secondary"</code>)
+                      or a <code>--cy-*</code> variable; brand values live in
+                      <code>theme.ts</code>.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <strong>Off-system radii</strong><br /><span class="mono"
+                        >string values</span
+                      >
+                    </td>
+                    <td>
+                      Anything but <code>2px</code>, <code>0</code>,
+                      <code>50%</code>, <code>inherit</code>, <code>sm</code> or
+                      <code>xs</code>.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <strong>Off-system radii</strong><br /><span class="mono"
+                        >numeric literals</span
+                      >
+                    </td>
+                    <td>
+                      A separate selector, because esquery does not coerce
+                      numbers when matching a regex against
+                      <code>value.value</code>.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="body" style="margin-top: 14px; font-size: 14px">
+              The rules are set to <code>warn</code>, so they guide without
+              blocking a build. They currently pass clean.
+            </p>
+          </section>
+
+          <!-- ══════════ WORDS ══════════ -->
+          <section id="words">
+            <hr class="rule" />
+            <div class="sh" style="margin-top: 48px">
+              <div class="eyebrow">10 — Language</div>
+              <h2>Words are part of the system</h2>
+              <p>
+                The design system's voice rule is
+                <strong
+                  >direct, dry, British English, no emoji, no exclamation
+                  points</strong
+                >
+                — the logo owns the brand's only "!". Verified across all 480
+                strings in <code>locales/en/translation.json</code>.
+              </p>
+            </div>
+
+            <div class="cols three">
+              <div class="panel">
+                <div class="eyebrow">Casing</div>
+                <div
+                  style="font-size: 22px; font-weight: 800; margin: 8px 0 6px"
+                >
+                  Sentence
+                </div>
+                <p class="body" style="font-size: 13.5px">
+                  Labels, buttons, headings and menu items. No Title Case except
+                  proper nouns.
+                </p>
+              </div>
+              <div class="panel">
+                <div class="eyebrow">Shouting</div>
+                <div
+                  style="font-size: 22px; font-weight: 800; margin: 8px 0 6px"
+                >
+                  None
+                </div>
+                <p class="body" style="font-size: 13.5px">
+                  <code>FAIL</code>/<code>PASS</code> became
+                  <code>Failed</code>/<code>Passed</code> — the rail carries the
+                  emphasis now.
+                </p>
+              </div>
+              <div class="panel">
+                <div class="eyebrow">Buttons</div>
+                <div
+                  style="font-size: 22px; font-weight: 800; margin: 8px 0 6px"
+                >
+                  Outcome
+                </div>
+                <p class="body" style="font-size: 13.5px">
+                  "Create card", not "Create" — the control says what will
+                  happen.
+                </p>
+              </div>
+            </div>
+
+            <h3>One noun per concept</h3>
+            <div class="tw">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Concept</th>
+                    <th>Always</th>
+                    <th>Never</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>A unit of recorded work</td>
+                    <td><strong>Card</strong></td>
+                    <td>item, document, page, entry</td>
+                  </tr>
+                  <tr>
+                    <td>Anything configurable</td>
+                    <td><strong>Resource</strong></td>
+                    <td>asset, object, definition</td>
+                  </tr>
+                  <tr>
+                    <td>An imported bundle</td>
+                    <td><strong>Module</strong></td>
+                    <td>package, plugin, extension</td>
+                  </tr>
+                  <tr>
+                    <td>A card's schema</td>
+                    <td><strong>Card type</strong></td>
+                    <td>type, class, kind</td>
+                  </tr>
+                  <tr>
+                    <td>An automated rule result</td>
+                    <td><strong>Policy check</strong></td>
+                    <td>validation, control, rule, test</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="body" style="margin-top: 14px; font-size: 14px">
+              <strong>"Cards" stays the domain noun</strong> — it is
+              load-bearing across the CLI, the MCP tool names, card types and
+              the docs. What changed is that it is no longer used as a
+              <em>destination</em>: the configuration back-link now reads "Back
+              to project", which names something real and stays true whichever
+              card you came from.
+            </p>
+          </section>
+
+          <!-- ══════════ GAPS ══════════ -->
+          <section id="gaps">
+            <hr class="rule" />
+            <div class="sh" style="margin-top: 48px">
+              <div class="eyebrow">11 — Honest edges</div>
+              <h2>Known gaps</h2>
+              <p>
+                Where the system is not yet true, so nobody has to rediscover
+                it.
+              </p>
+            </div>
+
+            <ul class="t">
+              <li>
+                <strong>Three <code>DENSITY</code> tokens are unused</strong>,
+                and <code>rowHeight</code> (32) and <code>railWidth</code> (280)
+                contradict the real values (28px and 20%). Wire them up or
+                delete them.
+              </li>
+              <li>
+                <strong>Disabled and placeholder text sits below AA</strong> —
+                around 2.2:1 in light and 3.2:1 in dark on the workflow editor.
+                WCAG 1.4.3 exempts inactive controls, so this is defensible, but
+                it is the weakest surface in the product and it predates the
+                refresh.
+              </li>
+              <li>
+                <strong>CodeMirror carries its own themes</strong> (<code
+                  >githubLight</code
+                >
+                / <code>vscodeDark</code> in <code>constants.ts</code>). The
+                frame now uses palette tokens and a 2px corner, but the editor
+                interior is still styled by those imports rather than by this
+                system.
+              </li>
+              <li>
+                <strong>Two typefaces, one brand file.</strong> The design
+                system's <code>colors_and_type.css</code> still pulls IBM Plex
+                Mono from Google Fonts by <code>@import</code>; only the app
+                vendors it. Worth aligning before the marketing site ships
+                anywhere restricted.
+              </li>
+              <li>
+                <strong
+                  ><code>BRAND.cream</code> is exported but unused.</strong
+                >
+                Cream was deliberately demoted from page ground to nothing in
+                the app; the constant remains for the marketing side.
+              </li>
+            </ul>
+
+            <div class="note" style="border-left-color: var(--closed)">
+              <strong>Where to change things.</strong> Brand values — accent,
+              ink, gold, typefaces, spacing, radius — belong to the Cyberismo
+              design system project and flow down. Density, workflow state and
+              the dark palette are decided in <code>theme.ts</code>, because
+              those need real screens and real data to get right. If a change
+              touches both, start with the brand file.
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <footer class="foot">
+      <div class="foot-in">
+        <span>Cyberismo Console — design system reference</span>
+        <span
+          >Read from <code>tools/app</code>. Regenerate when
+          <code>theme.ts</code> changes.</span
+        >
+      </div>
+    </footer>
+  </body>
+</html>

@@ -91,6 +91,16 @@
   --cy-link-underline: #cfcbc2;
   --cy-admonition-warning: #c26a00;
   --cy-editing: #2a2a2a;
+  /*
+   * The metadata row rail. `divider` was 1.25:1 against the page — a 2px line
+   * nobody could see, doing none of the bracketing it exists for. These are
+   * tuned to 3:1, the non-text threshold, because a 2px mark is high spatial
+   * frequency and needs more contrast than a filled area to read as present.
+   * The scale has no step there: neutral.400 is 2.36:1 and neutral.500 4.63:1,
+   * which would out-weigh the label itself at 6.47:1.
+   */
+  --cy-rail: #959289;
+  --cy-rail-strong: #6b7280;
 }
 [data-joy-color-scheme='dark'] {
   --cy-state-initial: #6b7280;
@@ -102,6 +112,8 @@
   --cy-link-underline: #3a3e48;
   --cy-admonition-warning: #ffb93d;
   --cy-editing: #eceae5;
+  --cy-rail: #5c626f;
+  --cy-rail-strong: #9a9ca5;
 }
 
 /* One focus treatment everywhere: the brand orange, and only here. */
