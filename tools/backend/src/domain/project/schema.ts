@@ -21,9 +21,11 @@ const gitSource = z
     message: 'Source must be a git URL (https:// or git@)',
   });
 
-// The length floor is load-bearing: `validRange('')` is `'*'`, not null.
+// Trimmed before the length floor, and the floor is load-bearing: any blank
+// string is a valid range meaning `*`, which would silently unpin the module.
 const semverRange = z
   .string()
+  .trim()
   .min(1)
   .refine((s) => semver.validRange(s) !== null, {
     message: 'Version must be a valid semver version or range',

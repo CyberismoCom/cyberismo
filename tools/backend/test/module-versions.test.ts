@@ -218,6 +218,24 @@ describe('POST /api/project/modules with version', () => {
     expect(result.error).not.toContain('version');
   });
 
+  test('returns 400 for a blank version range', async () => {
+    // Any blank string is a valid semver range meaning `*`, which would
+    // install the module unpinned instead of at the default `^<latest>`.
+    await createAppWithFixture();
+    const response = await app.request('/api/projects/test/project/modules', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        source: 'https://example.com/mod.git',
+        version: '   ',
+      }),
+    });
+    expect(response.status).toBe(400);
+    // The version has to be why, not a failed reach for the remote.
+    const result = (await response.json()) as { error: string };
+    expect(result.error).toContain('version');
+  });
+
   test('returns 400 for an empty version', async () => {
     await createAppWithFixture();
     const response = await app.request('/api/projects/test/project/modules', {
