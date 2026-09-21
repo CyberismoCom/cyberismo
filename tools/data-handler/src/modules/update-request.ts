@@ -37,7 +37,9 @@ export async function buildUpdateRequest(
   version?: string,
   credentials?: Credentials,
 ): Promise<UpdateRequest> {
-  if (!moduleName) {
+  // Only an omitted name means every root. An empty one is a bad name, and
+  // falls through to `requireDeclaredRoot` to be refused as such.
+  if (moduleName === undefined) {
     if (version) {
       throw new ModuleVersionError('A target version requires a module name');
     }

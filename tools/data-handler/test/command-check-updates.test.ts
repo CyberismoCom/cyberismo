@@ -658,6 +658,21 @@ describe('check-updates', () => {
       ).rejects.toThrow("Module 'nonexistent' is not part of the project");
     });
 
+    it('refuses an empty module name instead of planning update-all', async () => {
+      // An empty name is a bad name, not an omitted one: planning update-all
+      // here would update every module on a request that named one.
+      const location = 'https://example.com/base.git';
+      const project = buildProjectWithModules([
+        { name: 'base', location, version: '^1.0.0', private: false },
+      ]);
+      installModule(project, { name: 'base', version: '1.0.0' });
+      const source = new InMemorySource(new Map(), new Map());
+
+      await expect(
+        new CheckUpdates(project, source).previewUpdate(''),
+      ).rejects.toThrow("Module '' is not part of the project");
+    });
+
     it('throws for a target version without a module name', async () => {
       const project = buildProjectWithModules([]);
       const source = new InMemorySource(new Map(), new Map());
