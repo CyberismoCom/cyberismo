@@ -453,6 +453,18 @@ jobs:
         with:
           name: release-body
 
+      # Reflects the current default-branch state, not a ref-pinned
+      # snapshot - the API has no ref parameter.
+      - name: Fetch dependency graph SBOM
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          gh api \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/${{ github.repository }}/dependency-graph/sbom" \
+            > "cyberismo-${VERSION}.sbom.spdx.json"
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -465,6 +477,7 @@ jobs:
             exit 0
           fi
           gh release create "$TAG" \
+            "cyberismo-${VERSION}.sbom.spdx.json" \
             --title "Cyberismo v$VERSION" \
             --notes-file release-body.md \
             --verify-tag
