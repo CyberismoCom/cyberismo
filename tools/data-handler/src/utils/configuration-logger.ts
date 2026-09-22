@@ -32,9 +32,6 @@ export const CONFIGURATION_OPERATIONS = [
   'resource_update',
   'resource_delete',
   'resource_rename',
-  // Read-only legacy: recognised so old logs and seals stay readable, never
-  // written. A module's prefix is its identity and cannot be migrated.
-  'project_rename',
 ] as const;
 
 export type ConfigurationOperation = (typeof CONFIGURATION_OPERATIONS)[number];

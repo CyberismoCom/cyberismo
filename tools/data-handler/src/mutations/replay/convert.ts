@@ -53,19 +53,6 @@ export function entryToMutationInput(
         newIdentifier: resourceName(op.to).identifier,
       };
     }
-    // Legacy: prefix renames were once replayed into consumers. A module's
-    // prefix is its identity, so a renamed module is a different module and
-    // no cascade can turn one into the other. Recognised, never acted on.
-    case 'project_rename': {
-      const oldPrefix = entry.parameters?.oldPrefix ?? entry.target;
-      const newPrefix = entry.parameters?.newPrefix ?? '?';
-      throw new Error(
-        `Module '${oldPrefix}' recorded a prefix rename to '${newPrefix}'. ` +
-          `A module's prefix is its identity, so prefix renames are no longer ` +
-          `replayed. Install '${newPrefix}' as a new module and remove ` +
-          `'${oldPrefix}'.`,
-      );
-    }
     // The switch is exhaustive over ConfigurationOperation; this guards
     // callers that bypass plan-time seal validation (entries cast from
     // untyped JSON).

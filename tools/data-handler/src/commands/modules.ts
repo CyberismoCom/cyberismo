@@ -162,9 +162,15 @@ export class Modules {
 
     await executeModuleReplays(this.project, executable);
     for (const step of executable) {
+      const skipped = step.seals.reduce((sum, s) => sum + s.skipped, 0);
       console.log(
         `Replayed migrations for module '${step.modulePrefix}': ` +
-          `${step.fromVersion} -> ${step.toVersion} (${step.seals.length} seal(s))`,
+          `${step.fromVersion} -> ${step.toVersion} (${step.seals.length} seal(s))` +
+          (skipped > 0
+            ? `; skipped ${skipped} ` +
+              `${skipped === 1 ? 'entry' : 'entries'} this version does not ` +
+              `recognise — upgrade cyberismo to apply ${skipped === 1 ? 'it' : 'them'}`
+            : ''),
       );
     }
 

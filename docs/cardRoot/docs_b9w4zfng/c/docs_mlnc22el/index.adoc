@@ -217,6 +217,8 @@ The target version must be an exact version, not a range. It must be available i
 
 NOTE: Cyberismo does not downgrade modules. The target version must be the same as, or newer than, the installed version.
 
+NOTE: A module's release history is a fixed record, so Cyberismo never edits it to suit the tool reading it. If a release records a change that your version of Cyberismo does not recognise — because it was published by a newer version, or because the change is one Cyberismo no longer applies — the update still proceeds, applies everything it does understand, and reports how many entries it skipped. Upgrade Cyberismo and update again to apply them.
+
 NOTE: A target version can only be given together with a module prefix. Running `cyberismo module update <version>` on its own is not valid.
 
 === Checking for available updates

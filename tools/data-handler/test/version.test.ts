@@ -431,13 +431,14 @@ describe('Version', () => {
       await expectNoPartialState('1.0.0');
     });
 
-    it('minor and patch refuse a legacy project_rename and say why', async () => {
+    it('minor and patch refuse a legacy project_rename as breaking', async () => {
       configuration.version = '1.0.0';
       await configuration.setVersion('1.0.0');
       hasPendingChangesStub.restore();
-      // Written by an older build: prefix renames are recognised but no
-      // longer replayable, so the gate names that instead of calling the
-      // entry unreadable.
+      // Written by an older build. The operation is no longer part of the
+      // vocabulary, so the gate cannot route it and takes the strictest
+      // class — which is also the right answer: the author's prefix really
+      // did change, and consumers really must reinstall.
       await ConfigurationLogger.log(dir, {
         operation: 'project_rename',
         target: 'newpfx',
@@ -446,12 +447,12 @@ describe('Version', () => {
       await git.commit('set version and dirty log');
 
       await expect(versionCmd.bumpVersion('minor')).rejects.toThrow(
-        /newpfx \(project_rename\) — prefix renames are no longer supported/,
+        /newpfx \(project_rename\) — unrecognised entry, treated as breaking/,
       );
       await expectNoPartialState('1.0.0');
 
       await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
-        /newpfx \(project_rename\) — prefix renames are no longer supported/,
+        /newpfx \(project_rename\) — unrecognised entry, treated as breaking/,
       );
       await expectNoPartialState('1.0.0');
     });

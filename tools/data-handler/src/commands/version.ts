@@ -55,13 +55,9 @@ function describeEntries(entries: ClassifiedEntry[]): string {
       const detail = [entry.parameters?.key, operationName]
         .filter((part) => typeof part === 'string')
         .join(' ');
-      // A legacy prefix rename is recognised but no longer replayable, so
-      // say that rather than blaming the entry for being unreadable.
-      const note = !unroutable
-        ? ''
-        : entry.operation === 'project_rename'
-          ? " — prefix renames are no longer supported; a module's prefix is its identity"
-          : ' — unrecognised entry, treated as breaking';
+      const note = unroutable
+        ? ' — unrecognised entry, treated as breaking'
+        : '';
       return `  - ${entry.target} (${entry.operation})${detail ? ` ${detail}` : ''}${note}`;
     })
     .join('\n');

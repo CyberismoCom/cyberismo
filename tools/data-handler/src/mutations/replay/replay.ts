@@ -44,6 +44,12 @@ export interface ReplayConflict {
 export interface ReplaySeal {
   seal: SealFile;
   entries: ConfigurationLogEntry[];
+  /**
+   * Entries this build does not recognise, skipped rather than replayed.
+   * A seal is an immutable record of what a published version did, so a
+   * vocabulary this build lacks is the tool's gap, not the log's.
+   */
+  skipped: number;
 }
 
 /** The replay work for one module update, seals ascending by version. */
@@ -233,10 +239,12 @@ export async function planModuleReplays(
 
     const seals: ReplaySeal[] = [];
     for (const seal of chain) {
-      seals.push({
+      const { entries, skipped } = await readSealEntries(
+        modulePrefix,
+        stagedMigrations,
         seal,
-        entries: await readSealEntries(modulePrefix, stagedMigrations, seal),
-      });
+      );
+      seals.push({ seal, entries, skipped });
     }
     steps.push({ modulePrefix, fromVersion: from, toVersion: to, seals });
   }
@@ -417,13 +425,14 @@ async function readSealEntries(
   modulePrefix: string,
   migrationsFolder: string,
   seal: SealFile,
-): Promise<ConfigurationLogEntry[]> {
+): Promise<{ entries: ConfigurationLogEntry[]; skipped: number }> {
   const content = await readFile(
     join(migrationsFolder, seal.fileName),
     'utf-8',
   );
   const lines = content.split('\n');
   const entries: ConfigurationLogEntry[] = [];
+  let skipped = 0;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     if (line === '') continue;
@@ -446,22 +455,18 @@ async function readSealEntries(
         ),
       );
     }
-    // An unrecognized operation (e.g. written by a future format) must
-    // fail here at plan time, before any disk change — not as a
-    // TypeError mid-replay.
+    // An operation this build does not know — written by a newer format, or
+    // one that has since been retired — is skipped, not fatal. Seals are
+    // immutable, so refusing the whole update would strand a consumer on an
+    // entry nothing can act on. The count is reported to the caller so the
+    // skip is visible rather than silent.
     if (!isKnownOperation(parsed.operation)) {
-      throw new Error(
-        malformedLine(
-          modulePrefix,
-          seal.fileName,
-          i + 1,
-          `unknown operation '${parsed.operation}'`,
-        ),
-      );
+      skipped++;
+      continue;
     }
     entries.push(parsed);
   }
-  return entries;
+  return { entries, skipped };
 }
 
 function malformedLine(

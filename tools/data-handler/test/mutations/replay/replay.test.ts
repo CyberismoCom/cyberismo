@@ -369,7 +369,10 @@ describe('planModuleReplays', () => {
     expect(error.message).toContain('line 2');
   });
 
-  it('an unknown operation throws at plan time naming module, seal, line and operation', async () => {
+  it('an unknown operation is skipped and counted, not fatal', async () => {
+    // A seal is an immutable record of what a published version did. An
+    // operation this build lacks is the tool's gap, so the entries around
+    // it still replay and the skip is reported rather than silent.
     const installed = makeInstalled('mod', 'file:/x', '1.0.0');
     const resolved = makeResolved('mod', 'file:/x', '2.0.0', [
       {
@@ -382,19 +385,23 @@ describe('planModuleReplays', () => {
             operation: 'resource_frobnicate',
             target: 'mod/fieldTypes/b',
           }),
+          JSON.stringify({
+            timestamp: '2026-01-01T00:00:00.000Z',
+            operation: 'project_rename',
+            target: 'newmod',
+            parameters: { oldPrefix: 'mod', newPrefix: 'newmod' },
+          }),
         ],
       },
     ]);
 
-    const error = await planModuleReplays([resolved], [installed]).catch(
-      (e) => e,
-    );
-    expect(error).toBeInstanceOf(Error);
-    expect(error).not.toBeInstanceOf(ModuleReplayConflictError);
-    expect(error.message).toContain("module 'mod'");
-    expect(error.message).toContain(formatSealFileName('1.0.0', '2.0.0'));
-    expect(error.message).toContain('line 2');
-    expect(error.message).toContain("unknown operation 'resource_frobnicate'");
+    const steps = await planModuleReplays([resolved], [installed]);
+    expect(steps).toHaveLength(1);
+    expect(steps[0].seals).toHaveLength(1);
+    expect(steps[0].seals[0].entries.map((e) => e.operation)).toEqual([
+      'resource_delete',
+    ]);
+    expect(steps[0].seals[0].skipped).toBe(2);
   });
 
   it('steps come out in reverse resolved order (dependencies first)', async () => {
