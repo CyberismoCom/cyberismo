@@ -35,10 +35,8 @@ beforeAll(async () => {
   registry = ProjectRegistry.fromCommandManager(commands);
   app = createApp(new MockAuthProvider({ roster: true }), registry);
 });
-beforeEach(() => vi.stubEnv('APP_PRESENCE_ENABLED', 'true'));
 afterEach(async () => {
   await Promise.all(readers.splice(0).map((reader) => reader.cancel()));
-  vi.unstubAllEnvs();
   vi.useRealTimers();
 });
 afterAll(async () => {
@@ -152,20 +150,11 @@ describe('project event stream over HTTP', () => {
     expect((await presence(ready.connectionId, 'missing')).status).toBe(404);
   });
 
-  test('presence reporting is inert unless APP_PRESENCE_ENABLED is true', async () => {
-    vi.stubEnv('APP_PRESENCE_ENABLED', 'false');
-    const { ready } = await connect();
-    expect((await presence(ready.connectionId, 'decision_5')).status).toBe(204);
-    const other = await connect('bob');
-    expect(other.ready.presence).toEqual({});
-  });
-
-  test('HTTP writes broadcast even with presence disabled', async () => {
-    vi.stubEnv('APP_PRESENCE_ENABLED', 'false');
+  test('HTTP writes broadcast card.updated', async () => {
     const { reader } = await connect('carol');
     const written = {
-      content: 'Written while disabled',
-      metadata: { title: 'Written while disabled' },
+      content: 'Written content',
+      metadata: { title: 'Written content' },
     };
     expect((await patch('decision_5', written, 'alice')).status).toBe(200);
     expect(await nextEvent(reader, 'card.updated')).toEqual({
