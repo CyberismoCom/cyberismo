@@ -319,24 +319,34 @@ describe('planModuleReplays', () => {
     expect(steps).toHaveLength(1);
   });
 
-  it('correlates by source location: a renamed prefix is an update, not a bootstrap', async () => {
-    const installed = makeInstalled('mod', 'file:/x', '1.0.0');
-    const resolved = makeResolved('newmod', 'file:/x', '2.0.0', [
+  it('correlates by name: a module that moved source is still an update', async () => {
+    const installed = makeInstalled('mod', 'file:/old-host', '1.0.0');
+    const resolved = makeResolved('mod', 'file:/new-host', '2.0.0', [
       {
         from: '1.0.0',
         to: '2.0.0',
-        lines: [
-          logLine('project_rename', 'newmod', {
-            oldPrefix: 'mod',
-            newPrefix: 'newmod',
-          }),
-        ],
+        lines: [logLine('resource_delete', 'mod/fieldTypes/a')],
       },
     ]);
 
     const steps = await planModuleReplays([resolved], [installed]);
     expect(steps).toHaveLength(1);
-    expect(steps[0].modulePrefix).toBe('newmod');
+    expect(steps[0].modulePrefix).toBe('mod');
+  });
+
+  it('correlates by name: a different name is a bootstrap, not an update', async () => {
+    // A prefix is a module's identity, so 'newmod' is a different module
+    // than the installed 'mod' even from the same source: nothing to replay.
+    const installed = makeInstalled('mod', 'file:/x', '1.0.0');
+    const resolved = makeResolved('newmod', 'file:/x', '2.0.0', [
+      {
+        from: '1.0.0',
+        to: '2.0.0',
+        lines: [logLine('resource_delete', 'newmod/fieldTypes/a')],
+      },
+    ]);
+
+    expect(await planModuleReplays([resolved], [installed])).toEqual([]);
   });
 
   it('a malformed seal line throws at plan time naming module, seal and line', async () => {

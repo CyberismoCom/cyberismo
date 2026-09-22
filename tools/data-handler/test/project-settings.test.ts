@@ -400,7 +400,10 @@ describe('project settings', () => {
     await expect(projectSettings.save()).rejects.toThrow('wrong configuration');
   });
 
-  it('upsertModule drops a same-location declaration under a different name', async () => {
+  it('upsertModule keeps a same-location declaration under a different name', async () => {
+    // A prefix is a module's identity, so two declarations sharing a source
+    // are two modules. Dropping the older one would delete an installation
+    // the project still has; `module update` names the fix instead.
     const configPath = createTestConfig('test-config-upsert-rename.json', {
       modules: [
         {
@@ -421,6 +424,7 @@ describe('project settings', () => {
 
     expect(projectSettings.modules.map((m) => m.name).sort()).toEqual([
       'newname',
+      'oldname',
       'other',
     ]);
     const savedConfig = readJsonFileSync(configPath) as {
@@ -428,6 +432,7 @@ describe('project settings', () => {
     };
     expect(savedConfig.modules.map((m) => m.name).sort()).toEqual([
       'newname',
+      'oldname',
       'other',
     ]);
   });

@@ -340,7 +340,9 @@ describe('configuration logger', () => {
       ConfigurationLogger.createVersion(projectPath, '1.0.0'),
     ).rejects.toThrow(/must be greater/);
   });
-  it('accepts and reads project_rename entries', async () => {
+  // Legacy vocabulary: prefix renames are no longer written, but logs and
+  // seals already in the wild carry them and must stay readable.
+  it('still reads legacy project_rename entries', async () => {
     const projectPath = await freshProject('project-rename-log');
     await ConfigurationLogger.log(projectPath, {
       operation: 'project_rename',

@@ -145,11 +145,11 @@ export class ModuleValidationFailedError extends Error {
 /**
  * Plan the replay chains for a module update.
  *
- * Installed and resolved modules are correlated by source location, never
- * by prefix, so a module that renamed its prefix is still recognized as an
- * update (and the step carries the new prefix). Installed entries with an
- * empty location (transitive installations whose source is not persisted)
- * cannot be correlated and are treated as bootstraps.
+ * Installed and resolved modules are correlated by name, which is the
+ * module's prefix and therefore its identity: it cannot change between
+ * versions, but the source location can (a module that moves git host is
+ * still the same module). An installed entry with no counterpart among the
+ * resolved names is treated as a bootstrap.
  *
  * Seal CONTENTS are read here, from each module's STAGED tree: applying
  * the staged modules moves the staged folder away (rename swap), so the
@@ -174,11 +174,10 @@ export async function planModuleReplays(
   resolved: ResolvedModule[],
   installedBefore: ModuleInstallation[],
 ): Promise<ReplayStep[]> {
-  const installedBySource = new Map<string, ModuleInstallation>();
+  const installedByName = new Map<string, ModuleInstallation>();
   for (const installation of installedBefore) {
-    const location = installation.source.location;
-    if (location !== '' && !installedBySource.has(location)) {
-      installedBySource.set(location, installation);
+    if (!installedByName.has(installation.name)) {
+      installedByName.set(installation.name, installation);
     }
   }
 
@@ -187,7 +186,7 @@ export async function planModuleReplays(
 
   for (const entry of [...resolved].reverse()) {
     const modulePrefix = entry.declaration.name;
-    const installed = installedBySource.get(entry.declaration.source.location);
+    const installed = installedByName.get(modulePrefix);
     if (!installed?.version) continue; // bootstrap: nothing to replay
     const to = entry.version;
     if (to === undefined) continue;

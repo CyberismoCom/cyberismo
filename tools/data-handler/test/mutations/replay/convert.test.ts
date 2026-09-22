@@ -99,19 +99,17 @@ describe('entryToMutationInput', () => {
     });
   });
 
-  it('converts project_rename with the recorded old prefix', () => {
-    expect(
+  it('refuses a legacy project_rename entry and names both prefixes', () => {
+    expect(() =>
       entryToMutationInput({
         timestamp: '2026-01-01T00:00:00Z',
         operation: 'project_rename',
         target: 'newmod',
         parameters: { oldPrefix: 'mod', newPrefix: 'newmod' },
       }),
-    ).toEqual({
-      kind: 'project_rename',
-      newPrefix: 'newmod',
-      oldPrefix: 'mod',
-    });
+    ).toThrow(
+      /Module 'mod' recorded a prefix rename to 'newmod'.*no longer.*replayed/s,
+    );
   });
 
   it('throws on a resource_rename entry without operation.to', () => {
@@ -160,23 +158,13 @@ describe('entryToMutationInput', () => {
     ).toThrow(/Unknown operation 'resource_frobnicate'/);
   });
 
-  it('throws on a project_rename entry without prefixes', () => {
+  it('refuses a legacy project_rename entry even without parameters', () => {
     expect(() =>
       entryToMutationInput({
         timestamp: 't',
         operation: 'project_rename',
         target: 'newmod',
-        parameters: { newPrefix: 'newmod' },
       }),
-    ).toThrow(/project_rename.*newmod/);
-
-    expect(() =>
-      entryToMutationInput({
-        timestamp: 't',
-        operation: 'project_rename',
-        target: 'newmod',
-        parameters: { oldPrefix: 'mod' },
-      }),
-    ).toThrow(/project_rename.*newmod/);
+    ).toThrow(/prefix rename/);
   });
 });
