@@ -18,11 +18,12 @@ function makeRequest(headers: Record<string, string> = {}): Request {
   return new Request('http://localhost/api/test', { headers });
 }
 
+// `exp` is required of every token, so supply one unless a case overrides it.
 function mockVerifyResult(
   payload: Record<string, unknown>,
 ): JWTVerifyResult & { payload: Record<string, unknown> } {
   return {
-    payload,
+    payload: { exp: 1234567890, ...payload },
     protectedHeader: { alg: 'RS256' },
   };
 }
@@ -208,6 +209,43 @@ describe('KeycloakAuthProvider', () => {
       result = await provider.authenticate(
         makeRequest({ authorization: 'Bearer tok' }),
       );
+      expect(result).toBe(null);
+    });
+
+    it('surfaces exp for stream rotation to clamp against', async () => {
+      const provider = new KeycloakAuthProvider(config);
+      mockJwtVerify.mockResolvedValue(
+        mockVerifyResult({
+          sub: 'u1',
+          email: 'a@b.c',
+          exp: 1234567890,
+          realm_access: { roles: ['reader'] },
+        }),
+      );
+
+      const result = await provider.authenticate(
+        makeRequest({ authorization: 'Bearer tok' }),
+      );
+      expect(result!.exp).toBe(1234567890);
+    });
+
+    it('errors if exp is missing, like the other required claims', async () => {
+      const provider = new KeycloakAuthProvider(config);
+      mockJwtVerify.mockResolvedValue(
+        mockVerifyResult({
+          sub: 'u1',
+          email: 'a@b.c',
+          exp: undefined,
+          realm_access: { roles: ['reader'] },
+        }),
+      );
+
+      const result = await provider.authenticate(
+        makeRequest({ authorization: 'Bearer tok' }),
+      );
+      // `exp` is optional in RFC 7519 and jwtVerify only checks it when
+      // present, so a token without one would otherwise rotate on jitter
+      // alone and never clamp to the credential.
       expect(result).toBe(null);
     });
 
