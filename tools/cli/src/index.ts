@@ -1348,7 +1348,7 @@ removeCmd
 // Rename command
 const renameCmd = new CommandWithPath('rename')
   .description(
-    'Change project prefix and rename all the content with the new prefix',
+    'Change project prefix and rename all the content with the new prefix. Only possible before the project has published a version',
   )
   .argument('<to>', 'New project prefix');
 program.addCommand(renameCmd);

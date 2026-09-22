@@ -258,6 +258,10 @@ If the dependencies of modules include the same module multiple times, identifie
 
 Publish a release with `cyberismo create version <patch|minor|major>`, and then create the version tag with `cyberismo publish`.
 
+Your module's card key prefix is its identity. Every reference your consumers hold is derived from it: resource names such as `mymodule/cardTypes/task`, card keys such as `mymodule_42`, and the directory the module is installed into. The prefix is therefore fixed at your first published version. `cyberismo rename` changes it while the module is still unpublished, and refuses once `cyberismo create version` has recorded a version. To publish under a different prefix after that, publish a new module and tell your consumers to install it and remove the old one. The module's `name` is its display name, is part of no reference, and can be changed at any time.
+
+If an installed module's prefix no longer matches the name the project imported it under, Cyberismo refuses to update it rather than relocating the installation, and names the module to install and the one to remove.
+
 Cyberismo records every configuration change that asks something of your consumers, and classifies it by what they have to do. A migratable change asks nothing of them: renaming a resource or renaming a workflow state is replayed on their data when they update the module. A breaking change is one that Cyberismo cannot carry out for them, either because their card data is deleted or left orphaned — deleting a card type, field type, workflow or link type, changing a card type's workflow, removing a workflow state, removing an enum value, or changing a field's data type — or because their content is left referring to something that no longer exists, which is what deleting a template, calculation, report, graph model, graph view or skill does. Changes that ask nothing of consumers, such as adding a workflow state or editing a display name, are not recorded.
 
 A change is migratable only when you must tell Cyberismo how to migrate it. Where the replacement is optional, the change is breaking, because the result is only sometimes lossless.
