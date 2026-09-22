@@ -13,7 +13,6 @@
 
 import { randomUUID } from 'node:crypto';
 import type { SSEMessage } from 'hono/streaming';
-import type { UserInfo } from '../../types.js';
 
 const LEASE_MS = 90_000;
 const EXPIRY_INTERVAL_MS = 30_000;
@@ -24,8 +23,15 @@ export interface PresenceEntry {
   mode: 'viewing' | 'editing';
 }
 
+export interface Capabilities {
+  canSeeIdentity: boolean;
+  canDeclareEditing: boolean;
+  canSeePresence: boolean;
+}
+
 interface Connection {
-  user: UserInfo;
+  user: { id: string; name: string };
+  capabilities: Capabilities;
   send: (message: SSEMessage) => void;
   close: () => void;
   cardKey: string | null;
@@ -45,13 +51,15 @@ export class ProjectEvents {
   }
 
   connect(
-    user: UserInfo,
+    user: Connection['user'],
+    capabilities: Capabilities,
     send: Connection['send'],
     close: Connection['close'],
   ): string {
     const connectionId = randomUUID();
     this.connections.set(connectionId, {
       user,
+      capabilities,
       send,
       close,
       cardKey: null,
@@ -59,9 +67,11 @@ export class ProjectEvents {
       sequence: -1,
       expiresAt: 0,
     });
+    // EventSource cannot read response headers, so the stream is the only
+    // way back with a connection handle.
     this.deliver(connectionId, {
       event: 'ready',
-      data: JSON.stringify({ connectionId, presence: this.snapshot() }),
+      data: JSON.stringify({ connectionId }),
     });
     return connectionId;
   }
@@ -76,6 +86,8 @@ export class ProjectEvents {
     const connection = this.connections.get(connectionId);
     if (!connection || connection.user.id !== userId) return false;
     if (sequence <= connection.sequence) return true;
+    // Coerced rather than rejected: a fake editing warning deters others from editing.
+    if (!connection.capabilities.canDeclareEditing) mode = 'viewing';
     const previous = connection.cardKey;
     const moved = previous !== cardKey || connection.mode !== mode;
     Object.assign(connection, {
@@ -99,13 +111,22 @@ export class ProjectEvents {
     if (connection.cardKey) this.presenceUpdated(connection.cardKey);
   }
 
-  cardsUpdated(cardKeys: string[], user: UserInfo): void {
+  cardsUpdated(cardKeys: string[], user: Connection['user']): void {
     for (const cardKey of new Set(cardKeys)) {
-      this.broadcast('card.updated', {
+      const withIdentity = this.encode('card.updated', {
         cardKey,
         userId: user.id,
         userName: user.name,
       });
+      const withoutIdentity = this.encode('card.updated', { cardKey });
+      for (const [connectionId, connection] of this.onCard(cardKey)) {
+        this.deliver(
+          connectionId,
+          connection.capabilities.canSeeIdentity
+            ? withIdentity
+            : withoutIdentity,
+        );
+      }
     }
   }
 
@@ -127,26 +148,27 @@ export class ProjectEvents {
     return [...users.values()];
   }
 
-  private snapshot(): Record<string, PresenceEntry[]> {
-    const occupied = new Set(
-      [...this.connections.values()].flatMap(({ cardKey }) =>
-        cardKey ? [cardKey] : [],
-      ),
-    );
-    return Object.fromEntries(
-      [...occupied].map((cardKey) => [cardKey, this.users(cardKey)]),
-    );
-  }
-
   private presenceUpdated(cardKey: string): void {
-    this.broadcast('presence.updated', { cardKey, users: this.users(cardKey) });
-  }
-
-  private broadcast(event: string, data: unknown): void {
-    const message = { event, data: JSON.stringify(data) };
-    for (const connectionId of [...this.connections.keys()]) {
+    const message = this.encode('presence.updated', {
+      cardKey,
+      users: this.users(cardKey),
+    });
+    for (const [connectionId, connection] of this.onCard(cardKey)) {
+      // Presence exists to keep editors from colliding, so a reader has no use
+      // for it and is not told who else is here. Readers still declare their
+      // own presence, which is why users() keeps them: editors see readers.
+      if (!connection.capabilities.canSeePresence) continue;
       this.deliver(connectionId, message);
     }
+  }
+
+  // Subscription governs delivery.
+  private onCard(cardKey: string): [string, Connection][] {
+    return [...this.connections].filter(([, c]) => c.cardKey === cardKey);
+  }
+
+  private encode(event: string, data: unknown): SSEMessage {
+    return { event, data: JSON.stringify(data) };
   }
 
   private deliver(connectionId: string, message: SSEMessage): void {

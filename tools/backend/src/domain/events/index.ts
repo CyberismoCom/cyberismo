@@ -14,7 +14,7 @@
 import { Hono } from 'hono';
 import { disableSSG } from 'hono/ssg';
 import { streamSSE } from 'hono/streaming';
-import { requireRole } from '../../middleware/auth.js';
+import { isAtLeastRole, requireRole } from '../../middleware/auth.js';
 import { zValidator } from '../../middleware/zvalidator.js';
 import { UserRole } from '../../types.js';
 import { presenceSchema } from './schema.js';
@@ -27,6 +27,11 @@ const router = new Hono();
 router.get('/', disableSSG(), requireRole(UserRole.Reader), (c) => {
   const events = c.get('events');
   const user = c.get('user');
+  const capabilities = {
+    canSeeIdentity: isAtLeastRole(user.role, UserRole.Editor),
+    canDeclareEditing: isAtLeastRole(user.role, UserRole.Editor),
+    canSeePresence: isAtLeastRole(user.role, UserRole.Editor),
+  };
   return streamSSE(c, async (stream) => {
     if (stream.aborted) return;
     let finish: () => void = () => {};
@@ -44,6 +49,7 @@ router.get('/', disableSSG(), requireRole(UserRole.Reader), (c) => {
     stream.onAbort(stop);
     const connectionId = events.connect(
       user,
+      capabilities,
       (message) => void stream.writeSSE(message).catch(stop),
       stop,
     );
