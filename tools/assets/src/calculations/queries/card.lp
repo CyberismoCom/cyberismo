@@ -64,6 +64,12 @@ resultField((Card, Field), "isCalculated", true, "boolean") :-
     field(Card, "cardType", CardType),
     calculatedField(CardType, Field).
 
+resultField((Card, Field), "isCalculated", false, "boolean") :-
+    childResult(Card, (Card, Field), "fields"),
+    result(Card),
+    field(Card, "cardType", CardType),
+    not calculatedField(CardType, Field).
+
 resultField((Card, Field), "isOverridable", true, "boolean") :-
     result(Card),
     field(Card, "cardType", CardType),
@@ -144,9 +150,6 @@ childResult((Card, Field), (Field, EnumValue), "enumValues") :-
 
 % "enumValue" is not a declared field type, so there is no dataType to look up.
 resultField((Field, EnumValue), "enumValue", EnumValue, "shortText") :-
-    enumValue(Field, EnumValue).
-
-dataType((Field, EnumValue), "index", "integer") :-
     enumValue(Field, EnumValue).
 
 order(2, "fields", 1, "visibility", "ASC").

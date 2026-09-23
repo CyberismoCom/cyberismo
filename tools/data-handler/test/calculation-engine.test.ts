@@ -315,6 +315,7 @@ describe('card query enum field', () => {
     );
     expect(field).toMatchObject({
       dataType: 'enum',
+      isCalculated: false,
       value: { value: 'high' },
       enumValues: [
         {
