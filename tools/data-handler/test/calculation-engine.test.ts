@@ -246,12 +246,12 @@ describe('urlPath calculated field', () => {
 describe('policy check failures in the card query', () => {
   const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'tmp-policy-check-tests');
-  const decisionRecordsPath = join(testDir, 'valid/decision-records');
+  const decisionRecordsPath = testDir;
   let project: Project;
 
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
-    await copyDir('test/test-data/', testDir);
+    await copyDir('test/test-data/valid/decision-records', testDir);
     appendFileSync(
       join(
         decisionRecordsPath,
