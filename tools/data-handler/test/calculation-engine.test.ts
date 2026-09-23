@@ -1,7 +1,7 @@
 import { expect, it, describe, beforeAll, afterAll } from 'vitest';
 
 import { join } from 'node:path';
-import { mkdirSync, rmSync } from 'node:fs';
+import { appendFileSync, mkdirSync, rmSync } from 'node:fs';
 import { copyDir } from '../src/utils/file-utils.js';
 import type { Project } from '../src/containers/project.js';
 import type { QueryResult } from '../src/types/queries.js';
@@ -240,6 +240,64 @@ describe('urlPath calculated field', () => {
     );
     expect(res.results).toHaveLength(1);
     expect(res.results[0].key).toBe('/projects/decision/cards/decision_6');
+  });
+});
+
+describe('policy check failures in the card query', () => {
+  const baseDir = import.meta.dirname;
+  const testDir = join(baseDir, 'tmp-policy-check-tests');
+  const decisionRecordsPath = join(testDir, 'valid/decision-records');
+  let project: Project;
+
+  beforeAll(async () => {
+    mkdirSync(testDir, { recursive: true });
+    await copyDir('test/test-data/', testDir);
+    appendFileSync(
+      join(
+        decisionRecordsPath,
+        '.cards/local/calculations/test/calculation.lp',
+      ),
+      [
+        'policyCheckFailure(decision_6, "cat", "no field", "msg").',
+        'policyCheckFailure(decision_6, "cat", "with field", "msg", "decision/fieldTypes/x").',
+        '',
+      ].join('\n'),
+    );
+    project = getTestProject(decisionRecordsPath);
+    await project.populateCaches();
+    await project.calculationEngine.generate();
+  });
+
+  afterAll(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('lists failures with and without a field name', async () => {
+    const res = await project.calculationEngine.runQuery('card', 'localApp', {
+      cardKey: 'decision_6',
+    });
+    expect(res).toHaveLength(1);
+    const failures = res[0].policyChecks.failures.map(
+      ({ category, title, errorMessage, fieldName }) => ({
+        category,
+        title,
+        errorMessage,
+        fieldName,
+      }),
+    );
+    expect(failures).toHaveLength(2);
+    expect(failures).toContainEqual({
+      category: 'cat',
+      title: 'no field',
+      errorMessage: 'msg',
+      fieldName: undefined,
+    });
+    expect(failures).toContainEqual({
+      category: 'cat',
+      title: 'with field',
+      errorMessage: 'msg',
+      fieldName: 'decision/fieldTypes/x',
+    });
   });
 });
 
