@@ -99,21 +99,6 @@ describe('entryToMutationInput', () => {
     });
   });
 
-  it('converts project_rename with the recorded old prefix', () => {
-    expect(
-      entryToMutationInput({
-        timestamp: '2026-01-01T00:00:00Z',
-        operation: 'project_rename',
-        target: 'newmod',
-        parameters: { oldPrefix: 'mod', newPrefix: 'newmod' },
-      }),
-    ).toEqual({
-      kind: 'project_rename',
-      newPrefix: 'newmod',
-      oldPrefix: 'mod',
-    });
-  });
-
   it('throws on a resource_rename entry without operation.to', () => {
     expect(() =>
       entryToMutationInput({
@@ -160,23 +145,18 @@ describe('entryToMutationInput', () => {
     ).toThrow(/Unknown operation 'resource_frobnicate'/);
   });
 
-  it('throws on a project_rename entry without prefixes', () => {
+  it('throws on a retired operation', () => {
+    // `project_rename` was written by older builds. It is no longer part of
+    // the vocabulary, so the converter treats it like any other operation it
+    // does not know. Seal replay skips such entries before reaching here;
+    // this path is what the author-side version gate hits on its own log.
     expect(() =>
       entryToMutationInput({
         timestamp: 't',
         operation: 'project_rename',
         target: 'newmod',
-        parameters: { newPrefix: 'newmod' },
-      }),
-    ).toThrow(/project_rename.*newmod/);
-
-    expect(() =>
-      entryToMutationInput({
-        timestamp: 't',
-        operation: 'project_rename',
-        target: 'newmod',
-        parameters: { oldPrefix: 'mod' },
-      }),
-    ).toThrow(/project_rename.*newmod/);
+        parameters: { oldPrefix: 'mod', newPrefix: 'newmod' },
+      } as unknown as ConfigurationLogEntry),
+    ).toThrow(/Unknown operation 'project_rename'/);
   });
 });

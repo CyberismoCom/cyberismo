@@ -24,7 +24,10 @@ import { entryToMutationInput } from './convert.js';
 import { listSealFiles } from './seal-files.js';
 import { resourceName } from '../../utils/resource-utils.js';
 
-import { CONFIGURATION_OPERATIONS } from '../../utils/configuration-logger.js';
+import {
+  CONFIGURATION_OPERATIONS,
+  RETIRED_OPERATIONS,
+} from '../../utils/configuration-logger.js';
 
 import type { ConfigurationLogEntry } from '../../utils/configuration-logger.js';
 import type { ModuleInstallation } from '../../modules/types.js';
@@ -44,6 +47,13 @@ export interface ReplayConflict {
 export interface ReplaySeal {
   seal: SealFile;
   entries: ConfigurationLogEntry[];
+  /**
+   * Operations of entries skipped rather than replayed. A seal is an
+   * immutable record of what a published version did, so the reader
+   * accommodates entries it cannot act on: `retired` ones no build applies,
+   * `unknown` ones a newer build may.
+   */
+  skipped: { retired: string[]; unknown: string[] };
 }
 
 /** The replay work for one module update, seals ascending by version. */
@@ -145,11 +155,11 @@ export class ModuleValidationFailedError extends Error {
 /**
  * Plan the replay chains for a module update.
  *
- * Installed and resolved modules are correlated by source location, never
- * by prefix, so a module that renamed its prefix is still recognized as an
- * update (and the step carries the new prefix). Installed entries with an
- * empty location (transitive installations whose source is not persisted)
- * cannot be correlated and are treated as bootstraps.
+ * Installed and resolved modules are correlated by name, which is the
+ * module's prefix and therefore its identity: it cannot change between
+ * versions, but the source location can (a module that moves git host is
+ * still the same module). An installed entry with no counterpart among the
+ * resolved names is treated as a bootstrap.
  *
  * Seal CONTENTS are read here, from each module's STAGED tree: applying
  * the staged modules moves the staged folder away (rename swap), so the
@@ -174,12 +184,9 @@ export async function planModuleReplays(
   resolved: ResolvedModule[],
   installedBefore: ModuleInstallation[],
 ): Promise<ReplayStep[]> {
-  const installedBySource = new Map<string, ModuleInstallation>();
+  const installedByName = new Map<string, ModuleInstallation>();
   for (const installation of installedBefore) {
-    const location = installation.source.location;
-    if (location !== '' && !installedBySource.has(location)) {
-      installedBySource.set(location, installation);
-    }
+    installedByName.set(installation.name, installation);
   }
 
   const conflicts: ReplayConflict[] = [];
@@ -187,7 +194,7 @@ export async function planModuleReplays(
 
   for (const entry of [...resolved].reverse()) {
     const modulePrefix = entry.declaration.name;
-    const installed = installedBySource.get(entry.declaration.source.location);
+    const installed = installedByName.get(modulePrefix);
     if (!installed?.version) continue; // bootstrap: nothing to replay
     const to = entry.version;
     if (to === undefined) continue;
@@ -234,10 +241,12 @@ export async function planModuleReplays(
 
     const seals: ReplaySeal[] = [];
     for (const seal of chain) {
-      seals.push({
+      const { entries, skipped } = await readSealEntries(
+        modulePrefix,
+        stagedMigrations,
         seal,
-        entries: await readSealEntries(modulePrefix, stagedMigrations, seal),
-      });
+      );
+      seals.push({ seal, entries, skipped });
     }
     steps.push({ modulePrefix, fromVersion: from, toVersion: to, seals });
   }
@@ -418,13 +427,14 @@ async function readSealEntries(
   modulePrefix: string,
   migrationsFolder: string,
   seal: SealFile,
-): Promise<ConfigurationLogEntry[]> {
+): Promise<Omit<ReplaySeal, 'seal'>> {
   const content = await readFile(
     join(migrationsFolder, seal.fileName),
     'utf-8',
   );
   const lines = content.split('\n');
   const entries: ConfigurationLogEntry[] = [];
+  const skipped: ReplaySeal['skipped'] = { retired: [], unknown: [] };
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     if (line === '') continue;
@@ -447,22 +457,20 @@ async function readSealEntries(
         ),
       );
     }
-    // An unrecognized operation (e.g. written by a future format) must
-    // fail here at plan time, before any disk change — not as a
-    // TypeError mid-replay.
+    // An operation this build does not apply is skipped, not fatal. Seals
+    // are immutable, so refusing the whole update would strand a consumer on
+    // an entry they cannot fix locally. The caller reports the skip.
+    if (isRetiredOperation(parsed.operation)) {
+      skipped.retired.push(parsed.operation);
+      continue;
+    }
     if (!isKnownOperation(parsed.operation)) {
-      throw new Error(
-        malformedLine(
-          modulePrefix,
-          seal.fileName,
-          i + 1,
-          `unknown operation '${parsed.operation}'`,
-        ),
-      );
+      skipped.unknown.push(parsed.operation);
+      continue;
     }
     entries.push(parsed);
   }
-  return entries;
+  return { entries, skipped };
 }
 
 function malformedLine(
@@ -488,4 +496,8 @@ function isLogEntry(value: unknown): value is ConfigurationLogEntry {
 
 function isKnownOperation(operation: string): boolean {
   return (CONFIGURATION_OPERATIONS as readonly string[]).includes(operation);
+}
+
+function isRetiredOperation(operation: string): boolean {
+  return (RETIRED_OPERATIONS as readonly string[]).includes(operation);
 }

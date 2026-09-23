@@ -319,24 +319,49 @@ describe('planModuleReplays', () => {
     expect(steps).toHaveLength(1);
   });
 
-  it('correlates by source location: a renamed prefix is an update, not a bootstrap', async () => {
-    const installed = makeInstalled('mod', 'file:/x', '1.0.0');
-    const resolved = makeResolved('newmod', 'file:/x', '2.0.0', [
+  it('correlates by name: a module that moved source is still an update', async () => {
+    const installed = makeInstalled('mod', 'file:/old-host', '1.0.0');
+    const resolved = makeResolved('mod', 'file:/new-host', '2.0.0', [
       {
         from: '1.0.0',
         to: '2.0.0',
-        lines: [
-          logLine('project_rename', 'newmod', {
-            oldPrefix: 'mod',
-            newPrefix: 'newmod',
-          }),
-        ],
+        lines: [logLine('resource_delete', 'mod/fieldTypes/a')],
       },
     ]);
 
     const steps = await planModuleReplays([resolved], [installed]);
     expect(steps).toHaveLength(1);
-    expect(steps[0].modulePrefix).toBe('newmod');
+    expect(steps[0].modulePrefix).toBe('mod');
+  });
+
+  it('correlates by name: an installation with no recoverable source is still an update', async () => {
+    const installed = makeInstalled('mod', '', '1.0.0');
+    const resolved = makeResolved('mod', 'file:/x', '2.0.0', [
+      {
+        from: '1.0.0',
+        to: '2.0.0',
+        lines: [logLine('resource_delete', 'mod/fieldTypes/a')],
+      },
+    ]);
+
+    const steps = await planModuleReplays([resolved], [installed]);
+    expect(steps).toHaveLength(1);
+    expect(steps[0].fromVersion).toBe('1.0.0');
+  });
+
+  it('correlates by name: a different name is a bootstrap, not an update', async () => {
+    // A prefix is a module's identity, so 'newmod' is a different module
+    // than the installed 'mod' even from the same source: nothing to replay.
+    const installed = makeInstalled('mod', 'file:/x', '1.0.0');
+    const resolved = makeResolved('newmod', 'file:/x', '2.0.0', [
+      {
+        from: '1.0.0',
+        to: '2.0.0',
+        lines: [logLine('resource_delete', 'newmod/fieldTypes/a')],
+      },
+    ]);
+
+    expect(await planModuleReplays([resolved], [installed])).toEqual([]);
   });
 
   it('a malformed seal line throws at plan time naming module, seal and line', async () => {
@@ -359,7 +384,10 @@ describe('planModuleReplays', () => {
     expect(error.message).toContain('line 2');
   });
 
-  it('an unknown operation throws at plan time naming module, seal, line and operation', async () => {
+  it('retired and unknown operations are skipped and reported apart, not fatal', async () => {
+    // A seal is an immutable record of what a published version did. An
+    // operation this build lacks is the tool's gap, so the entries around
+    // it still replay and the skip is reported rather than silent.
     const installed = makeInstalled('mod', 'file:/x', '1.0.0');
     const resolved = makeResolved('mod', 'file:/x', '2.0.0', [
       {
@@ -372,19 +400,26 @@ describe('planModuleReplays', () => {
             operation: 'resource_frobnicate',
             target: 'mod/fieldTypes/b',
           }),
+          JSON.stringify({
+            timestamp: '2026-01-01T00:00:00.000Z',
+            operation: 'project_rename',
+            target: 'newmod',
+            parameters: { oldPrefix: 'mod', newPrefix: 'newmod' },
+          }),
         ],
       },
     ]);
 
-    const error = await planModuleReplays([resolved], [installed]).catch(
-      (e) => e,
-    );
-    expect(error).toBeInstanceOf(Error);
-    expect(error).not.toBeInstanceOf(ModuleReplayConflictError);
-    expect(error.message).toContain("module 'mod'");
-    expect(error.message).toContain(formatSealFileName('1.0.0', '2.0.0'));
-    expect(error.message).toContain('line 2');
-    expect(error.message).toContain("unknown operation 'resource_frobnicate'");
+    const steps = await planModuleReplays([resolved], [installed]);
+    expect(steps).toHaveLength(1);
+    expect(steps[0].seals).toHaveLength(1);
+    expect(steps[0].seals[0].entries.map((e) => e.operation)).toEqual([
+      'resource_delete',
+    ]);
+    expect(steps[0].seals[0].skipped).toEqual({
+      retired: ['project_rename'],
+      unknown: ['resource_frobnicate'],
+    });
   });
 
   it('steps come out in reverse resolved order (dependencies first)', async () => {
@@ -489,6 +524,7 @@ describe('executeModuleReplays', () => {
             fileName: formatSealFileName(sealFrom, sealTo),
           },
           entries: targets.map(deleteEntry),
+          skipped: { retired: [], unknown: [] },
         },
       ],
     };
@@ -597,6 +633,7 @@ describe('executeModuleReplays', () => {
               fileName: formatSealFileName('1.0.0', '2.0.0'),
             },
             entries: [malformed],
+            skipped: { retired: [], unknown: [] },
           },
         ],
       },

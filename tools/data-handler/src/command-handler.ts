@@ -42,6 +42,7 @@ import type {
   InstallSkillsCommandOptions,
   ReportCommandOptions,
   ShowCommandOptions,
+  RenameCommandOptions,
   StartCommandOptions,
   UpdateCommandOptions,
 } from './interfaces/command-options.js';
@@ -429,7 +430,18 @@ export class Commands {
         }
       } else if (command === Cmd.rename) {
         const [to] = args;
-        await this.commands?.renameCmd.rename(to);
+        const { force } = options as RenameCommandOptions;
+        const published = this.commands?.project.configuration.version;
+        await this.commands?.renameCmd.rename(to, force);
+        if (published) {
+          return {
+            statusCode: 200,
+            note:
+              `Version ${published} was published under the old prefix. The ` +
+              `next version you publish is a new module: consumers must ` +
+              `install it and remove the old one rather than update.`,
+          };
+        }
       } else if (command === Cmd.show) {
         const [type, detail] = args;
         options.projectPath = this.projectPath;

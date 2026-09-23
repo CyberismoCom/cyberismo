@@ -74,7 +74,9 @@ export type RankCommandOptions = BaseCommandOptions;
 export type RemoveCommandOptions = BaseCommandOptions;
 
 // Options for 'rename' command
-export type RenameCommandOptions = BaseCommandOptions;
+export interface RenameCommandOptions extends BaseCommandOptions {
+  force?: boolean;
+}
 
 // Options for 'report' command
 export type ReportCommandOptions = ContextualCommandOptions;

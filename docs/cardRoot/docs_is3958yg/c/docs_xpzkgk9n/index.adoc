@@ -9,6 +9,8 @@ Card:: A card is the main information unit in the Cyberismo content format. Conc
 
 Card key:: Each card is uniquely identified with a card key. The card key begins with a Cyberismo project-specific prefix.
 
+Card key prefix:: The prefix that begins every card key and every resource name in a project, for example the `tutorial` in `tutorial_42` and in `tutorial/cardTypes/task`. It is chosen when the project is created, and it is what identifies the project. A project that is published as a module is known by its prefix in every project that imports it, so the prefix is fixed at the module's first published version.
+
 == Content from other systems
 
 Connector:: A connector is a tool that reads an external system and generates logic program facts from what it finds. Cyberismo can then reason about that data without it being copied into the project. Connectors exist for issue trackers and vulnerability management tools. See {{#xref}}"cardKey":"docs_15sd1cq8"{{/xref}}.

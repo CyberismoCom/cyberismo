@@ -431,6 +431,32 @@ describe('Version', () => {
       await expectNoPartialState('1.0.0');
     });
 
+    it('minor and patch refuse a legacy project_rename as breaking', async () => {
+      configuration.version = '1.0.0';
+      await configuration.setVersion('1.0.0');
+      hasPendingChangesStub.restore();
+      // Written by an older build. The operation is no longer part of the
+      // vocabulary, so the gate cannot route it and takes the strictest
+      // class — which is also the right answer: the author's prefix really
+      // did change, and consumers really must reinstall.
+      await ConfigurationLogger.log(dir, {
+        operation: 'project_rename' as ConfigurationOperation,
+        target: 'newpfx',
+        parameters: { oldPrefix: 'test', newPrefix: 'newpfx' },
+      });
+      await git.commit('set version and dirty log');
+
+      await expect(versionCmd.bumpVersion('minor')).rejects.toThrow(
+        /newpfx \(project_rename\) — retired operation, treated as breaking/,
+      );
+      await expectNoPartialState('1.0.0');
+
+      await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
+        /newpfx \(project_rename\) — retired operation, treated as breaking/,
+      );
+      await expectNoPartialState('1.0.0');
+    });
+
     it('minor and patch refuse an entry with an unknown operation', async () => {
       configuration.version = '1.0.0';
       await configuration.setVersion('1.0.0');

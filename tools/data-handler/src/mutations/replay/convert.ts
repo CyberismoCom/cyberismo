@@ -53,16 +53,6 @@ export function entryToMutationInput(
         newIdentifier: resourceName(op.to).identifier,
       };
     }
-    case 'project_rename': {
-      const oldPrefix = entry.parameters?.oldPrefix;
-      const newPrefix = entry.parameters?.newPrefix;
-      if (typeof oldPrefix !== 'string' || typeof newPrefix !== 'string') {
-        throw new Error(
-          `Malformed project_rename entry for '${entry.target}': missing oldPrefix or newPrefix`,
-        );
-      }
-      return { kind: 'project_rename', newPrefix, oldPrefix };
-    }
     // The switch is exhaustive over ConfigurationOperation; this guards
     // callers that bypass plan-time seal validation (entries cast from
     // untyped JSON).

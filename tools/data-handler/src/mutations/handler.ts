@@ -62,7 +62,7 @@ export interface Handler<I extends MutationInput = MutationInput> {
    * Cascades may write directly to disk; the replay orchestrator
    * refreshes project caches once after a replay batch. A handler whose
    * cascade rewrites files that LATER entries in the same batch read
-   * through caches must refresh eagerly itself (see ProjectRenameHandler).
+   * through caches must refresh eagerly itself.
    */
   applyCascade(ctx: MutationContext<I>): Promise<void>;
 }

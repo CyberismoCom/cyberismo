@@ -17,6 +17,7 @@ import { mkdir, rename } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { ProjectPaths } from '../containers/project/project-paths.js';
+import { readModuleConfig } from '../containers/project/cards-config.js';
 import { deleteDir, pathExists } from '../utils/file-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 
@@ -93,6 +94,7 @@ export async function applyModules(
   );
   for (const entry of targets) {
     const name = entry.declaration.name;
+    await validateIdentity(entry, name);
     validatePrefix(
       project,
       name,
@@ -243,6 +245,40 @@ function toPersistedSetting(entry: ResolvedModule): ModuleSetting {
     setting.version = entry.declaration.versionRange;
   }
   return setting;
+}
+
+/**
+ * Rejects a staged tree whose own `cardKeyPrefix` disagrees with the name the
+ * project declares it under. A module's prefix is its identity: everything
+ * that references the module — the installation directory, every
+ * `<prefix>/<type>/<id>` resource name, every `<prefix>_*` card key — is
+ * derived from it, so a module that changed its prefix is a different module
+ * and no update can carry one into the other. Also catches pinning a version
+ * whose tagged tree predates the prefix the declaration was written from.
+ */
+async function validateIdentity(
+  entry: ResolvedModule,
+  declared: string,
+): Promise<void> {
+  let staged: string;
+  try {
+    staged = (await readModuleConfig(entry.stagedPath)).cardKeyPrefix;
+  } catch {
+    // A staged tree with no readable config never reaches here in practice —
+    // the resolver read the same file to pick a version. If one does, it is
+    // a broken tree rather than a renamed module, and `applyOne` reports it.
+    return;
+  }
+  if (staged === declared) {
+    return;
+  }
+  throw new Error(
+    `Module '${declared}' now declares the prefix '${staged}'. A module's ` +
+      `prefix is its identity, so this is a different module, not an update. ` +
+      `Install it with 'cyberismo module install ` +
+      `${entry.declaration.source.location}' and remove the old one with ` +
+      `'cyberismo module remove ${declared}'.`,
+  );
 }
 
 /**

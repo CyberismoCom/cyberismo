@@ -1348,9 +1348,13 @@ removeCmd
 // Rename command
 const renameCmd = new CommandWithPath('rename')
   .description(
-    'Change project prefix and rename all the content with the new prefix',
+    'Change project prefix and rename all the content with the new prefix. Only possible before the project has published a version, unless --force is given',
   )
-  .argument('<to>', 'New project prefix');
+  .argument('<to>', 'New project prefix')
+  .option(
+    '--force',
+    'Rename even though a version has been published; the next version is then a new module',
+  );
 program.addCommand(renameCmd);
 renameCmd.action(async (to: string, options: CommandOptions<'rename'>) => {
   const result = await commandHandler.command(

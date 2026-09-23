@@ -20,11 +20,10 @@ import {
   writeFile,
 } from 'node:fs/promises';
 
-import type { Handler, MutationContext } from '../handler.js';
-import type { ProjectRenameInput } from '../types.js';
-import type { Card } from '../../interfaces/project-interfaces.js';
-import { resourceName } from '../../utils/resource-utils.js';
-import { ResourcesFrom } from '../../containers/project/resources-from.js';
+import type { Project } from '../containers/project.js';
+import type { Card } from '../interfaces/project-interfaces.js';
+import { resourceName } from './resource-utils.js';
+import { ResourcesFrom } from '../containers/project/resources-from.js';
 
 const FILE_TYPES_WITH_PREFIX_REFERENCES = ['adoc', 'hbs', 'json', 'lp'];
 
@@ -33,116 +32,84 @@ const FILE_TYPES_WITH_PREFIX_REFERENCES = ['adoc', 'hbs', 'json', 'lp'];
  * it: every local resource name, every `<oldPrefix>/<resourceType>/...`
  * reference, every `<oldPrefix>_*` card key, card metadata, attachments, and
  * file contents (adoc/hbs/json/lp).
+ *
+ * A prefix is a project's identity, so this never runs on behalf of a module
+ * the project consumes: it only ever rewrites the project's own content.
  */
-export class ProjectRenameHandler implements Handler<ProjectRenameInput> {
-  async apply(ctx: MutationContext<ProjectRenameInput>): Promise<void> {
-    // Capture before setCardPrefix changes projectPrefix.
-    const from = ctx.project.projectPrefix;
-    const to = ctx.input.newPrefix;
-    if (!to) {
-      throw new Error("Input validation error: empty 'to' is not allowed");
-    }
-    if (from === to) {
-      throw new Error(`Project prefix is already '${from}'`);
-    }
+export async function renameProjectPrefix(
+  project: Project,
+  to: string,
+): Promise<void> {
+  // Capture before setCardPrefix changes projectPrefix.
+  const from = project.projectPrefix;
+  if (!to) {
+    throw new Error("Input validation error: empty 'to' is not allowed");
+  }
+  if (from === to) {
+    throw new Error(`Project prefix is already '${from}'`);
+  }
 
-    // The prefix must change first: resource renames are validated against the
-    // current projectPrefix. The cache refresh is also required — local
-    // registry keys are derived from projectPrefix at collection time.
-    await ctx.project.configuration.setCardPrefix(to);
-    ctx.project.resources.changed();
+  // The prefix must change first: resource renames are validated against the
+  // current projectPrefix. The cache refresh is also required — local
+  // registry keys are derived from projectPrefix at collection time.
+  await project.configuration.setCardPrefix(to);
+  project.resources.changed();
 
-    // Referenced resource families must rename before their referrers.
-    const orderedCategories = [
-      'cardTypes',
-      'workflows',
-      'fieldTypes',
-      'graphModels',
-      'graphViews',
-      'linkTypes',
-      'reports',
-      'templates',
-      'calculations',
-    ] as const;
+  // Referenced resource families must rename before their referrers.
+  const orderedCategories = [
+    'cardTypes',
+    'workflows',
+    'fieldTypes',
+    'graphModels',
+    'graphViews',
+    'linkTypes',
+    'reports',
+    'templates',
+    'calculations',
+  ] as const;
 
-    for (const category of orderedCategories) {
-      for (const resource of ctx.project.resources.resourceTypes(
-        category,
-        ResourcesFrom.localOnly,
-      )) {
-        const oldName = resource.data?.name ?? '';
-        if (!oldName) continue;
-        const parsed = resourceName(oldName);
-        // The file's own name field not carrying the old prefix means the
-        // resource was already renamed (e.g. a partially completed run).
-        if (parsed.prefix !== from) continue;
-        await resource.changePrefix(to);
-      }
-    }
-
-    // Card renames must run after the resource renames above.
-    for (const template of ctx.project.resources.templates(
+  for (const category of orderedCategories) {
+    for (const resource of project.resources.resourceTypes(
+      category,
       ResourcesFrom.localOnly,
     )) {
-      await renameCards(ctx, template.cardTree.cards(), from, to);
+      const oldName = resource.data?.name ?? '';
+      if (!oldName) continue;
+      const parsed = resourceName(oldName);
+      // The file's own name field not carrying the old prefix means the
+      // resource was already renamed (e.g. a partially completed run).
+      if (parsed.prefix !== from) continue;
+      await resource.changePrefix(to);
     }
-    await renameCards(ctx, ctx.project.cardTree.cards(), from, to);
-
-    await this.cascade(ctx, from, to);
-
-    ctx.project.resources.changed();
-    ctx.project.clearCards();
-    await ctx.project.populateCaches();
   }
 
-  /**
-   * Rewrite local references from `<from>/…` resource names and `<from>_`
-   * card keys to the new prefix. Local apply: card metadata was already
-   * rewritten by renameCards, so the metadata pass no-ops. Foreign replay
-   * (module renamed its prefix): `oldPrefix` is REQUIRED and comes from the
-   * recorded log entry, and this pass IS the metadata/content rewrite.
-   */
-  async applyCascade(ctx: MutationContext<ProjectRenameInput>): Promise<void> {
-    const from = ctx.input.oldPrefix;
-    if (!from) {
-      throw new Error('project_rename cascade requires oldPrefix');
-    }
-    await this.cascade(ctx, from, ctx.input.newPrefix);
-
-    // The cascade rewrote local resource and card files raw on disk.
-    // Later entries in the same replay chain read through the project's
-    // caches (e.g. workflow-remove-state matches cards via
-    // resources.cardTypes()), so refresh here instead of relying on the
-    // orchestrator's single end-of-replay refresh. The local-authoring
-    // path refreshes in apply() after its own cascade, so this stays out
-    // of cascade() to avoid doing the work twice.
-    ctx.project.resources.changed();
-    ctx.project.clearCards();
-    await ctx.project.populateCaches();
+  // Card renames must run after the resource renames above.
+  for (const template of project.resources.templates(ResourcesFrom.localOnly)) {
+    await renameCards(project, template.cardTree.cards(), from, to);
   }
+  await renameCards(project, project.cardTree.cards(), from, to);
 
-  private async cascade(
-    ctx: MutationContext,
-    from: string,
-    to: string,
-  ): Promise<void> {
-    const localCards = [
-      ...ctx.project.cardTree.cards(),
-      ...ctx.project.resources
-        .templates(ResourcesFrom.localOnly)
-        .flatMap((t) => t.cardTree.cards()),
-    ];
-    for (const card of localCards) {
-      await updateCardMetadata(ctx, card, from, to);
-    }
-
-    await updateFiles(ctx.project.paths.cardRootFolder, from, to);
-    await updateFiles(ctx.project.paths.resourcesFolder, from, to);
+  // References that renameCards did not reach: card metadata already
+  // rewritten above no-ops here, file contents do not.
+  const localCards = [
+    ...project.cardTree.cards(),
+    ...project.resources
+      .templates(ResourcesFrom.localOnly)
+      .flatMap((t) => t.cardTree.cards()),
+  ];
+  for (const card of localCards) {
+    await updateCardMetadata(project, card, from, to);
   }
+  await updateFiles(project.paths.cardRootFolder, from, to);
+  await updateFiles(project.paths.resourcesFolder, from, to);
+
+  project.resources.changed();
+  project.clearCards();
+  await project.populateCaches();
 }
 
 async function renameCards(
-  ctx: MutationContext,
+  project: Project,
   cards: Card[],
   from: string,
   to: string,
@@ -156,23 +123,23 @@ async function renameCards(
   const re = new RegExp(`${from}(?!.*${from})`);
 
   for (const card of sortedCards) {
-    card.content = await updateCardAttachments(ctx, re, card, to);
-    await renameOneCard(ctx, re, card, from, to);
+    card.content = await updateCardAttachments(project, re, card, to);
+    await renameOneCard(project, re, card, from, to);
   }
 }
 
 async function updateCardAttachments(
-  ctx: MutationContext,
+  project: Project,
   re: RegExp,
   card: Card,
   to: string,
 ): Promise<string | undefined> {
-  if (ctx.project.treeOf(card.key).kind === 'project') {
+  if (project.treeOf(card.key).kind === 'project') {
     const fileNames = (card.attachments ?? []).map((item) => item.fileName);
     await Promise.all(
       fileNames.map(async (fileName) => {
         // NOTE: file contents are rewritten by updateFiles.
-        await ctx.project.renameCardAttachment(
+        await project.renameCardAttachment(
           card.key,
           fileName,
           fileName.replace(re, to),
@@ -184,19 +151,19 @@ async function updateCardAttachments(
 }
 
 async function renameOneCard(
-  ctx: MutationContext,
+  project: Project,
   re: RegExp,
   card: Card,
   from: string,
   to: string,
 ): Promise<void> {
-  await updateCardMetadata(ctx, card, from, to);
+  await updateCardMetadata(project, card, from, to);
   const newCardPath = card.path.replace(re, to);
   await renameFile(card.path, newCardPath);
 }
 
 async function updateCardMetadata(
-  ctx: MutationContext,
+  project: Project,
   card: Card,
   from: string,
   to: string,
@@ -213,7 +180,7 @@ async function updateCardMetadata(
           delete card.metadata[oldKey];
         }
       }
-      await ctx.project.updateCardMetadata(card, card.metadata);
+      await project.updateCardMetadata(card, card.metadata);
     }
   }
 }
