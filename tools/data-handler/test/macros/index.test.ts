@@ -450,6 +450,19 @@ Some content here`;
         cardDetailsByIdStub
           .withArgs('testCardNestedWithOffset')
           .returns(testCardNestedWithOffset);
+
+        const testCardBlocks = structuredClone(baseCard);
+        testCardBlocks.key = 'testCardBlocks';
+        testCardBlocks.content =
+          '== Section\n\n[%collapsible]\n====\nHidden\n====\n\n#TODO# Add content\n\n----\n# comment\n----\n';
+        cardDetailsByIdStub.withArgs('testCardBlocks').returns(testCardBlocks);
+
+        const testCardOpenTable = structuredClone(baseCard);
+        testCardOpenTable.key = 'testCardOpenTable';
+        testCardOpenTable.content = '[cols="1,1"]\n|===\n| a | b\n';
+        cardDetailsByIdStub
+          .withArgs('testCardOpenTable')
+          .returns(testCardOpenTable);
       });
       afterEach(() => {
         cardDetailsByIdStub.restore();
@@ -487,6 +500,30 @@ Some content here`;
         });
         expect(result).toContain('== Test Card Title');
         expect(result).toContain('=== Test subtitle');
+      });
+      it('includeMacro with level offset adjusts only section titles', async () => {
+        const macro = `{{#include}}"cardKey": "testCardBlocks", "levelOffset": "+1", "title": "exclude"{{/include}}`;
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
+        expect(result).toContain('=== Section');
+        expect(result).toContain('[%collapsible]\n====\nHidden\n====');
+        expect(result).toContain('\n#TODO# Add content');
+        expect(result).toContain('----\n# comment\n----');
+      });
+      it('includeMacro closes a block the included card leaves open', async () => {
+        const macro = `{{#include}}"cardKey": "testCardOpenTable", "title": "exclude"{{/include}}\n\nAfter`;
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
+        expect(result).toContain('| a | b\n|===\n');
+        expect(result).toContain('After');
       });
       it('includeMacro with negative level offset (success)', async () => {
         const macro = `{{#include}}"cardKey": "test-card", "levelOffset": "-10"{{/include}}`;

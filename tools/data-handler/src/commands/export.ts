@@ -39,6 +39,18 @@ import type { Show } from './show.js';
 import { sortItems } from '../utils/lexorank.js';
 
 const attachmentFolder: string = 'a';
+const ASCIIDOCTOR_DIAGNOSTIC = /^asciidoctor: (WARNING|ERROR):/;
+const FAILURE_DIAGNOSTIC_LINES = 20;
+
+// Diagnostics can contain server paths, so they stay out of the message
+class AsciidoctorPdfError extends Error {
+  constructor(
+    code: number | null,
+    public readonly diagnostics: string[],
+  ) {
+    super(`Asciidoctor-pdf failed with code ${code}`);
+  }
+}
 
 /**
  * Handles all export commands.
@@ -109,8 +121,10 @@ export class Export {
     return content;
   }
 
-  // Runs Ascii Doctor converter --> to PDF
-  private async runAsciidoctorPdf(content: string): Promise<Buffer> {
+  // Runs Asciidoctor PDF; its diagnostics are returned rather than printed
+  private async runAsciidoctorPdf(
+    content: string,
+  ): Promise<{ pdf: Buffer; warnings: string[] }> {
     const staticRootDir = await getStaticDirectoryPath();
     const proc = spawn(
       'asciidoctor-pdf',
@@ -162,13 +176,14 @@ export class Export {
       },
     );
     proc.stdin.end(content);
-    const result = await new Promise<Buffer>((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       const chunks: Buffer[] = [];
+      const errorChunks: Buffer[] = [];
       proc.stdout.on('data', (chunk) => {
         chunks.push(chunk);
       });
       proc.stderr.on('data', (chunk) => {
-        process.stderr.write(chunk);
+        errorChunks.push(chunk);
       });
       proc.on('error', (error) => {
         if ('code' in error && error.code === 'ENOENT') {
@@ -181,14 +196,27 @@ export class Export {
         reject(error);
       });
       proc.on('close', (code) => {
+        const diagnostics = Buffer.concat(errorChunks)
+          .toString()
+          .split('\n')
+          .filter((line) => line.trim() !== '');
         if (code === 0) {
-          resolve(Buffer.concat(chunks));
+          resolve({
+            pdf: Buffer.concat(chunks),
+            warnings: diagnostics.filter((line) =>
+              ASCIIDOCTOR_DIAGNOSTIC.test(line),
+            ),
+          });
         } else {
-          reject(new Error(`Asciidoctor-pdf failed with code ${code}`));
+          reject(
+            new AsciidoctorPdfError(
+              code,
+              diagnostics.slice(-FAILURE_DIAGNOSTIC_LINES),
+            ),
+          );
         }
       });
     });
-    return result;
   }
 
   // Adds cards to an ADOC file as additional content.
@@ -348,10 +376,28 @@ export class Export {
    */
   protected async buildPdfAsciidocSource(
     options: ExportPdfOptions,
+    onWarning?: (message: string) => void,
   ): Promise<string> {
     const evaluated = await this.evaluateExportContent(options);
     const withMermaid = await preprocessMermaidBlocksForPdf(evaluated);
-    return rewriteAsciidocCardXrefs(withMermaid, this.project, 'static');
+    return rewriteAsciidocCardXrefs(
+      withMermaid,
+      this.project,
+      'static',
+      onWarning,
+    );
+  }
+
+  // Builds the PDF, collecting warnings instead of printing them
+  private async renderPdf(
+    options: ExportPdfOptions,
+  ): Promise<{ pdf: Buffer; warnings: string[] }> {
+    const warnings: string[] = [];
+    const source = await this.buildPdfAsciidocSource(options, (message) =>
+      warnings.push(message),
+    );
+    const result = await this.runAsciidoctorPdf(source);
+    return { pdf: result.pdf, warnings: [...warnings, ...result.warnings] };
   }
 
   /**
@@ -365,10 +411,26 @@ export class Export {
     destination: string,
     options: ExportPdfOptions,
   ): Promise<string> {
-    const source = await this.buildPdfAsciidocSource(options);
-    const pdf = await this.runAsciidoctorPdf(source);
+    let rendered;
+    try {
+      rendered = await this.renderPdf(options);
+    } catch (error) {
+      if (error instanceof AsciidoctorPdfError) {
+        throw new Error([error.message, ...error.diagnostics].join('\n'), {
+          cause: error,
+        });
+      }
+      throw error;
+    }
+    const { pdf, warnings } = rendered;
     await writeFile(destination, pdf);
-    return `Content exported as PDF to ${destination}`;
+    const summary =
+      warnings.length === 1
+        ? ' with 1 rendering warning'
+        : warnings.length > 1
+          ? ` with ${warnings.length} rendering warnings`
+          : '';
+    return `Content exported as PDF to ${destination}${summary}`;
   }
 
   /**
@@ -378,8 +440,14 @@ export class Export {
    */
   @read
   public async exportPdfBuffer(options: ExportPdfOptions): Promise<Buffer> {
-    const source = await this.buildPdfAsciidocSource(options);
-    return this.runAsciidoctorPdf(source);
+    try {
+      return (await this.renderPdf(options)).pdf;
+    } catch (error) {
+      if (error instanceof AsciidoctorPdfError) {
+        console.error(error.message, error.diagnostics.join('\n'));
+      }
+      throw error;
+    }
   }
 
   /**
