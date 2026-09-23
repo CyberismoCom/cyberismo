@@ -42,6 +42,16 @@ const attachmentFolder: string = 'a';
 const ASCIIDOCTOR_DIAGNOSTIC = /^asciidoctor: (WARNING|ERROR):/;
 const FAILURE_DIAGNOSTIC_LINES = 20;
 
+// Diagnostics can contain server paths, so they stay out of the message
+class AsciidoctorPdfError extends Error {
+  constructor(
+    code: number | null,
+    public readonly diagnostics: string[],
+  ) {
+    super(`Asciidoctor-pdf failed with code ${code}`);
+  }
+}
+
 /**
  * Handles all export commands.
  */
@@ -198,10 +208,10 @@ export class Export {
             ),
           });
         } else {
-          const tail = diagnostics.slice(-FAILURE_DIAGNOSTIC_LINES).join('\n');
           reject(
-            new Error(
-              `Asciidoctor-pdf failed with code ${code}${tail ? `:\n${tail}` : ''}`,
+            new AsciidoctorPdfError(
+              code,
+              diagnostics.slice(-FAILURE_DIAGNOSTIC_LINES),
             ),
           );
         }
@@ -401,7 +411,18 @@ export class Export {
     destination: string,
     options: ExportPdfOptions,
   ): Promise<string> {
-    const { pdf, warnings } = await this.renderPdf(options);
+    let rendered;
+    try {
+      rendered = await this.renderPdf(options);
+    } catch (error) {
+      if (error instanceof AsciidoctorPdfError) {
+        throw new Error([error.message, ...error.diagnostics].join('\n'), {
+          cause: error,
+        });
+      }
+      throw error;
+    }
+    const { pdf, warnings } = rendered;
     await writeFile(destination, pdf);
     const summary =
       warnings.length === 1
@@ -419,7 +440,14 @@ export class Export {
    */
   @read
   public async exportPdfBuffer(options: ExportPdfOptions): Promise<Buffer> {
-    return (await this.renderPdf(options)).pdf;
+    try {
+      return (await this.renderPdf(options)).pdf;
+    } catch (error) {
+      if (error instanceof AsciidoctorPdfError) {
+        console.error(error.message, error.diagnostics.join('\n'));
+      }
+      throw error;
+    }
   }
 
   /**
