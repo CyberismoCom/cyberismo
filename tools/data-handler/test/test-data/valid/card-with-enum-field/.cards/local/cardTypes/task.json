@@ -1,0 +1,12 @@
+{
+    "name": "enumf/cardTypes/task",
+    "displayName": "Task",
+    "workflow": "enumf/workflows/simple",
+    "customFields": [
+        {
+            "name": "enumf/fieldTypes/priority"
+        }
+    ],
+    "alwaysVisibleFields": [ "enumf/fieldTypes/priority" ],
+    "optionallyVisibleFields": []
+}

@@ -287,3 +287,50 @@ describe('calculation validation on generate', () => {
     expect(valid.results.map((r) => r.key)).toEqual(['42']);
   });
 });
+
+describe('card query enum field', () => {
+  const baseDir = import.meta.dirname;
+  const testDir = join(baseDir, 'tmp-card-query-enum-tests');
+  let project: Project;
+
+  beforeAll(async () => {
+    mkdirSync(testDir, { recursive: true });
+    await copyDir('test/test-data/valid/card-with-enum-field', testDir);
+    project = getTestProject(testDir);
+    await project.populateCaches();
+    await project.calculationEngine.generate();
+  });
+
+  afterAll(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('returns the value and enum values of an enum-valued custom field', async () => {
+    const res = await project.calculationEngine.runQuery('card', 'localApp', {
+      cardKey: 'enumf_1',
+    });
+    expect(res).toHaveLength(1);
+    const field = res[0].fields.find(
+      (f) => f.key === 'enumf/fieldTypes/priority',
+    );
+    expect(field).toMatchObject({
+      dataType: 'enum',
+      isCalculated: false,
+      value: { value: 'high' },
+      enumValues: [
+        {
+          enumValue: 'low',
+          enumDisplayValue: 'Low',
+          enumDescription: 'Can wait',
+          index: 1,
+        },
+        {
+          enumValue: 'high',
+          enumDisplayValue: 'High',
+          enumDescription: 'Do it now',
+          index: 2,
+        },
+      ],
+    });
+  });
+});
