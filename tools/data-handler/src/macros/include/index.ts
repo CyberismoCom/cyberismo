@@ -21,6 +21,10 @@ import type TaskQueue from '../task-queue.js';
 import { MAX_LEVEL_OFFSET } from '../../utils/constants.js';
 import { escapeCsvField } from '../../utils/csv.js';
 import { escapeJsonString } from '../../utils/json.js';
+import {
+  closeUnterminatedBlock,
+  verbatimBlockTerminator,
+} from '../../utils/asciidoc-blocks.js';
 
 export default class IncludeMacro extends BaseMacro {
   constructor(tasksQueue: TaskQueue) {
@@ -114,13 +118,14 @@ export default class IncludeMacro extends BaseMacro {
     context: MacroGenerationContext,
   ): Promise<string> {
     if (options.title !== 'only') {
-      let content = await evaluateMacros(cardContent ?? '', context, true);
+      const content = await evaluateMacros(cardContent ?? '', context, true);
       if (options.escape === 'json') {
-        content = escapeJsonString(content);
+        return escapeJsonString(content);
       } else if (options.escape === 'csv') {
-        content = escapeCsvField(content);
+        return escapeCsvField(content);
       }
-      return content;
+      // Keep a block left open in the included card from swallowing what follows
+      return closeUnterminatedBlock(content);
     }
     return '';
   }
@@ -136,16 +141,28 @@ export default class IncludeMacro extends BaseMacro {
     discrete: boolean,
   ) {
     const lines = content.split('\n');
+    let verbatimTerminator: string | undefined;
     const adjustedLines = lines.map((line) => {
-      const match = line.match(/^(\s*)([=#]+)(.*?)\s*$/);
+      if (verbatimTerminator) {
+        if (line.trimEnd() === verbatimTerminator) {
+          verbatimTerminator = undefined;
+        }
+        return line;
+      }
+      verbatimTerminator = verbatimBlockTerminator(line);
+      // A section title starts at column 0 and has a space after the marker;
+      // this excludes block delimiters such as '====' and '#highlighted#' text
+      const match = verbatimTerminator
+        ? null
+        : line.match(/^([=#]{1,6})[ \t]+(\S.*?)\s*$/);
       if (match) {
-        const currentLevel = match[2].length;
+        const currentLevel = match[1].length;
         const newLevel = Math.min(
           Math.max(1, currentLevel + levelOffset),
           MAX_LEVEL_OFFSET + 1,
         );
         const equals = '='.repeat(newLevel);
-        return `${discrete ? '[discrete]\n' : ''}${match[1]}${equals} ${match[3].trim()}`;
+        return `${discrete ? '[discrete]\n' : ''}${equals} ${match[2]}`;
       }
       return line;
     });

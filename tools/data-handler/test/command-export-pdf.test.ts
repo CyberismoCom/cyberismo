@@ -1,4 +1,4 @@
-import { expect, it, describe, beforeAll, afterAll } from 'vitest';
+import { expect, it, describe, beforeAll, afterAll, vi } from 'vitest';
 import { join } from 'node:path';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -169,6 +169,32 @@ describe('PDF export - asciidoctor safe mode', () => {
 
       expect(pageCount(probe)).toBe(pageCount(control));
       expect(imageCount(probe)).toBe(imageCount(control));
+    },
+    PDF_SPAWN_TIMEOUT,
+  );
+
+  it(
+    'counts rendering warnings instead of printing them',
+    async () => {
+      await commands.editCmd.editCardContent(
+        'decision_5',
+        '== Testing\n\nxref:missing_1.adoc[Missing]\n\n2. Second\n',
+      );
+      const stderrSpy = vi.spyOn(process.stderr, 'write');
+      const warnSpy = vi.spyOn(console, 'warn');
+      try {
+        const message = await exportCmd.exportPdf(
+          join(outsideDir, 'warnings.pdf'),
+          options,
+        );
+
+        expect(message).toContain('with 2 rendering warnings');
+        expect(stderrSpy).not.toHaveBeenCalled();
+        expect(warnSpy).not.toHaveBeenCalled();
+      } finally {
+        stderrSpy.mockRestore();
+        warnSpy.mockRestore();
+      }
     },
     PDF_SPAWN_TIMEOUT,
   );
