@@ -58,6 +58,10 @@ hiddenInTreeView(Card) :-
 % TODO: remove this compatibility rule, once content repositories have been updated (INTDEV-666)
 field(Card, "progress", Progress) :- field(Card, "base/fieldTypes/progress", Progress).
 
+% a failure that names no field has an empty field name
+policyCheckFailure(Card, Category, Title, ErrorMessage, "") :-
+    policyCheckFailure(Card, Category, Title, ErrorMessage).
+
 % user-defined links are links
 link(Source, Destination, LinkType) :- userLink(Source, Destination, LinkType).
 link(Source, Destination, LinkType, LinkDescription) :- userLink(Source, Destination, LinkType, LinkDescription).
