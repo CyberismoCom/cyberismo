@@ -41,10 +41,20 @@ export interface ClingoValidationResult {
   warnings: string[];
 }
 
+/**
+ * Predicate signatures a program derives and reads, sorted and unique, as
+ * "name/arity"; classically negated ones as "-name/arity".
+ */
+export interface ProgramSummary {
+  heads: string[];
+  bodies: string[];
+}
+
 interface NativeBinding {
   ClingoContext: new () => NativeClingoContext;
   clearCache(): void;
   validateProgram(program: string): ClingoValidationResult;
+  parseSummary(program: string): ProgramSummary;
 }
 
 const require = createRequire(import.meta.url);
@@ -101,6 +111,46 @@ export class ClingoError extends Error {
   ) {
     super(message);
   }
+}
+
+/**
+ * Wraps a native error that carries clingo diagnostics into a ClingoError.
+ */
+function toClingoError(error: unknown): unknown {
+  if (
+    error instanceof Error &&
+    'details' in error &&
+    typeof error.details === 'object' &&
+    error.details !== null &&
+    'errors' in error.details &&
+    'warnings' in error.details
+  ) {
+    const {
+      errors,
+      warnings,
+      program: prog,
+    } = error.details as {
+      errors: string[];
+      warnings: string[];
+      program?: string;
+    };
+
+    const where =
+      prog === undefined
+        ? ''
+        : ` when processing program '${prog === '__program__' ? 'main program' : prog}'`;
+    const errorMessage =
+      error.message === 'parsing failed' || error.message === 'syntax error'
+        ? `Parsing failed${where} with errors: ${errors.join(', ')}`
+        : error.message;
+
+    return new ClingoError(errorMessage, {
+      errors,
+      warnings,
+      program: prog,
+    });
+  }
+  return error;
 }
 
 /**
@@ -171,36 +221,7 @@ export class ClingoContext {
     try {
       return await this._ctx.solve(program, categories ?? []);
     } catch (error) {
-      if (
-        error instanceof Error &&
-        'details' in error &&
-        typeof error.details === 'object' &&
-        error.details !== null &&
-        'errors' in error.details &&
-        'warnings' in error.details
-      ) {
-        const {
-          errors,
-          warnings,
-          program: prog,
-        } = error.details as {
-          errors: string[];
-          warnings: string[];
-          program?: string;
-        };
-
-        const errorMessage =
-          error.message === 'parsing failed' || error.message === 'syntax error'
-            ? `Parsing failed when processing program '${prog === '__program__' ? 'main program' : prog}' with errors: ${errors.join(', ')}`
-            : error.message;
-
-        throw new ClingoError(errorMessage, {
-          errors,
-          warnings,
-          program: prog,
-        });
-      }
-      throw error;
+      throw toClingoError(error);
     }
   }
 }
@@ -219,6 +240,19 @@ export function clearCache(): void {
  */
 export function validateProgram(program: string): ClingoValidationResult {
   return nativeBinding!.validateProgram(program);
+}
+
+/**
+ * Parses a logic program and returns the predicates it derives and reads,
+ * without grounding.
+ * @throws ClingoError on a syntax error
+ */
+export function parseSummary(program: string): ProgramSummary {
+  try {
+    return nativeBinding!.parseSummary(program);
+  } catch (error) {
+    throw toClingoError(error);
+  }
 }
 
 export default ClingoContext;
