@@ -135,11 +135,37 @@ describe('rename is an authoring helper, not a migratable change', () => {
     });
     expect(result.statusCode).toBe(400);
     expect(result.message).toContain('version 1.2.0 was published');
+    expect(result.message).toContain("'cyberismo rename decrec --force'");
 
     // Nothing moved: the original prefix survives on disk.
     expect(existsSync(join(projectPath, 'cardRoot', 'decision_5'))).toBe(true);
     expect(JSON.parse(await readFile(configPath, 'utf-8')).cardKeyPrefix).toBe(
       'decision',
     );
+  });
+
+  it('--force renames a published project and says it is now a new module', async () => {
+    const configPath = join(projectPath, '.cards', 'local', 'cardsConfig.json');
+    const config = JSON.parse(await readFile(configPath, 'utf-8'));
+    await writeFile(
+      configPath,
+      JSON.stringify({ ...config, version: '1.2.0' }, null, 2),
+    );
+    const before = await ConfigurationLogger.entries(projectPath);
+
+    const result = await new Commands().command(Cmd.rename, ['decrec'], {
+      projectPath,
+      force: true,
+    });
+    expect(result.statusCode).toBe(200);
+    expect(result.note).toContain('Version 1.2.0 was published');
+    expect(result.note).toContain('new module');
+
+    expect(existsSync(join(projectPath, 'cardRoot', 'decrec_5'))).toBe(true);
+    const after = JSON.parse(await readFile(configPath, 'utf-8'));
+    expect(after.cardKeyPrefix).toBe('decrec');
+    // History is kept: the version and the log are the author's record.
+    expect(after.version).toBe('1.2.0');
+    expect(await ConfigurationLogger.entries(projectPath)).toEqual(before);
   });
 });

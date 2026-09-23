@@ -20,7 +20,9 @@ import { write } from '../utils/rw-lock.js';
  * card-key prefix and every reference to it.
  *
  * The prefix is a published module's identity, so this is not a change
- * consumers can migrate: it is refused once the project has a version.
+ * consumers can migrate: it is refused once the project has a version,
+ * unless forced. A forced rename makes the next published version a new
+ * module, and consumers cannot update to it from the old one.
  */
 export class Rename {
   /**
@@ -34,22 +36,24 @@ export class Rename {
    * @throws if trying to use empty 'to'
    * @throws if trying to rename with the current name
    * @throws if the new prefix is not a valid prefix
-   * @throws if the project has published a version
+   * @throws if the project has published a version and `force` is not set
    * @param to New project prefix
+   * @param force Rename even though a version has been published
    */
   @write((to) => `Rename project prefix to ${to}`)
-  public async rename(to: string) {
+  public async rename(to: string, force = false) {
     if (!to) {
       throw new Error(`Input validation error: empty 'to' is not allowed`);
     }
     const published = this.project.configuration.version;
-    if (published) {
+    if (published && !force) {
       throw new Error(
         `Project prefix '${this.project.projectPrefix}' is this module's ` +
-          `identity and was fixed when version ${published} was published; ` +
-          `it cannot be renamed. Consumers reference every resource and card ` +
-          `key by that prefix. To publish under a different prefix, create a ` +
-          `new module.`,
+          `identity and was fixed when version ${published} was published. ` +
+          `Consumers reference every resource and card key by that prefix, ` +
+          `so a renamed module is a new module. Create a new module, or run ` +
+          `'cyberismo rename ${to} --force' to rename this one; consumers ` +
+          `must then install it and remove the old one.`,
       );
     }
     await renameProjectPrefix(this.project, to);
