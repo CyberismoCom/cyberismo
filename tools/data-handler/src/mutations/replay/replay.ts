@@ -24,7 +24,10 @@ import { entryToMutationInput } from './convert.js';
 import { listSealFiles } from './seal-files.js';
 import { resourceName } from '../../utils/resource-utils.js';
 
-import { CONFIGURATION_OPERATIONS } from '../../utils/configuration-logger.js';
+import {
+  CONFIGURATION_OPERATIONS,
+  RETIRED_OPERATIONS,
+} from '../../utils/configuration-logger.js';
 
 import type { ConfigurationLogEntry } from '../../utils/configuration-logger.js';
 import type { ModuleInstallation } from '../../modules/types.js';
@@ -45,11 +48,12 @@ export interface ReplaySeal {
   seal: SealFile;
   entries: ConfigurationLogEntry[];
   /**
-   * Entries this build does not recognise, skipped rather than replayed.
-   * A seal is an immutable record of what a published version did, so a
-   * vocabulary this build lacks is the tool's gap, not the log's.
+   * Operations of entries skipped rather than replayed. A seal is an
+   * immutable record of what a published version did, so the reader
+   * accommodates entries it cannot act on: `retired` ones no build applies,
+   * `unknown` ones a newer build may.
    */
-  skipped: number;
+  skipped: { retired: string[]; unknown: string[] };
 }
 
 /** The replay work for one module update, seals ascending by version. */
@@ -182,9 +186,7 @@ export async function planModuleReplays(
 ): Promise<ReplayStep[]> {
   const installedByName = new Map<string, ModuleInstallation>();
   for (const installation of installedBefore) {
-    if (!installedByName.has(installation.name)) {
-      installedByName.set(installation.name, installation);
-    }
+    installedByName.set(installation.name, installation);
   }
 
   const conflicts: ReplayConflict[] = [];
@@ -425,14 +427,14 @@ async function readSealEntries(
   modulePrefix: string,
   migrationsFolder: string,
   seal: SealFile,
-): Promise<{ entries: ConfigurationLogEntry[]; skipped: number }> {
+): Promise<Omit<ReplaySeal, 'seal'>> {
   const content = await readFile(
     join(migrationsFolder, seal.fileName),
     'utf-8',
   );
   const lines = content.split('\n');
   const entries: ConfigurationLogEntry[] = [];
-  let skipped = 0;
+  const skipped: ReplaySeal['skipped'] = { retired: [], unknown: [] };
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     if (line === '') continue;
@@ -455,13 +457,15 @@ async function readSealEntries(
         ),
       );
     }
-    // An operation this build does not know — written by a newer format, or
-    // one that has since been retired — is skipped, not fatal. Seals are
-    // immutable, so refusing the whole update would strand a consumer on an
-    // entry nothing can act on. The count is reported to the caller so the
-    // skip is visible rather than silent.
+    // An operation this build does not apply is skipped, not fatal. Seals
+    // are immutable, so refusing the whole update would strand a consumer on
+    // an entry they cannot fix locally. The caller reports the skip.
+    if (isRetiredOperation(parsed.operation)) {
+      skipped.retired.push(parsed.operation);
+      continue;
+    }
     if (!isKnownOperation(parsed.operation)) {
-      skipped++;
+      skipped.unknown.push(parsed.operation);
       continue;
     }
     entries.push(parsed);
@@ -492,4 +496,8 @@ function isLogEntry(value: unknown): value is ConfigurationLogEntry {
 
 function isKnownOperation(operation: string): boolean {
   return (CONFIGURATION_OPERATIONS as readonly string[]).includes(operation);
+}
+
+function isRetiredOperation(operation: string): boolean {
+  return (RETIRED_OPERATIONS as readonly string[]).includes(operation);
 }

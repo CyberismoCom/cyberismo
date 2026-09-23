@@ -440,19 +440,19 @@ describe('Version', () => {
       // class — which is also the right answer: the author's prefix really
       // did change, and consumers really must reinstall.
       await ConfigurationLogger.log(dir, {
-        operation: 'project_rename',
+        operation: 'project_rename' as ConfigurationOperation,
         target: 'newpfx',
         parameters: { oldPrefix: 'test', newPrefix: 'newpfx' },
       });
       await git.commit('set version and dirty log');
 
       await expect(versionCmd.bumpVersion('minor')).rejects.toThrow(
-        /newpfx \(project_rename\) — unrecognised entry, treated as breaking/,
+        /newpfx \(project_rename\) — retired operation, treated as breaking/,
       );
       await expectNoPartialState('1.0.0');
 
       await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
-        /newpfx \(project_rename\) — unrecognised entry, treated as breaking/,
+        /newpfx \(project_rename\) — retired operation, treated as breaking/,
       );
       await expectNoPartialState('1.0.0');
     });

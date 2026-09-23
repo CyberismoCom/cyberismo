@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import {
   ConfigurationLogger,
   type ConfigurationLogEntry,
+  type ConfigurationOperation,
 } from '../../src/utils/configuration-logger.js';
 import { copyDir, deleteDir, pathExists } from '../../src/utils/file-utils.js';
 import { ProjectPaths } from '../../src/containers/project/project-paths.js';
@@ -345,7 +346,7 @@ describe('configuration logger', () => {
   it('still reads legacy project_rename entries', async () => {
     const projectPath = await freshProject('project-rename-log');
     await ConfigurationLogger.log(projectPath, {
-      operation: 'project_rename',
+      operation: 'project_rename' as ConfigurationOperation,
       target: 'new-prefix',
       parameters: { oldPrefix: 'old-prefix', newPrefix: 'new-prefix' },
     });

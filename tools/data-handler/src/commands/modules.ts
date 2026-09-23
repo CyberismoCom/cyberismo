@@ -45,6 +45,7 @@ import {
   filterStepsToApplied,
   ModuleValidationFailedError,
   planModuleReplays,
+  type ReplayStep,
 } from '../mutations/replay/replay.js';
 
 import type {
@@ -162,15 +163,10 @@ export class Modules {
 
     await executeModuleReplays(this.project, executable);
     for (const step of executable) {
-      const skipped = step.seals.reduce((sum, s) => sum + s.skipped, 0);
       console.log(
         `Replayed migrations for module '${step.modulePrefix}': ` +
           `${step.fromVersion} -> ${step.toVersion} (${step.seals.length} seal(s))` +
-          (skipped > 0
-            ? `; skipped ${skipped} ` +
-              `${skipped === 1 ? 'entry' : 'entries'} this version does not ` +
-              `recognise — upgrade cyberismo to apply ${skipped === 1 ? 'it' : 'them'}`
-            : ''),
+          describeSkipped(step),
       );
     }
 
@@ -452,4 +448,26 @@ export class Modules {
     }
     return moduleDetails;
   }
+}
+
+// Retired entries are expected and no build will apply them; unknown ones
+// were most likely written by a newer build, so upgrading may apply them.
+function describeSkipped(step: ReplayStep): string {
+  const retired = step.seals.flatMap((s) => s.skipped.retired);
+  const unknown = step.seals.flatMap((s) => s.skipped.unknown);
+  const count = (n: number) => `${n} ${n === 1 ? 'entry' : 'entries'}`;
+  const ops = (list: string[]) => [...new Set(list)].join(', ');
+  let text = '';
+  if (retired.length > 0) {
+    text +=
+      `; ignored ${count(retired.length)} for retired operations ` +
+      `(${ops(retired)})`;
+  }
+  if (unknown.length > 0) {
+    text +=
+      `; skipped ${count(unknown.length)} this version does not recognise ` +
+      `(${ops(unknown)}) — upgrade cyberismo to apply ` +
+      `${unknown.length === 1 ? 'it' : 'them'}`;
+  }
+  return text;
 }

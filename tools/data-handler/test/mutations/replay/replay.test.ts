@@ -334,6 +334,21 @@ describe('planModuleReplays', () => {
     expect(steps[0].modulePrefix).toBe('mod');
   });
 
+  it('correlates by name: an installation with no recoverable source is still an update', async () => {
+    const installed = makeInstalled('mod', '', '1.0.0');
+    const resolved = makeResolved('mod', 'file:/x', '2.0.0', [
+      {
+        from: '1.0.0',
+        to: '2.0.0',
+        lines: [logLine('resource_delete', 'mod/fieldTypes/a')],
+      },
+    ]);
+
+    const steps = await planModuleReplays([resolved], [installed]);
+    expect(steps).toHaveLength(1);
+    expect(steps[0].fromVersion).toBe('1.0.0');
+  });
+
   it('correlates by name: a different name is a bootstrap, not an update', async () => {
     // A prefix is a module's identity, so 'newmod' is a different module
     // than the installed 'mod' even from the same source: nothing to replay.
@@ -369,7 +384,7 @@ describe('planModuleReplays', () => {
     expect(error.message).toContain('line 2');
   });
 
-  it('an unknown operation is skipped and counted, not fatal', async () => {
+  it('retired and unknown operations are skipped and reported apart, not fatal', async () => {
     // A seal is an immutable record of what a published version did. An
     // operation this build lacks is the tool's gap, so the entries around
     // it still replay and the skip is reported rather than silent.
@@ -401,7 +416,10 @@ describe('planModuleReplays', () => {
     expect(steps[0].seals[0].entries.map((e) => e.operation)).toEqual([
       'resource_delete',
     ]);
-    expect(steps[0].seals[0].skipped).toBe(2);
+    expect(steps[0].seals[0].skipped).toEqual({
+      retired: ['project_rename'],
+      unknown: ['resource_frobnicate'],
+    });
   });
 
   it('steps come out in reverse resolved order (dependencies first)', async () => {
@@ -506,6 +524,7 @@ describe('executeModuleReplays', () => {
             fileName: formatSealFileName(sealFrom, sealTo),
           },
           entries: targets.map(deleteEntry),
+          skipped: { retired: [], unknown: [] },
         },
       ],
     };
@@ -614,6 +633,7 @@ describe('executeModuleReplays', () => {
               fileName: formatSealFileName('1.0.0', '2.0.0'),
             },
             entries: [malformed],
+            skipped: { retired: [], unknown: [] },
           },
         ],
       },

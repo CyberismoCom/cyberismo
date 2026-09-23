@@ -36,6 +36,12 @@ export const CONFIGURATION_OPERATIONS = [
 
 export type ConfigurationOperation = (typeof CONFIGURATION_OPERATIONS)[number];
 
+// Operations older builds wrote and no build applies any more. Published
+// seals are immutable, so readers still meet them and must tell them apart
+// from operations a newer build introduced.
+// - project_rename: a module's prefix is its identity (INTDEV-1366).
+export const RETIRED_OPERATIONS = ['project_rename'] as const;
+
 export interface ConfigurationLogEntry {
   timestamp: string;
   operation: ConfigurationOperation;
