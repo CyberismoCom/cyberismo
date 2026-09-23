@@ -59,29 +59,16 @@ resultField((Card, Field), "fieldDescription", Description, "shortText") :-
     result(Card),
     field(Field, "description", Description).
 
-dataType((Card, Field), "isCalculated", "boolean") :-
-    childResult(Card, (Card, Field), "fields"),
-    field((Card, Field), "isCalculated", _).
-
 resultField((Card, Field), "isCalculated", true, "boolean") :-
     result(Card),
     field(Card, "cardType", CardType),
     calculatedField(CardType, Field).
-
-field((Card, Field), "isCalculated", false, "boolean") :-
-    childResult(Card, (Card, Field), "fields"),
-    result(Card),
-    field(Card, "cardType", CardType),
-    not calculatedField(CardType, Field).
 
 resultField((Card, Field), "isOverridable", true, "boolean") :-
     result(Card),
     field(Card, "cardType", CardType),
     overridableField(CardType, Field).
 
-% Note: unlike the isCalculated false-branch above (which asserts a plain
-% field/4 that no #show statement ever projects, so it never reaches query
-% output), this uses resultField/4 so the "false" case is actually shown.
 resultField((Card, Field), "isOverridable", false, "boolean") :-
     childResult(Card, (Card, Field), "fields"),
     result(Card),
@@ -155,7 +142,8 @@ childResult((Card, Field), (Field, EnumValue), "enumValues") :-
     enumValue(Field, EnumValue),
     childResult(Card, (Card, Field), "fields").
 
-field((Field, EnumValue), "enumValue", EnumValue) :-
+% "enumValue" is not a declared field type, so there is no dataType to look up.
+resultField((Field, EnumValue), "enumValue", EnumValue, "shortText") :-
     enumValue(Field, EnumValue).
 
 dataType((Field, EnumValue), "index", "integer") :-

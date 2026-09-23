@@ -1,0 +1,8 @@
+{
+    "cardType": "enumf/cardTypes/task",
+    "title": "Task with an enum field",
+    "workflowState": "Created",
+    "rank": "0|a",
+    "lastUpdated": "2026-09-23T00:00:00.000Z",
+    "enumf/fieldTypes/priority": "high"
+}
