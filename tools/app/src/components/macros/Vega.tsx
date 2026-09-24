@@ -24,7 +24,8 @@ function Vega({ spec }: VegaProps) {
   if (!spec) {
     return <div style={{ color: 'red' }}>No Vega spec provided.</div>;
   }
-  return <VegaEmbed spec={spec} options={{ actions: false }} />;
+  // ast: interpret expressions instead of compiling them, so CSP needs no 'unsafe-eval'.
+  return <VegaEmbed spec={spec} options={{ actions: false, ast: true }} />;
 }
 
 export default Vega;
