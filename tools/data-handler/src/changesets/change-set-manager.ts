@@ -22,6 +22,7 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import { homedir } from 'node:os';
+import semver from 'semver';
 import { basename, dirname, join } from 'node:path';
 
 import { CommandManager } from '../command-manager.js';
@@ -149,6 +150,19 @@ async function removeIfEmpty(root: string, folder: string) {
   }
 }
 
+// 'git worktree list -z' arrived in git 2.36
+const MIN_GIT_VERSION = '2.36.0';
+
+/** Fails clearly with a git too old for changeSets. */
+async function requireGit() {
+  const version = await GitManager.gitVersion();
+  if (semver.lt(version, MIN_GIT_VERSION)) {
+    throw new Error(
+      `Changesets need git ${MIN_GIT_VERSION} or newer; this system has ${version}`,
+    );
+  }
+}
+
 // Migrations of shared records, per repository: projects sharing one take
 // turns.
 const migrations = new Map<string, Promise<void>>();
@@ -167,6 +181,7 @@ const DEFAULT_MAX_OPEN = 3;
  */
 export class ChangeSetManager {
   private migration: Promise<void> | undefined;
+  private gitChecked: Promise<void> | undefined;
   private opened = new Map<
     string,
     { commands: CommandManager; lastUsed: number }
@@ -221,6 +236,8 @@ export class ChangeSetManager {
   }
 
   private async folders() {
+    this.gitChecked ??= requireGit();
+    await this.gitChecked;
     this.migration ??= this.migrateSharedRecords();
     await this.migration;
     return this.paths();
@@ -246,10 +263,12 @@ export class ChangeSetManager {
           info.status === 'active'
             ? info.branch
             : `${ARCHIVE_PREFIX}${info.status}/${info.id}`;
-        const ours = await this.git
-          .changedFiles(info.base, head)
-          .then((files) => files.length > 0)
-          .catch(() => false);
+        let ours = false;
+        try {
+          ours = (await this.git.changedFiles(info.base, head)).length > 0;
+        } catch {
+          // Its branch is gone: not ours to take
+        }
         if (ours) {
           await mkdir(records, { recursive: true });
           await rename(file, join(records, name));
@@ -377,21 +396,13 @@ export class ChangeSetManager {
    */
   public create(title: string): Promise<ChangeSetInfo> {
     return this.serialize(async () => {
-      if (!(await this.git.isRepo())) {
+      if (!(await this.git.isRepo()) || (await this.git.isIgnored())) {
         throw new Error(
           'Changesets need the project to be in a git repository',
         );
       }
       const context = getCommitContext();
-      await this.main.project.lock.read(async () => {
-        if (await this.git.hasUncommittedChanges()) {
-          await this.git.commit(
-            `Commit changes before changeset "${title}"`,
-            context.author,
-            commitTrailers(context),
-          );
-        }
-      });
+      await this.main.project.lock.read(() => this.commitProjectChanges());
       const id = randomUUID().slice(0, 8);
       const info: ChangeSetInfo = {
         id,
@@ -413,6 +424,18 @@ export class ChangeSetManager {
       this.logger.info({ id, title }, 'Changeset created');
       return info;
     });
+  }
+
+  /**
+   * Commits changes made in the project outside any changeSet: without
+   * autocommit, edits to the project stay uncommitted, and git sees neither
+   * them for an update nor a clean project for a merge. Who made them is not
+   * known, so the commit is the bot's. Call while holding the project's lock.
+   */
+  private async commitProjectChanges() {
+    if (await this.git.hasUncommittedChanges()) {
+      await this.git.commit('Commit changes made in the project');
+    }
   }
 
   /** All changeSets, active and closed, oldest first. */
@@ -769,6 +792,7 @@ export class ChangeSetManager {
     return this.serialize(async () => {
       const info = await this.active(id);
       await this.commitPending(info);
+      await this.main.project.lock.read(() => this.commitProjectChanges());
       const mainHead = await this.git.headCommit();
       const head = await this.git.resolveRef(info.branch);
       if ((await this.git.mergeBase(mainHead, head)) === mainHead) {
@@ -898,9 +922,8 @@ export class ChangeSetManager {
       const head = await this.git.resolveRef(info.branch);
 
       await project.lock.write(async () => {
-        if (await this.git.hasUncommittedChanges()) {
-          throw new Error('Main has uncommitted changes; commit them first');
-        }
+        // Committed changes move the project on: the changeSet is behind
+        await this.commitProjectChanges();
         const mainHead = await this.git.headCommit();
         if ((await this.git.mergeBase(mainHead, head)) !== mainHead) {
           throw new ChangeSetBehindError(id);
@@ -955,6 +978,45 @@ export class ChangeSetManager {
       const head = await this.git.resolveRef(info.branch);
       info.status = 'discarded';
       await this.retire(info, head);
+    });
+  }
+
+  /**
+   * Finishes closing changeSets that were left half closed, e.g. by a crash
+   * during a merge or discard: their worktrees are removed, and their
+   * branches archived and deleted. Worktrees whose folders are gone are
+   * forgotten.
+   * @returns the ids of the changeSets tidied up.
+   */
+  public cleanUp(): Promise<string[]> {
+    return this.serialize(async () => {
+      await this.git.pruneWorktrees();
+      const worktrees = await this.git.listWorktrees();
+      const tidied: string[] = [];
+      for (const info of await this.list()) {
+        if (info.status === 'active') continue;
+        const worktree = worktrees.find((item) => item.branch === info.branch);
+        const branchHead = await this.git
+          .resolveRef(info.branch)
+          .catch(() => undefined);
+        if (!worktree && !branchHead) continue;
+        this.close(info.id);
+        if (worktree) {
+          await this.git.removeWorktree(worktree.path, true);
+        }
+        if (branchHead) {
+          await this.git.updateRef(
+            `${ARCHIVE_PREFIX}${info.status}/${info.id}`,
+            branchHead,
+          );
+          await this.git.deleteBranch(info.branch, true);
+        }
+        tidied.push(info.id);
+      }
+      if (tidied.length > 0) {
+        this.logger.info({ tidied }, 'Half-closed changesets tidied up');
+      }
+      return tidied;
     });
   }
 

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -11,6 +11,7 @@ import {
 } from '../src/changesets/change-set-manager.js';
 import type { CardsChanged } from '../src/containers/project.js';
 import { copyDir, pathExists } from '../src/utils/file-utils.js';
+import { GitManager } from '../src/utils/git-manager.js';
 import { runWithCommitContext } from '../src/utils/commit-context.js';
 
 const alice = { name: 'Alice', email: 'alice@example.com', id: 'alice' };
@@ -58,6 +59,49 @@ describe('ChangeSetManager', () => {
     manager.dispose();
     main.project.dispose();
     await rm(dir, { recursive: true, force: true });
+  });
+
+  it('refuses a project that its repository ignores', async () => {
+    // The project only sits inside another repository, ignored there
+    const outer = join(dir, 'outer');
+    await copyDir(
+      'test/test-data/valid/decision-records',
+      join(outer, 'ignored'),
+    );
+    await writeFile(join(outer, '.gitignore'), 'ignored/\n');
+    const git = simpleGit(outer, {
+      config: ['user.name=Test', 'user.email=test@test.com'],
+    });
+    await git.init();
+    await git.add('.');
+    await git.commit('Outer');
+    const ignored = new CommandManager(join(outer, 'ignored'));
+    await ignored.initialize();
+    const inside = new ChangeSetManager(ignored, {
+      worktreesRoot: join(dir, 'worktrees'),
+    });
+    try {
+      await expect(inside.create('Nope')).rejects.toThrow(
+        'Changesets need the project to be in a git repository',
+      );
+      expect(await git.raw(['branch', '--list'])).not.toContain('cyberismo');
+    } finally {
+      inside.dispose();
+      ignored.project.dispose();
+    }
+  });
+
+  it('says so clearly when git is too old', async () => {
+    const version = vi
+      .spyOn(GitManager, 'gitVersion')
+      .mockResolvedValue('2.30.1');
+    try {
+      await expect(manager.create('Old git')).rejects.toThrow(
+        'Changesets need git 2.36.0 or newer; this system has 2.30.1',
+      );
+    } finally {
+      version.mockRestore();
+    }
   });
 
   it('starts from main, committing its uncommitted changes first', async () => {
@@ -314,6 +358,33 @@ describe('ChangeSetManager', () => {
     await expect(manager.open(id)).rejects.toThrow('merged');
   });
 
+  it('brings in project changes that were never committed', async () => {
+    // Without autocommit, edits to the project stay uncommitted
+    const project = new CommandManager(projectPath);
+    await project.initialize();
+    const { id } = await as(alice, () => manager.create('Pending'));
+    const changeSet = await manager.open(id);
+    await as(alice, () =>
+      changeSet.editCmd.editCardContent('decision_6', 'Mine'),
+    );
+    await as(bob, () =>
+      project.editCmd.editCardContent('decision_5', 'Uncommitted'),
+    );
+    expect(await main.project.git.hasUncommittedChanges()).toBe(true);
+
+    await expect(as(bob, () => manager.merge(id))).rejects.toBeInstanceOf(
+      ChangeSetBehindError,
+    );
+    expect(await main.project.git.hasUncommittedChanges()).toBe(false);
+    expect(await as(alice, () => manager.update(id))).toEqual({
+      updated: true,
+      conflicts: [],
+    });
+    expect(content(changeSet, 'decision_5')).toBe('Uncommitted');
+    await as(bob, () => manager.merge(id));
+    project.project.dispose();
+  });
+
   it('refuses to merge changes that add validation errors', async () => {
     const { id } = await as(alice, () => manager.create('Broken'));
     const changeSet = await manager.open(id);
@@ -445,6 +516,39 @@ describe('ChangeSetManager', () => {
     } finally {
       other.dispose();
     }
+  });
+
+  it('finishes closing a changeset left half closed', async () => {
+    const { id, branch } = await as(alice, () => manager.create('Crashed'));
+    const changeSet = await manager.open(id);
+    const worktree = changeSet.project.basePath;
+    // Record saved as discarded, but the worktree and branch never went
+    const record = join(
+      projectPath,
+      '.git',
+      'cyberismo',
+      'projects',
+      encodeURIComponent('/'),
+      'changesets',
+      `${id}.json`,
+    );
+    const info = JSON.parse(await readFile(record, 'utf-8'));
+    await writeFile(record, JSON.stringify({ ...info, status: 'discarded' }));
+
+    expect(await manager.cleanUp()).toEqual([id]);
+
+    expect(pathExists(worktree)).toBe(false);
+    const git = simpleGit(projectPath);
+    expect(await git.raw(['branch', '--list', branch])).toBe('');
+    expect(
+      (
+        await git.raw([
+          'rev-parse',
+          `refs/cyberismo/changesets/discarded/${id}`,
+        ])
+      ).trim(),
+    ).toMatch(/^[0-9a-f]{40}$/);
+    expect(await manager.cleanUp()).toEqual([]);
   });
 
   it('checks a changeSet out again when its worktree went missing', async () => {

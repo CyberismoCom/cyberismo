@@ -347,6 +347,18 @@ export class GitManager {
     return worktrees;
   }
 
+  /**
+   * Whether the repository ignores the project's content, i.e. the project
+   * only sits inside someone else's repository.
+   */
+  async isIgnored(): Promise<boolean> {
+    // Prints the path when ignored; exits 1 quietly when not
+    const output = await this.git
+      .raw(['check-ignore', 'cardRoot'])
+      .catch(() => '');
+    return output.trim() !== '';
+  }
+
   /** Forget worktrees whose folders are gone. */
   async pruneWorktrees(): Promise<void> {
     await this.git.raw(['worktree', 'prune']);
@@ -628,6 +640,16 @@ export class GitManager {
    */
   async updateRef(ref: string, target: string): Promise<void> {
     await this.git.raw(['update-ref', ref, target]);
+  }
+
+  /**
+   * The installed git's version, e.g. '2.54.0'.
+   */
+  static async gitVersion(): Promise<string> {
+    const output = await createGit({ timeout: gitTimeout() }).raw([
+      '--version',
+    ]);
+    return output.match(/(\d+\.\d+\.\d+)/)?.[1] ?? '0.0.0';
   }
 
   /**

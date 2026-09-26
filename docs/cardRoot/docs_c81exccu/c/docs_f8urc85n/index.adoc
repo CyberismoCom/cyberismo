@@ -1,0 +1,73 @@
+A changeset collects changes to a project, yours and your AI assistants', until you have reviewed them. While you work in a changeset, the project itself stays as it was. When you are done, you review the changes card by card, bring in anything that changed in the project meanwhile, and merge. Changesets are especially useful when an AI assistant makes many changes at once.
+
+== Before you start
+
+* The project must be in a Git repository of its own. See {{#xref}}"cardKey":"docs_dovqsuuq"{{/xref}}.
+* Changesets need Git 2.36 or newer.
+
+Each changeset is a Git branch with its own working copy (a Git worktree) of the project. A changeset belongs to one project, also when several projects share a repository.
+
+== Starting a changeset
+
+In the app, open the project menu (the three dots beside the project name) and select *Start a changeset…*. Describe what the changeset is for, and select *Start*.
+
+The new changeset becomes your _active_ changeset in that project. The toolbar shows its name as long as it is active: everything you change in the project, and everything your AI assistants change through the MCP server, goes into the changeset instead of the project.
+
+You can also ask your AI assistant to start a changeset, or use the command line (see below).
+
+To stop working in the changeset without merging it, select *Back to the project* from the toolbar or the project menu. The changeset stays; you can return to it with *Work in* in the project menu. Anyone can work in any active changeset.
+
+== Reviewing the changes
+
+Select the changeset's name in the toolbar and then *Review changes*. The review page lists every changed card:
+
+* what happened to it: created, modified, moved or deleted
+* which fields, content, links or attachments changed
+* who changed it: a person, or an AI assistant acting for them
+
+Select a card to see the changes: changed fields side by side, and the content line by line. Mark a card *Reviewed* once you have checked it. If the card changes again after that, it counts as not reviewed. Select the undo button to take back a changeset's changes to one card.
+
+== Bringing in changes from the project
+
+If the project changed after the changeset was started, for example because another changeset was merged, the changeset has to catch up before it can be merged. Select *Update from project*.
+
+Changes to different cards, and to different fields of the same card, are combined automatically. When the project and the changeset changed the same thing differently, the update shows the conflicts and changes nothing until you choose, for each conflicting file, whether to keep the changeset's version or take the project's.
+
+== Merging or discarding
+
+Select *Merge* to bring the changeset's changes into the project. If some cards are not marked reviewed, you are asked to confirm. The merge is recorded in Git with you as its author.
+
+Select *Discard* to abandon a changeset. Nothing of it reaches the project, but its work stays recoverable in Git under `refs/cyberismo/changesets/discarded/`.
+
+After a merge or a discard, the app returns to the card you viewed last.
+
+== Changesets on the command line
+
+[cols="2,3", options="header"]
+|===
+| Command | Does
+| `cyberismo changeset start <title>` | Starts a changeset and makes it the active one in `cyberismo app`
+| `cyberismo changeset list` | Lists active changesets; `*` marks the one you work in
+| `cyberismo changeset use <id\|main>` | Works in another changeset, or with `main` in the project
+| `cyberismo changeset diff <id>` | Shows what a changeset changes, card by card
+| `cyberismo changeset review <id> <cardKey>` | Marks a card reviewed
+| `cyberismo changeset revert <id> <cardKey>` | Takes back a changeset's changes to one card
+| `cyberismo changeset update <id>` | Brings in the project's changes; settle conflicts with `--ours` or `--theirs`
+| `cyberismo changeset merge <id>` | Merges the changeset into the project
+| `cyberismo changeset discard <id>` | Abandons the changeset
+|===
+
+To edit cards in a changeset with other commands, point them at the changeset's folder with `-p`; `cyberismo changeset list` shows it.
+
+== AI assistants
+
+An AI assistant connected through the MCP server works wherever you work: while you have an active changeset, the assistant's reads and changes go to it, and its tool results name the changeset. The assistant can start a changeset for you with `start_changeset` and summarise what it changed with `get_changeset`. It cannot merge, discard or review: merging stays your decision.
+
+== Server settings
+
+[cols="2,3", options="header"]
+|===
+| Environment variable | Meaning
+| `CYBERISMO_CHANGESETS_DIR` | Folder for changeset worktrees, outside any folder scanned for projects. Default: `~/.cyberismo/changesets`.
+| `CYBERISMO_CHANGESETS_MAX_OPEN` | How many changesets are kept open at once per project; each holds its own copy of the project in memory. Default: 3.
+|===

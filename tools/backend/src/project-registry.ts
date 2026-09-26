@@ -17,7 +17,7 @@ import {
   type ProjectProvider,
 } from '@cyberismo/data-handler';
 import { ProjectEvents } from './domain/events/project-events.js';
-import { changeSetsDirFromEnv } from './utils.js';
+import { changeSetsDirFromEnv, changeSetsMaxOpenFromEnv } from './utils.js';
 
 // An open changeSet unused this long is closed; its worktree stays.
 const CHANGESET_IDLE_MS = 15 * 60 * 1000;
@@ -103,6 +103,7 @@ export class ProjectRegistry implements ProjectProvider {
       }
       manager = new ChangeSetManager(commands, {
         worktreesRoot: changeSetsDirFromEnv(),
+        maxOpen: changeSetsMaxOpenFromEnv(),
         onClose: (_id, closed) => {
           this.changeSetCommands.delete(closed);
           this.events.get(closed)?.dispose();
@@ -110,6 +111,8 @@ export class ProjectRegistry implements ProjectProvider {
         },
       });
       this.changeSetManagers.set(commands, manager);
+      // Tidy up after a crash in the middle of closing a changeSet
+      void manager.cleanUp().catch(() => undefined);
       this.idleTimer ??= setInterval(() => {
         for (const changeSets of this.changeSetManagers.values()) {
           changeSets.closeIdle(CHANGESET_IDLE_MS);

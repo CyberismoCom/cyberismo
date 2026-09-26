@@ -65,6 +65,6 @@ read or write, is served from the calling user's active changeset, tool
 results and `list_projects` name it, and agents get `start_changeset` and
 `get_changeset` tools, but none to merge, discard or review.
 
-Worktrees go to `CYBERISMO_CHANGESETS_DIR` (default `~/.cyberismo/changesets`),
+Changesets need git 2.36 or newer. Worktrees go to `CYBERISMO_CHANGESETS_DIR` (default `~/.cyberismo/changesets`),
 which must lie outside the folder scanned for projects. A changeset unused for
-15 minutes is closed; its worktree stays.
+15 minutes is closed; its worktree stays. At most `CYBERISMO_CHANGESETS_MAX_OPEN` (default 3) are open per project at once, since each holds its own copy of the project in memory. Changes made in the project outside a changeset, left uncommitted when autocommit is off, are committed before an update or merge.
