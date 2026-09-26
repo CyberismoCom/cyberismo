@@ -20,7 +20,10 @@ import {
 } from 'react';
 import { z } from 'zod';
 import { getConfig } from '../utils';
-import { callApi, projectApiPaths } from '../swr';
+import { mutate } from 'swr';
+import { callApi, changeSetApiPaths, projectApiPaths } from '../swr';
+import { store } from '../store';
+import { loadActiveChangeSet } from '../api/changesets';
 import {
   ProjectEventsContext,
   type CardUpdatedEvent,
@@ -47,6 +50,11 @@ const cardUpdatedSchema = z.object({
   userId: z.string(),
   userName: z.string(),
   actor: z.enum(['human', 'agent']).optional(),
+});
+
+const changeSetUpdatedSchema = z.object({
+  id: z.string(),
+  action: z.string(),
 });
 
 function parseData(event: MessageEvent): unknown {
@@ -150,10 +158,27 @@ export function ProjectEventsProvider({
         if (!parsed.success) return;
         for (const listener of cardListeners.current) listener(parsed.data);
       });
+      current.addEventListener('changeset.updated', (event) => {
+        if (stale()) return;
+        const parsed = changeSetUpdatedSchema.safeParse(parseData(event));
+        if (!parsed.success) return;
+        const base = changeSetApiPaths(projectPrefix).list();
+        void mutate((key) => typeof key === 'string' && key.startsWith(base));
+        const active =
+          store.getState().changeSet.activeByPrefix[projectPrefix] ?? null;
+        const { id, action } = parsed.data;
+        if (id === active && (action === 'merged' || action === 'discarded')) {
+          void loadActiveChangeSet(projectPrefix);
+        }
+      });
       current.addEventListener('error', () => {
         if (stale()) return;
         connectionId = undefined;
         setPresence({});
+        // A changeSet's stream closes when someone merges or discards it
+        if (store.getState().changeSet.activeByPrefix[projectPrefix]) {
+          void loadActiveChangeSet(projectPrefix);
+        }
       });
     };
 

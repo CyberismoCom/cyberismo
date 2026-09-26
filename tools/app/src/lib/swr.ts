@@ -35,12 +35,23 @@ export const globalApiPaths = {
   publicKey: () => '/api/public-key',
 };
 
+// The project's own API base, whatever changeSet is active.
+function projectBase(projectPrefix?: string): string {
+  return `/api/projects/${encodeURIComponent(resolveProjectPrefix(projectPrefix))}`;
+}
+
 /**
- * Returns project-scoped API paths for the given project.
+ * Returns project-scoped API paths for the given project. While the user has
+ * an active changeSet in it, the paths lead into the changeSet: the app then
+ * reads and writes the changeSet instead of the project.
  * If `projectPrefix` is omitted, it is resolved from `window.location.pathname`.
  */
 export function projectApiPaths(projectPrefix?: string) {
-  const base = `/api/projects/${encodeURIComponent(resolveProjectPrefix(projectPrefix))}`;
+  const prefix = resolveProjectPrefix(projectPrefix);
+  const changeSet = store.getState().changeSet?.activeByPrefix[prefix];
+  const base = changeSet
+    ? `${projectBase(prefix)}/changesets/${encodeURIComponent(changeSet)}`
+    : projectBase(prefix);
   return {
     cards: () => `${base}/cards`,
     card: (key: string) => `${base}/cards/${key}`,
@@ -104,6 +115,29 @@ export function projectApiPaths(projectPrefix?: string) {
     exportCard: () => `${base}/cards/export-pdf`,
     workflowGraph: (resourceName: string, cardKey?: string) =>
       `${base}/resources/${resourceName}/graph${cardKey ? `?card=${encodeURIComponent(cardKey)}` : ''}`,
+  };
+}
+
+/**
+ * Paths for managing the project's changeSets: always the project's own,
+ * whatever changeSet is active.
+ */
+export function changeSetApiPaths(projectPrefix?: string) {
+  const base = `${projectBase(projectPrefix)}/changesets`;
+  const one = (id: string) => `${base}/${encodeURIComponent(id)}`;
+  return {
+    list: () => base,
+    active: () => `${base}/active`,
+    changeSet: one,
+    changes: (id: string) => `${one(id)}/changes`,
+    cardDiff: (id: string, key: string) =>
+      `${one(id)}/changes/${encodeURIComponent(key)}`,
+    reviewed: (id: string, key: string) =>
+      `${one(id)}/changes/${encodeURIComponent(key)}/reviewed`,
+    revert: (id: string, key: string) =>
+      `${one(id)}/changes/${encodeURIComponent(key)}/revert`,
+    update: (id: string) => `${one(id)}/update`,
+    merge: (id: string) => `${one(id)}/merge`,
   };
 }
 

@@ -33,7 +33,7 @@ import {
 /**
  * Manages a project's changeSets. The cards inside a changeSet are served
  * by the project routes mounted under /changesets/:changeSetId (app.ts).
- * Contract: tools/backend/README.md, "ChangeSets".
+ * Contract: tools/backend/README.md, "Changesets".
  */
 const router = new Hono();
 router.use('*', disableSSG());
@@ -41,9 +41,16 @@ router.use('*', disableSSG());
 const changeSets = (c: Context) =>
   c.get('registry').changeSetsFor(c.get('commands'));
 
-// Tells the project's viewers a changeSet changed.
-const announce = (c: Context, id: string, action: string) =>
-  c.get('events').changeSetUpdated(id, action, c.get('user'));
+// Tells the project's viewers a changeSet changed, and those working in it:
+// they watch the changeSet's own stream.
+function announce(c: Context, id: string, action: string) {
+  const user = c.get('user');
+  c.get('events').changeSetUpdated(id, action, user);
+  const opened = changeSets(c).openedCommands(id);
+  if (opened) {
+    c.get('registry').eventsFor(opened).changeSetUpdated(id, action, user);
+  }
+}
 
 // Maps changeSet errors to responses; anything else is a server error.
 function failure(c: Context, error: unknown) {

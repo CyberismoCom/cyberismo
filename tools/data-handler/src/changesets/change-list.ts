@@ -274,7 +274,16 @@ export async function computeChangeList(
       change.previousPath = card.before!.cardPath;
       change.parent = { before: beforeParent, after: afterParent };
     }
-    return [change];
+    // Only bookkeeping differs (e.g. 'lastUpdated' from a write that
+    // changed nothing): nothing to review
+    const reviewable =
+      kind !== 'modified' ||
+      change.fields.length > 0 ||
+      change.contentChanged ||
+      change.reordered ||
+      change.links.added.length + change.links.removed.length > 0 ||
+      change.attachments.added.length + change.attachments.removed.length > 0;
+    return reviewable ? [change] : [];
   });
   changes.sort((a, b) => a.path.localeCompare(b.path));
   return { base, head, cards: changes, resources };

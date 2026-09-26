@@ -129,6 +129,24 @@ describe('ChangeSetManager', () => {
     });
   });
 
+  it('leaves out cards where only bookkeeping differs', async () => {
+    const { id } = await as(alice, () => manager.create('Same'));
+    const changeSet = await manager.open(id);
+    const commits = async () =>
+      (await simpleGit(changeSet.project.basePath).log()).total;
+    const before = await commits();
+    // Stamps 'lastUpdated' and nothing else
+    await as(alice, () =>
+      changeSet.editCmd.editCardContent(
+        'decision_5',
+        content(changeSet, 'decision_5')!,
+      ),
+    );
+
+    expect(await commits()).toBe(before + 1);
+    expect((await manager.changes(id)).cards).toEqual([]);
+  });
+
   it('counts a card as reviewed only as it was when reviewed', async () => {
     const { id } = await as(alice, () => manager.create('Review'));
     const changeSet = await manager.open(id);
@@ -286,7 +304,7 @@ describe('ChangeSetManager', () => {
     const [author, parents, ...trailers] = merge.trim().split('\n');
     expect(author).toBe('Bob');
     expect(parents.split(' ')).toHaveLength(2);
-    expect(trailers).toContain(`Cyberismo-ChangeSet: ${id}`);
+    expect(trailers).toContain(`Cyberismo-Changeset: ${id}`);
     expect(await git.raw(['branch', '--list', info.branch])).toBe('');
     expect(
       (

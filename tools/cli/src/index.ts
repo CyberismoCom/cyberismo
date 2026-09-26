@@ -1779,7 +1779,7 @@ cleanCmd.action(async (options: CommandOptions<'clean'>) => {
 // Cards inside a changeSet are edited with the usual commands, pointed at the
 // changeSet's project path with '-p'.
 const changesetCmd = new CommandGroup('changeset').description(
-  'Collect changes in a changeSet, review them card by card, and merge them',
+  'Collect changes in a changeset, review them card by card, and merge them',
 );
 program.addCommand(changesetCmd);
 
@@ -1855,9 +1855,9 @@ function printChanges(changes: ChangeSetChanges) {
 changesetCmd
   .command('start')
   .description(
-    'Start a changeSet from the project as it is now, and work in it: changes made in "cyberismo app", by you or your agents, go into it',
+    'Start a changeset from the project as it is now, and work in it: changes made in "cyberismo app", by you or your agents, go into it',
   )
-  .argument('<title>', 'What the changeSet is for')
+  .argument('<title>', 'What the changeset is for')
   .option('--no-activate', 'Start it without working in it')
   .action(
     async (
@@ -1883,9 +1883,9 @@ changesetCmd
 changesetCmd
   .command('use')
   .description(
-    'Work in a changeSet in "cyberismo app", or with "main" back in the project',
+    'Work in a changeset in "cyberismo app", or with "main" back in the project',
   )
-  .argument('<id>', 'ChangeSet id, or "main"')
+  .argument('<id>', 'Changeset id, or "main"')
   .action(async (id: string, options: { projectPath?: string }) => {
     await withChangeSets(options, (manager) =>
       manager.setActive(LOCAL_USER_ID, id === 'main' ? null : id),
@@ -1895,8 +1895,8 @@ changesetCmd
 
 changesetCmd
   .command('list')
-  .description('List changeSets')
-  .option('-a, --all', 'Include merged and discarded changeSets')
+  .description('List changesets')
+  .option('-a, --all', 'Include merged and discarded changesets')
   .action(async (options: { projectPath?: string; all?: boolean }) => {
     await withChangeSets(options, async (manager) => {
       const active = await manager.getActive(LOCAL_USER_ID);
@@ -1916,8 +1916,8 @@ changesetCmd
 
 changesetCmd
   .command('diff')
-  .description('Show what a changeSet changes, card by card (✓ = reviewed)')
-  .argument('<id>', 'ChangeSet id')
+  .description('Show what a changeset changes, card by card (✓ = reviewed)')
+  .argument('<id>', 'Changeset id')
   .option('--json', 'Print the full change list as JSON')
   .action(
     async (id: string, options: { projectPath?: string; json?: boolean }) => {
@@ -1935,7 +1935,7 @@ changesetCmd
 changesetCmd
   .command('review')
   .description('Mark a card reviewed as it stands now')
-  .argument('<id>', 'ChangeSet id')
+  .argument('<id>', 'Changeset id')
   .argument('<cardKey>', 'Card key')
   .option('--clear', 'Clear the reviewed mark instead')
   .action(
@@ -1953,8 +1953,8 @@ changesetCmd
 
 changesetCmd
   .command('revert')
-  .description("Undo a changeSet's changes to one card")
-  .argument('<id>', 'ChangeSet id')
+  .description("Undo a changeset's changes to one card")
+  .argument('<id>', 'Changeset id')
   .argument('<cardKey>', 'Card key')
   .action(
     async (id: string, cardKey: string, options: { projectPath?: string }) => {
@@ -1967,11 +1967,11 @@ changesetCmd
 
 changesetCmd
   .command('update')
-  .description("Bring the project's latest changes into a changeSet")
-  .argument('<id>', 'ChangeSet id')
+  .description("Bring the project's latest changes into a changeset")
+  .argument('<id>', 'Changeset id')
   .option(
     '--ours <paths...>',
-    "Settle these conflicted files with the changeSet's version",
+    "Settle these conflicted files with the changeset's version",
   )
   .option(
     '--theirs <paths...>',
@@ -2007,8 +2007,8 @@ changesetCmd
 
 changesetCmd
   .command('merge')
-  .description('Merge a changeSet into the project')
-  .argument('<id>', 'ChangeSet id')
+  .description('Merge a changeset into the project')
+  .argument('<id>', 'Changeset id')
   .action(async (id: string, options: { projectPath?: string }) => {
     await withChangeSets(options, async (manager) => {
       const info = await manager.merge(id);
@@ -2018,8 +2018,8 @@ changesetCmd
 
 changesetCmd
   .command('discard')
-  .description('Abandon a changeSet (its work stays recoverable in git)')
-  .argument('<id>', 'ChangeSet id')
+  .description('Abandon a changeset (its work stays recoverable in git)')
+  .argument('<id>', 'Changeset id')
   .action(async (id: string, options: { projectPath?: string }) => {
     await withChangeSets(options, (manager) => manager.discard(id));
     console.log('Discarded');

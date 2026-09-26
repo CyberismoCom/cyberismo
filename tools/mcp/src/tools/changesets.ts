@@ -100,10 +100,10 @@ export function registerChangeSetTools(
     'start_changeset',
     {
       description:
-        "Start a changeSet in a project and make it the user's active one: from then on, the user's changes and yours to that project go into the changeSet instead of the project, until the user merges or discards it. Only start one when the user asks for it.",
+        "Start a changeset in a project and make it the user's active one: from then on, the user's changes and yours to that project go into the changeset instead of the project, until the user merges or discards it. Only start one when the user asks for it.",
       inputSchema: {
         projectPrefix: projectPrefixParam,
-        title: z.string().min(1).max(200).describe('What the changeSet is for'),
+        title: z.string().min(1).max(200).describe('What the changeset is for'),
       },
     },
     async ({ projectPrefix, title }) => {
@@ -111,7 +111,7 @@ export function registerChangeSetTools(
         const info = await changeSets.start(projectPrefix, title);
         return toolResult({ changeSet: summary(info) });
       } catch (error) {
-        return toolError('starting changeSet', error);
+        return toolError('starting changeset', error);
       }
     },
   );
@@ -120,7 +120,7 @@ export function registerChangeSetTools(
     'get_changeset',
     {
       description:
-        "Show the user's active changeSet in a project and what it changes so far, card by card. Use it to report what you changed. Without an active changeSet, changes go straight to the project.",
+        "Show the user's active changeset in a project and what it changes so far, card by card. Use it to report what you changed. Without an active changeset, changes go straight to the project.",
       inputSchema: { projectPrefix: projectPrefixParam },
     },
     async ({ projectPrefix }) => {
@@ -145,7 +145,7 @@ export function registerChangeSetTools(
           resources: changes.resources.map((file) => file.path),
         });
       } catch (error) {
-        return toolError('reading changeSet', error);
+        return toolError('reading changeset', error);
       }
     },
   );

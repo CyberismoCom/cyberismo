@@ -58,7 +58,7 @@ export function createMcpServer(
     'Call list_projects to discover available projects. Pass projectPrefix to every tool call.',
     ...(provider.changeSets
       ? [
-          'When the user has an active changeSet in a project, list_projects and your tool results name it: your reads and changes there are served from it, and the user reviews and merges it. Start one with start_changeset only when the user asks.',
+          'When the user has an active changeset in a project, list_projects and your tool results name it: your reads and changes there are served from it, and the user reviews and merges it. Start one with start_changeset only when the user asks.',
         ]
       : []),
   ].join(' ');

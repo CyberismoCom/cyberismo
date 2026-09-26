@@ -29,7 +29,16 @@ const persistConfig = {
   storage,
   // Transient UI state is not persisted: rehydrating it would replay a prompt or
   // a notification on a later visit, detached from the edit that raised it.
-  blacklist: ['notifications', 'cleanPrompt', 'swr', 'page', 'card', 'session'],
+  blacklist: [
+    'notifications',
+    'cleanPrompt',
+    'swr',
+    'page',
+    'card',
+    'session',
+    // Mirrors the server, which is the truth; fetched when a project opens
+    'changeSet',
+  ],
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

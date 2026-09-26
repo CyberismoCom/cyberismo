@@ -106,14 +106,14 @@ export interface ChangeSetManagerOptions {
 /** Thrown when a changeSet must first be updated from main. */
 export class ChangeSetBehindError extends Error {
   constructor(id: string) {
-    super(`ChangeSet '${id}' is behind main: update it from main first`);
+    super(`Changeset '${id}' is behind main: update it from main first`);
   }
 }
 
 /** Thrown for a changeSet id that does not exist. */
 export class ChangeSetNotFoundError extends Error {
   constructor(id: string) {
-    super(`ChangeSet '${id}' does not exist`);
+    super(`Changeset '${id}' does not exist`);
   }
 }
 
@@ -123,21 +123,21 @@ export class ChangeSetInvalidError extends Error {
     id: string,
     public readonly errors: string[],
   ) {
-    super(`ChangeSet '${id}' does not validate:\n${errors.join('\n')}`);
+    super(`Changeset '${id}' does not validate:\n${errors.join('\n')}`);
   }
 }
 
 /** Thrown when a card the changeSet did not change is asked about. */
 export class CardUnchangedError extends Error {
   constructor(id: string, cardKey: string) {
-    super(`Card '${cardKey}' has no changes in changeSet '${id}'`);
+    super(`Card '${cardKey}' has no changes in changeset '${id}'`);
   }
 }
 
 /** Thrown when a merged or discarded changeSet is asked to change. */
 export class ChangeSetClosedError extends Error {
   constructor(id: string, status: string) {
-    super(`ChangeSet '${id}' is ${status}`);
+    super(`Changeset '${id}' is ${status}`);
   }
 }
 
@@ -302,14 +302,14 @@ export class ChangeSetManager {
     return this.serialize(async () => {
       if (!(await this.git.isRepo())) {
         throw new Error(
-          'ChangeSets need the project to be in a git repository',
+          'Changesets need the project to be in a git repository',
         );
       }
       const context = getCommitContext();
       await this.main.project.lock.read(async () => {
         if (await this.git.hasUncommittedChanges()) {
           await this.git.commit(
-            `Commit changes before changeSet "${title}"`,
+            `Commit changes before changeset "${title}"`,
             context.author,
             commitTrailers(context),
           );
@@ -332,7 +332,7 @@ export class ChangeSetManager {
         info.base,
       );
       await this.save(info);
-      this.logger.info({ id, title }, 'ChangeSet created');
+      this.logger.info({ id, title }, 'Changeset created');
       return info;
     });
   }
@@ -409,6 +409,11 @@ export class ChangeSetManager {
     return commands;
   }
 
+  /** The CommandManager of a changeSet, if it is open now. */
+  public openedCommands(id: string): CommandManager | undefined {
+    return this.opened.get(id)?.commands;
+  }
+
   /** Closes a changeSet's CommandManager; its worktree stays. */
   public close(id: string): void {
     const opened = this.opened.get(id);
@@ -455,7 +460,7 @@ export class ChangeSetManager {
     const context = getCommitContext();
     const commit = () =>
       git.commit(
-        'Commit changes made in the changeSet folder',
+        'Commit changes made in the changeset folder',
         context.author,
         commitTrailers(context),
       );
@@ -608,7 +613,7 @@ export class ChangeSetManager {
             .filter((key) => key !== cardKey && before.has(key));
           if (survivors.length > 0) {
             throw new Error(
-              `Card '${cardKey}' holds cards that existed before the changeSet (${[...new Set(survivors)].join(', ')}); move them out first`,
+              `Card '${cardKey}' holds cards that existed before the changeset (${[...new Set(survivors)].join(', ')}); move them out first`,
             );
           }
           await rm(join(root, change.path), { recursive: true, force: true });
@@ -764,7 +769,7 @@ export class ChangeSetManager {
           return { updated: false, conflicts: unresolved };
         }
         await git.commit(
-          `Update changeSet "${info.title}" from main`,
+          `Update changeset "${info.title}" from main`,
           context.author,
           commitTrailers(context),
           { allowEmpty: true },
@@ -829,9 +834,9 @@ export class ChangeSetManager {
           throw new ChangeSetBehindError(id);
         }
         await this.git.commit(
-          `Merge changeSet "${info.title}"`,
+          `Merge changeset "${info.title}"`,
           context.author,
-          { ...commitTrailers(context), 'Cyberismo-ChangeSet': id },
+          { ...commitTrailers(context), 'Cyberismo-Changeset': id },
           { allowEmpty: true },
         );
         await project.reload();
@@ -890,6 +895,6 @@ export class ChangeSetManager {
         Object.entries(active).filter(([, id]) => id !== info.id),
       ),
     );
-    this.logger.info({ id: info.id, status: info.status }, 'ChangeSet closed');
+    this.logger.info({ id: info.id, status: info.status }, 'Changeset closed');
   }
 }

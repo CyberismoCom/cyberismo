@@ -38,6 +38,7 @@ import type { ResourceName } from '@/lib/constants';
 import { RESOURCES } from '@/lib/constants';
 import { ThemeModeToggle } from './ThemeModeToggle';
 import UserMenu from './UserMenu';
+import { ChangeSetIndicator } from './changesets/ChangeSetIndicator';
 
 interface AppToolbarProps {
   onCreate: (resourceType?: ResourceName) => void;
@@ -173,6 +174,7 @@ export default function AppToolbar({ onCreate, onMenuClick }: AppToolbarProps) {
         </Link>
       </Box>
       <Box sx={{ flexGrow: 1 }} />
+      <ChangeSetIndicator />
       <Box sx={{ display: { xs: 'none', sm: 'inline-flex' } }}>
         <ThemeModeToggle />
       </Box>
