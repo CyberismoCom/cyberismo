@@ -11,8 +11,17 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { CommandManager, type ProjectProvider } from '@cyberismo/data-handler';
+import {
+  ChangeSetManager,
+  CommandManager,
+  type ProjectProvider,
+} from '@cyberismo/data-handler';
 import { ProjectEvents } from './domain/events/project-events.js';
+import { changeSetsDirFromEnv } from './utils.js';
+
+// An open changeSet unused this long is closed; its worktree stays.
+const CHANGESET_IDLE_MS = 15 * 60 * 1000;
+const CHANGESET_IDLE_CHECK_MS = 60 * 1000;
 
 export type ProjectRegistryEntry = {
   prefix: string;
@@ -36,6 +45,10 @@ export interface ScannedProject {
 export class ProjectRegistry implements ProjectProvider {
   private projects: Map<string, CommandManager> = new Map();
   private events = new Map<CommandManager, ProjectEvents>();
+  private changeSets = new Map<CommandManager, ChangeSetManager>();
+  // CommandManagers of the changeSets open now
+  private changeSetCommands = new Set<CommandManager>();
+  private idleTimer: ReturnType<typeof setInterval> | undefined;
   readonly options: ConstructorParameters<typeof CommandManager>[1];
 
   constructor(
@@ -66,13 +79,59 @@ export class ProjectRegistry implements ProjectProvider {
   eventsFor(commands: CommandManager): ProjectEvents {
     let events = this.events.get(commands);
     if (!events) {
-      if (![...this.projects.values()].includes(commands)) {
+      if (
+        ![...this.projects.values()].includes(commands) &&
+        !this.changeSetCommands.has(commands)
+      ) {
         throw new Error('Project is not registered');
       }
       events = new ProjectEvents(commands.project);
       this.events.set(commands, events);
     }
     return events;
+  }
+
+  /**
+   * The changeSets of a registered project. Open changeSets unused for a
+   * while are closed, together with their event streams.
+   */
+  changeSetsFor(commands: CommandManager): ChangeSetManager {
+    let manager = this.changeSets.get(commands);
+    if (!manager) {
+      if (![...this.projects.values()].includes(commands)) {
+        throw new Error('Project is not registered');
+      }
+      manager = new ChangeSetManager(commands, {
+        worktreesRoot: changeSetsDirFromEnv(),
+        onClose: (_id, closed) => {
+          this.changeSetCommands.delete(closed);
+          this.events.get(closed)?.dispose();
+          this.events.delete(closed);
+        },
+      });
+      this.changeSets.set(commands, manager);
+      this.idleTimer ??= setInterval(() => {
+        for (const changeSets of this.changeSets.values()) {
+          changeSets.closeIdle(CHANGESET_IDLE_MS);
+        }
+      }, CHANGESET_IDLE_CHECK_MS);
+      this.idleTimer.unref();
+    }
+    return manager;
+  }
+
+  /**
+   * The CommandManager serving one of a project's changeSets, opening it if
+   * needed.
+   * @throws ChangeSetNotFoundError, ChangeSetClosedError
+   */
+  async openChangeSet(
+    commands: CommandManager,
+    id: string,
+  ): Promise<CommandManager> {
+    const changeSet = await this.changeSetsFor(commands).open(id);
+    this.changeSetCommands.add(changeSet);
+    return changeSet;
   }
 
   list(): ProjectListItem[] {
@@ -95,6 +154,12 @@ export class ProjectRegistry implements ProjectProvider {
   }
 
   dispose(): void {
+    clearInterval(this.idleTimer);
+    this.idleTimer = undefined;
+    for (const changeSets of this.changeSets.values()) {
+      changeSets.dispose();
+    }
+    this.changeSets.clear();
     for (const events of this.events.values()) {
       events.dispose();
     }

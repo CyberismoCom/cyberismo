@@ -13,7 +13,10 @@
 import { Hono, type MiddlewareHandler } from 'hono';
 import { gitOptionsFromEnv, staticFrontendDirRelative } from './utils.js';
 import { serveStatic } from '@hono/node-server/serve-static';
-import { attachProjectRegistry } from './middleware/commandManager.js';
+import {
+  attachChangeSet,
+  attachProjectRegistry,
+} from './middleware/commandManager.js';
 import calculationsRouter from './domain/calculations/index.js';
 import cardsRouter from './domain/cards/index.js';
 import cardTypesRouter from './domain/cardTypes/index.js';
@@ -39,6 +42,7 @@ import { isSSGContext } from 'hono/ssg';
 import type { AppVars, TreeOptions } from './types.js';
 import treeMiddleware from './middleware/tree.js';
 import projectRouter from './domain/project/index.js';
+import changeSetsRouter from './domain/changesets/index.js';
 import { createMcpRouter } from './domain/mcp/index.js';
 import { writableProjects } from './overlay.js';
 import { createAuthRouter } from './domain/auth/index.js';
@@ -55,9 +59,13 @@ import { simpleMcpAuthRouter } from '@hono/mcp';
  */
 function createProjectScopedRoutes(
   middleware: MiddlewareHandler,
+  withChangeSets = true,
 ): Hono<{ Variables: AppVars }> {
   const projectScoped = new Hono<{ Variables: AppVars }>();
   projectScoped.use('*', middleware);
+  if (withChangeSets) {
+    projectScoped.route('/changesets', changeSetsRouter);
+  }
   projectScoped.route('/calculations', calculationsRouter);
   projectScoped.route('/cards', cardsRouter);
   projectScoped.route('/cardTypes', cardTypesRouter);
@@ -223,6 +231,13 @@ export function createApp(
     // Normal mode: dynamic :prefix param
     const scoped = createProjectScopedRoutes(attachProjectRegistry(registry));
     app.route('/api/projects/:prefix', scoped);
+    // The same routes inside a changeSet. Mounted after the project's own
+    // routes, so that /changesets/:id/<action> reaches the changeSets router
+    // first and only the rest is served from the changeSet.
+    app.route(
+      '/api/projects/:prefix/changesets/:changeSetId',
+      createProjectScopedRoutes(attachChangeSet(registry), false),
+    );
   }
 
   // MCP endpoint for AI assistant integration

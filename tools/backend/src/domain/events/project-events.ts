@@ -119,6 +119,19 @@ export class ProjectEvents {
     }
   }
 
+  /**
+   * Tells everyone watching the project that one of its changeSets changed:
+   * created, reviewed, reverted, updated, merged or discarded.
+   */
+  changeSetUpdated(id: string, action: string, user: UserInfo): void {
+    this.broadcast('changeset.updated', {
+      id,
+      action,
+      userId: user.id,
+      userName: user.name,
+    });
+  }
+
   dispose(): void {
     this.unsubscribe();
     clearInterval(this.expiryTimer);

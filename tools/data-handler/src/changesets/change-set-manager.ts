@@ -84,20 +84,60 @@ export interface ChangeSetConflict {
 /** How to settle a conflict: keep a side, or write the given content. */
 export type ConflictResolution = 'ours' | 'theirs' | { content: string };
 
+/** One card before and after a changeSet's changes; null where absent. */
+export interface CardDiff {
+  change: ReviewedCardChange;
+  before: { metadata: Record<string, unknown>; content: string | null } | null;
+  after: { metadata: Record<string, unknown>; content: string | null } | null;
+}
+
 export interface ChangeSetManagerOptions {
   /**
-   * Folder for the worktrees, outside any folder scanned for projects;
-   * defaults to '~/.cyberismo/changesets/<repository hash>'.
+   * Folder for the worktrees, outside any folder scanned for projects; each
+   * repository gets a subfolder. Defaults to '~/.cyberismo/changesets'.
    */
   worktreesRoot?: string;
   /** Most changeSets kept open at once; the least recently used is closed. */
   maxOpen?: number;
+  /** Called when a changeSet's CommandManager is closed. */
+  onClose?: (id: string, commands: CommandManager) => void;
 }
 
 /** Thrown when a changeSet must first be updated from main. */
 export class ChangeSetBehindError extends Error {
   constructor(id: string) {
     super(`ChangeSet '${id}' is behind main: update it from main first`);
+  }
+}
+
+/** Thrown for a changeSet id that does not exist. */
+export class ChangeSetNotFoundError extends Error {
+  constructor(id: string) {
+    super(`ChangeSet '${id}' does not exist`);
+  }
+}
+
+/** Thrown when merging a changeSet would add validation errors. */
+export class ChangeSetInvalidError extends Error {
+  constructor(
+    id: string,
+    public readonly errors: string[],
+  ) {
+    super(`ChangeSet '${id}' does not validate:\n${errors.join('\n')}`);
+  }
+}
+
+/** Thrown when a card the changeSet did not change is asked about. */
+export class CardUnchangedError extends Error {
+  constructor(id: string, cardKey: string) {
+    super(`Card '${cardKey}' has no changes in changeSet '${id}'`);
+  }
+}
+
+/** Thrown when a merged or discarded changeSet is asked to change. */
+export class ChangeSetClosedError extends Error {
+  constructor(id: string, status: string) {
+    super(`ChangeSet '${id}' is ${status}`);
   }
 }
 
@@ -122,7 +162,10 @@ const DEFAULT_MAX_OPEN = 3;
  * main is untouched until the changeSet is merged.
  */
 export class ChangeSetManager {
-  private opened = new Map<string, CommandManager>();
+  private opened = new Map<
+    string,
+    { commands: CommandManager; lastUsed: number }
+  >();
   private tail: Promise<unknown> = Promise.resolve();
   private logger = getChildLogger({ module: 'ChangeSetManager' });
 
@@ -154,9 +197,11 @@ export class ChangeSetManager {
     const repository = createHash('sha1').update(common).digest('hex');
     return {
       records: join(common, 'cyberismo', 'changesets'),
-      worktrees:
+      worktrees: join(
         this.options.worktreesRoot ??
-        join(homedir(), '.cyberismo', 'changesets', repository.slice(0, 12)),
+          join(homedir(), '.cyberismo', 'changesets'),
+        repository.slice(0, 12),
+      ),
     };
   }
 
@@ -251,7 +296,7 @@ export class ChangeSetManager {
     const { records } = await this.folders();
     const file = join(records, `${id}.json`);
     if (!/^[a-z0-9-]+$/i.test(id) || !pathExists(file)) {
-      throw new Error(`ChangeSet '${id}' does not exist`);
+      throw new ChangeSetNotFoundError(id);
     }
     return JSON.parse(await readFile(file, 'utf-8')) as ChangeSetInfo;
   }
@@ -259,7 +304,7 @@ export class ChangeSetManager {
   private async active(id: string): Promise<ChangeSetInfo> {
     const info = await this.get(id);
     if (info.status !== 'active') {
-      throw new Error(`ChangeSet '${id}' is ${info.status}`);
+      throw new ChangeSetClosedError(id, info.status);
     }
     return info;
   }
@@ -274,8 +319,8 @@ export class ChangeSetManager {
     if (cached) {
       // Most recently used last
       this.opened.delete(id);
-      this.opened.set(id, cached);
-      return cached;
+      this.opened.set(id, { ...cached, lastUsed: Date.now() });
+      return cached.commands;
     }
     const worktree = await this.worktreeOf(id);
     if (!pathExists(worktree)) {
@@ -291,14 +336,32 @@ export class ChangeSetManager {
       if (this.opened.size < maxOpen) break;
       this.close(openId);
     }
-    this.opened.set(id, commands);
+    this.opened.set(id, { commands, lastUsed: Date.now() });
     return commands;
   }
 
   /** Closes a changeSet's CommandManager; its worktree stays. */
   public close(id: string): void {
-    this.opened.get(id)?.project.dispose();
+    const opened = this.opened.get(id);
+    if (!opened) {
+      return;
+    }
     this.opened.delete(id);
+    opened.commands.project.dispose();
+    this.options.onClose?.(id, opened.commands);
+  }
+
+  /**
+   * Closes the changeSets not used for a while; their worktrees stay.
+   * @param maxIdleMs How long a changeSet may go unused.
+   */
+  public closeIdle(maxIdleMs: number): void {
+    const cutoff = Date.now() - maxIdleMs;
+    for (const [id, { lastUsed }] of [...this.opened]) {
+      if (lastUsed < cutoff) {
+        this.close(id);
+      }
+    }
   }
 
   /** Closes every open changeSet. */
@@ -315,7 +378,7 @@ export class ChangeSetManager {
     if (!pathExists(path)) {
       return;
     }
-    const opened = this.opened.get(info.id);
+    const opened = this.opened.get(info.id)?.commands;
     const git = opened?.project.git ?? new GitManager(path);
     if (!(await git.hasUncommittedChanges())) {
       return;
@@ -388,6 +451,34 @@ export class ChangeSetManager {
   }
 
   /**
+   * One card as it was before the changeSet and as it is in it.
+   * @throws if the card has no changes in the changeSet
+   */
+  public async cardDiff(id: string, cardKey: string): Promise<CardDiff> {
+    const changes = await this.changes(id);
+    const change = changes.cards.find((card) => card.key === cardKey);
+    if (!change) {
+      throw new CardUnchangedError(id, cardKey);
+    }
+    const beforePath = change.previousPath ?? change.path;
+    const [beforeMeta, beforeContent, afterMeta, afterContent] =
+      await this.git.readFiles([
+        { ref: changes.base, path: `${beforePath}/index.json` },
+        { ref: changes.base, path: `${beforePath}/index.adoc` },
+        { ref: changes.head, path: `${change.path}/index.json` },
+        { ref: changes.head, path: `${change.path}/index.adoc` },
+      ]);
+    const side = (metadata: string | null, content: string | null) =>
+      metadata === null ? null : { metadata: JSON.parse(metadata), content };
+    return {
+      change,
+      before:
+        change.kind === 'created' ? null : side(beforeMeta, beforeContent),
+      after: change.kind === 'deleted' ? null : side(afterMeta, afterContent),
+    };
+  }
+
+  /**
    * Marks a card reviewed as it stands now, or clears the mark. A card that
    * changes after it was reviewed counts as unreviewed again.
    */
@@ -427,9 +518,7 @@ export class ChangeSetManager {
         (card) => card.key === cardKey,
       );
       if (!change) {
-        throw new Error(
-          `Card '${cardKey}' has no changes in changeSet '${id}'`,
-        );
+        throw new CardUnchangedError(id, cardKey);
       }
       const commands = await this.open(id);
       const project = commands.project;
@@ -661,9 +750,7 @@ export class ChangeSetManager {
         }
         const invalid = await this.newValidationErrors(commands);
         if (invalid.length > 0) {
-          throw new Error(
-            `ChangeSet '${id}' does not validate:\n${invalid.join('\n')}`,
-          );
+          throw new ChangeSetInvalidError(id, invalid);
         }
         const changed = (await computeChangeList(this.git, mainHead, head))
           .cards;

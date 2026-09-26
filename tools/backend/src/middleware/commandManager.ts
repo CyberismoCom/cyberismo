@@ -11,7 +11,11 @@
 */
 
 import type { Context, MiddlewareHandler } from 'hono';
-import type { CommandManager } from '@cyberismo/data-handler';
+import {
+  ChangeSetClosedError,
+  ChangeSetNotFoundError,
+  type CommandManager,
+} from '@cyberismo/data-handler';
 import { getCurrentUser } from './auth.js';
 import type { ProjectRegistry } from '../project-registry.js';
 import type { ProjectEvents } from '../domain/events/project-events.js';
@@ -76,6 +80,40 @@ export const attachProjectRegistry = (
     const commands = registry.get(prefix);
     if (!commands) {
       return c.json({ error: `Project '${prefix}' not found` }, 404);
+    }
+    c.set('events', registry.eventsFor(commands));
+    return runWithCommands(c, commands, next);
+  };
+};
+
+/**
+ * Middleware that serves a request from one of a project's changeSets: the
+ * CommandManager and event stream on context are the changeSet's own, so any
+ * project-scoped route works inside the changeSet.
+ * @param registry - Project registry to look up projects and changeSets.
+ */
+export const attachChangeSet = (
+  registry: ProjectRegistry,
+): MiddlewareHandler => {
+  return async (c: Context, next) => {
+    c.set('registry', registry);
+    const prefix = c.req.param('prefix');
+    const id = c.req.param('changeSetId');
+    const main = prefix ? registry.get(prefix) : undefined;
+    if (!main || !id) {
+      return c.json({ error: `Project '${prefix}' not found` }, 404);
+    }
+    let commands: CommandManager;
+    try {
+      commands = await registry.openChangeSet(main, id);
+    } catch (error) {
+      if (error instanceof ChangeSetNotFoundError) {
+        return c.json({ error: error.message }, 404);
+      }
+      if (error instanceof ChangeSetClosedError) {
+        return c.json({ error: error.message }, 409);
+      }
+      throw error;
     }
     c.set('events', registry.eventsFor(commands));
     return runWithCommands(c, commands, next);

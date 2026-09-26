@@ -33,10 +33,15 @@ export type {
 } from './utils/commit-context.js';
 export type { CardsChanged } from './containers/project.js';
 export {
+  CardUnchangedError,
   ChangeSetBehindError,
+  ChangeSetClosedError,
+  ChangeSetInvalidError,
   ChangeSetManager,
+  ChangeSetNotFoundError,
 } from './changesets/change-set-manager.js';
 export type {
+  CardDiff,
   ChangeSetChanges,
   ChangeSetConflict,
   ChangeSetInfo,

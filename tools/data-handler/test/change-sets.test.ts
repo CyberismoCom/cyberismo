@@ -357,6 +357,40 @@ describe('ChangeSetManager', () => {
     expect(cards[0].commits[0].author.name).toBe('Alice');
   });
 
+  it('shows a card before and after its changes', async () => {
+    const { id } = await as(alice, () => manager.create('Diff'));
+    const changeSet = await manager.open(id);
+    const before = content(changeSet, 'decision_5');
+    await as(alice, () =>
+      changeSet.editCmd.editCardContent('decision_5', 'After'),
+    );
+
+    const diff = await manager.cardDiff(id, 'decision_5');
+
+    expect(diff.change.kind).toBe('modified');
+    expect(diff.before?.content).toBe(before);
+    expect(diff.after?.content).toBe('After');
+    expect(diff.after?.metadata.title).toBe(diff.before?.metadata.title);
+  });
+
+  it('closes changeSets left unused, keeping their worktrees', async () => {
+    const closed: string[] = [];
+    manager = new ChangeSetManager(main, {
+      worktreesRoot: join(dir, 'worktrees'),
+      onClose: (id) => closed.push(id),
+    });
+    const { id } = await as(alice, () => manager.create('Idle'));
+    const changeSet = await manager.open(id);
+
+    manager.closeIdle(60_000);
+    expect(closed).toEqual([]);
+    manager.closeIdle(-1);
+
+    expect(closed).toEqual([id]);
+    expect(pathExists(changeSet.project.basePath)).toBe(true);
+    expect(await manager.open(id)).not.toBe(changeSet);
+  });
+
   it('checks a changeSet out again when its worktree went missing', async () => {
     const { id } = await as(alice, () => manager.create('Recover'));
     const changeSet = await manager.open(id);

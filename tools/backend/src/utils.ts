@@ -71,3 +71,12 @@ export function gitOptionsFromEnv(): {
     autopush: process.env.CYBERISMO_AUTOPUSH === 'true',
   };
 }
+
+/**
+ * Folder for changeSet worktrees, from CYBERISMO_CHANGESETS_DIR; undefined
+ * for the default (~/.cyberismo/changesets). On a server, point it at
+ * persistent storage outside the projects folder.
+ */
+export function changeSetsDirFromEnv(): string | undefined {
+  return process.env.CYBERISMO_CHANGESETS_DIR || undefined;
+}
