@@ -18,7 +18,7 @@ import { createMcpServer, type ProjectProvider } from '@cyberismo/mcp';
 import { runWithCommitContext } from '@cyberismo/data-handler';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { requireRole } from '../../middleware/auth.js';
-import { UserRole, type AppVars } from '../../types.js';
+import { UserRole, type AppVars, type UserInfo } from '../../types.js';
 
 const MAX_SESSIONS = 100;
 const MAX_SESSIONS_PER_USER = 5;
@@ -96,10 +96,12 @@ function handleAsAgent(
 }
 
 /**
- * Create an MCP HTTP router that serves all projects via the given provider.
+ * Create an MCP HTTP router serving projects through a provider for each
+ * connected user.
+ * @param providerFor - The provider serving a user's MCP session.
  */
 export function createMcpRouter(
-  provider: ProjectProvider,
+  providerFor: (user: UserInfo) => ProjectProvider,
 ): Hono<{ Variables: AppVars }> {
   const router = new Hono<{ Variables: AppVars }>();
 
@@ -174,7 +176,7 @@ export function createMcpRouter(
       }
     };
 
-    const server = createMcpServer(provider);
+    const server = createMcpServer(providerFor(user));
     await server.connect(transport);
 
     return handleAsAgent(c, { transport, server });

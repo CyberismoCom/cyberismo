@@ -198,6 +198,38 @@ describe('changeSets API', () => {
     ).toBe(404);
   });
 
+  test('makes a new changeSet the user’s active one, until they switch', async () => {
+    const id = await create('Active');
+    const active = async (user: 'bob' | 'carol' = 'bob') =>
+      (
+        await (
+          await request('GET', '/changesets/active', undefined, user)
+        ).json()
+      ).changeSet;
+
+    expect((await active())?.id).toBe(id);
+    expect(await active('carol')).toBeNull();
+    const listed = await (await request('GET', '/changesets')).json();
+    expect(
+      listed
+        .filter((info: { active: boolean }) => info.active)
+        .map((info: { id: string }) => info.id),
+    ).toEqual([id]);
+
+    const back = await request('PUT', '/changesets/active', { id: null });
+    expect(await back.json()).toEqual({ changeSet: null });
+    expect(await active()).toBeNull();
+    expect(
+      (await request('PUT', '/changesets/active', { id: 'nope' })).status,
+    ).toBe(404);
+    const other = await request('POST', '/changesets', {
+      title: 'Not active',
+      activate: false,
+    });
+    expect((await other.json()).active).toBe(false);
+    expect(await active()).toBeNull();
+  });
+
   test('tells the project’s viewers when a changeSet changes', async () => {
     const response = await request('GET', '/events', undefined, 'carol');
     const reader = response.body!.getReader();

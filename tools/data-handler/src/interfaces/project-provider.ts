@@ -14,6 +14,22 @@
 */
 
 import type { CommandManager } from '../command-manager.js';
+import type {
+  ChangeSetChanges,
+  ChangeSetInfo,
+} from '../changesets/change-set-manager.js';
+
+/**
+ * The caller's changeSets in the provider's projects.
+ */
+export interface ChangeSetAccess {
+  /** The caller's active changeSet in a project, if any. */
+  active(prefix: string): Promise<ChangeSetInfo | undefined>;
+  /** Starts a changeSet in a project and makes it the caller's active one. */
+  start(prefix: string, title: string): Promise<ChangeSetInfo>;
+  /** What the caller's active changeSet changes; undefined without one. */
+  changes(prefix: string): Promise<ChangeSetChanges | undefined>;
+}
 
 /**
  * Minimal interface for project lookup by prefix.
@@ -22,4 +38,11 @@ import type { CommandManager } from '../command-manager.js';
 export interface ProjectProvider {
   get(prefix: string): CommandManager | undefined;
   list(): { prefix: string; name: string }[];
+  /**
+   * The CommandManager to serve the caller from: their active changeSet's
+   * when they have one, else the project's own. Absent: get().
+   */
+  resolve?(prefix: string): Promise<CommandManager | undefined>;
+  /** Present when the provider knows its caller's changeSets. */
+  changeSets?: ChangeSetAccess;
 }

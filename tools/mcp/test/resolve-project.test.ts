@@ -37,37 +37,37 @@ function makeProvider(
 }
 
 describe('resolveCommands', () => {
-  test('returns commands for a valid prefix', () => {
+  test('returns commands for a valid prefix', async () => {
     const provider = makeProvider([{ prefix: 'abc', name: 'Project ABC' }]);
-    const result = resolveCommands(provider, 'abc');
+    const result = await resolveCommands(provider, 'abc');
     expect(result).toBeDefined();
     expect((result as unknown as { _prefix: string })._prefix).toBe('abc');
   });
 
-  test('throws for unknown prefix with available projects listed', () => {
+  test('throws for unknown prefix with available projects listed', async () => {
     const provider = makeProvider([
       { prefix: 'abc', name: 'Project ABC' },
       { prefix: 'xyz', name: 'Project XYZ' },
     ]);
-    expect(() => resolveCommands(provider, 'nope')).toThrow(
+    await expect(resolveCommands(provider, 'nope')).rejects.toThrow(
       /Unknown project 'nope'/,
     );
-    expect(() => resolveCommands(provider, 'nope')).toThrow(/abc, xyz/);
+    await expect(resolveCommands(provider, 'nope')).rejects.toThrow(/abc, xyz/);
   });
 
-  test('throws for unknown prefix when no projects available', () => {
+  test('throws for unknown prefix when no projects available', async () => {
     const provider = makeProvider([]);
-    expect(() => resolveCommands(provider, 'anything')).toThrow(
+    await expect(resolveCommands(provider, 'anything')).rejects.toThrow(
       /No projects available/,
     );
   });
 
-  test('resolves correct project among multiple', () => {
+  test('resolves correct project among multiple', async () => {
     const provider = makeProvider([
       { prefix: 'alpha', name: 'Alpha' },
       { prefix: 'beta', name: 'Beta' },
     ]);
-    const result = resolveCommands(provider, 'beta');
+    const result = await resolveCommands(provider, 'beta');
     expect((result as unknown as { _prefix: string })._prefix).toBe('beta');
   });
 });

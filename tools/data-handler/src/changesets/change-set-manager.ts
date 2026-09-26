@@ -197,6 +197,8 @@ export class ChangeSetManager {
     const repository = createHash('sha1').update(common).digest('hex');
     return {
       records: join(common, 'cyberismo', 'changesets'),
+      // Per user id, the id of that user's active changeSet
+      active: join(common, 'cyberismo', 'active-changesets.json'),
       worktrees: join(
         this.options.worktreesRoot ??
           join(homedir(), '.cyberismo', 'changesets'),
@@ -205,7 +207,17 @@ export class ChangeSetManager {
     };
   }
 
+  // Where a changeSet's worktree is: wherever git has it checked out (the
+  // CLI and the server may be configured with different folders), else
+  // where a new one goes.
   private async worktreeOf(id: string) {
+    const branch = `${BRANCH_PREFIX}${id}`;
+    const existing = (await this.git.listWorktrees()).find(
+      (worktree) => worktree.branch === branch,
+    );
+    if (existing && pathExists(existing.path)) {
+      return existing.path;
+    }
     return join((await this.folders()).worktrees, id);
   }
 
@@ -215,6 +227,63 @@ export class ChangeSetManager {
    */
   public async projectPathOf(id: string): Promise<string> {
     return join(await this.worktreeOf(id), await this.git.pathInRepo());
+  }
+
+  private async readActive(): Promise<Record<string, string>> {
+    const { active } = await this.folders();
+    return pathExists(active)
+      ? (JSON.parse(await readFile(active, 'utf-8')) as Record<string, string>)
+      : {};
+  }
+
+  private async writeActive(entries: Record<string, string>) {
+    const { active } = await this.folders();
+    await mkdir(dirname(active), { recursive: true });
+    await writeFile(active, formatJson(entries));
+  }
+
+  /**
+   * A user's active changeSet: the one their changes, and their agents',
+   * go to instead of main.
+   * @param userId The user.
+   * @returns the changeSet, or undefined when the user works in main.
+   */
+  public async getActive(userId: string): Promise<ChangeSetInfo | undefined> {
+    const id = (await this.readActive())[userId];
+    if (!id) {
+      return undefined;
+    }
+    try {
+      const info = await this.get(id);
+      return info.status === 'active' ? info : undefined;
+    } catch (error) {
+      if (error instanceof ChangeSetNotFoundError) {
+        return undefined;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Makes a changeSet the user's active one, or returns them to main. Any
+   * active changeSet will do, not only the user's own.
+   * @param userId The user.
+   * @param id The changeSet, or null for main.
+   * @throws ChangeSetNotFoundError, ChangeSetClosedError
+   */
+  public setActive(userId: string, id: string | null): Promise<void> {
+    return this.serialize(async () => {
+      if (id !== null) {
+        await this.active(id);
+      }
+      const entries = await this.readActive();
+      if (id === null) {
+        delete entries[userId];
+      } else {
+        entries[userId] = id;
+      }
+      await this.writeActive(entries);
+    });
   }
 
   private async save(info: ChangeSetInfo) {
@@ -258,7 +327,7 @@ export class ChangeSetManager {
         reviewed: {},
       };
       await this.git.addWorktree(
-        await this.worktreeOf(id),
+        join((await this.folders()).worktrees, id),
         info.branch,
         info.base,
       );
@@ -814,6 +883,13 @@ export class ChangeSetManager {
     );
     await this.git.deleteBranch(info.branch, true);
     await this.save(info);
+    // Whoever worked in it is back in main
+    const active = await this.readActive();
+    await this.writeActive(
+      Object.fromEntries(
+        Object.entries(active).filter(([, id]) => id !== info.id),
+      ),
+    );
     this.logger.info({ id: info.id, status: info.status }, 'ChangeSet closed');
   }
 }

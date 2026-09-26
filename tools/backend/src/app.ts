@@ -43,6 +43,7 @@ import type { AppVars, TreeOptions } from './types.js';
 import treeMiddleware from './middleware/tree.js';
 import projectRouter from './domain/project/index.js';
 import changeSetsRouter from './domain/changesets/index.js';
+import { changeSetProvider } from './domain/changesets/provider.js';
 import { createMcpRouter } from './domain/mcp/index.js';
 import { writableProjects } from './overlay.js';
 import { createAuthRouter } from './domain/auth/index.js';
@@ -241,7 +242,12 @@ export function createApp(
   }
 
   // MCP endpoint for AI assistant integration
-  app.route('/mcp', createMcpRouter(writableProjects(registry)));
+  // Each MCP session works where its user works: their active changeSet
+  const mcpProjects = writableProjects(registry);
+  app.route(
+    '/mcp',
+    createMcpRouter((user) => changeSetProvider(registry, mcpProjects, user)),
+  );
 
   app.use(
     '*',

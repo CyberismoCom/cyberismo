@@ -36,18 +36,20 @@ Every project route also works inside a changeSet, under
 `.../changesets/:changeSetId/cards/:key`), including its own `events` stream.
 Managing changeSets, under `/api/projects/:prefix/changesets`:
 
-| Method and path                                 | Role   | Does                                                                      |
-| ----------------------------------------------- | ------ | ------------------------------------------------------------------------- |
-| `GET /`                                         | reader | List changeSets, active and closed                                        |
-| `POST /` `{ title }`                            | editor | Start one from the project as it is now (201)                             |
-| `GET /:id`                                      | reader | One changeSet's record                                                    |
-| `DELETE /:id`                                   | editor | Discard it; the branch stays as `refs/cyberismo/changesets/discarded/:id` |
-| `GET /:id/changes`                              | reader | What it changes, card by card, with review marks                          |
-| `GET /:id/changes/:key`                         | reader | One card before and after                                                 |
-| `PUT /:id/changes/:key/reviewed` `{ reviewed }` | editor | Mark the card reviewed as it stands, or clear the mark (204)              |
-| `POST /:id/changes/:key/revert`                 | editor | Undo its changes to the card (204)                                        |
-| `POST /:id/update` `{ resolutions? }`           | editor | Bring in the project's latest changes: `{ updated, conflicts }`           |
-| `POST /:id/merge`                               | editor | Merge into the project as the current user                                |
+| Method and path                                 | Role   | Does                                                                                                              |
+| ----------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------- |
+| `GET /`                                         | reader | List changeSets, active and closed                                                                                |
+| `POST /` `{ title, activate? }`                 | editor | Start one from the project as it is now, and make it the user's active changeSet unless `activate` is false (201) |
+| `GET /active`                                   | reader | The user's active changeSet: `{ changeSet }`, null in the project                                                 |
+| `PUT /active` `{ id }`                          | editor | Switch the user's active changeSet; `id: null` returns them to the project                                        |
+| `GET /:id`                                      | reader | One changeSet's record                                                                                            |
+| `DELETE /:id`                                   | editor | Discard it; the branch stays as `refs/cyberismo/changesets/discarded/:id`                                         |
+| `GET /:id/changes`                              | reader | What it changes, card by card, with review marks                                                                  |
+| `GET /:id/changes/:key`                         | reader | One card before and after                                                                                         |
+| `PUT /:id/changes/:key/reviewed` `{ reviewed }` | editor | Mark the card reviewed as it stands, or clear the mark (204)                                                      |
+| `POST /:id/changes/:key/revert`                 | editor | Undo its changes to the card (204)                                                                                |
+| `POST /:id/update` `{ resolutions? }`           | editor | Bring in the project's latest changes: `{ updated, conflicts }`                                                   |
+| `POST /:id/merge`                               | editor | Merge into the project as the current user                                                                        |
 
 An update that meets conflicts it cannot settle changes nothing and returns
 them with every side (`base`, `ours`, `theirs`); retry with `resolutions`
@@ -55,6 +57,13 @@ mapping each path to `"ours"`, `"theirs"` or `{ "content": "..." }`. Merge
 answers 409 when the project moved on since the last update, and 422 with
 `errors` when the changeSet adds validation errors. Unknown ids answer 404,
 merged or discarded ones 409.
+
+Each user has at most one active changeSet per project; merging or discarding
+it returns everyone who had it active to the project. The app works in it
+through the URLs above. MCP sessions follow it implicitly: every tool call,
+read or write, is served from the calling user's active changeSet, tool
+results and `list_projects` name it, and agents get `start_changeset` and
+`get_changeset` tools, but none to merge, discard or review.
 
 Worktrees go to `CYBERISMO_CHANGESETS_DIR` (default `~/.cyberismo/changesets`),
 which must lie outside the folder scanned for projects. A changeSet unused for

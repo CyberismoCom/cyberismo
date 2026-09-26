@@ -45,7 +45,7 @@ export interface ScannedProject {
 export class ProjectRegistry implements ProjectProvider {
   private projects: Map<string, CommandManager> = new Map();
   private events = new Map<CommandManager, ProjectEvents>();
-  private changeSets = new Map<CommandManager, ChangeSetManager>();
+  private changeSetManagers = new Map<CommandManager, ChangeSetManager>();
   // CommandManagers of the changeSets open now
   private changeSetCommands = new Set<CommandManager>();
   private idleTimer: ReturnType<typeof setInterval> | undefined;
@@ -96,7 +96,7 @@ export class ProjectRegistry implements ProjectProvider {
    * while are closed, together with their event streams.
    */
   changeSetsFor(commands: CommandManager): ChangeSetManager {
-    let manager = this.changeSets.get(commands);
+    let manager = this.changeSetManagers.get(commands);
     if (!manager) {
       if (![...this.projects.values()].includes(commands)) {
         throw new Error('Project is not registered');
@@ -109,9 +109,9 @@ export class ProjectRegistry implements ProjectProvider {
           this.events.delete(closed);
         },
       });
-      this.changeSets.set(commands, manager);
+      this.changeSetManagers.set(commands, manager);
       this.idleTimer ??= setInterval(() => {
-        for (const changeSets of this.changeSets.values()) {
+        for (const changeSets of this.changeSetManagers.values()) {
           changeSets.closeIdle(CHANGESET_IDLE_MS);
         }
       }, CHANGESET_IDLE_CHECK_MS);
@@ -156,10 +156,10 @@ export class ProjectRegistry implements ProjectProvider {
   dispose(): void {
     clearInterval(this.idleTimer);
     this.idleTimer = undefined;
-    for (const changeSets of this.changeSets.values()) {
+    for (const changeSets of this.changeSetManagers.values()) {
       changeSets.dispose();
     }
-    this.changeSets.clear();
+    this.changeSetManagers.clear();
     for (const events of this.events.values()) {
       events.dispose();
     }

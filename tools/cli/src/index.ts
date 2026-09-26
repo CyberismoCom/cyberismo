@@ -51,6 +51,7 @@ import {
   startServer,
   exportSite,
   previewSite,
+  LOCAL_USER_ID,
   MockAuthProvider,
   ProjectRegistry,
 } from '@cyberismo/backend';
@@ -1789,7 +1790,9 @@ async function withChangeSets<T>(
 ): Promise<T> {
   const projectPath = await commandHandler.setProjectPath(options.projectPath);
   const main = await CommandManager.getInstance(projectPath);
-  const manager = new ChangeSetManager(main);
+  const manager = new ChangeSetManager(main, {
+    worktreesRoot: process.env.CYBERISMO_CHANGESETS_DIR || undefined,
+  });
   const { name, email } = await getGitUserConfig();
   const author = name && email ? { name, email } : undefined;
   try {
@@ -1851,19 +1854,43 @@ function printChanges(changes: ChangeSetChanges) {
 
 changesetCmd
   .command('start')
-  .description('Start a changeSet from the project as it is now')
+  .description(
+    'Start a changeSet from the project as it is now, and work in it: changes made in "cyberismo app", by you or your agents, go into it',
+  )
   .argument('<title>', 'What the changeSet is for')
-  .action(async (title: string, options: { projectPath?: string }) => {
-    await withChangeSets(options, async (manager) => {
-      const info = await manager.create(title);
-      console.log(
-        JSON.stringify(
-          { ...info, path: await manager.projectPathOf(info.id) },
-          null,
-          2,
-        ),
-      );
-    });
+  .option('--no-activate', 'Start it without working in it')
+  .action(
+    async (
+      title: string,
+      options: { projectPath?: string; activate: boolean },
+    ) => {
+      await withChangeSets(options, async (manager) => {
+        const info = await manager.create(title);
+        if (options.activate) {
+          await manager.setActive(LOCAL_USER_ID, info.id);
+        }
+        console.log(
+          JSON.stringify(
+            { ...info, path: await manager.projectPathOf(info.id) },
+            null,
+            2,
+          ),
+        );
+      });
+    },
+  );
+
+changesetCmd
+  .command('use')
+  .description(
+    'Work in a changeSet in "cyberismo app", or with "main" back in the project',
+  )
+  .argument('<id>', 'ChangeSet id, or "main"')
+  .action(async (id: string, options: { projectPath?: string }) => {
+    await withChangeSets(options, (manager) =>
+      manager.setActive(LOCAL_USER_ID, id === 'main' ? null : id),
+    );
+    console.log('Done');
   });
 
 changesetCmd
@@ -1872,12 +1899,16 @@ changesetCmd
   .option('-a, --all', 'Include merged and discarded changeSets')
   .action(async (options: { projectPath?: string; all?: boolean }) => {
     await withChangeSets(options, async (manager) => {
+      const active = await manager.getActive(LOCAL_USER_ID);
       for (const info of await manager.list()) {
         if (!options.all && info.status !== 'active') continue;
         const path =
           info.status === 'active' ? await manager.projectPathOf(info.id) : '';
+        const marker = info.id === active?.id ? '*' : ' ';
         console.log(
-          [info.id, info.status, JSON.stringify(info.title), path].join('  '),
+          [marker, info.id, info.status, JSON.stringify(info.title), path].join(
+            '  ',
+          ),
         );
       }
     });

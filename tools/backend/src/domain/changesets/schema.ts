@@ -15,6 +15,12 @@ import { z } from 'zod';
 
 export const createChangeSetSchema = z.object({
   title: z.string().trim().min(1).max(200),
+  // Make it the user's active changeSet; the default
+  activate: z.boolean().optional(),
+});
+
+export const activeChangeSetSchema = z.object({
+  id: z.string().min(1).nullable(),
 });
 
 export const reviewedSchema = z.object({

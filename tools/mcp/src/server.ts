@@ -17,6 +17,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CommandManager } from '@cyberismo/data-handler';
 import { registerResources } from './resources/index.js';
 import { registerTools } from './tools/index.js';
+import { registerChangeSetTools } from './tools/changesets.js';
 import { registerPrompts } from './prompts/index.js';
 import type { ProjectProvider } from './lib/resolve-project.js';
 import packageJson from '../package.json' with { type: 'json' };
@@ -53,8 +54,14 @@ export function createMcpServer(
   provider: ProjectProvider,
   options?: McpServerOptions,
 ): McpServer {
-  const instructions =
-    'Call list_projects to discover available projects. Pass projectPrefix to every tool call.';
+  const instructions = [
+    'Call list_projects to discover available projects. Pass projectPrefix to every tool call.',
+    ...(provider.changeSets
+      ? [
+          'When the user has an active changeSet in a project, list_projects and your tool results name it: your reads and changes there are served from it, and the user reviews and merges it. Start one with start_changeset only when the user asks.',
+        ]
+      : []),
+  ].join(' ');
 
   const server = new McpServer(
     {
@@ -66,6 +73,7 @@ export function createMcpServer(
 
   registerResources(server, provider);
   registerTools(server, provider);
+  registerChangeSetTools(server, provider);
   registerPrompts(server, provider);
 
   return server;

@@ -24,6 +24,7 @@ import { requireRole } from '../../middleware/auth.js';
 import { zValidator } from '../../middleware/zvalidator.js';
 import { UserRole } from '../../types.js';
 import {
+  activeChangeSetSchema,
   createChangeSetSchema,
   reviewedSchema,
   updateChangeSetSchema,
@@ -66,7 +67,11 @@ function failure(c: Context, error: unknown) {
 }
 
 router.get('/', requireRole(UserRole.Reader), async (c) => {
-  return c.json(await changeSets(c).list());
+  const active = await changeSets(c).getActive(c.get('user').id);
+  const infos = await changeSets(c).list();
+  return c.json(
+    infos.map((info) => ({ ...info, active: info.id === active?.id })),
+  );
 });
 
 router.post(
@@ -74,10 +79,37 @@ router.post(
   requireRole(UserRole.Editor),
   zValidator('json', createChangeSetSchema),
   async (c) => {
+    const { title, activate = true } = c.req.valid('json');
     try {
-      const info = await changeSets(c).create(c.req.valid('json').title);
+      const info = await changeSets(c).create(title);
+      if (activate) {
+        await changeSets(c).setActive(c.get('user').id, info.id);
+      }
       announce(c, info.id, 'created');
-      return c.json(info, 201);
+      return c.json({ ...info, active: activate }, 201);
+    } catch (error) {
+      return failure(c, error);
+    }
+  },
+);
+
+// The current user's active changeSet: where their changes, and their
+// agents', go instead of the project. Registered before '/:id'.
+router.get('/active', requireRole(UserRole.Reader), async (c) => {
+  const active = await changeSets(c).getActive(c.get('user').id);
+  return c.json({ changeSet: active ?? null });
+});
+
+router.put(
+  '/active',
+  requireRole(UserRole.Editor),
+  zValidator('json', activeChangeSetSchema),
+  async (c) => {
+    const { id } = c.req.valid('json');
+    try {
+      await changeSets(c).setActive(c.get('user').id, id);
+      const active = await changeSets(c).getActive(c.get('user').id);
+      return c.json({ changeSet: active ?? null });
     } catch (error) {
       return failure(c, error);
     }

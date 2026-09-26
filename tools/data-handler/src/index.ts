@@ -21,7 +21,10 @@ import {
 import { Validate } from './commands/validate.js';
 export * from './interfaces/project-interfaces.js';
 export * from './interfaces/macros.js';
-export type { ProjectProvider } from './interfaces/project-provider.js';
+export type {
+  ChangeSetAccess,
+  ProjectProvider,
+} from './interfaces/project-provider.js';
 export {
   COMMIT_TRAILERS,
   runWithCommitContext,

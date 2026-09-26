@@ -391,6 +391,44 @@ describe('ChangeSetManager', () => {
     expect(await manager.open(id)).not.toBe(changeSet);
   });
 
+  it('keeps each user’s active changeSet until it is merged', async () => {
+    const one = await as(alice, () => manager.create('One'));
+    const two = await as(alice, () => manager.create('Two'));
+    expect(await manager.getActive('alice')).toBeUndefined();
+
+    await manager.setActive('alice', one.id);
+    await manager.setActive('bob', one.id);
+    expect((await manager.getActive('alice'))?.id).toBe(one.id);
+    await manager.setActive('alice', two.id);
+    expect((await manager.getActive('alice'))?.id).toBe(two.id);
+
+    await as(bob, () => manager.merge(one.id));
+    expect(await manager.getActive('bob')).toBeUndefined();
+    expect((await manager.getActive('alice'))?.id).toBe(two.id);
+    await expect(manager.setActive('bob', one.id)).rejects.toThrow('merged');
+    await manager.setActive('alice', null);
+    expect(await manager.getActive('alice')).toBeUndefined();
+    expect((await manager.list()).map((info) => info.id).sort()).toEqual(
+      [one.id, two.id].sort(),
+    );
+  });
+
+  it('finds a worktree checked out under another folder', async () => {
+    const { id } = await as(alice, () => manager.create('Elsewhere'));
+    const path = await manager.projectPathOf(id);
+    const other = new ChangeSetManager(main, {
+      worktreesRoot: join(dir, 'other-folder'),
+    });
+    try {
+      expect(await other.projectPathOf(id)).toBe(path);
+      expect(content(await other.open(id), 'decision_5')).toBe(
+        content(await manager.open(id), 'decision_5'),
+      );
+    } finally {
+      other.dispose();
+    }
+  });
+
   it('checks a changeSet out again when its worktree went missing', async () => {
     const { id } = await as(alice, () => manager.create('Recover'));
     const changeSet = await manager.open(id);
