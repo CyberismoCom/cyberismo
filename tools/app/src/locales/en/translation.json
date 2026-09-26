@@ -119,7 +119,9 @@
   "cardType": "Card type",
   "cardUpdated": {
     "byOther": "{{name}} updated this card",
-    "whileEditing": "{{name}} saved changes to this card while you are editing. Your draft is unchanged."
+    "byOtherByAgent": "An agent working for {{name}} updated this card",
+    "whileEditing": "{{name}} saved changes to this card while you are editing. Your draft is unchanged.",
+    "whileEditingByAgent": "An agent working for {{name}} saved changes to this card while you are editing. Your draft is unchanged."
   },
   "category": "Category",
   "cleanConfirm": "Remove",

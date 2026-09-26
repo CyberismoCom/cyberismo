@@ -18,7 +18,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { CommandManager } from '@cyberismo/data-handler';
+import { type CardsChanged, CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
@@ -193,6 +193,10 @@ describe('MCP write provenance', () => {
   });
 
   test('commits agent writes as the user, marked with agent trailers', async () => {
+    const changes: CardsChanged[] = [];
+    const unsubscribe = commands.project.onCardsChanged((change) =>
+      changes.push(change),
+    );
     const init = await agentApp.request('/mcp', {
       method: 'POST',
       headers: mcpHeaders,
@@ -239,6 +243,15 @@ describe('MCP write provenance', () => {
       }),
     });
     expect(await call.text()).not.toContain('isError');
+    unsubscribe();
+    expect(changes).toEqual([
+      {
+        updated: ['decision_5'],
+        removed: [],
+        author: { name: 'Dana Editor', email: 'dana@example.com', id: 'dana' },
+        actor: { kind: 'agent', name: 'test-agent' },
+      },
+    ]);
 
     const { stdout: log } = await promisify(execFile)(
       'git',

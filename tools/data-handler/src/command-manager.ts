@@ -31,6 +31,7 @@ import { Validate } from './commands/validate.js';
 import { Project } from './containers/project.js';
 import {
   type CommitActor,
+  type CommitAuthor,
   runWithCommitContext,
 } from './utils/commit-context.js';
 import { type Level } from 'pino';
@@ -119,7 +120,7 @@ export class CommandManager {
    * @param actor Optional actor, recorded as commit trailers.
    */
   public runAsAuthor<T>(
-    author: { name: string; email: string },
+    author: CommitAuthor,
     fn: () => Promise<T>,
     actor?: CommitActor,
   ): Promise<T> {

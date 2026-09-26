@@ -69,7 +69,7 @@ export class ProjectRegistry implements ProjectProvider {
       if (![...this.projects.values()].includes(commands)) {
         throw new Error('Project is not registered');
       }
-      events = new ProjectEvents();
+      events = new ProjectEvents(commands.project);
       this.events.set(commands, events);
     }
     return events;

@@ -18,7 +18,7 @@ const testUser: UserInfo = {
 
 function mockCommands(overrides?: Partial<CommandManager>) {
   return {
-    project: { basePath: '/tmp/test-project' },
+    project: { basePath: '/tmp/test-project', onCardsChanged: () => () => {} },
     runAsAuthor: vi.fn((_author, fn) => fn()),
     ...overrides,
   } as unknown as CommandManager;
@@ -66,7 +66,7 @@ describe('attachCommandManager', () => {
     expect(res.status).toBe(200);
     expect(commands.runAsAuthor).toHaveBeenCalledOnce();
     expect(commands.runAsAuthor).toHaveBeenCalledWith(
-      { name: testUser.name, email: testUser.email },
+      { name: testUser.name, email: testUser.email, id: testUser.id },
       expect.any(Function),
       { kind: 'human' },
     );
@@ -90,7 +90,10 @@ describe('attachProjectRegistry', () => {
       entries.map(({ prefix }) => ({
         prefix,
         commands: mockCommands({
-          project: { basePath: `/tmp/${prefix}` },
+          project: {
+            basePath: `/tmp/${prefix}`,
+            onCardsChanged: () => () => {},
+          },
         } as Partial<CommandManager>),
       })),
     );

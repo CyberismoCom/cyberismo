@@ -13,6 +13,7 @@
 
 import { randomUUID } from 'node:crypto';
 import type { SSEMessage } from 'hono/streaming';
+import type { CardsChanged, CommandManager } from '@cyberismo/data-handler';
 import type { UserInfo } from '../../types.js';
 
 const LEASE_MS = 90_000;
@@ -38,10 +39,18 @@ interface Connection {
 export class ProjectEvents {
   private connections = new Map<string, Connection>();
   private expiryTimer: ReturnType<typeof setInterval>;
+  private unsubscribe: () => void;
 
-  constructor() {
+  /**
+   * @param project Project whose card writes are broadcast, whichever route
+   *   (REST, MCP) made them.
+   */
+  constructor(project?: Pick<CommandManager['project'], 'onCardsChanged'>) {
     this.expiryTimer = setInterval(() => this.expire(), EXPIRY_INTERVAL_MS);
     this.expiryTimer.unref();
+    this.unsubscribe =
+      project?.onCardsChanged((change) => this.cardsChanged(change)) ??
+      (() => {});
   }
 
   connect(
@@ -99,17 +108,19 @@ export class ProjectEvents {
     if (connection.cardKey) this.presenceUpdated(connection.cardKey);
   }
 
-  cardsUpdated(cardKeys: string[], user: UserInfo): void {
-    for (const cardKey of new Set(cardKeys)) {
+  cardsChanged({ updated, author, actor }: CardsChanged): void {
+    for (const cardKey of new Set(updated)) {
       this.broadcast('card.updated', {
         cardKey,
-        userId: user.id,
-        userName: user.name,
+        userId: author?.id ?? '',
+        userName: author?.name ?? '',
+        actor: actor?.kind,
       });
     }
   }
 
   dispose(): void {
+    this.unsubscribe();
     clearInterval(this.expiryTimer);
     const connections = [...this.connections.values()];
     this.connections.clear();

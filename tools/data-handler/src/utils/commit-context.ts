@@ -20,9 +20,16 @@ import { AsyncLocalStorage } from 'node:async_hooks';
  */
 export type CommitActor = { kind: 'human' } | { kind: 'agent'; name?: string };
 
+/** Author of a write. 'id' identifies the user to the app; git ignores it. */
+export interface CommitAuthor {
+  name: string;
+  email: string;
+  id?: string;
+}
+
 export interface CommitContext {
   message?: string;
-  author?: { name: string; email: string };
+  author?: CommitAuthor;
   actor?: CommitActor;
 }
 

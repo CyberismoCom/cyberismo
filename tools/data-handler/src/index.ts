@@ -26,7 +26,12 @@ export {
   COMMIT_TRAILERS,
   runWithCommitContext,
 } from './utils/commit-context.js';
-export type { CommitActor, CommitContext } from './utils/commit-context.js';
+export type {
+  CommitActor,
+  CommitAuthor,
+  CommitContext,
+} from './utils/commit-context.js';
+export type { CardsChanged } from './containers/project.js';
 import { requestStatus } from './interfaces/request-status-interfaces.js';
 import { UpdateOperations } from './resources/resource-object.js';
 export type {

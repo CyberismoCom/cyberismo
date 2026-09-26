@@ -46,6 +46,7 @@ const cardUpdatedSchema = z.object({
   cardKey: z.string(),
   userId: z.string(),
   userName: z.string(),
+  actor: z.enum(['human', 'agent']).optional(),
 });
 
 function parseData(event: MessageEvent): unknown {

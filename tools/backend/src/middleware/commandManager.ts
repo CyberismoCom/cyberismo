@@ -41,7 +41,7 @@ async function runWithCommands(
   c.set('commands', commands);
   c.set('projectPath', commands.project.basePath);
   await commands.runAsAuthor(
-    { name: user.name, email: user.email },
+    { name: user.name, email: user.email, id: user.id },
     () => next(),
     { kind: 'human' },
   );

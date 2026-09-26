@@ -85,7 +85,7 @@ function handleAsAgent(
   const user = c.get('user')!;
   return runWithCommitContext(
     {
-      author: { name: user.name, email: user.email },
+      author: { name: user.name, email: user.email, id: user.id },
       actor: {
         kind: 'agent',
         name: session.server.server.getClientVersion()?.name,

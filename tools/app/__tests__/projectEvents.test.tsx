@@ -263,6 +263,34 @@ describe('project events and presence', () => {
     expect(notifications()).toEqual([]);
   });
 
+  it.each(['viewing', 'editing'] as const)(
+    'notifies the %s user when an agent working for them updates the card',
+    async (mode) => {
+      const { hook, source, notifications, setSaved } = setup();
+      await waitFor(() => expect(loaded(hook)).toBe('Saved/Saved'));
+      hook.rerender({ card: 'TST_1', mode });
+      setSaved('Agent edit');
+
+      act(() =>
+        source.emit('card.updated', {
+          cardKey: 'TST_1',
+          userId: 'me',
+          userName: 'Me',
+          actor: 'agent',
+        }),
+      );
+      await waitFor(() => expect(hook.result.current.data).toBe('Agent edit'));
+      expect(notifications()).toHaveLength(1);
+      expect(notifications()[0]).toMatchObject({
+        type: mode === 'editing' ? 'warning' : 'info',
+        message:
+          mode === 'editing'
+            ? 'An agent working for Me saved changes to this card while you are editing. Your draft is unchanged.'
+            : 'An agent working for Me updated this card',
+      });
+    },
+  );
+
   it('refreshes the open card for a reader without a toast', async () => {
     currentUser.role = 'reader';
     const { hook, source, notifications, setSaved } = setup();
