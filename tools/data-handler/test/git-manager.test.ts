@@ -40,7 +40,13 @@ describe('GitManager', () => {
 
   afterEach(async () => {
     vi.unstubAllGlobals();
-    await rm(dir, { recursive: true, force: true });
+    await rm(dir, {
+      recursive: true,
+      force: true,
+      // Git may still be tidying the repository in the background
+      maxRetries: 5,
+      retryDelay: 100,
+    });
   });
 
   describe('initialize()', () => {
@@ -329,7 +335,13 @@ describe('GitManager', () => {
     });
 
     afterEach(async () => {
-      await rm(join(worktree, '..'), { recursive: true, force: true });
+      await rm(join(worktree, '..'), {
+        recursive: true,
+        force: true,
+        // Git may still be tidying the repository in the background
+        maxRetries: 5,
+        retryDelay: 100,
+      });
     });
 
     it('locates the project inside its repository', async () => {

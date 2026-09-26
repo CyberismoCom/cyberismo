@@ -60,7 +60,13 @@ describe('ChangeSetManager', { timeout: 30_000 }, () => {
   afterEach(async () => {
     manager.dispose();
     main.project.dispose();
-    await rm(dir, { recursive: true, force: true });
+    await rm(dir, {
+      recursive: true,
+      force: true,
+      // Git may still be tidying the repository in the background
+      maxRetries: 5,
+      retryDelay: 100,
+    });
   });
 
   it('refuses a project that its repository ignores', async () => {

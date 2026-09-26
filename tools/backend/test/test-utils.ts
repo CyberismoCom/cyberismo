@@ -45,5 +45,11 @@ export async function createTempTestData(
 export async function cleanupTempTestData(tempPath: string): Promise<void> {
   // Get the parent temp directory (the mkdtemp created directory)
   const tempDir = path.dirname(tempPath);
-  await rm(tempDir, { recursive: true, force: true });
+  await rm(tempDir, {
+    recursive: true,
+    force: true,
+    // Git may still be tidying the repository in the background
+    maxRetries: 5,
+    retryDelay: 100,
+  });
 }

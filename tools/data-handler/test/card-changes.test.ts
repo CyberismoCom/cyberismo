@@ -34,7 +34,13 @@ describe('Project.onCardsChanged', () => {
 
   afterEach(async () => {
     commands.project.dispose();
-    await rm(dir, { recursive: true, force: true });
+    await rm(dir, {
+      recursive: true,
+      force: true,
+      // Git may still be tidying the repository in the background
+      maxRetries: 5,
+      retryDelay: 100,
+    });
   });
 
   it('reports each write once, with who made it', async () => {

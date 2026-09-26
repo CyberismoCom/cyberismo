@@ -65,7 +65,13 @@ describe(
       for (const created of managers) created.dispose();
       one.project.dispose();
       two.project.dispose();
-      await rm(dir, { recursive: true, force: true });
+      await rm(dir, {
+        recursive: true,
+        force: true,
+        // Git may still be tidying the repository in the background
+        maxRetries: 5,
+        retryDelay: 100,
+      });
     });
 
     it('keeps each project’s changesets to itself', async () => {

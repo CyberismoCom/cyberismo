@@ -30,7 +30,13 @@ afterAll(async () => {
   registry.dispose();
   delete process.env.CYBERISMO_CHANGESETS_DIR;
   await cleanupTempTestData(tempTestDataPath);
-  await rm(worktrees, { recursive: true, force: true });
+  await rm(worktrees, {
+    recursive: true,
+    force: true,
+    // Git may still be tidying the repository in the background
+    maxRetries: 5,
+    retryDelay: 100,
+  });
 });
 
 function request(
