@@ -19,7 +19,8 @@ const alice = { name: 'Alice', email: 'alice@example.com', id: 'alice' };
 const bob = { name: 'Bob', email: 'bob@example.com', id: 'bob' };
 const template = 'decision/templates/decision';
 
-describe('ChangeSetManager', () => {
+// Git is slow on Windows, and these tests run many git commands each
+describe('ChangeSetManager', { timeout: 30_000 }, () => {
   let dir: string;
   let projectPath: string;
   let main: CommandManager;
@@ -85,6 +86,10 @@ describe('ChangeSetManager', () => {
       await expect(inside.create('Nope')).rejects.toThrow(
         'Changesets need the project to be in a git repository',
       );
+      // Not an error to ask: it has none
+      expect(await inside.available()).toBe(false);
+      expect(await inside.getActive('alice')).toBeUndefined();
+      expect(await inside.list()).toEqual([]);
       expect(await git.raw(['branch', '--list'])).not.toContain('cyberismo');
     } finally {
       inside.dispose();
@@ -190,6 +195,53 @@ describe('ChangeSetManager', () => {
 
     expect(await commits()).toBe(before + 1);
     expect((await manager.changes(id)).cards).toEqual([]);
+  });
+
+  it('lists an attachment renamed within its card', async () => {
+    await as(bob, () =>
+      main.createCmd.createAttachment(
+        'decision_5',
+        'notes.txt',
+        Buffer.from('attached'),
+      ),
+    );
+    const { id } = await as(alice, () => manager.create('Rename attachment'));
+    const changeSet = await manager.open(id);
+    await as(alice, () =>
+      changeSet.project.lock.write(() =>
+        changeSet.project.renameCardAttachment(
+          'decision_5',
+          'notes.txt',
+          'renamed.txt',
+        ),
+      ),
+    );
+
+    const { cards } = await manager.changes(id);
+
+    expect(cards).toMatchObject([
+      {
+        key: 'decision_5',
+        kind: 'modified',
+        attachments: { added: ['renamed.txt'], removed: ['notes.txt'] },
+      },
+    ]);
+  });
+
+  it('lists a deleted card and a similar new card as two changes', async () => {
+    const { id } = await as(alice, () => manager.create('Replace'));
+    const changeSet = await manager.open(id);
+    await as(alice, () => changeSet.removeCmd.remove('card', 'decision_6'));
+    // From the same template: git may pair its files with decision_6's
+    const [created] = await as(alice, () =>
+      changeSet.createCmd.createCard(template, 'decision_5'),
+    );
+
+    const kinds = Object.fromEntries(
+      (await manager.changes(id)).cards.map((card) => [card.key, card.kind]),
+    );
+
+    expect(kinds).toEqual({ decision_6: 'deleted', [created.key]: 'created' });
   });
 
   it('counts a card as reviewed only as it was when reviewed', async () => {
@@ -660,7 +712,8 @@ describe('ChangeSetManager', () => {
     const diff = await manager.cardDiff(id, 'decision_5');
 
     expect(diff.change.kind).toBe('modified');
-    expect(diff.before?.content).toBe(before);
+    // Git stores LF; a Windows checkout may hold CRLF
+    expect(diff.before?.content).toBe(before?.replace(/\r\n/g, '\n'));
     expect(diff.after?.content).toBe('After');
     expect(diff.after?.metadata.title).toBe(diff.before?.metadata.title);
   });
@@ -752,6 +805,59 @@ describe('ChangeSetManager', () => {
       ).trim(),
     ).toMatch(/^[0-9a-f]{40}$/);
     expect(await manager.cleanUp()).toEqual([]);
+  });
+
+  it('can finish closing a changeset interrupted part-way', async () => {
+    const { id, branch } = await as(alice, () => manager.create('Interrupted'));
+    await manager.open(id);
+    const deleteBranch = vi
+      .spyOn(main.project.git, 'deleteBranch')
+      .mockRejectedValueOnce(new Error('interrupted'));
+
+    await expect(manager.discard(id)).rejects.toThrow('interrupted');
+    deleteBranch.mockRestore();
+
+    // The record says discarded, so recovery knows what to finish
+    expect((await manager.get(id)).status).toBe('discarded');
+    expect(await manager.cleanUp()).toEqual([id]);
+    const git = simpleGit(projectPath);
+    expect(await git.raw(['branch', '--list', branch])).toBe('');
+  });
+
+  it('opens a changeset once, however many ask at the same time', async () => {
+    const { id } = await as(alice, () => manager.create('Once'));
+    manager.close(id);
+
+    const [first, second] = await Promise.all([
+      manager.open(id),
+      manager.open(id),
+    ]);
+
+    expect(first).toBe(second);
+  });
+
+  it('keeps a changeset in use open beyond the limit', async () => {
+    manager = new ChangeSetManager(main, {
+      worktreesRoot: join(dir, 'worktrees'),
+      maxOpen: 1,
+      inUseGraceMs: 0,
+    });
+    const a = await as(alice, () => manager.create('A'));
+    const b = await as(alice, () => manager.create('B'));
+    const c = await as(alice, () => manager.create('C'));
+    const inA = await manager.open(a.id);
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    const write = inA.project.lock.write(() => held);
+
+    await manager.open(b.id);
+    expect(manager.openedCommands(a.id)).toBe(inA);
+
+    release();
+    await write;
+    await manager.open(c.id);
+    expect(manager.openedCommands(a.id)).toBeUndefined();
+    expect(manager.openedCommands(b.id)).toBeUndefined();
   });
 
   it('checks a changeSet out again when its worktree went missing', async () => {

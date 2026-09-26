@@ -339,7 +339,8 @@ export class GitManager {
       }
       const [key, ...rest] = field.split(' ');
       const value = rest.join(' ');
-      if (key === 'worktree') current.path = value;
+      // Git writes '/' on every platform: use the platform's own form
+      if (key === 'worktree') current.path = resolvePath(value);
       else if (key === 'HEAD') current.head = value;
       else if (key === 'branch')
         current.branch = value.replace(/^refs\/heads\//, '');

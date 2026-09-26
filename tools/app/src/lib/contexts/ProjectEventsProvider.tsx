@@ -167,8 +167,12 @@ export function ProjectEventsProvider({
         const active =
           store.getState().changeSet.activeByPrefix[projectPrefix] ?? null;
         const { id, action } = parsed.data;
-        if (id === active && (action === 'merged' || action === 'discarded')) {
-          void loadActiveChangeSet(projectPrefix);
+        // Started (e.g. by an agent) or switched to elsewhere, or closed
+        // under the user: which changeSet they work in may have changed
+        const closedActive =
+          id === active && (action === 'merged' || action === 'discarded');
+        if (closedActive || action === 'created' || action === 'activated') {
+          void loadActiveChangeSet(projectPrefix).catch(() => undefined);
         }
       });
       current.addEventListener('error', () => {
@@ -177,7 +181,7 @@ export function ProjectEventsProvider({
         setPresence({});
         // A changeSet's stream closes when someone merges or discards it
         if (store.getState().changeSet.activeByPrefix[projectPrefix]) {
-          void loadActiveChangeSet(projectPrefix);
+          void loadActiveChangeSet(projectPrefix).catch(() => undefined);
         }
       });
     };

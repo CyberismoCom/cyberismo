@@ -180,6 +180,7 @@
     "review": "Review changes",
     "reviewTitle": "Review changeset",
     "reviewed": "Reviewed",
+    "showChanges": "Show changes to {{card}}",
     "start": "Start",
     "startDescription": "Your changes, and your agents', go into the changeset instead of the project until you merge it. Review them before merging.",
     "startMenu": "Start a changeset…",

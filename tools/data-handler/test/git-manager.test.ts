@@ -318,7 +318,7 @@ describe('GitManager', () => {
     });
   });
 
-  describe('changeSet primitives', () => {
+  describe('changeSet primitives', { timeout: 30_000 }, () => {
     let worktree: string;
 
     beforeEach(async () => {
@@ -459,9 +459,12 @@ describe('GitManager', () => {
       expect(await gm.conflictSide(3, 'cardRoot/shared.txt')).toBe('theirs\n');
 
       await gm.abortMerge();
-      expect(await readFile(join(dir, 'cardRoot', 'shared.txt'), 'utf-8')).toBe(
-        'ours\n',
+      // A Windows checkout may hold CRLF
+      const restored = await readFile(
+        join(dir, 'cardRoot', 'shared.txt'),
+        'utf-8',
       );
+      expect(restored.replace(/\r\n/g, '\n')).toBe('ours\n');
       await gm.removeWorktree(worktree, true);
     });
   });

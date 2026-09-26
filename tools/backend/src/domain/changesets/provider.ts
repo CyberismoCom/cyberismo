@@ -52,7 +52,7 @@ export function changeSetProvider(
         const { main, changeSets } = project(prefix);
         const info = await changeSets.create(title);
         await changeSets.setActive(user.id, info.id);
-        registry.eventsFor(main).changeSetUpdated(info.id, 'created', user);
+        registry.announceChangeSet(main, info.id, 'created', user);
         return info;
       },
       async changes(prefix) {

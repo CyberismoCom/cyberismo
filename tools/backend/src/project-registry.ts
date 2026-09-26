@@ -17,6 +17,7 @@ import {
   type ProjectProvider,
 } from '@cyberismo/data-handler';
 import { ProjectEvents } from './domain/events/project-events.js';
+import type { UserInfo } from './types.js';
 import { changeSetsDirFromEnv, changeSetsMaxOpenFromEnv } from './utils.js';
 
 // An open changeSet unused this long is closed; its worktree stays.
@@ -135,6 +136,23 @@ export class ProjectRegistry implements ProjectProvider {
     const changeSet = await this.changeSetsFor(commands).open(id);
     this.changeSetCommands.add(changeSet);
     return changeSet;
+  }
+
+  /**
+   * Tells everyone watching a project that one of its changeSets changed:
+   * on the project's stream, and on the stream of every changeSet open in
+   * it, since a user working in a changeSet watches that changeSet's.
+   */
+  announceChangeSet(
+    commands: CommandManager,
+    id: string,
+    action: string,
+    user: UserInfo,
+  ): void {
+    this.eventsFor(commands).changeSetUpdated(id, action, user);
+    for (const opened of this.changeSetsFor(commands).openedAll()) {
+      this.events.get(opened)?.changeSetUpdated(id, action, user);
+    }
   }
 
   list(): ProjectListItem[] {

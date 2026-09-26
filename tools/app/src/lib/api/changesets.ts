@@ -78,7 +78,10 @@ const setActive = (prefix: string, id: string | null) => {
 
 /**
  * Asks the server for the user's active changeSet in a project and mirrors
- * it in the store. Static exports have none.
+ * it in the store. Static exports have none, and the server answers none
+ * for a project that cannot have changeSets. A failed request keeps what is
+ * known, or throws when nothing is: assuming the project itself would send
+ * the user's edits there while the server has them in a changeSet.
  */
 export async function loadActiveChangeSet(
   prefix: string,
@@ -94,10 +97,12 @@ export async function loadActiveChangeSet(
     );
     setActive(prefix, changeSet?.id ?? null);
     return changeSet?.id ?? null;
-  } catch {
-    // Not in a git repository, or no access: work in the project itself
-    setActive(prefix, null);
-    return null;
+  } catch (error) {
+    const known = store.getState().changeSet.activeByPrefix[prefix];
+    if (known !== undefined) {
+      return known;
+    }
+    throw error;
   }
 }
 

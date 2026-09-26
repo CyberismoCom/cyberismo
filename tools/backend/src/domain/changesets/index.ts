@@ -45,12 +45,12 @@ const changeSets = (c: Context) =>
 // Tells the project's viewers a changeSet changed, and those working in it:
 // they watch the changeSet's own stream.
 function announce(c: Context, id: string, action: string) {
-  const user = c.get('user');
-  c.get('events').changeSetUpdated(id, action, user);
-  const opened = changeSets(c).openedCommands(id);
-  if (opened) {
-    c.get('registry').eventsFor(opened).changeSetUpdated(id, action, user);
-  }
+  c.get('registry').announceChangeSet(
+    c.get('commands'),
+    id,
+    action,
+    c.get('user'),
+  );
 }
 
 // Maps changeSet errors to responses; anything else is a server error.
@@ -122,6 +122,8 @@ router.put(
     try {
       await changeSets(c).setActive(c.get('user').id, id);
       const active = await changeSets(c).getActive(c.get('user').id);
+      // The user's other tabs and sessions follow
+      announce(c, id ?? '', 'activated');
       return c.json({ changeSet: active ?? null });
     } catch (error) {
       return failure(c, error);

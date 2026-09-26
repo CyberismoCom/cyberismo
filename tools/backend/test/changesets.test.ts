@@ -153,7 +153,13 @@ describe('changeSets API', () => {
     await request('PATCH', `/changesets/${id}/cards/decision_6`, {
       content: 'From the changeSet',
     });
-    await request('PATCH', '/cards/decision_6', { content: 'From main' });
+    // Someone else, working in the project itself
+    await request(
+      'PATCH',
+      '/cards/decision_6',
+      { content: 'From main' },
+      'alice',
+    );
 
     expect((await request('POST', `/changesets/${id}/merge`)).status).toBe(409);
     const conflicted = await request('POST', `/changesets/${id}/update`, {});
@@ -188,6 +194,32 @@ describe('changeSets API', () => {
     expect(
       (await request('GET', `/changesets/${id}/cards/decision_6`)).status,
     ).toBe(409);
+  });
+
+  test('refuses writes to the project while the user works in a changeset', async () => {
+    const id = await create('Guarded');
+
+    const refused = await request('PATCH', '/cards/decision_5', {
+      content: 'Meant for the project',
+    });
+    expect(refused.status).toBe(409);
+    expect(await refused.json()).toMatchObject({ code: 'changeset-active' });
+    expect(mainContent('decision_5')).not.toBe('Meant for the project');
+    // Reading the project, and writing into the changeset, stay open
+    expect((await request('GET', '/cards/decision_5')).status).toBe(200);
+    expect(
+      (
+        await request('PATCH', `/changesets/${id}/cards/decision_5`, {
+          content: 'Into the changeset',
+        })
+      ).status,
+    ).toBe(200);
+
+    await request('PUT', '/changesets/active', { id: null });
+    expect(
+      (await request('PATCH', '/cards/decision_5', { content: 'Now allowed' }))
+        .status,
+    ).toBe(200);
   });
 
   test('keeps internal failures out of responses', async () => {
@@ -282,6 +314,53 @@ describe('changeSets API', () => {
       });
     } finally {
       await reader.cancel();
+    }
+  });
+
+  // The next changeset.updated event on a stream with the given action
+  async function nextChangeSetEvent(
+    reader: ReadableStreamDefaultReader<Uint8Array>,
+    action: string,
+  ) {
+    const decoder = new TextDecoder();
+    let text = '';
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) throw new Error('Stream closed');
+      text += decoder.decode(value, { stream: true });
+      for (const block of text.split('\n\n')) {
+        if (!block.includes('event: changeset.updated')) continue;
+        const line = block.split('\n').find((l) => l.startsWith('data: '));
+        const data = line ? JSON.parse(line.slice(6)) : undefined;
+        if (data?.action === action) return data;
+      }
+    }
+  }
+
+  test('announces switching, also to those working in a changeset', async () => {
+    const id = await create('Watched');
+    const inProject = (
+      await request('GET', '/events', undefined, 'carol')
+    ).body!.getReader();
+    const inChangeSet = (
+      await request('GET', `/changesets/${id}/events`, undefined, 'carol')
+    ).body!.getReader();
+    try {
+      await request('PUT', '/changesets/active', { id: null });
+      expect(await nextChangeSetEvent(inProject, 'activated')).toMatchObject({
+        id: '',
+        userId: 'mock-user-bob',
+      });
+      expect(await nextChangeSetEvent(inChangeSet, 'activated')).toMatchObject({
+        id: '',
+      });
+      const other = await create('Another');
+      expect(await nextChangeSetEvent(inChangeSet, 'created')).toMatchObject({
+        id: other,
+      });
+    } finally {
+      await inProject.cancel();
+      await inChangeSet.cancel();
     }
   });
 });

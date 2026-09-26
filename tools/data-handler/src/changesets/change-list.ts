@@ -108,7 +108,21 @@ function groupByCard(files: ChangedFile[]): {
     }
     return card;
   };
-  for (const file of files) {
+  // Git pairs any two similar files as a rename: a file of a deleted card
+  // with one of a card created from the same template, say. Only a rename
+  // within one card is kept; any other is a deletion and an addition.
+  const perCard = files.flatMap((file): ChangedFile[] => {
+    if (file.status !== 'R') return [file];
+    const from = cardFileOf(file.from!);
+    const to = cardFileOf(file.path);
+    return from && to && from.key === to.key
+      ? [file]
+      : [
+          { status: 'D', path: file.from! },
+          { status: 'A', path: file.path },
+        ];
+  });
+  for (const file of perCard) {
     const after = file.status === 'D' ? undefined : cardFileOf(file.path);
     const before =
       file.status === 'A'
@@ -121,17 +135,27 @@ function groupByCard(files: ChangedFile[]): {
     const card = entry((after ?? before)!);
     if (before) card.before ??= before;
     if (after) card.after ??= after;
-    const unchangedMove = file.status === 'R' && file.similarity === 100;
+    const role = (after ?? before)!.role;
+    // An attachment renamed within its card, not carried along by a move
+    const renamedAttachment =
+      role === 'attachment' &&
+      file.status === 'R' &&
+      before!.attachment !== after!.attachment;
+    const unchangedMove =
+      file.status === 'R' && file.similarity === 100 && !renamedAttachment;
     if (!unchangedMove) {
       card.touched = true;
     }
-    const role = (after ?? before)!.role;
     if (role === 'content' && !unchangedMove) {
       card.contentChanged = true;
     }
-    if (role === 'attachment' && file.status !== 'R') {
+    if (role === 'attachment' && (file.status !== 'R' || renamedAttachment)) {
+      // Added, or changed in place: the file now there
       if (after) card.attachmentsAdded.push(after.attachment!);
-      else card.attachmentsRemoved.push(before!.attachment!);
+      // Deleted, or renamed away: the file no longer there
+      if (before && (file.status === 'D' || renamedAttachment)) {
+        card.attachmentsRemoved.push(before.attachment!);
+      }
     }
   }
   return { cards, resources };

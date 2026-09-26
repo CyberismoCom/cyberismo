@@ -146,6 +146,8 @@ export class ApiCallError extends Error {
   constructor(
     public response: Response,
     reason?: string,
+    /** Machine-readable reason, when the server gives one. */
+    public code?: string,
   ) {
     super(
       reason ?? `Api call failed: ${response.status} ${response.statusText}`,
@@ -162,7 +164,7 @@ export async function createApiCallError(
   const text = await response.text();
   try {
     const json = JSON.parse(text);
-    return new ApiCallError(response, json.error);
+    return new ApiCallError(response, json.error, json.code);
   } catch {
     return new ApiCallError(response, text);
   }
@@ -181,7 +183,17 @@ async function handleResponse<T>(
       // instead of showing error screens
       return new Promise<T>(() => {});
     }
-    throw await createApiCallError(response);
+    const error = await createApiCallError(response);
+    if (error.code === 'changeset-active') {
+      // A write reached the project while the user works in a changeSet:
+      // follow the server, so that the next one goes into the changeSet
+      void import('./api/changesets')
+        .then(({ loadActiveChangeSet }) =>
+          loadActiveChangeSet(resolveProjectPrefix()),
+        )
+        .catch(() => undefined);
+    }
+    throw error;
   }
   if (response.status === 204) return null as unknown as T; // no content, return null
   if (responseType === 'blob') return response.blob() as unknown as Promise<T>;

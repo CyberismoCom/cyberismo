@@ -123,6 +123,11 @@ export interface ChangeSetManagerOptions {
   worktreesRoot?: string;
   /** Most changeSets kept open at once; the least recently used is closed. */
   maxOpen?: number;
+  /**
+   * How long after being handed out a changeSet counts as in use even
+   * without holding its lock (the caller may be about to take it).
+   */
+  inUseGraceMs?: number;
   /** Called when a changeSet's CommandManager is closed. */
   onClose?: (id: string, commands: CommandManager) => void;
 }
@@ -200,6 +205,7 @@ const BRANCH_PREFIX = 'cyberismo/changesets/';
 const ARCHIVE_PREFIX = 'refs/cyberismo/changesets/';
 const CARD_ROOTS = ['cardRoot', '.cards/local/templates'];
 const DEFAULT_MAX_OPEN = 3;
+const IN_USE_GRACE_MS = 10_000;
 
 /**
  * Creates, opens, reviews, updates and merges the changeSets of a project.
@@ -210,6 +216,8 @@ const DEFAULT_MAX_OPEN = 3;
  */
 export class ChangeSetManager {
   private migration: Promise<void> | undefined;
+  private opening = new Map<string, Promise<CommandManager>>();
+  private isAvailable = false;
   private gitChecked: Promise<void> | undefined;
   private opened = new Map<
     string,
@@ -374,6 +382,9 @@ export class ChangeSetManager {
    * @returns the changeSet, or undefined when the user works in main.
    */
   public async getActive(userId: string): Promise<ChangeSetInfo | undefined> {
+    if (!(await this.available())) {
+      return undefined;
+    }
     const id = (await this.readActive())[userId];
     if (!id) {
       return undefined;
@@ -469,6 +480,9 @@ export class ChangeSetManager {
 
   /** All changeSets, active and closed, oldest first. */
   public async list(): Promise<ChangeSetInfo[]> {
+    if (!(await this.available())) {
+      return [];
+    }
     const { records } = await this.folders();
     if (!pathExists(records)) {
       return [];
@@ -521,6 +535,20 @@ export class ChangeSetManager {
       this.opened.set(id, { ...cached, lastUsed: Date.now() });
       return cached.commands;
     }
+    // Concurrent first requests share one opening: two CommandManagers on
+    // one worktree would have separate locks
+    let opening = this.opening.get(id);
+    if (!opening) {
+      opening = this.openFresh(id, info).finally(() => this.opening.delete(id));
+      this.opening.set(id, opening);
+    }
+    return opening;
+  }
+
+  private async openFresh(
+    id: string,
+    info: ChangeSetInfo,
+  ): Promise<CommandManager> {
     const worktree = await this.worktreeOf(id);
     if (!pathExists(worktree)) {
       await this.git.pruneWorktrees();
@@ -535,13 +563,56 @@ export class ChangeSetManager {
       autocommit: true,
     });
     await commands.initialize();
-    const maxOpen = this.options.maxOpen ?? DEFAULT_MAX_OPEN;
-    for (const [openId] of this.opened) {
-      if (this.opened.size < maxOpen) break;
-      this.close(openId);
-    }
     this.opened.set(id, { commands, lastUsed: Date.now() });
+    this.closeBeyondLimit(id);
     return commands;
+  }
+
+  // Whether a changeSet's CommandManager is in use: its lock is held or
+  // awaited, or it was handed out a moment ago.
+  private inUse(opened: { commands: CommandManager; lastUsed: number }) {
+    const grace = this.options.inUseGraceMs ?? IN_USE_GRACE_MS;
+    return (
+      !opened.commands.project.lock.isIdle() ||
+      Date.now() - opened.lastUsed < grace
+    );
+  }
+
+  // Closes the least recently used changeSets beyond the limit. Only idle
+  // ones: a changeSet in use stays open over the limit until it is idle.
+  private closeBeyondLimit(keep: string) {
+    const maxOpen = this.options.maxOpen ?? DEFAULT_MAX_OPEN;
+    for (const [id, opened] of [...this.opened]) {
+      if (this.opened.size <= maxOpen) break;
+      if (id !== keep && !this.inUse(opened)) {
+        this.close(id);
+      }
+    }
+  }
+
+  /**
+   * Whether the project can have changeSets: it is in a git repository of
+   * its own, and git is new enough. Without, it has none, and starting one
+   * fails with the reason.
+   */
+  public async available(): Promise<boolean> {
+    if (this.isAvailable) {
+      return true;
+    }
+    try {
+      await requireGit();
+    } catch {
+      return false;
+    }
+    // A repository does not stop being one: remember only a yes
+    this.isAvailable =
+      (await this.git.isRepo()) && !(await this.git.isIgnored());
+    return this.isAvailable;
+  }
+
+  /** The CommandManagers of every changeSet open now. */
+  public openedAll(): CommandManager[] {
+    return [...this.opened.values()].map((opened) => opened.commands);
   }
 
   /** The CommandManager of a changeSet, if it is open now. */
@@ -566,11 +637,12 @@ export class ChangeSetManager {
    */
   public closeIdle(maxIdleMs: number): void {
     const cutoff = Date.now() - maxIdleMs;
-    for (const [id, { lastUsed }] of [...this.opened]) {
-      if (lastUsed < cutoff) {
+    for (const [id, opened] of [...this.opened]) {
+      if (opened.lastUsed < cutoff && opened.commands.project.lock.isIdle()) {
         this.close(id);
       }
     }
+    this.closeBeyondLimit('');
   }
 
   /** Closes every open changeSet. */
@@ -1262,18 +1334,10 @@ export class ChangeSetManager {
     });
   }
 
-  // Closes a changeSet for good: worktree removed, branch archived, record saved.
+  // Closes a changeSet for good. The closed record is saved first: should
+  // the rest be interrupted, cleanUp() finishes it from that record.
   private async retire(info: ChangeSetInfo, head: string) {
     this.close(info.id);
-    const worktree = await this.worktreeOf(info.id);
-    if (pathExists(worktree)) {
-      await this.git.removeWorktree(worktree, true);
-    }
-    await this.git.updateRef(
-      `${ARCHIVE_PREFIX}${info.status}/${info.id}`,
-      head,
-    );
-    await this.git.deleteBranch(info.branch, true);
     await this.save(info);
     // Whoever worked in it is back in main
     const active = await this.readActive();
@@ -1282,6 +1346,15 @@ export class ChangeSetManager {
         Object.entries(active).filter(([, id]) => id !== info.id),
       ),
     );
+    await this.git.updateRef(
+      `${ARCHIVE_PREFIX}${info.status}/${info.id}`,
+      head,
+    );
+    const worktree = await this.worktreeOf(info.id);
+    if (pathExists(worktree)) {
+      await this.git.removeWorktree(worktree, true);
+    }
+    await this.git.deleteBranch(info.branch, true);
     this.logger.info({ id: info.id, status: info.status }, 'Changeset closed');
   }
 }

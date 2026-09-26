@@ -13,6 +13,7 @@ const updateChangeSet = vi.fn();
 const discardChangeSet = vi.fn().mockResolvedValue(undefined);
 const routerPush = vi.fn();
 let activeId: string | null = 'cs1';
+let onlyResources = false;
 
 const card = (overrides: Record<string, unknown>) => ({
   kind: 'modified',
@@ -37,29 +38,41 @@ vi.mock('@/lib/api/changesets', () => ({
   }),
   useChangeSetChanges: () => ({
     isLoading: false,
-    changes: {
-      base: 'b',
-      head: 'h',
-      resources: [],
-      cards: [
-        card({
-          key: 'TST_1',
-          title: 'Retitled',
-          fields: [{ field: 'title', before: 'Old', after: 'Retitled' }],
-          commits: [
-            {
-              hash: '1',
-              subject: 's',
-              date: 'd',
-              author: { name: 'Alice', email: 'a@x' },
-              actor: 'agent',
-              agent: 'claude',
-            },
+    changes: onlyResources
+      ? {
+          base: 'b',
+          head: 'h',
+          cards: [],
+          resources: [{ status: 'M', path: '.cards/local/cardsConfig.json' }],
+        }
+      : {
+          base: 'b',
+          head: 'h',
+          resources: [],
+          cards: [
+            card({
+              key: 'TST_1',
+              title: 'Retitled',
+              fields: [{ field: 'title', before: 'Old', after: 'Retitled' }],
+              commits: [
+                {
+                  hash: '1',
+                  subject: 's',
+                  date: 'd',
+                  author: { name: 'Alice', email: 'a@x' },
+                  actor: 'agent',
+                  agent: 'claude',
+                },
+              ],
+            }),
+            card({
+              key: 'TST_2',
+              kind: 'created',
+              title: 'New',
+              reviewed: true,
+            }),
           ],
-        }),
-        card({ key: 'TST_2', kind: 'created', title: 'New', reviewed: true }),
-      ],
-    },
+        },
   }),
   useCardDiff: () => ({ isLoading: true }),
   markCardReviewed: (...args: unknown[]) => markCardReviewed(...args),
@@ -106,6 +119,7 @@ describe('ChangeSetReviewPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     activeId = 'cs1';
+    onlyResources = false;
   });
 
   it('lists the changed cards, who changed them and what is reviewed', () => {
@@ -205,6 +219,26 @@ describe('ChangeSetReviewPage', () => {
     await waitFor(() =>
       expect(screen.queryByText('Settle conflicts')).not.toBeInTheDocument(),
     );
+  });
+
+  it('opens a card’s changes from the keyboard', () => {
+    renderPage();
+    const toggle = screen.getByRole('button', {
+      name: 'Show changes to Retitled',
+    });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    toggle.focus();
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('can merge a changeset that changes only configuration', () => {
+    onlyResources = true;
+    renderPage();
+    expect(
+      screen.getByText('.cards/local/cardsConfig.json', { exact: false }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Merge' })).toBeEnabled();
   });
 
   it('says so when no changeSet is active', () => {

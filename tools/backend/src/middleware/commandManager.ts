@@ -82,9 +82,44 @@ export const attachProjectRegistry = (
       return c.json({ error: `Project '${prefix}' not found` }, 404);
     }
     c.set('events', registry.eventsFor(commands));
+    const refusal = await refuseWhileInChangeSet(c, registry, commands);
+    if (refusal) {
+      return refusal;
+    }
     return runWithCommands(c, commands, next);
   };
 };
+
+// Paths below a project that are not the project's content: managing
+// changeSets, and the changeSets' own routes; presence.
+const NOT_PROJECT_CONTENT =
+  /^\/api\/projects\/[^/]+\/(changesets|events)(\/|$)/;
+
+/**
+ * Refuses a write to the project itself from a user who works in a
+ * changeSet: the change belongs in the changeSet. A client that still
+ * writes to the project (a stale tab, a missed event) learns so instead of
+ * changing the project behind the user's back.
+ */
+async function refuseWhileInChangeSet(
+  c: Context,
+  registry: ProjectRegistry,
+  commands: CommandManager,
+) {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(c.req.method)) return undefined;
+  if (NOT_PROJECT_CONTENT.test(c.req.path)) return undefined;
+  const user = getCurrentUser(c);
+  if (!user) return undefined;
+  const active = await registry.changeSetsFor(commands).getActive(user.id);
+  if (!active) return undefined;
+  return c.json(
+    {
+      error: `You are working in changeset "${active.title}": changes go there, not to the project`,
+      code: 'changeset-active',
+    },
+    409,
+  );
+}
 
 /**
  * Middleware that serves a request from one of a project's changeSets: the

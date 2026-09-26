@@ -12,6 +12,8 @@
 */
 
 import { Fragment, useState } from 'react';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import UndoIcon from '@mui/icons-material/Undo';
 import {
   Box,
@@ -242,7 +244,11 @@ export default function ChangeSetReviewPage() {
             </Button>
             <Button
               loading={busy === 'merge'}
-              disabled={busy !== null || cards.length === 0}
+              disabled={
+                busy !== null ||
+                !changes ||
+                (cards.length === 0 && changes.resources.length === 0)
+              }
               onClick={() => setConfirm('merge')}
               data-cy="mergeChangeSet"
             >
@@ -279,6 +285,7 @@ export default function ChangeSetReviewPage() {
           >
             <thead>
               <tr>
+                <th style={{ width: 44 }} />
                 <th style={{ width: 90 }}>{t('changeSet.reviewed')}</th>
                 <th style={{ width: 100 }}>{t('changeSet.change')}</th>
                 <th>{t('changeSet.card')}</th>
@@ -310,6 +317,27 @@ export default function ChangeSetReviewPage() {
                       style={{ cursor: 'pointer' }}
                       data-cy="changedCard"
                     >
+                      <td onClick={(event) => event.stopPropagation()}>
+                        {/* The row's click, for the keyboard too */}
+                        <IconButton
+                          size="sm"
+                          variant="plain"
+                          aria-label={t('changeSet.showChanges', {
+                            card: card.title || card.key,
+                          })}
+                          aria-expanded={open === card.key}
+                          aria-controls={`changes-${card.key}`}
+                          onClick={() =>
+                            setOpen(open === card.key ? null : card.key)
+                          }
+                        >
+                          {open === card.key ? (
+                            <KeyboardArrowDownIcon />
+                          ) : (
+                            <KeyboardArrowRightIcon />
+                          )}
+                        </IconButton>
+                      </td>
                       <td onClick={(event) => event.stopPropagation()}>
                         <Checkbox
                           checked={card.reviewed}
@@ -385,8 +413,8 @@ export default function ChangeSetReviewPage() {
                       </td>
                     </tr>
                     {open === card.key && (
-                      <tr>
-                        <td colSpan={6}>
+                      <tr id={`changes-${card.key}`}>
+                        <td colSpan={7}>
                           <Box sx={{ p: 1 }}>
                             <CardChangeDiff
                               changeSetId={id}
