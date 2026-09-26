@@ -1,8 +1,8 @@
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { CommandManager } from '@cyberismo/data-handler';
+import { ChangeSetManager, CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { ProjectRegistry } from '../src/project-registry.js';
@@ -188,6 +188,25 @@ describe('changeSets API', () => {
     expect(
       (await request('GET', `/changesets/${id}/cards/decision_6`)).status,
     ).toBe(409);
+  });
+
+  test('keeps internal failures out of responses', async () => {
+    const id = await create('Failing');
+    const failure = vi
+      .spyOn(ChangeSetManager.prototype, 'changes')
+      .mockRejectedValueOnce(new Error('ENOENT: /private/worktree/cardRoot'));
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const response = await request('GET', `/changesets/${id}/changes`);
+      expect(response.status).toBe(500);
+      expect(await response.json()).toEqual({
+        error: 'Changeset operation failed',
+      });
+      expect(logged).toHaveBeenCalled();
+    } finally {
+      failure.mockRestore();
+      logged.mockRestore();
+    }
   });
 
   test('discards a changeSet, and knows no unknown ids', async () => {

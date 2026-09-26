@@ -39,6 +39,7 @@ export {
   CardUnchangedError,
   ChangeSetBehindError,
   ChangeSetClosedError,
+  ChangeSetError,
   ChangeSetInvalidError,
   ChangeSetManager,
   ChangeSetNotFoundError,

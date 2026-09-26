@@ -6,6 +6,7 @@ import { simpleGit } from 'simple-git';
 
 import { CommandManager } from '../src/command-manager.js';
 import {
+  CardUnchangedError,
   ChangeSetBehindError,
   ChangeSetManager,
 } from '../src/changesets/change-set-manager.js';
@@ -205,6 +206,10 @@ describe('ChangeSetManager', () => {
       changeSet.editCmd.editCardContent('decision_5', 'Two'),
     );
     expect((await manager.changes(id)).cards[0].reviewed).toBe(false);
+    // Only a card the changeset changed can be reviewed
+    await expect(manager.markReviewed(id, 'decision_6')).rejects.toBeInstanceOf(
+      CardUnchangedError,
+    );
   });
 
   it('reverts a card to how it was, whatever the change', async () => {

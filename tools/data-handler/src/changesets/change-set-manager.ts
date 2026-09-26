@@ -127,22 +127,28 @@ export interface ChangeSetManagerOptions {
   onClose?: (id: string, commands: CommandManager) => void;
 }
 
+/**
+ * A changeSet operation refused for a reason the user can act on: its
+ * message is meant for them. Anything else thrown is an internal failure.
+ */
+export class ChangeSetError extends Error {}
+
 /** Thrown when a changeSet must first be updated from main. */
-export class ChangeSetBehindError extends Error {
+export class ChangeSetBehindError extends ChangeSetError {
   constructor(id: string) {
     super(`Changeset '${id}' is behind main: update it from main first`);
   }
 }
 
 /** Thrown for a changeSet id that does not exist. */
-export class ChangeSetNotFoundError extends Error {
+export class ChangeSetNotFoundError extends ChangeSetError {
   constructor(id: string) {
     super(`Changeset '${id}' does not exist`);
   }
 }
 
 /** Thrown when merging a changeSet would add validation errors. */
-export class ChangeSetInvalidError extends Error {
+export class ChangeSetInvalidError extends ChangeSetError {
   constructor(
     id: string,
     public readonly errors: string[],
@@ -152,14 +158,14 @@ export class ChangeSetInvalidError extends Error {
 }
 
 /** Thrown when a card the changeSet did not change is asked about. */
-export class CardUnchangedError extends Error {
+export class CardUnchangedError extends ChangeSetError {
   constructor(id: string, cardKey: string) {
     super(`Card '${cardKey}' has no changes in changeset '${id}'`);
   }
 }
 
 /** Thrown when a merged or discarded changeSet is asked to change. */
-export class ChangeSetClosedError extends Error {
+export class ChangeSetClosedError extends ChangeSetError {
   constructor(id: string, status: string) {
     super(`Changeset '${id}' is ${status}`);
   }
@@ -180,7 +186,7 @@ const MIN_GIT_VERSION = '2.36.0';
 async function requireGit() {
   const version = await GitManager.gitVersion();
   if (semver.lt(version, MIN_GIT_VERSION)) {
-    throw new Error(
+    throw new ChangeSetError(
       `Changesets need git ${MIN_GIT_VERSION} or newer; this system has ${version}`,
     );
   }
@@ -420,7 +426,7 @@ export class ChangeSetManager {
   public create(title: string): Promise<ChangeSetInfo> {
     return this.serialize(async () => {
       if (!(await this.git.isRepo()) || (await this.git.isIgnored())) {
-        throw new Error(
+        throw new ChangeSetError(
           'Changesets need the project to be in a git repository',
         );
       }
@@ -693,8 +699,11 @@ export class ChangeSetManager {
     return this.serialize(async () => {
       const info = await this.active(id);
       if (reviewed) {
-        await this.commitPending(info);
-        const head = await this.git.resolveRef(info.branch);
+        const { base, head } = await this.compare(info);
+        const changed = (await computeChangeList(this.git, base, head)).cards;
+        if (!changed.some((card) => card.key === cardKey)) {
+          throw new CardUnchangedError(id, cardKey);
+        }
         info.reviewed[cardKey] =
           (await this.fingerprints(head)).get(cardKey) ?? 'deleted';
       } else {
@@ -734,7 +743,7 @@ export class ChangeSetManager {
             .flatMap((entry) => cardFileOf(entry.path)?.key ?? [])
             .filter((key) => key !== cardKey && before.has(key));
           if (survivors.length > 0) {
-            throw new Error(
+            throw new ChangeSetError(
               `Card '${cardKey}' holds cards that existed before the changeset (${[...new Set(survivors)].join(', ')}); move them out first`,
             );
           }
@@ -745,7 +754,7 @@ export class ChangeSetManager {
         if (change.kind === 'deleted') {
           const parentFolder = dirname(change.path);
           if (!pathExists(join(root, dirname(parentFolder)))) {
-            throw new Error(
+            throw new ChangeSetError(
               `The parent of card '${cardKey}' is gone too; revert it first`,
             );
           }
@@ -756,7 +765,7 @@ export class ChangeSetManager {
         if (change.kind === 'moved') {
           const target = change.previousPath!;
           if (!pathExists(join(root, dirname(dirname(target))))) {
-            throw new Error(
+            throw new ChangeSetError(
               `The previous parent of card '${cardKey}' is gone; revert it first`,
             );
           }

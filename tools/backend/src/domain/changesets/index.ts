@@ -17,6 +17,7 @@ import {
   CardUnchangedError,
   ChangeSetBehindError,
   ChangeSetClosedError,
+  ChangeSetError,
   ChangeSetInvalidError,
   ChangeSetNotFoundError,
 } from '@cyberismo/data-handler';
@@ -70,7 +71,12 @@ function failure(c: Context, error: unknown) {
   if (error instanceof CardUnchangedError) {
     return c.json({ error: message }, 404);
   }
-  return c.json({ error: message }, 500);
+  if (error instanceof ChangeSetError) {
+    return c.json({ error: message }, 422);
+  }
+  // Internal failures stay in the server log: they may name files and paths
+  console.error(error);
+  return c.json({ error: 'Changeset operation failed' }, 500);
 }
 
 router.get('/', requireRole(UserRole.Reader), async (c) => {
