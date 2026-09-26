@@ -11,6 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { spawn } from 'node:child_process';
+import { resolve as resolvePath } from 'node:path';
 import semver from 'semver';
 import { createGit, gitTimeout } from './git-config.js';
 import { getChildLogger } from './log-utils.js';
@@ -22,6 +24,8 @@ export interface ChangedFile {
   status: 'A' | 'M' | 'D' | 'R' | 'T';
   path: string;
   from?: string;
+  /** For a rename: how alike the two files are, 100 meaning identical. */
+  similarity?: number;
 }
 
 /** A commit, with the trailers recording its provenance. */
@@ -31,6 +35,15 @@ export interface CommitInfo {
   date: string;
   subject: string;
   trailers: Record<string, string>;
+  /** Project content files the commit changed, relative to the project. */
+  files: string[];
+}
+
+/** A file in a commit's tree. */
+export interface TreeEntry {
+  path: string;
+  /** Object id of the file's content. */
+  oid: string;
 }
 
 /** A git worktree of the repository. */
@@ -48,7 +61,7 @@ export class GitManager {
   private git: ReturnType<typeof createGit>;
   private logger = getChildLogger({ module: 'GitManager' });
 
-  constructor(projectPath: string) {
+  constructor(private readonly projectPath: string) {
     this.git = createGit({
       baseDir: projectPath,
       timeout: gitTimeout(),
@@ -81,11 +94,14 @@ export class GitManager {
    * @param message Commit message.
    * @param author Optional author; the committer is always the bot.
    * @param trailers Optional git trailers, appended as the last paragraph.
+   * @param options allowEmpty: commit even when nothing is staged, e.g. to
+   *   conclude a merge whose result equals the checked-out tree.
    */
   async commit(
     message: string = 'Autocommit',
     author?: { name: string; email: string },
     trailers: Record<string, string> = {},
+    options: { allowEmpty?: boolean } = {},
   ): Promise<void> {
     // Stage only the directories we care about
     this.logger.debug('Staging changes');
@@ -96,7 +112,7 @@ export class GitManager {
     const staged = (await this.git.diff(['--cached', '--name-only']))
       .split('\n')
       .filter((line) => line !== '');
-    if (staged.length === 0) {
+    if (staged.length === 0 && !options.allowEmpty) {
       this.logger.debug('Nothing to commit, skipping');
       return;
     }
@@ -105,9 +121,12 @@ export class GitManager {
       { message, stagedFiles: staged.length },
       'Committing changes',
     );
-    const commitOpts: Record<string, string> = {};
+    const commitOpts: Record<string, string | null> = {};
     if (author) {
       commitOpts['--author'] = `${author.name} <${author.email}>`;
+    }
+    if (options.allowEmpty) {
+      commitOpts['--allow-empty'] = null;
     }
     const trailerBlock = Object.entries(trailers)
       .map(([key, value]) => `${key}: ${value}`)
@@ -237,7 +256,12 @@ export class GitManager {
 
   /** The commit HEAD points at. */
   async headCommit(): Promise<string> {
-    return (await this.git.revparse(['HEAD'])).trim();
+    return this.resolveRef('HEAD');
+  }
+
+  /** The commit a ref (branch, tag, 'HEAD') points at. */
+  async resolveRef(ref: string): Promise<string> {
+    return (await this.git.revparse([`${ref}^{commit}`])).trim();
   }
 
   /**
@@ -250,18 +274,23 @@ export class GitManager {
   }
 
   /**
-   * Check out a new branch into a new worktree.
+   * Check out a branch into a new worktree.
    * @param path Folder for the worktree; must not exist or be empty.
-   * @param branch Name of the branch to create.
-   * @param startPoint Commit the branch starts from.
+   * @param branch Branch to check out.
+   * @param startPoint Commit to create the branch at; omit to check out an
+   *   existing branch.
    */
   async addWorktree(
     path: string,
     branch: string,
-    startPoint: string,
+    startPoint?: string,
   ): Promise<void> {
     this.logger.info({ path, branch, startPoint }, 'Adding worktree');
-    await this.git.raw(['worktree', 'add', '-b', branch, path, startPoint]);
+    await this.git.raw(
+      startPoint
+        ? ['worktree', 'add', '-b', branch, path, startPoint]
+        : ['worktree', 'add', path, branch],
+    );
   }
 
   /**
@@ -347,10 +376,12 @@ export class GitManager {
     const files: ChangedFile[] = [];
     for (let i = 0; i < fields.length;) {
       // Rename status carries a similarity score, e.g. 'R087'
-      const status = fields[i++].charAt(0) as ChangedFile['status'];
+      const code = fields[i++];
+      const status = code.charAt(0) as ChangedFile['status'];
       if (status === 'R') {
         const from = fields[i++];
-        files.push({ status, from, path: fields[i++] });
+        const similarity = Number(code.slice(1));
+        files.push({ status, from, path: fields[i++], similarity });
       } else {
         files.push({ status, path: fields[i++] });
       }
@@ -374,6 +405,54 @@ export class GitManager {
   }
 
   /**
+   * Contents of many project files at commits, read by one git process.
+   * @param files Commit and project-relative path of each file to read.
+   * @returns each file's content in the same order; null for a file that
+   *   does not exist at that commit.
+   */
+  async readFiles(
+    files: { ref: string; path: string }[],
+  ): Promise<(string | null)[]> {
+    if (files.length === 0) {
+      return [];
+    }
+    const prefix = await this.pathInRepo();
+    const specs = files.map(
+      ({ ref, path }) => `${ref}:${prefix ? `${prefix}/` : ''}${path}\n`,
+    );
+    const output = await new Promise<Buffer>((resolve, reject) => {
+      const child = spawn('git', ['cat-file', '--batch'], {
+        cwd: this.projectPath,
+      });
+      const chunks: Buffer[] = [];
+      child.stdout.on('data', (chunk: Buffer) => chunks.push(chunk));
+      child.on('error', reject);
+      child.on('close', (code) =>
+        code === 0
+          ? resolve(Buffer.concat(chunks))
+          : reject(new Error(`git cat-file exited with ${code}`)),
+      );
+      child.stdin.end(specs.join(''));
+    });
+    // Each answer is '<oid> <type> <size>\n<content>\n' or '<spec> missing\n'
+    const contents: (string | null)[] = [];
+    let offset = 0;
+    for (let i = 0; i < files.length; i++) {
+      const lineEnd = output.indexOf(0x0a, offset);
+      const header = output.toString('utf-8', offset, lineEnd);
+      offset = lineEnd + 1;
+      if (header.endsWith(' missing') || header.endsWith(' ambiguous')) {
+        contents.push(null);
+        continue;
+      }
+      const size = Number(header.split(' ')[2]);
+      contents.push(output.toString('utf-8', offset, offset + size));
+      offset += size + 1;
+    }
+    return contents;
+  }
+
+  /**
    * Commits reachable from 'to' but not from 'from' that touch project
    * content, newest first.
    */
@@ -382,17 +461,18 @@ export class GitManager {
     const recordSep = '\x1e';
     const output = await this.git.raw([
       'log',
-      `--format=%H%x1f%an%x1f%ae%x1f%aI%x1f%s%x1f%(trailers:only,unfold)%x1e`,
+      `--format=%x1e%H%x1f%an%x1f%ae%x1f%aI%x1f%s%x1f%(trailers:only,unfold)%x1f`,
+      '--name-only',
+      '--relative',
       `${from}..${to}`,
       '--',
       ...CONTENT_PATHS,
     ]);
     return output
       .split(recordSep)
-      .map((record) => record.trim())
-      .filter((record) => record !== '')
+      .filter((record) => record.trim() !== '')
       .map((record) => {
-        const [hash, name, email, date, subject, trailerBlock] =
+        const [hash, name, email, date, subject, trailerBlock, fileBlock] =
           record.split(fieldSep);
         const trailers: Record<string, string> = {};
         for (const line of (trailerBlock ?? '').split('\n')) {
@@ -401,8 +481,142 @@ export class GitManager {
             trailers[line.slice(0, separator)] = line.slice(separator + 2);
           }
         }
-        return { hash, author: { name, email }, date, subject, trailers };
+        const files = (fileBlock ?? '')
+          .split('\n')
+          .map((line) => line.trim())
+          .filter((line) => line !== '');
+        return {
+          hash,
+          author: { name, email },
+          date,
+          subject,
+          trailers,
+          files,
+        };
       });
+  }
+
+  /**
+   * The repository's shared git folder: the same for every worktree.
+   */
+  async commonDir(): Promise<string> {
+    const dir = (await this.git.revparse(['--git-common-dir'])).trim();
+    return resolvePath(this.projectPath, dir);
+  }
+
+  /**
+   * Files under the given project paths in a commit, with their object ids.
+   * @param ref Commit to list.
+   * @param paths Project-relative folders or files to list.
+   */
+  async listTree(ref: string, paths: string[]): Promise<TreeEntry[]> {
+    const output = await this.git.raw([
+      'ls-tree',
+      '-r',
+      '-z',
+      ref,
+      '--',
+      ...paths,
+    ]);
+    return output
+      .split('\0')
+      .filter((entry) => entry !== '')
+      .map((entry) => {
+        // '<mode> <type> <oid>\t<path>'
+        const [info, path] = entry.split('\t');
+        return { path, oid: info.split(' ')[2] };
+      });
+  }
+
+  /**
+   * Merge a commit into the checked-out branch, stopping before the commit
+   * so the result can be inspected, resolved and committed with commit().
+   * @param ref Commit to merge.
+   * @returns project files left in conflict; empty when the merge is clean.
+   */
+  async mergeNoCommit(ref: string): Promise<string[]> {
+    this.logger.info({ ref }, 'Merging');
+    // A conflicted merge exits non-zero with nothing on stderr, which
+    // simple-git does not count as a failure: always ask for conflicts.
+    try {
+      await this.git.raw(['merge', '--no-ff', '--no-commit', ref]);
+    } catch (error) {
+      const conflicts = await this.conflictedFiles();
+      if (conflicts.length === 0) {
+        throw error;
+      }
+      return conflicts;
+    }
+    return this.conflictedFiles();
+  }
+
+  /** Project files in conflict in an unfinished merge. */
+  async conflictedFiles(): Promise<string[]> {
+    const output = await this.git.raw([
+      'diff',
+      '--name-only',
+      '--diff-filter=U',
+      '--relative',
+      '-z',
+    ]);
+    return output.split('\0').filter((path) => path !== '');
+  }
+
+  /**
+   * One side of a file in conflict.
+   * @param stage 1: common ancestor, 2: ours (checked out), 3: theirs.
+   * @param path Project-relative path.
+   * @returns the content, or null if that side does not have the file.
+   */
+  async conflictSide(stage: 1 | 2 | 3, path: string): Promise<string | null> {
+    try {
+      return await this.git.show([`:${stage}:./${path}`]);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Record files as resolved (or removed) in an unfinished merge.
+   * @param paths Project-relative paths; ones that no longer exist are
+   *   recorded as deleted.
+   */
+  async markResolved(paths: string[]): Promise<void> {
+    if (paths.length > 0) {
+      await this.git.raw(['add', '-A', '--', ...paths]);
+    }
+  }
+
+  /** Abandon an unfinished merge, restoring the checked-out branch. */
+  async abortMerge(): Promise<void> {
+    await this.git.raw(['merge', '--abort']);
+  }
+
+  /**
+   * Make project paths in the working tree match a commit: files the commit
+   * does not have under them are deleted.
+   * @param ref Commit to restore from.
+   * @param paths Project-relative paths that exist in the commit.
+   */
+  async restoreFrom(ref: string, paths: string[]): Promise<void> {
+    if (paths.length > 0) {
+      await this.git.raw([
+        'restore',
+        `--source=${ref}`,
+        '--worktree',
+        '--',
+        ...paths,
+      ]);
+    }
+  }
+
+  /**
+   * Point a ref at a commit, creating the ref if needed.
+   * @param ref Full ref name, e.g. 'refs/cyberismo/archive/x'.
+   * @param target Commit to point at.
+   */
+  async updateRef(ref: string, target: string): Promise<void> {
+    await this.git.raw(['update-ref', ref, target]);
   }
 
   /**

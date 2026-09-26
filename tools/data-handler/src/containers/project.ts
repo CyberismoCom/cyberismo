@@ -228,7 +228,13 @@ export class Project {
     return () => this.cardChangeListeners.delete(listener);
   }
 
-  private recordCardChange({ updated = [], removed = [] }: CardTreeChange) {
+  /**
+   * Records cards as changed by the current write, for when files changed
+   * without the card trees knowing (e.g. a git merge followed by reload()).
+   * Listeners hear of them when the write completes.
+   * @param change Card keys updated and removed.
+   */
+  public recordCardChange({ updated = [], removed = [] }: CardTreeChange) {
     const pending = this.pendingCardChanges;
     for (const key of updated) {
       pending.removed.delete(key);

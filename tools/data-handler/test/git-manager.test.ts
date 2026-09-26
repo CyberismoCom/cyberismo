@@ -379,6 +379,7 @@ describe('GitManager', () => {
           date: expect.any(String),
           subject: 'Worktree edit',
           trailers: { 'Cyberismo-Actor': 'agent' },
+          files: ['cardRoot/card.txt'],
         },
       ]);
 
@@ -409,6 +410,7 @@ describe('GitManager', () => {
           status: 'R',
           from: 'cardRoot/a/index.adoc',
           path: 'cardRoot/b/index.adoc',
+          similarity: 100,
         },
       ]);
     });
@@ -420,6 +422,47 @@ describe('GitManager', () => {
       expect(
         (await gm.listWorktrees()).map((item) => item.branch),
       ).not.toContain('changesets/gone');
+    });
+
+    it('reads many files at commits in one go', async () => {
+      await writeFile(join(dir, 'cardRoot', 'one.txt'), 'first');
+      await gm.commit('One');
+      const first = await gm.headCommit();
+      await writeFile(join(dir, 'cardRoot', 'one.txt'), 'second ✓');
+      await gm.commit('Two');
+
+      expect(
+        await gm.readFiles([
+          { ref: first, path: 'cardRoot/one.txt' },
+          { ref: 'HEAD', path: 'cardRoot/one.txt' },
+          { ref: 'HEAD', path: 'cardRoot/missing.txt' },
+        ]),
+      ).toEqual(['first', 'second ✓', null]);
+    });
+
+    it('merges without committing and reports conflicts', async () => {
+      await writeFile(join(dir, 'cardRoot', 'shared.txt'), 'base\n');
+      await gm.commit('Base');
+      const base = await gm.headCommit();
+      await gm.addWorktree(worktree, 'changesets/merge', base);
+      const other = new GitManager(worktree);
+      await writeFile(join(worktree, 'cardRoot', 'shared.txt'), 'theirs\n');
+      await other.commit('Theirs');
+      await writeFile(join(dir, 'cardRoot', 'shared.txt'), 'ours\n');
+      await gm.commit('Ours');
+
+      expect(await gm.mergeNoCommit('changesets/merge')).toEqual([
+        'cardRoot/shared.txt',
+      ]);
+      expect(await gm.conflictSide(1, 'cardRoot/shared.txt')).toBe('base\n');
+      expect(await gm.conflictSide(2, 'cardRoot/shared.txt')).toBe('ours\n');
+      expect(await gm.conflictSide(3, 'cardRoot/shared.txt')).toBe('theirs\n');
+
+      await gm.abortMerge();
+      expect(await readFile(join(dir, 'cardRoot', 'shared.txt'), 'utf-8')).toBe(
+        'ours\n',
+      );
+      await gm.removeWorktree(worktree, true);
     });
   });
 });

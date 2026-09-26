@@ -32,6 +32,24 @@ export type {
   CommitContext,
 } from './utils/commit-context.js';
 export type { CardsChanged } from './containers/project.js';
+export {
+  ChangeSetBehindError,
+  ChangeSetManager,
+} from './changesets/change-set-manager.js';
+export type {
+  ChangeSetChanges,
+  ChangeSetConflict,
+  ChangeSetInfo,
+  ChangeSetManagerOptions,
+  ConflictResolution,
+  ReviewedCardChange,
+} from './changesets/change-set-manager.js';
+export type {
+  CardChange,
+  CardCommit,
+  ChangeList,
+  FieldChange,
+} from './changesets/change-list.js';
 import { requestStatus } from './interfaces/request-status-interfaces.js';
 import { UpdateOperations } from './resources/resource-object.js';
 export type {

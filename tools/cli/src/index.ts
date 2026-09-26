@@ -22,7 +22,9 @@ import dotenv from 'dotenv';
 import cliProgress from 'cli-progress';
 
 import type {
+  ChangeSetChanges,
   CommandOptions,
+  ConflictResolution,
   Credentials,
   ModuleSettingFromHub,
   ModuleUpdateStatus,
@@ -30,9 +32,12 @@ import type {
   UpdateOperations,
 } from '@cyberismo/data-handler';
 import {
+  ChangeSetManager,
   Cmd,
+  CommandManager,
   Commands,
   ExportFormats,
+  runWithCommitContext,
   scanForProjects,
   validBumps,
   validContexts,
@@ -1768,5 +1773,225 @@ cleanCmd.action(async (options: CommandOptions<'clean'>) => {
   const result = await commandHandler.command(Cmd.clean, args, mergedOptions);
   handleResponse(result);
 });
+
+// ChangeSets: collect changes on a branch of their own, review, then merge.
+// Cards inside a changeSet are edited with the usual commands, pointed at the
+// changeSet's project path with '-p'.
+const changesetCmd = new CommandGroup('changeset').description(
+  'Collect changes in a changeSet, review them card by card, and merge them',
+);
+program.addCommand(changesetCmd);
+
+// Runs a changeSet operation on the project, as the git user.
+async function withChangeSets<T>(
+  options: { projectPath?: string },
+  fn: (manager: ChangeSetManager) => Promise<T>,
+): Promise<T> {
+  const projectPath = await commandHandler.setProjectPath(options.projectPath);
+  const main = await CommandManager.getInstance(projectPath);
+  const manager = new ChangeSetManager(main);
+  const { name, email } = await getGitUserConfig();
+  const author = name && email ? { name, email } : undefined;
+  try {
+    return await runWithCommitContext(
+      { ...(author ? { author } : {}), actor: { kind: 'human' } },
+      () => fn(manager),
+    );
+  } catch (error) {
+    return program.error(
+      error instanceof Error ? error.message : String(error),
+    );
+  } finally {
+    manager.dispose();
+  }
+}
+
+function printChanges(changes: ChangeSetChanges) {
+  if (changes.cards.length === 0 && changes.resources.length === 0) {
+    console.log('No changes');
+    return;
+  }
+  for (const card of changes.cards) {
+    // A created or deleted card changes every field: no need to list them
+    const listed = card.kind === 'modified' || card.kind === 'moved';
+    const details = !listed
+      ? []
+      : [
+          ...card.fields.map((field) => field.field),
+          ...(card.contentChanged ? ['content'] : []),
+          ...(card.reordered ? ['rank'] : []),
+          ...(card.links.added.length + card.links.removed.length > 0
+            ? ['links']
+            : []),
+          ...(card.attachments.added.length + card.attachments.removed.length >
+          0
+            ? ['attachments']
+            : []),
+        ];
+    const actors = [
+      ...new Set(card.commits.map((commit) => commit.actor ?? '?')),
+    ];
+    console.log(
+      [
+        card.reviewed ? '✓' : ' ',
+        card.kind.padEnd(8),
+        card.key,
+        JSON.stringify(card.title),
+        details.length ? `(${details.join(', ')})` : '',
+        actors.length ? `by ${actors.join('+')}` : '',
+      ]
+        .filter(Boolean)
+        .join('  '),
+    );
+  }
+  for (const resource of changes.resources) {
+    console.log(`  ${resource.status}  ${resource.path}`);
+  }
+}
+
+changesetCmd
+  .command('start')
+  .description('Start a changeSet from the project as it is now')
+  .argument('<title>', 'What the changeSet is for')
+  .action(async (title: string, options: { projectPath?: string }) => {
+    await withChangeSets(options, async (manager) => {
+      const info = await manager.create(title);
+      console.log(
+        JSON.stringify(
+          { ...info, path: await manager.projectPathOf(info.id) },
+          null,
+          2,
+        ),
+      );
+    });
+  });
+
+changesetCmd
+  .command('list')
+  .description('List changeSets')
+  .option('-a, --all', 'Include merged and discarded changeSets')
+  .action(async (options: { projectPath?: string; all?: boolean }) => {
+    await withChangeSets(options, async (manager) => {
+      for (const info of await manager.list()) {
+        if (!options.all && info.status !== 'active') continue;
+        const path =
+          info.status === 'active' ? await manager.projectPathOf(info.id) : '';
+        console.log(
+          [info.id, info.status, JSON.stringify(info.title), path].join('  '),
+        );
+      }
+    });
+  });
+
+changesetCmd
+  .command('diff')
+  .description('Show what a changeSet changes, card by card (✓ = reviewed)')
+  .argument('<id>', 'ChangeSet id')
+  .option('--json', 'Print the full change list as JSON')
+  .action(
+    async (id: string, options: { projectPath?: string; json?: boolean }) => {
+      await withChangeSets(options, async (manager) => {
+        const changes = await manager.changes(id);
+        if (options.json) {
+          console.log(JSON.stringify(changes, null, 2));
+        } else {
+          printChanges(changes);
+        }
+      });
+    },
+  );
+
+changesetCmd
+  .command('review')
+  .description('Mark a card reviewed as it stands now')
+  .argument('<id>', 'ChangeSet id')
+  .argument('<cardKey>', 'Card key')
+  .option('--clear', 'Clear the reviewed mark instead')
+  .action(
+    async (
+      id: string,
+      cardKey: string,
+      options: { projectPath?: string; clear?: boolean },
+    ) => {
+      await withChangeSets(options, (manager) =>
+        manager.markReviewed(id, cardKey, !options.clear),
+      );
+      console.log('Done');
+    },
+  );
+
+changesetCmd
+  .command('revert')
+  .description("Undo a changeSet's changes to one card")
+  .argument('<id>', 'ChangeSet id')
+  .argument('<cardKey>', 'Card key')
+  .action(
+    async (id: string, cardKey: string, options: { projectPath?: string }) => {
+      await withChangeSets(options, (manager) =>
+        manager.revertCard(id, cardKey),
+      );
+      console.log('Done');
+    },
+  );
+
+changesetCmd
+  .command('update')
+  .description("Bring the project's latest changes into a changeSet")
+  .argument('<id>', 'ChangeSet id')
+  .option(
+    '--ours <paths...>',
+    "Settle these conflicted files with the changeSet's version",
+  )
+  .option(
+    '--theirs <paths...>',
+    "Settle these conflicted files with the project's version",
+  )
+  .action(
+    async (
+      id: string,
+      options: { projectPath?: string; ours?: string[]; theirs?: string[] },
+    ) => {
+      await withChangeSets(options, async (manager) => {
+        const resolutions: Record<string, ConflictResolution> = {};
+        for (const path of options.ours ?? []) resolutions[path] = 'ours';
+        for (const path of options.theirs ?? []) resolutions[path] = 'theirs';
+        const result = await manager.update(id, resolutions);
+        if (result.conflicts.length > 0) {
+          console.log(
+            'Not updated. Conflicts to settle with --ours or --theirs:',
+          );
+          for (const conflict of result.conflicts) {
+            const fields = conflict.fields
+              ? ` (fields: ${conflict.fields.join(', ')})`
+              : '';
+            console.log(`  ${conflict.path}${fields}`);
+          }
+          process.exitCode = 1;
+        } else {
+          console.log(result.updated ? 'Updated' : 'Already up to date');
+        }
+      });
+    },
+  );
+
+changesetCmd
+  .command('merge')
+  .description('Merge a changeSet into the project')
+  .argument('<id>', 'ChangeSet id')
+  .action(async (id: string, options: { projectPath?: string }) => {
+    await withChangeSets(options, async (manager) => {
+      const info = await manager.merge(id);
+      console.log(`Merged as ${info.merged?.commit}`);
+    });
+  });
+
+changesetCmd
+  .command('discard')
+  .description('Abandon a changeSet (its work stays recoverable in git)')
+  .argument('<id>', 'ChangeSet id')
+  .action(async (id: string, options: { projectPath?: string }) => {
+    await withChangeSets(options, (manager) => manager.discard(id));
+    console.log('Discarded');
+  });
 
 export default program;
