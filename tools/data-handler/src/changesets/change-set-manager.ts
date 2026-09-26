@@ -37,6 +37,7 @@ import { GitManager } from '../utils/git-manager.js';
 import { formatJson } from '../utils/json.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { cardFileOf } from './card-paths.js';
+import { brokenCards, cardKeys } from './card-structure.js';
 import {
   type CardChange,
   type ChangeList,
@@ -69,8 +70,16 @@ export interface ChangeSetChanges extends Omit<ChangeList, 'cards'> {
   cards: ReviewedCardChange[];
 }
 
-/** A file that updating a changeSet from main could not merge on its own. */
+/**
+ * What updating a changeSet from main could not merge on its own: a file
+ * changed differently on both sides, or a card left broken because one side
+ * deleted it and the other added cards under it.
+ */
 export interface ChangeSetConflict {
+  /** 'file' (the default) or 'card': then 'path' is the card's folder. */
+  kind?: 'file' | 'card';
+  /** For a card: what happened, and what each choice does. */
+  message?: string;
   path: string;
   /** The card the file belongs to, if any. */
   key?: string;
@@ -80,6 +89,20 @@ export interface ChangeSetConflict {
   base: string | null;
   ours: string | null;
   theirs: string | null;
+}
+
+/** A link an update removed, because the card it pointed to was deleted. */
+export interface RemovedLink {
+  cardKey: string;
+  linkType: string;
+  target: string;
+}
+
+/** What an update did. */
+export interface ChangeSetUpdate {
+  updated: boolean;
+  conflicts: ChangeSetConflict[];
+  removedLinks: RemovedLink[];
 }
 
 /** How to settle a conflict: keep a side, or write the given content. */
@@ -693,13 +716,6 @@ export class ChangeSetManager {
   public revertCard(id: string, cardKey: string): Promise<void> {
     return this.serialize(async () => {
       const info = await this.active(id);
-      const { base, head } = await this.compare(info);
-      const change = (await computeChangeList(this.git, base, head)).cards.find(
-        (card) => card.key === cardKey,
-      );
-      if (!change) {
-        throw new CardUnchangedError(id, cardKey);
-      }
       const commands = await this.open(id);
       const project = commands.project;
       const root = project.basePath;
@@ -711,7 +727,7 @@ export class ChangeSetManager {
           .map((entry) => entry.path)
           .filter((path) => cardFileOf(path)?.cardPath === cardPath);
 
-      const revert = async () => {
+      const revert = async (base: string, head: string, change: CardChange) => {
         if (change.kind === 'created') {
           const before = await this.fingerprints(base);
           const survivors = (await git.listTree(head, [change.path]))
@@ -769,7 +785,16 @@ export class ChangeSetManager {
         { message: `Revert changes to ${cardKey}` },
         () =>
           project.lock.write(async () => {
-            await revert();
+            // What changed is read under the lock: no write can move the
+            // card in between
+            const { base, head } = await this.compare(info);
+            const change = (
+              await computeChangeList(this.git, base, head)
+            ).cards.find((card) => card.key === cardKey);
+            if (!change) {
+              throw new CardUnchangedError(id, cardKey);
+            }
+            await revert(base, head, change);
             await project.reload();
           }),
       );
@@ -788,7 +813,7 @@ export class ChangeSetManager {
   public update(
     id: string,
     resolutions: Record<string, ConflictResolution> = {},
-  ): Promise<{ updated: boolean; conflicts: ChangeSetConflict[] }> {
+  ): Promise<ChangeSetUpdate> {
     return this.serialize(async () => {
       const info = await this.active(id);
       await this.commitPending(info);
@@ -796,7 +821,7 @@ export class ChangeSetManager {
       const mainHead = await this.git.headCommit();
       const head = await this.git.resolveRef(info.branch);
       if ((await this.git.mergeBase(mainHead, head)) === mainHead) {
-        return { updated: false, conflicts: [] };
+        return { updated: false, conflicts: [], removedLinks: [] };
       }
       const commands = await this.open(id);
       const project = commands.project;
@@ -804,6 +829,7 @@ export class ChangeSetManager {
       const context = getCommitContext();
 
       return project.lock.write(async () => {
+        const before = await git.headCommit();
         const conflicted = await git.mergeNoCommit(mainHead);
         const unresolved: ChangeSetConflict[] = [];
         const write = async (path: string, content: string | null) => {
@@ -873,18 +899,201 @@ export class ChangeSetManager {
         }
         if (unresolved.length > 0) {
           await git.abortMerge();
-          return { updated: false, conflicts: unresolved };
+          return { updated: false, conflicts: unresolved, removedLinks: [] };
         }
+        // Git merges files, not cards: the result must still be a card tree
+        const broken = await this.settleBrokenCards(
+          git,
+          project.basePath,
+          before,
+          mainHead,
+          resolutions,
+        );
+        if (broken.length > 0) {
+          await git.abortMerge();
+          return { updated: false, conflicts: broken, removedLinks: [] };
+        }
+        const removedLinks = await this.removeDanglingLinks(
+          git,
+          project.basePath,
+          before,
+          mainHead,
+        );
         await git.commit(
           `Update changeset "${info.title}" from main`,
           context.author,
           commitTrailers(context),
           { allowEmpty: true },
         );
-        await project.reload();
-        return { updated: true, conflicts: [] };
+        try {
+          await project.reload();
+        } catch (error) {
+          // Never leave the changeSet unloadable
+          await git.resetKeep(before);
+          await project.reload();
+          throw error;
+        }
+        return { updated: true, conflicts: [], removedLinks };
       });
     });
+  }
+
+  // Settles the cards a merge left broken as the resolutions say, and
+  // returns those left to settle. A broken card lacks its own files but has
+  // cards below it: one side deleted it, the other added cards under it.
+  // Keeping the side that has the card restores it; keeping the side that
+  // deleted it removes the cards below too.
+  private async settleBrokenCards(
+    git: GitManager,
+    root: string,
+    ours: string,
+    theirs: string,
+    resolutions: Record<string, ConflictResolution>,
+  ): Promise<ChangeSetConflict[]> {
+    const left: ChangeSetConflict[] = [];
+    const seen = new Set<string>();
+    // Settling one card can reveal another below it
+    for (let round = 0; round < 20; round++) {
+      const broken = brokenCards(await git.trackedFiles()).filter(
+        (path) => !seen.has(path),
+      );
+      if (broken.length === 0) break;
+      for (const path of broken) {
+        seen.add(path);
+        const resolution = resolutions[path];
+        if (resolution !== 'ours' && resolution !== 'theirs') {
+          left.push(await this.brokenCardConflict(git, path, ours, theirs));
+          continue;
+        }
+        const side = resolution === 'ours' ? ours : theirs;
+        const own = (await git.listTree(side, [path]))
+          .map((entry) => entry.path)
+          .filter((file) => cardFileOf(file)?.cardPath === path);
+        if (own.length > 0) {
+          await git.restoreFrom(side, own);
+          await git.markResolved(own);
+        } else {
+          await rm(join(root, path), { recursive: true, force: true });
+          await git.markResolved([path]);
+        }
+      }
+    }
+    return left;
+  }
+
+  private async brokenCardConflict(
+    git: GitManager,
+    path: string,
+    ours: string,
+    theirs: string,
+  ): Promise<ChangeSetConflict> {
+    const key = cardFileOf(`${path}/index.json`)?.key;
+    const metadata = `${path}/index.json`;
+    const base = await git.mergeBase(ours, theirs);
+    const [baseSide, oursSide, theirsSide] = await git.readFiles([
+      { ref: base, path: metadata },
+      { ref: ours, path: metadata },
+      { ref: theirs, path: metadata },
+    ]);
+    return {
+      kind: 'card',
+      path,
+      ...(key ? { key } : {}),
+      message:
+        oursSide === null
+          ? `This changeset deleted card ${key}, but the project added cards under it. Keeping this changeset's version removes those cards too; taking the project's keeps the card.`
+          : `The project deleted card ${key}, but this changeset added cards under it. Keeping this changeset's version keeps the card; taking the project's removes those cards too.`,
+      base: baseSide,
+      ours: oursSide,
+      theirs: theirsSide,
+    };
+  }
+
+  // Links to cards that either side deleted go, as deleting a card takes
+  // the links to it: a merge keeps a link the other side never saw deleted.
+  private async removeDanglingLinks(
+    git: GitManager,
+    root: string,
+    ours: string,
+    theirs: string,
+  ): Promise<RemovedLink[]> {
+    const files = await git.trackedFiles();
+    const present = cardKeys(files);
+    const base = await git.mergeBase(ours, theirs);
+    const deleted = new Set<string>();
+    for (const ref of [base, ours, theirs]) {
+      const before = cardKeys(
+        (await git.listTree(ref, CARD_ROOTS)).map((entry) => entry.path),
+      );
+      for (const key of before) {
+        if (!present.has(key)) deleted.add(key);
+      }
+    }
+    if (deleted.size === 0) {
+      return [];
+    }
+    const removed: RemovedLink[] = [];
+    for (const file of files) {
+      const card = cardFileOf(file);
+      if (card?.role !== 'metadata') continue;
+      const path = join(root, file);
+      const metadata = JSON.parse(await readFile(path, 'utf-8'));
+      const links: { linkType: string; cardKey: string }[] = Array.isArray(
+        metadata.links,
+      )
+        ? metadata.links
+        : [];
+      const gone = links.filter((link) => deleted.has(link.cardKey));
+      if (gone.length === 0) continue;
+      removed.push(
+        ...gone.map((link) => ({
+          cardKey: card.key,
+          linkType: link.linkType,
+          target: link.cardKey,
+        })),
+      );
+      await writeFile(
+        path,
+        formatJson({
+          ...metadata,
+          links: links.filter((link) => !deleted.has(link.cardKey)),
+        }),
+      );
+      await git.markResolved([file]);
+    }
+    return removed;
+  }
+
+  // Logic program errors the changeSet has and main does not. Programs are
+  // parsed only when solved, so a merged calculation that does not parse
+  // would pass validation and reach main, failing every query there. Every
+  // query includes every program: running one checks them all.
+  private async newLogicProgramErrors(
+    commands: CommandManager,
+  ): Promise<string[]> {
+    const error = async (target: CommandManager) => {
+      try {
+        await target.project.calculationEngine.runQuery('tree');
+        return undefined;
+      } catch (error) {
+        return error instanceof Error ? error.message : String(error);
+      }
+    };
+    const changeSetError = await error(commands);
+    if (!changeSetError || (await error(this.main))) {
+      return [];
+    }
+    return [`Logic programs do not run: ${changeSetError}`];
+  }
+
+  // Renaming the project changes every card key, and the project's own
+  // prefix: that is not a change to review and merge.
+  private renamedProject(commands: CommandManager): string[] {
+    const from = this.main.project.configuration.cardKeyPrefix;
+    const to = commands.project.configuration.cardKeyPrefix;
+    return from === to
+      ? []
+      : [`The changeset renames the project from '${from}' to '${to}'`];
   }
 
   // Validation errors the changeSet has and main does not
@@ -919,52 +1128,74 @@ export class ChangeSetManager {
       const commands = await this.open(id);
       const project = this.main.project;
       const context = getCommitContext();
-      const head = await this.git.resolveRef(info.branch);
 
-      await project.lock.write(async () => {
-        // Committed changes move the project on: the changeSet is behind
-        await this.commitProjectChanges();
-        const mainHead = await this.git.headCommit();
-        if ((await this.git.mergeBase(mainHead, head)) !== mainHead) {
-          throw new ChangeSetBehindError(id);
-        }
-        const invalid = await this.newValidationErrors(commands);
-        if (invalid.length > 0) {
-          throw new ChangeSetInvalidError(id, invalid);
-        }
-        const changed = (await computeChangeList(this.git, mainHead, head))
-          .cards;
-        const conflicts = await this.git.mergeNoCommit(head);
-        if (conflicts.length > 0) {
-          await this.git.abortMerge();
-          throw new ChangeSetBehindError(id);
-        }
-        await this.git.commit(
-          `Merge changeset "${info.title}"`,
-          context.author,
-          { ...commitTrailers(context), 'Cyberismo-Changeset': id },
-          { allowEmpty: true },
-        );
-        await project.reload();
-        project.recordCardChange({
-          updated: changed
-            .filter((card) => card.kind !== 'deleted')
-            .map((card) => card.key),
-          removed: changed
-            .filter((card) => card.kind === 'deleted')
-            .map((card) => card.key),
+      return this.withoutWriters(id, async () => {
+        const head = await this.git.resolveRef(info.branch);
+        await project.lock.write(async () => {
+          // Committed changes move the project on: the changeSet is behind
+          await this.commitProjectChanges();
+          const mainHead = await this.git.headCommit();
+          if ((await this.git.mergeBase(mainHead, head)) !== mainHead) {
+            throw new ChangeSetBehindError(id);
+          }
+          const invalid = [
+            ...(await this.newValidationErrors(commands)),
+            ...(await this.newLogicProgramErrors(commands)),
+            ...this.renamedProject(commands),
+          ];
+          if (invalid.length > 0) {
+            throw new ChangeSetInvalidError(id, invalid);
+          }
+          const changed = (await computeChangeList(this.git, mainHead, head))
+            .cards;
+          const conflicts = await this.git.mergeNoCommit(head);
+          if (conflicts.length > 0) {
+            await this.git.abortMerge();
+            throw new ChangeSetBehindError(id);
+          }
+          await this.git.commit(
+            `Merge changeset "${info.title}"`,
+            context.author,
+            { ...commitTrailers(context), 'Cyberismo-Changeset': id },
+            { allowEmpty: true },
+          );
+          try {
+            await project.reload();
+          } catch (error) {
+            // Never leave the project unloadable
+            await this.git.resetKeep(mainHead);
+            await project.reload();
+            throw error;
+          }
+          project.recordCardChange({
+            updated: changed
+              .filter((card) => card.kind !== 'deleted')
+              .map((card) => card.key),
+            removed: changed
+              .filter((card) => card.kind === 'deleted')
+              .map((card) => card.key),
+          });
         });
-      });
 
-      info.status = 'merged';
-      info.merged = {
-        at: new Date().toISOString(),
-        ...(context.author ? { by: context.author } : {}),
-        commit: await this.git.headCommit(),
-      };
-      await this.retire(info, head);
-      return info;
+        info.status = 'merged';
+        info.merged = {
+          at: new Date().toISOString(),
+          ...(context.author ? { by: context.author } : {}),
+          commit: await this.git.headCommit(),
+        };
+        await this.retire(info, head);
+        return info;
+      });
     });
+  }
+
+  // Runs fn while nothing can be written into the changeSet: writes under
+  // way finish first, and later ones find it closed instead of landing on a
+  // branch that is about to go. A read lock keeps writers out without the
+  // after-write hooks, which would commit into a removed worktree.
+  private async withoutWriters<T>(id: string, fn: () => Promise<T>) {
+    const opened = this.opened.get(id)?.commands;
+    return opened ? opened.project.lock.read(fn) : fn();
   }
 
   /**
@@ -975,9 +1206,11 @@ export class ChangeSetManager {
     return this.serialize(async () => {
       const info = await this.active(id);
       await this.commitPending(info);
-      const head = await this.git.resolveRef(info.branch);
-      info.status = 'discarded';
-      await this.retire(info, head);
+      await this.withoutWriters(id, async () => {
+        const head = await this.git.resolveRef(info.branch);
+        info.status = 'discarded';
+        await this.retire(info, head);
+      });
     });
   }
 

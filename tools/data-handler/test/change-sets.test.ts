@@ -265,11 +265,15 @@ describe('ChangeSetManager', () => {
 
     const result = await as(alice, () => manager.update(id));
 
-    expect(result).toEqual({ updated: true, conflicts: [] });
+    expect(result).toEqual({ updated: true, conflicts: [], removedLinks: [] });
     expect(title(changeSet, 'decision_5')).toBe('From changeSet');
     expect(content(changeSet, 'decision_5')).toBe('Main content');
     expect(title(changeSet, 'decision_6')).toBe('From main');
-    expect(await manager.update(id)).toEqual({ updated: false, conflicts: [] });
+    expect(await manager.update(id)).toEqual({
+      updated: false,
+      conflicts: [],
+      removedLinks: [],
+    });
   });
 
   it('returns conflicts it cannot settle, and applies resolutions', async () => {
@@ -305,9 +309,163 @@ describe('ChangeSetManager', () => {
         'cardRoot/decision_5/c/decision_6/index.adoc': { content: 'Both' },
       }),
     );
-    expect(second).toEqual({ updated: true, conflicts: [] });
+    expect(second).toEqual({ updated: true, conflicts: [], removedLinks: [] });
     expect(title(changeSet, 'decision_5')).toBe('Theirs');
     expect(content(changeSet, 'decision_6')).toBe('Both');
+  });
+
+  describe('keeps the card tree whole when git merges files', () => {
+    it('asks about a card deleted here while the project added under it', async () => {
+      const { id } = await as(alice, () => manager.create('Delete parent'));
+      const changeSet = await manager.open(id);
+      await as(alice, () => changeSet.removeCmd.remove('card', 'decision_5'));
+      const [child] = await as(bob, () =>
+        main.createCmd.createCard(template, 'decision_5'),
+      );
+
+      const first = await as(alice, () => manager.update(id));
+      expect(first).toMatchObject({
+        updated: false,
+        conflicts: [
+          {
+            kind: 'card',
+            path: 'cardRoot/decision_5',
+            key: 'decision_5',
+            ours: null,
+          },
+        ],
+      });
+      // Nothing changed, and the changeset still loads
+      expect(() => changeSet.project.findCard('decision_5')).toThrow();
+
+      // Taking the project's version keeps the card and its new child
+      const second = await as(alice, () =>
+        manager.update(id, { 'cardRoot/decision_5': 'theirs' }),
+      );
+      expect(second.updated).toBe(true);
+      expect(changeSet.project.findCard('decision_5').metadata).toBeDefined();
+      expect(changeSet.project.findCard(child.key).parent).toBe('decision_5');
+    });
+
+    it('removes cards added under a card when keeping its deletion', async () => {
+      const { id } = await as(alice, () => manager.create('Keep deletion'));
+      const changeSet = await manager.open(id);
+      await as(alice, () => changeSet.removeCmd.remove('card', 'decision_5'));
+      const [child] = await as(bob, () =>
+        main.createCmd.createCard(template, 'decision_5'),
+      );
+
+      const result = await as(alice, () =>
+        manager.update(id, { 'cardRoot/decision_5': 'ours' }),
+      );
+
+      expect(result.updated).toBe(true);
+      expect(() => changeSet.project.findCard('decision_5')).toThrow();
+      expect(() => changeSet.project.findCard(child.key)).toThrow();
+    });
+
+    it('asks about a card the project deleted while cards moved under it here', async () => {
+      const { id } = await as(alice, () => manager.create('Move under'));
+      const changeSet = await manager.open(id);
+      const [moved] = await as(alice, () =>
+        changeSet.createCmd.createCard(template),
+      );
+      await as(alice, () =>
+        changeSet.moveCmd.moveCard(moved.key, 'decision_6'),
+      );
+      await as(bob, () => main.removeCmd.remove('card', 'decision_6'));
+
+      const first = await as(alice, () => manager.update(id));
+      expect(first.conflicts).toMatchObject([
+        {
+          kind: 'card',
+          path: 'cardRoot/decision_5/c/decision_6',
+          theirs: null,
+        },
+      ]);
+
+      const second = await as(alice, () =>
+        manager.update(id, { 'cardRoot/decision_5/c/decision_6': 'ours' }),
+      );
+      expect(second.updated).toBe(true);
+      expect(changeSet.project.findCard(moved.key).parent).toBe('decision_6');
+    });
+
+    it('removes links to a card the other side deleted', async () => {
+      const { id } = await as(alice, () => manager.create('Dangling link'));
+      const changeSet = await manager.open(id);
+      await as(alice, () => changeSet.removeCmd.remove('card', 'decision_6'));
+      const [linking] = await as(bob, () =>
+        main.createCmd.createCard(template),
+      );
+      await as(bob, () =>
+        main.createCmd.createLink(
+          linking.key,
+          'decision_6',
+          'decision/linkTypes/test',
+        ),
+      );
+
+      const result = await as(alice, () => manager.update(id));
+
+      expect(result).toMatchObject({
+        updated: true,
+        removedLinks: [
+          {
+            cardKey: linking.key,
+            linkType: 'decision/linkTypes/test',
+            target: 'decision_6',
+          },
+        ],
+      });
+      expect(changeSet.project.findCard(linking.key).metadata?.links).toEqual(
+        [],
+      );
+    });
+  });
+
+  it('undoes an update whose result does not load', async () => {
+    const { id, branch } = await as(alice, () => manager.create('Unloadable'));
+    const changeSet = await manager.open(id);
+    await as(alice, () =>
+      changeSet.editCmd.editCardContent('decision_6', 'Mine'),
+    );
+    await as(bob, () => main.editCmd.editCardContent('decision_5', 'Theirs'));
+    const before = await main.project.git.resolveRef(branch);
+    const reload = vi
+      .spyOn(changeSet.project, 'reload')
+      .mockRejectedValueOnce(new Error('cannot load'));
+
+    await expect(as(alice, () => manager.update(id))).rejects.toThrow(
+      'cannot load',
+    );
+
+    reload.mockRestore();
+    expect(await main.project.git.resolveRef(branch)).toBe(before);
+    expect(content(changeSet, 'decision_6')).toBe('Mine');
+  });
+
+  it('merges a write that was under way when the merge started', async () => {
+    const { id } = await as(alice, () => manager.create('In flight'));
+    const changeSet = await manager.open(id);
+    await as(alice, () =>
+      changeSet.editCmd.editCardContent('decision_6', 'First'),
+    );
+    // A write holding the changeset's lock when the merge begins
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    const write = as(alice, () =>
+      changeSet.project.lock.write(async () => {
+        await held;
+        await changeSet.editCmd.editCardContent('decision_6', 'Late');
+      }),
+    );
+    const merge = as(bob, () => manager.merge(id));
+    release();
+    await write;
+    await merge;
+
+    expect(content(main, 'decision_6')).toBe('Late');
   });
 
   it('merges into main once up to date, as the approver', async () => {
@@ -379,6 +537,7 @@ describe('ChangeSetManager', () => {
     expect(await as(alice, () => manager.update(id))).toEqual({
       updated: true,
       conflicts: [],
+      removedLinks: [],
     });
     expect(content(changeSet, 'decision_5')).toBe('Uncommitted');
     await as(bob, () => manager.merge(id));
@@ -405,6 +564,45 @@ describe('ChangeSetManager', () => {
       'does not validate',
     );
     expect((await manager.get(id)).status).toBe('active');
+  });
+
+  it('checks logic programs before merging, alone and together', async () => {
+    const { id } = await as(alice, () => manager.create('Programs'));
+    const changeSet = await manager.open(id);
+    const calculation = join(
+      changeSet.project.basePath,
+      '.cards/local/calculations/test/calculation.lp',
+    );
+    // Parses, so loading it succeeds, but cannot be ground: X is unsafe
+    await writeFile(calculation, 'unsafe(X) :- test_fact(1).');
+    await expect(as(bob, () => manager.merge(id))).rejects.toThrow(
+      'Invalid logic program',
+    );
+
+    // Each program is fine alone; together they define a constant twice
+    await writeFile(calculation, '#const limit = 1.');
+    await as(alice, () => changeSet.createCmd.createCalculation('other'));
+    await writeFile(
+      join(
+        changeSet.project.basePath,
+        '.cards/local/calculations/other/calculation.lp',
+      ),
+      '#const limit = 2.',
+    );
+    await expect(as(bob, () => manager.merge(id))).rejects.toThrow(
+      'Logic programs do not run',
+    );
+    expect((await manager.get(id)).status).toBe('active');
+  });
+
+  it('refuses to merge a changeset that renames the project', async () => {
+    const { id } = await as(alice, () => manager.create('Rename'));
+    const changeSet = await manager.open(id);
+    await as(alice, () => changeSet.renameCmd.rename('renamed'));
+
+    await expect(as(bob, () => manager.merge(id))).rejects.toThrow(
+      "renames the project from 'decision' to 'renamed'",
+    );
   });
 
   it('discards a changeSet, keeping its work recoverable', async () => {

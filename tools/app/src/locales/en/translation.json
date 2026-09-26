@@ -134,6 +134,8 @@
     "behind": "The project has changed since this changeset was last updated. Update it from the project, then merge.",
     "by": "By",
     "card": "Card",
+    "cardDeletedHere": "This changeset deleted card {{key}}, but the project added cards under it. Keeping this changeset's version removes those cards too; taking the project's version keeps the card.",
+    "cardDeletedInProject": "The project deleted card {{key}}, but this changeset added cards under it. Keeping this changeset's version keeps the card; taking the project's version removes those cards too.",
     "change": "Change",
     "changed": "Changed",
     "changedItems": {
@@ -161,6 +163,8 @@
       "moved": "Moved"
     },
     "links": "Links",
+    "linksRemoved_one": "{{count}} link pointed to a card that was deleted, and was removed: {{links}}",
+    "linksRemoved_other": "{{count}} links pointed to cards that were deleted, and were removed: {{links}}",
     "merge": "Merge",
     "mergeConfirm": "All changes are reviewed. Merge them into the project?",
     "mergeTitle": "Merge changeset?",

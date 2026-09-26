@@ -165,6 +165,17 @@ export default function ChangeSetReviewPage() {
         t(result.updated ? 'changeSet.updated' : 'changeSet.upToDate'),
         'success',
       );
+      if (result.removedLinks.length > 0) {
+        notify(
+          t('changeSet.linksRemoved', {
+            count: result.removedLinks.length,
+            links: result.removedLinks
+              .map((link) => `${link.cardKey} → ${link.target}`)
+              .join(', '),
+          }),
+          'warning',
+        );
+      }
     });
 
   const merge = () =>

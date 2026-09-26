@@ -1996,10 +1996,18 @@ changesetCmd
               ? ` (fields: ${conflict.fields.join(', ')})`
               : '';
             console.log(`  ${conflict.path}${fields}`);
+            if (conflict.message) {
+              console.log(`    ${conflict.message}`);
+            }
           }
           process.exitCode = 1;
         } else {
           console.log(result.updated ? 'Updated' : 'Already up to date');
+          for (const link of result.removedLinks) {
+            console.log(
+              `  Removed link ${link.cardKey} → ${link.target}: that card was deleted`,
+            );
+          }
         }
       });
     },

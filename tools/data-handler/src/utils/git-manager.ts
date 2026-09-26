@@ -610,6 +610,30 @@ export class GitManager {
     }
   }
 
+  /**
+   * Project content files git tracks, as staged: during a merge, the merge's
+   * result so far.
+   */
+  async trackedFiles(): Promise<string[]> {
+    const output = await this.git.raw([
+      'ls-files',
+      '-z',
+      '--',
+      ...CONTENT_PATHS,
+    ]);
+    return output.split('\0').filter((path) => path !== '');
+  }
+
+  /**
+   * Move the checked-out branch back to a commit, keeping local changes to
+   * files the move does not touch.
+   * @param ref Commit to go back to.
+   */
+  async resetKeep(ref: string): Promise<void> {
+    this.logger.info({ ref }, 'Resetting');
+    await this.git.raw(['reset', '--keep', ref]);
+  }
+
   /** Abandon an unfinished merge, restoring the checked-out branch. */
   async abortMerge(): Promise<void> {
     await this.git.raw(['merge', '--abort']);

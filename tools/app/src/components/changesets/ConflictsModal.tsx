@@ -70,6 +70,16 @@ export function ConflictsModal({
                 <Typography level="body-xs" sx={{ mb: 1 }}>
                   {conflict.path}
                 </Typography>
+                {conflict.kind === 'card' && (
+                  <Typography level="body-sm" sx={{ mb: 1 }}>
+                    {t(
+                      conflict.ours === null
+                        ? 'changeSet.cardDeletedHere'
+                        : 'changeSet.cardDeletedInProject',
+                      { key: conflict.key ?? conflict.path },
+                    )}
+                  </Typography>
+                )}
                 <TextDiff
                   before={conflict.theirs ?? ''}
                   after={conflict.ours ?? ''}

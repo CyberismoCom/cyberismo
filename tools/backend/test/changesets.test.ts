@@ -172,7 +172,11 @@ describe('changeSets API', () => {
     const updated = await request('POST', `/changesets/${id}/update`, {
       resolutions: { 'cardRoot/decision_5/c/decision_6/index.adoc': 'ours' },
     });
-    expect(await updated.json()).toEqual({ updated: true, conflicts: [] });
+    expect(await updated.json()).toEqual({
+      updated: true,
+      conflicts: [],
+      removedLinks: [],
+    });
 
     const merged = await request('POST', `/changesets/${id}/merge`);
     expect(merged.status).toBe(200);

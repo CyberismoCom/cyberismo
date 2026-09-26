@@ -18,6 +18,7 @@ import type {
   ChangeSetChanges,
   ChangeSetConflict,
   ChangeSetInfo,
+  ChangeSetUpdate,
   ConflictResolution,
 } from '@cyberismo/data-handler/changesets/change-set-manager';
 import { callApi, changeSetApiPaths } from '../swr';
@@ -31,6 +32,7 @@ export type {
   ChangeSetChanges,
   ChangeSetConflict,
   ChangeSetInfo,
+  ChangeSetUpdate,
   ConflictResolution,
 };
 
@@ -187,10 +189,11 @@ export async function updateChangeSet(
   id: string,
   resolutions?: Record<string, ConflictResolution>,
 ) {
-  const result = await callApi<{
-    updated: boolean;
-    conflicts: ChangeSetConflict[];
-  }>(changeSetApiPaths(prefix).update(id), 'POST', { resolutions });
+  const result = await callApi<ChangeSetUpdate>(
+    changeSetApiPaths(prefix).update(id),
+    'POST',
+    { resolutions },
+  );
   if (result.updated) {
     await revalidateProject(prefix);
   }
