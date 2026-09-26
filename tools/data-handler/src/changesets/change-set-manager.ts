@@ -149,6 +149,10 @@ async function removeIfEmpty(root: string, folder: string) {
   }
 }
 
+// Migrations of shared records, per repository: projects sharing one take
+// turns.
+const migrations = new Map<string, Promise<void>>();
+
 const BRANCH_PREFIX = 'cyberismo/changesets/';
 const ARCHIVE_PREFIX = 'refs/cyberismo/changesets/';
 const CARD_ROOTS = ['cardRoot', '.cards/local/templates'];
@@ -162,6 +166,7 @@ const DEFAULT_MAX_OPEN = 3;
  * main is untouched until the changeSet is merged.
  */
 export class ChangeSetManager {
+  private migration: Promise<void> | undefined;
   private opened = new Map<
     string,
     { commands: CommandManager; lastUsed: number }
@@ -192,19 +197,91 @@ export class ChangeSetManager {
   // Records live in git's folder, beside the repository's history. Worktrees
   // must not: tools skip any path containing '.git/', the project validator
   // among them. A lost worktree is checked out again from its branch.
-  private async folders() {
+  //
+  // A changeSet belongs to one project: a repository may hold several, and
+  // each keeps its own records, active changeSets and worktrees.
+  private async paths() {
     const common = await this.git.commonDir();
     const repository = createHash('sha1').update(common).digest('hex');
+    // '' for a project at the repository root; '/' cannot start a subfolder
+    const project = encodeURIComponent((await this.git.pathInRepo()) || '/');
+    const own = join(common, 'cyberismo', 'projects', project);
     return {
-      records: join(common, 'cyberismo', 'changesets'),
+      common,
+      records: join(own, 'changesets'),
       // Per user id, the id of that user's active changeSet
-      active: join(common, 'cyberismo', 'active-changesets.json'),
+      active: join(own, 'active-changesets.json'),
       worktrees: join(
         this.options.worktreesRoot ??
           join(homedir(), '.cyberismo', 'changesets'),
         repository.slice(0, 12),
+        project,
       ),
     };
+  }
+
+  private async folders() {
+    this.migration ??= this.migrateSharedRecords();
+    await this.migration;
+    return this.paths();
+  }
+
+  // Records from before changeSets were per project lived in one folder for
+  // the whole repository: take over those that changed this project's files.
+  private async migrateSharedRecords() {
+    const { common, records, active } = await this.paths();
+    const shared = join(common, 'cyberismo', 'changesets');
+    const sharedActive = join(common, 'cyberismo', 'active-changesets.json');
+    if (!pathExists(shared)) {
+      return;
+    }
+    const previous = migrations.get(common) ?? Promise.resolve();
+    const run = previous.then(async () => {
+      const taken = new Set<string>();
+      for (const name of await readdir(shared)) {
+        const file = join(shared, name);
+        if (!name.endsWith('.json') || !pathExists(file)) continue;
+        const info = JSON.parse(await readFile(file, 'utf-8')) as ChangeSetInfo;
+        const head =
+          info.status === 'active'
+            ? info.branch
+            : `${ARCHIVE_PREFIX}${info.status}/${info.id}`;
+        const ours = await this.git
+          .changedFiles(info.base, head)
+          .then((files) => files.length > 0)
+          .catch(() => false);
+        if (ours) {
+          await mkdir(records, { recursive: true });
+          await rename(file, join(records, name));
+          taken.add(info.id);
+        }
+      }
+      if (taken.size > 0 && pathExists(sharedActive)) {
+        const entries = JSON.parse(
+          await readFile(sharedActive, 'utf-8'),
+        ) as Record<string, string>;
+        const own = pathExists(active)
+          ? (JSON.parse(await readFile(active, 'utf-8')) as Record<
+              string,
+              string
+            >)
+          : {};
+        for (const [user, id] of Object.entries(entries)) {
+          if (taken.has(id)) {
+            own[user] = id;
+            delete entries[user];
+          }
+        }
+        await mkdir(dirname(active), { recursive: true });
+        await writeFile(active, formatJson(own));
+        await writeFile(sharedActive, formatJson(entries));
+      }
+    });
+    migrations.set(
+      common,
+      run.catch(() => undefined),
+    );
+    await run;
   }
 
   // Where a changeSet's worktree is: wherever git has it checked out (the
@@ -330,6 +407,7 @@ export class ChangeSetManager {
         join((await this.folders()).worktrees, id),
         info.branch,
         info.base,
+        await this.git.pathInRepo(),
       );
       await this.save(info);
       this.logger.info({ id, title }, 'Changeset created');
@@ -394,7 +472,12 @@ export class ChangeSetManager {
     const worktree = await this.worktreeOf(id);
     if (!pathExists(worktree)) {
       await this.git.pruneWorktrees();
-      await this.git.addWorktree(worktree, info.branch);
+      await this.git.addWorktree(
+        worktree,
+        info.branch,
+        undefined,
+        await this.git.pathInRepo(),
+      );
     }
     const commands = new CommandManager(await this.projectPathOf(id), {
       autocommit: true,

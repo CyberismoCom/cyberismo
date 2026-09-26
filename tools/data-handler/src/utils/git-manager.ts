@@ -279,18 +279,29 @@ export class GitManager {
    * @param branch Branch to check out.
    * @param startPoint Commit to create the branch at; omit to check out an
    *   existing branch.
+   * @param only Repository-relative folder to check out alone (a sparse
+   *   checkout); '' or omitted checks out everything.
    */
   async addWorktree(
     path: string,
     branch: string,
     startPoint?: string,
+    only?: string,
   ): Promise<void> {
-    this.logger.info({ path, branch, startPoint }, 'Adding worktree');
-    await this.git.raw(
-      startPoint
-        ? ['worktree', 'add', '-b', branch, path, startPoint]
-        : ['worktree', 'add', path, branch],
-    );
+    this.logger.info({ path, branch, startPoint, only }, 'Adding worktree');
+    const target = startPoint
+      ? ['-b', branch, path, startPoint]
+      : [path, branch];
+    if (!only) {
+      await this.git.raw(['worktree', 'add', ...target]);
+      return;
+    }
+    await this.git.raw(['worktree', 'add', '--no-checkout', ...target]);
+    // The sparse settings are the worktree's own: the main checkout keeps
+    // every file
+    const worktree = createGit({ baseDir: path, timeout: gitTimeout() });
+    await worktree.raw(['sparse-checkout', 'set', '--cone', '--', only]);
+    await worktree.raw(['checkout']);
   }
 
   /**
