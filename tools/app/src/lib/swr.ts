@@ -35,12 +35,23 @@ export const globalApiPaths = {
   publicKey: () => '/api/public-key',
 };
 
+// The project's own API base, whatever changeSet is active.
+function projectBase(projectPrefix?: string): string {
+  return `/api/projects/${encodeURIComponent(resolveProjectPrefix(projectPrefix))}`;
+}
+
 /**
- * Returns project-scoped API paths for the given project.
+ * Returns project-scoped API paths for the given project. While the user has
+ * an active changeSet in it, the paths lead into the changeSet: the app then
+ * reads and writes the changeSet instead of the project.
  * If `projectPrefix` is omitted, it is resolved from `window.location.pathname`.
  */
 export function projectApiPaths(projectPrefix?: string) {
-  const base = `/api/projects/${encodeURIComponent(resolveProjectPrefix(projectPrefix))}`;
+  const prefix = resolveProjectPrefix(projectPrefix);
+  const changeSet = store.getState().changeSet?.activeByPrefix[prefix];
+  const base = changeSet
+    ? `${projectBase(prefix)}/changesets/${encodeURIComponent(changeSet)}`
+    : projectBase(prefix);
   return {
     cards: () => `${base}/cards`,
     card: (key: string) => `${base}/cards/${key}`,
@@ -107,11 +118,36 @@ export function projectApiPaths(projectPrefix?: string) {
   };
 }
 
+/**
+ * Paths for managing the project's changeSets: always the project's own,
+ * whatever changeSet is active.
+ */
+export function changeSetApiPaths(projectPrefix?: string) {
+  const base = `${projectBase(projectPrefix)}/changesets`;
+  const one = (id: string) => `${base}/${encodeURIComponent(id)}`;
+  return {
+    list: () => base,
+    active: () => `${base}/active`,
+    changeSet: one,
+    changes: (id: string) => `${one(id)}/changes`,
+    cardDiff: (id: string, key: string) =>
+      `${one(id)}/changes/${encodeURIComponent(key)}`,
+    reviewed: (id: string, key: string) =>
+      `${one(id)}/changes/${encodeURIComponent(key)}/reviewed`,
+    revert: (id: string, key: string) =>
+      `${one(id)}/changes/${encodeURIComponent(key)}/revert`,
+    update: (id: string) => `${one(id)}/update`,
+    merge: (id: string) => `${one(id)}/merge`,
+  };
+}
+
 export class ApiCallError extends Error {
   public reason: string;
   constructor(
     public response: Response,
     reason?: string,
+    /** Machine-readable reason, when the server gives one. */
+    public code?: string,
   ) {
     super(
       reason ?? `Api call failed: ${response.status} ${response.statusText}`,
@@ -128,7 +164,7 @@ export async function createApiCallError(
   const text = await response.text();
   try {
     const json = JSON.parse(text);
-    return new ApiCallError(response, json.error);
+    return new ApiCallError(response, json.error, json.code);
   } catch {
     return new ApiCallError(response, text);
   }
@@ -147,7 +183,17 @@ async function handleResponse<T>(
       // instead of showing error screens
       return new Promise<T>(() => {});
     }
-    throw await createApiCallError(response);
+    const error = await createApiCallError(response);
+    if (error.code === 'changeset-active') {
+      // A write reached the project while the user works in a changeSet:
+      // follow the server, so that the next one goes into the changeSet
+      void import('./api/changesets')
+        .then(({ loadActiveChangeSet }) =>
+          loadActiveChangeSet(resolveProjectPrefix()),
+        )
+        .catch(() => undefined);
+    }
+    throw error;
   }
   if (response.status === 204) return null as unknown as T; // no content, return null
   if (responseType === 'blob') return response.blob() as unknown as Promise<T>;

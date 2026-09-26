@@ -21,7 +21,7 @@ import { startPolicyPolling } from './overlay.js';
 import { createApp } from './app.js';
 import type { AuthProvider } from './auth/types.js';
 import type { ProjectRegistry } from './project-registry.js';
-export { MockAuthProvider } from './auth/mock.js';
+export { LOCAL_USER_ID, MockAuthProvider } from './auth/mock.js';
 export type { MockUserConfig } from './auth/mock.js';
 export type { AuthProvider } from './auth/types.js';
 export { exportSite, type ExportSiteOptions } from './export.js';

@@ -24,7 +24,10 @@ import { projectApiPaths } from '../swr';
 import { useAppDispatch } from '../hooks';
 import { addNotification } from '../slices/notifications';
 
-/** Refetches the open card after a remote write; only editors are told who made it. */
+/**
+ * Refetches the open card after a remote write; only editors are told who made
+ * it. Writes by an agent are announced even when the agent acted for this user.
+ */
 export function useCardUpdates(
   cardKey: string | null,
   mode: PresenceEntry['mode'],
@@ -42,15 +45,15 @@ export function useCardUpdates(
       void mutate(apiPaths.card(cardKey));
       void mutate(apiPaths.rawCard(cardKey));
       void mutate(apiPaths.tree());
-      if (event.userId === user?.id || !canEdit) return;
+      // An agent acting for this user is still news to them
+      const byAgent = event.actor === 'agent';
+      if ((event.userId === user?.id && !byAgent) || !canEdit) return;
+      const key = mode === 'editing' ? 'whileEditing' : 'byOther';
       dispatch(
         addNotification({
-          message: t(
-            mode === 'editing'
-              ? 'cardUpdated.whileEditing'
-              : 'cardUpdated.byOther',
-            { name: event.userName },
-          ),
+          message: t(`cardUpdated.${key}${byAgent ? 'ByAgent' : ''}`, {
+            name: event.userName,
+          }),
           type: mode === 'editing' ? 'warning' : 'info',
         }),
       );

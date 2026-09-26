@@ -60,6 +60,16 @@ export class RWLock {
     this.writeErrorHooks.push(hook);
   }
 
+  /** Whether nothing holds the lock or waits for it. */
+  isIdle(): boolean {
+    return (
+      this.readers === 0 &&
+      !this.writer &&
+      this.readerQueue.length === 0 &&
+      this.writerQueue.length === 0
+    );
+  }
+
   /**
    * Execute `fn` under a read lock. Concurrent readers are allowed.
    * If already inside a read or write context, just runs fn directly.

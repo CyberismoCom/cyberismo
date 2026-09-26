@@ -21,7 +21,44 @@ import {
 import { Validate } from './commands/validate.js';
 export * from './interfaces/project-interfaces.js';
 export * from './interfaces/macros.js';
-export type { ProjectProvider } from './interfaces/project-provider.js';
+export type {
+  ChangeSetAccess,
+  ProjectProvider,
+} from './interfaces/project-provider.js';
+export {
+  COMMIT_TRAILERS,
+  runWithCommitContext,
+} from './utils/commit-context.js';
+export type {
+  CommitActor,
+  CommitAuthor,
+  CommitContext,
+} from './utils/commit-context.js';
+export type { CardsChanged } from './containers/project.js';
+export {
+  CardUnchangedError,
+  ChangeSetBehindError,
+  ChangeSetClosedError,
+  ChangeSetError,
+  ChangeSetInvalidError,
+  ChangeSetManager,
+  ChangeSetNotFoundError,
+} from './changesets/change-set-manager.js';
+export type {
+  CardDiff,
+  ChangeSetChanges,
+  ChangeSetConflict,
+  ChangeSetInfo,
+  ChangeSetManagerOptions,
+  ConflictResolution,
+  ReviewedCardChange,
+} from './changesets/change-set-manager.js';
+export type {
+  CardChange,
+  CardCommit,
+  ChangeList,
+  FieldChange,
+} from './changesets/change-list.js';
 import { requestStatus } from './interfaces/request-status-interfaces.js';
 import { UpdateOperations } from './resources/resource-object.js';
 export type {

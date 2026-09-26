@@ -71,3 +71,22 @@ export function gitOptionsFromEnv(): {
     autopush: process.env.CYBERISMO_AUTOPUSH === 'true',
   };
 }
+
+/**
+ * Folder for changeSet worktrees, from CYBERISMO_CHANGESETS_DIR; undefined
+ * for the default (~/.cyberismo/changesets). On a server, point it at
+ * persistent storage outside the projects folder.
+ */
+export function changeSetsDirFromEnv(): string | undefined {
+  return process.env.CYBERISMO_CHANGESETS_DIR || undefined;
+}
+
+/**
+ * How many changesets may be open at once per project, from
+ * CYBERISMO_CHANGESETS_MAX_OPEN; undefined for the default. Each open
+ * changeset holds its own copy of the project in memory.
+ */
+export function changeSetsMaxOpenFromEnv(): number | undefined {
+  const value = Number(process.env.CYBERISMO_CHANGESETS_MAX_OPEN);
+  return Number.isInteger(value) && value > 0 ? value : undefined;
+}

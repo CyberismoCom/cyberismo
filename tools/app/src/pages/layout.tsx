@@ -16,7 +16,9 @@ import {
   useNavigationGuard,
   useOptionalKeyParam,
   useAppDispatch,
+  useAppSelector,
 } from '@/lib/hooks';
+import { selectActiveChangeSet } from '@/lib/slices/changeSet';
 import { Stack, styled } from '@mui/joy';
 import { Outlet, useLocation, useMatches, useParams } from 'react-router';
 import {
@@ -81,6 +83,9 @@ export default function Layout() {
   const location = useLocation();
   const { projectPrefix } = useParams();
   const dispatch = useAppDispatch();
+  // Switching changeSets remounts everything below, so that every request is
+  // made again, into the changeSet or the project
+  const activeChangeSet = useAppSelector(selectActiveChangeSet(projectPrefix));
   const notFound = useMatches().some(
     (match) => match.id === PROJECT_NOT_FOUND_ROUTE_ID,
   );
@@ -109,7 +114,10 @@ export default function Layout() {
   );
 
   return (
-    <ProjectEventsProvider key={projectPrefix} projectPrefix={projectPrefix}>
+    <ProjectEventsProvider
+      key={`${projectPrefix}/${activeChangeSet ?? ''}`}
+      projectPrefix={projectPrefix}
+    >
       <Stack>
         <AppToolbar
           onCreate={(resourceType) => {

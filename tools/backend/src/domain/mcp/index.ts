@@ -11,13 +11,14 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { randomUUID } from 'node:crypto';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 import { createMcpServer, type ProjectProvider } from '@cyberismo/mcp';
+import { runWithCommitContext } from '@cyberismo/data-handler';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { requireRole } from '../../middleware/auth.js';
-import { UserRole, type AppVars } from '../../types.js';
+import { UserRole, type AppVars, type UserInfo } from '../../types.js';
 
 const MAX_SESSIONS = 100;
 const MAX_SESSIONS_PER_USER = 5;
@@ -74,10 +75,33 @@ const cleanupInterval = setInterval(() => {
 cleanupInterval.unref();
 
 /**
- * Create an MCP HTTP router that serves all projects via the given provider.
+ * Handle an MCP request so that any writes it makes are committed as the
+ * authenticated user, marked as made by an agent (the MCP client).
+ */
+function handleAsAgent(
+  c: Context<{ Variables: AppVars }>,
+  session: Pick<McpSession, 'transport' | 'server'>,
+): Promise<Response> {
+  const user = c.get('user')!;
+  return runWithCommitContext(
+    {
+      author: { name: user.name, email: user.email, id: user.id },
+      actor: {
+        kind: 'agent',
+        name: session.server.server.getClientVersion()?.name,
+      },
+    },
+    () => session.transport.handleRequest(c.req.raw),
+  );
+}
+
+/**
+ * Create an MCP HTTP router serving projects through a provider for each
+ * connected user.
+ * @param providerFor - The provider serving a user's MCP session.
  */
 export function createMcpRouter(
-  provider: ProjectProvider,
+  providerFor: (user: UserInfo) => ProjectProvider,
 ): Hono<{ Variables: AppVars }> {
   const router = new Hono<{ Variables: AppVars }>();
 
@@ -100,8 +124,7 @@ export function createMcpRouter(
     if (sessionId && sessions.has(sessionId)) {
       const session = sessions.get(sessionId)!;
       session.lastActivity = Date.now();
-      const response = await session.transport.handleRequest(c.req.raw);
-      return response;
+      return handleAsAgent(c, session);
     }
 
     // Reject requests with an unknown session ID (e.g. after server restart)
@@ -153,11 +176,10 @@ export function createMcpRouter(
       }
     };
 
-    const server = createMcpServer(provider);
+    const server = createMcpServer(providerFor(user));
     await server.connect(transport);
 
-    const response = await transport.handleRequest(c.req.raw);
-    return response;
+    return handleAsAgent(c, { transport, server });
   });
 
   return router;
