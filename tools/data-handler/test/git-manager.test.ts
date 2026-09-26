@@ -218,8 +218,10 @@ describe('GitManager', () => {
 
     it('should return all version tags regardless of branch', async () => {
       const git = testGit(dir);
+      // 'master' or 'main', as init.defaultBranch says
+      const trunk = (await git.branch()).current;
 
-      // Create v1.0.0 and v1.1.0 on main
+      // Create v1.0.0 and v1.1.0 on the default branch
       await gm.tagVersion('1.0.0');
       await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
       await gm.commit('change 1');
@@ -228,8 +230,8 @@ describe('GitManager', () => {
       // Branch off at v1.1.0
       await git.checkoutLocalBranch('maintenance');
 
-      // Go back to main and create v2.0.0
-      await git.checkout('master');
+      // Go back to the default branch and create v2.0.0
+      await git.checkout(trunk);
       await writeFile(join(dir, 'cardRoot', 'b.txt'), 'b');
       await gm.commit('change 2');
       await gm.tagVersion('2.0.0');

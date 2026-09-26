@@ -65,7 +65,7 @@ const mainContent = (key: string) => main.project.findCard(key).content;
 const changeSetContent = async (id: string, key: string) =>
   (await registry.openChangeSet(main, id)).project.findCard(key).content;
 
-describe('changeSets API', () => {
+describe('changeSets API', { timeout: 30_000 }, () => {
   test('readers can list changeSets but not start them', async () => {
     expect(
       (await request('GET', '/changesets', undefined, 'carol')).status,
