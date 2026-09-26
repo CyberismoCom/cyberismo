@@ -202,11 +202,7 @@ export class Project {
       // Rollback on failed writes
       this.lock.onWriteError(async () => {
         await this.gitManager.rollback();
-        // Invalidate caches after rollback since filesystem state changed
-        this.clearCards();
-        await this.populateCardsCache();
-        this.resources.changed();
-        await this.calculationEngine.generate();
+        await this.reload();
       });
     }
 
@@ -1070,6 +1066,22 @@ export class Project {
       .map((template) => template.fullName)
       .filter((name) => prefixes.has(resourceName(name).prefix));
     await this.populateTemplateCards(templateNames);
+  }
+
+  /**
+   * Re-reads the whole project from disk: configuration, resources, cards and
+   * the logic program. For when git changed the files underneath the project
+   * (a rollback, merge or checkout). Must run while holding the write lock.
+   */
+  public async reload(): Promise<void> {
+    this.settings.reload();
+    // Resources first: the template card trees follow the template list
+    this.resources.changedModules();
+    this.resources.changed();
+    this.refreshAllModulePrefixes();
+    this.clearCards();
+    await this.populateCardsCache();
+    await this.calculationEngine.generate();
   }
 
   /**

@@ -63,15 +63,18 @@ export class GitManager {
     this.logger.debug('Staging changes');
     await this.git.add(['cardRoot', '.cards']);
 
-    // Check if there's anything to commit
-    const status = await this.git.status();
-    if (status.staged.length === 0) {
+    // Check if there's anything to commit. Not status().staged: it leaves
+    // out renames, so a write that only moved files would go uncommitted.
+    const staged = (await this.git.diff(['--cached', '--name-only']))
+      .split('\n')
+      .filter((line) => line !== '');
+    if (staged.length === 0) {
       this.logger.debug('Nothing to commit, skipping');
       return;
     }
 
     this.logger.info(
-      { message, stagedFiles: status.staged.length },
+      { message, stagedFiles: staged.length },
       'Committing changes',
     );
     const commitOpts: Record<string, string> = {};

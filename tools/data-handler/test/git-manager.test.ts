@@ -1,5 +1,12 @@
 import { expect, it, describe, beforeEach, afterEach, vi } from 'vitest';
-import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
+import {
+  mkdtemp,
+  mkdir,
+  writeFile,
+  readFile,
+  rename,
+  rm,
+} from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { simpleGit } from 'simple-git';
@@ -80,6 +87,20 @@ describe('GitManager', () => {
       const logAfter = await git.log();
 
       expect(logAfter.total).toBe(logBefore.total);
+    });
+
+    it('should commit a change that only renames files', async () => {
+      await writeFile(join(dir, 'cardRoot', 'before.txt'), 'content');
+      await gm.commit('Add');
+      await rename(
+        join(dir, 'cardRoot', 'before.txt'),
+        join(dir, 'cardRoot', 'after.txt'),
+      );
+      await gm.commit('Rename');
+
+      const log = await testGit(dir).log();
+      expect(log.latest!.message).toBe('Rename');
+      expect(await gm.hasUncommittedChanges()).toBe(false);
     });
 
     it('should use per-commit author when provided', async () => {
