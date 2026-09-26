@@ -13,15 +13,18 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { beforeAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { UserRole } from '../src/types.js';
 import type { AuthProvider } from '../src/auth/types.js';
+import { cleanupTempTestData, createTempTestData } from './test-utils.js';
 
 const fileUrl = fileURLToPath(import.meta.url);
 const dirname = path.dirname(fileUrl);
@@ -155,5 +158,97 @@ describe('MCP HTTP Endpoint', () => {
     expect(response.status).toBe(403);
     const result = await response.json();
     expect(result.error).toBe('Forbidden');
+  });
+});
+
+describe('MCP write provenance', () => {
+  let tempDir: string;
+  let commands: CommandManager;
+  let agentApp: ReturnType<typeof createApp>;
+
+  const editor: AuthProvider = {
+    authenticate: async () => ({
+      id: 'dana',
+      email: 'dana@example.com',
+      name: 'Dana Editor',
+      role: UserRole.Editor,
+    }),
+  };
+
+  const mcpHeaders = {
+    'Content-Type': 'application/json',
+    Accept: 'application/json, text/event-stream',
+  };
+
+  beforeAll(async () => {
+    tempDir = await createTempTestData('decision-records');
+    commands = new CommandManager(tempDir, { autocommit: true });
+    await commands.initialize();
+    agentApp = createApp(editor, ProjectRegistry.fromCommandManager(commands));
+  });
+
+  afterAll(async () => {
+    commands.project.dispose();
+    await cleanupTempTestData(tempDir);
+  });
+
+  test('commits agent writes as the user, marked with agent trailers', async () => {
+    const init = await agentApp.request('/mcp', {
+      method: 'POST',
+      headers: mcpHeaders,
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: {
+          protocolVersion: '2025-06-18',
+          capabilities: {},
+          clientInfo: { name: 'test-agent', version: '1.0.0' },
+        },
+      }),
+    });
+    const sessionId = init.headers.get('mcp-session-id')!;
+    expect(sessionId).toBeTruthy();
+    await init.text();
+
+    const headers = { ...mcpHeaders, 'mcp-session-id': sessionId };
+    await agentApp.request('/mcp', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'notifications/initialized',
+      }),
+    });
+
+    const call = await agentApp.request('/mcp', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 2,
+        method: 'tools/call',
+        params: {
+          name: 'create_label',
+          arguments: {
+            projectPrefix: 'decision',
+            cardKey: 'decision_5',
+            label: 'agent-label',
+          },
+        },
+      }),
+    });
+    expect(await call.text()).not.toContain('isError');
+
+    const { stdout: log } = await promisify(execFile)(
+      'git',
+      ['log', '-1', '--format=%an <%ae>%n%(trailers:only,unfold)'],
+      { cwd: tempDir },
+    );
+    expect(log.trim().split('\n')).toEqual([
+      'Dana Editor <dana@example.com>',
+      'Cyberismo-Actor: agent',
+      'Cyberismo-Agent: test-agent',
+    ]);
   });
 });

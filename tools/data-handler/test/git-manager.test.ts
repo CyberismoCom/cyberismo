@@ -93,6 +93,26 @@ describe('GitManager', () => {
       expect(log.latest!.author_name).toBe('Test User');
       expect(log.latest!.author_email).toBe('test@example.com');
     });
+
+    it('should append trailers as the last paragraph', async () => {
+      await writeFile(join(dir, 'cardRoot', 'file.txt'), 'content');
+      await gm.commit('With trailers', undefined, {
+        'Cyberismo-Actor': 'agent',
+        'Cyberismo-Agent': 'claude-code',
+      });
+
+      const git = testGit(dir);
+      const trailers = await git.raw([
+        'log',
+        '-1',
+        '--format=%(trailers:only,unfold)',
+      ]);
+      expect(trailers.trim()).toBe(
+        'Cyberismo-Actor: agent\nCyberismo-Agent: claude-code',
+      );
+      const subject = await git.raw(['log', '-1', '--format=%s']);
+      expect(subject.trim()).toBe('With trailers');
+    });
   });
 
   describe('rollback()', () => {

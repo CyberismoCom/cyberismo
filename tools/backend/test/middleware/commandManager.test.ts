@@ -68,6 +68,7 @@ describe('attachCommandManager', () => {
     expect(commands.runAsAuthor).toHaveBeenCalledWith(
       { name: testUser.name, email: testUser.email },
       expect.any(Function),
+      { kind: 'human' },
     );
   });
 

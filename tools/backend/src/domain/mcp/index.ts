@@ -11,10 +11,11 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { randomUUID } from 'node:crypto';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 import { createMcpServer, type ProjectProvider } from '@cyberismo/mcp';
+import { runWithCommitContext } from '@cyberismo/data-handler';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { requireRole } from '../../middleware/auth.js';
 import { UserRole, type AppVars } from '../../types.js';
@@ -74,6 +75,27 @@ const cleanupInterval = setInterval(() => {
 cleanupInterval.unref();
 
 /**
+ * Handle an MCP request so that any writes it makes are committed as the
+ * authenticated user, marked as made by an agent (the MCP client).
+ */
+function handleAsAgent(
+  c: Context<{ Variables: AppVars }>,
+  session: Pick<McpSession, 'transport' | 'server'>,
+): Promise<Response> {
+  const user = c.get('user')!;
+  return runWithCommitContext(
+    {
+      author: { name: user.name, email: user.email },
+      actor: {
+        kind: 'agent',
+        name: session.server.server.getClientVersion()?.name,
+      },
+    },
+    () => session.transport.handleRequest(c.req.raw),
+  );
+}
+
+/**
  * Create an MCP HTTP router that serves all projects via the given provider.
  */
 export function createMcpRouter(
@@ -100,8 +122,7 @@ export function createMcpRouter(
     if (sessionId && sessions.has(sessionId)) {
       const session = sessions.get(sessionId)!;
       session.lastActivity = Date.now();
-      const response = await session.transport.handleRequest(c.req.raw);
-      return response;
+      return handleAsAgent(c, session);
     }
 
     // Reject requests with an unknown session ID (e.g. after server restart)
@@ -156,8 +177,7 @@ export function createMcpRouter(
     const server = createMcpServer(provider);
     await server.connect(transport);
 
-    const response = await transport.handleRequest(c.req.raw);
-    return response;
+    return handleAsAgent(c, { transport, server });
   });
 
   return router;
