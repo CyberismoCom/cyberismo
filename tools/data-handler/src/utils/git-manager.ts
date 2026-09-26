@@ -16,6 +16,34 @@ import { createGit, gitTimeout } from './git-config.js';
 import { getChildLogger } from './log-utils.js';
 import { stripTagPrefix, versionToTag } from '../modules/version.js';
 
+/** A file that differs between two commits, relative to the project. */
+export interface ChangedFile {
+  /** A: added, M: modified, D: deleted, R: renamed (with 'from'), T: type. */
+  status: 'A' | 'M' | 'D' | 'R' | 'T';
+  path: string;
+  from?: string;
+}
+
+/** A commit, with the trailers recording its provenance. */
+export interface CommitInfo {
+  hash: string;
+  author: { name: string; email: string };
+  date: string;
+  subject: string;
+  trailers: Record<string, string>;
+}
+
+/** A git worktree of the repository. */
+export interface WorktreeInfo {
+  path: string;
+  head: string;
+  branch?: string;
+}
+
+// Project folders that hold content; everything else is outside a project's
+// history as far as the app is concerned.
+const CONTENT_PATHS = ['cardRoot', '.cards'];
+
 export class GitManager {
   private git: ReturnType<typeof createGit>;
   private logger = getChildLogger({ module: 'GitManager' });
@@ -205,6 +233,176 @@ export class GitManager {
       args.push('--follow-tags');
     }
     await this.git.push(args);
+  }
+
+  /** The commit HEAD points at. */
+  async headCommit(): Promise<string> {
+    return (await this.git.revparse(['HEAD'])).trim();
+  }
+
+  /**
+   * Path of the project folder inside its repository: '' when the project is
+   * the repository root. A worktree holds the project at the same path.
+   */
+  async pathInRepo(): Promise<string> {
+    const prefix = (await this.git.revparse(['--show-prefix'])).trim();
+    return prefix.replace(/\/$/, '');
+  }
+
+  /**
+   * Check out a new branch into a new worktree.
+   * @param path Folder for the worktree; must not exist or be empty.
+   * @param branch Name of the branch to create.
+   * @param startPoint Commit the branch starts from.
+   */
+  async addWorktree(
+    path: string,
+    branch: string,
+    startPoint: string,
+  ): Promise<void> {
+    this.logger.info({ path, branch, startPoint }, 'Adding worktree');
+    await this.git.raw(['worktree', 'add', '-b', branch, path, startPoint]);
+  }
+
+  /**
+   * Remove a worktree and its folder. The branch is kept.
+   * @param path Folder of the worktree.
+   * @param force Also remove a worktree with uncommitted changes.
+   */
+  async removeWorktree(path: string, force = false): Promise<void> {
+    this.logger.info({ path, force }, 'Removing worktree');
+    await this.git.raw([
+      'worktree',
+      'remove',
+      ...(force ? ['--force'] : []),
+      path,
+    ]);
+  }
+
+  /** Worktrees of the repository, the main one first. */
+  async listWorktrees(): Promise<WorktreeInfo[]> {
+    const output = await this.git.raw([
+      'worktree',
+      'list',
+      '--porcelain',
+      '-z',
+    ]);
+    const worktrees: WorktreeInfo[] = [];
+    let current: Partial<WorktreeInfo> = {};
+    for (const field of output.split('\0')) {
+      if (field === '') {
+        if (current.path && current.head) {
+          worktrees.push(current as WorktreeInfo);
+        }
+        current = {};
+        continue;
+      }
+      const [key, ...rest] = field.split(' ');
+      const value = rest.join(' ');
+      if (key === 'worktree') current.path = value;
+      else if (key === 'HEAD') current.head = value;
+      else if (key === 'branch')
+        current.branch = value.replace(/^refs\/heads\//, '');
+    }
+    return worktrees;
+  }
+
+  /** Forget worktrees whose folders are gone. */
+  async pruneWorktrees(): Promise<void> {
+    await this.git.raw(['worktree', 'prune']);
+  }
+
+  /**
+   * Delete a local branch.
+   * @param branch Branch to delete.
+   * @param force Also delete a branch that is not merged.
+   */
+  async deleteBranch(branch: string, force = false): Promise<void> {
+    this.logger.info({ branch, force }, 'Deleting branch');
+    await this.git.raw(['branch', force ? '-D' : '-d', branch]);
+  }
+
+  /** Best common ancestor of two commits. */
+  async mergeBase(a: string, b: string): Promise<string> {
+    return (await this.git.raw(['merge-base', a, b])).trim();
+  }
+
+  /**
+   * Project content files that differ between two commits, with renames
+   * detected. Paths are relative to the project folder.
+   */
+  async changedFiles(from: string, to: string): Promise<ChangedFile[]> {
+    const output = await this.git.raw([
+      'diff',
+      '--name-status',
+      '-M',
+      '-z',
+      '--relative',
+      from,
+      to,
+      '--',
+      ...CONTENT_PATHS,
+    ]);
+    const fields = output.split('\0').filter((field) => field !== '');
+    const files: ChangedFile[] = [];
+    for (let i = 0; i < fields.length;) {
+      // Rename status carries a similarity score, e.g. 'R087'
+      const status = fields[i++].charAt(0) as ChangedFile['status'];
+      if (status === 'R') {
+        const from = fields[i++];
+        files.push({ status, from, path: fields[i++] });
+      } else {
+        files.push({ status, path: fields[i++] });
+      }
+    }
+    return files;
+  }
+
+  /**
+   * Content of a project file at a commit.
+   * @param ref Commit to read from.
+   * @param path Path relative to the project folder.
+   * @returns the content, or null if the file does not exist at that commit.
+   */
+  async showFile(ref: string, path: string): Promise<string | null> {
+    try {
+      // './' resolves the path against the project folder, not the repo root
+      return await this.git.show([`${ref}:./${path}`]);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Commits reachable from 'to' but not from 'from' that touch project
+   * content, newest first.
+   */
+  async log(from: string, to: string): Promise<CommitInfo[]> {
+    const fieldSep = '\x1f';
+    const recordSep = '\x1e';
+    const output = await this.git.raw([
+      'log',
+      `--format=%H%x1f%an%x1f%ae%x1f%aI%x1f%s%x1f%(trailers:only,unfold)%x1e`,
+      `${from}..${to}`,
+      '--',
+      ...CONTENT_PATHS,
+    ]);
+    return output
+      .split(recordSep)
+      .map((record) => record.trim())
+      .filter((record) => record !== '')
+      .map((record) => {
+        const [hash, name, email, date, subject, trailerBlock] =
+          record.split(fieldSep);
+        const trailers: Record<string, string> = {};
+        for (const line of (trailerBlock ?? '').split('\n')) {
+          const separator = line.indexOf(': ');
+          if (separator > 0) {
+            trailers[line.slice(0, separator)] = line.slice(separator + 2);
+          }
+        }
+        return { hash, author: { name, email }, date, subject, trailers };
+      });
   }
 
   /**
