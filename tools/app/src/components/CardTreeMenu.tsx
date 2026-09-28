@@ -18,20 +18,32 @@ import { MoreHoriz } from '@mui/icons-material';
 import { Dropdown, MenuButton, Menu, MenuItem } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import { ExportProjectModal } from './modals/ExportCardModal';
+import { UserRole, useHasMinRole } from '@/lib/auth';
+import { ChangeSetMenuItems } from './changesets/ChangeSetMenuItems';
+import { StartChangeSetModal } from './changesets/StartChangeSetModal';
 
 export const CardTreeMenu = () => {
   const { t } = useTranslation();
   const router = useAppRouter();
   const [isOpen, setIsOpen] = React.useState(false);
+  const [startOpen, setStartOpen] = React.useState(false);
+  const canEdit = useHasMinRole(UserRole.Editor);
+  const { staticMode } = getConfig();
   return (
     <>
       <Dropdown>
-        <MenuButton variant="plain" size="sm" endDecorator={<MoreHoriz />} />
+        <MenuButton
+          variant="plain"
+          size="sm"
+          endDecorator={<MoreHoriz />}
+          aria-label={t('projectMenu')}
+          data-cy="projectMenu"
+        />
         <Menu
           placement="bottom-end"
           sx={{ zIndex: 'calc(var(--joy-zIndex-modal) + 1)' }}
         >
-          {!getConfig().staticMode && (
+          {!staticMode && (
             <MenuItem onClick={() => setIsOpen(true)}>
               {t('exportProject')}
             </MenuItem>
@@ -39,9 +51,16 @@ export const CardTreeMenu = () => {
           <MenuItem onClick={() => router.push('/configuration')}>
             {t('configuration')}
           </MenuItem>
+          {canEdit && !staticMode && (
+            <ChangeSetMenuItems onStart={() => setStartOpen(true)} />
+          )}
         </Menu>
       </Dropdown>
       <ExportProjectModal open={isOpen} onClose={() => setIsOpen(false)} />
+      <StartChangeSetModal
+        open={startOpen}
+        onClose={() => setStartOpen(false)}
+      />
     </>
   );
 };

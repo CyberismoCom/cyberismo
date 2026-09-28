@@ -1,5 +1,13 @@
 import { expect, it, describe, beforeEach, afterEach, vi } from 'vitest';
-import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
+import {
+  mkdtemp,
+  mkdir,
+  writeFile,
+  readFile,
+  realpath,
+  rename,
+  rm,
+} from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { simpleGit } from 'simple-git';
@@ -32,7 +40,13 @@ describe('GitManager', () => {
 
   afterEach(async () => {
     vi.unstubAllGlobals();
-    await rm(dir, { recursive: true, force: true });
+    await rm(dir, {
+      recursive: true,
+      force: true,
+      // Git may still be tidying the repository in the background
+      maxRetries: 5,
+      retryDelay: 100,
+    });
   });
 
   describe('initialize()', () => {
@@ -82,6 +96,20 @@ describe('GitManager', () => {
       expect(logAfter.total).toBe(logBefore.total);
     });
 
+    it('should commit a change that only renames files', async () => {
+      await writeFile(join(dir, 'cardRoot', 'before.txt'), 'content');
+      await gm.commit('Add');
+      await rename(
+        join(dir, 'cardRoot', 'before.txt'),
+        join(dir, 'cardRoot', 'after.txt'),
+      );
+      await gm.commit('Rename');
+
+      const log = await testGit(dir).log();
+      expect(log.latest!.message).toBe('Rename');
+      expect(await gm.hasUncommittedChanges()).toBe(false);
+    });
+
     it('should use per-commit author when provided', async () => {
       const author = { name: 'Test User', email: 'test@example.com' };
 
@@ -92,6 +120,26 @@ describe('GitManager', () => {
       const log = await git.log();
       expect(log.latest!.author_name).toBe('Test User');
       expect(log.latest!.author_email).toBe('test@example.com');
+    });
+
+    it('should append trailers as the last paragraph', async () => {
+      await writeFile(join(dir, 'cardRoot', 'file.txt'), 'content');
+      await gm.commit('With trailers', undefined, {
+        'Cyberismo-Actor': 'agent',
+        'Cyberismo-Agent': 'claude-code',
+      });
+
+      const git = testGit(dir);
+      const trailers = await git.raw([
+        'log',
+        '-1',
+        '--format=%(trailers:only,unfold)',
+      ]);
+      expect(trailers.trim()).toBe(
+        'Cyberismo-Actor: agent\nCyberismo-Agent: claude-code',
+      );
+      const subject = await git.raw(['log', '-1', '--format=%s']);
+      expect(subject.trim()).toBe('With trailers');
     });
   });
 
@@ -170,8 +218,10 @@ describe('GitManager', () => {
 
     it('should return all version tags regardless of branch', async () => {
       const git = testGit(dir);
+      // 'master' or 'main', as init.defaultBranch says
+      const trunk = (await git.branch()).current;
 
-      // Create v1.0.0 and v1.1.0 on main
+      // Create v1.0.0 and v1.1.0 on the default branch
       await gm.tagVersion('1.0.0');
       await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
       await gm.commit('change 1');
@@ -180,8 +230,8 @@ describe('GitManager', () => {
       // Branch off at v1.1.0
       await git.checkoutLocalBranch('maintenance');
 
-      // Go back to main and create v2.0.0
-      await git.checkout('master');
+      // Go back to the default branch and create v2.0.0
+      await git.checkout(trunk);
       await writeFile(join(dir, 'cardRoot', 'b.txt'), 'b');
       await gm.commit('change 2');
       await gm.tagVersion('2.0.0');
@@ -273,6 +323,163 @@ describe('GitManager', () => {
       } finally {
         await rm(origin, { recursive: true, force: true });
       }
+    });
+  });
+
+  describe('changeSet primitives', { timeout: 30_000 }, () => {
+    let worktree: string;
+
+    beforeEach(async () => {
+      worktree = join(
+        await mkdtemp(join(tmpdir(), 'git-manager-worktree-')),
+        'wt',
+      );
+    });
+
+    afterEach(async () => {
+      await rm(join(worktree, '..'), {
+        recursive: true,
+        force: true,
+        // Git may still be tidying the repository in the background
+        maxRetries: 5,
+        retryDelay: 100,
+      });
+    });
+
+    it('locates the project inside its repository', async () => {
+      expect(await gm.pathInRepo()).toBe('');
+
+      const nested = join(dir, 'projects', 'one');
+      await mkdir(join(nested, 'cardRoot'), { recursive: true });
+      expect(await new GitManager(nested).pathInRepo()).toBe('projects/one');
+    });
+
+    it('isolates work on a branch in a worktree', async () => {
+      // git tracks no empty folders: give cardRoot content to check out
+      await writeFile(join(dir, 'cardRoot', 'base.txt'), 'base');
+      await gm.commit('Base');
+      const base = await gm.headCommit();
+      await gm.addWorktree(worktree, 'changesets/one', base);
+      expect(
+        (await gm.listWorktrees()).find(
+          (item) => item.branch === 'changesets/one',
+        ),
+      ).toEqual({
+        path: await realpath(worktree),
+        head: base,
+        branch: 'changesets/one',
+      });
+
+      await writeFile(join(worktree, 'cardRoot', 'card.txt'), 'in worktree');
+      await new GitManager(worktree).commit(
+        'Worktree edit',
+        { name: 'Alice', email: 'alice@example.com' },
+        { 'Cyberismo-Actor': 'agent' },
+      );
+
+      expect(await gm.headCommit()).toBe(base);
+      expect(await gm.mergeBase(base, 'changesets/one')).toBe(base);
+      expect(await gm.changedFiles(base, 'changesets/one')).toEqual([
+        { status: 'A', path: 'cardRoot/card.txt' },
+      ]);
+      expect(await gm.showFile('changesets/one', 'cardRoot/card.txt')).toBe(
+        'in worktree',
+      );
+      expect(await gm.showFile(base, 'cardRoot/card.txt')).toBeNull();
+      expect(await gm.log(base, 'changesets/one')).toEqual([
+        {
+          hash: expect.any(String),
+          author: { name: 'Alice', email: 'alice@example.com' },
+          date: expect.any(String),
+          subject: 'Worktree edit',
+          trailers: { 'Cyberismo-Actor': 'agent' },
+          files: ['cardRoot/card.txt'],
+        },
+      ]);
+
+      await gm.removeWorktree(worktree);
+      await gm.deleteBranch('changesets/one', true);
+      expect(
+        (await gm.listWorktrees()).map((item) => item.branch),
+      ).not.toContain('changesets/one');
+    });
+
+    it('reports a moved card folder as a rename', async () => {
+      await mkdir(join(dir, 'cardRoot', 'a'), { recursive: true });
+      await writeFile(
+        join(dir, 'cardRoot', 'a', 'index.adoc'),
+        'long enough content to be recognised as the same file',
+      );
+      await gm.commit('Add card');
+      const before = await gm.headCommit();
+      await mkdir(join(dir, 'cardRoot', 'b'), { recursive: true });
+      await rename(
+        join(dir, 'cardRoot', 'a', 'index.adoc'),
+        join(dir, 'cardRoot', 'b', 'index.adoc'),
+      );
+      await gm.commit('Move card');
+
+      expect(await gm.changedFiles(before, 'HEAD')).toEqual([
+        {
+          status: 'R',
+          from: 'cardRoot/a/index.adoc',
+          path: 'cardRoot/b/index.adoc',
+          similarity: 100,
+        },
+      ]);
+    });
+
+    it('forgets worktrees whose folders are gone', async () => {
+      await gm.addWorktree(worktree, 'changesets/gone', await gm.headCommit());
+      await rm(worktree, { recursive: true, force: true });
+      await gm.pruneWorktrees();
+      expect(
+        (await gm.listWorktrees()).map((item) => item.branch),
+      ).not.toContain('changesets/gone');
+    });
+
+    it('reads many files at commits in one go', async () => {
+      await writeFile(join(dir, 'cardRoot', 'one.txt'), 'first');
+      await gm.commit('One');
+      const first = await gm.headCommit();
+      await writeFile(join(dir, 'cardRoot', 'one.txt'), 'second ✓');
+      await gm.commit('Two');
+
+      expect(
+        await gm.readFiles([
+          { ref: first, path: 'cardRoot/one.txt' },
+          { ref: 'HEAD', path: 'cardRoot/one.txt' },
+          { ref: 'HEAD', path: 'cardRoot/missing.txt' },
+        ]),
+      ).toEqual(['first', 'second ✓', null]);
+    });
+
+    it('merges without committing and reports conflicts', async () => {
+      await writeFile(join(dir, 'cardRoot', 'shared.txt'), 'base\n');
+      await gm.commit('Base');
+      const base = await gm.headCommit();
+      await gm.addWorktree(worktree, 'changesets/merge', base);
+      const other = new GitManager(worktree);
+      await writeFile(join(worktree, 'cardRoot', 'shared.txt'), 'theirs\n');
+      await other.commit('Theirs');
+      await writeFile(join(dir, 'cardRoot', 'shared.txt'), 'ours\n');
+      await gm.commit('Ours');
+
+      expect(await gm.mergeNoCommit('changesets/merge')).toEqual([
+        'cardRoot/shared.txt',
+      ]);
+      expect(await gm.conflictSide(1, 'cardRoot/shared.txt')).toBe('base\n');
+      expect(await gm.conflictSide(2, 'cardRoot/shared.txt')).toBe('ours\n');
+      expect(await gm.conflictSide(3, 'cardRoot/shared.txt')).toBe('theirs\n');
+
+      await gm.abortMerge();
+      // A Windows checkout may hold CRLF
+      const restored = await readFile(
+        join(dir, 'cardRoot', 'shared.txt'),
+        'utf-8',
+      );
+      expect(restored.replace(/\r\n/g, '\n')).toBe('ours\n');
+      await gm.removeWorktree(worktree, true);
     });
   });
 });

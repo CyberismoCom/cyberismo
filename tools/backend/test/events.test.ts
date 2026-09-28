@@ -172,6 +172,7 @@ describe('project event stream over HTTP', () => {
       cardKey: 'decision_5',
       userId: 'mock-user-alice',
       userName: 'Alice',
+      actor: 'human',
     });
   });
 
@@ -302,7 +303,11 @@ describe('presence bookkeeping', () => {
     try {
       connect();
       messages.length = 0;
-      events.cardsUpdated(['decision_5', 'decision_6', 'decision_5'], user);
+      events.cardsChanged({
+        updated: ['decision_5', 'decision_6', 'decision_5'],
+        removed: [],
+        author: { name: user.name, email: user.email, id: user.id },
+      });
       expect(
         messages.map((message) => JSON.parse(String(message.data)).cardKey),
       ).toEqual(['decision_5', 'decision_6']);
@@ -334,7 +339,7 @@ describe('card update notifications', () => {
       ...json({ ...link, direction: 'outbound', description }),
     });
 
-  let notify: MockInstance<ProjectEvents['cardsUpdated']>;
+  let notify: MockInstance<ProjectEvents['cardsChanged']>;
   let retargeted: string;
   let edited: string;
 
@@ -351,11 +356,16 @@ describe('card update notifications', () => {
     edited = scratch.key;
   });
   beforeEach(() => {
-    notify = vi.spyOn(registry.eventsFor(commands), 'cardsUpdated');
+    notify = vi.spyOn(registry.eventsFor(commands), 'cardsChanged');
   });
   afterEach(() => notify.mockRestore());
 
-  const bodies: { field: string; body: () => unknown; notifies: number }[] = [
+  const bodies: {
+    field: string;
+    body: () => unknown;
+    notifies: number;
+    prepare?: () => Promise<unknown>;
+  }[] = [
     { field: 'nothing', body: () => ({}), notifies: 0 },
     { field: 'state', body: () => ({ state: 'Approve' }), notifies: 1 },
     { field: 'content', body: () => ({ content: 'Edited body' }), notifies: 1 },
@@ -365,16 +375,39 @@ describe('card update notifications', () => {
       notifies: 1,
     },
     { field: 'parent', body: () => ({ parent: 'decision_6' }), notifies: 1 },
-    { field: 'index', body: () => ({ index: 0 }), notifies: 1 },
+    {
+      field: 'index',
+      body: () => ({ index: 0 }),
+      notifies: 1,
+      // A sibling ranked first, so that moving to index 0 writes something
+      prepare: async () => {
+        const [sibling] = await commands.createCmd.createCard(
+          'decision/templates/decision',
+          'decision_6',
+        );
+        await commands.moveCmd.rankByIndex(sibling.key, 0);
+      },
+    },
   ];
 
   test.each(bodies)(
     'a PATCH body carrying $field notifies $notifies time(s)',
-    async ({ body, notifies }) => {
+    async ({ body, notifies, prepare }) => {
+      await prepare?.();
+      notify.mockClear();
       expect((await patch(edited, body())).status).toBe(200);
       expect(notify.mock.calls).toEqual(
         notifies
-          ? [[[edited], expect.objectContaining({ id: 'mock-user-bob' })]]
+          ? [
+              [
+                expect.objectContaining({
+                  // Re-ranking also names siblings whose rank changed
+                  updated: expect.arrayContaining([edited]),
+                  author: expect.objectContaining({ id: 'mock-user-bob' }),
+                  actor: { kind: 'human' },
+                }),
+              ],
+            ]
           : [],
       );
     },
@@ -445,7 +478,9 @@ describe('card update notifications', () => {
       await prepare();
       notify.mockClear();
       expect((await write()).status).toBe(200);
-      expect(notify.mock.calls.map(([notified]) => notified)).toEqual([keys()]);
+      expect(notify.mock.calls.map(([change]) => change.updated)).toEqual([
+        keys(),
+      ]);
     },
   );
 });

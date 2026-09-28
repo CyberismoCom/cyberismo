@@ -25,6 +25,7 @@
   },
   "exports": {
     ".": "./dist/index.js",
+    "./changesets/*": "./dist/changesets/*.js",
     "./interfaces/*": "./dist/interfaces/*.js",
     "./types/*": "./dist/types/*.js",
     "./mutations/*": "./dist/mutations/*.js",

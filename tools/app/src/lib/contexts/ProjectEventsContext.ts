@@ -23,6 +23,8 @@ export interface CardUpdatedEvent {
   cardKey: string;
   userId: string;
   userName: string;
+  /** 'agent' when an agent (e.g. over MCP) wrote on the user's behalf. */
+  actor?: 'human' | 'agent';
 }
 
 export const ProjectEventsContext = createContext<{

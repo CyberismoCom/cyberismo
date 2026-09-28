@@ -18,7 +18,7 @@ import { readdirSync } from 'node:fs';
 
 import { CalculationEngine } from './project/calculation-engine.js';
 import { CardKeyRegistry } from './project/card-keys.js';
-import { CardTree } from './project/card-tree.js';
+import { CardTree, type CardTreeChange } from './project/card-tree.js';
 import {
   CardNotFoundError,
   DuplicateCardKeyError,
@@ -48,7 +48,12 @@ import { getChildLogger } from '../utils/log-utils.js';
 import { RWLock } from '../utils/rw-lock.js';
 import { GitSync } from '../utils/git-sync.js';
 import { GitManager } from '../utils/git-manager.js';
-import { getCommitContext } from '../utils/commit-context.js';
+import {
+  type CommitActor,
+  type CommitAuthor,
+  commitTrailers,
+  getCommitContext,
+} from '../utils/commit-context.js';
 
 import type { TemplateResource } from '../resources/template-resource.js';
 
@@ -68,6 +73,16 @@ export interface ProjectOptions {
   watchResourceChanges?: boolean;
   autocommit?: boolean;
   autopush?: boolean;
+}
+
+/**
+ * The cards one write transaction changed, and who changed them.
+ */
+export interface CardsChanged {
+  updated: string[];
+  removed: string[];
+  author?: CommitAuthor;
+  actor?: CommitActor;
 }
 
 /**
@@ -95,6 +110,11 @@ export class Project {
   private settings: ProjectConfiguration;
   private validator: Validate;
   private cachedAllModulePrefixes: string[] = [];
+  private pendingCardChanges = {
+    updated: new Set<string>(),
+    removed: new Set<string>(),
+  };
+  private cardChangeListeners = new Set<(change: CardsChanged) => void>();
 
   constructor(
     path: string,
@@ -114,6 +134,7 @@ export class Project {
       kind: 'project',
       writable: true,
       keys: this.keyRegistry,
+      onChange: (change) => this.recordCardChange(change),
     });
 
     // Pushing only makes sense for commits this process makes, and both
@@ -173,6 +194,7 @@ export class Project {
         await this.gitManager.commit(
           context.message ?? 'Autocommit',
           context.author,
+          commitTrailers(context),
         );
         if (this.options.autopush) void this.gitSync.push();
       });
@@ -180,12 +202,74 @@ export class Project {
       // Rollback on failed writes
       this.lock.onWriteError(async () => {
         await this.gitManager.rollback();
-        // Invalidate caches after rollback since filesystem state changed
-        this.clearCards();
-        await this.populateCardsCache();
-        this.resources.changed();
-        await this.calculationEngine.generate();
+        await this.reload();
       });
+    }
+
+    // Registered last, so listeners hear of a write after it is committed.
+    // A rolled-back write changed nothing; without autocommit, whatever a
+    // failed write left on disk is real and is reported.
+    this.lock.onAfterWrite(async () => this.flushCardChanges());
+    this.lock.onWriteError(async () =>
+      this.options.autocommit
+        ? this.discardCardChanges()
+        : this.flushCardChanges(),
+    );
+  }
+
+  /**
+   * Subscribes to the cards each write transaction changes. Listeners run
+   * after the write, while the write lock is still held: keep them quick.
+   * @param listener Called once per write that changed at least one card.
+   * @returns Function that unsubscribes the listener.
+   */
+  public onCardsChanged(listener: (change: CardsChanged) => void): () => void {
+    this.cardChangeListeners.add(listener);
+    return () => this.cardChangeListeners.delete(listener);
+  }
+
+  /**
+   * Records cards as changed by the current write, for when files changed
+   * without the card trees knowing (e.g. a git merge followed by reload()).
+   * Listeners hear of them when the write completes.
+   * @param change Card keys updated and removed.
+   */
+  public recordCardChange({ updated = [], removed = [] }: CardTreeChange) {
+    const pending = this.pendingCardChanges;
+    for (const key of updated) {
+      pending.removed.delete(key);
+      pending.updated.add(key);
+    }
+    for (const key of removed) {
+      pending.updated.delete(key);
+      pending.removed.add(key);
+    }
+  }
+
+  private discardCardChanges() {
+    this.pendingCardChanges.updated.clear();
+    this.pendingCardChanges.removed.clear();
+  }
+
+  private flushCardChanges() {
+    const { updated, removed } = this.pendingCardChanges;
+    if (updated.size === 0 && removed.size === 0) {
+      return;
+    }
+    const { author, actor } = getCommitContext();
+    const change: CardsChanged = {
+      updated: [...updated],
+      removed: [...removed],
+      author,
+      actor,
+    };
+    this.discardCardChanges();
+    for (const listener of this.cardChangeListeners) {
+      try {
+        listener(change);
+      } catch (error) {
+        this.logger.error({ error }, 'Card change listener failed');
+      }
     }
   }
 
@@ -225,6 +309,7 @@ export class Project {
       kind: 'template',
       writable: !isModulePath(rootPath),
       keys: this.keyRegistry,
+      onChange: (change) => this.recordCardChange(change),
     });
     this.templateCardTrees.set(templateName, tree);
     return tree;
@@ -987,6 +1072,22 @@ export class Project {
       .map((template) => template.fullName)
       .filter((name) => prefixes.has(resourceName(name).prefix));
     await this.populateTemplateCards(templateNames);
+  }
+
+  /**
+   * Re-reads the whole project from disk: configuration, resources, cards and
+   * the logic program. For when git changed the files underneath the project
+   * (a rollback, merge or checkout). Must run while holding the write lock.
+   */
+  public async reload(): Promise<void> {
+    this.settings.reload();
+    // Resources first: the template card trees follow the template list
+    this.resources.changedModules();
+    this.resources.changed();
+    this.refreshAllModulePrefixes();
+    this.clearCards();
+    await this.populateCardsCache();
+    await this.calculationEngine.generate();
   }
 
   /**

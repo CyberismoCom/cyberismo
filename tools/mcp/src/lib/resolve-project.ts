@@ -18,14 +18,17 @@ import type { CommandManager, ProjectProvider } from '@cyberismo/data-handler';
 export type { ProjectProvider } from '@cyberismo/data-handler';
 
 /**
- * Resolve a CommandManager from the provider based on projectPrefix.
+ * Resolve the CommandManager to serve a call from: the caller's active
+ * changeSet when the provider knows it, else the project itself.
  * Throws if the prefix is unknown or no projects are available.
  */
-export function resolveCommands(
+export async function resolveCommands(
   provider: ProjectProvider,
   projectPrefix: string,
-): CommandManager {
-  const commands = provider.get(projectPrefix);
+): Promise<CommandManager> {
+  const commands = provider.resolve
+    ? await provider.resolve(projectPrefix)
+    : provider.get(projectPrefix);
   if (!commands) {
     const available = provider.list().map((p) => p.prefix);
     throw new Error(

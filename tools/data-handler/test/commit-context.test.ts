@@ -1,5 +1,6 @@
 import { expect, it, describe } from 'vitest';
 import {
+  commitTrailers,
   runWithCommitContext,
   getCommitContext,
 } from '../src/utils/commit-context.js';
@@ -79,6 +80,33 @@ describe('commit-context', () => {
       expect(aliceCtx!.message).toBe('Alice msg');
       expect(bobCtx!.author).toEqual(bob);
       expect(bobCtx!.message).toBe('Bob msg');
+    });
+  });
+
+  describe('commitTrailers', () => {
+    it('returns no trailers when the actor is unknown', () => {
+      expect(commitTrailers({ message: 'x' })).toEqual({});
+    });
+
+    it('records a human actor', () => {
+      expect(commitTrailers({ actor: { kind: 'human' } })).toEqual({
+        'Cyberismo-Actor': 'human',
+      });
+    });
+
+    it('records an agent actor and its name on one line', () => {
+      expect(
+        commitTrailers({ actor: { kind: 'agent', name: ' Claude\nCode ' } }),
+      ).toEqual({
+        'Cyberismo-Actor': 'agent',
+        'Cyberismo-Agent': 'Claude Code',
+      });
+    });
+
+    it('omits the agent name when not known', () => {
+      expect(commitTrailers({ actor: { kind: 'agent' } })).toEqual({
+        'Cyberismo-Actor': 'agent',
+      });
     });
   });
 });

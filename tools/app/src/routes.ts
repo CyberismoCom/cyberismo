@@ -23,6 +23,8 @@ import ConfigLayout from './pages/configuration/layout';
 import NotFoundPage from './pages/not-found';
 import ProjectNotFoundPage from './pages/project-not-found';
 import ProjectSelectionPage from './pages/ProjectSelectionPage';
+import ChangeSetReviewPage from './pages/changeset/review';
+import { loadActiveChangeSet } from './lib/api/changesets.js';
 import { store } from './lib/store.js';
 import {
   selectProjectPrefix,
@@ -82,7 +84,11 @@ export function createAppRouter() {
       ErrorBoundary: ProjectNotFoundPage,
       loader: async ({ params }) => {
         const { prefix } = await resolveProject(params.projectPrefix);
-        if (prefix === params.projectPrefix) return null;
+        if (prefix && prefix === params.projectPrefix) {
+          // Before anything renders: requests go to the active changeSet
+          await loadActiveChangeSet(prefix);
+          return null;
+        }
         throw new Response('Project not found', { status: 404 });
       },
       children: [
@@ -120,6 +126,10 @@ export function createAppRouter() {
               Component: CardPage,
             },
           ],
+        },
+        {
+          path: 'changeset',
+          Component: ChangeSetReviewPage,
         },
         {
           Component: ConfigLayout,

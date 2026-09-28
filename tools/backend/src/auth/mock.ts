@@ -25,6 +25,9 @@ export interface MockUserConfig {
 
 export const MOCK_ROLE_COOKIE = 'mock-role';
 export const MOCK_USER_COOKIE = 'mock-user';
+
+/** Id of the single local user when the roster is off, as in `cyberismo app`. */
+export const LOCAL_USER_ID = 'mock-user';
 const RESET_VALUE = 'default';
 
 const ROLE_ALIASES = new Map<string, UserRole>([
@@ -129,7 +132,7 @@ export class MockAuthProvider implements AuthProvider {
     }
 
     return {
-      id: 'mock-user',
+      id: LOCAL_USER_ID,
       email: this.userConfig.email ?? 'admin@cyberismo.local',
       name: this.userConfig.name ?? 'Local Admin',
       role: cookieRole ?? UserRole.Admin,

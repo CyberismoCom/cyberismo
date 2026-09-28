@@ -76,7 +76,7 @@ const registerResourceType = (
     ),
     { description: config.description, mimeType: 'application/json' },
     async (uri, { projectPrefix }) => {
-      const commands = resolveCommands(provider, projectPrefix as string);
+      const commands = await resolveCommands(provider, projectPrefix as string);
       const names = await commands.showCmd.showResources(config.resourceType);
       const details = await Promise.all(
         names.map((name) =>
@@ -136,7 +136,7 @@ export function registerResources(
       mimeType: 'application/json',
     },
     async (uri, { projectPrefix }) => {
-      const commands = resolveCommands(provider, projectPrefix as string);
+      const commands = await resolveCommands(provider, projectPrefix as string);
       const project = await commands.showCmd.showProject();
       return {
         contents: [
@@ -161,7 +161,7 @@ export function registerResources(
       mimeType: 'application/json',
     },
     async (uri, { projectPrefix }) => {
-      const commands = resolveCommands(provider, projectPrefix as string);
+      const commands = await resolveCommands(provider, projectPrefix as string);
       const tree = await getCardTree(commands);
       return {
         contents: [
@@ -186,7 +186,7 @@ export function registerResources(
       mimeType: 'application/json',
     },
     async (uri, { projectPrefix }) => {
-      const commands = resolveCommands(provider, projectPrefix as string);
+      const commands = await resolveCommands(provider, projectPrefix as string);
       const cardTypes = await commands.showCmd.showCardTypesWithDetails();
       return {
         contents: [
@@ -211,7 +211,7 @@ export function registerResources(
       mimeType: 'application/json',
     },
     async (uri, { projectPrefix }) => {
-      const commands = resolveCommands(provider, projectPrefix as string);
+      const commands = await resolveCommands(provider, projectPrefix as string);
       const workflows = await commands.showCmd.showWorkflowsWithDetails();
       return {
         contents: [
@@ -236,7 +236,7 @@ export function registerResources(
       mimeType: 'application/json',
     },
     async (uri, { projectPrefix }) => {
-      const commands = resolveCommands(provider, projectPrefix as string);
+      const commands = await resolveCommands(provider, projectPrefix as string);
       const templates = await commands.showCmd.showTemplatesWithDetails();
       return {
         contents: [

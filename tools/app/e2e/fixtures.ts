@@ -75,7 +75,10 @@ export const test = base.extend<{ baseURL: string }, WorkerFixtures>({
   backend: [
     async ({ presenceEnabled }, use, workerInfo) => {
       const projectPath = join(TMP, `cyberismo-bat-w${workerInfo.workerIndex}`);
+      // Changeset worktrees: never the default folder in the user's home
+      const changeSetsPath = join(TMP, `changesets-w${workerInfo.workerIndex}`);
       await rm(projectPath, RM_OPTIONS);
+      await rm(changeSetsPath, RM_OPTIONS);
       await cp(GOLDEN, projectPath, { recursive: true });
 
       const proc: ChildProcess = spawn(process.execPath, [BACKEND_ENTRY], {
@@ -87,6 +90,7 @@ export const test = base.extend<{ baseURL: string }, WorkerFixtures>({
           CYBERISMO_E2E_OSPORT: 'true',
           npm_config_project_path: projectPath,
           CYBERISMO_GOLDEN_PATH: GOLDEN,
+          CYBERISMO_CHANGESETS_DIR: changeSetsPath,
         },
         stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
       });
@@ -111,6 +115,7 @@ export const test = base.extend<{ baseURL: string }, WorkerFixtures>({
       proc.kill('SIGTERM');
       await new Promise((r) => setTimeout(r, 200));
       await rm(projectPath, RM_OPTIONS);
+      await rm(changeSetsPath, RM_OPTIONS);
     },
     { scope: 'worker', auto: true },
   ],

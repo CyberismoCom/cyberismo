@@ -11,7 +11,11 @@
 */
 
 import type { Context, MiddlewareHandler } from 'hono';
-import type { CommandManager } from '@cyberismo/data-handler';
+import {
+  ChangeSetClosedError,
+  ChangeSetNotFoundError,
+  type CommandManager,
+} from '@cyberismo/data-handler';
 import { getCurrentUser } from './auth.js';
 import type { ProjectRegistry } from '../project-registry.js';
 import type { ProjectEvents } from '../domain/events/project-events.js';
@@ -40,8 +44,10 @@ async function runWithCommands(
   }
   c.set('commands', commands);
   c.set('projectPath', commands.project.basePath);
-  await commands.runAsAuthor({ name: user.name, email: user.email }, () =>
-    next(),
+  await commands.runAsAuthor(
+    { name: user.name, email: user.email, id: user.id },
+    () => next(),
+    { kind: 'human' },
   );
 }
 
@@ -74,6 +80,75 @@ export const attachProjectRegistry = (
     const commands = registry.get(prefix);
     if (!commands) {
       return c.json({ error: `Project '${prefix}' not found` }, 404);
+    }
+    c.set('events', registry.eventsFor(commands));
+    const refusal = await refuseWhileInChangeSet(c, registry, commands);
+    if (refusal) {
+      return refusal;
+    }
+    return runWithCommands(c, commands, next);
+  };
+};
+
+// Paths below a project that are not the project's content: managing
+// changeSets, and the changeSets' own routes; presence.
+const NOT_PROJECT_CONTENT =
+  /^\/api\/projects\/[^/]+\/(changesets|events)(\/|$)/;
+
+/**
+ * Refuses a write to the project itself from a user who works in a
+ * changeSet: the change belongs in the changeSet. A client that still
+ * writes to the project (a stale tab, a missed event) learns so instead of
+ * changing the project behind the user's back.
+ */
+async function refuseWhileInChangeSet(
+  c: Context,
+  registry: ProjectRegistry,
+  commands: CommandManager,
+) {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(c.req.method)) return undefined;
+  if (NOT_PROJECT_CONTENT.test(c.req.path)) return undefined;
+  const user = getCurrentUser(c);
+  if (!user) return undefined;
+  const active = await registry.changeSetsFor(commands).getActive(user.id);
+  if (!active) return undefined;
+  return c.json(
+    {
+      error: `You are working in changeset "${active.title}": changes go there, not to the project`,
+      code: 'changeset-active',
+    },
+    409,
+  );
+}
+
+/**
+ * Middleware that serves a request from one of a project's changeSets: the
+ * CommandManager and event stream on context are the changeSet's own, so any
+ * project-scoped route works inside the changeSet.
+ * @param registry - Project registry to look up projects and changeSets.
+ */
+export const attachChangeSet = (
+  registry: ProjectRegistry,
+): MiddlewareHandler => {
+  return async (c: Context, next) => {
+    c.set('registry', registry);
+    const prefix = c.req.param('prefix');
+    const id = c.req.param('changeSetId');
+    const main = prefix ? registry.get(prefix) : undefined;
+    if (!main || !id) {
+      return c.json({ error: `Project '${prefix}' not found` }, 404);
+    }
+    let commands: CommandManager;
+    try {
+      commands = await registry.openChangeSet(main, id);
+    } catch (error) {
+      if (error instanceof ChangeSetNotFoundError) {
+        return c.json({ error: error.message }, 404);
+      }
+      if (error instanceof ChangeSetClosedError) {
+        return c.json({ error: error.message }, 409);
+      }
+      throw error;
     }
     c.set('events', registry.eventsFor(commands));
     return runWithCommands(c, commands, next);
