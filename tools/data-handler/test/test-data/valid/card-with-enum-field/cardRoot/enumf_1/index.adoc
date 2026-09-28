@@ -1,0 +1,1 @@
+A card with an enum-valued custom field.

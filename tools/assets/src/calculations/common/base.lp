@@ -28,6 +28,10 @@ dataType(Connector, "lastSynchronised", "dateTime") :-
 dataType(Card, "progress", "integer") :-
     field(Card, "progress", _).
 
+% enum values are keyed (FieldType, EnumValue); their index is an integer
+dataType((Field, EnumValue), "index", "integer") :-
+    enumValue(Field, EnumValue).
+
 % add workflow state category as a calculated field for Cards
 field(Card, "workflowStateCategory", Category) :-
     card(Card),
