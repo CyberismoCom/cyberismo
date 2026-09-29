@@ -64,6 +64,8 @@ export class ResourceMutations {
       input,
       cardTypeRenames:
         origin.kind === 'replay' ? origin.cardTypeRenames : undefined,
+      stateSuccessions:
+        origin.kind === 'replay' ? origin.stateSuccessions : undefined,
     };
     const { handler, classification } = dispatch(ctx);
 

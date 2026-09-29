@@ -26,10 +26,28 @@ export type MutationOrigin =
        * resolves through this.
        */
       cardTypeRenames?: ReadonlyMap<string, string>;
+      /**
+       * Workflow-state successions in the batch. A card-type workflow change
+       * maps a card sitting in a state removed or renamed before its mapping
+       * was authored (the removal or rename cascade skipped the card) through
+       * these.
+       */
+      stateSuccessions?: StateSuccessions;
     };
 
-/** Follow card-type renames (old -> new) to the final name; identity when absent. */
-export function resolveCardTypeRename(
+/** Workflow-state successions recorded in a replay batch. */
+export interface StateSuccessions {
+  /** Workflow renames in the batch (old name -> new). */
+  workflowRenames: ReadonlyMap<string, string>;
+  /**
+   * Per final workflow name: state -> the state that took its place, which is
+   * a removal's recorded replacement or a legacy rename's new name.
+   */
+  successors: ReadonlyMap<string, ReadonlyMap<string, string>>;
+}
+
+/** Follow renames (old -> new) to the final name; identity when absent. */
+export function resolveRename(
   name: string,
   renames?: ReadonlyMap<string, string>,
 ): string {
@@ -43,11 +61,43 @@ export function resolveCardTypeRename(
   return current;
 }
 
+/** The name a recorded workflow-state value carries: a bare string or a state object. */
+export function stateNameOf(value: unknown): string | undefined {
+  if (typeof value === 'string') return value;
+  const name = (value as { name?: unknown } | null | undefined)?.name;
+  return typeof name === 'string' ? name : undefined;
+}
+
+/**
+ * A state followed by each state that succeeded it in the batch, in order,
+ * stopping at a cycle. Just the state itself when nothing succeeded it.
+ */
+export function stateSuccessionChain(
+  workflow: string | undefined,
+  state: string,
+  successions?: StateSuccessions,
+): string[] {
+  const chain = [state];
+  if (workflow === undefined || !successions) return chain;
+  const successors = successions.successors.get(
+    resolveRename(workflow, successions.workflowRenames),
+  );
+  let current = state;
+  while (successors?.has(current)) {
+    current = successors.get(current)!;
+    if (chain.includes(current)) break;
+    chain.push(current);
+  }
+  return chain;
+}
+
 export interface MutationContext<I extends MutationInput = MutationInput> {
   project: Project;
   input: I;
   /** Card-type renames in the active replay batch; absent when authoring. */
   cardTypeRenames?: ReadonlyMap<string, string>;
+  /** Workflow-state successions in the active replay batch; absent when authoring. */
+  stateSuccessions?: StateSuccessions;
 }
 
 export interface Handler<I extends MutationInput = MutationInput> {
