@@ -26,6 +26,7 @@ export type { MockUserConfig } from './auth/mock.js';
 export type { AuthProvider } from './auth/types.js';
 export { exportSite, type ExportSiteOptions } from './export.js';
 export { ProjectRegistry } from './project-registry.js';
+export { formatProjectErrors, type ProjectErrors } from './project-errors.js';
 
 const DEFAULT_PORT = 3000;
 const DEFAULT_MAX_PORT = DEFAULT_PORT + 100;

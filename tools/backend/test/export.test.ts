@@ -4,7 +4,18 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { getCardQueryResult, reset, exportSite } from '../src/export.js';
 import { ProjectRegistry } from '../src/project-registry.js';
-import type { CommandManager } from '@cyberismo/data-handler';
+import { CommandManager } from '@cyberismo/data-handler';
+import type * as Utils from '../src/utils.js';
+
+// The built frontend does not exist when tests run from source.
+vi.mock('../src/utils.js', async (importOriginal) => {
+  const { mkdtempSync } = await import('node:fs');
+  return {
+    ...(await importOriginal<typeof Utils>()),
+    staticFrontendDirRelative: mkdtempSync(join(tmpdir(), 'cyberismo-fe-')),
+  };
+});
+import { cleanupTempTestData, createTempTestData } from './test-utils.js';
 
 describe('export module', () => {
   beforeEach(() => {
@@ -180,6 +191,41 @@ describe('export module', () => {
           defaultProject: 'bar',
         }),
       ).rejects.toThrow('Available: foo');
+    });
+  });
+
+  describe('exportSite error attribution', () => {
+    let tempDir: string;
+    let decisionPath: string;
+    let minimalPath: string;
+
+    beforeEach(async () => {
+      tempDir = await mkdtemp(join(tmpdir(), 'cyberismo-export-test-'));
+      decisionPath = await createTempTestData('decision-records');
+      minimalPath = await createTempTestData('minimal');
+    });
+
+    afterEach(async () => {
+      await rm(tempDir, { recursive: true, force: true });
+      await cleanupTempTestData(decisionPath);
+      await cleanupTempTestData(minimalPath);
+    });
+
+    test('reports a failing card under its own project only', async () => {
+      const decision = await CommandManager.getInstance(decisionPath);
+      const minimal = await CommandManager.getInstance(minimalPath);
+      const registry = new ProjectRegistry([
+        { prefix: 'mini', commands: minimal },
+        { prefix: 'decision', commands: decision },
+      ]);
+      vi.spyOn(decision.showCmd, 'showCardDetails').mockRejectedValue(
+        new Error('boom'),
+      );
+
+      const { errors } = await exportSite(registry, tempDir);
+
+      expect(errors.map((e) => e.prefix)).toEqual(['decision']);
+      expect(errors[0].errors.length).toBeGreaterThan(0);
     });
   });
 });

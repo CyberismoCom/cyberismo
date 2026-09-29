@@ -137,7 +137,16 @@ export class ProjectRegistry implements ProjectProvider {
     const entries: ProjectRegistryEntry[] = [];
     for (const project of projects) {
       const commands = new CommandManager(project.path, options);
-      await commands.initialize();
+      try {
+        await commands.initialize();
+      } catch (error) {
+        throw new Error(
+          `Failed to load project '${project.prefix}' (${project.path}): ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          { cause: error },
+        );
+      }
       entries.push({ prefix: project.prefix, commands });
     }
     return new ProjectRegistry(entries, options);

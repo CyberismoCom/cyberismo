@@ -17,6 +17,7 @@ import { MockAuthProvider } from './auth/mock.js';
 import { KeycloakAuthProvider } from './auth/keycloak.js';
 import type { AuthProvider } from './auth/types.js';
 import { ProjectRegistry } from './project-registry.js';
+import { formatProjectErrors } from './project-errors.js';
 import { gitOptionsFromEnv } from './utils.js';
 import { parseArgs } from 'node:util';
 import dotenv from 'dotenv';
@@ -85,12 +86,16 @@ if (args.export) {
     process.exit(1);
   }
   const registry = await ProjectRegistry.fromScannedProjects(projects);
-  await exportSite(registry, undefined, {
+  const { errors } = await exportSite(registry, undefined, {
     defaultProject:
       typeof args['default-project'] === 'string'
         ? args['default-project']
         : undefined,
   });
+  if (errors.length > 0) {
+    console.error(formatProjectErrors(errors));
+    process.exit(1);
+  }
 } else {
   const registry = await ProjectRegistry.fromScannedProjects(
     projects,
