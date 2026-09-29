@@ -132,7 +132,7 @@ describe('update plan', () => {
     expect(row('asm')).toMatchObject({
       range: '1.x',
       latest: '2.0.0',
-      heldBack: false,
+      heldBack: true,
       versionSource: 'git',
     });
     expect(source.fetchLog).toEqual([]);
