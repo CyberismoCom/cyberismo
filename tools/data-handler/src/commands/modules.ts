@@ -13,6 +13,7 @@
 
 import { join, resolve as pathResolve } from 'node:path';
 
+import { redactUserinfo, unreachable } from '../exceptions/index.js';
 import { pathExists } from '../utils/file-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { read, write } from '../utils/rw-lock.js';
@@ -27,16 +28,18 @@ import {
   installedModules,
   installedModulesWithSources,
   moduleInfos,
+  resolveUpdate,
   resolveForApply,
+  stageResolution,
+  toUpdatePlan,
   createSourceLayer,
   FILE_PROTOCOL,
   isFileLocation,
   isGitLocation,
   stripFileProtocol,
   pickVersion,
-  toVersion,
+  toDeclaredRange,
   toVersionRange,
-  validateVersionAgainstConstraints,
 } from '../modules/index.js';
 import { readModuleConfig } from '../containers/project/cards-config.js';
 import { cleanOrphans } from '../modules/orphans.js';
@@ -54,6 +57,8 @@ import type {
   ModuleInfo,
   ModuleSetting,
   ModuleSettingOptions,
+  UpdatePlan,
+  UpdateTarget,
 } from '../interfaces/project-interfaces.js';
 import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
@@ -179,16 +184,6 @@ export class Modules {
     }
   }
 
-  private collectConstraints(moduleName: string) {
-    const constraints: { range: string; source: string }[] = [];
-    for (const mod of this.project.configuration.modules) {
-      if (mod.name === moduleName && mod.version) {
-        constraints.push({ range: mod.version, source: 'project' });
-      }
-    }
-    return constraints;
-  }
-
   /**
    * Installs a module to a project. Copies resources to the project under
    * `.cards/modules/<prefix>/`. Re-installing an already-declared module
@@ -246,11 +241,15 @@ export class Modules {
     // the prefix before the resolver runs.
     const prefetchPath = isFileLocation(location)
       ? pathResolve(stripFileProtocol(location))
-      : await sourceLayer.fetch(
-          { location, remoteUrl },
-          this.tempModulesDir,
-          freshRootStagingName(location),
-        );
+      : await sourceLayer
+          .fetch(
+            { location, remoteUrl },
+            this.tempModulesDir,
+            freshRootStagingName(location),
+          )
+          .catch((error) => {
+            throw unreachable(redactUserinfo(location), error, 'fetch module');
+          });
 
     const prefetchConfig = await readModuleConfig(prefetchPath);
     const resolvedName = prefetchConfig.cardKeyPrefix;
@@ -261,13 +260,14 @@ export class Modules {
     // unversioned git remotes) fall through with no range and install the
     // default branch.
     let versionRange = options?.version
-      ? toVersionRange(options.version)
+      ? toDeclaredRange(options.version)
       : undefined;
     if (!versionRange) {
-      const available = await sourceLayer.listRemoteVersions(
-        location,
-        remoteUrl,
-      );
+      const available = await sourceLayer
+        .listRemoteVersions(location, remoteUrl)
+        .catch((error) => {
+          throw unreachable(redactUserinfo(location), error, 'list versions');
+        });
       const latest = pickVersion(available);
       if (latest) {
         versionRange = toVersionRange(`^${latest}`);
@@ -300,95 +300,64 @@ export class Modules {
   }
 
   /**
-   * Updates a specific installed module.
-   * @param moduleName Name (prefix) of module to update.
-   * @param credentials Optional credentials for a private module.
-   * @param version Optional target version to update to.
-   * @throws if module is not part of the project
+   * What {@link update} would do for `target`, without fetching a module
+   * tree or writing anything.
+   * @param target Module and optional version; no module means every root.
+   * @param credentials Optional credentials for private modules.
    */
-  @write((moduleName) => `Update module ${moduleName}`)
-  public async update(
-    moduleName: string,
+  @read
+  public async planUpdate(
+    target: UpdateTarget,
     credentials?: Credentials,
-    version?: string,
-  ) {
-    // Ensure module list is up to date before updating
-    await this.fetchCmd.ensureModuleListUpToDate();
-
-    const declared = declaredModules(this.project);
-    const target = declared.find((d) => d.name === moduleName);
-    if (!target) {
-      const installations = await installedModules(this.project);
-      const parents = installations
-        .filter((m) => m.declaredDependencies.includes(moduleName))
-        .map((m) => m.name);
-      if (parents.length > 0) {
-        const parentList = parents.map((n) => `'${n}'`).join(', ');
-        throw new Error(
-          `Cannot update module '${moduleName}' because it is required by ${parentList}. Update the parent module(s) instead.`,
-        );
-      }
-      throw new Error(`Module '${moduleName}' is not part of the project`);
-    }
-
-    if (version) {
-      // Validate the override against any declared ranges for this name.
-      const constraints = this.collectConstraints(moduleName);
-      if (constraints.length > 0) {
-        validateVersionAgainstConstraints(moduleName, version, constraints);
-      }
-
-      // Pre-check that the version is actually available on the remote so
-      // we surface an actionable error before touching the filesystem.
-      const sourceLayer = createSourceLayer();
-      const remoteVersions = await sourceLayer.listRemoteVersions(
-        target.source.location,
-      );
-      if (remoteVersions.length > 0 && !remoteVersions.includes(version)) {
-        throw new Error(
-          `Version '${version}' is not available for module '${moduleName}'. ` +
-            `Available versions: ${remoteVersions.join(', ') || 'none'}`,
-        );
-      }
-    }
-
-    const req = version
-      ? { kind: 'update' as const, module: moduleName, to: toVersion(version) }
-      : { kind: 'update' as const, module: moduleName };
-    const { plan, resolved, backfill } = await resolveForApply(
-      this.project,
-      req,
-      {
+  ): Promise<UpdatePlan> {
+    const source = createSourceLayer();
+    try {
+      const resolution = await resolveUpdate(this.project, target, {
+        source,
         credentials,
-        tempDir: this.tempModulesDir,
-      },
-    );
-    if (!plan.ok) throw resolutionConflictError(plan.conflicts);
-    await this.applyResolvedWithReplay(resolved, backfill);
+      });
+      return await toUpdatePlan(this.project, resolution);
+    } finally {
+      await source.dispose?.();
+    }
   }
 
   /**
-   * Updates all installed modules.
+   * Updates one declared module, or every declared root when `target` names
+   * none.
+   * @param target Module and optional version; no module means every root.
    * @param credentials Optional credentials for private modules.
+   * @throws if the module is not part of the project, or the update is blocked
    */
-  @write(() => 'Update all modules')
-  public async updateAll(credentials?: Credentials) {
-    // Ensure module list is up to date before updating all modules
+  @write((target: UpdateTarget) =>
+    target.module ? `Update module ${target.module}` : 'Update all modules',
+  )
+  public async update(target: UpdateTarget, credentials?: Credentials) {
+    // Ensure module list is up to date before updating
     await this.fetchCmd.ensureModuleListUpToDate();
 
-    const declared = declaredModules(this.project);
-
-    if (declared.length === 0) {
-      throw new Error('No modules in the project!');
+    const source = createSourceLayer();
+    try {
+      const resolution = await resolveUpdate(this.project, target, {
+        source,
+        credentials,
+      });
+      if (!resolution.result.ok) {
+        throw resolutionConflictError(resolution.result.conflicts);
+      }
+      const { resolved, backfill } = await stageResolution(
+        this.project,
+        resolution,
+        {
+          source,
+          credentials,
+          tempDir: this.tempModulesDir,
+        },
+      );
+      await this.applyResolvedWithReplay(resolved, backfill);
+    } finally {
+      await source.dispose?.();
     }
-
-    const { plan, resolved, backfill } = await resolveForApply(
-      this.project,
-      { kind: 'updateAll' },
-      { credentials, tempDir: this.tempModulesDir },
-    );
-    if (!plan.ok) throw resolutionConflictError(plan.conflicts);
-    await this.applyResolvedWithReplay(resolved, backfill);
   }
 
   /**

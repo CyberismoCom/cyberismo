@@ -42,6 +42,7 @@ export class InMemorySource implements SourceLayer {
     nameHint: string;
   }> = [];
   readonly listLog: string[] = [];
+  readonly listUrlLog: (string | undefined)[] = [];
 
   constructor(
     private readonly configs: Map<string, FakeModuleConfig>,
@@ -90,8 +91,12 @@ export class InMemorySource implements SourceLayer {
     return isGitLocation(location);
   }
 
-  async listRemoteVersions(location: string): Promise<string[]> {
+  async listRemoteVersions(
+    location: string,
+    remoteUrl?: string,
+  ): Promise<string[]> {
     this.listLog.push(location);
+    this.listUrlLog.push(remoteUrl);
     if (this.unreachable.has(location)) {
       throw new Error(`remote unreachable: ${location}`);
     }

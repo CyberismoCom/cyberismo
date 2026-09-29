@@ -203,6 +203,21 @@ describe('GitManager', () => {
     });
   });
 
+  describe('listRemoteVersionTags()', () => {
+    it('lists releases and ignores prereleases and non-version tags', async () => {
+      const git = testGit(dir);
+      await gm.tagVersion('1.0.0');
+      await git.tag(['-a', 'v1.1.0-rc.1', '-m', 'prerelease']);
+      await git.tag(['-a', 'release-1', '-m', 'not a version tag']);
+      await gm.tagVersion('1.1.0');
+
+      expect(await GitManager.listRemoteVersionTags(dir)).toEqual([
+        '1.1.0',
+        '1.0.0',
+      ]);
+    });
+  });
+
   describe('deleteTag()', () => {
     it('should delete an existing version tag', async () => {
       await gm.tagVersion('1.0.0');
