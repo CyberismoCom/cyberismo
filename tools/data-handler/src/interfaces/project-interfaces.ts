@@ -17,7 +17,7 @@ import type {
   Link,
   TemplateConfiguration,
 } from './resource-interfaces.js';
-import type { CheckStatus } from '../modules/types.js';
+import type { CheckStatus, VersionSource } from '../modules/types.js';
 
 // Single card; either in project or in template.
 export interface Card {
@@ -237,6 +237,51 @@ export interface ModuleUpdateStatus {
   // Newest remote version the declared range excludes (informational; set on
   // up_to_date / update_available rows when the remote has moved past the range).
   latestAvailable?: { version: string; range: string };
+}
+
+// What a module update asks for: every declared root, one root, or one root
+// at an exact version within its declared range.
+export type UpdateTarget =
+  | { module?: undefined; version?: undefined }
+  | { module: string; version?: string };
+
+// The solver's answer to one update request. A dry run builds the same
+// request and shapes the same result as the update itself; an update can
+// still abort later on schema, replay or prefix checks, leaving the disk
+// unchanged.
+export interface UpdatePlan {
+  ok: boolean;
+  // Modules the update installs; `from: null` is new or unversioned.
+  changes: {
+    module: string;
+    from: string | null;
+    to: string | null;
+    // Leaves the caret range of `from`.
+    breaking: boolean;
+  }[];
+  // Installations the update deletes as orphans.
+  removed: string[];
+  conflicts: { module: string; reason: string }[];
+  // Root declarations whose range the update writes.
+  rangeWrites: { module: string; range: string }[];
+  // Private modules, roots or transitive, whose remote could not be listed.
+  // They stay at their installed version.
+  unchecked: string[];
+  // Every declared root, or only the targeted one.
+  roots: {
+    module: string;
+    installed: string | null;
+    // Range declared after the update.
+    range: string | null;
+    // Newest release the source lists; null when not listed.
+    latest: string | null;
+    // `latest` is newer than where the update leaves the root, and out of range.
+    heldBack: boolean;
+    versionSource: VersionSource;
+    // Its remote could not be listed (see `unchecked`). It stays at
+    // `installed` and `latest` is null.
+    unchecked?: true;
+  }[];
 }
 
 // Resources that are possible to remove.

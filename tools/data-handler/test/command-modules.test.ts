@@ -202,6 +202,18 @@ describe('import module', () => {
       const configAfter = readFileSync(configPath, 'utf-8');
       expect(configAfter).toBe(configBefore);
     });
+    it('importing from an unreachable git source reports it and redacts credentials', async () => {
+      const result = await commandHandler.command(
+        Cmd.import,
+        ['module', 'https://u:secret@127.0.0.1:9/none.git'],
+        optionsMini,
+      );
+      expect(result.statusCode).toBe(400);
+      expect(result.message).toContain(
+        "Couldn't fetch module: 'https://127.0.0.1:9/none.git' is unreachable",
+      );
+      expect(result.message).not.toContain('secret');
+    });
     it('try to import module - that has the same prefix', async () => {
       const result = await commandHandler.command(
         Cmd.import,
@@ -489,7 +501,9 @@ describe('module update — spec behaviours', () => {
       modules: [],
     });
 
-    await commands.modulesCmd.updateAll();
+    const plan = await commands.modulesCmd.planUpdate({});
+    expect(plan.removed).toEqual(['fkdep']);
+    await commands.modulesCmd.update({});
 
     // host is still around; dep must have been removed by the orphan
     // cascade that runs at the end of updateAll.
@@ -594,7 +608,7 @@ describe('module update — spec behaviours', () => {
       modules: [{ name: 'newdep', location: `file:${pathResolve(depRoot)}` }],
     });
 
-    await commands.modulesCmd.updateAll();
+    await commands.modulesCmd.update({});
 
     // The new transitive is installed on disk...
     expect(existsSync(join(projectDir, '.cards', 'modules', 'newdep'))).toBe(
@@ -636,7 +650,7 @@ describe('module update — spec behaviours', () => {
     modSetting!.version = '^1.0.0';
 
     await expect(
-      commands.modulesCmd.update('ovmod', undefined, '2.0.0'),
+      commands.modulesCmd.update({ module: 'ovmod', version: '2.0.0' }),
     ).rejects.toThrow(/does not satisfy constraint '\^1\.0\.0'/);
   });
 
@@ -670,7 +684,7 @@ describe('module update — spec behaviours', () => {
     // No throw: constraint check passes, file source fetch/install runs
     // end-to-end. The persisted range stays at `^1.0.0` — the applier
     // only writes back the declared range, never the resolved tag.
-    await commands.modulesCmd.update('ovkmod', undefined, '1.3.0');
+    await commands.modulesCmd.update({ module: 'ovkmod', version: '1.3.0' });
 
     const after = commands.project.configuration.modules.find(
       (m) => m.name === 'ovkmod',
@@ -715,7 +729,9 @@ describe('module update — spec behaviours', () => {
       true,
     );
 
-    await expect(commands.modulesCmd.update('tupdep')).rejects.toThrow(
+    await expect(
+      commands.modulesCmd.update({ module: 'tupdep' }),
+    ).rejects.toThrow(
       "Cannot update module 'tupdep' because it is required by 'tuphost'. Update the parent module(s) instead.",
     );
   });
@@ -759,7 +775,7 @@ describe('module update — spec behaviours', () => {
     writeFileSync(installedConfigPath, JSON.stringify(installedConfig));
 
     await expect(
-      commands.modulesCmd.update('dgmod', undefined, '0.1.0'),
+      commands.modulesCmd.update({ module: 'dgmod', version: '0.1.0' }),
     ).rejects.toThrow(/cannot downgrade from 1\.0\.0 to 0\.1\.0/i);
 
     // The refusal fired during resolution: the seeded marker survives.
@@ -815,7 +831,9 @@ describe('module update — spec behaviours', () => {
     // 1.0.0 is the only tag, so the module stays exactly where it is.
     vi.spyOn(GitManager, 'listRemoteVersionTags').mockResolvedValue(['1.0.0']);
 
-    await commands.modulesCmd.updateAll();
+    const plan = await commands.modulesCmd.planUpdate({});
+    expect(plan.rangeWrites).toEqual([{ module: 'bkfmod', range: '1.x' }]);
+    await commands.modulesCmd.update({});
 
     const persisted = JSON.parse(
       readFileSync(
@@ -925,7 +943,7 @@ describe('module update — spec behaviours', () => {
     sealSourceRelease(moduleSource, []);
 
     await expect(
-      commands.modulesCmd.update('decision', undefined, '2.0.0'),
+      commands.modulesCmd.update({ module: 'decision', version: '2.0.0' }),
     ).rejects.toThrow(/Module 'decision' now declares the prefix 'decrec'/);
 
     // Nothing moved: the installation is still there at its old version.
@@ -969,7 +987,7 @@ describe('module update — spec behaviours', () => {
     ]);
 
     // plan -> applyModules -> replay -> final validation; must not throw.
-    await commands.modulesCmd.update('decision', undefined, '2.0.0');
+    await commands.modulesCmd.update({ module: 'decision', version: '2.0.0' });
 
     // Module files landed: new version, renamed workflow file.
     const afterConfig = JSON.parse(readFileSync(installedConfigPath, 'utf-8'));
@@ -1024,7 +1042,7 @@ describe('module update — spec behaviours', () => {
     // A card type requires a workflow, so the replayed delete repairs the
     // consumer by removal: card type and all of its cards. The project is
     // then valid and the update succeeds.
-    await commands.modulesCmd.update('decision', undefined, '2.0.0');
+    await commands.modulesCmd.update({ module: 'decision', version: '2.0.0' });
 
     const afterConfig = JSON.parse(readFileSync(installedConfigPath, 'utf-8'));
     expect(afterConfig.version).toBe('2.0.0');
@@ -1073,7 +1091,7 @@ describe('module update — spec behaviours', () => {
     ]);
 
     const error = await commands.modulesCmd
-      .update('decision', undefined, '2.0.0')
+      .update({ module: 'decision', version: '2.0.0' })
       .catch((e) => e);
 
     expect(error).toBeInstanceOf(ModuleValidationFailedError);

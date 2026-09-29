@@ -65,6 +65,26 @@ describe('SourceLayer.readMetadata', () => {
     await layer.dispose();
   });
 
+  it('git: a missing tag is an invalid request, not a clone failure', async () => {
+    const repo = join(dir, 'repo-notag');
+    await layoutModule(repo, { cardKeyPrefix: 'A', modules: [] }, []);
+    const git = testGit(repo);
+    await git.init().add('.').commit('init');
+
+    const layer = new GitSourceLayer();
+    await expect(
+      layer.readMetadata({ location: repo }, '9.9.9' as never, repo),
+    ).rejects.toMatchObject({ reason: 'invalid' });
+    await expect(
+      layer.readMetadata(
+        { location: join(dir, 'nowhere') },
+        '1.0.0' as never,
+        join(dir, 'nowhere'),
+      ),
+    ).rejects.not.toMatchObject({ reason: 'invalid' });
+    await layer.dispose();
+  });
+
   it('file: reads config + seals from the source dir', async () => {
     const src = join(dir, 'src');
     await layoutModule(src, { cardKeyPrefix: 'A', name: 'A', modules: [] }, [

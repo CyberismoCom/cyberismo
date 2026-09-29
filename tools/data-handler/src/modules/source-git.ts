@@ -16,6 +16,7 @@ import { mkdtemp, mkdir, rm } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { tmpdir } from 'node:os';
 
+import { ModuleRequestError, redactUserinfo } from '../exceptions/index.js';
 import { createGit, gitTimeout } from '../utils/git-config.js';
 import { GitManager } from '../utils/git-manager.js';
 import {
@@ -121,9 +122,19 @@ export class GitSourceLayer implements SourceLayer {
     const g = createGit({
       baseDir: await this.ensureRepo(remoteUrl ?? source.location),
     });
-    const config = JSON.parse(
-      await g.raw(['cat-file', '-p', `${ref}:.cards/local/cardsConfig.json`]),
-    ) as ProjectSettings;
+    let config: ProjectSettings;
+    try {
+      config = JSON.parse(
+        await g.raw(['cat-file', '-p', `${ref}:.cards/local/cardsConfig.json`]),
+      ) as ProjectSettings;
+    } catch (error) {
+      // The remote answered; its tag or config is what is wrong.
+      throw new ModuleRequestError(
+        'invalid',
+        `Cannot read the module configuration of '${redactUserinfo(source.location)}' at ${ref}`,
+        error instanceof Error ? redactUserinfo(error.message) : undefined,
+      );
+    }
     let seals: SealFile[];
     try {
       const listing = await g.raw([
