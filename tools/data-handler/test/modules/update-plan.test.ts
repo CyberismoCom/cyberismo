@@ -208,7 +208,7 @@ describe('update plan', () => {
         planFor(project, { module: 'kid' }, { source: fakeRemote({}) }),
       ).rejects.toMatchObject({
         message:
-          "Cannot update module 'kid' because it is required by 'parent'. Update the parent module(s) instead.",
+          "Cannot use module 'kid' because it is required by 'parent'. Use the parent module(s) instead.",
       });
     });
 
