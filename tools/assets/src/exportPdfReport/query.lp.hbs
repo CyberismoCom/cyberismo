@@ -97,22 +97,21 @@ resultField((Card, Field), "fieldDescription", Description, "shortText") :-
     result(Card),
     field(Field, "description", Description).
 
-% add value
-dataType((Card, Field), "value", DataType) :-
+% add value, typed as the card's own field
+resultField((Card, Field), "value", Value, DataType) :-
     childResult(Card, (Card, Field), "fields"),
-    result(Card),
     field(Card, Field, Value),
     dataType(Card, Field, DataType).
 
-% add value
-field((Card, Field), "value", Value) :-
+resultField((Card, Field), "value", Value, "shortText") :-
     childResult(Card, (Card, Field), "fields"),
-    field(Card, Field, Value).
+    field(Card, Field, Value),
+    not dataType(Card, Field, _).
 
 resultField(((Card, Field), "value"), "displayValue", EnumDisplayValue, "shortText") :-
     childResult(Card, (Card, Field), "fields"),
     dataType(Card, Field, "enum"),
-    field((Card, Field), "value", Value),
+    field(Card, Field, Value),
     field((Field, Value), "enumDisplayValue", EnumDisplayValue).
 
 resultField(((Card, Field), "value", Value), "displayValue", EnumDisplayValue, "shortText") :-

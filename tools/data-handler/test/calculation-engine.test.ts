@@ -5,7 +5,8 @@ import { appendFileSync, mkdirSync, rmSync } from 'node:fs';
 import { copyDir } from '../src/utils/file-utils.js';
 import type { Project } from '../src/containers/project.js';
 import type { QueryResult } from '../src/types/queries.js';
-import { lpFiles } from '@cyberismo/assets';
+import Handlebars from 'handlebars';
+import { lpFiles, pdfReport } from '@cyberismo/assets';
 import { Calculate } from '../src/commands/calculate.js';
 import { getTestProject } from './helpers/test-utils.js';
 
@@ -389,6 +390,23 @@ describe('card query enum field', () => {
           index: 2,
         },
       ],
+    });
+  });
+
+  it('returns the typed value and display value of an enum field in the PDF export query', async () => {
+    const query = Handlebars.compile(pdfReport.query)({ cardKey: 'enumf_1' });
+    const res = await project.calculationEngine.runLogicProgram(
+      query,
+      'exportedDocument',
+    );
+    expect(res.results).toHaveLength(1);
+    expect(res.results[0]).toMatchObject({ levelOffset: '1' });
+    const field = res.results[0].fields.find(
+      (f: { key: string }) => f.key === 'enumf/fieldTypes/priority',
+    );
+    expect(field).toMatchObject({
+      key: 'enumf/fieldTypes/priority',
+      value: { value: 'high', displayValue: 'High' },
     });
   });
 });
