@@ -473,16 +473,16 @@ describe('resolve solver', () => {
     });
   });
 
-  it('availability reports no reachable update when the only path breaks a pin', async () => {
+  it('update reports no reachable update when the only path breaks a pin', async () => {
     // A 1.8.0 satisfies A's own ^1.0.0, but reaching it needs C past its
     // pin. The engine backtracks to A's installed 1.6.0 and succeeds with an
-    // empty plan, which check-updates renders as up-to-date — the pin that
+    // empty plan, which a dry run renders as up-to-date — the pin that
     // held A back is not reported anywhere.
     const { project, source } = await buildOutOfPinFixture();
 
     const result = await resolve(
       project,
-      { kind: 'availability', module: 'A' },
+      { kind: 'update', module: 'A' },
       { sourceLayer: source, tempDir: testDir },
     );
     expect(result.ok).toBe(true);
@@ -678,81 +678,6 @@ describe('resolve solver', () => {
     ]);
   });
 
-  it('availability: an unreachable bystander is frozen, not fatal', async () => {
-    // R1's remote is down; asking about R2 must still answer. Asking about
-    // R1 itself still surfaces the failure so check-updates can report
-    // source_unreachable rather than a false up-to-date.
-    const project = buildProjectWithModules([
-      {
-        name: 'R1',
-        location: 'https://x/R1.git',
-        version: '^1.0.0',
-        private: false,
-      },
-      {
-        name: 'R2',
-        location: 'https://x/R2.git',
-        version: '^1.0.0',
-        private: false,
-      },
-    ]);
-    await installModule(project, { name: 'R1', version: '1.0.0' });
-    await installModule(project, { name: 'R2', version: '1.0.0' });
-
-    const configs = new Map<string, FakeModuleConfig>([
-      [
-        'https://x/R2.git@v1.1.0',
-        {
-          cardKeyPrefix: 'R2',
-          name: 'R2',
-          version: '1.1.0',
-          modules: [],
-        },
-      ],
-    ]);
-    const available = new Map([['https://x/R2.git', ['1.1.0', '1.0.0']]]);
-    const seals = new Map<string, Array<[string, string]>>([
-      ['https://x/R2.git@v1.1.0', [['1.0.0', '1.1.0']]],
-    ]);
-    const source = new InMemorySource(
-      configs,
-      available,
-      new Map(),
-      seals,
-      new Set(['https://x/R1.git']),
-    );
-
-    const result = await resolve(
-      project,
-      { kind: 'availability', module: 'R2' },
-      { sourceLayer: source, tempDir: testDir },
-    );
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.changes).toEqual([
-      {
-        module: 'R2',
-        from: '1.0.0',
-        to: '1.1.0',
-        replay: [
-          {
-            from: '1.0.0',
-            to: '1.1.0',
-            fileName: 'migrationLog_1.0.0_1.1.0.jsonl',
-          },
-        ],
-      },
-    ]);
-
-    await expect(
-      resolve(
-        project,
-        { kind: 'availability', module: 'R1' },
-        { sourceLayer: source, tempDir: testDir },
-      ),
-    ).rejects.toThrow('is unreachable');
-  });
-
   it('add: fresh import seeds a new root and installs its transitive closure', async () => {
     const project = buildProjectWithModules([]);
 
@@ -848,53 +773,6 @@ describe('resolve solver', () => {
     const result = await resolve(
       project,
       { kind: 'updateAll' },
-      { sourceLayer: source, tempDir: testDir },
-    );
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    const b = result.changes.find((c) => c.module === 'B');
-    expect(b).toMatchObject({ from: '1.0.0', to: '1.2.0' });
-  });
-
-  it('availability reports the same floated changes without applying them', async () => {
-    const project = buildProjectWithModules([
-      {
-        name: 'A',
-        location: 'https://x/A.git',
-        version: '^1.0.0',
-        private: false,
-      },
-    ]);
-    await installModule(project, {
-      name: 'A',
-      version: '1.0.0',
-      modules: [{ name: 'B', location: 'https://x/B.git', version: '^1.0.0' }],
-    });
-    await installModule(project, { name: 'B', version: '1.0.0' });
-
-    const configs = new Map<string, FakeModuleConfig>([
-      [
-        'https://x/B.git@v1.2.0',
-        {
-          cardKeyPrefix: 'B',
-          name: 'B',
-          version: '1.2.0',
-          modules: [],
-        },
-      ],
-    ]);
-    const available = new Map([
-      ['https://x/A.git', ['1.0.0']],
-      ['https://x/B.git', ['1.2.0', '1.0.0']],
-    ]);
-    const seals = new Map<string, Array<[string, string]>>([
-      ['https://x/B.git@v1.2.0', [['1.0.0', '1.2.0']]],
-    ]);
-    const source = new InMemorySource(configs, available, new Map(), seals);
-
-    const result = await resolve(
-      project,
-      { kind: 'availability' },
       { sourceLayer: source, tempDir: testDir },
     );
     expect(result.ok).toBe(true);
@@ -1801,7 +1679,7 @@ describe('resolve solver', () => {
       expect(b).toMatchObject({ from: '1.0.0', to: '1.5.0' });
     });
 
-    it('availability: a pin conflict names the assumed 1.x range', async () => {
+    it('update: a pin conflict names the assumed 1.x range', async () => {
       const project = buildProjectWithModules([
         { name: 'E', location: 'https://x/E.git', private: false },
       ]);
@@ -1821,7 +1699,7 @@ describe('resolve solver', () => {
 
       const result = await resolve(
         project,
-        { kind: 'availability', module: 'E' },
+        { kind: 'update', module: 'E' },
         { sourceLayer: source, tempDir: testDir },
       );
 

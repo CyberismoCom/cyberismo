@@ -17,7 +17,7 @@ import type {
   Link,
   TemplateConfiguration,
 } from './resource-interfaces.js';
-import type { CheckStatus, VersionSource } from '../modules/types.js';
+import type { VersionSource } from '../modules/types.js';
 
 // Single card; either in project or in template.
 export interface Card {
@@ -220,23 +220,6 @@ export interface ModuleSettingOptions {
   private?: boolean;
   credentials?: Credentials;
   version?: string;
-}
-
-// Result of checking for module updates, computed through the resolver engine.
-export interface ModuleUpdateStatus {
-  name: string;
-  installedVersion?: string;
-  isGitModule: boolean;
-  status: CheckStatus;
-  // Version this module could move to (set when status === 'update_available').
-  reachableVersion?: string;
-  // The full set of modules that would move if this update were applied.
-  cascade?: { module: string; from: string | null; to: string | null }[];
-  // Conflicts that prevent the update (set when status === 'blocked').
-  conflicts?: { module: string; reason: string }[];
-  // Newest remote version the declared range excludes (informational; set on
-  // up_to_date / update_available rows when the remote has moved past the range).
-  latestAvailable?: { version: string; range: string };
 }
 
 // What a module update asks for: every declared root, one root, one root at
