@@ -89,6 +89,7 @@ export function projectApiPaths(projectPrefix?: string) {
     project: () => `${base}/project`,
     projectClean: () => `${base}/project/clean`,
     projectModulesUpdate: () => `${base}/project/modules/update`,
+    projectModulesUpdatePlan: () => `${base}/project/modules/update-plan`,
     projectModuleUpdate: (module: string) =>
       `${base}/project/modules/${encodeURIComponent(module)}/update`,
     projectModuleDelete: (module: string) =>

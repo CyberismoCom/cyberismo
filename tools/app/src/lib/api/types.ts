@@ -26,6 +26,7 @@ import type {
 import type {
   Card,
   CardAttachment,
+  ProjectModuleInfo,
   ResourceFolderType,
 } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
@@ -121,15 +122,15 @@ interface BaseResourceNode {
   readOnly?: boolean;
 }
 
+// An installed module; `name` is the display name, `parents` are key prefixes.
+export type ProjectModule = ProjectModuleInfo & { cardKeyPrefix: string };
+
 export interface GeneralSettings {
   name: string;
   cardKeyPrefix: string;
   description: string;
   category: string;
-  modules: {
-    name: string;
-    cardKeyPrefix: string;
-  }[];
+  modules: ProjectModule[];
   gitRemoteUrl: string | null;
 }
 
