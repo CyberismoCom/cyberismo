@@ -12,6 +12,8 @@ The data type of the attribute is the data type of the field type named `Field`,
 
 An undeclared attribute is a string, also when its value is a number. Use `resultField` with 4 parameters for numbers that must sort numerically.
 
+Output each attribute of a key through one channel only. Do not select an attribute and also output it with `resultField`, and do not output it with both `resultField/3` and `resultField/4`. Both values are produced, and which one ends up in the result is not defined.
+
 For an overview of how results get their attributes, see {{#xref}}"cardKey":"docs_33"{{/xref}}.
 
 == Example

@@ -11,6 +11,8 @@ The `resultField` predicate with 4 parameters constructs an attribute of a query
 
 The given `DataType` is always used, also when a field type named `Field` exists with another data type. The data types `enum` and `list` produce an object or an array, but the index and the display value are filled in only when `Field` is the name of the field type. To take the data type from the field type, use {{#xref}}"cardKey":"docs_g9t7ad0x"{{/xref}}.
 
+Output each attribute of a key through one channel only. Do not select an attribute and also output it with `resultField`, and do not output it with both `resultField/3` and `resultField/4`. Both values are produced, and which one ends up in the result is not defined.
+
 For an overview of how results get their attributes, see {{#xref}}"cardKey":"docs_33"{{/xref}}.
 
 == Example
