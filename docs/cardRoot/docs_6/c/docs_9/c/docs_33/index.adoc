@@ -111,6 +111,8 @@ The data type of an attribute determines how it appears in the JSON result. The 
 
 An attribute with no declared type is a string, also when its value is a number. Use `resultField` with the data type `"integer"` or `"number"` for a value that must be a JSON number and sort numerically.
 
+NOTE: Output each attribute of a key through one channel only. Do not select an attribute and also output it with `resultField`, and do not output it with both `resultField/3` and `resultField/4`. Both values are produced, and which one ends up in the result is not defined.
+
 == Determining the results
 
 The `result(Key)` term denotes that `Key` will be included in the results of the query. The following query returns all fields of the entity (most likely a card) that has the key `docs_33`:
