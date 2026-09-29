@@ -22,7 +22,12 @@ import { buildRemoteUrl } from './remote-url.js';
 import { conflictReason } from './resolve/format.js';
 import { solve, type SolveOutcome } from './resolve/solver.js';
 import type { SourceLayer } from './source.js';
-import { toVersion, type Source, type VersionSource } from './types.js';
+import {
+  toDeclaredRange,
+  toVersion,
+  type Source,
+  type VersionSource,
+} from './types.js';
 import {
   isBreakingMove,
   pickVersion,
@@ -78,6 +83,21 @@ async function buildUpdateRequest(
     );
   }
 
+  // Re-declaring the range is the upsert `install` does for a declared module.
+  if (target.range !== undefined) {
+    if (!isGitLocation(declaration.source.location)) {
+      throw new ModuleRequestError(
+        'invalid',
+        `Module '${module}' is not installed from git, so it has no version range`,
+      );
+    }
+    return {
+      kind: 'add',
+      name: module,
+      source: declaration.source,
+      range: toDeclaredRange(target.range),
+    };
+  }
   const { version } = target;
   if (version === undefined) return { kind: 'update', module };
 
@@ -201,13 +221,16 @@ export async function toUpdatePlan(
 
   return {
     ok: true,
-    changes: changes.map((c) => ({
-      module: c.module,
-      from: c.from,
-      to: c.to,
-      breaking:
-        c.from !== null && c.to !== null && isBreakingMove(c.from, c.to),
-    })),
+    // A versioned module that keeps its version is not a change.
+    changes: changes
+      .filter((c) => c.from === null || c.from !== c.to)
+      .map((c) => ({
+        module: c.module,
+        from: c.from,
+        to: c.to,
+        breaking:
+          c.from !== null && c.to !== null && isBreakingMove(c.from, c.to),
+      })),
     removed,
     conflicts: [],
     rangeWrites,

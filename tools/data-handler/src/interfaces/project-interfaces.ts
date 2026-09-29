@@ -239,11 +239,13 @@ export interface ModuleUpdateStatus {
   latestAvailable?: { version: string; range: string };
 }
 
-// What a module update asks for: every declared root, one root, or one root
-// at an exact version within its declared range.
+// What a module update asks for: every declared root, one root, one root at
+// an exact version (within its declared range), or one root re-declared with
+// a new range.
 export type UpdateTarget =
-  | { module?: undefined; version?: undefined }
-  | { module: string; version?: string };
+  | { module?: undefined; version?: undefined; range?: undefined }
+  | { module: string; version?: string; range?: undefined }
+  | { module: string; range: string; version?: undefined };
 
 // The solver's answer to one update request. A dry run builds the same
 // request and shapes the same result as the update itself; an update can
