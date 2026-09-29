@@ -16,11 +16,13 @@ import useSWR, { mutate } from 'swr';
 import type {
   CleanResult,
   ModuleSettingFromHub,
+  UpdatePlan,
 } from '@cyberismo/data-handler';
 import { projectApiPaths, callApi } from '../swr';
 import { useSWRHook } from './common';
 import type { Hub, HubFetchResult, ProjectSettingsUpdate } from './types';
 import { useUpdating } from '../hooks';
+import { getConfig } from '../utils';
 
 export const useProjectSettings = (
   options?: SWRConfiguration,
@@ -73,6 +75,20 @@ export const cleanProject = async (
   }
   return result;
 };
+
+// Asks the module sources for their versions, so it runs only on request and
+// never in an export. A failed check is not retried.
+export const useModuleUpdatePlan = (enabled: boolean) =>
+  useSWR<UpdatePlan>(
+    enabled && !getConfig().staticMode
+      ? projectApiPaths().projectModulesUpdatePlan()
+      : null,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      shouldRetryOnError: false,
+    },
+  );
 
 export const useProjectModulesImportable = (projectPrefix?: string) =>
   useSWR<ModuleSettingFromHub[]>(
