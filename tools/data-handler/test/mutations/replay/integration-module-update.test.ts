@@ -25,6 +25,8 @@ import {
 } from '../../helpers/replay-fixtures.js';
 
 import type { SealSpec } from '../../helpers/replay-fixtures.js';
+import type { ReplayStep } from '../../../src/mutations/replay/replay.js';
+import type { ConfigurationLogEntry } from '../../../src/utils/configuration-logger.js';
 import type {
   InstallationRef,
   ModuleInstallation,
@@ -497,5 +499,243 @@ describe('module replay end to end', () => {
       expect(content).not.toContain('mod/fieldTypes/a');
       expect(content).not.toContain('mod/fieldTypes/b');
     }
+  });
+});
+
+describe('workflow state succession across a replay batch', () => {
+  const localDir = join(projectPath, '.cards', 'local');
+  const workflowFile = (id: string) =>
+    join(localDir, 'workflows', `${id}.json`);
+  const cardTypeFile = join(localDir, 'cardTypes', 'decision.json');
+  const cardFile = join(cardDir, 'c', 'decision_6', 'index.json');
+  const W = 'decision/workflows/decision';
+  const W2 = 'decision/workflows/other';
+  const W2Final = 'decision/workflows/otherV2';
+  const Wr = 'decision/workflows/decisionV2';
+
+  const readJson = (file: string) => JSON.parse(readFileSync(file, 'utf8'));
+  const writeJson = (file: string, json: object) =>
+    writeFileSync(file, JSON.stringify(json, null, 4));
+
+  const entry = (
+    op: ConfigurationLogEntry['operation'],
+    target: string,
+    parameters: Record<string, unknown>,
+  ): ConfigurationLogEntry => JSON.parse(logLine(op, target, parameters));
+  const states = (workflow: string, operation: Record<string, unknown>) =>
+    entry('resource_update', workflow, { key: 'states', operation });
+  const remove = (workflow: string, name: string, replacement?: string) =>
+    states(workflow, {
+      name: 'remove',
+      target: { name },
+      ...(replacement && { replacementValue: { name: replacement } }),
+    });
+  const rename = (workflow: string, from: string, to: string) =>
+    states(workflow, {
+      name: 'change',
+      target: { name: from },
+      to: { name: to },
+    });
+  const add = (workflow: string, name: string) =>
+    states(workflow, { name: 'add', target: { name } });
+  const renameWorkflow = (from: string, to: string) =>
+    entry('resource_rename', from, {
+      type: 'workflows',
+      operation: { name: 'change', target: from, to },
+    });
+
+  /** A mapping of every old-workflow state, with overrides and omissions. */
+  const mapping = (extra: Record<string, string> = {}, ...omit: string[]) => {
+    const all: Record<string, string> = {
+      Draft: 'Open',
+      Approved: 'Done',
+      Rejected: 'Done',
+      Rerejected: 'Done',
+      Deprecated: 'Done',
+      ...extra,
+    };
+    for (const name of omit) delete all[name];
+    return all;
+  };
+
+  interface Scenario {
+    name: string;
+    /** Edits to the post-update tree: the old workflow's states, the new one. */
+    tree?: {
+      rename?: [string, string];
+      drop?: string;
+      dropNew?: string;
+      newRenamed?: boolean;
+    };
+    /** The workflow module's seals, one entry list each. */
+    wf: ConfigurationLogEntry[][];
+    stateMapping: Record<string, string>;
+    card: string;
+    expected: string;
+    /** One module carries the workflow seals, then the mapping. */
+    sameModule?: boolean;
+  }
+
+  const removed: Scenario = {
+    name: 'a state removed before the mapping was authored',
+    tree: { drop: 'Rejected' },
+    wf: [[remove(W, 'Rejected', 'Draft')]],
+    stateMapping: mapping({}, 'Rejected'),
+    card: 'Rejected',
+    expected: 'Open',
+  };
+  const targetRemoved: Scenario = {
+    name: 'a target state another module removed',
+    tree: { dropNew: 'Review' },
+    wf: [[remove(W2, 'Review', 'Done')]],
+    stateMapping: mapping({ Draft: 'Review' }),
+    card: 'Draft',
+    expected: 'Done',
+  };
+  const scenarios: Scenario[] = [
+    {
+      name: 'a state renamed earlier in the same module',
+      tree: { rename: ['Draft', 'Drafted'] },
+      wf: [[rename(W, 'Draft', 'Drafted')]],
+      stateMapping: mapping({ Drafted: 'Open' }, 'Draft'),
+      card: 'Draft',
+      expected: 'Open',
+      sameModule: true,
+    },
+    removed,
+    {
+      ...removed,
+      name: 'a state removed without a replacement (known leftover: left in place)',
+      wf: [[remove(W, 'Rejected')]],
+      expected: 'Rejected',
+    },
+    {
+      ...removed,
+      name: 'a removal into a state renamed later in the batch',
+      tree: { drop: 'Rejected', rename: ['Draft', 'Drafted'] },
+      wf: [[remove(W, 'Rejected', 'Draft'), rename(W, 'Draft', 'Drafted')]],
+      stateMapping: mapping({ Drafted: 'Open' }, 'Draft', 'Rejected'),
+    },
+    {
+      ...removed,
+      name: 'a direct mapping hit over a successor',
+      stateMapping: mapping(),
+      expected: 'Done',
+    },
+    {
+      ...removed,
+      name: 'an old workflow renamed in the batch, mapping names the old name',
+      wf: [[remove(W, 'Rejected', 'Draft')], [renameWorkflow(W, Wr)]],
+    },
+    targetRemoved,
+    {
+      ...targetRemoved,
+      name: 'a target state the final workflow re-adds',
+      tree: {},
+      wf: [[remove(W2, 'Review', 'Done')], [add(W2, 'Review')]],
+    },
+    {
+      ...targetRemoved,
+      name: 'a rename-back of the target state',
+      tree: { newRenamed: true },
+      wf: [
+        [rename(W2, 'Review', 'Checked'), rename(W2, 'Checked', 'Review')],
+        [renameWorkflow(W2, W2Final)],
+      ],
+      expected: 'Review',
+    },
+  ];
+
+  /** Reset the project to the post-update tree the scenario describes. */
+  async function arrange(s: Scenario) {
+    rmSync(testDir, { recursive: true, force: true });
+    await copyDir(
+      join(baseDir, '..', '..', 'test-data', 'valid', 'decision-records'),
+      projectPath,
+    );
+    const { rename: renameState, drop, dropNew, newRenamed } = s.tree ?? {};
+    const old = readJson(workflowFile('decision'));
+    old.states = old.states
+      .filter((x: { name: string }) => x.name !== drop)
+      .map((x: { name: string }) =>
+        x.name === renameState?.[0] ? { ...x, name: renameState[1] } : x,
+      );
+    writeJson(workflowFile('decision'), old);
+
+    const id = newRenamed ? 'otherV2' : 'other';
+    writeJson(workflowFile(id), {
+      name: `decision/workflows/${id}`,
+      displayName: 'Other',
+      states: [
+        { name: 'Open', category: 'initial' },
+        { name: 'Review', category: 'active' },
+        { name: 'Done', category: 'closed' },
+      ].filter((x) => x.name !== dropNew),
+      transitions: [{ name: 'Create', fromState: [''], toState: 'Open' }],
+    });
+    const cardType = readJson(cardTypeFile);
+    writeJson(cardTypeFile, {
+      ...cardType,
+      workflow: `decision/workflows/${id}`,
+    });
+    writeJson(cardFile, { ...readJson(cardFile), workflowState: s.card });
+  }
+
+  /** One module's replay step: one seal per entry list, in version order. */
+  const step = (
+    modulePrefix: string,
+    ...sealEntries: ConfigurationLogEntry[][]
+  ): ReplayStep => ({
+    modulePrefix,
+    fromVersion: '1.0.0',
+    toVersion: `1.${sealEntries.length}.0`,
+    seals: sealEntries.map((entries, i) => ({
+      seal: {
+        from: `1.${i}.0`,
+        to: `1.${i + 1}.0`,
+        fileName: formatSealFileName(`1.${i}.0`, `1.${i + 1}.0`),
+      },
+      entries,
+      skipped: { retired: [], unknown: [] },
+    })),
+  });
+
+  type Order = 'wf first' | 'ct first' | 'same module';
+
+  async function replay(s: Scenario, order: Order): Promise<string> {
+    await arrange(s);
+    const ct = entry('resource_update', 'decision/cardTypes/decision', {
+      key: 'workflow',
+      operation: {
+        name: 'change',
+        target: W,
+        to: W2,
+        mappingTable: { stateMapping: s.stateMapping },
+      },
+    });
+    const wf = step('wf', ...s.wf);
+    const steps =
+      order === 'same module'
+        ? [step('decision', ...s.wf, [ct])]
+        : order === 'wf first'
+          ? [wf, step('ct', [ct])]
+          : [step('ct', [ct]), wf];
+    await executeModuleReplays(await loadProject(), steps);
+    return readJson(cardFile).workflowState;
+  }
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it.each(
+    scenarios.flatMap((s) =>
+      (s.sameModule
+        ? ['same module' as const]
+        : ['wf first' as const, 'ct first' as const]
+      ).map((order) => [`${s.name} (${order})`, s, order] as const),
+    ),
+  )('maps a card through %s', async (_, s, order) => {
+    expect(await replay(s, order)).toBe(s.expected);
   });
 });
