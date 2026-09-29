@@ -102,6 +102,8 @@ The MCP server exposes the following tools, grouped by category.
 | `get_skill` | Get the full rendered instructions of a single enabled skill. Pass `cardKey` for a skill whose scope is `card` | `name`
 |===
 
-The project logic programs decide which skills are enabled, so the result of `list_skills` depends on the current state of the project and may change between calls. Each enabled skill is also exposed as an MCP prompt, which lets an AI assistant apply a skill directly without calling `get_skill`. The name of the prompt is the full name of the skill and its title is the display name. The prompt of a skill that is enabled for specific cards takes an optional `cardKey` argument.
+The project logic programs decide which skills are enabled, so the result of `list_skills` depends on the current state of the project and may change between calls.
+
+Each enabled skill is also exposed as an MCP prompt, named after the full name of the skill. If your AI assistant supports MCP prompts, you can apply a skill yourself -- for example, as a slash command in Claude Code -- instead of waiting for the assistant to find it. For a skill that is enabled for specific cards, give the card key as the prompt argument.
 
 See {{#xref}}"cardKey":"docs_qd5gotpx"{{/xref}} for how to write skills and how to enable them.

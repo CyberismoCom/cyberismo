@@ -169,15 +169,11 @@ enableSkill("example/skills/assessRisk", Card) :-
     field(Card, "workflowState", "Draft").
 ----
 
-If both `enableSkill(Skill)` and `enableSkill(Skill, CardKey)` are defined for the same skill, the project-wide rule takes precedence and the card-specific rules are ignored. A misspelled skill name in `enableSkill` is silently ignored, as Cyberismo does not warn about it.
+If both `enableSkill(Skill)` and `enableSkill(Skill, CardKey)` are defined for the same skill, the project-wide rule takes precedence and the card-specific rules are ignored.
 
-Cyberismo evaluates the enabling rules against the current state of the project every time an AI assistant requests the list of skills, so the set of enabled skills changes as the project changes. An AI assistant should therefore check the available skills again before each task.
+Cyberismo evaluates the enabling rules against the current state of the project every time an AI assistant requests the list of skills, so the set of enabled skills changes as the project changes. The instructions of a skill that is enabled only for specific cards are rendered for one of those cards, so the AI assistant must tell Cyberismo which card it is working on.
 
-A card-specific skill cannot be rendered without a card. When an AI assistant requests such a skill without a card key, Cyberismo asks it to retry with a card key instead of returning the instructions.
-
-`list_skills` returns a summary of each enabled skill: name, display name, description, category, related tools and scope. Its `category` filter is an exact match. Without a `cardKey`, the list includes all card-specific skills; with a `cardKey`, it includes only the skills enabled for the whole project and those enabled for that card.
-
-If `get_skill` is asked for a skill that does not exist or is not enabled -- including a card-specific skill for a card that it is not enabled for, or for a card that does not exist -- the answer is a message that says so, not an error. If the query or the template of an enabled skill fails, `get_skill` returns an error.
+Cyberismo does not warn about a misspelled skill name in `enableSkill`: the rule has no effect and the skill is simply not enabled. To check which skills are enabled, ask your AI assistant to list the available skills, optionally for a specific card. If the query or the instructions of an enabled skill fail to render, the AI assistant receives an error instead of the instructions; use the preview to find the cause.
 
 == Skill JSON file format
 
