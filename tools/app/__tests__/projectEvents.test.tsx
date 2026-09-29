@@ -12,7 +12,7 @@ import { useSavedDraft } from '@/lib/hooks/savedDraft';
 import { projectApiPaths } from '@/lib/swr';
 import rootReducer from '@/lib/slices';
 
-const config = vi.hoisted(() => ({ staticMode: false, presenceEnabled: true }));
+const config = vi.hoisted(() => ({ staticMode: false }));
 vi.mock('@/lib/utils', async (importOriginal) => ({
   ...(await importOriginal<typeof UtilsModule>()),
   getConfig: () => config,
@@ -49,7 +49,6 @@ const fetchMock = vi.fn();
 beforeEach(() => {
   FakeEventSource.instances = [];
   config.staticMode = false;
-  config.presenceEnabled = true;
   currentUser.role = 'editor';
   fetchMock.mockReset().mockResolvedValue(new Response(null, { status: 204 }));
   vi.stubGlobal('EventSource', FakeEventSource);
@@ -295,7 +294,6 @@ describe('project events and presence', () => {
   });
 
   it('connects and reconnects without invalidating project data', async () => {
-    config.presenceEnabled = false;
     const { hook, source, fetcher, notifications } = setup();
     await waitFor(() => expect(loaded(hook)).toBe('Saved/Saved'));
     fetcher.mockClear();
@@ -308,7 +306,6 @@ describe('project events and presence', () => {
     });
     expect(fetcher).not.toHaveBeenCalled();
     expect(notifications()).toEqual([]);
-    expect(fetchMock).not.toHaveBeenCalled();
 
     act(() =>
       source.emit('card.updated', {

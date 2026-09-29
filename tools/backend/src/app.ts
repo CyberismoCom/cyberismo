@@ -114,7 +114,6 @@ export function createApp(
     return c.json({
       staticMode: exportMode,
       logoutUrl: process.env.APP_LOGOUT_URL || '',
-      presenceEnabled: process.env.APP_PRESENCE_ENABLED === 'true',
       defaultProject: process.env.CYBERISMO_DEFAULT_PROJECT || undefined,
       extensionUrl: process.env.APP_EXTENSION_URL || undefined,
     });

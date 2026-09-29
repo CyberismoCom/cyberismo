@@ -71,7 +71,7 @@ export function ProjectEventsProvider({
     token: {},
   });
   const sendRef = useRef<() => void>(() => {});
-  const { staticMode, presenceEnabled } = getConfig();
+  const { staticMode } = getConfig();
 
   const subscribeToCardUpdates = useCallback(
     (listener: (event: CardUpdatedEvent) => void) => {
@@ -107,7 +107,7 @@ export function ProjectEventsProvider({
     let disposed = false;
 
     const send = () => {
-      if (!presenceEnabled || !connectionId || disposed) return;
+      if (!connectionId || disposed) return;
       const { cardKey, mode } = desired.current;
       // Monotonic sequence numbers make delayed HTTP requests harmless.
       void callApi(apiPaths.presence(), 'PUT', {
@@ -177,7 +177,7 @@ export function ProjectEventsProvider({
       window.removeEventListener('pagehide', close);
       window.removeEventListener('pageshow', reopen);
     };
-  }, [projectPrefix, staticMode, presenceEnabled]);
+  }, [projectPrefix, staticMode]);
 
   return (
     <ProjectEventsContext.Provider
