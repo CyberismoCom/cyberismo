@@ -110,7 +110,7 @@ const loaded = (hook: {
 describe('project events and presence', () => {
   it('keeps one connection through card and editing changes', async () => {
     const { hook, source } = setup();
-    act(() => source.emit('ready', { connectionId: 'one', presence: {} }));
+    act(() => source.emit('ready', { connectionId: 'one' }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
 
     hook.rerender({ card: 'TST_2', mode: 'editing' });
@@ -132,13 +132,11 @@ describe('project events and presence', () => {
     expect(source.close).toHaveBeenCalledOnce();
   });
 
-  it('replaces presence snapshots and recovers after disconnect', async () => {
+  it('replaces presence snapshots and clears on reconnect or disconnect', async () => {
     const { hook, source } = setup();
+    act(() => source.emit('ready', { connectionId: 'one' }));
     act(() =>
-      source.emit('ready', {
-        connectionId: 'one',
-        presence: { TST_1: [alice] },
-      }),
+      source.emit('presence.updated', { cardKey: 'TST_1', users: [alice] }),
     );
     expect(hook.result.current.presence).toEqual([alice]);
 
@@ -153,7 +151,7 @@ describe('project events and presence', () => {
     act(() =>
       source.emit('presence.updated', { cardKey: 'TST_1', users: [alice] }),
     );
-    act(() => source.emit('ready', { connectionId: 'two', presence: {} }));
+    act(() => source.emit('ready', { connectionId: 'two' }));
     expect(hook.result.current.presence).toEqual([]);
 
     act(() =>
@@ -164,8 +162,26 @@ describe('project events and presence', () => {
 
     await act(async () => {});
     fetchMock.mockClear();
-    act(() => source.emit('ready', { connectionId: 'three', presence: {} }));
+    act(() => source.emit('ready', { connectionId: 'three' }));
     await waitFor(() => expect(lastBody().connectionId).toBe('three'));
+  });
+
+  it("clears a left card's stale presence, but not on a same-card mode change", async () => {
+    const { hook, source } = setup();
+    act(() => source.emit('ready', { connectionId: 'one' }));
+    act(() =>
+      source.emit('presence.updated', { cardKey: 'TST_1', users: [alice] }),
+    );
+    expect(hook.result.current.presence).toEqual([alice]);
+
+    hook.rerender({ card: 'TST_1', mode: 'editing' });
+    await act(async () => {});
+    expect(hook.result.current.presence).toEqual([alice]);
+
+    hook.rerender({ card: 'TST_2', mode: 'editing' });
+    await act(async () => {});
+    hook.rerender({ card: 'TST_1', mode: 'editing' });
+    expect(hook.result.current.presence).toEqual([]);
   });
 
   it('replaces the connection and clears presence when changing projects', () => {
@@ -178,11 +194,9 @@ describe('project events and presence', () => {
     const hook = renderHook(() => usePresence('TST_1'), { wrapper });
     const first = FakeEventSource.instances[0];
     expect(first.url).toBe('/api/projects/TST/events');
+    act(() => first.emit('ready', { connectionId: 'one' }));
     act(() =>
-      first.emit('ready', {
-        connectionId: 'one',
-        presence: { TST_1: [alice] },
-      }),
+      first.emit('presence.updated', { cardKey: 'TST_1', users: [alice] }),
     );
     expect(hook.result.current).toEqual([alice]);
 
@@ -279,6 +293,16 @@ describe('project events and presence', () => {
     expect(notifications()).toEqual([]);
   });
 
+  it('refreshes for a reader even when the server omits identity', async () => {
+    currentUser.role = 'reader';
+    const { hook, source, setSaved } = setup();
+    await waitFor(() => expect(loaded(hook)).toBe('Saved/Saved'));
+    setSaved('Remote edit');
+
+    act(() => source.emit('card.updated', { cardKey: 'TST_1' }));
+    await waitFor(() => expect(hook.result.current.data).toBe('Remote edit'));
+  });
+
   it('does not open a stream for static exports', () => {
     config.staticMode = true;
     setup();
@@ -299,10 +323,9 @@ describe('project events and presence', () => {
     fetcher.mockClear();
 
     act(() => {
-      source.emit('ready', { connectionId: 'one', presence: {} });
+      source.emit('ready', { connectionId: 'one' });
       source.emit('error');
-      source.emit('ready', { connectionId: 'two', presence: {} });
-      source.emit('card.updated', { cardKey: 'TST_1' });
+      source.emit('ready', { connectionId: 'two' });
     });
     expect(fetcher).not.toHaveBeenCalled();
     expect(notifications()).toEqual([]);

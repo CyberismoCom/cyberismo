@@ -21,8 +21,8 @@ export interface PresenceEntry {
 
 export interface CardUpdatedEvent {
   cardKey: string;
-  userId: string;
-  userName: string;
+  userId?: string;
+  userName?: string;
 }
 
 export const ProjectEventsContext = createContext<{
