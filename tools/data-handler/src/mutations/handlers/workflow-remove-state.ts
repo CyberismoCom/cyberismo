@@ -16,7 +16,7 @@ import type { Handler, MutationContext } from '../handler.js';
 import { resolveRename } from '../handler.js';
 import type { EditInput } from '../types.js';
 import {
-  isInitialTransition,
+  workflowInitialState,
   resourceNameToString,
 } from '../../utils/resource-utils.js';
 import type { RemoveOperation } from '../../resources/resource-object.js';
@@ -63,29 +63,14 @@ export class WorkflowRemoveStateHandler implements Handler<EditInput> {
 
     // The author's recorded choice wins; with none, cards fall back to the
     // state a new card would get rather than being left in a removed state.
-    const effective = replacementName ?? this.initialState(ctx, name);
+    const effective =
+      replacementName ?? workflowInitialState(ctx.project, name);
     if (effective) {
       for (const card of this.cardsInState(ctx, name, stateName)) {
         card.metadata!.workflowState = effective;
         await ctx.project.updateCardMetadata(card, card.metadata!);
       }
     }
-  }
-
-  // The state a newly created card gets. In the authoring path apply() runs
-  // resource.update() first, so this reads the POST-update workflow.
-  // Undefined when the workflow is missing (deleted later in a replay chain)
-  // or the initial transition is gone (e.g. its target was the removed
-  // state); affected cards are then left for final validation to report.
-  private initialState(
-    ctx: MutationContext,
-    workflowName: string,
-  ): string | undefined {
-    const workflow = ctx.project.resources.byType(
-      workflowName,
-      'workflows',
-    )?.data;
-    return workflow?.transitions.find(isInitialTransition)?.toState;
   }
 
   // Cards using this workflow (via their card type) that are currently in the

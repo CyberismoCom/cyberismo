@@ -605,9 +605,8 @@ describe('workflow state succession across a replay batch', () => {
     removed,
     {
       ...removed,
-      name: 'a state removed without a replacement (known leftover: left in place)',
+      name: "a state removed without a replacement, as the old workflow's initial state",
       wf: [[remove(W, 'Rejected')]],
-      expected: 'Rejected',
     },
     {
       ...removed,

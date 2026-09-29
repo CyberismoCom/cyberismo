@@ -19,6 +19,19 @@ export function isInitialTransition(transition: WorkflowTransition): boolean {
   return transition.fromState.includes('') || transition.fromState.length === 0;
 }
 
+/**
+ * The state a newly created card gets in the workflow, as the project
+ * currently holds it. Undefined when the workflow is missing or has no
+ * initial transition.
+ */
+export function workflowInitialState(
+  project: Project,
+  workflowName: string,
+): string | undefined {
+  const workflow = project.resources.byType(workflowName, 'workflows')?.data;
+  return workflow?.transitions.find(isInitialTransition)?.toState;
+}
+
 // Resource name parts are:
 // - prefix; name of the project this resource is part of
 // - type; type of resource; in plural

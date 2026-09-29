@@ -491,7 +491,11 @@ describe('executeModuleReplays', () => {
 
   function fakeProject() {
     return {
-      resources: { changed: vi.fn(), changedModules: vi.fn() },
+      resources: {
+        changed: vi.fn(),
+        changedModules: vi.fn(),
+        byType: vi.fn(),
+      },
       clearCards: vi.fn(),
       populateCaches: vi.fn().mockResolvedValue(undefined),
     } as unknown as Project;
@@ -574,6 +578,8 @@ describe('executeModuleReplays', () => {
     replayStep.seals[0].entries = [
       // CLI-recorded shape: bare strings.
       states({ name: 'remove', target: 'Old', replacementValue: 'Draft' }),
+      // Legacy removal without a replacement succeeds to the initial state.
+      states({ name: 'remove', target: { name: 'Legacy' } }),
       JSON.parse(
         logLine('resource_rename', W, {
           type: 'workflows',
@@ -582,12 +588,26 @@ describe('executeModuleReplays', () => {
       ),
     ];
 
-    await executeModuleReplays(fakeProject(), [replayStep]);
+    const project = fakeProject();
+    // Only the final (renamed) workflow name resolves.
+    vi.mocked(project.resources.byType).mockImplementation(((name: string) =>
+      name === Wr
+        ? { data: { transitions: [{ fromState: [''], toState: 'Drafted' }] } }
+        : undefined) as never);
+    await executeModuleReplays(project, [replayStep]);
 
     expect(applySpy.mock.calls[0][1]).toMatchObject({
       stateSuccessions: {
         workflowRenames: new Map([[W, Wr]]),
-        successors: new Map([[Wr, new Map([['Old', 'Draft']])]]),
+        successors: new Map([
+          [
+            Wr,
+            new Map([
+              ['Old', 'Draft'],
+              ['Legacy', 'Drafted'],
+            ]),
+          ],
+        ]),
       },
     });
   });

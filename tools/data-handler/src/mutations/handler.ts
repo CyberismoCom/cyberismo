@@ -41,7 +41,8 @@ export interface StateSuccessions {
   workflowRenames: ReadonlyMap<string, string>;
   /**
    * Per final workflow name: state -> the state that took its place, which is
-   * a removal's recorded replacement or a legacy rename's new name.
+   * a removal's recorded replacement (or, without one, the workflow's initial
+   * state), or a legacy rename's new name.
    */
   successors: ReadonlyMap<string, ReadonlyMap<string, string>>;
 }

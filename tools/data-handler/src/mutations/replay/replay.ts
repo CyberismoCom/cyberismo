@@ -22,7 +22,10 @@ import { ResourceMutations } from '../resource-mutations.js';
 import { checkLinearity, computeChain } from './chain.js';
 import { entryToMutationInput } from './convert.js';
 import { listSealFiles } from './seal-files.js';
-import { resourceName } from '../../utils/resource-utils.js';
+import {
+  resourceName,
+  workflowInitialState,
+} from '../../utils/resource-utils.js';
 import { resolveRename, stateNameOf } from '../handler.js';
 
 import {
@@ -375,7 +378,7 @@ export async function executeModuleReplays(
   const cardTypeRenames = buildRenameMap(steps, 'cardTypes');
   // A card may sit in a state the batch removes or renames before a
   // card-type workflow change maps it.
-  const stateSuccessions = buildStateSuccessions(steps);
+  const stateSuccessions = buildStateSuccessions(project, steps);
 
   const mutations = new ResourceMutations(project);
   for (const step of steps) {
@@ -434,11 +437,15 @@ function buildRenameMap(
 
 /**
  * Every workflow-state succession in the batch: a removal points at its
- * recorded replacement, a legacy rename at the new name. Keyed by the workflow's final name,
+ * recorded replacement, or at the workflow's initial state when it has none;
+ * a legacy rename at the new name. Keyed by the workflow's final name,
  * because entries logged before a workflow rename carry the old one. The
  * last entry wins when a state succeeds twice.
  */
-function buildStateSuccessions(steps: ReplayStep[]): StateSuccessions {
+function buildStateSuccessions(
+  project: Project,
+  steps: ReplayStep[],
+): StateSuccessions {
   const workflowRenames = buildRenameMap(steps, 'workflows');
   const successors = new Map<string, Map<string, string>>();
   for (const step of steps) {
@@ -447,7 +454,7 @@ function buildStateSuccessions(steps: ReplayStep[]): StateSuccessions {
         const succession = stateSuccession(entry);
         if (!succession) continue;
         const workflow = resolveRename(entry.target, workflowRenames);
-        const { to } = succession;
+        const to = succession.to ?? workflowInitialState(project, workflow);
         if (to === undefined || to === succession.from) continue;
         let states = successors.get(workflow);
         if (!states) {
