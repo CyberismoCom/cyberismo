@@ -1,12 +1,12 @@
 {
-    "title": "Managing calculations",
+    "title": "Managing skills",
     "cardType": "base/cardTypes/page",
     "workflowState": "Ready",
     "base/fieldTypes/owner": null,
     "base/fieldTypes/informationClassification": "public",
-    "rank": "0|o",
-    "lastUpdated": "2026-09-29T13:10:45.288Z",
+    "rank": "0|p",
+    "lastUpdated": "2026-09-29T13:14:40.534Z",
     "links": [],
     "templateCardKey": "base_2",
-    "lastTransitioned": "2026-02-14T17:06:15.861Z"
+    "createdAt": "2026-07-31T12:03:54.178Z"
 }

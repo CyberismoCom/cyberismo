@@ -1,0 +1,7 @@
+== Parameters
+
+* `Skill`: the name of a skill, such as `"example/skills/mySkill"`
+
+== Description
+
+The parameter of `skill(Skill)` is the name of a skill.

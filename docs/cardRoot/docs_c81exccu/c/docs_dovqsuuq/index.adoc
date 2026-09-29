@@ -52,7 +52,7 @@ A Cyberismo project has the following structure, all of which is tracked by Git:
 | All cards, organised in a hierarchy of directories. Each card directory contains `index.adoc` (content), `index.json` (metadata), and optionally `a/` (attachments) and `c/` (child cards).
 
 | `.cards/`
-| Project configuration including locally defined workflows, card types, field types, link types, templates, reports, calculations, and graph models.
+| Project configuration including locally defined workflows, card types, field types, link types, templates, reports, calculations, graph models, and skills.
 
 | `.cards/modules/`
 | Imported modules. These are managed by Cyberismo (`cyberismo import module`) and should generally not be edited manually.

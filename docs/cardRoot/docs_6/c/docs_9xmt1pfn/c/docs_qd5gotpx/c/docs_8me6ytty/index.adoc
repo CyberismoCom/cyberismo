@@ -1,0 +1,8 @@
+== Parameters
+
+* `Skill`: the name of a skill
+* `Tool`: the name of an MCP tool that the skill's instructions use, such as `"get_card"`
+
+== Description
+
+A skill declares the MCP tools that its instructions use. There is a separate `skillRelatedTool` term for each tool of the skill.

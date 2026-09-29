@@ -31,7 +31,7 @@ Template:: A template contains a card or a set of cards in a hierarchy that is u
 
 == Reusing and sharing
 
-Module:: A module is a reusable collection of templates, card types, workflows, field types, link types, calculations, reports and graph models. When a user imports a module as a dependency to their Cyberismo project, a read-only copy of the module is included in the project directory structure. The most common module is the _base_ module, which defines commonly used basic card types and their workflows.
+Module:: A module is a reusable collection of templates, card types, workflows, field types, link types, calculations, reports, graph models and skills. When a user imports a module as a dependency to their Cyberismo project, a read-only copy of the module is included in the project directory structure. The most common module is the _base_ module, which defines commonly used basic card types and their workflows.
 
 Module dependencies:: A module may itself depend on other modules, so modules layer rather than compete. Importing a module brings in everything it depends on, and each layer extends what is below it instead of replacing it. That is why adding a standard to a project does not mean starting the project again. The modules Cyberismo publishes are designed as such a stack. See {{#xref}}"cardKey":"docs_b9w4zfng"{{/xref}}.
 
@@ -42,6 +42,8 @@ Calculation:: A calculation is a resource holding a logic program, which Cyberis
 Report:: A report has two parts. A query, written as a logic program, produces a set of results from the content. A template, written in Handlebars, renders those results as AsciiDoc. A report is placed on a card with the report macro and may take parameters, so the same report can be reused in different contexts. Tables, summaries and status views are generated this way rather than maintained by hand. See {{#xref}}"cardKey":"docs_j1ldnk0s"{{/xref}}.
 
 Graph model and graph view:: A graph is configured in two parts. The graph model is a logic program that turns content into the nodes and edges of a diagram. The graph view controls how that graph is presented, so several views can share a single model. Diagrams such as data flow diagrams are generated from the model rather than drawn by hand. See {{#xref}}"cardKey":"docs_hbskjelr"{{/xref}}.
+
+Skill:: A skill is a set of instructions that an AI assistant follows when it works on a task in a project. A query collects the project data that the instructions use, and the project's logic programs decide when the skill is enabled, so the skills that an AI assistant sees depend on the current state of the project. See {{#xref}}"cardKey":"docs_qd5gotpx"{{/xref}}.
 
 '''
 
