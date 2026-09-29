@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Hono } from 'hono';
 import {
+  MOCK_EXP_COOKIE,
   MOCK_ROLE_COOKIE,
   MOCK_USER_COOKIE,
   MockAuthProvider,
@@ -19,6 +20,7 @@ describe('MockAuthProvider', () => {
       email: 'admin@cyberismo.local',
       name: 'Local Admin',
       role: UserRole.Admin,
+      exp: expect.any(Number),
     });
   });
 
@@ -36,6 +38,7 @@ describe('MockAuthProvider', () => {
       email: 'custom@example.com',
       name: 'Custom User',
       role: UserRole.Admin,
+      exp: expect.any(Number),
     });
   });
 
@@ -114,6 +117,7 @@ describe('MockAuthProvider', () => {
       email: 'carol@example.com',
       name: 'Carol',
       role: UserRole.Reader,
+      exp: expect.any(Number),
     });
   });
 
@@ -132,6 +136,7 @@ describe('MockAuthProvider', () => {
       email: 'carol@example.com',
       name: 'Carol',
       role: UserRole.Editor,
+      exp: expect.any(Number),
     });
   });
 
@@ -142,6 +147,7 @@ describe('MockAuthProvider', () => {
       email: 'admin@cyberismo.local',
       name: 'Local Admin',
       role: UserRole.Admin,
+      exp: expect.any(Number),
     };
 
     const unknown = await provider.authenticate(
@@ -172,6 +178,67 @@ describe('MockAuthProvider', () => {
       email: 'admin@cyberismo.local',
       name: 'Local Admin',
       role: UserRole.Admin,
+      exp: expect.any(Number),
+    });
+  });
+
+  it('lets ?as= name a roster identity for one request', async () => {
+    const provider = new MockAuthProvider({ roster: true });
+    const user = await provider.authenticate(
+      new Request('http://localhost/api/test?as=Bob'),
+    );
+
+    expect(user).toEqual({
+      id: 'mock-user-bob',
+      name: 'Bob',
+      email: 'bob@example.com',
+      role: UserRole.Editor,
+      exp: expect.any(Number),
+    });
+  });
+
+  it('gives ?as= precedence over both cookies', async () => {
+    const provider = new MockAuthProvider({ roster: true });
+    const user = await provider.authenticate(
+      new Request('http://localhost/api/test?as=carol', {
+        headers: {
+          cookie: `${MOCK_USER_COOKIE}=alice; ${MOCK_ROLE_COOKIE}=admin`,
+        },
+      }),
+    );
+
+    expect(user).toEqual({
+      id: 'mock-user-carol',
+      name: 'Carol',
+      email: 'carol@example.com',
+      role: UserRole.Reader,
+      exp: expect.any(Number),
+    });
+  });
+
+  it('falls back to the cookie identity for an unknown ?as= value', async () => {
+    const provider = new MockAuthProvider({ roster: true });
+    const user = await provider.authenticate(
+      new Request('http://localhost/api/test?as=mallory', {
+        headers: { cookie: `${MOCK_USER_COOKIE}=alice` },
+      }),
+    );
+
+    expect(user!.id).toBe('mock-user-alice');
+  });
+
+  it('ignores ?as= when the roster is off', async () => {
+    const provider = new MockAuthProvider();
+    const user = await provider.authenticate(
+      new Request('http://localhost/api/test?as=bob'),
+    );
+
+    expect(user).toEqual({
+      id: 'mock-user',
+      email: 'admin@cyberismo.local',
+      name: 'Local Admin',
+      role: UserRole.Admin,
+      exp: expect.any(Number),
     });
   });
 });
@@ -225,6 +292,11 @@ describe('MockAuthProvider.cookieMiddleware', () => {
     expect(prototypeKey.headers.get('set-cookie')).toBeNull();
   });
 
+  it('writes no cookie for ?as=, so the caller keeps its own identity', async () => {
+    const res = await appWithMiddleware().request('/?as=bob');
+    expect(res.headers.get('set-cookie')).toBeNull();
+  });
+
   it('sets both cookies when role and user are in one request', async () => {
     const res = await appWithMiddleware().request('/?role=reader&user=bob');
     expect(res.headers.getSetCookie()).toEqual(
@@ -242,5 +314,149 @@ describe('MockAuthProvider.cookieMiddleware', () => {
     expect(res.headers.getSetCookie()).toEqual([
       expect.stringMatching(new RegExp(`^${MOCK_ROLE_COOKIE}=reader`)),
     ]);
+  });
+});
+
+describe('MockAuthProvider expiry', () => {
+  const future = () => Math.floor(Date.now() / 1000) + 90;
+  const past = () => Math.floor(Date.now() / 1000) - 1;
+
+  it('returns the deadline from the mock-exp cookie as the token expiry', async () => {
+    const provider = new MockAuthProvider({ roster: true });
+    const exp = future();
+    const user = await provider.authenticate(
+      new Request('http://localhost/api/test', {
+        headers: {
+          cookie: `${MOCK_USER_COOKIE}=bob; ${MOCK_EXP_COOKIE}=${exp}`,
+        },
+      }),
+    );
+
+    expect(user).toEqual({
+      id: 'mock-user-bob',
+      email: 'bob@example.com',
+      name: 'Bob',
+      role: UserRole.Editor,
+      exp,
+    });
+  });
+
+  it('expires the default user too, not just a roster identity', async () => {
+    const provider = new MockAuthProvider({ roster: true });
+    const exp = future();
+    const user = await provider.authenticate(
+      new Request('http://localhost/api/test', {
+        headers: { cookie: `${MOCK_EXP_COOKIE}=${exp}` },
+      }),
+    );
+
+    expect(user).toMatchObject({ id: 'mock-user', exp });
+  });
+
+  it('rejects the request once the deadline has passed', async () => {
+    const provider = new MockAuthProvider({ roster: true });
+    const user = await provider.authenticate(
+      new Request('http://localhost/api/test', {
+        headers: {
+          cookie: `${MOCK_USER_COOKIE}=bob; ${MOCK_EXP_COOKIE}=${past()}`,
+        },
+      }),
+    );
+
+    expect(user).toBeNull();
+  });
+
+  it('ignores a malformed mock-exp cookie rather than locking the user out', async () => {
+    const provider = new MockAuthProvider({ roster: true });
+    const user = await provider.authenticate(
+      new Request('http://localhost/api/test', {
+        headers: { cookie: `${MOCK_EXP_COOKIE}=soon` },
+      }),
+    );
+
+    expect(user).toMatchObject({ id: 'mock-user' });
+    // Unreadable deadline is dropped, so the session falls back to the
+    // inert far-future one rather than being locked out.
+    expect(user!.exp).toBeGreaterThan(Math.floor(Date.now() / 1000) + 30 * 60);
+  });
+
+  it('ignores the mock-exp cookie when the roster is off', async () => {
+    const provider = new MockAuthProvider();
+    const user = await provider.authenticate(
+      new Request('http://localhost/api/test', {
+        headers: { cookie: `${MOCK_EXP_COOKIE}=${past()}` },
+      }),
+    );
+
+    expect(user).toMatchObject({ id: 'mock-user' });
+    expect(user!.exp).toBeGreaterThan(Math.floor(Date.now() / 1000) + 30 * 60);
+  });
+});
+
+describe('MockAuthProvider expiry is always expressed', () => {
+  it('reports a deadline far enough out to be inert when no ttl is set', async () => {
+    const provider = new MockAuthProvider({ roster: true });
+    const user = await provider.authenticate(
+      new Request('http://localhost/api/test'),
+    );
+
+    const now = Math.floor(Date.now() / 1000);
+    // Mock sessions do not expire; a distant deadline says so without making
+    // `exp` optional for every consumer. It must clear the 30-minute stream
+    // lifetime so rotation still falls to the jitter.
+    expect(user!.exp).toBeGreaterThan(now + 30 * 60);
+  });
+
+  it('reports a deadline with the roster off too', async () => {
+    const provider = new MockAuthProvider();
+    const user = await provider.authenticate(
+      new Request('http://localhost/api/test'),
+    );
+
+    expect(user!.exp).toBeGreaterThan(Math.floor(Date.now() / 1000) + 30 * 60);
+  });
+});
+
+describe('MockAuthProvider.cookieMiddleware ttl', () => {
+  function appWithMiddleware(roster = true) {
+    const app = new Hono();
+    app.use(new MockAuthProvider({ roster }).cookieMiddleware());
+    app.get('*', (c) => c.text('ok'));
+    return app;
+  }
+
+  it('turns ?ttl= seconds into an absolute deadline', async () => {
+    const before = Math.floor(Date.now() / 1000);
+    const res = await appWithMiddleware().request('/?ttl=90');
+    const after = Math.floor(Date.now() / 1000);
+
+    const match = new RegExp(`${MOCK_EXP_COOKIE}=(\\d+)`).exec(
+      res.headers.get('set-cookie') ?? '',
+    );
+    expect(match).not.toBeNull();
+    const exp = Number(match![1]);
+    expect(exp).toBeGreaterThanOrEqual(before + 90);
+    expect(exp).toBeLessThanOrEqual(after + 90);
+  });
+
+  it('clears the deadline when ttl=default', async () => {
+    const res = await appWithMiddleware().request('/?ttl=default');
+    const setCookie = res.headers.get('set-cookie') ?? '';
+
+    expect(setCookie).toContain(`${MOCK_EXP_COOKIE}=`);
+    expect(setCookie.toLowerCase()).toContain('max-age=0');
+  });
+
+  it.each(['0', '-5', 'soon', '1.5', '99999999999'])(
+    'ignores the unusable ttl %s',
+    async (ttl) => {
+      const res = await appWithMiddleware().request(`/?ttl=${ttl}`);
+      expect(res.headers.get('set-cookie')).toBeNull();
+    },
+  );
+
+  it('ignores ?ttl= when the roster is off', async () => {
+    const res = await appWithMiddleware(false).request('/?ttl=90');
+    expect(res.headers.get('set-cookie')).toBeNull();
   });
 });
