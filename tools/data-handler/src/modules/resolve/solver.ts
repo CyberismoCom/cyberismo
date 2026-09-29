@@ -283,24 +283,7 @@ export async function solve(
   const availableVersions = async (n: Node): Promise<Version[]> => {
     if (!source.supportsVersioning(n.source.location))
       return n.installed ? [n.installed] : [];
-    let remote: Version[];
-    try {
-      remote = await listRemote(n);
-    } catch (error) {
-      // Availability is a read-only "what could move" query: an unreachable
-      // bystander must not poison the answer for the module actually being
-      // checked. Freeze it at its installed version. The checked module
-      // itself — and every apply path — still propagates the failure.
-      if (
-        req.kind === 'availability' &&
-        req.module !== undefined &&
-        req.module !== n.name &&
-        n.installed !== null
-      ) {
-        return [n.installed];
-      }
-      throw error;
-    }
+    const remote = await listRemote(n);
     // An installed versioned module stays a candidate even if the remote
     // currently lists no tags — only a genuinely tagless source is unversioned.
     if (remote.length === 0 && n.installed) return [n.installed];
@@ -376,10 +359,6 @@ export async function solve(
         return n.name === req.name ? inRange() : fromInstalled();
       case 'updateAll':
         return inRange(); // everything to newest-in-range, transitive included
-      case 'availability': {
-        if (!req.module) return inRange(); // "can I update all?" → newest
-        return n.name === req.module ? inRange() : fromInstalled();
-      }
     }
   };
 
