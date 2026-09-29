@@ -17,4 +17,4 @@ export * from './AddAttachmentModal';
 export * from './GenericConfirmModal';
 export * from './LogicProgramModal';
 export * from './resource-forms';
-export * from './AddModuleModal';
+export * from './InstallModuleModal';

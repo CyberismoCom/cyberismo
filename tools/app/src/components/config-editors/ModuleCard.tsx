@@ -31,6 +31,7 @@ interface ModuleCardProps {
   checking: boolean;
   isUpdating: (action?: string) => boolean;
   onUpdate: () => void;
+  onChangeVersion: () => void;
   onDelete: () => void;
 }
 
@@ -41,6 +42,7 @@ export function ModuleCard({
   checking,
   isUpdating,
   onUpdate,
+  onChangeVersion,
   onDelete,
 }: ModuleCardProps) {
   const { t } = useTranslation();
@@ -116,6 +118,19 @@ export function ModuleCard({
               onClick={onUpdate}
             >
               {t('update')}
+            </Button>
+          )}
+          {row.actions.changeVersion && (
+            <Button
+              size="sm"
+              variant="outlined"
+              aria-label={t('general.changeVersionLabel', {
+                module: module.name,
+              })}
+              disabled={busy}
+              onClick={onChangeVersion}
+            >
+              {t('general.changeVersion')}
             </Button>
           )}
           {row.actions.remove && (
