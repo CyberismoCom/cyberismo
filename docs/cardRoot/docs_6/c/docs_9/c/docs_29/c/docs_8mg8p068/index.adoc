@@ -13,3 +13,5 @@ Cyberismo generates `field` facts for the properties of cards and other resource
 `field` therefore always holds the effective value of a field — regardless of whether the field is stored or calculated, and whether an override is in effect or not. Whenever a rule needs the value of a field, read `field`. To define the value of a calculated field, use a `{{#xref}}"cardKey":"docs_ob1wsa0g"{{/xref}}` head.
 
 When you define values of fields with facts or rules, the logic program also needs to include information about the data type of the field. If the field is based on a field type configuration, then the data type is available automatically from the field type, but in other cases, you should also define a data type for the field using `{{#xref}}"cardKey":"docs_aozy8cfm"{{/xref}}`.
+
+Write `field` only in calculations. A `field` head in a query is a violation of the rule that queries never write predicates that the main logic program reads. To give an attribute to a query result, use {{#xref}}"cardKey":"docs_g9t7ad0x"{{/xref}}.

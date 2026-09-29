@@ -1,0 +1,32 @@
+== Parameters
+
+* `Key`: The key of a result, child result or child object
+* `Field`: The name of the attribute
+* `Value`: The value of the attribute
+* `DataType`: The data type of the attribute. See {{#xref}}"cardKey":"docs_25"{{/xref}} for more information
+
+== Description
+
+The `resultField` predicate with 4 parameters constructs an attribute of a query result with an explicit data type. Use it for types that the name of the attribute cannot carry, such as `integer` or `number` for computed values, `stringList` (each atom appends one string to an array), and `boolean` on undeclared names, and for the built-in fields (`lastUpdated`, `createdAt`, `lastSynchronised`, `progress`).
+
+The given `DataType` is always used, also when a field type named `Field` exists with another data type. The data types `enum` and `list` produce an object or an array, but the index and the display value are filled in only when `Field` is the name of the field type. To take the data type from the field type, use {{#xref}}"cardKey":"docs_g9t7ad0x"{{/xref}}.
+
+For an overview of how results get their attributes, see {{#xref}}"cardKey":"docs_33"{{/xref}}.
+
+== Example
+
+The following query counts the cards under `docs_9` in each workflow state. The `count` is a JSON number:
+
+[source]
+----
+result(State) :-
+    ancestor(Card, docs_9),
+    field(Card, "workflowState", State).
+
+resultField(State, "count", Count, "integer") :-
+    result(State),
+    Count = #count { card(X) :
+        ancestor(X, docs_9),
+        field(X, "workflowState", State)
+    }.
+----

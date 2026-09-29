@@ -10,8 +10,6 @@ The `dataType` predicate declares that a field of an object has a specific data 
 
 When you define values of fields with facts or rules using {{#xref}}"cardKey":"docs_8mg8p068"{{/xref}}, the logic program also needs to include information about the data type of the field. If the field is a calculated field of a card, where the field is defined with a field type configuration and included in the card type, then the data type is available automatically from the field type.
 
-However, if the field is not associated with a field type configuration, for example because it is a temporary calculated field of a query result, then you need to define a data type for the field using the `dataType` predicate. In queries, you can alternatively use the {{#xref}}"cardKey":"docs_bnakwi6w"{{/xref}} predicate.
+However, if the field is not associated with a field type configuration, then you need to define a data type for the field using the `dataType` predicate.
 
-
-
-
+`dataType` is a predicate of the main logic program, so queries never write it. To give an attribute of a query result a typed value, use {{#xref}}"cardKey":"docs_h1sm98ea"{{/xref}}.
