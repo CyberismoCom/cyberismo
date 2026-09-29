@@ -47,12 +47,12 @@ import type {
   UpdateRequest,
 } from './types.js';
 
-interface Edge {
+export interface Edge {
   name: string;
   source: Source;
   range: VersionRange;
 }
-interface Node {
+export interface Node {
   name: string;
   source: Source;
   installed: Version | null;
@@ -60,11 +60,11 @@ interface Node {
   isRoot: boolean;
   declaredRange: VersionRange | null;
 }
-interface Decision {
+export interface Decision {
   version: Version | null;
   edges: Edge[];
 }
-type Assignment = Map<string, Decision>;
+export type Assignment = Map<string, Decision>;
 
 /**
  * Range to persist for a root that declared none. The assumption is only
@@ -99,11 +99,14 @@ interface Candidates {
   pinAssumed?: boolean;
 }
 
-/** Solver internals shared between {@link resolve} and {@link resolveForApply}. */
-interface SolveOutcome {
+/** A solve's outcome, shared by {@link resolve}, {@link resolveForApply} and the update plan. */
+export interface SolveOutcome {
   result: ResolveResult;
   nodes: Map<string, Node>;
   assign: Assignment;
+  listed: Map<string, Version[]>;
+  /** Root declarations whose persisted range the update changes. */
+  rangeWrites: { module: string; range: VersionRange }[];
 }
 
 function toEdges(config: {
@@ -139,7 +142,8 @@ function toEdges(config: {
     }));
 }
 
-async function solve(
+/** Solve `req` without fetching any module tree. The caller owns `source`. */
+export async function solve(
   project: Project,
   req: UpdateRequest,
   source: SourceLayer,
@@ -251,13 +255,25 @@ async function solve(
     return result;
   };
 
+  // Remote listings, one per node per solve; backtracking revisits nodes.
+  const listed = new Map<string, Version[]>();
+  const listRemote = async (n: Node): Promise<Version[]> => {
+    const hit = listed.get(n.name);
+    if (hit) return hit;
+    const url = buildRemoteUrl(n.source, credentials);
+    const remote = (
+      await source.listRemoteVersions(n.source.location, url)
+    ).map(toVersion);
+    listed.set(n.name, remote);
+    return remote;
+  };
+
   const availableVersions = async (n: Node): Promise<Version[]> => {
     if (!source.supportsVersioning(n.source.location))
       return n.installed ? [n.installed] : [];
-    const url = buildRemoteUrl(n.source, credentials);
-    let listed: string[];
+    let remote: Version[];
     try {
-      listed = await source.listRemoteVersions(n.source.location, url);
+      remote = await listRemote(n);
     } catch (error) {
       // Availability is a read-only "what could move" query: an unreachable
       // bystander must not poison the answer for the module actually being
@@ -273,7 +289,6 @@ async function solve(
       }
       throw error;
     }
-    const remote = listed.map(toVersion);
     // An installed versioned module stays a candidate even if the remote
     // currently lists no tags — only a genuinely tagless source is unversioned.
     if (remote.length === 0 && n.installed) return [n.installed];
@@ -474,6 +489,8 @@ async function solve(
       result: { ok: false, conflicts: informative.length ? informative : all },
       nodes,
       assign,
+      listed,
+      rangeWrites: [],
     };
   }
 
@@ -512,7 +529,27 @@ async function solve(
       changes.push({ module: name, from, to, replay });
     }
   }
-  return { result: { ok: true, changes }, nodes, assign };
+
+  const rangeWrites: SolveOutcome['rangeWrites'] = [];
+  for (const [name, decision] of assign) {
+    const node = nodes.get(name)!;
+    if (!node.isRoot) continue;
+    const range =
+      node.declaredRange ??
+      assumedRangeFor(
+        decision.version,
+        source.supportsVersioning(node.source.location),
+      );
+    if (range && range !== declaredByName.get(name)?.versionRange)
+      rangeWrites.push({ module: name, range });
+  }
+  return {
+    result: { ok: true, changes },
+    nodes,
+    assign,
+    listed,
+    rangeWrites,
+  };
 }
 
 export async function resolve(
@@ -561,13 +598,14 @@ export async function resolveForApply(
   const source = opts?.sourceLayer ?? createSourceLayer();
   const tempDir = opts?.tempDir ?? join(project.paths.tempFolder, 'resolve');
   try {
-    const { result, nodes, assign } = await solve(
+    const { result, nodes, assign, rangeWrites } = await solve(
       project,
       req,
       source,
       opts?.credentials,
     );
     if (!result.ok) return { plan: result, resolved: [], backfill: [] };
+    const rangeOf = new Map(rangeWrites.map((w) => [w.module, w.range]));
 
     const resolved: ResolvedModule[] = [];
     for (const change of result.changes) {
@@ -593,11 +631,7 @@ export async function resolveForApply(
           name: change.module,
           source: node.source,
           versionRange: node.isRoot
-            ? (node.declaredRange ??
-              assumedRangeFor(
-                change.to,
-                source.supportsVersioning(node.source.location),
-              ))
+            ? (rangeOf.get(change.module) ?? node.declaredRange ?? undefined)
             : undefined,
           parent: referrer
             ? { project: project.basePath, name: referrer }
@@ -609,27 +643,20 @@ export async function resolveForApply(
         stagedPath,
       });
     }
-    // Roots the plan leaves in place never reach `resolved`, so their
-    // assumed range would survive forever. Sweep them here — the solve
-    // already listed every root's versions, so this costs no extra fetch.
+    // Roots the plan leaves in place never reach `resolved`; persist their
+    // range write as a declaration-only backfill.
     const moved = new Set(result.changes.map((c) => c.module));
-    const backfill: ModuleSetting[] = [];
-    for (const [name, decision] of assign) {
-      if (moved.has(name)) continue;
-      const node = nodes.get(name)!;
-      if (!node.isRoot || node.declaredRange !== null) continue;
-      const range = assumedRangeFor(
-        decision.version,
-        source.supportsVersioning(node.source.location),
-      );
-      if (!range) continue;
-      backfill.push({
-        name,
-        location: node.source.location,
-        private: node.source.private ?? false,
-        version: range,
+    const backfill: ModuleSetting[] = rangeWrites
+      .filter((w) => !moved.has(w.module))
+      .map((w) => {
+        const node = nodes.get(w.module)!;
+        return {
+          name: w.module,
+          location: node.source.location,
+          private: node.source.private ?? false,
+          version: w.range,
+        };
       });
-    }
 
     return { plan: result, resolved, backfill };
   } finally {
