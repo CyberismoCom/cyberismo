@@ -6,7 +6,7 @@ A Cyberismo query uses logic programming facts and rules to "sculpt" its result 
 
 If you only need a simple list of results, the queries are short and straightforward. The query language is flexible, and you can use it to describe complex results easily. On the top level, the result of a Cyberismo query is an array of objects, each declared with the `result` predicate. The result objects on any level of hierarchy can have the following kinds of properties:
 
-* Scalar properties, described with the `field` predicate. Fields can come from the main logic program, or they can be fields that are introduced in the query.
+* Scalar properties, or attributes. An attribute is either selected from the fields that the main logic program provides, or constructed by the query with the `resultField` predicate. See "Attributes of results" below.
 * Properties that are objects, described with the `childObject` predicate.
 * Properties that are arrays or objects, described with the `childResult` predicate.
 
@@ -79,6 +79,37 @@ The following special cases are supported:
 | Include information about denied operations such as denied workflow transitions, denied moving, etc.
 
 |===
+
+== Attributes of results
+
+A query can give a result an attribute in two ways.
+
+Selection::
+`select`, `selectAll` and `selectCollectionField` show attributes that the main logic program already has, such as the fields of a card. An attribute is shown only on result keys that have it and for which it is selected.
+
+Construction::
+`resultField` constructs an attribute that the main logic program does not have, for example a computed count or a value of a synthetic result. It is always shown on the key it is written for. There is no need to select it.
+
+If you rewrite a query to construct attributes with `resultField`, note that the attribute is no longer subject to the selection. If the query relied on `select` to limit the attributes to some keys, guard the `resultField` rule in the same way, for example with `result(Key)` or `childResult(_, Key, _)`.
+
+IMPORTANT: Queries only read the main logic program. A query never writes `field`, `dataType` or any other predicate that the main logic program reads. A `field` head in a query breaks this rule, and it will be rejected in a future release. Use `resultField` instead.
+
+The data type of an attribute determines how it appears in the JSON result. The type comes from the channel:
+
+[%header]
+|===
+| Channel | Data type
+| Selection
+| The declared data type of the field, including the built-in fields (`lastUpdated`, `createdAt` and `lastSynchronised` are `dateTime`, `progress` is `integer`). `shortText` if there is none.
+
+| `resultField(Key, Field, Value)`
+| The declared data type of the field type named `Field`, otherwise `shortText`. The built-in fields are not field types, so they get `shortText`. Enum and list field types produce objects and arrays as in selection.
+
+| `resultField(Key, Field, Value, DataType)`
+| `DataType`, always, even when a field type with that name exists.
+|===
+
+An attribute with no declared type is a string, also when its value is a number. Use `resultField` with the data type `"integer"` or `"number"` for a value that must be a JSON number and sort numerically.
 
 == Determining the results
 
@@ -192,17 +223,16 @@ The parameters of the xref:docs_1he7fa9g.adoc[`order`] predicate are:
 
 == Summary queries
 
-The _key_ of the results does not always have to be a card key. For example, the following summary query works similarly to an SQL query that uses "GROUP BY", as it returns the different workflow states of the cards that are descendants of `docs_9`, and for each workflow state, it calculates a `count` attribute that contains the number of cards in the given state. Note that it is this query that introduces the `count` attribute, rather than selecting a pre-existing attribute.
+The _key_ of the results does not always have to be a card key. For example, the following summary query works similarly to an SQL query that uses "GROUP BY", as it returns the different workflow states of the cards that are descendants of `docs_9`, and for each workflow state, it calculates a `count` attribute that contains the number of cards in the given state. Note that it is this query that constructs the `count` attribute with `resultField`, rather than selecting a pre-existing attribute.
 
 
 [source]
 ----
-selectAll.
 result(State) :-
     ancestor(Card, docs_9),
     field(Card, "workflowState", State).
 
-field(State, "count", Count) :-
+resultField(State, "count", Count, "integer") :-
     result(State),
     Count = #count { card(X) :
         ancestor(X, docs_9),
