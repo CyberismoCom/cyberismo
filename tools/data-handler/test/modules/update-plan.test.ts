@@ -223,4 +223,42 @@ describe('update plan', () => {
       ).rejects.toThrow('is unreachable');
     });
   });
+
+  describe('range target', () => {
+    const source = () =>
+      fakeRemote({
+        base: { versions: ['1.0.0', '2.0.0'], seals: { '2.0.0': ['1.0.0'] } },
+      });
+
+    it('refuses a blank range', async () => {
+      const project = await setup([root('base', '^1.0.0')]);
+      await expect(
+        planFor(project, { module: 'base', range: '  ' }, { source: source() }),
+      ).rejects.toThrow('Version range cannot be empty');
+    });
+
+    it('re-declares the range and moves across it', async () => {
+      const project = await setup([root('base', '^1.0.0')]);
+      const plan = await planFor(
+        project,
+        { module: 'base', range: '^2.0.0' },
+        { source: source() },
+      );
+      expect(plan.changes).toEqual([
+        { module: 'base', from: '1.0.0', to: '2.0.0', breaking: true },
+      ]);
+      expect(plan.rangeWrites).toEqual([{ module: 'base', range: '^2.0.0' }]);
+      expect(plan.roots[0]).toMatchObject({ range: '^2.0.0', heldBack: false });
+    });
+
+    it('reports no change when the version stays', async () => {
+      const project = await setup([root('base', '1.0.0')]);
+      const plan = await planFor(
+        project,
+        { module: 'base', range: '~1.0.0' },
+        { source: source() },
+      );
+      expect(plan.changes).toEqual([]);
+    });
+  });
 });
