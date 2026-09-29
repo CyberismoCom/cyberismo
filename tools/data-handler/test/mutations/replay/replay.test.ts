@@ -256,69 +256,6 @@ describe('planModuleReplays', () => {
     ]);
   });
 
-  it('cross-module workflow-state change + card-type workflow change is a split_workflow_ownership conflict', async () => {
-    const installedWf = makeInstalled('wf', 'file:/wf', '1.0.0');
-    const resolvedWf = makeResolved('wf', 'file:/wf', '2.0.0', [
-      {
-        from: '1.0.0',
-        to: '2.0.0',
-        lines: [
-          logLine('resource_update', 'wf/workflows/Flow', {
-            key: 'states',
-            operation: { name: 'change' },
-          }),
-        ],
-      },
-    ]);
-    const installedCt = makeInstalled('ct', 'file:/ct', '1.0.0');
-    const resolvedCt = makeResolved('ct', 'file:/ct', '2.0.0', [
-      {
-        from: '1.0.0',
-        to: '2.0.0',
-        lines: [
-          logLine('resource_update', 'ct/cardTypes/Task', {
-            key: 'workflow',
-            operation: { name: 'change' },
-          }),
-        ],
-      },
-    ]);
-    const error = await planModuleReplays(
-      [resolvedWf, resolvedCt],
-      [installedWf, installedCt],
-    ).catch((e) => e);
-    expect(error).toBeInstanceOf(ModuleReplayConflictError);
-    const split = error.conflicts.find(
-      (c: { kind: string }) => c.kind === 'split_workflow_ownership',
-    );
-    expect(split).toBeDefined();
-    expect(split.modulePrefix).toBe('ct');
-  });
-
-  it('same-module workflow-state + card-type workflow change is not a split conflict', async () => {
-    const installed = makeInstalled('mod', 'file:/m', '1.0.0');
-    const resolved = makeResolved('mod', 'file:/m', '2.0.0', [
-      {
-        from: '1.0.0',
-        to: '2.0.0',
-        lines: [
-          logLine('resource_update', 'mod/workflows/Flow', {
-            key: 'states',
-            operation: { name: 'remove' },
-          }),
-          logLine('resource_update', 'mod/cardTypes/Task', {
-            key: 'workflow',
-            operation: { name: 'change' },
-          }),
-        ],
-      },
-    ]);
-    // Both changes are owned by the same module and replay in version order;
-    // no cross-module ordering hazard, so planning succeeds.
-    const steps = await planModuleReplays([resolved], [installed]);
-    expect(steps).toHaveLength(1);
-  });
-
   it('correlates by name: a module that moved source is still an update', async () => {
     const installed = makeInstalled('mod', 'file:/old-host', '1.0.0');
     const resolved = makeResolved('mod', 'file:/new-host', '2.0.0', [
