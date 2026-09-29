@@ -13,7 +13,11 @@
 
 import { join, resolve as pathResolve } from 'node:path';
 
-import { redactUserinfo, unreachable } from '../exceptions/index.js';
+import {
+  ModuleRequestError,
+  redactUserinfo,
+  unreachable,
+} from '../exceptions/index.js';
 import { pathExists } from '../utils/file-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { read, write } from '../utils/rw-lock.js';
@@ -22,6 +26,7 @@ import { Validate } from './validate.js';
 import {
   applyModules,
   buildRemoteUrl,
+  requireDeclared,
   conflictReason,
   declaredModules,
   ensureStagedSchemas,
@@ -29,6 +34,7 @@ import {
   installedModulesWithSources,
   moduleInfos,
   resolveUpdate,
+  projectModules,
   resolveForApply,
   stageResolution,
   toUpdatePlan,
@@ -57,9 +63,11 @@ import type {
   ModuleInfo,
   ModuleSetting,
   ModuleSettingOptions,
+  ProjectModuleInfo,
   UpdatePlan,
   UpdateTarget,
 } from '../interfaces/project-interfaces.js';
+import type { Source } from '../modules/types.js';
 import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
 import type {
@@ -101,7 +109,10 @@ function freshRootStagingName(location: string): string {
  */
 function resolutionConflictError(conflicts: ResolveConflict[]): Error {
   const lines = conflicts.map((c) => `  ${c.module}: ${conflictReason(c)}`);
-  return new Error(`Cannot resolve modules:\n${lines.join('\n')}`);
+  return new ModuleRequestError(
+    'blocked',
+    `Cannot resolve modules:\n${lines.join('\n')}`,
+  );
 }
 
 /**
@@ -402,6 +413,52 @@ export class Modules {
   @read
   public async list(): Promise<ModuleInfo[]> {
     return moduleInfos(this.project);
+  }
+
+  /**
+   * Lists installed modules with their declared range, dependents and where
+   * their versions come from.
+   */
+  @read
+  public async inventory(): Promise<ProjectModuleInfo[]> {
+    return projectModules(this.project);
+  }
+
+  /**
+   * Lists the versions a declared module's source offers, newest first.
+   * @param target A declared module, or a git source not yet in the project.
+   * @param credentials Optional credentials for private modules.
+   * @throws {ModuleRequestError} if the module is unknown or transitive, or
+   * the source cannot be listed
+   */
+  @read
+  public async listVersions(
+    target: { module: string } | { source: string },
+    credentials?: Credentials,
+  ): Promise<string[]> {
+    let source: Source;
+    if ('source' in target) {
+      source = { location: normaliseLocation(target.source), private: false };
+    } else {
+      source = (await requireDeclared(this.project, target.module)).source;
+    }
+    const layer = createSourceLayer();
+    try {
+      return await layer.listRemoteVersions(
+        source.location,
+        buildRemoteUrl(source, credentials),
+      );
+    } catch (error) {
+      if (!('source' in target))
+        throw unreachable(target.module, error, 'list versions');
+      throw new ModuleRequestError(
+        'unreachable',
+        `Couldn't list versions of '${redactUserinfo(target.source)}'`,
+        error instanceof Error ? redactUserinfo(error.message) : undefined,
+      );
+    } finally {
+      await layer.dispose?.();
+    }
   }
 
   /**
