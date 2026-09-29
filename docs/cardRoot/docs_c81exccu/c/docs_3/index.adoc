@@ -40,6 +40,7 @@ Commands:
   validate [options]                                                       Validate project structure
   app [options]                                                            Starts the cyberismo app, accessible with a web browser at http://localhost:3000
   clean [options]                                                          Remove dormant field values: values a card stores but that are not shown and not visible to logic programs (empty placeholders, fields the card type no longer declares, values on calculated fields)
+  install-skills [options] [path]                                          Install the dynamic skill discovery bootstrap skill and MCP server configuration for an AI agent platform. Installs into the current directory by default — run it from (or pass) the directory your AI agent operates in, usually the repository root.
   help [command]                                                           display help for command
 ----
 
@@ -66,6 +67,7 @@ Commands:
   linkType <name>                                   Create a new link type
   project <name> <prefix> <path> [cat] [desc]       Create a new project
   report <name>                                     Create a new report
+  skill <name>                                      Create a new skill
   template <name> [content]                         Create a new template
   workflow <name> [content]                         Create a new workflow
   resource <resourceName> [content]                 Create a new resource

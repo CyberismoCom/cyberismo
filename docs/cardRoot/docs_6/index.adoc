@@ -3,7 +3,7 @@ The reference section documents every resource you can configure, the query lang
 
 This section is for looking things up rather than reading through. If you are new to Answer Set Programming, read {{#xref}}"cardKey":"docs_28"{{/xref}} in {{#xref}}"cardKey":"docs_is3958yg"{{/xref}} first, since the reference material below assumes it.
 
-*Configuring resources* covers workflows, card types, field types, link types, templates, reports, graph models and calculations.
+*Configuring resources* covers workflows, card types, field types, link types, templates, reports, graph models, calculations and skills.
 
 *Queries, reasoning, and visualisations* covers how cards map to a logic program, the query language, and the predicates behind reports, graphs, calculated fields, policy checks, notifications and connectors.
 

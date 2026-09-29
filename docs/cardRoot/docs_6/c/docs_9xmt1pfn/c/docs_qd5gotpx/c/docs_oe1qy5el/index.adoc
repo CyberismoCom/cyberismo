@@ -6,4 +6,4 @@
 
 == Description
 
-A skill has a display name.
+The fact exists only when the display name of the skill is set.

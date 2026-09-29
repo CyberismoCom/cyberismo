@@ -32,7 +32,7 @@ Restart Claude Code after saving. Ensure `cyberismo app` is running before start
 
 === Installing the skill discovery bootstrap
 
-The skills of a Cyberismo project are enabled dynamically, so an AI assistant needs to know that it should ask for them. The following command installs a bootstrap skill that tells the assistant to do so, together with the MCP server configuration:
+Because skills are enabled dynamically, an AI assistant must be told to ask for them. The following command installs a bootstrap skill that does this and also writes the MCP server configuration:
 
 [source,bash]
 ----
@@ -41,20 +41,20 @@ cyberismo install-skills
 
 Run the command in the directory that your AI assistant operates in -- usually the root of your repository -- or give that directory as an argument. The command writes the following files:
 
-* `.claude/skills/dynamic-skill-discovery/SKILL.md` -- instructions for looking up the enabled skills before acting on a task
-* `.mcp.json` -- registers the `cyberismo` MCP server. Entries of other MCP servers are kept as they are
+* `.claude/skills/dynamic-skill-discovery/SKILL.md` -- the bootstrap skill, with instructions for looking up the enabled skills before acting on a task
+* `.mcp.json` -- the `cyberismo` MCP server entry; entries for other MCP servers are left unchanged
 * `CLAUDE.md` -- a short pointer to the bootstrap skill, inside a block that Cyberismo manages
 
-Use the `--target` option to choose the AI assistant platform, and the `--url` option to register an MCP server URL other than the default `http://localhost:3000/mcp`:
+Use the `--target` option to choose the AI assistant platform (`claude` is currently the only supported platform and the default), and the `--url` option to register an MCP server URL other than the default `http://localhost:3000/mcp`:
 
 [source,bash]
 ----
 cyberismo install-skills --target claude --url http://localhost:4000/mcp
 ----
 
-The command is safe to run again: it replaces only the Cyberismo-managed block in `CLAUDE.md` and the `cyberismo` entry in `.mcp.json`.
+The command is safe to run again: it replaces only the Cyberismo-managed block in `CLAUDE.md` and the `cyberismo` entry in `.mcp.json`. It also overwrites `.claude/skills/dynamic-skill-discovery/SKILL.md`, so any local edits to that file are lost.
 
-For writing the skills themselves, see xref:docs_qd5gotpx.adoc[Managing skills].
+To write your own skills, see {{#xref}}"cardKey":"docs_qd5gotpx"{{/xref}}.
 
 == VS Code
 

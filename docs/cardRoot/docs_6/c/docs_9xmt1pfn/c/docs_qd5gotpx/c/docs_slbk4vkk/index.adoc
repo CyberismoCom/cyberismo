@@ -6,4 +6,4 @@
 
 The skill is enabled for the whole project, and an AI assistant can use it in any context. The scope of the skill is `global`.
 
-Define this term in a calculation to make a skill available. If the same skill is also enabled for specific cards with `enableSkill(Skill, CardKey)`, the project-wide enablement wins and the card-specific terms are ignored.
+Define this term in a calculation to make a skill available. If the same skill is also enabled for specific cards with `enableSkill(Skill, CardKey)`, the project-wide rule takes precedence and the card-specific rules are ignored.

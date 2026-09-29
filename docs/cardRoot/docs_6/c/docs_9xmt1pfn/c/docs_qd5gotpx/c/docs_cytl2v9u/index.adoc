@@ -5,6 +5,6 @@
 
 == Description
 
-The skill is enabled for a single card. The scope of the skill is `card`, and an AI assistant needs to give the card key when it asks for the instructions of the skill.
+The skill is enabled for a single card. The scope of the skill is `card`, and an AI assistant must provide the card key when it asks for the skill's instructions.
 
 Define this term in a calculation to make a skill available for the cards that it applies to.

@@ -2,8 +2,8 @@
 
 * `Skill`: the name of a skill
 * `"category"`: the string `"category"` that denotes the category field
-* `Category`: a category of the skill
+* `Category`: the category of the skill
 
 == Description
 
-A skill may belong to a category, such as `"risk assessment"`.
+A skill may belong to a category, such as `"risk assessment"`. The fact exists only when the category of the skill is set.
