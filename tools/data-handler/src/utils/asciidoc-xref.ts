@@ -37,11 +37,14 @@ function isRewriteMode(mode: Mode): mode is RewriteMode {
  *   empty), targeting the `[[cardKey]]` anchor declared by the include macro
  *   for each card in the PDF source.
  * - any other mode → content returned unchanged.
+ *
+ * Unresolvable targets are reported through `onWarning`.
  */
 export function rewriteAsciidocCardXrefs(
   content: string,
   project: Project,
   mode: Mode,
+  onWarning: (message: string) => void = console.warn,
 ): string {
   if (!isRewriteMode(mode)) {
     return content;
@@ -64,7 +67,7 @@ export function rewriteAsciidocCardXrefs(
       if (!card) {
         if (!warned.has(cardKey)) {
           warned.add(cardKey);
-          console.warn(
+          onWarning(
             `xref target "${cardKey}.adoc" does not match a known card; leaving link unchanged`,
           );
         }
@@ -74,7 +77,7 @@ export function rewriteAsciidocCardXrefs(
       if (mode === 'static') {
         if (anchor && !anchorDropWarned.has(cardKey)) {
           anchorDropWarned.add(cardKey);
-          console.warn(
+          onWarning(
             `xref to "${cardKey}.adoc${anchor}" includes an in-card anchor that cannot be resolved in PDF output; dropping anchor`,
           );
         }
@@ -87,7 +90,7 @@ export function rewriteAsciidocCardXrefs(
       } catch {
         if (!warned.has(cardKey)) {
           warned.add(cardKey);
-          console.warn(
+          onWarning(
             `xref target "${cardKey}.adoc" has no module prefix; leaving link unchanged`,
           );
         }

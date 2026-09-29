@@ -1,6 +1,12 @@
-import { expect, it, describe, beforeAll, afterAll } from 'vitest';
+import { expect, it, describe, beforeAll, afterAll, vi } from 'vitest';
 import { join } from 'node:path';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 
 import { copyDir } from '../src/utils/file-utils.js';
@@ -171,6 +177,64 @@ describe('PDF export - asciidoctor safe mode', () => {
       expect(imageCount(probe)).toBe(imageCount(control));
     },
     PDF_SPAWN_TIMEOUT,
+  );
+
+  it(
+    'counts rendering warnings instead of printing them',
+    async () => {
+      await commands.editCmd.editCardContent(
+        'decision_5',
+        '== Testing\n\nxref:missing_1.adoc[Missing]\n\n2. Second\n',
+      );
+      const stderrSpy = vi.spyOn(process.stderr, 'write');
+      const warnSpy = vi.spyOn(console, 'warn');
+      try {
+        const message = await exportCmd.exportPdf(
+          join(outsideDir, 'warnings.pdf'),
+          options,
+        );
+
+        expect(message).toContain('with 2 rendering warnings');
+        expect(stderrSpy).not.toHaveBeenCalled();
+        expect(warnSpy).not.toHaveBeenCalled();
+      } finally {
+        stderrSpy.mockRestore();
+        warnSpy.mockRestore();
+      }
+    },
+    PDF_SPAWN_TIMEOUT,
+  );
+
+  // A stub asciidoctor-pdf on PATH that fails with a server path in its output
+  it.runIf(process.platform === 'linux')(
+    'keeps failure diagnostics out of the buffer export error',
+    async () => {
+      const binDir = mkdtempSync(join(tmpdir(), 'cyberismo-pdf-stub-'));
+      const stub = join(binDir, 'asciidoctor-pdf');
+      writeFileSync(
+        stub,
+        '#!/bin/sh\ncat > /dev/null\necho "asciidoctor: ERROR: /srv/secret/path" >&2\nexit 1\n',
+      );
+      chmodSync(stub, 0o755);
+      const originalPath = process.env.PATH;
+      process.env.PATH = `${binDir}:${originalPath}`;
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        await expect(exportCmd.exportPdfBuffer(options)).rejects.toThrow(
+          /^Asciidoctor-pdf failed with code 1$/,
+        );
+        expect(errorSpy.mock.calls.flat().join(' ')).toContain(
+          '/srv/secret/path',
+        );
+        await expect(
+          exportCmd.exportPdf(join(outsideDir, 'failed.pdf'), options),
+        ).rejects.toThrow('/srv/secret/path');
+      } finally {
+        process.env.PATH = originalPath;
+        errorSpy.mockRestore();
+        rmSync(binDir, { recursive: true, force: true });
+      }
+    },
   );
 
   it(
