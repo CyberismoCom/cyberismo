@@ -36,8 +36,8 @@ export function conflictReason(c: ResolveConflict): string {
   if (c.pinned)
     parts.push(
       c.pinned.assumed
-        ? `no version declared in this project (assumed '${c.pinned.range}'), but ${c.pinned.wouldNeed} is needed`
-        : `declared as '${c.pinned.range}' in this project, but ${c.pinned.wouldNeed} is needed`,
+        ? `no version declared in this project (assumed '${c.pinned.range}'); a version outside it may be needed`
+        : `declared as '${c.pinned.range}' in this project; a version outside it may be needed`,
     );
   if (c.nonReplayable)
     parts.push(
