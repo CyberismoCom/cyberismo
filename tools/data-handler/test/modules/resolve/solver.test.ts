@@ -470,108 +470,6 @@ describe('resolve solver', () => {
     // config, so the refusal has to say which pin to widen and to what.
     expect(result.conflicts.find((c) => c.module === 'C')?.pinned).toEqual({
       range: '^1.0.0',
-      wouldNeed: '2.0.0',
-    });
-  });
-
-  it('a pin block cites the lowest blocked version, not the highest', async () => {
-    // The out-of-pin fixture with a second escape hatch: C 2.0.0 and C 3.0.0
-    // both tolerate B 1.4.0 and both sit outside C's ^1.0.0. The refusal has to
-    // name 2.0.0 — the smallest widening that would unblock the tree.
-    const project = buildProjectWithModules([
-      {
-        name: 'A',
-        location: 'https://x/A.git',
-        version: '^1.0.0',
-        private: false,
-      },
-      {
-        name: 'C',
-        location: 'https://x/C.git',
-        version: '^1.0.0',
-        private: false,
-      },
-    ]);
-    await installModule(project, {
-      name: 'A',
-      version: '1.6.0',
-      modules: [{ name: 'B', location: 'https://x/B.git', version: '>=1.3.0' }],
-    });
-    await installModule(project, {
-      name: 'C',
-      version: '1.2.0',
-      modules: [{ name: 'B', location: 'https://x/B.git', version: '~1.3.0' }],
-    });
-    await installModule(project, { name: 'B', version: '1.3.0' });
-
-    const configs = new Map<string, FakeModuleConfig>([
-      [
-        'https://x/A.git@v1.8.0',
-        {
-          cardKeyPrefix: 'A',
-          name: 'A',
-          version: '1.8.0',
-          modules: [
-            { name: 'B', location: 'https://x/B.git', version: '>=1.4.0' },
-          ],
-        },
-      ],
-      [
-        'https://x/C.git@v2.0.0',
-        {
-          cardKeyPrefix: 'C',
-          name: 'C',
-          version: '2.0.0',
-          modules: [
-            { name: 'B', location: 'https://x/B.git', version: '>=1.4.0' },
-          ],
-        },
-      ],
-      [
-        'https://x/C.git@v3.0.0',
-        {
-          cardKeyPrefix: 'C',
-          name: 'C',
-          version: '3.0.0',
-          modules: [
-            { name: 'B', location: 'https://x/B.git', version: '>=1.4.0' },
-          ],
-        },
-      ],
-      [
-        'https://x/B.git@v1.4.0',
-        {
-          cardKeyPrefix: 'B',
-          name: 'B',
-          version: '1.4.0',
-          modules: [],
-        },
-      ],
-    ]);
-    const available = new Map([
-      ['https://x/A.git', ['1.8.0', '1.6.0']],
-      ['https://x/C.git', ['3.0.0', '2.0.0', '1.2.0']],
-      ['https://x/B.git', ['1.4.0', '1.3.0']],
-    ]);
-    const seals = new Map<string, Array<[string, string]>>([
-      ['https://x/A.git@v1.8.0', [['1.6.0', '1.8.0']]],
-      ['https://x/C.git@v2.0.0', [['1.2.0', '2.0.0']]],
-      ['https://x/C.git@v3.0.0', [['1.2.0', '3.0.0']]],
-      ['https://x/B.git@v1.4.0', [['1.3.0', '1.4.0']]],
-    ]);
-    const source = new InMemorySource(configs, available, new Map(), seals);
-
-    const result = await resolve(
-      project,
-      { kind: 'update', module: 'A', to: '1.8.0' as Version },
-      { sourceLayer: source, tempDir: testDir },
-    );
-
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.conflicts.find((c) => c.module === 'C')?.pinned).toEqual({
-      range: '^1.0.0',
-      wouldNeed: '2.0.0',
     });
   });
 
@@ -674,7 +572,6 @@ describe('resolve solver', () => {
     expect(froms.has('C')).toBe(true);
     expect(result.conflicts.find((c) => c.module === 'C')?.pinned).toEqual({
       range: '^1.0.0',
-      wouldNeed: '2.0.0',
     });
   });
 
@@ -1432,7 +1329,7 @@ describe('resolve solver', () => {
     const c = result.conflicts.find((x) => x.module === 'C')!;
     expect(c.demands).toHaveLength(2);
     const l = result.conflicts.find((x) => x.module === 'L')!;
-    expect(l.pinned).toEqual({ range: '2.0.0', wouldNeed: '1.0.0' });
+    expect(l.pinned).toEqual({ range: '2.0.0' });
   });
 
   describe('transitives float to the newest their parents allow', () => {
@@ -1803,12 +1700,11 @@ describe('resolve solver', () => {
       });
       expect(result.conflicts[0].pinned).toEqual({
         range: '^1.0.0',
-        wouldNeed: '2.5.0',
       });
       const reason = conflictReason(result.conflicts[0]);
       expect(reason).toContain('cannot downgrade from 2.0.0 to 1.3.0');
       expect(reason).toContain(
-        "declared as '^1.0.0' in this project, but 2.5.0 is needed",
+        "declared as '^1.0.0' in this project; a version outside it may be needed",
       );
     });
   });
@@ -1934,7 +1830,6 @@ describe('resolve solver', () => {
       expect(result.conflicts).toHaveLength(1);
       expect(result.conflicts[0].pinned).toEqual({
         range: '1.x',
-        wouldNeed: '2.0.0',
         assumed: true,
       });
       expect(conflictReason(result.conflicts[0])).toContain("assumed '1.x'");

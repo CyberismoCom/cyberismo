@@ -47,13 +47,14 @@ export interface ResolveConflict {
    */
   downgrade?: { from: Version; to: Version };
   /**
-   * Set when a version satisfying every demand on this module existed, but
-   * fell outside the module's own declared range. Unlike the other kinds this
-   * one is fixable from the project config: widening `range` admits
-   * `wouldNeed` and unblocks the resolution. `assumed` marks a range the
-   * project never wrote — the default for a declaration without a version.
+   * Set when a version fitting the demands known at that point fell outside
+   * the module's own declared range, so widening `range` in the project
+   * config may unblock the resolution. No version is named: the search
+   * cannot tell which one the rest of the tree would accept. `assumed` marks
+   * a range the project never wrote — the default for a declaration without
+   * a version.
    */
-  pinned?: { range: VersionRange; wouldNeed: Version; assumed?: boolean };
+  pinned?: { range: VersionRange; assumed?: boolean };
   /**
    * Set when a version satisfying every demand (and pin) existed, but the
    * migration seal chain cannot bridge the installed version to it, so the
