@@ -21,10 +21,6 @@ import { runWithDefaultCommitMessage } from '../utils/commit-context.js';
 import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 import type { ChangeOperation } from '../resources/resource-object.js';
 
-interface RecordContext {
-  oldPrefix?: string;
-}
-
 // Generic edit surfaces (CLI strings, HTTP bodies) encode a rename as a
 // 'change' on the 'name' key. Normalize here so handlers only ever see
 // kind 'rename'.
@@ -52,8 +48,6 @@ function defaultCommitMessage(input: MutationInput): string {
       return `Delete ${resourceNameToString(input.target)}`;
     case 'rename':
       return `Rename ${resourceNameToString(input.target)} to ${input.newIdentifier}`;
-    case 'project_rename':
-      return `Rename project prefix to ${input.newPrefix}`;
   }
 }
 
@@ -86,26 +80,17 @@ export class ResourceMutations {
       return;
     }
 
-    // Capture extras the log entry depends on BEFORE the cascade mutates state.
-    const recordContext: RecordContext = {};
-    if (input.kind === 'project_rename') {
-      recordContext.oldPrefix = this.project.projectPrefix;
-    }
-
     await runWithDefaultCommitMessage(defaultCommitMessage(input), () =>
       this.project.lock.write(async () => {
         await handler.apply(ctx);
         if (classification !== 'none') {
-          await this.recordLogEntry(input, recordContext);
+          await this.recordLogEntry(input);
         }
       }),
     );
   }
 
-  private async recordLogEntry(
-    input: MutationInput,
-    context: RecordContext = {},
-  ): Promise<void> {
+  private async recordLogEntry(input: MutationInput): Promise<void> {
     if (input.kind === 'edit') {
       await ConfigurationLogger.log(this.project.basePath, {
         operation: 'resource_update',
@@ -131,18 +116,6 @@ export class ResourceMutations {
         parameters: {
           type: input.target.type,
           operation: { name: 'change', target: oldName, to: newName },
-        },
-      });
-    } else if (input.kind === 'project_rename') {
-      if (!context.oldPrefix) {
-        throw new Error('project_rename log entry requires oldPrefix context');
-      }
-      await ConfigurationLogger.log(this.project.basePath, {
-        operation: 'project_rename',
-        target: input.newPrefix,
-        parameters: {
-          oldPrefix: context.oldPrefix,
-          newPrefix: input.newPrefix,
         },
       });
     }

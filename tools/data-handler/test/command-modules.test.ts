@@ -910,6 +910,33 @@ describe('module update — spec behaviours', () => {
     ]);
   }
 
+  it('refuses an update whose source changed its prefix', async () => {
+    const { moduleSource, projectDir, commands, installedConfigPath } =
+      await seedReplayHost('replay-renamed-proj', 'rren');
+
+    // Upstream 2.0.0 renamed its own prefix. A prefix is the module's
+    // identity, so this is a different module and the update is refused.
+    rewriteJson(
+      join(moduleSource, '.cards', 'local', 'cardsConfig.json'),
+      (c) => {
+        c.cardKeyPrefix = 'decrec';
+      },
+    );
+    sealSourceRelease(moduleSource, []);
+
+    await expect(
+      commands.modulesCmd.update('decision', undefined, '2.0.0'),
+    ).rejects.toThrow(/Module 'decision' now declares the prefix 'decrec'/);
+
+    // Nothing moved: the installation is still there at its old version.
+    expect(JSON.parse(readFileSync(installedConfigPath, 'utf-8')).version).toBe(
+      '1.0.0',
+    );
+    expect(existsSync(join(projectDir, '.cards', 'modules', 'decrec'))).toBe(
+      false,
+    );
+  }, 30000);
+
   it('update replays a sealed workflow rename into the consumer (happy path)', async () => {
     const { moduleSource, projectDir, commands, installedConfigPath } =
       await seedReplayHost('replay-happy-proj', 'rhap');

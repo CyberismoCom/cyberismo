@@ -19,8 +19,7 @@ import type { ResourceName } from '../utils/resource-utils.js';
 export type MutationKind =
   | 'edit' // sub-property add/change/rank/remove
   | 'delete' // whole-resource delete
-  | 'rename' // whole-resource rename
-  | 'project_rename';
+  | 'rename'; // whole-resource rename
 
 /** Discriminated input describing the change a maintainer wants to make. */
 export type MutationInput =
@@ -31,21 +30,8 @@ export type MutationInput =
       operation: Operation<unknown>;
     }
   | { kind: 'delete'; target: ResourceName }
-  | { kind: 'rename'; target: ResourceName; newIdentifier: string }
-  | {
-      kind: 'project_rename';
-      newPrefix: string;
-      /**
-       * Set only when replaying a module's log entry: the module's previous
-       * prefix. Authoring leaves it undefined (derived from the project).
-       */
-      oldPrefix?: string;
-    };
+  | { kind: 'rename'; target: ResourceName; newIdentifier: string };
 
 export type EditInput = Extract<MutationInput, { kind: 'edit' }>;
 export type DeleteInput = Extract<MutationInput, { kind: 'delete' }>;
 export type RenameInput = Extract<MutationInput, { kind: 'rename' }>;
-export type ProjectRenameInput = Extract<
-  MutationInput,
-  { kind: 'project_rename' }
->;

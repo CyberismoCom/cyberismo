@@ -14,7 +14,10 @@
 import semver from 'semver';
 import type { Project } from '../containers/project.js';
 import type { ConfigurationLogEntry } from '../utils/configuration-logger.js';
-import { ConfigurationLogger } from '../utils/configuration-logger.js';
+import {
+  ConfigurationLogger,
+  RETIRED_OPERATIONS,
+} from '../utils/configuration-logger.js';
 import type { ChangeClassification } from '../mutations/registry.js';
 import { classify } from '../mutations/dispatcher.js';
 import { entryToMutationInput } from '../mutations/replay/convert.js';
@@ -55,9 +58,11 @@ function describeEntries(entries: ClassifiedEntry[]): string {
       const detail = [entry.parameters?.key, operationName]
         .filter((part) => typeof part === 'string')
         .join(' ');
-      const note = unroutable
-        ? ' — unrecognised entry, treated as breaking'
-        : '';
+      const note = !unroutable
+        ? ''
+        : (RETIRED_OPERATIONS as readonly string[]).includes(entry.operation)
+          ? ' — retired operation, treated as breaking'
+          : ' — unrecognised entry, treated as breaking';
       return `  - ${entry.target} (${entry.operation})${detail ? ` ${detail}` : ''}${note}`;
     })
     .join('\n');

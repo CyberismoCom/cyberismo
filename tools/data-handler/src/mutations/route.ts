@@ -21,7 +21,7 @@ export type RouteOp = 'add' | 'remove' | 'rank' | 'change' | 'rename-member';
 
 export interface RouteKey {
   kind: MutationKind;
-  type?: ResourceName['type']; // undefined for project_rename
+  type: ResourceName['type'];
   key?: string; // edits only
   op?: RouteOp; // edits only
 }
@@ -42,7 +42,6 @@ function isMemberRename(key: string, op: ChangeOperation<unknown>): boolean {
 }
 
 export function route(input: MutationInput): RouteKey {
-  if (input.kind === 'project_rename') return { kind: 'project_rename' };
   if (input.kind === 'rename')
     return { kind: 'rename', type: input.target.type };
   if (input.kind === 'delete')

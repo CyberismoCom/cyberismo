@@ -14,12 +14,7 @@
 
 import type { Handler } from './handler.js';
 import type { RouteKey } from './route.js';
-import type {
-  DeleteInput,
-  EditInput,
-  ProjectRenameInput,
-  RenameInput,
-} from './types.js';
+import type { DeleteInput, EditInput, RenameInput } from './types.js';
 
 import { PlainHandler, PlainDeleteHandler } from './handlers/plain-handler.js';
 import { CardTypeWorkflowChangeHandler } from './handlers/card-type-workflow-change.js';
@@ -37,7 +32,6 @@ import { WorkflowDeleteHandler } from './handlers/workflow-delete.js';
 import { LinkTypeRenameHandler } from './handlers/link-type-rename.js';
 import { LinkTypeDeleteHandler } from './handlers/link-type-delete.js';
 import { LeafResourceRenameHandler } from './handlers/leaf-resource-rename.js';
-import { ProjectRenameHandler } from './handlers/project-rename.js';
 
 /**
  * Consumer obligation of a route:
@@ -84,11 +78,6 @@ export type Registration =
       route: RouteKey & { kind: 'rename' };
       handler: Handler<RenameInput>;
       classification: ChangeClassification;
-    }
-  | {
-      route: RouteKey & { kind: 'project_rename' };
-      handler: Handler<ProjectRenameInput>;
-      classification: ChangeClassification;
     };
 
 const plain = new PlainHandler();
@@ -108,7 +97,6 @@ const workflowRename = new WorkflowRenameHandler();
 const workflowDelete = new WorkflowDeleteHandler();
 const linkTypeRename = new LinkTypeRenameHandler();
 const linkTypeDelete = new LinkTypeDeleteHandler();
-const projectRename = new ProjectRenameHandler();
 
 function plainEdit(type: string, key: string): Registration {
   return {
@@ -322,12 +310,5 @@ export const ROUTES: Registration[] = [
     route: { kind: 'delete', type: 'skills' },
     handler: plainDelete,
     classification: 'breaking',
-  },
-
-  // PROJECT_RENAME row.
-  {
-    route: { kind: 'project_rename' },
-    handler: projectRename,
-    classification: 'migratable',
   },
 ];

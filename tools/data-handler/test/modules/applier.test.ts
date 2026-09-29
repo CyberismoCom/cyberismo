@@ -13,6 +13,10 @@ import { makeProjectStub } from '../helpers/module-fixtures.js';
 /**
  * Write `files` under `tempDir/<name>/.cards/<prefix>/` and return the
  * absolute root, suitable for use as `ResolvedModule.stagedPath`.
+ *
+ * A real staged tree always carries a `cardsConfig.json` — the resolver reads
+ * it to discover the module's prefix and version — so one is supplied unless
+ * the test writes its own.
  */
 async function stage(
   tempDir: string,
@@ -22,6 +26,16 @@ async function stage(
   const stagingRoot = join(tempDir, name);
   const resourcesFolder = new ProjectPaths(stagingRoot).resourcesFolder;
   await mkdir(resourcesFolder, { recursive: true });
+  if (!('cardsConfig.json' in files)) {
+    files = {
+      'cardsConfig.json': JSON.stringify({
+        cardKeyPrefix: name,
+        name,
+        modules: [],
+      }),
+      ...files,
+    };
+  }
   for (const [rel, content] of Object.entries(files)) {
     const full = join(resourcesFolder, rel);
     await mkdir(join(full, '..'), { recursive: true });
@@ -73,6 +87,35 @@ describe('modules/applier', () => {
   afterEach(async () => {
     await rm(projectDir, { recursive: true, force: true });
     await rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('refuses a staged tree whose prefix disagrees with the declared name', async () => {
+    // A module's prefix is its identity, so a changed prefix means a
+    // different module — not something an update can carry across.
+    const stagedPath = await stage(tempDir, 'A', {
+      'cardsConfig.json': JSON.stringify({
+        cardKeyPrefix: 'renamed',
+        name: 'A',
+        version: '2.0.0',
+        modules: [],
+      }),
+      'cardTypes/marker.json': '{"x":1}',
+    });
+    const { project, modules } = makeProjectStub({ basePath: projectDir });
+
+    const resolved = [
+      buildResolved('A', 'https://example.com/A.git', stagedPath, {
+        version: '2.0.0',
+      }),
+    ];
+
+    await expect(applyModules(project, resolved, { tempDir })).rejects.toThrow(
+      /Module 'A' now declares the prefix 'renamed'.*module remove A/s,
+    );
+
+    // Refused before any filesystem mutation.
+    expect(existsSync(join(projectDir, '.cards', 'modules'))).toBe(false);
+    expect(modules).toHaveLength(0);
   });
 
   it('copies staged files into .cards/modules/<name>/ and upserts the declaration (range, not tag)', async () => {
@@ -153,6 +196,7 @@ describe('modules/applier', () => {
     const stagedA = await stage(tempDir, 'A', {
       'cardsConfig.json': JSON.stringify({
         cardKeyPrefix: 'A',
+        name: 'A',
         modules: [],
       }),
     });
@@ -187,6 +231,7 @@ describe('modules/applier', () => {
     const stagedA = await stage(tempDir, 'A', {
       'cardsConfig.json': JSON.stringify({
         cardKeyPrefix: 'A',
+        name: 'A',
         modules: [],
       }),
     });
@@ -233,7 +278,11 @@ describe('modules/applier', () => {
 
     // First install: ships an orphan file.
     const stagedV1 = await stage(tempDir, 'A', {
-      'cardsConfig.json': JSON.stringify({ cardKeyPrefix: 'A', modules: [] }),
+      'cardsConfig.json': JSON.stringify({
+        cardKeyPrefix: 'A',
+        name: 'A',
+        modules: [],
+      }),
       'cardTypes/orphan.json': '{"old":true}',
     });
     await applyModules(
@@ -254,7 +303,11 @@ describe('modules/applier', () => {
 
     // Re-install at a new version that no longer ships orphan.json.
     const stagedV2 = await stage(tempDir, 'A', {
-      'cardsConfig.json': JSON.stringify({ cardKeyPrefix: 'A', modules: [] }),
+      'cardsConfig.json': JSON.stringify({
+        cardKeyPrefix: 'A',
+        name: 'A',
+        modules: [],
+      }),
       'cardTypes/replacement.json': '{"new":true}',
     });
     await applyModules(
@@ -282,7 +335,11 @@ describe('modules/applier', () => {
     const { project } = makeProjectStub({ basePath: projectDir });
 
     const stagedV1 = await stage(tempDir, 'A', {
-      'cardsConfig.json': JSON.stringify({ cardKeyPrefix: 'A', modules: [] }),
+      'cardsConfig.json': JSON.stringify({
+        cardKeyPrefix: 'A',
+        name: 'A',
+        modules: [],
+      }),
     });
     await applyModules(
       project,
@@ -291,7 +348,11 @@ describe('modules/applier', () => {
     );
 
     const stagedV2 = await stage(tempDir, 'A', {
-      'cardsConfig.json': JSON.stringify({ cardKeyPrefix: 'A', modules: [] }),
+      'cardsConfig.json': JSON.stringify({
+        cardKeyPrefix: 'A',
+        name: 'A',
+        modules: [],
+      }),
     });
     await applyModules(
       project,
@@ -311,6 +372,7 @@ describe('modules/applier', () => {
     const stagedA = await stage(tempDir, 'A', {
       'cardsConfig.json': JSON.stringify({
         cardKeyPrefix: 'A',
+        name: 'A',
         modules: [],
       }),
     });
