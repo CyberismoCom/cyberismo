@@ -56,6 +56,26 @@ describe('transition side effects', () => {
     expect(await state(commands, options, 'decision_6')).toBe('Rejected');
   });
 
+  it('applies a declared field update side effect to another card', async () => {
+    const { commands, options } = await setup(
+      'set-field',
+      'onTransitionSetField(decision_5, "Approve", decision_6, "title", "Updated by side effect").',
+    );
+    const result = await commands.command(
+      Cmd.transition,
+      ['decision_5', 'Approve'],
+      options,
+    );
+    expect(result.statusCode).toBe(200);
+    const shown = await commands.command(
+      Cmd.show,
+      ['card', 'decision_6'],
+      options,
+    );
+    const card = shown.payload as { metadata?: { title?: string } };
+    expect(card.metadata?.title).toBe('Updated by side effect');
+  });
+
   it('propagates a primary state-write failure instead of swallowing it', async () => {
     // Regression test: cardTransition used to .catch(console.error) around
     // the whole write+query chain, so a failed metadata write was silently
