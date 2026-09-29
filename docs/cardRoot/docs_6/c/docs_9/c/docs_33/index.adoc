@@ -88,9 +88,9 @@ Selection::
 `select`, `selectAll` and `selectCollectionField` show attributes that the main logic program already has, such as the fields of a card. An attribute is shown only on result keys that have it and for which it is selected.
 
 Construction::
-`resultField` constructs an attribute that the main logic program does not have, for example a computed count or a value of a synthetic result. It is always shown on the key it is written for. There is no need to select it.
+`resultField` constructs an attribute that the main logic program does not have, for example a computed count or a value of a synthetic result. It is always shown on the key it is written for. There is no need to select it. `fields` constructs two or three attributes with one rule, in the same way.
 
-If you rewrite a query to construct attributes with `resultField`, note that the attribute is no longer subject to the selection. If the query relied on `select` to limit the attributes to some keys, guard the `resultField` rule in the same way, for example with `result(Key)` or `childResult(_, Key, _)`.
+If you rewrite a query to construct attributes with `resultField`, note that the attribute is no longer subject to the selection. If the query relied on `select` to limit the attributes to some keys, guard the `resultField` rule in the same way, for example with `result(Key)` or `childResult(_, Key, _)`. Queries that use `fields` behave this way too: their attributes are always shown and are not filtered by `select`.
 
 IMPORTANT: Queries only read the main logic program. A query never writes `field`, `dataType` or any other predicate that the main logic program reads. A `field` head in a query breaks this rule, and it will be rejected in a future release. Use `resultField` instead.
 

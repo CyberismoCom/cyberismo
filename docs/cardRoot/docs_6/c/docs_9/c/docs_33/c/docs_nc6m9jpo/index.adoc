@@ -1,23 +1,21 @@
 == Parameters
 
-* `Key`: An identifier of an object. For example, a card key.
-* `Field1`: A name of a first field of the object
-* `Value1`: The value of the first field
-* `Field2`: A name of a second field of the object
-* `Value2`: The value of the second field
+* `Key`: The key of a result, child result or child object
+* `Field1`: The name of the first attribute
+* `Value1`: The value of the first attribute
+* `Field2`: The name of the second attribute
+* `Value2`: The value of the second attribute
 
 == Description
 
-The `fields` predicate is a helper that enables a single rule in a query to define values for two (or three) fields.
+The `fields` predicate is a helper for queries: one rule constructs two attributes of a result. Each attribute is output as with {{#xref}}"cardKey":"docs_g9t7ad0x"{{/xref}} (`resultField/3`). It is always shown on `Key` without being selected, and its data type is that of the field type named by `FieldN`, or `shortText`. For three attributes, see {{#xref}}"cardKey":"docs_2fx8exro"{{/xref}}.
 
 This predicate has been implemented with the following rules:
 
 ----
-field(Key, Field, Value) :-
+resultField(Key, Field, Value) :-
     fields(Key, Field, Value, _, _).
 
-field(Key, Field, Value) :-
+resultField(Key, Field, Value) :-
     fields(Key, _, _, Field, Value).
 ----
-
-To give a query result an attribute, see also {{#xref}}"cardKey":"docs_g9t7ad0x"{{/xref}}.
