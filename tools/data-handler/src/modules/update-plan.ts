@@ -152,8 +152,6 @@ export async function toUpdatePlan(
       const to = moved.has(d.name) ? moved.get(d.name)! : from;
       const range = written.get(d.name) ?? d.versionRange ?? null;
       const latest = pickVersion(listed.get(d.name) ?? []) ?? null;
-      // A root that declares no range stays silent.
-      const heldBackRange = d.versionRange ? range : null;
       return {
         module: d.name,
         installed: from,
@@ -161,9 +159,9 @@ export async function toUpdatePlan(
         latest,
         heldBack:
           latest !== null &&
-          heldBackRange !== null &&
+          range !== null &&
           to !== null &&
-          !semver.satisfies(latest, heldBackRange) &&
+          !semver.satisfies(latest, range) &&
           semver.gt(latest, to),
         versionSource: versionSourceOf(d.source),
         ...(unchecked.has(d.name) ? { unchecked: true as const } : {}),
