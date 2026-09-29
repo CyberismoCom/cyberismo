@@ -215,6 +215,82 @@ describe('calculate', () => {
       }
     });
   });
+
+  describe('resultField/3', () => {
+    it('types a declared field type by its data type', async () => {
+      const res = await project.calculationEngine.runLogicProgram(`
+        result(p).
+        resultField(p, "decision/fieldTypes/finished", "true").
+        resultField(p, "decision/fieldTypes/numberOfCommits", "3.5").
+      `);
+      expect(res.results[0]['decision/fieldTypes/finished']).toBe(true);
+      expect(res.results[0]['decision/fieldTypes/numberOfCommits']).toBe(3.5);
+    });
+
+    it('outputs a declared list field type as a list', async () => {
+      const res = await project.calculationEngine.runLogicProgram(`
+        result(p).
+        resultField(p, "decision/fieldTypes/admins", "a").
+        resultField(p, "decision/fieldTypes/admins", "b").
+      `);
+      const admins = res.results[0]['decision/fieldTypes/admins'] as {
+        value: string;
+      }[];
+      expect(admins.map((admin) => admin.value).sort()).toEqual(['a', 'b']);
+    });
+
+    it('decorates a declared enum field type', async () => {
+      const enumProject = getTestProject(
+        join(testDir, 'valid/card-with-enum-field'),
+      );
+      await enumProject.populateCaches();
+      await enumProject.calculationEngine.generate();
+      const res = await enumProject.calculationEngine.runLogicProgram(`
+        result(p).
+        resultField(p, "enumf/fieldTypes/priority", "high").
+      `);
+      expect(res.results[0]['enumf/fieldTypes/priority']).toMatchObject({
+        value: 'high',
+        index: 2,
+        displayValue: 'High',
+      });
+    });
+
+    it('outputs an undeclared name as shortText', async () => {
+      const res = await project.calculationEngine.runLogicProgram(`
+        result(p).
+        resultField(p, "count", 5).
+        resultField(p, "title", "x").
+      `);
+      expect(res.results[0].count).toBe('5');
+      expect(res.results[0].title).toBe('x');
+    });
+
+    it('types a built-in name as shortText on a card key', async () => {
+      // decision_5 has a knowledge-layer dataType(_, "lastUpdated", "dateTime")
+      const res = await project.calculationEngine.runLogicProgram(`
+        result(decision_5).
+        resultField(decision_5, "lastUpdated", "x").
+        resultField(decision_5, "seenType", Type) :-
+            resultField(decision_5, "lastUpdated", _, Type).
+      `);
+      expect(res.results[0].seenType).toBe('shortText');
+    });
+
+    it('matches resultField/4 with shortText on an undeclared name', async () => {
+      const program = (head: string) => `
+        result(p).
+        ${head}
+      `;
+      const withThree = await project.calculationEngine.runLogicProgram(
+        program('resultField(p, "count", 5).'),
+      );
+      const withFour = await project.calculationEngine.runLogicProgram(
+        program('resultField(p, "count", 5, "shortText").'),
+      );
+      expect(withThree).toEqual(withFour);
+    });
+  });
 });
 
 describe('urlPath calculated field', () => {
