@@ -23,6 +23,7 @@ import { checkLinearity, computeChain } from './chain.js';
 import { entryToMutationInput } from './convert.js';
 import { listSealFiles } from './seal-files.js';
 import { resourceName } from '../../utils/resource-utils.js';
+import { resolveRename, stateNameOf } from '../handler.js';
 
 import {
   CONFIGURATION_OPERATIONS,
@@ -32,6 +33,7 @@ import {
 import type { ConfigurationLogEntry } from '../../utils/configuration-logger.js';
 import type { ModuleInstallation } from '../../modules/types.js';
 import type { MutationInput } from '../types.js';
+import type { StateSuccessions } from '../handler.js';
 import type { Project } from '../../containers/project.js';
 import type { ResolvedModule } from '../../modules/resolve/types.js';
 import type { SealFile } from './seal-files.js';
@@ -370,7 +372,10 @@ export async function executeModuleReplays(
   if (steps.length === 0) return;
 
   // A card keeps its old type until the (later) rename entry applies.
-  const cardTypeRenames = buildCardTypeRenameMap(steps);
+  const cardTypeRenames = buildRenameMap(steps, 'cardTypes');
+  // A card may sit in a state the batch removes or renames before a
+  // card-type workflow change maps it.
+  const stateSuccessions = buildStateSuccessions(steps);
 
   const mutations = new ResourceMutations(project);
   for (const step of steps) {
@@ -383,6 +388,7 @@ export async function executeModuleReplays(
             kind: 'replay',
             modulePrefix: step.modulePrefix,
             cardTypeRenames,
+            stateSuccessions,
           });
         } catch (error) {
           throw new ModuleReplayFailedError(
@@ -404,14 +410,17 @@ export async function executeModuleReplays(
   await project.populateCaches();
 }
 
-/** Every card-type rename in the batch (old name -> new). */
-function buildCardTypeRenameMap(steps: ReplayStep[]): Map<string, string> {
+/** Every rename of a `type` resource in the batch (old name -> new). */
+function buildRenameMap(
+  steps: ReplayStep[],
+  type: 'cardTypes' | 'workflows',
+): Map<string, string> {
   const map = new Map<string, string>();
   for (const step of steps) {
     for (const { entries } of step.seals) {
       for (const entry of entries) {
         if (entry.operation !== 'resource_rename') continue;
-        if (resourceName(entry.target).type !== 'cardTypes') continue;
+        if (resourceName(entry.target).type !== type) continue;
         const to = (entry.parameters?.operation as { to?: string } | undefined)
           ?.to;
         if (typeof to === 'string') {
@@ -421,6 +430,62 @@ function buildCardTypeRenameMap(steps: ReplayStep[]): Map<string, string> {
     }
   }
   return map;
+}
+
+/**
+ * Every workflow-state succession in the batch: a removal points at its
+ * recorded replacement, a legacy rename at the new name. Keyed by the workflow's final name,
+ * because entries logged before a workflow rename carry the old one. The
+ * last entry wins when a state succeeds twice.
+ */
+function buildStateSuccessions(steps: ReplayStep[]): StateSuccessions {
+  const workflowRenames = buildRenameMap(steps, 'workflows');
+  const successors = new Map<string, Map<string, string>>();
+  for (const step of steps) {
+    for (const { entries } of step.seals) {
+      for (const entry of entries) {
+        const succession = stateSuccession(entry);
+        if (!succession) continue;
+        const workflow = resolveRename(entry.target, workflowRenames);
+        const { to } = succession;
+        if (to === undefined || to === succession.from) continue;
+        let states = successors.get(workflow);
+        if (!states) {
+          states = new Map();
+          successors.set(workflow, states);
+        }
+        states.set(succession.from, to);
+      }
+    }
+  }
+  return { workflowRenames, successors };
+}
+
+/**
+ * The (from, to) a workflow-state entry records, when it moves cards on. `to`
+ * is undefined for a removal without a recorded replacement.
+ */
+function stateSuccession(
+  entry: ConfigurationLogEntry,
+): { from: string; to: string | undefined } | undefined {
+  if (entry.operation !== 'resource_update') return undefined;
+  if (resourceName(entry.target).type !== 'workflows') return undefined;
+  if (entry.parameters?.key !== 'states') return undefined;
+  const op = entry.parameters?.operation as
+    | {
+        name?: string;
+        target?: unknown;
+        to?: unknown;
+        replacementValue?: unknown;
+      }
+    | undefined;
+  const from = stateNameOf(op?.target);
+  if (from === undefined) return undefined;
+  if (op?.name === 'remove') {
+    return { from, to: stateNameOf(op.replacementValue) };
+  }
+  const to = op?.name === 'change' ? stateNameOf(op.to) : undefined;
+  return to === undefined || to === from ? undefined : { from, to };
 }
 
 async function readSealEntries(

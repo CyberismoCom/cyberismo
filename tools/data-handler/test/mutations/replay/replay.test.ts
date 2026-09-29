@@ -547,11 +547,49 @@ describe('executeModuleReplays', () => {
       { kind: 'delete', target: { prefix: 'dep', identifier: 'b' } },
       { kind: 'delete', target: { prefix: 'root', identifier: 'c' } },
     ]);
-    expect(applySpy.mock.calls.map(([, origin]) => origin)).toEqual([
-      { kind: 'replay', modulePrefix: 'dep', cardTypeRenames: new Map() },
-      { kind: 'replay', modulePrefix: 'dep', cardTypeRenames: new Map() },
-      { kind: 'replay', modulePrefix: 'root', cardTypeRenames: new Map() },
+    const origin = (modulePrefix: string) => ({
+      kind: 'replay',
+      modulePrefix,
+      cardTypeRenames: new Map(),
+      stateSuccessions: { workflowRenames: new Map(), successors: new Map() },
+    });
+    expect(applySpy.mock.calls.map(([, o]) => o)).toEqual([
+      origin('dep'),
+      origin('dep'),
+      origin('root'),
     ]);
+  });
+
+  it('passes the batch state successions, keyed by the final workflow name', async () => {
+    const applySpy = vi
+      .spyOn(ResourceMutations.prototype, 'apply')
+      .mockResolvedValue(undefined);
+    const W = 'mod/workflows/flow';
+    const Wr = 'mod/workflows/flowV2';
+    const states = (
+      operation: Record<string, unknown>,
+    ): ConfigurationLogEntry =>
+      JSON.parse(logLine('resource_update', W, { key: 'states', operation }));
+    const replayStep = step('mod', []);
+    replayStep.seals[0].entries = [
+      // CLI-recorded shape: bare strings.
+      states({ name: 'remove', target: 'Old', replacementValue: 'Draft' }),
+      JSON.parse(
+        logLine('resource_rename', W, {
+          type: 'workflows',
+          operation: { name: 'change', target: W, to: Wr },
+        }),
+      ),
+    ];
+
+    await executeModuleReplays(fakeProject(), [replayStep]);
+
+    expect(applySpy.mock.calls[0][1]).toMatchObject({
+      stateSuccessions: {
+        workflowRenames: new Map([[W, Wr]]),
+        successors: new Map([[Wr, new Map([['Old', 'Draft']])]]),
+      },
+    });
   });
 
   it('refreshes project caches once, after all chains', async () => {
