@@ -20,14 +20,15 @@ import {
 } from 'react';
 import { z } from 'zod';
 import { getConfig } from '../utils';
-import { callApi, projectApiPaths } from '../swr';
+import { callApi, globalApiPaths, projectApiPaths } from '../swr';
 import {
   ProjectEventsContext,
   type CardUpdatedEvent,
   type PresenceEntry,
 } from './ProjectEventsContext';
 
-const RENEWAL_INTERVAL_MS = 30_000;
+const STALE_PRESENCE_MS = 10_000;
+const RECONNECT_BACKOFF_MS = 3_000;
 
 const entrySchema = z.object({
   userId: z.string(),
@@ -114,6 +115,7 @@ export function ProjectEventsProvider({
     let connectionId: string | undefined;
     let sequence = 0;
     let disposed = false;
+    let staleTimer: ReturnType<typeof setTimeout> | undefined;
 
     const send = () => {
       if (!connectionId || disposed) return;
@@ -131,14 +133,24 @@ export function ProjectEventsProvider({
     const open = () => {
       const current = new EventSource(apiPaths.events());
       source = current;
+      clearTimeout(staleTimer);
+      staleTimer = undefined;
       const stale = () => disposed || source !== current;
       current.addEventListener('ready', (event) => {
         if (stale()) return;
         const parsed = readySchema.safeParse(parseData(event));
         if (!parsed.success) return;
+        clearTimeout(staleTimer);
+        staleTimer = undefined;
         connectionId = parsed.data.connectionId;
         setPresence({});
         send();
+      });
+      current.addEventListener('hb', () => {
+        if (stale()) return;
+        // Renewal rides the heartbeat: no stream, no renewal, so presence
+        // cannot outlive the connection it describes.
+        if (desired.current.cardKey) send();
       });
       current.addEventListener('presence.updated', (event) => {
         if (stale()) return;
@@ -161,7 +173,25 @@ export function ProjectEventsProvider({
       current.addEventListener('error', () => {
         if (stale()) return;
         connectionId = undefined;
-        setPresence({});
+        if (current.readyState === EventSource.CLOSED) {
+          // The browser reaches CLOSED only on a fatal status (e.g. 401) and
+          // will not retry on its own; probe auth so a real expiry surfaces
+          // the existing session-expired banner, and otherwise reconnect.
+          close();
+          void callApi(globalApiPaths.user(), 'GET')
+            .catch(() => {})
+            .then(() => {
+              if (!disposed) setTimeout(reopen, RECONNECT_BACKOFF_MS);
+            });
+          return;
+        }
+        // A blip is advisory, not a fact: keep last-known presence until this
+        // elapses with no ready.
+        staleTimer ??= setTimeout(() => {
+          staleTimer = undefined;
+          if (stale()) return;
+          setPresence({});
+        }, STALE_PRESENCE_MS);
       });
     };
 
@@ -175,14 +205,13 @@ export function ProjectEventsProvider({
     };
 
     open();
-    const renewal = setInterval(send, RENEWAL_INTERVAL_MS);
     window.addEventListener('pagehide', close);
     window.addEventListener('pageshow', reopen);
     return () => {
       disposed = true;
       close();
       sendRef.current = () => {};
-      clearInterval(renewal);
+      clearTimeout(staleTimer);
       window.removeEventListener('pagehide', close);
       window.removeEventListener('pageshow', reopen);
     };
