@@ -35,6 +35,7 @@ let hubs: Hub[] | undefined;
 
 vi.mock('@/lib/api', () => ({
   useHubs: () => ({ data: hubs, isLoading: false }),
+  useModuleVersions: () => ({ data: undefined, isLoading: true }),
   useProjectSettingsMutations: () => ({
     addHub,
     removeHub,
@@ -137,19 +138,22 @@ describe('HubsSection', () => {
     expect(notification.message).toContain('Other hubs were updated');
   });
 
-  it('imports a module by its location and offers no import for imported ones', async () => {
+  it('opens the install dialog on the hub location and offers it only for modules not yet imported', () => {
     render(<HubsSection disabled={false} />);
 
-    const importButtons = screen.getAllByRole('button', { name: 'Add module' });
-    // Only the module that is not yet imported can be imported.
-    expect(importButtons).toHaveLength(1);
+    const install = screen.getAllByRole('button', { name: /^Install / });
+    expect(install).toHaveLength(1);
 
-    fireEvent.click(importButtons[0]);
-    await waitFor(() =>
-      expect(addModule).toHaveBeenCalledWith(
-        'https://github.com/test/base.git',
-      ),
-    );
+    fireEvent.click(install[0]);
+    const dialog = screen.getByRole('dialog', { name: 'Install Base module' });
+    const source = within(dialog).getByPlaceholderText(/your-module\.git/);
+    expect(source).toHaveValue('https://github.com/test/base.git');
+    expect(source).toHaveAttribute('readonly');
+    // Nothing is installed until a version has been chosen.
+    expect(addModule).not.toHaveBeenCalled();
+    expect(
+      within(dialog).getByRole('button', { name: 'Install' }),
+    ).toBeDisabled();
   });
 
   it('adds a hub only once a location has been entered', async () => {
@@ -185,7 +189,9 @@ describe('HubsSection', () => {
     render(<HubsSection disabled={true} />);
 
     expect(screen.getByRole('button', { name: 'Update hubs' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Add module' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Install Base module' }),
+    ).toBeDisabled();
     expect(screen.getAllByRole('button', { name: 'Delete' })[0]).toBeDisabled();
   });
 

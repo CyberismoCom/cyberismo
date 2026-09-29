@@ -95,6 +95,10 @@ export function projectApiPaths(projectPrefix?: string) {
     projectModuleDelete: (module: string) =>
       `${base}/project/modules/${encodeURIComponent(module)}`,
     projectModulesAdd: () => `${base}/project/modules`,
+    projectModuleVersions: (target: { module: string } | { source: string }) =>
+      'module' in target
+        ? `${base}/project/modules/versions?module=${encodeURIComponent(target.module)}`
+        : `${base}/project/modules/versions?source=${encodeURIComponent(target.source)}`,
     projectModulesImportable: () => `${base}/project/modules/importable`,
     projectHubs: () => `${base}/project/hubs`,
     projectHubDelete: (location: string) =>

@@ -22,7 +22,7 @@ import {
 } from '@/lib/api';
 import { useAppDispatch } from '@/lib/hooks';
 import { useModals } from '@/lib/utils';
-import { ModuleDeleteModal, AddModuleModal } from '@/components/modals';
+import { ModuleDeleteModal, InstallModuleModal } from '@/components/modals';
 import { addNotification } from '@/lib/slices/notifications';
 import { useCleanPrompt } from './useCleanPrompt';
 import ModuleCard from './ModuleCard';
@@ -35,18 +35,16 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { general } = useProjectSettings(undefined);
-  const {
-    updateModule,
-    deleteModule,
-    updateAllModules,
-    addModule,
-    isUpdating,
-  } = useProjectSettingsMutations();
+  const { updateModule, deleteModule, updateAllModules, isUpdating } =
+    useProjectSettingsMutations();
   const { modalOpen, openModal, closeModal } = useModals({
     deleteModule: false,
-    addModule: false,
+    installModule: false,
   });
   const [moduleToDelete, setModuleToDelete] = useState<ProjectModule | null>(
+    null,
+  );
+  const [moduleToChange, setModuleToChange] = useState<ProjectModule | null>(
     null,
   );
   const [checkRequested, setCheckRequested] = useState(false);
@@ -129,10 +127,10 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
         <Button
           size="sm"
           variant="solid"
-          onClick={openModal('addModule')}
+          onClick={openModal('installModule')}
           disabled={isUpdating() || disabled}
         >
-          {t('general.addModule')}
+          {t('general.installModule')}
         </Button>
         {modules?.length ? (
           <Button
@@ -207,6 +205,7 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
           plan={plan}
           checkFailed={Boolean(checkError)}
           onUpdate={() => handleUpdate(mod)}
+          onChangeVersion={() => setModuleToChange(mod)}
           onDelete={() => {
             setModuleToDelete(mod);
             openModal('deleteModule')();
@@ -226,14 +225,24 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
           isDeleting={isUpdating(`delete-${moduleToDelete.cardKeyPrefix}`)}
         />
       )}
-      <AddModuleModal
-        open={modalOpen.addModule}
-        onClose={closeModal('addModule')}
-        onAdd={async (source) => {
-          await addModule(source);
-          await clearPlan();
-        }}
-      />
+      {modalOpen.installModule && (
+        <InstallModuleModal
+          open
+          onClose={closeModal('installModule')}
+          onDone={clearPlan}
+        />
+      )}
+      {moduleToChange && (
+        <InstallModuleModal
+          open
+          module={moduleToChange}
+          onClose={() => setModuleToChange(null)}
+          onDone={async () => {
+            await clearPlan();
+            await maybePromptClean();
+          }}
+        />
+      )}
     </Stack>
   );
 }
