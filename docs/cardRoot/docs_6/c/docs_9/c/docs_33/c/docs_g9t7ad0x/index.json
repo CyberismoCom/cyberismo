@@ -3,7 +3,7 @@
     "cardType": "base/cardTypes/predicate",
     "workflowState": "Ready",
     "rank": "0|f",
-    "lastUpdated": "2026-09-29T10:17:39.583Z",
+    "lastUpdated": "2026-09-29T11:42:58.394Z",
     "base/fieldTypes/briefDescription": "A query result has an attribute whose data type comes from the field type of the same name",
     "base/fieldTypes/category": "Query language",
     "links": [],
