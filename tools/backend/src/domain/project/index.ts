@@ -12,13 +12,16 @@
 */
 
 import { Hono } from 'hono';
+import { disableSSG } from 'hono/ssg';
 import { zValidator } from '../../middleware/zvalidator.js';
 import {
   addHubSchema,
   cleanSchema,
   importModuleSchema,
   moduleParamSchema,
+  moduleVersionsQuerySchema,
   removeHubSchema,
+  updateModuleSchema,
   updateProjectSchema,
 } from './schema.js';
 import * as projectService from './service.js';
@@ -57,11 +60,36 @@ router.post(
   '/modules/:module/update',
   requireRole(UserRole.Admin),
   zValidator('param', moduleParamSchema),
+  zValidator('json', updateModuleSchema),
   async (c) => {
     const commands = c.get('commands');
     const { module } = c.req.valid('param');
-    await projectService.updateModule(commands, module);
+    const { range } = c.req.valid('json');
+    await projectService.updateModule(commands, module, range);
     return c.json({ message: 'Module updated' });
+  },
+);
+
+// These reach the module sources over the network, which an export must not do.
+router.get(
+  '/modules/versions',
+  disableSSG(),
+  requireRole(UserRole.Admin),
+  zValidator('query', moduleVersionsQuerySchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const target = c.req.valid('query');
+    return c.json(await projectService.listModuleVersions(commands, target));
+  },
+);
+
+router.get(
+  '/modules/update-plan',
+  disableSSG(),
+  requireRole(UserRole.Admin),
+  async (c) => {
+    const commands = c.get('commands');
+    return c.json(await projectService.getUpdatePlan(commands));
   },
 );
 
@@ -77,8 +105,8 @@ router.post(
   zValidator('json', importModuleSchema),
   async (c) => {
     const commands = c.get('commands');
-    const { source } = c.req.valid('json');
-    await projectService.importModule(commands, source);
+    const { source, range } = c.req.valid('json');
+    await projectService.importModule(commands, source, range);
     return c.json({ message: 'Module imported successfully' });
   },
 );

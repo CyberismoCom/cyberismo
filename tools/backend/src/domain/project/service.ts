@@ -16,12 +16,14 @@ import {
   type CommandManager,
   type HubFetchFailure,
   type ModuleSettingFromHub,
+  type ProjectModuleInfo,
+  type UpdatePlan,
 } from '@cyberismo/data-handler';
 
 export type { CleanResult } from '@cyberismo/data-handler';
 
-export interface ProjectModule {
-  name: string;
+// Never carries the module's source location.
+export interface ProjectModule extends ProjectModuleInfo {
   cardKeyPrefix: string;
 }
 
@@ -58,19 +60,17 @@ export interface HubInfo {
 
 async function toModuleInfo(
   commands: CommandManager,
-  moduleName: string,
+  row: ProjectModuleInfo,
 ): Promise<ProjectModule> {
   try {
-    const data = await commands.modulesCmd.show(moduleName);
+    const data = await commands.modulesCmd.show(row.name);
     return {
-      name: data.name || moduleName,
-      cardKeyPrefix: data.cardKeyPrefix || moduleName,
+      ...row,
+      name: data.name || row.name,
+      cardKeyPrefix: data.cardKeyPrefix || row.name,
     };
   } catch {
-    return {
-      name: moduleName,
-      cardKeyPrefix: moduleName,
-    };
+    return { ...row, cardKeyPrefix: row.name };
   }
 }
 
@@ -79,9 +79,9 @@ export async function getProject(
 ): Promise<ProjectInfo> {
   return commands.consistent(async () => {
     const project = await commands.showCmd.showProject();
-    const modules = await commands.modulesCmd.list();
+    const modules = await commands.modulesCmd.inventory();
     const moduleDetails = await Promise.all(
-      modules.map((mod) => toModuleInfo(commands, mod.name)),
+      modules.map((row) => toModuleInfo(commands, row)),
     );
 
     const gitRemoteUrl = (await commands.showCmd.showGitRemoteUrl()) ?? null;
@@ -125,12 +125,33 @@ export async function updateProject(
   return getProject(commands);
 }
 
-export async function updateModule(commands: CommandManager, module: string) {
-  await commands.modulesCmd.update({ module });
+export async function updateModule(
+  commands: CommandManager,
+  module: string,
+  range?: string,
+) {
+  await commands.modulesCmd.update(range ? { module, range } : { module });
 }
 
 export async function updateAllModules(commands: CommandManager) {
   await commands.modulesCmd.update({});
+}
+
+export async function getUpdatePlan(
+  commands: CommandManager,
+): Promise<UpdatePlan> {
+  return commands.modulesCmd.planUpdate({});
+}
+
+export async function listModuleVersions(
+  commands: CommandManager,
+  target: { module?: string; source?: string },
+): Promise<string[]> {
+  return commands.modulesCmd.listVersions(
+    target.source !== undefined
+      ? { source: target.source }
+      : { module: target.module! },
+  );
 }
 
 export async function deleteModule(commands: CommandManager, module: string) {
@@ -158,8 +179,12 @@ export async function getImportableModules(
 export async function importModule(
   commands: CommandManager,
   source: string,
+  range?: string,
 ): Promise<void> {
-  await commands.modulesCmd.install(source);
+  await commands.modulesCmd.install(
+    source,
+    range ? { version: range } : undefined,
+  );
 }
 
 export async function getHubs(commands: CommandManager): Promise<HubInfo[]> {

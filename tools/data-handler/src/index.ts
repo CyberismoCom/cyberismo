@@ -33,7 +33,6 @@ export type {
   RemoveOperation,
 } from './resources/resource-object.js';
 export type { MutationInput } from './mutations/types.js';
-export { ModuleRequestError, redactUserinfo } from './exceptions/index.js';
 export type { HubFetchFailure } from './commands/fetch.js';
 export type {
   CleanFinding,
