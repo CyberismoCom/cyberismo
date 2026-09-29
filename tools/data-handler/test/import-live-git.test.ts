@@ -103,7 +103,7 @@ describe('import command — live git', () => {
       const gitModule = 'https://github.com/CyberismoCom/i-do-not-exist.git';
 
       await expect(commands.modulesCmd.install(gitModule)).rejects.toThrow(
-        'Failed to clone module',
+        "Couldn't fetch module: 'https://github.com/CyberismoCom/i-do-not-exist.git' is unreachable",
       );
     },
     120000,
@@ -119,7 +119,9 @@ describe('import command — live git', () => {
     };
     await expect(
       commands.modulesCmd.install(gitModule, options),
-    ).rejects.toThrow('Failed to clone module');
+    ).rejects.toThrow(
+      "Couldn't fetch module: 'https://github.com/CyberismoCom/i-do-not-exist.git' is unreachable",
+    );
   }, 120000);
   it('update all modules', async () => {
     let modules = await commands.modulesCmd.list();
@@ -138,7 +140,7 @@ describe('import command — live git', () => {
     modules = await commands.modulesCmd.list();
     expect(modules.length).toBe(2);
 
-    await commands.modulesCmd.updateAll();
+    await commands.modulesCmd.update({});
     modules = await commands.modulesCmd.list();
     expect(modules.length).toBe(2);
   }, 120000);

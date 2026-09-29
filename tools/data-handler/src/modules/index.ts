@@ -44,7 +44,7 @@ export type { ApplyOptions } from './applier.js';
 export type { CleanOrphansOptions } from './orphans.js';
 
 // Version and location primitives.
-export { toVersion, toVersionRange } from './types.js';
+export { toDeclaredRange, toVersion, toVersionRange } from './types.js';
 export {
   FILE_PROTOCOL,
   isFileLocation,
@@ -69,7 +69,8 @@ export {
 
 // Fetching, resolving and applying.
 export { createSourceLayer } from './source.js';
-export { resolve, resolveForApply } from './resolve/solver.js';
+export { resolve, resolveForApply, stageResolution } from './resolve/solver.js';
+export { resolveUpdate, toUpdatePlan } from './update-plan.js';
 export { conflictReason } from './resolve/format.js';
 export { ensureStagedSchemas } from './staged-migration.js';
 export { applyModules } from './applier.js';

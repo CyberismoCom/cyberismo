@@ -14,6 +14,8 @@
 
 import semver from 'semver';
 
+import { ModuleRequestError } from '../exceptions/index.js';
+
 // ---------------------------------------------------------------------------
 // Value types
 // ---------------------------------------------------------------------------
@@ -51,6 +53,25 @@ export function toVersionRange(range: string): VersionRange {
   }
   return range as VersionRange;
 }
+
+/**
+ * A range to declare, trimmed. Blank input is refused: `semver.validRange`
+ * reads it as `*`, which would unpin.
+ */
+export function toDeclaredRange(input: string): VersionRange {
+  const trimmed = input.trim();
+  if (trimmed === '') {
+    throw new ModuleRequestError('Version range cannot be empty');
+  }
+  try {
+    return toVersionRange(trimmed);
+  } catch (error) {
+    throw new ModuleRequestError((error as Error).message);
+  }
+}
+
+/** Where a module's versions come from, as reported to callers. */
+export type VersionSource = 'git' | 'file' | 'private';
 
 /**
  * Range assumed for a dependency declared without a version: bound to 1.x,

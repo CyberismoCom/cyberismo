@@ -108,19 +108,6 @@ describe('modules/orphans', () => {
     expect(existsSync(join(projectDir, '.cards', 'modules', 'C'))).toBe(false);
   });
 
-  it('throws with a graph dump when maxIterations is too small for the cascade', async () => {
-    // A → B → C cascade needs 3 full passes. Cap at 1.
-    await installModule(projectDir, 'A', [{ name: 'B' }]);
-    await installModule(projectDir, 'B', [{ name: 'C' }]);
-    await installModule(projectDir, 'C', []);
-
-    const { project } = makeProject(projectDir, []);
-
-    await expect(cleanOrphans(project, { maxIterations: 1 })).rejects.toThrow(
-      /cleanOrphans exceeded maxIterations/,
-    );
-  });
-
   it('invokes onRemove exactly once per removed installation', async () => {
     await installModule(projectDir, 'A', [{ name: 'B' }]);
     await installModule(projectDir, 'B', []);

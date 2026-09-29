@@ -23,81 +23,63 @@ import type { ModuleInstallation } from './types.js';
  * Options for {@link cleanOrphans}.
  */
 export interface CleanOrphansOptions {
-  /** Safety cap on fixed-point iterations. */
-  maxIterations?: number;
   /** Hook invoked before each orphan is deleted. Exceptions propagate. */
   onRemove?: (installation: ModuleInstallation) => void;
 }
 
 /**
- * Fixed-point orphan cleanup. Deletes installations under
- * `.cards/modules/<name>/` that no top-level declaration and no other
- * installation's `cardsConfig.json` references, iterating until stable
- * so cascaded orphans are caught.
+ * Installations that no declaration reaches, directly or through the
+ * remaining installations' dependencies, iterated to a fixed point. An
+ * unreferenced cycle is kept.
+ */
+export function findOrphans<
+  T extends { name: string; declaredDependencies: string[] },
+>(declared: string[], installed: T[]): T[] {
+  const orphans: T[] = [];
+  let remaining = installed;
+  for (;;) {
+    const referenced = new Set(declared);
+    for (const installation of remaining) {
+      for (const dep of installation.declaredDependencies) {
+        referenced.add(dep);
+      }
+    }
+    const toRemove = remaining.filter((i) => !referenced.has(i.name));
+    if (toRemove.length === 0) break;
+    orphans.push(...toRemove);
+    remaining = remaining.filter((i) => referenced.has(i.name));
+  }
+  return orphans;
+}
+
+/**
+ * Fixed-point orphan cleanup. Deletes the installations under
+ * `.cards/modules/<name>/` that {@link findOrphans} reports.
  *
  * Does not touch `project.configuration.modules` — top-level declarations
  * are the caller's responsibility.
  *
- * @returns Number of installation folders removed across all iterations.
+ * @returns Number of installation folders removed.
  */
 export async function cleanOrphans(
   project: Project,
   options: CleanOrphansOptions = {},
 ): Promise<number> {
   const logger = getChildLogger({ module: 'orphans' });
-
-  // Default cap: initial count + 2 is enough for any finite graph.
-  const initialInstalled = await installedModules(project);
-  const maxIterations = options.maxIterations ?? initialInstalled.length + 2;
-
-  let removed = 0;
-  let currentInstalled = initialInstalled;
-
-  const declared = declaredModules(project);
-
-  for (let iteration = 1; iteration <= maxIterations; iteration++) {
-    // Reuse `initialInstalled` on the first pass to skip a disk walk.
-    const installed =
-      iteration === 1 ? currentInstalled : await installedModules(project);
-    currentInstalled = installed;
-
-    const referenced = new Set<string>();
-    for (const decl of declared) {
-      referenced.add(decl.name);
-    }
-    for (const installation of installed) {
-      for (const dep of installation.declaredDependencies) {
-        referenced.add(dep);
-      }
-    }
-
-    const toRemove = installed.filter((i) => !referenced.has(i.name));
-    if (toRemove.length === 0) {
-      break;
-    }
-
-    for (const installation of toRemove) {
-      logger.debug(
-        { module: installation.name, path: installation.path, iteration },
-        'removing orphaned module installation',
-      );
-      options.onRemove?.(installation);
-      await deleteDir(installation.path);
-      removed++;
-    }
-
-    if (iteration === maxIterations) {
-      const graphDump = installed.map((i) => i.name).join(', ');
-      throw new Error(
-        `cleanOrphans exceeded maxIterations (${maxIterations}); ` +
-          `graph dump: [${graphDump}]`,
-      );
-    }
+  const orphans = findOrphans(
+    declaredModules(project).map((d) => d.name),
+    await installedModules(project),
+  );
+  for (const installation of orphans) {
+    logger.debug(
+      { module: installation.name, path: installation.path },
+      'removing orphaned module installation',
+    );
+    options.onRemove?.(installation);
+    await deleteDir(installation.path);
   }
-
-  if (removed > 0) {
+  if (orphans.length > 0) {
     await project.refreshAfterModuleChange();
   }
-
-  return removed;
+  return orphans.length;
 }
