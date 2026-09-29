@@ -128,7 +128,11 @@ test.describe('Hubs', () => {
     const base = moduleTile(card, 'base');
     await expect(base.getByText('Base test module')).toBeVisible();
     await expect(
-      base.getByRole('button', { name: t.general.addModule }),
+      base.getByRole('button', {
+        name: interpolate(t.general.installModuleLabel, {
+          module: 'Base test module',
+        }),
+      }),
     ).toBeVisible();
     await expect(
       moduleTile(card, 'extra').getByText('Extra test module'),
