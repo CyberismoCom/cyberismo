@@ -416,7 +416,7 @@ describe('Module command namespace', function () {
 describe('Module update --dry-run', function () {
   const projectPath = `${tmpPath}/cyberismo-cli-dry-run`;
   const run = (args: string) =>
-    execAsync(`cd ${projectPath} && ${cli} ${args} </dev/null`);
+    execAsync(`cd ${projectPath} && ${cli} ${args}`);
 
   afterAll(() => {
     rmSync(projectPath, { recursive: true, force: true });
@@ -424,13 +424,13 @@ describe('Module update --dry-run', function () {
   beforeAll(async () => {
     rmSync(projectPath, { recursive: true, force: true });
     await execAsync(
-      `cd ${tmpPath} && ${cli} create project "Dry Run Test" drt cyberismo-cli-dry-run --skipModuleImport </dev/null`,
+      `cd ${tmpPath} && ${cli} create project "Dry Run Test" drt cyberismo-cli-dry-run --skipModuleImport`,
     );
   }, 100000);
 
   it('prints the plan; check-updates is the same, deprecated', async () => {
     await execAsync(
-      `cp -r ${moduleTestPath} ${projectPath}/module-test && cd ${projectPath} && ${cli} module install ./module-test </dev/null`,
+      `cp -r ${moduleTestPath} ${projectPath}/module-test && cd ${projectPath} && ${cli} module install ./module-test`,
     );
     const dry = await run('module update --dry-run');
     expect(dry.stdout).toContain('test    (unversioned)  refetched');
