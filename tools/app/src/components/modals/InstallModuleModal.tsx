@@ -297,6 +297,9 @@ export function InstallModuleModal({
                   <FormLabel>{t('installModuleModal.bindingLabel')}</FormLabel>
                   <RadioGroup
                     value={binding}
+                    // Radio's action overlay extends 1px past the group; leave
+                    // room so DialogContent doesn't clip it or scroll.
+                    sx={{ px: '1px' }}
                     onChange={(e) => setBinding(e.target.value as Binding)}
                   >
                     {options.map((b) => (
