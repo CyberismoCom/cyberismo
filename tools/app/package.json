@@ -54,6 +54,7 @@
     "i18next": "^26.4.2",
     "jsdom": "^30.1.1",
     "marked": "^18.0.14",
+    "mermaid": "^11.17.2",
     "node-html-parser": "^9.0.4",
     "react": "^19.3.0",
     "react-arborist": "^3.16.0",
@@ -66,14 +67,11 @@
     "react-vega": "^8.0.0",
     "redux-persist": "^6.0.0",
     "rollup-plugin-license": "^3.7.1",
+    "semver": "^7.8.5",
     "swr": "^2.5.1",
     "vega": "^6.4.0",
     "vega-lite": "^6.4.2",
     "vite": "^8.3.1",
     "zod": "^4.6.5"
-  },
-  "dependencies": {
-    "mermaid": "^11.17.2",
-    "semver": "^7.8.5"
   }
 }
