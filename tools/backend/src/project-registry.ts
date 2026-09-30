@@ -13,6 +13,7 @@
 
 import { CommandManager, type ProjectProvider } from '@cyberismo/data-handler';
 import { ProjectEvents } from './domain/events/project-events.js';
+import type { ProjectErrors } from './project-errors.js';
 
 export type ProjectRegistryEntry = {
   prefix: string;
@@ -129,26 +130,32 @@ export class ProjectRegistry implements ProjectProvider {
 
   /**
    * Build a registry from scanned project entries, initializing each CommandManager.
+   * A project that fails to load is left out and reported in `failed`.
    */
   static async fromScannedProjects(
     projects: ScannedProject[],
     options?: ConstructorParameters<typeof CommandManager>[1],
-  ): Promise<ProjectRegistry> {
+  ): Promise<{ registry: ProjectRegistry; failed: ProjectErrors[] }> {
     const entries: ProjectRegistryEntry[] = [];
+    const failed: ProjectErrors[] = [];
     for (const project of projects) {
-      const commands = new CommandManager(project.path, options);
+      let commands: CommandManager | undefined;
       try {
+        commands = new CommandManager(project.path, options);
         await commands.initialize();
+        entries.push({ prefix: project.prefix, commands });
       } catch (error) {
-        throw new Error(
-          `Failed to load project '${project.prefix}' (${project.path}): ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-          { cause: error },
-        );
+        commands?.project.dispose();
+        failed.push({
+          prefix: project.prefix,
+          errors: [
+            `Failed to load project (${project.path}): ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          ],
+        });
       }
-      entries.push({ prefix: project.prefix, commands });
     }
-    return new ProjectRegistry(entries, options);
+    return { registry: new ProjectRegistry(entries, options), failed };
   }
 }

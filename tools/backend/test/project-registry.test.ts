@@ -16,23 +16,35 @@ import { join } from 'node:path';
 import { ProjectRegistry } from '../src/project-registry.js';
 import { cleanupTempTestData, createTempTestData } from './test-utils.js';
 
-let tempPath: string | undefined;
+let tempPaths: string[] = [];
 
 afterEach(async () => {
-  if (tempPath) await cleanupTempTestData(tempPath);
-  tempPath = undefined;
+  for (const path of tempPaths) await cleanupTempTestData(path);
+  tempPaths = [];
 });
 
-test('a project that fails to load is named in the error', async () => {
-  tempPath = await createTempTestData('minimal');
+test('a project that fails to load is reported and the others still load', async () => {
+  const brokenPath = await createTempTestData('minimal');
+  const goodPath = await createTempTestData('decision-records');
+  tempPaths = [brokenPath, goodPath];
   await writeFile(
-    join(tempPath, '.cards/local/workflows/minimal.json'),
+    join(brokenPath, '.cards/local/workflows/minimal.json'),
     '{ not json',
   );
 
-  await expect(
-    ProjectRegistry.fromScannedProjects([
-      { path: tempPath, prefix: 'mini', name: 'minimal' },
-    ]),
-  ).rejects.toThrow(`Failed to load project 'mini' (${tempPath}):`);
+  const { registry, failed } = await ProjectRegistry.fromScannedProjects([
+    { path: brokenPath, prefix: 'mini', name: 'minimal' },
+    { path: goodPath, prefix: 'decision', name: 'decision-records' },
+  ]);
+
+  expect(registry.list().map((p) => p.prefix)).toEqual(['decision']);
+  expect(failed).toEqual([
+    {
+      prefix: 'mini',
+      errors: [
+        expect.stringContaining(`Failed to load project (${brokenPath}):`),
+      ],
+    },
+  ]);
+  registry.dispose();
 });

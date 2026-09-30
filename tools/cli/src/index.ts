@@ -881,8 +881,19 @@ exportCmd
             });
             return;
           }
-          const registry = await ProjectRegistry.fromScannedProjects(projects);
-          const { errors } = await exportSite(
+          const { registry, failed } =
+            await ProjectRegistry.fromScannedProjects(projects);
+          const defaultProjectFailed = failed.some(
+            (f) => f.prefix === options.defaultProject,
+          );
+          if (registry.list().length === 0 || defaultProjectFailed) {
+            handleResponse({
+              statusCode: 500,
+              message: `Export failed:\n${formatProjectErrors(failed)}`,
+            });
+            return;
+          }
+          const { errors: exportErrors } = await exportSite(
             registry,
             output,
             {
@@ -903,6 +914,7 @@ exportCmd
             },
           );
           progress.stop();
+          const errors = [...failed, ...exportErrors];
           if (errors.length > 0) {
             handleResponse({
               statusCode: 500,
@@ -1716,7 +1728,8 @@ appCmd.action(async (options: CommandOptions<'start'>) => {
 
   // Create a CommandManager for each discovered project
   const mergedOptions = Object.assign({}, options, program.opts());
-  const registry = await ProjectRegistry.fromScannedProjects(projects, {
+  // Load failures were already reported by validateProjects above.
+  const { registry } = await ProjectRegistry.fromScannedProjects(projects, {
     autocommit: mergedOptions.autocommit,
     autopush: mergedOptions.autopush,
     watchResourceChanges: mergedOptions.watchResourceChanges,
