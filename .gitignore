@@ -71,3 +71,5 @@ tools/data-handler/test/tmp**
 .pnpm-store
 
 .claude/worktrees
+
+/sbom/

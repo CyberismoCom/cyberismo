@@ -22,6 +22,7 @@ on:
   pull_request:
     paths:
       - tools/cli/package.json
+      - .github/workflows/publish.yml
   push:
     branches:
       - main
@@ -158,6 +159,15 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Generate npm SBOMs
+        run: pnpm generate-sbom
+
+      - name: Upload npm SBOMs
+        uses: actions/upload-artifact@v4
+        with:
+          name: cyberismo-npm
+          path: sbom/*.cdx.json
+
       - name: Update npm
         run: npm install -g npm@latest
 
@@ -268,6 +278,15 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.suffix }}
           cache-to: type=gha,mode=max,scope=${{ matrix.suffix }}
 
+      - name: Generate image SBOM
+        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+        env:
+          SYFT_FILE_METADATA_SELECTION: none
+        with:
+          image: ${{ env.DRYRUN == 'true' && format('{0}:{1}', steps.repo.outputs.name, needs.version.outputs.version) || format('{0}@{1}', steps.repo.outputs.name, steps.build.outputs.digest) }}
+          format: cyclonedx-json
+          artifact-name: cyberismo-image-${{ matrix.suffix }}.cdx.json
+
       - name: Export digest (real release)
         if: env.DRYRUN != 'true'
         run: |
@@ -341,6 +360,23 @@ jobs:
             -t "${REPO}:${MINOR}" \
             -t "${REPO}:${MAJOR}" \
             ${DIGEST_REFS}
+
+  upload-sbom:
+    needs: [publish-npm, push-image]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Download SBOMs
+        uses: actions/download-artifact@v4
+        with:
+          path: sbom
+          pattern: cyberismo-*
+          merge-multiple: true
+
+      # TODO: upload to Dependency-Track
+      - name: Upload to Dependency-Track
+        run: ls sbom
 
   # Builds docs/ with the pinned renderer and ships them to GitHub Pages.
   # Gated on publish-npm and push-image-merge so the docs only go live

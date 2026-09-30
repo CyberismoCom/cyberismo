@@ -54,6 +54,7 @@
     "build-docker": "docker build -t cyberismo .",
     "ci:publish": "pnpm --filter !app --filter !@cyberismo/node-clingo publish --access public --no-git-checks",
     "release": "node scripts/release.mjs",
-    "check-licenses": "node scripts/check-licenses.mjs"
+    "check-licenses": "node scripts/check-licenses.mjs",
+    "generate-sbom": "pnpm sbom --sbom-format cyclonedx --prod --filter @cyberismo/cli --out 'sbom/%s.cdx.json' && shx cp tools/app/dist/sbom.cdx.json sbom/cyberismo-app.cdx.json"
   }
 }
