@@ -158,24 +158,22 @@ resultField((Key, Field), "displayValue", EnumDisplayValue, "shortText") :-
     enumField(Key, Field, Value),
     field((Field, Value), "enumDisplayValue", EnumDisplayValue).
 
-% Allow specifying up to 3 fields at the same time
-field(Key, Field, Value) :-
+% fields(key, field1, value1, field2, value2[, field3, value3]): resultField/3 for
+% two or three attributes of a result with one rule
+resultField(Key, Field, Value) :-
     fields(Key, Field, Value, _, _).
 
-field(Key, Field, Value) :-
+resultField(Key, Field, Value) :-
     fields(Key, _, _, Field, Value).
 
-field(Key, Field, Value) :-
+resultField(Key, Field, Value) :-
     fields(Key, Field, Value, _, _, _, _).
 
-field(Key, Field, Value) :-
+resultField(Key, Field, Value) :-
     fields(Key, _, _, Field, Value, _, _).
-    
-field(Key, Field, Value) :-
-    fields(Key, _, _, _, _, Field, Value).
 
-% allow using field directly
-% fields are always shown
+resultField(Key, Field, Value) :-
+    fields(Key, _, _, _, _, Field, Value).
 
 
 % childResultCollection(ParentKey, Collection): Defines a childResult. Allows guaranteeing an empty list, if no elements are present

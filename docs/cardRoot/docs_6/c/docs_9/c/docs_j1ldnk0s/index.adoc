@@ -366,7 +366,7 @@ The resulting table:
 
 The results of a query are not always cards. This example shows a summary of the card types used in the current project, along with a percentage of the total cards that are of the given card type.
 
-The query is the following. Note the usage of the `fields` term to set multiple calculated fields `percentage`, `count`, and `total` with a single rule.
+The query is the following. Note the usage of the `fields` term to construct the attributes `percentage`, `count` and `total` with a single rule. `fields` outputs them with `resultField`, so they are shown without being selected. `selectAll` adds the attributes that the card types already have (`displayName`, `description` and `workflow`).
 
 ----
 selectAll.

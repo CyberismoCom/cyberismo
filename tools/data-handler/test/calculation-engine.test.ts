@@ -290,6 +290,42 @@ describe('calculate', () => {
       expect(withThree).toEqual(withFour);
     });
   });
+
+  describe('fields/N', () => {
+    it('outputs two attributes with fields/5, without a selection', async () => {
+      const res = await project.calculationEngine.runLogicProgram(`
+        result(p).
+        fields(p, "a", 1, "b", "x").
+      `);
+      expect(res.results[0]).toMatchObject({ a: '1', b: 'x' });
+    });
+
+    it('outputs three attributes with fields/7, without a selection', async () => {
+      const res = await project.calculationEngine.runLogicProgram(`
+        result(p).
+        fields(p, "a", 1, "b", "x", "c", "y").
+      `);
+      expect(res.results[0]).toMatchObject({ a: '1', b: 'x', c: 'y' });
+    });
+
+    it('types attributes as resultField/3 does', async () => {
+      const res = await project.calculationEngine.runLogicProgram(`
+        result(p).
+        fields(p, "decision/fieldTypes/finished", "true", "progress", 40).
+      `);
+      expect(res.results[0]['decision/fieldTypes/finished']).toBe(true);
+      expect(res.results[0].progress).toBe('40');
+    });
+
+    it('does not write knowledge-layer fields', async () => {
+      const res = await project.calculationEngine.runLogicProgram(`
+        result(p).
+        fields(decision_5, "a", 1, "b", 2).
+        resultField(p, "seen", V) :- field(decision_5, "a", V).
+      `);
+      expect(res.results[0].seen).toBeUndefined();
+    });
+  });
 });
 
 describe('urlPath calculated field', () => {
