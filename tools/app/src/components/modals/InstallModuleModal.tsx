@@ -196,7 +196,9 @@ export function InstallModuleModal({
         <ModalClose disabled={submitting} />
         <DialogTitle>{title}</DialogTitle>
         <Divider />
-        <DialogContent>
+        {/* At fractional display scales sub-pixel rounding can overflow the
+            content by less than a pixel, which shows as a scroll bar. */}
+        <DialogContent sx={{ overflowX: 'hidden' }}>
           <Stack spacing={2}>
             {mode === 'install' && (
               <FormControl error={credentials}>
