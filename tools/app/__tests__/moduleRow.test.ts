@@ -19,6 +19,7 @@ import {
   bindingScope,
   moduleRow,
   type ModuleRow,
+  newestMatching,
   rangeFor,
   selectableVersions,
   submitState,
@@ -162,6 +163,19 @@ describe('rangeFor / bindingScope / bindingOf', () => {
     expect(rangeFor(version, binding)).toBe(range);
     expect(bindingScope(version, binding)).toBe(scope);
     expect(bindingOf(range)).toBe(binding);
+  });
+});
+
+describe('newestMatching', () => {
+  const versions = ['2.1.0', '2.0.0', '1.9.0', '1.4.3', '0.3.2'];
+  it.each([
+    ['^1.4.3', '1.9.0'],
+    ['~1.4.3', '1.4.3'],
+    ['1.4.3', '1.4.3'],
+    ['^0.3.1', '0.3.2'],
+    ['^3.0.0', undefined],
+  ])('%s', (range, newest) => {
+    expect(newestMatching(versions, range)).toBe(newest);
   });
 });
 

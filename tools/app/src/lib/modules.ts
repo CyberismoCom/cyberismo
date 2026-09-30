@@ -11,6 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import semver from 'semver';
 import type { UpdatePlan } from '@cyberismo/data-handler';
 import type { ProjectModule } from './api/types';
 
@@ -107,6 +108,11 @@ export const rangeFor = (version: string, binding: Binding) =>
   binding === 'exact'
     ? version
     : `${binding === 'minor' ? '~' : '^'}${version}`;
+
+// The version a newly declared range installs: the solver takes the newest
+// listed version that satisfies it.
+export const newestMatching = (versions: string[], range: string) =>
+  semver.maxSatisfying(versions, range) ?? undefined;
 
 // What the range from rangeFor admits, in words ('^0.3.1' is 0.3.x, not 0.x).
 export function bindingScope(version: string, binding: Binding) {
