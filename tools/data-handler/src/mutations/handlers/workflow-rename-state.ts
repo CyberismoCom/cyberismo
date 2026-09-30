@@ -13,7 +13,7 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
-import { resolveCardTypeRename } from '../handler.js';
+import { resolveRename } from '../handler.js';
 import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import type { ChangeOperation } from '../../resources/resource-object.js';
@@ -79,7 +79,7 @@ export class WorkflowRenameStateHandler implements Handler<EditInput> {
     // old type when this (earlier) seal replays.
     const usesWorkflow = (cardType: string): boolean =>
       cardTypeNames.has(cardType) ||
-      cardTypeNames.has(resolveCardTypeRename(cardType, ctx.cardTypeRenames));
+      cardTypeNames.has(resolveRename(cardType, ctx.cardTypeRenames));
 
     const matches = (card: Card): boolean =>
       !!card.metadata?.cardType &&

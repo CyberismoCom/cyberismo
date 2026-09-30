@@ -22,7 +22,11 @@ import { ResourceMutations } from '../resource-mutations.js';
 import { checkLinearity, computeChain } from './chain.js';
 import { entryToMutationInput } from './convert.js';
 import { listSealFiles } from './seal-files.js';
-import { resourceName } from '../../utils/resource-utils.js';
+import {
+  resourceName,
+  workflowInitialState,
+} from '../../utils/resource-utils.js';
+import { resolveRename, stateNameOf } from '../handler.js';
 
 import {
   CONFIGURATION_OPERATIONS,
@@ -32,6 +36,7 @@ import {
 import type { ConfigurationLogEntry } from '../../utils/configuration-logger.js';
 import type { ModuleInstallation } from '../../modules/types.js';
 import type { MutationInput } from '../types.js';
+import type { StateSuccessions } from '../handler.js';
 import type { Project } from '../../containers/project.js';
 import type { ResolvedModule } from '../../modules/resolve/types.js';
 import type { SealFile } from './seal-files.js';
@@ -39,7 +44,7 @@ import type { SealFile } from './seal-files.js';
 /** A reason one module's update cannot be replayed safely. */
 export interface ReplayConflict {
   modulePrefix: string;
-  kind: 'non_linear' | 'downgrade' | 'chain_gap' | 'split_workflow_ownership';
+  kind: 'non_linear' | 'downgrade' | 'chain_gap';
   detail: string;
 }
 
@@ -171,8 +176,8 @@ export class ModuleValidationFailedError extends Error {
  * steps are produced in REVERSE resolved order so dependencies tend to
  * replay before their dependents. This is a heuristic, not a topological
  * sort: a dependency shared between siblings can replay after one of
- * them. Safe because cross-module migrations commute (the one exception
- * is refused, see {@link detectSplitWorkflowOwnership}).
+ * them. State successions make the workflow and card-type cascades
+ * order-independent.
  *
  * Skips (no step, no conflict): module not installed before, installed or
  * resolved version unknown, version unchanged, or no seal covers the range.
@@ -251,80 +256,10 @@ export async function planModuleReplays(
     steps.push({ modulePrefix, fromVersion: from, toVersion: to, seals });
   }
 
-  conflicts.push(...detectSplitWorkflowOwnership(steps));
-
   if (conflicts.length > 0) {
     throw new ModuleReplayConflictError(conflicts);
   }
   return steps;
-}
-
-/**
- * Conservative guard for the one cross-module value that is NOT single-owner.
- *
- * A card's `workflowState` is governed jointly by the workflow that owns the
- * state names and the card type that points the card at that workflow. When a
- * workflow-state change (rename/remove) and a card-type workflow change are
- * replayed from DIFFERENT modules in one update, both cascades rewrite the same
- * cards' `workflowState` and the result is order-dependent. Every other
- * cross-module migration commutes (single-writer ownership), so this is the
- * only ordering hazard we refuse.
- *
- * This is the conservative form: it refuses any cross-module pairing of the two
- * entry kinds, without checking that the card type actually references the
- * workflow or that an affected card exists. A precise form is tracked
- * separately. Same-module pairings are safe (replayed in version order) and are
- * not refused.
- */
-function detectSplitWorkflowOwnership(steps: ReplayStep[]): ReplayConflict[] {
-  const stateChangeModules = new Set<string>();
-  const workflowChangeModules = new Set<string>();
-  for (const step of steps) {
-    for (const { entries } of step.seals) {
-      for (const entry of entries) {
-        if (isWorkflowStateChange(entry)) {
-          stateChangeModules.add(step.modulePrefix);
-        } else if (isCardTypeWorkflowChange(entry)) {
-          workflowChangeModules.add(step.modulePrefix);
-        }
-      }
-    }
-  }
-
-  const conflicts: ReplayConflict[] = [];
-  for (const workflowModule of stateChangeModules) {
-    for (const cardTypeModule of workflowChangeModules) {
-      if (workflowModule === cardTypeModule) continue;
-      conflicts.push({
-        modulePrefix: cardTypeModule,
-        kind: 'split_workflow_ownership',
-        detail:
-          `module '${cardTypeModule}' changes a card type's workflow while ` +
-          `module '${workflowModule}' renames or removes a workflow state in ` +
-          `the same update. A card's workflowState is owned jointly by both, ` +
-          `so this migration is order-dependent. Update these modules one at a time.`,
-      });
-    }
-  }
-  return conflicts;
-}
-
-/** A workflow-state migration: a rename ('change') or 'remove' of a
- * state, which rewrites the workflowState of every card in that state. */
-function isWorkflowStateChange(entry: ConfigurationLogEntry): boolean {
-  if (entry.operation !== 'resource_update') return false;
-  if (resourceName(entry.target).type !== 'workflows') return false;
-  if (entry.parameters?.key !== 'states') return false;
-  const op = entry.parameters?.operation as { name?: string } | undefined;
-  return op?.name === 'change' || op?.name === 'remove';
-}
-
-/** A card type repointed at a different workflow, which re-maps the
- * workflowState of every card of that type. */
-function isCardTypeWorkflowChange(entry: ConfigurationLogEntry): boolean {
-  if (entry.operation !== 'resource_update') return false;
-  if (resourceName(entry.target).type !== 'cardTypes') return false;
-  return entry.parameters?.key === 'workflow';
 }
 
 /**
@@ -370,7 +305,10 @@ export async function executeModuleReplays(
   if (steps.length === 0) return;
 
   // A card keeps its old type until the (later) rename entry applies.
-  const cardTypeRenames = buildCardTypeRenameMap(steps);
+  const cardTypeRenames = buildRenameMap(steps, 'cardTypes');
+  // A card may sit in a state the batch removes or renames before a
+  // card-type workflow change maps it.
+  const stateSuccessions = buildStateSuccessions(project, steps);
 
   const mutations = new ResourceMutations(project);
   for (const step of steps) {
@@ -383,6 +321,7 @@ export async function executeModuleReplays(
             kind: 'replay',
             modulePrefix: step.modulePrefix,
             cardTypeRenames,
+            stateSuccessions,
           });
         } catch (error) {
           throw new ModuleReplayFailedError(
@@ -404,14 +343,17 @@ export async function executeModuleReplays(
   await project.populateCaches();
 }
 
-/** Every card-type rename in the batch (old name -> new). */
-function buildCardTypeRenameMap(steps: ReplayStep[]): Map<string, string> {
+/** Every rename of a `type` resource in the batch (old name -> new). */
+function buildRenameMap(
+  steps: ReplayStep[],
+  type: 'cardTypes' | 'workflows',
+): Map<string, string> {
   const map = new Map<string, string>();
   for (const step of steps) {
     for (const { entries } of step.seals) {
       for (const entry of entries) {
         if (entry.operation !== 'resource_rename') continue;
-        if (resourceName(entry.target).type !== 'cardTypes') continue;
+        if (resourceName(entry.target).type !== type) continue;
         const to = (entry.parameters?.operation as { to?: string } | undefined)
           ?.to;
         if (typeof to === 'string') {
@@ -421,6 +363,66 @@ function buildCardTypeRenameMap(steps: ReplayStep[]): Map<string, string> {
     }
   }
   return map;
+}
+
+/**
+ * Every workflow-state succession in the batch: a removal points at its
+ * recorded replacement, or at the workflow's initial state when it has none;
+ * a legacy rename at the new name. Keyed by the workflow's final name,
+ * because entries logged before a workflow rename carry the old one. The
+ * last entry wins when a state succeeds twice.
+ */
+function buildStateSuccessions(
+  project: Project,
+  steps: ReplayStep[],
+): StateSuccessions {
+  const workflowRenames = buildRenameMap(steps, 'workflows');
+  const successors = new Map<string, Map<string, string>>();
+  for (const step of steps) {
+    for (const { entries } of step.seals) {
+      for (const entry of entries) {
+        const succession = stateSuccession(entry);
+        if (!succession) continue;
+        const workflow = resolveRename(entry.target, workflowRenames);
+        const to = succession.to ?? workflowInitialState(project, workflow);
+        if (to === undefined || to === succession.from) continue;
+        let states = successors.get(workflow);
+        if (!states) {
+          states = new Map();
+          successors.set(workflow, states);
+        }
+        states.set(succession.from, to);
+      }
+    }
+  }
+  return { workflowRenames, successors };
+}
+
+/**
+ * The (from, to) a workflow-state entry records, when it moves cards on. `to`
+ * is undefined for a removal without a recorded replacement.
+ */
+function stateSuccession(
+  entry: ConfigurationLogEntry,
+): { from: string; to: string | undefined } | undefined {
+  if (entry.operation !== 'resource_update') return undefined;
+  if (resourceName(entry.target).type !== 'workflows') return undefined;
+  if (entry.parameters?.key !== 'states') return undefined;
+  const op = entry.parameters?.operation as
+    | {
+        name?: string;
+        target?: unknown;
+        to?: unknown;
+        replacementValue?: unknown;
+      }
+    | undefined;
+  const from = stateNameOf(op?.target);
+  if (from === undefined) return undefined;
+  if (op?.name === 'remove') {
+    return { from, to: stateNameOf(op.replacementValue) };
+  }
+  const to = op?.name === 'change' ? stateNameOf(op.to) : undefined;
+  return to === undefined || to === from ? undefined : { from, to };
 }
 
 async function readSealEntries(

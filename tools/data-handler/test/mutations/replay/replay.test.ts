@@ -256,69 +256,6 @@ describe('planModuleReplays', () => {
     ]);
   });
 
-  it('cross-module workflow-state change + card-type workflow change is a split_workflow_ownership conflict', async () => {
-    const installedWf = makeInstalled('wf', 'file:/wf', '1.0.0');
-    const resolvedWf = makeResolved('wf', 'file:/wf', '2.0.0', [
-      {
-        from: '1.0.0',
-        to: '2.0.0',
-        lines: [
-          logLine('resource_update', 'wf/workflows/Flow', {
-            key: 'states',
-            operation: { name: 'change' },
-          }),
-        ],
-      },
-    ]);
-    const installedCt = makeInstalled('ct', 'file:/ct', '1.0.0');
-    const resolvedCt = makeResolved('ct', 'file:/ct', '2.0.0', [
-      {
-        from: '1.0.0',
-        to: '2.0.0',
-        lines: [
-          logLine('resource_update', 'ct/cardTypes/Task', {
-            key: 'workflow',
-            operation: { name: 'change' },
-          }),
-        ],
-      },
-    ]);
-    const error = await planModuleReplays(
-      [resolvedWf, resolvedCt],
-      [installedWf, installedCt],
-    ).catch((e) => e);
-    expect(error).toBeInstanceOf(ModuleReplayConflictError);
-    const split = error.conflicts.find(
-      (c: { kind: string }) => c.kind === 'split_workflow_ownership',
-    );
-    expect(split).toBeDefined();
-    expect(split.modulePrefix).toBe('ct');
-  });
-
-  it('same-module workflow-state + card-type workflow change is not a split conflict', async () => {
-    const installed = makeInstalled('mod', 'file:/m', '1.0.0');
-    const resolved = makeResolved('mod', 'file:/m', '2.0.0', [
-      {
-        from: '1.0.0',
-        to: '2.0.0',
-        lines: [
-          logLine('resource_update', 'mod/workflows/Flow', {
-            key: 'states',
-            operation: { name: 'remove' },
-          }),
-          logLine('resource_update', 'mod/cardTypes/Task', {
-            key: 'workflow',
-            operation: { name: 'change' },
-          }),
-        ],
-      },
-    ]);
-    // Both changes are owned by the same module and replay in version order;
-    // no cross-module ordering hazard, so planning succeeds.
-    const steps = await planModuleReplays([resolved], [installed]);
-    expect(steps).toHaveLength(1);
-  });
-
   it('correlates by name: a module that moved source is still an update', async () => {
     const installed = makeInstalled('mod', 'file:/old-host', '1.0.0');
     const resolved = makeResolved('mod', 'file:/new-host', '2.0.0', [
@@ -491,7 +428,11 @@ describe('executeModuleReplays', () => {
 
   function fakeProject() {
     return {
-      resources: { changed: vi.fn(), changedModules: vi.fn() },
+      resources: {
+        changed: vi.fn(),
+        changedModules: vi.fn(),
+        byType: vi.fn(),
+      },
       clearCards: vi.fn(),
       populateCaches: vi.fn().mockResolvedValue(undefined),
     } as unknown as Project;
@@ -547,11 +488,65 @@ describe('executeModuleReplays', () => {
       { kind: 'delete', target: { prefix: 'dep', identifier: 'b' } },
       { kind: 'delete', target: { prefix: 'root', identifier: 'c' } },
     ]);
-    expect(applySpy.mock.calls.map(([, origin]) => origin)).toEqual([
-      { kind: 'replay', modulePrefix: 'dep', cardTypeRenames: new Map() },
-      { kind: 'replay', modulePrefix: 'dep', cardTypeRenames: new Map() },
-      { kind: 'replay', modulePrefix: 'root', cardTypeRenames: new Map() },
+    const origin = (modulePrefix: string) => ({
+      kind: 'replay',
+      modulePrefix,
+      cardTypeRenames: new Map(),
+      stateSuccessions: { workflowRenames: new Map(), successors: new Map() },
+    });
+    expect(applySpy.mock.calls.map(([, o]) => o)).toEqual([
+      origin('dep'),
+      origin('dep'),
+      origin('root'),
     ]);
+  });
+
+  it('passes the batch state successions, keyed by the final workflow name', async () => {
+    const applySpy = vi
+      .spyOn(ResourceMutations.prototype, 'apply')
+      .mockResolvedValue(undefined);
+    const W = 'mod/workflows/flow';
+    const Wr = 'mod/workflows/flowV2';
+    const states = (
+      operation: Record<string, unknown>,
+    ): ConfigurationLogEntry =>
+      JSON.parse(logLine('resource_update', W, { key: 'states', operation }));
+    const replayStep = step('mod', []);
+    replayStep.seals[0].entries = [
+      // CLI-recorded shape: bare strings.
+      states({ name: 'remove', target: 'Old', replacementValue: 'Draft' }),
+      // Legacy removal without a replacement succeeds to the initial state.
+      states({ name: 'remove', target: { name: 'Legacy' } }),
+      JSON.parse(
+        logLine('resource_rename', W, {
+          type: 'workflows',
+          operation: { name: 'change', target: W, to: Wr },
+        }),
+      ),
+    ];
+
+    const project = fakeProject();
+    // Only the final (renamed) workflow name resolves.
+    vi.mocked(project.resources.byType).mockImplementation(((name: string) =>
+      name === Wr
+        ? { data: { transitions: [{ fromState: [''], toState: 'Drafted' }] } }
+        : undefined) as never);
+    await executeModuleReplays(project, [replayStep]);
+
+    expect(applySpy.mock.calls[0][1]).toMatchObject({
+      stateSuccessions: {
+        workflowRenames: new Map([[W, Wr]]),
+        successors: new Map([
+          [
+            Wr,
+            new Map([
+              ['Old', 'Draft'],
+              ['Legacy', 'Drafted'],
+            ]),
+          ],
+        ]),
+      },
+    });
   });
 
   it('refreshes project caches once, after all chains', async () => {
