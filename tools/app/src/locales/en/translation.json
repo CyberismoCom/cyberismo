@@ -313,7 +313,7 @@
       "minor": "Patch updates only: {{scope}} ({{range}})",
       "exact": "Pin to this version: {{scope}} ({{range}})"
     },
-    "declares": "Declares {{range}}; the newest matching version is installed.",
+    "declares": "Declares {{range}}; installs {{version}}, the newest matching version.",
     "install": "Install",
     "changeVersion": "Change version",
     "success": "Module installed successfully",

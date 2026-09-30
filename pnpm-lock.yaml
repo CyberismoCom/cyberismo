@@ -220,6 +220,9 @@ importers:
       mermaid:
         specifier: ^11.17.2
         version: 11.17.2
+      semver:
+        specifier: ^7.8.5
+        version: 7.8.5
     devDependencies:
       '@asciidoctor/core':
         specifier: ^4.1.0
@@ -275,6 +278,9 @@ importers:
       '@types/react-dom':
         specifier: ^19.3.0
         version: 19.3.0(@types/react@19.3.0)
+      '@types/semver':
+        specifier: ^7.8.0
+        version: 7.8.0
       '@uiw/codemirror-theme-github':
         specifier: ^4.25.12
         version: 4.25.12(@codemirror/language@6.12.4)(@codemirror/state@6.7.6)(@codemirror/view@6.43.13)
