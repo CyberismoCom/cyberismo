@@ -42,6 +42,7 @@ import { addNotification } from '@/lib/slices/notifications';
 import {
   bindingOf,
   bindingScope,
+  newestMatching,
   rangeFor,
   selectableVersions,
   sourceHasCredentials,
@@ -317,7 +318,11 @@ export function InstallModuleModal({
                     ))}
                   </RadioGroup>
                   <FormHelperText>
-                    {t('installModuleModal.declares', { range })}
+                    {t('installModuleModal.declares', {
+                      range,
+                      version:
+                        (range && newestMatching(versions, range)) ?? version,
+                    })}
                   </FormHelperText>
                 </FormControl>
               </>
