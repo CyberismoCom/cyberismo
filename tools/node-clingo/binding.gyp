@@ -14,6 +14,7 @@
         "src/clingo_solver.cc",
         "src/program_store.cc",
         "src/validator.cc",
+        "src/program_summary.cc",
         "src/solve_result_cache.cc"
       ],
       "include_dirs": [
