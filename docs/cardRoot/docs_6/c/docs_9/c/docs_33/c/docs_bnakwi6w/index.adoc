@@ -7,11 +7,8 @@
 
 == Description
 
-The `field` predicate with 4 parameters is a helper that enables a single rule in a query to define a field and its data type. This is useful, for example, in queries that define new fields of query results, for which there is no field type configuration.
+The `field` predicate with 4 parameters is the output atom of the query language. For each scalar attribute of a query result, the query language shows a `field(Key, Field, Value, DataType)` atom, which the query result parser turns into a property of the result object.
 
-This predicate has been implemented with the following rules.
+Queries do not write this predicate. To give a result an attribute, select a field, or construct the attribute with {{#xref}}"cardKey":"docs_g9t7ad0x"{{/xref}} or {{#xref}}"cardKey":"docs_h1sm98ea"{{/xref}}. A `field` head in a query is a violation of the rule that queries never write predicates that the main logic program reads.
 
-----
-field(Key, Field, Value) :- field(Key, Field, Value, _).
-dataType(Key, Field, DataType) :- field(Key, Field, _, DataType).
-----
+The data type determines the JSON type of the property: `number` and `integer` become JSON numbers, `boolean` becomes a JSON boolean, and `stringList` becomes an array. `shortText`, `longText`, `person`, `date` and `dateTime` become strings, and `enum` and `list` become objects and arrays. Any other data type is not output: the attribute is dropped.

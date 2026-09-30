@@ -77,6 +77,18 @@ resultField(Key, Field, Value, DataType) :-
     
 resultField(Key, Field, Value, DataType) :-
     resultFields(Key, _, _, _, _, _, _, Field, Value, DataType).
+
+% resultField(key, field, value): resultField/4 without a data type. The type is
+% the data type of the field type named "field", or shortText if there is none.
+resultField(Key, Field, Value, DataType) :-
+    resultField(Key, Field, Value),
+    fieldType(Field),
+    field(Field, "dataType", DataType).
+
+resultField(Key, Field, Value, "shortText") :-
+    resultField(Key, Field, Value),
+    not fieldType(Field).
+
 %
 % field(key, field, value, data type):
 % "field" of result/child result "key" has value "value",

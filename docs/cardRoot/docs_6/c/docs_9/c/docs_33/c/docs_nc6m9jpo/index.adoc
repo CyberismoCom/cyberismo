@@ -19,3 +19,5 @@ field(Key, Field, Value) :-
 field(Key, Field, Value) :-
     fields(Key, _, _, Field, Value).
 ----
+
+To give a query result an attribute, see also {{#xref}}"cardKey":"docs_g9t7ad0x"{{/xref}}.

@@ -1,0 +1,13 @@
+{
+    "title": "resultField(Key, Field, Value)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|f",
+    "lastUpdated": "2026-09-29T11:42:58.394Z",
+    "base/fieldTypes/briefDescription": "A query result has an attribute whose data type comes from the field type of the same name",
+    "base/fieldTypes/category": "Query language",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "createdAt": "2026-09-29T09:06:21.917Z",
+    "lastTransitioned": "2026-09-29T10:17:39.582Z"
+}

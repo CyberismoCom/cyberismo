@@ -63,13 +63,11 @@ The most important part of the context object is the empty `results` array.
 The second example illustrates how we can define the results of the query using logic program terms. The query of `docs/reports/example2` defines two hard-coded result objects as follows:
 
 ----
-select("title").
-
 result(result1).
-field(result1, "title", "First result").
+resultField(result1, "title", "First result").
 
 result(result2).
-field(result2, "title", "Second result").
+resultField(result2, "title", "Second result").
 
 orderBy("title", "DESC").
 ----
@@ -115,7 +113,7 @@ The results of Example 2:
 ]
 ----
 
-NOTE: The parameter of the logic program term `result` will be included as the `key` property in the result object. It is possible to override the value of the `key` property by defining a `field` term for the `"key"` field.
+NOTE: The parameter of the logic program term `result` will be included as the `key` property in the result object. It is possible to override the value of the `key` property by constructing a `"key"` attribute with `resultField`.
 
 The AsciiDoc output of the macro looks like this:
 
@@ -136,25 +134,23 @@ Finally, a rendered version of the output is this:
 The third example illustrates how `childResult` and `childObject` can be used to sculpt a more complex result object. The query of `docs/reports/example3` extends the previous example and adds a child result and a child object. The difference between these two concepts is that child results are an array of result objects, and a child object is a property that holds a single object.
 
 ----
-selectAll.
-
 result(result1).
-field(result1, "title", "First result").
+resultField(result1, "title", "First result").
 
 childResult(result1, child1, "children").
-field(child1, "title", "Child result").
+resultField(child1, "title", "Child result").
 
 result(result2).
-field(result2, "title", "Second result").
+resultField(result2, "title", "Second result").
 
 childObject(result2, child2, "child").
-field(child2, "title", "Child object").
+resultField(child2, "title", "Child object").
 
 orderBy("title", "DESC").
 
 ----
 
-CAUTION: Child objects and child results are identified by a key, which is the second parameter of the `childObject` or `childResult` term. Note that `field` terms for `child1` and `child2` do not include any context about the parent object. That is why you must use unique identifiers (keys) for child objects and child results, as otherwise their `field` terms would be mixed up.
+CAUTION: Child objects and child results are identified by a key, which is the second parameter of the `childObject` or `childResult` term. Note that `resultField` terms for `child1` and `child2` do not include any context about the parent object. That is why you must use unique identifiers (keys) for child objects and child results, as otherwise their `resultField` terms would be mixed up.
 
 The report template has been implemented as follows. Note that logging is again slightly different from the previous example, as we are logging each member of the `results` array separately.
 
@@ -198,7 +194,7 @@ The results of Example 3:
 }
 ----
 
-NOTE: The second parameter of the `childResult` and `childObject` logic program terms is included as the `key` property in the result objects. The key must be unique. It is possible to override the value of the `key` property for these result objects by defining a `field` term for the `"key"` field. This is useful, for example, if you want many results to have child objects with the same name but different contents.
+NOTE: The second parameter of the `childResult` and `childObject` logic program terms is included as the `key` property in the result objects. The key must be unique. It is possible to override the value of the `key` property for these result objects by constructing a `"key"` attribute with `resultField`. This is useful, for example, if you want many results to have child objects with the same name but different contents.
 
 The AsciiDoc output of the macro looks like this:
 
