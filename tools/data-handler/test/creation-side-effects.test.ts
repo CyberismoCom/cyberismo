@@ -27,11 +27,13 @@ afterAll(() => {
 
 describe('creation side effects', () => {
   it('executes side effects declared for card creation', async () => {
-    // Any created card of the decision card type rejects decision_6.
+    // Any created card of the decision card type rejects decision_6 and
+    // retitles decision_5.
     const { commands, options } = await setupSideEffectProject(
       testDir,
       'creation',
-      'onTransitionExecuteTransition(Card, "Create", decision_6, "Reject") :- field(Card, "cardType", "decision/cardTypes/decision").',
+      'onTransitionExecuteTransition(Card, "Create", decision_6, "Reject") :- field(Card, "cardType", "decision/cardTypes/decision").\n' +
+        'onTransitionSetField(Card, "Create", decision_5, "title", "Set on creation") :- field(Card, "cardType", "decision/cardTypes/decision").',
     );
     const result = await commands.command(
       Cmd.create,
@@ -40,6 +42,13 @@ describe('creation side effects', () => {
     );
     expect(result.statusCode).toBe(200);
     expect(await cardState(commands, options, 'decision_6')).toBe('Rejected');
+    const shown = await commands.command(
+      Cmd.show,
+      ['card', 'decision_5'],
+      options,
+    );
+    const card = shown.payload as { metadata?: { title?: string } };
+    expect(card.metadata?.title).toBe('Set on creation');
   });
 });
 
