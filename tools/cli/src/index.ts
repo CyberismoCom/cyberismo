@@ -45,15 +45,14 @@ import { ResourceTypeParser as Parser } from './resource-type-parser.js';
 import {
   startServer,
   exportSite,
+  formatProjectErrors,
   previewSite,
   MockAuthProvider,
   ProjectRegistry,
 } from '@cyberismo/backend';
-import type { MockUserConfig } from '@cyberismo/backend';
+import type { MockUserConfig, ProjectErrors } from '@cyberismo/backend';
 import { simpleGit } from 'simple-git';
 
-// How many validation errors are shown when staring app, if any.
-const VALIDATION_ERROR_ROW_LIMIT = 10;
 import { DEFAULT_HUB } from '@cyberismo/assets';
 
 // To avoid duplication, fetch description and version from package.json file.
@@ -66,27 +65,6 @@ async function getGitUserConfig(): Promise<MockUserConfig> {
   const name = (await git.getConfig('user.name')).value || undefined;
   const email = (await git.getConfig('user.email')).value || undefined;
   return { name, email };
-}
-
-// Truncates a multi-row message to an array of items.
-// Logs maximum of 'limit' items to console. If there are more items than
-// 'limit', the last element is replaced with "..." to indicate truncation.
-// Returns the potentially truncated array.
-function truncateMessage(
-  messages: string,
-  limit: number = VALIDATION_ERROR_ROW_LIMIT,
-): string[] {
-  const array = messages.split('\n');
-  if (array.length < limit) {
-    return [...array];
-  }
-  if (limit <= 0) {
-    return [];
-  }
-  if (limit === 1) {
-    return ['...'];
-  }
-  return [...array.slice(0, limit - 1), '...'];
 }
 
 // Notifies on stderr that a deprecated command spelling was used.
@@ -903,8 +881,19 @@ exportCmd
             });
             return;
           }
-          const registry = await ProjectRegistry.fromScannedProjects(projects);
-          const { errors } = await exportSite(
+          const { registry, failed } =
+            await ProjectRegistry.fromScannedProjects(projects);
+          const defaultProjectFailed = failed.some(
+            (f) => f.prefix === options.defaultProject,
+          );
+          if (registry.list().length === 0 || defaultProjectFailed) {
+            handleResponse({
+              statusCode: 500,
+              message: `Export failed:\n${formatProjectErrors(failed)}`,
+            });
+            return;
+          }
+          const { errors: exportErrors } = await exportSite(
             registry,
             output,
             {
@@ -925,11 +914,12 @@ exportCmd
             },
           );
           progress.stop();
+          const errors = [...failed, ...exportErrors];
           if (errors.length > 0) {
-            console.log(
-              'Export completed with errors:\n' +
-                truncateMessage(errors.join('\n')).join('\n'),
-            );
+            handleResponse({
+              statusCode: 500,
+              message: `Export completed with errors:\n${formatProjectErrors(errors)}`,
+            });
             return;
           }
           console.log('Exported site to', output);
@@ -1649,6 +1639,32 @@ installSkillsCmd.action(
   },
 );
 
+// Validates each project and returns the ones with errors.
+async function validateProjects(
+  projects: Awaited<ReturnType<typeof scanForProjects>>,
+  options: CommandOptions<'start'>,
+): Promise<ProjectErrors[]> {
+  const invalid: ProjectErrors[] = [];
+  for (const project of projects) {
+    const result = await commandHandler.command(
+      Cmd.validate,
+      [],
+      Object.assign({}, options, program.opts(), {
+        projectPath: project.path,
+      }),
+    );
+    const message =
+      result.message ||
+      program.error(
+        `Expected validation result for project '${project.name}', but got none`,
+      );
+    if (message !== 'Project structure validated') {
+      invalid.push({ prefix: project.prefix, errors: message.split('\n') });
+    }
+  }
+  return invalid;
+}
+
 // Start app command.
 // If there are validation errors, user is prompted to continue or not.
 // There is 10 sec timeout on the prompt. If user does not reply, then
@@ -1687,38 +1703,19 @@ appCmd.action(async (options: CommandOptions<'start'>) => {
     console.log('No projects found. Starting with empty project collection.');
   }
 
-  // Validate each discovered project
-  for (const project of projects) {
-    const result = await commandHandler.command(
-      Cmd.validate,
-      [],
-      Object.assign({}, options, program.opts(), {
-        projectPath: project.path,
-      }),
-    );
-    if (!result.message) {
-      program.error(
-        `Expected validation result for project '${project.name}', but got none`,
-      );
+  const invalid = await validateProjects(projects, options);
+  if (invalid.length > 0) {
+    console.error(formatProjectErrors(invalid));
+    const userConfirmation = await confirm(
+      {
+        message: `${invalid.length} of ${projects.length} projects have validation errors. Start anyway?`,
+      },
+      { signal: AbortSignal.timeout(10000), clearPromptOnDone: true },
+    ).catch((error) => {
+      return error.name === 'AbortPromptError';
+    });
+    if (!userConfirmation) {
       return;
-    }
-    if (result.message !== 'Project structure validated') {
-      console.error(`Validation errors in project '${project.name}':`);
-      truncateMessage(result.message).forEach((item) => console.error(item));
-      console.error('\n');
-      result.message = '';
-      const userConfirmation = await confirm(
-        {
-          message: `There are validation errors in '${project.name}'. Do you want to continue?`,
-        },
-        { signal: AbortSignal.timeout(10000), clearPromptOnDone: true },
-      ).catch((error) => {
-        return error.name === 'AbortPromptError';
-      });
-      if (!userConfirmation) {
-        handleResponse(result);
-        return;
-      }
     }
   }
 
@@ -1731,7 +1728,8 @@ appCmd.action(async (options: CommandOptions<'start'>) => {
 
   // Create a CommandManager for each discovered project
   const mergedOptions = Object.assign({}, options, program.opts());
-  const registry = await ProjectRegistry.fromScannedProjects(projects, {
+  // Load failures were already reported by validateProjects above.
+  const { registry } = await ProjectRegistry.fromScannedProjects(projects, {
     autocommit: mergedOptions.autocommit,
     autopush: mergedOptions.autopush,
     watchResourceChanges: mergedOptions.watchResourceChanges,

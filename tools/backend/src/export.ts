@@ -22,6 +22,7 @@ import { staticFrontendDirRelative } from './utils.js';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
 import { toSSG } from 'hono/ssg';
 import type { TreeOptions } from './types.js';
+import type { ProjectErrors } from './project-errors.js';
 import {
   findAllCards,
   findRelevantAttachments,
@@ -32,6 +33,8 @@ export interface ExportSiteOptions extends TreeOptions {
 }
 
 const _cardQueryCache = new Map<string, Promise<QueryResult<'card'>[]>>();
+/** Label for errors from routes that belong to no project. */
+const SHARED_ROUTES = '(shared)';
 const OVERHEAD_CALLS = 6; // estimated number of overhead calls during export in addition to card exports
 
 /**
@@ -82,14 +85,14 @@ export async function getCardQueryResult(
  * @param options.cardKey - Key of the card to export. If not provided, all cards will be exported.
  * @param options.defaultProject - Default project prefix to write into config.json.
  * @param onProgress - Optional progress callback function.
- * @returns An object containing any errors that occurred during export.
+ * @returns Errors that occurred during export, grouped by project.
  */
 export async function exportSite(
   registry: ProjectRegistry,
   exportDir?: string,
   options?: ExportSiteOptions,
   onProgress?: (current: number, total: number) => void,
-): Promise<{ errors: string[] }> {
+): Promise<{ errors: ProjectErrors[] }> {
   exportDir = exportDir || 'static';
   const { defaultProject, ...treeOpts } = options ?? {};
   const opts: TreeOptions = {
@@ -125,50 +128,65 @@ export async function exportSite(
     total += cards.length + attachments.length;
   }
 
-  // Actual export with progress reporting
+  // One pass per project so an error is attributed to the project whose route
+  // produced it (the response itself carries no project). Shared routes get
+  // their own pass so each route is emitted exactly once.
+  const prefixes = registry.list().map((p) => p.prefix);
+  const projectOf = (pathname: string) =>
+    prefixes.find((p) => {
+      const base = `/api/projects/${p}`;
+      return pathname === base || pathname.startsWith(`${base}/`);
+    });
+
   let done = 0;
   onProgress?.(done, total);
-  const errors: string[] = [];
-  await toSSG(app, fs, {
-    dir: exportDir,
-    concurrency: 5,
-    plugins: [
-      {
-        beforeRequestHook: (req) => {
-          const url = new URL(req.url);
-          // Skip MCP routes — they require session state and are not part of the static site
-          if (url.pathname.startsWith('/mcp')) {
-            return false;
-          }
-          // Skip OIDC/well-known routes — not relevant for static export
-          if (url.pathname.startsWith('/.well-known')) {
-            return false;
-          }
-          return req;
-        },
-        afterResponseHook: async (response) => {
-          if (![200, 201, 204].includes(response.status)) {
-            const error = await response.json();
-            if (
-              typeof error === 'object' &&
-              error != null &&
-              'error' in error &&
-              typeof error.error === 'string'
-            ) {
-              errors.push(error.error);
+  const errors: ProjectErrors[] = [];
+  for (const scope of [undefined, ...prefixes]) {
+    const scopeErrors: string[] = [];
+    await toSSG(app, fs, {
+      dir: exportDir,
+      concurrency: 5,
+      plugins: [
+        {
+          beforeRequestHook: (req) => {
+            const url = new URL(req.url);
+            // Skip MCP routes — they require session state and are not part of the static site
+            if (url.pathname.startsWith('/mcp')) {
+              return false;
             }
-            return false; // ignore route
-          }
-          done++;
-          if (done > total) {
-            total = done; // adjust total if underestimated
-          }
-          onProgress?.(done, total);
-          return response;
+            // Skip OIDC/well-known routes — not relevant for static export
+            if (url.pathname.startsWith('/.well-known')) {
+              return false;
+            }
+            return projectOf(url.pathname) === scope ? req : false;
+          },
+          afterResponseHook: async (response) => {
+            if (![200, 201, 204].includes(response.status)) {
+              const error = await response.json();
+              if (
+                typeof error === 'object' &&
+                error != null &&
+                'error' in error &&
+                typeof error.error === 'string'
+              ) {
+                scopeErrors.push(error.error);
+              }
+              return false; // ignore route
+            }
+            done++;
+            if (done > total) {
+              total = done; // adjust total if underestimated
+            }
+            onProgress?.(done, total);
+            return response;
+          },
         },
-      },
-    ],
-  });
+      ],
+    });
+    if (scopeErrors.length > 0) {
+      errors.push({ prefix: scope ?? SHARED_ROUTES, errors: scopeErrors });
+    }
+  }
   return {
     errors,
   };
