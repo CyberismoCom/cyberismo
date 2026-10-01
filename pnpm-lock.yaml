@@ -236,13 +236,13 @@ importers:
         version: link:../mcp
       '@hono/mcp':
         specifier: ^0.3.2
-        version: 0.3.2(@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.5.4))(hono-rate-limiter@0.5.3(hono@4.13.5))(hono@4.13.5)(zod@4.5.4)
+        version: 0.3.2(@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.5.4))(hono-rate-limiter@0.5.3(hono@4.13.10))(hono@4.13.10)(zod@4.5.4)
       '@hono/node-server':
         specifier: ^2.1.1
-        version: 2.1.1(hono@4.13.5)
+        version: 2.1.1(hono@4.13.10)
       '@hono/zod-validator':
-        specifier: ^0.9.0
-        version: 0.9.0(hono@4.13.5)(zod@4.5.4)
+        specifier: ^0.9.1
+        version: 0.9.1(hono@4.13.10)(zod@4.5.4)
       '@modelcontextprotocol/sdk':
         specifier: ^1.30.0
         version: 1.30.0(supports-color@7.2.0)(zod@4.5.4)
@@ -253,8 +253,8 @@ importers:
         specifier: ^17.3.1
         version: 17.4.2
       hono:
-        specifier: ^4.13.5
-        version: 4.13.5
+        specifier: ^4.13.10
+        version: 4.13.10
       jose:
         specifier: ^6.2.10
         version: 6.2.10
@@ -1022,8 +1022,8 @@ packages:
     peerDependencies:
       hono: ^4
 
-  '@hono/zod-validator@0.9.0':
-    resolution: {integrity: sha512-n0ZSXmCiHVIp4Y5wlOOyZCeTd/rsawA/qW1cipB8QOYKZ9N8Tk0nZUZCXho9cu374AN4JpDNKioNKBJ/W+LBug==}
+  '@hono/zod-validator@0.9.1':
+    resolution: {integrity: sha512-iiv6w0qrIc0arfvCtUqBWsvl4fXjzaTcQcCJTTtCnkawF9HHGE+KjEl0ox3gQJ6rKZEgE3mLExlQCF72M+mNuw==}
     peerDependencies:
       hono: '>=4.11.2'
       zod: ^3.25.0 || ^4.0.0
@@ -3189,8 +3189,8 @@ packages:
       unstorage:
         optional: true
 
-  hono@4.13.5:
-    resolution: {integrity: sha512-O6+/eCYRkzzzy0rPWwKLiGBR1nFuUPZynnwjxN1MBA62NNqbT0wQEzQyK2gSO5yDIDB336sXQleAhOHrzlYyKw==}
+  hono@4.13.10:
+    resolution: {integrity: sha512-dQuLsa5oO+47QVMVMaaD9cIv8ctmVtK1iRvwWngkfloFJMeFeuoUFDswIqZGxmGX3hrRzREgEArjkK9OgsQEhA==}
     engines: {node: '>=16.9.0'}
 
   html-dom-parser@8.0.2:
@@ -5457,21 +5457,21 @@ snapshots:
 
   '@floating-ui/utils@0.2.11': {}
 
-  '@hono/mcp@0.3.2(@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.5.4))(hono-rate-limiter@0.5.3(hono@4.13.5))(hono@4.13.5)(zod@4.5.4)':
+  '@hono/mcp@0.3.2(@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.5.4))(hono-rate-limiter@0.5.3(hono@4.13.10))(hono@4.13.10)(zod@4.5.4)':
     dependencies:
       '@modelcontextprotocol/sdk': 1.30.0(supports-color@7.2.0)(zod@4.5.4)
-      hono: 4.13.5
-      hono-rate-limiter: 0.5.3(hono@4.13.5)
+      hono: 4.13.10
+      hono-rate-limiter: 0.5.3(hono@4.13.10)
       pkce-challenge: 5.0.1
       zod: 4.5.4
 
-  '@hono/node-server@2.1.1(hono@4.13.5)':
+  '@hono/node-server@2.1.1(hono@4.13.10)':
     dependencies:
-      hono: 4.13.5
+      hono: 4.13.10
 
-  '@hono/zod-validator@0.9.0(hono@4.13.5)(zod@4.5.4)':
+  '@hono/zod-validator@0.9.1(hono@4.13.10)(zod@4.5.4)':
     dependencies:
-      hono: 4.13.5
+      hono: 4.13.10
       zod: 4.5.4
 
   '@hookform/resolvers@5.9.1(@standard-schema/spec@1.1.0)(ajv@8.20.0)(react-hook-form@7.87.0(react@19.2.8))(zod@4.5.4)':
@@ -5677,7 +5677,7 @@ snapshots:
 
   '@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.5.4)':
     dependencies:
-      '@hono/node-server': 2.1.1(hono@4.13.5)
+      '@hono/node-server': 2.1.1(hono@4.13.10)
       ajv: 8.20.0
       ajv-formats: 3.0.1(ajv@8.20.0)
       content-type: 1.0.5
@@ -5687,7 +5687,7 @@ snapshots:
       eventsource-parser: 3.0.8
       express: 5.2.1(supports-color@7.2.0)
       express-rate-limit: 8.5.2(express@5.2.1(supports-color@7.2.0))
-      hono: 4.13.5
+      hono: 4.13.10
       jose: 6.2.10
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
@@ -7563,11 +7563,11 @@ snapshots:
     dependencies:
       react-is: 16.13.1
 
-  hono-rate-limiter@0.5.3(hono@4.13.5):
+  hono-rate-limiter@0.5.3(hono@4.13.10):
     dependencies:
-      hono: 4.13.5
+      hono: 4.13.10
 
-  hono@4.13.5: {}
+  hono@4.13.10: {}
 
   html-dom-parser@8.0.2:
     dependencies:
