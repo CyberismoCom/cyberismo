@@ -1,0 +1,68 @@
+name: SBOM
+
+on:
+  workflow_run:
+    workflows: [Publish]
+    types: [completed]
+    branches: [main]
+  pull_request:
+    paths:
+      - .github/workflows/sbom.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sbom:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event != 'pull_request')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine version
+        id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.workflow_run.head_sha || github.event.pull_request.head.sha || github.sha }}
+        run: |
+          version=$(gh api -H 'Accept: application/vnd.github.raw' "repos/$GITHUB_REPOSITORY/contents/tools/cli/package.json?ref=$SHA" | jq -r .version)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Scan image
+        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+        env:
+          SYFT_FILE_METADATA_SELECTION: none
+          SYFT_SELECT_CATALOGERS: +sbom-cataloger
+        with:
+          image: registry:docker.io/cyberismo/cyberismo:${{ steps.v.outputs.version }}
+          format: cyclonedx-json@1.6
+          output-file: image.cdx.json
+          upload-artifact: false
+
+      - name: Split into application and container SBOMs
+        run: |
+          jq '.components |= (map(select(any(.properties[]?; .name == "syft:location:0:path" and (.value | startswith("/app/"))))) | unique_by(.purl)) | del(.dependencies)' image.cdx.json > cyberismo-application.cdx.json
+          jq '.components |= map(select(any(.properties[]?; .name == "syft:location:0:path" and (.value | startswith("/app/"))) | not))' image.cdx.json > cyberismo-container.cdx.json
+
+      - name: Upload SBOMs
+        uses: actions/upload-artifact@v7
+        with:
+          name: sbom
+          path: cyberismo-*.cdx.json
+
+      - name: Upload to Dependency-Track
+        if: github.event_name != 'pull_request'
+        env:
+          DTRACK_URL: ${{ vars.DTRACK_URL }}
+          DTRACK_API_KEY: ${{ secrets.DTRACK_API_KEY }}
+          VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          upload() {
+            curl -fsS -X POST "$DTRACK_URL/api/v1/bom" \
+              -H "X-Api-Key: $DTRACK_API_KEY" \
+              -F autoCreate=true \
+              -F "projectName=$1" \
+              -F "projectVersion=$VERSION" \
+              -F "bom=@$2"
+          }
+          upload "Cyberismo Application" cyberismo-application.cdx.json
+          upload "Cyberismo Container" cyberismo-container.cdx.json
