@@ -16,7 +16,7 @@ import type { ResolveConflict } from './types.js';
 
 /**
  * One-line human-readable explanation of a {@link ResolveConflict}, shared by
- * resolution error messages and the check-updates listing.
+ * resolution error messages and the dry-run plan.
  */
 export function conflictReason(c: ResolveConflict): string {
   const parts: string[] = [];

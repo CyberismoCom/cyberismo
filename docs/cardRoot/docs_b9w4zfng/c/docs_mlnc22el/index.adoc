@@ -162,7 +162,7 @@ The version binding of each module is stored in the project's `cardsConfig.json`
 ]
 ----
 
-The `version` field holds a semver version or range constraint. You can edit it by hand to change the binding — for example, to allow a new major version — and then run `cyberismo module update <prefix>` to apply the change. See the "Changing a module's version binding" section below.
+The `version` field holds a semver version or range constraint. You can change the binding by running `cyberismo module install <source>@<range>` again, or edit it by hand — for example, to allow a new major version — and then run `cyberismo module update <prefix>` to apply the change. See the "Changing a module's version binding" section below.
 
 == Removing a module
 
@@ -223,25 +223,47 @@ NOTE: A target version can only be given together with a module prefix. Running 
 
 === Checking for available updates
 
-To see which modules have newer versions available without applying anything, run:
+To see what an update would do without applying it, add the `--dry-run` option:
 
 [source,console]
 ----
-$ cyberismo check-updates
+$ cyberismo module update --dry-run
 ----
 
-You can also check a single module:
+The option works with the same arguments as the update itself, so you can also check a single module, or a single module with a target version:
 
 [source,console]
 ----
-$ cyberismo check-updates <module prefix>
+$ cyberismo module update <module prefix> --dry-run
+$ cyberismo module update <module prefix> <version> --dry-run
 ----
 
-For each module, Cyberismo reports the installed version and the newest version reachable within its binding. If a newer version exists outside the binding, for example a new major version, it is reported as held back. After printing the summary, Cyberismo asks whether to apply the available in-range updates.
+The dry run solves the update the same way the real update does, and reports:
+
+* the modules that would move, from the installed version to the new one; moves that leave the compatible range of the installed version, such as a new major version, are flagged as breaking
+* installed modules that would be removed because nothing depends on them any more
+* version ranges that would be recorded in `cardsConfig.json`
+* modules held back: a newer version exists, but outside the module's version binding
+* private modules that could not be listed, for example without credentials; they stay at their installed version and are not checked
+
+If the update is blocked, the dry run reports the conflicts instead and exits with an error, like the update itself. A dry run only reads module metadata; it does not install anything or change the project.
+
+NOTE: A dry run cannot check migration and schema compatibility, because that needs the module contents. These checks run when the update is applied, and the update can still be refused at that point. Nothing is changed when it is.
+
+NOTE: The earlier `cyberismo check-updates` command is a deprecated alias for `cyberismo module update --dry-run`. It no longer offers to apply updates.
 
 === Changing a module's version binding
 
-Updating a module never crosses the version range that it is bound to. To move a module to a version outside its current binding — most commonly, to adopt a new major version — edit the `version` field of that module in `cardsConfig.json` (for example, change `^1.0.0` to `^2.0.0`), and then run:
+Updating a module never crosses the version range that it is bound to. To move a module to a version outside its current binding — most commonly, to adopt a new major version — install it again from the same source with the new range:
+
+[source,console]
+----
+$ cyberismo module install <source>@<range>
+----
+
+For example, `@^2.0.0` records the range `^2.0.0` and installs the newest matching version in one step. A range that would require a downgrade is refused and nothing is changed.
+
+Alternatively, edit the `version` field of that module in `cardsConfig.json` (for example, change `^1.0.0` to `^2.0.0`), and then run:
 
 [source,console]
 ----
