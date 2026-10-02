@@ -34,6 +34,7 @@ interface ModuleCardProps {
   // The check failed, so the latest versions are unknown.
   checkFailed: boolean;
   onUpdate: () => void;
+  onChangeVersion: () => void;
   onDelete: () => void;
 }
 
@@ -45,6 +46,7 @@ export function ModuleCard({
   plan,
   checkFailed,
   onUpdate,
+  onChangeVersion,
   onDelete,
 }: ModuleCardProps) {
   const { t } = useTranslation();
@@ -107,7 +109,9 @@ export function ModuleCard({
           </>
         )}
       </CardContent>
-      {(row.actions.update || row.actions.remove) && (
+      {(row.actions.update ||
+        row.actions.remove ||
+        row.actions.changeVersion) && (
         <CardActions>
           {row.actions.update && (
             <Button
@@ -121,6 +125,19 @@ export function ModuleCard({
               onClick={onUpdate}
             >
               {t('update')}
+            </Button>
+          )}
+          {row.actions.changeVersion && (
+            <Button
+              size="sm"
+              variant="outlined"
+              aria-label={t('general.changeVersionLabel', {
+                module: module.name,
+              })}
+              disabled={isUpdating() || disabled}
+              onClick={onChangeVersion}
+            >
+              {t('general.changeVersion')}
             </Button>
           )}
           {row.actions.remove && (

@@ -30,7 +30,7 @@ import type { Hub, HubModule, UnreachableHub } from '@/lib/api/types';
 import { useHubs, useProjectSettingsMutations } from '@/lib/api';
 import { useAppDispatch } from '@/lib/hooks';
 import { useModals } from '@/lib/utils';
-import { HubDeleteModal } from '@/components/modals';
+import { HubDeleteModal, InstallModuleModal } from '@/components/modals';
 import { OptionCard } from '@/components/OptionCard';
 import { addNotification } from '@/lib/slices/notifications';
 
@@ -47,13 +47,15 @@ export function HubsSection({ disabled }: HubsSectionProps) {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { data: hubs, isLoading } = useHubs();
-  const { addHub, removeHub, fetchHubs, addModule, isUpdating } =
+  const { addHub, removeHub, fetchHubs, isUpdating } =
     useProjectSettingsMutations();
   const { modalOpen, openModal, closeModal } = useModals({ deleteHub: false });
 
   const [hubUrl, setHubUrl] = useState('');
   const [hubToDelete, setHubToDelete] = useState<Hub | null>(null);
-  const [importingModule, setImportingModule] = useState<string | null>(null);
+  const [moduleToInstall, setModuleToInstall] = useState<HubModule | null>(
+    null,
+  );
 
   const notifyError = (error: unknown) => {
     dispatch(
@@ -122,18 +124,6 @@ export function HubsSection({ disabled }: HubsSectionProps) {
       closeModal('deleteHub')();
     } catch (error) {
       notifyError(error);
-    }
-  };
-
-  const handleImportModule = async (module: HubModule) => {
-    setImportingModule(module.name);
-    try {
-      await addModule(module.location);
-      notifySuccess(t('addModuleModal.success'));
-    } catch (error) {
-      notifyError(error);
-    } finally {
-      setImportingModule(null);
     }
   };
 
@@ -253,16 +243,17 @@ export function HubsSection({ disabled }: HubsSectionProps) {
                         <CheckIcon color="success" fontSize="small" />
                       </Tooltip>
                     ) : (
-                      <Tooltip title={t('general.addModule')}>
+                      <Tooltip title={t('general.installModule')}>
                         <span>
                           <IconButton
                             size="sm"
                             variant="plain"
                             color="primary"
-                            loading={importingModule === mod.name}
                             disabled={disabled || isUpdating()}
-                            onClick={() => handleImportModule(mod)}
-                            aria-label={t('general.addModule')}
+                            onClick={() => setModuleToInstall(mod)}
+                            aria-label={t('general.installModuleLabel', {
+                              module: mod.displayName || mod.name,
+                            })}
                           >
                             <AddIcon />
                           </IconButton>
@@ -276,6 +267,15 @@ export function HubsSection({ disabled }: HubsSectionProps) {
           )}
         </Card>
       ))}
+
+      {moduleToInstall && (
+        <InstallModuleModal
+          open
+          source={moduleToInstall.location}
+          label={moduleToInstall.displayName || moduleToInstall.name}
+          onClose={() => setModuleToInstall(null)}
+        />
+      )}
 
       {hubToDelete && (
         <HubDeleteModal

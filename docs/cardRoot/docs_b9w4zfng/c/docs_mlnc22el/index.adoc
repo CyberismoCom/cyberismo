@@ -270,6 +270,8 @@ Alternatively, edit the `version` field of that module in `cardsConfig.json` (fo
 $ cyberismo module update <module prefix>
 ----
 
+In the app, an administrator can do the same from the Modules section of the general settings: *Change version* lists the versions of a module that are at or above the installed one, and records the range that you choose (pinned, same minor, or compatible updates). *Change version* is offered only for modules installed from a public git repository.
+
 NOTE: If a module version requires a newer schema version than your Cyberismo tool supports, the import or update fails with a message stating the required schema version. Upgrade the Cyberismo tool, or pin the module to an older version that your tool supports.
 
 == Handling dependencies of modules
