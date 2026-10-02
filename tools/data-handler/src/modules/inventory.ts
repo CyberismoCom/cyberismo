@@ -19,6 +19,7 @@ import semver from 'semver';
 
 import { getChildLogger } from '../utils/log-utils.js';
 import { readJsonFile } from '../utils/json.js';
+import { isGitLocation } from './location.js';
 import {
   toVersion,
   toVersionRange,
@@ -27,12 +28,14 @@ import {
   type Source,
   type Version,
   type VersionRange,
+  type VersionSource,
 } from './types.js';
 
 import type { Project } from '../containers/project.js';
 import type {
   ModuleInfo,
   ModuleSetting,
+  ProjectModuleInfo,
 } from '../interfaces/project-interfaces.js';
 
 const logger = getChildLogger({ module: 'inventory' });
@@ -93,6 +96,33 @@ export async function moduleInfos(project: Project): Promise<ModuleInfo[]> {
   const installed = await installedModules(project);
   return installed
     .map((m) => ({ name: m.name, version: m.version }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export function versionSourceOf(source: Source): VersionSource {
+  if (source.private) return 'private';
+  return isGitLocation(source.location) ? 'git' : 'file';
+}
+
+/** Installed modules with their declared range, dependents and version source. */
+export async function projectModules(
+  project: Project,
+): Promise<ProjectModuleInfo[]> {
+  const installed = await installedModulesWithSources(project);
+  const declared = new Map(declaredModules(project).map((d) => [d.name, d]));
+  return installed
+    .map((m) => ({
+      name: m.name,
+      installedVersion: m.version,
+      declaredRange: declared.get(m.name)?.versionRange,
+      isRoot: declared.has(m.name),
+      parents: installed
+        .filter((p) => p.declaredDependencies.includes(m.name))
+        .map((p) => p.name)
+        .sort(),
+      versionSource:
+        m.source.location === '' ? undefined : versionSourceOf(m.source),
+    }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 

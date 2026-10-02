@@ -14,7 +14,11 @@
 
 import semver from 'semver';
 
-import { declaredModules, installedModules } from './inventory.js';
+import {
+  declaredModules,
+  installedModules,
+  versionSourceOf,
+} from './inventory.js';
 import { isGitLocation } from './location.js';
 import { ModuleRequestError, unreachable } from '../exceptions/index.js';
 import { findOrphans } from './orphans.js';
@@ -22,12 +26,7 @@ import { buildRemoteUrl } from './remote-url.js';
 import { conflictReason } from './resolve/format.js';
 import { solve, type SolveOutcome } from './resolve/solver.js';
 import type { SourceLayer } from './source.js';
-import {
-  toDeclaredRange,
-  toVersion,
-  type Source,
-  type VersionSource,
-} from './types.js';
+import { toDeclaredRange, toVersion, type ModuleDeclaration } from './types.js';
 import {
   isBreakingMove,
   pickVersion,
@@ -42,9 +41,27 @@ import type {
 } from '../interfaces/project-interfaces.js';
 import type { UpdateRequest } from './resolve/types.js';
 
-function versionSourceOf(source: Source): VersionSource {
-  if (source.private) return 'private';
-  return isGitLocation(source.location) ? 'git' : 'file';
+/** The declared root `module` names; a transitive or unknown module is refused. */
+export async function requireDeclared(
+  project: Project,
+  module: string,
+): Promise<ModuleDeclaration> {
+  const declaration = declaredModules(project).find((d) => d.name === module);
+  if (declaration) return declaration;
+  const parents = (await installedModules(project))
+    .filter((m) => m.declaredDependencies.includes(module))
+    .map((m) => m.name);
+  if (parents.length > 0) {
+    const parentList = parents.map((n) => `'${n}'`).join(', ');
+    throw new ModuleRequestError(
+      'invalid',
+      `Cannot use module '${module}' because it is required by ${parentList}. Use the parent module(s) instead.`,
+    );
+  }
+  throw new ModuleRequestError(
+    'notFound',
+    `Module '${module}' is not part of the project`,
+  );
 }
 
 /**
@@ -65,23 +82,7 @@ async function buildUpdateRequest(
     return { kind: 'updateAll' };
   }
 
-  const declaration = declaredModules(project).find((d) => d.name === module);
-  if (!declaration) {
-    const parents = (await installedModules(project))
-      .filter((m) => m.declaredDependencies.includes(module))
-      .map((m) => m.name);
-    if (parents.length > 0) {
-      const parentList = parents.map((n) => `'${n}'`).join(', ');
-      throw new ModuleRequestError(
-        'invalid',
-        `Cannot update module '${module}' because it is required by ${parentList}. Update the parent module(s) instead.`,
-      );
-    }
-    throw new ModuleRequestError(
-      'notFound',
-      `Module '${module}' is not part of the project`,
-    );
-  }
+  const declaration = await requireDeclared(project, module);
 
   // Re-declaring the range is the upsert `install` does for a declared module.
   if (target.range !== undefined) {

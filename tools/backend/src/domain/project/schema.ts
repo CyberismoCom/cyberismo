@@ -51,11 +51,44 @@ export const cleanSchema = z.object({
   dryRun: z.boolean(),
 });
 
+// Credentials in a source would be stored in cardsConfig.json and echoed in
+// query strings, logs and errors.
+const gitSourceSchema = z
+  .string()
+  .min(1)
+  .refine((s) => s.startsWith('https://') || s.startsWith('git@'), {
+    message: 'Source must be a git URL (https:// or git@)',
+  })
+  .refine(
+    (s) => {
+      if (!s.startsWith('https://')) return true;
+      try {
+        const { username, password } = new URL(s);
+        return username === '' && password === '';
+      } catch {
+        return false;
+      }
+    },
+    { message: 'Source must be a valid URL without credentials' },
+  );
+
+// A blank range is a valid semver range meaning '*', which would unpin.
+const rangeSchema = z.string().trim().min(1);
+
 export const importModuleSchema = z.object({
-  source: z
-    .string()
-    .min(1)
-    .refine((s) => s.startsWith('https://') || s.startsWith('git@'), {
-      message: 'Source must be a git URL (https:// or git@)',
-    }),
+  source: gitSourceSchema,
+  range: rangeSchema.optional(),
 });
+
+export const updateModuleSchema = z.object({
+  range: rangeSchema.optional(),
+});
+
+export const moduleVersionsQuerySchema = z
+  .object({
+    module: z.string().min(1).optional(),
+    source: gitSourceSchema.optional(),
+  })
+  .refine((q) => (q.module === undefined) !== (q.source === undefined), {
+    message: 'Provide exactly one of module or source',
+  });
