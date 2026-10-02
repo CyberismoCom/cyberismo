@@ -15,6 +15,7 @@
 import { join } from 'node:path';
 import semver from 'semver';
 
+import { ModuleRequestError, unreachable } from '../../exceptions/index.js';
 import { readJsonFile } from '../../utils/json.js';
 import { checkLinearity, computeChain } from '../../mutations/replay/chain.js';
 import {
@@ -47,12 +48,12 @@ import type {
   UpdateRequest,
 } from './types.js';
 
-interface Edge {
+export interface Edge {
   name: string;
   source: Source;
   range: VersionRange;
 }
-interface Node {
+export interface Node {
   name: string;
   source: Source;
   installed: Version | null;
@@ -60,11 +61,11 @@ interface Node {
   isRoot: boolean;
   declaredRange: VersionRange | null;
 }
-interface Decision {
+export interface Decision {
   version: Version | null;
   edges: Edge[];
 }
-type Assignment = Map<string, Decision>;
+export type Assignment = Map<string, Decision>;
 
 /**
  * Range to persist for a root that declared none. The assumption is only
@@ -88,6 +89,8 @@ function assumedRangeFor(
     : undefined;
 }
 
+const isPrerelease = (v: Version) => semver.prerelease(v) !== null;
+
 /** Versions a node may take, in preference order, and the range still to enforce. */
 interface Candidates {
   versions: (Version | null)[];
@@ -99,11 +102,16 @@ interface Candidates {
   pinAssumed?: boolean;
 }
 
-/** Solver internals shared between {@link resolve} and {@link resolveForApply}. */
-interface SolveOutcome {
+/** A solve's outcome, shared by {@link resolve}, {@link resolveForApply} and the update path. */
+export interface SolveOutcome {
   result: ResolveResult;
   nodes: Map<string, Node>;
   assign: Assignment;
+  listed: Map<string, Version[]>;
+  /** Installed private modules held at their version because listing their remote failed. */
+  unchecked: Set<string>;
+  /** Root declarations whose persisted range the update changes. */
+  rangeWrites: { module: string; range: VersionRange }[];
 }
 
 function toEdges(config: {
@@ -139,7 +147,8 @@ function toEdges(config: {
     }));
 }
 
-async function solve(
+/** Solve `req` without fetching any module tree. The caller owns `source`. */
+export async function solve(
   project: Project,
   req: UpdateRequest,
   source: SourceLayer,
@@ -176,7 +185,8 @@ async function solve(
         existing.source.location !== req.source.location ||
         existingPrivate !== declPrivate
       ) {
-        throw new Error(
+        throw new ModuleRequestError(
+          'invalid',
           `Conflicting source for module '${req.name}': ` +
             `installed from '${existing.source.location}' ` +
             `(private=${existingPrivate}), but also declared with ` +
@@ -242,7 +252,14 @@ async function solve(
       seals = await listSealFiles(join(n.path, 'migrations'));
     } else {
       const url = buildRemoteUrl(n.source, credentials);
-      const meta = await source.readMetadata(n.source, v, url);
+      const meta = await source
+        .readMetadata(n.source, v, url)
+        .catch((error) => {
+          // A missing tag or malformed config is a bad request, not a network failure.
+          throw error instanceof ModuleRequestError
+            ? error
+            : unreachable(n.name, error);
+        });
       edges = toEdges(meta.config);
       seals = meta.seals;
     }
@@ -251,13 +268,27 @@ async function solve(
     return result;
   };
 
+  // Remote listings, one per node per solve; backtracking revisits nodes.
+  const listed = new Map<string, Version[]>();
+  const listRemote = async (n: Node): Promise<Version[]> => {
+    const hit = listed.get(n.name);
+    if (hit) return hit;
+    const url = buildRemoteUrl(n.source, credentials);
+    const remote = (
+      await source.listRemoteVersions(n.source.location, url).catch((error) => {
+        throw unreachable(n.name, error);
+      })
+    ).map(toVersion);
+    listed.set(n.name, remote);
+    return remote;
+  };
+
   const availableVersions = async (n: Node): Promise<Version[]> => {
     if (!source.supportsVersioning(n.source.location))
       return n.installed ? [n.installed] : [];
-    const url = buildRemoteUrl(n.source, credentials);
-    let listed: string[];
+    let remote: Version[];
     try {
-      listed = await source.listRemoteVersions(n.source.location, url);
+      remote = await listRemote(n);
     } catch (error) {
       // Availability is a read-only "what could move" query: an unreachable
       // bystander must not poison the answer for the module actually being
@@ -273,15 +304,39 @@ async function solve(
       }
       throw error;
     }
-    const remote = listed.map(toVersion);
     // An installed versioned module stays a candidate even if the remote
     // currently lists no tags — only a genuinely tagless source is unversioned.
     if (remote.length === 0 && n.installed) return [n.installed];
+    // Listings hide prereleases, so an installed one is added back.
+    if (
+      n.installed &&
+      isPrerelease(n.installed) &&
+      !remote.includes(n.installed)
+    )
+      return [...remote, n.installed];
     return remote;
   };
 
+  const unchecked = new Set<string>();
   const candidatesFor = async (n: Node): Promise<Candidates> => {
-    const avail = await availableVersions(n);
+    // The module an update or add names is never held, so it fails loudly.
+    const named =
+      (req.kind === 'update' && req.module === n.name) ||
+      (req.kind === 'add' && req.name === n.name);
+    const hold = (): Candidates => {
+      unchecked.add(n.name);
+      return { versions: [n.installed!], pin: null, keepInstalled: false };
+    };
+    if (unchecked.has(n.name)) return hold();
+    let avail: Version[];
+    try {
+      avail = await availableVersions(n);
+    } catch (error) {
+      // A private module may list through a credential helper or ssh key, so it
+      // is tried first; one that still fails is held and reported as unchecked.
+      if (!named && n.installed !== null && n.source.private) return hold();
+      throw error;
+    }
     // unversioned / tagless: install-as-is
     if (avail.length === 0)
       return { versions: [null], pin: null, keepInstalled: false };
@@ -296,10 +351,13 @@ async function solve(
     // handed to the search instead of pre-filtered here: the DFS can then
     // report the version a pin excluded rather than collapsing into a generic
     // "no version satisfies its constraints".
+    // An installed prerelease, which listings hide, stays exempt from
+    // the pin, so a project on one stays put rather than failing.
+    const unlisted = n.installed !== null && isPrerelease(n.installed);
     const inRange = (): Candidates => ({
       versions: newestFirst,
       pin,
-      keepInstalled: false,
+      keepInstalled: unlisted,
       pinAssumed,
     });
     // A bystander is offered its installed version first, so an update
@@ -474,6 +532,9 @@ async function solve(
       result: { ok: false, conflicts: informative.length ? informative : all },
       nodes,
       assign,
+      listed,
+      unchecked,
+      rangeWrites: [],
     };
   }
 
@@ -512,7 +573,28 @@ async function solve(
       changes.push({ module: name, from, to, replay });
     }
   }
-  return { result: { ok: true, changes }, nodes, assign };
+
+  const rangeWrites: SolveOutcome['rangeWrites'] = [];
+  for (const [name, decision] of assign) {
+    const node = nodes.get(name)!;
+    if (!node.isRoot) continue;
+    const range =
+      node.declaredRange ??
+      assumedRangeFor(
+        decision.version,
+        source.supportsVersioning(node.source.location),
+      );
+    if (range && range !== declaredByName.get(name)?.versionRange)
+      rangeWrites.push({ module: name, range });
+  }
+  return {
+    result: { ok: true, changes },
+    nodes,
+    assign,
+    listed,
+    unchecked,
+    rangeWrites,
+  };
 }
 
 export async function resolve(
@@ -534,11 +616,86 @@ export async function resolve(
 }
 
 /**
- * Solve, then for each MOVED module fetch the full tree and shape a
+ * Fetches the full tree of each MOVED module in a solved outcome and shapes a
  * {@link ResolvedModule} the applier can consume. Roots carry their declared
  * range and no parent; transitives carry the owning installation as parent and
- * no range (the range lives in the parent's own config).
+ * no range (the range lives in the parent's own config). Nothing is staged for
+ * a refused outcome. The caller owns `source`.
  */
+export async function stageResolution(
+  project: Project,
+  { result, nodes, assign, rangeWrites }: SolveOutcome,
+  opts: { source: SourceLayer; tempDir: string; credentials?: Credentials },
+): Promise<{
+  resolved: ResolvedModule[];
+  /**
+   * Declarations to rewrite for roots that keep their installed version but
+   * never wrote down a range.
+   */
+  backfill: ModuleSetting[];
+}> {
+  if (!result.ok) return { resolved: [], backfill: [] };
+  const { source, tempDir, credentials } = opts;
+  const rangeOf = new Map(rangeWrites.map((w) => [w.module, w.range]));
+
+  const resolved: ResolvedModule[] = [];
+  for (const change of result.changes) {
+    const node = nodes.get(change.module)!;
+    const remoteUrl = buildRemoteUrl(node.source, credentials);
+    const ref = change.to ? versionToTag(change.to) : undefined;
+    // Full fetch — the apply path needs the whole module tree, not metadata.
+    const stagedPath = await source
+      .fetch(
+        { location: node.source.location, remoteUrl, ref },
+        tempDir,
+        change.module,
+      )
+      .catch((error) => {
+        throw unreachable(change.module, error, 'fetch module');
+      });
+    // Roots have no parent; a transitive's parent is any chosen module whose
+    // edges reference it.
+    const referrer = node.isRoot
+      ? undefined
+      : [...assign].find(([, d]) =>
+          d.edges.some((e) => e.name === change.module),
+        )?.[0];
+    resolved.push({
+      declaration: {
+        project: project.basePath,
+        name: change.module,
+        source: node.source,
+        versionRange: node.isRoot
+          ? (rangeOf.get(change.module) ?? node.declaredRange ?? undefined)
+          : undefined,
+        parent: referrer
+          ? { project: project.basePath, name: referrer }
+          : undefined,
+      },
+      ref,
+      remoteUrl,
+      version: change.to ?? undefined,
+      stagedPath,
+    });
+  }
+  // Roots the plan leaves in place never reach `resolved`; persist their
+  // range write as a declaration-only backfill.
+  const moved = new Set(result.changes.map((c) => c.module));
+  const backfill: ModuleSetting[] = rangeWrites
+    .filter((w) => !moved.has(w.module))
+    .map((w) => {
+      const node = nodes.get(w.module)!;
+      return {
+        name: w.module,
+        location: node.source.location,
+        private: node.source.private ?? false,
+        version: w.range,
+      };
+    });
+  return { resolved, backfill };
+}
+
+/** {@link solve}, then {@link stageResolution}. */
 export async function resolveForApply(
   project: Project,
   req: UpdateRequest,
@@ -550,88 +707,19 @@ export async function resolveForApply(
 ): Promise<{
   plan: ResolveResult;
   resolved: ResolvedModule[];
-  /**
-   * Declarations to rewrite for roots that keep their installed version but
-   * never wrote down a range. Empty on a refused plan — nothing is persisted
-   * when nothing is applied.
-   */
   backfill: ModuleSetting[];
 }> {
   const ownsSource = !opts?.sourceLayer;
   const source = opts?.sourceLayer ?? createSourceLayer();
   const tempDir = opts?.tempDir ?? join(project.paths.tempFolder, 'resolve');
   try {
-    const { result, nodes, assign } = await solve(
-      project,
-      req,
+    const outcome = await solve(project, req, source, opts?.credentials);
+    const staged = await stageResolution(project, outcome, {
       source,
-      opts?.credentials,
-    );
-    if (!result.ok) return { plan: result, resolved: [], backfill: [] };
-
-    const resolved: ResolvedModule[] = [];
-    for (const change of result.changes) {
-      const node = nodes.get(change.module)!;
-      const remoteUrl = buildRemoteUrl(node.source, opts?.credentials);
-      const ref = change.to ? versionToTag(change.to) : undefined;
-      // Full fetch — the apply path needs the whole module tree, not metadata.
-      const stagedPath = await source.fetch(
-        { location: node.source.location, remoteUrl, ref },
-        tempDir,
-        change.module,
-      );
-      // Roots have no parent; a transitive's parent is any chosen module whose
-      // edges reference it.
-      const referrer = node.isRoot
-        ? undefined
-        : [...assign].find(([, d]) =>
-            d.edges.some((e) => e.name === change.module),
-          )?.[0];
-      resolved.push({
-        declaration: {
-          project: project.basePath,
-          name: change.module,
-          source: node.source,
-          versionRange: node.isRoot
-            ? (node.declaredRange ??
-              assumedRangeFor(
-                change.to,
-                source.supportsVersioning(node.source.location),
-              ))
-            : undefined,
-          parent: referrer
-            ? { project: project.basePath, name: referrer }
-            : undefined,
-        },
-        ref,
-        remoteUrl,
-        version: change.to ?? undefined,
-        stagedPath,
-      });
-    }
-    // Roots the plan leaves in place never reach `resolved`, so their
-    // assumed range would survive forever. Sweep them here — the solve
-    // already listed every root's versions, so this costs no extra fetch.
-    const moved = new Set(result.changes.map((c) => c.module));
-    const backfill: ModuleSetting[] = [];
-    for (const [name, decision] of assign) {
-      if (moved.has(name)) continue;
-      const node = nodes.get(name)!;
-      if (!node.isRoot || node.declaredRange !== null) continue;
-      const range = assumedRangeFor(
-        decision.version,
-        source.supportsVersioning(node.source.location),
-      );
-      if (!range) continue;
-      backfill.push({
-        name,
-        location: node.source.location,
-        private: node.source.private ?? false,
-        version: range,
-      });
-    }
-
-    return { plan: result, resolved, backfill };
+      tempDir,
+      credentials: opts?.credentials,
+    });
+    return { plan: outcome.result, ...staged };
   } finally {
     if (ownsSource) await source.dispose?.();
   }

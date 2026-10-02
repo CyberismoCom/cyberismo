@@ -28,6 +28,37 @@ export class SchemaNotFound extends Error {
   }
 }
 
+/** A module request that cannot be served; `reason` says why. */
+export class ModuleRequestError extends Error {
+  constructor(
+    public readonly reason: 'notFound' | 'invalid' | 'blocked' | 'unreachable',
+    message: string,
+    /** Redacted git text for CLI users; never for API responses. */
+    public readonly detail?: string,
+  ) {
+    super(message);
+    this.name = 'ModuleRequestError';
+  }
+}
+
+/** Git errors quote the remote URL, which may carry credentials. */
+export function redactUserinfo(message: string): string {
+  return message.replace(/\/\/[^/\s]*@/g, '//');
+}
+
+/** A module source that could not be reached; git's text is kept as redacted detail. */
+export function unreachable(
+  name: string,
+  cause?: unknown,
+  action = 'check for updates',
+): ModuleRequestError {
+  return new ModuleRequestError(
+    'unreachable',
+    `Couldn't ${action}: '${name}' is unreachable`,
+    cause instanceof Error ? redactUserinfo(cause.message) : undefined,
+  );
+}
+
 export class CardNotFoundError extends Error {
   constructor(cardKey: string) {
     super(`Card '${cardKey}' does not exist in the project`);

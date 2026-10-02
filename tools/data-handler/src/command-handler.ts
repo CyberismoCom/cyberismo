@@ -61,6 +61,7 @@ import type {
 import { Project } from './containers/project.js';
 
 import { pathExists, resolveTilde } from './utils/file-utils.js';
+import { ModuleRequestError } from './exceptions/index.js';
 import { errorFunction } from './utils/error-utils.js';
 import { readJsonFile } from './utils/json.js';
 import { getChildLogger } from './utils/log-utils.js';
@@ -541,17 +542,17 @@ export class Commands {
         const [module, targetVersion] = args;
         if (module) {
           await this.commands?.modulesCmd.update(
-            module,
+            { module, version: targetVersion || undefined },
             credentials,
-            targetVersion,
           );
         } else {
           if (targetVersion) {
-            throw new Error(
+            throw new ModuleRequestError(
+              'invalid',
               'A target version can only be specified together with a module name',
             );
           }
-          await this.commands?.modulesCmd.updateAll(credentials);
+          await this.commands?.modulesCmd.update({}, credentials);
         }
         return {
           statusCode: 200,
@@ -572,7 +573,11 @@ export class Commands {
         return { statusCode: 500, message: 'Unknown command' };
       }
     } catch (e) {
-      return { statusCode: 400, message: errorFunction(e) };
+      const detail = e instanceof ModuleRequestError ? e.detail : undefined;
+      return {
+        statusCode: 400,
+        message: errorFunction(e) + (detail ? `\n${detail}` : ''),
+      };
     }
     return { statusCode: 200 };
   }
