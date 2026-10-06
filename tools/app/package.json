@@ -20,7 +20,7 @@
     "test": "pnpm run unit && pnpm e2e"
   },
   "devDependencies": {
-    "@asciidoctor/core": "^4.0.11",
+    "@asciidoctor/core": "^4.1.0",
     "@codemirror/commands": "^6.11.1",
     "@codemirror/language": "^6.12.4",
     "@codemirror/state": "^6.7.6",
@@ -32,7 +32,7 @@
     "@mui/icons-material": "^9.4.0",
     "@mui/joy": "5.0.0-beta.52",
     "@mui/material": "^9.4.0",
-    "@playwright/test": "^1.62.1",
+    "@playwright/test": "^1.63.0",
     "@reduxjs/toolkit": "^2.11.2",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
@@ -48,12 +48,12 @@
     "eslint-plugin-react-hooks": "7.1.1",
     "eslint-plugin-react-refresh": "^0.5.7",
     "global-jsdom": "^30.0.0",
-    "globals": "^17.11.0",
-    "html-react-parser": "^6.1.7",
+    "globals": "^17.12.0",
+    "html-react-parser": "^6.1.8",
     "i18next": "^26.4.2",
     "jsdom": "^30.1.1",
-    "marked": "^18.0.11",
-    "node-html-parser": "^9.0.2",
+    "marked": "^18.0.14",
+    "node-html-parser": "^9.0.4",
     "react": "^19.3.0",
     "react-arborist": "^3.16.0",
     "react-dom": "^19.3.0",
@@ -68,8 +68,8 @@
     "swr": "^2.5.1",
     "vega": "^6.4.0",
     "vega-lite": "^6.4.2",
-    "vite": "^8.2.2",
-    "zod": "^4.5.4"
+    "vite": "^8.3.1",
+    "zod": "^4.6.5"
   },
   "dependencies": {
     "mermaid": "^12.0.0"
