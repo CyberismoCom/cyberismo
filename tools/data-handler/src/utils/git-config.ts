@@ -25,7 +25,7 @@ let nonInteractiveApplied = false;
  * anyway. Inherited environment is the only route that carries them.
  *
  * simple-git strips inherited GIT_* variables it is not told to allow, so the
- * ones a silo relies on are named in `allowEnvironment`.
+ * whole inherited environment is allowed through.
  */
 export function createGit(options?: {
   /**
@@ -42,23 +42,13 @@ export function createGit(options?: {
     nonInteractiveApplied = true;
   }
   const settings = {
-    allowEnvironment: inheritedGitEnv(),
+    allowEnvironment: Object.keys(process.env),
     ...(options?.timeout ? { timeout: { block: options.timeout } } : {}),
     ...(options?.config ? { config: options.config } : {}),
   };
   return options?.baseDir
     ? simpleGit(options.baseDir, settings)
     : simpleGit(settings);
-}
-
-/** GIT_* names passed through from the environment, including GIT_CONFIG_* pairs. */
-function inheritedGitEnv(): string[] {
-  const names = ['GIT_TERMINAL_PROMPT', 'GIT_SSH_COMMAND', 'GIT_CONFIG_COUNT'];
-  const count = Number(process.env.GIT_CONFIG_COUNT ?? 0);
-  for (let i = 0; i < count; i++) {
-    names.push(`GIT_CONFIG_KEY_${i}`, `GIT_CONFIG_VALUE_${i}`);
-  }
-  return names;
 }
 
 /** 30s base, doubled in CI, plus a 50% bump on Windows. */
