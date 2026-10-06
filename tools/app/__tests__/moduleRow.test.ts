@@ -55,35 +55,73 @@ describe('moduleRow', () => {
     const row = moduleRow(core, plan({ changes: [change] }), [core, ext]);
     expect(row.actions).toEqual({ update: false, remove: false });
     expect(row.managedBy).toEqual(['Extension']);
-    expect(row.latestCompatible).toBeUndefined();
   });
 
   it.each([
-    [[change], '1.3.0', false],
-    [[], '1.0.0', true],
-  ])('reads latest from the plan: changes %j', (changes, to, upToDate) => {
-    const row = moduleRow(mod({}), plan({ changes }));
-    expect(row).toMatchObject({
-      latestCompatible: to,
-      latestAvailable: '2.0.0',
-      heldBack: true,
-      upToDate,
-    });
-  });
+    // [name, changes, root overrides, module overrides, expected]
+    [
+      'an update is pending',
+      [change],
+      {},
+      {},
+      {
+        latestCompatible: '1.3.0',
+        latestAvailable: '2.0.0',
+        heldBack: true,
+        upToDate: false,
+      },
+    ],
+    [
+      'already current',
+      [],
+      {},
+      {},
+      { latestCompatible: '1.0.0', upToDate: true },
+    ],
+    [
+      'latest equals compatible',
+      [change],
+      { latest: '1.3.0', heldBack: false },
+      {},
+      {
+        latestCompatible: '1.3.0',
+        latestAvailable: undefined,
+        heldBack: false,
+      },
+    ],
+    ['range is assumed', [], {}, {}, { assumedRange: '^1.0.0' }],
+    [
+      'range is declared',
+      [],
+      {},
+      { declaredRange: '^1.0.0' },
+      { assumedRange: undefined },
+    ],
+  ])(
+    'reads versions from the plan: %s',
+    (_name, changes, root, over, expected) => {
+      const base = plan({ changes });
+      base.roots = [{ ...base.roots[0], ...root }];
+      const row = moduleRow(mod(over), base, []);
+      const shown = Object.fromEntries(
+        Object.keys(expected).map((k) => [k, row[k as keyof typeof row]]),
+      );
+      expect(shown).toEqual(expected);
+    },
+  );
 
   it('explains a blocked plan instead of showing versions', () => {
     const blocked = plan({
       ok: false,
       conflicts: [{ module: 'core', reason: 'x' }],
     });
-    const row = moduleRow(mod({}), blocked);
-    expect(row).toMatchObject({ blocked: true, upToDate: false });
+    const row = moduleRow(mod({}), blocked, []);
     expect(row.latestCompatible).toBeUndefined();
     expect(row.latestAvailable).toBeUndefined();
   });
 
   it('claims nothing for a root the plan did not check', () => {
-    const row = moduleRow(mod({ cardKeyPrefix: 'added' }), plan());
+    const row = moduleRow(mod({ cardKeyPrefix: 'added' }), plan(), []);
     expect(row.latestCompatible).toBeUndefined();
     expect(row.upToDate).toBe(false);
   });
