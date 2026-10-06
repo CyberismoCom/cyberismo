@@ -76,19 +76,16 @@ export const cleanProject = async (
   return result;
 };
 
-// Asks the module sources for their versions, so it runs only on request and
-// never in an export. A failed check is not retried.
-export const useModuleUpdatePlan = (enabled: boolean) =>
-  useSWR<UpdatePlan>(
-    enabled && !getConfig().staticMode
-      ? projectApiPaths().projectModulesUpdatePlan()
-      : null,
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-      shouldRetryOnError: false,
-    },
+// Asks the module sources for their versions; never runs in an export.
+export const fetchModuleUpdatePlan = async (): Promise<UpdatePlan> => {
+  if (getConfig().staticMode) {
+    throw new Error('Export mode is enabled, updates cannot be checked');
+  }
+  return callApi<UpdatePlan>(
+    projectApiPaths().projectModulesUpdatePlan(),
+    'GET',
   );
+};
 
 export const useProjectModulesImportable = (projectPrefix?: string) =>
   useSWR<ModuleSettingFromHub[]>(
