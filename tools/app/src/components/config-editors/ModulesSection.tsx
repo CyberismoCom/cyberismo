@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { Alert, Button, Stack, Typography } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import type { UpdatePlan } from '@cyberismo/data-handler';
@@ -64,12 +64,10 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
     error?: string;
   }>();
   const [checking, setChecking] = useState(false);
-  const latestCheck = useRef(0);
   const shown =
     check?.signature === modulesSignature(modules) ? check : undefined;
 
   const handleCheck = async () => {
-    const id = ++latestCheck.current;
     const signature = modulesSignature(modules);
     setChecking(true);
     let outcome: { plan?: UpdatePlan; error?: string };
@@ -80,7 +78,6 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
         error: error instanceof Error ? error.message : t('failedToLoad'),
       };
     }
-    if (id !== latestCheck.current) return;
     setCheck({ signature, ...outcome });
     setChecking(false);
   };

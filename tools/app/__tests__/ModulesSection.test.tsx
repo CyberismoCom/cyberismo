@@ -85,16 +85,33 @@ describe('ModulesSection', () => {
     expect(fetchModuleUpdatePlan).not.toHaveBeenCalled();
   });
 
-  it('drops a check result once the modules it was made for change', async () => {
-    const { rerender } = render(<ModulesSection disabled={false} />);
+  it.each([
+    ['version', { installedVersion: '1.1.0' }],
+    ['declared range', { declaredRange: '^1.1.0' }],
+  ])(
+    'drops a check result once a module %s changes',
+    async (_, change: Partial<ProjectModule>) => {
+      const { rerender } = render(<ModulesSection disabled={false} />);
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Check for updates' }),
+      );
+      expect(await screen.findByText('Up to date')).toBeInTheDocument();
+
+      modules = [{ ...base('1.0.0'), ...change }];
+      rerender(<ModulesSection disabled={false} />);
+
+      expect(screen.queryByText('Up to date')).not.toBeInTheDocument();
+    },
+  );
+
+  it('holds module changes while a check runs', () => {
+    fetchModuleUpdatePlan.mockReturnValue(new Promise(() => {}));
+    render(<ModulesSection disabled={false} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }));
-    expect(await screen.findByText('Up to date')).toBeInTheDocument();
 
-    modules = [base('1.1.0')];
-    rerender(<ModulesSection disabled={false} />);
-
-    expect(screen.queryByText('Up to date')).not.toBeInTheDocument();
-    expect(screen.queryByText('Latest compatible:')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Update Base' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add module' })).toBeDisabled();
   });
 });
