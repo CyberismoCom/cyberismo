@@ -23,6 +23,9 @@ let nonInteractiveApplied = false;
  * child environment rather than extending it, stripping GIT_SSH_COMMAND,
  * SSH_AUTH_SOCK and GIT_CONFIG_* — and simple-git refuses to forward those
  * anyway. Inherited environment is the only route that carries them.
+ *
+ * simple-git strips inherited GIT_* variables it is not told to allow, so the
+ * whole inherited environment is allowed through.
  */
 export function createGit(options?: {
   /**
@@ -39,6 +42,7 @@ export function createGit(options?: {
     nonInteractiveApplied = true;
   }
   const settings = {
+    allowEnvironment: Object.keys(process.env),
     ...(options?.timeout ? { timeout: { block: options.timeout } } : {}),
     ...(options?.config ? { config: options.config } : {}),
   };
