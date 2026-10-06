@@ -29,10 +29,13 @@ export interface ModuleRow {
 export const moduleName = (all: ProjectModule[], prefix: string) =>
   all.find((m) => m.cardKeyPrefix === prefix)?.name ?? prefix;
 
-// Changes whenever a module is added, removed or changes version.
+// Changes whenever anything an update plan depends on changes.
 export const modulesSignature = (modules: ProjectModule[] = []) =>
   modules
-    .map((m) => `${m.cardKeyPrefix}@${m.installedVersion}`)
+    .map(
+      (m) =>
+        `${m.cardKeyPrefix}@${m.installedVersion}:${m.declaredRange}:${m.isRoot}`,
+    )
     .sort()
     .join(',');
 
