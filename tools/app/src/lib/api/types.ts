@@ -122,7 +122,6 @@ interface BaseResourceNode {
   readOnly?: boolean;
 }
 
-// An installed module; `name` is the display name, `parents` are key prefixes.
 export type ProjectModule = ProjectModuleInfo & { cardKeyPrefix: string };
 
 export interface GeneralSettings {

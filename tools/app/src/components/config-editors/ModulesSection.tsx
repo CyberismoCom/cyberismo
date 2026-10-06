@@ -11,12 +11,13 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Alert, Button, Stack, Typography } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
+import type { UpdatePlan } from '@cyberismo/data-handler';
 import type { ProjectModule } from '@/lib/api/types';
 import {
-  useModuleUpdatePlan,
+  fetchModuleUpdatePlan,
   useProjectSettings,
   useProjectSettingsMutations,
 } from '@/lib/api';
@@ -25,6 +26,7 @@ import { useModals } from '@/lib/utils';
 import { ModuleDeleteModal, AddModuleModal } from '@/components/modals';
 import { addNotification } from '@/lib/slices/notifications';
 import { useCleanPrompt } from './useCleanPrompt';
+import { moduleName, moduleRow, modulesSignature } from '@/lib/modules';
 import ModuleCard from './ModuleCard';
 
 interface ModulesSectionProps {
@@ -49,23 +51,38 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
   const [moduleToDelete, setModuleToDelete] = useState<ProjectModule | null>(
     null,
   );
-  const [checkRequested, setCheckRequested] = useState(false);
   const { maybePromptClean } = useCleanPrompt();
 
   const modules = general?.modules;
   const hasRoots = Boolean(modules?.some((mod) => mod.isRoot));
   const canCheck = !disabled && hasRoots;
-  const {
-    data: plan,
-    error: checkError,
-    isValidating: checking,
-    mutate: recheck,
-  } = useModuleUpdatePlan(checkRequested && canCheck);
 
-  // The plan describes the tree as it was; drop it once the tree changes.
-  const clearPlan = async () => {
-    setCheckRequested(false);
-    await recheck(undefined, false);
+  // The outcome of the last check, valid only for the modules it was made for.
+  const [check, setCheck] = useState<{
+    signature: string;
+    plan?: UpdatePlan;
+    error?: string;
+  }>();
+  const [checking, setChecking] = useState(false);
+  const latestCheck = useRef(0);
+  const shown =
+    check?.signature === modulesSignature(modules) ? check : undefined;
+
+  const handleCheck = async () => {
+    const id = ++latestCheck.current;
+    const signature = modulesSignature(modules);
+    setChecking(true);
+    let outcome: { plan?: UpdatePlan; error?: string };
+    try {
+      outcome = { plan: await fetchModuleUpdatePlan() };
+    } catch (error) {
+      outcome = {
+        error: error instanceof Error ? error.message : t('failedToLoad'),
+      };
+    }
+    if (id !== latestCheck.current) return;
+    setCheck({ signature, ...outcome });
+    setChecking(false);
   };
 
   const notifyError = (error: unknown) => {
@@ -80,7 +97,6 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
   const handleUpdate = async (mod: ProjectModule) => {
     try {
       await updateModule(mod.cardKeyPrefix);
-      await clearPlan();
       await maybePromptClean();
     } catch (error) {
       notifyError(error);
@@ -90,7 +106,6 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
   const handleUpdateAll = async () => {
     try {
       await updateAllModules();
-      await clearPlan();
       dispatch(
         addNotification({
           message: t('general.updateAllModulesSuccess'),
@@ -106,7 +121,6 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
   const handleDelete = async (mod: ProjectModule) => {
     try {
       await deleteModule(mod.cardKeyPrefix);
-      await clearPlan();
       dispatch(
         addNotification({
           message: t('deleteModuleModal.success', { moduleName: mod.name }),
@@ -130,7 +144,7 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
           size="sm"
           variant="solid"
           onClick={openModal('addModule')}
-          disabled={isUpdating() || disabled}
+          disabled={isUpdating() || checking || disabled}
         >
           {t('general.addModule')}
         </Button>
@@ -140,7 +154,7 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
             variant="outlined"
             onClick={handleUpdateAll}
             loading={isUpdating('update-all-modules')}
-            disabled={isUpdating() || disabled}
+            disabled={isUpdating() || checking || disabled}
           >
             {t('general.updateAllModules')}
           </Button>
@@ -149,9 +163,7 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
           <Button
             size="sm"
             variant="outlined"
-            onClick={() =>
-              checkRequested ? recheck() : setCheckRequested(true)
-            }
+            onClick={handleCheck}
             loading={checking}
             disabled={isUpdating()}
           >
@@ -160,25 +172,25 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
         )}
       </Stack>
       {modules?.length === 0 && <Typography>{t('noModules')}</Typography>}
-      {checkRequested && checkError && (
+      {shown?.error && (
         <Alert color="warning" variant="soft" role="alert">
           <Stack>
             <Typography level="title-sm">
               {t('general.checkForUpdatesFailed')}
             </Typography>
-            <Typography level="body-sm">{checkError.message}</Typography>
+            <Typography level="body-sm">{shown.error}</Typography>
           </Stack>
         </Alert>
       )}
-      {plan && !plan.ok && !checkError && (
+      {shown?.plan && !shown.plan.ok && (
         <Alert color="warning" variant="soft" role="alert">
           <Stack>
             <Typography level="title-sm">
               {t('general.moduleUpdatesBlocked')}
             </Typography>
-            {plan.conflicts.map((conflict) => (
+            {shown.plan.conflicts.map((conflict) => (
               <Typography key={conflict.module} level="body-sm">
-                {conflict.module}: {conflict.reason}
+                {moduleName(modules ?? [], conflict.module)}: {conflict.reason}
               </Typography>
             ))}
           </Stack>
@@ -188,11 +200,10 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
         <ModuleCard
           key={mod.cardKeyPrefix}
           module={mod}
-          modules={modules}
+          row={moduleRow(mod, shown?.plan, modules)}
           disabled={disabled}
+          checking={checking}
           isUpdating={isUpdating}
-          plan={plan}
-          checkFailed={Boolean(checkError)}
           onUpdate={() => handleUpdate(mod)}
           onDelete={() => {
             setModuleToDelete(mod);
@@ -218,7 +229,6 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
         onClose={closeModal('addModule')}
         onAdd={async (source) => {
           await addModule(source);
-          await clearPlan();
         }}
       />
     </Stack>

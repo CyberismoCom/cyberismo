@@ -15,41 +15,51 @@ import type { UpdatePlan } from '@cyberismo/data-handler';
 import type { ProjectModule } from './api/types';
 
 export interface ModuleRow {
-  // A transitive module is decided by the modules that require it.
+  // Only root modules are managed directly; a transitive one follows its parents.
   actions: { update: boolean; remove: boolean };
   managedBy?: string[];
   latestCompatible?: string;
   latestAvailable?: string;
   heldBack: boolean;
   upToDate: boolean;
-  blocked: boolean;
+  // Range the update assumes when the module declares none.
+  assumedRange?: string;
 }
+
+export const moduleName = (all: ProjectModule[], prefix: string) =>
+  all.find((m) => m.cardKeyPrefix === prefix)?.name ?? prefix;
+
+// Changes whenever a module is added, removed or changes version.
+export const modulesSignature = (modules: ProjectModule[] = []) =>
+  modules
+    .map((m) => `${m.cardKeyPrefix}@${m.installedVersion}`)
+    .sort()
+    .join(',');
 
 // What a module row shows, given the joint update plan if one was fetched.
 export function moduleRow(
   module: ProjectModule,
-  plan?: UpdatePlan,
-  all: ProjectModule[] = [],
+  plan: UpdatePlan | undefined,
+  all: ProjectModule[],
 ): ModuleRow {
   const row: ModuleRow = {
     actions: { update: module.isRoot, remove: module.isRoot },
     heldBack: false,
     upToDate: false,
-    blocked: plan?.ok === false,
   };
   if (!module.isRoot) {
-    const nameOf = (prefix: string) =>
-      all.find((m) => m.cardKeyPrefix === prefix)?.name ?? prefix;
-    row.managedBy = module.parents.map(nameOf);
+    row.managedBy = module.parents.map((p) => moduleName(all, p));
     return row;
   }
   if (!plan?.ok) return row;
   const change = plan.changes.find((c) => c.module === module.cardKeyPrefix);
   const root = plan.roots.find((r) => r.module === module.cardKeyPrefix);
   if (!root) return row;
-  row.latestCompatible =
-    change?.to ?? root.installed ?? module.installedVersion;
-  row.latestAvailable = root.latest ?? undefined;
+  row.latestCompatible = change?.to ?? root.installed ?? undefined;
+  if (root.latest !== row.latestCompatible) {
+    row.latestAvailable = root.latest ?? undefined;
+  }
+  if (!module.declaredRange) row.assumedRange = root.range ?? undefined;
   row.heldBack = root.heldBack;
   row.upToDate = change === undefined;
   return row;

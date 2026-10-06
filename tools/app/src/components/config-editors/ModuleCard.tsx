@@ -20,38 +20,33 @@ import {
   Typography,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
-import type { UpdatePlan } from '@cyberismo/data-handler';
 import type { ProjectModule } from '@/lib/api/types';
-import { moduleRow } from '@/lib/modules';
+import type { ModuleRow } from '@/lib/modules';
 
 interface ModuleCardProps {
   module: ProjectModule;
-  modules: ProjectModule[];
+  row: ModuleRow;
   disabled: boolean;
+  // A version check is running; changes wait for it.
+  checking: boolean;
   isUpdating: (action?: string) => boolean;
-  // Joint update plan; undefined until a check has finished.
-  plan?: UpdatePlan;
-  // The check failed, so the latest versions are unknown.
-  checkFailed: boolean;
   onUpdate: () => void;
   onDelete: () => void;
 }
 
 export function ModuleCard({
   module,
-  modules,
+  row,
   disabled,
+  checking,
   isUpdating,
-  plan,
-  checkFailed,
   onUpdate,
   onDelete,
 }: ModuleCardProps) {
   const { t } = useTranslation();
-  const row = moduleRow(module, plan, modules);
   const prefix = module.cardKeyPrefix;
   const titleId = `module-title-${prefix}`;
-  const showLatest = row.latestCompatible !== undefined && !checkFailed;
+  const busy = isUpdating() || checking || disabled;
 
   return (
     <Card size="sm" variant="outlined" role="group" aria-labelledby={titleId}>
@@ -72,6 +67,11 @@ export function ModuleCard({
             {t('general.moduleVersionRange')}: {module.declaredRange}
           </Typography>
         )}
+        {row.assumedRange && (
+          <Typography level="body-sm">
+            {t('general.moduleAssumedRange')}: {row.assumedRange}
+          </Typography>
+        )}
         {row.managedBy?.length ? (
           <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>
             {t('general.moduleManagedBy', {
@@ -79,9 +79,9 @@ export function ModuleCard({
             })}
           </Typography>
         ) : null}
-        {showLatest && (
+        {row.latestCompatible !== undefined && (
           <>
-            <Typography level="body-sm">
+            <Typography level="body-sm" component="div">
               {t('general.moduleLatestCompatible')}: {row.latestCompatible}{' '}
               {row.upToDate && (
                 <Chip size="sm" color="success" variant="soft">
@@ -90,7 +90,7 @@ export function ModuleCard({
               )}
             </Typography>
             {row.latestAvailable && (
-              <Typography level="body-sm">
+              <Typography level="body-sm" component="div">
                 {t('general.moduleLatestAvailable')}: {row.latestAvailable}{' '}
                 {row.heldBack && (
                   <Chip size="sm" color="warning" variant="soft">
@@ -112,7 +112,7 @@ export function ModuleCard({
                 module: module.name,
               })}
               loading={isUpdating(`update-${prefix}`)}
-              disabled={isUpdating() || disabled}
+              disabled={busy}
               onClick={onUpdate}
             >
               {t('update')}
@@ -127,7 +127,7 @@ export function ModuleCard({
                 module: module.name,
               })}
               loading={isUpdating(`delete-${prefix}`)}
-              disabled={isUpdating(`delete-${prefix}`) || disabled}
+              disabled={busy}
               onClick={onDelete}
             >
               {t('delete')}
