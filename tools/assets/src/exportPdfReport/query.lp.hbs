@@ -40,9 +40,9 @@ treePath(Card, FullPath) :-
 % Sort by tree path (lexicographic ordering will give us depth-first)
 order(1, "results", 1, "treePath", "ASC").
 
-% Map level to levelOffset and add tree path for sorting
-field(Card, "levelOffset", Level) :- cardLevel(Card, Level), result(Card).
-field(Card, "treePath", Path) :- treePath(Card, Path), result(Card).
+% Map level to levelOffset and add tree path for sorting; report-only columns, so shortText
+resultField(Card, "levelOffset", Level, "shortText") :- cardLevel(Card, Level), result(Card).
+resultField(Card, "treePath", Path, "shortText") :- treePath(Card, Path), result(Card).
 
 % Add fields structure similar to card query
 % a helper term for display names
@@ -59,7 +59,8 @@ displayName(Card, (Card, Field), DisplayName) :-
     field((CardType, Field), "displayName", DisplayName).
 
 % the second level includes metadata for the always visible and optionally visible fields
-field((Card, Field), "key", Field) :-
+resultField((Card, Field), "key", Field, "shortText") :-
+    childResult(Card, (Card, Field), "fields"),
     customField(CardType, Field),
     field(Card, "cardType", CardType),
     result(Card).
@@ -96,22 +97,21 @@ resultField((Card, Field), "fieldDescription", Description, "shortText") :-
     result(Card),
     field(Field, "description", Description).
 
-% add value
-dataType((Card, Field), "value", DataType) :-
+% add value, typed as the card's own field
+resultField((Card, Field), "value", Value, DataType) :-
     childResult(Card, (Card, Field), "fields"),
-    result(Card),
     field(Card, Field, Value),
     dataType(Card, Field, DataType).
 
-% add value
-field((Card, Field), "value", Value) :-
+resultField((Card, Field), "value", Value, "shortText") :-
     childResult(Card, (Card, Field), "fields"),
-    field(Card, Field, Value).
+    field(Card, Field, Value),
+    not dataType(Card, Field, _).
 
 resultField(((Card, Field), "value"), "displayValue", EnumDisplayValue, "shortText") :-
     childResult(Card, (Card, Field), "fields"),
     dataType(Card, Field, "enum"),
-    field((Card, Field), "value", Value),
+    field(Card, Field, Value),
     field((Field, Value), "enumDisplayValue", EnumDisplayValue).
 
 resultField(((Card, Field), "value", Value), "displayValue", EnumDisplayValue, "shortText") :-

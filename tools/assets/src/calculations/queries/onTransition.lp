@@ -6,21 +6,27 @@ childResult(transitionSideEffects, @concatenate("updateFields", {{cardKey}}, "{{
     onTransitionSetField({{cardKey}}, "{{transition}}", AffectedCard, Field, NewValue),
     not editingFieldDenied(AffectedCard, Field, _).
 
-field(@concatenate("updateFields", {{cardKey}}, "{{transition}}", AffectedCard, Field, NewValue), "card", AffectedCard) :-
-    onTransitionSetField({{cardKey}}, "{{transition}}", AffectedCard, Field, NewValue).
+% output-only attributes: no field type, so shortText
+resultField(@concatenate("updateFields", {{cardKey}}, "{{transition}}", AffectedCard, Field, NewValue), "card", AffectedCard, "shortText") :-
+    onTransitionSetField({{cardKey}}, "{{transition}}", AffectedCard, Field, NewValue),
+    not editingFieldDenied(AffectedCard, Field, _).
 
-field(@concatenate("updateFields", {{cardKey}}, "{{transition}}", AffectedCard, Field, NewValue), "field", Field) :-
-    onTransitionSetField({{cardKey}}, "{{transition}}", AffectedCard, Field, NewValue).
+resultField(@concatenate("updateFields", {{cardKey}}, "{{transition}}", AffectedCard, Field, NewValue), "field", Field, "shortText") :-
+    onTransitionSetField({{cardKey}}, "{{transition}}", AffectedCard, Field, NewValue),
+    not editingFieldDenied(AffectedCard, Field, _).
 
-field(@concatenate("updateFields", {{cardKey}}, "{{transition}}", AffectedCard, Field, NewValue), "newValue", NewValue) :-
-    onTransitionSetField({{cardKey}}, "{{transition}}", AffectedCard, Field, NewValue).
+resultField(@concatenate("updateFields", {{cardKey}}, "{{transition}}", AffectedCard, Field, NewValue), "newValue", NewValue, "shortText") :-
+    onTransitionSetField({{cardKey}}, "{{transition}}", AffectedCard, Field, NewValue),
+    not editingFieldDenied(AffectedCard, Field, _).
 
 childResult(transitionSideEffects, @concatenate("executeTransition", {{cardKey}}, "{{transition}}", AffectedCard, TransitionToExecute), "executeTransition") :-
     onTransitionExecuteTransition({{cardKey}}, "{{transition}}", AffectedCard, TransitionToExecute),
     not transitionDenied(AffectedCard, TransitionToExecute, _).
 
-field(@concatenate("executeTransition", {{cardKey}}, "{{transition}}", AffectedCard, TransitionToExecute), "card", AffectedCard) :-
-    onTransitionExecuteTransition({{cardKey}}, "{{transition}}", AffectedCard, TransitionToExecute).
+resultField(@concatenate("executeTransition", {{cardKey}}, "{{transition}}", AffectedCard, TransitionToExecute), "card", AffectedCard, "shortText") :-
+    onTransitionExecuteTransition({{cardKey}}, "{{transition}}", AffectedCard, TransitionToExecute),
+    not transitionDenied(AffectedCard, TransitionToExecute, _).
 
-field(@concatenate("executeTransition", {{cardKey}}, "{{transition}}", AffectedCard, TransitionToExecute), "transitionToExecute", TransitionToExecute) :-
-    onTransitionExecuteTransition({{cardKey}}, "{{transition}}", AffectedCard, TransitionToExecute).
+resultField(@concatenate("executeTransition", {{cardKey}}, "{{transition}}", AffectedCard, TransitionToExecute), "transitionToExecute", TransitionToExecute, "shortText") :-
+    onTransitionExecuteTransition({{cardKey}}, "{{transition}}", AffectedCard, TransitionToExecute),
+    not transitionDenied(AffectedCard, TransitionToExecute, _).
