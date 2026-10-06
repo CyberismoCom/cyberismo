@@ -1,0 +1,13 @@
+{
+    "title": "resultField(Key, Field, Value, DataType)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|g",
+    "lastUpdated": "2026-09-29T11:42:58.394Z",
+    "base/fieldTypes/briefDescription": "A query result has an attribute with an explicit data type",
+    "base/fieldTypes/category": "Query language",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "createdAt": "2026-09-29T09:06:22.463Z",
+    "lastTransitioned": "2026-09-29T10:17:40.767Z"
+}

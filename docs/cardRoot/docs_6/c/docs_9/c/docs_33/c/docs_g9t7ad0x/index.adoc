@@ -1,0 +1,30 @@
+== Parameters
+
+* `Key`: The key of a result, child result or child object
+* `Field`: The name of the attribute
+* `Value`: The value of the attribute
+
+== Description
+
+The `resultField` predicate with 3 parameters constructs an attribute of a query result. Use it for attributes that the main logic program does not provide, such as computed values or the attributes of synthetic results. The attribute is always shown on `Key`; it does not need to be selected.
+
+The data type of the attribute is the data type of the field type named `Field`, or `shortText` if there is no such field type. If the field type is an enum or a list, the attribute is produced as an object or an array, as when the field is selected. The built-in fields `lastUpdated`, `createdAt`, `lastSynchronised` and `progress` are not field types, so they get `shortText`. For these, and for any type that the name cannot carry, use {{#xref}}"cardKey":"docs_h1sm98ea"{{/xref}}.
+
+An undeclared attribute is a string, also when its value is a number. Use `resultField` with 4 parameters for numbers that must sort numerically.
+
+Output each attribute of a key through one channel only. Do not select an attribute and also output it with `resultField`, and do not output it with both `resultField/3` and `resultField/4`. Both values are produced, and which one ends up in the result is not defined.
+
+For an overview of how results get their attributes, see {{#xref}}"cardKey":"docs_33"{{/xref}}.
+
+== Example
+
+The following query returns the workflow states of the cards under `docs_9` and gives each state a `label` attribute that the query constructs:
+
+[source]
+----
+result(State) :-
+    ancestor(Card, docs_9),
+    field(Card, "workflowState", State).
+
+resultField(State, "label", State) :- result(State).
+----
