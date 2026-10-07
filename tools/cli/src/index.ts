@@ -25,9 +25,9 @@ import type {
   CommandOptions,
   Credentials,
   ModuleSettingFromHub,
-  ModuleUpdateStatus,
   requestStatus,
   UpdateOperations,
+  UpdatePlan,
 } from '@cyberismo/data-handler';
 import {
   Cmd,
@@ -37,11 +37,8 @@ import {
   validBumps,
   validContexts,
 } from '@cyberismo/data-handler';
-import {
-  checkUpdatesRow,
-  checkUpdatesSummary,
-} from './check-updates-summary.js';
 import { ResourceTypeParser as Parser } from './resource-type-parser.js';
+import { renderUpdatePlan } from './update-plan-lines.js';
 import {
   startServer,
   exportSite,
@@ -1132,6 +1129,12 @@ async function moduleUpdateAction(
     Object.assign({}, options, program.opts()),
     credentials(),
   );
+  if (options.dryRun && result.statusCode === 200) {
+    const { lines, failed } = renderUpdatePlan(result.payload as UpdatePlan);
+    console.log(lines.join('\n'));
+    if (failed) process.exitCode = 1;
+    return;
+  }
   handleResponse(result);
 }
 
@@ -1144,6 +1147,10 @@ moduleCmd
   .argument(
     '[version]',
     'Target version to update to (only with a specific module)',
+  )
+  .option(
+    '--dry-run',
+    'Show what the update would do without changing anything',
   )
   .action(moduleUpdateAction);
 
@@ -1524,70 +1531,21 @@ updateModulesCmd.action(
   },
 );
 
-// Check updates command
+// Deprecated spelling of `module update --dry-run`.
 const checkUpdatesCmd = new CommandWithPath('check-updates')
-  .description('Check if updates are available for installed modules')
+  .description('Deprecated. Use "cyberismo module update --dry-run" instead.')
   .argument('[moduleName]', 'Module name to check. If omitted, checks all.');
-program.addCommand(checkUpdatesCmd);
+program.addCommand(checkUpdatesCmd, { hidden: true });
 checkUpdatesCmd.action(
   async (
     moduleName: string | undefined,
-    options: CommandOptions<'checkUpdates'>,
+    options: CommandOptions<'updateModules'>,
   ) => {
-    const result = await commandHandler.command(
-      Cmd.checkUpdates,
-      moduleName ? [moduleName] : [],
-      Object.assign({}, options, program.opts()),
-      credentials(),
-    );
-
-    if (result.statusCode !== 200) {
-      handleResponse(result);
-      return;
-    }
-
-    const updates = result.payload as ModuleUpdateStatus[];
-
-    // Display summary
-    for (const mod of updates) {
-      console.log(checkUpdatesRow(mod));
-    }
-
-    console.log(`\n${checkUpdatesSummary(updates).join('\n')}`);
-
-    const updatable = updates.filter((m) => m.status === 'update_available');
-    if (updatable.length === 0) {
-      return;
-    }
-
-    const shouldUpdate = await confirm({
-      message: `Apply ${updatable.length} available update(s)?`,
+    deprecationNote('check-updates', 'module update --dry-run');
+    await moduleUpdateAction(moduleName, undefined, {
+      ...options,
+      dryRun: true,
     });
-    if (shouldUpdate) {
-      // Every successful update reports the same project-wide state, so the
-      // last note is printed once after the loop instead of per module.
-      let note: string | undefined;
-      for (const mod of updatable) {
-        const target = mod.reachableVersion!;
-        const updateResult = await commandHandler.command(
-          Cmd.updateModules,
-          [mod.name, target],
-          Object.assign({}, options, program.opts()),
-          credentials(),
-        );
-        if (updateResult.statusCode === 200) {
-          console.log(`  Updated ${mod.name} to ${target}`);
-          note = updateResult.note ?? note;
-        } else {
-          console.error(
-            `  Failed to update ${mod.name}: ${updateResult.message}`,
-          );
-        }
-      }
-      if (note) {
-        console.log(`\n${note}`);
-      }
-    }
   },
 );
 
