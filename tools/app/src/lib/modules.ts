@@ -84,30 +84,25 @@ export type Binding = 'exact' | 'minor' | 'major';
 export type Listing =
   'idle' | 'loading' | 'error' | 'stale' | 'empty' | 'versions';
 
-const core = (version: string) => {
-  const m = /^(\d+)\.(\d+)\.(\d+)/.exec(version);
-  return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
-};
-
-// -1, 0 or 1; versions that do not parse compare equal.
-const compare = (a: string, b: string) => {
-  const [x, y] = [core(a), core(b)];
-  if (!x || !y) return 0;
-  return Math.sign(x[0] - y[0] || x[1] - y[1] || x[2] - y[2]);
-};
-
 // The binding a declared range expresses; an absent or other range counts as ^.
-export const bindingOf = (range?: string): Binding =>
-  range?.startsWith('~')
-    ? 'minor'
-    : range && /^\d/.test(range)
-      ? 'exact'
-      : 'major';
+export function bindingOf(range?: string): Binding {
+  if (range?.startsWith('~')) return 'minor';
+  if (range && /^\d/.test(range)) return 'exact';
+  return 'major';
+}
+
+const RANGE_PREFIX: Record<Binding, string> = {
+  exact: '',
+  minor: '~',
+  major: '^',
+};
 
 export const rangeFor = (version: string, binding: Binding) =>
-  binding === 'exact'
-    ? version
-    : `${binding === 'minor' ? '~' : '^'}${version}`;
+  RANGE_PREFIX[binding] + version;
+
+// The default pick: the newest version that is not a prerelease.
+export const newestStable = (versions: string[]) =>
+  versions.find((v) => !semver.prerelease(v)) ?? versions[0];
 
 // The version a newly declared range installs: the solver takes the newest
 // listed version that satisfies it.
@@ -116,22 +111,24 @@ export const newestMatching = (versions: string[], range: string) =>
 
 // What the range from rangeFor admits, in words ('^0.3.1' is 0.3.x, not 0.x).
 export function bindingScope(version: string, binding: Binding) {
-  const [major, minor] = core(version) ?? [];
-  if (major === undefined || binding === 'exact') return `${version} only`;
+  const parsed = semver.coerce(version);
+  if (!parsed || binding === 'exact') return `${version} only`;
+  const { major, minor } = parsed;
   if (binding === 'minor') return `${major}.${minor}.x`;
   if (major > 0) return `${major}.x`;
   return minor > 0 ? `0.${minor}.x` : `${version} only`;
 }
 
-// The engine never downgrades, so a change lists nothing below what is installed.
-export const selectableVersions = (
-  mode: 'install' | 'change',
-  versions: string[],
-  installed?: string,
-) =>
-  mode === 'change' && installed
-    ? versions.filter((v) => compare(v, installed) >= 0)
-    : versions;
+// The engine never downgrades, so with an installed version nothing below it
+// is listed; versions that do not parse are kept.
+export function selectableVersions(versions: string[], installed?: string) {
+  const floor = installed && semver.coerce(installed);
+  if (!floor) return versions;
+  return versions.filter((v) => {
+    const parsed = semver.coerce(v);
+    return !parsed || semver.gte(parsed, floor);
+  });
+}
 
 // Credentials in a source would end up in cardsConfig.json and request logs.
 export function sourceHasCredentials(source: string) {

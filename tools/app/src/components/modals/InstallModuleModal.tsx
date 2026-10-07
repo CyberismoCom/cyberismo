@@ -43,6 +43,7 @@ import {
   bindingOf,
   bindingScope,
   newestMatching,
+  newestStable,
   rangeFor,
   selectableVersions,
   sourceHasCredentials,
@@ -78,7 +79,6 @@ export function InstallModuleModal({
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { addModule, updateModule } = useProjectSettingsMutations();
-  const mode = module ? 'change' : 'install';
   const [sourceInput, setSourceInput] = useState(source ?? '');
   const [requested, setRequested] = useState<string | null>(source ?? null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -89,11 +89,7 @@ export function InstallModuleModal({
 
   const trimmed = sourceInput.trim();
   const credentials = sourceHasCredentials(trimmed);
-  const target = module
-    ? { module: module.cardKeyPrefix }
-    : requested && !sourceHasCredentials(requested)
-      ? { source: requested }
-      : null;
+  const target = versionsTarget();
   const {
     data,
     error,
@@ -102,34 +98,44 @@ export function InstallModuleModal({
     mutate: refetch,
   } = useModuleVersions(target);
 
-  const stale = mode === 'install' && requested !== trimmed;
-  const versions = selectableVersions(
-    mode,
-    data ?? [],
-    module?.installedVersion,
-  );
-  const listing: Listing = !target
-    ? 'idle'
-    : stale
-      ? 'stale'
-      : isLoading || isValidating
-        ? 'loading'
-        : error
-          ? 'error'
-          : versions.length === 0
-            ? 'empty'
-            : 'versions';
+  const stale = !module && requested !== trimmed;
+  const versions = selectableVersions(data ?? [], module?.installedVersion);
+  const listing = listingState();
   const version =
-    selected && versions.includes(selected)
-      ? selected
-      : (versions.find((v) => !v.includes('-')) ?? versions[0]);
+    selected && versions.includes(selected) ? selected : newestStable(versions);
   const { canSubmit, range } = submitState({
-    mode,
+    mode: module ? 'change' : 'install',
     source: trimmed,
     listing,
     version,
     binding,
   });
+
+  function versionsTarget() {
+    if (module) return { module: module.cardKeyPrefix };
+    if (requested && !sourceHasCredentials(requested)) {
+      return { source: requested };
+    }
+    return null;
+  }
+
+  function listingState(): Listing {
+    if (!target) return 'idle';
+    if (stale) return 'stale';
+    if (isLoading || isValidating) return 'loading';
+    if (error) return 'error';
+    return versions.length === 0 ? 'empty' : 'versions';
+  }
+
+  function titleText() {
+    if (module) {
+      return t('installModuleModal.titleChangeVersion', {
+        module: module.name,
+      });
+    }
+    if (label) return t('installModuleModal.titleNamed', { module: label });
+    return t('installModuleModal.title');
+  }
 
   const listVersions = () => {
     if (!trimmed || credentials) return;
@@ -166,17 +172,16 @@ export function InstallModuleModal({
     setSubmitting(false);
   };
 
-  const title = module
-    ? t('installModuleModal.titleChangeVersion', { module: module.name })
-    : label
-      ? t('installModuleModal.titleNamed', { module: label })
-      : t('installModuleModal.title');
+  const title = titleText();
+  const installs = (range && newestMatching(versions, range)) ?? version;
   const options: Binding[] = ['major', 'minor', 'exact'];
 
   return (
     <Modal
       open
-      onClose={() => (submitting ? null : onClose())}
+      onClose={() => {
+        if (!submitting) onClose();
+      }}
       disableEscapeKeyDown
     >
       <ModalDialog
@@ -190,7 +195,7 @@ export function InstallModuleModal({
             content by less than a pixel, which shows as a scroll bar. */}
         <DialogContent sx={{ overflowX: 'hidden' }}>
           <Stack spacing={2}>
-            {mode === 'install' && (
+            {!module && (
               <FormControl error={credentials}>
                 <FormLabel>{t('installModuleModal.moduleUrl')} *</FormLabel>
                 <Input
@@ -208,7 +213,7 @@ export function InstallModuleModal({
                 )}
               </FormControl>
             )}
-            {mode === 'install' && !source && (
+            {!module && !source && (
               <Stack direction="row">
                 <Button
                   size="sm"
@@ -256,9 +261,9 @@ export function InstallModuleModal({
             {listing === 'empty' && (
               <Alert color="warning" variant="soft">
                 {t(
-                  mode === 'install'
-                    ? 'installModuleModal.noVersions'
-                    : 'installModuleModal.noNewerVersions',
+                  module
+                    ? 'installModuleModal.noNewerVersions'
+                    : 'installModuleModal.noVersions',
                 )}
               </Alert>
             )}
@@ -309,8 +314,7 @@ export function InstallModuleModal({
                   <FormHelperText>
                     {t('installModuleModal.declares', {
                       range,
-                      version:
-                        (range && newestMatching(versions, range)) ?? version,
+                      version: installs,
                     })}
                   </FormHelperText>
                 </FormControl>
