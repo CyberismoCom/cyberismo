@@ -16,11 +16,13 @@ import useSWR, { mutate } from 'swr';
 import type {
   CleanResult,
   ModuleSettingFromHub,
+  UpdatePlan,
 } from '@cyberismo/data-handler';
 import { projectApiPaths, callApi } from '../swr';
 import { useSWRHook } from './common';
 import type { Hub, HubFetchResult, ProjectSettingsUpdate } from './types';
 import { useUpdating } from '../hooks';
+import { getConfig } from '../utils';
 
 export const useProjectSettings = (
   options?: SWRConfiguration,
@@ -72,6 +74,17 @@ export const cleanProject = async (
     mutate(apiPaths.tree());
   }
   return result;
+};
+
+// Dry-runs an update of all modules; never runs in an export.
+export const fetchModuleUpdatePlan = async (): Promise<UpdatePlan> => {
+  if (getConfig().staticMode) {
+    throw new Error('Export mode is enabled, updates cannot be checked');
+  }
+  return callApi<UpdatePlan>(
+    projectApiPaths().projectModulesUpdatePlan(),
+    'GET',
+  );
 };
 
 export const useProjectModulesImportable = (projectPrefix?: string) =>
