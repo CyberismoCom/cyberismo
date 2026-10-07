@@ -35,7 +35,7 @@ vi.mock('@/lib/api', () => ({
 vi.mock('@/lib/hooks', () => ({ useAppDispatch: () => vi.fn() }));
 vi.mock('@/components/modals', () => ({
   ModuleDeleteModal: () => null,
-  AddModuleModal: () => null,
+  InstallModuleModal: () => null,
 }));
 vi.mock('@/components/config-editors/useCleanPrompt', () => ({
   useCleanPrompt: () => ({ maybePromptClean: vi.fn() }),

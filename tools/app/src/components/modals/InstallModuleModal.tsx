@@ -47,10 +47,39 @@ import {
   rangeFor,
   selectableVersions,
   sourceHasCredentials,
-  submitState,
+  submitDecision,
   type Binding,
   type Listing,
 } from '@/lib/modules';
+
+const BINDINGS: Binding[] = ['major', 'minor', 'exact'];
+
+// What to list versions of: the installed module itself, or the source the
+// user asked to list (never one carrying credentials).
+function versionsTarget(
+  module: ProjectModule | undefined,
+  listedSource: string | null,
+) {
+  if (module) return { module: module.cardKeyPrefix };
+  if (listedSource && !sourceHasCredentials(listedSource)) {
+    return { source: listedSource };
+  }
+  return null;
+}
+
+function listingState(input: {
+  hasTarget: boolean;
+  inputChangedSinceListing: boolean;
+  loading: boolean;
+  failed: boolean;
+  versionCount: number;
+}): Listing {
+  if (!input.hasTarget) return 'idle';
+  if (input.inputChangedSinceListing) return 'stale';
+  if (input.loading) return 'loading';
+  if (input.failed) return 'error';
+  return input.versionCount === 0 ? 'empty' : 'versions';
+}
 
 // Callers mount the dialog only while it is open, so closing resets it.
 interface InstallModuleModalProps {
@@ -80,7 +109,9 @@ export function InstallModuleModal({
   const dispatch = useAppDispatch();
   const { addModule, updateModule } = useProjectSettingsMutations();
   const [sourceInput, setSourceInput] = useState(source ?? '');
-  const [requested, setRequested] = useState<string | null>(source ?? null);
+  const [listedSource, setListedSource] = useState<string | null>(
+    source ?? null,
+  );
   const [selected, setSelected] = useState<string | null>(null);
   const [binding, setBinding] = useState<Binding>(
     bindingOf(module?.declaredRange),
@@ -88,8 +119,8 @@ export function InstallModuleModal({
   const [submitting, setSubmitting] = useState(false);
 
   const trimmed = sourceInput.trim();
-  const credentials = sourceHasCredentials(trimmed);
-  const target = versionsTarget();
+  const hasCredentials = sourceHasCredentials(trimmed);
+  const target = versionsTarget(module, listedSource);
   const {
     data,
     error,
@@ -98,34 +129,24 @@ export function InstallModuleModal({
     mutate: refetch,
   } = useModuleVersions(target);
 
-  const stale = !module && requested !== trimmed;
+  const inputChangedSinceListing = !module && listedSource !== trimmed;
   const versions = selectableVersions(data ?? [], module?.installedVersion);
-  const listing = listingState();
+  const listing = listingState({
+    hasTarget: target !== null,
+    inputChangedSinceListing,
+    loading: isLoading || isValidating,
+    failed: Boolean(error),
+    versionCount: versions.length,
+  });
   const version =
     selected && versions.includes(selected) ? selected : newestStable(versions);
-  const { canSubmit, range } = submitState({
+  const { canSubmit, range } = submitDecision({
     mode: module ? 'change' : 'install',
     source: trimmed,
     listing,
     version,
     binding,
   });
-
-  function versionsTarget() {
-    if (module) return { module: module.cardKeyPrefix };
-    if (requested && !sourceHasCredentials(requested)) {
-      return { source: requested };
-    }
-    return null;
-  }
-
-  function listingState(): Listing {
-    if (!target) return 'idle';
-    if (stale) return 'stale';
-    if (isLoading || isValidating) return 'loading';
-    if (error) return 'error';
-    return versions.length === 0 ? 'empty' : 'versions';
-  }
 
   function titleText() {
     if (module) {
@@ -138,10 +159,10 @@ export function InstallModuleModal({
   }
 
   const listVersions = () => {
-    if (!trimmed || credentials) return;
+    if (!trimmed || hasCredentials) return;
     setSelected(null);
-    if (requested === trimmed) void refetch();
-    else setRequested(trimmed);
+    if (listedSource === trimmed) void refetch();
+    else setListedSource(trimmed);
   };
 
   const handleSubmit = async () => {
@@ -173,8 +194,10 @@ export function InstallModuleModal({
   };
 
   const title = titleText();
-  const installs = (range && newestMatching(versions, range)) ?? version;
-  const options: Binding[] = ['major', 'minor', 'exact'];
+  // The solver installs the newest version the declared range admits.
+  const installs = range
+    ? (newestMatching(versions, range) ?? version)
+    : version;
 
   return (
     <Modal
@@ -196,7 +219,7 @@ export function InstallModuleModal({
         <DialogContent sx={{ overflowX: 'hidden' }}>
           <Stack spacing={2}>
             {!module && (
-              <FormControl error={credentials}>
+              <FormControl error={hasCredentials}>
                 <FormLabel>{t('installModuleModal.moduleUrl')} *</FormLabel>
                 <Input
                   placeholder={t('installModuleModal.moduleUrlPlaceholder')}
@@ -206,7 +229,7 @@ export function InstallModuleModal({
                   readOnly={Boolean(source)}
                   disabled={submitting}
                 />
-                {credentials && (
+                {hasCredentials && (
                   <FormHelperText>
                     {t('installModuleModal.credentialsRefused')}
                   </FormHelperText>
@@ -220,7 +243,7 @@ export function InstallModuleModal({
                   variant="outlined"
                   onClick={listVersions}
                   loading={listing === 'loading'}
-                  disabled={!trimmed || credentials || submitting}
+                  disabled={!trimmed || hasCredentials || submitting}
                 >
                   {t('installModuleModal.listVersions')}
                 </Button>
@@ -299,7 +322,7 @@ export function InstallModuleModal({
                     sx={{ px: '1px' }}
                     onChange={(e) => setBinding(e.target.value as Binding)}
                   >
-                    {options.map((b) => (
+                    {BINDINGS.map((b) => (
                       <Radio
                         key={b}
                         value={b}
