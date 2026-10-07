@@ -270,7 +270,6 @@ export function HubsSection({ disabled }: HubsSectionProps) {
 
       {moduleToInstall && (
         <InstallModuleModal
-          open
           source={moduleToInstall.location}
           label={moduleToInstall.displayName || moduleToInstall.name}
           onClose={() => setModuleToInstall(null)}

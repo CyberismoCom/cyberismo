@@ -215,11 +215,10 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
         />
       )}
       {modalOpen.installModule && (
-        <InstallModuleModal open onClose={closeModal('installModule')} />
+        <InstallModuleModal onClose={closeModal('installModule')} />
       )}
       {moduleToChange && (
         <InstallModuleModal
-          open
           module={moduleToChange}
           onClose={() => setModuleToChange(null)}
           onDone={maybePromptClean}

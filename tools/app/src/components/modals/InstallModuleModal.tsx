@@ -51,8 +51,8 @@ import {
   type Listing,
 } from '@/lib/modules';
 
+// Callers mount the dialog only while it is open, so closing resets it.
 interface InstallModuleModalProps {
-  open: boolean;
   onClose: () => void;
   // Change-version mode: an installed root module, listed by its own source.
   module?: ProjectModule;
@@ -69,7 +69,6 @@ interface InstallModuleModalProps {
  * become the declared range.
  */
 export function InstallModuleModal({
-  open,
   onClose,
   module,
   source,
@@ -90,13 +89,11 @@ export function InstallModuleModal({
 
   const trimmed = sourceInput.trim();
   const credentials = sourceHasCredentials(trimmed);
-  const target = !open
-    ? null
-    : module
-      ? { module: module.cardKeyPrefix }
-      : requested && !sourceHasCredentials(requested)
-        ? { source: requested }
-        : null;
+  const target = module
+    ? { module: module.cardKeyPrefix }
+    : requested && !sourceHasCredentials(requested)
+      ? { source: requested }
+      : null;
   const {
     data,
     error,
@@ -134,14 +131,6 @@ export function InstallModuleModal({
     binding,
   });
 
-  const handleClose = () => {
-    setSourceInput(source ?? '');
-    setRequested(source ?? null);
-    setSelected(null);
-    setBinding(bindingOf(module?.declaredRange));
-    onClose();
-  };
-
   const listVersions = () => {
     if (!trimmed || credentials) return;
     setSelected(null);
@@ -154,7 +143,7 @@ export function InstallModuleModal({
     try {
       if (module) await updateModule(module.cardKeyPrefix, range);
       else await addModule(trimmed, range);
-      handleClose();
+      onClose();
       dispatch(
         addNotification({
           message: t(
@@ -186,8 +175,8 @@ export function InstallModuleModal({
 
   return (
     <Modal
-      open={open}
-      onClose={() => (submitting ? null : handleClose())}
+      open
+      onClose={() => (submitting ? null : onClose())}
       disableEscapeKeyDown
     >
       <ModalDialog
@@ -342,11 +331,7 @@ export function InstallModuleModal({
                 : 'installModuleModal.install',
             )}
           </Button>
-          <Button
-            variant="outlined"
-            onClick={handleClose}
-            disabled={submitting}
-          >
+          <Button variant="outlined" onClick={onClose} disabled={submitting}>
             {t('installModuleModal.close')}
           </Button>
         </DialogActions>
