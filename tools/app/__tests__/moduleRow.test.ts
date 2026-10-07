@@ -20,6 +20,7 @@ import {
   moduleRow,
   type ModuleRow,
   newestMatching,
+  newestStable,
   rangeFor,
   selectableVersions,
   submitState,
@@ -206,9 +207,11 @@ describe('submitState', () => {
 
 it('lists no versions below the installed one when changing', () => {
   const all = ['2.0.0', '1.3.0', '1.0.0'];
-  expect(selectableVersions('change', all, '1.3.0')).toEqual([
-    '2.0.0',
-    '1.3.0',
-  ]);
-  expect(selectableVersions('change', all, '2.0.0')).toEqual(['2.0.0']);
+  expect(selectableVersions(all, '1.3.0')).toEqual(['2.0.0', '1.3.0']);
+  expect(selectableVersions(all, '2.0.0')).toEqual(['2.0.0']);
+});
+
+it('prefers the newest stable version, else the newest listed', () => {
+  expect(newestStable(['2.0.0-rc.1', '1.3.0', '1.0.0'])).toBe('1.3.0');
+  expect(newestStable(['2.0.0-rc.1', '1.0.0-beta'])).toBe('2.0.0-rc.1');
 });
