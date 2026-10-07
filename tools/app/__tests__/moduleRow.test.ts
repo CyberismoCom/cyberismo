@@ -85,7 +85,7 @@ describe('moduleRow', () => {
       {},
       {
         latestCompatible: '1.3.0',
-        latestAvailable: undefined,
+        latestAvailable: null,
         heldBack: false,
       },
     ],
@@ -95,7 +95,7 @@ describe('moduleRow', () => {
       [],
       {},
       { declaredRange: '^1.0.0' },
-      { assumedRange: undefined },
+      { assumedRange: null },
     ],
   ])(
     'reads versions from the plan: %s',
@@ -116,13 +116,13 @@ describe('moduleRow', () => {
       conflicts: [{ module: 'core', reason: 'x' }],
     });
     const row = moduleRow(mod({}), blocked, []);
-    expect(row.latestCompatible).toBeUndefined();
-    expect(row.latestAvailable).toBeUndefined();
+    expect(row.latestCompatible).toBeNull();
+    expect(row.latestAvailable).toBeNull();
   });
 
   it('claims nothing for a root the plan did not check', () => {
     const row = moduleRow(mod({ cardKeyPrefix: 'added' }), plan(), []);
-    expect(row.latestCompatible).toBeUndefined();
+    expect(row.latestCompatible).toBeNull();
     expect(row.upToDate).toBe(false);
   });
 });
