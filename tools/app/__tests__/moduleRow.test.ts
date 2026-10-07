@@ -14,7 +14,7 @@
 import { describe, it, expect } from 'vitest';
 import type { UpdatePlan } from '@cyberismo/data-handler';
 import type { ProjectModule } from '@/lib/api/types';
-import { moduleRow } from '@/lib/modules';
+import { moduleRow, type ModuleRow } from '@/lib/modules';
 
 const mod = (over: Partial<ProjectModule>): ProjectModule => ({
   name: 'Base',
@@ -24,22 +24,21 @@ const mod = (over: Partial<ProjectModule>): ProjectModule => ({
   installedVersion: '1.0.0',
   ...over,
 });
+const root: UpdatePlan['roots'][number] = {
+  module: 'base',
+  installed: '1.0.0',
+  range: '^1.0.0',
+  latest: '2.0.0',
+  heldBack: true,
+  versionSource: 'git',
+};
 const plan = (over: Partial<UpdatePlan> = {}): UpdatePlan => ({
   ok: true,
   changes: [],
   removed: [],
   conflicts: [],
   rangeWrites: [],
-  roots: [
-    {
-      module: 'base',
-      installed: '1.0.0',
-      range: '^1.0.0',
-      latest: '2.0.0',
-      heldBack: true,
-      versionSource: 'git',
-    },
-  ],
+  roots: [root],
   ...over,
 });
 const change = { module: 'base', from: '1.0.0', to: '1.3.0', breaking: false };
@@ -57,58 +56,58 @@ describe('moduleRow', () => {
     expect(row.managedBy).toEqual(['Extension']);
   });
 
-  it.each([
-    // [name, changes, root overrides, module overrides, expected]
-    [
-      'an update is pending',
-      [change],
-      {},
-      {},
-      {
+  it.each<{
+    name: string;
+    changes: UpdatePlan['changes'];
+    root?: Partial<UpdatePlan['roots'][number]>;
+    module?: Partial<ProjectModule>;
+    expected: Partial<ModuleRow>;
+  }>([
+    {
+      name: 'an update is pending',
+      changes: [change],
+      expected: {
         latestCompatible: '1.3.0',
         latestAvailable: '2.0.0',
         heldBack: true,
         upToDate: false,
       },
-    ],
-    [
-      'already current',
-      [],
-      {},
-      {},
-      { latestCompatible: '1.0.0', upToDate: true },
-    ],
-    [
-      'latest equals compatible',
-      [change],
-      { latest: '1.3.0', heldBack: false },
-      {},
-      {
+    },
+    {
+      name: 'already current',
+      changes: [],
+      expected: { latestCompatible: '1.0.0', upToDate: true },
+    },
+    {
+      name: 'latest equals compatible',
+      changes: [change],
+      root: { latest: '1.3.0', heldBack: false },
+      expected: {
         latestCompatible: '1.3.0',
         latestAvailable: null,
         heldBack: false,
       },
-    ],
-    ['range is assumed', [], {}, {}, { assumedRange: '^1.0.0' }],
-    [
-      'range is declared',
-      [],
-      {},
-      { declaredRange: '^1.0.0' },
-      { assumedRange: null },
-    ],
-  ])(
-    'reads versions from the plan: %s',
-    (_name, changes, root, over, expected) => {
-      const base = plan({ changes });
-      base.roots = [{ ...base.roots[0], ...root }];
-      const row = moduleRow(mod(over), base, []);
-      const shown = Object.fromEntries(
-        Object.keys(expected).map((k) => [k, row[k as keyof typeof row]]),
-      );
-      expect(shown).toEqual(expected);
     },
-  );
+    {
+      name: 'range is assumed',
+      changes: [],
+      expected: { assumedRange: '^1.0.0' },
+    },
+    {
+      name: 'range is declared',
+      changes: [],
+      module: { declaredRange: '^1.0.0' },
+      expected: { assumedRange: null },
+    },
+  ])('reads versions from the plan: $name', (c) => {
+    const checked = plan({
+      changes: c.changes,
+      roots: [{ ...root, ...c.root }],
+    });
+    expect(moduleRow(mod(c.module ?? {}), checked, [])).toMatchObject(
+      c.expected,
+    );
+  });
 
   it('explains a blocked plan instead of showing versions', () => {
     const blocked = plan({

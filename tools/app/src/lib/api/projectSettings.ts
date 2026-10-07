@@ -76,7 +76,7 @@ export const cleanProject = async (
   return result;
 };
 
-// Asks the module sources for their versions; never runs in an export.
+// Dry-runs an update of all modules; never runs in an export.
 export const fetchModuleUpdatePlan = async (): Promise<UpdatePlan> => {
   if (getConfig().staticMode) {
     throw new Error('Export mode is enabled, updates cannot be checked');
