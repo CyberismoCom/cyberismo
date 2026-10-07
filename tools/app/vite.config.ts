@@ -8,9 +8,25 @@ export default defineConfig({
     react(),
     license({
       thirdParty: {
-        output: {
-          file: path.join(__dirname, 'dist', 'THIRD-PARTY.txt'),
-        },
+        output: [
+          { file: path.join(__dirname, 'dist', 'THIRD-PARTY.txt') },
+          {
+            file: path.join(__dirname, 'dist', 'sbom.cdx.json'),
+            template: (dependencies) =>
+              JSON.stringify({
+                bomFormat: 'CycloneDX',
+                specVersion: '1.6',
+                components: dependencies
+                  .filter((dep) => dep.name && dep.version)
+                  .map((dep) => ({
+                    type: 'library',
+                    name: dep.name,
+                    version: dep.version,
+                    purl: `pkg:npm/${dep.name!.replace(/^@/, '%40')}@${dep.version}`,
+                  })),
+              }),
+          },
+        ],
       },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any,
