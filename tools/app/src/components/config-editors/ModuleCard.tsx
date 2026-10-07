@@ -72,13 +72,13 @@ export function ModuleCard({
             {t('general.moduleAssumedRange')}: {row.assumedRange}
           </Typography>
         )}
-        {row.managedBy?.length ? (
+        {!!row.managedBy?.length && (
           <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>
             {t('general.moduleManagedBy', {
               parents: row.managedBy.join(', '),
             })}
           </Typography>
-        ) : null}
+        )}
         {row.latestCompatible != null && (
           <>
             <Typography level="body-sm" component="div">
@@ -102,7 +102,7 @@ export function ModuleCard({
           </>
         )}
       </CardContent>
-      {row.hasActions && (
+      {Object.values(row.actions).some(Boolean) && (
         <CardActions>
           {row.actions.update && (
             <Button

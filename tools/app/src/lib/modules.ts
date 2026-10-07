@@ -17,11 +17,15 @@ import type { ProjectModule } from './api/types';
 export interface ModuleRow {
   // Only root modules are managed directly; a transitive one follows its parents.
   actions: { update: boolean; remove: boolean };
-  hasActions: boolean;
+  // Names of the modules that pull this one in; set only for a transitive module.
   managedBy?: string[];
+  // Newest version the declared range admits; null until an update check covers this module.
   latestCompatible: string | null;
+  // Newest release overall; set only when it is newer than latestCompatible.
   latestAvailable: string | null;
+  // The newest release lies outside the declared range.
   heldBack: boolean;
+  // Nothing to update; false also when the module has not been checked.
   upToDate: boolean;
   // Range the update assumes when the module declares none.
   assumedRange: string | null;
@@ -48,7 +52,6 @@ export function moduleRow(
 ): ModuleRow {
   const row: ModuleRow = {
     actions: { update: module.isRoot, remove: module.isRoot },
-    hasActions: module.isRoot,
     latestCompatible: null,
     latestAvailable: null,
     assumedRange: null,

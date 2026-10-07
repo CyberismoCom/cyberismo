@@ -44,10 +44,7 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
     addModule,
     isUpdating,
   } = useProjectSettingsMutations();
-  const { modalOpen, openModal, closeModal } = useModals({
-    deleteModule: false,
-    addModule: false,
-  });
+  const { modalOpen, openModal, closeModal } = useModals({ addModule: false });
   const [moduleToDelete, setModuleToDelete] = useState<ProjectModule | null>(
     null,
   );
@@ -66,6 +63,8 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
   const [checking, setChecking] = useState(false);
   const validCheck =
     check?.signature === modulesSignature(modules) ? check : undefined;
+
+  const busy = isUpdating() || checking || disabled;
 
   const handleCheck = async () => {
     const signature = modulesSignature(modules);
@@ -125,7 +124,6 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
         }),
       );
       setModuleToDelete(null);
-      closeModal('deleteModule')();
     } catch (error) {
       notifyError(error);
     }
@@ -141,7 +139,7 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
           size="sm"
           variant="solid"
           onClick={openModal('addModule')}
-          disabled={isUpdating() || checking || disabled}
+          disabled={busy}
         >
           {t('general.addModule')}
         </Button>
@@ -151,7 +149,7 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
             variant="outlined"
             onClick={handleUpdateAll}
             loading={isUpdating('update-all-modules')}
-            disabled={isUpdating() || checking || disabled}
+            disabled={busy}
           >
             {t('general.updateAllModules')}
           </Button>
@@ -202,19 +200,13 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
           checking={checking}
           isUpdating={isUpdating}
           onUpdate={() => handleUpdate(mod)}
-          onDelete={() => {
-            setModuleToDelete(mod);
-            openModal('deleteModule')();
-          }}
+          onDelete={() => setModuleToDelete(mod)}
         />
       ))}
       {moduleToDelete && (
         <ModuleDeleteModal
-          open={modalOpen.deleteModule}
-          onClose={() => {
-            setModuleToDelete(null);
-            closeModal('deleteModule')();
-          }}
+          open
+          onClose={() => setModuleToDelete(null)}
           moduleName={moduleToDelete.name}
           cardKeyPrefix={moduleToDelete.cardKeyPrefix}
           onDelete={() => handleDelete(moduleToDelete)}
