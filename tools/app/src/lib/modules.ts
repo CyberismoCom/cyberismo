@@ -81,8 +81,12 @@ export function moduleRow(
 }
 
 export type Binding = 'exact' | 'minor' | 'major';
+// State of the version listing in the install dialog:
+// idle: nothing to list yet; stale: the source changed since it was listed;
+// loading / error: the request is in flight / failed; empty: the repository
+// has no usable tags; versions: there is something to choose from.
 export type Listing =
-  'idle' | 'loading' | 'error' | 'stale' | 'empty' | 'versions';
+  'idle' | 'stale' | 'loading' | 'error' | 'empty' | 'versions';
 
 // The binding a declared range expresses; an absent or other range counts as ^.
 export function bindingOf(range?: string): Binding {
@@ -100,7 +104,8 @@ const RANGE_PREFIX: Record<Binding, string> = {
 export const rangeFor = (version: string, binding: Binding) =>
   RANGE_PREFIX[binding] + version;
 
-// The default pick: the newest version that is not a prerelease.
+// The default pick: the newest version that is not a prerelease. Versions
+// arrive newest first.
 export const newestStable = (versions: string[]) =>
   versions.find((v) => !semver.prerelease(v)) ?? versions[0];
 
@@ -151,7 +156,7 @@ export interface SubmitInput {
 
 // Submitting needs a settled listing; only a repository without tags installs
 // without a range (as the CLI does).
-export function submitState(input: SubmitInput): {
+export function submitDecision(input: SubmitInput): {
   canSubmit: boolean;
   range?: string;
 } {
@@ -159,8 +164,11 @@ export function submitState(input: SubmitInput): {
   const sourceOk =
     mode === 'change' ||
     (source.trim() !== '' && !sourceHasCredentials(source));
+  // Nothing to install from.
   if (!sourceOk) return { canSubmit: false };
+  // No tags: a fresh install has no range to declare; a change has nothing to pick.
   if (listing === 'empty') return { canSubmit: mode === 'install' };
+  // The listing is not settled, so there is no version to declare.
   if (listing !== 'versions' || !version) return { canSubmit: false };
   return { canSubmit: true, range: rangeFor(version, binding) };
 }

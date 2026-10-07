@@ -61,8 +61,8 @@ export const updateProjectModule = async (
   mutate(apiPaths.resourceTree());
 };
 
-// Asks the module's source for its versions when the dialog opens; the
-// installed module's own source is resolved on the server.
+// Asks a module source for its versions; an installed module's own source is
+// resolved on the server.
 export const useModuleVersions = (
   target: { module: string } | { source: string } | null,
   projectPrefix?: string,
