@@ -750,7 +750,7 @@ describe('resolve solver', () => {
         { kind: 'availability', module: 'R1' },
         { sourceLayer: source, tempDir: testDir },
       ),
-    ).rejects.toThrow('remote unreachable');
+    ).rejects.toThrow('is unreachable');
   });
 
   it('add: fresh import seeds a new root and installs its transitive closure', async () => {

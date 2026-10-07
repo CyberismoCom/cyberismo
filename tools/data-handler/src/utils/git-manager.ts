@@ -197,7 +197,7 @@ export class GitManager {
    * List available version tags from a remote repository.
    * Does not require a local repo — queries the remote directly.
    * @param remoteUrl Git remote URL to query
-   * @returns Semver version strings sorted descending (e.g. ["2.1.0", "1.0.0"])
+   * @returns Release versions (no prereleases) sorted descending (e.g. ["2.1.0", "1.0.0"])
    */
   static async listRemoteVersionTags(remoteUrl: string): Promise<string[]> {
     const git = createGit({ timeout: gitTimeout() });
@@ -210,7 +210,8 @@ export class GitManager {
       const match = line.match(/refs\/tags\/(.+)$/);
       if (!match) continue;
       const version = stripTagPrefix(match[1]);
-      if (semver.valid(version)) {
+      // Prereleases are not supported; no caller should see them.
+      if (semver.valid(version) && semver.prerelease(version) === null) {
         versions.push(version);
       }
     }

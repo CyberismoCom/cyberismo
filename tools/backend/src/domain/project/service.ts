@@ -126,11 +126,11 @@ export async function updateProject(
 }
 
 export async function updateModule(commands: CommandManager, module: string) {
-  await commands.modulesCmd.update(module);
+  await commands.modulesCmd.update({ module });
 }
 
 export async function updateAllModules(commands: CommandManager) {
-  await commands.modulesCmd.updateAll();
+  await commands.modulesCmd.update({});
 }
 
 export async function deleteModule(commands: CommandManager, module: string) {
