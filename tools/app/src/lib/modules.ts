@@ -17,13 +17,14 @@ import type { ProjectModule } from './api/types';
 export interface ModuleRow {
   // Only root modules are managed directly; a transitive one follows its parents.
   actions: { update: boolean; remove: boolean };
+  hasActions: boolean;
   managedBy?: string[];
-  latestCompatible?: string;
-  latestAvailable?: string;
+  latestCompatible: string | null;
+  latestAvailable: string | null;
   heldBack: boolean;
   upToDate: boolean;
   // Range the update assumes when the module declares none.
-  assumedRange?: string;
+  assumedRange: string | null;
 }
 
 export const moduleName = (all: ProjectModule[], prefix: string) =>
@@ -47,6 +48,10 @@ export function moduleRow(
 ): ModuleRow {
   const row: ModuleRow = {
     actions: { update: module.isRoot, remove: module.isRoot },
+    hasActions: module.isRoot,
+    latestCompatible: null,
+    latestAvailable: null,
+    assumedRange: null,
     heldBack: false,
     upToDate: false,
   };
@@ -58,11 +63,9 @@ export function moduleRow(
   const change = plan.changes.find((c) => c.module === module.cardKeyPrefix);
   const root = plan.roots.find((r) => r.module === module.cardKeyPrefix);
   if (!root) return row;
-  row.latestCompatible = change?.to ?? root.installed ?? undefined;
-  if (root.latest !== row.latestCompatible) {
-    row.latestAvailable = root.latest ?? undefined;
-  }
-  if (!module.declaredRange) row.assumedRange = root.range ?? undefined;
+  row.latestCompatible = change?.to ?? root.installed;
+  if (root.latest !== row.latestCompatible) row.latestAvailable = root.latest;
+  if (!module.declaredRange) row.assumedRange = root.range;
   row.heldBack = root.heldBack;
   row.upToDate = change === undefined;
   return row;

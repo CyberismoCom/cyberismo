@@ -79,7 +79,7 @@ export function ModuleCard({
             })}
           </Typography>
         ) : null}
-        {row.latestCompatible !== undefined && (
+        {row.latestCompatible != null && (
           <>
             <Typography level="body-sm" component="div">
               {t('general.moduleLatestCompatible')}: {row.latestCompatible}{' '}
@@ -102,7 +102,7 @@ export function ModuleCard({
           </>
         )}
       </CardContent>
-      {(row.actions.update || row.actions.remove) && (
+      {row.hasActions && (
         <CardActions>
           {row.actions.update && (
             <Button

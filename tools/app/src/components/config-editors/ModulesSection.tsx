@@ -64,7 +64,7 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
     error?: string;
   }>();
   const [checking, setChecking] = useState(false);
-  const shown =
+  const validCheck =
     check?.signature === modulesSignature(modules) ? check : undefined;
 
   const handleCheck = async () => {
@@ -145,7 +145,7 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
         >
           {t('general.addModule')}
         </Button>
-        {modules?.length ? (
+        {!!modules?.length && (
           <Button
             size="sm"
             variant="outlined"
@@ -155,7 +155,7 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
           >
             {t('general.updateAllModules')}
           </Button>
-        ) : null}
+        )}
         {canCheck && (
           <Button
             size="sm"
@@ -169,23 +169,23 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
         )}
       </Stack>
       {modules?.length === 0 && <Typography>{t('noModules')}</Typography>}
-      {shown?.error && (
+      {validCheck?.error && (
         <Alert color="warning" variant="soft" role="alert">
           <Stack>
             <Typography level="title-sm">
               {t('general.checkForUpdatesFailed')}
             </Typography>
-            <Typography level="body-sm">{shown.error}</Typography>
+            <Typography level="body-sm">{validCheck.error}</Typography>
           </Stack>
         </Alert>
       )}
-      {shown?.plan && !shown.plan.ok && (
+      {validCheck?.plan && !validCheck.plan.ok && (
         <Alert color="warning" variant="soft" role="alert">
           <Stack>
             <Typography level="title-sm">
               {t('general.moduleUpdatesBlocked')}
             </Typography>
-            {shown.plan.conflicts.map((conflict) => (
+            {validCheck.plan.conflicts.map((conflict) => (
               <Typography key={conflict.module} level="body-sm">
                 {moduleName(modules ?? [], conflict.module)}: {conflict.reason}
               </Typography>
@@ -197,7 +197,7 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
         <ModuleCard
           key={mod.cardKeyPrefix}
           module={mod}
-          row={moduleRow(mod, shown?.plan, modules)}
+          row={moduleRow(mod, validCheck?.plan, modules)}
           disabled={disabled}
           checking={checking}
           isUpdating={isUpdating}
