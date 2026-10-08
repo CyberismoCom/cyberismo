@@ -1,7 +1,0 @@
-== Parameters
-
-* None
-
-== Description
-
-The logic program is being run for an AI agent that uses the Cyberismo MCP server, for example when the agent reads a card, runs a report, or runs a query.

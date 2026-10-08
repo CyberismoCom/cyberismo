@@ -84,11 +84,10 @@ export const validContexts = [
   'exportedSite',
   'exportedDocument',
   'commandLine',
-  'aiAgent',
 ];
 
 export type Context =
-  'localApp' | 'exportedSite' | 'exportedDocument' | 'commandLine' | 'aiAgent';
+  'localApp' | 'exportedSite' | 'exportedDocument' | 'commandLine';
 
 export const isContext = (context: string): context is Context => {
   return validContexts.includes(context);
