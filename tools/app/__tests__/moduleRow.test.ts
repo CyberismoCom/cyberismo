@@ -16,6 +16,7 @@ import type { UpdatePlan } from '@cyberismo/data-handler';
 import type { ProjectModule } from '@/lib/api/types';
 import {
   bindingOf,
+  type Binding,
   bindingScope,
   moduleRow,
   type ModuleRow,
