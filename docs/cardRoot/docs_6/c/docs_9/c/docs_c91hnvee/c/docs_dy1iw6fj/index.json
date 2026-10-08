@@ -1,0 +1,13 @@
+{
+    "rank": "0|e",
+    "workflowState": "Ready",
+    "createdAt": "2026-10-08T13:14:24.637Z",
+    "links": [],
+    "cardType": "base/cardTypes/predicate",
+    "title": "commandLine",
+    "templateCardKey": "base_weu9g7lz",
+    "lastUpdated": "2026-10-08T13:14:24.639Z",
+    "base/fieldTypes/briefDescription": "This fact is defined when the logic program is run from the Cyberismo command line",
+    "base/fieldTypes/category": "Execution context",
+    "lastTransitioned": "2026-10-08T13:14:24.639Z"
+}
