@@ -45,15 +45,38 @@ export const updateProjectSettings = async (
   mutate(apiPaths.resourceTree());
 };
 
+// A `range` re-declares the module's version binding first.
 export const updateProjectModule = async (
   moduleName: string,
   projectPrefix?: string,
+  range?: string,
 ) => {
   const apiPaths = projectApiPaths(projectPrefix);
-  await callApi(apiPaths.projectModuleUpdate(moduleName), 'POST');
+  await callApi(
+    apiPaths.projectModuleUpdate(moduleName),
+    'POST',
+    range ? { range } : undefined,
+  );
   mutate(apiPaths.project());
   mutate(apiPaths.resourceTree());
 };
+
+// Asks a module source for its versions; an installed module's own source is
+// resolved on the server.
+export const useModuleVersions = (
+  target: { module: string } | { source: string } | null,
+  projectPrefix?: string,
+) =>
+  useSWR<string[]>(
+    target && !getConfig().staticMode
+      ? projectApiPaths(projectPrefix).projectModuleVersions(target)
+      : null,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      shouldRetryOnError: false,
+    },
+  );
 
 /**
  * Reports the dormant field values a project holds - stored, but not shown and
@@ -113,9 +136,13 @@ export const updateAllProjectModules = async (projectPrefix?: string) => {
   mutate(apiPaths.resourceTree());
 };
 
-export const addModule = async (source: string, projectPrefix?: string) => {
+export const addModule = async (
+  source: string,
+  projectPrefix?: string,
+  range?: string,
+) => {
   const apiPaths = projectApiPaths(projectPrefix);
-  await callApi(apiPaths.projectModulesAdd(), 'POST', { source });
+  await callApi(apiPaths.projectModulesAdd(), 'POST', { source, range });
   mutate(apiPaths.project());
   mutate(apiPaths.resourceTree());
   mutate(apiPaths.templates());
@@ -161,9 +188,9 @@ export const useProjectSettingsMutations = (projectPrefix?: string) => {
     isUpdating: (action?: string) => isUpdating(action),
     updateProject: (body: ProjectSettingsUpdate, action: string = 'update') =>
       call(() => updateProjectSettings(body, projectPrefix), action),
-    updateModule: (moduleName: string) =>
+    updateModule: (moduleName: string, range?: string) =>
       call(
-        () => updateProjectModule(moduleName, projectPrefix),
+        () => updateProjectModule(moduleName, projectPrefix, range),
         `update-${moduleName}`,
       ),
     deleteModule: (moduleName: string) =>
@@ -173,8 +200,8 @@ export const useProjectSettingsMutations = (projectPrefix?: string) => {
       ),
     updateAllModules: () =>
       call(() => updateAllProjectModules(projectPrefix), 'update-all-modules'),
-    addModule: (source: string) =>
-      call(() => addModule(source, projectPrefix), 'add-module'),
+    addModule: (source: string, range?: string) =>
+      call(() => addModule(source, projectPrefix, range), 'add-module'),
     addHub: (location: string) =>
       call(() => addHub(location, projectPrefix), 'add-hub'),
     removeHub: (location: string) =>

@@ -95,6 +95,16 @@ export function projectApiPaths(projectPrefix?: string) {
     projectModuleDelete: (module: string) =>
       `${base}/project/modules/${encodeURIComponent(module)}`,
     projectModulesAdd: () => `${base}/project/modules`,
+    // URLSearchParams would encode ' ' as '+' and '~' as %7E.
+    projectModuleVersions: (
+      target: { module: string } | { source: string },
+    ) => {
+      const [key, value] =
+        'module' in target
+          ? ['module', target.module]
+          : ['source', target.source];
+      return `${base}/project/modules/versions?${key}=${encodeURIComponent(value)}`;
+    },
     projectModulesImportable: () => `${base}/project/modules/importable`,
     projectHubs: () => `${base}/project/hubs`,
     projectHubDelete: (location: string) =>
