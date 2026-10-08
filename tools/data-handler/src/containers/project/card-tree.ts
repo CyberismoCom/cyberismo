@@ -33,7 +33,11 @@ import type {
   CardMetadata,
   CardNode,
 } from '../../interfaces/project-interfaces.js';
-import { CardNotFoundError } from '../../exceptions/index.js';
+import {
+  CardNotFoundError,
+  InvalidInputError,
+  ResourceNotFoundError,
+} from '../../exceptions/index.js';
 import {
   copyDir,
   deleteDir,
@@ -993,7 +997,9 @@ export class CardTree {
 
     const fileName = basename(attachmentName);
     if (!isPathWithin(attachmentFolder, fileName)) {
-      throw new Error(`Invalid attachment filename: ${attachmentName}`);
+      throw new InvalidInputError(
+        `Invalid attachment filename: ${attachmentName}`,
+      );
     }
     let size: number;
     if (Buffer.isBuffer(attachmentData)) {
@@ -1061,7 +1067,7 @@ export class CardTree {
     const attachmentFolder = this.attachmentFolderOf(cardKey);
     // Prevent path traversal
     if (!isPathWithin(attachmentFolder, fileName)) {
-      throw new Error(`Invalid attachment filename: ${fileName}`);
+      throw new InvalidInputError(`Invalid attachment filename: ${fileName}`);
     }
     const attachmentPath = resolve(attachmentFolder, fileName);
 
@@ -1069,7 +1075,7 @@ export class CardTree {
       await unlink(attachmentPath);
     } catch (error) {
       CardTree.logger.error({ error }, 'Removing card attachment');
-      throw new Error(`Attachment not found: ${fileName}`, { cause: error });
+      throw new ResourceNotFoundError(`Attachment not found: ${fileName}`);
     }
 
     const card = this.stored(cardKey);
@@ -1116,7 +1122,9 @@ export class CardTree {
       basename(newFileName) !== newFileName ||
       !isPathWithin(folder, newFileName)
     ) {
-      throw new Error(`Invalid attachment filename: ${newFileName}`);
+      throw new InvalidInputError(
+        `Invalid attachment filename: ${newFileName}`,
+      );
     }
     const target = resolve(folder, newFileName);
     // rename() replaces its destination silently; a plain check is enough

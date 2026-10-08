@@ -57,25 +57,15 @@ export const exportCardPdfSchema = z.object({
 
 export type ExportCardPdfRequestBody = z.infer<typeof exportCardPdfSchema>;
 
-// Card keys are '<project prefix>_<card id>'
-const cardKey = z
-  .string()
-  .regex(/^[a-z]+_[A-Za-z0-9]+$/, 'must be a valid card key');
-
-// Attachment file names are plain file names, without path components
-const attachmentFileName = z
-  .string()
-  .min(1)
-  .refine(
-    (value) => value !== '.' && value !== '..' && !/[/\\\0]/.test(value),
-    'must be a plain file name',
-  );
+// Card keys and attachment names are validated by the data-handler
+const cardKey = z.string().min(1);
+const attachmentFileName = z.string().min(1);
 
 export const cardKeyParamSchema = z.object({ key: cardKey });
 
 // 'root' creates the card at the root level of the project
 export const cardParentParamSchema = z.object({
-  key: z.union([z.literal('root'), cardKey]),
+  key: cardKey,
 });
 
 export const attachmentParamSchema = z.object({
@@ -105,7 +95,7 @@ export const updateCardSchema = z
     content: z.string().optional(),
     metadata: z.record(z.string().min(1), metadataValue).optional(),
     state: z.string().min(1).optional(),
-    parent: z.union([z.literal('root'), cardKey]).optional(),
+    parent: cardKey.optional(),
     index: z.number().int().nonnegative().optional(),
   })
   .strict();

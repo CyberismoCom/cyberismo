@@ -12,7 +12,7 @@
 */
 import {
   CardNotFoundError,
-  InvalidResourceNameError,
+  InvalidInputError,
   ResourceNotFoundError,
 } from '@cyberismo/data-handler';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
@@ -25,7 +25,7 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status';
  */
 export function errorStatus(error: unknown): ContentfulStatusCode {
   for (let current = error; current instanceof Error; current = current.cause) {
-    if (current instanceof InvalidResourceNameError) {
+    if (current instanceof InvalidInputError) {
       return 400;
     }
     if (

@@ -11,14 +11,11 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import { z } from 'zod';
-import {
-  identifierSchema,
-  resourceNameSchema,
-} from '../../common/validationSchemas.js';
+import { identifierSchema } from '../../common/validationSchemas.js';
 
 export const createCardTypeSchema = z.object({
   identifier: identifierSchema,
-  workflowName: resourceNameSchema('workflows'),
+  workflowName: z.string().min(1, 'workflowName is required'),
 });
 
 export const visibilityGroup = z.enum(['always', 'optional', 'hidden']);

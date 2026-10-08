@@ -51,12 +51,14 @@ import { scanForProjects } from './project-scanner.js';
 import { Create } from './commands/create.js';
 import {
   CardNotFoundError,
+  InvalidInputError,
   InvalidResourceNameError,
   ResourceNotFoundError,
 } from './exceptions/index.js';
 
 export {
   CardNotFoundError,
+  InvalidInputError,
   InvalidResourceNameError,
   ResourceNotFoundError,
   Cmd,

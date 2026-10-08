@@ -14,6 +14,7 @@ import type { Project } from '../containers/project.js';
 import type { WorkflowTransition } from '../interfaces/resource-interfaces.js';
 import { stripExtension } from './file-utils.js';
 import { InvalidResourceNameError } from '../exceptions/index.js';
+import { isValidIdentifier, isValidPrefix } from './validate.js';
 
 /** The new-card transition: fromState is [''] or empty. */
 export function isInitialTransition(transition: WorkflowTransition): boolean {
@@ -82,10 +83,22 @@ export function resourceName(
   }
   // resource name
   if (parts.length === RESOURCE_NAME_PARTS) {
+    const identifier = parse(parts[IDENTIFIER_INDEX]).name;
+    // In strict mode, the name must be valid as is; for example 'a.b' would become 'a'
+    if (
+      strict &&
+      (identifier !== parts[IDENTIFIER_INDEX] ||
+        !isValidPrefix(parts[PREFIX_INDEX]) ||
+        !isValidIdentifier(identifier))
+    ) {
+      throw new InvalidResourceNameError(
+        `Name '${resourceName}' is not valid resource name`,
+      );
+    }
     return {
       prefix: parts[PREFIX_INDEX],
       type: parts[TYPE_INDEX],
-      identifier: parse(parts[IDENTIFIER_INDEX]).name,
+      identifier,
     };
   }
   // other formats are not accepted

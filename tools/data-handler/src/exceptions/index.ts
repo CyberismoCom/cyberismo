@@ -35,9 +35,20 @@ export class CardNotFoundError extends Error {
 }
 
 /**
+ * Thrown when input from the user is not valid, for example a name that
+ * breaks naming rules. Interfaces report it as invalid input.
+ */
+export class InvalidInputError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidInputError';
+  }
+}
+
+/**
  * Thrown when a resource name is not in a valid format.
  */
-export class InvalidResourceNameError extends Error {
+export class InvalidResourceNameError extends InvalidInputError {
   constructor(message: string) {
     super(message);
     this.name = 'InvalidResourceNameError';

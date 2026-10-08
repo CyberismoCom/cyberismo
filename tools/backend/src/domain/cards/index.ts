@@ -21,6 +21,7 @@ import { isSSGContext, ssgParams } from 'hono/ssg';
 import type { AppContext } from '../../types.js';
 import { UserRole } from '../../types.js';
 import { requireRole } from '../../middleware/auth.js';
+import { errorStatus } from '../../common/errors.js';
 import { zValidator } from '../../middleware/zvalidator.js';
 import {
   attachmentDownloadParamSchema,
@@ -442,7 +443,7 @@ router.post(
               ? error.message
               : 'Failed to upload attachments',
         },
-        500,
+        errorStatus(error),
       );
     }
   },
@@ -496,7 +497,7 @@ router.delete(
               ? error.message
               : 'Failed to remove attachment',
         },
-        500,
+        errorStatus(error),
       );
     }
   },
@@ -545,7 +546,7 @@ router.post(
               ? error.message
               : 'Failed to open attachment',
         },
-        500,
+        errorStatus(error),
       );
     }
   },

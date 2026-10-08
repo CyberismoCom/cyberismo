@@ -12,18 +12,15 @@
 */
 
 import { z } from 'zod';
-import {
-  identifierSchema,
-  resourceNameSchema,
-} from '../../common/validationSchemas.js';
+import { identifierSchema } from '../../common/validationSchemas.js';
 
 export const createTemplateSchema = z.object({
   identifier: identifierSchema,
 });
 
 export const addTemplateCardSchema = z.object({
-  template: resourceNameSchema('templates'),
-  cardType: resourceNameSchema('cardTypes'),
+  template: z.string().min(1, 'template is required'),
+  cardType: z.string().min(1, 'cardType is required'),
   parentKey: z.string().optional(),
   count: z.number().int().positive().optional(),
 });
