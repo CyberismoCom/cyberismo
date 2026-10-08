@@ -13,6 +13,7 @@
 */
 
 import type { Handler, MutationContext } from '../handler.js';
+import { resolveRename, stateSuccessionChain } from '../handler.js';
 import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
@@ -60,7 +61,7 @@ export class CardTypeWorkflowChangeHandler implements Handler<EditInput> {
     const stateMapping = changeOp.mappingTable?.stateMapping || {};
 
     if (Object.keys(stateMapping).length > 0) {
-      await this.applyStateMapping(ctx, cardTypeName, stateMapping);
+      await this.applyStateMapping(ctx, cardTypeName, stateMapping, changeOp);
     }
   }
 
@@ -80,6 +81,7 @@ export class CardTypeWorkflowChangeHandler implements Handler<EditInput> {
     ctx: MutationContext,
     cardTypeName: string,
     stateMapping: Record<string, string>,
+    changeOp: ChangeOperation<string>,
   ): Promise<void> {
     const logger = getChildLogger({ module: 'card-type-workflow-change' });
     const cards = this.affectedCards(ctx, cardTypeName);
@@ -88,7 +90,12 @@ export class CardTypeWorkflowChangeHandler implements Handler<EditInput> {
     const updatePromises = cards.map(async (card) => {
       if (card.metadata && card.metadata.workflowState) {
         const currentState = card.metadata.workflowState;
-        const newState = stateMapping[currentState];
+        const newState = this.mappedState(
+          ctx,
+          currentState,
+          stateMapping,
+          changeOp,
+        );
 
         if (newState && newState !== currentState) {
           logger.info(
@@ -109,6 +116,40 @@ export class CardTypeWorkflowChangeHandler implements Handler<EditInput> {
         `Found unmapped states that were not updated: ${unmappedStates.join(', ')}`,
       );
     }
+  }
+
+  // Replay: the card's state follows its successors to the first the mapping
+  // names; the target takes its chain's end if the final workflow has it,
+  // else the first chain state it has.
+  private mappedState(
+    ctx: MutationContext,
+    state: string,
+    stateMapping: Record<string, string>,
+    op: ChangeOperation<string>,
+  ): string | undefined {
+    const key = stateSuccessionChain(
+      op.target,
+      state,
+      ctx.stateSuccessions,
+    ).find((candidate) => Object.hasOwn(stateMapping, candidate));
+    if (key === undefined) return undefined;
+    const chain = stateSuccessionChain(
+      op.to,
+      stateMapping[key],
+      ctx.stateSuccessions,
+    );
+    if (chain.length === 1) return chain[0];
+    const finalName = resolveRename(
+      op.to,
+      ctx.stateSuccessions?.workflowRenames,
+    );
+    const states = ctx.project.resources.byType(finalName, 'workflows')?.data
+      ?.states;
+    const existing = new Set(states?.map((s) => s.name));
+    const end = chain.at(-1)!;
+    return existing.has(end)
+      ? end
+      : (chain.find((candidate) => existing.has(candidate)) ?? end);
   }
 
   // Verifies that:
