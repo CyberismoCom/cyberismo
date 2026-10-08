@@ -226,7 +226,7 @@ const contextOption = new Option(
   'Context to run the logic programs in.',
 )
   .choices(validContexts)
-  .default('app');
+  .default('commandLine');
 
 const pathOption = new Option('-p, --project-path <path>', pathGuideline);
 

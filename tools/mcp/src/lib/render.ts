@@ -162,7 +162,7 @@ export async function renderCard(
       // Evaluate macros (Clingo, graphs, reports)
       try {
         let asciidocContent = await evaluateMacros(rawContent, {
-          context: 'localApp',
+          context: 'aiAgent',
           mode: 'inject',
           project: commands.project,
           cardKey: cardKey,
@@ -194,7 +194,7 @@ export async function renderCard(
       try {
         const results = await commands.calculateCmd.runQuery(
           'card',
-          'localApp',
+          'aiAgent',
           {
             cardKey,
           },
@@ -415,7 +415,7 @@ function transformNotifications(
  */
 export async function getCardTree(commands: CommandManager): Promise<unknown> {
   return commands.consistent(async () => {
-    const result = await commands.calculateCmd.runQuery('tree', 'localApp', {});
+    const result = await commands.calculateCmd.runQuery('tree', 'aiAgent', {});
     return result;
   });
 }

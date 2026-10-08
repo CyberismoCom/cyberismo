@@ -1,0 +1,13 @@
+{
+    "rank": "0|f",
+    "workflowState": "Ready",
+    "createdAt": "2026-10-08T13:14:25.266Z",
+    "links": [],
+    "cardType": "base/cardTypes/predicate",
+    "title": "aiAgent",
+    "templateCardKey": "base_weu9g7lz",
+    "lastUpdated": "2026-10-08T13:14:25.267Z",
+    "base/fieldTypes/briefDescription": "This fact is defined when the logic program is run for an AI agent through the Cyberismo MCP server",
+    "base/fieldTypes/category": "Execution context",
+    "lastTransitioned": "2026-10-08T13:14:25.267Z"
+}

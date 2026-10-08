@@ -1096,7 +1096,10 @@ export function registerTools(
     async ({ projectPrefix, queryName }) => {
       try {
         const commands = resolveCommands(provider, projectPrefix);
-        const results = await commands.calculateCmd.runQuery(queryName);
+        const results = await commands.calculateCmd.runQuery(
+          queryName,
+          'aiAgent',
+        );
         return toolResult({ results });
       } catch (error) {
         return toolError('running query', error);
@@ -1117,7 +1120,10 @@ export function registerTools(
     async ({ projectPrefix, query }) => {
       try {
         const commands = resolveCommands(provider, projectPrefix);
-        const result = await commands.calculateCmd.runLogicProgram(query);
+        const result = await commands.calculateCmd.runLogicProgram(
+          query,
+          'aiAgent',
+        );
         return toolResult({ result });
       } catch (error) {
         return toolError('running logic program', error);
@@ -1207,7 +1213,7 @@ export function registerTools(
           reportName,
           cardKey,
           parameters ?? {},
-          'localApp',
+          'aiAgent',
         );
         return toolResult({ reportName, cardKey, report: result });
       } catch (error) {
@@ -1232,7 +1238,7 @@ export function registerTools(
         const base64 = await commands.calculateCmd.runGraph(
           model,
           view,
-          'localApp',
+          'aiAgent',
         );
         return {
           content: [

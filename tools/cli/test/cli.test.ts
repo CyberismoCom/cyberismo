@@ -228,6 +228,12 @@ describe('Cli BAT test', function () {
     expect(stdout).toContain(newPageCardKey);
     expect(stdout).toContain('Project structure validated');
   });
+  it('calc run defaults to the commandLine context', async () => {
+    const { stdout } = await execAsync(
+      `cd ${cliPath} && cp ../../tools/cli/test/context.lp ./context.lp && ${cli} calc run ./context.lp`,
+    );
+    expect(stdout).toContain(pageCardKey);
+  });
   it('Remove the attachment', async () => {
     const { stdout } = await execAsync(
       `cd ${cliPath} && ${cli} remove attachment ${newPageCardKey} cyberismo.png && ${cli} validate`,

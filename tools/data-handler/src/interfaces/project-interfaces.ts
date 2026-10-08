@@ -79,9 +79,16 @@ export interface CardMetadata extends PredefinedCardMetadata {
   [key: string]: MetadataContent;
 }
 
-export const validContexts = ['localApp', 'exportedSite', 'exportedDocument'];
+export const validContexts = [
+  'localApp',
+  'exportedSite',
+  'exportedDocument',
+  'commandLine',
+  'aiAgent',
+];
 
-export type Context = 'localApp' | 'exportedSite' | 'exportedDocument';
+export type Context =
+  'localApp' | 'exportedSite' | 'exportedDocument' | 'commandLine' | 'aiAgent';
 
 export const isContext = (context: string): context is Context => {
   return validContexts.includes(context);
