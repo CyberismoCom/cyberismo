@@ -21,8 +21,7 @@ import type {
   MetadataContent,
 } from '../../interfaces/project-interfaces.js';
 import type { DataType } from '../../interfaces/resource-interfaces.js';
-
-const SHORT_TEXT_MAX_LENGTH = 80;
+import { SHORT_TEXT_MAX_LENGTH } from '../../utils/constants.js';
 
 /**
  * FieldTypeResource.update validates the conversion as a type PAIR, not per

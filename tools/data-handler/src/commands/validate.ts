@@ -38,18 +38,22 @@ import type {
 } from '../interfaces/resource-interfaces.js';
 import { errorFunction } from '../utils/error-utils.js';
 import { sortCards } from '../utils/card-utils.js';
-import { isPredefinedField } from '../utils/constants.js';
+import {
+  isPredefinedField,
+  SHORT_TEXT_MAX_LENGTH,
+} from '../utils/constants.js';
 import { pathExists } from '../utils/file-utils.js';
 import type { Project } from '../containers/project.js';
 import { readJsonFile } from '../utils/json.js';
 import { type ResourceName, resourceName } from '../utils/resource-utils.js';
-import { normalizeSchemaId, schemaValidator } from '../utils/validate.js';
-
-const invalidNames = new RegExp(
-  '[<>:"/\\|?*\x00-\x1F]|^(?:aux|con|clock$|nul|prn|com[1-9]|lpt[1-9])$', // eslint-disable-line no-control-regex
-);
-
-const SHORT_TEXT_MAX_LENGTH = 80;
+import { InvalidResourceNameError } from '../exceptions/index.js';
+import {
+  invalidNames,
+  isValidIdentifier,
+  isValidPrefix,
+  normalizeSchemaId,
+  schemaValidator,
+} from '../utils/validate.js';
 
 import * as EmailValidator from 'email-validator';
 import { evaluateMacros } from '../macros/index.js';
@@ -478,12 +482,7 @@ export class Validate {
    * returns true if identifier is valid, and false otherwise.
    */
   public static isValidIdentifierName(identifier: string): boolean {
-    const validIdentifier = new RegExp('^[A-Za-z0-9._-]+$');
-
-    const contentValidated = validIdentifier.test(identifier);
-    const lengthValidated = identifier.length > 0 && identifier.length < 256;
-    const notInvalidIdentifier = !invalidNames.test(identifier);
-    return contentValidated && lengthValidated && notInvalidIdentifier;
+    return isValidIdentifier(identifier);
   }
 
   /**
@@ -497,7 +496,7 @@ export class Validate {
   public static isValidProjectName(name: string): boolean {
     const validName = new RegExp('^[A-Za-z ._-]+$');
     const contentValidated = validName.test(name);
-    const lengthValidated = name.length > 0 && name.length < 64;
+    const lengthValidated = name.length > 0 && name.length <= 64;
     const notInvalidName = !invalidNames.test(name);
     return contentValidated && lengthValidated && notInvalidName;
   }
@@ -697,20 +696,22 @@ export class Validate {
     const resource = resourceName(name);
     resource.type = resource.type ? resource.type : resourceType;
     if (resource.prefix === '') {
-      throw new Error(`Project prefix cannot be empty string`);
+      throw new InvalidResourceNameError(
+        `Project prefix cannot be empty string`,
+      );
     }
     if (!prefixes.includes(resource.prefix)) {
-      throw new Error(
+      throw new InvalidResourceNameError(
         `Resource name can only refer to project that it is part of. Prefix '${resource.prefix}' is not included in '[${prefixes.join(',')}]'`,
       );
     }
     if (resourceType !== resource.type) {
-      throw new Error(
+      throw new InvalidResourceNameError(
         `Resource name must match the resource type. Type '${resource.type}' does not match '${resourceType}'`,
       );
     }
     if (!Validate.isValidIdentifierName(resource.identifier)) {
-      throw new Error(
+      throw new InvalidResourceNameError(
         `Resource identifier must follow naming rules. Identifier '${resource.identifier}' is invalid`,
       );
     }
@@ -723,10 +724,7 @@ export class Validate {
    * @returns true, if prefix can be used as project prefix, false otherwise.
    */
   public static validatePrefix(prefix: string): boolean {
-    const validPrefix = new RegExp('^[a-z]+$');
-    const contentValidated = validPrefix.test(prefix);
-    const lengthValidated = prefix.length > 2 && prefix.length < 11;
-    return contentValidated && lengthValidated;
+    return isValidPrefix(prefix);
   }
 
   /**

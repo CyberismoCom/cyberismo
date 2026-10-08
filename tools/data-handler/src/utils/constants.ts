@@ -24,6 +24,12 @@ export const MAX_LEVEL_OFFSET = 5;
 // Root parent name
 export const ROOT = 'root';
 
+// Maximum length of 'shortText' field values
+export const SHORT_TEXT_MAX_LENGTH = 80;
+
+// Maximum size of a single card attachment in bytes (50 MB)
+export const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024;
+
 /**
  * These are file names that are valid for folder resources.
  * Note that the folders might still contain other files, such as .schema files,

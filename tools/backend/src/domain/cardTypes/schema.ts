@@ -15,7 +15,7 @@ import { identifierSchema } from '../../common/validationSchemas.js';
 
 export const createCardTypeSchema = z.object({
   identifier: identifierSchema,
-  workflowName: z.string(),
+  workflowName: z.string().min(1, 'workflowName is required'),
 });
 
 export const visibilityGroup = z.enum(['always', 'optional', 'hidden']);

@@ -36,7 +36,7 @@ import type {
   CardMetadata,
 } from '../src/interfaces/project-interfaces.js';
 import { CommandManager } from '../src/command-manager.js';
-import { ROOT } from '../src/utils/constants.js';
+import { MAX_ATTACHMENT_BYTES, ROOT } from '../src/utils/constants.js';
 import {
   CardNotFoundError,
   DuplicateCardKeyError,
@@ -459,6 +459,61 @@ describe('Card tree', () => {
       await expect(
         tree.removeAttachment('non_existing_card', 'file.txt'),
       ).rejects.toThrow(CardNotFoundError);
+    });
+
+    it('refuses to remove a file outside the attachment folder', async () => {
+      const cardFile = join(
+        tree.attachmentFolderOf('test_1'),
+        '..',
+        'index.json',
+      );
+      for (const fileName of [
+        join('..', 'index.json'),
+        join('..', '..', 'test_2', 'index.json'),
+        cardFile,
+        '.',
+        '..',
+        '',
+      ]) {
+        await expect(tree.removeAttachment('test_1', fileName)).rejects.toThrow(
+          'Invalid attachment filename',
+        );
+      }
+      expect(existsSync(cardFile)).toBe(true);
+    });
+
+    it('accepts an attachment of exactly the maximum size', async () => {
+      await tree.addAttachment(
+        'test_2',
+        'max.bin',
+        Buffer.alloc(MAX_ATTACHMENT_BYTES),
+      );
+      expect(
+        tree.attachmentsOf('test_2').map((attachment) => attachment.fileName),
+      ).toEqual(['max.bin']);
+    });
+
+    it('refuses an attachment over the maximum size', async () => {
+      await expect(
+        tree.addAttachment(
+          'test_2',
+          'too-big.bin',
+          Buffer.alloc(MAX_ATTACHMENT_BYTES + 1),
+        ),
+      ).rejects.toThrow("Attachment 'too-big.bin' is too large");
+      expect(tree.attachmentsOf('test_2')).toEqual([]);
+      expect(
+        existsSync(join(tree.attachmentFolderOf('test_2'), 'too-big.bin')),
+      ).toBe(false);
+    });
+
+    it('refuses to add an attachment named "." or ".."', async () => {
+      for (const fileName of ['.', '..']) {
+        await expect(
+          tree.addAttachment('test_2', fileName, Buffer.from('x')),
+        ).rejects.toThrow('Invalid attachment filename');
+      }
+      expect(tree.attachmentsOf('test_2')).toEqual([]);
     });
   });
 
@@ -1136,6 +1191,9 @@ describe('Card tree', () => {
       );
       await expect(
         module.addAttachment('test_4', 'file.txt', Buffer.from('x')),
+      ).rejects.toThrow('Cannot modify imported module');
+      await expect(
+        module.removeAttachment('test_4', 'file.txt'),
       ).rejects.toThrow('Cannot modify imported module');
       expect(module.has('test_4')).toBe(true);
     });

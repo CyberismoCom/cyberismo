@@ -18,6 +18,7 @@ import {
   cardTypeNameParamSchema,
   fieldVisibilityBodySchema,
 } from './schema.js';
+import { errorStatus } from '../../common/errors.js';
 import { zValidator } from '../../middleware/zvalidator.js';
 import { UserRole } from '../../types.js';
 import { requireRole } from '../../middleware/auth.js';
@@ -98,7 +99,7 @@ router.post(
         {
           error: `${error instanceof Error ? error.message : 'Unknown error'}`,
         },
-        500,
+        errorStatus(error),
       );
     }
   },
@@ -161,15 +162,11 @@ router.patch(
       await cardTypeService.updateFieldVisibility(commands, cardTypeName, body);
       return c.json({ message: 'Field visibility updated successfully' });
     } catch (error) {
-      // TODO: Implement NotFoundError etc and handle them globally
-      if (error instanceof Error && error.message.includes('does not exist')) {
-        return c.json({ error: error.message }, 404);
-      }
       return c.json(
         {
           error: `${error instanceof Error ? error.message : 'Unknown error'}`,
         },
-        500,
+        errorStatus(error),
       );
     }
   },

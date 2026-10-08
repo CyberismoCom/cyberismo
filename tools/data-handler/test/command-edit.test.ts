@@ -150,6 +150,25 @@ describe('edit card', () => {
       ),
     ).rejects.not.toThrow(/but it is 'string'/);
 
+    // Boundary: exactly 80 characters is accepted, 81 is not
+    await freshCommands.editCmd.editCardMetadata(
+      'decision_6',
+      'decision/fieldTypes/myShort',
+      'x'.repeat(80),
+    );
+    expect(
+      freshCommands.project.findCard('decision_6').metadata?.[
+        'decision/fieldTypes/myShort'
+      ],
+    ).toBe('x'.repeat(80));
+    await expect(
+      freshCommands.editCmd.editCardMetadata(
+        'decision_6',
+        'decision/fieldTypes/myShort',
+        'x'.repeat(81),
+      ),
+    ).rejects.toThrow(/80 characters allowed, but value has 81 characters/);
+
     rmSync(freshTestDir, { recursive: true, force: true });
   });
   it('try to edit card metadata - incorrect field name', async () => {

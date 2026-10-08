@@ -377,6 +377,7 @@ describe('validate cmd tests', () => {
       'test-222',
       '2',
       'very-long-but-still-marvelously-valid-resource-name.that_canBe-used-as-a-resource-name',
+      'a'.repeat(255),
     ];
     const invalidNames: string[] = [
       '',
@@ -385,9 +386,18 @@ describe('validate cmd tests', () => {
       'test too',
       'test*',
       'test$',
+      'test\\too',
+      'test/too',
       'lpt1',
       'prn',
       'aux',
+      'AUX',
+      'Con',
+      'con.txt',
+      '.',
+      '..',
+      '.hidden',
+      'a'.repeat(256),
     ];
     for (const name of validNames) {
       const valid = Validate.isValidIdentifierName(name);
@@ -410,7 +420,18 @@ describe('validate cmd tests', () => {
       '.test',
       'very-long-but-still-marvelously-valid-folder-name.that_canBe-used',
     ];
-    const invalidNames: string[] = ['', '.', '..', 'prn', 'aux'];
+    const invalidNames: string[] = [
+      '',
+      '.',
+      '..',
+      'prn',
+      'aux',
+      'PRN',
+      'nul.txt',
+      'clock$',
+      'test\\too',
+      'test|too',
+    ];
     for (const name of validNames) {
       const valid = Validate.validateFolder(name);
       expect(valid).toBe(true);
@@ -431,7 +452,7 @@ describe('validate cmd tests', () => {
       'TEST',
       '_test',
       '-test',
-      'a'.repeat(63),
+      'a'.repeat(64),
     ];
     const invalidNames: string[] = [
       '',
@@ -443,6 +464,7 @@ describe('validate cmd tests', () => {
       'lpt1',
       'prn',
       'aux',
+      'COM1',
       'a'.repeat(65),
     ];
     for (const name of validNames) {
@@ -452,6 +474,25 @@ describe('validate cmd tests', () => {
     for (const name of invalidNames) {
       const invalid = Validate.isValidProjectName(name);
       expect(invalid).toBe(false);
+    }
+  });
+  it('validate project prefixes', () => {
+    const validPrefixes: string[] = ['abc', 'a'.repeat(10), 'decision'];
+    const invalidPrefixes: string[] = [
+      '',
+      'ab',
+      'a'.repeat(11),
+      'Abc',
+      'ab1',
+      'ab-c',
+      'ab_c',
+      '../abc',
+    ];
+    for (const prefix of validPrefixes) {
+      expect(Validate.validatePrefix(prefix)).toBe(true);
+    }
+    for (const prefix of invalidPrefixes) {
+      expect(Validate.validatePrefix(prefix)).toBe(false);
     }
   });
   it('validate label names', () => {

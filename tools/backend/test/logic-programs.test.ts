@@ -55,7 +55,7 @@ test('/api/logicPrograms returns error for non-existent card', async () => {
     '/api/projects/decision/logicPrograms/decision/cards/nonexistent_card',
   );
   expect(response).not.toBe(null);
-  expect(response.status).toBe(500);
+  expect(response.status).toBe(404);
 
   const result = await response.json();
   expect(result).toHaveProperty('error');

@@ -32,8 +32,14 @@ export const identifierSchema = z
     message: 'Invalid identifier',
   });
 
+export const prefixSchema = z
+  .string()
+  .refine((value) => Validate.validatePrefix(value), {
+    message: 'Invalid project prefix',
+  });
+
 export const resourceParamsSchema = z.object({
-  prefix: z.string(),
+  prefix: prefixSchema,
   type: z.enum(resourceTypes),
   identifier: identifierSchema,
 });

@@ -13,6 +13,8 @@ import { join, parse, sep } from 'node:path';
 import type { Project } from '../containers/project.js';
 import type { WorkflowTransition } from '../interfaces/resource-interfaces.js';
 import { stripExtension } from './file-utils.js';
+import { InvalidResourceNameError } from '../exceptions/index.js';
+import { isValidIdentifier, isValidPrefix } from './validate.js';
 
 /** The new-card transition: fromState is [''] or empty. */
 export function isInitialTransition(transition: WorkflowTransition): boolean {
@@ -69,7 +71,9 @@ export function resourceName(
   // just resource identifier - type and prefix are unknown
   if (parts.length === 1 && parts.at(0) !== '') {
     if (strict) {
-      throw new Error(`Name '${resourceName}' is not valid resource name`);
+      throw new InvalidResourceNameError(
+        `Name '${resourceName}' is not valid resource name`,
+      );
     }
     return {
       prefix: '',
@@ -79,17 +83,33 @@ export function resourceName(
   }
   // resource name
   if (parts.length === RESOURCE_NAME_PARTS) {
+    const identifier = parse(parts[IDENTIFIER_INDEX]).name;
+    // In strict mode, the name must be valid as is; for example 'a.b' would become 'a'
+    if (
+      strict &&
+      (identifier !== parts[IDENTIFIER_INDEX] ||
+        !isValidPrefix(parts[PREFIX_INDEX]) ||
+        !isValidIdentifier(identifier))
+    ) {
+      throw new InvalidResourceNameError(
+        `Name '${resourceName}' is not valid resource name`,
+      );
+    }
     return {
       prefix: parts[PREFIX_INDEX],
       type: parts[TYPE_INDEX],
-      identifier: parse(parts[IDENTIFIER_INDEX]).name,
+      identifier,
     };
   }
   // other formats are not accepted
   if (resourceName === '') {
-    throw new Error('Must define resource name to query its details');
+    throw new InvalidResourceNameError(
+      'Must define resource name to query its details',
+    );
   }
-  throw new Error(`Name '${resourceName}' is not valid resource name`);
+  throw new InvalidResourceNameError(
+    `Name '${resourceName}' is not valid resource name`,
+  );
 }
 
 /**

@@ -12,6 +12,8 @@
 */
 
 import { type Context, Hono } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
+import { MAX_ATTACHMENT_BYTES } from '@cyberismo/data-handler/utils/constants';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { getCardDetails } from './lib.js';
 import * as cardService from './service.js';
@@ -19,16 +21,37 @@ import { isSSGContext, ssgParams } from 'hono/ssg';
 import type { AppContext } from '../../types.js';
 import { UserRole } from '../../types.js';
 import { requireRole } from '../../middleware/auth.js';
+import { errorStatus } from '../../common/errors.js';
 import { zValidator } from '../../middleware/zvalidator.js';
 import {
+  attachmentDownloadParamSchema,
+  attachmentParamSchema,
+  cardKeyParamSchema,
+  cardParentParamSchema,
+  createCardSchema,
   createLinkSchema,
+  parseContentSchema,
+  rawQuerySchema,
   removeLinkSchema,
+  updateCardSchema,
   updateLinkSchema,
   exportCardPdfSchema,
   type ExportCardPdfRequestBody,
 } from './schema.js';
 
 const router = new Hono();
+
+// Multipart upload of one attachment, with room for the multipart framing
+const attachmentBodyLimit = bodyLimit({
+  maxSize: MAX_ATTACHMENT_BYTES + 1024 * 1024,
+  onError: (c) =>
+    c.json(
+      {
+        error: `Upload is too large, maximum attachment size is ${MAX_ATTACHMENT_BYTES} bytes`,
+      },
+      413,
+    ),
+});
 
 function notifyCardsUpdated(c: Context, keys: string[]) {
   c.get('events').cardsUpdated(keys, c.get('user'));
@@ -167,19 +190,17 @@ router.get(
     const cards = await cardService.findAllCards(commands, opts);
     return cards.map((card) => ({ key: card.key }));
   }),
+  zValidator('param', cardKeyParamSchema),
+  zValidator('query', rawQuerySchema),
   async (c) => {
-    const key = c.req.param('key');
-    if (!key) {
-      return c.text('No search key', 400);
-    }
-
-    const raw = c.req.query('raw');
+    const { key } = c.req.valid('param');
+    const { raw } = c.req.valid('query');
 
     const result = await getCardDetails(
       c.get('commands'),
       key,
       isSSGContext(c),
-      raw?.toLowerCase() === 'true' ? true : false,
+      raw === 'true',
     );
     if (result.status === 200) {
       return c.json(result.data);
@@ -230,44 +251,46 @@ router.get(
  *       500:
  *         description: project_path not set.
  */
-router.patch('/:key', requireRole(UserRole.Editor), async (c) => {
-  const commands = c.get('commands');
-  const key = c.req.param('key');
-  if (!key) {
-    return c.text('No search key', 400);
-  }
+router.patch(
+  '/:key',
+  requireRole(UserRole.Editor),
+  zValidator('param', cardKeyParamSchema),
+  zValidator('query', rawQuerySchema),
+  zValidator('json', updateCardSchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const { key } = c.req.valid('param');
+    const { raw } = c.req.valid('query');
+    const body = c.req.valid('json');
 
-  const raw = c.req.query('raw');
-
-  const body = await c.req.json();
-
-  try {
-    if (await cardService.updateCard(commands, key, body)) {
-      notifyCardsUpdated(c, [key]);
-    }
-    const result = await getCardDetails(
-      c.get('commands'),
-      key,
-      isSSGContext(c),
-      raw?.toLowerCase() === 'true' ? true : false,
-    );
-    if (result.status === 200) {
-      return c.json(result.data);
-    } else {
-      return c.json(
-        {
-          error: result.message || 'Unknown error',
-        },
-        result.status as ContentfulStatusCode,
+    try {
+      if (await cardService.updateCard(commands, key, body)) {
+        notifyCardsUpdated(c, [key]);
+      }
+      const result = await getCardDetails(
+        c.get('commands'),
+        key,
+        isSSGContext(c),
+        raw === 'true',
+      );
+      if (result.status === 200) {
+        return c.json(result.data);
+      } else {
+        return c.json(
+          {
+            error: result.message || 'Unknown error',
+          },
+          result.status as ContentfulStatusCode,
+        );
+      }
+    } catch (error) {
+      return c.text(
+        error instanceof Error ? error.message : 'Unknown error',
+        400,
       );
     }
-  } catch (error) {
-    return c.text(
-      error instanceof Error ? error.message : 'Unknown error',
-      400,
-    );
-  }
-});
+  },
+);
 
 /**
  * @swagger
@@ -289,25 +312,27 @@ router.patch('/:key', requireRole(UserRole.Editor), async (c) => {
  *       500:
  *         description: project_path not set.
  */
-router.delete('/:key', requireRole(UserRole.Editor), async (c) => {
-  const commands = c.get('commands');
-  const key = c.req.param('key');
-  if (!key) {
-    return c.text('No search key', 400);
-  }
+router.delete(
+  '/:key',
+  requireRole(UserRole.Editor),
+  zValidator('param', cardKeyParamSchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const { key } = c.req.valid('param');
 
-  try {
-    await cardService.deleteCard(commands, key);
-    return new Response(null, { status: 204 });
-  } catch (error) {
-    return c.json(
-      {
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
-      400,
-    );
-  }
-});
+    try {
+      await cardService.deleteCard(commands, key);
+      return new Response(null, { status: 204 });
+    } catch (error) {
+      return c.json(
+        {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+        400,
+      );
+    }
+  },
+);
 
 /**
  * @swagger
@@ -332,31 +357,30 @@ router.delete('/:key', requireRole(UserRole.Editor), async (c) => {
  *       500:
  *         description: project_path not set
  */
-router.post('/:key', requireRole(UserRole.Editor), async (c) => {
-  const key = c.req.param('key');
-  if (!key) {
-    return c.text('No search key', 400);
-  }
+router.post(
+  '/:key',
+  requireRole(UserRole.Editor),
+  zValidator('param', cardParentParamSchema),
+  zValidator('json', createCardSchema),
+  async (c) => {
+    const { key } = c.req.valid('param');
+    const { template } = c.req.valid('json');
 
-  const body = await c.req.json();
-  if (!body.template) {
-    return c.text('template is required', 400);
-  }
-
-  try {
-    const result = await cardService.createCard(
-      c.get('commands'),
-      body.template,
-      key,
-    );
-    return c.json(result);
-  } catch (error) {
-    if (error instanceof Error) {
-      return c.json({ error: error.message }, 400);
+    try {
+      const result = await cardService.createCard(
+        c.get('commands'),
+        template,
+        key,
+      );
+      return c.json(result);
+    } catch (error) {
+      if (error instanceof Error) {
+        return c.json({ error: error.message }, 400);
+      }
+      return c.json({ error: 'Unknown error occurred' }, 500);
     }
-    return c.json({ error: 'Unknown error occurred' }, 500);
-  }
-});
+  },
+);
 
 /**
  * @swagger
@@ -388,36 +412,42 @@ router.post('/:key', requireRole(UserRole.Editor), async (c) => {
  *       500:
  *         description: Server error
  */
-router.post('/:key/attachments', requireRole(UserRole.Editor), async (c) => {
-  const commands = c.get('commands');
-  const key = c.req.param('key');
+router.post(
+  '/:key/attachments',
+  requireRole(UserRole.Editor),
+  attachmentBodyLimit,
+  zValidator('param', cardKeyParamSchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const { key } = c.req.valid('param');
 
-  try {
-    const formData = await c.req.formData();
-    const files = formData.getAll('files');
-    if (!files || files.length === 0) {
-      return c.json({ error: 'No files uploaded' }, 400);
+    try {
+      const formData = await c.req.formData();
+      const files = formData.getAll('files');
+      if (!files || files.length === 0) {
+        return c.json({ error: 'No files uploaded' }, 400);
+      }
+
+      const result = await cardService.uploadAttachments(
+        commands,
+        key,
+        files as File[],
+      );
+      notifyCardsUpdated(c, [key]);
+      return c.json(result);
+    } catch (error) {
+      return c.json(
+        {
+          error:
+            error instanceof Error
+              ? error.message
+              : 'Failed to upload attachments',
+        },
+        errorStatus(error),
+      );
     }
-
-    const result = await cardService.uploadAttachments(
-      commands,
-      key,
-      files as File[],
-    );
-    notifyCardsUpdated(c, [key]);
-    return c.json(result);
-  } catch (error) {
-    return c.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to upload attachments',
-      },
-      500,
-    );
-  }
-});
+  },
+);
 
 /**
  * @swagger
@@ -446,9 +476,10 @@ router.post('/:key/attachments', requireRole(UserRole.Editor), async (c) => {
 router.delete(
   '/:key/attachments/:filename',
   requireRole(UserRole.Editor),
+  zValidator('param', attachmentParamSchema),
   async (c) => {
     const commands = c.get('commands');
-    const { key, filename } = c.req.param();
+    const { key, filename } = c.req.valid('param');
 
     try {
       const result = await cardService.removeAttachment(
@@ -466,7 +497,7 @@ router.delete(
               ? error.message
               : 'Failed to remove attachment',
         },
-        500,
+        errorStatus(error),
       );
     }
   },
@@ -499,9 +530,10 @@ router.delete(
 router.post(
   '/:key/attachments/:filename/open',
   requireRole(UserRole.Reader),
+  zValidator('param', attachmentParamSchema),
   async (c) => {
     const commands = c.get('commands');
-    const { key, filename } = c.req.param();
+    const { key, filename } = c.req.valid('param');
 
     try {
       const result = await cardService.openAttachment(commands, key, filename);
@@ -514,7 +546,7 @@ router.post(
               ? error.message
               : 'Failed to open attachment',
         },
-        500,
+        errorStatus(error),
       );
     }
   },
@@ -547,28 +579,30 @@ router.post(
  *       500:
  *         description: Server error
  */
-router.post('/:key/parse', requireRole(UserRole.Reader), async (c) => {
-  const commands = c.get('commands');
-  const key = c.req.param('key');
-  const { content } = await c.req.json();
+router.post(
+  '/:key/parse',
+  requireRole(UserRole.Reader),
+  zValidator('param', cardKeyParamSchema),
+  zValidator('json', parseContentSchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const { key } = c.req.valid('param');
+    const { content } = c.req.valid('json');
 
-  if (content == null) {
-    return c.json({ error: 'Content is required' }, 400);
-  }
-
-  try {
-    const result = await cardService.parseContent(commands, key, content);
-    return c.json(result);
-  } catch (error) {
-    return c.json(
-      {
-        error:
-          error instanceof Error ? error.message : 'Failed to parse content',
-      },
-      500,
-    );
-  }
-});
+    try {
+      const result = await cardService.parseContent(commands, key, content);
+      return c.json(result);
+    } catch (error) {
+      return c.json(
+        {
+          error:
+            error instanceof Error ? error.message : 'Failed to parse content',
+        },
+        500,
+      );
+    }
+  },
+);
 
 /**
  * @swagger
@@ -604,6 +638,7 @@ router.post('/:key/parse', requireRole(UserRole.Reader), async (c) => {
 router.post(
   '/:key/links',
   requireRole(UserRole.Editor),
+  zValidator('param', cardKeyParamSchema),
   zValidator('json', createLinkSchema),
   async (c) => {
     const commands = c.get('commands');
@@ -667,6 +702,7 @@ router.post(
 router.delete(
   '/:key/links',
   requireRole(UserRole.Editor),
+  zValidator('param', cardKeyParamSchema),
   zValidator('json', removeLinkSchema),
   async (c) => {
     const commands = c.get('commands');
@@ -740,6 +776,7 @@ router.delete(
 router.put(
   '/:key/links',
   requireRole(UserRole.Editor),
+  zValidator('param', cardKeyParamSchema),
   zValidator('json', updateLinkSchema),
   async (c) => {
     const commands = c.get('commands');
@@ -814,14 +851,11 @@ router.get(
     const commands = c.get('commands');
     return await cardService.findRelevantAttachments(commands, c.get('tree'));
   }),
+  zValidator('param', attachmentDownloadParamSchema),
   async (c) => {
     const commands = c.get('commands');
-    const { key, attachment } = c.req.param();
+    const { key, attachment } = c.req.valid('param');
     const filename = decodeURI(attachment);
-
-    if (!filename || !key) {
-      return c.text('Missing cardKey or filename', 400);
-    }
 
     try {
       const attachmentResponse = await cardService.getAttachment(

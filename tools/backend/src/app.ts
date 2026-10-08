@@ -11,6 +11,10 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import { Hono, type MiddlewareHandler } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
+import { HTTPException } from 'hono/http-exception';
+import { MAX_ATTACHMENT_BYTES } from '@cyberismo/data-handler/utils/constants';
+import { errorStatus } from './common/errors.js';
 import { gitOptionsFromEnv, staticFrontendDirRelative } from './utils.js';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { attachProjectRegistry } from './middleware/commandManager.js';
@@ -129,6 +133,14 @@ export function createApp(
   app.use('/api/*', createAuthMiddleware(authProvider));
   app.use('/mcp', createAuthMiddleware(authProvider));
   app.use('/mcp/*', createAuthMiddleware(authProvider));
+  // MCP requests carry attachments base64-encoded, which adds a third to their size
+  app.use(
+    '/mcp',
+    bodyLimit({
+      maxSize: Math.ceil(MAX_ATTACHMENT_BYTES / 3) * 4 + 1024 * 1024,
+      onError: (c) => c.json({ error: 'Request is too large' }, 413),
+    }),
+  );
 
   // Global routes (no project-specific CommandManager needed)
   app.route('/api/auth', createAuthRouter());
@@ -249,7 +261,12 @@ export function createApp(
   });
   // Error handling
   app.onError((err, c) => {
-    if (!isSSGContext(c)) {
+    // Errors from Hono itself, such as malformed JSON in a validated request body
+    if (err instanceof HTTPException) {
+      return c.json({ error: err.message }, err.status);
+    }
+    const status = errorStatus(err);
+    if (status === 500 && !isSSGContext(c)) {
       if (process.env.NODE_ENV !== 'test') {
         console.error(err.stack);
       }
@@ -258,7 +275,7 @@ export function createApp(
       {
         error: err.message || 'Internal Server Error',
       },
-      500,
+      status,
     );
   });
 

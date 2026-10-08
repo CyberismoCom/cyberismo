@@ -36,6 +36,7 @@ import type {
 } from '../interfaces/resource-interfaces.js';
 import type { Card, ProjectFile } from '../interfaces/project-interfaces.js';
 import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
+import { InvalidResourceNameError } from '../exceptions/index.js';
 import { write } from '../utils/rw-lock.js';
 import { writeJsonFile } from '../utils/json.js';
 import { getChildLogger } from '../utils/log-utils.js';
@@ -106,9 +107,12 @@ export class Create {
   ): Promise<string[]> {
     if (
       !templateName ||
-      !Validate.validateFolder(join(this.project.basePath, templateName))
+      !Validate.isValidIdentifierName(
+        // A full name 'prefix/templates/identifier' is validated as a whole
+        resourceName(templateName, templateName.includes('/')).identifier,
+      )
     ) {
-      throw new Error(
+      throw new InvalidResourceNameError(
         `Input validation error: template name is invalid '${templateName}'`,
       );
     }

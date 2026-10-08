@@ -21,7 +21,7 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import { existsSync, readdirSync } from 'node:fs';
-import { dirname, join, sep } from 'node:path';
+import { dirname, join, resolve, sep } from 'node:path';
 import { homedir } from 'node:os';
 
 /**
@@ -142,6 +142,21 @@ export function getFilesSync(
 export function pathExists(path: string): boolean {
   path = resolveTilde(path);
   return existsSync(path);
+}
+
+/**
+ * Checks that 'name' resolved against 'base' is strictly inside 'base'.
+ * The base folder itself, a parent of it, and paths with NUL characters are rejected.
+ * @param base Folder that must contain the result.
+ * @param name Relative name to resolve against the base.
+ * @returns true if the resolved path is inside base, otherwise false
+ */
+export function isPathWithin(base: string, name: string): boolean {
+  if (!name || name.includes('\0')) {
+    return false;
+  }
+  const root = resolve(base);
+  return resolve(root, name).startsWith(root + sep);
 }
 
 /**
