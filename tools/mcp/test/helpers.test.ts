@@ -14,7 +14,12 @@
 */
 
 import { describe, expect, test } from 'vitest';
-import { toolResult, toolError } from '../src/lib/mcp-helpers.js';
+import {
+  decodeAttachment,
+  toolResult,
+  toolError,
+} from '../src/lib/mcp-helpers.js';
+import { MAX_ATTACHMENT_BYTES } from '@cyberismo/data-handler/utils/constants';
 
 describe('toolResult', () => {
   test('wraps data with success: true', () => {
@@ -51,5 +56,29 @@ describe('toolError', () => {
 
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toBe('Error doing something: Unknown error');
+  });
+});
+
+describe('decodeAttachment', () => {
+  test('decodes valid base64', () => {
+    expect(decodeAttachment('aGVsbG8=').toString()).toBe('hello');
+    expect(decodeAttachment('').length).toBe(0);
+  });
+
+  test.each([['not base64!'], ['abc'], ['aGVsbG8=x'], ['aGVs=G8=']])(
+    "rejects invalid base64 '%s'",
+    (content) => {
+      expect(() => decodeAttachment(content)).toThrow('not valid base64');
+    },
+  );
+
+  test('accepts content of exactly the maximum size', () => {
+    const content = Buffer.alloc(MAX_ATTACHMENT_BYTES).toString('base64');
+    expect(decodeAttachment(content).length).toBe(MAX_ATTACHMENT_BYTES);
+  });
+
+  test('rejects content over the maximum size', () => {
+    const content = Buffer.alloc(MAX_ATTACHMENT_BYTES + 1).toString('base64');
+    expect(() => decodeAttachment(content)).toThrow('too large');
   });
 });

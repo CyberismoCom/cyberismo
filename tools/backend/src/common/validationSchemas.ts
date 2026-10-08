@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import { z } from 'zod';
-import { Validate } from '@cyberismo/data-handler';
+import { resourceName, Validate } from '@cyberismo/data-handler';
 
 export const resourceTypes = [
   'calculations',
@@ -32,8 +32,38 @@ export const identifierSchema = z
     message: 'Invalid identifier',
   });
 
+export const prefixSchema = z
+  .string()
+  .refine((value) => Validate.validatePrefix(value), {
+    message: 'Invalid project prefix',
+  });
+
+// Checks that a full resource name 'prefix/type/identifier' is valid.
+function isValidResourceName(value: string, type?: string): boolean {
+  try {
+    const name = resourceName(value, true);
+    return (
+      `${name.prefix}/${name.type}/${name.identifier}` === value &&
+      (type === undefined || name.type === type) &&
+      Validate.validatePrefix(name.prefix) &&
+      Validate.isValidIdentifierName(name.identifier)
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Schema for a full resource name, such as 'prefix/cardTypes/identifier'.
+ * @param type Optional resource type that the name must have.
+ */
+export const resourceNameSchema = (type?: (typeof resourceTypes)[number]) =>
+  z.string().refine((value) => isValidResourceName(value, type), {
+    message: type ? `Invalid ${type} resource name` : 'Invalid resource name',
+  });
+
 export const resourceParamsSchema = z.object({
-  prefix: z.string(),
+  prefix: prefixSchema,
   type: z.enum(resourceTypes),
   identifier: identifierSchema,
 });

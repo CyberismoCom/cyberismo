@@ -12,6 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { ResourceNotFoundError } from '../exceptions/index.js';
 import { DefaultContent } from './create-defaults.js';
 import { FileResource } from './file-resource.js';
 import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
@@ -145,7 +146,7 @@ export class CardTypeResource extends FileResource<CardType> {
     // Check that field type exists in the project.
     const exists = await this.fieldTypeExists(field);
     if (!exists) {
-      throw new Error(
+      throw new ResourceNotFoundError(
         `Field type '${field.name}' does not exist in the project`,
       );
     }
@@ -181,7 +182,7 @@ export class CardTypeResource extends FileResource<CardType> {
       .byType(workflowName, 'workflows')
       .show();
     if (!workflow) {
-      throw new Error(
+      throw new ResourceNotFoundError(
         `Workflow '${workflowName}' does not exist in the project`,
       );
     }

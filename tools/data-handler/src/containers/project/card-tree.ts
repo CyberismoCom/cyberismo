@@ -12,7 +12,7 @@
 */
 
 // node
-import { basename, dirname, join, resolve, sep } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import {
   constants as fsConstants,
   copyFile,
@@ -20,6 +20,7 @@ import {
   rename,
   rm,
   rmdir,
+  stat,
   unlink,
   writeFile,
 } from 'node:fs/promises';
@@ -33,10 +34,19 @@ import type {
   CardNode,
 } from '../../interfaces/project-interfaces.js';
 import { CardNotFoundError } from '../../exceptions/index.js';
-import { copyDir, deleteDir, pathExists } from '../../utils/file-utils.js';
+import {
+  copyDir,
+  deleteDir,
+  isPathWithin,
+  pathExists,
+} from '../../utils/file-utils.js';
 import { getChildLogger } from '../../utils/log-utils.js';
 import { writeJsonFile } from '../../utils/json.js';
-import { isPredefinedField, ROOT } from '../../utils/constants.js';
+import {
+  isPredefinedField,
+  MAX_ATTACHMENT_BYTES,
+  ROOT,
+} from '../../utils/constants.js';
 import {
   EMPTY_RANK,
   FIRST_RANK,
@@ -969,7 +979,9 @@ export class CardTree {
    * @param attachmentName Name for the attachment file.
    * @param attachmentData Buffer to write, or path of a file to copy.
    * @throws CardNotFoundError if the tree does not hold the card; if the
-   *   source file cannot be read, or the card already has the file.
+   *   name is not a valid file name, the source file cannot be read, the
+   *   attachment is larger than MAX_ATTACHMENT_BYTES, or the card already
+   *   has the file.
    */
   public async addAttachment(
     cardKey: string,
@@ -978,11 +990,29 @@ export class CardTree {
   ): Promise<void> {
     this.assertWritable();
     const attachmentFolder = this.attachmentFolderOf(cardKey);
-    await mkdir(attachmentFolder, { recursive: true });
 
     const fileName = basename(attachmentName);
-    const attachmentPath = join(attachmentFolder, fileName);
+    if (!isPathWithin(attachmentFolder, fileName)) {
+      throw new Error(`Invalid attachment filename: ${attachmentName}`);
+    }
+    let size: number;
+    if (Buffer.isBuffer(attachmentData)) {
+      size = attachmentData.length;
+    } else {
+      try {
+        size = (await stat(attachmentData)).size;
+      } catch {
+        throw new Error(`Attachment file not found: ${attachmentData}`);
+      }
+    }
+    if (size > MAX_ATTACHMENT_BYTES) {
+      throw new Error(
+        `Attachment '${fileName}' is too large: ${size} bytes, maximum is ${MAX_ATTACHMENT_BYTES} bytes`,
+      );
+    }
 
+    await mkdir(attachmentFolder, { recursive: true });
+    const attachmentPath = join(attachmentFolder, fileName);
     if (Buffer.isBuffer(attachmentData)) {
       await writeFile(attachmentPath, attachmentData, { flag: 'wx' });
     } else {
@@ -1029,12 +1059,11 @@ export class CardTree {
   ): Promise<void> {
     this.assertWritable();
     const attachmentFolder = this.attachmentFolderOf(cardKey);
-    const attachmentPath = resolve(attachmentFolder, fileName);
-
     // Prevent path traversal
-    if (!attachmentPath.startsWith(resolve(attachmentFolder) + sep)) {
+    if (!isPathWithin(attachmentFolder, fileName)) {
       throw new Error(`Invalid attachment filename: ${fileName}`);
     }
+    const attachmentPath = resolve(attachmentFolder, fileName);
 
     try {
       await unlink(attachmentPath);
@@ -1081,15 +1110,15 @@ export class CardTree {
       ATTACHMENT_FOLDER,
       attachment.dir,
     );
-    const target = resolve(folder, newFileName);
     // A name that is not a plain file name renames the file out of the folder
     // the card owns, while the store keeps reporting it as an attachment here.
     if (
       basename(newFileName) !== newFileName ||
-      !target.startsWith(resolve(folder) + sep)
+      !isPathWithin(folder, newFileName)
     ) {
       throw new Error(`Invalid attachment filename: ${newFileName}`);
     }
+    const target = resolve(folder, newFileName);
     // rename() replaces its destination silently; a plain check is enough
     // because attachment writes hold the project's write lock.
     if (pathExists(target)) {

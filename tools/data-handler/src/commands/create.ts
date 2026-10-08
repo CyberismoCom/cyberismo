@@ -106,7 +106,7 @@ export class Create {
   ): Promise<string[]> {
     if (
       !templateName ||
-      !Validate.validateFolder(join(this.project.basePath, templateName))
+      !Validate.isValidIdentifierName(resourceName(templateName).identifier)
     ) {
       throw new Error(
         `Input validation error: template name is invalid '${templateName}'`,

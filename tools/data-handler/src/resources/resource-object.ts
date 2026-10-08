@@ -31,6 +31,8 @@ import {
   resourceNameToString,
   type ResourceName,
 } from '../utils/resource-utils.js';
+import { isValidIdentifier } from '../utils/validate.js';
+import { ResourceNotFoundError } from '../exceptions/index.js';
 import type {
   Card,
   ResourceFolderType,
@@ -198,7 +200,7 @@ export abstract class ResourceObject<
     if (!this.exists()) {
       const resourceType = `${this.type[0].toUpperCase()}${this.type.slice(1, this.type.length - 1)}`;
       const name = resourceNameToString(this.resourceName);
-      throw new Error(
+      throw new ResourceNotFoundError(
         `${resourceType} '${name}' does not exist in the project`,
       );
     }
@@ -460,7 +462,7 @@ export abstract class ResourceObject<
       throw new Error(`Cannot rename module resources`);
     }
     if (!this.exists()) {
-      throw new Error(
+      throw new ResourceNotFoundError(
         `Resource '${this.resourceName.identifier}' does not exist`,
       );
     }
@@ -530,7 +532,7 @@ export abstract class ResourceObject<
   ): Promise<void> {
     const content = this.data;
     if (!content) {
-      throw new Error(
+      throw new ResourceNotFoundError(
         `Resource '${resourceNameToString(this.resourceName)}' does not exist`,
       );
     }
@@ -550,7 +552,7 @@ export abstract class ResourceObject<
    */
   protected async usage(cards?: Card[]): Promise<string[]> {
     if (!this.exists()) {
-      throw new Error(
+      throw new ResourceNotFoundError(
         `Resource '${this.resourceName.identifier}' does not exist in the project`,
       );
     }
@@ -565,13 +567,12 @@ export abstract class ResourceObject<
 
   /**
    * Validates resource identifier to prevent filesystem operations with invalid names
-   * todo: move to Validate?
    * @throws if identifier is incorrect
    */
   protected validateResourceIdentifier() {
     if (!this.moduleResource && this.resourceName.identifier) {
       const identifier = this.resourceName.identifier;
-      if (!/^[a-zA-Z0-9._-]+$/.test(identifier)) {
+      if (!isValidIdentifier(identifier)) {
         throw new Error(
           `Resource identifier must follow naming rules. Identifier '${identifier}' is invalid`,
         );
@@ -653,7 +654,7 @@ export abstract class ResourceObject<
       this.fileName += '.json';
     }
     if (!this.exists()) {
-      throw new Error(
+      throw new ResourceNotFoundError(
         `Resource '${this.resourceName.identifier}' does not exist in the project`,
       );
     }

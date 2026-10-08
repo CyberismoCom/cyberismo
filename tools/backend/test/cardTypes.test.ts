@@ -72,7 +72,7 @@ test('POST /api/projects/:prefix/cardTypes returns error for non-existent workfl
   });
 
   expect(response).not.toBe(null);
-  expect(response.status).toBe(500);
+  expect(response.status).toBe(400);
 
   const result = await response.json();
   expect(result).toHaveProperty('error');

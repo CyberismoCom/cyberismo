@@ -35,6 +35,26 @@ export class CardNotFoundError extends Error {
 }
 
 /**
+ * Thrown when a resource name is not in a valid format.
+ */
+export class InvalidResourceNameError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidResourceNameError';
+  }
+}
+
+/**
+ * Thrown when a resource does not exist in the project.
+ */
+export class ResourceNotFoundError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ResourceNotFoundError';
+  }
+}
+
+/**
  * Thrown while loading cards when a card key is not unique across the project
  * and all of its templates.
  */

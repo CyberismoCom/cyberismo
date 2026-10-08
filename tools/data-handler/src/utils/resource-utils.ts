@@ -13,6 +13,7 @@ import { join, parse, sep } from 'node:path';
 import type { Project } from '../containers/project.js';
 import type { WorkflowTransition } from '../interfaces/resource-interfaces.js';
 import { stripExtension } from './file-utils.js';
+import { InvalidResourceNameError } from '../exceptions/index.js';
 
 /** The new-card transition: fromState is [''] or empty. */
 export function isInitialTransition(transition: WorkflowTransition): boolean {
@@ -69,7 +70,9 @@ export function resourceName(
   // just resource identifier - type and prefix are unknown
   if (parts.length === 1 && parts.at(0) !== '') {
     if (strict) {
-      throw new Error(`Name '${resourceName}' is not valid resource name`);
+      throw new InvalidResourceNameError(
+        `Name '${resourceName}' is not valid resource name`,
+      );
     }
     return {
       prefix: '',
@@ -87,9 +90,13 @@ export function resourceName(
   }
   // other formats are not accepted
   if (resourceName === '') {
-    throw new Error('Must define resource name to query its details');
+    throw new InvalidResourceNameError(
+      'Must define resource name to query its details',
+    );
   }
-  throw new Error(`Name '${resourceName}' is not valid resource name`);
+  throw new InvalidResourceNameError(
+    `Name '${resourceName}' is not valid resource name`,
+  );
 }
 
 /**
