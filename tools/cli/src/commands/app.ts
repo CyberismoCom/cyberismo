@@ -26,7 +26,7 @@ import {
 } from '@cyberismo/backend';
 import {
   Cmd,
-  type CommandOptions,
+  type StartCommandOptions,
   scanForProjects,
 } from '@cyberismo/data-handler';
 
@@ -44,7 +44,7 @@ async function getGitUserConfig(): Promise<MockUserConfig> {
 // Validates each project and returns the ones with errors.
 async function validateProjects(
   projects: Awaited<ReturnType<typeof scanForProjects>>,
-  options: CommandOptions<'start'>,
+  options: StartCommandOptions,
 ): Promise<ProjectErrors[]> {
   const invalid: ProjectErrors[] = [];
   for (const project of projects) {
@@ -84,7 +84,7 @@ export function registerApp(program: Command) {
     .option('--autocommit', 'Enable git-backed transactional writes')
     .option('--autopush', 'Push autocommitted changes to the remote');
   program.addCommand(appCmd);
-  appCmd.action(async (options: CommandOptions<'start'>) => {
+  appCmd.action(async (options: StartCommandOptions) => {
     const basePath = options.projectPath || process.cwd();
     let projects: Awaited<ReturnType<typeof scanForProjects>>;
     try {
