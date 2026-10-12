@@ -17,7 +17,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { mkdtemp, realpath } from 'node:fs/promises';
 import type * as fsPromises from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, relative } from 'node:path';
+import { join, relative, sep } from 'node:path';
 import { simpleGit } from 'simple-git';
 
 import { Project } from '../../src/containers/project.js';
@@ -54,8 +54,9 @@ function snapshot(dir: string): Record<string, string> {
     withFileTypes: true,
   })) {
     const path = join(entry.parentPath, entry.name);
-    if (entry.isFile() && !relative(dir, path).startsWith('.git/')) {
-      files[relative(dir, path)] = readFileSync(path, 'utf-8');
+    const name = relative(dir, path);
+    if (entry.isFile() && name.split(sep)[0] !== '.git') {
+      files[name] = readFileSync(path, 'utf-8');
     }
   }
   return files;
@@ -247,9 +248,6 @@ describe('buildProject', () => {
       await realpath((await git.revparse(['--show-toplevel'])).trim()),
     ).toBe(await realpath(path));
     expect((await git.log()).total).toBe(1);
-    expect((await git.raw(['log', '--format=%at %ct'])).trim()).toBe(
-      '1767225600 1767225600',
-    );
     expect((await git.status()).isClean()).toBe(true);
     expect(await validate(path)).toBe('');
   });
@@ -269,18 +267,27 @@ describe('buildProject', () => {
     expect(second.templateKeys).toEqual(first.templateKeys);
     expect(snapshot(second.path)).toEqual(snapshot(first.path));
     expect(other.keys).not.toEqual(first.keys);
-    const head = (project: BuiltProject) =>
-      simpleGit(project.path).revparse(['HEAD']);
-    expect(await head(second)).toBe(await head(first));
   });
 
-  it('rejects a module card type without a workflow and removes the directory', async () => {
+  it.each<[string, ProjectSpec, string]>([
+    [
+      'a module card type without a workflow',
+      { modules: [{ prefix: 'mod', cardTypes: [{ name: 'x' }] }] },
+      'module mod: card type x needs a workflow',
+    ],
+    [
+      'a card of an undefined card type',
+      { cards: [{ cardType: 'nope' }] },
+      'card type test/cardTypes/nope is not defined yet',
+    ],
+    [
+      'a card whose workflow is undefined',
+      { cardTypes: [{ name: 'x', workflow: 'ghost' }], cards: [{}] },
+      'workflow test/workflows/ghost is not defined yet',
+    ],
+  ])('rejects %s and removes the directory', async (_name, spec, message) => {
     const created = vi.mocked(mkdtemp).mock.results.length;
-    await expect(
-      buildProject({
-        modules: [{ prefix: 'mod', cardTypes: [{ name: 'x' }] }],
-      }),
-    ).rejects.toThrow('module mod: card type x needs a workflow');
+    await expect(buildProject(spec)).rejects.toThrow(message);
     const path = await vi.mocked(mkdtemp).mock.results[created].value;
     expect(existsSync(path)).toBe(false);
   });

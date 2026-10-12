@@ -369,27 +369,14 @@ export async function buildProject(
   try {
     await builder.build();
     if (spec.git) {
-      // .env() replaces the environment: simple-git refuses to forward EDITOR
-      // and the like, and leaving out HOME keeps user config out of the SHA.
-      // Windows git needs the system variables below to start at all.
-      const passThrough = Object.fromEntries(
-        ['SystemRoot', 'TEMP', 'TMP', 'USERPROFILE', 'ComSpec', 'PATHEXT']
-          .filter((name) => process.env[name] !== undefined)
-          .map((name) => [name, process.env[name]!]),
-      );
+      // user.* and signing are overridden; on Windows the user's global git
+      // config may still load.
       const git = simpleGit(path, {
-        // simple-git 4 blocks GIT_* variables unless named here.
-        allowEnvironment: ['GIT_AUTHOR_DATE', 'GIT_COMMITTER_DATE'],
         config: [
           'user.name=Test',
           'user.email=test@example.com',
           'commit.gpgsign=false',
         ],
-      }).env({
-        ...passThrough,
-        PATH: process.env.PATH ?? '',
-        GIT_AUTHOR_DATE: TIMESTAMP,
-        GIT_COMMITTER_DATE: TIMESTAMP,
       });
       await git.init(['--initial-branch=main']);
       await git.add('.');
