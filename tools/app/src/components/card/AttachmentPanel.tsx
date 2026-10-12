@@ -30,13 +30,9 @@ import { useTranslation } from 'react-i18next';
 import AddLink from '@mui/icons-material/AddLink';
 import Delete from '@mui/icons-material/Delete';
 import Download from '@mui/icons-material/Download';
-import Edit from '@mui/icons-material/Edit';
 import InsertDriveFile from '@mui/icons-material/InsertDriveFile';
 
 import { useAttachments } from '@/lib/api/attachments';
-import { useAppDispatch } from '@/lib/hooks';
-import { addNotification } from '@/lib/slices/notifications';
-import { openAttachment } from '@/lib/api/actions';
 import { projectApiPaths } from '@/lib/swr';
 import { AddAttachmentModal } from '@/components/modals';
 import type { CardAttachment } from '@cyberismo/data-handler/interfaces/project-interfaces';
@@ -55,7 +51,6 @@ function AttachmentPreviewCard({
   const { removeAttachment } = useAttachments(cardKey);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const apiPaths = projectApiPaths();
 
@@ -107,28 +102,6 @@ function AttachmentPreviewCard({
                 download
                 variant="solid"
               />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title={t('openInEditor')}>
-            <IconButton
-              variant="solid"
-              color="primary"
-              sx={{ marginRight: '3px' }}
-              onClick={async (e) => {
-                e.stopPropagation();
-                try {
-                  await openAttachment(cardKey, name);
-                } catch (error) {
-                  dispatch(
-                    addNotification({
-                      message: error instanceof Error ? error.message : '',
-                      type: 'error',
-                    }),
-                  );
-                }
-              }}
-            >
-              <Edit />
             </IconButton>
           </Tooltip>
           <Tooltip title={t('insertToContent')}>

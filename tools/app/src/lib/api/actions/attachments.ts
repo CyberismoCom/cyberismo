@@ -34,20 +34,3 @@ export async function removeAttachment(
     'DELETE',
   );
 }
-
-/**
- * Opens an attachment using the operating system's default application.
- * @param key
- * @param filename
- * @returns
- */
-export async function openAttachment(
-  key: string,
-  filename: string,
-  projectPrefix?: string,
-) {
-  return callApi(
-    projectApiPaths(projectPrefix).cardAttachmentOpen(key, filename),
-    'POST',
-  );
-}

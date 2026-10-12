@@ -148,16 +148,6 @@ export async function removeAttachment(
   return { message: 'Attachment removed successfully' };
 }
 
-export async function openAttachment(
-  commands: CommandManager,
-  key: string,
-  filename: string,
-) {
-  validateAttachmentFileName(filename);
-  await commands.showCmd.openAttachment(key, filename);
-  return { message: 'Attachment opened successfully' };
-}
-
 export async function parseContent(
   commands: CommandManager,
   key: string,

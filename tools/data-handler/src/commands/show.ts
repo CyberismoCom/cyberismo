@@ -13,9 +13,7 @@
 
 // node
 import { readFileSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { join, resolve } from 'node:path';
-import { spawn } from 'node:child_process';
+import { resolve } from 'node:path';
 import { writeFile } from 'node:fs/promises';
 
 import { type ModuleListFile, MODULE_LIST_FULL_PATH } from './fetch.js';
@@ -49,7 +47,6 @@ import type { Project } from '../containers/project.js';
 import type { ResourceName } from '../utils/resource-utils.js';
 import type { ResourceMap } from '../containers/project/resource-cache.js';
 
-import { UserPreferences } from '../utils/user-preferences.js';
 import { read } from '../utils/rw-lock.js';
 import { moduleInfos } from '../modules/index.js';
 import ReportMacro from '../macros/report/index.js';
@@ -58,7 +55,6 @@ import type { SkillContent } from '../interfaces/folder-content-interfaces.js';
 import TaskQueue from '../macros/task-queue.js';
 import { evaluateMacros } from '../macros/index.js';
 import { readJsonFile } from '../utils/json.js';
-import { sleep } from '../utils/common-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import {
   buildCardHierarchy,
@@ -134,21 +130,6 @@ export class Show {
       .find((a) => a.fileName === filename);
   }
 
-  // Opens the given path using the operating system's default application. Doesn't block the main thread.
-  // @todo: Move away from Show.
-  private openUsingDefaultApplication(path: string) {
-    if (process.platform === 'win32') {
-      // This is a workaround to get windows to open the file in foreground
-      spawn(`start`, ['cmd.exe', '/c', 'start', '""', `"${path}"`], {
-        shell: true,
-      });
-    } else if (process.platform === 'darwin') {
-      spawn('open', [path]);
-    } else {
-      spawn('xdg-open', [path]);
-    }
-  }
-
   /**
    * Shows all template cards in a project.
    * @returns all template cards in a project.
@@ -209,64 +190,6 @@ export class Show {
     const mimeType = attachment.mimeType || 'application/octet-stream';
     const payload: attachmentPayload = { fileBuffer, mimeType };
     return payload;
-  }
-
-  /**
-   * Opens an attachment using a configured application or the operating system's default application.
-   * @param cardKey card key of the attachment
-   * @param filename attachment filename
-   * @param waitDelay amount of time to wait for the application to open the attachment
-   * @todo: Move away from Show.
-   */
-  @read
-  public async openAttachment(
-    cardKey: string,
-    filename: string,
-    waitDelay: number = 1000,
-  ) {
-    const attachment = this.getAttachment(cardKey, filename);
-
-    if (!attachment) {
-      throw new Error(`Attachment '${filename}' not found for card ${cardKey}`);
-    }
-
-    // Try to open the attachment using a configured application if one exists
-    const prefs = new UserPreferences(
-      join(homedir(), '.cyberismo', 'cards.prefs.json'),
-    ).getPreferences();
-    const attachmentEditors =
-      prefs.attachmentEditors && process.platform in prefs.attachmentEditors
-        ? prefs.attachmentEditors[process.platform]
-        : [];
-
-    const editor = attachmentEditors.find(
-      (editor) => editor.mimeType === attachment.mimeType,
-    );
-
-    const path = resolve(attachment.path, attachment.fileName);
-
-    if (!editor) {
-      this.openUsingDefaultApplication(path);
-      return;
-    }
-
-    // We can safely assume that the editor command is safe to execute, since it is defined in the preferences file by the user
-    const processHandle = spawn(
-      editor.command.replace('{{attachmentPath}}', path),
-      [],
-      {
-        shell: true,
-      },
-    );
-
-    // wait for the application to open the attachment. Not unref'd: the exit
-    // code is checked below, so the process has to stay alive for the wait.
-    await sleep(waitDelay);
-
-    // If the application exists with a non-zero exit code, open the attachment using the operating system's default application
-    if (processHandle.exitCode !== 0 && processHandle.exitCode !== null) {
-      this.openUsingDefaultApplication(path);
-    }
   }
 
   /**
