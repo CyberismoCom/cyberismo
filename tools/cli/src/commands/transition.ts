@@ -1,0 +1,46 @@
+/**
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
+*/
+
+import { type Command } from 'commander';
+
+import { Cmd, type CommandOptions } from '@cyberismo/data-handler';
+
+import { CommandWithPath } from '../lib/args.js';
+import { commandHandler } from '../lib/dispatch.js';
+import { handleResponse } from '../lib/output.js';
+
+export function registerTransition(program: Command) {
+  // Transition command
+  const transitionCmd = new CommandWithPath('transition')
+    .description('Transition a card to the specified state')
+    .argument('<cardKey>', 'card key of a card')
+    .argument(
+      '<transition>',
+      'Workflow state transition that is done.\nYou can list the workflows in a project with "show workflows" command.\nYou can see the available transitions with "show workflow <name>" command.',
+    );
+  program.addCommand(transitionCmd);
+  transitionCmd.action(
+    async (
+      cardKey: string,
+      transition: string,
+      options: CommandOptions<'transition'>,
+    ) => {
+      const result = await commandHandler.command(
+        Cmd.transition,
+        [cardKey, transition],
+        Object.assign({}, options, program.opts()),
+      );
+      handleResponse(result);
+    },
+  );
+}

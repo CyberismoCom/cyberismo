@@ -22,10 +22,14 @@ import {
   pathExists,
   resolveTilde,
   writeFileSafe,
-} from '../utils/file-utils.js';
-import { formatJson, readJsonFile } from '../utils/json.js';
+} from '@cyberismo/data-handler/utils/file-utils';
+import { formatJson, readJsonFile } from '@cyberismo/data-handler/utils/json';
 
-import type { InstallSkillsCommandOptions } from '../interfaces/command-options.js';
+// Options of 'install-skills'.
+export interface InstallSkillsOptions {
+  target?: string;
+  url?: string;
+}
 
 const SUPPORTED_TARGETS = ['claude'] as const;
 type InstallTarget = (typeof SUPPORTED_TARGETS)[number];
@@ -58,7 +62,7 @@ export class InstallSkills {
    */
   public static async install(
     targetPath: string,
-    options: InstallSkillsCommandOptions = {},
+    options: InstallSkillsOptions = {},
   ): Promise<string[]> {
     const target = (options.target ?? 'claude') as InstallTarget;
     if (!SUPPORTED_TARGETS.includes(target)) {
