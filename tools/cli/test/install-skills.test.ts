@@ -1,14 +1,12 @@
 import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 import { mkdirSync, rmSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { Cmd, Commands } from '../src/command-handler.js';
+import { InstallSkills } from '../src/install-skills/install-skills.js';
 
-const baseDir = import.meta.dirname;
-const testDir = join(baseDir, 'tmp-install-skills-tests');
-
-const commandHandler = new Commands();
+const testDir = join(tmpdir(), `cyberismo-install-skills-tests-${process.pid}`);
 
 const skillPath = join(
   testDir,
@@ -34,12 +32,7 @@ describe('install-skills command', () => {
   });
 
   it('installs the bootstrap skill, MCP config and CLAUDE.md pointer', async () => {
-    const result = await commandHandler.command(
-      Cmd.installSkills,
-      [testDir],
-      {},
-    );
-    expect(result.statusCode).toBe(200);
+    await InstallSkills.install(testDir, {});
 
     const skill = await readFile(skillPath, 'utf-8');
     expect(skill).toContain('name: dynamic-skill-discovery');
@@ -57,7 +50,7 @@ describe('install-skills command', () => {
   });
 
   it('honors a custom --url', async () => {
-    await commandHandler.command(Cmd.installSkills, [testDir], {
+    await InstallSkills.install(testDir, {
       url: 'http://localhost:9999/mcp',
     });
     const mcp = await readMcp();
@@ -65,8 +58,8 @@ describe('install-skills command', () => {
   });
 
   it('is idempotent — running twice does not duplicate', async () => {
-    await commandHandler.command(Cmd.installSkills, [testDir], {});
-    await commandHandler.command(Cmd.installSkills, [testDir], {});
+    await InstallSkills.install(testDir, {});
+    await InstallSkills.install(testDir, {});
 
     const mcp = await readMcp();
     // exactly one cyberismo server, still valid JSON
@@ -85,7 +78,7 @@ describe('install-skills command', () => {
     );
     await writeFile(claudeMdPath, '# My project\n\nMy own notes.\n', 'utf-8');
 
-    await commandHandler.command(Cmd.installSkills, [testDir], {});
+    await InstallSkills.install(testDir, {});
 
     const mcp = await readMcp();
     expect(mcp.mcpServers?.other).toEqual({ type: 'http', url: 'x' });
@@ -97,21 +90,14 @@ describe('install-skills command', () => {
   });
 
   it('rejects an unsupported target', async () => {
-    const result = await commandHandler.command(Cmd.installSkills, [testDir], {
-      target: 'github',
-    });
-    expect(result.statusCode).toBe(400);
-    expect(result.message).toMatch(/Unsupported target/);
+    await expect(
+      InstallSkills.install(testDir, { target: 'github' }),
+    ).rejects.toThrow(/Unsupported target/);
   });
 
   it('creates the target directory if it does not exist', async () => {
     const nested = join(testDir, 'repo-root');
-    const result = await commandHandler.command(
-      Cmd.installSkills,
-      [nested],
-      {},
-    );
-    expect(result.statusCode).toBe(200);
+    await InstallSkills.install(nested, {});
     const mcp = JSON.parse(await readFile(join(nested, '.mcp.json'), 'utf-8'));
     expect(mcp.mcpServers.cyberismo).toBeDefined();
   });
@@ -120,11 +106,6 @@ describe('install-skills command', () => {
     // Make .mcp.json a directory so writeFile fails deterministically (EISDIR),
     // and verify the failure is surfaced instead of reported as success.
     mkdirSync(mcpPath, { recursive: true });
-    const result = await commandHandler.command(
-      Cmd.installSkills,
-      [testDir],
-      {},
-    );
-    expect(result.statusCode).not.toBe(200);
+    await expect(InstallSkills.install(testDir, {})).rejects.toThrow();
   });
 });

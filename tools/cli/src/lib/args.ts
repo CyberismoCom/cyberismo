@@ -11,6 +11,10 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { Command, Option } from 'commander';
+
+import { validContexts } from '@cyberismo/data-handler';
+
 // Resource types that have commands affecting them.
 const Resources = [
   'calculation',
@@ -227,5 +231,64 @@ export class ResourceTypeParser {
    */
   public static parseShowTypes(type: string): string {
     return ResourceTypeParser.parseCommandTypes(type, 'show');
+  }
+}
+
+// Ensure that all names have the same guideline.
+export const nameGuideline =
+  'Name can contain letters (a-z|A-Z), spaces, underscores or hyphens.';
+export const pathGuideline =
+  'Path to the project root. Mandatory if not running inside a project tree.';
+
+// Splits a "source@version" argument into source and version parts.
+// Leaves the "@" in SSH URLs like "git@github.com:foo/bar.git" intact by
+// only considering "@" that appears after the host:path separator.
+export function parseSourceAtVersion(input: string): {
+  source: string;
+  version?: string;
+} {
+  let searchFrom = 0;
+  if (input.startsWith('git@')) {
+    const colonIdx = input.indexOf(':');
+    searchFrom = colonIdx >= 0 ? colonIdx : input.length;
+  }
+  const atIdx = input.lastIndexOf('@');
+  if (atIdx > searchFrom) {
+    const version = input.slice(atIdx + 1);
+    return {
+      source: input.slice(0, atIdx),
+      version: version || undefined,
+    };
+  }
+  return { source: input };
+}
+
+export const contextOption = new Option(
+  '-c, --context [context]',
+  'Context to run the logic programs in.',
+)
+  .choices(validContexts)
+  .default('commandLine');
+
+const pathOption = new Option('-p, --project-path <path>', pathGuideline);
+
+// Custom Command class with pathOption pre-configured
+export class CommandWithPath extends Command {
+  createCommand(name?: string): CommandWithPath {
+    return new CommandWithPath(name);
+  }
+
+  constructor(name?: string) {
+    super(name);
+    this.addOption(pathOption);
+  }
+}
+
+// Groups that only host subcommands must not own the path option themselves:
+// Commander lets a parent consume its own options anywhere in argv, so "-p"
+// would never reach the leaf command.
+export class CommandGroup extends Command {
+  createCommand(name?: string): CommandWithPath {
+    return new CommandWithPath(name);
   }
 }
