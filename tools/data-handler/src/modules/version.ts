@@ -41,6 +41,15 @@ export function pickVersion(available: string[]): Version | undefined {
 }
 
 /**
+ * Whether moving up from `from` to `to` leaves the caret range of `from`,
+ * i.e. may break: a major bump, or a minor bump below 1.0.0. Downgrades never
+ * reach it; the solver refuses them.
+ */
+export function isBreakingMove(from: string, to: string): boolean {
+  return !semver.satisfies(to, `^${from}`);
+}
+
+/**
  * Validates that `version` satisfies every range in `constraints`.
  * Throws if any constraint is not satisfied.
  */
