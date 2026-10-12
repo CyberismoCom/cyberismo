@@ -266,9 +266,7 @@ program
   .option('--autocommit', 'Enable git-backed transactional writes')
   .option('--autopush', 'Push autocommitted changes to the remote');
 
-const addCmd = new CommandWithPath('add').description(
-  'Add items to the project',
-);
+const addCmd = new CommandGroup('add').description('Add items to the project');
 program.addCommand(addCmd);
 
 // Add card to a template
@@ -320,7 +318,7 @@ addCmd
     handleResponse(result);
   });
 
-const calculate = new CommandWithPath('calc').description(
+const calculate = new CommandGroup('calc').description(
   'Used for running logic programs',
 );
 program.addCommand(calculate);
@@ -362,7 +360,7 @@ calculate
     handleResponse(result);
   });
 
-const createCmd = new CommandWithPath('create').description(
+const createCmd = new CommandGroup('create').description(
   'Create cards, resources and other project items',
 );
 program.addCommand(createCmd);
@@ -940,7 +938,7 @@ exportCmd
     },
   );
 
-const fetchCmd = new CommandWithPath('fetch').description(
+const fetchCmd = new CommandGroup('fetch').description(
   'Retrieve external data to local file system.',
 );
 program.addCommand(fetchCmd);
@@ -957,7 +955,7 @@ fetchCmd
     handleResponse(result);
   });
 
-const importCmd = new CommandWithPath('import').description(
+const importCmd = new CommandGroup('import').description(
   'Import modules and data into the project',
 );
 program.addCommand(importCmd);
@@ -1206,7 +1204,7 @@ program
     await previewSite(dir || '.', true);
   });
 
-const rank = new CommandWithPath('rank').description(
+const rank = new CommandGroup('rank').description(
   'Manage card ranking and ordering',
 );
 program.addCommand(rank);
