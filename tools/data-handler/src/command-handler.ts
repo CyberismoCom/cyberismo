@@ -250,7 +250,7 @@ export class Commands {
           }
           return this.runLogicProgram(
             cardKey,
-            (options as CalcCommandOptions).context || 'localApp',
+            (options as CalcCommandOptions).context || 'commandLine',
           );
         }
         if (command === 'generate') {
@@ -455,7 +455,7 @@ export class Commands {
         const [parameters, outputPath] = args;
         return this.runReport(
           parameters,
-          (options as ReportCommandOptions).context || 'localApp',
+          (options as ReportCommandOptions).context || 'commandLine',
           outputPath,
         );
       } else if (command === Cmd.start) {
