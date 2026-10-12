@@ -46,17 +46,21 @@ let alpha: string, child: string, beta: string, gamma: string;
 let labelled: string;
 
 // The Bot author must not depend on the developer's git environment: drop the
-// author/committer overrides and point global config at a file without user.*.
+// author/committer/config-injection env and system config, and pin global
+// config to a file without user.*.
 beforeEach(async () => {
   configDir = await mkdtemp(join(tmpdir(), 'cyberismo-gitconfig-'));
   await writeFile(join(configDir, 'gitconfig'), '');
   for (const name of Object.keys(process.env)) {
-    if (/^GIT_(AUTHOR|COMMITTER)_/.test(name)) {
+    if (/^GIT_(AUTHOR|COMMITTER|CONFIG)_/.test(name)) {
       savedEnv.set(name, process.env[name]);
       delete process.env[name];
     }
   }
-  savedEnv.set('GIT_CONFIG_GLOBAL', process.env.GIT_CONFIG_GLOBAL);
+  for (const name of ['GIT_CONFIG_GLOBAL', 'GIT_CONFIG_NOSYSTEM']) {
+    if (!savedEnv.has(name)) savedEnv.set(name, process.env[name]);
+  }
+  process.env.GIT_CONFIG_NOSYSTEM = '1';
   process.env.GIT_CONFIG_GLOBAL = join(configDir, 'gitconfig');
   project = await buildProject({
     git: true,
@@ -80,14 +84,14 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  await client.close();
-  ws.project.dispose();
-  await project.cleanup();
   for (const [name, value] of savedEnv) {
     if (value === undefined) delete process.env[name];
     else process.env[name] = value;
   }
   savedEnv.clear();
+  await client.close();
+  ws.project.dispose();
+  await project.cleanup();
   await rm(configDir, { recursive: true, force: true });
 });
 
