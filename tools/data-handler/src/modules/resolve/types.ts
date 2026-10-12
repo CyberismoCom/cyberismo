@@ -22,7 +22,6 @@ import type {
 
 export type UpdateRequest =
   | { kind: 'verify' }
-  | { kind: 'availability'; module?: string } // module omitted ⇒ all roots
   | { kind: 'update'; module: string; to?: Version } // to omitted ⇒ newest in range
   | { kind: 'add'; name: string; source: Source; range?: VersionRange } // fresh import: prefetched name+source
   | { kind: 'updateAll' };

@@ -359,6 +359,7 @@ describe('Module command namespace', function () {
       /^\s*module\s+Manage the modules of the project/m,
     );
     expect(help.stdout).not.toContain('update-modules');
+    expect(help.stdout).not.toContain('check-updates');
     const importHelp = await execAsync(`${cli} import --help`);
     expect(importHelp.stdout).not.toMatch(/^\s*module /m);
     const removeHelp = await execAsync(`${cli} remove --help`);
@@ -408,6 +409,38 @@ describe('Module command namespace', function () {
     expect(stdout).toContain('[]');
     expect(stderr).toContain(
       "'cyberismo show modules' is deprecated. Use 'cyberismo module list'",
+    );
+  });
+}, 100000);
+
+describe('Module update --dry-run', function () {
+  const projectPath = `${tmpPath}/cyberismo-cli-dry-run`;
+  const run = (args: string) =>
+    execAsync(`cd ${projectPath} && ${cli} ${args}`);
+
+  afterAll(() => {
+    rmSync(projectPath, { recursive: true, force: true });
+  });
+  beforeAll(async () => {
+    rmSync(projectPath, { recursive: true, force: true });
+    await execAsync(
+      `cd ${tmpPath} && ${cli} create project "Dry Run Test" drt cyberismo-cli-dry-run --skipModuleImport`,
+    );
+  }, 100000);
+
+  it('prints the plan; check-updates is the same, deprecated', async () => {
+    await execAsync(
+      `cp -r ${moduleTestPath} ${projectPath}/module-test && cd ${projectPath} && ${cli} module install ./module-test`,
+    );
+    const dry = await run('module update --dry-run');
+    expect(dry.stdout).toContain('test    (unversioned)  refetched');
+    expect(dry.stdout).toMatch(/run the same command without --dry-run\.$/m);
+    expect(dry.stderr).not.toContain('deprecated');
+
+    const alias = await run('check-updates');
+    expect(alias.stdout).toBe(dry.stdout);
+    expect(alias.stderr).toContain(
+      "'cyberismo check-updates' is deprecated. Use 'cyberismo module update --dry-run'",
     );
   });
 }, 100000);

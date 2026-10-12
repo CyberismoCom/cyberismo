@@ -111,16 +111,15 @@ export interface UpdateCommandOptions extends BaseCommandOptions {
   mappingFile?: string;
 }
 
-// Options for 'checkUpdates' command
-export type CheckUpdatesCommandOptions = BaseCommandOptions;
-
 // Options for 'clean' command
 export interface CleanCommandOptions extends BaseCommandOptions {
   dryRun?: boolean;
 }
 
 // Options for 'updateModules' command
-export type UpdateModulesCommandOptions = BaseCommandOptions;
+export interface UpdateModulesCommandOptions extends BaseCommandOptions {
+  dryRun?: boolean;
+}
 
 // Options for 'validate' command
 export type ValidateCommandOptions = BaseCommandOptions;
@@ -135,7 +134,6 @@ export interface InstallSkillsCommandOptions extends BaseCommandOptions {
 export type AllCommandOptions =
   | AddCommandOptions
   | CalcCommandOptions
-  | CheckUpdatesCommandOptions
   | CleanCommandOptions
   | CreateCommandOptions
   | EditCommandOptions
@@ -162,7 +160,6 @@ export type AllCommandOptions =
 export type CommandOptions<T extends CmdKey> = {
   add: AddCommandOptions;
   calc: CalcCommandOptions;
-  checkUpdates: CheckUpdatesCommandOptions;
   clean: CleanCommandOptions;
   create: CreateCommandOptions;
   edit: EditCommandOptions;

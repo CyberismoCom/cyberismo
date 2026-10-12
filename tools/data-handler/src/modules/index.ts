@@ -23,7 +23,6 @@
 
 // Vocabulary: the types that appear in the signatures below.
 export type {
-  CheckStatus,
   InstallationRef,
   ModuleDeclaration,
   ModuleInstallation,
