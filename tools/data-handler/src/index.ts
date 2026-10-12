@@ -19,6 +19,7 @@ import {
   ExportFormats,
 } from './command-handler.js';
 import { Validate } from './commands/validate.js';
+export { SCHEMA_VERSION } from '@cyberismo/migrations';
 export * from './interfaces/project-interfaces.js';
 export * from './interfaces/macros.js';
 export type { ProjectProvider } from './interfaces/project-provider.js';

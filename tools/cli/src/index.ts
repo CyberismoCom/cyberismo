@@ -14,6 +14,8 @@
 
 import { Option } from 'commander';
 
+import { SCHEMA_VERSION } from '@cyberismo/data-handler';
+
 import { registerAdd } from './commands/add.js';
 import { registerApp } from './commands/app.js';
 import { registerCalc } from './commands/calc.js';
@@ -41,7 +43,7 @@ import { registerShow } from './commands/show.js';
 import { registerTransition } from './commands/transition.js';
 import { registerUpdate } from './commands/update.js';
 import { registerValidate } from './commands/validate.js';
-import { commandHandler, program } from './lib/dispatch.js';
+import { program } from './lib/dispatch.js';
 
 // To avoid duplication, fetch description and version from package.json file.
 // Importing dynamically allows filtering of warnings in cli/bin/run.
@@ -53,7 +55,7 @@ program
   .name('cyberismo')
   .description(packageDef.description)
   .version(
-    `cyberismo version: ${packageDef.version}\nSchema version: ${commandHandler.getSchemaVersion()}`,
+    `cyberismo version: ${packageDef.version}\nSchema version: ${SCHEMA_VERSION}`,
     '-v, --version',
     'Output the version information',
   )
