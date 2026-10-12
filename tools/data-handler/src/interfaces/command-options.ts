@@ -124,12 +124,6 @@ export interface UpdateModulesCommandOptions extends BaseCommandOptions {
 // Options for 'validate' command
 export type ValidateCommandOptions = BaseCommandOptions;
 
-// Options for 'installSkills' command
-export interface InstallSkillsCommandOptions extends BaseCommandOptions {
-  target?: string;
-  url?: string;
-}
-
 // All possible command options
 export type AllCommandOptions =
   | AddCommandOptions
@@ -140,7 +134,6 @@ export type AllCommandOptions =
   | ExportCommandOptions
   | FetchCommandOptions
   | ImportCommandOptions
-  | InstallSkillsCommandOptions
   | MigrateCommandOptions
   | MoveCommandOptions
   | PublishCommandOptions
@@ -166,7 +159,6 @@ export type CommandOptions<T extends CmdKey> = {
   export: ExportCommandOptions;
   fetch: FetchCommandOptions;
   import: ImportCommandOptions;
-  installSkills: InstallSkillsCommandOptions;
   migrate: MigrateCommandOptions;
   move: MoveCommandOptions;
   publish: PublishCommandOptions;
